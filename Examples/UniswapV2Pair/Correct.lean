@@ -1,4 +1,5 @@
 import Examples.UniswapV2Pair.Bytecode
+import Examples.UniswapV2Pair.Constructor
 import Examples.UniswapV2Pair.Dispatch
 import Examples.UniswapV2Pair.Allowance
 import Examples.UniswapV2Pair.Approve
@@ -170,5 +171,9 @@ theorem uniswapV2PairCorrect :
                                                             · simpa [selIs, uniswapSelBytes] using hsync
     · exact uniswapShortRevert hcode hsize hperm hwv (by omega)
   · exact uniswapNonPayable hcode hwv
+
+theorem uniswapV2PairContractCorrect :
+    contractEquivalence config uniswapV2PairInitcode uniswapV2PairBytecode contract :=
+  contractEquivalence.intro uniswapV2PairConstructorCorrect uniswapV2PairCorrect
 
 end UniswapV2Pair

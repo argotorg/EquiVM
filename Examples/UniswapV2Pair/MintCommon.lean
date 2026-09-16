@@ -1,3 +1,5 @@
+import Examples.UniswapV2Pair.WordArithmeticSource
+import Examples.UniswapV2Pair.ByteArrayWriteMemory
 import Examples.UniswapV2Pair.ExternalCalls
 import Examples.UniswapV2Pair.ExternalWrappers
 import Examples.UniswapV2Pair.GetReserves
@@ -85,22 +87,73 @@ abbrev mintFeeFactoryWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 abbrev mintFeeKLastSlotWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   uniswapSlotWord ⟨11⟩ σ I
 
+theorem feeToSelectorMem_size_of_ge160 {mem : ByteArray} (hmem : 160 ≤ mem.size) :
+    (feeToSelectorMem mem).size = mem.size := by
+  exact toByteArray_write32_size_of_le mem feeToSelectorShifted 128 mem.size mem.size
+    rfl (by omega) (by omega)
+
+theorem feeToSelectorMem_read64_of_ge160 {mem : ByteArray} (hmem : 160 ≤ mem.size)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (feeToSelectorMem mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  unfold feeToSelectorMem
+  rw [write32_read_below _ _ 128 64 (by rw [toByteArray_size]) (by omega) (by omega)]
+  exact hread64
+
+theorem feeToSelectorMem_read128_4_of_ge160 {mem : ByteArray} (hmem : 160 ≤ mem.size) :
+    (feeToSelectorMem mem).readWithPadding 128 4 = feeToSelector := by
+  unfold feeToSelectorMem
+  rw [write32_read_prefix_len _ _ 128 4 (by rw [toByteArray_size])
+    (by omega) (by norm_num) (by norm_num) (by norm_num)]
+  unfold feeToSelectorShifted feeToSelectorWord feeToSelector selectorBytes
+  native_decide
+
+theorem feeToStaticcallMem_size_of_ge160 {mem : ByteArray} (out : ByteArray)
+    (hmem : 160 ≤ mem.size) (houtSize : out.size < UInt256.size) :
+    (feeToStaticcallMem mem out).size = mem.size := by
+  unfold feeToStaticcallMem
+  have hlen : (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = min 32 out.size := by
+    by_cases hlo : 32 ≤ out.size
+    · rw [balanceOfThisStaticcallWriteLen_of_size_ge out hlo houtSize, Nat.min_eq_left hlo]
+    · rw [balanceOfThisStaticcallWriteLen_of_size_lt out (by omega) houtSize,
+        Nat.min_eq_right (by omega)]
+  rw [hlen, byteArray_write_size_of_inBounds _ _ 128 (min 32 out.size)
+    (Nat.min_le_right _ _) (by rw [feeToSelectorMem_size_of_ge160 hmem]; omega),
+    feeToSelectorMem_size_of_ge160 hmem]
+
+theorem feeToStaticcallMem_read64_of_ge160 {mem : ByteArray} (out : ByteArray)
+    (hmem : 160 ≤ mem.size) (houtSize : out.size < UInt256.size)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (feeToStaticcallMem mem out).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  unfold feeToStaticcallMem
+  by_cases hlo : 32 ≤ out.size
+  · rw [balanceOfThisStaticcallWriteLen_of_size_ge out hlo houtSize,
+      write32_read_below _ _ 128 64 hlo
+        (by rw [feeToSelectorMem_size_of_ge160 hmem]; omega) (by omega)]
+    exact feeToSelectorMem_read64_of_ge160 hmem hread64
+  · rw [balanceOfThisStaticcallWriteLen_of_size_lt out (by omega) houtSize]
+    by_cases hz : out.size = 0
+    · rw [hz, byteArray_write_len_zero]
+      exact feeToSelectorMem_read64_of_ge160 hmem hread64
+    · rw [write_read_below_gen _ _ 128 out.size 64 hz le_rfl
+        (by rw [feeToSelectorMem_size_of_ge160 hmem]; omega) (by omega)]
+      exact feeToSelectorMem_read64_of_ge160 hmem hread64
+
+theorem feeToStaticcallMem_read128_of_ge160 {mem : ByteArray} (out : ByteArray)
+    (hmem : 160 ≤ mem.size) (houtlo : 32 ≤ out.size) (houtSize : out.size < UInt256.size) :
+    (feeToStaticcallMem mem out).readWithPadding 128 32 = out.extract 0 32 := by
+  unfold feeToStaticcallMem
+  rw [balanceOfThisStaticcallWriteLen_of_size_ge out houtlo houtSize]
+  exact write32_read_back out (feeToSelectorMem mem) 128 houtlo
+    (by rw [feeToSelectorMem_size_of_ge160 hmem]; omega)
+
+
 theorem feeToSelectorMem_size_of_rebuiltStaticcallMem
     (self : UInt256) (oPrev o : ByteArray)
     (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
     (feeToSelectorMem (balanceOfThisRebuiltStaticcallMem self oPrev o)).size = 164 := by
-  unfold feeToSelectorMem
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-    (by
-      rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo
-        hprevhi hlo hhi]
-      omega)]
-  rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract,
-    balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo hprevhi hlo hhi,
-    toByteArray_size]
-  omega
+  have hsize := balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo hprevhi hlo hhi
+  exact (feeToSelectorMem_size_of_ge160 (by rw [hsize]; omega)).trans hsize
 
 theorem feeToSelectorMem_read64_of_rebuiltStaticcallMem
     (self : UInt256) (oPrev o : ByteArray)
@@ -108,15 +161,9 @@ theorem feeToSelectorMem_read64_of_rebuiltStaticcallMem
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
     (feeToSelectorMem (balanceOfThisRebuiltStaticcallMem self oPrev o)).readWithPadding
       64 32 = UInt256.toByteArray ⟨128⟩ := by
-  unfold feeToSelectorMem
-  rw [write32_read_below _ _ 128 64 (by rw [toByteArray_size])
-    (by
-      rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo
-        hprevhi hlo hhi]
-      omega)
-    (by omega)]
-  exact balanceOfThisRebuiltStaticcallMem_read64_of_size_ge self oPrev o hprevlo hprevhi
-    hlo hhi
+  exact feeToSelectorMem_read64_of_ge160
+    (by rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo hprevhi hlo hhi]; omega)
+    (balanceOfThisRebuiltStaticcallMem_read64_of_size_ge self oPrev o hprevlo hprevhi hlo hhi)
 
 theorem feeToSelectorMem_read128_4_of_rebuiltStaticcallMem
     (self : UInt256) (oPrev o : ByteArray)
@@ -124,15 +171,8 @@ theorem feeToSelectorMem_read128_4_of_rebuiltStaticcallMem
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
     (feeToSelectorMem (balanceOfThisRebuiltStaticcallMem self oPrev o)).readWithPadding
       128 4 = feeToSelector := by
-  unfold feeToSelectorMem
-  rw [write32_read_prefix_len _ _ 128 4 (by rw [toByteArray_size])
-    (by
-      rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo
-        hprevhi hlo hhi]
-      omega)
-    (by norm_num) (by norm_num) (by norm_num)]
-  unfold feeToSelectorShifted feeToSelectorWord feeToSelector selectorBytes
-  native_decide
+  exact feeToSelectorMem_read128_4_of_ge160
+    (by rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo hprevhi hlo hhi]; omega)
 
 theorem feeToSelectorMem_mload64_of_rebuiltStaticcallMem
     (self : UInt256) (oPrev o : ByteArray)
@@ -153,11 +193,11 @@ theorem feeToSelectorMem_mload64_of_rebuiltStaticcallMem
     (by decide)
     (feeToSelectorMem_read64_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi)
 
-theorem uniswapMintFeeToTypedCall_source
+theorem uniswapMintFeeToTypedCall_source_of_mem
     {cA1 gh bl σ1 σ₀ I} {evm1S : EVM.State}
     {cA2 : Batteries.RBSet AccountAddress compare} {σ2 : AccountMap}
     {z2 : Bool} {out2 : ByteArray} {A_in2 : Substate} {callGas2 : UInt256}
-    {oPrev o : ByteArray}
+    {mem : ByteArray}
     (hPost : accountMapEquiv σ1 evm1S.accountMap)
     (hcreated : evm1S.createdAccounts = cA1)
     (hσ0 : evm1S.σ₀ = σ₀)
@@ -165,8 +205,7 @@ theorem uniswapMintFeeToTypedCall_source
     (hblocks : evm1S.blocks = bl)
     (henv : evm1S.executionEnv = I)
     (hdepth : I.depth.val < 1024)
-    (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
-    (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size)
+    (hmem : 160 ≤ mem.size)
     (hΘ :
       ∃ (g'' : UInt256) (A'_evm : Substate),
         (cA2, σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ I.blobVersionedHashes
@@ -176,7 +215,7 @@ theorem uniswapMintFeeToTypedCall_source
           (toExecute σ1 (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
           callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((feeToSelectorMem
-            (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) oPrev o))
+            mem)
             |>.readWithPadding 128 4)
           (I.depth + 1) I.header false) :
     ∃ evm2S : EVM.State,
@@ -228,10 +267,9 @@ theorem uniswapMintFeeToTypedCall_source
   have hcdE :
       config.externalABI.encode? "feeTo" [] =
         some ((feeToSelectorMem
-          (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) oPrev o))
+          mem)
           |>.readWithPadding 128 4) := by
-    rw [feeToSelectorMem_read128_4_of_rebuiltStaticcallMem
-      (UInt256.ofNat I.codeOwner.val) oPrev o hprevlo hprevhi hlo hhi]
+    rw [feeToSelectorMem_read128_4_of_ge160 hmem]
     change uniswapExternalABI.encode? "feeTo" [] = some feeToSelector
     simp [uniswapExternalABI]
   have hΘE :
@@ -243,7 +281,7 @@ theorem uniswapMintFeeToTypedCall_source
           (toExecute evmE.accountMap (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
           callGas2 (UInt256.ofNat evmE.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           ((feeToSelectorMem
-            (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) oPrev o))
+            mem)
             |>.readWithPadding 128 4)
           (evmE.executionEnv.depth + 1) evmE.executionEnv.header false := by
     simpa [evmE] using hΘeq
@@ -256,7 +294,7 @@ theorem uniswapMintFeeToTypedCall_source
       (z := z2) (out := out2) (g'' := g'') (callGas := callGas2)
       (mem :=
         feeToSelectorMem
-          (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) oPrev o))
+          mem)
       (inOff := ⟨128⟩) (inSize := ⟨4⟩) (callPerm := false)
       hdepthNe
       (by simpa [target, mintFeeFactoryWord, factoryClean, factoryWord] using htargetSource.symm)
@@ -282,6 +320,48 @@ theorem uniswapMintFeeToTypedCall_source
   · simp [evm2S, hblocks]
   · simp [evm2S]
 
+theorem uniswapMintFeeToTypedCall_source
+    {cA1 gh bl σ1 σ₀ I} {evm1S : EVM.State}
+    {cA2 : Batteries.RBSet AccountAddress compare} {σ2 : AccountMap}
+    {z2 : Bool} {out2 : ByteArray} {A_in2 : Substate} {callGas2 : UInt256}
+    {oPrev o : ByteArray}
+    (hPost : accountMapEquiv σ1 evm1S.accountMap)
+    (hcreated : evm1S.createdAccounts = cA1)
+    (hσ0 : evm1S.σ₀ = σ₀)
+    (hgenesis : evm1S.genesisBlockHeader = gh)
+    (hblocks : evm1S.blocks = bl)
+    (henv : evm1S.executionEnv = I)
+    (hdepth : I.depth.val < 1024)
+    (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
+    (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size)
+    (hΘ :
+      ∃ (g'' : UInt256) (A'_evm : Substate),
+        (cA2, σ2, g'', A'_evm, z2, out2) = Ethereum.EVM.Θ I.blobVersionedHashes
+          cA1 gh bl σ1 σ₀ A_in2
+          (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
+          (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I))
+          (toExecute σ1 (AccountAddress.ofUInt256 (mintFeeFactoryWord σ1 I)))
+          callGas2 (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
+          ((feeToSelectorMem
+            (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) oPrev o))
+            |>.readWithPadding 128 4)
+          (I.depth + 1) I.header false) :
+    ∃ evm2S : EVM.State,
+      typedCallViaEVM config evm1S
+        (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
+        "feeTo" 0 [] (z2, evm2S, out2) false ∧
+      accountMapEquiv σ2 evm2S.accountMap ∧
+      evm2S.createdAccounts = cA2 ∧
+      evm2S.σ₀ = σ₀ ∧
+      evm2S.genesisBlockHeader = gh ∧
+      evm2S.blocks = bl ∧
+      evm2S.executionEnv = evm1S.executionEnv := by
+  exact uniswapMintFeeToTypedCall_source_of_mem hPost hcreated hσ0 hgenesis hblocks henv
+    hdepth (by
+      rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge
+        (UInt256.ofNat I.codeOwner.val) oPrev o hprevlo hprevhi hlo hhi]
+      omega) hΘ
+
 theorem feeToStaticcallMem_size_of_size_ge
     (self : UInt256) (oPrev o outFee : ByteArray)
     (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
@@ -289,15 +369,8 @@ theorem feeToStaticcallMem_size_of_size_ge
     (houtlo : 32 ≤ outFee.size) (houthi : outFee.size < UInt256.size) :
     (feeToStaticcallMem (balanceOfThisRebuiltStaticcallMem self oPrev o) outFee).size =
       164 := by
-  unfold feeToStaticcallMem
-  rw [balanceOfThisStaticcallWriteLen_of_size_ge outFee houtlo houthi]
-  rw [write32_eq _ _ _ houtlo
-    (by rw [feeToSelectorMem_size_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi];
-        omega)]
-  rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract,
-    feeToSelectorMem_size_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi]
-  omega
+  have hsize := balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo hprevhi hlo hhi
+  exact (feeToStaticcallMem_size_of_ge160 outFee (by rw [hsize]; omega) houthi).trans hsize
 
 theorem feeToStaticcallMem_read64_of_size_ge
     (self : UInt256) (oPrev o outFee : ByteArray)
@@ -307,13 +380,9 @@ theorem feeToStaticcallMem_read64_of_size_ge
     ByteArray.readWithPadding
       (feeToStaticcallMem (balanceOfThisRebuiltStaticcallMem self oPrev o) outFee) 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  unfold feeToStaticcallMem
-  rw [balanceOfThisStaticcallWriteLen_of_size_ge outFee houtlo houthi]
-  rw [write32_read_below _ _ 128 64 houtlo
-    (by rw [feeToSelectorMem_size_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi];
-        omega)
-    (by omega)]
-  exact feeToSelectorMem_read64_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi
+  exact feeToStaticcallMem_read64_of_ge160 outFee
+    (by rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo hprevhi hlo hhi]; omega) houthi
+    (balanceOfThisRebuiltStaticcallMem_read64_of_size_ge self oPrev o hprevlo hprevhi hlo hhi)
 
 theorem feeToStaticcallMem_mload64_of_size_ge
     (self : UInt256) (oPrev o outFee : ByteArray)
@@ -345,18 +414,8 @@ theorem feeToStaticcallMem_size_of_size_lt
     (houtshort : outFee.size < 32) (houthi : outFee.size < UInt256.size) :
     (feeToStaticcallMem (balanceOfThisRebuiltStaticcallMem self oPrev o) outFee).size =
       164 := by
-  unfold feeToStaticcallMem
-  rw [balanceOfThisStaticcallWriteLen_of_size_lt outFee houtshort houthi]
-  by_cases hzero : outFee.size = 0
-  · rw [hzero, byteArray_write_len_zero,
-      feeToSelectorMem_size_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi]
-  · rw [write_eq_gen _ _ 128 outFee.size hzero le_rfl
-      (by rw [feeToSelectorMem_size_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi];
-          omega)]
-    rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-      ByteArray.size_extract, ByteArray.size_extract,
-      feeToSelectorMem_size_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi]
-    omega
+  have hsize := balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo hprevhi hlo hhi
+  exact (feeToStaticcallMem_size_of_ge160 outFee (by rw [hsize]; omega) houthi).trans hsize
 
 theorem feeToStaticcallMem_read64_of_size_lt
     (self : UInt256) (oPrev o outFee : ByteArray)
@@ -366,16 +425,9 @@ theorem feeToStaticcallMem_read64_of_size_lt
     ByteArray.readWithPadding
       (feeToStaticcallMem (balanceOfThisRebuiltStaticcallMem self oPrev o) outFee) 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  unfold feeToStaticcallMem
-  rw [balanceOfThisStaticcallWriteLen_of_size_lt outFee houtshort houthi]
-  by_cases hzero : outFee.size = 0
-  · rw [hzero, byteArray_write_len_zero]
-    exact feeToSelectorMem_read64_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi
-  · rw [write_read_below_gen _ _ 128 outFee.size 64 hzero le_rfl
-      (by rw [feeToSelectorMem_size_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi];
-          omega)
-      (by omega)]
-    exact feeToSelectorMem_read64_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi
+  exact feeToStaticcallMem_read64_of_ge160 outFee
+    (by rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo hprevhi hlo hhi]; omega) houthi
+    (balanceOfThisRebuiltStaticcallMem_read64_of_size_ge self oPrev o hprevlo hprevhi hlo hhi)
 
 theorem feeToStaticcallMem_mload64_of_size_lt
     (self : UInt256) (oPrev o outFee : ByteArray)
@@ -408,11 +460,8 @@ theorem feeToStaticcallMem_read128_of_size_ge
     ByteArray.readWithPadding
       (feeToStaticcallMem (balanceOfThisRebuiltStaticcallMem self oPrev o) outFee) 128 32 =
       outFee.extract 0 32 := by
-  unfold feeToStaticcallMem
-  rw [balanceOfThisStaticcallWriteLen_of_size_ge outFee houtlo houthi]
-  exact write32_read_back _ _ 128 houtlo
-    (by rw [feeToSelectorMem_size_of_rebuiltStaticcallMem self oPrev o hprevlo hprevhi hlo hhi];
-        omega)
+  exact feeToStaticcallMem_read128_of_ge160 outFee
+    (by rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo hprevhi hlo hhi]; omega) houtlo houthi
 
 theorem feeToStaticcallMem_mload128_of_size_ge
     (self : UInt256) (oPrev o outFee : ByteArray)
@@ -1536,34 +1585,10 @@ theorem evalExpr_mint_amountProduct_of_get
     evalExpr? config { contract := contract, locals := locals } evm
       (u256 (.binary .mul (.var "amount0") (.var "amount1"))) =
         .ok (mintAmountProductValue amount0 amount1) := by
-  have hguard :
-      ¬ (Int.ofNat amount0.toNat * Int.ofNat amount1.toNat < 0 ∨
-        (2 : Int) ^ 256 ≤ Int.ofNat amount0.toNat * Int.ofNat amount1.toNat) := by
-    push Not
-    constructor
-    · exact Int.mul_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)
-    · have hfitNat : amount0.toNat * amount1.toNat < 2 ^ 256 := by
-        simpa [mintAmountProductNat, UInt256.size] using hfit
-      simpa [Nat.cast_mul] using Int.ofNat_lt.mpr hfitNat
-  have hguardBool :
-      ¬ ((decide (Int.ofNat amount0.toNat * Int.ofNat amount1.toNat < 0) ||
-        decide (Int.ofNat amount0.toNat * Int.ofNat amount1.toNat ≥
-          (2 : Int) ^ 256)) = true) := by
-    simpa [Bool.or_eq_true, ge_iff_le] using hguard
-  have htoNat :
-      (UInt256.ofNat (mintAmountProductNat amount0 amount1)).toNat =
-        mintAmountProductNat amount0 amount1 := by
-    exact ulit_toNat' _ hfit
-  have htoNat' :
-      (UInt256.ofNat (amount0.toNat * amount1.toNat)).toNat =
-        amount0.toNat * amount1.toNat := by
-    simpa [mintAmountProductNat] using htoNat
-  simp only [u256, evalExpr?, EvalResult.ofOption, hamount0, hamount1, EvalResult.bind,
-    bind, pure]
-  simp only [evalBinaryOp?, uint256Int]
-  rw [if_neg hguardBool]
-  simp [mintAmountProductValue, mintAmountProductWord, mintAmountProductNat,
-    uniswapUint256Value, uint256Value, htoNat']
+  rw [mintAmountProductValue, mintAmountProductWord_eq_mul amount0 amount1 hfit]
+  exact evalExpr_uint256_mul
+    (by simp only [evalExpr?, EvalResult.ofOption, hamount0])
+    (by simp only [evalExpr?, EvalResult.ofOption, hamount1]) hfit
 
 theorem evalExpr_mint_namedProduct_of_get
     {locals : Store} (evm : EVM.State) (xName yName : Ident) (x y : UInt256)
@@ -1573,30 +1598,10 @@ theorem evalExpr_mint_namedProduct_of_get
     evalExpr? config { contract := contract, locals := locals } evm
       (u256 (.binary .mul (.var xName) (.var yName))) =
         .ok (mintAmountProductValue x y) := by
-  have hguard :
-      ¬ (Int.ofNat x.toNat * Int.ofNat y.toNat < 0 ∨
-        (2 : Int) ^ 256 ≤ Int.ofNat x.toNat * Int.ofNat y.toNat) := by
-    push Not
-    constructor
-    · exact Int.mul_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)
-    · have hfitNat : x.toNat * y.toNat < 2 ^ 256 := by
-        simpa [mintAmountProductNat, UInt256.size] using hfit
-      simpa [Nat.cast_mul] using Int.ofNat_lt.mpr hfitNat
-  have hguardBool :
-      ¬ ((decide (Int.ofNat x.toNat * Int.ofNat y.toNat < 0) ||
-        decide (Int.ofNat x.toNat * Int.ofNat y.toNat ≥ (2 : Int) ^ 256)) = true) := by
-    simpa [Bool.or_eq_true, ge_iff_le] using hguard
-  have htoNat :
-      (UInt256.ofNat (mintAmountProductNat x y)).toNat = mintAmountProductNat x y := by
-    exact ulit_toNat' _ hfit
-  have htoNat' :
-      (UInt256.ofNat (x.toNat * y.toNat)).toNat = x.toNat * y.toNat := by
-    simpa [mintAmountProductNat] using htoNat
-  simp only [u256, evalExpr?, EvalResult.ofOption, hx, hy, EvalResult.bind, bind, pure]
-  simp only [evalBinaryOp?, uint256Int]
-  rw [if_neg hguardBool]
-  simp [mintAmountProductValue, mintAmountProductWord, mintAmountProductNat,
-    uniswapUint256Value, uint256Value, htoNat']
+  rw [mintAmountProductValue, mintAmountProductWord_eq_mul x y hfit]
+  exact evalExpr_uint256_mul
+    (by simp only [evalExpr?, EvalResult.ofOption, hx])
+    (by simp only [evalExpr?, EvalResult.ofOption, hy]) hfit
 
 theorem evalExprs_mint_initialSqrtArg_of_get
     {locals : Store} (evm : EVM.State) (amount0 amount1 : UInt256)

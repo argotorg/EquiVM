@@ -1,4 +1,4 @@
-import Examples.UniswapV2Pair.MintInternalMintRuntime
+import Examples.UniswapV2Pair.MintProportionalRuntimeCalls
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -330,20 +330,13 @@ theorem uniswapMintRuntimeProportionalLiquidity0Entry
         feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
         ⟨861⟩, sel]
       mem aw rdata (cAFee, σFee) k' C' := by
-  have rd6780pre := evm_run rd3762 with [
-    jumpdest, push2 ⟨3838⟩, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub,
-    dup10, and, push2 ⟨3791⟩, dup7, dup5, push4 ⟨0xffffffff⟩, push2 ⟨6780⟩,
-    and]
-  rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩ =
-      reserve112Mask from by rfl,
-    hclean0,
-    show UInt256.land (⟨6780⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6780⟩ from by decide]
-    at rd6780pre
-  have rd6780 := rd6780pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd6780⟩ := RD.uniswapMintProportionalMul0Entry rd3762 hclean0
+    (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd3791⟩ := RD.uniswapSafeMathMulSuccess
     (a := amount0) (b := totalSupply) rd6780 hfit (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd3798pre := evm_run rd3791 with [jumpdest, dup2, push2 ⟨3798⟩]
+  obtain ⟨_, _, rd3798pre⟩ := RD.uniswapMintProportionalDiv0Guard rd3791
+    (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3798 := evm_run rd3798pre with [jumpiT hreserve0Nonzero (by jump_dest)]
   exact ⟨_, _, evm_run rd3798 with [jumpdest, div]⟩
 
@@ -370,19 +363,13 @@ theorem uniswapMintRuntimeProportionalLiquidity1MinEntry
         totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
       mem aw rdata (cAFee, σFee) k' C' := by
-  have rd6780pre := evm_run rd3800 with [
-    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup10, and,
-    push2 ⟨3825⟩, dup7, dup6, push4 ⟨0xffffffff⟩, push2 ⟨6780⟩, and]
-  rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩ =
-      reserve112Mask from by rfl,
-    hclean1,
-    show UInt256.land (⟨6780⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6780⟩ from by decide]
-    at rd6780pre
-  have rd6780 := rd6780pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd6780⟩ := RD.uniswapMintProportionalMul1Entry rd3800 hclean1
+    (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd3825⟩ := RD.uniswapSafeMathMulSuccess
     (a := amount1) (b := totalSupply) rd6780 hfit (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd3832pre := evm_run rd3825 with [jumpdest, dup2, push2 ⟨3832⟩]
+  obtain ⟨_, _, rd3832pre⟩ := RD.uniswapMintProportionalDiv1Guard rd3825
+    (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3832 := evm_run rd3832pre with [jumpiT hreserve1Nonzero (by jump_dest)]
   exact ⟨_, _, evm_run rd3832 with [jumpdest, div, push2 ⟨8278⟩, jump (by jump_dest)]⟩
 

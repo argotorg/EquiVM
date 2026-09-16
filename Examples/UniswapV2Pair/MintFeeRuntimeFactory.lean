@@ -1,3 +1,5 @@
+import Examples.UniswapV2Pair.MintFeeFactoryCallRuntime
+import Examples.UniswapV2Pair.MintFeeBranchRuntime
 import Examples.UniswapV2Pair.MintRuntimeBalance
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -38,63 +40,12 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesize
         ⟨0⟩, toWord, ⟨861⟩, sel]
       (feeToSelectorMem (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1))
       feeToStaticcallActiveWords o1 (cA'', σ'') k' C' := by
-  let σLock := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let baseMem := balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1
-  let factoryRaw := uniswapSlotWord ⟨5⟩ σ'' I
-  let factory := mintFeeFactoryWord σ'' I
-  have rd7705 := evm_run rd7696 with [
-    jumpdest, push1 ⟨0⟩, dup1, push1 ⟨5⟩, push1 ⟨0⟩, swap1]
-  obtain ⟨k7706, C7706, rd7706₀⟩ := rd7705.sload (by native_decide) (by evm_ov)
-  have rd7706 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7706⟩
-      [factoryRaw, ⟨0⟩, ⟨0⟩, ⟨0⟩,
-        reserve1Word σLock I, reserve0Word σLock I,
-        ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
-        reserve1Word σLock I, reserve0Word σLock I,
-        ⟨0⟩, toWord, ⟨861⟩, sel]
-      baseMem balanceOfThisStaticcallActiveWords o1 (cA'', σ'') k7706 C7706 := by
-    simpa [σLock, baseMem, factoryRaw, uniswapSlotWord] using rd7706₀
-  have rd7738pre := evm_run rd7706 with [
-    swap1, push2 ⟨256⟩, exp, swap1, div,
-    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and,
-    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and,
-    push4 feeToSelectorWord, push1 ⟨64⟩]
-  have rd7738 := rd7738pre
-  rw [show UInt256.exp (⟨256⟩ : UInt256) ⟨0⟩ = ⟨1⟩ from by native_decide,
-    u256_div_one,
-    show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by decide,
-    u256_land_solcAddrMask_idem_left factoryRaw] at rd7738
-  have rd7739 := rd7738.mload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords
-    (by native_decide)
-    mem_cost
-    (balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
+  exact uniswapMintFeeRuntimeFactoryExtcodesizeOfTail rd7696
+    (by rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge
+      (UInt256.ofNat I.codeOwner.val) o o1 ho32 hoSize ho132 ho1Size]; omega)
+    (balanceOfThisRebuiltStaticcallMem_read64_of_size_ge
       (UInt256.ofNat I.codeOwner.val) o o1 ho32 hoSize ho132 ho1Size)
-    (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd7750pre := evm_run rd7739 with [
-    dup2, push4 ⟨0xffffffff⟩, and, push1 ⟨224⟩, shl, dup2]
-  have rd7750 := rd7750pre
-  rw [show UInt256.land (⟨0xffffffff⟩ : UInt256) feeToSelectorWord =
-      feeToSelectorWord from by native_decide] at rd7750
-  have rd7751 := rd7750.mstore 0 (feeToSelectorMem baseMem) feeToStaticcallActiveWords
-    (by native_decide) mem_cost (by rfl) (by native_decide)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd7758 := evm_run rd7751 with [
-    push1 ⟨4⟩, add, push1 ⟨32⟩, push1 ⟨64⟩]
-  rw [show (⟨4⟩ : UInt256) + ⟨128⟩ = ⟨132⟩ from by decide] at rd7758
-  have rd7759 := rd7758.mload 0 ⟨128⟩ feeToStaticcallActiveWords
-    (by native_decide)
-    mem_cost
-    (by
-      simpa [baseMem] using
-        feeToSelectorMem_mload64_of_rebuiltStaticcallMem
-          (UInt256.ofNat I.codeOwner.val) o o1 ho32 hoSize ho132 ho1Size)
-    (by native_decide)
-    (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd7765 := evm_run rd7759 with [dup1, dup4, sub, dup2, dup7, dup1]
-  rw [show UInt256.sub (⟨132⟩ : UInt256) ⟨128⟩ = ⟨4⟩ from by decide] at rd7765
-  exact ⟨_, _, by simpa [σLock, baseMem, factory, factoryRaw] using rd7765⟩
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` reverts when the factory account has no deployed code. -/
@@ -118,10 +69,7 @@ theorem uniswapMintFeeRuntimeFactoryMissingCodeReverts
     (hfactoryNoCode : extCodeSizeWord σ'' (mintFeeFactoryWord σ'' I) = ⟨0⟩) :
     RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.solcExtcodesizeGuardMissing (okPc := ⟨7777⟩) rd7765 hfactoryNoCode
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide)
+  exact uniswapMintFeeRuntimeFactoryMissingCodeRevertsOfTail rd7765 hfactoryNoCode
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
@@ -175,22 +123,8 @@ theorem uniswapMintFeeRuntimeFactoryStaticcallMade
             outFee)
           feeToStaticcallActiveWords outFee (cAFee, σFee) k' C'
       ∧ outFee.size < UInt256.size := by
-  let baseMem := balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1
-  let factory := mintFeeFactoryWord σ'' I
-  obtain ⟨_, _, _, rd7780⟩ :=
-    RD.solcExtcodesizeGuardOkGas (okPc := ⟨7777⟩) rd7765 hfactoryCode
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest)
-      (by native_decide) (by native_decide) (by native_decide)
-      (by simp only [List.length_cons, List.length_nil]; omega)
-  obtain ⟨cAFee, σFee, zFee, outFee, A_inFee, callGasFee, k', C', hΘ, rd7781,
-      houtFeeSize⟩ :=
-    RD.solcStaticcall rd7780 (by native_decide) hdepth
-      (by simp only [List.length_cons, List.length_nil]; omega)
-  exact ⟨cAFee, σFee, zFee, outFee, A_inFee, callGasFee, k', C',
-    by simpa [baseMem, factory, initState] using hΘ,
-    by simpa [baseMem, factory, feeToStaticcallMem, feeToStaticcallActiveWords] using rd7781,
-    houtFeeSize⟩
+  exact uniswapMintFeeRuntimeFactoryStaticcallMadeOfTail rd7765 hdepth hfactoryCode
+    (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1500000 in
 /- Runtime-only `_mintFee` branches after the factory `feeTo()` call. -/
@@ -238,80 +172,12 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCall
           (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1)
           outFee)
         feeToStaticcallActiveWords outFee (cAFee, σFee) k' C') := by
-  let baseMem := balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1
-  refine ⟨?_, ?_, ?_⟩
-  · intro hz
-    have hstatus : (if zFee then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
-      simp [hz]
-    exact RD.solcCallSuccessGuardMissing (okPc := ⟨7797⟩) rd7781 hstatus
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) houtFeeSize
-      (by simp only [List.length_cons, List.length_nil]; omega)
-  · intro hz hshort
-    have hstatus : (if zFee then (⟨1⟩ : UInt256) else ⟨0⟩) ≠ ⟨0⟩ := by
-      rw [hz]
-      decide
-    obtain ⟨_, _, rd7799⟩ :=
-      RD.solcCallSuccessGuardOk (okPc := ⟨7797⟩) rd7781 hstatus
-        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-        (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
-        (by simp only [List.length_cons, List.length_nil]; omega)
-    exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨7799⟩) (okPc := ⟨7819⟩)
-      rd7799 hshort houtFeeSize
-      (fun s haw hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide)
-      (by
-        simpa [baseMem] using
-          feeToStaticcallMem_mload64_of_size_lt
-            (UInt256.ofNat I.codeOwner.val) o o1 outFee ho32 hoSize ho132 ho1Size
-            hshort houtFeeSize)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide)
-      (by simp only [List.length_cons, List.length_nil]; omega)
-  · intro hz hout32
-    have hstatus : (if zFee then (⟨1⟩ : UInt256) else ⟨0⟩) ≠ ⟨0⟩ := by
-      rw [hz]
-      decide
-    obtain ⟨_, _, rd7799⟩ :=
-      RD.solcCallSuccessGuardOk (okPc := ⟨7797⟩) rd7781 hstatus
-        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-        (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
-        (by simp only [List.length_cons, List.length_nil]; omega)
-    obtain ⟨_, _, rd7822⟩ :=
-      RD.solcUint256ReturnWordDecodeOk (pc := ⟨7799⟩) (okPc := ⟨7819⟩)
-        rd7799 hout32 houtFeeSize
-        (fun s haw hstk => by
-          simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-          native_decide)
-        (by native_decide)
-        (by
-          simpa [baseMem] using
-            feeToStaticcallMem_mload64_of_size_ge
-              (UInt256.ofNat I.codeOwner.val) o o1 outFee ho32 hoSize ho132 ho1Size
-              hout32 houtFeeSize)
-        (by
-          simpa [baseMem] using
-            feeToStaticcallMem_mload128_of_size_ge
-              (UInt256.ofNat I.codeOwner.val) o o1 outFee ho32 hoSize ho132 ho1Size
-              hout32 houtFeeSize)
-        (fun s haw hstk => by
-          simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-          native_decide)
-        (by native_decide)
-        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-        (by jump_dest) (by native_decide) (by native_decide) (by native_decide)
-        (by simp only [List.length_cons, List.length_nil]; omega)
-    have rd7824 := evm_run rd7822 with [push1 ⟨11⟩]
-    obtain ⟨k7825, C7825, rd7825₀⟩ := rd7824.sload (by native_decide) (by evm_ov)
-    exact ⟨k7825, C7825, by simpa [baseMem, mintFeeKLastSlotWord, uniswapSlotWord] using rd7825₀⟩
+  exact uniswapMintFeeRuntimeFactoryResultBranchesFromCallOfTail rd7781
+    (by rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge
+      (UInt256.ofNat I.codeOwner.val) o o1 ho32 hoSize ho132 ho1Size]; omega)
+    (balanceOfThisRebuiltStaticcallMem_read64_of_size_ge
+      (UInt256.ofNat I.codeOwner.val) o o1 ho32 hoSize ho132 ho1Size) houtFeeSize
+    (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` fee-off slice from the decoded `feeTo`/loaded `kLast` state to the
@@ -332,15 +198,9 @@ theorem uniswapMintFeeRuntimeFeeOffEntry
       [kLast, feeTo, ⟨0⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩,
         amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
       mem aw rdata (cAFee, σFee) k' C' := by
-  have rd7848pre := evm_run rd7825 with [
-    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and, iszero, dup1,
-    iszero, swap5, pop, swap2, swap3, pop, swap1, push2 ⟨8026⟩]
-  rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by decide,
-    hfeeToZero,
-    show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide,
-    show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd7848pre
-  exact ⟨_, _, evm_run rd7848pre with [jumpiT one_ne_zero_uint (by jump_dest)]⟩
+  exact uniswapMintFeeRuntimeFeeOffEntryOfTail
+    rd7825 hfeeToZero
+    (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` fee-off return when `kLast` is already zero. -/
@@ -360,11 +220,9 @@ theorem uniswapMintFeeRuntimeFeeOffKLastZeroReturn
       [⟨0⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
         ⟨861⟩, sel]
       mem aw rdata (cAFee, σFee) k' C' := by
-  have rd8038pre := evm_run rd8026 with [jumpdest, dup1, iszero, push2 ⟨8038⟩]
-  rw [hkLastZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd8038pre
-  have rd8038 := evm_run rd8038pre with [jumpiT one_ne_zero_uint (by jump_dest)]
-  exact ⟨_, _, evm_run rd8038 with [jumpdest, pop, pop, swap3, swap2, pop, pop,
-    jump (by jump_dest)]⟩
+  exact uniswapMintFeeRuntimeFeeOffKLastZeroReturnOfTail
+    rd8026 hkLastZero (by jump_dest)
+    (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` fee-off return when `kLast` is nonzero, clearing slot 11 first. -/
@@ -384,13 +242,9 @@ theorem uniswapMintFeeRuntimeFeeOffKLastNonzeroReturn
       [⟨0⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
         ⟨861⟩, sel]
       mem aw rdata (cAFee, sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) k' C' := by
-  have rd8038pre := evm_run rd8026 with [jumpdest, dup1, iszero, push2 ⟨8038⟩]
-  rw [isZero_eq_zero_of_ne hkLastNonzero] at rd8038pre
-  have rd8033 := evm_run rd8038pre with [jumpiNT (by native_decide)]
-  have rd8037 := evm_run rd8033 with [push1 ⟨0⟩, push1 ⟨11⟩]
-  obtain ⟨_, _, rd8038⟩ := rd8037.sstore hperm (by native_decide) (by evm_ov)
-  exact ⟨_, _, evm_run rd8038 with [jumpdest, pop, pop, swap3, swap2, pop, pop,
-    jump (by jump_dest)]⟩
+  exact uniswapMintFeeRuntimeFeeOffKLastNonzeroReturnOfTail
+    rd8026 hperm hkLastNonzero (by jump_dest)
+    (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` fee-on slice from the decoded `feeTo`/loaded `kLast` state to the
@@ -411,14 +265,9 @@ theorem uniswapMintFeeRuntimeFeeOnEntry
       [kLast, feeTo, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩,
         amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
       mem aw rdata (cAFee, σFee) k' C' := by
-  have rd7848pre := evm_run rd7825 with [
-    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and, iszero, dup1,
-    iszero, swap5, pop, swap2, swap3, pop, swap1, push2 ⟨8026⟩]
-  rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by decide,
-    isZero_eq_zero_of_ne hfeeToNonzero,
-    show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd7848pre
-  exact ⟨_, _, evm_run rd7848pre with [jumpiNT (by native_decide)]⟩
+  exact uniswapMintFeeRuntimeFeeOnEntryOfTail
+    rd7825 hfeeToNonzero
+    (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` fee-on return when `kLast` is zero. -/
@@ -438,12 +287,9 @@ theorem uniswapMintFeeRuntimeFeeOnKLastZeroReturn
       [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
         ⟨861⟩, sel]
       mem aw rdata (cAFee, σFee) k' C' := by
-  have rd8021pre := evm_run rd7848 with [dup1, iszero, push2 ⟨8021⟩]
-  rw [hkLastZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd8021pre
-  have rd8021 := evm_run rd8021pre with [jumpiT one_ne_zero_uint (by jump_dest)]
-  have rd8038 := evm_run rd8021 with [jumpdest, push2 ⟨8038⟩, jump (by jump_dest)]
-  exact ⟨_, _, evm_run rd8038 with [jumpdest, pop, pop, swap3, swap2, pop, pop,
-    jump (by jump_dest)]⟩
+  exact uniswapMintFeeRuntimeFeeOnKLastZeroReturnOfTail
+    rd7848 hkLastZero (by jump_dest)
+    (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` fee-off decoded branch returning with zero `kLast`. -/
@@ -679,19 +525,9 @@ theorem uniswapMintFeeRuntimeFeeOnKLastNonzeroMulEntry
         reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
         reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
       mem aw rdata (cAFee, σFee) k' C' := by
-  have rd7854pre := evm_run rd7848 with [dup1, iszero, push2 ⟨8021⟩]
-  rw [isZero_eq_zero_of_ne hkLastNonzero] at rd7854pre
-  have rd7854 := evm_run rd7854pre with [jumpiNT (by native_decide)]
-  have rd6780 := evm_run rd7854 with [
-    push1 ⟨0⟩, push2 ⟨7886⟩, push2 ⟨3737⟩, push1 ⟨1⟩, push1 ⟨1⟩,
-    push1 ⟨112⟩, shl, sub, dup9, dup2, and, swap1, dup9, and,
-    push4 ⟨0xffffffff⟩, push2 ⟨6780⟩, and, jump (by jump_dest)]
-  rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩ =
-      reserve112Mask from by rfl,
-    u256_land_comm reserve112Mask reserve0, hclean0,
-    hclean1,
-    show UInt256.land (⟨6780⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6780⟩ from by decide] at rd6780
-  exact ⟨_, _, rd6780⟩
+  exact uniswapMintFeeRuntimeFeeOnKLastNonzeroMulEntryOfTail
+    rd7848 hkLastNonzero hclean0 hclean1
+    (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` fee-on/nonzero-`kLast` checked reserve-product multiply and
@@ -715,20 +551,9 @@ theorem uniswapMintFeeRuntimeFeeOnKLastNonzeroRootKEntry
         reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
         reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
       mem aw rdata (cAFee, σFee) k' C' := by
-  have hreserve0Lt : reserve0.toNat < 2 ^ 112 := by
-    have h := uniswapUint112Masked_lt reserve0
-    simpa [hclean0] using h
-  have hreserve1Lt : reserve1.toNat < 2 ^ 112 := by
-    have h := uniswapUint112Masked_lt reserve1
-    simpa [hclean1] using h
-  have hfit : reserve0.toNat * reserve1.toNat < UInt256.size := by
-    have hprodLt224 : reserve0.toNat * reserve1.toNat < 2 ^ 224 := by
-      nlinarith [hreserve0Lt, hreserve1Lt]
-    exact lt_trans hprodLt224 (by norm_num [UInt256.size])
-  obtain ⟨_, _, rd3737⟩ := RD.uniswapSafeMathMulSuccess
-    (a := reserve0) (b := reserve1) rd6780 hfit (by jump_dest)
+  exact uniswapMintFeeRuntimeFeeOnKLastNonzeroRootKEntryOfTail
+    rd6780 hclean0 hclean1
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact ⟨_, _, evm_run rd3737 with [jumpdest, push2 ⟨8046⟩, jump (by jump_dest)]⟩
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` fee-on/nonzero-`kLast` decoded branch to the first `sqrt` entry. -/

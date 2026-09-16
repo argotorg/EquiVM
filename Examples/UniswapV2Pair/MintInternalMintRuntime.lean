@@ -889,19 +889,8 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityEntry
         amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩,
         sel]
       mem aw rdata (cAFee, σFee) k' C' := by
-  obtain ⟨_, _, rd6879⟩ :=
-    uniswapMintFeeRuntimeAfterRootsPositiveSubEntry rd7899 hrootGt
-  obtain ⟨_, _, rd6780Num⟩ :=
-    uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntry rd6879 hrootGt
-  obtain ⟨_, _, rd7945⟩ :=
-    uniswapMintFeeRuntimePositiveNumeratorEntry rd6780Num hnumFit
-  obtain ⟨_, _, rd6780Den⟩ :=
-    uniswapMintFeeRuntimePositiveDenominatorMulEntry rd7945
-  obtain ⟨_, _, rd7970⟩ :=
-    uniswapMintFeeRuntimePositiveDenominatorProductEntry rd6780Den hrootK5Fit
-  obtain ⟨_, _, rd8515⟩ :=
-    uniswapMintFeeRuntimePositiveDenominatorAddEntry rd7970
-  exact uniswapMintFeeRuntimePositiveDenominatorEntry rd8515 hdenFit
+  exact uniswapMintFeeRuntimeAfterRootsPositiveComputedLiquidityEntryOfTail
+    rd7899 hrootGt hnumFit hrootK5Fit hdenFit (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` positive-root branch where arithmetic computes zero liquidity. -/

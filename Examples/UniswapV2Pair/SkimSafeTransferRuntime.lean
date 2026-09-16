@@ -1,3 +1,5 @@
+import Examples.UniswapV2Pair.MemorySteps
+import Examples.UniswapV2Pair.BalanceCallMemory
 import Examples.UniswapV2Pair.SkimRuntime
 import Examples.UniswapV2Pair.StringReturn
 
@@ -8,33 +10,6 @@ set_option maxRecDepth 2000000
 namespace UniswapV2Pair
 
 /-! ## `skim(address)` `_safeTransfer` runtime tail -/
-
-theorem balanceOfThisSelectorMem_read96_zero :
-    balanceOfThisSelectorMem.readWithPadding 96 32 = UInt256.toByteArray (⟨0⟩ : UInt256) := by
-  unfold balanceOfThisSelectorMem solcFreePtrMem
-  native_decide
-
-theorem balanceOfThisCalldataMem_read96_zero (self : UInt256) :
-    (balanceOfThisCalldataMem self).readWithPadding 96 32 =
-      UInt256.toByteArray (⟨0⟩ : UInt256) := by
-  unfold balanceOfThisCalldataMem
-  rw [write32_read_below _ _ 132 96 (by rw [toByteArray_size])
-      (by rw [balanceOfThisSelectorMem_size]; omega) (by omega)]
-  exact balanceOfThisSelectorMem_read96_zero
-
-theorem balanceOfThisStaticcallMem_read96_zero_of_size_ge
-    (self : UInt256) {o : ByteArray}
-    (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
-    (balanceOfThisStaticcallMem self o).readWithPadding 96 32 =
-      UInt256.toByteArray (⟨0⟩ : UInt256) := by
-  unfold balanceOfThisStaticcallMem
-  have hlen : (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat = 32 := by
-    simpa using
-      umin_ofNat_right_toNat_of_ge (c := 32) (n := o.size) (by decide) ho32 hoSize
-  rw [hlen]
-  rw [write_read_below_gen o (balanceOfThisCalldataMem self) 128 32 96
-      (by decide) ho32 (by rw [balanceOfThisCalldataMem_size]; omega) (by omega)]
-  exact balanceOfThisCalldataMem_read96_zero self
 
 theorem skimSafeTransferMem0_read96_zero
     (self : UInt256) {o : ByteArray}
@@ -475,16 +450,6 @@ theorem skimFromByteArrayBigEndian_append (a b : ByteArray) :
     fromByteArrayBigEndian (a ++ b) =
       fromByteArrayBigEndian a * 2 ^ (8 * b.size) + fromByteArrayBigEndian b := by
   simp [fromByteArrayBigEndian, byteArray_toList_eq, skimFromBytesBigEndian_append]
-
-theorem toByteArray_ofNat_fromByteArrayBigEndian_of_size {arr : ByteArray}
-    (hsize : arr.size = 32) :
-    UInt256.toByteArray (UInt256.ofNat (fromByteArrayBigEndian arr)) = arr := by
-  rw [← uInt256OfByteArray_eq arr]
-  rw [← word_toBytesBE_toByteArray_eq_toByteArray (uInt256OfByteArray arr)]
-  apply ByteArray.ext
-  apply Array.toList_inj.mp
-  rw [List.toList_data_toByteArray]
-  simpa [byteArray_toList_eq] using toBytesBE_uInt256OfByteArray_of_size hsize
 
 theorem toByteArray_extract4_32_toList (w : UInt256) :
     ((UInt256.toByteArray w).extract 4 32).toList =

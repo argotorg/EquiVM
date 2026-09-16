@@ -44,13 +44,14 @@ def contractSyntax : ContractDecl := solidity% contract UniswapV2Pair {
   uint256 unlocked;
 
   constructor() payable {
+    unlocked = 1;
+    require(msg.value == 0);
     DOMAIN_SEPARATOR = keccak256(abi.encodePacked(
       bytes32(keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")),
       bytes32(keccak256("Uniswap V2")),
       bytes32(keccak256("1")),
       uint256(block.chainid),
       uint256(uint256(this))));
-    unlocked = 1;
     factory = msg.sender;
   }
 
@@ -179,7 +180,7 @@ def contractSyntax : ContractDecl := solidity% contract UniswapV2Pair {
     uint256 balance1Adjusted = (((balance1 * 1000) as uint256) - ((amount1In * 3) as uint256)) as uint256;
     require(((balance0Adjusted * balance1Adjusted) as uint256) >=
       ((((_reserve0 * _reserve1) as uint256) * 1000000) as uint256));
-    var _updateResult = _update(balance0, balance1, reserve0, reserve1);
+    var _updateResult = _update(balance0, balance1, _reserve0, _reserve1);
     unlocked = 1;
   }
 
@@ -312,7 +313,7 @@ def contractSyntax : ContractDecl := solidity% contract UniswapV2Pair {
     var newBalance0 = _token0.balanceOf{view}(this);
     require(_token1.code.length > 0);
     var newBalance1 = _token1.balanceOf{view}(this);
-    var _updateResult = _update(newBalance0, newBalance1, reserve0, reserve1);
+    var _updateResult = _update(newBalance0, newBalance1, _reserve0, _reserve1);
     if (feeOn) {
       kLast = (reserve0 * reserve1) as uint256;
     }

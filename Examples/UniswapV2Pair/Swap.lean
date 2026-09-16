@@ -1,1352 +1,28 @@
-import Examples.UniswapV2Pair.MutatorDispatch
-
+import Examples.UniswapV2Pair.SwapCommon
+import Examples.UniswapV2Pair.SwapLock
+import Examples.UniswapV2Pair.SwapOutputGuardRuntime
+import Examples.UniswapV2Pair.SwapOutputSource
+import Examples.UniswapV2Pair.SwapReserveGuardRuntime
+import Examples.UniswapV2Pair.SwapReserveSource
+import Examples.UniswapV2Pair.SwapRecipientRuntime
+import Examples.UniswapV2Pair.SwapRecipientSource
+import Examples.UniswapV2Pair.SwapTransfersAnyDepth
+import Examples.UniswapV2Pair.BalanceCallSource
+import Examples.UniswapV2Pair.SwapCallbackCases
+import Examples.UniswapV2Pair.SwapBalanceSource
+import Examples.UniswapV2Pair.SwapInputGuardRuntime
+import Examples.UniswapV2Pair.SwapInputGuardSource
+import Examples.UniswapV2Pair.SwapAdjustmentPrefix
+import Examples.UniswapV2Pair.SwapInvariantSource
+import Examples.UniswapV2Pair.SwapUpdateRuntime
+import Examples.UniswapV2Pair.SwapTailSource
+import Examples.UniswapV2Pair.SwapEventRuntime
+import Examples.UniswapV2Pair.UpdateDynamicCallRuntimeCases
+import Examples.UniswapV2Pair.SwapCallbackInput
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
-
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000
-
 namespace UniswapV2Pair
-
-/-! ## `swap(uint256,uint256,address,bytes)` source slice -/
-
-abbrev solcLegacyMaxU32 : Nat := ABI.solcMaxLenV1
-
-theorem solcMaxLen_legacySolc05 :
-    ABI.solcMaxLen DecodeMode.legacySolc05 = solcLegacyMaxU32 := rfl
-
-/-- The raw ABI word for `swap`'s `amount0Out` argument. -/
-abbrev swapAmount0OutWord (I : ExecutionEnv) : UInt256 :=
-  calldataWord I.calldata 4
-
-/-- The raw ABI word for `swap`'s `amount1Out` argument. -/
-abbrev swapAmount1OutWord (I : ExecutionEnv) : UInt256 :=
-  calldataWord I.calldata 36
-
-/-- The raw ABI word for `swap`'s `to` argument. -/
-abbrev swapToWord (I : ExecutionEnv) : UInt256 :=
-  calldataWord I.calldata 68
-
-abbrev swapToMaskedWord (I : ExecutionEnv) : UInt256 :=
-  UInt256.land solcAddrMask (swapToWord I)
-
-/-- The ABI head word holding `swap`'s dynamic `data` offset. -/
-abbrev swapDataOffsetWord (I : ExecutionEnv) : UInt256 :=
-  calldataWord I.calldata 100
-
-abbrev swapDataOffset (I : ExecutionEnv) : Nat :=
-  (swapDataOffsetWord I).toNat
-
-/-- The ABI word holding `swap`'s dynamic `data` byte length. -/
-abbrev swapDataSizeWord (I : ExecutionEnv) : UInt256 :=
-  calldataWord I.calldata (4 + swapDataOffset I)
-
-abbrev swapDataSize (I : ExecutionEnv) : Nat :=
-  (swapDataSizeWord I).toNat
-
-abbrev swapDataBytes (I : ExecutionEnv) : ByteArray :=
-  ByteArray.mk (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
-    (swapDataSize I)).toArray
-
-abbrev swapAmount0OutValue (I : ExecutionEnv) : Value :=
-  .int (Int.ofNat (swapAmount0OutWord I).toNat)
-
-abbrev swapAmount1OutValue (I : ExecutionEnv) : Value :=
-  .int (Int.ofNat (swapAmount1OutWord I).toNat)
-
-abbrev swapToValue (I : ExecutionEnv) : Value :=
-  .address (AccountAddress.ofNat (swapToWord I).toNat)
-
-abbrev swapDataValue (I : ExecutionEnv) : Value :=
-  .bytes (swapDataBytes I)
-
-abbrev swapStore (I : ExecutionEnv) : Store :=
-  let s0 : Store := ∅
-  let s1 := s0.insert "amount0Out" (swapAmount0OutValue I)
-  let s2 := s1.insert "amount1Out" (swapAmount1OutValue I)
-  let s3 := s2.insert "to" (swapToValue I)
-  s3.insert "data" (swapDataValue I)
-
-theorem swapStore_amount0Out (I : ExecutionEnv) :
-    (swapStore I).get? "amount0Out" = some (swapAmount0OutValue I) := by
-  rw [swapStore]
-  rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
-    store_get_ne _ _ (by decide), store_get_self]
-
-theorem swapStore_amount1Out (I : ExecutionEnv) :
-    (swapStore I).get? "amount1Out" = some (swapAmount1OutValue I) := by
-  rw [swapStore]
-  rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide), store_get_self]
-
-theorem swapStore_to (I : ExecutionEnv) :
-    (swapStore I).get? "to" = some (swapToValue I) := by
-  rw [swapStore]
-  rw [store_get_ne _ _ (by decide), store_get_self]
-
-theorem swapStore_data (I : ExecutionEnv) :
-    (swapStore I).get? "data" = some (swapDataValue I) := by
-  rw [swapStore, store_get_self]
-
-theorem swapStore_balanceOf (I : ExecutionEnv) :
-    (swapStore I).get? "balanceOf" = none := by
-  rw [swapStore]
-  repeat rw [store_get_ne _ _ (by decide)]
-  simp
-
-theorem swapReadNat_drop4_eq_calldataWord {I : ExecutionEnv} {headOff : Nat}
-    (h : 4 + headOff + 32 ≤ I.calldata.size) :
-    readNat? (I.calldata.toList.drop 4) headOff =
-      some (calldataWord I.calldata (4 + headOff)).toNat := by
-  unfold readNat? readWord? readBytes?
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have hslice : (((I.calldata.toList.drop 4).drop headOff).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  rw [if_pos hslice]
-  rw [calldataWord]
-  rw [← decode_word_at_eq_any I.calldata (4 + headOff) h]
-  simp [UInt256.toNat, List.drop_drop, Nat.add_comm]
-
-theorem swapDecodeABIValue_uint256_legacy_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? uint256 bytes start DecodeMode.legacySolc05 =
-      some (.int (Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat),
-        start + 32) := by
-  rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
-    (ty := uint256) (bytes := bytes) (start := start) (by decide)]
-  simpa [uint256, uint256Int, abiUInt256] using
-    (decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
-      (bytes := bytes) (start := start) hlen)
-
-theorem swapDecodeABIValue_legacyAddress_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? legacyAddr bytes start DecodeMode.legacySolc05 =
-      some (.address (AccountAddress.ofNat
-        (ABI.bytesToWord ((bytes.drop start).take 32)).toNat), start + 32) := by
-  rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
-    (ty := legacyAddr) (bytes := bytes) (start := start) (by decide)]
-  simpa [legacyAddr, addr, abiAddress] using
-    (decodeScalarWord_legacyAddress_ok (bytes := bytes) (start := start) hlen)
-
-theorem swapDecodeABIValue_bytes_ok {I : ExecutionEnv}
-    (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hlenMax : ¬ solcLegacyMaxU32 < swapDataSize I)
-    (hpayload : (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
-      (swapDataSize I)).length = swapDataSize I) :
-    decodeABIValue? ABIType.bytes (I.calldata.toList.drop 4) (swapDataOffset I)
-        DecodeMode.legacySolc05 =
-      some (swapDataValue I, swapDataOffset I + 32 + paddedSize (swapDataSize I)) := by
-  have hreadLen := swapReadNat_drop4_eq_calldataWord (I := I)
-    (headOff := swapDataOffset I) hlenWord
-  have hpayloadRead :
-      readBytes? (I.calldata.toList.drop 4) (swapDataOffset I + 32) (swapDataSize I) =
-        some (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
-          (swapDataSize I)) := by
-    unfold readBytes?
-    rw [if_pos hpayload]
-  have hlenMax' :
-      ¬ ABI.solcMaxLen DecodeMode.legacySolc05 <
-        (calldataWord I.calldata (4 + (swapDataOffsetWord I).toNat)).toNat := by
-    simpa [solcMaxLen_legacySolc05, swapDataSize, swapDataSizeWord,
-      swapDataOffset] using hlenMax
-  simp [decodeABIValue?, hreadLen, hlenMax', hpayloadRead, swapDataValue, swapDataBytes,
-    swapDataSize, swapDataSizeWord, swapDataOffset]
-
-theorem swapDecodeABIValues_ok {I : ExecutionEnv} (hsz132 : 132 ≤ I.calldata.size)
-    (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hlenMax : ¬ solcLegacyMaxU32 < swapDataSize I)
-    (hpayload : (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
-      (swapDataSize I)).length = swapDataSize I) :
-    decodeABIValues? [uint256, uint256, legacyAddr, ABIType.bytes]
-      (I.calldata.toList.drop 4) 0 0 128 128 DecodeMode.legacySolc05 =
-      some ([swapAmount0OutValue I, swapAmount1OutValue I, swapToValue I, swapDataValue I],
-        max 128 (swapDataOffset I + 32 + paddedSize (swapDataSize I))) := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake0 : (((I.calldata.toList.drop 4).drop 0).take 32).length = 32 := by
-    rw [List.drop_zero, List.length_take, List.length_drop, htlen]
-    omega
-  have htake32 : (((I.calldata.toList.drop 4).drop 32).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have htake64 : (((I.calldata.toList.drop 4).drop 64).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have hdec0 : decodeABIValue? uint256 (I.calldata.toList.drop 4) 0
-      DecodeMode.legacySolc05 = some (.int (Int.ofNat
-        (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).toNat), 0 + 32) := by
-    simpa [List.drop_zero] using
-      swapDecodeABIValue_uint256_legacy_ok (bytes := I.calldata.toList.drop 4)
-        (start := 0) htake0
-  have hdec32 : decodeABIValue? uint256 (I.calldata.toList.drop 4) 32
-      DecodeMode.legacySolc05 = some (.int (Int.ofNat
-        (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32)).toNat), 32 + 32) := by
-    exact swapDecodeABIValue_uint256_legacy_ok (bytes := I.calldata.toList.drop 4)
-      (start := 32) htake32
-  have hdec64 : decodeABIValue? legacyAddr (I.calldata.toList.drop 4) 64
-      DecodeMode.legacySolc05 = some (.address (AccountAddress.ofNat
-        (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 64).take 32)).toNat),
-        64 + 32) := by
-    exact swapDecodeABIValue_legacyAddress_ok (bytes := I.calldata.toList.drop 4)
-      (start := 64) htake64
-  have hreadOff : readNat? (I.calldata.toList.drop 4) 96 = some (swapDataOffset I) := by
-    simpa [swapDataOffset, swapDataOffsetWord] using
-      swapReadNat_drop4_eq_calldataWord (I := I) (headOff := 96) (by omega)
-  have hdecData := swapDecodeABIValue_bytes_ok (I := I) hlenWord hlenMax hpayload
-  have hword4 : ABI.bytesToWord ((I.calldata.toList.drop 4).take 32) =
-      swapAmount0OutWord I := by
-    simpa [swapAmount0OutWord] using decode_word_at_eq I.calldata 4 (by omega) (by norm_num)
-  have hword36 : ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32) =
-      swapAmount1OutWord I := by
-    simpa [swapAmount1OutWord, List.drop_drop, Nat.add_comm, Nat.add_left_comm,
-      Nat.add_assoc] using decode_word_at_eq I.calldata 36 (by omega) (by norm_num)
-  have hword68 : ABI.bytesToWord (((I.calldata.toList.drop 4).drop 64).take 32) =
-      swapToWord I := by
-    simpa [swapToWord, List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
-      using decode_word_at_eq I.calldata 68 (by omega) (by norm_num)
-  have hdec0r : decodeABIValue? (.elem (.int (.uint ⟨256, by decide⟩)))
-      (I.calldata.toList.drop 4) 0 DecodeMode.legacySolc05 =
-      some (.int (Int.ofNat (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).toNat),
-        0 + 32) := by
-    simpa [uint256, uint256Int] using hdec0
-  have hdec32r : decodeABIValue? (.elem (.int (.uint ⟨256, by decide⟩)))
-      (I.calldata.toList.drop 4) 32 DecodeMode.legacySolc05 =
-      some (.int (Int.ofNat
-        (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32)).toNat), 32 + 32) := by
-    simpa [uint256, uint256Int] using hdec32
-  have hdec64r : decodeABIValue? (.elem .address) (I.calldata.toList.drop 4) 64
-      DecodeMode.legacySolc05 = some (.address (AccountAddress.ofNat
-        (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 64).take 32)).toNat), 64 + 32) := by
-    simpa [legacyAddr, addr] using hdec64
-  have hword36' : bytesToWord (List.take 32 (List.drop 36 I.calldata.toList)) =
-      swapAmount1OutWord I := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword36
-  have hword68' : bytesToWord (List.take 32 (List.drop 68 I.calldata.toList)) =
-      swapToWord I := by
-    simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using hword68
-  have hoffMax' : ¬ ABI.solcMaxLen DecodeMode.legacySolc05 < swapDataOffset I := by
-    simpa [solcMaxLen_legacySolc05] using hoffMax
-  have hmaxEnd :
-      max 128 (max 96 (swapDataOffset I + 32 + paddedSize (swapDataSize I))) =
-        max 128 (swapDataOffset I + 32 + paddedSize (swapDataSize I)) := by
-    omega
-  simp [decodeABIValues?, uint256, uint256Int, legacyAddr, addr, isDynamicABIType,
-    staticABIEncodedSize?, hdec0r, hdec32r, hdec64r, hreadOff, hoffMax', hdecData, hword4,
-    hword36', hword68', hmaxEnd, swapAmount0OutValue, swapAmount1OutValue, swapToValue]
-
-theorem uniswapDecode_swap_ok {I : ExecutionEnv} (hsz132 : 132 ≤ I.calldata.size)
-    (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hlenMax : ¬ solcLegacyMaxU32 < swapDataSize I)
-    (hpayload : (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
-      (swapDataSize I)).length = swapDataSize I) :
-    decodeCalldataWithMode config.abiDecodeMode (swapTransition.params.map Param.name)
-      (transitionSignature swapTransition).paramTypes I.calldata = some (swapStore I) := by
-  show decodeCalldataWithMode DecodeMode.legacySolc05
-    ["amount0Out", "amount1Out", "to", "data"] [uint256, uint256, legacyAddr, ABIType.bytes]
-      I.calldata = _
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have hvals := swapDecodeABIValues_ok (I := I) hsz132 hoffMax hlenWord hlenMax hpayload
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
-  by_cases hdyn :
-      [uint256, uint256, legacyAddr, ABIType.bytes].any isDynamicABIType = true ∧
-        2 ^ 255 ≤ I.calldata.toList.length
-  all_goals
-    first | rw [if_pos hdyn] | rw [if_neg hdyn]
-    change (match decodeCalldata.decodeArgs DecodeMode.legacySolc05
-        ["amount0Out", "amount1Out", "to", "data"]
-        [uint256, uint256, legacyAddr, ABIType.bytes] (I.calldata.toList.drop 4) ∅ with
-      | some (store, _) => some store
-      | none => none) = some (swapStore I)
-    unfold decodeCalldata.decodeArgs
-    rw [show abiTupleHeadSize? [uint256, uint256, legacyAddr, ABIType.bytes] = some 128 by
-      native_decide]
-    simp only [bind, Option.bind]
-    rw [if_neg (by
-      rw [List.length_drop, htlen]
-      omega : ¬ (I.calldata.toList.drop 4).length < 128)]
-    rw [hvals]
-    change decodeCalldata.insertValues ["amount0Out", "amount1Out", "to", "data"]
-        [swapAmount0OutValue I, swapAmount1OutValue I, swapToValue I, swapDataValue I] ∅ =
-      some (swapStore I)
-    simp [decodeCalldata.insertValues, swapStore]
-
-theorem uniswapDecode_swap_none_head_short {I : ExecutionEnv}
-    (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 132) :
-    decodeCalldataWithMode config.abiDecodeMode (swapTransition.params.map Param.name)
-      (transitionSignature swapTransition).paramTypes I.calldata = none := by
-  show decodeCalldataWithMode DecodeMode.legacySolc05
-    ["amount0Out", "amount1Out", "to", "data"] [uint256, uint256, legacyAddr, ABIType.bytes]
-      I.calldata = none
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
-  by_cases hdyn :
-      [uint256, uint256, legacyAddr, ABIType.bytes].any isDynamicABIType = true ∧
-        2 ^ 255 ≤ I.calldata.toList.length
-  all_goals
-    first | rw [if_pos hdyn] | rw [if_neg hdyn]
-    change (match decodeCalldata.decodeArgs DecodeMode.legacySolc05
-        ["amount0Out", "amount1Out", "to", "data"]
-        [uint256, uint256, legacyAddr, ABIType.bytes] (I.calldata.toList.drop 4) ∅ with
-      | some (store, _) => some store
-      | none => none) = none
-    unfold decodeCalldata.decodeArgs
-    rw [show abiTupleHeadSize? [uint256, uint256, legacyAddr, ABIType.bytes] = some 128 by
-      native_decide]
-    simp only [bind, Option.bind]
-    rw [if_pos (by
-      rw [List.length_drop, htlen]
-      omega : (I.calldata.toList.drop 4).length < 128)]
-
-theorem swapDecodeABIValues_none_offset_huge {I : ExecutionEnv}
-    (hsz132 : 132 ≤ I.calldata.size) (hoff : solcLegacyMaxU32 < swapDataOffset I) :
-    decodeABIValues? [uint256, uint256, legacyAddr, ABIType.bytes]
-      (I.calldata.toList.drop 4) 0 0 128 128 DecodeMode.legacySolc05 = none := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake0 : (((I.calldata.toList.drop 4).drop 0).take 32).length = 32 := by
-    rw [List.drop_zero, List.length_take, List.length_drop, htlen]
-    omega
-  have htake32 : (((I.calldata.toList.drop 4).drop 32).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have htake64 : (((I.calldata.toList.drop 4).drop 64).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have hdec0 : decodeABIValue? uint256 (I.calldata.toList.drop 4) 0
-      DecodeMode.legacySolc05 = some (.int (Int.ofNat
-        (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).toNat), 0 + 32) := by
-    simpa [List.drop_zero] using
-      swapDecodeABIValue_uint256_legacy_ok (bytes := I.calldata.toList.drop 4)
-        (start := 0) htake0
-  have hdec32 : decodeABIValue? uint256 (I.calldata.toList.drop 4) 32
-      DecodeMode.legacySolc05 = some (.int (Int.ofNat
-        (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32)).toNat), 32 + 32) := by
-    exact swapDecodeABIValue_uint256_legacy_ok (bytes := I.calldata.toList.drop 4)
-      (start := 32) htake32
-  have hdec64 : decodeABIValue? legacyAddr (I.calldata.toList.drop 4) 64
-      DecodeMode.legacySolc05 = some (.address (AccountAddress.ofNat
-        (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 64).take 32)).toNat),
-        64 + 32) := by
-    exact swapDecodeABIValue_legacyAddress_ok (bytes := I.calldata.toList.drop 4)
-      (start := 64) htake64
-  have hreadOff : readNat? (I.calldata.toList.drop 4) 96 = some (swapDataOffset I) := by
-    simpa [swapDataOffset, swapDataOffsetWord] using
-      swapReadNat_drop4_eq_calldataWord (I := I) (headOff := 96) (by omega)
-  have hoff' : ABI.solcMaxLen DecodeMode.legacySolc05 < swapDataOffset I := by
-    simpa [solcMaxLen_legacySolc05] using hoff
-  have hdec0r : decodeABIValue? (.elem (.int (.uint ⟨256, by decide⟩)))
-      (I.calldata.toList.drop 4) 0 DecodeMode.legacySolc05 =
-      some (.int (Int.ofNat (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).toNat),
-        0 + 32) := by
-    simpa [uint256, uint256Int] using hdec0
-  have hdec32r : decodeABIValue? (.elem (.int (.uint ⟨256, by decide⟩)))
-      (I.calldata.toList.drop 4) 32 DecodeMode.legacySolc05 =
-      some (.int (Int.ofNat
-        (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32)).toNat), 32 + 32) := by
-    simpa [uint256, uint256Int] using hdec32
-  have hdec64r : decodeABIValue? (.elem .address) (I.calldata.toList.drop 4) 64
-      DecodeMode.legacySolc05 = some (.address (AccountAddress.ofNat
-        (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 64).take 32)).toNat), 64 + 32) := by
-    simpa [legacyAddr, addr] using hdec64
-  simp [decodeABIValues?, uint256, uint256Int, legacyAddr, addr, isDynamicABIType,
-    staticABIEncodedSize?, hdec0r, hdec32r, hdec64r, hreadOff, hoff']
-
-theorem swapDecodeABIValue_bytes_none_length_short {I : ExecutionEnv}
-    (hshort : I.calldata.size < 4 + swapDataOffset I + 32) :
-    decodeABIValue? ABIType.bytes (I.calldata.toList.drop 4) (swapDataOffset I)
-      DecodeMode.legacySolc05 = none := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have hreadLen : readNat? (I.calldata.toList.drop 4) (swapDataOffset I) = none := by
-    unfold readNat? readWord? readBytes?
-    have hlen :
-        ¬ (((I.calldata.toList.drop 4).drop (swapDataOffset I)).take 32).length = 32 := by
-      rw [List.length_take, List.length_drop, List.length_drop, htlen]
-      omega
-    rw [if_neg hlen]
-    simp
-  simp [decodeABIValue?, hreadLen]
-
-theorem swapDecodeABIValue_bytes_none_length_huge {I : ExecutionEnv}
-    (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hlenHuge : solcLegacyMaxU32 < swapDataSize I) :
-    decodeABIValue? ABIType.bytes (I.calldata.toList.drop 4) (swapDataOffset I)
-      DecodeMode.legacySolc05 = none := by
-  have hreadLen := swapReadNat_drop4_eq_calldataWord (I := I)
-    (headOff := swapDataOffset I) hlenWord
-  have hlenHuge' :
-      ABI.solcMaxLen DecodeMode.legacySolc05 <
-        (calldataWord I.calldata (4 + (swapDataOffsetWord I).toNat)).toNat := by
-    simpa [solcMaxLen_legacySolc05, swapDataSize, swapDataSizeWord,
-      swapDataOffset] using hlenHuge
-  simp [decodeABIValue?, hreadLen, hlenHuge', swapDataOffset]
-
-theorem swapDecodeABIValue_bytes_none_payload_short {I : ExecutionEnv}
-    (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hlenMax : ¬ solcLegacyMaxU32 < swapDataSize I)
-    (hpayload : (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
-      (swapDataSize I)).length ≠ swapDataSize I) :
-    decodeABIValue? ABIType.bytes (I.calldata.toList.drop 4) (swapDataOffset I)
-      DecodeMode.legacySolc05 = none := by
-  have hreadLen := swapReadNat_drop4_eq_calldataWord (I := I)
-    (headOff := swapDataOffset I) hlenWord
-  have hpayloadRead :
-      readBytes? (I.calldata.toList.drop 4) (swapDataOffset I + 32) (swapDataSize I) =
-        none := by
-    unfold readBytes?
-    rw [if_neg hpayload]
-  have hlenMax' :
-      ¬ ABI.solcMaxLen DecodeMode.legacySolc05 <
-        (calldataWord I.calldata (4 + (swapDataOffsetWord I).toNat)).toNat := by
-    simpa [solcMaxLen_legacySolc05, swapDataSize, swapDataSizeWord,
-      swapDataOffset] using hlenMax
-  simp [decodeABIValue?, hreadLen, hlenMax', hpayloadRead, swapDataOffset]
-
-theorem swapDecodeABIValues_none_data {I : ExecutionEnv} (hsz132 : 132 ≤ I.calldata.size)
-    (_hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hdecData : decodeABIValue? ABIType.bytes (I.calldata.toList.drop 4) (swapDataOffset I)
-      DecodeMode.legacySolc05 = none) :
-    decodeABIValues? [uint256, uint256, legacyAddr, ABIType.bytes]
-      (I.calldata.toList.drop 4) 0 0 128 128 DecodeMode.legacySolc05 = none := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake0 : (((I.calldata.toList.drop 4).drop 0).take 32).length = 32 := by
-    rw [List.drop_zero, List.length_take, List.length_drop, htlen]
-    omega
-  have htake32 : (((I.calldata.toList.drop 4).drop 32).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have htake64 : (((I.calldata.toList.drop 4).drop 64).take 32).length = 32 := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    omega
-  have hdec0 : decodeABIValue? uint256 (I.calldata.toList.drop 4) 0
-      DecodeMode.legacySolc05 = some (.int (Int.ofNat
-        (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).toNat), 0 + 32) := by
-    simpa [List.drop_zero] using
-      swapDecodeABIValue_uint256_legacy_ok (bytes := I.calldata.toList.drop 4)
-        (start := 0) htake0
-  have hdec32 : decodeABIValue? uint256 (I.calldata.toList.drop 4) 32
-      DecodeMode.legacySolc05 = some (.int (Int.ofNat
-        (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32)).toNat), 32 + 32) := by
-    exact swapDecodeABIValue_uint256_legacy_ok (bytes := I.calldata.toList.drop 4)
-      (start := 32) htake32
-  have hdec64 : decodeABIValue? legacyAddr (I.calldata.toList.drop 4) 64
-      DecodeMode.legacySolc05 = some (.address (AccountAddress.ofNat
-        (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 64).take 32)).toNat),
-        64 + 32) := by
-    exact swapDecodeABIValue_legacyAddress_ok (bytes := I.calldata.toList.drop 4)
-      (start := 64) htake64
-  have hreadOff : readNat? (I.calldata.toList.drop 4) 96 = some (swapDataOffset I) := by
-    simpa [swapDataOffset, swapDataOffsetWord] using
-      swapReadNat_drop4_eq_calldataWord (I := I) (headOff := 96) (by omega)
-  have hdec0r : decodeABIValue? (.elem (.int (.uint ⟨256, by decide⟩)))
-      (I.calldata.toList.drop 4) 0 DecodeMode.legacySolc05 =
-      some (.int (Int.ofNat (ABI.bytesToWord ((I.calldata.toList.drop 4).take 32)).toNat),
-        0 + 32) := by
-    simpa [uint256, uint256Int] using hdec0
-  have hdec32r : decodeABIValue? (.elem (.int (.uint ⟨256, by decide⟩)))
-      (I.calldata.toList.drop 4) 32 DecodeMode.legacySolc05 =
-      some (.int (Int.ofNat
-        (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 32).take 32)).toNat), 32 + 32) := by
-    simpa [uint256, uint256Int] using hdec32
-  have hdec64r : decodeABIValue? (.elem .address) (I.calldata.toList.drop 4) 64
-      DecodeMode.legacySolc05 = some (.address (AccountAddress.ofNat
-        (ABI.bytesToWord (((I.calldata.toList.drop 4).drop 64).take 32)).toNat), 64 + 32) := by
-    simpa [legacyAddr, addr] using hdec64
-  simp [decodeABIValues?, uint256, uint256Int, legacyAddr, addr, isDynamicABIType,
-    staticABIEncodedSize?, hdec0r, hdec32r, hdec64r, hreadOff, hdecData]
-
-theorem uniswapDecode_swap_none_of_values_none {I : ExecutionEnv}
-    (hsz132 : 132 ≤ I.calldata.size)
-    (hvals : decodeABIValues? [uint256, uint256, legacyAddr, ABIType.bytes]
-      (I.calldata.toList.drop 4) 0 0 128 128 DecodeMode.legacySolc05 = none) :
-    decodeCalldataWithMode config.abiDecodeMode (swapTransition.params.map Param.name)
-      (transitionSignature swapTransition).paramTypes I.calldata = none := by
-  show decodeCalldataWithMode DecodeMode.legacySolc05
-    ["amount0Out", "amount1Out", "to", "data"] [uint256, uint256, legacyAddr, ABIType.bytes]
-      I.calldata = none
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
-  by_cases hdyn :
-      [uint256, uint256, legacyAddr, ABIType.bytes].any isDynamicABIType = true ∧
-        2 ^ 255 ≤ I.calldata.toList.length
-  all_goals
-    first | rw [if_pos hdyn] | rw [if_neg hdyn]
-    change (match decodeCalldata.decodeArgs DecodeMode.legacySolc05
-        ["amount0Out", "amount1Out", "to", "data"]
-        [uint256, uint256, legacyAddr, ABIType.bytes] (I.calldata.toList.drop 4) ∅ with
-      | some (store, _) => some store
-      | none => none) = none
-    unfold decodeCalldata.decodeArgs
-    rw [show abiTupleHeadSize? [uint256, uint256, legacyAddr, ABIType.bytes] = some 128 by
-      native_decide]
-    simp only [bind, Option.bind]
-    rw [if_neg (by
-      rw [List.length_drop, htlen]
-      omega : ¬ (I.calldata.toList.drop 4).length < 128)]
-    rw [hvals]
-
-theorem uniswapDecode_swap_none_offset_huge {I : ExecutionEnv}
-    (hsz132 : 132 ≤ I.calldata.size) (hoff : solcLegacyMaxU32 < swapDataOffset I) :
-    decodeCalldataWithMode config.abiDecodeMode (swapTransition.params.map Param.name)
-      (transitionSignature swapTransition).paramTypes I.calldata = none :=
-  uniswapDecode_swap_none_of_values_none hsz132
-    (swapDecodeABIValues_none_offset_huge (I := I) hsz132 hoff)
-
-theorem uniswapDecode_swap_none_length_short {I : ExecutionEnv}
-    (hsz132 : 132 ≤ I.calldata.size) (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hshort : I.calldata.size < 4 + swapDataOffset I + 32) :
-    decodeCalldataWithMode config.abiDecodeMode (swapTransition.params.map Param.name)
-      (transitionSignature swapTransition).paramTypes I.calldata = none :=
-  uniswapDecode_swap_none_of_values_none hsz132
-    (swapDecodeABIValues_none_data (I := I) hsz132 hoffMax
-      (swapDecodeABIValue_bytes_none_length_short (I := I) hshort))
-
-theorem uniswapDecode_swap_none_length_huge {I : ExecutionEnv}
-    (hsz132 : 132 ≤ I.calldata.size) (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hlenHuge : solcLegacyMaxU32 < swapDataSize I) :
-    decodeCalldataWithMode config.abiDecodeMode (swapTransition.params.map Param.name)
-      (transitionSignature swapTransition).paramTypes I.calldata = none :=
-  uniswapDecode_swap_none_of_values_none hsz132
-    (swapDecodeABIValues_none_data (I := I) hsz132 hoffMax
-      (swapDecodeABIValue_bytes_none_length_huge (I := I) hlenWord hlenHuge))
-
-theorem uniswapDecode_swap_none_payload_short {I : ExecutionEnv}
-    (hsz132 : 132 ≤ I.calldata.size) (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hlenMax : ¬ solcLegacyMaxU32 < swapDataSize I)
-    (hpayload : (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
-      (swapDataSize I)).length ≠ swapDataSize I) :
-    decodeCalldataWithMode config.abiDecodeMode (swapTransition.params.map Param.name)
-      (transitionSignature swapTransition).paramTypes I.calldata = none :=
-  uniswapDecode_swap_none_of_values_none hsz132
-    (swapDecodeABIValues_none_data (I := I) hsz132 hoffMax
-      (swapDecodeABIValue_bytes_none_payload_short (I := I) hlenWord hlenMax hpayload))
-
-theorem uniswapSwapX_shortHead {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hshort : I.calldata.size < 132)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨430⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have hlt :
-      UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨128⟩ = ⟨1⟩ := by
-    apply ult_one
-    rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
-      usub_ofNat_word_toNat (c := (⟨4⟩ : UInt256)) (by simpa using hsz4) hsize,
-      show (⟨4⟩ : UInt256).toNat = 4 from by decide]
-    omega
-  exact RD.solcExternalStaticArgsShortReverts
-    (code := uniswapV2PairBytecode) (entry := ⟨430⟩) (ret := ⟨570⟩)
-    (decoded := ⟨452⟩) (need := ⟨128⟩)
-    hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
-
-theorem uniswapSwapX_offsetHuge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsize : I.calldata.size < UInt256.size) (hsz132 : 132 ≤ I.calldata.size)
-    (hoff : solcLegacyMaxU32 < swapDataOffset I)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨430⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have hlt :
-      UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨128⟩ = ⟨0⟩ := by
-    exact solcDecodeLenCheckOkUnsigned (by simpa using hsz132) hsize
-  obtain ⟨_, _, rd452⟩ := RD.solcExternalStaticArgsLenOk
-    (code := uniswapV2PairBytecode) (entry := ⟨430⟩) (ret := ⟨570⟩)
-    (decoded := ⟨452⟩) (need := ⟨128⟩)
-    hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) hlt
-  have rd490 := evm_run rd452 with [
-    jumpdest, dup2, calldataload, swap2, push1 ⟨32⟩, dup2, add, calldataload,
-    swap2, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, push1 ⟨64⟩,
-    dup4, add, calldataload, and, swap2, swap1, dup2, add, swap1, push1 ⟨128⟩,
-    dup2, add, push1 ⟨96⟩, dup3, add, calldataload]
-  have hgt :
-      UInt256.gt
-        (uInt256OfByteArray (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32))
-        ⟨4294967296⟩ = ⟨1⟩ := by
-    apply ugt_one
-    rw [show (⟨4294967296⟩ : UInt256).toNat = 4294967296 from by decide]
-    have hoff' : 4294967296 < swapDataOffset I := by
-      simpa [solcLegacyMaxU32] using hoff
-    simpa [swapDataOffset, swapDataOffsetWord, calldataWord,
-      show (((⟨4⟩ : UInt256) + ⟨96⟩).toNat) = 100 from by decide] using hoff'
-  have rd496 := rd490.pushConst ⟨4294967296⟩ (width := 5) (op := .PUSH5)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd497 := rd496.dup2 (by native_decide) (by evm_ov)
-  have rd498₀ := rd497.gt (by native_decide) (by evm_ov)
-  have rd498 := rd498₀
-  rw [hgt] at rd498
-  have rd499₀ := rd498.iszero (by native_decide) (by evm_ov)
-  have rd499 := rd499₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd499
-  have rd502 := rd499.push2 ⟨507⟩ (by native_decide) (by evm_ov)
-  have rd503 := rd502.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by evm_ov)
-  have rd505 := rd503.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd506 := rd505.dup1 (by native_decide) (by evm_ov)
-  exact rd506.rev 0 (by native_decide) mem_cost (by evm_ov)
-
-theorem uniswapSwapX_lengthShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsize : I.calldata.size < UInt256.size) (hsz132 : 132 ≤ I.calldata.size)
-    (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hlenShort : I.calldata.size < 4 + swapDataOffset I + 32)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨430⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have hlt :
-      UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨128⟩ = ⟨0⟩ := by
-    exact solcDecodeLenCheckOkUnsigned (by simpa using hsz132) hsize
-  obtain ⟨_, _, rd452⟩ := RD.solcExternalStaticArgsLenOk
-    (code := uniswapV2PairBytecode) (entry := ⟨430⟩) (ret := ⟨570⟩)
-    (decoded := ⟨452⟩) (need := ⟨128⟩)
-    hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) hlt
-  have rd490 := evm_run rd452 with [
-    jumpdest, dup2, calldataload, swap2, push1 ⟨32⟩, dup2, add, calldataload,
-    swap2, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, push1 ⟨64⟩,
-    dup4, add, calldataload, and, swap2, swap1, dup2, add, swap1, push1 ⟨128⟩,
-    dup2, add, push1 ⟨96⟩, dup3, add, calldataload]
-  have hoffPass :
-      UInt256.gt
-        (uInt256OfByteArray (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32))
-        ⟨4294967296⟩ = ⟨0⟩ := by
-    apply ugt_zero
-    rw [show (⟨4294967296⟩ : UInt256).toNat = 4294967296 from by decide]
-    have hoffLe : swapDataOffset I ≤ 4294967296 := by
-      have : ¬ 4294967296 < swapDataOffset I := by
-        simpa [solcLegacyMaxU32] using hoffMax
-      omega
-    simpa [swapDataOffset, swapDataOffsetWord, calldataWord,
-      show (((⟨4⟩ : UInt256) + ⟨96⟩).toNat) = 100 from by decide] using hoffLe
-  have rd496 := rd490.pushConst ⟨4294967296⟩ (width := 5) (op := .PUSH5)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd497 := rd496.dup2 (by native_decide) (by evm_ov)
-  have rd498₀ := rd497.gt (by native_decide) (by evm_ov)
-  have rd498 := rd498₀
-  rw [hoffPass] at rd498
-  have rd499₀ := rd498.iszero (by native_decide) (by evm_ov)
-  have rd499 := rd499₀
-  rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd499
-  have rd502 := rd499.push2 ⟨507⟩ (by native_decide) (by evm_ov)
-  have rd507 := rd502.jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by evm_ov)
-  have rd516 := evm_run rd507 with [
-    jumpdest, dup3, add, dup4, push1 ⟨32⟩, dup3, add, gt]
-  have hgtLen :
-      UInt256.gt
-        (((⟨4⟩ : UInt256) +
-            uInt256OfByteArray (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)) +
-          ⟨32⟩)
-        ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) =
-        ⟨1⟩ := by
-    apply ugt_one
-    have hoffWord :
-        (uInt256OfByteArray
-          (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat =
-          swapDataOffset I := by
-      simp [swapDataOffset, swapDataOffsetWord, calldataWord,
-        show (((⟨4⟩ : UInt256) + ⟨96⟩).toNat) = 100 from by decide]
-    have hoffLe : swapDataOffset I ≤ 4294967296 := by
-      have : ¬ 4294967296 < swapDataOffset I := by
-        simpa [solcLegacyMaxU32] using hoffMax
-      omega
-    have hleft1 :
-        (((⟨4⟩ : UInt256) +
-          uInt256OfByteArray
-            (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat) =
-          4 + swapDataOffset I := by
-      rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, hoffWord]
-      rw [Nat.mod_eq_of_lt]
-      have hcap : 4 + 4294967296 < UInt256.size := by norm_num [UInt256.size]
-      omega
-    have hleft :
-        ((((⟨4⟩ : UInt256) +
-            uInt256OfByteArray
-              (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)) +
-          ⟨32⟩).toNat) = 4 + swapDataOffset I + 32 := by
-      rw [uadd_toNat, hleft1, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-      rw [Nat.mod_eq_of_lt]
-      have hcap : 4 + 4294967296 + 32 < UInt256.size := by norm_num [UInt256.size]
-      omega
-    have hright :
-        (((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩).toNat) =
-          I.calldata.size := by
-      have hword :
-          (⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ =
-            UInt256.ofNat I.calldata.size :=
-        uadd_word_usub_ofNat_word (n := I.calldata.size) (c := (⟨4⟩ : UInt256))
-          (by
-            rw [show ((⟨4⟩ : UInt256).toNat) = 4 from by decide]
-            omega)
-          hsize
-      rw [hword, ulit_toNat' I.calldata.size hsize]
-    rw [hleft, hright]
-    exact hlenShort
-  have rd516' := rd516
-  rw [hgtLen] at rd516'
-  have rd517₀ := rd516'.iszero (by native_decide) (by evm_ov)
-  have rd517 := rd517₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd517
-  have rd520 := rd517.push2 ⟨525⟩ (by native_decide) (by evm_ov)
-  have rd521 := rd520.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by evm_ov)
-  have rd523 := rd521.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd524 := rd523.dup1 (by native_decide) (by evm_ov)
-  exact rd524.rev 0 (by native_decide) mem_cost (by evm_ov)
-
-private theorem swapU256_lor_one_ne_zero_left (w : UInt256) :
-    UInt256.lor ⟨1⟩ w ≠ ⟨0⟩ := by
-  intro h
-  have hval : (UInt256.lor ⟨1⟩ w).toNat = 0 := by
-    simpa using congrArg UInt256.toNat h
-  rw [u256_lor_toNat] at hval
-  change Nat.lor 1 w.toNat % UInt256.size = 0 at hval
-  have hlt : Nat.lor 1 w.toNat < UInt256.size := by
-    have hw : w.toNat < 2 ^ 256 := by
-      simp [UInt256.toNat, UInt256.size]
-    simpa [UInt256.size] using Nat.or_lt_two_pow (by norm_num : 1 < 2 ^ 256) hw
-  rw [Nat.mod_eq_of_lt hlt] at hval
-  have hbitTrue : Nat.testBit (Nat.lor 1 w.toNat) 0 = true := by
-    change Nat.testBit (1 ||| w.toNat) 0 = true
-    rw [Nat.testBit_lor]
-    norm_num
-  rw [hval] at hbitTrue
-  simp at hbitTrue
-
-private theorem swapU256_lor_one_ne_zero_right (w : UInt256) :
-    UInt256.lor w ⟨1⟩ ≠ ⟨0⟩ := by
-  rw [u256_lor_comm]
-  exact swapU256_lor_one_ne_zero_left w
-
-private theorem swapPayloadShort_lt {I : ExecutionEnv}
-    (hpayload : (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
-      (swapDataSize I)).length ≠ swapDataSize I) :
-    I.calldata.size < 4 + swapDataOffset I + 32 + swapDataSize I := by
-  by_contra hnot
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have htake :
-      (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
-        (swapDataSize I)).length = swapDataSize I := by
-    rw [List.length_take, List.length_drop, List.length_drop, htlen]
-    rw [min_eq_left]
-    omega
-  exact hpayload htake
-
-private theorem swapPayloadPresent_le {I : ExecutionEnv}
-    (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hpayload : (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
-      (swapDataSize I)).length = swapDataSize I) :
-    4 + swapDataOffset I + 32 + swapDataSize I ≤ I.calldata.size := by
-  have htlen : I.calldata.toList.length = I.calldata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  have hlenDrop :
-      (I.calldata.toList.drop 4).length = I.calldata.size - 4 := by
-    rw [List.length_drop, htlen]
-  have hdropLen :
-      ((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).length =
-        I.calldata.size - 4 - (swapDataOffset I + 32) := by
-    rw [List.length_drop, hlenDrop]
-  have htakeLen :
-      (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
-        (swapDataSize I)).length =
-        min (swapDataSize I) (I.calldata.size - 4 - (swapDataOffset I + 32)) := by
-    rw [List.length_take, hdropLen]
-  rw [htakeLen] at hpayload
-  have hle : swapDataSize I ≤ I.calldata.size - 4 - (swapDataOffset I + 32) := by
-    have hmin :
-        min (swapDataSize I) (I.calldata.size - 4 - (swapDataOffset I + 32)) ≤
-          I.calldata.size - 4 - (swapDataOffset I + 32) :=
-      Nat.min_le_right _ _
-    rwa [hpayload] at hmin
-  omega
-
-theorem uniswapSwapX_lengthHuge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsize : I.calldata.size < UInt256.size) (hsz132 : 132 ≤ I.calldata.size)
-    (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hlenHuge : solcLegacyMaxU32 < swapDataSize I)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨430⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have hlt :
-      UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨128⟩ = ⟨0⟩ := by
-    exact solcDecodeLenCheckOkUnsigned (by simpa using hsz132) hsize
-  obtain ⟨_, _, rd452⟩ := RD.solcExternalStaticArgsLenOk
-    (code := uniswapV2PairBytecode) (entry := ⟨430⟩) (ret := ⟨570⟩)
-    (decoded := ⟨452⟩) (need := ⟨128⟩)
-    hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) hlt
-  have rd490 := evm_run rd452 with [
-    jumpdest, dup2, calldataload, swap2, push1 ⟨32⟩, dup2, add, calldataload,
-    swap2, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, push1 ⟨64⟩,
-    dup4, add, calldataload, and, swap2, swap1, dup2, add, swap1, push1 ⟨128⟩,
-    dup2, add, push1 ⟨96⟩, dup3, add, calldataload]
-  have hoffPass :
-      UInt256.gt
-        (uInt256OfByteArray (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32))
-        ⟨4294967296⟩ = ⟨0⟩ := by
-    apply ugt_zero
-    rw [show (⟨4294967296⟩ : UInt256).toNat = 4294967296 from by decide]
-    have hoffLe : swapDataOffset I ≤ 4294967296 := by
-      have : ¬ 4294967296 < swapDataOffset I := by
-        simpa [solcLegacyMaxU32] using hoffMax
-      omega
-    simpa [swapDataOffset, swapDataOffsetWord, calldataWord,
-      show (((⟨4⟩ : UInt256) + ⟨96⟩).toNat) = 100 from by decide] using hoffLe
-  have rd496 := rd490.pushConst ⟨4294967296⟩ (width := 5) (op := .PUSH5)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd497 := rd496.dup2 (by native_decide) (by evm_ov)
-  have rd498₀ := rd497.gt (by native_decide) (by evm_ov)
-  have rd498 := rd498₀
-  rw [hoffPass] at rd498
-  have rd499₀ := rd498.iszero (by native_decide) (by evm_ov)
-  have rd499 := rd499₀
-  rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd499
-  have rd502 := rd499.push2 ⟨507⟩ (by native_decide) (by evm_ov)
-  have rd507 := rd502.jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by evm_ov)
-  have rd516 := evm_run rd507 with [
-    jumpdest, dup3, add, dup4, push1 ⟨32⟩, dup3, add, gt]
-  have hgtLen :
-      UInt256.gt
-        (((⟨4⟩ : UInt256) +
-            uInt256OfByteArray (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)) +
-          ⟨32⟩)
-        ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) =
-        ⟨0⟩ := by
-    apply ugt_zero
-    have hoffWord :
-        (uInt256OfByteArray
-          (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat =
-          swapDataOffset I := by
-      simp [swapDataOffset, swapDataOffsetWord, calldataWord,
-        show (((⟨4⟩ : UInt256) + ⟨96⟩).toNat) = 100 from by decide]
-    have hoffLe : swapDataOffset I ≤ 4294967296 := by
-      have : ¬ 4294967296 < swapDataOffset I := by
-        simpa [solcLegacyMaxU32] using hoffMax
-      omega
-    have hleft1 :
-        (((⟨4⟩ : UInt256) +
-          uInt256OfByteArray
-            (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat) =
-          4 + swapDataOffset I := by
-      rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, hoffWord]
-      rw [Nat.mod_eq_of_lt]
-      have hcap : 4 + 4294967296 < UInt256.size := by norm_num [UInt256.size]
-      omega
-    have hleft :
-        ((((⟨4⟩ : UInt256) +
-            uInt256OfByteArray
-              (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)) +
-          ⟨32⟩).toNat) = 4 + swapDataOffset I + 32 := by
-      rw [uadd_toNat, hleft1, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-      rw [Nat.mod_eq_of_lt]
-      have hcap : 4 + 4294967296 + 32 < UInt256.size := by norm_num [UInt256.size]
-      omega
-    have hright :
-        (((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩).toNat) =
-          I.calldata.size := by
-      have hword :
-          (⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ =
-            UInt256.ofNat I.calldata.size :=
-        uadd_word_usub_ofNat_word (n := I.calldata.size) (c := (⟨4⟩ : UInt256))
-          (by
-            rw [show ((⟨4⟩ : UInt256).toNat) = 4 from by decide]
-            omega)
-          hsize
-      rw [hword, ulit_toNat' I.calldata.size hsize]
-    rw [hleft, hright]
-    exact hlenWord
-  have rd516' := rd516
-  rw [hgtLen] at rd516'
-  have rd517₀ := rd516'.iszero (by native_decide) (by evm_ov)
-  have rd517 := rd517₀
-  rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd517
-  have rd520 := rd517.push2 ⟨525⟩ (by native_decide) (by evm_ov)
-  have rd525 := rd520.jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by evm_ov)
-  have rd540 := evm_run rd525 with [
-    jumpdest, dup1, calldataload, swap1, push1 ⟨32⟩, add, swap2, dup5,
-    push1 ⟨1⟩, dup4, mul, dup5, add, gt]
-  have rd546 := rd540.pushConst ⟨4294967296⟩ (width := 5) (op := .PUSH5)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd547 := rd546.dup4 (by native_decide) (by evm_ov)
-  have rd548₀ := rd547.gt (by native_decide) (by evm_ov)
-  have hgtHuge :
-      UInt256.gt
-        (uInt256OfByteArray
-          (I.calldata.readBytes
-            (((⟨4⟩ : UInt256) +
-              uInt256OfByteArray
-                (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat)
-            32))
-        ⟨4294967296⟩ = ⟨1⟩ := by
-    apply ugt_one
-    have hoffWord :
-        (uInt256OfByteArray
-          (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat =
-          swapDataOffset I := by
-      simp [swapDataOffset, swapDataOffsetWord, calldataWord,
-        show (((⟨4⟩ : UInt256) + ⟨96⟩).toNat) = 100 from by decide]
-    have hoffLe : swapDataOffset I ≤ 4294967296 := by
-      have : ¬ 4294967296 < swapDataOffset I := by
-        simpa [solcLegacyMaxU32] using hoffMax
-      omega
-    have hlenOffset :
-        (((⟨4⟩ : UInt256) +
-          uInt256OfByteArray
-            (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat) =
-          4 + swapDataOffset I := by
-      rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, hoffWord]
-      rw [Nat.mod_eq_of_lt]
-      have hcap : 4 + 4294967296 < UInt256.size := by norm_num [UInt256.size]
-      omega
-    rw [show (⟨4294967296⟩ : UInt256).toNat = 4294967296 from by decide]
-    have hread :
-        (uInt256OfByteArray
-          (I.calldata.readBytes
-            (((⟨4⟩ : UInt256) +
-              uInt256OfByteArray
-                (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat)
-            32)).toNat = swapDataSize I := by
-      simp [swapDataSize, swapDataSizeWord, calldataWord, hlenOffset]
-    rw [hread]
-    simpa [solcLegacyMaxU32] using hlenHuge
-  have rd548 := rd548₀
-  rw [hgtHuge] at rd548
-  have rd549 := RD.or rd548 (by native_decide) (by evm_ov)
-  have rd550₀ := rd549.iszero (by native_decide) (by evm_ov)
-  have rd550 := rd550₀
-  rw [isZero_eq_zero_of_ne (swapU256_lor_one_ne_zero_left _)] at rd550
-  have rd553 := rd550.push2 ⟨559⟩ (by native_decide) (by evm_ov)
-  have rd554 := rd553.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by evm_ov)
-  have rd556 := rd554.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd557 := rd556.dup1 (by native_decide) (by evm_ov)
-  exact rd557.rev 0 (by native_decide) mem_cost (by evm_ov)
-
-theorem uniswapSwapX_payloadShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hsize : I.calldata.size < UInt256.size) (hsz132 : 132 ≤ I.calldata.size)
-    (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hlenMax : ¬ solcLegacyMaxU32 < swapDataSize I)
-    (hpayload : (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
-      (swapDataSize I)).length ≠ swapDataSize I)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨430⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have hlt :
-      UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨128⟩ = ⟨0⟩ := by
-    exact solcDecodeLenCheckOkUnsigned (by simpa using hsz132) hsize
-  obtain ⟨_, _, rd452⟩ := RD.solcExternalStaticArgsLenOk
-    (code := uniswapV2PairBytecode) (entry := ⟨430⟩) (ret := ⟨570⟩)
-    (decoded := ⟨452⟩) (need := ⟨128⟩)
-    hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) hlt
-  have rd490 := evm_run rd452 with [
-    jumpdest, dup2, calldataload, swap2, push1 ⟨32⟩, dup2, add, calldataload,
-    swap2, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, push1 ⟨64⟩,
-    dup4, add, calldataload, and, swap2, swap1, dup2, add, swap1, push1 ⟨128⟩,
-    dup2, add, push1 ⟨96⟩, dup3, add, calldataload]
-  have hoffPass :
-      UInt256.gt
-        (uInt256OfByteArray (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32))
-        ⟨4294967296⟩ = ⟨0⟩ := by
-    apply ugt_zero
-    rw [show (⟨4294967296⟩ : UInt256).toNat = 4294967296 from by decide]
-    have hoffLe : swapDataOffset I ≤ 4294967296 := by
-      have : ¬ 4294967296 < swapDataOffset I := by
-        simpa [solcLegacyMaxU32] using hoffMax
-      omega
-    simpa [swapDataOffset, swapDataOffsetWord, calldataWord,
-      show (((⟨4⟩ : UInt256) + ⟨96⟩).toNat) = 100 from by decide] using hoffLe
-  have rd496 := rd490.pushConst ⟨4294967296⟩ (width := 5) (op := .PUSH5)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd497 := rd496.dup2 (by native_decide) (by evm_ov)
-  have rd498₀ := rd497.gt (by native_decide) (by evm_ov)
-  have rd498 := rd498₀
-  rw [hoffPass] at rd498
-  have rd499₀ := rd498.iszero (by native_decide) (by evm_ov)
-  have rd499 := rd499₀
-  rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd499
-  have rd502 := rd499.push2 ⟨507⟩ (by native_decide) (by evm_ov)
-  have rd507 := rd502.jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by evm_ov)
-  have rd516 := evm_run rd507 with [
-    jumpdest, dup3, add, dup4, push1 ⟨32⟩, dup3, add, gt]
-  have hgtLen :
-      UInt256.gt
-        (((⟨4⟩ : UInt256) +
-            uInt256OfByteArray (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)) +
-          ⟨32⟩)
-        ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) =
-        ⟨0⟩ := by
-    apply ugt_zero
-    have hoffWord :
-        (uInt256OfByteArray
-          (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat =
-          swapDataOffset I := by
-      simp [swapDataOffset, swapDataOffsetWord, calldataWord,
-        show (((⟨4⟩ : UInt256) + ⟨96⟩).toNat) = 100 from by decide]
-    have hoffLe : swapDataOffset I ≤ 4294967296 := by
-      have : ¬ 4294967296 < swapDataOffset I := by
-        simpa [solcLegacyMaxU32] using hoffMax
-      omega
-    have hleft1 :
-        (((⟨4⟩ : UInt256) +
-          uInt256OfByteArray
-            (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat) =
-          4 + swapDataOffset I := by
-      rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, hoffWord]
-      rw [Nat.mod_eq_of_lt]
-      have hcap : 4 + 4294967296 < UInt256.size := by norm_num [UInt256.size]
-      omega
-    have hleft :
-        ((((⟨4⟩ : UInt256) +
-            uInt256OfByteArray
-              (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)) +
-          ⟨32⟩).toNat) = 4 + swapDataOffset I + 32 := by
-      rw [uadd_toNat, hleft1, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-      rw [Nat.mod_eq_of_lt]
-      have hcap : 4 + 4294967296 + 32 < UInt256.size := by norm_num [UInt256.size]
-      omega
-    have hright :
-        (((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩).toNat) =
-          I.calldata.size := by
-      have hword :
-          (⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ =
-            UInt256.ofNat I.calldata.size :=
-        uadd_word_usub_ofNat_word (n := I.calldata.size) (c := (⟨4⟩ : UInt256))
-          (by
-            rw [show ((⟨4⟩ : UInt256).toNat) = 4 from by decide]
-            omega)
-          hsize
-      rw [hword, ulit_toNat' I.calldata.size hsize]
-    rw [hleft, hright]
-    exact hlenWord
-  have rd516' := rd516
-  rw [hgtLen] at rd516'
-  have rd517₀ := rd516'.iszero (by native_decide) (by evm_ov)
-  have rd517 := rd517₀
-  rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd517
-  have rd520 := rd517.push2 ⟨525⟩ (by native_decide) (by evm_ov)
-  have rd525 := rd520.jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by evm_ov)
-  have rd540 := evm_run rd525 with [
-    jumpdest, dup1, calldataload, swap1, push1 ⟨32⟩, add, swap2, dup5,
-    push1 ⟨1⟩, dup4, mul, dup5, add, gt]
-  have hgtPayload :
-      UInt256.gt
-        (((⟨32⟩ : UInt256) +
-          ((⟨4⟩ : UInt256) +
-            uInt256OfByteArray
-              (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32))) +
-          UInt256.mul
-            (uInt256OfByteArray
-              (I.calldata.readBytes
-                (((⟨4⟩ : UInt256) +
-                  uInt256OfByteArray
-                    (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat)
-                32))
-            ⟨1⟩)
-        ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) =
-        ⟨1⟩ := by
-    apply ugt_one
-    have hpayloadNat := swapPayloadShort_lt (I := I) hpayload
-    have hoffWord :
-        (uInt256OfByteArray
-          (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat =
-          swapDataOffset I := by
-      simp [swapDataOffset, swapDataOffsetWord, calldataWord,
-        show (((⟨4⟩ : UInt256) + ⟨96⟩).toNat) = 100 from by decide]
-    have hoffLe : swapDataOffset I ≤ 4294967296 := by
-      have : ¬ 4294967296 < swapDataOffset I := by
-        simpa [solcLegacyMaxU32] using hoffMax
-      omega
-    have hlenLe : swapDataSize I ≤ 4294967296 := by
-      have : ¬ 4294967296 < swapDataSize I := by
-        simpa [solcLegacyMaxU32] using hlenMax
-      omega
-    have hlenOffset :
-        (((⟨4⟩ : UInt256) +
-          uInt256OfByteArray
-            (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat) =
-          4 + swapDataOffset I := by
-      rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, hoffWord]
-      rw [Nat.mod_eq_of_lt]
-      have hcap : 4 + 4294967296 < UInt256.size := by norm_num [UInt256.size]
-      omega
-    have hbase :
-        (((⟨32⟩ : UInt256) +
-          ((⟨4⟩ : UInt256) +
-            uInt256OfByteArray
-              (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32))).toNat) =
-          4 + swapDataOffset I + 32 := by
-      rw [uadd_toNat, hlenOffset, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-      rw [Nat.mod_eq_of_lt (by
-        have hcap : 32 + (4 + 4294967296) < UInt256.size := by norm_num [UInt256.size]
-        omega)]
-      omega
-    have hread :
-        (uInt256OfByteArray
-          (I.calldata.readBytes
-            (((⟨4⟩ : UInt256) +
-              uInt256OfByteArray
-                (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat)
-            32)).toNat = swapDataSize I := by
-      simp [swapDataSize, swapDataSizeWord, calldataWord, hlenOffset]
-    have hmul :
-        (UInt256.mul
-          (uInt256OfByteArray
-            (I.calldata.readBytes
-              (((⟨4⟩ : UInt256) +
-                uInt256OfByteArray
-                  (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat)
-              32))
-          ⟨1⟩).toNat = swapDataSize I := by
-      rw [u256_mul_toNat, hread, show (⟨1⟩ : UInt256).toNat = 1 from by decide]
-      rw [Nat.mul_one, Nat.mod_eq_of_lt]
-      have hcap : 4294967296 < UInt256.size := by norm_num [UInt256.size]
-      omega
-    have hleft :
-        ((((⟨32⟩ : UInt256) +
-          ((⟨4⟩ : UInt256) +
-            uInt256OfByteArray
-              (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32))) +
-          UInt256.mul
-            (uInt256OfByteArray
-              (I.calldata.readBytes
-                (((⟨4⟩ : UInt256) +
-                  uInt256OfByteArray
-                    (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨96⟩).toNat 32)).toNat)
-                32))
-            ⟨1⟩).toNat) = 4 + swapDataOffset I + 32 + swapDataSize I := by
-      rw [uadd_toNat, hbase, hmul]
-      rw [Nat.mod_eq_of_lt]
-      have hcap : 4 + 4294967296 + 32 + 4294967296 < UInt256.size := by
-        norm_num [UInt256.size]
-      omega
-    have hright :
-        (((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩).toNat) =
-          I.calldata.size := by
-      have hword :
-          (⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ =
-            UInt256.ofNat I.calldata.size :=
-        uadd_word_usub_ofNat_word (n := I.calldata.size) (c := (⟨4⟩ : UInt256))
-          (by
-            rw [show ((⟨4⟩ : UInt256).toNat) = 4 from by decide]
-            omega)
-          hsize
-      rw [hword, ulit_toNat' I.calldata.size hsize]
-    rw [hleft, hright]
-    exact hpayloadNat
-  have rd540' := rd540
-  rw [hgtPayload] at rd540'
-  have rd546 := rd540'.pushConst ⟨4294967296⟩ (width := 5) (op := .PUSH5)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd547 := rd546.dup4 (by native_decide) (by evm_ov)
-  have rd548 := rd547.gt (by native_decide) (by evm_ov)
-  have rd549 := RD.or rd548 (by native_decide) (by evm_ov)
-  have rd550₀ := rd549.iszero (by native_decide) (by evm_ov)
-  have rd550 := rd550₀
-  rw [isZero_eq_zero_of_ne (swapU256_lor_one_ne_zero_right _)] at rd550
-  have rd553 := rd550.push2 ⟨559⟩ (by native_decide) (by evm_ov)
-  have rd554 := rd553.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by evm_ov)
-  have rd556 := rd554.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd557 := rd556.dup1 (by native_decide) (by evm_ov)
-  exact rd557.rev 0 (by native_decide) mem_cost (by evm_ov)
-
-theorem uniswapSwapBodyCoreDecodeFailed_headShort
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 132)
-    (hdispatch : dispatchMsg contract I.calldata = some swapTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨430⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hdec := uniswapDecode_swap_none_head_short (I := I) hsz4 hshort
-  exact (uniswapSwapX_shortHead (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
-    |>.reEquivDecodingFailed hcode hdispatch hdec
-
-theorem uniswapSwapBodyDecodeFailed_headShort
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩)
-    (hshort : I.calldata.size < 132)
-    (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩ rfl hsel
-  exact uniswapSwapBodyCoreDecodeFailed_headShort hcode hsize hsz4 hshort hdispatch
-    (uniswapReachSwapBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
-
-theorem uniswapSwapBodyCoreDecodeFailed_offsetHuge
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hsz132 : 132 ≤ I.calldata.size) (hoff : solcLegacyMaxU32 < swapDataOffset I)
-    (hdispatch : dispatchMsg contract I.calldata = some swapTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨430⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hdec := uniswapDecode_swap_none_offset_huge (I := I) hsz132 hoff
-  exact (uniswapSwapX_offsetHuge (g := Sat256.ofUInt256 g)
-      hsize hsz132 hoff hreach)
-    |>.reEquivDecodingFailed hcode hdispatch hdec
-
-theorem uniswapSwapBodyDecodeFailed_offsetHuge
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩)
-    (hsz132 : 132 ≤ I.calldata.size) (hoff : solcLegacyMaxU32 < swapDataOffset I)
-    (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩ rfl hsel
-  exact uniswapSwapBodyCoreDecodeFailed_offsetHuge hcode hsize hsz132 hoff hdispatch
-    (uniswapReachSwapBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
-
-theorem uniswapSwapBodyCoreDecodeFailed_lengthShort
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hsz132 : 132 ≤ I.calldata.size)
-    (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hlenShort : I.calldata.size < 4 + swapDataOffset I + 32)
-    (hdispatch : dispatchMsg contract I.calldata = some swapTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨430⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hdec := uniswapDecode_swap_none_length_short (I := I) hsz132 hoffMax hlenShort
-  exact (uniswapSwapX_lengthShort (g := Sat256.ofUInt256 g)
-      hsize hsz132 hoffMax hlenShort hreach)
-    |>.reEquivDecodingFailed hcode hdispatch hdec
-
-theorem uniswapSwapBodyDecodeFailed_lengthShort
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩)
-    (hsz132 : 132 ≤ I.calldata.size) (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hlenShort : I.calldata.size < 4 + swapDataOffset I + 32)
-    (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩ rfl hsel
-  exact uniswapSwapBodyCoreDecodeFailed_lengthShort hcode hsize hsz132 hoffMax hlenShort
-    hdispatch
-    (uniswapReachSwapBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
-
-theorem uniswapSwapBodyCoreDecodeFailed_lengthHuge
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hsz132 : 132 ≤ I.calldata.size)
-    (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hlenHuge : solcLegacyMaxU32 < swapDataSize I)
-    (hdispatch : dispatchMsg contract I.calldata = some swapTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨430⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hdec := uniswapDecode_swap_none_length_huge (I := I) hsz132 hoffMax hlenWord hlenHuge
-  exact (uniswapSwapX_lengthHuge (g := Sat256.ofUInt256 g)
-      hsize hsz132 hoffMax hlenWord hlenHuge hreach)
-    |>.reEquivDecodingFailed hcode hdispatch hdec
-
-theorem uniswapSwapBodyDecodeFailed_lengthHuge
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩)
-    (hsz132 : 132 ≤ I.calldata.size) (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hlenHuge : solcLegacyMaxU32 < swapDataSize I)
-    (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩ rfl hsel
-  exact uniswapSwapBodyCoreDecodeFailed_lengthHuge hcode hsize hsz132 hoffMax hlenWord
-    hlenHuge hdispatch
-    (uniswapReachSwapBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
-
-theorem uniswapSwapBodyCoreDecodeFailed_payloadShort
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hsz132 : 132 ≤ I.calldata.size)
-    (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hlenMax : ¬ solcLegacyMaxU32 < swapDataSize I)
-    (hpayload : (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
-      (swapDataSize I)).length ≠ swapDataSize I)
-    (hdispatch : dispatchMsg contract I.calldata = some swapTransition)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨430⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hdec := uniswapDecode_swap_none_payload_short (I := I) hsz132 hoffMax hlenWord
-    hlenMax hpayload
-  exact (uniswapSwapX_payloadShort (g := Sat256.ofUInt256 g)
-      hsize hsz132 hoffMax hlenWord hlenMax hpayload hreach)
-    |>.reEquivDecodingFailed hcode hdispatch hdec
-
-theorem uniswapSwapBodyDecodeFailed_payloadShort
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
-    (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩)
-    (hsz132 : 132 ≤ I.calldata.size) (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
-    (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
-    (hlenMax : ¬ solcLegacyMaxU32 < swapDataSize I)
-    (hpayload : (((I.calldata.toList.drop 4).drop (swapDataOffset I + 32)).take
-      (swapDataSize I)).length ≠ swapDataSize I)
-    (hdispatch : dispatchMsg contract I.calldata = some swapTransition) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I ⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩ rfl hsel
-  exact uniswapSwapBodyCoreDecodeFailed_payloadShort hcode hsize hsz132 hoffMax hlenWord
-    hlenMax hpayload hdispatch
-    (uniswapReachSwapBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
 
 theorem uniswapSwapBody
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -1367,7 +43,287 @@ theorem uniswapSwapBody
         · by_cases hpayload : (((I.calldata.toList.drop 4).drop
               (swapDataOffset I + 32)).take (swapDataSize I)).length = swapDataSize I
           · have hpayloadLe := swapPayloadPresent_le (I := I) hlenWord hpayload
-            sorry
+            have hsz4 : 4 ≤ I.calldata.size := by omega
+            obtain ⟨_, _, rd1475⟩ := uniswapSwapDecodeRuntimeOk hsize hsz132 hoff hlenWord hlenHuge hpayloadLe
+              (uniswapReachSwapBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
+                (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
+            let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+            have hstorage : Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ =
+                (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) := by
+              have hword := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨12⟩ ⟨0⟩
+              simpa [evmS, initState] using hword.symm
+            by_cases hlocked : (σ_evm.find? I.codeOwner |>.option ⟨0⟩
+                (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩
+            · have rdRev := RD.uniswapSwapLockedReverts rd1475 hlocked (by simp only [List.length_cons, List.length_nil]; omega)
+              exact rdRev.reEquivExecutionRevert hcode hdispatch (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload)
+                (uniswapSwapBodyReverts_locked evmS I (by simpa only [evmS, initState] using hwv)
+                  (by rw [hstorage]; exact hlocked))
+            · have hunlocked := not_not.mp hlocked
+              obtain ⟨_, _, rd1556⟩ := RD.uniswapSwapLockEntered rd1475 hunlocked hperm
+                (by simp only [List.length_cons, List.length_nil]; omega)
+              have hlockSource := uniswapLockEnterPrefix evmS (swapStore I)
+                (by simpa only [evmS, initState] using hwv) (by simp [swapStore]) (hstorage.trans hunlocked)
+              let evmL := uniswapLockEnteredState evmS
+              have hpost : accountMapEquiv (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) evmL.accountMap := by
+                simpa only [evmL, uniswapLockEnteredState, uniswapUnlockedState, storageStore_accountMap,
+                  evmS, initState] using accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨0⟩ hAccounts
+              have heL : evmL.executionEnv = I := by
+                simp only [evmL, uniswapLockEnteredState, uniswapUnlockedState, storageStore_executionEnv, evmS, initState]
+              rcases uniswapSwapOutputGuardRuntimeCases rd1556 (by simp only [List.length_cons, List.length_nil]; omega) with
+                ⟨hzero, rdRev⟩ | ⟨hpos, _, _, rd1628⟩
+              · exact rdRev.reEquivExecutionRevert hcode hdispatch
+                  (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload)
+                  (uniswapSwapBodyReverts_outputZero evmS I hlockSource hzero)
+              · have houtputSource := uniswapSwapOutputPrefix evmS I hlockSource hpos
+                obtain ⟨_, _, rd1645⟩ := uniswapSwapRuntimeReservesLoaded rd1628
+                  (by simp only [List.length_cons, List.length_nil]; omega)
+                have hreserveSource := uniswapSwapReservePrefix evmS I houtputSource
+                have hr0 : uniswapReserve0Word evmL =
+                    reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I :=
+                  mintReserve0Word_initState_eq_evm hAccounts
+                have hr1 : uniswapReserve1Word evmL =
+                    reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I :=
+                  mintReserve1Word_initState_eq_evm hAccounts
+                have hc0 : UInt256.land (reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)
+                    reserve112Mask = reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I :=
+                  reserve112Mask_clean_of_lt _ (reserve112Word_lt _)
+                have hc1 : UInt256.land (reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)
+                    reserve112Mask = reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I :=
+                  reserve112Mask_clean_of_lt _ (reserve112Word_lt _)
+                rcases uniswapSwapReserveGuardRuntimeCases rd1645 hc0 hc1
+                    (by simp only [List.length_cons, List.length_nil]; omega) with
+                  ⟨hnot, rdRev⟩ | ⟨hfit, _, _, rd1735⟩
+                · exact rdRev.reEquivExecutionRevert hcode hdispatch
+                    (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload)
+                    (uniswapSwapBodyReverts_reserveGuard evmS I hreserveSource
+                      (by change ¬ ((swapAmount0OutWord I).toNat < (uniswapReserve0Word evmL).toNat ∧
+                            (swapAmount1OutWord I).toNat < (uniswapReserve1Word evmL).toNat)
+                          rw [hr0, hr1]; exact hnot))
+                · have hreserveGuardSource := uniswapSwapReserveGuardPrefix evmS I hreserveSource
+                    (by change (swapAmount0OutWord I).toNat < (uniswapReserve0Word evmL).toNat ∧
+                          (swapAmount1OutWord I).toNat < (uniswapReserve1Word evmL).toNat
+                        rw [hr0, hr1]; exact hfit)
+                  obtain ⟨_, _, rd1765⟩ := uniswapSwapRuntimeTokensLoaded rd1735
+                    (by simp only [List.length_cons, List.length_nil]; omega)
+                  have htokenSource := uniswapSwapTokenPrefix evmS I hreserveGuardSource
+                  have ht1clean : UInt256.land
+                      (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩
+                        (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) solcAddrMask =
+                      UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩
+                        (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I) :=
+                    solcAddrMask_clean (by rw [u256_land_comm]; exact solcAddrMask_result_canonical _)
+                  have hvalidIff := swapRecipientValid_iff_runtime hpost heL
+                  rcases uniswapSwapRecipientGuardRuntimeCases rd1765 ht1clean
+                      solcFreePtrMem_size solcFreePtrMem_read64
+                      (by simp only [List.length_cons, List.length_nil]; omega) with
+                    ⟨hnot, rdRev⟩ | ⟨hvalid, _, _, rd1870⟩
+                  · exact rdRev.reEquivExecutionRevert hcode hdispatch
+                      (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload)
+                      (uniswapSwapBodyReverts_recipientGuard evmS I htokenSource
+                        (fun h ↦ hnot (hvalidIff.mp h)))
+                  · have hrecipientSource := uniswapSwapRecipientGuardPrefix evmS I htokenSource
+                      (hvalidIff.mpr hvalid)
+                    obtain ⟨ht0, ht1, hto, ha0, ha1⟩ := swapTokenStore_transferGets evmL I
+                    have htarget0 : EVM.address (uniswapAddressAtSlot evmL ⟨6⟩) =
+                        AccountAddress.ofUInt256 (UInt256.land
+                          (UInt256.land solcAddrMask (uniswapSlotWord ⟨6⟩
+                            (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) solcAddrMask) := by
+                      rw [uniswapAddress_self, uniswapAddressAtSlot_eq_runtime ⟨6⟩ hpost heL]
+                      exact congrArg AccountAddress.ofUInt256
+                        ((u256_land_comm _ solcAddrMask).trans (u256_land_solcAddrMask_idem_left _)).symm
+                    have htarget1 : EVM.address (uniswapAddressAtSlot evmL ⟨7⟩) =
+                        AccountAddress.ofUInt256 (UInt256.land
+                          (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩
+                            (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) solcAddrMask) := by
+                      rw [uniswapAddress_self, uniswapAddressAtSlot_eq_runtime ⟨7⟩ hpost heL]
+                      exact congrArg AccountAddress.ofUInt256
+                        ((u256_land_comm _ solcAddrMask).trans (u256_land_solcAddrMask_idem_left _)).symm
+                    have hrecipient : UInt256.ofNat (AccountAddress.ofNat (swapToWord I).toNat).val =
+                        UInt256.land solcAddrMask (swapToMaskedWord I) := by
+                      rw [swapToMaskedWord, u256_land_solcAddrMask_idem_left]
+                      exact (keyValueToWord_address _).symm.trans
+                        (keyValueToWord_address_ofNat_mask (swapToWord I))
+                    rcases uniswapSwapTransfersAnyDepthCases evmL (uniswapAddressAtSlot evmL ⟨6⟩)
+                        (uniswapAddressAtSlot evmL ⟨7⟩) (AccountAddress.ofNat (swapToWord I).toNat)
+                        rd1870 hpost heL
+                        (by simp only [evmL, uniswapLockEnteredState, uniswapUnlockedState,
+                          storageStore_createdAccounts, evmS, initState])
+                        (by simp only [evmL, uniswapLockEnteredState, uniswapUnlockedState,
+                          balanceCallStorageStore_sigma0, evmS, initState])
+                        (by simp only [evmL, uniswapLockEnteredState, uniswapUnlockedState,
+                          balanceCallStorageStore_genesisBlockHeader, evmS, initState])
+                        (by simp only [evmL, uniswapLockEnteredState, uniswapUnlockedState,
+                          balanceCallStorageStore_blocks, evmS, initState])
+                        (caller := { contract := contract, locals := swapTokenStore evmL I })
+                        rfl ht0 ht1 hto ha0 ha1 htarget0 htarget1 hrecipient hperm
+                        safeTransferMemoryReady_initial (by native_decide)
+                        (by simp only [List.length_cons, List.length_nil]; omega) with
+                      ⟨htransfers, rdRev⟩ | ⟨evmT, σT, cAT, memT, awT, ptrT, dataT, kT, CT,
+                        htransfers, haT, hcT, hsT, hgT, hbT, heT, hreadyT, hcapT, rd1904⟩
+                    · exact rdRev.reEquivExecutionRevert hcode hdispatch
+                        (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload)
+                        (uniswapSwapBodyReverts_transfers evmS evmL I _ hrecipientSource htransfers)
+                    · have htransferPrefix := execBlock_append hrecipientSource htransfers
+                      obtain ⟨htoT, ha0T, ha1T, hbytesT⟩ := swapAfterTransfersFrame_callbackGets evmL I
+                      rw [swapDataValue, swapDataBytes_eq_runtimeExtract hoff] at hbytesT
+                      have htargetCb : EVM.address (AccountAddress.ofNat (swapToWord I).toNat) =
+                          AccountAddress.ofUInt256 (UInt256.land solcAddrMask (swapToMaskedWord I)) := by
+                        rw [← hrecipient, accountAddress_roundtrip, uniswapAddress_self]
+                      have hlenB : swapDataSize I ≤ 4294967296 := by
+                        simpa only [solcLegacyMaxU32] using Nat.le_of_not_gt hlenHuge
+                      have hcallbackData : (swapRuntimePayloadPtr I).toNat + (swapDataSizeWord I).toNat ≤ I.calldata.size := by
+                        rw [(swapRuntimeWords_eq hoff).2]
+                        exact hpayloadLe
+                      have hcallbackFit : ptrT.toNat + (swapDataSizeWord I).toNat + 227 < UInt256.size := by
+                        have hnum : 128 + 2 * (2 ^ 138 + 227) + 4294967296 + 227 < UInt256.size := by native_decide
+                        change ptrT.toNat ≤ 128 + 2 * (2 ^ 138 + 227) at hcapT
+                        change ptrT.toNat + swapDataSize I + 227 < UInt256.size
+                        omega
+                      have hcallbackSmall : (swapDataSizeWord I).toNat + 196 < 2 ^ 64 := by
+                        change swapDataSize I + 196 < 2 ^ 64
+                        omega
+                      rcases uniswapSwapCallbackCases evmT (AccountAddress.ofNat (swapToWord I).toNat)
+                          rd1904 haT heT hcT hsT hgT hbT htoT ha0T ha1T hbytesT htargetCb
+                          hreadyT hcallbackData hcallbackFit hcallbackSmall hperm
+                          (by simp only [List.length_cons, List.length_nil]; omega) with
+                        ⟨hcallback, rdRev⟩ | ⟨evmCb, σCb, cACb, memCb, awCb, dataCb, kCb, CCb,
+                          hcallback, haCb, hcCb, hsCb, hgCb, hbCb, heCb, hmCb, hgapCb, hawCb, hloCb, hreadCb, rd2091⟩
+                      · exact rdRev.reEquivExecutionRevert hcode hdispatch
+                          (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload)
+                          (uniswapSwapBodyReverts_callback evmS evmT I _ htransferPrefix hcallback)
+                      · have hcallbackPrefix := execBlock_append htransferPrefix (ExecBlock.consNormal hcallback ExecBlock.nil)
+                        have ht0Cb : (swapAfterCallbackFrame
+                            (swapAfterTransfersFrame { contract := contract, locals := swapTokenStore evmL I }
+                              (swapAmount0OutWord I) (swapAmount1OutWord I)) (swapDataSizeWord I)).locals.get? "_token0" =
+                            some (.address (uniswapAddressAtSlot evmL ⟨6⟩)) := by
+                          rw [swapAfterCallbackFrame_get_ne _ _ _ (by decide),
+                            swapAfterTransfersFrame_get_ne _ _ _ _ (by decide) (by decide)]
+                          exact ht0
+                        have ht1Cb : (swapAfterCallbackFrame
+                            (swapAfterTransfersFrame { contract := contract, locals := swapTokenStore evmL I }
+                              (swapAmount0OutWord I) (swapAmount1OutWord I)) (swapDataSizeWord I)).locals.get? "_token1" =
+                            some (.address (uniswapAddressAtSlot evmL ⟨7⟩)) := by
+                          rw [swapAfterCallbackFrame_get_ne _ _ _ (by decide),
+                            swapAfterTransfersFrame_get_ne _ _ _ _ (by decide) (by decide)]
+                          exact ht1
+                        rcases uniswapSwapBalancesCases evmCb (uniswapAddressAtSlot evmL ⟨6⟩)
+                            (uniswapAddressAtSlot evmL ⟨7⟩) rd2091 haCb heCb hcCb hsCb hgCb hbCb
+                            (by rw [swapAfterCallbackFrame_contract, swapAfterTransfersFrame_contract])
+                            ht0Cb ht1Cb htarget0 htarget1 hmCb hgapCb
+                            (by have := hreadyT.ptrLo; omega) hawCb hloCb (by omega) hreadCb
+                            (by simp only [List.length_cons, List.length_nil]; omega) with
+                          ⟨hbalances, rdRev⟩ | ⟨evmB, σB, cAB, memB, awB, dataB, balance0, balance1, kB, CB,
+                            hbalances, haB, hcB, hsB, hgB, hbB, heB, hmB, hgapB, hawB, hloB, hreadB, rd2331⟩
+                        · exact rdRev.reEquivExecutionRevert hcode hdispatch
+                            (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload)
+                            (uniswapSwapBodyReverts_balances evmS evmCb I _ hcallbackPrefix hbalances)
+                        · have hbalancesPrefix := execBlock_append hcallbackPrefix hbalances
+                          obtain ⟨hb0Source, hb1Source, hr0Source, hr1Source, ho0Source, ho1Source⟩ :=
+                            swapBeforeInputsFrame_gets evmL I balance0 balance1
+                          have hinputs := uniswapSwapInputsSource evmB balance0 balance1
+                            (uniswapReserve0Word evmL) (uniswapReserve1Word evmL)
+                            (swapAmount0OutWord I) (swapAmount1OutWord I)
+                            hb0Source hb1Source hr0Source hr1Source ho0Source ho1Source
+                            (by rw [hr0]; exact Nat.le_of_lt hfit.1)
+                            (by rw [hr1]; exact Nat.le_of_lt hfit.2)
+                          rw [hr0, hr1] at hinputs
+                          have hinputsPrefix := execBlock_append hbalancesPrefix hinputs
+                          obtain ⟨_, _, rd2374⟩ := RD.uniswapSwapAmount0In rd2331 hc0
+                            (by simp only [List.length_cons, List.length_nil]; omega)
+                          obtain ⟨_, _, rd2418⟩ := RD.uniswapSwapAmount1In rd2374 hc1
+                            (by simp only [List.length_cons, List.length_nil]; omega)
+                          rcases uniswapSwapInputGuardRuntimeCases rd2418
+                              (by simp only [List.length_cons, List.length_nil]; omega) with
+                            ⟨hnotInput, rdRev⟩ | ⟨hposInput, _, _, rd2491⟩
+                          · exact rdRev.reEquivExecutionRevert hcode hdispatch
+                              (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload)
+                              (uniswapSwapBodyReverts_inputGuard evmS evmB I _ _ _ hinputsPrefix hnotInput)
+                          · have hinputGuardPrefix := execBlock_append hinputsPrefix
+                              (uniswapSwapInputGuardSource evmB _ _ hposInput)
+                            let amount0In := swapAmountInWord balance0
+                              (reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I) (swapAmount0OutWord I)
+                            let amount1In := swapAmountInWord balance1
+                              (reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I) (swapAmount1OutWord I)
+                            obtain ⟨hb0Adj, hb1Adj, hi0Adj, hi1Adj⟩ := swapAfterInputsFrame_adjustmentGets
+                              (swapBeforeInputsFrame evmL I balance0 balance1) amount0In amount1In
+                              balance0 balance1 hb0Source hb1Source
+                            rcases uniswapSwapAdjustmentsCases evmB rd2491 hb0Adj hb1Adj hi0Adj hi1Adj
+                                (swapAmountInWord_le _ _ _) (swapAmountInWord_le _ _ _)
+                                hmB (by have := hreadyT.ptrLo; omega) hgapB (by omega) hawB hloB hreadB
+                                (by simp only [List.length_cons, List.length_nil]; omega) with
+                              ⟨hadjustment, rdRev⟩ | ⟨hadjustment, hfitBalance0, hfitBalance1, _, _, rd2570⟩
+                            · exact rdRev.reEquivExecutionRevert hcode hdispatch
+                                (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload)
+                                (uniswapSwapBodyReverts_adjustment evmS evmB I _ hinputGuardPrefix hadjustment)
+                            · have hadjustmentPrefix := execBlock_append hinputGuardPrefix hadjustment
+                              obtain ⟨hadj0Inv, hadj1Inv, hr0Inv, hr1Inv⟩ :=
+                                swapAfterAdjustmentsFrame_invariantGets
+                                  (swapAfterInputsFrame (swapBeforeInputsFrame evmL I balance0 balance1) amount0In amount1In)
+                                  (swapAdjustedWord balance0 amount0In) (swapAdjustedWord balance1 amount1In)
+                                  (uniswapReserve0Word evmL) (uniswapReserve1Word evmL)
+                                  (by rw [swapAfterInputsFrame_get_ne _ _ _ _ (by decide) (by decide)]; exact hr0Source)
+                                  (by rw [swapAfterInputsFrame_get_ne _ _ _ _ (by decide) (by decide)]; exact hr1Source)
+                              rw [hr0] at hr0Inv
+                              rw [hr1] at hr1Inv
+                              rcases uniswapSwapInvariantRuntimeCases rd2570 hc0 hc1
+                                  hmB (by have := hreadyT.ptrLo; omega) hgapB (by omega) hawB hloB hreadB
+                                  (by simp only [List.length_cons, List.length_nil]; omega) with
+                                ⟨hnotInvariant, rdRev⟩ | ⟨hvalidInvariant, _, _, rd2701⟩
+                              · exact rdRev.reEquivExecutionRevert hcode hdispatch
+                                  (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload)
+                                  (uniswapSwapBodyReverts_invariant evmS evmB I _ hadjustmentPrefix
+                                    (uniswapSwapInvariantSourceRevert evmB _ _ _ _ hadj0Inv hadj1Inv
+                                      hr0Inv hr1Inv hc0 hc1 hnotInvariant))
+                              · have hrequire := uniswapSwapInvariantSourceSuccess evmB _ _ _ _
+                                  hadj0Inv hadj1Inv hr0Inv hr1Inv hc0 hc1 hvalidInvariant
+                                have hinvariantPrefix := execBlock_append hadjustmentPrefix
+                                  (ExecBlock.consNormal hrequire ExecBlock.nil)
+                                obtain ⟨hb0U, hb1U⟩ := swapBeforeUpdateFrame_balances evmL I
+                                  balance0 balance1 amount0In amount1In
+                                have hargsU := evalExprs_swap_updateArgs evmB balance0 balance1 _ _
+                                  hb0U hb1U hr0Inv hr1Inv
+                                have hframeU := frame_eq_of_contract
+                                  (swapBeforeUpdateFrame_contract evmL I balance0 balance1 amount0In amount1In)
+                                rw [hframeU] at hargsU
+                                dsimp only [swapBeforeUpdateFrame] at hframeU
+                                rw [hframeU] at hinvariantPrefix
+                                obtain ⟨_, _, rd6959⟩ := RD.uniswapSwapUpdateEntry rd2701
+                                  (by simp only [List.length_cons, List.length_nil]; omega)
+                                rcases uniswapUpdateCallRuntimeCases_dynamic (retVar := "_updateResult") evmB rd6959
+                                    haB heB hargsU hc0 hc1 hperm hmB
+                                    (by have := hreadyT.ptrLo; omega) hgapB (by omega) hawB hloB hreadB
+                                    (by jump_dest) (by simp only [List.length_cons, List.length_nil]; omega) with
+                                  ⟨hupdate, rdRev⟩ | ⟨evmU, σU, packedU, kU, CU, hupdate, haU, heU, hcU, rd2712, hsizeU, hreadU⟩
+                                · exact rdRev.reEquivExecutionRevert hcode hdispatch
+                                    (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload)
+                                    (uniswapSwapBodyReverts_updateCall evmS evmB I _ hinvariantPrefix hupdate)
+                                · have hmU : 96 ≤ (pairDynamicMem memB ptrT
+                                      (uniswapSyncReserve0Word packedU) (uniswapSyncReserve1Word packedU)).size := by
+                                    rw [hsizeU]; omega
+                                  have hgapU : ptrT.toNat - (pairDynamicMem memB ptrT
+                                      (uniswapSyncReserve0Word packedU) (uniswapSyncReserve1Word packedU)).size < USize.size := by
+                                    rw [hsizeU]
+                                    have hz : 0 < USize.size := lt_usize 0 (by omega)
+                                    omega
+                                  obtain ⟨hawU, hcoverU⟩ := pairDynamicWords_bounds awB ptrT hawB (by omega)
+                                  obtain ⟨_, _, rd2797⟩ := RD.uniswapSwapEmitEvent rd2712 hmU
+                                    (by have := hreadyT.ptrLo; omega) hgapU (by omega) hawU hcoverU hreadU hperm
+                                    (by simp only [List.length_cons, List.length_nil]; omega)
+                                  have rdRet := RD.uniswapSwapUnlockAndStop rd2797 hperm
+                                    (by simp only [List.length_cons, List.length_nil]; omega)
+                                  have hbody := uniswapSwapBodyReturns_afterUpdate evmS evmB evmU I _
+                                    hinvariantPrefix hupdate
+                                    (swapBeforeUpdateFrame_unlocked evmL I balance0 balance1 amount0In amount1In)
+                                  have haFinal : accountMapEquiv (sstoreAccountMap I.codeOwner σU ⟨12⟩ ⟨1⟩)
+                                      (uniswapLockExitedState evmU).accountMap := by
+                                    simpa only [uniswapLockExitedState, uniswapUnlockedState,
+                                      storageStore_accountMap, heU] using
+                                      accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩ haU
+                                  exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
+                                    (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload) hbody
+                                    (by simp only [uniswapLockExitedState, uniswapUnlockedState,
+                                      storageStore_createdAccounts, hcU, hcB]) haFinal
+                                    (returnEquiv.fallthrough rfl rfl (by native_decide))
           · exact uniswapSwapBodyDecodeFailed_payloadShort hcode hsize hwv hsel hsz132
               hoff hlenWord hlenHuge hpayload hdispatch
       · exact uniswapSwapBodyDecodeFailed_lengthShort hcode hsize hwv hsel hsz132

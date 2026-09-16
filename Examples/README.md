@@ -5,7 +5,7 @@ its Sol⁻ specification (`Spec.lean`, with Solidity-like surface syntax in `Spe
 the exact compiled bytecode as a Lean byte array (`Bytecode.lean`), and the refinement proof,
 assembled in `Correct.lean`. The top-level theorem of each example is named in the table.
 
-All proofs are complete except `UniswapV2Pair` (see status column).
+All proofs are complete.
 
 | Example | Source | Compiler | Top-level theorem |
 |---|---|---|---|
@@ -26,7 +26,7 @@ All proofs are complete except `UniswapV2Pair` (see status column).
 | `OpenZeppelinBench/AccessControl` | [OpenZeppelin `AccessControl.sol`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/AccessControl.sol) (same snapshot) | solc 0.8.35, optimizer on, Shanghai | `accessControlCorrect` |
 | `OpenZeppelinBench/Pausable` | [OpenZeppelin `Pausable.sol`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Pausable.sol) (same snapshot) | solc 0.8.35, optimizer on, Shanghai | `pausableCorrect` |
 | `OpenZeppelinBench/ERC6909` | [OpenZeppelin `ERC6909.sol`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC6909/ERC6909.sol) (same snapshot) | solc 0.8.35, optimizer on, Shanghai | `erc6909Correct` |
-| `UniswapV2Pair` | [`Uniswap/v2-core` `v1.0.1`](https://github.com/Uniswap/v2-core/blob/v1.0.1/contracts/UniswapV2Pair.sol) | solc 0.5.16, optimizer on (200 runs) | `uniswapV2PairCorrect` — **in progress** |
+| `UniswapV2Pair` | [`Uniswap/v2-core` `v1.0.1`](https://github.com/Uniswap/v2-core/blob/v1.0.1/contracts/UniswapV2Pair.sol) | solc 0.5.16, optimizer on (200 runs) | `uniswapV2PairCorrect` |
 
 ## File conventions
 
