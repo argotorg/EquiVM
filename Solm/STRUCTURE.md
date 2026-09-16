@@ -4,10 +4,21 @@ Sol⁻ is the high-level specification language of EquiVM. Its structure
 mirrors a subset of Solidity. Solidity's structs like inheritance, 
 modifiers are assumed to be desugared away.
 
-Note that there are semantics differences between Solidity and Sol⁻, 
-for example in Sol⁻, in-memory integers have unbounded range.
-This facilitates reasoning using unbounded mathematical integers, and only 
-converts to bounded integers at the storage boundary.
+Integer values use Lean's unbounded `Int` representation, but integer casts
+and operators carry their declared width and signedness. Casts normalize to
+the target type. Binary arithmetic is checked by default; lexical `unchecked`
+blocks and the specification-only `unchecked(e)` expression select wrapping
+arithmetic. Division and remainder by zero still revert. Typed local
+declarations and function parameters validate their values against the declared
+ABI type; they do not implicitly truncate out-of-range integers.
+
+The surface notation is a specification language, not a complete Solidity type
+checker. Literal-only arithmetic is folded with exact rational values before
+integer conversion, while typed subexpressions retain their own widths. Shifts
+and exponentiation take their result type from the left operand. Opaque Lean
+escapes may need explicit type annotations. Unary negation currently models
+legacy/unchecked wrapping only and requires an explicitly typed operand; it
+does not model modern Solidity's checked-overflow negation.
 
 Currently, Sol⁻ does not currently model events, error payloads, or gas.
 ```

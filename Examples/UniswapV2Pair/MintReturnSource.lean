@@ -242,6 +242,8 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroFeeOffReturn
     (hfitBalance : mintFunctionToBalanceNewNat evm recipient liquidity < UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       syncTimeElapsedInt (mintFunctionPostState evm recipient liquidity) = 0) :
     let afterMint :=
@@ -325,6 +327,8 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroFeeOnReturn
     (hfitBalance : mintFunctionToBalanceNewNat evm recipient liquidity < UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       syncTimeElapsedInt (mintFunctionPostState evm recipient liquidity) = 0)
     (hfitKLast :
@@ -433,6 +437,8 @@ theorem uniswapMintLiquidityMintUpdateCumulativeFeeOffReturn
     (hfitBalance : mintFunctionToBalanceNewNat evm recipient liquidity < UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       0 < syncTimeElapsedInt (mintFunctionPostState evm recipient liquidity))
     (hreserve0Ne : Int.ofNat reserve0.toNat ≠ 0)
@@ -520,6 +526,8 @@ theorem uniswapMintLiquidityMintUpdateCumulativeFeeOnReturn
     (hfitBalance : mintFunctionToBalanceNewNat evm recipient liquidity < UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       0 < syncTimeElapsedInt (mintFunctionPostState evm recipient liquidity))
     (hreserve0Ne : Int.ofNat reserve0.toNat ≠ 0)
@@ -646,6 +654,8 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOffReturn
     (hfitBalance : mintFunctionToBalanceNewNat evm recipient liquidity < UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       syncTimeElapsedInt (mintFunctionPostState evm recipient liquidity) = 0) :
     let liquidity0 := mintProportionalLiquidityWord amount0 totalSupply reserve0
@@ -831,6 +841,8 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOffReturn
     (hfitBalance : mintFunctionToBalanceNewNat evm recipient liquidity < UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       0 < syncTimeElapsedInt (mintFunctionPostState evm recipient liquidity))
     (hreserve0Post :
@@ -1023,6 +1035,8 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOnReturn
     (hfitBalance : mintFunctionToBalanceNewNat evm recipient liquidity < UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       syncTimeElapsedInt (mintFunctionPostState evm recipient liquidity) = 0)
     (hfitKLast :
@@ -1227,6 +1241,8 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOnReturn
     (hfitBalance : mintFunctionToBalanceNewNat evm recipient liquidity < UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       0 < syncTimeElapsedInt (mintFunctionPostState evm recipient liquidity))
     (hreserve0Post :
@@ -1407,7 +1423,7 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOnReturn
         liquidity htoAfter hliqAfter hbalance0After hbalance1After hfeeOnAfter
         hreserve0After hreserve1After hreserve0BaseAfter hreserve1BaseAfter
         hkLastBaseAfter hunlockedBaseAfter hliqNonzero hfitSupply hfitBalance hbound0
-        hbound1 helapsed hreserve0Post hreserve1Post hfitKLast
+        hbound1 hreserve0Bound hreserve1Bound helapsed hreserve0Post hreserve1Post hfitKLast
   simpa [List.append_assoc] using execBlock_append hbranch htail
 
 end UniswapV2Pair

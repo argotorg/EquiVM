@@ -22,8 +22,11 @@ theorem evalExpr_swap_input {caller : Frame} (evm : EVM.State)
     rw [hsub]
     simp only [Int.ofNat_eq_natCast]
     omega
+  have hsubResult := evalIntArithResult_checked_uint_ok ⟨256, by decide⟩
+    (Int.ofNat (UInt256.sub reserve amountOut).toNat) (Int.natCast_nonneg _)
+    (Int.ofNat_lt.mpr (UInt256.sub reserve amountOut).val.isLt)
   simp only [swapInputExpr, evalExpr?, EvalResult.ofOption, hb, hr, ho,
-    EvalResult.bind, bind, pure, uniswapUint256Value, uint256Value, evalBinaryOp?, hint]
+    EvalResult.bind, bind, pure, uniswapUint256Value, uint256Value, evalBinaryOp?, hint, hsubResult]
   by_cases hp : (UInt256.sub reserve amountOut).toNat < balance.toNat
   · have hpI : Int.ofNat (UInt256.sub reserve amountOut).toNat < Int.ofNat balance.toNat := by simp only [Int.ofNat_eq_natCast]; omega
     simp only [hpI, decide_true, swapAmountInWord, if_pos hp]
@@ -33,8 +36,12 @@ theorem evalExpr_swap_input {caller : Frame} (evm : EVM.State)
       rw [hdiff]
       simp only [Int.ofNat_eq_natCast]
       omega
+    have hdiffResult := evalIntArithResult_checked_uint_ok ⟨256, by decide⟩
+      (Int.ofNat (UInt256.sub balance (UInt256.sub reserve amountOut)).toNat)
+      (Int.natCast_nonneg _)
+      (Int.ofNat_lt.mpr (UInt256.sub balance (UInt256.sub reserve amountOut)).val.isLt)
     simp only [u256, evalExpr?, EvalResult.ofOption, hb, hr, ho, EvalResult.bind, bind, pure,
-      uniswapUint256Value, uint256Value, evalBinaryOp?, hint, hintDiff, uint256Int]
+      uniswapUint256Value, uint256Value, evalBinaryOp?, hint, hintDiff, hsubResult, hdiffResult, uint256Int]
     have hbound := (UInt256.sub balance (UInt256.sub reserve amountOut)).val.isLt
     change (UInt256.sub balance (UInt256.sub reserve amountOut)).toNat < 2 ^ 256 at hbound
     have hn : ¬ Int.ofNat (UInt256.sub balance (UInt256.sub reserve amountOut)).toNat < 0 := by simp only [Int.ofNat_eq_natCast]; omega
@@ -64,10 +71,10 @@ theorem uniswapSwapInputsSource {caller : Frame} (evm : EVM.State)
     ExecBlock config caller evm swapInputStmts
       (.ok (swapAfterInputsFrame caller (swapAmountInWord balance0 reserve0 amount0Out)
         (swapAmountInWord balance1 reserve1 amount1Out)) evm) := by
-  refine ExecBlock.consNormal (ExecStmt.letDecl
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word
     (evalExpr_swap_input evm "balance0" "_reserve0" "amount0Out" balance0 reserve0 amount0Out
       hb0 hr0 ho0 hle0)) ?_
-  exact ExecBlock.consNormal (ExecStmt.letDecl
+  exact ExecBlock.consNormal (ExecStmt.letDecl_uint256_word
     (evalExpr_swap_input evm "balance1" "_reserve1" "amount1Out" balance1 reserve1 amount1Out
       (by rw [store_get_ne _ _ (by decide), hb1])
       (by rw [store_get_ne _ _ (by decide), hr1])

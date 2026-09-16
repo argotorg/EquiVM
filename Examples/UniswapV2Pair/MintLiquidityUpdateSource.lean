@@ -573,6 +573,8 @@ theorem uniswapMintUpdateCallReturns_conditionTrue_packed_with
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
     (helapsed : 0 < syncTimeElapsedInt evm)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (hreserve0Ne : Int.ofNat reserve0.toNat ≠ 0)
     (hreserve1Ne : Int.ofNat reserve1.toNat ≠ 0) :
     ExecStmt config { contract := contract, locals := locals } evm
@@ -629,6 +631,8 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroPrefix
     (hfitBalance : mintFunctionToBalanceNewNat evm recipient liquidity < UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       syncTimeElapsedInt (mintFunctionPostState evm recipient liquidity) = 0) :
     let afterMint :=
@@ -805,6 +809,8 @@ theorem uniswapMintProportionalLiquidityUpdateFirstBoundReverts
     (hfit1 : mintAmountProductNat amount1 totalSupply < UInt256.size)
     (hreserve0Nonzero : reserve0 ≠ ⟨0⟩)
     (hreserve1Nonzero : reserve1 ≠ ⟨0⟩)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (hliquidity :
       liquidity =
         minFunctionResultWord (mintProportionalLiquidityWord amount0 totalSupply reserve0)
@@ -953,6 +959,8 @@ theorem uniswapMintProportionalLiquidityUpdateSecondBoundReverts
     (hfit1 : mintAmountProductNat amount1 totalSupply < UInt256.size)
     (hreserve0Nonzero : reserve0 ≠ ⟨0⟩)
     (hreserve1Nonzero : reserve1 ≠ ⟨0⟩)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (hliquidity :
       liquidity =
         minFunctionResultWord (mintProportionalLiquidityWord amount0 totalSupply reserve0)
@@ -1113,6 +1121,8 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroPrefix
     (hfitBalance : mintFunctionToBalanceNewNat evm recipient liquidity < UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       syncTimeElapsedInt (mintFunctionPostState evm recipient liquidity) = 0) :
     let liquidity0 := mintProportionalLiquidityWord amount0 totalSupply reserve0
@@ -1386,7 +1396,8 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativePrefix
         (locals := afterBranch.locals) evm recipient balance0 balance1 reserve0 reserve1
         liquidity htoAfter hliqAfter hbalance0After hbalance1After hreserve0After
         hreserve1After hreserve0BaseAfter hreserve1BaseAfter hliqNonzero hfitSupply
-        hfitBalance hbound0 hbound1 helapsed hreserve0Post hreserve1Post
+        hfitBalance hbound0 hbound1 hreserve0Bound hreserve1Bound
+        helapsed hreserve0Post hreserve1Post
   simpa [List.append_assoc] using execBlock_append hbranch htail
 
 end UniswapV2Pair

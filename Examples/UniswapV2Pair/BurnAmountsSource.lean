@@ -21,10 +21,9 @@ theorem evalExpr_burn_amount_of_get
       .ok (uniswapUint256Value (burnAmountWord liquidity balance totalSupply)) := by
   have hmul := evalExpr_mint_namedProduct_of_get evm "liquidity" balanceName
     liquidity balance hliq hbalance hfit
-  have hnonzeroNat : totalSupply.toNat ≠ 0 := fun hz => hnonzero (uint256_toNat_eq_zero hz)
-  simp only [evalExpr?, hmul, EvalResult.ofOption, htotal, EvalResult.bind, bind]
-  simp [evalBinaryOp?, burnAmountWord, mintProportionalLiquidityWord, mintAmountProductValue,
-    uniswapUint256Value, uint256Value, hnonzeroNat, udiv_toNat]
+  exact evalExpr_checked_div_uint256_word_ok hmul
+    (by simp only [evalExpr?, EvalResult.ofOption, htotal]) hnonzero
+    (udiv_toNat _ _)
 
 theorem evalExpr_burn_amount_divZero
     {locals : Store} (evm : EVM.State) (balanceName : Ident) (liquidity balance : UInt256)
@@ -77,10 +76,10 @@ theorem uniswapBurnAmountsSourceSuccess
       [burnAmount0Stmt, burnAmount1Stmt]
       (.ok { contract := contract, locals := burnAmountsStore locals liquidity balance0 balance1 totalSupply } evm) := by
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_burn_amount_of_get evm "balance0" liquidity balance0 totalSupply
+    (ExecStmt.letDecl_uint256_word (evalExpr_burn_amount_of_get evm "balance0" liquidity balance0 totalSupply
       hliq hb0 htotal hfit0 hnonzero)) ?_
   exact ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_burn_amount_of_get evm "balance1" liquidity balance1 totalSupply
+    (ExecStmt.letDecl_uint256_word (evalExpr_burn_amount_of_get evm "balance1" liquidity balance1 totalSupply
       (by rw [store_get_ne _ _ (by decide), hliq])
       (by rw [store_get_ne _ _ (by decide), hb1])
       (by rw [store_get_ne _ _ (by decide), htotal]) hfit1 hnonzero)) ExecBlock.nil
@@ -97,7 +96,7 @@ theorem uniswapBurnAmountsSourceRevert_product1
     ExecBlock config { contract := contract, locals := locals } evm
       [burnAmount0Stmt, burnAmount1Stmt] .reverted := by
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_burn_amount_of_get evm "balance0" liquidity balance0 totalSupply
+    (ExecStmt.letDecl_uint256_word (evalExpr_burn_amount_of_get evm "balance0" liquidity balance0 totalSupply
       hliq hb0 htotal hfit0 hnonzero)) ?_
   exact ExecBlock.consRevert
     (ExecStmt.letDeclRevert (evalExpr_burn_amount_productOverflow evm "balance1" liquidity balance1

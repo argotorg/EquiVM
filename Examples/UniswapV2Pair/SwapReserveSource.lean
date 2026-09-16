@@ -26,8 +26,10 @@ theorem uniswapSwapReservePrefix (evm : EVM.State) (I : ExecutionEnv)
   have hr1 := evalExpr_uniswap_reserve1 (uniswapLockEnteredState evm)
     ((swapStore I).insert "_reserve0" (uniswapUint256Value (uniswapReserve0Word (uniswapLockEnteredState evm))))
     (by simp [swapStore])
-  exact execBlock_append houtput (ExecBlock.consNormal (ExecStmt.letDecl hr0)
-    (ExecBlock.consNormal (ExecStmt.letDecl hr1) ExecBlock.nil))
+  exact execBlock_append houtput (ExecBlock.consNormal (ExecStmt.letDecl_uint_word hr0
+      (uniswapReserve0Word_lt (uniswapLockEnteredState evm)))
+    (ExecBlock.consNormal (ExecStmt.letDecl_uint_word hr1
+      (uniswapReserve1Word_lt (uniswapLockEnteredState evm))) ExecBlock.nil))
 
 theorem evalExpr_swap_reserveRequire (evm : EVM.State) {locals : Store}
     {amount0 amount1 reserve0 reserve1 : UInt256}

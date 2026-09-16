@@ -5,6 +5,8 @@ set_option maxRecDepth 2000000
 
 theorem uniswapUpdateCallRevertsFirstBound
     {locals : Store} {args : List Expr} {retVar : Ident} (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (hargs : evalExprs? config { contract := contract, locals := locals } evm args =
       .ok (syncUpdateCallArgValsWith balance0 balance1 reserve0 reserve1))
     (hbound : maxUint112 < Int.ofNat balance0.toNat) :
@@ -17,13 +19,16 @@ theorem uniswapUpdateCallRevertsFirstBound
     (locals := syncUpdateCallStoreWith balance0 balance1 reserve0 reserve1)
     hargs
     uniswapLookupUpdateFunction
-    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1)
+    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1
+      hreserve0Bound hreserve1Bound)
     (uniswapUpdateFunctionReverts_firstBound_with evm balance0 balance1 reserve0 reserve1
       hbound)
 
 
 theorem uniswapUpdateCallRevertsSecondBound
     {locals : Store} {args : List Expr} {retVar : Ident} (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (hargs : evalExprs? config { contract := contract, locals := locals } evm args =
       .ok (syncUpdateCallArgValsWith balance0 balance1 reserve0 reserve1))
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
@@ -37,13 +42,16 @@ theorem uniswapUpdateCallRevertsSecondBound
     (locals := syncUpdateCallStoreWith balance0 balance1 reserve0 reserve1)
     hargs
     uniswapLookupUpdateFunction
-    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1)
+    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1
+      hreserve0Bound hreserve1Bound)
     (uniswapUpdateFunctionReverts_secondBound_with evm balance0 balance1 reserve0 reserve1
       hbound0 hbound1)
 
 
 theorem uniswapUpdateCallReturnsConditionTrue
     {locals : Store} {args : List Expr} {retVar : Ident} (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (hargs : evalExprs? config { contract := contract, locals := locals } evm args =
       .ok (syncUpdateCallArgValsWith balance0 balance1 reserve0 reserve1))
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
@@ -61,7 +69,7 @@ theorem uniswapUpdateCallReturnsConditionTrue
         (syncUpdateCumulativePackedReserveStateWith evm balance0 balance1 reserve0 reserve1)) := by
   have hbody :=
     uniswapUpdateFunctionReturns_conditionTrue_packed_with evm balance0 balance1 reserve0
-      reserve1 hbound0 hbound1 helapsed hreserve0Ne hreserve1Ne
+      reserve1 hbound0 hbound1 helapsed hreserve0Bound hreserve1Bound hreserve0Ne hreserve1Ne
   exact internalCallFunctionReturn
     (cfg := config)
     (caller := { contract := contract, locals := locals })
@@ -79,12 +87,15 @@ theorem uniswapUpdateCallReturnsConditionTrue
     (value := none)
     hargs
     uniswapLookupUpdateFunction
-    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1)
+    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1
+      hreserve0Bound hreserve1Bound)
     hbody
 
 
 theorem uniswapUpdateCallReturnsConditionFalse
     {locals : Store} {args : List Expr} {retVar : Ident} (evm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (hargs : evalExprs? config { contract := contract, locals := locals } evm args =
       .ok (syncUpdateCallArgValsWith balance0 balance1 reserve0 reserve1))
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
@@ -120,7 +131,8 @@ theorem uniswapUpdateCallReturnsConditionFalse
     (value := none)
     hargs
     uniswapLookupUpdateFunction
-    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1)
+    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1
+      hreserve0Bound hreserve1Bound)
     hbody
 
 

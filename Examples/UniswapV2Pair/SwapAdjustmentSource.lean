@@ -50,9 +50,9 @@ theorem uniswapSwapAdjustmentsSource {caller : Frame} (evm : EVM.State)
     ExecBlock config caller evm swapAdjustmentStmts
       (.ok (swapAfterAdjustmentsFrame caller (swapAdjustedWord balance0 amount0In)
         (swapAdjustedWord balance1 amount1In)) evm) := by
-  refine ExecBlock.consNormal (ExecStmt.letDecl
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word
     (evalExpr_swap_adjusted evm "balance0" "amount0In" balance0 amount0In hb0 hi0 hle0 hfit0)) ?_
-  exact ExecBlock.consNormal (ExecStmt.letDecl
+  exact ExecBlock.consNormal (ExecStmt.letDecl_uint256_word
     (evalExpr_swap_adjusted evm "balance1" "amount1In" balance1 amount1In
       (by rw [store_get_ne _ _ (by decide), hb1])
       (by rw [store_get_ne _ _ (by decide), hi1]) hle1 hfit1)) ExecBlock.nil
@@ -72,7 +72,7 @@ theorem uniswapSwapAdjustmentsRevert1 {caller : Frame} (evm : EVM.State)
     (hle0 : amount0In.toNat ≤ balance0.toNat)
     (hfit0 : balance0.toNat * 1000 < UInt256.size) (hover1 : UInt256.size ≤ balance1.toNat * 1000) :
     ExecBlock config caller evm swapAdjustmentStmts .reverted := by
-  refine ExecBlock.consNormal (ExecStmt.letDecl
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word
     (evalExpr_swap_adjusted evm "balance0" "amount0In" balance0 amount0In hb0 hi0 hle0 hfit0)) ?_
   exact ExecBlock.consRevert (ExecStmt.letDeclRevert
     (evalExpr_swap_adjusted_overflow evm "balance1" "amount1In" balance1

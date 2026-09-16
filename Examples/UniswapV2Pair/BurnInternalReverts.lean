@@ -34,7 +34,7 @@ theorem uniswapBurnFunctionBodyReverts_balanceUnderflow
   refine ExecFuncBody.execBlockRevert ?_
   change ExecBlock config _ _ (_ :: _ :: _) .reverted
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_burnFunction_from_balance evm holder value)) ?_
+    (ExecStmt.letDecl_uint256_word (evalExpr_burnFunction_from_balance evm holder value)) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (evalExpr_burnFunction_balance_require_false evm holder value hlt))
 
@@ -47,7 +47,7 @@ theorem uniswapBurnFunctionBodyReverts_totalSupplyUnderflow
   refine ExecFuncBody.execBlockRevert ?_
   change ExecBlock config _ _ (_ :: _ :: _ :: _ :: _ :: _) .reverted
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_burnFunction_from_balance evm holder value)) ?_
+    (ExecStmt.letDecl_uint256_word (evalExpr_burnFunction_from_balance evm holder value)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_burnFunction_balance_require_true evm holder value hbalance)) ?_
@@ -55,7 +55,7 @@ theorem uniswapBurnFunctionBodyReverts_totalSupplyUnderflow
     (ExecStmt.assign (evalExpr_burnFunction_balance_debit evm holder value hbalance)
       (burnFunctionAssignBalance evm holder value)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_burnFunction_totalSupply evm holder value)) ?_
+    (ExecStmt.letDecl_uint256_word (evalExpr_burnFunction_totalSupply evm holder value)) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse
       (evalExpr_burnFunction_totalSupply_require_false evm holder value hlt))

@@ -12,6 +12,8 @@ theorem uniswapMintUpdateCallReturns_conditionFalse_packed_with
       locals.get? "_reserve0" = some (.int (Int.ofNat reserve0.toNat)))
     (hreserve1 :
       locals.get? "_reserve1" = some (.int (Int.ofNat reserve1.toNat)))
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
     (hskip : syncTimeElapsedInt evm = 0 ∨ reserve0 = ⟨0⟩ ∨ reserve1 = ⟨0⟩) :
@@ -24,6 +26,7 @@ theorem uniswapMintUpdateCallReturns_conditionFalse_packed_with
           "_updateResult" none)
         (syncUpdatePackedReserveState evm balance0 balance1)) := by
   exact uniswapUpdateCallReturnsConditionFalse evm balance0 balance1 reserve0 reserve1
+    hreserve0Bound hreserve1Bound
     (evalExprs_mint_updateCallArgsWith_of_get evm balance0 balance1 reserve0 reserve1
       hbalance0 hbalance1 hreserve0 hreserve1) hbound0 hbound1 hskip
 

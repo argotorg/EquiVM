@@ -108,14 +108,10 @@ def contractSyntax : ContractDecl := solidity% contract UniswapV2Pair {
   function sqrt(uint256 y) internal returns (uint256) {
     if (y > 3) {
       uint256 z = y;
-      uint256 x = ${Expr.binary (.add uint256Int .wrapping)
-        (.binary (.div uint256Int .wrapping) (.var "y") (.intLit 2)) (.intLit 1)};
+      uint256 x = unchecked(y / 2 + 1);
       while (x < z) {
         z = x;
-        x = ${Expr.binary (.div uint256Int .wrapping)
-          (.binary (.add uint256Int .wrapping)
-            (.binary (.div uint256Int .wrapping) (.var "y") (.var "x")) (.var "x"))
-          (.intLit 2)};
+        x = unchecked((y / x + x) / 2);
       }
       return z;
     } else if (y != 0) {
@@ -374,8 +370,7 @@ def contractSyntax : ContractDecl := solidity% contract UniswapV2Pair {
     require(deadline >= block.timestamp);
     bytes32 domainSeparator = DOMAIN_SEPARATOR;
     uint256 nonce = nonces[owner];
-    nonces[owner] = ${Expr.binary (.add (.uint ⟨256, by decide⟩) .wrapping)
-      (.var "nonce") (.intLit 1)};
+    nonces[owner] = unchecked(nonce + 1);
     bytes32 structHash = keccak256(abi.encodePacked(
       bytes32(bytes32(0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9)),
       uint256(uint256(owner)),

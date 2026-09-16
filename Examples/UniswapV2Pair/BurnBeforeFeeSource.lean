@@ -64,7 +64,7 @@ theorem uniswapBurnLiquidityLoaded
       (.ok { contract := contract, locals := burnLiquidityStore reserveEvm callEvm I balance0 balance1 }
         callEvm) := by
   exact ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_burn_liquidity callEvm _
+    (ExecStmt.letDecl_uint256_word (evalExpr_burn_liquidity callEvm _
       (by simp [burnBalanceStore, burnBalance0Store, burnCacheStore, burnReserveStore, burnStore])))
     ExecBlock.nil
 

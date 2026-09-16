@@ -40,8 +40,8 @@ theorem uniswapSwapTokenPrefix (evm : EVM.State) (I : ExecutionEnv)
       (by simp [swapReserveStore, swapStore, token1Ref])
       (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
       (by decide) rfl
-  exact execBlock_append hreserve (ExecBlock.consNormal (ExecStmt.letDecl ht0)
-    (ExecBlock.consNormal (ExecStmt.letDecl ht1) ExecBlock.nil))
+  exact execBlock_append hreserve (ExecBlock.consNormal (ExecStmt.letDecl ht0 (by simp [valueMatchesOptionalABIType]))
+    (ExecBlock.consNormal (ExecStmt.letDecl ht1 (by simp [valueMatchesOptionalABIType])) ExecBlock.nil))
 
 theorem evalExpr_swap_recipientRequire (evm : EVM.State) {locals : Store}
     {toAddr token0 token1 : AccountAddress}

@@ -42,6 +42,12 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
         (pairDynamicWords aw ptr) rdata (cA, σ') k' C' ∧
       (pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed)).size = max mem.size (ptr.toNat + 64) ∧
       (pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed)).readWithPadding 64 32 = ptr.toByteArray) := by
+  have hreserve0Bound : reserve0.toNat < 2 ^ 112 := by
+    rw [← hclean0]
+    exact reserve112Word_lt _
+  have hreserve1Bound : reserve1.toNat < 2 ^ 112 := by
+    rw [← hclean1]
+    exact reserve112Word_lt _
   have hmask : Int.ofNat reserve112Mask.toNat = maxUint112 := by native_decide
   by_cases hb0 : balance0.toNat ≤ reserve112Mask.toNat
   · have hb0S : Int.ofNat balance0.toNat ≤ maxUint112 := by
@@ -79,7 +85,7 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
           hret (by omega)
         refine Or.inr ⟨syncUpdatePackedReserveState evm balance0 balance1, _, _, _, _,
           uniswapUpdateCallReturnsConditionFalse evm balance0 balance1
-            reserve0 reserve1 hargs hb0S hb1S hskipS,
+            reserve0 reserve1 hreserve0Bound hreserve1Bound hargs hb0S hb1S hskipS,
           accountMapEquiv_syncUpdatePackedReserveState hAccounts henv hslot8 rfl,
           ?_, ?_, rdRet, ?_, ?_⟩
         · simp only [syncUpdatePackedReserveState, storageStore_executionEnv, henv]
@@ -112,10 +118,9 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
           uniswapUpdateCumulativePackedMapWith σ I balance0 balance1 reserve0 reserve1,
           uniswapUpdateCumulativePackedWordWith σ I balance0 balance1 reserve0 reserve1, kRet, CRet,
           uniswapUpdateCallReturnsConditionTrue evm balance0 balance1
-            reserve0 reserve1 hargs hb0S hb1S htS hr0S hr1S,
+            reserve0 reserve1 hreserve0Bound hreserve1Bound hargs hb0S hb1S htS hr0S hr1S,
           accountMapEquiv_syncUpdateCumulativePackedMapWith hAccounts henv hslot8
-            (by rw [← hclean0]; exact reserve112Word_lt _)
-            (by rw [← hclean1]; exact reserve112Word_lt _), ?_, ?_, ?_, ?_, ?_⟩
+            hreserve0Bound hreserve1Bound, ?_, ?_, ?_, ?_, ?_⟩
         · simp only [syncUpdateCumulativePackedReserveStateWith,
             storageStore_executionEnv, henv]
         · simp only [syncUpdateCumulativePackedReserveStateWith,
@@ -127,12 +132,12 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
         · exact (pairDynamicMem_sizes ptr _ _ hgap (by omega)).2
         · exact (pairDynamicMem_read_below ptr _ _ 64 hin hlo hgap (by omega)).trans hmem64
     · exact Or.inl ⟨uniswapUpdateCallRevertsSecondBound evm balance0 balance1
-        reserve0 reserve1 hargs hb0S
+        reserve0 reserve1 hreserve0Bound hreserve1Bound hargs hb0S
         (by rw [← hmask]; exact Int.ofNat_lt.mpr (Nat.lt_of_not_ge hb1)),
         RD.uniswapUpdateOverflowReverts_dynamic rd6959 (Or.inr (Nat.lt_of_not_ge hb1))
           hin hlo hgap hfit haw hawLo hmem64 (by simp only [List.length_cons]; omega)⟩
   · exact Or.inl ⟨uniswapUpdateCallRevertsFirstBound evm balance0 balance1
-      reserve0 reserve1 hargs
+      reserve0 reserve1 hreserve0Bound hreserve1Bound hargs
       (by rw [← hmask]; exact Int.ofNat_lt.mpr (Nat.lt_of_not_ge hb0)),
       RD.uniswapUpdateOverflowReverts_dynamic rd6959 (Or.inl (Nat.lt_of_not_ge hb0))
         hin hlo hgap hfit haw hawLo hmem64 (by simp only [List.length_cons]; omega)⟩

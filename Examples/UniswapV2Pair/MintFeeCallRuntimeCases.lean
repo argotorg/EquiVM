@@ -125,13 +125,17 @@ theorem uniswapMintFeeCallRuntimeCasesWithMemory
     exact internalCallFunctionRevert (callee := mintFeeFunction)
       (locals := mintFeeCallStore reserve0 reserve1) hargs
       (by simpa only [hcontract] using uniswapLookupMintFeeFunction)
-      (bindParams_mintFeeFunction_call reserve0 reserve1)
+      (bindParams_mintFeeFunction_call reserve0 reserve1
+        (by rw [← hclean0]; exact reserve112Word_lt _)
+        (by rw [← hclean1]; exact reserve112Word_lt _))
       (by simpa only [hcontract] using hbody)
   · refine Or.inr ⟨feeOn, e, σ', cA', m, data, k', C', ?_, ha, he, hc, hs, hg, hb, rd, hm, h64, h96⟩
     exact internalCallFunctionReturn (callee := mintFeeFunction) (calleeSolm := f)
       (locals := mintFeeCallStore reserve0 reserve1) hargs
       (by simpa only [hcontract] using uniswapLookupMintFeeFunction)
-      (bindParams_mintFeeFunction_call reserve0 reserve1)
+      (bindParams_mintFeeFunction_call reserve0 reserve1
+        (by rw [← hclean0]; exact reserve112Word_lt _)
+        (by rw [← hclean1]; exact reserve112Word_lt _))
       (by simpa only [hcontract] using hbody)
 
 

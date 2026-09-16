@@ -60,7 +60,7 @@ theorem uniswapMintProportionalLiquidity1DivZeroReverts
     (by rw [store_get_ne _ _ (by decide), hreserve1]) hfit1
   refine ExecStmt.iteFalse
     (evalExpr_mint_totalSupply_eq_zero_false evm totalSupply htotal htotalNonzero) ?_
-  exact ExecBlock.consNormal (ExecStmt.letDecl hliq0)
+  exact ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hliq0)
     (ExecBlock.consRevert (ExecStmt.letDeclRevert hliq1))
 
 set_option maxRecDepth 2000000 in

@@ -52,7 +52,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_fromRootBlockReturn
     (by simpa [reserve0, reserve1] using
       evalExprs_mint_mintFeeArgs reserveEvm callEvm I balance0 balance1)
     (by simpa using uniswapLookupMintFeeFunction)
-    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call reserve0 reserve1)
+    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call_reserves reserveEvm)
     (by
       simpa [reserve0, reserve1] using
         uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlock callEvm evmFee finalEvm
