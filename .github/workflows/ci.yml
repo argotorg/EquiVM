@@ -60,6 +60,13 @@ jobs:
             Benchmarks.Dss.End.Fix \
             Benchmarks.Dss.End.Art
 
+      # Immutable PUSH32 decoding must not reduce the full Clipper bytecode template.
+      - name: Check Clipper decoder proof stack
+        run: |
+          lake build \
+            Benchmarks.Dss.Clipper.Upchost \
+            Benchmarks.Dss.Clipper.YankEVM
+
       # Benchmarks are too large for regular GitHub-hosted CI right now, commenting out. TODO add separate workflow
       # Mirrors the imports of Benchmarks.lean. Remove lines to prune.
       # - name: Build benchmarks

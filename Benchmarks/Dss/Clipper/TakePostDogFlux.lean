@@ -40,25 +40,23 @@ theorem clipperTakeIlkPatchPayload5046 (v : ClipperImmutables) {code : ByteArray
         hlen, List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
-set_option maxRecDepth 2000000 in
-set_option maxHeartbeats 1000000 in
 theorem clipperTakeIlkPush32Decode5045 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {bs : List UInt8} (hilk : v.ilk = .fixedBytes ⟨31, by decide⟩ bs)
     (hlen : bs.length = 32) :
     decode code (⟨5045⟩ : UInt256) =
       some (.Push .PUSH32, some (EVM.Word.ofNat (fromBytesBigEndian bs), 32)) := by
-  unfold decode
-  rw [patchRuntime_get?_disjoint hpatch
-    (clipperRuntimePatchesWindowDisjoint32Bool v (⟨5045⟩ : UInt256).toNat
-      ((⟨5045⟩ : UInt256).toNat + 1) (by native_decide))]
-  norm_num
-  change some (Operation.Push Operation.POp.PUSH32,
-      some (uInt256OfByteArray (code.extract' 5046 5078), 32)) =
-    some (Operation.Push Operation.POp.PUSH32,
-      some (EVM.Word.ofNat (fromBytesBigEndian bs), 32))
-  rw [clipperTakeIlkPatchPayload5046 v hpatch hilk hlen]
-  rw [uInt256OfByteArray_word_toBytesBE]
+  exact decode_push32_of_get?_extract'
+    (pc := (⟨5045⟩ : UInt256)) (w := EVM.Word.ofNat (fromBytesBigEndian bs))
+    (by
+      rw [patchRuntime_get?_disjoint hpatch
+        (clipperRuntimePatchesWindowDisjoint32Bool v (⟨5045⟩ : UInt256).toNat
+          ((⟨5045⟩ : UInt256).toNat + 1) (by native_decide))]
+      native_decide)
+    (by
+      rw [show (⟨5045⟩ : UInt256).toNat + 1 = 5046 by native_decide]
+      rw [show (⟨5045⟩ : UInt256).toNat + 33 = 5078 by native_decide]
+      exact clipperTakeIlkPatchPayload5046 v hpatch hilk hlen)
 
 theorem clipperTakeVatPatchPayload5115 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
@@ -97,23 +95,21 @@ theorem clipperTakeVatPatchPayload5115 (v : ClipperImmutables) {code : ByteArray
         hlen, List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
-set_option maxRecDepth 2000000 in
-set_option maxHeartbeats 1000000 in
 theorem clipperTakeVatPush32Decode5114 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
     decode code (⟨5114⟩ : UInt256) =
       some (.Push .PUSH32, some (EVM.Word.ofNat (↑v.vat : Nat), 32)) := by
-  unfold decode
-  rw [patchRuntime_get?_disjoint hpatch
-    (clipperRuntimePatchesWindowDisjoint32Bool v (⟨5114⟩ : UInt256).toNat
-      ((⟨5114⟩ : UInt256).toNat + 1) (by native_decide))]
-  norm_num
-  change some (Operation.Push Operation.POp.PUSH32,
-      some (uInt256OfByteArray (code.extract' 5115 5147), 32)) =
-    some (Operation.Push Operation.POp.PUSH32,
-      some (EVM.Word.ofNat (↑v.vat : Nat), 32))
-  rw [clipperTakeVatPatchPayload5115 v hpatch]
-  rw [uInt256OfByteArray_word_toBytesBE]
+  exact decode_push32_of_get?_extract'
+    (pc := (⟨5114⟩ : UInt256)) (w := EVM.Word.ofNat (↑v.vat : Nat))
+    (by
+      rw [patchRuntime_get?_disjoint hpatch
+        (clipperRuntimePatchesWindowDisjoint32Bool v (⟨5114⟩ : UInt256).toNat
+          ((⟨5114⟩ : UInt256).toNat + 1) (by native_decide))]
+      native_decide)
+    (by
+      rw [show (⟨5114⟩ : UInt256).toNat + 1 = 5115 by native_decide]
+      rw [show (⟨5114⟩ : UInt256).toNat + 33 = 5147 by native_decide]
+      exact clipperTakeVatPatchPayload5115 v hpatch)
 
 theorem clipperTakeVatFluxCalldataMem_eq_writeCascade (v : ClipperImmutables)
     (I : ExecutionEnv) (who slice : UInt256) (mem : ByteArray) :

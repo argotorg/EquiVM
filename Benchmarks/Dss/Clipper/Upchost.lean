@@ -1217,56 +1217,54 @@ theorem clipperUpchostIlkPatchPayload1661 (v : ClipperImmutables) {code : ByteAr
         List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
-set_option maxRecDepth 2000000 in
-set_option maxHeartbeats 1000000 in
 theorem clipperUpchostVatPush32Decode (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
     decode code (⟨1462⟩ : UInt256) =
       some (.Push .PUSH32, some (EVM.Word.ofNat (↑v.vat : Nat), 32)) := by
-  unfold decode
-  rw [patchRuntime_get?_disjoint hpatch
-    (by apply clipperUpchostPatchesWindowDisjoint32Bool v; native_decide)]
-  change some (Operation.Push Operation.POp.PUSH32,
-      some (uInt256OfByteArray (code.extract' 1463 1495), 32)) =
-    some (Operation.Push Operation.POp.PUSH32, some (EVM.Word.ofNat (↑v.vat : Nat), 32))
-  rw [clipperUpchostVatPatchPayload v hpatch]
-  rw [uInt256OfByteArray_word_toBytesBE]
+  exact decode_push32_of_get?_extract'
+    (pc := (⟨1462⟩ : UInt256)) (w := EVM.Word.ofNat (↑v.vat : Nat))
+    (by
+      rw [patchRuntime_get?_disjoint hpatch
+        (by apply clipperUpchostPatchesWindowDisjoint32Bool v; native_decide)]
+      native_decide)
+    (by
+      rw [show (⟨1462⟩ : UInt256).toNat + 1 = 1463 by native_decide]
+      rw [show (⟨1462⟩ : UInt256).toNat + 33 = 1495 by native_decide]
+      exact clipperUpchostVatPatchPayload v hpatch)
 
-set_option maxRecDepth 2000000 in
-set_option maxHeartbeats 1000000 in
 theorem clipperUpchostIlkPush32Decode (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {bs : List UInt8} (hilk : v.ilk = .fixedBytes ⟨31, by decide⟩ bs)
     (hlen : bs.length = 32) :
     decode code (⟨1509⟩ : UInt256) =
       some (.Push .PUSH32, some (EVM.Word.ofNat (fromBytesBigEndian bs), 32)) := by
-  unfold decode
-  rw [patchRuntime_get?_disjoint hpatch
-    (by apply clipperUpchostPatchesWindowDisjoint32Bool v; native_decide)]
-  change some (Operation.Push Operation.POp.PUSH32,
-      some (uInt256OfByteArray (code.extract' 1510 1542), 32)) =
-    some (Operation.Push Operation.POp.PUSH32,
-      some (EVM.Word.ofNat (fromBytesBigEndian bs), 32))
-  rw [clipperUpchostIlkPatchPayload v hpatch hilk hlen]
-  rw [uInt256OfByteArray_word_toBytesBE]
+  exact decode_push32_of_get?_extract'
+    (pc := (⟨1509⟩ : UInt256)) (w := EVM.Word.ofNat (fromBytesBigEndian bs))
+    (by
+      rw [patchRuntime_get?_disjoint hpatch
+        (by apply clipperUpchostPatchesWindowDisjoint32Bool v; native_decide)]
+      native_decide)
+    (by
+      rw [show (⟨1509⟩ : UInt256).toNat + 1 = 1510 by native_decide]
+      rw [show (⟨1509⟩ : UInt256).toNat + 33 = 1542 by native_decide]
+      exact clipperUpchostIlkPatchPayload v hpatch hilk hlen)
 
-set_option maxRecDepth 2000000 in
-set_option maxHeartbeats 1000000 in
 theorem clipperUpchostIlkPush32Decode1660 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {bs : List UInt8} (hilk : v.ilk = .fixedBytes ⟨31, by decide⟩ bs)
     (hlen : bs.length = 32) :
     decode code (⟨1660⟩ : UInt256) =
       some (.Push .PUSH32, some (EVM.Word.ofNat (fromBytesBigEndian bs), 32)) := by
-  unfold decode
-  rw [patchRuntime_get?_disjoint hpatch
-    (by apply clipperUpchostPatchesWindowDisjoint32Bool v; native_decide)]
-  change some (Operation.Push Operation.POp.PUSH32,
-      some (uInt256OfByteArray (code.extract' 1661 1693), 32)) =
-    some (Operation.Push Operation.POp.PUSH32,
-      some (EVM.Word.ofNat (fromBytesBigEndian bs), 32))
-  rw [clipperUpchostIlkPatchPayload1661 v hpatch hilk hlen]
-  rw [uInt256OfByteArray_word_toBytesBE]
+  exact decode_push32_of_get?_extract'
+    (pc := (⟨1660⟩ : UInt256)) (w := EVM.Word.ofNat (fromBytesBigEndian bs))
+    (by
+      rw [patchRuntime_get?_disjoint hpatch
+        (by apply clipperUpchostPatchesWindowDisjoint32Bool v; native_decide)]
+      native_decide)
+    (by
+      rw [show (⟨1660⟩ : UInt256).toNat + 1 = 1661 by native_decide]
+      rw [show (⟨1660⟩ : UInt256).toNat + 33 = 1693 by native_decide]
+      exact clipperUpchostIlkPatchPayload1661 v hpatch hilk hlen)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.clipperUpchostToVatIlksExtcodesizeGuard
