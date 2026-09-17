@@ -19,10 +19,6 @@ abbrev endBagEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 abbrev endBagSlotFor (I : ExecutionEnv) : UInt256 :=
   bagSlot (.address (endBagArg I))
 
-abbrev endBagHighSplitPc : UInt256 := ⟨43⟩
-abbrev endBagHighJumpdestPc : UInt256 := ⟨162⟩
-abbrev endBagMidSplitPc : UInt256 := ⟨163⟩
-abbrev endBagGroupJumpdestPc : UInt256 := ⟨222⟩
 abbrev endBagFirstArmPc : UInt256 := ⟨223⟩
 abbrev endBagEntryPc : UInt256 := ⟨895⟩
 abbrev endBagDecodedPc : UInt256 := ⟨917⟩
@@ -47,16 +43,6 @@ theorem endDecode_bag_none_short {I : ExecutionEnv}
   simpa [config, bagTransition] using
     (decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort)
 
-theorem endBagHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endBagHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endBagMidSplitWellFormed :
-    selectorSplitWellFormed endBytecode endBagMidSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
 set_option maxHeartbeats 1000000 in
 theorem endBagArmsWellFormed :
     ∀ j, j ≤ 1 → armWellFormed endBytecode (nthArmPc endBytecode endBagFirstArmPc j) := by
@@ -76,37 +62,12 @@ theorem endReachBagBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : endSelWord I = ⟨0x9255f809⟩ :=
     endSelWord_eq_of_beq I hsz 0x92 0x55 0xf8 0x09 ⟨0x9255f809⟩
       (by native_decide) (by simpa [selIs, endBagConcreteSelector, selectorBytes] using hsel)
-  obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  obtain ⟨_, _, hfirst⟩ :=
+    endReachGroup223FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endBagHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endBagHighSplitPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
-  have h162 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endBagHighJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
-    simpa [endBagHighSplitPc, endBagHighJumpdestPc] using
-      RD.selectorSplitTakenAuto h43 endBagHighSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
-  have h163 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endBagMidSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
-    simpa [endBagMidSplitPc] using h162.jumpdest (by native_decide) (by simp)
-  have h222 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endBagGroupJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
-    simpa [endBagMidSplitPc, endBagGroupJumpdestPc] using
-      RD.selectorSplitTakenAuto h163 endBagMidSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
-  have h223 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endBagFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5 + 1)
-        (C32 + 22 + 22 + 1 + 22 + 1) := by
-    simpa [endBagFirstArmPc] using h222.jumpdest (by native_decide) (by simp)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endBagFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
@@ -117,7 +78,7 @@ theorem endReachBagBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
     native_decide
-  exact RD.dispatchTo endBagEntryPc 1 h223
+  exact RD.dispatchTo endBagEntryPc 1 hfirst
     (fun j hj => endBagArmsWellFormed j hj)
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 

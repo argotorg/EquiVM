@@ -49,6 +49,17 @@ jobs:
             Examples.Reuse.Correct \
             Examples.VyperERC20.Correct
 
+      # These End dispatch consumers previously overflowed Lean's default stack.
+      # Keep this focused regression check even while the full benchmarks are disabled.
+      - name: Check End dispatch proof stack
+        run: |
+          lake build \
+            Benchmarks.Dss.End.Rely \
+            Benchmarks.Dss.End.Out \
+            Benchmarks.Dss.End.Bag \
+            Benchmarks.Dss.End.Fix \
+            Benchmarks.Dss.End.Art
+
       # Immutable PUSH32 decoding must not reduce the full Clipper bytecode template.
       - name: Check Clipper decoder proof stack
         run: |

@@ -426,19 +426,12 @@ theorem RD.endAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
 
 /-! ### Dispatch reachability -/
 
-abbrev endRelyMidSplitPc : UInt256 := ⟨283⟩
-abbrev endRelyGroupJumpdestPc : UInt256 := ⟨342⟩
 abbrev endRelyFirstArmPc : UInt256 := ⟨343⟩
 abbrev endRelyReturnPc : UInt256 := ⟨562⟩
 abbrev endRelyEntryPc : UInt256 := ⟨760⟩
 abbrev endRelyDecodedPc : UInt256 := ⟨782⟩
 abbrev endRelyAuthPc : UInt256 := ⟨5275⟩
 abbrev endRelyStorePc : UInt256 := ⟨5364⟩
-
-theorem endRelyMidSplitWellFormed :
-    selectorSplitWellFormed endBytecode endRelyMidSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endRelyArmsWellFormed :
@@ -458,37 +451,12 @@ theorem endReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : endSelWord I = ⟨0x65fae35e⟩ :=
     endSelWord_eq_of_beq I hsz 0x65 0xfa 0xe3 0x5e ⟨0x65fae35e⟩
       (by native_decide) (by simpa [selIs, endRelyConcreteSelector, selectorBytes] using hsel)
-  obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  obtain ⟨_, _, hfirst⟩ :=
+    endReachGroup343FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h271 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endLow1JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endLow1JumpdestPc] using
-      RD.selectorSplitTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
-  have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [endLow1SplitPc] using h271.jumpdest (by native_decide) (by simp)
-  have h283 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endRelyMidSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
-    simpa [endLow1SplitPc, endRelyMidSplitPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h272 endLow1SplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
-  have h342 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endRelyGroupJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 5) (C32 + 22 + 1 + 22 + 22) := by
-    simpa [endRelyMidSplitPc, endRelyGroupJumpdestPc] using
-      RD.selectorSplitTakenAuto h283 endRelyMidSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
-  have h343 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endRelyFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 5 + 1)
-        (C32 + 22 + 1 + 22 + 22 + 1) := by
-    simpa [endRelyFirstArmPc] using h342.jumpdest (by native_decide) (by simp)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endRelyFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
@@ -499,7 +467,7 @@ theorem endReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
     native_decide
-  exact RD.dispatchTo endRelyEntryPc 3 h343
+  exact RD.dispatchTo endRelyEntryPc 3 hfirst
     (fun j hj => endRelyArmsWellFormed j (le_trans hj (by omega)))
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 

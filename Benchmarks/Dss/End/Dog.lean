@@ -19,22 +19,9 @@ theorem endDecode_dog {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   exact decodeCalldata_empty_ok hsz
 
 abbrev endDogConcreteSelector : ByteArray := selectorBytes 0xc3 0xb3 0xad 0x7f
-abbrev endDogHighSplitPc : UInt256 := ⟨43⟩
-abbrev endDogHighJumpdestPc : UInt256 := ⟨162⟩
-abbrev endDogMidSplitPc : UInt256 := ⟨163⟩
 abbrev endDogFirstArmPc : UInt256 := ⟨174⟩
 abbrev endDogEntryPc : UInt256 := ⟨1017⟩
 abbrev endDogRoutinePc : UInt256 := ⟨7675⟩
-
-theorem endDogHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endDogHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endDogMidSplitWellFormed :
-    selectorSplitWellFormed endBytecode endDogMidSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endDogArmsWellFormed :
@@ -54,33 +41,12 @@ theorem endReachDogBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : endSelWord I = ⟨0xc3b3ad7f⟩ :=
     endSelWord_eq_of_beq I hsz 0xc3 0xb3 0xad 0x7f ⟨0xc3b3ad7f⟩
       (by native_decide) (by simpa [selIs, endDogConcreteSelector, selectorBytes] using hsel)
-  obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  obtain ⟨_, _, hfirst⟩ :=
+    endReachGroup174FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endDogHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endDogHighSplitPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
-  have h162 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endDogHighJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
-    simpa [endDogHighSplitPc, endDogHighJumpdestPc] using
-      RD.selectorSplitTakenAuto h43 endDogHighSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
-  have h163 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endDogMidSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
-    simpa [endDogMidSplitPc] using h162.jumpdest (by native_decide) (by simp)
-  have h174 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endDogFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
-    simpa [endDogMidSplitPc, endDogFirstArmPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h163 endDogMidSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endDogFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
@@ -91,7 +57,7 @@ theorem endReachDogBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
     native_decide
-  exact RD.dispatchTo endDogEntryPc 1 h174
+  exact RD.dispatchTo endDogEntryPc 1 hfirst
     (fun j hj => endDogArmsWellFormed j (le_trans hj (by omega)))
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
