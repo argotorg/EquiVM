@@ -1,3 +1,4 @@
+import Benchmarks.Auction.Correct
 import Benchmarks.WETH9.Correct
 import Benchmarks.Dss.Dai.Correct
 import Benchmarks.Dss.Jug.Correct

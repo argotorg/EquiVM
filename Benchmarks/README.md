@@ -18,6 +18,7 @@ Sizes are bytes of checked-in `runtime.hex`.
 
 | Benchmark | Upstream source | solc | Runtime bytes | Top-level theorem |
 |---|---|---|---|---|
+| `Auction` | [Nouns auction house, `nounsDAO/nouns-monorepo`](https://github.com/nounsDAO/nouns-monorepo) | 0.8.23 | 6150 | `auctionContractCorrect` |
 | `WETH9` | [`gnosis/canonical-weth`](https://github.com/gnosis/canonical-weth/blob/master/contracts/WETH9.sol) (canonical mainnet WETH) | 0.5.16 | 1763 | `weth9ContractCorrect` |
 | `Dss/Dai` | [`makerdao/dss` `dai.sol`](https://github.com/makerdao/dss/blob/master/src/dai.sol) | 0.6.12 | 4011 | `daiContractCorrect` |
 | `Dss/Vat` | [`makerdao/dss` `vat.sol`](https://github.com/makerdao/dss/blob/master/src/vat.sol) | 0.6.12 | 6965 | `vatContractCorrect` |
@@ -48,7 +49,6 @@ proof is substantially under way.
 |---|---|---|---|
 | `Scaffolds/Safe` | [`safe-global/safe-smart-account`](https://github.com/safe-global/safe-smart-account/blob/77901a5a1ad835b74ad3b72f73a8412cfe491c57/contracts/Safe.sol) | 0.8.35 | 11874 |
 | `Scaffolds/Klima` | [`KlimaDAO/klimadao-solidity`](https://github.com/KlimaDAO/klimadao-solidity/blob/0eb4770c1e9cbead8dd23ef0c23a9a27d761d029/src/protocol/tokens/regular/KlimaToken.sol) | 0.7.5 | 6975 |
-| `Scaffolds/Auction` | [Nouns auction house, `nounsDAO/nouns-monorepo`](https://github.com/nounsDAO/nouns-monorepo) | 0.8.23 | 6150 |
 | `Scaffolds/ERC721` | Benchmark-local compact ERC721 core ([`ERC721.sol`](Scaffolds/ERC721/ERC721.sol)) | 0.8.35 | 1482 |
 | `Scaffolds/EAS/Attester` | [`ethereum-attestation-service/eas-contracts-example`](https://github.com/ethereum-attestation-service/eas-contracts-example/blob/d2864b166a08f9b3f9314f8b302316d67f227462/contracts/Attester.sol) | 0.8.26 | 3186 |
 | `Scaffolds/CometRewards` | [`compound-finance/comet`](https://github.com/compound-finance/comet/blob/f766f51583c23acc33b2a7824654ef2029a96804/contracts/CometRewards.sol) | 0.8.15 via-IR | 4063 |
