@@ -15,8 +15,6 @@ abbrev endTagEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 abbrev endTagSlotFor (I : ExecutionEnv) : UInt256 :=
   tagSlot (endBytes32ArgKey I)
 
-abbrev endTagHighSplitPc : UInt256 := ⟨43⟩
-abbrev endTagHigh2SplitPc : UInt256 := ⟨54⟩
 abbrev endTagFirstArmPc : UInt256 := ⟨65⟩
 abbrev endTagEntryPc : UInt256 := ⟨1245⟩
 abbrev endTagDecodedPc : UInt256 := ⟨1267⟩
@@ -42,16 +40,6 @@ theorem endDecode_tag_none_short {I : ExecutionEnv}
   simpa [config, tagTransition, bytes32, bytes32Width, abiBytes32, abiBytes32Width] using
     (endDecode_legacyBytes32_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort)
 
-theorem endTagHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endTagHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endTagHigh2SplitWellFormed :
-    selectorSplitWellFormed endBytecode endTagHigh2SplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
 set_option maxHeartbeats 1000000 in
 theorem endTagArmsWellFormed :
     ∀ j, j ≤ 2 → armWellFormed endBytecode (nthArmPc endBytecode endTagFirstArmPc j) := by
@@ -71,30 +59,12 @@ theorem endReachTagBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : endSelWord I = ⟨0xee6447b5⟩ :=
     endSelWord_eq_of_beq I hsz 0xee 0x64 0x47 0xb5 ⟨0xee6447b5⟩
       (by native_decide) (by simpa [selIs, endTagConcreteSelector, selectorBytes] using hsel)
-  obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  obtain ⟨_, _, hfirst⟩ :=
+    endReachGroup65FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endTagHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endTagHighSplitPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
-  have h54 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endTagHigh2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
-    simpa [endTagHighSplitPc, endTagHigh2SplitPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h43 endTagHighSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
-  have h65 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endTagFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) := by
-    simpa [endTagHigh2SplitPc, endTagFirstArmPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h54 endTagHigh2SplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endTagFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
@@ -105,7 +75,7 @@ theorem endReachTagBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
     native_decide
-  exact RD.dispatchTo endTagEntryPc 2 h65
+  exact RD.dispatchTo endTagEntryPc 2 hfirst
     (fun j hj => endTagArmsWellFormed j hj)
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 

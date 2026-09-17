@@ -20,22 +20,9 @@ theorem endDecode_when {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
 
 abbrev endWhenConcreteSelector : ByteArray := selectorBytes 0xe2 0xb0 0xca 0xef
 
-abbrev endWhenHighSplitPc : UInt256 := ⟨43⟩
-abbrev endWhenHigh2SplitPc : UInt256 := ⟨54⟩
-abbrev endWhenGroupJumpdestPc : UInt256 := ⟨113⟩
 abbrev endWhenFirstArmPc : UInt256 := ⟨114⟩
 abbrev endWhenEntryPc : UInt256 := ⟨1200⟩
 abbrev endWhenRoutinePc : UInt256 := ⟨9552⟩
-
-theorem endWhenHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endWhenHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endWhenHigh2SplitWellFormed :
-    selectorSplitWellFormed endBytecode endWhenHigh2SplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endWhenArmsWellFormed :
@@ -55,33 +42,12 @@ theorem endReachWhenBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : endSelWord I = ⟨0xe2b0caef⟩ :=
     endSelWord_eq_of_beq I hsz 0xe2 0xb0 0xca 0xef ⟨0xe2b0caef⟩
       (by native_decide) (by simpa [selIs, endWhenConcreteSelector, selectorBytes] using hsel)
-  obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  obtain ⟨_, _, hfirst⟩ :=
+    endReachGroup114FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endWhenHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endWhenHighSplitPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
-  have h54 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endWhenHigh2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
-    simpa [endWhenHighSplitPc, endWhenHigh2SplitPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h43 endWhenHighSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
-  have h113 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endWhenGroupJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) := by
-    simpa [endWhenHigh2SplitPc, endWhenGroupJumpdestPc] using
-      RD.selectorSplitTakenAuto h54 endWhenHigh2SplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
-  have h114 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endWhenFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5 + 1) (C32 + 22 + 22 + 22 + 1) := by
-    simpa [endWhenFirstArmPc] using h113.jumpdest (by native_decide) (by simp)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endWhenFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
@@ -92,7 +58,7 @@ theorem endReachWhenBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
     native_decide
-  exact RD.dispatchTo endWhenEntryPc 3 h114
+  exact RD.dispatchTo endWhenEntryPc 3 hfirst
     (fun j hj => endWhenArmsWellFormed j (le_trans hj (by omega)))
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 

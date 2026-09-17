@@ -15,8 +15,6 @@ abbrev endGapEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 abbrev endGapSlotFor (I : ExecutionEnv) : UInt256 :=
   gapSlot (endBytes32ArgKey I)
 
-abbrev endGapHighSplitPc : UInt256 := ⟨43⟩
-abbrev endGapHigh2SplitPc : UInt256 := ⟨54⟩
 abbrev endGapFirstArmPc : UInt256 := ⟨65⟩
 abbrev endGapEntryPc : UInt256 := ⟨1216⟩
 abbrev endGapDecodedPc : UInt256 := ⟨1238⟩
@@ -42,16 +40,6 @@ theorem endDecode_gap_none_short {I : ExecutionEnv}
   simpa [config, gapTransition, bytes32, bytes32Width, abiBytes32, abiBytes32Width] using
     (endDecode_legacyBytes32_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort)
 
-theorem endGapHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endGapHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endGapHigh2SplitWellFormed :
-    selectorSplitWellFormed endBytecode endGapHigh2SplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
 set_option maxHeartbeats 1000000 in
 theorem endGapArmsWellFormed :
     ∀ j, j ≤ 1 → armWellFormed endBytecode (nthArmPc endBytecode endGapFirstArmPc j) := by
@@ -71,30 +59,12 @@ theorem endReachGapBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : endSelWord I = ⟨0xe6ee62aa⟩ :=
     endSelWord_eq_of_beq I hsz 0xe6 0xee 0x62 0xaa ⟨0xe6ee62aa⟩
       (by native_decide) (by simpa [selIs, endGapConcreteSelector, selectorBytes] using hsel)
-  obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  obtain ⟨_, _, hfirst⟩ :=
+    endReachGroup65FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endGapHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endGapHighSplitPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
-  have h54 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endGapHigh2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
-    simpa [endGapHighSplitPc, endGapHigh2SplitPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h43 endGapHighSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
-  have h65 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endGapFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) := by
-    simpa [endGapHigh2SplitPc, endGapFirstArmPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h54 endGapHigh2SplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGapFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
@@ -105,7 +75,7 @@ theorem endReachGapBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
     native_decide
-  exact RD.dispatchTo endGapEntryPc 1 h65
+  exact RD.dispatchTo endGapEntryPc 1 hfirst
     (fun j hj => endGapArmsWellFormed j hj)
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
