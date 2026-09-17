@@ -1,4 +1,3 @@
-import Benchmarks.Scaffolds.Auction.Correct
 import Benchmarks.Scaffolds.Comet.Correct
 import Benchmarks.Scaffolds.CometRewards.Correct
 import Benchmarks.Scaffolds.EAS.Attester.Correct

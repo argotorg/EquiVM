@@ -88,4 +88,3 @@ axiom transferOwnershipSelectorBytes :
       ⟨#[0xf2, 0xfd, 0xe3, 0x8b]⟩
 
 end Auction
-
