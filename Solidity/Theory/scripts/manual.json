@@ -1,0 +1,86 @@
+{
+ "EvalExpr.memberBalance": {
+  "named": "(v := v)",
+  "body": "    obtain ⟨n2, ih2⟩ := evalExpr_complete p2\n    refine ⟨n2 + 2, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)\n    cases v <;> simp [addrNat] at p3 <;> subst p3 <;> interp_simp [p1, addrNat, ih2 k' (by omega)]"
+ },
+ "EvalExpr.convertUser": {
+  "named": "(c := c)",
+  "body": "    obtain ⟨n7, ih7⟩ := evalExpr_complete p7\n    refine ⟨n7 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    have e7 := ih7 (k' + 1) (by omega)\n    simp only [evalExpr] at e7\n    have hconv : ((fc.var? c).isNone && ((fc.types.contractKind? c).isSome || (fc.types.enum? none c).isSome)) = true := by\n      rcases p6 with h6 | h6 <;> simp [p3, h6]\n    interp_simp [p1, p2, p4, p5, hconv, e7]"
+ },
+ "EvalExpr.modZero": "    obtain ⟨n1, ih1⟩ := evalExprs_complete p1\n    refine ⟨n1 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    rcases p5 with rfl | rfl <;> interp_simp [isBuiltinFn, p2, p3, p4, ih1 k' (by omega)]",
+ "EvalExpr.modArgsRevert": "    obtain ⟨n2, ih2⟩ := evalExprs_complete p2\n    refine ⟨n2 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    rcases p1 with rfl | rfl <;> interp_simp [isBuiltinFn, ih2 k' (by omega)]",
+ "EvalExpr.abiEncodeRevert": {
+  "named": "(es := es)",
+  "body": "    obtain ⟨n2, ih2⟩ := evalExprs_complete p2\n    refine ⟨n2 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    rcases p1 with rfl | rfl | rfl | rfl <;> rcases es with _ | ⟨e, es⟩ <;>\n      first | (cases p2; done) | interp_simp [isSuperExpr, headIdent, isEnvObj, isAbiFn, ih2 k' (by omega)]"
+ },
+ "EvalExpr.binaryRightRevert": {
+  "named": "(op := op)",
+  "body": "    obtain ⟨n1, ih1⟩ := evalExpr_complete p1\n    obtain ⟨n2, ih2⟩ := evalExpr_complete p2\n    refine ⟨n1 + n2 + 1, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)\n    by_cases hand : op = .and\n    · subst hand\n      rcases p3 with h3 | rfl\n      · exact absurd rfl h3\n      · interp_simp [ih1 k' (by omega), ih2 k' (by omega)]\n    · by_cases hor : op = .or\n      · subst hor\n        rcases p4 with h4 | rfl\n        · exact absurd rfl h4\n        · interp_simp [ih1 k' (by omega), ih2 k' (by omega)]\n      · interp_simp [hand, hor, ih1 k' (by omega), ih2 k' (by omega)]"
+ },
+ "EvalExpr.lowLevelCall": {
+  "named": "(rv := rv)",
+  "body": "    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p2\n    obtain ⟨n3, ih3⟩ := evalExpr_complete p3\n    obtain ⟨n6, ih6⟩ := evalValueOpt_complete p6\n    obtain ⟨n7, ih7⟩ := evalGasOpt_complete p7\n    obtain ⟨n8, ih8⟩ := evalExpr_complete p8\n    have hb10 := callViaEVM_det p10\n    refine ⟨n3 + n6 + n7 + n8 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    cases rv <;> simp [addrNat, isContractValue] at p4 p5\n    subst p5\n    have hsc : (\"staticcall\" == \"call\") = false := by decide\n    rcases p1 with rfl | rfl <;> simp only [beq_self_eq_true, hsc, Bool.true_and, Bool.false_and] at hb10 <;>\n      interp_simp [specialMemberCall, addrNat, hmd1, hmd2, hmd3, p2, p9, hb10, p11, hsc, ih3 k' (by omega),\n        ih6 k' (by omega), ih7 k' (by omega), ih8 k' (by omega)]"
+ },
+ "EvalExpr.lowLevelValueRevert": {
+  "named": "(rv := rv)",
+  "body": "    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p2\n    obtain ⟨n3, ih3⟩ := evalExpr_complete p3\n    obtain ⟨n6, ih6⟩ := evalValueOpt_complete p6\n    refine ⟨n3 + n6 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    cases rv <;> simp [addrNat, isContractValue] at p4 p5\n    subst p5\n    have hsc : (\"staticcall\" == \"call\") = false := by decide\n    rcases p1 with rfl | rfl <;>\n      interp_simp [specialMemberCall, addrNat, hmd1, hmd2, hmd3, p2, hsc, ih3 k' (by omega), ih6 k' (by omega)]"
+ },
+ "EvalExpr.lowLevelDataRevert": {
+  "named": "(rv := rv)",
+  "body": "    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p2\n    obtain ⟨n3, ih3⟩ := evalExpr_complete p3\n    obtain ⟨n6, ih6⟩ := evalValueOpt_complete p6\n    obtain ⟨n7, ih7⟩ := evalGasOpt_complete p7\n    obtain ⟨n8, ih8⟩ := evalExpr_complete p8\n    refine ⟨n3 + n6 + n7 + n8 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    cases rv <;> simp [addrNat, isContractValue] at p4 p5\n    subst p5\n    have hsc : (\"staticcall\" == \"call\") = false := by decide\n    rcases p1 with rfl | rfl <;>\n      interp_simp [specialMemberCall, addrNat, hmd1, hmd2, hmd3, p2, hsc, ih3 k' (by omega), ih6 k' (by omega),\n        ih7 k' (by omega), ih8 k' (by omega)]"
+ },
+ "EvalExpr.delegateCall": {
+  "named": "(rv := rv)",
+  "body": "    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1\n    obtain ⟨n2, ih2⟩ := evalExpr_complete p2\n    obtain ⟨n5, ih5⟩ := evalGasOpt_complete p5\n    obtain ⟨n6, ih6⟩ := evalExpr_complete p6\n    have hb8 := delegateCallViaEVM_det p8\n    refine ⟨n2 + n5 + n6 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    cases rv <;> simp [addrNat, isContractValue] at p3 p4\n    subst p4\n    interp_simp [specialMemberCall, addrNat, hmd1, hmd2, hmd3, p1, p7, hb8, p9, ih2 k' (by omega), ih5 k' (by omega),\n      ih6 k' (by omega)]"
+ },
+ "EvalExpr.delegateCallDataRevert": {
+  "named": "(rv := rv)",
+  "body": "    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1\n    obtain ⟨n2, ih2⟩ := evalExpr_complete p2\n    obtain ⟨n5, ih5⟩ := evalGasOpt_complete p5\n    obtain ⟨n6, ih6⟩ := evalExpr_complete p6\n    refine ⟨n2 + n5 + n6 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    cases rv <;> simp [addrNat, isContractValue] at p3 p4\n    subst p4\n    interp_simp [specialMemberCall, addrNat, hmd1, hmd2, hmd3, p1, ih2 k' (by omega), ih5 k' (by omega),\n      ih6 k' (by omega)]"
+ },
+ "EvalExpr.transfer": {
+  "named": "(rv := rv)",
+  "body": "    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1\n    obtain ⟨n2, ih2⟩ := evalExpr_complete p2\n    obtain ⟨n5, ih5⟩ := evalExpr_complete p5\n    have hb7 := callViaEVM_det p7\n    refine ⟨n2 + n5 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    cases rv <;> simp [addrNat, isContractValue] at p3 p4\n    subst p4\n    interp_simp [specialMemberCall, addrNat, hmd1, hmd2, hmd3, p1, p6, hb7, ih2 k' (by omega), ih5 k' (by omega)]"
+ },
+ "EvalExpr.transferFailed": {
+  "named": "(rv := rv)",
+  "body": "    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1\n    obtain ⟨n2, ih2⟩ := evalExpr_complete p2\n    obtain ⟨n5, ih5⟩ := evalExpr_complete p5\n    have hb7 := callViaEVM_det p7\n    refine ⟨n2 + n5 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    cases rv <;> simp [addrNat, isContractValue] at p3 p4\n    subst p4\n    interp_simp [specialMemberCall, addrNat, hmd1, hmd2, hmd3, p1, p6, hb7, ih2 k' (by omega), ih5 k' (by omega)]"
+ },
+ "EvalExpr.send": {
+  "named": "(rv := rv)",
+  "body": "    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1\n    obtain ⟨n2, ih2⟩ := evalExpr_complete p2\n    obtain ⟨n5, ih5⟩ := evalExpr_complete p5\n    have hb7 := callViaEVM_det p7\n    refine ⟨n2 + n5 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    cases rv <;> simp [addrNat, isContractValue] at p3 p4\n    subst p4\n    interp_simp [specialMemberCall, addrNat, hmd1, hmd2, hmd3, p1, p6, hb7, ih2 k' (by omega), ih5 k' (by omega)]"
+ },
+ "EvalExpr.transferAmtRevert": {
+  "named": "(rv := rv)",
+  "body": "    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p2\n    obtain ⟨n3, ih3⟩ := evalExpr_complete p3\n    obtain ⟨n6, ih6⟩ := evalExpr_complete p6\n    refine ⟨n3 + n6 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    cases rv <;> simp [addrNat, isContractValue] at p4 p5\n    subst p5\n    rcases p1 with rfl | rfl <;>\n      interp_simp [specialMemberCall, addrNat, hmd1, hmd2, hmd3, p2, ih3 k' (by omega), ih6 k' (by omega)]"
+ },
+ "EvalLValue.indexMemPanic": {
+  "named": "(n := n) (len := len)",
+  "body": "    obtain ⟨n1, ih1⟩ := evalExpr_complete p1\n    obtain ⟨n2, ih2⟩ := evalExpr_complete p2\n    have hnl : ¬ n < len := not_lt.mpr p5\n    refine ⟨n1 + n2 + 1, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)\n    interp_simp [p3, p4, hnl, ih1 k' (by omega), ih2 k' (by omega)]"
+ },
+ "ExecStmt.returnMulti": "    obtain ⟨n2, ih2⟩ := evalExpr_complete p2\n    obtain ⟨n3, ih3⟩ := assignTuple_complete p3\n    refine ⟨n2 + n3 + 1, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)\n    rcases hrv : fr.retVars with _ | ⟨r1, _ | ⟨r2, rs⟩⟩\n    · simp [hrv] at p1\n    · simp [hrv] at p1\n    · rw [hrv] at ih3\n      have hlen : (r1 :: r2 :: rs).length ≥ 2 := by simp\n      interp_simp [hrv, hlen, ih2 k' (by omega), ih3 k' (by omega)]",
+ "ExecStmt.returnMultiRevert": "    obtain ⟨n2, ih2⟩ := evalExpr_complete p2\n    obtain ⟨n3, ih3⟩ := assignTuple_complete p3\n    refine ⟨n2 + n3 + 1, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)\n    rcases hrv : fr.retVars with _ | ⟨r1, _ | ⟨r2, rs⟩⟩\n    · simp [hrv] at p1\n    · simp [hrv] at p1\n    · rw [hrv] at ih3\n      have hlen : (r1 :: r2 :: rs).length ≥ 2 := by simp\n      interp_simp [hrv, hlen, ih2 k' (by omega), ih3 k' (by omega)]",
+ "ExecStmt.unchecked": {
+  "named": "(r := rr)",
+  "body": "    obtain ⟨n1, ih1⟩ := execBlock_complete p1\n    refine ⟨n1 + 1, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)\n    cases rr <;> interp_simp [restoreUnchecked, ih1 k' (by omega)]"
+ },
+ "ExecStmt.placeholder": {
+  "named": "(r := rr) (r' := r')",
+  "body": "    obtain ⟨n1, ih1⟩ := execChain_complete p1\n    refine ⟨n1 + 1, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)\n    cases rr <;> simp [settlePlaceholder] at p2 <;> (try subst p2) <;> interp_simp [settlePlaceholder, ih1 k' (by omega)]"
+ },
+ "ExecChain.modifier": {
+  "named": "(r := rr)",
+  "body": "    obtain ⟨n3, ih3⟩ := execBlock_complete p3\n    refine ⟨n3 + 1, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)\n    cases rr <;> interp_simp [popScope, p1, p2, ih3 k' (by omega)]"
+ },
+ "CallFn.ok": {
+  "named": "(r := rr)",
+  "body": "    obtain ⟨n2, ih2⟩ := evalMods_complete p2\n    obtain ⟨n4, ih4⟩ := execChain_complete p4\n    refine ⟨n2 + n4 + 1, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)\n    cases rr with\n    | normal fr' m' => interp_simp [p1, p3, p5, p6, ih2 k' (by omega), ih4 k' (by omega)]\n    | returned fr' m' => interp_simp [p1, p3, p5, p6, ih2 k' (by omega), ih4 k' (by omega)]\n    | «break» fr' m' => simp [finished] at p5\n    | «continue» fr' m' => simp [finished] at p5\n    | reverted d => simp [finished] at p5"
+ },
+ "EvalExpr.lowLevelGasRevert": {
+  "named": "(rv := rv)",
+  "body": "    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p2\n    obtain ⟨n3, ih3⟩ := evalExpr_complete p3\n    obtain ⟨n6, ih6⟩ := evalValueOpt_complete p6\n    obtain ⟨n7, ih7⟩ := evalGasOpt_complete p7\n    refine ⟨n3 + n6 + n7 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    cases rv <;> simp [addrNat, isContractValue] at p4 p5\n    subst p5\n    have hsc : (\"staticcall\" == \"call\") = false := by decide\n    rcases p1 with rfl | rfl <;>\n      interp_simp [specialMemberCall, addrNat, hmd1, hmd2, hmd3, p2, hsc, ih3 k' (by omega), ih6 k' (by omega),\n        ih7 k' (by omega)]"
+ },
+ "EvalExpr.delegateCallGasRevert": {
+  "named": "(rv := rv)",
+  "body": "    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1\n    obtain ⟨n2, ih2⟩ := evalExpr_complete p2\n    obtain ⟨n5, ih5⟩ := evalGasOpt_complete p5\n    refine ⟨n2 + n5 + 3, fun k hk => ?_⟩\n    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)\n    cases rv <;> simp [addrNat, isContractValue] at p3 p4\n    subst p4\n    interp_simp [specialMemberCall, addrNat, hmd1, hmd2, hmd3, p1, ih2 k' (by omega), ih5 k' (by omega)]"
+ }
+}

@@ -23,7 +23,7 @@ jobs:
       - name: Build libraries
         uses: leanprover/lean-action@v1
         with:
-          build-args: EquiVM EVM ABI Storage Refinement EVMReasoning Solm
+          build-args: EquiVM EVM ABI Storage Refinement EVMReasoning Solm Solidity
           use-github-cache: true
 
       # Mirrors the imports of Solm/Examples.lean. Remove lines to prune.
@@ -48,6 +48,18 @@ jobs:
             Solm.Examples.UniswapV2Pair.Correct \
             Solm.Examples.Reuse.Correct \
             Solm.Examples.VyperERC20.Correct
+
+      # Solidity-language transcriptions used by the differential harness.
+      - name: Build Solidity specs
+        run: lake build Solidity.Test.Specs
+
+      # ERC20 refinement proof against its Solidity spec (core relation) and the
+      # interpreter/relation equivalence theorems.
+      - name: Build Solidity proofs
+        run: |
+          lake build \
+            Solidity.Theory.InterpEquiv \
+            Solidity.Examples.ERC20.Correct
 
       # These End dispatch consumers previously overflowed Lean's default stack.
       # Keep this focused regression check even while the full benchmarks are disabled.
@@ -97,3 +109,18 @@ jobs:
       # # Scaffolded benchmarks: specs + bytecode compile, proofs are sorry stubs.
       # - name: Build benchmark scaffolds
       #   run: lake build Solm.Benchmarks.Scaffolds
+
+  # Native keccak + EVM differential tests of the Solidity spec language (compiles the closure
+  # to C; run on demand).
+  solidity-diff:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leanprover/lean-action@v1
+        with:
+          build-args: solidity-diff
+          use-github-cache: true
+      - name: Run solidity-diff
+        run: lake exe solidity-diff --all

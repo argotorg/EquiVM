@@ -26,6 +26,13 @@ globs = ["EVMReasoning.+"]
 [[lean_lib]]
 name = "Solm"
 
+[[lean_lib]]
+name = "Solidity"
+
+[[lean_exe]]
+name = "solidity-diff"
+root = "Solidity.Test.Main"
+
 # [[lean_exe]]
 # name = "equivm"
 # root = "EquiVM"

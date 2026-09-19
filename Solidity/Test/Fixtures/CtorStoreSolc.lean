@@ -1,0 +1,24 @@
+import Solidity.Test.Harness
+
+/-!
+# Fixture: `Examples/CtorStore/CtorStore.sol`
+
+`solc 0.8.35+commit.47b9dedd --evm-version shanghai --bin / --bin-runtime`.
+-/
+
+namespace Solidity.Test.Fixtures
+
+/-- Creation code (205 bytes). -/
+def ctorStoreCreationHex : String :=
+    "608060405260405160cd38038060cd833981810160405281019060219190605e565b805f81905550506084565b5f5ffd" ++
+    "5b5f819050919050565b6040816030565b81146049575f5ffd5b50565b5f815190506058816039565b92915050565b5f" ++
+    "60208284031215607057606f602c565b5b5f607b84828501604c565b91505092915050565b603e80608f5f395ff3fe60" ++
+    "806040525f5ffdfea26469706673582212207d3b8f1a4a7af59fa50b0647fc6b5f17268e5bc9b53e70e655034d7a89ac" ++
+    "d7d964736f6c63430008230033"
+
+/-- Runtime code (62 bytes). -/
+def ctorStoreRuntimeHex : String :=
+    "60806040525f5ffdfea26469706673582212207d3b8f1a4a7af59fa50b0647fc6b5f17268e5bc9b53e70e655034d7a89" ++
+    "acd7d964736f6c63430008230033"
+
+end Solidity.Test.Fixtures
