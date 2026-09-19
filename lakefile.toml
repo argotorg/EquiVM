@@ -13,23 +13,18 @@ name = "EVM"
 name = "ABI"
 
 [[lean_lib]]
+name = "Storage"
+
+[[lean_lib]]
+name = "Refinement"
+
+[[lean_lib]]
+name = "EVMReasoning"
+globs = ["EVMReasoning.+"]
+
+# Roots only: `lake build Solm` builds the language, not its proofs (explicit targets).
+[[lean_lib]]
 name = "Solm"
-
-[[lean_lib]]
-name = "Examples"
-globs = ["Examples.+"]
-
-[[lean_lib]]
-name = "Reasoning"
-globs = ["Reasoning.+"]
-
-[[lean_lib]]
-name = "Proofs"
-globs = ["Proofs.+"]
-
-[[lean_lib]]
-name = "Benchmarks"
-globs = ["Benchmarks.+"]
 
 # [[lean_exe]]
 # name = "equivm"

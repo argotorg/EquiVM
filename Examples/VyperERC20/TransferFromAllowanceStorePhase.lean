@@ -1,1 +1,0 @@
-import Examples.VyperERC20.TransferFromAllowanceStoreFinish

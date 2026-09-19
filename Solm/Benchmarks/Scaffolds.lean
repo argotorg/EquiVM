@@ -1,0 +1,10 @@
+import Solm.Benchmarks.Scaffolds.Comet.Correct
+import Solm.Benchmarks.Scaffolds.CometRewards.Correct
+import Solm.Benchmarks.Scaffolds.EAS.Attester.Correct
+import Solm.Benchmarks.Scaffolds.ERC721.Correct
+import Solm.Benchmarks.Scaffolds.Klima.Correct
+import Solm.Benchmarks.Scaffolds.Safe.Correct
+import Solm.Benchmarks.Scaffolds.TimelockController.Correct
+import Solm.Benchmarks.Scaffolds.UniswapV2Router02.Correct
+import Solm.Benchmarks.Scaffolds.UniswapV3Pool.Correct
+import Solm.Benchmarks.Scaffolds.VestingWallet.Correct

@@ -23,77 +23,77 @@ jobs:
       - name: Build libraries
         uses: leanprover/lean-action@v1
         with:
-          build-args: EquiVM EVM ABI Solm Reasoning Proofs
+          build-args: EquiVM EVM ABI Storage Refinement EVMReasoning Solm
           use-github-cache: true
 
-      # Mirrors the imports of Examples.lean. Remove lines to prune.
+      # Mirrors the imports of Solm/Examples.lean. Remove lines to prune.
       - name: Build examples
         run: |
           lake build \
-            Examples.Pow.Correct \
-            Examples.Truth.Correct \
-            Examples.Caller.Correct \
-            Examples.ERC20.Correct \
-            Examples.CtorTruth.Correct \
-            Examples.CtorStore.Correct \
-            Examples.TinyImmutable.Correct \
-            Examples.Ballot.Correct \
-            Examples.SimpleAuction.Correct \
-            Examples.StringStoreLite.Correct \
-            Examples.BlindAuction.Correct \
-            Examples.OpenZeppelinBench.Ownable2Step.Correct \
-            Examples.OpenZeppelinBench.AccessControl.Correct \
-            Examples.OpenZeppelinBench.Pausable.Correct \
-            Examples.OpenZeppelinBench.ERC6909.Correct \
-            Examples.UniswapV2Pair.Correct \
-            Examples.Reuse.Correct \
-            Examples.VyperERC20.Correct
+            Solm.Examples.Pow.Correct \
+            Solm.Examples.Truth.Correct \
+            Solm.Examples.Caller.Correct \
+            Solm.Examples.ERC20.Correct \
+            Solm.Examples.CtorTruth.Correct \
+            Solm.Examples.CtorStore.Correct \
+            Solm.Examples.TinyImmutable.Correct \
+            Solm.Examples.Ballot.Correct \
+            Solm.Examples.SimpleAuction.Correct \
+            Solm.Examples.StringStoreLite.Correct \
+            Solm.Examples.BlindAuction.Correct \
+            Solm.Examples.OpenZeppelinBench.Ownable2Step.Correct \
+            Solm.Examples.OpenZeppelinBench.AccessControl.Correct \
+            Solm.Examples.OpenZeppelinBench.Pausable.Correct \
+            Solm.Examples.OpenZeppelinBench.ERC6909.Correct \
+            Solm.Examples.UniswapV2Pair.Correct \
+            Solm.Examples.Reuse.Correct \
+            Solm.Examples.VyperERC20.Correct
 
       # These End dispatch consumers previously overflowed Lean's default stack.
       # Keep this focused regression check even while the full benchmarks are disabled.
       - name: Check End dispatch proof stack
         run: |
           lake build \
-            Benchmarks.Dss.End.Rely \
-            Benchmarks.Dss.End.Out \
-            Benchmarks.Dss.End.Bag \
-            Benchmarks.Dss.End.Fix \
-            Benchmarks.Dss.End.Art
+            Solm.Benchmarks.Dss.End.Rely \
+            Solm.Benchmarks.Dss.End.Out \
+            Solm.Benchmarks.Dss.End.Bag \
+            Solm.Benchmarks.Dss.End.Fix \
+            Solm.Benchmarks.Dss.End.Art
 
       # Immutable PUSH32 decoding must not reduce the full Clipper bytecode template.
       - name: Check Clipper decoder proof stack
         run: |
           lake build \
-            Benchmarks.Dss.Clipper.Upchost \
-            Benchmarks.Dss.Clipper.YankEVM
+            Solm.Benchmarks.Dss.Clipper.Upchost \
+            Solm.Benchmarks.Dss.Clipper.YankEVM
 
       # Benchmarks are too large for regular GitHub-hosted CI right now, commenting out. TODO add separate workflow
-      # Mirrors the imports of Benchmarks.lean. Remove lines to prune.
+      # Mirrors the imports of Solm/Benchmarks.lean. Remove lines to prune.
       # - name: Build benchmarks
       #   run: |
       #     lake build \
-      #       Benchmarks.Auction.Correct \
-      #       Benchmarks.WETH9.Correct \
-      #       Benchmarks.Dss.Dai.Correct \
-      #       Benchmarks.Dss.Jug.Correct \
-      #       Benchmarks.Dss.Vat.Correct \
-      #       Benchmarks.Dss.Pot.Correct \
-      #       Benchmarks.Dss.Spot.Correct \
-      #       Benchmarks.Dss.Vow.Correct \
-      #       Benchmarks.Dss.LinearDecrease.Correct \
-      #       Benchmarks.Dss.StairstepExponentialDecrease.Correct \
-      #       Benchmarks.Dss.ExponentialDecrease.Correct \
-      #       Benchmarks.Dss.Cat.Correct \
-      #       Benchmarks.Dss.Clipper.Correct \
-      #       Benchmarks.Dss.Cure.Correct \
-      #       Benchmarks.Dss.Dog.Correct \
-      #       Benchmarks.Dss.End.Correct \
-      #       Benchmarks.Dss.Flapper.Correct \
-      #       Benchmarks.Dss.Flipper.Correct \
-      #       Benchmarks.Dss.Flopper.Correct \
-      #       Benchmarks.Dss.GemJoin.Correct \
-      #       Benchmarks.Dss.DaiJoin.Correct
+      #       Solm.Benchmarks.Auction.Correct \
+      #       Solm.Benchmarks.WETH9.Correct \
+      #       Solm.Benchmarks.Dss.Dai.Correct \
+      #       Solm.Benchmarks.Dss.Jug.Correct \
+      #       Solm.Benchmarks.Dss.Vat.Correct \
+      #       Solm.Benchmarks.Dss.Pot.Correct \
+      #       Solm.Benchmarks.Dss.Spot.Correct \
+      #       Solm.Benchmarks.Dss.Vow.Correct \
+      #       Solm.Benchmarks.Dss.LinearDecrease.Correct \
+      #       Solm.Benchmarks.Dss.StairstepExponentialDecrease.Correct \
+      #       Solm.Benchmarks.Dss.ExponentialDecrease.Correct \
+      #       Solm.Benchmarks.Dss.Cat.Correct \
+      #       Solm.Benchmarks.Dss.Clipper.Correct \
+      #       Solm.Benchmarks.Dss.Cure.Correct \
+      #       Solm.Benchmarks.Dss.Dog.Correct \
+      #       Solm.Benchmarks.Dss.End.Correct \
+      #       Solm.Benchmarks.Dss.Flapper.Correct \
+      #       Solm.Benchmarks.Dss.Flipper.Correct \
+      #       Solm.Benchmarks.Dss.Flopper.Correct \
+      #       Solm.Benchmarks.Dss.GemJoin.Correct \
+      #       Solm.Benchmarks.Dss.DaiJoin.Correct
 
       # # Scaffolded benchmarks: specs + bytecode compile, proofs are sorry stubs.
       # - name: Build benchmark scaffolds
-      #   run: lake build Benchmarks.Scaffolds
+      #   run: lake build Solm.Benchmarks.Scaffolds

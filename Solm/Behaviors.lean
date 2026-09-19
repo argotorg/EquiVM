@@ -17,12 +17,9 @@ namespace Solm
 
 open ABI
 
-/-- The EVM result type of `Ethereum.EVM.Ξ`. -/
-abbrev EVMResult :=
-  Except Ethereum.EVM.ExecutionException
-    (Ethereum.ExecutionResult
-      (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap ×
-        Ethereum.UInt256 × Ethereum.Substate))
+export Refinement (EVMResult)
+
+
 
 /-- The specification rejects the calldata: no transition (nor `receive`/`fallback`) accepts it,
     or the selected transition's calldata does not decode. -/

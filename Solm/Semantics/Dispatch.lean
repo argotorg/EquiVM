@@ -1,11 +1,16 @@
 import ABI.Signature
 import Solm.Value
+import Refinement.Result
 
 /-! Message dispatch: selector, `receive`, and `fallback` resolution, and return conventions. -/
+
 
 namespace Solm
 
 open ABI
+
+export Refinement (ReturnConvention ReturnConvention.abi ReturnConvention.rawBytes)
+
 
 def transitionSignature (transition : TransitionDecl) : Signature :=
   ⟨transition.name, transition.params.map Param.ty⟩
@@ -36,10 +41,6 @@ def dispatchMsg (contract : ContractDecl) (calldata : ByteArray)
       | some transition => some transition
       | none => contract.fallback
 
-inductive ReturnConvention where
-  | abi : List ABIType → ReturnConvention
-  | rawBytes : ReturnConvention
-  deriving DecidableEq, Repr, Inhabited
 
 def fallbackCallargs (calldata : ByteArray) : List Param → Option Store
   | [] => some ∅

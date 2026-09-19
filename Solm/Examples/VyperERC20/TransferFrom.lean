@@ -1,0 +1,1 @@
+import Solm.Examples.VyperERC20.TransferFromStores
