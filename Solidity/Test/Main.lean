@@ -15,6 +15,10 @@ import Solidity.Test.Scenarios.AccessControl
 import Solidity.Test.Scenarios.Pausable
 import Solidity.Test.Scenarios.ERC6909
 import Solidity.Test.Scenarios.Factory
+import Solidity.Test.Scenarios.HexLit
+import Solidity.Test.Scenarios.TryCatch
+import Solidity.Test.Scenarios.BaseCall
+import Solidity.Test.Scenarios.Ecrecover
 
 /-!
 # `solidity-diff`
@@ -206,7 +210,7 @@ def scenarios : List Scenario :=
     BlindAuction.scenario, BlindAuction.scenarioSolc, BlindAuction.scenarioPinnedCtor,
     Ownable2Step.scenario, Ownable2Step.scenarioSolc, AccessControl.scenario,
     AccessControl.scenarioSolc, Pausable.scenario, Pausable.scenarioSolc, ERC6909.scenario,
-    ERC6909.scenarioSolc, Factory.scenario ]
+    ERC6909.scenarioSolc, Factory.scenario, HexLit.scenario, TryCatch.scenario, BaseCall.scenario, Ecrecover.scenario ]
 
 def runDiff (only : Option String := none) : IO Bool := do
   let mut ok := true

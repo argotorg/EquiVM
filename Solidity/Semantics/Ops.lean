@@ -53,7 +53,7 @@ def envMember (m : Machine) (obj member : Ident) : Option Value :=
 def keyOf : Value → Option Solm.KeyValue
   | .uint _ n => some (.int n)
   | .sint _ i => some (.int i)
-  | .literal i => some (.int i)
+  | .literal i _ => some (.int i)
   | .bool b => some (.bool b)
   | .address a => some (.address a)
   | .contract _ a => some (.address a)
@@ -78,15 +78,15 @@ def validateRaw (ty : Ty) (w : Nat) : Except ByteArray Value :=
 
 /-- A literal meeting a typed integer takes that type (must fit). -/
 def adopt (t : IntTy) : Value → Option Value
-  | .literal i => if t.inRange i then some (mkInt t i) else none
+  | .literal i _ => if t.inRange i then some (mkInt t i) else none
   | v => some v
 
 /-- Integer operands unified to a common type (`(type, a, b)`); literal–literal stays exact. -/
 def unifyInts (a b : Value) : Option (Option IntTy × Int × Int) :=
   match a, b with
-  | .literal x, .literal y => some (none, x, y)
-  | .literal x, v => (v.int?).bind fun (t, y) => if t.inRange x then some (some t, x, y) else none
-  | v, .literal y => (v.int?).bind fun (t, x) => if t.inRange y then some (some t, x, y) else none
+  | .literal x _, .literal y _ => some (none, x, y)
+  | .literal x _, v => (v.int?).bind fun (t, y) => if t.inRange x then some (some t, x, y) else none
+  | v, .literal y _ => (v.int?).bind fun (t, x) => if t.inRange y then some (some t, x, y) else none
   | u, v => do
     let (ta, x) ← u.int?
     let (tb, y) ← v.int?
@@ -104,7 +104,7 @@ def literalBase (i : Int) : IntTy :=
 /-- Shift amount / exponent: an unsigned integer or a non-negative literal. -/
 def natOperand : Value → Option Nat
   | .uint _ n => some n
-  | .literal i => if i ≥ 0 then some i.toNat else none
+  | .literal i _ => if i ≥ 0 then some i.toNat else none
   | _ => none
 
 def bytesZip (f : UInt8 → UInt8 → UInt8) : Value → Value → Option Value
@@ -145,6 +145,19 @@ def addrNat : Value → Option Nat
   | .contract _ a => some a.toNat
   | _ => none
 
+/-- Bytes of a number literal converted to `bytesN` (`n + 1` bytes): zero always, otherwise only a
+    hex literal with exactly `2 * (n + 1)` digits (solc 0.8; decimal literals never convert). -/
+def literalBytes? (i : Int) (hexDigits : Option Nat) (n : Fin 32) : Option (List UInt8) :=
+  if i = 0 then some (List.replicate (n.val + 1) 0)
+  else if hexDigits = some (2 * (n.val + 1)) ∧ 0 ≤ i then some (natToBytesBE i.toNat (n.val + 1))
+  else none
+
+/-- A number literal meeting `bytesN` in a binary operator takes that type (same rule). -/
+def adoptBytes : Value → Value → Value × Value
+  | .fixedBytes n bs, .literal i hd => (.fixedBytes n bs, (literalBytes? i hd n).elim (.literal i hd) (.fixedBytes n ·))
+  | .literal i hd, .fixedBytes n bs => ((literalBytes? i hd n).elim (.literal i hd) (.fixedBytes n ·), .fixedBytes n bs)
+  | a, b => (a, b)
+
 /-- Binary operators other than `&&`/`||` (short-circuited by the rules). -/
 def binop (checked : Bool) (op : BinOp) (a b : Value) : Op Value := do
   -- booleans
@@ -158,7 +171,8 @@ def binop (checked : Bool) (op : BinOp) (a b : Value) : Op Value := do
   -- addresses and contracts
   if let (some x, some y) := (addrNat a, addrNat b) then
     return ← Op.ofOpt (cmpNat op x y)
-  -- fixed bytes
+  -- fixed bytes (a number literal operand converts by the `bytesN` literal rule)
+  let (a, b) := adoptBytes a b
   if let (.fixedBytes _ _, .fixedBytes _ _) := (a, b) then
     match op with
     | .bitAnd => return ← Op.ofOpt (bytesZip (· &&& ·) a b)
@@ -186,14 +200,14 @@ def binop (checked : Bool) (op : BinOp) (a b : Value) : Op Value := do
   | .shl | .shr | .exp =>
     let some s := natOperand b | Op.stuck
     let (t, x) ← match a with
-      | .literal x => pure (literalBase x, x)
+      | .literal x _ => pure (literalBase x, x)
       | v => Op.ofOpt v.int?
     match op with
     | .shl => return mkInt t (shl t x s)
     | .shr => return mkInt t (shr t x s)
     | _ =>
       match a, b with
-      | .literal x, .literal _ => return .literal (x ^ s)   -- exact (constant expression)
+      | .literal x _, .literal _ _ => return .literal (x ^ s)   -- exact (constant expression)
       | _, _ =>
         match exp t checked x s with
         | .ok r => return mkInt t r
@@ -233,7 +247,7 @@ def binop (checked : Bool) (op : BinOp) (a b : Value) : Op Value := do
 def unop (checked : Bool) (op : UnOp) (v : Value) : Op Value := do
   match op, v with
   | .not, .bool b => return .bool (!b)
-  | .neg, .literal i => return .literal (-i)
+  | .neg, .literal i _ => return .literal (-i)
   | .neg, .sint w i =>
     match neg (.sint w) checked i with
     | .ok r => return .sint w r
@@ -249,8 +263,8 @@ def unop (checked : Bool) (op : UnOp) (v : Value) : Op Value := do
 /-- Implicit conversion to `ty` (value types; references are handled by assignment rules). -/
 def implicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Option (Value × Heap) :=
   match v, ty with
-  | .literal i, .uint w => if IntTy.inRange (.uint w) i then some (.uint w i.toNat, h) else none
-  | .literal i, .int w => if IntTy.inRange (.sint w) i then some (.sint w i, h) else none
+  | .literal i _, .uint w => if IntTy.inRange (.uint w) i then some (.uint w i.toNat, h) else none
+  | .literal i _, .int w => if IntTy.inRange (.sint w) i then some (.sint w i, h) else none
   | .uint w n, .uint w' => if w.val ≤ w'.val then some (.uint w' n, h) else none
   | .sint w i, .int w' => if w.val ≤ w'.val then some (.sint w' i, h) else none
   | .uint w n, .int w' => if w.val < w'.val then some (.sint w' n, h) else none
@@ -260,8 +274,8 @@ def implicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Option (Valu
   | .enum e i, .user _ n => if e == n then some (.enum e i, h) else none
   | .fixedBytes n bs, .fixedBytes n' =>
     if n.val ≤ n'.val then some (.fixedBytes n' (bs ++ List.replicate (n'.val - n.val) 0), h) else none
-  -- a zero literal converts to any `bytesN` (non-zero hex literals need the digit count: not modelled)
-  | .literal 0, .fixedBytes n => some (.fixedBytes n (List.replicate (n.val + 1) 0), h)
+  -- number literal to `bytesN`: zero, or a hex literal with exactly `2N` digits (solc 0.8)
+  | .literal i hd, .fixedBytes n => (literalBytes? i hd n).map fun bs => (.fixedBytes n bs, h)
   | .strLit s, .fixedBytes n =>
     if s.size ≤ n.val + 1 then some (.fixedBytes n (s.toList ++ List.replicate (n.val + 1 - s.size) 0), h) else none
   | .strLit s, .bytes => let (h', id) := h.alloc (.bytes false s); some (.memRef id, h')
@@ -280,9 +294,8 @@ def explicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Op (Value ×
   | .sint w i, .int w' => return (.sint w' (IntTy.wrap (.sint w') i), h)
   | .uint w n, .int w' => if w.val = w'.val then return (.sint w' (IntTy.wrap (.sint w') n), h) else Op.stuck
   | .sint w i, .uint w' => if w.val = w'.val then return (.uint w' (IntTy.toWord (.uint w') i), h) else Op.stuck
-  | .literal i, .address _ => if 0 ≤ i ∧ i < 2 ^ 160 then return (.address (EVM.address i.toNat), h) else Op.stuck
-  | .literal i, .fixedBytes n => if 0 ≤ i ∧ i < 2 ^ (8 * (n.val + 1)) then return (.fixedBytes n (natToBytesBE i.toNat (n.val + 1)), h) else Op.stuck
-  | .literal i, .user q n =>
+  | .literal i _, .address _ => if 0 ≤ i ∧ i < 2 ^ 160 then return (.address (EVM.address i.toNat), h) else Op.stuck
+  | .literal i _, .user q n =>
     match env.enum? q n with
     | some e => if 0 ≤ i ∧ i < e.members.length then return (.enum n i.toNat, h) else Op.stuck
     | none => Op.stuck
@@ -671,7 +684,7 @@ def storagePop (cfg : Config) (env : TypeEnv) (m : Machine) (er : Solm.EvaledSto
 
 /-- ABI type of a value (for `abi.encode*` without a declared target type). -/
 def abiTyOfValue (env : TypeEnv) (h : Heap) : Value → Option ABIType
-  | .literal i => (mobileType i).map fun t => .elem (.int t)
+  | .literal i _ => (mobileType i).map fun t => .elem (.int t)
   | .strLit _ => some .string
   | .memRef id =>
     match h.get? id with

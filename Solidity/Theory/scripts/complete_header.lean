@@ -116,10 +116,11 @@ macro_rules
         not_true_eq_false, Fin.toNat_eq_val, $ls,*])
 
 theorem memberCallDirect_false {recv : Expr} (h : memberCallDirect fc fr recv = false) :
-    isSuperExpr recv = false ∧ isEnvObj (headIdent recv) = false ∧ libraryRecv fc fr recv = false := by
+    isSuperExpr recv = false ∧ isEnvObj (headIdent recv) = false ∧ libraryRecv fc fr recv = false ∧
+      baseRecv fc fr recv = false := by
   unfold memberCallDirect at h
   simp only [Bool.or_eq_false_iff] at h
-  exact ⟨h.1.1, h.1.2, h.2⟩
+  exact ⟨h.1.1.1, h.1.1.2, h.1.2, h.2⟩
 
 theorem envMember_not_data {m : Machine} {obj f : Ident} {v : Value} (h : envMember m obj f = some v) :
     (obj == "msg" && f == "data") = false := by

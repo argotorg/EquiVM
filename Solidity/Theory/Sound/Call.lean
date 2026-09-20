@@ -73,6 +73,25 @@ theorem evalBuiltin_sound_step {n} (ih : SoundAt cfg o fc n) :
       · rw [IM.pure_some h]; exact .keccak (ih.expr _ _ _ _ hv) (liftOpt_ok hs)
   · -- gasleft()
     rw [IM.pure_some h]; exact .gasleft
+  · -- ecrecover(h, v, r, s)
+    rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr1, m1⟩, hvs, h⟩ <;> try dsimp only at h
+    · exact .ecrecoverArgsRevert (ih.exprs _ _ _ _ hd)
+    · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨svs, m2⟩, hsvs, h⟩ <;> try dsimp only at h
+      · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+        exact .ecrecoverAbiPanic (ih.exprs _ _ _ _ hvs) hp
+      · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨bs, hbs, h⟩ <;> try dsimp only at h
+        · exact (liftOpt_error hd).elim
+        · generalize hX : Interp.callViaEVM o m2 (EVM.address 1) 0 bs.toByteArray false (calleeGas o m2 none 0) = X at h
+          have hbridge := hX ▸ callViaEVM_sound o m2 (EVM.address 1) 0 bs.toByteArray false (calleeGas o m2 none 0)
+          obtain ⟨z, m3, out⟩ := X
+          dsimp only at h
+          cases z
+          · simp only [Bool.false_eq_true, ite_false] at h
+            rw [IM.throw_some h]
+            exact .ecrecoverFailed (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) (liftOpt_ok hbs) hbridge
+          · simp only [eq_self_iff_true, ite_true] at h
+            rw [IM.pure_some h]
+            exact .ecrecover (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) (liftOpt_ok hbs) hbridge
   · -- addmod / mulmod
     split at h
     · rename_i hf
@@ -223,7 +242,32 @@ theorem evalCall_sound_step {n} (ih : SoundAt cfg o fc n) :
               · simp at h
             · simp at h
           · simp at h
-        · exact ih.memberCall _ _ _ _ _ _ _ h
+        · split at h
+          · -- B.f(args): explicit base call
+            rename_i hbase
+            split at h
+            · rename_i b
+              have hb := hbase
+              simp only [baseRecv, Bool.and_eq_true, Bool.not_eq_true', Option.isNone_iff_eq_none] at hb
+              split at h
+              · rename_i hopts
+                have hopts' : opts = [] := List.isEmpty_iff.mp hopts
+                rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
+                · exact (liftOpt_error hd).elim
+                · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr1, m1⟩, hvs, h⟩ <;> try dsimp only at h
+                  · rw [hopts']; exact .baseArgsRevert hb.1.1.2 hb.1.1.1 hb.1.2 hb.2 (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
+                  · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨fn, hfn, h⟩ <;> try dsimp only at h
+                    · exact (liftOpt_error hd).elim
+                    · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨rets, m2⟩, hcall, h⟩ <;> try dsimp only at h
+                      · rw [hopts']
+                        exact .baseCallRevert hb.1.1.2 hb.1.1.1 hb.1.2 hb.2 (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hfn)
+                          (ih.callFn _ _ _ _ _ hd)
+                      · rw [IM.pure_some h, hopts']
+                        exact .baseCall hb.1.1.2 hb.1.1.1 hb.1.2 hb.2 (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hfn)
+                          (ih.callFn _ _ _ _ _ hcall)
+              · simp at h
+            · simp at h
+          · exact ih.memberCall _ _ _ _ _ _ _ h
   · simp at h
 
 end Solidity

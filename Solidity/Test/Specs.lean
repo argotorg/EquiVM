@@ -15,3 +15,7 @@ import Solidity.Test.Specs.AccessControl
 import Solidity.Test.Specs.Pausable
 import Solidity.Test.Specs.ERC6909
 import Solidity.Test.Specs.Factory
+import Solidity.Test.Specs.HexLit
+import Solidity.Test.Specs.TryCatch
+import Solidity.Test.Specs.BaseCall
+import Solidity.Test.Specs.Ecrecover

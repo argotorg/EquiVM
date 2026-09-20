@@ -84,6 +84,8 @@ structure FlatContract where
   vtable : List (FnKey × FnId)
   /-- `super` target for `(contract containing the call, key)`. -/
   superTable : List ((Ident × FnKey) × FnId)
+  /-- Explicit base call `B.f(…)`: the implementation `B` itself would use, for `(B, key)`. -/
+  baseTable : List ((Ident × FnKey) × FnId)
   modifiers : Array ModDef
   modVtable : List (Ident × Nat)
   modSuper : List ((Ident × Ident) × Nat)
@@ -244,6 +246,11 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
     keys.filterMap fun k =>
       (functionDefs.find? fun f => after.contains f.declaredIn && fnKeyOf f.decl == k).map fun f =>
         ((c, k), f.id)
+  let baseTable : List ((Ident × FnKey) × FnId) := lin.flatMap fun c =>
+    let from_ := lin.dropWhile (· != c)
+    keys.filterMap fun k =>
+      (functionDefs.find? fun f => from_.contains f.declaredIn && fnKeyOf f.decl == k).map fun f =>
+        ((c, k), f.id)
   -- Modifiers.
   let rawMods := hier.flatMap fun d => d.modifiers.map fun m => (d.name, m)
   let modifiers : Array ModDef := (rawMods.zipIdx.map fun ((c, m), i) => ({ id := i, declaredIn := c, decl := m } : ModDef)).toArray
@@ -303,7 +310,7 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
     vtable.any fun e => (fns[e.2]!).decl.body.isNone
   pure
     { name := target, kind := root.kind, linearization := lin, types := env,
-      stateVars := stateVars, fns := fns, vtable := vtable, superTable := superTable,
+      stateVars := stateVars, fns := fns, vtable := vtable, superTable := superTable, baseTable := baseTable,
       modifiers := modifiers, modVtable := modVtable, modSuper := modSuper,
       ctorChain := ctorChain, entries := entries, receive? := receive?, fallback? := fallback?,
       events := events, errors := errors, usingFor := usingFor, libraries := libraries,

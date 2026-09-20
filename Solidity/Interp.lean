@@ -312,6 +312,17 @@ def evalCall : Nat → Frame → Machine → Expr → List CallOpt → Args → 
             pure (retValue rets.1, fr1, rets.2)
           else failure
         | _ => failure
+      else if baseRecv fc fr recv then
+        match recv with
+        | .ident b =>
+          if opts.isEmpty then do
+            let es ← liftOpt (argExprsAny args)
+            let (vs, fr1, m1) ← evalExprs fuel fr m es
+            let fn ← liftOpt (resolveOverload fc.types m1.heap fc (baseCands fc b f) vs)
+            let rets ← callFn fuel fr1 m1 fn vs
+            pure (retValue rets.1, fr1, rets.2)
+          else failure
+        | _ => failure
       else evalMemberCall fuel fr m recv f opts args
     | _, _, _ => failure
 
@@ -358,6 +369,12 @@ def evalBuiltin : Nat → Frame → Machine → Ident → Args → EV
       pure (.fixedBytes ⟨31, by decide⟩ (ffi.KEC s).toList, fr1, m1)
     | "gasleft", .positional [] =>
       pure (.uint ⟨256, by decide⟩ (o.gasleft m.tick).toNat, fr, { m with tick := m.tick + 1 })
+    | "ecrecover", .positional [hsh, v, r, s] => do
+      let (vs, fr1, m1) ← evalExprs fuel fr m [hsh, v, r, s]
+      let (svs, m2) ← liftOp (abiArgs cfg fc.types m1 ecrecoverParamTys vs)
+      let bs ← liftOpt (ABI.encodeABIValues? ecrecoverAbiTys svs)
+      let (z, m3, out) := callViaEVM o m2 (EVM.address 1) 0 bs.toByteArray false (calleeGas o m2 none 0)
+      if z then pure (ecrecoverResult out, fr1, m3) else throw out
     | f, .positional [x, y, k] =>
       if f == "addmod" || f == "mulmod" then do
         let (vs, fr1, m1) ← evalExprs fuel fr m [x, y, k]
@@ -712,6 +729,59 @@ def execStmt : Nat → Frame → Machine → Stmt → IM ExecResult
     | .placeholder => do
       let r ← execChain fuel (popFrame fr) m fr.chain fr.body
       liftOpt (settlePlaceholder fr r)
+    | .tryCatch call ps body cs =>
+      match call with
+      | .call (.member recv f) opts args => do
+        guard' (!(memberCallDirect fc fr recv))
+        let (rv, fr1, m1) ← evalExpr fuel fr m recv
+        match rv with
+        | .contract c a =>
+          let value ← evalValueOpt fuel fr1 m1 (valueOpt opts)
+          let gasReq ← evalGasOpt fuel value.2.1 value.2.2 (gasOpt opts)
+          let (fr3, m3) := (gasReq.2.1, gasReq.2.2)
+          let es ← liftOpt (argExprsAny args)
+          let (vs, fr4, m4) ← evalExprs fuel fr3 m3 es
+          let d ← liftOpt (resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs)
+          if d.returns.isEmpty && codeSize m4.evm a = 0 then throw ByteArray.empty
+          let (sigStr, ptys, rtys) ← liftOpt (externalSig fc.types d)
+          let (svs, m5) ← liftOp (abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs)
+          let bs ← liftOpt (ABI.encodeABIValues? ptys svs)
+          let perm := m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure
+          let (z, m6, out) := callViaEVM o m5 a value.1 (selectorOf sigStr ++ bs.toByteArray) perm
+            (calleeGas o m5 gasReq.1 value.1)
+          if z then
+            match tryRets cfg fc.types m6 ps rtys out with
+            | some (rets, m7) =>
+              let (fr5, m8) ← liftOp (bindTryParams cfg fc.types fr4 m7 ps rets)
+              execBlock fuel fr5 m8 body
+            | none => throw ByteArray.empty
+          else
+            match selectCatch cfg m6 cs out with
+            | some (cc, cvs, m7) =>
+              let (fr5, m8) ← liftOp (bindTryParams cfg fc.types fr4 m7 (catchParams cc) cvs)
+              execBlock fuel fr5 m8 (catchBody cc)
+            | none => throw out
+        | _ => failure
+      | .call (.new ty) opts args =>
+        match newContract? fc ty with
+        | some (c, tys) => do
+          let value ← evalValueOpt fuel fr m (valueOpt opts)
+          let salt ← evalSaltOpt fuel value.2.1 value.2.2 (saltOpt opts)
+          let es ← liftOpt (argExprsAny args)
+          let (vs, fr3, m3) ← evalExprs fuel salt.2.1 salt.2.2 es
+          let (svs, m4) ← liftOp (abiArgs cfg fc.types m3 tys vs)
+          let (a, m5, z, out) ← liftOpt (newViaEVM cfg o m4 c value.1 svs salt.1)
+          if z then
+            let (fr4, m6) ← liftOp (bindTryParams cfg fc.types fr3 m5 ps (if ps.isEmpty then [] else [.contract c a]))
+            execBlock fuel fr4 m6 body
+          else
+            match selectCatch cfg m5 cs out with
+            | some (cc, cvs, m6) =>
+              let (fr4, m7) ← liftOp (bindTryParams cfg fc.types fr3 m6 (catchParams cc) cvs)
+              execBlock fuel fr4 m7 (catchBody cc)
+            | none => throw out
+        | none => failure
+      | _ => failure
     | _ => failure
 
 def execLoop : Nat → Frame → Machine → Option Expr → Option Expr → Stmt → IM ExecResult

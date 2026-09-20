@@ -17,8 +17,8 @@ FAM={
  'EvalMods':('evalMods_complete','evalMods','fr m mis','toRes'),
  'CallFn':('callFn_complete','callFn','fr m fn args','toFn'),
 }
-OFF2=set('memberField memberStorageLength memberStorageLengthPanic memberMemField memberMemLength memberBalance memberBytesLength memberRevert convert convertPanic convertRevert newArray newArrayRevert newContract newContractFailed newContractAbiPanic newContractArgsRevert newContractSaltRevert newContractValueRevert superCall superCallRevert superArgsRevert libraryCall libraryCallRevert libraryArgsRevert'.split())
-OFF3=set('requireTrue requireFalse requireMsg requireMsgRevert requireCustom requireCustomArgsRevert requireCustomPanic requireCondRevert assertTrue assertFalse assertRevert revertEmpty revertMsg revertMsgRevert keccak keccakRevert gasleft addmod mulmod modZero modArgsRevert abiEncode abiEncodePacked abiEncodeWithSelector abiEncodeWithSignature abiDecode abiDecodeFail abiEncodeRevert abiDecodeRevert internalCall internalCallRevert internalArgsRevert structLit structLitRevert structLitPanic convertUser usingForCall usingForArgsRevert usingForCallRevert push1 push1Revert push1Panic push0 push0Panic pop popPanic externalCall externalCallNoCode externalCallFailed externalCallDecodeFail externalValueRevert externalGasRevert externalArgsRevert externalAbiPanic lowLevelCall lowLevelValueRevert lowLevelGasRevert lowLevelDataRevert delegateCall delegateCallGasRevert delegateCallDataRevert transfer transferFailed send transferAmtRevert callRecvRevert'.split())
+OFF2=set('memberField memberStorageLength memberStorageLengthPanic memberMemField memberMemLength memberBalance memberBytesLength memberRevert convert convertPanic convertRevert newArray newArrayRevert newContract newContractFailed newContractAbiPanic newContractArgsRevert newContractSaltRevert newContractValueRevert superCall superCallRevert superArgsRevert libraryCall libraryCallRevert libraryArgsRevert baseCall baseCallRevert baseArgsRevert'.split())
+OFF3=set('requireTrue requireFalse requireMsg requireMsgRevert requireCustom requireCustomArgsRevert requireCustomPanic requireCondRevert assertTrue assertFalse assertRevert revertEmpty revertMsg revertMsgRevert keccak keccakRevert gasleft addmod mulmod modZero modArgsRevert ecrecover ecrecoverFailed ecrecoverAbiPanic ecrecoverArgsRevert abiEncode abiEncodePacked abiEncodeWithSelector abiEncodeWithSignature abiDecode abiDecodeFail abiEncodeRevert abiDecodeRevert internalCall internalCallRevert internalArgsRevert structLit structLitRevert structLitPanic convertUser usingForCall usingForArgsRevert usingForCallRevert push1 push1Revert push1Panic push0 push0Panic pop popPanic externalCall externalCallNoCode externalCallFailed externalCallDecodeFail externalValueRevert externalGasRevert externalArgsRevert externalAbiPanic lowLevelCall lowLevelValueRevert lowLevelGasRevert lowLevelDataRevert delegateCall delegateCallGasRevert delegateCallDataRevert transfer transferFailed send transferAmtRevert callRecvRevert'.split())
 EXTRA={
  'msgData':['directMember','isEnvObj'], 'indexMemRaw':['isRaw'], 'indexMemRawRevert':['isRaw'], 'envMember':['directMember'], 'enumMember':['directMember'], 'typeMember':['directMember'],
  'assignTuple':['isTupleExpr'], 'assignTupleRevert':['isTupleExpr'],
@@ -26,12 +26,13 @@ EXTRA={
  'requireCustom':['isCustomError'], 'requireCustomArgsRevert':['isCustomError'], 'requireCustomPanic':['isCustomError'],
  'superCall':['isSuperExpr'], 'superCallRevert':['isSuperExpr'], 'superArgsRevert':['isSuperExpr'],
  'libraryCall':['isSuperExpr','headIdent','libraryRecv'], 'libraryCallRevert':['isSuperExpr','headIdent','libraryRecv'], 'libraryArgsRevert':['isSuperExpr','headIdent','libraryRecv'],
+ 'baseCall':['isSuperExpr','headIdent','libraryRecv','baseRecv'], 'baseCallRevert':['isSuperExpr','headIdent','libraryRecv','baseRecv'], 'baseArgsRevert':['isSuperExpr','headIdent','libraryRecv','baseRecv'],
 }
 for a in 'push1 push1Revert push1Panic push0 push0Panic pop popPanic externalCall externalCallNoCode externalCallFailed externalCallDecodeFail externalValueRevert externalGasRevert externalArgsRevert externalAbiPanic'.split():
     EXTRA[a]=['specialMemberCall']
 for a in 'abiEncode abiEncodePacked abiEncodeWithSelector abiEncodeWithSignature abiDecode abiDecodeFail abiEncodeRevert abiDecodeRevert'.split():
     EXTRA[a]=['isSuperExpr','headIdent','isEnvObj','isAbiFn']
-for b in 'requireTrue requireFalse requireMsg requireMsgRevert requireCustom requireCustomArgsRevert requireCustomPanic requireCondRevert assertTrue assertFalse assertRevert revertEmpty revertMsg revertMsgRevert keccak keccakRevert gasleft addmod mulmod modZero modArgsRevert'.split():
+for b in 'requireTrue requireFalse requireMsg requireMsgRevert requireCustom requireCustomArgsRevert requireCustomPanic requireCondRevert assertTrue assertFalse assertRevert revertEmpty revertMsg revertMsgRevert keccak keccakRevert gasleft addmod mulmod modZero modArgsRevert ecrecover ecrecoverFailed ecrecoverAbiPanic ecrecoverArgsRevert'.split():
     EXTRA[b]=EXTRA.get(b,[])+['isBuiltinFn']
 KW={'local','while','break','continue','return','for','if','then','else','do','match','fun','let','have','show','from','at','by','in','with','end','open','import','where','instance','structure','class','def','theorem','private','section','namespace','variable','unsafe','partial','try','catch','finally','throw','unless','calc','some','none','skip'}
 MANUAL=json.load(open(SP+'manual.json'))
@@ -101,8 +102,8 @@ for fam,rules in R.items():
         lines=[]; ns=[]; facts=list(EXTRA.get(name,[]))
         for i,pt in enumerate(rule['prem']):
             if pt.startswith('memberCallDirect fc fr recv = false'):
-                lines.append(f'    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p{i+1}')
-                facts += ['hmd1','hmd2','hmd3']
+                lines.append(f'    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p{i+1}')
+                facts += ['hmd1','hmd2','hmd3','hmd4']
             if pt.startswith('envMember m obj f = some'):
                 lines.append(f'    have hnd := envMember_not_data p{i+1}')
                 facts.append('hnd')

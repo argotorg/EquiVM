@@ -70,7 +70,7 @@ syntax:max solidityEsc : solidityExpr
 -- Expressions: postfix
 syntax:max solidityExpr:max "(" solidityExpr,* ")" : solidityExpr                -- call
 syntax:max solidityExpr:max "(" "{" sepBy(ident ": " solidityExpr, ",") "}" ")" : solidityExpr  -- named args
-syntax:max solidityExpr:max "{" sepBy(ident ": " solidityExpr, ",") "}" "(" solidityExpr,* ")" : solidityExpr  -- call options
+syntax:max solidityExpr:max atomic("{" sepBy(ident ": " solidityExpr, ",") "}") "(" solidityExpr,* ")" : solidityExpr  -- call options (atomic: a `try` body may follow the call)
 syntax:max solidityExpr:max "[" solidityExpr "]" : solidityExpr
 syntax:max solidityExpr:max "[" (solidityExpr)? ":" (solidityExpr)? "]" : solidityExpr
 syntax:max solidityExpr:max "." ident : solidityExpr
@@ -268,6 +268,14 @@ private def denomTerm (u : Option (TSyntax `ident)) : MacroM Term :=
     | some n => `(some $(mkIdent n))
     | none => Macro.throwError s!"unknown unit `{identStr u}`"
 
+/-- Digit count of a `0x…` literal token (the `bytesN` conversion rule); `none` for decimal. -/
+private def hexDigitsTerm (n : TSyntax `num) : MacroM Term :=
+  match n.raw.isLit? numLitKind with
+  | some s =>
+    if s.startsWith "0x" || s.startsWith "0X" then `(some $(Syntax.mkNumLit (toString (s.length - 2))))
+    else `(none)
+  | none => `(none)
+
 private def hexNibble? (c : Char) : Option Nat :=
   if c.isDigit then some (c.toNat - '0'.toNat)
   else if 'a' ≤ c && c ≤ 'f' then some (c.toNat - 'a'.toNat + 10)
@@ -353,9 +361,9 @@ partial def elabArgs (f : TSyntax `solidityExpr) (args : Array (TSyntax `solidit
 
 partial def elabExpr (stx : TSyntax `solidityExpr) : MacroM Term := do
   match stx with
-  | `(solidityExpr| $n:num) => `(Solidity.Expr.lit (Solidity.Literal.number $n none))
+  | `(solidityExpr| $n:num) => `(Solidity.Expr.lit (Solidity.Literal.number $n none $(← hexDigitsTerm n)))
   | `(solidityExpr| $n:num $u:ident) =>
-    `(Solidity.Expr.lit (Solidity.Literal.number $n $(← denomTerm (some u))))
+    `(Solidity.Expr.lit (Solidity.Literal.number $n $(← denomTerm (some u)) $(← hexDigitsTerm n)))
   | `(solidityExpr| $s:scientific) => elabScientific s none
   | `(solidityExpr| $s:scientific $u:ident) => elabScientific s (some u)
   | `(solidityExpr| $s:str) => `(Solidity.Expr.lit (Solidity.Literal.str $s))

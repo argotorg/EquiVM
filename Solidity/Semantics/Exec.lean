@@ -28,7 +28,7 @@ def unitMul : Option SubDenom → Nat
   | some .weeks => 604800
 
 def literalValue : Literal → Option Value
-  | .number n u => some (.literal (n * unitMul u))
+  | .number n u hd => some (.literal (n * unitMul u) (if u.isSome then none else hd))
   | .decimal m e u =>
     if e ≥ 0 then some (.literal (m * 10 ^ e.toNat * unitMul u))
     else
@@ -71,7 +71,7 @@ def isEnvObj (s : Ident) : Bool := s == "msg" || s == "block" || s == "tx" || s 
 /-- Builtin functions, dispatched before user functions of the same name. -/
 def isBuiltinFn (f : Ident) : Bool :=
   f == "require" || f == "assert" || f == "revert" || f == "keccak256" || f == "gasleft" ||
-    f == "addmod" || f == "mulmod" || f == "type"
+    f == "addmod" || f == "mulmod" || f == "type" || f == "ecrecover"
 
 /-- `require(c, E(args))` with a declared custom error `E`. -/
 def isCustomError (fc : FlatContract) : Expr → Bool
@@ -228,7 +228,7 @@ def newContract? (fc : FlatContract) : Ty → Option (Ident × List Ty)
 
 def natValue : Value → Option Nat
   | .uint _ n => some n
-  | .literal i => if i ≥ 0 then some i.toNat else none
+  | .literal i _ => if i ≥ 0 then some i.toNat else none
   | _ => none
 
 /-- Signature string and ABI types of an external function. -/
@@ -276,9 +276,14 @@ def libraryRecv (fc : FlatContract) (fr : Frame) : Expr → Bool
   | .ident l => (fr.get? l).isNone && !(isEnvObj l) && (fc.library? l).isSome
   | _ => false
 
-/-- Member calls resolved without evaluating the receiver: `super.f`, `abi.f`/`msg.f`/..., `L.f`. -/
+/-- A base contract name in receiver position (`B.f(...)`, an explicit base call). -/
+def baseRecv (fc : FlatContract) (fr : Frame) : Expr → Bool
+  | .ident b => (fr.get? b).isNone && !(isEnvObj b) && (fc.library? b).isNone && fc.linearization.contains b
+  | _ => false
+
+/-- Member calls resolved without evaluating the receiver: `super.f`, `abi.f`/`msg.f`/..., `L.f`, `B.f`. -/
 def memberCallDirect (fc : FlatContract) (fr : Frame) (recv : Expr) : Bool :=
-  isSuperExpr recv || isEnvObj (headIdent recv) || libraryRecv fc fr recv
+  isSuperExpr recv || isEnvObj (headIdent recv) || libraryRecv fc fr recv || baseRecv fc fr recv
 
 def isRaw : Value → Bool
   | .raw .. => true
@@ -294,6 +299,10 @@ def argExprsAny : Args → Option (List Expr)
 /-- `super.f` candidates from the contract containing the call. -/
 def superCands (fc : FlatContract) (here f : Ident) : List (FnKey × FnId) :=
   fc.superTable.filterMap fun ((c, k), id) => if c == here && k.name == f then some (k, id) else none
+
+/-- Candidates of an explicit base call `b.f(…)`: the implementations `b` itself would use. -/
+def baseCands (fc : FlatContract) (b f : Ident) : List (FnKey × FnId) :=
+  fc.baseTable.filterMap fun ((c, k), id) => if c == b && k.name == f then some (k, id) else none
 
 /-- Allocate a struct literal (values in field order, converted to the field types). -/
 def structObj (cfg : Config) (env : TypeEnv) (m : Machine) (sd : StructInfo) (vs : List Value) :
@@ -344,7 +353,7 @@ def assignOp : AssignOp → BinOp
 def arrayLitObj (env : TypeEnv) (m : Machine) (vs : List Value) : Op (Value × Machine) := do
   let some v0 := vs.head? | Op.stuck
   let ety ← match v0 with
-    | .literal i => Op.ofOpt ((mobileType i).map IntTy.toTy)
+    | .literal i _ => Op.ofOpt ((mobileType i).map IntTy.toTy)
     | v => Op.ofOpt (receiverTy m.heap v)
   let (elems, h') ← Op.ofOpt (vs.foldlM (fun (acc, h) v =>
     (implicitConv env h v ety).map fun (v', h') => (acc ++ [v'], h')) (([] : List Value), m.heap))
@@ -363,6 +372,82 @@ def finished : ExecResult → Option (Frame × Machine)
   | .normal fr m => some (fr, m)
   | .returned fr m => some (fr, m)
   | _ => none
+
+/-! ## `ecrecover` -/
+
+/-- Parameter types of `ecrecover(bytes32, uint8, bytes32, bytes32)`. -/
+def ecrecoverParamTys : List Ty :=
+  [.fixedBytes ⟨31, by decide⟩, .uint ⟨8, by decide⟩, .fixedBytes ⟨31, by decide⟩, .fixedBytes ⟨31, by decide⟩]
+
+def ecrecoverAbiTys : List ABIType :=
+  [.elem (.bytes ⟨31, by decide⟩), .elem (.int (.uint ⟨8, by decide⟩)), .elem (.bytes ⟨31, by decide⟩),
+    .elem (.bytes ⟨31, by decide⟩)]
+
+/-- The address in the output of precompile 1; an empty output (invalid signature) is `address(0)`. -/
+def ecrecoverResult (out : ByteArray) : Value :=
+  .address (EVM.address (Ethereum.fromByteArrayBigEndian (out.readWithPadding 0 32)))
+
+/-! ## `try` / `catch` -/
+
+/-- Bind the `returns (…)` / `catch (…)` parameters of a `try` statement in the current frame. -/
+def bindTryParams (cfg : Config) (env : TypeEnv) (fr : Frame) (m : Machine) (ps : List Param) (vs : List Value) :
+    Op (Frame × Machine) := do
+  if ps.length ≠ vs.length then Op.stuck
+  (ps.zip vs).foldlM (fun (fr, m) (p, v) => do
+      let some name := p.name | Op.stuck
+      declare cfg env fr m p.ty (p.loc <|> some .memory) name (some v)) (fr, m)
+
+/-- Return values of the tried call.  The data is validated against the callee's return types even
+    without a `returns` clause (solc checks the return data size); values are bound only to the
+    declared parameters. -/
+def tryRets (cfg : Config) (env : TypeEnv) (m : Machine) (ps : List Param) (retTys : List ABIType)
+    (out : ByteArray) : Option (List Value × Machine) :=
+  if ps.isEmpty then (ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode retTys out).map fun _ => ([], m)
+  else decodeRets cfg env m ps retTys out
+
+/-- The message of `Error(string)` revert data. -/
+def errorStringArg? (cfg : Config) (d : ByteArray) : Option ByteArray :=
+  if 4 ≤ d.size ∧ d.extract 0 4 = errorStringSelector then
+    match ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode [.string] (d.extract 4 d.size) with
+    | some [.bytes s] => some s
+    | _ => none
+  else none
+
+/-- The code of `Panic(uint256)` revert data. -/
+def panicArg? (cfg : Config) (d : ByteArray) : Option Nat :=
+  if 4 ≤ d.size ∧ d.extract 0 4 = panicSelector then
+    match ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode [.elem (.int (.uint ⟨256, by decide⟩))]
+        (d.extract 4 d.size) with
+    | some [.int i] => if 0 ≤ i then some i.toNat else none
+    | _ => none
+  else none
+
+def catchKind : CatchClause → Option Ident
+  | .mk k _ _ => k
+
+def catchParams : CatchClause → List Param
+  | .mk _ ps _ => ps
+
+def catchBody : CatchClause → List Stmt
+  | .mk _ _ b => b
+
+/-- The clause handling revert data `d`, with the values bound to its parameters (solc 0.8):
+    `Error(string)` data to `catch Error`, `Panic(uint256)` data to `catch Panic`, anything else, or
+    data without its specific clause, to the generic `catch (bytes memory)` / `catch { }`; `none`
+    bubbles the revert. -/
+def selectCatch (cfg : Config) (m : Machine) (cs : List CatchClause) (d : ByteArray) :
+    Option (CatchClause × List Value × Machine) :=
+  match errorStringArg? cfg d, cs.find? (catchKind · == some "Error") with
+  | some s, some c => let (v, m') := allocBytes m true s; some (c, [v], m')
+  | _, _ =>
+    match panicArg? cfg d, cs.find? (catchKind · == some "Panic") with
+    | some code, some c => some (c, [mkInt uint256Ty code], m)
+    | _, _ =>
+      match cs.find? (catchKind · == none) with
+      | some c =>
+        if (catchParams c).isEmpty then some (c, [], m)
+        else let (v, m') := allocBytes m false d; some (c, [v], m')
+      | none => none
 
 /-! ## The rules -/
 
@@ -485,6 +570,20 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.call (.ident "keccak256") [] (.positional [b])) (.ok (.fixedBytes ⟨31, by decide⟩ (ffi.KEC s).toList) fr1 m1)
   | keccakRevert : EvalExpr fr m b (.reverted d) →
       EvalExpr fr m (.call (.ident "keccak256") [] (.positional [b])) (.reverted d)
+  -- `ecrecover(hash, v, r, s)`: STATICCALL of precompile 1 with all gas; an empty output is `address(0)`
+  | ecrecover : EvalExprs fr m [hsh, v, r, s] (.ok vs fr1 m1) →
+      abiArgs cfg fc.types m1 ecrecoverParamTys vs = some (.ok (svs, m2)) → encodeABIValues? ecrecoverAbiTys svs = some bs →
+      callViaEVM o m2 (EVM.address 1) 0 bs.toByteArray false (calleeGas o m2 none 0) (true, m3, out) →
+      EvalExpr fr m (.call (.ident "ecrecover") [] (.positional [hsh, v, r, s])) (.ok (ecrecoverResult out) fr1 m3)
+  | ecrecoverFailed : EvalExprs fr m [hsh, v, r, s] (.ok vs fr1 m1) →
+      abiArgs cfg fc.types m1 ecrecoverParamTys vs = some (.ok (svs, m2)) → encodeABIValues? ecrecoverAbiTys svs = some bs →
+      callViaEVM o m2 (EVM.address 1) 0 bs.toByteArray false (calleeGas o m2 none 0) (false, m3, out) →
+      EvalExpr fr m (.call (.ident "ecrecover") [] (.positional [hsh, v, r, s])) (.reverted out)
+  | ecrecoverAbiPanic : EvalExprs fr m [hsh, v, r, s] (.ok vs fr1 m1) →
+      abiArgs cfg fc.types m1 ecrecoverParamTys vs = some (.error p) →
+      EvalExpr fr m (.call (.ident "ecrecover") [] (.positional [hsh, v, r, s])) (.reverted p.data)
+  | ecrecoverArgsRevert : EvalExprs fr m [hsh, v, r, s] (.reverted d) →
+      EvalExpr fr m (.call (.ident "ecrecover") [] (.positional [hsh, v, r, s])) (.reverted d)
   | gasleft : EvalExpr fr m (.call (.ident "gasleft") [] (.positional []))
       (.ok (.uint ⟨256, by decide⟩ (o.gasleft m.tick).toNat) fr { m with tick := m.tick + 1 })
   | addmod : EvalExprs fr m [x, y, k] (.ok [xv, yv, kv] fr1 m1) → natValue xv = some a → natValue yv = some b →
@@ -585,6 +684,18 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.call (.member (.ident l) f) [] args) (.reverted dd)
   | libraryArgsRevert : isEnvObj l = false → fr.get? l = none → fc.library? l = some lib → argExprsAny args = some es →
       EvalExprs fr m es (.reverted d) → EvalExpr fr m (.call (.member (.ident l) f) [] args) (.reverted d)
+  -- explicit base calls `B.f(args)`: the implementation `B` would use (internal call)
+  | baseCall : isEnvObj b = false → fr.get? b = none → fc.library? b = none → fc.linearization.contains b = true →
+      argExprsAny args = some es → EvalExprs fr m es (.ok vs fr1 m1) →
+      resolveOverload fc.types m1.heap fc (baseCands fc b f) vs = some fn → CallFn fr1 m1 fn vs (.ok rets m2) →
+      EvalExpr fr m (.call (.member (.ident b) f) [] args) (.ok (retValue rets) fr1 m2)
+  | baseCallRevert : isEnvObj b = false → fr.get? b = none → fc.library? b = none → fc.linearization.contains b = true →
+      argExprsAny args = some es → EvalExprs fr m es (.ok vs fr1 m1) →
+      resolveOverload fc.types m1.heap fc (baseCands fc b f) vs = some fn → CallFn fr1 m1 fn vs (.reverted d) →
+      EvalExpr fr m (.call (.member (.ident b) f) [] args) (.reverted d)
+  | baseArgsRevert : isEnvObj b = false → fr.get? b = none → fc.library? b = none → fc.linearization.contains b = true →
+      argExprsAny args = some es → EvalExprs fr m es (.reverted d) →
+      EvalExpr fr m (.call (.member (.ident b) f) [] args) (.reverted d)
   | usingForCall : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok rv fr1 m1) → specialMemberCall rv f = false →
       usingLibrary fc fr.here (receiverTy m1.heap rv) = [lib] → argExprsAny args = some es →
       EvalExprs fr1 m1 es (.ok vs fr2 m2) →
@@ -924,6 +1035,144 @@ inductive ExecStmt : Frame → Machine → Stmt → ExecResult → Prop where
       ExecStmt fr m (.unchecked ss) (restoreUnchecked fr.unchecked r)
   | placeholder : ExecChain (popFrame fr) m fr.chain fr.body r → settlePlaceholder fr r = some r' →
       ExecStmt fr m .placeholder r'
+  -- `try recv.f{opts}(args) returns (ps) { body } catch …`: only the call itself is caught; the
+  -- receiver, options, arguments, encoding, the code-size check and return decoding revert uncaught
+  | tryCallOk : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.ok gasReq fr3 m3) →
+      argExprsAny args = some es → EvalExprs fr3 m3 es (.ok vs fr4 m4) →
+      resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d →
+      externalSig fc.types d = some (sigStr, ptys, rtys) → abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.ok (svs, m5)) →
+      encodeABIValues? ptys svs = some bs →
+      (d.returns = [] → codeSize m4.evm a ≠ 0) →
+      callViaEVM o m5 a value (selectorOf sigStr ++ bs.toByteArray) (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 gasReq value) (true, m6, out) →
+      tryRets cfg fc.types m6 ps rtys out = some (rets, m7) →
+      bindTryParams cfg fc.types fr4 m7 ps rets = some (.ok (fr5, m8)) → ExecBlock fr5 m8 body r →
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) r
+  | tryCallBindPanic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.ok gasReq fr3 m3) →
+      argExprsAny args = some es → EvalExprs fr3 m3 es (.ok vs fr4 m4) →
+      resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d →
+      externalSig fc.types d = some (sigStr, ptys, rtys) → abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.ok (svs, m5)) →
+      encodeABIValues? ptys svs = some bs →
+      (d.returns = [] → codeSize m4.evm a ≠ 0) →
+      callViaEVM o m5 a value (selectorOf sigStr ++ bs.toByteArray) (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 gasReq value) (true, m6, out) →
+      tryRets cfg fc.types m6 ps rtys out = some (rets, m7) →
+      bindTryParams cfg fc.types fr4 m7 ps rets = some (.error p) →
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted p.data)
+  | tryCallDecodeFail : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.ok gasReq fr3 m3) →
+      argExprsAny args = some es → EvalExprs fr3 m3 es (.ok vs fr4 m4) →
+      resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d →
+      externalSig fc.types d = some (sigStr, ptys, rtys) → abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.ok (svs, m5)) →
+      encodeABIValues? ptys svs = some bs →
+      (d.returns = [] → codeSize m4.evm a ≠ 0) →
+      callViaEVM o m5 a value (selectorOf sigStr ++ bs.toByteArray) (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 gasReq value) (true, m6, out) →
+      tryRets cfg fc.types m6 ps rtys out = none →
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted ByteArray.empty)
+  | tryCallCaught : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.ok gasReq fr3 m3) →
+      argExprsAny args = some es → EvalExprs fr3 m3 es (.ok vs fr4 m4) →
+      resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d →
+      externalSig fc.types d = some (sigStr, ptys, rtys) → abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.ok (svs, m5)) →
+      encodeABIValues? ptys svs = some bs →
+      (d.returns = [] → codeSize m4.evm a ≠ 0) →
+      callViaEVM o m5 a value (selectorOf sigStr ++ bs.toByteArray) (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 gasReq value) (false, m6, out) →
+      selectCatch cfg m6 cs out = some (cc, cvs, m7) →
+      bindTryParams cfg fc.types fr4 m7 (catchParams cc) cvs = some (.ok (fr5, m8)) → ExecBlock fr5 m8 (catchBody cc) r →
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) r
+  | tryCallCaughtBindPanic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.ok gasReq fr3 m3) →
+      argExprsAny args = some es → EvalExprs fr3 m3 es (.ok vs fr4 m4) →
+      resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d →
+      externalSig fc.types d = some (sigStr, ptys, rtys) → abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.ok (svs, m5)) →
+      encodeABIValues? ptys svs = some bs →
+      (d.returns = [] → codeSize m4.evm a ≠ 0) →
+      callViaEVM o m5 a value (selectorOf sigStr ++ bs.toByteArray) (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 gasReq value) (false, m6, out) →
+      selectCatch cfg m6 cs out = some (cc, cvs, m7) →
+      bindTryParams cfg fc.types fr4 m7 (catchParams cc) cvs = some (.error p) →
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted p.data)
+  | tryCallUncaught : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.ok gasReq fr3 m3) →
+      argExprsAny args = some es → EvalExprs fr3 m3 es (.ok vs fr4 m4) →
+      resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d →
+      externalSig fc.types d = some (sigStr, ptys, rtys) → abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.ok (svs, m5)) →
+      encodeABIValues? ptys svs = some bs →
+      (d.returns = [] → codeSize m4.evm a ≠ 0) →
+      callViaEVM o m5 a value (selectorOf sigStr ++ bs.toByteArray) (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 gasReq value) (false, m6, out) →
+      selectCatch cfg m6 cs out = none →
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted out)
+  | tryCallNoCode : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.ok gasReq fr3 m3) →
+      argExprsAny args = some es → EvalExprs fr3 m3 es (.ok vs fr4 m4) →
+      resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d →
+      d.returns = [] → codeSize m4.evm a = 0 →
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted ByteArray.empty)
+  | tryCallAbiPanic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.ok gasReq fr3 m3) →
+      argExprsAny args = some es → EvalExprs fr3 m3 es (.ok vs fr4 m4) →
+      resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d →
+      externalSig fc.types d = some (sigStr, ptys, rtys) → abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.error p) →
+      (d.returns = [] → codeSize m4.evm a ≠ 0) →
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted p.data)
+  | tryCallArgsRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.ok gasReq fr3 m3) →
+      argExprsAny args = some es → EvalExprs fr3 m3 es (.reverted d) →
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted d)
+  | tryCallGasRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.reverted d) →
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted d)
+  | tryCallValueRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      EvalValueOpt fr1 m1 (valueOpt opts) (.reverted d) →
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted d)
+  | tryCallRecvRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.reverted d) →
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted d)
+  -- `try new C{opts}(args) returns (C c) { body } catch …`
+  | tryNewOk : newContract? fc ty = some (c, tys) → EvalValueOpt fr m (valueOpt opts) (.ok value fr1 m1) →
+      EvalSaltOpt fr1 m1 (saltOpt opts) (.ok salt fr2 m2) → argExprsAny args = some es →
+      EvalExprs fr2 m2 es (.ok vs fr3 m3) → abiArgs cfg fc.types m3 tys vs = some (.ok (svs, m4)) →
+      newViaEVM cfg o m4 c value svs salt (a, m5, true, out) →
+      bindTryParams cfg fc.types fr3 m5 ps (if ps.isEmpty then [] else [.contract c a]) = some (.ok (fr4, m6)) →
+      ExecBlock fr4 m6 body r →
+      ExecStmt fr m (.tryCatch (.call (.new ty) opts args) ps body cs) r
+  | tryNewBindPanic : newContract? fc ty = some (c, tys) → EvalValueOpt fr m (valueOpt opts) (.ok value fr1 m1) →
+      EvalSaltOpt fr1 m1 (saltOpt opts) (.ok salt fr2 m2) → argExprsAny args = some es →
+      EvalExprs fr2 m2 es (.ok vs fr3 m3) → abiArgs cfg fc.types m3 tys vs = some (.ok (svs, m4)) →
+      newViaEVM cfg o m4 c value svs salt (a, m5, true, out) →
+      bindTryParams cfg fc.types fr3 m5 ps (if ps.isEmpty then [] else [.contract c a]) = some (.error p) →
+      ExecStmt fr m (.tryCatch (.call (.new ty) opts args) ps body cs) (.reverted p.data)
+  | tryNewCaught : newContract? fc ty = some (c, tys) → EvalValueOpt fr m (valueOpt opts) (.ok value fr1 m1) →
+      EvalSaltOpt fr1 m1 (saltOpt opts) (.ok salt fr2 m2) → argExprsAny args = some es →
+      EvalExprs fr2 m2 es (.ok vs fr3 m3) → abiArgs cfg fc.types m3 tys vs = some (.ok (svs, m4)) →
+      newViaEVM cfg o m4 c value svs salt (a, m5, false, out) →
+      selectCatch cfg m5 cs out = some (cc, cvs, m6) →
+      bindTryParams cfg fc.types fr3 m6 (catchParams cc) cvs = some (.ok (fr4, m7)) → ExecBlock fr4 m7 (catchBody cc) r →
+      ExecStmt fr m (.tryCatch (.call (.new ty) opts args) ps body cs) r
+  | tryNewCaughtBindPanic : newContract? fc ty = some (c, tys) → EvalValueOpt fr m (valueOpt opts) (.ok value fr1 m1) →
+      EvalSaltOpt fr1 m1 (saltOpt opts) (.ok salt fr2 m2) → argExprsAny args = some es →
+      EvalExprs fr2 m2 es (.ok vs fr3 m3) → abiArgs cfg fc.types m3 tys vs = some (.ok (svs, m4)) →
+      newViaEVM cfg o m4 c value svs salt (a, m5, false, out) →
+      selectCatch cfg m5 cs out = some (cc, cvs, m6) →
+      bindTryParams cfg fc.types fr3 m6 (catchParams cc) cvs = some (.error p) →
+      ExecStmt fr m (.tryCatch (.call (.new ty) opts args) ps body cs) (.reverted p.data)
+  | tryNewUncaught : newContract? fc ty = some (c, tys) → EvalValueOpt fr m (valueOpt opts) (.ok value fr1 m1) →
+      EvalSaltOpt fr1 m1 (saltOpt opts) (.ok salt fr2 m2) → argExprsAny args = some es →
+      EvalExprs fr2 m2 es (.ok vs fr3 m3) → abiArgs cfg fc.types m3 tys vs = some (.ok (svs, m4)) →
+      newViaEVM cfg o m4 c value svs salt (a, m5, false, out) →
+      selectCatch cfg m5 cs out = none →
+      ExecStmt fr m (.tryCatch (.call (.new ty) opts args) ps body cs) (.reverted out)
+  | tryNewAbiPanic : newContract? fc ty = some (c, tys) → EvalValueOpt fr m (valueOpt opts) (.ok value fr1 m1) →
+      EvalSaltOpt fr1 m1 (saltOpt opts) (.ok salt fr2 m2) → argExprsAny args = some es →
+      EvalExprs fr2 m2 es (.ok vs fr3 m3) → abiArgs cfg fc.types m3 tys vs = some (.error p) →
+      ExecStmt fr m (.tryCatch (.call (.new ty) opts args) ps body cs) (.reverted p.data)
+  | tryNewArgsRevert : newContract? fc ty = some (c, tys) → EvalValueOpt fr m (valueOpt opts) (.ok value fr1 m1) →
+      EvalSaltOpt fr1 m1 (saltOpt opts) (.ok salt fr2 m2) → argExprsAny args = some es →
+      EvalExprs fr2 m2 es (.reverted d) →
+      ExecStmt fr m (.tryCatch (.call (.new ty) opts args) ps body cs) (.reverted d)
+  | tryNewSaltRevert : newContract? fc ty = some (c, tys) → EvalValueOpt fr m (valueOpt opts) (.ok value fr1 m1) →
+      EvalSaltOpt fr1 m1 (saltOpt opts) (.reverted d) →
+      ExecStmt fr m (.tryCatch (.call (.new ty) opts args) ps body cs) (.reverted d)
+  | tryNewValueRevert : newContract? fc ty = some (c, tys) → EvalValueOpt fr m (valueOpt opts) (.reverted d) →
+      ExecStmt fr m (.tryCatch (.call (.new ty) opts args) ps body cs) (.reverted d)
 
 /-- Bind tuple-destructuring binders (`none` skips a component). -/
 inductive DeclareTuple : Frame → Machine → List (Option Param) → List Value → Res Unit → Prop where

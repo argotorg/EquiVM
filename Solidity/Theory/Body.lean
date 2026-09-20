@@ -195,19 +195,19 @@ theorem assign_storage_u256 {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Mac
 
 theorem binop_ge_u256 (c : Bool) (a b : Nat) :
     binop c .ge (u256Val a) (u256Val b) = some (.ok (.bool (decide (b ≤ a)))) := by
-  simp [binop, toBool, addrNat, unifyInts, Value.int?, commonIntType, implicitIntConv, isCmp, cmpInt]
+  simp [binop, adoptBytes, toBool, addrNat, unifyInts, Value.int?, commonIntType, implicitIntConv, isCmp, cmpInt]
 
 theorem binop_sub_u256_ok (a b : Nat) (ha : a < 2 ^ 256) (h : b ≤ a) :
     binop true .sub (u256Val a) (u256Val b) = some (.ok (u256Val (a - b))) := by
   have ht : ((a : Int) - b).toNat = a - b := by omega
-  simp [binop, toBool, addrNat, unifyInts, Value.int?, commonIntType, implicitIntConv, isCmp, sub, settle,
+  simp [binop, adoptBytes, toBool, addrNat, unifyInts, Value.int?, commonIntType, implicitIntConv, isCmp, sub, settle,
     IntTy.inRange, IntTy.min, IntTy.max, mkInt]
   rw [if_pos (by omega)]
   simp [ht]
 
 theorem binop_sub_u256_underflow (a b : Nat) (h : a < b) :
     binop true .sub (u256Val a) (u256Val b) = some (.error .overflow) := by
-  simp [binop, toBool, addrNat, unifyInts, Value.int?, commonIntType, implicitIntConv, isCmp, sub, settle,
+  simp [binop, adoptBytes, toBool, addrNat, unifyInts, Value.int?, commonIntType, implicitIntConv, isCmp, sub, settle,
     IntTy.inRange, IntTy.min, IntTy.max]
   rw [if_neg (by omega)]
   rfl
@@ -215,14 +215,14 @@ theorem binop_sub_u256_underflow (a b : Nat) (h : a < b) :
 theorem binop_add_u256_ok (a b : Nat) (h : a + b < 2 ^ 256) :
     binop true .add (u256Val a) (u256Val b) = some (.ok (u256Val (a + b))) := by
   have ht : ((a : Int) + b).toNat = a + b := by omega
-  simp [binop, toBool, addrNat, unifyInts, Value.int?, commonIntType, implicitIntConv, isCmp, add, settle,
+  simp [binop, adoptBytes, toBool, addrNat, unifyInts, Value.int?, commonIntType, implicitIntConv, isCmp, add, settle,
     IntTy.inRange, IntTy.min, IntTy.max, mkInt]
   rw [if_pos (by omega)]
   simp [ht]
 
 theorem binop_add_u256_overflow (a b : Nat) (h : 2 ^ 256 ≤ a + b) :
     binop true .add (u256Val a) (u256Val b) = some (.error .overflow) := by
-  simp [binop, toBool, addrNat, unifyInts, Value.int?, commonIntType, implicitIntConv, isCmp, add, settle,
+  simp [binop, adoptBytes, toBool, addrNat, unifyInts, Value.int?, commonIntType, implicitIntConv, isCmp, add, settle,
     IntTy.inRange, IntTy.min, IntTy.max]
   rw [if_neg (by omega)]
   rfl

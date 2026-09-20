@@ -72,8 +72,10 @@ def bytes32 : Ty := .fixedBytes ⟨31, by decide⟩
 end Ty
 
 inductive Literal where
-  /-- Integer literal (non-negative; `-1` is unary minus on `1`), with an optional unit suffix. -/
-  | number (n : Nat) (unit : Option SubDenom)
+  /-- Integer literal (non-negative; `-1` is unary minus on `1`), with an optional unit suffix.
+      `hexDigits` is the digit count of a `0x…` literal: only such literals (with exactly `2N`
+      digits) and zero convert to `bytesN`. -/
+  | number (n : Nat) (unit : Option SubDenom) (hexDigits : Option Nat := none)
   /-- Decimal / scientific literal `mantissa * 10^exp10` (e.g. `2.5` = `25e-1`, `1e18`). -/
   | decimal (mantissa : Nat) (exp10 : Int) (unit : Option SubDenom)
   | bool (b : Bool)

@@ -234,6 +234,127 @@ theorem execStmt_sound_step {n} (ih : SoundAt cfg o fc n) :
     · exact .placeholder (ih.chain _ _ _ _ _ hd) rfl
     · obtain ⟨a, ha, rfl⟩ := liftOpt_some h
       exact .placeholder (ih.chain _ _ _ _ _ hr) ha
-  | tryCatch _ _ _ _ => simp [execStmt] at h
+  | tryCatch call ps body cs =>
+    cases call
+    case call callee opts args =>
+      cases callee
+      case member recv f =>
+        simp only [execStmt] at h
+        rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨u, hu, h⟩ <;> try dsimp only at h
+        · exact (guard'_error hd).elim
+        · have hmd : memberCallDirect fc fr recv = false := by simpa using guard'_ok hu
+          rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨rv, fr1, m1⟩, hrv, h⟩ <;> try dsimp only at h
+          · exact .tryCallRecvRevert hmd (ih.expr _ _ _ _ hd)
+          · have he := ih.expr _ _ _ _ hrv
+            split at h
+            · rename_i c a
+              rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨value, fr2, m2⟩, hval, h⟩ <;> try dsimp only at h
+              · exact .tryCallValueRevert hmd he (ih.valueOpt _ _ _ _ hd)
+              · have hv := ih.valueOpt _ _ _ _ hval
+                rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨gasReq, fr3, m3⟩, hgas, h⟩ <;> try dsimp only at h
+                · exact .tryCallGasRevert hmd he hv (ih.gasOpt _ _ _ _ hd)
+                · have hg := ih.gasOpt _ _ _ _ hgas
+                  rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
+                  · exact (liftOpt_error hd).elim
+                  · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr4, m4⟩, hvs, h⟩ <;> try dsimp only at h
+                    · exact .tryCallArgsRevert hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
+                    · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨dcl, hdcl, h⟩ <;> try dsimp only at h
+                      · exact (liftOpt_error hd).elim
+                      · split at h
+                        · rename_i hnc
+                          simp only [Bool.and_eq_true, List.isEmpty_iff, decide_eq_true_eq] at hnc
+                          rw [IM.throw_bind_some h]
+                          exact .tryCallNoCode hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl) hnc.1 hnc.2
+                        · rename_i hnc
+                          simp only [Bool.and_eq_true, List.isEmpty_iff, decide_eq_true_eq, not_and] at hnc
+                          have h := IM.pure_bind_some h
+                          try dsimp only at h
+                          rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨sigStr, ptys, rtys⟩, hsig, h⟩ <;> try dsimp only at h
+                          · exact (liftOpt_error hd).elim
+                          · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨svs, m5⟩, hsvs, h⟩ <;> try dsimp only at h
+                            · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+                              exact .tryCallAbiPanic hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
+                                (liftOpt_ok hsig) hp hnc
+                            · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨bs, hbs, h⟩ <;> try dsimp only at h
+                              · exact (liftOpt_error hd).elim
+                              · generalize hX : Interp.callViaEVM o m5 a value (selectorOf sigStr ++ bs.toByteArray)
+                                  (m5.evm.executionEnv.perm && dcl.mutability != Mutability.view && dcl.mutability != Mutability.pure)
+                                  (calleeGas o m5 gasReq value) = X at h
+                                have hbridge := hX ▸ callViaEVM_sound o m5 a value (selectorOf sigStr ++ bs.toByteArray)
+                                  (m5.evm.executionEnv.perm && dcl.mutability != Mutability.view && dcl.mutability != Mutability.pure)
+                                  (calleeGas o m5 gasReq value)
+                                obtain ⟨z, m6, out⟩ := X
+                                dsimp only at h
+                                cases z
+                                · simp only [Bool.false_eq_true, ite_false] at h
+                                  split at h
+                                  · rename_i cc cvs m7 hsel
+                                    rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr5, m8⟩, hbind, h⟩ <;> try dsimp only at h
+                                    · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+                                      exact .tryCallCaughtBindPanic hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs)
+                                        (liftOpt_ok hdcl) (liftOpt_ok hsig) (liftOp_ok hsvs) (liftOpt_ok hbs) hnc hbridge hsel hp
+                                    · exact .tryCallCaught hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
+                                        (liftOpt_ok hsig) (liftOp_ok hsvs) (liftOpt_ok hbs) hnc hbridge hsel (liftOp_ok hbind)
+                                        (ih.block _ _ _ _ h)
+                                  · rename_i hsel
+                                    rw [IM.throw_some h]
+                                    exact .tryCallUncaught hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
+                                      (liftOpt_ok hsig) (liftOp_ok hsvs) (liftOpt_ok hbs) hnc hbridge hsel
+                                · simp only [eq_self_iff_true, ite_true] at h
+                                  split at h
+                                  · rename_i rets m7 hrets
+                                    rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr5, m8⟩, hbind, h⟩ <;> try dsimp only at h
+                                    · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+                                      exact .tryCallBindPanic hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
+                                        (liftOpt_ok hsig) (liftOp_ok hsvs) (liftOpt_ok hbs) hnc hbridge hrets hp
+                                    · exact .tryCallOk hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
+                                        (liftOpt_ok hsig) (liftOp_ok hsvs) (liftOpt_ok hbs) hnc hbridge hrets (liftOp_ok hbind)
+                                        (ih.block _ _ _ _ h)
+                                  · rename_i hrets
+                                    rw [IM.throw_some h]
+                                    exact .tryCallDecodeFail hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
+                                      (liftOpt_ok hsig) (liftOp_ok hsvs) (liftOpt_ok hbs) hnc hbridge hrets
+            · simp at h
+      case new ty =>
+        simp only [execStmt] at h
+        split at h
+        · rename_i c tys hct
+          rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨value, fr1, m1⟩, hval, h⟩ <;> try dsimp only at h
+          · exact .tryNewValueRevert hct (ih.valueOpt _ _ _ _ hd)
+          · have hv := ih.valueOpt _ _ _ _ hval
+            rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨salt, fr2, m2⟩, hsalt, h⟩ <;> try dsimp only at h
+            · exact .tryNewSaltRevert hct hv (ih.saltOpt _ _ _ _ hd)
+            · have hs := ih.saltOpt _ _ _ _ hsalt
+              rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
+              · exact (liftOpt_error hd).elim
+              · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr3, m3⟩, hvs, h⟩ <;> try dsimp only at h
+                · exact .tryNewArgsRevert hct hv hs (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
+                · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨svs, m4⟩, hsvs, h⟩ <;> try dsimp only at h
+                  · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+                    exact .tryNewAbiPanic hct hv hs (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) hp
+                  · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨a, m5, z, out⟩, hnew, h⟩ <;> try dsimp only at h
+                    · exact (liftOpt_error hd).elim
+                    · have hbridge := newViaEVM_sound cfg o m4 c value svs salt (liftOpt_ok hnew)
+                      cases z
+                      · simp only [Bool.false_eq_true, ite_false] at h
+                        split at h
+                        · rename_i cc cvs m6 hsel
+                          rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr4, m7⟩, hbind, h⟩ <;> try dsimp only at h
+                          · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+                            exact .tryNewCaughtBindPanic hct hv hs (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) hbridge hsel hp
+                          · exact .tryNewCaught hct hv hs (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) hbridge hsel
+                              (liftOp_ok hbind) (ih.block _ _ _ _ h)
+                        · rename_i hsel
+                          rw [IM.throw_some h]
+                          exact .tryNewUncaught hct hv hs (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) hbridge hsel
+                      · simp only [eq_self_iff_true, ite_true] at h
+                        rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr4, m6⟩, hbind, h⟩ <;> try dsimp only at h
+                        · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+                          exact .tryNewBindPanic hct hv hs (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) hbridge hp
+                        · exact .tryNewOk hct hv hs (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) hbridge (liftOp_ok hbind)
+                            (ih.block _ _ _ _ h)
+        · simp at h
+      all_goals simp [execStmt] at h
+    all_goals simp [execStmt] at h
 
 end Solidity

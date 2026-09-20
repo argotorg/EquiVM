@@ -116,10 +116,11 @@ macro_rules
         not_true_eq_false, Fin.toNat_eq_val, $ls,*])
 
 theorem memberCallDirect_false {recv : Expr} (h : memberCallDirect fc fr recv = false) :
-    isSuperExpr recv = false ∧ isEnvObj (headIdent recv) = false ∧ libraryRecv fc fr recv = false := by
+    isSuperExpr recv = false ∧ isEnvObj (headIdent recv) = false ∧ libraryRecv fc fr recv = false ∧
+      baseRecv fc fr recv = false := by
   unfold memberCallDirect at h
   simp only [Bool.or_eq_false_iff] at h
-  exact ⟨h.1.1, h.1.2, h.2⟩
+  exact ⟨h.1.1.1, h.1.1.2, h.1.2, h.2⟩
 
 theorem envMember_not_data {m : Machine} {obj f : Ident} {v : Value} (h : envMember m obj f = some v) :
     (obj == "msg" && f == "data") = false := by
@@ -394,6 +395,28 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     refine ⟨n1 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
     interp_simp [isBuiltinFn, ih1 k' (by omega)]
+  | .ecrecover p1 p2 p3 p4 => by
+    obtain ⟨n1, ih1⟩ := evalExprs_complete p1
+    have hb4 := callViaEVM_det p4
+    refine ⟨n1 + 3, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
+    interp_simp [isBuiltinFn, p2, p3, hb4, ih1 k' (by omega)]
+  | .ecrecoverFailed p1 p2 p3 p4 => by
+    obtain ⟨n1, ih1⟩ := evalExprs_complete p1
+    have hb4 := callViaEVM_det p4
+    refine ⟨n1 + 3, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
+    interp_simp [isBuiltinFn, p2, p3, hb4, ih1 k' (by omega)]
+  | .ecrecoverAbiPanic p1 p2 => by
+    obtain ⟨n1, ih1⟩ := evalExprs_complete p1
+    refine ⟨n1 + 3, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
+    interp_simp [isBuiltinFn, p2, ih1 k' (by omega)]
+  | .ecrecoverArgsRevert p1 => by
+    obtain ⟨n1, ih1⟩ := evalExprs_complete p1
+    refine ⟨n1 + 3, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
+    interp_simp [isBuiltinFn, ih1 k' (by omega)]
   | .gasleft => by
     refine ⟨3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add hk
@@ -561,76 +584,93 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     refine ⟨n5 + 2, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
     interp_simp [isSuperExpr, headIdent, libraryRecv, p1, p2, p3, p4, ih5 k' (by omega)]
+  | .baseCall p1 p2 p3 p4 p5 p6 p7 p8 => by
+    obtain ⟨n6, ih6⟩ := evalExprs_complete p6
+    obtain ⟨n8, ih8⟩ := callFn_complete p8
+    refine ⟨n6 + n8 + 2, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
+    interp_simp [isSuperExpr, headIdent, libraryRecv, baseRecv, p1, p2, p3, p4, p5, p7, ih6 k' (by omega), ih8 k' (by omega)]
+  | .baseCallRevert p1 p2 p3 p4 p5 p6 p7 p8 => by
+    obtain ⟨n6, ih6⟩ := evalExprs_complete p6
+    obtain ⟨n8, ih8⟩ := callFn_complete p8
+    refine ⟨n6 + n8 + 2, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
+    interp_simp [isSuperExpr, headIdent, libraryRecv, baseRecv, p1, p2, p3, p4, p5, p7, ih6 k' (by omega), ih8 k' (by omega)]
+  | .baseArgsRevert p1 p2 p3 p4 p5 p6 => by
+    obtain ⟨n6, ih6⟩ := evalExprs_complete p6
+    refine ⟨n6 + 2, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
+    interp_simp [isSuperExpr, headIdent, libraryRecv, baseRecv, p1, p2, p3, p4, p5, ih6 k' (by omega)]
   | .usingForCall p1 p2 p3 p4 p5 p6 p7 p8 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     obtain ⟨n6, ih6⟩ := evalExprs_complete p6
     obtain ⟨n8, ih8⟩ := callFn_complete p8
     refine ⟨n2 + n6 + n8 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [hmd1, hmd2, hmd3, p1, p3, p4, p5, p7, ih2 k' (by omega), ih6 k' (by omega), ih8 k' (by omega)]
+    interp_simp [hmd1, hmd2, hmd3, hmd4, p1, p3, p4, p5, p7, ih2 k' (by omega), ih6 k' (by omega), ih8 k' (by omega)]
   | .usingForArgsRevert p1 p2 p3 p4 p5 p6 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     obtain ⟨n6, ih6⟩ := evalExprs_complete p6
     refine ⟨n2 + n6 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [hmd1, hmd2, hmd3, p1, p3, p4, p5, ih2 k' (by omega), ih6 k' (by omega)]
+    interp_simp [hmd1, hmd2, hmd3, hmd4, p1, p3, p4, p5, ih2 k' (by omega), ih6 k' (by omega)]
   | .usingForCallRevert p1 p2 p3 p4 p5 p6 p7 p8 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     obtain ⟨n6, ih6⟩ := evalExprs_complete p6
     obtain ⟨n8, ih8⟩ := callFn_complete p8
     refine ⟨n2 + n6 + n8 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [hmd1, hmd2, hmd3, p1, p3, p4, p5, p7, ih2 k' (by omega), ih6 k' (by omega), ih8 k' (by omega)]
+    interp_simp [hmd1, hmd2, hmd3, hmd4, p1, p3, p4, p5, p7, ih2 k' (by omega), ih6 k' (by omega), ih8 k' (by omega)]
   | .push1 p1 p2 p3 p4 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     obtain ⟨n3, ih3⟩ := evalExpr_complete p3
     refine ⟨n2 + n3 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, p1, p4, ih2 k' (by omega), ih3 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, p1, p4, ih2 k' (by omega), ih3 k' (by omega)]
   | .push1Revert p1 p2 p3 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     obtain ⟨n3, ih3⟩ := evalExpr_complete p3
     refine ⟨n2 + n3 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, p1, ih2 k' (by omega), ih3 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, p1, ih2 k' (by omega), ih3 k' (by omega)]
   | .push1Panic p1 p2 p3 p4 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     obtain ⟨n3, ih3⟩ := evalExpr_complete p3
     refine ⟨n2 + n3 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, p1, p4, ih2 k' (by omega), ih3 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, p1, p4, ih2 k' (by omega), ih3 k' (by omega)]
   | .push0 p1 p2 p3 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     refine ⟨n2 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, p1, p3, ih2 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, p1, p3, ih2 k' (by omega)]
   | .push0Panic p1 p2 p3 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     refine ⟨n2 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, p1, p3, ih2 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, p1, p3, ih2 k' (by omega)]
   | .pop p1 p2 p3 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     refine ⟨n2 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, p1, p3, ih2 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, p1, p3, ih2 k' (by omega)]
   | .popPanic p1 p2 p3 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     refine ⟨n2 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, p1, p3, ih2 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, p1, p3, ih2 k' (by omega)]
   | .externalCall p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     have hnc := noCode_false p11
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
@@ -639,18 +679,18 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     have hb12 := callViaEVM_det p12
     refine ⟨n2 + n3 + n4 + n6 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
   | .externalCallNoCode p1 p2 p3 p4 p5 p6 p7 p8 p9 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
     obtain ⟨n4, ih4⟩ := evalGasOpt_complete p4
     obtain ⟨n6, ih6⟩ := evalExprs_complete p6
     refine ⟨n2 + n3 + n4 + n6 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, p1, p5, p7, p8, p9, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, p1, p5, p7, p8, p9, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
   | .externalCallFailed p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     have hnc := noCode_false p11
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
@@ -659,9 +699,9 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     have hb12 := callViaEVM_det p12
     refine ⟨n2 + n3 + n4 + n6 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
   | .externalCallDecodeFail p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     have hnc := noCode_false p11
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
@@ -670,33 +710,33 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     have hb12 := callViaEVM_det p12
     refine ⟨n2 + n3 + n4 + n6 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
   | .externalValueRevert p1 p2 p3 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
     refine ⟨n2 + n3 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, p1, ih2 k' (by omega), ih3 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, p1, ih2 k' (by omega), ih3 k' (by omega)]
   | .externalGasRevert p1 p2 p3 p4 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
     obtain ⟨n4, ih4⟩ := evalGasOpt_complete p4
     refine ⟨n2 + n3 + n4 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, p1, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, p1, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega)]
   | .externalArgsRevert p1 p2 p3 p4 p5 p6 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
     obtain ⟨n4, ih4⟩ := evalGasOpt_complete p4
     obtain ⟨n6, ih6⟩ := evalExprs_complete p6
     refine ⟨n2 + n3 + n4 + n6 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, p1, p5, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, p1, p5, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
   | .externalAbiPanic p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     have hnc := noCode_false p10
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
@@ -704,7 +744,7 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     obtain ⟨n6, ih6⟩ := evalExprs_complete p6
     refine ⟨n2 + n3 + n4 + n6 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hnc, p1, p5, p7, p8, p9, p10, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
+    interp_simp [specialMemberCall, hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
   | .lowLevelCall (rv := rv) p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 => by
     obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p2
     obtain ⟨n3, ih3⟩ := evalExpr_complete p3
@@ -831,11 +871,11 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     rcases p1 with rfl | rfl <;>
       interp_simp [specialMemberCall, addrNat, hmd1, hmd2, hmd3, p2, ih3 k' (by omega), ih6 k' (by omega)]
   | .callRecvRevert p1 p2 => by
-    obtain ⟨hmd1, hmd2, hmd3⟩ := memberCallDirect_false p1
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     refine ⟨n2 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
-    interp_simp [hmd1, hmd2, hmd3, p1, ih2 k' (by omega)]
+    interp_simp [hmd1, hmd2, hmd3, hmd4, p1, ih2 k' (by omega)]
   | .unary p1 p2 p3 p4 => by
     obtain ⟨n1, ih1⟩ := evalExpr_complete p1
     refine ⟨n1 + 1, fun k hk => ?_⟩
@@ -1445,6 +1485,190 @@ theorem execStmt_complete {fr m s r} (h : ExecStmt cfg o fc fr m s r) :
     refine ⟨n1 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     cases rr <;> simp [settlePlaceholder] at p2 <;> (try subst p2) <;> interp_simp [settlePlaceholder, ih1 k' (by omega)]
+  | .tryCallOk p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15 => by
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
+    have hnc := noCode_false p11
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
+    obtain ⟨n4, ih4⟩ := evalGasOpt_complete p4
+    obtain ⟨n6, ih6⟩ := evalExprs_complete p6
+    have hb12 := callViaEVM_det p12
+    obtain ⟨n15, ih15⟩ := execBlock_complete p15
+    refine ⟨n2 + n3 + n4 + n6 + n15 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, p14, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega), ih15 k' (by omega)]
+  | .tryCallBindPanic p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 => by
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
+    have hnc := noCode_false p11
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
+    obtain ⟨n4, ih4⟩ := evalGasOpt_complete p4
+    obtain ⟨n6, ih6⟩ := evalExprs_complete p6
+    have hb12 := callViaEVM_det p12
+    refine ⟨n2 + n3 + n4 + n6 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, p14, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
+  | .tryCallDecodeFail p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 => by
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
+    have hnc := noCode_false p11
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
+    obtain ⟨n4, ih4⟩ := evalGasOpt_complete p4
+    obtain ⟨n6, ih6⟩ := evalExprs_complete p6
+    have hb12 := callViaEVM_det p12
+    refine ⟨n2 + n3 + n4 + n6 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
+  | .tryCallCaught p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15 => by
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
+    have hnc := noCode_false p11
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
+    obtain ⟨n4, ih4⟩ := evalGasOpt_complete p4
+    obtain ⟨n6, ih6⟩ := evalExprs_complete p6
+    have hb12 := callViaEVM_det p12
+    obtain ⟨n15, ih15⟩ := execBlock_complete p15
+    refine ⟨n2 + n3 + n4 + n6 + n15 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, p14, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega), ih15 k' (by omega)]
+  | .tryCallCaughtBindPanic p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 => by
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
+    have hnc := noCode_false p11
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
+    obtain ⟨n4, ih4⟩ := evalGasOpt_complete p4
+    obtain ⟨n6, ih6⟩ := evalExprs_complete p6
+    have hb12 := callViaEVM_det p12
+    refine ⟨n2 + n3 + n4 + n6 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, p14, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
+  | .tryCallUncaught p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 => by
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
+    have hnc := noCode_false p11
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
+    obtain ⟨n4, ih4⟩ := evalGasOpt_complete p4
+    obtain ⟨n6, ih6⟩ := evalExprs_complete p6
+    have hb12 := callViaEVM_det p12
+    refine ⟨n2 + n3 + n4 + n6 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
+  | .tryCallNoCode p1 p2 p3 p4 p5 p6 p7 p8 p9 => by
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
+    obtain ⟨n4, ih4⟩ := evalGasOpt_complete p4
+    obtain ⟨n6, ih6⟩ := evalExprs_complete p6
+    refine ⟨n2 + n3 + n4 + n6 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hmd1, hmd2, hmd3, hmd4, p1, p5, p7, p8, p9, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
+  | .tryCallAbiPanic p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 => by
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
+    have hnc := noCode_false p10
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
+    obtain ⟨n4, ih4⟩ := evalGasOpt_complete p4
+    obtain ⟨n6, ih6⟩ := evalExprs_complete p6
+    refine ⟨n2 + n3 + n4 + n6 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
+  | .tryCallArgsRevert p1 p2 p3 p4 p5 p6 => by
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
+    obtain ⟨n4, ih4⟩ := evalGasOpt_complete p4
+    obtain ⟨n6, ih6⟩ := evalExprs_complete p6
+    refine ⟨n2 + n3 + n4 + n6 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hmd1, hmd2, hmd3, hmd4, p1, p5, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
+  | .tryCallGasRevert p1 p2 p3 p4 => by
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
+    obtain ⟨n4, ih4⟩ := evalGasOpt_complete p4
+    refine ⟨n2 + n3 + n4 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hmd1, hmd2, hmd3, hmd4, p1, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega)]
+  | .tryCallValueRevert p1 p2 p3 => by
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    obtain ⟨n3, ih3⟩ := evalValueOpt_complete p3
+    refine ⟨n2 + n3 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hmd1, hmd2, hmd3, hmd4, p1, ih2 k' (by omega), ih3 k' (by omega)]
+  | .tryCallRecvRevert p1 p2 => by
+    obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    refine ⟨n2 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hmd1, hmd2, hmd3, hmd4, p1, ih2 k' (by omega)]
+  | .tryNewOk p1 p2 p3 p4 p5 p6 p7 p8 p9 => by
+    obtain ⟨n2, ih2⟩ := evalValueOpt_complete p2
+    obtain ⟨n3, ih3⟩ := evalSaltOpt_complete p3
+    obtain ⟨n5, ih5⟩ := evalExprs_complete p5
+    have hb7 := newViaEVM_det p7
+    obtain ⟨n9, ih9⟩ := execBlock_complete p9
+    refine ⟨n2 + n3 + n5 + n9 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p1, p4, p6, hb7, p8, ih2 k' (by omega), ih3 k' (by omega), ih5 k' (by omega), ih9 k' (by omega)]
+  | .tryNewBindPanic p1 p2 p3 p4 p5 p6 p7 p8 => by
+    obtain ⟨n2, ih2⟩ := evalValueOpt_complete p2
+    obtain ⟨n3, ih3⟩ := evalSaltOpt_complete p3
+    obtain ⟨n5, ih5⟩ := evalExprs_complete p5
+    have hb7 := newViaEVM_det p7
+    refine ⟨n2 + n3 + n5 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p1, p4, p6, hb7, p8, ih2 k' (by omega), ih3 k' (by omega), ih5 k' (by omega)]
+  | .tryNewCaught p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 => by
+    obtain ⟨n2, ih2⟩ := evalValueOpt_complete p2
+    obtain ⟨n3, ih3⟩ := evalSaltOpt_complete p3
+    obtain ⟨n5, ih5⟩ := evalExprs_complete p5
+    have hb7 := newViaEVM_det p7
+    obtain ⟨n10, ih10⟩ := execBlock_complete p10
+    refine ⟨n2 + n3 + n5 + n10 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p1, p4, p6, hb7, p8, p9, ih2 k' (by omega), ih3 k' (by omega), ih5 k' (by omega), ih10 k' (by omega)]
+  | .tryNewCaughtBindPanic p1 p2 p3 p4 p5 p6 p7 p8 p9 => by
+    obtain ⟨n2, ih2⟩ := evalValueOpt_complete p2
+    obtain ⟨n3, ih3⟩ := evalSaltOpt_complete p3
+    obtain ⟨n5, ih5⟩ := evalExprs_complete p5
+    have hb7 := newViaEVM_det p7
+    refine ⟨n2 + n3 + n5 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p1, p4, p6, hb7, p8, p9, ih2 k' (by omega), ih3 k' (by omega), ih5 k' (by omega)]
+  | .tryNewUncaught p1 p2 p3 p4 p5 p6 p7 p8 => by
+    obtain ⟨n2, ih2⟩ := evalValueOpt_complete p2
+    obtain ⟨n3, ih3⟩ := evalSaltOpt_complete p3
+    obtain ⟨n5, ih5⟩ := evalExprs_complete p5
+    have hb7 := newViaEVM_det p7
+    refine ⟨n2 + n3 + n5 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p1, p4, p6, hb7, p8, ih2 k' (by omega), ih3 k' (by omega), ih5 k' (by omega)]
+  | .tryNewAbiPanic p1 p2 p3 p4 p5 p6 => by
+    obtain ⟨n2, ih2⟩ := evalValueOpt_complete p2
+    obtain ⟨n3, ih3⟩ := evalSaltOpt_complete p3
+    obtain ⟨n5, ih5⟩ := evalExprs_complete p5
+    refine ⟨n2 + n3 + n5 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p1, p4, p6, ih2 k' (by omega), ih3 k' (by omega), ih5 k' (by omega)]
+  | .tryNewArgsRevert p1 p2 p3 p4 p5 => by
+    obtain ⟨n2, ih2⟩ := evalValueOpt_complete p2
+    obtain ⟨n3, ih3⟩ := evalSaltOpt_complete p3
+    obtain ⟨n5, ih5⟩ := evalExprs_complete p5
+    refine ⟨n2 + n3 + n5 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p1, p4, ih2 k' (by omega), ih3 k' (by omega), ih5 k' (by omega)]
+  | .tryNewSaltRevert p1 p2 p3 => by
+    obtain ⟨n2, ih2⟩ := evalValueOpt_complete p2
+    obtain ⟨n3, ih3⟩ := evalSaltOpt_complete p3
+    refine ⟨n2 + n3 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p1, ih2 k' (by omega), ih3 k' (by omega)]
+  | .tryNewValueRevert p1 p2 => by
+    obtain ⟨n2, ih2⟩ := evalValueOpt_complete p2
+    refine ⟨n2 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p1, ih2 k' (by omega)]
 
 theorem declareTuple_complete {fr m bs vs r} (h : DeclareTuple cfg o fc fr m bs vs r) :
     ∃ n, ∀ k, n ≤ k → (declareTuple cfg o fc k fr m bs vs).run = some (toUnit r) :=

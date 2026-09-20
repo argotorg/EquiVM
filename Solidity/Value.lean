@@ -18,8 +18,9 @@ open ABI
 inductive Value where
   | uint (w : BitWidth) (n : Nat)
   | sint (w : BitWidth) (i : Int)
-  /-- An integer literal, exact. -/
-  | literal (i : Int)
+  /-- An integer literal, exact; `hexDigits` survives only for a bare `0x…` literal (the `bytesN`
+      conversion rule), arithmetic drops it. -/
+  | literal (i : Int) (hexDigits : Option Nat := none)
   | bool (b : Bool)
   | address (a : EVM.Address)
   | contract (ty : Ident) (a : EVM.Address)
@@ -139,7 +140,7 @@ where
 def scalarToAbi : Value → Option ABIValue
   | .uint _ n => some (.int n)
   | .sint _ i => some (.int i)
-  | .literal i => some (.int i)
+  | .literal i _ => some (.int i)
   | .enum _ i => some (.int i)
   | .bool b => some (.bool b)
   | .address a => some (.address a)
