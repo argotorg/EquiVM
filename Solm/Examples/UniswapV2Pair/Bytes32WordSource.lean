@@ -1,7 +1,7 @@
 import EVMReasoning.Storage
 import Solm.Reasoning.Storage
 
-open Solm Ethereum
+open Solm ABI Ethereum
 open Ethereum.EVM Reasoning.Theory
 namespace UniswapV2Pair
 

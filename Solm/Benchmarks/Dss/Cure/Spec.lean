@@ -44,7 +44,7 @@ def selectorBytes (a b c d : UInt8) : ByteArray := ⟨#[a, b, c, d]⟩
 
 def sourceCureSelector : ByteArray := selectorBytes 0x84 0x07 0x82 0xed
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 ty out).map (fun v => [v])
 
 def externalABI : ExternalCallABI where

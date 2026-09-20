@@ -50,10 +50,10 @@ def decimalsSelector : ByteArray := selectorBytes 0x31 0x3c 0xe5 0x67
 def hasPermissionSelector : ByteArray := selectorBytes 0xcd 0xe6 0x80 0x41
 def transferSelector : ByteArray := selectorBytes 0xa9 0x05 0x9c 0xbb
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValueWithMode? DecodeMode.modern ty out).map (fun v => [v])
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) :=
   some []
 
 def compoundRewardsExternalABI : ExternalCallABI where

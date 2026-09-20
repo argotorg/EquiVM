@@ -75,10 +75,10 @@ theorem endDecodeCalldata_legacyBytes32_uint256_ok {cd : ByteArray} {x y : Solm.
     omega
   have hword36 : ABI.bytesToWord ((cd.toList.drop 36).take 32) = calldataWord cd 36 :=
     decode_word_at_eq cd 36 (by omega) (by norm_num)
-  unfold decodeCalldataWithMode decodeCalldata
+  unfold decodeCalldataWithMode decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
+  simp only [decodeCalldataValues?.decodeArgs]
   rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
   simp only [bind, Option.bind]
   rw [endDecodeABIValues_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
@@ -96,10 +96,10 @@ theorem endDecodeCalldata_legacyBytes32_uint256_none_short {cd : ByteArray}
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]
     rfl
-  unfold decodeCalldataWithMode decodeCalldata
+  unfold decodeCalldataWithMode decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
-  simp only [decodeCalldata.decodeArgs]
+  simp only [decodeCalldataValues?.decodeArgs]
   rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 64

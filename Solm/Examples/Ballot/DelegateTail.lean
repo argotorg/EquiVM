@@ -324,6 +324,7 @@ theorem delegateAssignTailVoted (evm : EVM.State) (I : ExecutionEnv)
     (.elem .bool) (by rfl), bind, EvalResult.bind, EvalResult.ofOption, pure]
   simp only [ballotConfig, ballotStorageLayout, delegateSenderFieldRef, delegateSenderPackedSlot,
     delegateSenderSlot]
+  simp only [Value.toABI?, Option.bind]
   rw [voteStorageLocStore_bool_true_offset0]
   simp [delegateAfterVotedState, delegateSenderVotedStoreCurrent, delegateSenderPackedCurrent,
     delegateSenderPackedSlot, delegateSenderSlot]
@@ -348,6 +349,7 @@ theorem delegateAssignTailDelegate (evm : EVM.State) (I : ExecutionEnv)
   unfold delegateTailAfterSenderState delegateAfterVotedState delegateTailSenderPackedStoreCurrent
     delegateSenderVotedStoreCurrent delegateSenderPackedCurrent delegateCurrentToValue
   unfold delegateSenderPackedSlot delegateSenderSlot
+  simp only [Value.toABI?, Option.bind]
   rw [ballotStorageLocStore_address_offset1_after_bool_true (acc := acc) (hacc := hlookup)
     (hcanon := hcanon)]
 
@@ -401,8 +403,8 @@ theorem evalExpr_delegate_tail_delegate_voted_false (evm : EVM.State) (I : Execu
       readStorage? ballotConfig evm (delegateCurrentVoterFieldRef w "voted") (.elem .bool) =
         .ok (.bool false) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    change EvalResult.ok (storageLocLoad evm
-        { slot := delegateVoterPackedSlot w, offset := 0, size := 1, hbound := _, type := .bool }) =
+    change EvalResult.ok (Value.ofABI (storageLocLoad evm
+        { slot := delegateVoterPackedSlot w, offset := 0, size := 1, hbound := _, type := .bool })) =
       EvalResult.ok (Value.bool false)
     rw [delegateStorageLocLoad_bool_offset0_false]
     simpa [delegateTailVoterVotedByteCurrent, delegateTailVoterPackedCurrent, u256_land_comm]
@@ -420,8 +422,8 @@ theorem evalExpr_delegate_tail_delegate_voted_true (evm : EVM.State) (I : Execut
       readStorage? ballotConfig evm (delegateCurrentVoterFieldRef w "voted") (.elem .bool) =
         .ok (.bool true) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    change EvalResult.ok (storageLocLoad evm
-        { slot := delegateVoterPackedSlot w, offset := 0, size := 1, hbound := _, type := .bool }) =
+    change EvalResult.ok (Value.ofABI (storageLocLoad evm
+        { slot := delegateVoterPackedSlot w, offset := 0, size := 1, hbound := _, type := .bool })) =
       EvalResult.ok (Value.bool true)
     rw [delegateStorageLocLoad_bool_offset0_true]
     simpa [delegateTailVoterVotedByteCurrent, delegateTailVoterPackedCurrent, u256_land_comm]
@@ -527,6 +529,7 @@ theorem delegateAssignTailVoterWeight (evm : EVM.State) (I : ExecutionEnv)
     I w "weight" (.elem (.int uint256Int)) (by rfl), bind, EvalResult.bind,
     EvalResult.ofOption, pure]
   simp only [ballotConfig, ballotStorageLayout, delegateCurrentVoterFieldRef, delegateVoterSlot]
+  simp only [Value.toABI?, Option.bind]
   rw [voteStorageLocStore_uint256]
   simp [delegateTailFalseSuccessState, delegateTailUpdatedVoterWeightCurrent, delegateVoterSlot]
 

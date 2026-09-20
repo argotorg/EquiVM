@@ -314,7 +314,7 @@ inductive ExecStmt (cfg : Config) :
         (true, evm', out) perm ->
       cfg.externalABI.decode? name out = some value ->
       ExecStmt cfg solm evm (.externalCall receiver name eth args retVar (perm := perm))
-        (.ok { solm with locals := solm.locals.insert retVar (collapseReturns value) } evm')
+        (.ok { solm with locals := solm.locals.insert retVar (collapseReturns (Value.ofABIList value)) } evm')
   | externalCallFailure :
       evalExpr? cfg solm evm receiver = .ok (.address target) ->
       evalExpr? cfg solm evm eth = .ok (.int sendVal) ->
@@ -403,7 +403,7 @@ inductive ExecStmt (cfg : Config) :
       typedCallViaEVM cfg evm (EVM.address target) name sendVal argVals
         (true, evm', out) perm ->
       cfg.externalABI.decode? name out = some value ->
-      ExecBlock cfg { solm with locals := solm.locals.insert retVar (collapseReturns value) } evm' onSuccess result ->
+      ExecBlock cfg { solm with locals := solm.locals.insert retVar (collapseReturns (Value.ofABIList value)) } evm' onSuccess result ->
       ExecStmt cfg solm evm
         (.checkedCall receiver name eth args retVar onSuccess errVar onFail (perm := perm)) result
   | checkedCallFail :

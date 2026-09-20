@@ -496,7 +496,7 @@ theorem uniswapGetReservesBodyCore
           .int (Int.ofNat (blockTimestampLastWord σ_evm I).toNat)])
         getReservesTransition.returnType := by
     rw [show getReservesTransition.returnType = [uint112, uint112, uint32] from rfl]
-    exact returnEquiv.returned rfl
+    exact returnEquiv.returned rfl rfl
       (getReservesReturnEncoding (reserve0Word σ_evm I) (reserve1Word σ_evm I)
         (blockTimestampLastWord σ_evm I)
         (by simpa [reserve0Word] using reserve112Word_lt (getReservesSlotWord σ_evm I))

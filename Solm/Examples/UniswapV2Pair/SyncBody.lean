@@ -35,17 +35,17 @@ theorem uniswapUpdateFunctionReturns_conditionFalse_packed
       (setUint112Offset14Word
         (Solm.EVM.storageLoad evmR0 evmR0.executionEnv.codeOwner ⟨8⟩) balance1)
   have hstoreR0 :
-      storageLocStore evm (uint112Loc0 ⟨8⟩) (uniswapUint256Value balance0) =
+      storageLocStore evm (uint112Loc0 ⟨8⟩) (uniswapUint256Abi balance0) =
         some evmR0 := by
     simpa [evmR0] using uniswapStorageLocStore_uint112_offset0 evm ⟨8⟩ balance0
   have hstoreR1 :
-      storageLocStore evmR0 (uint112Loc14 ⟨8⟩) (uniswapUint256Value balance1) =
+      storageLocStore evmR0 (uint112Loc14 ⟨8⟩) (uniswapUint256Abi balance1) =
         some evmR1 := by
     simpa [evmR1] using uniswapStorageLocStore_uint112_offset14 evmR0 ⟨8⟩ balance1
   have hstoreTs :
-      storageLocStore evmR1 (uint32Loc28 ⟨8⟩) (syncBlockTimestampValue evm) =
+      storageLocStore evmR1 (uint32Loc28 ⟨8⟩) (syncBlockTimestampAbi evm) =
         some (syncUpdatePackedReserveState evm balance0 balance1) := by
-    rw [syncBlockTimestampValue_eq_updateTimestampWord evm]
+    rw [syncBlockTimestampAbi_eq_updateTimestampWord evm]
     simpa [syncUpdatePackedReserveState, evmR0, evmR1] using
       uniswapStorageLocStore_uint32_offset28 evmR1 ⟨8⟩
         (uniswapUpdateTimestampWord evm.executionEnv)
@@ -144,17 +144,17 @@ theorem uniswapUpdateFunctionReturns_conditionFalse_packed_with
       (setUint112Offset14Word
         (Solm.EVM.storageLoad evmR0 evmR0.executionEnv.codeOwner ⟨8⟩) balance1)
   have hstoreR0 :
-      storageLocStore evm (uint112Loc0 ⟨8⟩) (uniswapUint256Value balance0) =
+      storageLocStore evm (uint112Loc0 ⟨8⟩) (uniswapUint256Abi balance0) =
         some evmR0 := by
     simpa [evmR0] using uniswapStorageLocStore_uint112_offset0 evm ⟨8⟩ balance0
   have hstoreR1 :
-      storageLocStore evmR0 (uint112Loc14 ⟨8⟩) (uniswapUint256Value balance1) =
+      storageLocStore evmR0 (uint112Loc14 ⟨8⟩) (uniswapUint256Abi balance1) =
         some evmR1 := by
     simpa [evmR1] using uniswapStorageLocStore_uint112_offset14 evmR0 ⟨8⟩ balance1
   have hstoreTs :
-      storageLocStore evmR1 (uint32Loc28 ⟨8⟩) (syncBlockTimestampValue evm) =
+      storageLocStore evmR1 (uint32Loc28 ⟨8⟩) (syncBlockTimestampAbi evm) =
         some (syncUpdatePackedReserveState evm balance0 balance1) := by
-    rw [syncBlockTimestampValue_eq_updateTimestampWord evm]
+    rw [syncBlockTimestampAbi_eq_updateTimestampWord evm]
     simpa [syncUpdatePackedReserveState, evmR0, evmR1] using
       uniswapStorageLocStore_uint32_offset28 evmR1 ⟨8⟩
         (uniswapUpdateTimestampWord evm.executionEnv)
@@ -285,13 +285,13 @@ theorem uniswapSyncBodyReturns_conditionFalse_packed (evm evm0 evm1 : EVM.State)
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 =
-      some [uniswapUint256Value balance0])
+      some [uniswapUint256Abi balance0])
     (hguard1 : syncToken1GuardTrue evm0 (uniswapUint256Value balance0))
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 =
-      some [uniswapUint256Value balance1])
+      some [uniswapUint256Abi balance1])
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
     (hcond :
@@ -309,7 +309,7 @@ theorem uniswapSyncBodyReturns_conditionFalse_packed (evm evm0 evm1 : EVM.State)
         none) := by
   have hbalances := uniswapSyncBalanceOfCallsPrefix
     (evm := evm) (evm0 := evm0) (evm1 := evm1)
-    (balance0 := uniswapUint256Value balance0) (balance1 := uniswapUint256Value balance1)
+    (balance0 := uniswapUint256Abi balance0) (balance1 := uniswapUint256Abi balance1)
     hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1
   have hupdateStmt :=
     uniswapSyncUpdateCallReturns_conditionFalse_packed evm1 balance0 balance1
@@ -658,7 +658,7 @@ theorem uniswapSyncBalanceOfSecondCallNoCode (evm evm0 : EVM.State)
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 =
-      some [uniswapUint256Value balance0])
+      some [uniswapUint256Abi balance0])
     (hguard1 :
       evalExpr? config
         { contract := contract,
@@ -669,7 +669,7 @@ theorem uniswapSyncBalanceOfSecondCallNoCode (evm evm0 : EVM.State)
   have hlock := uniswapSyncLockEnterPrefix evm hwv hunlocked
   have hfail := uniswapCheckedTokenBalanceOfThisSecondCallNoCode
     (evm := uniswapLockEnteredState evm) (evm0 := evm0) (locals := ∅)
-    (balance0 := uniswapUint256Value balance0)
+    (balance0 := uniswapUint256Abi balance0)
     hguard0 hguard1 (by simp) hcall0 hdec0
   simpa [syncBalanceCallsBody] using execBlock_append hlock hfail
 
@@ -683,7 +683,7 @@ theorem uniswapSyncSecondCallNoCodeSource (evm evm0 : EVM.State)
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 =
-      some [uniswapUint256Value balance0])
+      some [uniswapUint256Abi balance0])
     (hguard1 :
       evalExpr? config
         { contract := contract,
@@ -707,7 +707,7 @@ theorem uniswapSyncBodyReverts_secondNoCode (evm evm0 : EVM.State)
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 =
-      some [uniswapUint256Value balance0])
+      some [uniswapUint256Abi balance0])
     (hguard1 :
       evalExpr? config
         { contract := contract,
@@ -846,7 +846,7 @@ theorem uniswapSyncBody
               simpa [evmS, hzTrue] using hcallAll
             have hdec0 :
                 config.externalABI.decode? "balanceOf" o =
-                  some [uniswapUint256Value balance0] := by
+                  some [uniswapUint256Abi balance0] := by
               simpa [balance0] using uniswapBalanceOfDecode_ok (returndata := o) ho32
             obtain ⟨_, _, rd6279⟩ := hsecondExt hzTrue ho32
             by_cases htoken1NoCode :
@@ -940,7 +940,7 @@ theorem uniswapSyncBody
                     simpa [hz1True] using hcall1All
                   have hdec1 :
                       config.externalABI.decode? "balanceOf" o1 =
-                        some [uniswapUint256Value balance1] := by
+                        some [uniswapUint256Abi balance1] := by
                     simpa [balance1] using uniswapBalanceOfDecode_ok (returndata := o1) ho132
                   obtain ⟨_, _, rd6336⟩ := hsecondGuards.2.2 hz1True ho132
                   obtain ⟨_, _, rd6959⟩ := uniswapSyncReserveSlotUnpack rd6336

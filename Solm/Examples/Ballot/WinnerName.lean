@@ -433,7 +433,7 @@ theorem ballotWinnerNameBodyCore
       |>.reEquivExecutionTransport hcode hd hdec hbody (by simp [hname])
         hAccounts
         (returnEquiv_of_encode (abit := bytes32)
-          (rv := .fixedBytes ⟨31, by decide⟩
+          (arv := .fixedBytes ⟨31, by decide⟩
             (EVM.Word.toBytesBE (winnerNameNameWord σ_evm I)))
           (o := UInt256.toByteArray (winnerNameNameWord σ_evm I))
           (by simpa [bytes32] using bytes32ReturnEncoding (winnerNameNameWord σ_evm I)))

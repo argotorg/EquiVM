@@ -655,7 +655,9 @@ theorem ballotProposalsBodyCore
         exact (ballotX_proposals_ok (g := Sat256.ofUInt256 g) hsz36 hsize hbig hbound hreach)
           |>.reEquivExecutionTransport hcode hd hdec hbody (by simp [hname, hcount])
             hAccounts
-            (returnEquiv.returned rfl
+            (returnEquiv.returned
+              (vs := [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (proposalNameWord σ_evm I)),
+                .int (Int.ofNat (proposalCountWord σ_evm I).toNat)]) rfl rfl
               (ballotProposalReturnEncoding (proposalNameWord σ_evm I)
                 (proposalCountWord σ_evm I)))
       · have hbody := ballotProposalsBodyReverts_oob

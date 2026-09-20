@@ -158,7 +158,7 @@ def updateTWAPSelector : ByteArray := selectorBytes 0xef 0x51 0xa9 0x82
 
 /-- The discarded `updateTWAP` `bool` return is decoded through the legacy coder: a size check only
     (no `0/1` validation), matching the runtime's `returndatasize >= 32` guard. -/
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 ty out).map (fun v => [v])
 
 def klimaExternalABI : ExternalCallABI where

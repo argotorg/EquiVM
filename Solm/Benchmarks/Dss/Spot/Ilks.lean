@@ -610,7 +610,7 @@ theorem spotIlksBodyCoreOk
           (.int (Int.ofNat matWord.toNat))])
         ilksTransition.returnType := by
     rw [show ilksTransition.returnType = [addr, uint256] by rfl]
-    exact returnEquiv.returned rfl (addressUint256PairReturnEncoding pipWord matWord)
+    exact returnEquiv.returned rfl rfl (addressUint256PairReturnEncoding pipWord matWord)
   exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
 
 theorem spotIlksBodyCoreDecodeFailed_short

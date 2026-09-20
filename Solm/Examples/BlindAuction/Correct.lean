@@ -10,6 +10,7 @@ import Solm.Examples.BlindAuction.RevealEnd
 import Solm.Examples.BlindAuction.HighestBidder
 import Solm.Examples.BlindAuction.HighestBid
 import EVMReasoning.Initcode
+import Solm.Reasoning.Constructor
 
 /-!
 # BlindAuction — top-level correctness proof
@@ -256,29 +257,35 @@ theorem blindAuctionDeployment_shape {args : List Value} {deployedInitcode : Byt
   | cons arg rest =>
       cases rest with
       | nil =>
-          cases arg <;>
-            simp [genSolidityConstructorDeployment, encodeABIValues?, encodeABIValuesFrom?,
-              abiTupleHeadSize?, uint256, addr, uint256Int, staticABIEncodedSize?,
-              isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+          have hlen := genSolidityConstructorDeployment_length h
+          simp at hlen
       | cons arg2 rest =>
           cases rest with
           | nil =>
-              cases arg <;> cases arg2 <;>
-                simp [genSolidityConstructorDeployment, encodeABIValues?,
-                  encodeABIValuesFrom?, abiTupleHeadSize?, uint256, addr, uint256Int,
-                  staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+              have hlen := genSolidityConstructorDeployment_length h
+              simp at hlen
           | cons arg3 rest =>
               cases rest with
               | cons arg4 rest =>
-                  cases arg <;> cases arg2 <;> cases arg3 <;>
-                    simp [genSolidityConstructorDeployment, encodeABIValues?,
-                      encodeABIValuesFrom?, abiTupleHeadSize?, uint256, addr, uint256Int,
-                      staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+                  have hlen := genSolidityConstructorDeployment_length h
+                  simp at hlen
               | nil =>
-                  cases arg <;> cases arg2 <;> cases arg3 <;>
-                    simp [genSolidityConstructorDeployment, encodeABIValues?,
-                      encodeABIValuesFrom?, abiTupleHeadSize?, uint256, addr, uint256Int,
-                      staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+                  -- wrong constructors fail to encode; each split leaves only the well-typed shape
+                  cases arg <;> try (simp [genSolidityConstructorDeployment, encodeABIValues?,
+                    encodeABIValuesFrom?, abiTupleHeadSize?, uint256, addr, uint256Int,
+                    staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?,
+                    Option.bind_eq_some_iff, Option.map_eq_some_iff] at h; done)
+                  cases arg2 <;> try (simp [genSolidityConstructorDeployment, encodeABIValues?,
+                    encodeABIValuesFrom?, abiTupleHeadSize?, uint256, addr, uint256Int,
+                    staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?,
+                    Option.bind_eq_some_iff, Option.map_eq_some_iff] at h; done)
+                  cases arg3 <;> try (simp [genSolidityConstructorDeployment, encodeABIValues?,
+                    encodeABIValuesFrom?, abiTupleHeadSize?, uint256, addr, uint256Int,
+                    staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?,
+                    Option.bind_eq_some_iff, Option.map_eq_some_iff] at h; done)
+                  simp [genSolidityConstructorDeployment, encodeABIValues?,
+                    encodeABIValuesFrom?, abiTupleHeadSize?, uint256, addr, uint256Int,
+                    staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
                   rename_i biddingTime revealTime beneficiaryAddress
                   by_cases hbid :
                       0 ≤ biddingTime ∧ biddingTime < Int.ofNat (EVM.twoPow 256)

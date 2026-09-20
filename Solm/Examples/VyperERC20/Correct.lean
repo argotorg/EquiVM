@@ -17,6 +17,7 @@ import EVMReasoning.Initcode
 import EVMReasoning.Memory
 import Solm.Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
+import Solm.Reasoning.Constructor
 
 /-!
 # Vyper ERC20 — correctness entrypoints
@@ -89,11 +90,8 @@ theorem erc20Deployment_shape {args : List Value} {deployedInitcode : ByteArray}
   | cons arg rest =>
       cases rest with
       | cons arg2 rest =>
-          cases arg <;>
-            simp [config, vyperERC20Config, genSolidityConstructorDeployment, erc20Contract,
-              ERC20.erc20Contract, ERC20.constructorDecl, encodeABIValues?, encodeABIValuesFrom?,
-              abiTupleHeadSize?, uint256, uint256Int, ERC20.uint256, ERC20.uint256Int,
-              staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+          have hlen := genSolidityConstructorDeployment_length h
+          simp [erc20Contract, ERC20.erc20Contract, ERC20.constructorDecl] at hlen
       | nil =>
           cases arg with
           | int i =>
@@ -137,14 +135,16 @@ theorem erc20Deployment_shape {args : List Value} {deployedInitcode : ByteArray}
                 isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
           | array xs =>
               simp [config, vyperERC20Config, genSolidityConstructorDeployment, erc20Contract,
-                ERC20.erc20Contract, ERC20.constructorDecl, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
-                uint256, ERC20.uint256, ERC20.uint256Int, staticABIEncodedSize?,
-                isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+                ERC20.erc20Contract, ERC20.constructorDecl, encodeABIValues?, encodeABIValuesFrom?,
+                abiTupleHeadSize?, uint256, ERC20.uint256, ERC20.uint256Int, staticABIEncodedSize?,
+                isDynamicABIType, encodeABIValue?, encodeABIWord?, Option.bind_eq_some_iff,
+                Option.map_eq_some_iff] at h
           | tuple xs =>
               simp [config, vyperERC20Config, genSolidityConstructorDeployment, erc20Contract,
-                ERC20.erc20Contract, ERC20.constructorDecl, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
-                uint256, ERC20.uint256, ERC20.uint256Int, staticABIEncodedSize?,
-                isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+                ERC20.erc20Contract, ERC20.constructorDecl, encodeABIValues?, encodeABIValuesFrom?,
+                abiTupleHeadSize?, uint256, ERC20.uint256, ERC20.uint256Int, staticABIEncodedSize?,
+                isDynamicABIType, encodeABIValue?, encodeABIWord?, Option.bind_eq_some_iff,
+                Option.map_eq_some_iff] at h
           | fixedBytes n bs =>
               simp [config, vyperERC20Config, genSolidityConstructorDeployment, erc20Contract,
                 ERC20.erc20Contract, ERC20.constructorDecl, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,

@@ -138,7 +138,7 @@ theorem evalExpr_tellSrcsLength {cA gh bl σ σ₀ A I} {g : Sat256} :
   change
     (match storageLocLoad
       (initState cA gh bl σ σ₀ g A I) (wordLoc ⟨2⟩) with
-    | Value.int n => EvalResult.ok (Value.int n)
+    | ABIValue.int n => EvalResult.ok (Value.int n)
     | _ => EvalResult.error EvalError.storageError) =
       EvalResult.ok (Value.int ↑(cureSlotWord ⟨2⟩ σ I).toNat)
   rw [cureStorageLocLoad_uint256]

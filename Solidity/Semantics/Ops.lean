@@ -326,12 +326,12 @@ def storageTyOf : Ty → Option Solm.StorageType
 def readScalar (cfg : Config) (env : TypeEnv) (evm : EVM.State) (er : Solm.EvaledStorageRef) (ty : Ty) :
     Option Value := do
   let loc ← cfg.storage.layout er evm
-  scalarOfSolm env ty (Storage.storageLocLoad evm loc)
+  scalarOfAbi env ty (Storage.storageLocLoad evm loc)
 
 def writeScalar (cfg : Config) (evm : EVM.State) (er : Solm.EvaledStorageRef) (v : Value) :
     Option EVM.State := do
   let loc ← cfg.storage.layout er evm
-  let sv ← scalarToSolm v
+  let sv ← scalarToAbi v
   Storage.storageLocStore evm loc sv
 
 def liftRead {α} : Option (Storage.StorageReadResult α) → Op α
@@ -681,17 +681,17 @@ def abiTyOfValue (env : TypeEnv) (h : Heap) : Value → Option ABIType
     | none => none
   | v => (v.ty?).bind (abiTypeOf env)
 
-/-- Convert arguments to declared parameter types and into the `Solm.Value` domain. -/
+/-- Convert arguments to declared parameter types and into the ABI domain. -/
 def abiArgs (cfg : Config) (env : TypeEnv) (m : Machine) (tys : List Ty) (vs : List Value) :
-    Op (List Solm.Value × Machine) := do
+    Op (List ABIValue × Machine) := do
   if tys.length ≠ vs.length then Op.stuck
   (tys.zip vs).foldlM (fun (acc, m) (ty, v) => do
     let (v', m') ← coerce cfg env m v ty (some .memory)
     let some sv := toAbi m'.heap fuelDefault v' | Op.stuck
-    pure (acc ++ [sv], m')) (([] : List Solm.Value), m)
+    pure (acc ++ [sv], m')) (([] : List ABIValue), m)
 
 /-- Bind ABI-decoded values to parameters, allocating reference types. -/
-def bindParams (env : TypeEnv) (fr : Frame) (h : Heap) (params : List Param) (vs : List Solm.Value) :
+def bindParams (env : TypeEnv) (fr : Frame) (h : Heap) (params : List Param) (vs : List ABIValue) :
     Option (Frame × Heap) := do
   if params.length ≠ vs.length then none
   (params.zip vs).foldlM (fun (fr, h) (p, sv) => do

@@ -994,7 +994,7 @@ theorem cGBodyReverts_overflow (evm : EVM.State) (I : ExecutionEnv)
       (cEvalArgs_v evm I) cLookupF (cBindFArg I) (cFBodyReverts_overflow evm I hwv hover)
 
 theorem cUint256ReturnEncoding (I : ExecutionEnv) :
-    encodeReturnValue? Reuse.uint256 (cFResultValue I) =
+    encodeReturnValue? Reuse.uint256 (.int (Int.ofNat (cFResultWord I).toNat)) =
       some (UInt256.toByteArray (cFResultWord I)) := by
   exact uint256ReturnEncoding (cFResultWord I)
 

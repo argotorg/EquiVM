@@ -24,24 +24,15 @@ abbrev setOperatorSpenderValue (I : ExecutionEnv) : Value :=
   .address (AccountAddress.ofNat (setOperatorSpenderWord I).toNat)
 
 abbrev setOperatorApprovedValue (I : ExecutionEnv) : Value :=
-  wordToElem .bool (setOperatorApprovedWord I)
+  Value.ofABI (wordToElem .bool (setOperatorApprovedWord I))
 
 theorem erc6909WordToElem_bool_scalar (word : UInt256) :
-    match wordToElem .bool word with
+    match Value.ofABI (wordToElem .bool word) with
     | .struct _ _ => False
     | .array _ => False
     | .bytes _ => False
     | _ => True := by
-  change
-    match
-        (if (word.val == 0) = true then
-          Value.bool false
-        else
-          Value.bool true) with
-    | .struct _ _ => False
-    | .array _ => False
-    | .bytes _ => False
-    | _ => True
+  unfold wordToElem
   by_cases h : (word.val == 0) = true <;> simp [h]
 
 theorem assignStorageRef_storage_bool_word {cfg : Config} {solm : Frame}
@@ -52,10 +43,10 @@ theorem assignStorageRef_storage_bool_word {cfg : Config} {solm : Frame}
     (hty : storageTypeAt? solm.contract.storage er = some ty)
     (hloc : cfg.storage.layout er = fun _ => some loc)
     (hstore : storageLocStore evm loc (wordToElem .bool word) = some evm') :
-    assignStorageRef? cfg solm evm .storage slot (wordToElem .bool word) =
+    assignStorageRef? cfg solm evm .storage slot (Value.ofABI (wordToElem .bool word)) =
       .ok (solm, evm') := by
   exact assignStorageRef_storage_scalar_value hbase her hty hloc
-    (erc6909WordToElem_bool_scalar word) hstore
+    (erc6909WordToElem_bool_scalar word) hstore (wordToElem_bool_roundTrip word)
 
 abbrev setOperatorStore (I : ExecutionEnv) : Store :=
   ((∅ : Store).insert "spender" (setOperatorSpenderValue I)).insert "approved"

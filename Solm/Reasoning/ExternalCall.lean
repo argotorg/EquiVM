@@ -63,13 +63,13 @@ private theorem accountMapEquiv_of_accountMapExtensionalEq {σ τ : AccountMap}
     Instantiate the Solm existentials with the EVM witnesses; `Θ`'s determinism does the rest.
     Generic over the config / callee name / arguments (value `0`). -/
 theorem callCoincides {cfg : Config} {evm : EVM.State} {name : Ident} {args : List Value}
-    {tgt : EVM.Address} {targetWord : UInt256}
+    {abiArgs : List ABIValue} {tgt : EVM.Address} {targetWord : UInt256}
     {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {A' A_in : Substate}
     {z : Bool} {o : ByteArray} {g'' callGas : UInt256}
     {mem : ByteArray} {inOff inSize : UInt256} {callPerm : Bool}
     (hdepth : evm.executionEnv.depth ≠ 1024)
     (htgt : tgt = AccountAddress.ofUInt256 targetWord)
-    (hcd : cfg.externalABI.encode? name args
+    (hcd : cfg.externalABI.encode? name abiArgs
             = some (mem.readWithPadding inOff.toNat inSize.toNat))
     (hΘ : (cA', σ', g'', A', z, o) =
         Ethereum.EVM.Θ evm.executionEnv.blobVersionedHashes evm.createdAccounts evm.genesisBlockHeader
@@ -78,14 +78,15 @@ theorem callCoincides {cfg : Config} {evm : EVM.State} {name : Ident} {args : Li
           (AccountAddress.ofUInt256 targetWord) (toExecute evm.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat) (evm.executionEnv.depth + 1)
-          evm.executionEnv.header callPerm) :
+          evm.executionEnv.header callPerm)
+    (hargs : Value.toABIList? args = some abiArgs := by rfl) :
     typedCallViaEVM cfg evm tgt name 0 args
       (z, { evm with accountMap := σ', substate := A', createdAccounts := cA' }, o)
       callPerm := by
   -- rewrite the EVM `Θ`-link into the Solm form (round-trip sender, `tgt`)
   have h := hΘ
   rw [accountAddress_roundtrip, ← htgt] at h
-  exact ⟨mem.readWithPadding inOff.toNat inSize.toNat, hcd,
+  exact ⟨abiArgs, mem.readWithPadding inOff.toNat inSize.toNat, hargs, hcd,
     callViaEVM.callMade (perm := callPerm) wordOfInt_zero.symm ⟨callGas, A_in, h⟩ rfl
       (by show (⟨0⟩ : UInt256) ≤ _; exact Fin.zero_le _) hdepth⟩
 
@@ -94,7 +95,7 @@ theorem typedCallViaEVM_executionEnv_eq {cfg : Config} {evm evm' : EVM.State}
     {z : Bool} {out : ByteArray} {perm : Bool}
     (hcall : typedCallViaEVM cfg evm target name value args (z, evm', out) perm) :
     evm'.executionEnv = evm.executionEnv := by
-  obtain ⟨_calldata, _hencode, hraw⟩ := hcall
+  obtain ⟨_abiArgs, _calldata, _hargs, _hencode, hraw⟩ := hcall
   cases hraw with
   | callMade _hvalue _hTheta hevm' _hvalue' _hdepth =>
       subst hevm'
@@ -122,7 +123,7 @@ theorem typedCallViaEVM_static_accountStorageStateEq {cfg : Config} {evm evm' : 
     {z : Bool} {out : ByteArray}
     (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
     accountStorageStateEq evm.accountMap evm'.accountMap := by
-  obtain ⟨_calldata, _hencode, hraw⟩ := hcall
+  obtain ⟨_abiArgs, _calldata, _hargs, _hencode, hraw⟩ := hcall
   exact callViaEVM_static_accountStorageStateEq hraw
 
 theorem callViaEVM_static_accountCodeStateEq {evm evm' : EVM.State}
@@ -144,7 +145,7 @@ theorem typedCallViaEVM_static_accountCodeStateEq {cfg : Config} {evm evm' : EVM
     {z : Bool} {out : ByteArray}
     (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
     accountCodeStateEq evm.accountMap evm'.accountMap := by
-  obtain ⟨_calldata, _hencode, hraw⟩ := hcall
+  obtain ⟨_abiArgs, _calldata, _hargs, _hencode, hraw⟩ := hcall
   exact callViaEVM_static_accountCodeStateEq hraw
 
 theorem typedCallViaEVM_static_storage_findD_of_accountMapEquiv {cfg : Config}
@@ -283,7 +284,7 @@ theorem typedCallViaEVM_accountMapEquiv {cfg : Config} {evm_evm evm_solm evm'_ev
               createdAccounts := evm'_evm.createdAccounts },
           out) callPerm ∧
       accountMapEquiv evm'_evm.accountMap σ'_solm := by
-  obtain ⟨calldata, hdecode, hcall⟩ := hcall
+  obtain ⟨abiArgs, calldata, hargs, hdecode, hcall⟩ := hcall
   have h_ext_eq : accountMapExtensionalEq evm_evm.accountMap evm_solm.accountMap :=
     accountMapExtensionalEq_of_accountMapEquiv hAccounts
   cases hcall with
@@ -309,7 +310,7 @@ theorem typedCallViaEVM_accountMapEquiv {cfg : Config} {evm_evm evm_solm evm'_ev
     use σ'_solm
     use A'_solm
     constructor
-    · refine ⟨calldata, hdecode, ?_⟩
+    · refine ⟨abiArgs, calldata, hargs, hdecode, ?_⟩
       exact callViaEVM.callMade (perm := callPerm) hvalue
         ⟨callGas, A_in, hTheta_s⟩ rfl (by
         rw [hEnv]
@@ -323,7 +324,7 @@ theorem typedCallViaEVM_accountMapEquiv {cfg : Config} {evm_evm evm_solm evm'_ev
     use evm_solm.accountMap
     use A'
     constructor
-    · refine ⟨calldata, hdecode, ?_⟩
+    · refine ⟨abiArgs, calldata, hargs, hdecode, ?_⟩
       apply callViaEVM.callNotMade (perm := callPerm)
       · rfl
       · simp [A', hCreated, hevm']
@@ -342,12 +343,13 @@ target word; per-function lemmas only need to prove the concrete ABI calldata eq
 theorem typedCallViaEVM_callMade_accountMapEquiv {cfg : Config}
     {evm_evm evm_solm : EVM.State}
     {tgt : EVM.Address} {targetWord : UInt256} {name : Ident} {args : List Value}
+    {abiArgs : List ABIValue}
     {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {A' A_in : Substate}
     {z : Bool} {out : ByteArray} {g'' callGas : UInt256}
     {mem : ByteArray} {inOff inSize : UInt256} {callPerm : Bool}
     (hdepth : evm_evm.executionEnv.depth ≠ 1024)
     (htgt : tgt = AccountAddress.ofUInt256 targetWord)
-    (hcd : cfg.externalABI.encode? name args =
+    (hcd : cfg.externalABI.encode? name abiArgs =
       some (mem.readWithPadding inOff.toNat inSize.toNat))
     (hΘ : (cA', σ', g'', A', z, out) =
         Ethereum.EVM.Θ evm_evm.executionEnv.blobVersionedHashes evm_evm.createdAccounts
@@ -364,7 +366,8 @@ theorem typedCallViaEVM_callMade_accountMapEquiv {cfg : Config}
     (hGenesis : evm_solm.genesisBlockHeader = evm_evm.genesisBlockHeader)
     (hBlocks : evm_solm.blocks = evm_evm.blocks)
     (hSubstate : evm_solm.substate = evm_evm.substate)
-    (hEnv : evm_solm.executionEnv = evm_evm.executionEnv) :
+    (hEnv : evm_solm.executionEnv = evm_evm.executionEnv)
+    (hargs : Value.toABIList? args = some abiArgs := by rfl) :
     ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
       typedCallViaEVM cfg evm_solm tgt name 0 args
         (z,
@@ -383,7 +386,7 @@ theorem typedCallViaEVM_callMade_accountMapEquiv {cfg : Config}
       (A' := A') (A_in := A_in) (z := z) (o := out)
       (g'' := g'') (callGas := callGas) (mem := mem)
       (inOff := inOff) (inSize := inSize) (callPerm := callPerm)
-      hdepth htgt hcd hΘ
+      hdepth htgt hcd hΘ (hargs := hargs)
   simpa using
     typedCallViaEVM_accountMapEquiv
       (evm_solm := evm_solm) hcallE hAccounts hOriginalAccounts hCreated hGenesis hBlocks
@@ -488,11 +491,11 @@ theorem callViaEVM_accountMapEquiv_perm {storage : StorageLayout}
       accountMapEquiv evm'_evm.accountMap σ'_solm := by
   let cfg := rawCallTransportConfig storage calldata
   have htyped : typedCallViaEVM cfg evm_evm tgt "" value [] (z, evm'_evm, out) callPerm :=
-    ⟨calldata, rfl, hcall⟩
+    ⟨[], calldata, rfl, rfl, hcall⟩
   obtain ⟨σ'_solm, A'_solm, htyped_solm, hσ'⟩ :=
     typedCallViaEVM_accountMapEquiv htyped hAccounts hOriginalAccounts hCreated hGenesis hBlocks
       hSubstate hEnv
-  rcases htyped_solm with ⟨calldata', henc, hraw⟩
+  rcases htyped_solm with ⟨_, calldata', _, henc, hraw⟩
   simp only [cfg, rawCallTransportConfig] at henc
   cases henc
   exact ⟨σ'_solm, A'_solm, hraw, hσ'⟩
@@ -572,13 +575,15 @@ theorem callViaEVM_initState_accountMapEquiv {storage : StorageLayout}
     `callNotMade` branch — `(false, evm[substate], ∅)` — independent of value/balance.  Generic over
     config / callee name / arguments (value `0`). -/
 theorem callNotMade_depthLimit {cfg : Config} {evm : EVM.State} {tgt : EVM.Address}
-    {name : Ident} {args : List Value} {calldata : ByteArray} {callPerm : Bool}
-    (hcd : cfg.externalABI.encode? name args = some calldata)
-    (hdepth : evm.executionEnv.depth = 1024) :
+    {name : Ident} {args : List Value} {abiArgs : List ABIValue} {calldata : ByteArray}
+    {callPerm : Bool}
+    (hcd : cfg.externalABI.encode? name abiArgs = some calldata)
+    (hdepth : evm.executionEnv.depth = 1024)
+    (hargs : Value.toABIList? args = some abiArgs := by rfl) :
     typedCallViaEVM cfg evm tgt name 0 args
       (false, { evm with substate := (evm.addAccessedAccount tgt).substate }, ByteArray.empty)
       callPerm := by
-  refine ⟨calldata, hcd, ?_⟩
+  refine ⟨abiArgs, calldata, hargs, hcd, ?_⟩
   apply callViaEVM.callNotMade (perm := callPerm) rfl rfl
   rintro ⟨_, hne⟩
   exact hne hdepth

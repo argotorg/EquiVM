@@ -1104,7 +1104,7 @@ theorem flipperBidsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     have henc :
         returnEquiv (bidsReturnData σ_evm I) (some (bidsReturnValues σ_evm I))
           bidsTransition.returnType := by
-      exact returnEquiv.returned rfl (bidsReturnEncoding σ_evm I)
+      exact returnEquiv.returned rfl rfl (bidsReturnEncoding σ_evm I)
     exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
   · have hshort : I.calldata.size < 36 := by
       omega

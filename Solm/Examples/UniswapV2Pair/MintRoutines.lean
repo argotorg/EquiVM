@@ -118,7 +118,7 @@ theorem evalExpr_mintFunction_totalSupply
     (her := evalStorageRef_mintFunction_totalSupply evm recipient value)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm ⟨0⟩)
+  exact congrArg (fun v => (EvalResult.ok (Value.ofABI v) : EvalResult Value)) (uniswapStorageLocLoad_uint256 evm ⟨0⟩)
 
 set_option maxHeartbeats 1000000 in
 theorem evalExpr_mintFunction_totalSupply_add

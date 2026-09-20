@@ -26,7 +26,7 @@ def errorStringData (msg : ByteArray) : ByteArray :=
 def selectorOf (sigStr : String) : ByteArray := (ffi.KEC sigStr.toUTF8).extract 0 4
 
 /-- `abi.encodeWithSelector(E.selector, args)` for a custom error. -/
-def customErrorData (sigStr : String) (tys : List ABI.ABIType) (args : List Solm.Value) :
+def customErrorData (sigStr : String) (tys : List ABI.ABIType) (args : List ABI.ABIValue) :
     Option ByteArray :=
   ABI.encodeCallWithSelector? (selectorOf sigStr) tys args
 

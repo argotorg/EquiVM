@@ -19,7 +19,7 @@ a **total** header decode.  This is the same hook shape as `Benchmarks/WETH9/Str
 duplicated here to keep the benchmark self-contained.
 -/
 
-open Solm Ethereum
+open Solm ABI Ethereum
 
 namespace Benchmarks.Klima
 
@@ -49,7 +49,7 @@ def klimaBytesBaseSlotAndLength?
     words).  Never reverts. -/
 def klimaReadBytesValue?
     (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
-    (er : EvaledStorageRef) (evm : EVM.State) : StorageReadResult Value :=
+    (er : EvaledStorageRef) (evm : EVM.State) : StorageReadResult ABIValue :=
   match klimaBytesBaseSlotAndLength? layout er evm with
   | .ok (baseSlot, len) =>
       if len < 32 then
@@ -67,7 +67,7 @@ def klimaReadBytesValue?
 def klimaReadValue?
     (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
     (er : EvaledStorageRef) (ty : StorageType) (evm : EVM.State) :
-    Option (StorageReadResult Value) :=
+    Option (StorageReadResult ABIValue) :=
   match ty with
   | .bytes | .string => some (klimaReadBytesValue? layout er evm)
   | _ => none
@@ -109,7 +109,7 @@ def klimaWriteBytesValue?
     (so non-string writes are definitionally unchanged). -/
 def klimaWriteValue?
     (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
-    (er : EvaledStorageRef) (ty : StorageType) (value : Value) (evm : EVM.State) :
+    (er : EvaledStorageRef) (ty : StorageType) (value : ABIValue) (evm : EVM.State) :
     Option (StorageReadResult EVM.State) :=
   match ty, value with
   | .bytes, .bytes bytes => some (klimaWriteBytesValue? layout er bytes evm)

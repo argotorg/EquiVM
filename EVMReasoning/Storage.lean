@@ -3,6 +3,7 @@ import EVMReasoning.Memory
 import EVMReasoning.Solc
 import EVMReasoning.Stepping
 import Storage.SolcLayout
+import Solm.Value
 import Refinement.AccountEquiv
 import Ethereum.Theory.StaticStorage
 import Ethereum.Theory.StorageExtensionality
@@ -26,7 +27,7 @@ Contract-agnostic layers, bottom up:
 The `UInt256` `compare` instances these rely on live in `Reasoning.EVMWord`.
 -/
 
-open Ethereum Ethereum.EVM Solm Storage Refinement
+open Ethereum Ethereum.EVM ABI Solm Storage Refinement
 
 namespace Reasoning.Theory
 
@@ -171,7 +172,7 @@ theorem storageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
   rw [htake]
   exact fromBytes'_toBytesLEWithSizeProof _
 
-theorem storageLocStore_bytes32 (evm : EVM.State) (slot word : UInt256) (v : Value)
+theorem storageLocStore_bytes32 (evm : EVM.State) (slot word : UInt256) (v : ABIValue)
     (hval : valueToWord v = some word) :
     storageLocStore evm (bytes32Loc slot) v =
       some (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot word) := by
@@ -203,7 +204,7 @@ theorem storageLocLoad_uint_offset0 (evm : EVM.State) (slot : UInt256)
         (UInt256.ofNat (2 ^ (8 * size.val) - 1))).toNat) := by
   unfold storageLocLoad wordToElem
   simp only [Fin.val_zero, Nat.zero_add]
-  change Value.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
+  change ABIValue.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
     (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 size.val))) = _
   rw [List.extract_eq_take_drop, List.drop_zero]
   simpa [Nat.sub_zero] using
@@ -222,7 +223,7 @@ theorem storageLocLoad_uint_offset (evm : EVM.State) (slot : UInt256)
           (UInt256.ofNat (256 ^ offset.val)))
         (UInt256.ofNat (256 ^ size.val - 1))).toNat) := by
   unfold storageLocLoad wordToElem
-  change Value.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
+  change ABIValue.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
     (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract
       offset.val (offset.val + size.val)))) = _
   rw [List.extract_eq_take_drop]
@@ -358,7 +359,7 @@ theorem storageLocLoad_address_offset0 (evm : EVM.State) (slot : UInt256) :
           solcAddrMask).toNat) := by
   unfold storageLocLoad addressOffset0Loc wordToElem
   simp only [Fin.val_zero, Nat.zero_add]
-  change Value.address (AccountAddress.ofNat
+  change ABIValue.address (AccountAddress.ofNat
       (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
         (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 20))) = _
   rw [List.extract_eq_take_drop, List.drop_zero]
@@ -483,7 +484,7 @@ theorem storageLocLoad_address_offset1 (evm : EVM.State) (slot : UInt256)
           solcAddrMask).toNat) := by
   unfold storageLocLoad wordToElem
   simp only [Fin.val_one]
-  change Value.address (AccountAddress.ofNat
+  change ABIValue.address (AccountAddress.ofNat
       (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
         (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 1 21))) = _
   rw [List.extract_eq_take_drop, fromBytes'_drop1_take20_wordLE_solcAddrMask]

@@ -24,9 +24,9 @@ structure Config where
   /-- Immutable values baked into the deployed runtime code. -/
   immutables : List (Ident × Value) := []
   /-- Init code (creation bytecode ++ encoded constructor arguments) for `new C(args)`. -/
-  creationCode : Ident → List Solm.Value → Option EVM.Bytes := fun _ _ => none
+  creationCode : Ident → List ABI.ABIValue → Option EVM.Bytes := fun _ _ => none
   /-- Init code for deploying this contract itself. -/
-  selfDeployment : EVM.Bytes → List Solm.Value → Option EVM.Bytes
+  selfDeployment : EVM.Bytes → List ABI.ABIValue → Option EVM.Bytes
 
 structure Oracle where
   /-- Value of the n-th `gasleft()`. -/

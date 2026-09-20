@@ -187,12 +187,12 @@ theorem uniswapMintBalanceCallsPrefix
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1]) :
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1]) :
     ExecBlock config { contract := contract, locals := mintStore I } evm
       (lockEnter ++
         [ .letDecl "_reserve0" (some uint112) (.storage reserve0Ref),
@@ -209,6 +209,7 @@ theorem uniswapMintBalanceCallsPrefix
           evm1) := by
     simpa [mintBalanceStore, evmL] using
       uniswapCheckedTokenBalanceOfThisCallsPrefix evmL evm0 evm1 (mintReserveStore evmL I)
+        (balance0 := uniswapUint256Abi balance0) (balance1 := uniswapUint256Abi balance1)
         hguard0 hguard1
         (by simp [mintReserveStore, mintStore])
         (by simp [mintReserveStore, mintStore])
@@ -305,7 +306,7 @@ theorem uniswapMintBodyReverts_secondNoCode (evm evm0 : EVM.State) (I : Executio
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hguard1 :
       evalExpr? config
         { contract := contract,
@@ -321,7 +322,7 @@ theorem uniswapMintBodyReverts_secondNoCode (evm evm0 : EVM.State) (I : Executio
         (pairBalanceOfThisStmts "balance0" "balance1") .reverted := by
     exact uniswapCheckedTokenBalanceOfThisSecondCallNoCode
       (evm := evmL) (evm0 := evm0) (locals := mintReserveStore evmL I)
-      (balance0 := uniswapUint256Value balance0)
+      (balance0 := uniswapUint256Abi balance0)
       hguard0 hguard1 (by simp [mintReserveStore, mintStore]) hcall0 hdec0
   have hthrough := execBlock_append hprefix hfail
   exact ExecFuncBody.execBlockRevert (by
@@ -343,7 +344,7 @@ theorem uniswapMintBodyReverts_secondCallFailure
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hguard1 :
       evalExpr? config
         { contract := contract,
@@ -362,7 +363,7 @@ theorem uniswapMintBodyReverts_secondCallFailure
         (pairBalanceOfThisStmts "balance0" "balance1") .reverted := by
     exact uniswapCheckedTokenBalanceOfThisSecondCallFailure
       (evm := evmL) (evm0 := evm0) (evm1 := evm1) (locals := mintReserveStore evmL I)
-      (balance0 := uniswapUint256Value balance0)
+      (balance0 := uniswapUint256Abi balance0)
       hguard0 hguard1
       (by simp [mintReserveStore, mintStore])
       (by simp [mintReserveStore, mintStore])
@@ -387,7 +388,7 @@ theorem uniswapMintBodyReverts_secondCallDecode
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hguard1 :
       evalExpr? config
         { contract := contract,
@@ -407,7 +408,7 @@ theorem uniswapMintBodyReverts_secondCallDecode
         (pairBalanceOfThisStmts "balance0" "balance1") .reverted := by
     exact uniswapCheckedTokenBalanceOfThisSecondCallDecodeRevert
       (evm := evmL) (evm0 := evm0) (evm1 := evm1) (locals := mintReserveStore evmL I)
-      (balance0 := uniswapUint256Value balance0)
+      (balance0 := uniswapUint256Abi balance0)
       hguard0 hguard1
       (by simp [mintReserveStore, mintStore])
       (by simp [mintReserveStore, mintStore])
@@ -438,12 +439,12 @@ theorem uniswapMintBodyReverts_amount0Underflow
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (hlt0 : balance0.toNat < (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat) :
     ExecTransitionBody config contract evm (mintStore I) mintTransition.body .reverted := by
   let evmL := uniswapLockEnteredState evm
@@ -486,12 +487,12 @@ theorem uniswapMintBodyReverts_amount1Underflow
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (hlt1 : balance1.toNat < (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat) :
     ExecTransitionBody config contract evm (mintStore I) mintTransition.body .reverted := by
@@ -550,12 +551,12 @@ theorem uniswapMintAmountsPrefix
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat) :
     ExecBlock config { contract := contract, locals := mintStore I } evm
@@ -626,12 +627,12 @@ theorem uniswapMintBodyReverts_mintFeeNoCode
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfeeGuard :
@@ -679,12 +680,12 @@ theorem uniswapMintBodyReverts_mintFeeCallFailure
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfeeGuard :
@@ -734,12 +735,12 @@ theorem uniswapMintBodyReverts_mintFeeDecode
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfeeGuard :
@@ -790,12 +791,12 @@ theorem uniswapMintAfterMintFeePrefix_feeOff_kLastZero
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfeeGuard :
@@ -865,12 +866,12 @@ theorem uniswapMintAfterMintFeePrefix_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
@@ -923,12 +924,12 @@ theorem uniswapMintAfterMintFeeTotalSupplyPrefix_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
@@ -983,12 +984,12 @@ theorem uniswapMintAfterMintFeeInitialSmallRootReverts_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
@@ -1067,12 +1068,12 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffReturn_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
@@ -1259,12 +1260,12 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffCumulativeReturn_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
@@ -1458,12 +1459,12 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnReturn_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :
@@ -1667,12 +1668,12 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnCumulativeReturn_of_call
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (henough0 : (uniswapReserve0Word (uniswapLockEnteredState evm)).toNat ≤ balance0.toNat)
     (henough1 : (uniswapReserve1Word (uniswapLockEnteredState evm)).toNat ≤ balance1.toNat)
     (hfee :

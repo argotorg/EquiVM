@@ -1,6 +1,7 @@
 import Solm.Examples.TinyImmutable.Common
 import Solm.Reasoning.SolmBody
 import Solm.Equiv
+import Solm.Reasoning.Constructor
 
 /-!
 # TinyImmutable constructor correctness stub
@@ -58,26 +59,18 @@ theorem tinyCtorDeployment_shape {args : List Value} {deployedInitcode : ByteArr
   | cons arg rest =>
       cases rest with
       | nil =>
-          cases arg <;>
-            simp [config, genSolidityConstructorDeployment, contract, constructorDecl,
-              encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?, addr, uint256, uint256Int,
-              boolTy, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+          have hlen := genSolidityConstructorDeployment_length h
+          simp [contract, constructorDecl] at hlen
       | cons arg2 rest2 =>
           cases rest2 with
           | nil =>
-              cases arg <;>
-                simp [config, genSolidityConstructorDeployment, contract, constructorDecl,
-                  encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?, addr, uint256,
-                  uint256Int, boolTy, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?,
-                  encodeABIWord?] at h
+              have hlen := genSolidityConstructorDeployment_length h
+              simp [contract, constructorDecl] at hlen
           | cons arg3 rest3 =>
               cases rest3 with
               | cons _ _ =>
-                  cases arg <;>
-                    simp [config, genSolidityConstructorDeployment, contract, constructorDecl,
-                      encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?, addr, uint256,
-                      uint256Int, boolTy, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?,
-                      encodeABIWord?] at h
+                  have hlen := genSolidityConstructorDeployment_length h
+                  simp [contract, constructorDecl] at hlen
               | nil =>
                   cases arg with
                   | address owner =>
@@ -113,17 +106,17 @@ theorem tinyCtorDeployment_shape {args : List Value} {deployedInitcode : ByteArr
                                 constructorDecl, encodeABIValues?, encodeABIValuesFrom?,
                                 abiTupleHeadSize?, addr, uint256, uint256Int, boolTy,
                                 staticABIEncodedSize?, isDynamicABIType, encodeABIValue?,
-                                encodeABIWord?] at h
+                                encodeABIWord?, Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
                       | _ =>
                           simp [config, genSolidityConstructorDeployment, contract, constructorDecl,
                             encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?, addr,
                             uint256, uint256Int, boolTy, staticABIEncodedSize?, isDynamicABIType,
-                            encodeABIValue?, encodeABIWord?] at h
+                            encodeABIValue?, encodeABIWord?, Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
                   | _ =>
                       simp [config, genSolidityConstructorDeployment, contract, constructorDecl,
                         encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?, addr, uint256,
                         uint256Int, boolTy, staticABIEncodedSize?, isDynamicABIType,
-                        encodeABIValue?, encodeABIWord?] at h
+                        encodeABIValue?, encodeABIWord?, Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
 
 theorem write_from_gap_eq (src base : ByteArray) (srcAddr destAddr len : Nat)
     (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)

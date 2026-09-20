@@ -763,7 +763,7 @@ def syncTransition : TransitionDecl :=
 
 /-! ## Contract and config -/
 
-def decodeOptionalBoolOrEmpty? (out : EVM.Bytes) : Option (List Value) :=
+def decodeOptionalBoolOrEmpty? (out : EVM.Bytes) : Option (List ABIValue) :=
   if out.size = 0 then
     some []
   else
@@ -775,10 +775,10 @@ def decodeOptionalBoolOrEmpty? (out : EVM.Bytes) : Option (List Value) :=
 -- read of the staticcall output (empty returndata from the precompile ⇒ zero word), so the
 -- model decode is total.
 open Ethereum Ethereum.EVM in
-def decodeEcrecoverOutput? (out : EVM.Bytes) : Option (List Value) :=
+def decodeEcrecoverOutput? (out : EVM.Bytes) : Option (List ABIValue) :=
   some [.address (AccountAddress.ofNat (fromByteArrayBigEndian (out.readWithPadding 0 32)))]
 
-def encodeEcrecoverInput? (args : List Value) : Option EVM.Bytes := do
+def encodeEcrecoverInput? (args : List ABIValue) : Option EVM.Bytes := do
   let payload <- ABI.encodeABIValues? [bytes32, uint8, bytes32, bytes32] args
   some payload.toByteArray
 

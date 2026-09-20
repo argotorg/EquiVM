@@ -356,7 +356,7 @@ def transferFromOperatorWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
     ⟨255⟩
 
 abbrev transferFromOperatorValue (evm : EVM.State) (I : ExecutionEnv) : Value :=
-  wordToElem .bool (transferFromOperatorWord evm I)
+  Value.ofABI (wordToElem .bool (transferFromOperatorWord evm I))
 
 def transferFromCurrentAllowanceWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (transferFromAllowanceSlot evm I)

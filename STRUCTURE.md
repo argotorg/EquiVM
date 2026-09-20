@@ -6,7 +6,8 @@ that language.
 
 ```
 EVM/            EVMLean glue (state, semantics, lemmas).
-ABI/            ABI types, signatures, static words, encoder and decoder.
+ABI/            ABI types, signatures, static words, the values the ABI carries (`ABIValue`),
+                encoder and decoder.
 Storage/        Storage locations and typed slot access (`Basic.lean`); solc's `bytes`/`string`
                 representation and the layout record it plugs into (`SolcLayout.lean`).
 Refinement/     Account-map equivalence (`AccountEquiv.lean`); return conventions, the Ξ result
@@ -26,13 +27,17 @@ below them and never each other. Proofs of a language live under that language.
 Lake: `Solm` and `Solidity` are declared by root module only, so `lake build Solm` builds the
 language, not its proofs; proofs are explicit targets (see `.github/workflows/ci.yml`).
 
+The shared value type is `ABI.ABIValue`: the encoder, decoder, typed slot access and the lemma
+files are stated on it, and each language converts at its boundaries (`Solm.Value.ofABI` /
+`Solm.Value.toABI?`, `Solidity.toAbi` / `Solidity.ofAbi`). Sol⁻ binds decoded calldata to parameter
+names in `Solm.decodeCalldata`, whose store-shaped facts (`Solm/Reasoning/ABI.lean`) are corollaries
+of the positional `decodeCalldataValues_*` facts in `EVMReasoning/ABI.lean`.
+
 ## Known violations, to be removed in the next pass
 
-- `Storage/`, `ABI/Encode`, `ABI/Decode` and `EVMReasoning/{ABI,Storage}.lean` are typed on
-  `Solm.Value`, and the layout record is keyed on Sol⁻'s `EvaledStorageRef`/`StorageType`. The
-  next pass introduces `ABI.Value` (the ABI-encodable values) as the shared boundary type, makes
-  the layout record generic in the path type, and states the `bytes`/`string` representation on
-  locations; Sol⁻ then converts at its boundaries like Solidity already does.
+- The layout record (`Storage.StorageLayout`) is keyed on Sol⁻'s `EvaledStorageRef`/`StorageType`,
+  and mapping keys are Sol⁻'s `KeyValue`. The next pass makes the layout record generic in the path
+  type and states the `bytes`/`string` representation on locations.
 - `Solidity/Examples/ERC20` imports `Solm.Examples.ERC20.Correct` for the bytecode traces, and the
   harness imports pinned bytecode from `Solm/Examples/*/Bytecode.lean`. Pinned bytecode belongs in
   a shared `Contracts/` tree; that move waits on restating the per-contract selector axioms on

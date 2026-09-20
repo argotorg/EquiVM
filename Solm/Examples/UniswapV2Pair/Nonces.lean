@@ -81,7 +81,7 @@ theorem uniswapNoncesBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             EvalResult.ofOption, bind, pure, evalExpr?])
         (hty := by rfl)
         (hloc := by rfl)]
-      exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm (noncesStorageSlot I)))
+      exact congrArg (fun v => (EvalResult.ok (Value.ofABI v) : EvalResult Value)) (uniswapStorageLocLoad_uint256 evm (noncesStorageSlot I)))
 
 /-! ## EVM trace -/
 
@@ -190,7 +190,7 @@ theorem uniswapNoncesBodyCoreOk
   exact (uniswapX_nonces_ok (g := Sat256.ofUInt256 g) hsz36 hsize hreach)
     |>.reEquivExecutionTransport hcode hdispatch hdecode hbody (by rw [← hword])
       hAccounts
-      (returnEquiv_of_encode
+      (returnEquiv_of_encode (arv := .int (Int.ofNat (noncesWord σ_evm I).toNat))
         (by simpa [uint256] using uint256ReturnEncoding (noncesWord σ_evm I)))
 
 /-- Short-calldata decode-failure refinement slice for `nonces(address)`.

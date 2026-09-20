@@ -164,7 +164,7 @@ theorem uniswapSkimBodyDecoded
               simpa [evmS, hzTrue] using hcallAll
             have hdec0 :
                 config.externalABI.decode? "balanceOf" o =
-                  some [skimBalanceValue balance0] := by
+                  some [skimBalanceAbi balance0] := by
               simpa [balance0] using uniswapSkimBalanceOfDecode_ok (returndata := o) ho32
             let reserve0E := UInt256.land
               (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩)
@@ -657,7 +657,7 @@ theorem uniswapSkimBodyDecoded
                           UInt256.ofNat (fromByteArrayBigEndian (out2.extract 0 32))
                         have hdec1 :
                             config.externalABI.decode? "balanceOf" out2 =
-                              some [skimBalanceValue balance1] := by
+                              some [skimBalanceAbi balance1] := by
                           simpa [balance1] using
                             uniswapSkimBalanceOfDecode_ok (returndata := out2) ho32_2
                         let reserve1E :=
@@ -1414,7 +1414,7 @@ theorem uniswapSkimBodyDecoded
                                 UInt256.ofNat (fromByteArrayBigEndian (out2.extract 0 32))
                               have hdec1 :
                                   config.externalABI.decode? "balanceOf" out2 =
-                                    some [skimBalanceValue balance1] := by
+                                    some [skimBalanceAbi balance1] := by
                                 simpa [balance1] using
                                   uniswapSkimBalanceOfDecode_ok (returndata := out2) ho32_2
                               let reserve1E :=

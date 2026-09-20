@@ -295,7 +295,7 @@ theorem decodeCalldata_set_none_headShort {I : ExecutionEnv}
     decodeCalldata (setTransition.params.map Param.name)
       (transitionSignature setTransition).paramTypes I.calldata = none := by
   show decodeCalldata ["value"] [.string] I.calldata = none
-  unfold decodeCalldata
+  unfold decodeCalldata decodeCalldataValues?
   have htlen : I.calldata.toList.length = I.calldata.size := by
     rw [byteArray_toList_eq, Array.length_toList]; rfl
   have hlen4 : ¬ I.calldata.toList.length < 4 := by
@@ -323,9 +323,9 @@ theorem decodeCalldata_set_none_headShort {I : ExecutionEnv}
   by_cases htotalHuge :
       ABI.solcTotalSizeDynamicGuard [ABIType.string] = true ∧
         2 ^ 255 ≤ I.calldata.toList.length
-  · rw [if_pos htotalHuge]
+  · rw [if_pos htotalHuge]; rfl
   · rw [if_neg htotalHuge]
-    simp [decodeCalldata.decodeArgs, ABI.abiTupleHeadSize?, ABI.decodeABIValues?,
+    simp [decodeCalldataValues?.decodeArgs, ABI.abiTupleHeadSize?, ABI.decodeABIValues?,
       ABI.isDynamicABIType, hread, bind, Option.bind_none, Option.bind_some]
 
 theorem decodeCalldata_set_none_huge {I : ExecutionEnv}
@@ -403,7 +403,7 @@ theorem decodeCalldata_string_some {cd : ByteArray} {x : Solm.Ident}
       some ((∅ : Store).insert x (.bytes (ByteArray.mk
         (((cd.toList.drop 4).drop ((calldataWord cd 4).toNat + 32)).take
           (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat).toArray))) := by
-  unfold decodeCalldata
+  unfold decodeCalldata decodeCalldataValues?
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]; rfl
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
@@ -425,7 +425,7 @@ theorem decodeCalldata_string_some {cd : ByteArray} {x : Solm.Ident}
   have hnotHeadShort : ¬ cd.toList.length - 4 < 32 := by
     rw [htlen]
     omega
-  simp [decodeCalldata.decodeArgs, decodeCalldata.insertValues, decodeABIValues?,
+  simp [decodeCalldataValues?.decodeArgs, decodeCalldata.insertValues, decodeABIValues?,
     decodeABIValue?, isDynamicABIType, abiTupleHeadSize?, ABI.solcMaxLen, hreadOff, hoffMax,
     hreadLen, hlenMax, hpayloadRead, hnotHeadShort]
 

@@ -125,7 +125,7 @@ theorem swapRecipientValid_iff_runtime {evm : EVM.State} {I : ExecutionEnv} {σ 
       UInt256.land (swapToMaskedWord I) solcAddrMask ≠ UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) := by
   have hto : AccountAddress.ofNat (swapToWord I).toNat = AccountAddress.ofUInt256 (swapToMaskedWord I) := by
     rw [accountAddress_ofUInt256_eq_ofNat_toNat]
-    exact Value.address.inj (solcAddressValue_masked (swapToWord I))
+    exact ABIValue.address.inj (solcAddressValue_masked (swapToWord I))
   have hcTo : (swapToMaskedWord I).toNat < EVM.addressModulus := by
     rw [swapToMaskedWord, u256_land_comm]
     exact solcAddrMask_result_canonical _

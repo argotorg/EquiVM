@@ -81,7 +81,7 @@ theorem uniswapBalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             EvalResult.ofOption, bind, pure, evalExpr?])
         (hty := by rfl)
         (hloc := by rfl)]
-      exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm (balanceOfStorageSlot I)))
+      exact congrArg (fun v => (EvalResult.ok (Value.ofABI v) : EvalResult Value)) (uniswapStorageLocLoad_uint256 evm (balanceOfStorageSlot I)))
 
 /-! ## EVM trace -/
 
@@ -190,7 +190,7 @@ theorem uniswapBalanceOfBodyCoreOk
   exact (uniswapX_balanceOf_ok (g := Sat256.ofUInt256 g) hsz36 hsize hreach)
     |>.reEquivExecutionTransport hcode hdispatch hdecode hbody (by rw [← hword])
       hAccounts
-      (returnEquiv_of_encode
+      (returnEquiv_of_encode (arv := .int (Int.ofNat (balanceOfWord σ_evm I).toNat))
         (by simpa [uint256] using uint256ReturnEncoding (balanceOfWord σ_evm I)))
 
 /-- Short-calldata decode-failure refinement slice for `balanceOf(address)`.

@@ -32,6 +32,10 @@ abbrev skimStore (I : ExecutionEnv) : Store :=
 abbrev skimBalanceValue (balance : UInt256) : Value :=
   uniswapUint256Value balance
 
+/-- ABI twin of `skimBalanceValue` (decoder position). -/
+abbrev skimBalanceAbi (balance : UInt256) : ABIValue :=
+  uniswapUint256Abi balance
+
 def skimTokenSlot (i : Fin 2) : UInt256 :=
   match i.val with
   | 0 => ⟨6⟩

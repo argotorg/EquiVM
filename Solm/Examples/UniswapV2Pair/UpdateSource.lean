@@ -366,6 +366,10 @@ abbrev syncBlockTimestampInt (evm : EVM.State) : Int :=
 abbrev syncBlockTimestampValue (evm : EVM.State) : Value :=
   .int (syncBlockTimestampInt evm)
 
+/-- ABI twin of `syncBlockTimestampValue` (storage-leaf position). -/
+abbrev syncBlockTimestampAbi (evm : EVM.State) : ABIValue :=
+  .int (syncBlockTimestampInt evm)
+
 abbrev syncBlockTimestampStore (evm : EVM.State) (balance0 balance1 : UInt256) : Store :=
   (syncBalanceStore balance0 balance1).insert "blockTimestamp" (syncBlockTimestampValue evm)
 
@@ -650,42 +654,48 @@ theorem uniswapStorageLocStore_word_int_some
   exact ⟨_, rfl⟩
 
 theorem uniswapAssignPrice0CumulativeLastOfStore
-    (evm evm' : EVM.State) (locals : Store) (value : Value)
+    (evm evm' : EVM.State) (locals : Store) (value : Value) {av : ABIValue}
     (hbase : locals.get? "price0CumulativeLast" = none)
     (hscalar : match value with | .struct _ _ | .array _ => False | _ => True)
-    (hstore : storageLocStore evm (wordLoc ⟨9⟩) value = some evm') :
+    (hstore : storageLocStore evm (wordLoc ⟨9⟩) av = some evm')
+    (hconv : value.toABI? = some av := by rfl) :
     assignStorageRef? config { contract := contract, locals := locals } evm .storage
       price0CumulativeLastRef value =
         .ok ({ contract := contract, locals := locals }, evm') := by
   apply assignStorageRef_storage_scalar_value
       (er := ({ base := "price0CumulativeLast", steps := [] } : EvaledStorageRef))
-      (ty := uint256St) (loc := wordLoc ⟨9⟩)
+      (ty := uint256St) (loc := wordLoc ⟨9⟩) (av := av) (hconv := hconv)
   · simpa [price0CumulativeLastRef] using hbase
   · simp [evalStorageRef, evalStorageRefSteps, price0CumulativeLastRef, EvalResult.bind,
       pure, bind]
   · rfl
   · rfl
   · cases value <;> simp at hscalar ⊢
+    simp at hconv
+    subst hconv
     simp [storageLocStore, valueToWord] at hstore
   · exact hstore
 
 theorem uniswapAssignPrice1CumulativeLastOfStore
-    (evm evm' : EVM.State) (locals : Store) (value : Value)
+    (evm evm' : EVM.State) (locals : Store) (value : Value) {av : ABIValue}
     (hbase : locals.get? "price1CumulativeLast" = none)
     (hscalar : match value with | .struct _ _ | .array _ => False | _ => True)
-    (hstore : storageLocStore evm (wordLoc ⟨10⟩) value = some evm') :
+    (hstore : storageLocStore evm (wordLoc ⟨10⟩) av = some evm')
+    (hconv : value.toABI? = some av := by rfl) :
     assignStorageRef? config { contract := contract, locals := locals } evm .storage
       price1CumulativeLastRef value =
         .ok ({ contract := contract, locals := locals }, evm') := by
   apply assignStorageRef_storage_scalar_value
       (er := ({ base := "price1CumulativeLast", steps := [] } : EvaledStorageRef))
-      (ty := uint256St) (loc := wordLoc ⟨10⟩)
+      (ty := uint256St) (loc := wordLoc ⟨10⟩) (av := av) (hconv := hconv)
   · simpa [price1CumulativeLastRef] using hbase
   · simp [evalStorageRef, evalStorageRefSteps, price1CumulativeLastRef, EvalResult.bind,
       pure, bind]
   · rfl
   · rfl
   · cases value <;> simp at hscalar ⊢
+    simp at hconv
+    subst hconv
     simp [storageLocStore, valueToWord] at hstore
   · exact hstore
 
@@ -1188,6 +1198,12 @@ theorem syncBlockTimestampValue_eq_updateTimestampWord (evm : EVM.State) :
       (by norm_num [UInt256.size])
   rw [Nat.mod_eq_of_lt hsmall]
   norm_num [twoPow32]
+
+/-- ABI twin of `syncBlockTimestampValue_eq_updateTimestampWord`. -/
+theorem syncBlockTimestampAbi_eq_updateTimestampWord (evm : EVM.State) :
+    syncBlockTimestampAbi evm =
+      uniswapUint256Abi (uniswapUpdateTimestampWord evm.executionEnv) :=
+  congrArg ABIValue.int (Value.int.inj (syncBlockTimestampValue_eq_updateTimestampWord evm))
 
 theorem uint32MaskedSub_toInt (a b : UInt256)
     (ha : a.toNat < 2 ^ 32) (hb : b.toNat < 2 ^ 32) :

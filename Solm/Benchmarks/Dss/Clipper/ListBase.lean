@@ -293,7 +293,7 @@ theorem clipperReadActiveArray (v : ClipperImmutables) (evm : EVM.State) :
       ({ base := "active", steps := [.length] } : EvaledStorageRef) evm with
     | some lenLoc =>
         match storageLocLoad evm lenLoc with
-        | Value.int len => do
+        | ABIValue.int len => do
             let vs <- readArrayElems? (config v) evm
               ({ base := "active", steps := [] } : EvaledStorageRef) uint256St 0 len.toNat
             pure (Value.array vs)

@@ -67,7 +67,7 @@ theorem uniswapPairBalanceCallRuntimeCases
             decodeReturnValueWithMode_legacy_uint256_none_short (returndata := out) hshort
         exact checkedExternalCallDecodeRevert (retVar := retVar) hguard hreceiver hargs hcall hdec
     · refine Or.inr ⟨evm', σ', cA', out, kr, Cr, ?_, ha', hc', hs', hg', hb', he'.trans he, ho32, hout, rdRet⟩
-      exact checkedExternalCallSuccess (value := [uniswapUint256Value
+      exact checkedExternalCallSuccess (value := [uniswapUint256Abi
         (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))])
         (retVar := retVar) hguard hreceiver hargs (by simpa only [hz] using hcall) (uniswapBalanceOfDecode_ok ho32)
 

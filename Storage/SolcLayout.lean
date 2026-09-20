@@ -1,7 +1,6 @@
 import EVM.Types
 import ABI.Types
 import ABI.Encode
-import Solm.Value
 import Storage.Basic
 
 /-!
@@ -132,7 +131,7 @@ def readSolidityBytesDataWordsFrom (evm : EVM.State) (baseSlot : EVM.Word)
 
 def solidityReadBytesValue?
     (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
-    (er : EvaledStorageRef) (evm : EVM.State) : StorageReadResult Value :=
+    (er : EvaledStorageRef) (evm : EVM.State) : StorageReadResult ABIValue :=
   match solidityBytesBaseSlotAndLength? layout er evm with
   | .ok (baseSlot, len) =>
       if len < 32 then
@@ -201,7 +200,7 @@ def solidityWriteBytesValue?
 
 def solidityWriteValue?
     (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
-    (er : EvaledStorageRef) (ty : StorageType) (value : Value) (evm : EVM.State) :
+    (er : EvaledStorageRef) (ty : StorageType) (value : ABIValue) (evm : EVM.State) :
     Option (StorageReadResult EVM.State) :=
   match ty, value with
   | .bytes, .bytes bytes => some (solidityWriteBytesValue? layout er bytes evm)
@@ -211,7 +210,7 @@ def solidityWriteValue?
 def solidityReadValue?
     (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
     (er : EvaledStorageRef) (ty : StorageType) (evm : EVM.State) :
-    Option (StorageReadResult Value) :=
+    Option (StorageReadResult ABIValue) :=
   match ty with
   | .bytes | .string => some (solidityReadBytesValue? layout er evm)
   | _ => none

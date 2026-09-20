@@ -122,7 +122,7 @@ theorem uniswapMintBody
                 simpa [evmS, hzTrue] using hcallAll
               have hdec0 :
                   config.externalABI.decode? "balanceOf" o =
-                    some [uniswapUint256Value balance0] := by
+                    some [uniswapUint256Abi balance0] := by
                 simpa [balance0] using
                   uniswapBalanceOfDecode_ok (returndata := o) ho32
               obtain ⟨_, _, rd3505⟩ := hcont hzTrue ho32
@@ -204,7 +204,7 @@ theorem uniswapMintBody
                       simpa [hz1True] using hcall1All
                     have hdec1 :
                         config.externalABI.decode? "balanceOf" o1 =
-                          some [uniswapUint256Value balance1] := by
+                          some [uniswapUint256Abi balance1] := by
                       simpa [balance1] using
                         uniswapBalanceOfDecode_ok (returndata := o1) ho132
                     obtain ⟨_, _, rd3630⟩ := hcont1 hz1True ho132

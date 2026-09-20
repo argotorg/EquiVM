@@ -836,27 +836,27 @@ theorem uniswapUpdateFunctionReturns_conditionTrue_packed
       (setUint112Offset14Word
         (Solm.EVM.storageLoad evmR0 evmR0.executionEnv.codeOwner ⟨8⟩) balance1)
   have hstoreP0 :
-      storageLocStore evm (wordLoc ⟨9⟩) (syncPrice0CumulativeValueAt evm evm) =
+      storageLocStore evm (wordLoc ⟨9⟩) (.int (syncPrice0CumulativeIntAt evm evm)) =
         some evmP0 := by
-    simpa [evmP0, syncPrice0CumulativeValueAt] using
+    simpa [evmP0] using
       uniswapStorageLocStore_word_int evm ⟨9⟩ (syncPrice0CumulativeIntAt evm evm)
   have hstoreP1 :
-      storageLocStore evmP0 (wordLoc ⟨10⟩) (syncPrice1CumulativeValueAt evmP0 evm) =
+      storageLocStore evmP0 (wordLoc ⟨10⟩) (.int (syncPrice1CumulativeIntAt evmP0 evm)) =
         some evmP1 := by
-    simpa [evmP1, syncPrice1CumulativeValueAt] using
+    simpa [evmP1] using
       uniswapStorageLocStore_word_int evmP0 ⟨10⟩ (syncPrice1CumulativeIntAt evmP0 evm)
   have hstoreR0 :
-      storageLocStore evmP1 (uint112Loc0 ⟨8⟩) (uniswapUint256Value balance0) =
+      storageLocStore evmP1 (uint112Loc0 ⟨8⟩) (uniswapUint256Abi balance0) =
         some evmR0 := by
     simpa [evmR0] using uniswapStorageLocStore_uint112_offset0 evmP1 ⟨8⟩ balance0
   have hstoreR1 :
-      storageLocStore evmR0 (uint112Loc14 ⟨8⟩) (uniswapUint256Value balance1) =
+      storageLocStore evmR0 (uint112Loc14 ⟨8⟩) (uniswapUint256Abi balance1) =
         some evmR1 := by
     simpa [evmR1] using uniswapStorageLocStore_uint112_offset14 evmR0 ⟨8⟩ balance1
   have hstoreTs :
-      storageLocStore evmR1 (uint32Loc28 ⟨8⟩) (syncBlockTimestampValue evm) =
+      storageLocStore evmR1 (uint32Loc28 ⟨8⟩) (syncBlockTimestampAbi evm) =
         some (syncUpdateCumulativePackedReserveState evm balance0 balance1) := by
-    rw [syncBlockTimestampValue_eq_updateTimestampWord evm]
+    rw [syncBlockTimestampAbi_eq_updateTimestampWord evm]
     simpa [syncUpdateCumulativePackedReserveState, evmP0, evmP1, evmR0, evmR1] using
       uniswapStorageLocStore_uint32_offset28 evmR1 ⟨8⟩
         (uniswapUpdateTimestampWord evm.executionEnv)
@@ -990,31 +990,31 @@ theorem uniswapUpdateFunctionReturns_conditionTrue_packed_with
         (Solm.EVM.storageLoad evmR0 evmR0.executionEnv.codeOwner ⟨8⟩) balance1)
   have hstoreP0 :
       storageLocStore evm (wordLoc ⟨9⟩)
-          (syncPrice0CumulativeValueAtWith evm evm reserve0 reserve1) =
+          (.int (syncPrice0CumulativeIntAtWith evm evm reserve0 reserve1)) =
         some evmP0 := by
-    simpa [evmP0, syncPrice0CumulativeValueAtWith] using
+    simpa [evmP0] using
       uniswapStorageLocStore_word_int evm ⟨9⟩
         (syncPrice0CumulativeIntAtWith evm evm reserve0 reserve1)
   have hstoreP1 :
       storageLocStore evmP0 (wordLoc ⟨10⟩)
-          (syncPrice1CumulativeValueAtWith evmP0 evm reserve0 reserve1) =
+          (.int (syncPrice1CumulativeIntAtWith evmP0 evm reserve0 reserve1)) =
         some evmP1 := by
-    simpa [evmP1, syncPrice1CumulativeValueAtWith] using
+    simpa [evmP1] using
       uniswapStorageLocStore_word_int evmP0 ⟨10⟩
         (syncPrice1CumulativeIntAtWith evmP0 evm reserve0 reserve1)
   have hstoreR0 :
-      storageLocStore evmP1 (uint112Loc0 ⟨8⟩) (uniswapUint256Value balance0) =
+      storageLocStore evmP1 (uint112Loc0 ⟨8⟩) (uniswapUint256Abi balance0) =
         some evmR0 := by
     simpa [evmR0] using uniswapStorageLocStore_uint112_offset0 evmP1 ⟨8⟩ balance0
   have hstoreR1 :
-      storageLocStore evmR0 (uint112Loc14 ⟨8⟩) (uniswapUint256Value balance1) =
+      storageLocStore evmR0 (uint112Loc14 ⟨8⟩) (uniswapUint256Abi balance1) =
         some evmR1 := by
     simpa [evmR1] using uniswapStorageLocStore_uint112_offset14 evmR0 ⟨8⟩ balance1
   have hstoreTs :
-      storageLocStore evmR1 (uint32Loc28 ⟨8⟩) (syncBlockTimestampValue evm) =
+      storageLocStore evmR1 (uint32Loc28 ⟨8⟩) (syncBlockTimestampAbi evm) =
         some (syncUpdateCumulativePackedReserveStateWith evm balance0 balance1 reserve0
           reserve1) := by
-    rw [syncBlockTimestampValue_eq_updateTimestampWord evm]
+    rw [syncBlockTimestampAbi_eq_updateTimestampWord evm]
     simpa [syncUpdateCumulativePackedReserveStateWith, evmP0, evmP1, evmR0, evmR1] using
       uniswapStorageLocStore_uint32_offset28 evmR1 ⟨8⟩
         (uniswapUpdateTimestampWord evm.executionEnv)
@@ -1180,13 +1180,13 @@ theorem uniswapSyncBodyReturns_conditionTrue_packed (evm evm0 evm1 : EVM.State)
       "balanceOf" 0 [.address (uniswapLockEnteredState evm).executionEnv.codeOwner]
       (true, evm0, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 =
-      some [uniswapUint256Value balance0])
+      some [uniswapUint256Abi balance0])
     (hguard1 : syncToken1GuardTrue evm0 (uniswapUint256Value balance0))
     (hcall1 : typedCallViaEVM config evm0
       (EVM.address (uniswapAddressAtSlot evm0 ⟨7⟩)) "balanceOf" 0
       [.address evm0.executionEnv.codeOwner] (true, evm1, out1) false)
     (hdec1 : config.externalABI.decode? "balanceOf" out1 =
-      some [uniswapUint256Value balance1])
+      some [uniswapUint256Abi balance1])
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
     (helapsed : 0 < syncTimeElapsedInt evm1)
@@ -1198,7 +1198,7 @@ theorem uniswapSyncBodyReturns_conditionTrue_packed (evm evm0 evm1 : EVM.State)
         none) := by
   have hbalances := uniswapSyncBalanceOfCallsPrefix
     (evm := evm) (evm0 := evm0) (evm1 := evm1)
-    (balance0 := uniswapUint256Value balance0) (balance1 := uniswapUint256Value balance1)
+    (balance0 := uniswapUint256Abi balance0) (balance1 := uniswapUint256Abi balance1)
     hwv hunlocked hguard0 hcall0 hdec0 hguard1 hcall1 hdec1
   have hupdateStmt :=
     uniswapSyncUpdateCallReturns_conditionTrue_packed evm1 balance0 balance1 hbound0

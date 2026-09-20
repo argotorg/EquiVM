@@ -59,8 +59,10 @@ theorem uniswapPermitBodyCoreOk_afterNonce
   let evmNonceS := permitAfterNonceState evmS I
   let recoveredValue : Value :=
     .address (AccountAddress.ofNat (fromByteArrayBigEndian (o.extract 0 32)))
-  have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredValue] := by
-    simpa [recoveredValue] using uniswapEcrecoverDecode_ok (returndata := o) ho32
+  let recoveredAbi : ABIValue :=
+    .address (AccountAddress.ofNat (fromByteArrayBigEndian (o.extract 0 32)))
+  have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredAbi] := by
+    simpa [recoveredAbi] using uniswapEcrecoverDecode_ok (returndata := o) ho32
   have hnzSource : recoveredValue ≠ .address (AccountAddress.ofNat 0) := by
     simpa [recoveredValue] using permitRecoveredAddress_ne_zero_of_mask_ne_zero ho32 hnz
   have hmatchSource : recoveredValue = permitOwnerValue I := by
@@ -75,7 +77,7 @@ theorem uniswapPermitBodyCoreOk_afterNonce
           (permitApprovePostState evmCallS I)) := by
     exact uniswapPermitAfterNonceSuccessAt (base := evmS) (cur := evmNonceS)
       (cur' := evmCallS) (I := I) (structHash := permitStructHashValue σ_solm I)
-      (digest := permitDigestValue σ_solm I) (recovered := recoveredValue) (out := o)
+      (digest := permitDigestValue σ_solm I) (recovered := recoveredAbi) (out := o)
       (by simpa [evmS, evmNonceS] using hstruct)
       (by simpa [evmS, evmNonceS] using hdigest)
       hcall hdec hnzSource hmatchSource
@@ -187,8 +189,10 @@ theorem uniswapPermitBodyCoreOk_afterNonce_short
   let evmNonceS := permitAfterNonceState evmS I
   let recoveredValue : Value :=
     .address (AccountAddress.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)))
-  have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredValue] := by
-    simpa [recoveredValue] using uniswapEcrecoverDecode_padded (returndata := o)
+  let recoveredAbi : ABIValue :=
+    .address (AccountAddress.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)))
+  have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredAbi] := by
+    simpa [recoveredAbi] using uniswapEcrecoverDecode_padded (returndata := o)
   have hnzSource : recoveredValue ≠ .address (AccountAddress.ofNat 0) := by
     simpa [recoveredValue] using permitRecoveredPaddedAddress_ne_zero_of_mask_ne_zero hnz
   have hmatchSource : recoveredValue = permitOwnerValue I := by
@@ -203,7 +207,7 @@ theorem uniswapPermitBodyCoreOk_afterNonce_short
           (permitApprovePostState evmCallS I)) := by
     exact uniswapPermitAfterNonceSuccessAt (base := evmS) (cur := evmNonceS)
       (cur' := evmCallS) (I := I) (structHash := permitStructHashValue σ_solm I)
-      (digest := permitDigestValue σ_solm I) (recovered := recoveredValue) (out := o)
+      (digest := permitDigestValue σ_solm I) (recovered := recoveredAbi) (out := o)
       (by simpa [evmS, evmNonceS] using hstruct)
       (by simpa [evmS, evmNonceS] using hdigest)
       hcall hdec hnzSource hmatchSource
@@ -373,8 +377,10 @@ theorem uniswapPermitBodyCoreRevert_zero_afterNonce
   let evmNonceS := permitAfterNonceState evmS I
   let recoveredValue : Value :=
     .address (AccountAddress.ofNat (fromByteArrayBigEndian (o.extract 0 32)))
-  have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredValue] := by
-    simpa [recoveredValue] using uniswapEcrecoverDecode_ok (returndata := o) ho32
+  let recoveredAbi : ABIValue :=
+    .address (AccountAddress.ofNat (fromByteArrayBigEndian (o.extract 0 32)))
+  have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredAbi] := by
+    simpa [recoveredAbi] using uniswapEcrecoverDecode_ok (returndata := o) ho32
   have hzeroSource : recoveredValue = .address (AccountAddress.ofNat 0) := by
     simpa [recoveredValue] using permitRecoveredAddress_eq_zero_of_mask_eq_zero ho32 hzero
   have hrest :
@@ -382,7 +388,7 @@ theorem uniswapPermitBodyCoreRevert_zero_afterNonce
         evmNonceS permitAfterNonceBody .reverted := by
     exact uniswapPermitAfterNonceRequireZeroRevertAt (base := evmS) (cur := evmNonceS)
       (cur' := evmCallS) (I := I) (structHash := permitStructHashValue σ_solm I)
-      (digest := permitDigestValue σ_solm I) (recovered := recoveredValue) (out := o)
+      (digest := permitDigestValue σ_solm I) (recovered := recoveredAbi) (out := o)
       (by simpa [evmS, evmNonceS] using hstruct)
       (by simpa [evmS, evmNonceS] using hdigest)
       hcall hdec hzeroSource
@@ -448,8 +454,9 @@ theorem uniswapPermitBodyCoreRevert_mismatch_afterNonce
   let evmNonceS := permitAfterNonceState evmS I
   let recoveredAddr := AccountAddress.ofNat (fromByteArrayBigEndian (o.extract 0 32))
   let recoveredValue : Value := .address recoveredAddr
-  have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredValue] := by
-    simpa [recoveredValue, recoveredAddr] using uniswapEcrecoverDecode_ok (returndata := o) ho32
+  let recoveredAbi : ABIValue := .address recoveredAddr
+  have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredAbi] := by
+    simpa [recoveredAbi, recoveredAddr] using uniswapEcrecoverDecode_ok (returndata := o) ho32
   have hnzValue : recoveredValue ≠ .address (AccountAddress.ofNat 0) := by
     simpa [recoveredValue, recoveredAddr] using
       permitRecoveredAddress_ne_zero_of_mask_ne_zero ho32 hnz
@@ -465,7 +472,7 @@ theorem uniswapPermitBodyCoreRevert_mismatch_afterNonce
         evmNonceS permitAfterNonceBody .reverted := by
     exact uniswapPermitAfterNonceRequireMismatchRevertAt (base := evmS) (cur := evmNonceS)
       (cur' := evmCallS) (I := I) (structHash := permitStructHashValue σ_solm I)
-      (digest := permitDigestValue σ_solm I) (recovered := recoveredValue) (out := o)
+      (digest := permitDigestValue σ_solm I) (recovered := recoveredAbi) (out := o)
       (recoveredAddr := recoveredAddr)
       (by simpa [evmS, evmNonceS] using hstruct)
       (by simpa [evmS, evmNonceS] using hdigest)
@@ -530,8 +537,10 @@ theorem uniswapPermitBodyCoreRevert_zero_afterNonce_short
   let evmNonceS := permitAfterNonceState evmS I
   let recoveredValue : Value :=
     .address (AccountAddress.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)))
-  have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredValue] := by
-    simpa [recoveredValue] using uniswapEcrecoverDecode_padded (returndata := o)
+  let recoveredAbi : ABIValue :=
+    .address (AccountAddress.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32)))
+  have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredAbi] := by
+    simpa [recoveredAbi] using uniswapEcrecoverDecode_padded (returndata := o)
   have hzeroSource : recoveredValue = .address (AccountAddress.ofNat 0) := by
     simpa [recoveredValue] using permitRecoveredPaddedAddress_eq_zero_of_mask_eq_zero hzero
   have hrest :
@@ -539,7 +548,7 @@ theorem uniswapPermitBodyCoreRevert_zero_afterNonce_short
         evmNonceS permitAfterNonceBody .reverted := by
     exact uniswapPermitAfterNonceRequireZeroRevertAt (base := evmS) (cur := evmNonceS)
       (cur' := evmCallS) (I := I) (structHash := permitStructHashValue σ_solm I)
-      (digest := permitDigestValue σ_solm I) (recovered := recoveredValue) (out := o)
+      (digest := permitDigestValue σ_solm I) (recovered := recoveredAbi) (out := o)
       (by simpa [evmS, evmNonceS] using hstruct)
       (by simpa [evmS, evmNonceS] using hdigest)
       hcall hdec hzeroSource
@@ -607,8 +616,9 @@ theorem uniswapPermitBodyCoreRevert_mismatch_afterNonce_short
   let evmNonceS := permitAfterNonceState evmS I
   let recoveredAddr := AccountAddress.ofNat (fromByteArrayBigEndian (o.readWithPadding 0 32))
   let recoveredValue : Value := .address recoveredAddr
-  have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredValue] := by
-    simpa [recoveredValue, recoveredAddr] using uniswapEcrecoverDecode_padded (returndata := o)
+  let recoveredAbi : ABIValue := .address recoveredAddr
+  have hdec : config.externalABI.decode? "ecrecover" o = some [recoveredAbi] := by
+    simpa [recoveredAbi, recoveredAddr] using uniswapEcrecoverDecode_padded (returndata := o)
   have hnzValue : recoveredValue ≠ .address (AccountAddress.ofNat 0) := by
     simpa [recoveredValue, recoveredAddr] using
       permitRecoveredPaddedAddress_ne_zero_of_mask_ne_zero hnz
@@ -624,7 +634,7 @@ theorem uniswapPermitBodyCoreRevert_mismatch_afterNonce_short
         evmNonceS permitAfterNonceBody .reverted := by
     exact uniswapPermitAfterNonceRequireMismatchRevertAt (base := evmS) (cur := evmNonceS)
       (cur' := evmCallS) (I := I) (structHash := permitStructHashValue σ_solm I)
-      (digest := permitDigestValue σ_solm I) (recovered := recoveredValue) (out := o)
+      (digest := permitDigestValue σ_solm I) (recovered := recoveredAbi) (out := o)
       (recoveredAddr := recoveredAddr)
       (by simpa [evmS, evmNonceS] using hstruct)
       (by simpa [evmS, evmNonceS] using hdigest)

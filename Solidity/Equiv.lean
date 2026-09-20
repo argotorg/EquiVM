@@ -25,7 +25,7 @@ abbrev EVMResult := Except Ethereum.EVM.ExecutionException
     (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate))
 
 /-- Equivalence of returned data; return slots always exist, so there is no fall-through case. -/
-inductive returnDataEquiv (o : ByteArray) (vs : List Solm.Value) : Refinement.ReturnConvention → Prop where
+inductive returnDataEquiv (o : ByteArray) (vs : List ABIValue) : Refinement.ReturnConvention → Prop where
   | abi {tys} : encodeReturnValues? tys vs = some o → returnDataEquiv o vs (.abi tys)
   | rawBytes : vs = [.bytes o] → returnDataEquiv o vs .rawBytes
 
@@ -193,7 +193,7 @@ inductive ctorResultEquiv (evmRes : EVMResult) (res : CtorResult)
     res = .reverted out →
     ctorResultEquiv evmRes res runtimeCodeOf
 
-inductive constructorEquivalenceFor (cfg : Config) (fc : FlatContract) (args : List Solm.Value)
+inductive constructorEquivalenceFor (cfg : Config) (fc : FlatContract) (args : List ABIValue)
     (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
     (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
     (σ_evm σ_spec σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
@@ -214,7 +214,7 @@ inductive constructorEquivalence (cfg : Config) (initcode : ByteArray) (fc : Fla
     (∀ (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
       (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
       (σ_evm σ_spec σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-      (I : Ethereum.ExecutionEnv) (args : List Solm.Value) (deployedInitcode : ByteArray),
+      (I : Ethereum.ExecutionEnv) (args : List ABIValue) (deployedInitcode : ByteArray),
     cfg.selfDeployment initcode args = .some deployedInitcode →
     I.code = deployedInitcode →
     I.calldata = .empty →
@@ -272,7 +272,7 @@ theorem ctorResultEquiv.core {evmRes res runtimeCodeOf} (h : ctorResultEquiv evm
   | success h1 h2 h3 h4 _ h6 => exact .success h1 h2 h3 h4 h6
   | revert h1 h2 => exact .revert h1 h2
 
-inductive constructorEquivalenceForCore (cfg : Config) (fc : FlatContract) (args : List Solm.Value)
+inductive constructorEquivalenceForCore (cfg : Config) (fc : FlatContract) (args : List ABIValue)
     (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
     (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
     (σ_evm σ_spec σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
@@ -301,7 +301,7 @@ inductive constructorEquivalenceCore (cfg : Config) (initcode : ByteArray) (fc :
     (∀ (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
       (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
       (σ_evm σ_spec σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
-      (I : Ethereum.ExecutionEnv) (args : List Solm.Value) (deployedInitcode : ByteArray),
+      (I : Ethereum.ExecutionEnv) (args : List ABIValue) (deployedInitcode : ByteArray),
     cfg.selfDeployment initcode args = .some deployedInitcode →
     I.code = deployedInitcode →
     I.calldata = .empty →

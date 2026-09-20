@@ -83,10 +83,10 @@ def flapKickSelector : ByteArray := selectorBytes 0xca 0x40 0xc4 0x19
 def flopCageSelector : ByteArray := selectorBytes 0x69 0x24 0x50 0x09
 def flopKickSelector : ByteArray := selectorBytes 0xb7 0xe9 0xcd 0x24
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 ty out).map (fun v => [v])
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) :=
   some []
 
 def vowExternalABI : ExternalCallABI where

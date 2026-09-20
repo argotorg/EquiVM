@@ -9,8 +9,8 @@ namespace Solm
 open ABI
 
 structure ExternalCallABI where
-  encode? : Ident -> List Value -> Option EVM.Bytes
-  decode? : Ident -> EVM.Bytes-> Option (List Value)
+  encode? : Ident -> List ABI.ABIValue -> Option EVM.Bytes
+  decode? : Ident -> EVM.Bytes-> Option (List ABI.ABIValue)
 
 structure Config where
   storage : StorageLayout

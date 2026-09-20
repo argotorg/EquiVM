@@ -369,7 +369,7 @@ theorem withdrawPendingReturns_load (evm : EVM.State) (locals : Store)
     (hty := withdrawPendingReturns_storageType)
     (hloc := blindAuctionConfig_storage_pendingReturns (withdrawSenderKey evm.executionEnv))]
   simpa [withdrawAmountSlot] using
-    withdrawStorageLocLoad_uint256 evm (withdrawAmountSlot evm.executionEnv)
+    congrArg Value.ofABI (withdrawStorageLocLoad_uint256 evm (withdrawAmountSlot evm.executionEnv))
 
 theorem withdrawPendingReturns_clear (evm : EVM.State) (locals : Store)
     (hbase : locals[(pendingReturnsRef sender).base]? = none) :

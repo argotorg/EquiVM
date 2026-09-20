@@ -14,47 +14,34 @@ theorem erc20Args_allowance_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.siz
     (hbig : I.calldata.size < 2 ^ 255 + 4) (hcanon0 : (allowanceOwnerWord I).toNat < EVM.addressModulus)
     (hcanon1 : (allowanceSpenderWord I).toNat < EVM.addressModulus) :
     decodeArgs erc20Cfg erc20Flat.types fnAllowance.decl I.calldata =
-      some [allowanceOwnerValue I, allowanceSpenderValue I] := by
+      some [.address (AccountAddress.ofNat (allowanceOwnerWord I).toNat),
+        .address (AccountAddress.ofNat (allowanceSpenderWord I).toNat)] := by
   rw [decodeArgs_unfold _ _ sigAllowance sigOf_allowance]
-  have h := decodeCalldata_address_address_ok (cd := I.calldata) (x := "arg0") (y := "arg1") hsz68 hbig hcanon0 hcanon1
-  simp only [fnAllowance, List.zipIdx, List.map, paramName, Option.getD, sigAllowance]
-  rw [h]
-  simp [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, allowanceOwnerValue, allowanceSpenderValue,
-    allowanceOwnerWord, allowanceSpenderWord, calldataWord, -getElem?_pos, -getElem?_neg]
-  exact ⟨rfl, rfl⟩
+  exact decodeCalldataValues_address_address_ok hsz68 hbig hcanon0 hcanon1
 
 theorem erc20Args_allowance_none_short {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size)
     (hshort : I.calldata.size < 68) :
     decodeArgs erc20Cfg erc20Flat.types fnAllowance.decl I.calldata = none := by
   rw [decodeArgs_unfold _ _ sigAllowance sigOf_allowance]
-  simp only [fnAllowance, List.zipIdx, List.map, paramName, Option.getD, sigAllowance]
-  rw [decodeCalldata_address_address_none_short (cd := I.calldata) (x := "arg0") (y := "arg1") hsz4 hshort]
-  rfl
+  exact decodeCalldataValues_address_address_none_short hsz4 hshort
 
 theorem erc20Args_allowance_none_noncanon0 {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
     (hbig : I.calldata.size < 2 ^ 255 + 4) (hnc : ¬ (allowanceOwnerWord I).toNat < EVM.addressModulus) :
     decodeArgs erc20Cfg erc20Flat.types fnAllowance.decl I.calldata = none := by
   rw [decodeArgs_unfold _ _ sigAllowance sigOf_allowance]
-  simp only [fnAllowance, List.zipIdx, List.map, paramName, Option.getD, sigAllowance]
-  rw [decodeCalldata_address_address_none_noncanon0 (cd := I.calldata) (x := "arg0") (y := "arg1") hsz68 hbig hnc]
-  rfl
+  exact decodeCalldataValues_address_address_none_noncanon0 hsz68 hbig hnc
 
 theorem erc20Args_allowance_none_noncanon1 {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
     (hbig : I.calldata.size < 2 ^ 255 + 4) (hcanon0 : (allowanceOwnerWord I).toNat < EVM.addressModulus)
     (hnc : ¬ (allowanceSpenderWord I).toNat < EVM.addressModulus) :
     decodeArgs erc20Cfg erc20Flat.types fnAllowance.decl I.calldata = none := by
   rw [decodeArgs_unfold _ _ sigAllowance sigOf_allowance]
-  simp only [fnAllowance, List.zipIdx, List.map, paramName, Option.getD, sigAllowance]
-  rw [decodeCalldata_address_address_none_noncanon1 (cd := I.calldata) (x := "arg0") (y := "arg1") hsz68 hbig
-    hcanon0 hnc]
-  rfl
+  exact decodeCalldataValues_address_address_none_noncanon1 hsz68 hbig hcanon0 hnc
 
 theorem erc20Args_allowance_none_huge {I : ExecutionEnv} (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
     decodeArgs erc20Cfg erc20Flat.types fnAllowance.decl I.calldata = none := by
   rw [decodeArgs_unfold _ _ sigAllowance sigOf_allowance]
-  simp only [fnAllowance, List.zipIdx, List.map, paramName, Option.getD, sigAllowance]
-  rw [decodeCalldata_address_address_none_huge (cd := I.calldata) (x := "arg0") (y := "arg1") hbig]
-  rfl
+  exact decodeCalldataValues_address_address_none_huge hbig
 
 /-! ## The spec derivation -/
 

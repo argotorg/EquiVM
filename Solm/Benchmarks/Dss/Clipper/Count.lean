@@ -77,7 +77,7 @@ theorem clipperEvalActiveLength (v : ClipperImmutables) (evm : EVM.State) (local
       ({ base := "active", steps := [.length] } : EvaledStorageRef) evm with
     | some lenLoc =>
         match storageLocLoad evm lenLoc with
-        | Value.int n => pure (Value.int n)
+        | ABIValue.int n => pure (Value.int n)
         | _ => EvalResult.error .storageError
     | none => EvalResult.error .storageError) =
       .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat))

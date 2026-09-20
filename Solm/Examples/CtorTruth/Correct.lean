@@ -6,6 +6,7 @@ import Solm.Reasoning.Dispatch
 import Solm.Reasoning.SolmBody
 import EVMReasoning.Reach
 import Solm.Reasoning.Reach
+import Solm.Reasoning.Constructor
 
 /-!
 # CtorTruth — whole-contract equivalence smoke test
@@ -148,8 +149,8 @@ theorem ctorTruthDeployment_args_length {args : List Value} {deployedInitcode : 
   cases args with
   | nil => rfl
   | cons arg rest =>
-      simp [ctorTruthConfig, genSolidityConstructorDeployment, CtorTruth.contract, CtorTruth.ctor,
-        encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?] at h
+      have hlen := genSolidityConstructorDeployment_length h
+      simp [CtorTruth.contract, CtorTruth.ctor] at hlen
 
 theorem ctorTruthDeployment_eq_initcode {args : List Value} {deployedInitcode : ByteArray} :
     ctorTruthConfig.selfDeployment ctorTruthInitcode args = some deployedInitcode →
@@ -161,8 +162,8 @@ theorem ctorTruthDeployment_eq_initcode {args : List Value} {deployedInitcode : 
         encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?, ByteArray.append_empty] at h
       exact h.symm
   | cons arg rest =>
-      simp [ctorTruthConfig, genSolidityConstructorDeployment, CtorTruth.contract, CtorTruth.ctor,
-        encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?] at h
+      have hlen := genSolidityConstructorDeployment_length h
+      simp [CtorTruth.contract, CtorTruth.ctor] at hlen
 
 set_option maxHeartbeats 400000 in
 theorem ctorTruthInitcodeRun {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {g : Sat256}

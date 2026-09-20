@@ -142,9 +142,10 @@ theorem transferOwnershipAssignPending (evm : EVM.State) (I : ExecutionEnv)
       some (.elem .address) := by
     decide
   have hstore :
-      storageLocStore evm (addrLoc ⟨1⟩) (transferOwnershipNewOwnerValue I) =
+      storageLocStore evm (addrLoc ⟨1⟩)
+          (.address (AccountAddress.ofNat (transferOwnershipNewOwnerWord I).toNat)) =
         some (transferOwnershipAfterPendingState evm I) := by
-    simpa [transferOwnershipAfterPendingState, transferOwnershipNewOwnerValue] using
+    simpa [transferOwnershipAfterPendingState] using
       ownable2StepStorageLocStore_address_offset0 evm ⟨1⟩
         (transferOwnershipNewOwnerWord I) hcanon
   exact assignStorageRef_storage_scalar_value (cfg := config)

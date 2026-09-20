@@ -796,7 +796,7 @@ theorem dogIlksReturnEquiv (clip chop hole dirt : UInt256) :
         (.int (Int.ofNat dirt.toNat))])
       ilksTransition.returnType := by
   rw [show ilksTransition.returnType = [addr, uint256, uint256, uint256] by rfl]
-  exact returnEquiv.returned rfl (dogIlksReturnEncoding clip chop hole dirt)
+  exact returnEquiv.returned rfl rfl (dogIlksReturnEncoding clip chop hole dirt)
 
 theorem dogReachIlksBody {v : DogImmutables} {code : ByteArray}
     {cA gh bl σ σ₀ A I} {g : Sat256}

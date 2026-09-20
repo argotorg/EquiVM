@@ -1,4 +1,5 @@
 import Solm.Equiv
+import Solm.Reasoning.ABI
 import EVMReasoning.Reach
 import Solm.Reasoning.Reach
 import EVMReasoning.Storage
@@ -248,10 +249,11 @@ theorem singleSelectorDispatch
 
 /-- The EVM return bytes `o` couple to the Solm return value `rv` whenever `o` is `rv`'s ABI
     encoding (the `returned` case of `returnEquiv`). -/
-theorem returnEquiv_of_encode {abit : ABIType} {rv : Value} {o : ByteArray}
-    (h : encodeReturnValue? abit rv = some o) :
-    returnEquiv o (some [rv]) [abit] :=
-  returnEquiv.returned rfl h
+theorem returnEquiv_of_encode {abit : ABIType} {arv : ABIValue} {o : ByteArray}
+    (h : encodeReturnValue? abit arv = some o)
+    (hrt : (Value.ofABI arv).toABI? = some arv := by rfl) :
+    returnEquiv o (some [Value.ofABI arv]) [abit] :=
+  returnEquiv.returned rfl (by simp [hrt]) h
 
 end Reasoning.Theory
 

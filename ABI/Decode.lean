@@ -1,8 +1,8 @@
 import EVM.Types
 import ABI.Types
-import Solm.Value
+import ABI.Value
 
-/-! ABI decoding of calldata and return data into Solm values, parameterized by the
+/-! ABI decoding of calldata and return data into `ABIValue`s, parameterized by the
 compiler-specific `DecodeMode` (`modern`, `legacySolc05`, `vyper`). -/
 
 namespace ABI
@@ -44,7 +44,7 @@ def solcRejectsDynamicArrayElementOffset (mode : DecodeMode) (relativeOffset : N
 def bytesToWord (bytes : List UInt8) : EVM.Word :=
   Ethereum.UInt256.ofNat <| Ethereum.fromByteArrayBigEndian <| ByteArray.mk bytes.toArray
 
-def bytesToValues (bytes : List UInt8) : List Solm.Value :=
+def bytesToValues (bytes : List UInt8) : List ABIValue :=
   bytes.map (λ b ↦ .int (Int.ofNat b.toNat))
 
 def readBytes? (bytes : List UInt8) (offset size : Nat) : Option (List UInt8) :=
@@ -59,24 +59,21 @@ def readNat? (bytes : List UInt8) (offset : Nat) : Option Nat := do
   let word <- readWord? bytes offset
   some word.val
 
-def rawBoolWordValue (n : Nat) : Solm.Value :=
-  .tuple [.unit, .int (Int.ofNat n)]
-
 def decodeABIRawBoolArrayElems? (n : Nat) (bytes : List UInt8) (start : Nat) :
-    Option (List Solm.Value × Nat) :=
+    Option (List ABIValue × Nat) :=
   match n with
   | 0 => some ([], start)
   | n + 1 => do
       let word <- readNat? bytes start
       let (values, restEnd) <- decodeABIRawBoolArrayElems? n bytes (start + 32)
-      some (rawBoolWordValue word :: values, restEnd)
+      some (.rawBool word :: values, restEnd)
 
 def zeroPadding? (bytes : List UInt8) (offset size : Nat) : Option Unit := do
   let padding <- readBytes? bytes offset size
   if padding.all (· == 0) then some () else none
 
 def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := DecodeMode.modern) :
-    Option Solm.Value :=
+    Option ABIValue :=
   let n : Nat := word.val
   match ty with
   | .elem .bool =>
@@ -181,7 +178,7 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
 mutual
   def decodeABIValue? (ty : ABIType) (bytes : List UInt8) (start : Nat)
       (mode : DecodeMode := DecodeMode.modern) :
-      Option (Solm.Value × Nat) :=
+      Option (ABIValue × Nat) :=
     match ty with
     | .elem _ => do
         match ty with
@@ -267,7 +264,7 @@ mutual
 
   def decodeABIArrayStaticElems? (ty : ABIType) (n elemSize : Nat)
       (bytes : List UInt8) (start : Nat) (mode : DecodeMode := DecodeMode.modern) :
-      Option (List Solm.Value × Nat) :=
+      Option (List ABIValue × Nat) :=
     match n with
     | 0 => some ([], start)
     | n + 1 => do
@@ -281,13 +278,13 @@ mutual
 
   def decodeABIArrayDynamicElems? (ty : ABIType) (n : Nat)
       (bytes : List UInt8) (base : Nat) (mode : DecodeMode := DecodeMode.modern) :
-      Option (List Solm.Value × Nat) :=
+      Option (List ABIValue × Nat) :=
     decodeABIArrayDynamicElemsFrom? ty n bytes base 0 (n * 32) (base + n * 32) mode
   termination_by (sizeOf ty, n + 1, 2)
 
   def decodeABIArrayDynamicElemsFrom? (ty : ABIType) (n : Nat)
       (bytes : List UInt8) (base headCursor headSize maxEnd : Nat)
-      (mode : DecodeMode := DecodeMode.modern) : Option (List Solm.Value × Nat) :=
+      (mode : DecodeMode := DecodeMode.modern) : Option (List ABIValue × Nat) :=
     match n with
     | 0 => some ([], maxEnd)
     | n + 1 => do
@@ -304,7 +301,7 @@ mutual
 
   def decodeABIValues? (types : List ABIType) (bytes : List UInt8)
       (base headCursor headSize maxEnd : Nat) (mode : DecodeMode := DecodeMode.modern) :
-      Option (List Solm.Value × Nat) :=
+      Option (List ABIValue × Nat) :=
     match types with
     | [] => some ([], maxEnd)
     | ty :: restTypes => do
@@ -371,8 +368,10 @@ def solcTotalSizeDynamicGuard : List ABIType → Bool
   | [.bytes] => true
   | _ => false
 
-def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : ByteArray)
-    (mode : DecodeMode := DecodeMode.modern) : Option Solm.Store :=
+/-- Decode the arguments of a call: the selector is skipped and the argument tuple decoded in
+    `mode`, positionally. -/
+def decodeCalldataValues? (types : List ABIType) (calldata : ByteArray)
+    (mode : DecodeMode := DecodeMode.modern) : Option (List ABIValue) :=
   if calldata.toList.length < 4 then
     none
   else
@@ -383,16 +382,8 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
     if types.any isDynamicABIType = true ∧ 2 ^ 255 ≤ calldata.toList.length then
       match mode with
       | DecodeMode.modern => none
-      | DecodeMode.vyper =>
-          let decoded := decodeArgs names types argsArray ∅
-          match decoded with
-          | some (store, _) => some store
-          | none => none
-      | DecodeMode.legacySolc05 =>
-          let decoded := decodeArgs names types argsArray ∅
-          match decoded with
-          | some (store, _) => some store
-          | none => none
+      | DecodeMode.vyper => (decodeArgs types argsArray).map (·.1)
+      | DecodeMode.legacySolc05 => (decodeArgs types argsArray).map (·.1)
     else
     -- Modern solc ABI decoders guard the argument region with a signed check,
     -- `SLT(calldatasize - 4, headSize)`, reverting when `calldatasize - 4` is a negative
@@ -405,53 +396,22 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
         else if solcTotalSizeDynamicGuard types = true ∧ 2 ^ 255 ≤ calldata.toList.length then
           none
         else
-          let decoded := decodeArgs names types argsArray ∅
-          match decoded with
-          | some (store, _) => some store
-          | none => none
-    | DecodeMode.vyper =>
-        let decoded := decodeArgs names types argsArray ∅
-        match decoded with
-        | some (store, _) => some store
-        | none => none
-    | DecodeMode.legacySolc05 =>
-        let decoded := decodeArgs names types argsArray ∅
-        match decoded with
-        | some (store, _) => some store
-        | none => none
+          (decodeArgs types argsArray).map (·.1)
+    | DecodeMode.vyper => (decodeArgs types argsArray).map (·.1)
+    | DecodeMode.legacySolc05 => (decodeArgs types argsArray).map (·.1)
   where
-    decodeArgs (names : List Solm.Ident) (types : List ABIType) (bytes : List UInt8) (store : Solm.Store) :
-        Option (Solm.Store × Nat) :=
+    decodeArgs (types : List ABIType) (bytes : List UInt8) : Option (List ABIValue × Nat) :=
       match types with
-      | [] =>
-          match names with
-          | [] => some (store, 0)
-          | _ => none
+      | [] => some ([], 0)
       | _ => do
           let headSize <- abiTupleHeadSize? types
           if bytes.length < headSize then
             none
           else
-            match decodeABIValues? types bytes 0 0 headSize headSize mode with
-            | some (values, endOffset) => do
-                let store <- insertValues names values store
-                some (store, endOffset)
-            | none => none
-
-    insertValues (names : List Solm.Ident) (values : List Solm.Value) (store : Solm.Store) : Option Solm.Store :=
-      match names, values with
-      | [], [] => some store
-      | name :: names, value :: values =>
-          insertValues names values (store.insert name value)
-      | _, _ => none
-
-def decodeCalldataWithMode (mode : DecodeMode) (names : List Solm.Ident) (types : List ABIType)
-    (calldata : ByteArray) :
-    Option Solm.Store :=
-  decodeCalldata names types calldata mode
+            decodeABIValues? types bytes 0 0 headSize headSize mode
 
 def decodeReturnValues? (types : List ABIType) (returndata : ByteArray) :
-    Option (List Solm.Value) :=
+    Option (List ABIValue) :=
   let bytes := returndata.toList
   -- Modern solc's return decoder uses the same signed-size guard as calldata tuple decoders. A
   -- nonempty return tuple whose length word has the sign bit set follows the generated revert path.
@@ -463,7 +423,7 @@ def decodeReturnValues? (types : List ABIType) (returndata : ByteArray) :
     some values
 
 def decodeReturnValuesWithMode? (mode : DecodeMode) (types : List ABIType) (returndata : ByteArray) :
-    Option (List Solm.Value) :=
+    Option (List ABIValue) :=
   match mode with
   | DecodeMode.modern => decodeReturnValues? types returndata
   | DecodeMode.vyper => do
@@ -482,13 +442,13 @@ def decodeReturnValuesWithMode? (mode : DecodeMode) (types : List ABIType) (retu
 /-- Decodes a single top-level value.  For a callee's multi-value return use `decodeReturnValues?` —
     a `.tuple` type here is one tuple-typed output (ABI-wrapped, with a leading offset word), NOT a
     flat multi-return. -/
-def decodeReturnValue? (ty : ABIType) (returndata : ByteArray) : Option Solm.Value := do
+def decodeReturnValue? (ty : ABIType) (returndata : ByteArray) : Option ABIValue := do
   match decodeReturnValues? [ty] returndata with
   | some [value] => some value
   | _ => none
 
 def decodeReturnValueWithMode? (mode : DecodeMode) (ty : ABIType) (returndata : ByteArray) :
-    Option Solm.Value :=
+    Option ABIValue :=
   match mode with
   | DecodeMode.modern => decodeReturnValue? ty returndata
   | DecodeMode.vyper => do

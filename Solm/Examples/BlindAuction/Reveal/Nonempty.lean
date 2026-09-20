@@ -1413,14 +1413,15 @@ theorem scratch_revealRefundPlacedStoreOf_secrets_get (locals : Store) (evm : EV
   · decide
 
 theorem scratch_evalPackedArgs_cons {cfg : Config} {solm : Frame} {evm : EVM.State}
-    {ty : ABIType} {e : Expr} {v : Value} {head tailBytes : List UInt8}
+    {ty : ABIType} {e : Expr} {v : Value} {av : ABIValue} {head tailBytes : List UInt8}
     {rest : List (ABIType × Expr)}
     (he : evalExpr? cfg solm evm e = .ok v)
-    (henc : encodePackedValue? ty v = some head)
-    (htail : evalPackedArgs? cfg solm evm rest = .ok tailBytes) :
+    (henc : encodePackedValue? ty av = some head)
+    (htail : evalPackedArgs? cfg solm evm rest = .ok tailBytes)
+    (hconv : v.toABI? = some av := by rfl) :
     evalPackedArgs? cfg solm evm ((ty, e) :: rest) = .ok (head ++ tailBytes) := by
   rw [evalPackedArgs?]
-  simp only [he, henc, htail, EvalResult.bind, EvalResult.ofOption, bind, pure]
+  simp only [he, hconv, Option.bind, henc, htail, EvalResult.bind, EvalResult.ofOption, bind, pure]
 
 theorem scratch_evalPackedArgs_reveal_tail_secret_of_secretStoreOf
     (evm : EVM.State) (locals : Store) (i value secret : UInt256) (fake : Bool) :

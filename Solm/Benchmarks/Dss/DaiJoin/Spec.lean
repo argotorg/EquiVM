@@ -51,10 +51,10 @@ def gemTransferFromSelector : ByteArray := selectorBytes 0x23 0xb8 0x72 0xdd
 def daiMintSelector : ByteArray := selectorBytes 0x40 0xc1 0x0f 0x19
 def daiBurnSelector : ByteArray := selectorBytes 0x9d 0xc2 0x9f 0xac
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 ty out).map (fun v => [v])
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) :=
   some []
 
 def externalABI : ExternalCallABI where

@@ -542,7 +542,7 @@ theorem erc6909SupportsInterfaceBodyCore
           exact (erc6909X_supportsInterface (g := Sat256.ofUInt256 g)
               hsz36 hsize hbig hpadSome hreach)
             |>.reEquivExecutionTransport hcode hd hdec hbody rfl hAccounts
-              (returnEquiv_of_encode (by
+              (returnEquiv_of_encode (arv := .bool (supportsInterfaceResult I)) (by
                 by_cases hr : supportsInterfaceResult I
                 · simpa [supportsInterfaceResultWord, hr] using
                     OpenZeppelinBench.AccessControl.boolTrueReturnEncodingAC

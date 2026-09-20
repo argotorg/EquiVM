@@ -12,7 +12,7 @@ def creation : ByteArray := bytesOfHex Fixtures.factoryCreationHex
 def runtime : ByteArray := bytesOfHex Fixtures.factoryRuntimeHex
 def childCreation : ByteArray := bytesOfHex Fixtures.childCreationHex
 
-def b32 (n : Nat) : Solm.Value := .fixedBytes ⟨31, by decide⟩ (wordBytes n).toList
+def b32 (n : Nat) : ABI.ABIValue := .fixedBytes ⟨31, by decide⟩ (wordBytes n).toList
 
 def rt (name : String) (c : Case) : Case := { c with name := name, code := runtime }
 

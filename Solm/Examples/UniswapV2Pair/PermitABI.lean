@@ -322,7 +322,7 @@ theorem permitRecoveredAddress_masked {o : ByteArray}
           rw [UInt256.toNat_ofNat_of_lt hrecoveredLt]
     _ = .address (AccountAddress.ofNat
           (UInt256.land solcAddrMask (UInt256.ofNat recovered)).toNat) := by
-          exact solcAddressValue_masked (UInt256.ofNat recovered)
+          exact congrArg Value.ofABI (solcAddressValue_masked (UInt256.ofNat recovered))
     _ = .address (AccountAddress.ofNat
           (UInt256.land (UInt256.ofNat recovered) solcAddrMask).toNat) := by
           rw [u256_land_comm solcAddrMask (UInt256.ofNat recovered)]
@@ -343,7 +343,7 @@ theorem permitRecoveredAddress_eq_owner_of_mask_eq {I : ExecutionEnv} {o : ByteA
           rw [UInt256.toNat_ofNat_of_lt hrecoveredLt]
     _ = .address (AccountAddress.ofNat
           (UInt256.land solcAddrMask (UInt256.ofNat recovered)).toNat) := by
-          exact solcAddressValue_masked (UInt256.ofNat recovered)
+          exact congrArg Value.ofABI (solcAddressValue_masked (UInt256.ofNat recovered))
     _ = .address (AccountAddress.ofNat (permitOwnerMaskedWord I).toNat) := by
           rw [u256_land_comm solcAddrMask (UInt256.ofNat recovered)]
           exact congrArg (fun w => (.address (AccountAddress.ofNat w.toNat) : Value)) hmatch
@@ -370,7 +370,7 @@ theorem permitRecoveredAddress_ne_zero_of_mask_ne_zero {o : ByteArray}
             rw [UInt256.toNat_ofNat_of_lt hrecoveredLt]
       _ = .address (AccountAddress.ofNat
             (UInt256.land solcAddrMask (UInt256.ofNat recovered)).toNat) := by
-            exact solcAddressValue_masked (UInt256.ofNat recovered)
+            exact congrArg Value.ofABI (solcAddressValue_masked (UInt256.ofNat recovered))
   intro hzero
   apply hnz
   have hmaskedZero :
@@ -478,7 +478,7 @@ theorem permitRecoveredPaddedAddress_masked {o : ByteArray} :
           rw [UInt256.toNat_ofNat_of_lt hrecoveredLt]
     _ = .address (AccountAddress.ofNat
           (UInt256.land solcAddrMask (UInt256.ofNat recovered)).toNat) := by
-          exact solcAddressValue_masked (UInt256.ofNat recovered)
+          exact congrArg Value.ofABI (solcAddressValue_masked (UInt256.ofNat recovered))
     _ = .address (AccountAddress.ofNat
           (UInt256.land (UInt256.ofNat recovered) solcAddrMask).toNat) := by
           rw [u256_land_comm solcAddrMask (UInt256.ofNat recovered)]
@@ -500,7 +500,7 @@ theorem permitRecoveredPaddedAddress_eq_owner_of_mask_eq {I : ExecutionEnv} {o :
           rw [UInt256.toNat_ofNat_of_lt hrecoveredLt]
     _ = .address (AccountAddress.ofNat
           (UInt256.land solcAddrMask (UInt256.ofNat recovered)).toNat) := by
-          exact solcAddressValue_masked (UInt256.ofNat recovered)
+          exact congrArg Value.ofABI (solcAddressValue_masked (UInt256.ofNat recovered))
     _ = .address (AccountAddress.ofNat (permitOwnerMaskedWord I).toNat) := by
           rw [u256_land_comm solcAddrMask (UInt256.ofNat recovered)]
           exact congrArg (fun w => (.address (AccountAddress.ofNat w.toNat) : Value)) hmatch
@@ -528,7 +528,7 @@ theorem permitRecoveredPaddedAddress_ne_zero_of_mask_ne_zero {o : ByteArray}
             rw [UInt256.toNat_ofNat_of_lt hrecoveredLt]
       _ = .address (AccountAddress.ofNat
             (UInt256.land solcAddrMask (UInt256.ofNat recovered)).toNat) := by
-            exact solcAddressValue_masked (UInt256.ofNat recovered)
+            exact congrArg Value.ofABI (solcAddressValue_masked (UInt256.ofNat recovered))
   intro hzero
   apply hnz
   have hmaskedZero :
@@ -736,10 +736,19 @@ theorem permitSValue_eq_wordBytes (I : ExecutionEnv) (hsz228 : 228 ≤ I.calldat
     permitSValue I = permitWordBytes32Value (permitSWord I) := by
   simp [permitSValue, permitWordBytes32Value, permitSBytes_eq_toBytesBE I hsz228]
 
+/-- The ABI values of `permit`'s `ecrecover` arguments. -/
+noncomputable abbrev permitEcrecoverAbiArgs (σ : AccountMap) (I : ExecutionEnv) : List ABIValue :=
+  [.fixedBytes bytes32Width (EVM.Word.toBytesBE (permitDigestWord σ I)),
+    .int (Int.ofNat (permitVWord I).toNat), .fixedBytes bytes32Width (permitRBytes I),
+    .fixedBytes bytes32Width (permitSBytes I)]
+
+theorem permitEcrecoverArgs_toABI (σ : AccountMap) (I : ExecutionEnv) :
+    Value.toABIList? [permitDigestValue σ I, permitVValue I, permitRValue I, permitSValue I] =
+      some (permitEcrecoverAbiArgs σ I) := rfl
+
 theorem uniswapEcrecoverEncode_eq (σ : AccountMap) (I : ExecutionEnv)
     (hsz228 : 228 ≤ I.calldata.size) :
-    config.externalABI.encode? "ecrecover"
-        [permitDigestValue σ I, permitVValue I, permitRValue I, permitSValue I] =
+    config.externalABI.encode? "ecrecover" (permitEcrecoverAbiArgs σ I) =
       some ((permitEcrecoverInputMem σ I).readWithPadding 482 128) := by
   have hv8 : (permitVWord I).toNat < EVM.twoPow 8 := permitVWord_lt_uint8 I
   have hword : EVM.word (permitVWord I).toNat = permitVWord I := by
@@ -755,8 +764,7 @@ theorem uniswapEcrecoverEncode_eq (σ : AccountMap) (I : ExecutionEnv)
   change uniswapExternalABI.encode? "ecrecover" _ = _
   simp [uniswapExternalABI, encodeEcrecoverInput?, ABI.encodeABIValues?,
     ABI.encodeABIValuesFrom?, ABI.encodeABIValue?, ABI.encodeABIWord?,
-    permitDigestValue, permitWordBytes32Value, permitVValue,
-    permitRValue_eq_wordBytes I hsz228, permitSValue_eq_wordBytes I hsz228,
+    permitEcrecoverAbiArgs, permitRBytes_eq_toBytesBE I hsz228, permitSBytes_eq_toBytesBE I hsz228,
     bytes32, bytes32Width, uint8, uint8Int, ABI.abiTupleHeadSize?,
     ABI.staticABIEncodedSize?, ABI.isDynamicABIType, hdlen, hrlen, hslen, hv8, hword,
     zeroBytes, word_toBytesBE_toByteArray_eq_toByteArray, ByteArray.append_assoc]
@@ -957,9 +965,9 @@ theorem uniswapDecode_permit_ok {I : ExecutionEnv} (hsz228 : 228 ≤ I.calldata.
         .fixedBytes bytes32Width (((I.calldata.toList.drop 4).drop 192).take 32)], 224) := by
     simpa [legacyAddr, addr, uint256, uint8, bytes32, bytes32Width, uint256Int, uint8Int]
       using hvals0
-  unfold decodeCalldataWithMode decodeCalldata
+  unfold decodeCalldataWithMode decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
-  unfold decodeCalldata.decodeArgs
+  unfold decodeCalldataValues?.decodeArgs
   simp [legacyAddr, addr, uint256, uint8, bytes32, bytes32Width, uint256Int, uint8Int,
     abiTupleHeadSize?, staticABIEncodedSize?, bind, Option.bind, isDynamicABIType,
     List.length_drop, htlen]

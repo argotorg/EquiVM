@@ -1231,7 +1231,7 @@ theorem scratch_evalExpr_reveal_placeBid_cond_false_deposit (evm : EVM.State) (l
   omega
 
 theorem scratch_blindAuctionStorageLocStore_bytes32 (evm : EVM.State)
-    (slot word : UInt256) (v : Value)
+    (slot word : UInt256) (v : ABIValue)
     (hval : valueToWord v = some word) :
     storageLocStore evm (blindAuctionBytes32Loc slot) v =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot word) := by
@@ -1272,7 +1272,7 @@ theorem scratch_assign_reveal_blinded_zero (evm : EVM.State) (locals : Store)
   simp only [scratch_resolveStorageRef_reveal_bid_blinded_ok evm locals i hbid,
     EvalResult.bind, bind]
   have hloc := scratch_revealBid_blinded_layout evm i
-  simp only [hloc, EvalResult.ofOption, Option.bind]
+  simp only [hloc, EvalResult.ofOption, Value.toABI?, Option.bind]
   rw [scratch_blindAuctionStorageLocStore_bytes32 (word := EVM.Word.ofNat 0)]
   · rfl
   · native_decide

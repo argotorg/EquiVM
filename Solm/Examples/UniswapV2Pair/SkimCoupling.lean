@@ -49,7 +49,7 @@ theorem uniswapStorageStore_substate (evm : EVM.State) (a : AccountAddress)
 
 theorem uniswapSkimBalanceOfDecode_ok {returndata : ByteArray} (hlo : 32 ≤ returndata.size) :
     config.externalABI.decode? "balanceOf" returndata =
-      some [skimBalanceValue
+      some [skimBalanceAbi
         (UInt256.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))] := by
   have hword :
       (UInt256.ofNat (fromByteArrayBigEndian (returndata.extract 0 32))).toNat =
@@ -57,10 +57,10 @@ theorem uniswapSkimBalanceOfDecode_ok {returndata : ByteArray} (hlo : 32 ≤ ret
     exact UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)
   change uniswapExternalABI.decode? "balanceOf" returndata = _
   rw [show
-      some [skimBalanceValue
+      some [skimBalanceAbi
         (UInt256.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))] =
       some [(.int (Int.ofNat (fromByteArrayBigEndian (returndata.extract 0 32))))] by
-      simp only [skimBalanceValue, uniswapUint256Value, uint256Value, hword]]
+      simp only [skimBalanceAbi, uniswapUint256Abi, hword]]
   simpa [uniswapExternalABI, uint256, uint256Int, abiUInt256] using
     (decodeReturnValueWithMode_legacy_uint256_ok (returndata := returndata) hlo)
 
@@ -309,7 +309,7 @@ theorem uniswapSkimFirstBalanceReturn_source
           (uniswapLockEnteredState
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, o) false ∧
-      config.externalABI.decode? "balanceOf" o = some [skimBalanceValue balance0] ∧
+      config.externalABI.decode? "balanceOf" o = some [skimBalanceAbi balance0] ∧
       accountMapEquiv σ' evm0S.accountMap ∧
       evm0S.createdAccounts = cA' ∧
       evm0S.σ₀ = σ₀ ∧
@@ -335,7 +335,7 @@ theorem uniswapSkimFirstBalanceReturn_source
       (true, evm0S, o) false := by
     simpa [evmS, hz] using hcallAll
   have hdecode :
-      config.externalABI.decode? "balanceOf" o = some [skimBalanceValue balance0] := by
+      config.externalABI.decode? "balanceOf" o = some [skimBalanceAbi balance0] := by
     simpa [balance0] using uniswapSkimBalanceOfDecode_ok (returndata := o) ho32
   have howner : evm0S.executionEnv.codeOwner = I.codeOwner := by
     have henv := typedCallViaEVM_executionEnv_eq hcall0

@@ -6,14 +6,13 @@ namespace Solm
 
 open ABI
 
-def externalValueToWord? : Value -> Option EVM.Word
+def externalValueToWord? : ABIValue -> Option EVM.Word
   | .int i => some (EVM.wordOfInt i)
   | .bool b => some b.toUInt256
   | .address a => some (EVM.word a)
-  | .unit => some ⟨0⟩
   | _ => none
 
-def wordsOfValues? (values : List Value) : Option (List EVM.Word) :=
+def wordsOfValues? (values : List ABIValue) : Option (List EVM.Word) :=
   match values with
   | [] => some []
   | value :: rest => do
@@ -21,11 +20,11 @@ def wordsOfValues? (values : List Value) : Option (List EVM.Word) :=
       let words <- wordsOfValues? rest
       some (word :: words)
 
-def defaultEncodeCall? (_name : Ident) (args : List Value) : Option EVM.Bytes := do
+def defaultEncodeCall? (_name : Ident) (args : List ABIValue) : Option EVM.Bytes := do
   let words <- wordsOfValues? args
   some (words.foldl (fun bytes word => bytes ++ (Ethereum.UInt256.toByteArray word)) ByteArray.empty)
 
-def defaultDecodeReturn? (_name : Ident) (bytes : EVM.Bytes) : Option (List Value) :=
+def defaultDecodeReturn? (_name : Ident) (bytes : EVM.Bytes) : Option (List ABIValue) :=
   -- Default typed external calls expect one `uint256` return word.  The ABI decoder models solc's
   -- generated signed-size guard, so under-length and huge return data both decode to `none`.
   ABI.decodeReturnValues? [.elem (.int (.uint ⟨256, by decide⟩))] bytes
@@ -124,13 +123,15 @@ inductive delegateCallViaEVM (evm : EVM.State) (target : EVM.Address)
       → evm.executionEnv.depth = 1024
       → delegateCallViaEVM evm target calldata (false, evm', ByteArray.empty)
 
-/-- A typed external call: ABI-encode `name`/`args` into calldata, then make a raw `callViaEVM`.
+/-- A typed external call: convert `args` to ABI values, ABI-encode `name`/`args` into calldata,
+    then make a raw `callViaEVM`.
     This is the call form `externalCall` uses.  The return *decode* (and its failure) stays in the
     `ExecStmt` rules over the raw output bytes `o`, so decode-failure handling is unchanged. -/
 def typedCallViaEVM (cfg : Config) (evm : EVM.State) (target : EVM.Address)
     (name : Ident) (value : ℤ) (args : List Value)
     (result : Bool × EVM.State × EVM.Bytes) (perm : Bool := true) : Prop :=
-  ∃ calldata, cfg.externalABI.encode? name args = some calldata
+  ∃ abiArgs calldata, Value.toABIList? args = some abiArgs
+            ∧ cfg.externalABI.encode? name abiArgs = some calldata
             ∧ callViaEVM evm target value calldata result perm
 
 /-- Preconditions under which a `new` (the `CREATE` opcode) actually runs the init code,

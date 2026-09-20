@@ -1541,7 +1541,7 @@ theorem evalExpr_mint_totalSupply_of_get
     (her := evalStorageRef_mint_totalSupply_of_get evm locals)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm ⟨0⟩)
+  exact congrArg (fun v => (EvalResult.ok (Value.ofABI v) : EvalResult Value)) (uniswapStorageLocLoad_uint256 evm ⟨0⟩)
 
 theorem uniswapMintTotalSupplyLet
     (evm : EVM.State) (locals : Store)

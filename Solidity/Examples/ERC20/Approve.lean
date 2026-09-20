@@ -13,37 +13,27 @@ namespace ERC20.SolidityProof
 theorem erc20Args_approve_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
     (hbig : I.calldata.size < 2 ^ 255 + 4) (hcanon : (approveSpenderWord I).toNat < EVM.addressModulus) :
     decodeArgs erc20Cfg erc20Flat.types fnApprove.decl I.calldata =
-      some [approveSpenderValue I, approveValueValue I] := by
+      some [.address (AccountAddress.ofNat (approveSpenderWord I).toNat),
+        .int (Int.ofNat (approveValueWord I).toNat)] := by
   rw [decodeArgs_unfold _ _ sigApprove sigOf_approve]
-  have h := decodeCalldata_addr_uint256_ok (cd := I.calldata) (x := "spender") (y := "value") hsz68 hbig hcanon
-  simp only [fnApprove, List.zipIdx, List.map, paramName, Option.getD, sigApprove]
-  rw [h]
-  simp [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, approveSpenderValue, approveValueValue,
-    approveSpenderWord, approveValueWord, calldataWord, -getElem?_pos, -getElem?_neg]
-  exact ⟨rfl, rfl⟩
+  exact decodeCalldataValues_addr_uint256_ok hsz68 hbig hcanon
 
 theorem erc20Args_approve_none_short {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size)
     (hshort : I.calldata.size < 68) :
     decodeArgs erc20Cfg erc20Flat.types fnApprove.decl I.calldata = none := by
   rw [decodeArgs_unfold _ _ sigApprove sigOf_approve]
-  simp only [fnApprove, List.zipIdx, List.map, paramName, Option.getD, sigApprove]
-  rw [decodeCalldata_addr_uint256_none_short (cd := I.calldata) (x := "spender") (y := "value") hsz4 hshort]
-  rfl
+  exact decodeCalldataValues_addr_uint256_none_short hsz4 hshort
 
 theorem erc20Args_approve_none_noncanon {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size)
     (hbig : I.calldata.size < 2 ^ 255 + 4) (hnc : ¬ (approveSpenderWord I).toNat < EVM.addressModulus) :
     decodeArgs erc20Cfg erc20Flat.types fnApprove.decl I.calldata = none := by
   rw [decodeArgs_unfold _ _ sigApprove sigOf_approve]
-  simp only [fnApprove, List.zipIdx, List.map, paramName, Option.getD, sigApprove]
-  rw [decodeCalldata_addr_uint256_none_noncanon (cd := I.calldata) (x := "spender") (y := "value") hsz68 hbig hnc]
-  rfl
+  exact decodeCalldataValues_addr_uint256_none_noncanon hsz68 hbig hnc
 
 theorem erc20Args_approve_none_huge {I : ExecutionEnv} (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
     decodeArgs erc20Cfg erc20Flat.types fnApprove.decl I.calldata = none := by
   rw [decodeArgs_unfold _ _ sigApprove sigOf_approve]
-  simp only [fnApprove, List.zipIdx, List.map, paramName, Option.getD, sigApprove]
-  rw [decodeCalldata_addr_uint256_none_huge (cd := I.calldata) (x := "spender") (y := "value") hbig]
-  rfl
+  exact decodeCalldataValues_addr_uint256_none_huge hbig
 
 /-! ## The spec derivation -/
 

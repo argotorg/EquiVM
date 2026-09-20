@@ -23,21 +23,17 @@ def selectorDispatch (fc : FlatContract) (calldata : ByteArray) : Option Dispatc
     let sel := calldata.extract 0 4
     fc.entries.find? fun e => selectorOf e.sigStr == sel
 
-def paramName (i : Nat) (p : Param) : Ident := p.name.getD s!"#arg{i}"
-
 /-- ABI-decode the calldata arguments of `d` (positional). -/
-def decodeArgs (cfg : Config) (env : TypeEnv) (d : FnDecl) (calldata : ByteArray) : Option (List Solm.Value) := do
+def decodeArgs (cfg : Config) (env : TypeEnv) (d : FnDecl) (calldata : ByteArray) : Option (List ABIValue) := do
   let sig ← sigOf env d.name (d.params.map (·.ty))
-  let names := d.params.zipIdx.map fun (p, i) => paramName i p
-  let store ← ABI.decodeCalldataWithMode cfg.abiDecodeMode names sig.paramTypes calldata
-  names.mapM store.get?
+  ABI.decodeCalldataValues? sig.paramTypes calldata cfg.abiDecodeMode
 
 def returnAbiTys (env : TypeEnv) (d : FnDecl) : Option (List ABIType) :=
   d.returns.mapM fun p => abiTypeOf env p.ty
 
 /-- Outcome of a message call: return values (as ABI values) and the machine, or a revert. -/
 inductive TopResult where
-  | returned (m : Machine) (vs : List Solm.Value)
+  | returned (m : Machine) (vs : List ABIValue)
   | reverted (data : ByteArray)
 
 /-- Whether any entry point accepts the calldata (selector, `receive`, or `fallback`). -/
@@ -204,7 +200,7 @@ def ctorParamFrame (fc : FlatContract) (topArgs : List Value) (m : Machine) (imm
   | none => pure ({ here := fc.name, locals := imms, retVars := [] }, m)
 
 /-- Construction at fixed inputs: initializers (base-first), then the constructor chain. -/
-inductive solidityCtorExec (args : List Solm.Value)
+inductive solidityCtorExec (args : List ABIValue)
     (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
     (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
     (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)

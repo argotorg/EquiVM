@@ -82,7 +82,7 @@ theorem uniswapSwapCallbackCases
         have hcall : typedCallViaEVM config evm (EVM.address recipient) "uniswapV2Call" 0
             (swapCallbackArgs I.source amount0Out amount1Out (I.calldata.extract dataPtr.toNat (dataPtr.toNat + dataLen.toNat)))
             (z, evm', out) true := by
-          refine ⟨_, swapCallbackCalldata_encode _ _ _ _, ?_⟩
+          refine ⟨_, _, swapCallbackArgs_toABI _ _ _ _, swapCallbackCalldata_encode _ _ _ _, ?_⟩
           rw [htarget]
           rw [swapCallbackMem_calldata _ _ _ _ _ hready hdata hlen hfit hsmall] at hraw
           exact hraw
@@ -103,7 +103,7 @@ theorem uniswapSwapCallbackCases
         have hcall : typedCallViaEVM config evm (EVM.address recipient) "uniswapV2Call" 0
             (swapCallbackArgs I.source amount0Out amount1Out (I.calldata.extract dataPtr.toNat (dataPtr.toNat + dataLen.toNat)))
             (false, { evm with substate := (evm.addAccessedAccount (EVM.address recipient)).substate }, ByteArray.empty) true := by
-          refine ⟨_, swapCallbackCalldata_encode _ _ _ _, ?_⟩
+          refine ⟨_, _, swapCallbackArgs_toABI _ _ _ _, swapCallbackCalldata_encode _ _ _ _, ?_⟩
           apply callViaEVM.callNotMade rfl rfl
           rintro ⟨_, hne⟩
           exact hne (by rw [henv]; exact hd)

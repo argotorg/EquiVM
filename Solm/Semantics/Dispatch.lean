@@ -1,8 +1,10 @@
 import ABI.Signature
+import ABI.Decode
 import Solm.Value
 import Refinement.Result
 
-/-! Message dispatch: selector, `receive`, and `fallback` resolution, and return conventions. -/
+/-! Message dispatch: selector, `receive`, and `fallback` resolution, argument binding, and return
+conventions. -/
 
 
 namespace Solm
@@ -11,6 +13,22 @@ open ABI
 
 export Refinement (ReturnConvention ReturnConvention.abi ReturnConvention.rawBytes)
 
+
+/-- Decode the calldata arguments and bind them to the parameter names. -/
+def decodeCalldata (names : List Ident) (types : List ABIType) (calldata : ByteArray)
+    (mode : DecodeMode := DecodeMode.modern) : Option Store := do
+  let values <- decodeCalldataValues? types calldata mode
+  insertValues names values ∅
+  where
+    insertValues : List Ident → List ABIValue → Store → Option Store
+      | [], [], store => some store
+      | name :: names, value :: values, store =>
+          insertValues names values (store.insert name (Value.ofABI value))
+      | _, _, _ => none
+
+def decodeCalldataWithMode (mode : DecodeMode) (names : List Ident) (types : List ABIType)
+    (calldata : ByteArray) : Option Store :=
+  decodeCalldata names types calldata mode
 
 def transitionSignature (transition : TransitionDecl) : Signature :=
   ⟨transition.name, transition.params.map Param.ty⟩

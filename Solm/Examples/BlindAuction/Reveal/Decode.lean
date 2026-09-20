@@ -189,6 +189,9 @@ end Reasoning.Reach
 
 namespace BlindAuction
 
+/-- Sol⁻'s value of an unvalidated calldata `bool` word (the decoder's `rawBool`). -/
+abbrev rawBoolWordValue (n : Nat) : Value := Value.ofABI (.rawBool n)
+
 /-! ## `reveal(uint256[],bool[],bytes32[])` outer body facts -/
 
 abbrev revealMaxU64 : UInt256 := ⟨18446744073709551615⟩
@@ -766,7 +769,7 @@ theorem blindAuctionDecode_reveal_none_short {I : ExecutionEnv}
     [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] I.calldata = none
   have htlen : I.calldata.toList.length = I.calldata.size := by
     rw [byteArray_toList_eq, Array.length_toList]; rfl
-  unfold decodeCalldata
+  unfold decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
   simp only [List.isEmpty_cons]
   rw [if_neg]
@@ -775,12 +778,13 @@ theorem blindAuctionDecode_reveal_none_short {I : ExecutionEnv}
         rintro ⟨_, hhuge⟩
         rw [htlen] at hhuge
         omega)]
-      simp only [decodeCalldata.decodeArgs]
+      simp only [decodeCalldataValues?.decodeArgs]
       have hargsShort : (List.drop 4 I.calldata.toList).length < 96 := by
         rw [List.length_drop, htlen]
         omega
       simp only [abiTupleHeadSize?, isDynamicABIType, reduceIte, Option.bind, bind]
       rw [if_pos hargsShort]
+      rfl
     · rintro ⟨_, hhuge⟩
       rw [List.length_drop, htlen] at hhuge
       omega
@@ -796,7 +800,7 @@ theorem blindAuctionDecode_reveal_none_huge_dynamic {I : ExecutionEnv}
     [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] I.calldata = none
   have htlen : I.calldata.toList.length = I.calldata.size := by
     rw [byteArray_toList_eq, Array.length_toList]; rfl
-  unfold decodeCalldata
+  unfold decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
   rw [if_pos (show
     [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32].any
@@ -804,6 +808,7 @@ theorem blindAuctionDecode_reveal_none_huge_dynamic {I : ExecutionEnv}
       constructor
       · decide
       · rw [htlen]; exact hhuge)]
+  rfl
 
 theorem blindAuctionDecode_reveal_none_huge {I : ExecutionEnv}
     (hhuge : 2 ^ 255 + 4 ≤ I.calldata.size) :
@@ -812,7 +817,7 @@ theorem blindAuctionDecode_reveal_none_huge {I : ExecutionEnv}
   exact blindAuctionDecode_reveal_none_huge_dynamic (I := I) (by omega)
 
 theorem decodeABIValue_dynamicArray_is_array {elemTy : ABIType} {bytes : List UInt8}
-    {start : Nat} {v : Value} {endOffset : Nat}
+    {start : Nat} {v : ABIValue} {endOffset : Nat}
     (h : decodeABIValue? (.dynamicArray elemTy) bytes start = some (v, endOffset)) :
     ∃ xs, v = .array xs := by
   unfold decodeABIValue? at h
@@ -925,13 +930,13 @@ theorem readNat?_calldataWord_eq {I : ExecutionEnv} {headOff off : Nat}
   simpa [List.drop_drop, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using hword
 
 theorem decodeABIValue_elem_end_le {elem : ElemType} {bytes : List UInt8}
-    {start : Nat} {v : Value} {endOffset : Nat}
+    {start : Nat} {v : ABIValue} {endOffset : Nat}
     (h : decodeABIValue? (.elem elem) bytes start = some (v, endOffset)) :
     endOffset = start + 32 ∧ start + 32 ≤ bytes.length := by
   exact Reasoning.Theory.decodeABIValue_elem_end_le h
 
 theorem decodeABIArrayStaticElems_elem32_facts {elem : ElemType} {n : Nat}
-    {bytes : List UInt8} {start : Nat} {values : List Value} {endOffset : Nat}
+    {bytes : List UInt8} {start : Nat} {values : List ABIValue} {endOffset : Nat}
     (hstart : start ≤ bytes.length)
     (h : decodeABIArrayStaticElems? (.elem elem) n 32 bytes start = some (values, endOffset)) :
     endOffset = start + 32 * n ∧ endOffset ≤ bytes.length ∧ values.length = n := by
@@ -954,7 +959,7 @@ theorem decodeABIArrayStaticElems_bytes32_exists_of_length {n : Nat}
       (n := n) (bytes := bytes) (start := start) h)
 
 theorem decodeABIRawBoolArrayElems_facts {n : Nat} {bytes : List UInt8}
-    {start : Nat} {values : List Value} {endOffset : Nat}
+    {start : Nat} {values : List ABIValue} {endOffset : Nat}
     (hstart : start ≤ bytes.length)
     (h : decodeABIRawBoolArrayElems? n bytes start = some (values, endOffset)) :
     endOffset = start + 32 * n ∧ endOffset ≤ bytes.length ∧ values.length = n := by
@@ -1001,7 +1006,7 @@ theorem decodeABIValue_dynamicArray_bytes32_exists {bytes : List UInt8}
       (bytes := bytes) (start := start) (len := len) hread hmax hend)
 
 theorem decodeABIValue_dynamicArray_elem32_facts {elem : ElemType}
-    {bytes : List UInt8} {start : Nat} {values : List Value} {endOffset : Nat}
+    {bytes : List UInt8} {start : Nat} {values : List ABIValue} {endOffset : Nat}
     (h : decodeABIValue? (.dynamicArray (.elem elem)) bytes start =
       some (.array values, endOffset)) :
     ∃ len, readNat? bytes start = some len ∧ ¬ solcMaxU64 < len ∧
@@ -1019,7 +1024,7 @@ theorem shiftLeft5_ofNat_eq {n : Nat} (h : 32 * n < UInt256.size) :
   exact Reasoning.Theory.shiftLeft5_ofNat_eq h
 
 theorem revealArrayGuards_of_decode_elem32 {I : ExecutionEnv} {headOff off : Nat}
-    {elem : ElemType} {values : List Value} {endOffset : Nat}
+    {elem : ElemType} {values : List ABIValue} {endOffset : Nat}
     (hcalldataSign : I.calldata.size < 2 ^ 255)
     (hreadHead : readNat? (List.drop 4 I.calldata.toList) headOff = some off)
     (hoffMax : ¬ solcMaxU64 < off)
@@ -1139,16 +1144,31 @@ theorem blindAuctionDecode_reveal_callargs_shape {I : ExecutionEnv} {callargs : 
   change decodeCalldata ["values", "fakes", "secrets"]
     [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] I.calldata =
       some callargs at hdec
-  unfold decodeCalldata at hdec
+  unfold decodeCalldata decodeCalldataValues? at hdec
   simp only [List.isEmpty_cons] at hdec
   split at hdec
   · contradiction
   next _ =>
     split at hdec
     · contradiction
-    next _ =>
-      simp [decodeCalldata.decodeArgs, decodeABIValues?, abiTupleHeadSize?, isDynamicABIType,
+    next hnothuge =>
+      have h255 : (2 : Nat) ^ 255 =
+          57896044618658097711785492504343953926634992332820282019728792003956564819968 := by
+        norm_num
+      rw [h255] at hnothuge
+      have hnotLen :
+          ¬ 57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length := fun h => hnothuge ⟨by decide, h⟩
+      have hnot4 :
+          ¬ 57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length - 4 := fun h => hnotLen (by omega)
+      have hnotG : ¬ (solcTotalSizeDynamicGuard
+          [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] = true ∧
+          57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length) := fun h => hnotLen h.2
+      simp [decodeCalldataValues?.decodeArgs, decodeABIValues?, abiTupleHeadSize?, isDynamicABIType,
         Option.bind, bind] at hdec
+      rw [if_neg hnot4, if_neg hnotG] at hdec
       cases h0 : readNat? (List.drop 4 I.calldata.toList) 0 with
       | none => simp [h0] at hdec
       | some off0 =>
@@ -1192,13 +1212,12 @@ theorem blindAuctionDecode_reveal_callargs_shape {I : ExecutionEnv} {callargs : 
                                           rcases decodeABIValue_dynamicArray_is_array hval2 with
                                             ⟨secrets, rfl⟩
                                           simp [hval2] at hdec
-                                          simp [decodeCalldata.insertValues] at hdec
                                           by_cases hargsShort : I.calldata.toList.length - 4 < 96
                                           · simp [hargsShort] at hdec
-                                          · simp [hargsShort] at hdec
-                                            rcases hdec with ⟨_, hstore⟩
-                                            cases hstore.2.symm
-                                            refine ⟨values, fakes, secrets, ?_, ?_, ?_⟩
+                                          · simp [hargsShort, decodeCalldata.insertValues] at hdec
+                                            subst hdec
+                                            refine ⟨Value.ofABIList values, Value.ofABIList fakes,
+                                              Value.ofABIList secrets, ?_, ?_, ?_⟩
                                             · rw [store_get_ne2, store_get_self]
                                               · decide
                                               · decide
@@ -1216,16 +1235,31 @@ theorem blindAuctionDecode_reveal_callargs_store_shape {I : ExecutionEnv} {calla
   change decodeCalldata ["values", "fakes", "secrets"]
     [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] I.calldata =
       some callargs at hdec
-  unfold decodeCalldata at hdec
+  unfold decodeCalldata decodeCalldataValues? at hdec
   simp only [List.isEmpty_cons] at hdec
   split at hdec
   · contradiction
   next _ =>
     split at hdec
     · contradiction
-    next _ =>
-      simp [decodeCalldata.decodeArgs, decodeABIValues?, abiTupleHeadSize?, isDynamicABIType,
+    next hnothuge =>
+      have h255 : (2 : Nat) ^ 255 =
+          57896044618658097711785492504343953926634992332820282019728792003956564819968 := by
+        norm_num
+      rw [h255] at hnothuge
+      have hnotLen :
+          ¬ 57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length := fun h => hnothuge ⟨by decide, h⟩
+      have hnot4 :
+          ¬ 57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length - 4 := fun h => hnotLen (by omega)
+      have hnotG : ¬ (solcTotalSizeDynamicGuard
+          [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] = true ∧
+          57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length) := fun h => hnotLen h.2
+      simp [decodeCalldataValues?.decodeArgs, decodeABIValues?, abiTupleHeadSize?, isDynamicABIType,
         Option.bind, bind] at hdec
+      rw [if_neg hnot4, if_neg hnotG] at hdec
       cases h0 : readNat? (List.drop 4 I.calldata.toList) 0 with
       | none => simp [h0] at hdec
       | some off0 =>
@@ -1266,12 +1300,12 @@ theorem blindAuctionDecode_reveal_callargs_store_shape {I : ExecutionEnv} {calla
                                           rcases decodeABIValue_dynamicArray_is_array hval2 with
                                             ⟨secrets, rfl⟩
                                           simp [hval2] at hdec
-                                          simp [decodeCalldata.insertValues] at hdec
                                           by_cases hargsShort : I.calldata.toList.length - 4 < 96
                                           · simp [hargsShort] at hdec
-                                          · simp [hargsShort] at hdec
-                                            rcases hdec with ⟨_, hstore⟩
-                                            exact ⟨values, fakes, secrets, hstore.2.symm⟩
+                                          · simp [hargsShort, decodeCalldata.insertValues] at hdec
+                                            exact ⟨Value.ofABIList values, Value.ofABIList fakes,
+                                              Value.ofABIList secrets,
+                                              by first | exact hdec.symm | exact hdec⟩
 
 def RevealArrayGuardFacts (I : ExecutionEnv) (headOff : Nat) (xs : List Value) : Prop :=
   ∃ lenWord : UInt256,
@@ -1294,16 +1328,16 @@ def RevealDecodeGuardFacts (I : ExecutionEnv)
   RevealArrayGuardFacts I 64 secrets
 
 theorem revealArrayGuardFacts_of_decode_elem32 {I : ExecutionEnv} {headOff off : Nat}
-    {elem : ElemType} {xs : List Value} {endOffset : Nat}
+    {elem : ElemType} {xs : List ABIValue} {endOffset : Nat}
     (hcalldataSign : I.calldata.size < 2 ^ 255)
     (hreadHead : readNat? (List.drop 4 I.calldata.toList) headOff = some off)
     (hoffMax : ¬ solcMaxU64 < off)
     (hdecode : decodeABIValue? (.dynamicArray (.elem elem)) (List.drop 4 I.calldata.toList)
       off = some (.array xs, endOffset)) :
-    RevealArrayGuardFacts I headOff xs := by
+    RevealArrayGuardFacts I headOff (Value.ofABIList xs) := by
   rcases revealArrayGuards_of_decode_elem32 hcalldataSign hreadHead hoffMax hdecode with
     ⟨lenWord, hlen, hhead, hstart, hload, hmax, hend⟩
-  exact ⟨lenWord, hlen, hhead, hstart, hload, hmax, hend⟩
+  exact ⟨lenWord, by rw [ofABIList_length]; exact hlen, hhead, hstart, hload, hmax, hend⟩
 
 theorem blindAuctionDecode_reveal_guard_facts {I : ExecutionEnv} {callargs : Store}
     (hcalldataSign : I.calldata.size < 2 ^ 255)
@@ -1317,16 +1351,31 @@ theorem blindAuctionDecode_reveal_guard_facts {I : ExecutionEnv} {callargs : Sto
   change decodeCalldata ["values", "fakes", "secrets"]
     [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] I.calldata =
       some callargs at hdec
-  unfold decodeCalldata at hdec
+  unfold decodeCalldata decodeCalldataValues? at hdec
   simp only [List.isEmpty_cons] at hdec
   split at hdec
   · contradiction
   next _ =>
     split at hdec
     · contradiction
-    next _ =>
-      simp [decodeCalldata.decodeArgs, decodeABIValues?, abiTupleHeadSize?, isDynamicABIType,
+    next hnothuge =>
+      have h255 : (2 : Nat) ^ 255 =
+          57896044618658097711785492504343953926634992332820282019728792003956564819968 := by
+        norm_num
+      rw [h255] at hnothuge
+      have hnotLen :
+          ¬ 57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length := fun h => hnothuge ⟨by decide, h⟩
+      have hnot4 :
+          ¬ 57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length - 4 := fun h => hnotLen (by omega)
+      have hnotG : ¬ (solcTotalSizeDynamicGuard
+          [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] = true ∧
+          57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length) := fun h => hnotLen h.2
+      simp [decodeCalldataValues?.decodeArgs, decodeABIValues?, abiTupleHeadSize?, isDynamicABIType,
         Option.bind, bind] at hdec
+      rw [if_neg hnot4, if_neg hnotG] at hdec
       cases h0 : readNat? (List.drop 4 I.calldata.toList) 0 with
       | none => simp [h0] at hdec
       | some off0 =>
@@ -1368,12 +1417,12 @@ theorem blindAuctionDecode_reveal_guard_facts {I : ExecutionEnv} {callargs : Sto
                                           rcases decodeABIValue_dynamicArray_is_array hval2 with
                                             ⟨secrets, rfl⟩
                                           simp [hval2] at hdec
-                                          simp [decodeCalldata.insertValues] at hdec
                                           by_cases hargsShort : I.calldata.toList.length - 4 < 96
                                           · simp [hargsShort] at hdec
-                                          · simp [hargsShort] at hdec
-                                            rcases hdec with ⟨_, hstore⟩
-                                            refine ⟨values, fakes, secrets, hstore.2.symm, ?_⟩
+                                          · simp [hargsShort, decodeCalldata.insertValues] at hdec
+                                            refine ⟨Value.ofABIList values, Value.ofABIList fakes,
+                                              Value.ofABIList secrets,
+                                              by first | exact hdec.symm | exact hdec, ?_⟩
                                             exact
                                               ⟨revealArrayGuardFacts_of_decode_elem32
                                                   hcalldataSign h0 hmax0 hval0,
@@ -1393,46 +1442,60 @@ theorem blindAuctionDecode_reveal_callargs_absent {I : ExecutionEnv} {callargs :
   change decodeCalldata ["values", "fakes", "secrets"]
     [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] I.calldata =
       some callargs at hdec
-  unfold decodeCalldata at hdec
+  unfold decodeCalldata decodeCalldataValues? at hdec
   simp only [List.isEmpty_cons] at hdec
   split at hdec
   · contradiction
   next _ =>
     split at hdec
     · contradiction
-    next _ =>
-      simp [decodeCalldata.decodeArgs, abiTupleHeadSize?, isDynamicABIType, Option.bind, bind]
+    next hnothuge =>
+      have h255 : (2 : Nat) ^ 255 =
+          57896044618658097711785492504343953926634992332820282019728792003956564819968 := by
+        norm_num
+      rw [h255] at hnothuge
+      have hnotLen :
+          ¬ 57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length := fun h => hnothuge ⟨by decide, h⟩
+      have hnot4 :
+          ¬ 57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length - 4 := fun h => hnotLen (by omega)
+      have hnotG : ¬ (solcTotalSizeDynamicGuard
+          [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] = true ∧
+          57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length) := fun h => hnotLen h.2
+      simp [decodeCalldataValues?.decodeArgs, abiTupleHeadSize?, isDynamicABIType, Option.bind, bind]
         at hdec
+      rw [if_neg hnot4, if_neg hnotG] at hdec
       cases hvals : decodeABIValues?
           [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32]
           (List.drop 4 I.calldata.toList) 0 0 96 96 with
       | none => simp [hvals] at hdec
       | some p =>
           rcases p with ⟨vals, _⟩
-          cases vals with
-          | nil => simp [hvals, decodeCalldata.insertValues] at hdec
-          | cons v0 vals =>
-              cases vals with
-              | nil => simp [hvals, decodeCalldata.insertValues] at hdec
-              | cons v1 vals =>
-                  cases vals with
-                  | nil => simp [hvals, decodeCalldata.insertValues] at hdec
-                  | cons v2 vals =>
-                      cases vals with
-                      | nil =>
-                          simp [hvals, decodeCalldata.insertValues] at hdec
-                          by_cases hargsShort : I.calldata.toList.length - 4 < 96
-                          · simp [hargsShort] at hdec
-                          · simp [hargsShort] at hdec
-                            rcases hdec with ⟨_, hstore⟩
-                            cases hstore.2.symm
+          by_cases hargsShort : I.calldata.toList.length - 4 < 96
+          · simp [hargsShort] at hdec
+          · simp [hargsShort, hvals] at hdec
+            cases vals with
+            | nil => simp [decodeCalldata.insertValues] at hdec
+            | cons v0 vals =>
+                cases vals with
+                | nil => simp [decodeCalldata.insertValues] at hdec
+                | cons v1 vals =>
+                    cases vals with
+                    | nil => simp [decodeCalldata.insertValues] at hdec
+                    | cons v2 vals =>
+                        cases vals with
+                        | nil =>
+                            simp [decodeCalldata.insertValues] at hdec
+                            subst hdec
                             rw [store_get_ne3]
                             · simp
                             · exact hvalues
                             · exact hfakes
                             · exact hsecrets
-                      | cons v3 vals =>
-                          simp [hvals, decodeCalldata.insertValues] at hdec
+                        | cons v3 vals =>
+                            simp [decodeCalldata.insertValues] at hdec
 
 
 theorem scratch_decodeABIValue_uint256_readNat {bytes : List UInt8} {start endOffset : Nat}
@@ -1447,16 +1510,16 @@ theorem scratch_decodeABIValue_uint256_readNat {bytes : List UInt8} {start endOf
 
 -- Compatibility wrapper around `Reasoning.Theory.decodeABIRawBoolArrayElems_lookup_readNat`.
 theorem scratch_decodeABIRawBoolArrayElems_lookup_readNat {n : Nat}
-    {bytes : List UInt8} {start endOffset i word : Nat} {values : List Value}
+    {bytes : List UInt8} {start endOffset i word : Nat} {values : List ABIValue}
     (hdec : decodeABIRawBoolArrayElems? n bytes start = some (values, endOffset))
-    (hlookup : lookupNth? values i = some (rawBoolWordValue word)) :
+    (hlookup : lookupNth? values i = some (.rawBool word)) :
     readNat? bytes (start + 32 * i) = some word := by
   exact Reasoning.Theory.decodeABIRawBoolArrayElems_lookup_readNat hdec hlookup
 
 -- Compatibility wrapper around `Reasoning.Theory.decodeABIArrayStaticElems_uint256_lookup_readNat`.
 theorem scratch_decodeABIArrayStaticElems_uint256_lookup_readNat {n : Nat}
     {bytes : List UInt8} {start endOffset i : Nat} {value : UInt256}
-    {values : List Value}
+    {values : List ABIValue}
     (hdec : decodeABIArrayStaticElems? uint256 n 32 bytes start = some (values, endOffset))
     (hlookup : lookupNth? values i = some (.int (Int.ofNat value.toNat))) :
     readNat? bytes (start + 32 * i) = some value.toNat := by
@@ -1488,7 +1551,7 @@ theorem scratch_decodeABIValue_bytes32_readNat {bytes : List UInt8} {start endOf
 -- Compatibility wrapper around `Reasoning.Theory.decodeABIArrayStaticElems_bytes32_lookup_readNat`.
 theorem scratch_decodeABIArrayStaticElems_bytes32_lookup_readNat {n : Nat}
     {bytes : List UInt8} {start endOffset i : Nat} {value : UInt256}
-    {values : List Value}
+    {values : List ABIValue}
     (hdec : decodeABIArrayStaticElems? bytes32 n 32 bytes start = some (values, endOffset))
     (hlookup :
       lookupNth? values i =
@@ -1500,41 +1563,55 @@ theorem scratch_decodeABIArrayStaticElems_bytes32_lookup_readNat {n : Nat}
       (i := i) (value := value) (values := values) hdec hlookup)
 
 theorem revealDecode_dynamicArray_uint256_lookup_readNat {bytes : List UInt8}
-    {start endOffset i : Nat} {values : List Value} {value : UInt256}
+    {start endOffset i : Nat} {avs : List ABIValue} {values : List Value} {value : UInt256}
     (hdec :
-      decodeABIValue? (.dynamicArray uint256) bytes start = some (.array values, endOffset))
+      decodeABIValue? (.dynamicArray uint256) bytes start = some (.array avs, endOffset))
+    (hvals : values = Value.ofABIList avs)
     (hlookup : lookupNth? values i = some (.int (Int.ofNat value.toNat))) :
     readNat? bytes (start + 32 + 32 * i) = some value.toNat := by
+  subst hvals
+  rw [lookupNth?_ofABIList] at hlookup
+  obtain ⟨a, ha, hconv⟩ := Option.map_eq_some_iff.mp hlookup
+  rw [ofABI_eq_int hconv] at ha
   simpa [uint256, uint256Int, abiUInt256] using
     (Reasoning.Theory.decodeABIValue_dynamicArray_uint256_lookup_readNat
       (bytes := bytes) (start := start) (endOffset := endOffset)
-      (i := i) (values := values) (value := value) hdec hlookup)
+      (i := i) (values := avs) (value := value) hdec ha)
 
 theorem revealDecode_dynamicArray_bool_lookup_readNat {bytes : List UInt8}
-    {start endOffset i word : Nat} {values : List Value}
+    {start endOffset i word : Nat} {avs : List ABIValue} {fakes : List Value}
     (hdec :
-      decodeABIValue? (.dynamicArray boolTy) bytes start = some (.array values, endOffset))
-    (hlookup : lookupNth? values i = some (rawBoolWordValue word)) :
+      decodeABIValue? (.dynamicArray boolTy) bytes start = some (.array avs, endOffset))
+    (hvals : fakes = Value.ofABIList avs)
+    (hlookup : lookupNth? fakes i = some (rawBoolWordValue word)) :
     readNat? bytes (start + 32 + 32 * i) = some word := by
+  subst hvals
+  rw [lookupNth?_ofABIList] at hlookup
+  obtain ⟨a, ha, hconv⟩ := Option.map_eq_some_iff.mp hlookup
+  rw [ofABI_eq_rawBoolMarker hconv] at ha
   simpa [boolTy] using
     (Reasoning.Theory.decodeABIValue_dynamicArray_bool_lookup_readNat
       (bytes := bytes) (start := start) (endOffset := endOffset)
-      (i := i) (word := word) (values := values) hdec hlookup)
+      (i := i) (word := word) (values := avs) hdec ha)
 
 theorem revealDecode_dynamicArray_bytes32_lookup_readNat {bytes : List UInt8}
-    {start endOffset i : Nat} {values : List Value} {value : UInt256}
+    {start endOffset i : Nat} {avs : List ABIValue} {secrets : List Value} {value : UInt256}
     (hdec :
-      decodeABIValue? (.dynamicArray bytes32) bytes start = some (.array values, endOffset))
+      decodeABIValue? (.dynamicArray bytes32) bytes start = some (.array avs, endOffset))
+    (hvals : secrets = Value.ofABIList avs)
     (hlookup :
-      lookupNth? values i =
+      lookupNth? secrets i =
         some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE value))) :
     readNat? bytes (start + 32 + 32 * i) = some value.toNat := by
+  subst hvals
+  rw [lookupNth?_ofABIList] at hlookup
+  obtain ⟨a, ha, hconv⟩ := Option.map_eq_some_iff.mp hlookup
+  rw [ofABI_eq_fixedBytes hconv] at ha
   simpa [bytes32, abiBytes32, abiBytes32Width] using
     (Reasoning.Theory.decodeABIValue_dynamicArray_bytes32_lookup_readNat
       (bytes := bytes) (start := start) (endOffset := endOffset)
-      (i := i) (values := values) (value := value) hdec hlookup)
+      (i := i) (values := avs) (value := value) hdec ha)
 
--- Compatibility wrapper around `Reasoning.Theory.fromBytes'_inj_of_length`.
 theorem scratch_fromBytes'_inj_of_length {xs ys : List UInt8}
     (hlen : xs.length = ys.length)
     (h : fromBytes' xs = fromBytes' ys) : xs = ys := by
@@ -1553,7 +1630,7 @@ theorem scratch_toBytesBE_bytesToWord_of_length {bs : List UInt8}
   exact Reasoning.Theory.toBytesBE_bytesToWord_of_length hlen
 
 theorem scratch_decodeABIValue_uint256_shape {bytes : List UInt8} {start endOffset : Nat}
-    {value : Value}
+    {value : ABIValue}
     (h : decodeABIValue? uint256 bytes start = some (value, endOffset)) :
     ∃ word : UInt256, value = .int (Int.ofNat word.toNat) ∧ endOffset = start + 32 := by
   simpa [uint256, uint256Int, abiUInt256] using
@@ -1561,7 +1638,7 @@ theorem scratch_decodeABIValue_uint256_shape {bytes : List UInt8} {start endOffs
       (bytes := bytes) (start := start) (endOffset := endOffset) (value := value) h)
 
 theorem scratch_decodeABIValue_bytes32_shape {bytes : List UInt8} {start endOffset : Nat}
-    {value : Value}
+    {value : ABIValue}
     (h : decodeABIValue? bytes32 bytes start = some (value, endOffset)) :
     ∃ word : UInt256,
       value = .fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE word) ∧
@@ -1571,7 +1648,7 @@ theorem scratch_decodeABIValue_bytes32_shape {bytes : List UInt8} {start endOffs
       (bytes := bytes) (start := start) (endOffset := endOffset) (value := value) h)
 
 theorem scratch_decodeABIArrayStaticElems_uint256_lookup_shape {n : Nat}
-    {bytes : List UInt8} {start endOffset i : Nat} {values : List Value}
+    {bytes : List UInt8} {start endOffset i : Nat} {values : List ABIValue}
     (hdec : decodeABIArrayStaticElems? uint256 n 32 bytes start = some (values, endOffset))
     (hbound : i < values.length) :
     ∃ value : UInt256, lookupNth? values i = some (.int (Int.ofNat value.toNat)) := by
@@ -1581,14 +1658,14 @@ theorem scratch_decodeABIArrayStaticElems_uint256_lookup_shape {n : Nat}
       (i := i) (values := values) hdec hbound)
 
 theorem scratch_decodeABIRawBoolArrayElems_lookup_shape {n : Nat}
-    {bytes : List UInt8} {start endOffset i : Nat} {values : List Value}
+    {bytes : List UInt8} {start endOffset i : Nat} {values : List ABIValue}
     (hdec : decodeABIRawBoolArrayElems? n bytes start = some (values, endOffset))
     (hbound : i < values.length) :
-    ∃ word : Nat, lookupNth? values i = some (rawBoolWordValue word) := by
+    ∃ word : Nat, lookupNth? values i = some (.rawBool word) := by
   exact Reasoning.Theory.decodeABIRawBoolArrayElems_lookup_shape hdec hbound
 
 theorem scratch_decodeABIArrayStaticElems_bytes32_lookup_shape {n : Nat}
-    {bytes : List UInt8} {start endOffset i : Nat} {values : List Value}
+    {bytes : List UInt8} {start endOffset i : Nat} {values : List ABIValue}
     (hdec : decodeABIArrayStaticElems? bytes32 n 32 bytes start = some (values, endOffset))
     (hbound : i < values.length) :
     ∃ value : UInt256,
@@ -1600,39 +1677,51 @@ theorem scratch_decodeABIArrayStaticElems_bytes32_lookup_shape {n : Nat}
       (i := i) (values := values) hdec hbound)
 
 theorem revealDecode_dynamicArray_uint256_lookup_shape {bytes : List UInt8}
-    {start endOffset i : Nat} {values : List Value}
+    {start endOffset i : Nat} {avs : List ABIValue} {values : List Value}
     (hdec :
-      decodeABIValue? (.dynamicArray uint256) bytes start = some (.array values, endOffset))
+      decodeABIValue? (.dynamicArray uint256) bytes start = some (.array avs, endOffset))
+    (hvals : values = Value.ofABIList avs)
     (hbound : i < values.length) :
     ∃ value : UInt256, lookupNth? values i = some (.int (Int.ofNat value.toNat)) := by
-  simpa [uint256, uint256Int, abiUInt256] using
-    (Reasoning.Theory.decodeABIValue_dynamicArray_uint256_lookup_shape
+  subst hvals
+  rw [ofABIList_length] at hbound
+  obtain ⟨value, hlookup⟩ :=
+    Reasoning.Theory.decodeABIValue_dynamicArray_uint256_lookup_shape
       (bytes := bytes) (start := start) (endOffset := endOffset)
-      (i := i) (values := values) hdec hbound)
+      (i := i) (values := avs) (by simpa [uint256, uint256Int, abiUInt256] using hdec) hbound
+  exact ⟨value, by rw [lookupNth?_ofABIList, hlookup]; rfl⟩
 
 theorem revealDecode_dynamicArray_bool_lookup_shape {bytes : List UInt8}
-    {start endOffset i : Nat} {values : List Value}
+    {start endOffset i : Nat} {avs : List ABIValue} {fakes : List Value}
     (hdec :
-      decodeABIValue? (.dynamicArray boolTy) bytes start = some (.array values, endOffset))
-    (hbound : i < values.length) :
-    ∃ word : Nat, lookupNth? values i = some (rawBoolWordValue word) := by
-  simpa [boolTy] using
-    (Reasoning.Theory.decodeABIValue_dynamicArray_bool_lookup_shape
+      decodeABIValue? (.dynamicArray boolTy) bytes start = some (.array avs, endOffset))
+    (hvals : fakes = Value.ofABIList avs)
+    (hbound : i < fakes.length) :
+    ∃ word : Nat, lookupNth? fakes i = some (rawBoolWordValue word) := by
+  subst hvals
+  rw [ofABIList_length] at hbound
+  obtain ⟨word, hlookup⟩ :=
+    Reasoning.Theory.decodeABIValue_dynamicArray_bool_lookup_shape
       (bytes := bytes) (start := start) (endOffset := endOffset)
-      (i := i) (values := values) hdec hbound)
+      (i := i) (values := avs) (by simpa [boolTy] using hdec) hbound
+  exact ⟨word, by rw [lookupNth?_ofABIList, hlookup]; rfl⟩
 
 theorem revealDecode_dynamicArray_bytes32_lookup_shape {bytes : List UInt8}
-    {start endOffset i : Nat} {values : List Value}
+    {start endOffset i : Nat} {avs : List ABIValue} {secrets : List Value}
     (hdec :
-      decodeABIValue? (.dynamicArray bytes32) bytes start = some (.array values, endOffset))
-    (hbound : i < values.length) :
+      decodeABIValue? (.dynamicArray bytes32) bytes start = some (.array avs, endOffset))
+    (hvals : secrets = Value.ofABIList avs)
+    (hbound : i < secrets.length) :
     ∃ value : UInt256,
-      lookupNth? values i =
+      lookupNth? secrets i =
         some (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE value)) := by
-  simpa [bytes32, abiBytes32, abiBytes32Width] using
-    (Reasoning.Theory.decodeABIValue_dynamicArray_bytes32_lookup_shape
+  subst hvals
+  rw [ofABIList_length] at hbound
+  obtain ⟨value, hlookup⟩ :=
+    Reasoning.Theory.decodeABIValue_dynamicArray_bytes32_lookup_shape
       (bytes := bytes) (start := start) (endOffset := endOffset)
-      (i := i) (values := values) hdec hbound)
+      (i := i) (values := avs) (by simpa [bytes32, abiBytes32, abiBytes32Width] using hdec) hbound
+  exact ⟨value, by rw [lookupNth?_ofABIList, hlookup]; rfl⟩
 
 theorem blindAuctionDecode_reveal_array_decodes {I : ExecutionEnv} {callargs : Store}
     {values fakes secrets : List Value}
@@ -1642,26 +1731,44 @@ theorem blindAuctionDecode_reveal_array_decodes {I : ExecutionEnv} {callargs : S
       callargs =
         (((∅ : Store).insert "values" (.array values)).insert "fakes" (.array fakes)).insert
           "secrets" (.array secrets)) :
-    ∃ e0 e1 e2,
+    ∃ (avs afs ass : List ABIValue) (e0 e1 e2 : Nat),
       decodeABIValue? (.dynamicArray uint256) (List.drop 4 I.calldata.toList)
-          (revealValuesOffsetWord I).toNat = some (.array values, e0) ∧
+          (revealValuesOffsetWord I).toNat = some (.array avs, e0) ∧
+        values = Value.ofABIList avs ∧
       decodeABIValue? (.dynamicArray boolTy) (List.drop 4 I.calldata.toList)
-          (revealFakesOffsetWord I).toNat = some (.array fakes, e1) ∧
+          (revealFakesOffsetWord I).toNat = some (.array afs, e1) ∧
+        fakes = Value.ofABIList afs ∧
       decodeABIValue? (.dynamicArray bytes32) (List.drop 4 I.calldata.toList)
-          (revealSecretsOffsetWord I).toNat = some (.array secrets, e2) := by
+          (revealSecretsOffsetWord I).toNat = some (.array ass, e2) ∧
+        secrets = Value.ofABIList ass := by
   change decodeCalldata ["values", "fakes", "secrets"]
     [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] I.calldata =
       some callargs at hdec
-  unfold decodeCalldata at hdec
+  unfold decodeCalldata decodeCalldataValues? at hdec
   simp only [List.isEmpty_cons] at hdec
   split at hdec
   · contradiction
   next _ =>
     split at hdec
     · contradiction
-    next _ =>
-      simp [decodeCalldata.decodeArgs, decodeABIValues?, abiTupleHeadSize?, isDynamicABIType,
+    next hnothuge =>
+      have h255 : (2 : Nat) ^ 255 =
+          57896044618658097711785492504343953926634992332820282019728792003956564819968 := by
+        norm_num
+      rw [h255] at hnothuge
+      have hnotLen :
+          ¬ 57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length := fun h => hnothuge ⟨by decide, h⟩
+      have hnot4 :
+          ¬ 57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length - 4 := fun h => hnotLen (by omega)
+      have hnotG : ¬ (solcTotalSizeDynamicGuard
+          [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] = true ∧
+          57896044618658097711785492504343953926634992332820282019728792003956564819968 ≤
+            I.calldata.toList.length) := fun h => hnotLen h.2
+      simp [decodeCalldataValues?.decodeArgs, decodeABIValues?, abiTupleHeadSize?, isDynamicABIType,
         Option.bind, bind] at hdec
+      rw [if_neg hnot4, if_neg hnotG] at hdec
       cases h0 : readNat? (List.drop 4 I.calldata.toList) 0 with
       | none => simp [h0] at hdec
       | some off0 =>
@@ -1702,28 +1809,26 @@ theorem blindAuctionDecode_reveal_array_decodes {I : ExecutionEnv} {callargs : S
                                     rcases decodeABIValue_dynamicArray_is_array hval2 with
                                       ⟨secrets0, rfl⟩
                                     simp [hval2] at hdec
-                                    simp [decodeCalldata.insertValues] at hdec
                                     by_cases hargsShort : I.calldata.toList.length - 4 < 96
                                     · simp [hargsShort] at hdec
-                                    · simp [hargsShort] at hdec
-                                      rcases hdec with ⟨_, hstore0⟩
+                                    · simp [hargsShort, decodeCalldata.insertValues] at hdec
                                       have hcall :
                                           (((∅ : Store).insert "values"
-                                                (.array values0)).insert "fakes"
-                                                (.array fakes0)).insert "secrets"
-                                                (.array secrets0) =
+                                                (.array (Value.ofABIList values0))).insert "fakes"
+                                                (.array (Value.ofABIList fakes0))).insert "secrets"
+                                                (.array (Value.ofABIList secrets0)) =
                                             (((∅ : Store).insert "values"
                                                 (.array values)).insert "fakes"
                                                 (.array fakes)).insert "secrets"
                                                 (.array secrets) := by
-                                        rw [hstore0.2, hstore]
-                                      have hv : values0 = values := by
+                                        first | rw [hdec, hstore] | rw [← hdec, hstore]
+                                      have hv : Value.ofABIList values0 = values := by
                                         have := congrArg (fun m => m.get? "values") hcall
                                         change
                                           ((((∅ : Store).insert "values"
-                                                (.array values0)).insert "fakes"
-                                                (.array fakes0)).insert "secrets"
-                                                (.array secrets0)).get? "values" =
+                                                (.array (Value.ofABIList values0))).insert "fakes"
+                                                (.array (Value.ofABIList fakes0))).insert "secrets"
+                                                (.array (Value.ofABIList secrets0))).get? "values" =
                                             ((((∅ : Store).insert "values"
                                                 (.array values)).insert "fakes"
                                                 (.array fakes)).insert "secrets"
@@ -1733,13 +1838,13 @@ theorem blindAuctionDecode_reveal_array_decodes {I : ExecutionEnv} {callargs : S
                                           <;> try decide
                                         injection this with hsome
                                         injection hsome with hv
-                                      have hf : fakes0 = fakes := by
+                                      have hf : Value.ofABIList fakes0 = fakes := by
                                         have := congrArg (fun m => m.get? "fakes") hcall
                                         change
                                           ((((∅ : Store).insert "values"
-                                                (.array values0)).insert "fakes"
-                                                (.array fakes0)).insert "secrets"
-                                                (.array secrets0)).get? "fakes" =
+                                                (.array (Value.ofABIList values0))).insert "fakes"
+                                                (.array (Value.ofABIList fakes0))).insert "secrets"
+                                                (.array (Value.ofABIList secrets0))).get? "fakes" =
                                             ((((∅ : Store).insert "values"
                                                 (.array values)).insert "fakes"
                                                 (.array fakes)).insert "secrets"
@@ -1748,13 +1853,13 @@ theorem blindAuctionDecode_reveal_array_decodes {I : ExecutionEnv} {callargs : S
                                           store_get_self] at this <;> try decide
                                         injection this with hsome
                                         injection hsome with hf
-                                      have hs : secrets0 = secrets := by
+                                      have hs : Value.ofABIList secrets0 = secrets := by
                                         have := congrArg (fun m => m.get? "secrets") hcall
                                         change
                                           ((((∅ : Store).insert "values"
-                                                (.array values0)).insert "fakes"
-                                                (.array fakes0)).insert "secrets"
-                                                (.array secrets0)).get? "secrets" =
+                                                (.array (Value.ofABIList values0))).insert "fakes"
+                                                (.array (Value.ofABIList fakes0))).insert "secrets"
+                                                (.array (Value.ofABIList secrets0))).get? "secrets" =
                                             ((((∅ : Store).insert "values"
                                                 (.array values)).insert "fakes"
                                                 (.array fakes)).insert "secrets"
@@ -1762,9 +1867,6 @@ theorem blindAuctionDecode_reveal_array_decodes {I : ExecutionEnv} {callargs : S
                                         rw [store_get_self, store_get_self] at this
                                         injection this with hsome
                                         injection hsome with hs
-                                      subst values
-                                      subst fakes
-                                      subst secrets
                                       have hoff0Word :=
                                         readNat?_calldataWord_eq (I := I) (headOff := 0) h0
                                       have hoff1Word :=
@@ -1798,7 +1900,8 @@ theorem blindAuctionDecode_reveal_array_decodes {I : ExecutionEnv} {callargs : S
                                           unfold solcMaxU64 at this
                                           exact lt_size_of_lt_sign
                                             (by omega : off2 < 2 ^ 255))
-                                      refine ⟨e0, e1, e2, ?_, ?_, ?_⟩
+                                      refine ⟨values0, fakes0, secrets0, e0, e1, e2, ?_, hv.symm,
+                                        ?_, hf.symm, ?_, hs.symm⟩
                                       · simpa [hoff0ToNat] using hval0
                                       · simpa [hoff1ToNat] using hval1
                                       · simpa [hoff2ToNat] using hval2
@@ -1852,12 +1955,12 @@ theorem blindAuctionDecode_reveal_values_load {I : ExecutionEnv} {callargs : Sto
       (I.calldata.readBytes
         (UInt256.mul ⟨32⟩ i + (((⟨4⟩ : UInt256) + revealValuesOffsetWord I) + ⟨32⟩)).toNat
         32) = value := by
-  obtain ⟨e0, _e1, _e2, hval0, _hval1, _hval2⟩ :=
+  obtain ⟨avs, _, _, e0, _e1, _e2, hval0, hvs, _hval1, _, _hval2, _⟩ :=
     blindAuctionDecode_reveal_array_decodes hdec hstore
   have hread :
       readNat? (List.drop 4 I.calldata.toList)
         ((revealValuesOffsetWord I).toNat + 32 + 32 * i.toNat) = some value.toNat := by
-    exact revealDecode_dynamicArray_uint256_lookup_readNat hval0 hlookup
+    exact revealDecode_dynamicArray_uint256_lookup_readNat hval0 hvs hlookup
   have hreadLen := readNat?_some_length hread
   have htlen : I.calldata.toList.length = I.calldata.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -1885,12 +1988,12 @@ theorem blindAuctionDecode_reveal_fakes_load {I : ExecutionEnv} {callargs : Stor
       (I.calldata.readBytes
         (UInt256.mul ⟨32⟩ i + (((⟨4⟩ : UInt256) + revealFakesOffsetWord I) + ⟨32⟩)).toNat
         32) = UInt256.ofNat word := by
-  obtain ⟨_e0, e1, _e2, _hval0, hval1, _hval2⟩ :=
+  obtain ⟨_, afs, _, _e0, e1, _e2, _hval0, _, hval1, hfs, _hval2, _⟩ :=
     blindAuctionDecode_reveal_array_decodes hdec hstore
   have hread :
       readNat? (List.drop 4 I.calldata.toList)
         ((revealFakesOffsetWord I).toNat + 32 + 32 * i.toNat) = some word := by
-    exact revealDecode_dynamicArray_bool_lookup_readNat hval1 hlookup
+    exact revealDecode_dynamicArray_bool_lookup_readNat hval1 hfs hlookup
   have hreadLen := readNat?_some_length hread
   have htlen : I.calldata.toList.length = I.calldata.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -1943,12 +2046,12 @@ theorem blindAuctionDecode_reveal_secrets_load {I : ExecutionEnv} {callargs : St
       (I.calldata.readBytes
         (UInt256.mul ⟨32⟩ i + (((⟨4⟩ : UInt256) + revealSecretsOffsetWord I) + ⟨32⟩)).toNat
         32) = secret := by
-  obtain ⟨_e0, _e1, e2, _hval0, _hval1, hval2⟩ :=
+  obtain ⟨_, _, ass, _e0, _e1, e2, _hval0, _, _hval1, _, hval2, hss⟩ :=
     blindAuctionDecode_reveal_array_decodes hdec hstore
   have hread :
       readNat? (List.drop 4 I.calldata.toList)
         ((revealSecretsOffsetWord I).toNat + 32 + 32 * i.toNat) = some secret.toNat := by
-    exact revealDecode_dynamicArray_bytes32_lookup_readNat hval2 hlookup
+    exact revealDecode_dynamicArray_bytes32_lookup_readNat hval2 hss hlookup
   have hreadLen := readNat?_some_length hread
   have htlen : I.calldata.toList.length = I.calldata.size := by
     rw [byteArray_toList_eq, Array.length_toList]

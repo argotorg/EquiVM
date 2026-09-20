@@ -12,6 +12,7 @@ import EVMReasoning.Reach
 import Solm.Reasoning.Reach
 import EVMReasoning.Solc
 import Solm.Reasoning.Dispatch
+import Solm.Reasoning.Constructor
 import Solm.Reasoning.SolmBody
 import EVMReasoning.Initcode
 import EVMReasoning.Memory
@@ -469,11 +470,8 @@ theorem erc20Deployment_shape {args : List Value} {deployedInitcode : ByteArray}
   | cons arg rest =>
       cases rest with
       | cons arg2 rest =>
-          cases arg <;>
-            simp [erc20Config, genSolidityConstructorDeployment, erc20Contract,
-              constructorDecl, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
-              uint256, uint256Int, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?,
-              encodeABIWord?] at h
+          have hlen := genSolidityConstructorDeployment_length h
+          simp [erc20Contract, constructorDecl] at hlen
       | nil =>
           cases arg with
           | int i =>
@@ -513,11 +511,13 @@ theorem erc20Deployment_shape {args : List Value} {deployedInitcode : ByteArray}
           | array xs =>
               simp [erc20Config, genSolidityConstructorDeployment, erc20Contract,
                 constructorDecl, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
-                uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+                uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?,
+                Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
           | tuple xs =>
               simp [erc20Config, genSolidityConstructorDeployment, erc20Contract,
                 constructorDecl, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
-                uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+                uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?,
+                Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
           | fixedBytes n bs =>
               simp [erc20Config, genSolidityConstructorDeployment, erc20Contract,
                 constructorDecl, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,

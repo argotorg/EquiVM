@@ -1,4 +1,5 @@
 import Solm.Equiv
+import Solm.Reasoning.ABI
 import EVMReasoning.EVMWord
 
 /-!
@@ -256,7 +257,7 @@ theorem externalCallFailure {cfg : Config} {C : ContractDecl}
 theorem externalCallSuccess {cfg : Config} {C : ContractDecl}
     {evm evm' : EVM.State} {locals : Store}
     {receiver : Expr} {retVar name : Ident} {target : AccountAddress} {sendVal : Int}
-    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : List Value}
+    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : List ABIValue}
     (hreceiver :
       evalExpr? cfg { contract := C, locals := locals } evm receiver = .ok (.address target))
     (hargs : evalExprs? cfg { contract := C, locals := locals } evm args = .ok argVals)
@@ -266,7 +267,7 @@ theorem externalCallSuccess {cfg : Config} {C : ContractDecl}
     (hdec : cfg.externalABI.decode? name out = some value) :
     ExecBlock cfg { contract := C, locals := locals } evm
       [ .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
-      (.ok { contract := C, locals := locals.insert retVar (collapseReturns value) } evm') := by
+      (.ok { contract := C, locals := locals.insert retVar (collapseReturns (Value.ofABIList value)) } evm') := by
   exact ExecBlock.consNormal
     (ExecStmt.externalCallSuccess hreceiver (by simp [evalExpr?, pure]) hargs hcall hdec)
     ExecBlock.nil
@@ -315,7 +316,7 @@ theorem checkedExternalCallFailure {cfg : Config} {C : ContractDecl}
 theorem checkedExternalCallSuccess {cfg : Config} {C : ContractDecl}
     {evm evm' : EVM.State} {locals : Store}
     {receiver : Expr} {retVar name : Ident} {target : AccountAddress} {sendVal : Int}
-    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : List Value}
+    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : List ABIValue}
     (hguard :
       evalExpr? cfg { contract := C, locals := locals } evm
         (.binary .gt (.extCodeSize receiver) (.intLit 0)) = .ok (.bool true))
@@ -329,7 +330,7 @@ theorem checkedExternalCallSuccess {cfg : Config} {C : ContractDecl}
     ExecBlock cfg { contract := C, locals := locals } evm
       [ .require (.binary .gt (.extCodeSize receiver) (.intLit 0)),
         .externalCall receiver name (.intLit sendVal) args retVar (perm := perm) ]
-      (.ok { contract := C, locals := locals.insert retVar (collapseReturns value) } evm') := by
+      (.ok { contract := C, locals := locals.insert retVar (collapseReturns (Value.ofABIList value)) } evm') := by
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
   exact externalCallSuccess hreceiver hargs hcall hdec
 
@@ -374,7 +375,7 @@ decoded return value. -/
 theorem externalCallVarSuccess {cfg : Config} {C : ContractDecl}
     {evm evm' : EVM.State} {locals : Store}
     {receiver retVar name : Ident} {target : AccountAddress} {sendVal : Int}
-    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : List Value}
+    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : List ABIValue}
     (hreceiver : locals.get? receiver = some (.address target))
     (hargs : evalExprs? cfg { contract := C, locals := locals } evm args = .ok argVals)
     (hcall :
@@ -383,7 +384,7 @@ theorem externalCallVarSuccess {cfg : Config} {C : ContractDecl}
     (hdec : cfg.externalABI.decode? name out = some value) :
     ExecBlock cfg { contract := C, locals := locals } evm
       [ .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
-      (.ok { contract := C, locals := locals.insert retVar (collapseReturns value) } evm') := by
+      (.ok { contract := C, locals := locals.insert retVar (collapseReturns (Value.ofABIList value)) } evm') := by
   exact externalCallSuccess
     (receiver := .var receiver)
     (by rw [evalExpr?, hreceiver]; rfl)
@@ -418,7 +419,7 @@ return value. -/
 theorem checkedExternalCallVarSuccess {cfg : Config} {C : ContractDecl}
     {evm evm' : EVM.State} {locals : Store}
     {receiver retVar name : Ident} {target : AccountAddress} {sendVal : Int}
-    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : List Value}
+    {args : List Expr} {argVals : List Value} {out : ByteArray} {perm : Bool} {value : List ABIValue}
     (hguard :
       evalExpr? cfg { contract := C, locals := locals } evm
         (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)) = .ok (.bool true))
@@ -431,7 +432,7 @@ theorem checkedExternalCallVarSuccess {cfg : Config} {C : ContractDecl}
     ExecBlock cfg { contract := C, locals := locals } evm
       [ .require (.binary .gt (.extCodeSize (.var receiver)) (.intLit 0)),
         .externalCall (.var receiver) name (.intLit sendVal) args retVar (perm := perm) ]
-      (.ok { contract := C, locals := locals.insert retVar (collapseReturns value) } evm') := by
+      (.ok { contract := C, locals := locals.insert retVar (collapseReturns (Value.ofABIList value)) } evm') := by
   exact checkedExternalCallSuccess
     (receiver := .var receiver)
     hguard
@@ -789,7 +790,7 @@ theorem resolveStorageRef?_ok {cfg : Config} {solm : Frame} {evm : EVM.State} {s
 /-- `readStorage?` at a scalar type is exactly the single-slot `storageLocLoad`. -/
 theorem readStorage?_elem {cfg : Config} {evm : EVM.State} {er : EvaledStorageRef}
     {t : ABI.ElemType} {loc : StorageLoc} (hloc : cfg.storage.layout er = fun _ => some loc) :
-    readStorage? cfg evm er (.elem t) = .ok (storageLocLoad evm loc) := by
+    readStorage? cfg evm er (.elem t) = .ok (Value.ofABI (storageLocLoad evm loc)) := by
   rw [readStorage?]
   simp only [hloc]
 
@@ -800,7 +801,7 @@ theorem evalExpr_storage_scalar {cfg : Config} {solm : Frame} {evm : EVM.State} 
     (her : evalStorageRef cfg solm evm slot = .ok er)
     (hty : storageTypeAt? solm.contract.storage er = some (.elem t))
     (hloc : cfg.storage.layout er = fun _ => some loc) :
-    evalExpr? cfg solm evm (.storage slot) = .ok (storageLocLoad evm loc) := by
+    evalExpr? cfg solm evm (.storage slot) = .ok (Value.ofABI (storageLocLoad evm loc)) := by
   rw [evalExpr?]
   simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind,
     readStorage?_elem hloc]
@@ -808,29 +809,30 @@ theorem evalExpr_storage_scalar {cfg : Config} {solm : Frame} {evm : EVM.State} 
 /-- A scalar storage read with an already-normalized `storageLocLoad` value. -/
 theorem evalExpr_storage_scalar_value {cfg : Config} {solm : Frame} {evm : EVM.State}
     {slot : StorageRef} {er : EvaledStorageRef} {t : ABI.ElemType} {loc : StorageLoc}
-    {value : Value}
+    {value : ABIValue}
     (hbase : solm.locals.get? slot.base = none)
     (her : evalStorageRef cfg solm evm slot = .ok er)
     (hty : storageTypeAt? solm.contract.storage er = some (.elem t))
     (hloc : cfg.storage.layout er = fun _ => some loc)
     (hload : storageLocLoad evm loc = value) :
-    evalExpr? cfg solm evm (.storage slot) = .ok value := by
-  rw [evalExpr_storage_scalar hbase her hty hloc]
-  exact congrArg EvalResult.ok hload
+    evalExpr? cfg solm evm (.storage slot) = .ok (Value.ofABI value) := by
+  rw [evalExpr_storage_scalar hbase her hty hloc, hload]
 
 /-- A scalar storage write collapses to a single `storageLocStore`. -/
 theorem assignStorageRef_storage_scalar_value {cfg : Config} {solm : Frame} {evm evm' : EVM.State}
     {slot : StorageRef} {er : EvaledStorageRef} {ty : StorageType} {loc : StorageLoc} {value : Value}
+    {av : ABIValue}
     (hbase : solm.locals.get? slot.base = none)
     (her : evalStorageRef cfg solm evm slot = .ok er)
     (hty : storageTypeAt? solm.contract.storage er = some ty)
     (hloc : cfg.storage.layout er = fun _ => some loc)
     (hscalar : match value with | .struct _ _ | .array _ | .bytes _ => False | _ => True)
-    (hstore : storageLocStore evm loc value = some evm') :
+    (hstore : storageLocStore evm loc av = some evm')
+    (hconv : value.toABI? = some av := by rfl) :
     assignStorageRef? cfg solm evm .storage slot value = .ok (solm, evm') := by
   rw [assignStorageRef?]
   simp only [resolveStorageRef?_ok hbase her hty, bind, EvalResult.bind, EvalResult.ofOption,
-    hloc, hstore, pure]
+    hloc, hconv, Option.bind, hstore, pure]
   cases value <;> simp at hscalar ⊢
 
 /-- A scalar integer storage write collapses to a single `storageLocStore`. -/

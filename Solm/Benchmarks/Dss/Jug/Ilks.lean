@@ -670,7 +670,7 @@ theorem jugIlksBodyCoreOk
         (some [(.int (Int.ofNat dutyWord.toNat)), (.int (Int.ofNat rhoWord.toNat))])
         ilksTransition.returnType := by
     rw [show ilksTransition.returnType = [uint256, uint256] by rfl]
-    exact returnEquiv.returned rfl (uint256PairReturnEncoding dutyWord rhoWord)
+    exact returnEquiv.returned rfl rfl (uint256PairReturnEncoding dutyWord rhoWord)
   exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
 
 theorem jugIlksBodyCoreDecodeFailed_short

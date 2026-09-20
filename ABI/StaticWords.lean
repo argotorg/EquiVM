@@ -45,7 +45,7 @@ mutual
 
   The function succeeds only when every scalar leaf is accepted by `encodeABIWord?`.
   -/
-  def staticWordPairs? : ABIType → Solm.Value → Option (List (ABIType × Solm.Value))
+  def staticWordPairs? : ABIType → ABIValue → Option (List (ABIType × ABIValue))
     | ty@(.elem _), value =>
         if isWordScalar ty then
           match encodeABIWord? ty value with
@@ -64,14 +64,14 @@ mutual
     | .bytes, _ | .string, _ | .dynamicArray _, _ =>
         none
 
-  def staticWordPairsList? (ty : ABIType) : List Solm.Value → Option (List (ABIType × Solm.Value))
+  def staticWordPairsList? (ty : ABIType) : List ABIValue → Option (List (ABIType × ABIValue))
     | [] => some []
     | value :: values => do
         let valueWords <- staticWordPairs? ty value
         let restWords <- staticWordPairsList? ty values
         some (valueWords ++ restWords)
 
-  def staticWordPairsZip? : List ABIType → List Solm.Value → Option (List (ABIType × Solm.Value))
+  def staticWordPairsZip? : List ABIType → List ABIValue → Option (List (ABIType × ABIValue))
     | [], [] => some []
     | ty :: tys, value :: values => do
         let valueWords <- staticWordPairs? ty value
@@ -96,7 +96,7 @@ theorem staticWordTypes?_wordScalar {ty : ABIType} (h : isWordScalar ty = true) 
   | tuple tys =>
       simp [isWordScalar] at h
 
-theorem staticWordPairs?_wordScalar {ty : ABIType} {value : Solm.Value}
+theorem staticWordPairs?_wordScalar {ty : ABIType} {value : ABIValue}
     (hscalar : isWordScalar ty = true) (hword : encodeABIWord? ty value = some word) :
     staticWordPairs? ty value = some [(ty, value)] := by
   cases ty with

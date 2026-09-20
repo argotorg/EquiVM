@@ -162,9 +162,9 @@ theorem evalExpr_hasRole_storage (evm : EVM.State) (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size) :
     evalExpr? config { contract := contract, locals := hasRoleStore I } evm
       (.storage (roleHasRoleRef (.var "role") (.var "account"))) =
-        .ok (wordToElem .bool
+        .ok (Value.ofABI (wordToElem .bool
           (UInt256.land
-            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (hasRoleSlot I)) ⟨255⟩)) := by
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (hasRoleSlot I)) ⟨255⟩))) := by
   rw [evalExpr_storage_scalar (t := .bool)
     (hbase := by simpa [roleHasRoleRef] using hasRoleStore_roles I)
     (her := evalStorageRef_hasRole evm I hsz68)
@@ -182,7 +182,7 @@ theorem accessControlHasRoleBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size) :
     ExecTransitionBody config contract evm (hasRoleStore I) hasRoleTransition.body
       (.returned { contract := contract, locals := hasRoleStore I } evm
-        (some [(wordToElem .bool
+        (some [Value.ofABI (wordToElem .bool
           (UInt256.land
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (hasRoleSlot I)) ⟨255⟩))])) := by
   exact ExecFuncBody.execBlockRet <|
@@ -684,22 +684,23 @@ theorem accessControlHasRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
               hasRoleTransition.body
               (.returned { contract := contract, locals := hasRoleStore I }
                 (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                (some [(wordToElem .bool (hasRoleMaskedWord σ_solm I))])) := by
+                (some [Value.ofABI (wordToElem .bool (hasRoleMaskedWord σ_solm I))])) := by
           simpa [hasRoleStorageWord, hasRoleMaskedWord, hasRoleSlot, initState,
             Solm.EVM.storageLoad, State.lookupAccount] using
               accessControlHasRoleBodyReturns
                 (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv) hsz68
         have hretVal :
-            (some [wordToElem .bool (hasRoleMaskedWord σ_solm I)] : Option (List Value)) =
-              some [wordToElem .bool (hasRoleMaskedWord σ_evm I)] := by
+            (some [Value.ofABI (wordToElem .bool (hasRoleMaskedWord σ_solm I))] : Option (List Value)) =
+              some [Value.ofABI (wordToElem .bool (hasRoleMaskedWord σ_evm I))] := by
           simp [hasRoleMaskedWord, hword.symm]
         exact (accessControlX_hasRole (g := Sat256.ofUInt256 g)
             hsz68 hsize hbig hcanonAccount hreach)
           |>.reEquivExecutionTransport hcode hd hdec hbody hretVal hAccounts
-            (returnEquiv_of_encode (by
+            (returnEquiv_of_encode (arv := wordToElem .bool (hasRoleMaskedWord σ_evm I)) (by
               simpa [hasRoleMaskedWord, hasRoleReturnWord] using
-                boolWordReturnEncoding (hasRoleStorageWord σ_evm I)))
+                boolWordReturnEncoding (hasRoleStorageWord σ_evm I))
+              (wordToElem_bool_roundTrip _))
       · have hdec := accessControlDecode_hasRole_none_noncanon_account
           (I := I) hsz68 hbig hcanonAccount
         have hnc : UInt256.eq (hasRoleAccountWord I)

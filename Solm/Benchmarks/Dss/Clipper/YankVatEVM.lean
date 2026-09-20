@@ -657,11 +657,14 @@ theorem RD.clipperYankVatFluxPostCall {cA0 cA gh bl σ₀ σStart σ I}
   · let evmVat : EVM.State :=
       { initState cA0 gh bl σStart σ₀ g A I with
         accountMap := σ, createdAccounts := cA }
+    obtain ⟨abiArgs, hargs, hcd⟩ := Option.bind_eq_some_iff.mp
+      (clipperVatFluxEncode_eq v I (clipperYankSalesLotWord σ I)
+        (clipperYankVatFluxBaseMem_size v I tab))
     refine callCoincides (cfg := config v)
       (evm := evmVat)
       (name := "flux")
       (args := [v.ilk, .address I.codeOwner, .address I.source,
-        .int (Int.ofNat (clipperYankSalesLotWord σ I).toNat)])
+        .int (Int.ofNat (clipperYankSalesLotWord σ I).toNat)]) (hargs := hargs)
       (tgt := EVM.address v.vat) (targetWord := clipperYankVatTarget v)
       (cA' := cA_vat) (σ' := σ_vat) (A' := A_vat) (A_in := A_in)
       (z := zVat) (o := outVat) (g'' := g'') (callGas := callGas)
@@ -677,9 +680,7 @@ theorem RD.clipperYankVatFluxPostCall {cA0 cA gh bl σ₀ σStart σ I}
     · rw [clipperYankVatTargetAddress v]
       exact clipperYankEVMAddressAccountAddress v.vat
     · simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
-        show (⟨132⟩ : UInt256).toNat = 132 from by decide] using
-        clipperVatFluxEncode_eq v I (clipperYankSalesLotWord σ I)
-          (clipperYankVatFluxBaseMem_size v I tab)
+        show (⟨132⟩ : UInt256).toNat = 132 from by decide] using hcd
     · simpa [evmVat, initState, hperm] using hΘ
 
 theorem RD.clipperYankVatFluxCallFailure

@@ -9,7 +9,7 @@ namespace Solidity.Test.StringStoreLite
 
 open Solidity.Test
 
-def str (s : String) : Solm.Value := .bytes s.toUTF8
+def str (s : String) : ABI.ABIValue := .bytes s.toUTF8
 def long40 : String := "0123456789012345678901234567890123456789"
 def s31 : String := "0123456789012345678901234567890"
 def s32 : String := "01234567890123456789012345678901"

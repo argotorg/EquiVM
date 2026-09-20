@@ -32,30 +32,20 @@ export Refinement (accountEquiv accountMapEquiv accountEquiv.refl accountMapEqui
 open Refinement
 
 
-/-- Default (zero-initialized) value for an ABI return type. Used when a function
-    with a declared return type falls through without an explicit `return`: the EVM
-    then returns the ABI encoding of this value (e.g. 32 zero bytes for `uint`), not
-    empty output. Only the elementary types the model supports are covered. -/
-def defaultAbiValue : ABIType -> Option Value
-  | .elem .bool    => some (.bool false)
-  | .elem .address => some (.address (.ofNat 0))
-  | .elem (.int _) => some (.int 0)
-  | .elem (.bytes n) => some (.fixedBytes n (List.replicate (n.val + 1) 0))
-  | _              => none
-
 /-- Equivalence of ABI-returned data. -/
 inductive returnEquiv (o : ByteArray) (r : Option (List Value)) (t : List ABIType) : Prop where
   | returned :
     /- Explicit `return`: the returned values encode flat to the output.  `vs = []`, `t = []`
        subsumes an explicit void return (`encodeReturnValues? [] [] = some ∅`). -/
     r = .some vs →
-    encodeReturnValues? t vs = .some o →
+    Value.toABIList? vs = .some avs →
+    encodeReturnValues? t avs = .some o →
     returnEquiv o r t
   | fallthrough :
     /- No explicit `return`: the EVM returns the ABI encoding of each return type's default
        (zero-initialized) value.  `t = []` gives empty output. -/
     r = .none →
-    t.mapM defaultAbiValue = .some dvs →
+    t.mapM ABI.defaultValue? = .some dvs →
     encodeReturnValues? t dvs = .some o →
     returnEquiv o r t
 
@@ -72,7 +62,7 @@ inductive returnEquiv (o : ByteArray) (r : Option (List Value)) (t : List ABITyp
 
 /-- Bridge for migrating single-return proofs: the old one-value encoder is the list encoder at
     a singleton.  Definitional, so it rewrites either way. -/
-@[simp] theorem encodeReturnValue_eq_singleton (t : ABIType) (v : Value) :
+@[simp] theorem encodeReturnValue_eq_singleton (t : ABIType) (v : ABIValue) :
     encodeReturnValue? t v = encodeReturnValues? [t] [v] := rfl
 
 /-- Equivalence of return data, per the transition's return convention. -/

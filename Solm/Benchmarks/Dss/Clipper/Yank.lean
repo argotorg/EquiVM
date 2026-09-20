@@ -1214,6 +1214,9 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                       .int (Int.ofNat
                         (clipperYankSalesTabWord σSolmLock I).toNat)]
                     (false, evmDogSolm, ByteArray.empty) true := by
+                obtain ⟨abiArgs, hargs, hcd⟩ := Option.bind_eq_some_iff.mp
+                  (clipperDogDigsEncode_eq v (clipperYankSalesTabWord σSolmLock I)
+                    (clipperYankSalesHashMemRefresh_size I))
                 simpa [evmDogSolm, A_dog, evmSolmLock, evmSolm, σSolmLock, initState,
                   storageStore_accountMap, storageStore_executionEnv] using
                   (callNotMade_depthLimit (cfg := config v) (evm := evmSolmLock)
@@ -1228,11 +1231,8 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                       (clipperDogDigsCalldataMem v
                         (clipperYankSalesTabWord σSolmLock I)
                         (clipperYankSalesHashMemRefresh I)).readWithPadding 128 68)
-                    (by
-                      simpa [clipperYankSalesHashMemRefresh_size I] using
-                        clipperDogDigsEncode_eq v
-                          (clipperYankSalesTabWord σSolmLock I)
-                          (clipperYankSalesHashMemRefresh_size I))
+                    (hargs := hargs)
+                    (by simpa [clipperYankSalesHashMemRefresh_size I] using hcd)
                     hdepthLock)
               have hbody :
                   ExecTransitionBody (config v) (contract v) evmSolm locals

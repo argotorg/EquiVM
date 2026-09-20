@@ -972,7 +972,9 @@ theorem blindAuctionBidsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
                 hcanon hbound hreach)
               |>.reEquivExecutionTransport hcode hd hdec hbody
                 (by simp [hblinded, hdeposit]) hAccounts
-                (returnEquiv.returned rfl
+                (returnEquiv.returned
+                  (vs := [.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE (bidsBlindedWord σ_evm I)),
+                    .int (Int.ofNat (bidsDepositWord σ_evm I).toNat)]) rfl rfl
                   (blindAuctionBidsReturnEncoding (bidsBlindedWord σ_evm I)
                     (bidsDepositWord σ_evm I)))
           · have hbody := blindAuctionBidsBodyReverts_oob

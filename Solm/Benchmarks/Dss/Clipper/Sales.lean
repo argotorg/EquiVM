@@ -1448,7 +1448,7 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
           salesTransition.returnType := by
       rw [show salesTransition.returnType = [uint256, uint256, uint256, addr, uint96, uint256]
         from rfl]
-      exact returnEquiv.returned rfl
+      exact returnEquiv.returned rfl rfl
         (clipperSalesReturnEncoding posE tabE lotE packedE ticE topE hticLt)
     exact hret.reEquivExecutionTransport hcode hdispatch hdec hbody hval hAccounts henc
   · exact clipperSalesBodyCoreDecodeFailed_short (v := v) hpatch hcode hsize hsz4

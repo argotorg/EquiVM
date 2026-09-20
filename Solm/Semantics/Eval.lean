@@ -275,7 +275,7 @@ def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
     | _ => do
       -- scalar leaf: a single whole/partial-slot store
       let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef evm)
-      let evm' <- EvalResult.ofOption .storageError (storageLocStore evm loc value)
+      let evm' <- EvalResult.ofOption .storageError (value.toABI? >>= storageLocStore evm loc)
       pure (solm, evm')
 
 def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
@@ -403,14 +403,15 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
       pure (.bytes (ByteArray.mk bytes.toArray))
   | .abiEncodeCall name args => do
       let values <- evalExprList? cfg solm evm args
-      let bytes <- EvalResult.ofOption .typeError (cfg.externalABI.encode? name values)
+      let abiValues <- EvalResult.ofOption .typeError (Value.toABIList? values)
+      let bytes <- EvalResult.ofOption .typeError (cfg.externalABI.encode? name abiValues)
       pure (.bytes bytes)
   | .abiDecode ty e => do
       let value <- evalExpr? cfg solm evm e
       match value with
       | .bytes bytes =>
           match ABI.decodeReturnValueWithMode? cfg.abiDecodeMode ty bytes with
-          | some decoded => pure decoded
+          | some decoded => pure (Value.ofABI decoded)
           | none => .revert
       | _ => .error .typeError
   | .extCodeSize e => do
@@ -503,7 +504,7 @@ def evalPackedArgs? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | [] => pure []
   | (ty, e) :: rest => do
       let v <- evalExpr? cfg solm evm e
-      let head <- EvalResult.ofOption .typeError (encodePackedValue? ty v)
+      let head <- EvalResult.ofOption .typeError (v.toABI? >>= encodePackedValue? ty)
       let tail <- evalPackedArgs? cfg solm evm rest
       pure (head ++ tail)
 termination_by as => (typedArgsEvalSize as, 0)

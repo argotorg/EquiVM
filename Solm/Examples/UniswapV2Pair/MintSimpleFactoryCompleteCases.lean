@@ -55,12 +55,12 @@ theorem uniswapMintFeeOnKLastZeroCompleteFromFactoryCases
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
       (true, evm0S, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (hle0Source :
       (uniswapReserve0Word
         (uniswapLockEnteredState
@@ -215,7 +215,7 @@ theorem uniswapMintFeeOnKLastZeroCompleteFromFactoryCases
       AccountAddress.ofNat toWord.toNat := by
     rw [htoWord]
     have h := solcAddressValue_masked (mintToWord I)
-    simpa only [mintToMaskedWord, u256_land_comm] using Value.address.inj h
+    simpa only [mintToMaskedWord, u256_land_comm] using ABIValue.address.inj h
   exact uniswapMintAfterMintFeeCases nextFrame.locals
     (AccountAddress.ofNat (mintToWord I).toNat) true
     hcode hdispatch hsz36 hwv hunlockedSolm hguard0 hguard1 hcall0 hdec0 hcall1 hdec1
@@ -284,12 +284,12 @@ theorem uniswapMintFeeOffKLastZeroCompleteFromFactoryCases
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
       (true, evm0S, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (hle0Source :
       (uniswapReserve0Word
         (uniswapLockEnteredState
@@ -444,7 +444,7 @@ theorem uniswapMintFeeOffKLastZeroCompleteFromFactoryCases
       AccountAddress.ofNat toWord.toNat := by
     rw [htoWord]
     have h := solcAddressValue_masked (mintToWord I)
-    simpa only [mintToMaskedWord, u256_land_comm] using Value.address.inj h
+    simpa only [mintToMaskedWord, u256_land_comm] using ABIValue.address.inj h
   exact uniswapMintAfterMintFeeCases nextFrame.locals
     (AccountAddress.ofNat (mintToWord I).toNat) false
     hcode hdispatch hsz36 hwv hunlockedSolm hguard0 hguard1 hcall0 hdec0 hcall1 hdec1
@@ -513,12 +513,12 @@ theorem uniswapMintFeeOffKLastNonzeroCompleteFromFactoryCases
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
       (true, evm0S, out0) false)
     (hdec0 :
-      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
+      config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Abi balance0])
     (hcall1 : typedCallViaEVM config evm0S
       (EVM.address (uniswapAddressAtSlot evm0S ⟨7⟩)) "balanceOf" 0
       [.address evm0S.executionEnv.codeOwner] (true, evm1S, out1) false)
     (hdec1 :
-      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Value balance1])
+      config.externalABI.decode? "balanceOf" out1 = some [uniswapUint256Abi balance1])
     (hle0Source :
       (uniswapReserve0Word
         (uniswapLockEnteredState
@@ -687,7 +687,7 @@ theorem uniswapMintFeeOffKLastNonzeroCompleteFromFactoryCases
       AccountAddress.ofNat toWord.toNat := by
     rw [htoWord]
     have h := solcAddressValue_masked (mintToWord I)
-    simpa only [mintToMaskedWord, u256_land_comm] using Value.address.inj h
+    simpa only [mintToMaskedWord, u256_land_comm] using ABIValue.address.inj h
   have hcreatedCleared : cAFee = evmAfterFee.createdAccounts := by
     simpa only [evmAfterFee, mintFeeKLastClearedState, storageStore_createdAccounts] using hcreated
   exact uniswapMintAfterMintFeeCases

@@ -96,13 +96,13 @@ def balanceOfSelector : ByteArray := selectorBytes 0x70 0xa0 0x82 0x31
 def depositSelector : ByteArray := selectorBytes 0xd0 0xe3 0x0d 0xb0
 def withdrawSelector : ByteArray := selectorBytes 0x2e 0x1a 0x7d 0x4d
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 ty out).map (fun v => [v])
 
-def decodeReturns? (tys : List ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturns? (tys : List ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 tys out
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) :=
   some []
 
 def routerExternalABI : ExternalCallABI where

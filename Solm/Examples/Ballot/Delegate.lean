@@ -513,9 +513,9 @@ theorem evalExpr_delegate_sender_voted_false (evm : EVM.State) (I : ExecutionEnv
       readStorage? ballotConfig evm (delegateSenderFieldRef I "voted") (.elem .bool) =
         .ok (.bool false) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    change EvalResult.ok (storageLocLoad evm
+    change EvalResult.ok (Value.ofABI (storageLocLoad evm
         { slot := delegateSenderPackedSlot I, offset := 0, size := 1, hbound := _,
-          type := .bool }) =
+          type := .bool })) =
       EvalResult.ok (Value.bool false)
     rw [delegateStorageLocLoad_bool_offset0_false evm (delegateSenderPackedSlot I)]
     exact hvoted
@@ -533,9 +533,9 @@ theorem evalExpr_delegate_sender_voted_true (evm : EVM.State) (I : ExecutionEnv)
       readStorage? ballotConfig evm (delegateSenderFieldRef I "voted") (.elem .bool) =
         .ok (.bool true) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    change EvalResult.ok (storageLocLoad evm
+    change EvalResult.ok (Value.ofABI (storageLocLoad evm
         { slot := delegateSenderPackedSlot I, offset := 0, size := 1, hbound := _,
-          type := .bool }) =
+          type := .bool })) =
       EvalResult.ok (Value.bool true)
     rw [delegateStorageLocLoad_bool_offset0_true evm (delegateSenderPackedSlot I)]
     exact hvoted
@@ -801,9 +801,9 @@ theorem evalExpr_delegate_voter_delegate (evm : EVM.State) (I : ExecutionEnv) :
         .ok (.address
           (AccountAddress.ofNat (delegateVoterDelegateWordCurrent evm I).toNat)) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    change EvalResult.ok (storageLocLoad evm
+    change EvalResult.ok (Value.ofABI (storageLocLoad evm
         { slot := delegateVoterPackedSlot (delegateToWord I), offset := 1, size := 20,
-          hbound := _, type := .address }) =
+          hbound := _, type := .address })) =
       EvalResult.ok
         (Value.address (AccountAddress.ofNat (delegateVoterDelegateWordCurrent evm I).toNat))
     rw [storageLocLoad_address_offset1]
@@ -829,6 +829,7 @@ theorem delegateAssignVoted (evm : EVM.State) (I : ExecutionEnv) :
     (by rfl), bind, EvalResult.bind, EvalResult.ofOption, pure]
   simp only [ballotConfig, ballotStorageLayout, delegateSenderFieldRef, delegateSenderPackedSlot,
     delegateSenderSlot]
+  simp only [Value.toABI?, Option.bind]
   rw [voteStorageLocStore_bool_true_offset0]
   simp [delegateAfterVotedState, delegateSenderVotedStoreCurrent, delegateSenderPackedCurrent,
     delegateSenderPackedSlot, delegateSenderSlot]
@@ -876,6 +877,7 @@ theorem delegateAssignDelegate (evm : EVM.State) (I : ExecutionEnv)
   unfold delegateAfterSenderState delegateAfterVotedState delegateSenderPackedStoreCurrent
     delegateSenderVotedStoreCurrent delegateSenderPackedCurrent delegateToValue
   unfold delegateSenderPackedSlot delegateSenderSlot
+  simp only [Value.toABI?, Option.bind]
   -- Shared packed-slot store helper, supplied from `Common.lean`.
   rw [ballotStorageLocStore_address_offset1_after_bool_true (acc := acc) (hacc := hlookup)
     (hcanon := hcanon)]
@@ -889,9 +891,9 @@ theorem evalExpr_delegate_delegate_voted_false (evm : EVM.State) (I : ExecutionE
       readStorage? ballotConfig evm (delegateVoterFieldRef I "voted") (.elem .bool) =
         .ok (.bool false) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    change EvalResult.ok (storageLocLoad evm
+    change EvalResult.ok (Value.ofABI (storageLocLoad evm
         { slot := delegateVoterPackedSlot (delegateToWord I), offset := 0, size := 1,
-          hbound := _, type := .bool }) = EvalResult.ok (Value.bool false)
+          hbound := _, type := .bool })) = EvalResult.ok (Value.bool false)
     rw [delegateStorageLocLoad_bool_offset0_false]
     simpa [delegateVoterVotedByteCurrent, delegateVoterPackedCurrent, u256_land_comm] using hzero
   rw [evalExpr?]
@@ -906,9 +908,9 @@ theorem evalExpr_delegate_delegate_voted_true (evm : EVM.State) (I : ExecutionEn
       readStorage? ballotConfig evm (delegateVoterFieldRef I "voted") (.elem .bool) =
         .ok (.bool true) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    change EvalResult.ok (storageLocLoad evm
+    change EvalResult.ok (Value.ofABI (storageLocLoad evm
         { slot := delegateVoterPackedSlot (delegateToWord I), offset := 0, size := 1,
-          hbound := _, type := .bool }) = EvalResult.ok (Value.bool true)
+          hbound := _, type := .bool })) = EvalResult.ok (Value.bool true)
     rw [delegateStorageLocLoad_bool_offset0_true]
     simpa [delegateVoterVotedByteCurrent, delegateVoterPackedCurrent, u256_land_comm] using hnz
   rw [evalExpr?]
@@ -1038,6 +1040,7 @@ theorem delegateAssignVoterWeight (evm : EVM.State) (I : ExecutionEnv) :
   simp only [resolveStorageRef_delegate_delegateField (delegateAfterSenderState evm I) I "weight"
     (.elem (.int uint256Int)) (by rfl), bind, EvalResult.bind, EvalResult.ofOption, pure]
   simp only [ballotConfig, ballotStorageLayout, delegateVoterFieldRef, delegateVoterSlot]
+  simp only [Value.toABI?, Option.bind]
   rw [voteStorageLocStore_uint256]
   simp [delegateFalseSuccessState, delegateUpdatedVoterWeightCurrent, delegateVoterSlot]
 

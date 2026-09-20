@@ -20,6 +20,10 @@ abbrev bidBlindedBytes (I : ExecutionEnv) : List UInt8 :=
 abbrev bidBlindedValue (I : ExecutionEnv) : Value :=
   .fixedBytes ⟨31, by decide⟩ (bidBlindedBytes I)
 
+/-- ABI twin of `bidBlindedValue` (storage-leaf position). -/
+abbrev bidBlindedAbi (I : ExecutionEnv) : ABIValue :=
+  .fixedBytes ⟨31, by decide⟩ (bidBlindedBytes I)
+
 abbrev bidStore (I : ExecutionEnv) : Store :=
   (∅ : Store).insert "blindedBid" (bidBlindedValue I)
 
@@ -489,8 +493,8 @@ theorem bidArrayDataKeccak (I : ExecutionEnv) (lenSlot : UInt256) :
   exact keccakSlot_eq (UInt256.toByteArray lenSlot)
 
 theorem bidBlindedValue_toWord (I : ExecutionEnv) (hsz36 : 36 ≤ I.calldata.size) :
-    valueToWord (bidBlindedValue I) = some (bidBlindedWord I) := by
-  unfold bidBlindedValue bidBlindedBytes bidBlindedWord calldataWord
+    valueToWord (bidBlindedAbi I) = some (bidBlindedWord I) := by
+  unfold bidBlindedAbi bidBlindedBytes bidBlindedWord calldataWord
   simp only [valueToWord]
   have hlen : ((I.calldata.toList.drop 4).take 32).length = 31 + 1 := by
     rw [List.length_take, List.length_drop]
@@ -525,7 +529,7 @@ theorem bidWordOfInt_succ (w : UInt256) :
   rw [uadd_toNat]
   rw [show ({ val := 1 } : UInt256).toNat = 1 by rfl]
 
-theorem blindAuctionStorageLocStore_bytes32 (evm : EVM.State) (slot word : UInt256) (v : Value)
+theorem blindAuctionStorageLocStore_bytes32 (evm : EVM.State) (slot word : UInt256) (v : ABIValue)
     (hval : valueToWord v = some word) :
     storageLocStore evm (blindAuctionBytes32Loc slot) v =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot word) := by
@@ -571,6 +575,7 @@ theorem bidPushArray_ok (evm : EVM.State) (hsz36 : 36 ≤ evm.executionEnv.calld
   rw [writeStorage?.eq_def]
   simp only [bytes32St]
   simp only [List.cons_append, List.nil_append]
+  simp only [Value.toABI?, bind, Option.bind]
   rw [blindAuctionStorageLocStore_bytes32
     (word := bidBlindedWord evm.executionEnv)
     (hval := bidBlindedValue_toWord evm.executionEnv hsz36)]
@@ -580,6 +585,7 @@ theorem bidPushArray_ok (evm : EVM.State) (hsz36 : 36 ≤ evm.executionEnv.calld
   rw [writeStorage?.eq_def]
   simp only [uint256St]
   simp only [List.cons_append, List.nil_append]
+  simp only [Value.toABI?, bind, Option.bind]
   rw [blindAuctionStorageLocStore_uint256_natCast]
   simp only [EvalResult.ofOption, Option.bind, EvalResult.bind, bind, pure]
   rw [writeFields?.eq_def]

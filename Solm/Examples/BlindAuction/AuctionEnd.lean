@@ -222,7 +222,7 @@ theorem evalExpr_auctionEnd_ended_false (evm : EVM.State)
   rw [evalExpr_storage_scalar (t := .bool) (hbase := by simp) (her := her)
     (hty := hty) (hloc := blindAuctionConfig_storage_ended)]
   simpa [auctionEndEndedWordState, auctionEndEndedRawWordState] using
-    blindAuctionStorageLocLoad_bool_offset0_false evm ⟨3⟩ hzero
+    congrArg Value.ofABI (blindAuctionStorageLocLoad_bool_offset0_false evm ⟨3⟩ hzero)
 
 theorem evalExpr_auctionEnd_ended_true (evm : EVM.State)
     (hnz : auctionEndEndedWordState evm ≠ ⟨0⟩) :
@@ -238,7 +238,7 @@ theorem evalExpr_auctionEnd_ended_true (evm : EVM.State)
   rw [evalExpr_storage_scalar (t := .bool) (hbase := by simp) (her := her)
     (hty := hty) (hloc := blindAuctionConfig_storage_ended)]
   simpa [auctionEndEndedWordState, auctionEndEndedRawWordState] using
-    blindAuctionStorageLocLoad_bool_offset0_true evm ⟨3⟩ hnz
+    congrArg Value.ofABI (blindAuctionStorageLocLoad_bool_offset0_true evm ⟨3⟩ hnz)
 
 theorem evalExpr_auctionEnd_time_true (evm : EVM.State)
     (htime :

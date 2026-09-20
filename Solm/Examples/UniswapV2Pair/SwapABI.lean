@@ -136,7 +136,7 @@ theorem swapDecodeABIValue_bytes_ok {I : ExecutionEnv}
       (swapDataSize I)).length = swapDataSize I) :
     decodeABIValue? ABIType.bytes (I.calldata.toList.drop 4) (swapDataOffset I)
         DecodeMode.legacySolc05 =
-      some (swapDataValue I, swapDataOffset I + 32 + paddedSize (swapDataSize I)) := by
+      some (.bytes (swapDataBytes I), swapDataOffset I + 32 + paddedSize (swapDataSize I)) := by
   have hreadLen := swapReadNat_drop4_eq_calldataWord (I := I)
     (headOff := swapDataOffset I) hlenWord
   have hpayloadRead :
@@ -150,7 +150,7 @@ theorem swapDecodeABIValue_bytes_ok {I : ExecutionEnv}
         (calldataWord I.calldata (4 + (swapDataOffsetWord I).toNat)).toNat := by
     simpa [solcMaxLen_legacySolc05, swapDataSize, swapDataSizeWord,
       swapDataOffset] using hlenMax
-  simp [decodeABIValue?, hreadLen, hlenMax', hpayloadRead, swapDataValue, swapDataBytes,
+  simp [decodeABIValue?, hreadLen, hlenMax', hpayloadRead, swapDataBytes,
     swapDataSize, swapDataSizeWord, swapDataOffset]
 
 theorem swapDecodeABIValues_ok {I : ExecutionEnv} (hsz132 : 132 ≤ I.calldata.size)
@@ -161,7 +161,9 @@ theorem swapDecodeABIValues_ok {I : ExecutionEnv} (hsz132 : 132 ≤ I.calldata.s
       (swapDataSize I)).length = swapDataSize I) :
     decodeABIValues? [uint256, uint256, legacyAddr, ABIType.bytes]
       (I.calldata.toList.drop 4) 0 0 128 128 DecodeMode.legacySolc05 =
-      some ([swapAmount0OutValue I, swapAmount1OutValue I, swapToValue I, swapDataValue I],
+      some ([.int (Int.ofNat (swapAmount0OutWord I).toNat),
+          .int (Int.ofNat (swapAmount1OutWord I).toNat),
+          .address (AccountAddress.ofNat (swapToWord I).toNat), .bytes (swapDataBytes I)],
         max 128 (swapDataOffset I + 32 + paddedSize (swapDataSize I))) := by
   have htlen : I.calldata.toList.length = I.calldata.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -235,7 +237,7 @@ theorem swapDecodeABIValues_ok {I : ExecutionEnv} (hsz132 : 132 ≤ I.calldata.s
     omega
   simp [decodeABIValues?, uint256, uint256Int, legacyAddr, addr, isDynamicABIType,
     staticABIEncodedSize?, hdec0r, hdec32r, hdec64r, hreadOff, hoffMax', hdecData, hword4,
-    hword36', hword68', hmaxEnd, swapAmount0OutValue, swapAmount1OutValue, swapToValue]
+    hword36', hword68', hmaxEnd]
 
 theorem uniswapDecode_swap_ok {I : ExecutionEnv} (hsz132 : 132 ≤ I.calldata.size)
     (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
@@ -252,19 +254,19 @@ theorem uniswapDecode_swap_ok {I : ExecutionEnv} (hsz132 : 132 ≤ I.calldata.si
     rw [byteArray_toList_eq, Array.length_toList]
     rfl
   have hvals := swapDecodeABIValues_ok (I := I) hsz132 hoffMax hlenWord hlenMax hpayload
-  unfold decodeCalldataWithMode decodeCalldata
+  unfold decodeCalldataWithMode decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
   by_cases hdyn :
       [uint256, uint256, legacyAddr, ABIType.bytes].any isDynamicABIType = true ∧
         2 ^ 255 ≤ I.calldata.toList.length
   all_goals
     first | rw [if_pos hdyn] | rw [if_neg hdyn]
-    change (match decodeCalldata.decodeArgs DecodeMode.legacySolc05
-        ["amount0Out", "amount1Out", "to", "data"]
-        [uint256, uint256, legacyAddr, ABIType.bytes] (I.calldata.toList.drop 4) ∅ with
-      | some (store, _) => some store
-      | none => none) = some (swapStore I)
-    unfold decodeCalldata.decodeArgs
+    change Option.bind
+        ((decodeCalldataValues?.decodeArgs DecodeMode.legacySolc05
+          [uint256, uint256, legacyAddr, ABIType.bytes] (I.calldata.toList.drop 4)).map (·.1))
+        (fun values => decodeCalldata.insertValues ["amount0Out", "amount1Out", "to", "data"]
+          values ∅) = some (swapStore I)
+    unfold decodeCalldataValues?.decodeArgs
     rw [show abiTupleHeadSize? [uint256, uint256, legacyAddr, ABIType.bytes] = some 128 by
       native_decide]
     simp only [bind, Option.bind]
@@ -273,9 +275,12 @@ theorem uniswapDecode_swap_ok {I : ExecutionEnv} (hsz132 : 132 ≤ I.calldata.si
       omega : ¬ (I.calldata.toList.drop 4).length < 128)]
     rw [hvals]
     change decodeCalldata.insertValues ["amount0Out", "amount1Out", "to", "data"]
-        [swapAmount0OutValue I, swapAmount1OutValue I, swapToValue I, swapDataValue I] ∅ =
+        [.int (Int.ofNat (swapAmount0OutWord I).toNat),
+          .int (Int.ofNat (swapAmount1OutWord I).toNat),
+          .address (AccountAddress.ofNat (swapToWord I).toNat), .bytes (swapDataBytes I)] ∅ =
       some (swapStore I)
-    simp [decodeCalldata.insertValues, swapStore]
+    simp [decodeCalldata.insertValues, swapStore, swapAmount0OutValue, swapAmount1OutValue,
+      swapToValue, swapDataValue]
 
 theorem uniswapDecode_swap_none_head_short {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 132) :
@@ -287,25 +292,26 @@ theorem uniswapDecode_swap_none_head_short {I : ExecutionEnv}
   have htlen : I.calldata.toList.length = I.calldata.size := by
     rw [byteArray_toList_eq, Array.length_toList]
     rfl
-  unfold decodeCalldataWithMode decodeCalldata
+  unfold decodeCalldataWithMode decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
   by_cases hdyn :
       [uint256, uint256, legacyAddr, ABIType.bytes].any isDynamicABIType = true ∧
         2 ^ 255 ≤ I.calldata.toList.length
   all_goals
     first | rw [if_pos hdyn] | rw [if_neg hdyn]
-    change (match decodeCalldata.decodeArgs DecodeMode.legacySolc05
-        ["amount0Out", "amount1Out", "to", "data"]
-        [uint256, uint256, legacyAddr, ABIType.bytes] (I.calldata.toList.drop 4) ∅ with
-      | some (store, _) => some store
-      | none => none) = none
-    unfold decodeCalldata.decodeArgs
+    change Option.bind
+        ((decodeCalldataValues?.decodeArgs DecodeMode.legacySolc05
+          [uint256, uint256, legacyAddr, ABIType.bytes] (I.calldata.toList.drop 4)).map (·.1))
+        (fun values => decodeCalldata.insertValues ["amount0Out", "amount1Out", "to", "data"]
+          values ∅) = none
+    unfold decodeCalldataValues?.decodeArgs
     rw [show abiTupleHeadSize? [uint256, uint256, legacyAddr, ABIType.bytes] = some 128 by
       native_decide]
     simp only [bind, Option.bind]
     rw [if_pos (by
       rw [List.length_drop, htlen]
       omega : (I.calldata.toList.drop 4).length < 128)]
+    rfl
 
 theorem swapDecodeABIValues_none_offset_huge {I : ExecutionEnv}
     (hsz132 : 132 ≤ I.calldata.size) (hoff : solcLegacyMaxU32 < swapDataOffset I) :
@@ -481,19 +487,19 @@ theorem uniswapDecode_swap_none_of_values_none {I : ExecutionEnv}
   have htlen : I.calldata.toList.length = I.calldata.size := by
     rw [byteArray_toList_eq, Array.length_toList]
     rfl
-  unfold decodeCalldataWithMode decodeCalldata
+  unfold decodeCalldataWithMode decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
   by_cases hdyn :
       [uint256, uint256, legacyAddr, ABIType.bytes].any isDynamicABIType = true ∧
         2 ^ 255 ≤ I.calldata.toList.length
   all_goals
     first | rw [if_pos hdyn] | rw [if_neg hdyn]
-    change (match decodeCalldata.decodeArgs DecodeMode.legacySolc05
-        ["amount0Out", "amount1Out", "to", "data"]
-        [uint256, uint256, legacyAddr, ABIType.bytes] (I.calldata.toList.drop 4) ∅ with
-      | some (store, _) => some store
-      | none => none) = none
-    unfold decodeCalldata.decodeArgs
+    change Option.bind
+        ((decodeCalldataValues?.decodeArgs DecodeMode.legacySolc05
+          [uint256, uint256, legacyAddr, ABIType.bytes] (I.calldata.toList.drop 4)).map (·.1))
+        (fun values => decodeCalldata.insertValues ["amount0Out", "amount1Out", "to", "data"]
+          values ∅) = none
+    unfold decodeCalldataValues?.decodeArgs
     rw [show abiTupleHeadSize? [uint256, uint256, legacyAddr, ABIType.bytes] = some 128 by
       native_decide]
     simp only [bind, Option.bind]
@@ -501,6 +507,7 @@ theorem uniswapDecode_swap_none_of_values_none {I : ExecutionEnv}
       rw [List.length_drop, htlen]
       omega : ¬ (I.calldata.toList.drop 4).length < 128)]
     rw [hvals]
+    rfl
 
 theorem uniswapDecode_swap_none_offset_huge {I : ExecutionEnv}
     (hsz132 : 132 ≤ I.calldata.size) (hoff : solcLegacyMaxU32 < swapDataOffset I) :

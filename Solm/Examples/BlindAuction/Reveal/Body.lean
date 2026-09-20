@@ -125,14 +125,14 @@ theorem scratch_revealLoopBody_fromLoopStart {I : ExecutionEnv} {g : Sat256}
     have hboundSecrets : a.idx.toNat < secrets.length := by
       rw [hsecretsListLen]
       exact hsecretsBound
-    obtain ⟨e0, e1, e2, hval0, hval1, hval2⟩ :=
+    obtain ⟨avs, afs, ass, e0, e1, e2, hval0, hvs, hval1, hfs, hval2, hss⟩ :=
       blindAuctionDecode_reveal_array_decodes hdec hstore
     obtain ⟨value, hvalueLookup⟩ :=
-      revealDecode_dynamicArray_uint256_lookup_shape hval0 hboundValues
+      revealDecode_dynamicArray_uint256_lookup_shape hval0 hvs hboundValues
     obtain ⟨word, hfakeLookup⟩ :=
-      revealDecode_dynamicArray_bool_lookup_shape hval1 hboundFakes
+      revealDecode_dynamicArray_bool_lookup_shape hval1 hfs hboundFakes
     obtain ⟨secret, hsecretLookup⟩ :=
-      revealDecode_dynamicArray_bytes32_lookup_shape hval2 hboundSecrets
+      revealDecode_dynamicArray_bytes32_lookup_shape hval2 hss hboundSecrets
     let fakeWord : UInt256 := UInt256.ofNat word
     have hvalueLoad :
         uInt256OfByteArray

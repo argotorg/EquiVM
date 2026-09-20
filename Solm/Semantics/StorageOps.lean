@@ -73,8 +73,8 @@ def storagePrepareResultToEval : StorageReadResult EVM.State -> EvalResult EVM.S
   | .revert => .revert
   | .error => .error .storageError
 
-def storageValueResultToEval : StorageReadResult Value -> EvalResult Value
-  | .ok v => .ok v
+def storageValueResultToEval : StorageReadResult ABIValue -> EvalResult Value
+  | .ok v => .ok (Value.ofABI v)
   | .revert => .revert
   | .error => .error .storageError
 
@@ -154,7 +154,7 @@ def writeStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
   | .elem _, v
   | .contract _, v =>
       match cfg.storage.layout er evm with
-      | some loc => EvalResult.ofOption .storageError (storageLocStore evm loc v)
+      | some loc => EvalResult.ofOption .storageError (v.toABI? >>= storageLocStore evm loc)
       | none => .error .storageError
   | .struct _ ftypes, .struct _ fvals => writeFields? cfg evm er ftypes fvals
   | .tuple ts, .tuple vs => writeTupleElems? cfg evm er 0 ts vs
@@ -224,7 +224,7 @@ def readStorage? (cfg : Config) (evm : EVM.State) (er : EvaledStorageRef) :
   | .elem _
   | .contract _ =>
       match cfg.storage.layout er evm with
-      | some loc => .ok (storageLocLoad evm loc)
+      | some loc => .ok (Value.ofABI (storageLocLoad evm loc))
       | none => .error .storageError
   | .mapping _ _ => .error .typeError
   | .struct name fields => do

@@ -90,12 +90,12 @@ def salesSelector : ByteArray := selectorBytes 0xb5 0xf5 0x22 0xf7  -- sales(uin
 def readSelector  : ByteArray := selectorBytes 0x57 0xde 0x26 0xa4  -- read()
 def yankSelector  : ByteArray := selectorBytes 0x26 0xe0 0x27 0xf1  -- yank(uint256)
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 ty out).map (fun v => [v])
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) := some []
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) := some []
 
-def ilksEncode? (args : List Value) : Option ByteArray :=
+def ilksEncode? (args : List ABIValue) : Option ByteArray :=
   ABI.encodeCallWithSelector? ilksSelector [bytes32] args
 
 def externalABI : ExternalCallABI where

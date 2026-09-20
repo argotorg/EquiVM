@@ -1910,11 +1910,11 @@ theorem evalExpr_reveal_bids_length_zero (evm : EVM.State) (locals : Store)
   change (match some (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) with
     | some lenLoc =>
         match storageLocLoad evm lenLoc with
-        | Value.int n => pure (Value.int n)
+        | ABIValue.int n => pure (Value.int n)
         | _ => EvalResult.error .storageError
     | none => EvalResult.error .storageError) = EvalResult.ok (Value.int 0)
   change (match storageLocLoad evm (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) with
-    | Value.int n => pure (Value.int n)
+    | ABIValue.int n => pure (Value.int n)
     | _ => EvalResult.error .storageError) = EvalResult.ok (Value.int 0)
   rw [blindAuctionStorageLocLoad_uint256, hlen]
   rfl
@@ -1947,11 +1947,11 @@ theorem evalExpr_reveal_bids_length_any (evm : EVM.State) (locals : Store) (len 
   change (match some (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) with
     | some lenLoc =>
         match storageLocLoad evm lenLoc with
-        | Value.int n => pure (Value.int n)
+        | ABIValue.int n => pure (Value.int n)
         | _ => EvalResult.error .storageError
     | none => EvalResult.error .storageError) = EvalResult.ok (Value.int (Int.ofNat len.toNat))
   change (match storageLocLoad evm (blindAuctionUint256Loc (bidsBase (.address evm.executionEnv.source))) with
-    | Value.int n => pure (Value.int n)
+    | ABIValue.int n => pure (Value.int n)
     | _ => EvalResult.error .storageError) = EvalResult.ok (Value.int (Int.ofNat len.toNat))
   rw [blindAuctionStorageLocLoad_uint256, hlen]
   rfl
@@ -3850,8 +3850,8 @@ theorem scratch_blindAuctionDecode_reveal_some_of_guards {I : ExecutionEnv}
       (len := secretsLen.toNat) hsecretsLenRead
       (scratch_not_solcMax_lt_of_ugt_zero hsecretsLenMax) hsecretsEndBound
   let callargs : Store :=
-    (((∅ : Store).insert "values" (.array values)).insert "fakes" (.array fakes)).insert
-      "secrets" (.array secrets)
+    (((∅ : Store).insert "values" (.array (Value.ofABIList values))).insert "fakes"
+      (.array (Value.ofABIList fakes))).insert "secrets" (.array (Value.ofABIList secrets))
   refine ⟨callargs, ?_⟩
   change decodeCalldata ["values", "fakes", "secrets"]
     [.dynamicArray uint256, .dynamicArray boolTy, .dynamicArray bytes32] I.calldata =
@@ -3878,12 +3878,12 @@ theorem scratch_blindAuctionDecode_reveal_some_of_guards {I : ExecutionEnv}
   have hnotArgsShortSub : ¬ I.calldata.toList.length - 4 < 96 := by
     rw [htlen]
     omega
-  unfold decodeCalldata
+  unfold decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
   rw [if_neg hnotHugeFull]
   rw [if_neg hnotHugeArgs]
   rw [if_neg (by simp [solcTotalSizeDynamicGuard])]
-  simp [decodeCalldata.decodeArgs, decodeABIValues?, abiTupleHeadSize?,
+  simp [decodeCalldataValues?.decodeArgs, decodeABIValues?, abiTupleHeadSize?,
     isDynamicABIType, Option.bind, bind, args, hvaluesHead,
     scratch_not_solcMax_lt_of_ugt_zero hvaluesGt, hvaluesDecode, hfakesHead,
     scratch_not_solcMax_lt_of_ugt_zero hfakesGt, hfakesDecode, hsecretsHead,

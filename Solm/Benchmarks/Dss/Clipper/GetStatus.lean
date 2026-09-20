@@ -21,7 +21,7 @@ theorem clipperGetStatusReturnEquiv
         .int (Int.ofNat tab.toNat)])
       getStatusTransition.returnType := by
   rw [show getStatusTransition.returnType = [.elem .bool, uint256, uint256, uint256] from rfl]
-  exact returnEquiv.returned rfl
+  exact returnEquiv.returned rfl rfl
     (clipperGetStatusReturnEncoding needsWord needs price lot tab hneeds)
 
 theorem clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos

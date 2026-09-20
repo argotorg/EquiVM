@@ -16,14 +16,14 @@ def ctorAbiTys (fc : FlatContract) : Option (List ABI.ABIType) :=
   | none => some []
 
 /-- `initcode ++ abi.encode(args)`. -/
-def solcDeployment (fc : FlatContract) (initcode : EVM.Bytes) (args : List Solm.Value) : Option EVM.Bytes := do
+def solcDeployment (fc : FlatContract) (initcode : EVM.Bytes) (args : List ABI.ABIValue) : Option EVM.Bytes := do
   let tys ← ctorAbiTys fc
   let enc ← ABI.encodeABIValues? tys args
   pure (initcode ++ enc.toByteArray)
 
 /-- Creation code for `new C(args)` from a table of creation bytecodes: `code ++ abi.encode(args)`
     with the constructor parameter types of `C`. -/
-def creationFor (fc : FlatContract) (codes : List (Ident × EVM.Bytes)) (name : Ident) (args : List Solm.Value) :
+def creationFor (fc : FlatContract) (codes : List (Ident × EVM.Bytes)) (name : Ident) (args : List ABI.ABIValue) :
     Option EVM.Bytes := do
   let code ← (codes.find? (·.1 == name)).map (·.2)
   let tys ← fc.ctorTys? name

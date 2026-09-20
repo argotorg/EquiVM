@@ -296,5 +296,6 @@ def genSolidityStorageLayout (structs : List StructDecl) (decls : List StorageDe
 
 -- TODO Maybe move this, or make the file be for general solidity specific components
 def genSolidityConstructorDeployment (params : List Param) (pureInit : EVM.Bytes) (values : List Value) : Option EVM.Bytes := do
-  let args ← ABI.encodeABIValues? (params.map Param.ty) values
+  let abiValues ← Value.toABIList? values
+  let args ← ABI.encodeABIValues? (params.map Param.ty) abiValues
   pureInit ++ args.toByteArray

@@ -6,12 +6,18 @@ set_option maxRecDepth 2000000
 
 abbrev swapCallbackArgs (senderAddr : AccountAddress) (amount0Out amount1Out : UInt256) (data : ByteArray) : List Value :=
   [.address senderAddr, uniswapUint256Value amount0Out, uniswapUint256Value amount1Out, .bytes data]
+/-- The ABI values of `swapCallbackArgs`. -/
+abbrev swapCallbackAbiArgs (senderAddr : AccountAddress) (amount0Out amount1Out : UInt256) (data : ByteArray) : List ABIValue :=
+  [.address senderAddr, .int (Int.ofNat amount0Out.toNat), .int (Int.ofNat amount1Out.toNat), .bytes data]
+theorem swapCallbackArgs_toABI (senderAddr : AccountAddress) (amount0Out amount1Out : UInt256) (data : ByteArray) :
+    Value.toABIList? (swapCallbackArgs senderAddr amount0Out amount1Out data) =
+      some (swapCallbackAbiArgs senderAddr amount0Out amount1Out data) := rfl
 noncomputable def swapCallbackCalldata (senderAddr : AccountAddress) (amount0Out amount1Out : UInt256) (data : ByteArray) : ByteArray :=
   uniswapV2CallSelector ++ (UInt256.ofNat senderAddr.val).toByteArray ++ amount0Out.toByteArray ++ amount1Out.toByteArray ++
     (⟨128⟩ : UInt256).toByteArray ++ (UInt256.ofNat data.size).toByteArray ++ (ABI.padRightToWord data.toList).toByteArray
 
 theorem swapCallbackCalldata_encode (senderAddr : AccountAddress) (amount0Out amount1Out : UInt256) (data : ByteArray) :
-    config.externalABI.encode? "uniswapV2Call" (swapCallbackArgs senderAddr amount0Out amount1Out data) =
+    config.externalABI.encode? "uniswapV2Call" (swapCallbackAbiArgs senderAddr amount0Out amount1Out data) =
       some (swapCallbackCalldata senderAddr amount0Out amount1Out data) := by
   have ha0 : EVM.word amount0Out.toNat = amount0Out := u256_ofNat_toNat amount0Out
   have ha1 : EVM.word amount1Out.toNat = amount1Out := u256_ofNat_toNat amount1Out
@@ -19,8 +25,8 @@ theorem swapCallbackCalldata_encode (senderAddr : AccountAddress) (amount0Out am
   have hlo0 : amount0Out.toNat < EVM.twoPow 256 := amount0Out.val.isLt
   have hlo1 : amount1Out.toNat < EVM.twoPow 256 := amount1Out.val.isLt
   change uniswapExternalABI.encode? "uniswapV2Call" _ = _
-  unfold uniswapExternalABI ABI.encodeCallWithSelector? ABI.encodeABIValues? swapCallbackArgs swapCallbackCalldata
-  simp [addr, uint256, uint256Int, uniswapUint256Value, ABI.abiTupleHeadSize?, ABI.staticABIEncodedSize?,
+  unfold uniswapExternalABI ABI.encodeCallWithSelector? ABI.encodeABIValues? swapCallbackAbiArgs swapCallbackCalldata
+  simp [addr, uint256, uint256Int, ABI.abiTupleHeadSize?, ABI.staticABIEncodedSize?,
     ABI.isDynamicABIType, ABI.encodeABIValue?, ABI.encodeABIWord?, ABI.encodeABIValuesFrom?,
     ABI.natBytes, hlo0, hlo1, ha0, ha1, hs, word_toBytesBE_toByteArray_eq_toByteArray]
   simp only [ByteArray.append_assoc]

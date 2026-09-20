@@ -146,9 +146,7 @@ theorem evalExpr_allowance_storage (evm : EVM.State) (I : ExecutionEnv) :
   rw [evalExpr_storage_scalar
     (hbase := by rw [allowanceStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)];
                  simp)
-    (her := her) (hty := hty) (hloc := hloc)]
-  congr 1
-  exact erc20StorageLocLoad_uint256 evm (allowanceSlot I)
+    (her := her) (hty := hty) (hloc := hloc), erc20StorageLocLoad_uint256]
 
 theorem erc20AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :

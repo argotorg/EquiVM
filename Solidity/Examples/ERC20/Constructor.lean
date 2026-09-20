@@ -17,14 +17,48 @@ theorem erc20Flat_topCtor : topCtor? erc20Flat = some fnCtor := rfl
 theorem erc20Flat_immZero : immZero erc20Flat = some ∅ := rfl
 theorem erc20Flat_initializers : initializers erc20Flat = [] := rfl
 
-/-- The Solidity deployment scheme coincides with the Sol⁻ one. -/
-theorem erc20SolDeployment (args : List Solm.Value) :
-    erc20Cfg.selfDeployment erc20Initcode args = erc20Config.selfDeployment erc20Initcode args := rfl
+theorem erc20Flat_ctorAbiTys : ctorAbiTys erc20Flat = some [uint256] := rfl
+
+/-- Only a single in-range `uint256` deploys, and the deployment is initcode ++ its word. -/
+theorem erc20SolDeployment_shape {args : List ABI.ABIValue} {deployedInitcode : ByteArray} :
+    erc20Cfg.selfDeployment erc20Initcode args = some deployedInitcode →
+    ∃ i : Int,
+      args = [.int i]
+        ∧ 0 ≤ i
+        ∧ i < Int.ofNat (EVM.twoPow 256)
+        ∧ deployedInitcode = erc20Initcode ++ (EVM.Word.toBytesBE (EVM.word i.toNat)).toByteArray := by
+  intro h
+  have h : (ABI.encodeABIValues? [uint256] args).bind
+      (fun enc => some (erc20Initcode ++ enc.toByteArray)) = some deployedInitcode := h
+  cases args with
+  | nil =>
+      simp [ABI.encodeABIValues?, ABI.encodeABIValuesFrom?, ABI.abiTupleHeadSize?, uint256,
+        uint256Int] at h
+  | cons arg rest =>
+      cases rest with
+      | cons arg2 rest =>
+          simp [ABI.encodeABIValues?, ABI.encodeABIValuesFrom?, ABI.abiTupleHeadSize?, uint256,
+            uint256Int] at h
+      | nil =>
+          cases arg with
+          | int i =>
+              simp [ABI.encodeABIValues?, ABI.encodeABIValuesFrom?, ABI.abiTupleHeadSize?, uint256,
+                uint256Int, ABI.staticABIEncodedSize?, ABI.isDynamicABIType, ABI.encodeABIValue?,
+                ABI.encodeABIWord?] at h
+              split at h
+              · rename_i hbounds
+                simp at h
+                exact ⟨i, rfl, hbounds.1, hbounds.2, by rw [h]⟩
+              · simp at h
+          | _ =>
+              simp [ABI.encodeABIValues?, ABI.encodeABIValuesFrom?, ABI.abiTupleHeadSize?, uint256,
+                uint256Int, ABI.staticABIEncodedSize?, ABI.isDynamicABIType, ABI.encodeABIValue?,
+                ABI.encodeABIWord?] at h
 
 theorem ofAbi_u256_int (env : TypeEnv) (fuel : Nat) (i : Int) (h : Heap) (h0 : 0 ≤ i) (hlt : i < 2 ^ 256) :
     ofAbi env (fuel + 1) u256 (.int i) h = some (u256Val i.toNat, h) := by
   simp only [ofAbi]
-  simp [scalarOfSolm, h0]
+  simp [scalarOfAbi, h0]
   omega
 
 /-- `ofAbi_u256` with the argument in cast form (the form `simp` produces). -/
@@ -118,7 +152,7 @@ theorem erc20CtorSpec (o : Oracle) {cA gh bl σ σ₀ g A I} (w : UInt256) (hwv 
     refine ExecCtorChain.run (vs := [u256Val w.toNat]) rfl erc20Flat_fns0 (CtorArgs.top rfl) (ctorEnter _ w)
       EvalMods.nil rfl (ExecChain.body hb) rfl ExecCtorChain.nil
 
-theorem erc20CtorSpecNonPayable (o : Oracle) {cA gh bl σ σ₀ g A I} (args : List Solm.Value) (hwv : I.weiValue ≠ ⟨0⟩) :
+theorem erc20CtorSpecNonPayable (o : Oracle) {cA gh bl σ σ₀ g A I} (args : List ABI.ABIValue) (hwv : I.weiValue ≠ ⟨0⟩) :
     solidityCtorExec erc20Cfg o erc20Flat args cA gh bl σ σ₀ g A I (.reverted ByteArray.empty) :=
   solidityCtorExec.nonPayable (fun h => hwv (ctorPayable_erc20.mp h))
 
@@ -127,8 +161,7 @@ theorem erc20CtorSpecNonPayable (o : Oracle) {cA gh bl σ σ₀ g A I} (args : L
 theorem erc20ConstructorCore : constructorEquivalenceCore erc20Cfg erc20Initcode erc20Flat (constCode erc20Bytecode) := by
   refine constructorEquivalenceCore.intro ?_
   intro cA gh bl σ_evm σ_spec σ₀ g A I args dep hdeploy hcode hcalldata hperm hAccounts
-  rw [erc20SolDeployment] at hdeploy
-  rcases erc20Deployment_shape hdeploy with ⟨i, hargs, h0, hlt, hdeployed⟩
+  rcases erc20SolDeployment_shape hdeploy with ⟨i, hargs, h0, hlt, hdeployed⟩
   subst hargs
   let w : UInt256 := EVM.word i.toNat
   have hlt' : i.toNat < UInt256.size := by
@@ -158,10 +191,10 @@ theorem erc20ConstructorCore : constructorEquivalenceCore erc20Cfg erc20Initcode
     have hcodeTail : I.code = erc20Initcode ++ tail := by rw [hcode, hdeployed]
     have hX := erc20InitcodeNonpayableRevert (createdAccounts := cA) (genesisBlockHeader := gh) (blocks := bl)
       (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) tail hcodeTail hwv
-    have h := RDrev.specCtorRevertCore (runtimeCodeOf := constCode erc20Bytecode) (args := [Solm.Value.int i])
+    have h := RDrev.specCtorRevertCore (runtimeCodeOf := constCode erc20Bytecode) (args := [ABI.ABIValue.int i])
       (g := Sat256.ofUInt256 g) noOracle hcodeTail hX
       (erc20CtorSpecNonPayable (cA := cA) (gh := gh) (bl := bl) (σ := σ_spec) (σ₀ := σ₀) (g := g) (A := A) noOracle
-        [Solm.Value.int i] hwv)
+        [ABI.ABIValue.int i] hwv)
     simpa [Sat256.ofUInt256, Sat256.toUInt256] using h
 
 end ERC20.SolidityProof

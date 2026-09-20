@@ -156,7 +156,7 @@ theorem auctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           ∅ hwv (by simp)
     exact (auctionX hreach hwv).reEquivExecutionTransport hcode hd hdec hbody
       (by rw [hsnapshot]) hAccounts
-      (returnEquiv.returned rfl (snapshotReturnEncoding (snapshotOf σ_evm I)))
+      (returnEquiv.returned rfl rfl (snapshotReturnEncoding (snapshotOf σ_evm I)))
   · exact entryNonpayableRevert 9 (by decide) hcode hsel hreach hwv
 
 end Auction

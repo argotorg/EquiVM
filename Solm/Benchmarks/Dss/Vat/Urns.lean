@@ -439,7 +439,7 @@ theorem vatUrnsBodyCoreOk
         (some [(.int (Int.ofNat inkWord.toNat)), (.int (Int.ofNat artWord.toNat))])
         urnsTransition.returnType := by
     rw [show urnsTransition.returnType = [uint256, uint256] by rfl]
-    exact returnEquiv.returned rfl (uint256PairReturnEncoding inkWord artWord)
+    exact returnEquiv.returned rfl rfl (uint256PairReturnEncoding inkWord artWord)
   exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
 
 theorem vatUrnsBodyCoreDecodeFailed_short

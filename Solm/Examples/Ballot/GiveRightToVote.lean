@@ -301,8 +301,8 @@ theorem evalExpr_giveRight_notVoted_true (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, giveRightVoterEvaledRef, ballotContract,
         ballotStorageDecls, voterStructTy, boolSt, storageTypeStep?])
       (hloc := by rfl)]
-    change EvalResult.ok (storageLocLoad evm
-        { slot := giveRightVotedSlot I, offset := 0, size := 1, hbound := _, type := .bool }) =
+    change EvalResult.ok (Value.ofABI (storageLocLoad evm
+        { slot := giveRightVotedSlot I, offset := 0, size := 1, hbound := _, type := .bool })) =
       EvalResult.ok (Value.bool false)
     rw [giveRightStorageLocLoad_bool_offset0_false evm (giveRightVotedSlot I) hvoted]
   simp [evalExpr?, EvalResult.bind, EvalResult.ofOption, bind, hstorage, evalUnaryOp?]
@@ -321,8 +321,8 @@ theorem evalExpr_giveRight_notVoted_false (evm : EVM.State) (I : ExecutionEnv)
       (hty := by simp [storageTypeAt?, giveRightVoterEvaledRef, ballotContract,
         ballotStorageDecls, voterStructTy, boolSt, storageTypeStep?])
       (hloc := by rfl)]
-    change EvalResult.ok (storageLocLoad evm
-        { slot := giveRightVotedSlot I, offset := 0, size := 1, hbound := _, type := .bool }) =
+    change EvalResult.ok (Value.ofABI (storageLocLoad evm
+        { slot := giveRightVotedSlot I, offset := 0, size := 1, hbound := _, type := .bool })) =
       EvalResult.ok (Value.bool true)
     rw [giveRightStorageLocLoad_bool_offset0_true evm (giveRightVotedSlot I) hvoted]
   simp [evalExpr?, EvalResult.bind, EvalResult.ofOption, bind, hstorage, evalUnaryOp?]

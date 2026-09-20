@@ -34,7 +34,8 @@ theorem simpleAuctionBeneficiaryBodyReturns (evm : EVM.State) (locals : Store)
       rw [evalExpr_storage_scalar (t := .address) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := simpleAuctionConfig_storage_beneficiary)]
       simpa [simpleAuctionAddrLoc] using
-        congrArg EvalResult.ok (simpleAuctionStorageLocLoad_address_offset0 evm ⟨0⟩))
+        congrArg (fun v => (EvalResult.ok (Value.ofABI v) : EvalResult Value))
+          (simpleAuctionStorageLocLoad_address_offset0 evm ⟨0⟩))
 
 theorem simpleAuctionX_beneficiary {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)

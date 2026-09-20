@@ -27,6 +27,10 @@ abbrev safeTransferArgs (token recipient : AccountAddress) (value : UInt256) : L
 abbrev transferCallArgs (recipient : AccountAddress) (value : UInt256) : List Value :=
   [.address recipient, safeTransferUintValue value]
 
+/-- ABI twin of `transferCallArgs` (encoder position). -/
+abbrev transferCallAbiArgs (recipient : AccountAddress) (value : UInt256) : List ABIValue :=
+  [.address recipient, .int (Int.ofNat value.toNat)]
+
 abbrev safeTransferCalleeStore (token recipient : AccountAddress) (value : UInt256) : Store :=
   (((∅ : Store).insert "value" (safeTransferUintValue value)).insert "to" (.address recipient)).insert
     "token" (.address token)
@@ -37,7 +41,7 @@ abbrev safeTransferCallStore (token recipient : AccountAddress) (value : UInt256
     (.bytes out)
 
 def transferCalldata? (recipient : AccountAddress) (value : UInt256) : Option ByteArray :=
-  config.externalABI.encode? "transfer" (transferCallArgs recipient value)
+  config.externalABI.encode? "transfer" (transferCallAbiArgs recipient value)
 
 theorem safeTransferCalleeStore_token (token recipient : AccountAddress) (value : UInt256) :
     (safeTransferCalleeStore token recipient value).get? "token" = some (.address token) := by
@@ -86,9 +90,10 @@ theorem evalExpr_safeTransfer_calldata (evm : EVM.State)
   simp only [transferCalldataExpr, evalExpr?, Solm.evalExprList?.eq_def, EvalResult.bind, bind, pure,
     EvalResult.ofOption]
   rw [safeTransferCalleeStore_to, safeTransferCalleeStore_value]
-  simp
-  rw [show config.externalABI.encode? "transfer" (transferCallArgs recipient value) =
-    some calldata from by simpa [transferCalldata?, transferCallArgs] using hdata]
+  have henc : config.externalABI.encode? "transfer"
+      [.address recipient, .int (value.toNat : Int)] = some calldata := by
+    simpa [transferCalldata?, transferCallAbiArgs] using hdata
+  simp [henc]
 
 theorem bindParams_safeTransfer (token recipient : AccountAddress) (value : UInt256) :
     bindParams? safeTransferFunction.params (safeTransferArgs token recipient value) =

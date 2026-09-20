@@ -18,7 +18,7 @@ the constructor's, onto fresh (zero) storage, where the default decode already y
 reverting.  `.layout` is inherited too, so every scalar/mapping leaf is definitionally unchanged.
 -/
 
-open Solm Ethereum
+open Solm ABI Ethereum
 
 namespace Benchmarks.WETH9
 
@@ -49,7 +49,7 @@ def weth9BytesBaseSlotAndLength?
     words), matching the runtime's form branch at `runtime.hex` 0x388.  Never reverts. -/
 def weth9ReadBytesValue?
     (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
-    (er : EvaledStorageRef) (evm : EVM.State) : StorageReadResult Value :=
+    (er : EvaledStorageRef) (evm : EVM.State) : StorageReadResult ABIValue :=
   match weth9BytesBaseSlotAndLength? layout er evm with
   | .ok (baseSlot, len) =>
       if len < 32 then
@@ -67,7 +67,7 @@ def weth9ReadBytesValue?
 def weth9ReadValue?
     (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
     (er : EvaledStorageRef) (ty : StorageType) (evm : EVM.State) :
-    Option (StorageReadResult Value) :=
+    Option (StorageReadResult ABIValue) :=
   match ty with
   | .bytes | .string => some (weth9ReadBytesValue? layout er evm)
   | _ => none
@@ -110,7 +110,7 @@ def weth9WriteBytesValue?
     (so non-string writes are definitionally unchanged). -/
 def weth9WriteValue?
     (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc)
-    (er : EvaledStorageRef) (ty : StorageType) (value : Value) (evm : EVM.State) :
+    (er : EvaledStorageRef) (ty : StorageType) (value : ABIValue) (evm : EVM.State) :
     Option (StorageReadResult EVM.State) :=
   match ty, value with
   | .bytes, .bytes bytes => some (weth9WriteBytesValue? layout er bytes evm)

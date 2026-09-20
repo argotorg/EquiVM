@@ -67,7 +67,7 @@ def selectorBytes (a b c d : UInt8) : ByteArray := ⟨#[a, b, c, d]⟩
 def moveSelector : ByteArray := selectorBytes 0xbb 0x35 0x78 0x3b
 def burnSelector : ByteArray := selectorBytes 0x9d 0xc2 0x9f 0xac
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) :=
   some []
 
 def externalABI : ExternalCallABI where

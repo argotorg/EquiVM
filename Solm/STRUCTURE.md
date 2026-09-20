@@ -19,10 +19,10 @@ Solm/
 │   └── DecEq.lean         DecidableEq instances (hand-written where `deriving` fails
 │                          on nested List payloads)
 ├── Notation.lean          surface syntax macros
-├── Value.lean             umbrella + Value↔word conversions (valueToWord, wordToElem,
-│                          keyValueToWord)
+├── Value.lean             umbrella + the ABI boundary (Value.ofABI, Value.toABI?) and
+│                          keyValueToWord
 ├── Value/
-│   ├── Basic.lean         the runtime Value type (also the ABI/storage boundary type, for now)
+│   ├── Basic.lean         the runtime Value type (unbounded ints, structs, storage pointers, unit)
 │   └── DecEq.lean         DecidableEq Value (hand-written, same reason as Syntax)
 ├── Storage.lean           re-exports the shared storage layer (`Storage/Basic.lean`) under
 │                          the Sol⁻ names
@@ -35,8 +35,9 @@ Solm/
 ├── Semantics.lean         umbrella for Semantics/
 ├── Semantics/
 │   ├── Types.lean         shared context: Config, ExternalCallABI, Frame
-│   ├── Dispatch.lean      selector/receive/fallback dispatch (return conventions are shared,
-│   │                      `Refinement/Result.lean`, re-exported here)
+│   ├── Dispatch.lean      selector/receive/fallback dispatch, calldata bound to parameter names
+│   │                      (decodeCalldata); return conventions are shared
+│   │                      (`Refinement/Result.lean`, re-exported here)
 │   ├── ValueOps.lean      EvalResult monad; operations on values (operators, casts,
 │   │                      indexing, packed encoding)
 │   ├── StorageOps.lean    operations on storage: typed read/write/clear/default
@@ -55,7 +56,9 @@ Solm/
 │   ├── SolmBody.lean      ExecTransitionBody/ExecStmt/ExecBlock lemmas, call wrappers, loops
 │   ├── Reach.lean         the coupled loop rule and the `reEquiv*` case builders/eliminators
 │   ├── Storage.lean       `readStorage?`/`writeStorage?`/`clearStorage?` on solc string layouts
-│   ├── ABI.lean           decode facts phrased with `lookupNth?`
+│   ├── ABI.lean           decode facts phrased with `lookupNth?`, the Sol⁻ list bridge
+│   │                      (lookupNth?_ofABIList), and the store-shaped `decodeCalldata_*`
+│   │                      corollaries of the positional facts
 │   ├── Dispatch.lean      dispatcher facts (`dispatchList`, single-selector bundle) and the
 │   │                      `RDret`/`RDrev.reEquiv*` bridges
 │   ├── ExternalCall.lean  the CALL ↔ `externalCall` boundary (`callCoincides`)

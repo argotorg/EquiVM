@@ -369,7 +369,7 @@ theorem clipperVatIlksCalldataMem_read128_36 (ilk : UInt256) {mem : ByteArray}
     show min (0 + (164 - 132)) 32 = 32 from by omega, hBfull]
 
 theorem clipperVatIlksEncode_eq (v : ClipperImmutables) :
-    (config v).externalABI.encode? "vatIlks" [v.ilk] =
+    (Value.toABIList? [v.ilk]).bind ((config v).externalABI.encode? "vatIlks") =
       some ((clipperVatIlksCalldataMem (clipperUpchostIlkWord v)
         solcFreePtrMem).readWithPadding 128 36) := by
   rcases v.ilk_wf with ⟨bs, hilk, hlen⟩
@@ -435,8 +435,8 @@ abbrev clipperDogChopWord (outDog : ByteArray) : UInt256 :=
 abbrev clipperDogChopValue (outDog : ByteArray) : Value :=
   .int (Int.ofNat (clipperDogChopNat outDog))
 
-abbrev clipperDogChopValues (outDog : ByteArray) : List Value :=
-  [clipperDogChopValue outDog]
+abbrev clipperDogChopValues (outDog : ByteArray) : List ABIValue :=
+  [.int (Int.ofNat (clipperDogChopNat outDog))]
 
 
 abbrev clipperVatIlksDustWord (out : ByteArray) : UInt256 :=
@@ -824,10 +824,11 @@ theorem clipperDogChopCalldataMem_read128_36 (v : ClipperImmutables)
 
 theorem clipperDogChopEncode_eq (v : ClipperImmutables) (out : ByteArray)
     (hlo : 160 ≤ out.size) (hout : out.size < UInt256.size) :
-    (config v).externalABI.encode? "chop" [v.ilk] =
+    (Value.toABIList? [v.ilk]).bind ((config v).externalABI.encode? "chop") =
       some ((clipperDogChopCalldataMem v out).readWithPadding 128 36) := by
   rcases v.ilk_wf with ⟨bs, hilk, hlen⟩
   rw [hilk]
+  change (config v).externalABI.encode? "chop" [.fixedBytes ⟨31, by decide⟩ bs] = _
   have hilkWord :
       clipperUpchostIlkWord v = EVM.Word.ofNat (fromBytesBigEndian bs) := by
     simp [clipperUpchostIlkWord, hilk]
@@ -1037,7 +1038,7 @@ theorem clipperDogChopDecode_ok {v : ClipperImmutables} {outDog : ByteArray}
     clipperDogChopNat, uint256, uint256Int, abiUInt256] using
     (decodeReturnValueWithMode_legacy_uint256_ok (returndata := outDog) hlo)
 
-abbrev clipperVatIlksValues (out : ByteArray) : List Value :=
+abbrev clipperVatIlksValues (out : ByteArray) : List ABIValue :=
   [.int (Int.ofNat (clipperVatIlksArtWord out).toNat),
     .int (Int.ofNat (clipperVatIlksRateWord out).toNat),
     .int (Int.ofNat (clipperVatIlksSpotWord out).toNat),
@@ -1045,7 +1046,7 @@ abbrev clipperVatIlksValues (out : ByteArray) : List Value :=
     .int (Int.ofNat (clipperVatIlksDustWord out).toNat)]
 
 abbrev clipperUpchostVatIlkLocals (out : ByteArray) : Store :=
-  (∅ : Store).insert "vatIlk" (collapseReturns (clipperVatIlksValues out))
+  (∅ : Store).insert "vatIlk" (collapseReturns (Value.ofABIList (clipperVatIlksValues out)))
 
 abbrev clipperUpchostDustLocals (out : ByteArray) : Store :=
   (clipperUpchostVatIlkLocals out).insert "_dust"
@@ -1662,16 +1663,17 @@ theorem RD.clipperUpchostVatIlksPostCall
           UInt256.ofNat 9 := by
       native_decide
     exact haw ▸ rd1599raw
-  · refine callCoincides (cfg := config v)
+  · obtain ⟨abiArgs, hargs, hcd⟩ := Option.bind_eq_some_iff.mp (clipperVatIlksEncode_eq v)
+    refine callCoincides (cfg := config v)
       (evm := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-      (name := "vatIlks") (args := [v.ilk])
+      (name := "vatIlks") (args := [v.ilk]) (hargs := hargs)
       (tgt := EVM.address v.vat) (targetWord := clipperUpchostVatTarget v)
       (cA' := cA') (σ' := σ') (A' := A') (A_in := A_in) (z := z)
       (o := o) (g'' := g'') (callGas := callGas)
       (mem := clipperVatIlksCalldataMem (clipperUpchostIlkWord v) solcFreePtrMem)
       (inOff := ⟨128⟩) (inSize := ⟨36⟩) (callPerm := true)
       (fun h => absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide))
-      ?_ (by simpa using clipperVatIlksEncode_eq v) ?_
+      ?_ (by simpa using hcd) ?_
     · rw [clipperUpchostVatTargetAddress v]
       exact clipperEVMAddressAccountAddress v.vat
     · simpa [initState, hperm] using hΘ
@@ -2158,9 +2160,11 @@ theorem RD.clipperUpchostDogChopPostCall
         accountMap := σ_vat
         substate := A_vat
         createdAccounts := cA_vat }
+    obtain ⟨abiArgs, hargs, hcd⟩ :=
+      Option.bind_eq_some_iff.mp (clipperDogChopEncode_eq v out hlo hout)
     refine callCoincides (cfg := config v)
       (evm := evmVat)
-      (name := "chop") (args := [v.ilk])
+      (name := "chop") (args := [v.ilk]) (hargs := hargs)
       (tgt := EVM.address (AccountAddress.ofUInt256 (clipperUpchostDogTarget σ_vat I)))
       (targetWord := clipperUpchostDogTarget σ_vat I)
       (cA' := cA_dog) (σ' := σ_dog) (A' := A_dog) (A_in := A_in)
@@ -2172,7 +2176,7 @@ theorem RD.clipperUpchostDogChopPostCall
           simpa [evmVat, initState] using h
         rw [hI]
         decide))
-      ?_ (by simpa using clipperDogChopEncode_eq v out hlo hout) ?_
+      ?_ (by simpa using hcd) ?_
     · exact clipperEVMAddressAccountAddress
         (AccountAddress.ofUInt256 (clipperUpchostDogTarget σ_vat I))
     · simpa [evmVat, initState, hperm] using hΘ
@@ -2420,11 +2424,11 @@ theorem clipperEvalVatIlkDust (v : ClipperImmutables) (evm : EVM.State)
       evalExpr? (config v)
         { contract := contract v, locals := clipperUpchostVatIlkLocals out }
         evm (.var "vatIlk") =
-        .ok (collapseReturns (clipperVatIlksValues out)) := by
+        .ok (collapseReturns (Value.ofABIList (clipperVatIlksValues out))) := by
     rw [evalExpr?]
     change EvalResult.ofOption EvalError.unboundVariable
       ((clipperUpchostVatIlkLocals out).get? "vatIlk") =
-        .ok (collapseReturns (clipperVatIlksValues out))
+        .ok (collapseReturns (Value.ofABIList (clipperVatIlksValues out)))
     rw [clipperUpchostVatIlkLocals, store_get_self]
     simp [EvalResult.ofOption]
   rw [evalExpr?]
@@ -3890,6 +3894,7 @@ theorem clipperUpchostBody (v : ClipperImmutables) {code : ByteArray}
         let A_vat := (evmE.addAccessedAccount (EVM.address v.vat)).substate
         have hdepthInit : evmE.executionEnv.depth = 1024 := by
           simpa [evmE, initState] using hdepthEq
+        obtain ⟨abiArgs, hargs, hcd⟩ := Option.bind_eq_some_iff.mp (clipperVatIlksEncode_eq v)
         have hcallVatEvm :
             typedCallViaEVM (config v) evmE (EVM.address v.vat) "vatIlks" 0 [v.ilk]
               (false,
@@ -3901,11 +3906,7 @@ theorem clipperUpchostBody (v : ClipperImmutables) {code : ByteArray}
           simpa [evmE, A_vat, initState] using
             (callNotMade_depthLimit (cfg := config v) (evm := evmE)
               (tgt := EVM.address v.vat) (name := "vatIlks") (args := [v.ilk])
-              (callPerm := true)
-              (calldata :=
-                (clipperVatIlksCalldataMem (clipperUpchostIlkWord v)
-                  solcFreePtrMem).readWithPadding 128 36)
-              (clipperVatIlksEncode_eq v) hdepthInit)
+              (callPerm := true) hcd hdepthInit (hargs := hargs))
         exact clipperUpchostVatIlksCallFailureBodyCore v hpatch hcode hwv hdispatch hdecode
           (by simpa using rd1599) hcallVatEvm (by native_decide) hvatCodeSolm hAccounts
 

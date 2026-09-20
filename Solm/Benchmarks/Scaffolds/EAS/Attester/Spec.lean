@@ -116,10 +116,10 @@ def multiAttestSelector : ByteArray := selectorBytes 0x44 0xad 0xc9 0x0e
 def multiRevokeSelector : ByteArray := selectorBytes 0x4c 0xb7 0xe9 0xe5
 def abiEncodeUint256Selector : ByteArray := selectorBytes 0x00 0x00 0x00 0x00
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValue? ty out).map (fun v => [v])
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) :=
   some []
 
 def attesterExternalABI : ExternalCallABI where

@@ -73,7 +73,7 @@ structure Case where
   value : Nat := 0
   /-- Raw calldata, or an external call `(signature, arguments)` encoded by `runCase`. -/
   calldata : ByteArray := .empty
-  call : Option (String × List Solm.Value) := none
+  call : Option (String × List ABI.ABIValue) := none
   /-- Other accounts (the contract itself is added by `pre`). -/
   accounts : List (EVM.Address × Account) := []
   /-- Storage of the contract under test: raw slots, and layout paths resolved by `runCase`. -/
@@ -83,7 +83,7 @@ structure Case where
   gas : Nat := 10000000
   header : BlockHeader := default
   /-- Constructor case: ABI arguments; the spec's returned code must be the runtime. -/
-  ctorArgs : Option (List Solm.Value × ByteArray) := none
+  ctorArgs : Option (List ABI.ABIValue × ByteArray) := none
   expect : Expect := .any
   /-- A documented mismatch (e.g. a hand-written pinned initcode); must still mismatch. -/
   known : Option String := none
@@ -141,7 +141,7 @@ def accountMapEquivB (σ τ : AccountMap) : Bool :=
   let ys := τ.toList
   xs.length == ys.length && (xs.zip ys).all fun p => p.1.1 == p.2.1 && accountEquivB p.1.2 p.2.2
 
-def returnDataEquivB (out : ByteArray) (vs : List Solm.Value) : Refinement.ReturnConvention → Bool
+def returnDataEquivB (out : ByteArray) (vs : List ABI.ABIValue) : Refinement.ReturnConvention → Bool
   | .abi tys => ABI.encodeReturnValues? tys vs == some out
   | .rawBytes => match vs with
     | [.bytes b] => b == out

@@ -14,10 +14,10 @@ def U : Nat := 0xB0B
 def R : Nat := 0x1234
 
 def roleKey (r : Nat) : Solm.KeyValue := .fixedBytes ⟨31, by decide⟩ (wordBytes r).toList
-def role (r : Nat) : Solm.Value := .fixedBytes ⟨31, by decide⟩ (wordBytes r).toList
+def role (r : Nat) : ABI.ABIValue := .fixedBytes ⟨31, by decide⟩ (wordBytes r).toList
 def has (r a : Nat) : Solm.EvaledStorageRef × Nat := (⟨"_roles", [.mindex (roleKey r), .field "hasRole", .mindex (.address (addr a))]⟩, 1)
 def adminOf (r adm : Nat) : Solm.EvaledStorageRef × Nat := (⟨"_roles", [.mindex (roleKey r), .field "adminRole"]⟩, adm)
-def iface (n : Nat) : Solm.Value := .fixedBytes ⟨3, by decide⟩ ((wordBytes (n <<< 224)).toList.take 4)
+def iface (n : Nat) : ABI.ABIValue := .fixedBytes ⟨3, by decide⟩ ((wordBytes (n <<< 224)).toList.take 4)
 
 def admin : List (Solm.EvaledStorageRef × Nat) := [has 0 Adm]
 

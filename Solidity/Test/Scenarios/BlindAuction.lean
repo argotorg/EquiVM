@@ -26,7 +26,7 @@ def bidField (a i : Nat) (f : String) (v : Nat) : Solm.EvaledStorageRef × Nat :
 def blinded (value : Nat) (fake : Bool) (secret : Nat) : Nat :=
   natOfBytes (ffi.KEC (wordBytes value ++ ⟨#[if fake then 1 else 0]⟩ ++ wordBytes secret))
 
-def b32 (n : Nat) : Solm.Value := .fixedBytes ⟨31, by decide⟩ (wordBytes n).toList
+def b32 (n : Nat) : ABI.ABIValue := .fixedBytes ⟨31, by decide⟩ (wordBytes n).toList
 
 /-- One placed bid of `S`: `bids[S] = [(blinded(value, fake, secret), deposit)]`. -/
 def oneBid (value : Nat) (fake : Bool) (secret deposit : Nat) : List (Solm.EvaledStorageRef × Nat) :=
@@ -35,7 +35,7 @@ def oneBid (value : Nat) (fake : Bool) (secret deposit : Nat) : List (Solm.Evale
 def times : List (Solm.EvaledStorageRef × Nat) := [sv "beneficiary" B, sv "biddingEnd" 1000, sv "revealEnd" 2000]
 
 def revealSig := "reveal(uint256[],bool[],bytes32[])"
-def revealArgs (vs : List Nat) (fs : List Bool) (ss : List Nat) : Option (String × List Solm.Value) :=
+def revealArgs (vs : List Nat) (fs : List Bool) (ss : List Nat) : Option (String × List ABI.ABIValue) :=
   some (revealSig, [.array (vs.map (.int ·)), .array (fs.map (.bool ·)), .array (ss.map b32)])
 
 /-- Hand-encoded `reveal` calldata with raw `bool` words (dirty values are validated on access). -/

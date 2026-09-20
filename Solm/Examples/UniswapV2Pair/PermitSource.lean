@@ -301,7 +301,7 @@ theorem permitEncodePacked_typehash :
   have hwordLen : (EVM.Word.toBytesBE permitTypehashWord).length =
       fixedBytesSize bytes32Width := by
     simpa [← hbytes] using hlen
-  simp [encodePackedValue?, bytes32, bytes32Width, hbytes, hwordLen]
+  simp [encodePackedValue?, bytes32, bytes32Width, fixedBytesSize, hbytes, hwordLen]
 
 theorem permitEncodePacked_bytes2 :
     encodePackedValue? bytes2 (.fixedBytes bytes2Width [0x19, 0x01]) =
@@ -558,6 +558,7 @@ theorem evalExpr_permit_domainSeparator_afterNonce_at {cA gh bl σ σ₀ A I} {g
     exact evalExpr_storage_scalar_value
       (t := .bytes bytes32Width)
       (loc := bytes32Loc ⟨3⟩)
+      (value := .fixedBytes bytes32Width (EVM.Word.toBytesBE (permitDomainSeparatorWord σ I)))
       (hbase := hbase)
       (her := her)
       (hty := by
@@ -598,13 +599,12 @@ theorem evalPackedArgs_permit_digest_at {base cur : EVM.State} {σ I}
       (head := (permitDomainSeparatorWord σ I).toByteArray.toList)
       (tailBytes := (permitStructHashWord σ I).toByteArray.toList) ?_ ?_ ?_
     · exact hdomain
-    · simpa [word_toBytesBE_eq_toByteArray_toList] using
-        permitEncodePacked_bytes32 (permitDomainSeparatorWord σ I)
+    · exact (permitEncodePacked_bytes32 (permitDomainSeparatorWord σ I)).trans
+        (congrArg some (word_toBytesBE_eq_toByteArray_toList _))
     · exact permitEvalPackedArgs_single
         (evalExpr_permit_afterStructHash_structHash_at base cur I (permitStructHashValue σ I))
-        (by
-          simpa [word_toBytesBE_eq_toByteArray_toList] using
-            permitEncodePacked_bytes32 (permitStructHashWord σ I))
+        ((permitEncodePacked_bytes32 (permitStructHashWord σ I)).trans
+          (congrArg some (word_toBytesBE_eq_toByteArray_toList _)))
 
 theorem evalExpr_permit_digest_at {base cur : EVM.State} {σ I}
     (hdomain :
@@ -996,7 +996,7 @@ theorem evalExpr_permit_ecrecover_value (solm : Frame) (evm : EVM.State) :
   simp only [evalExpr?, pure]
 
 theorem uniswapPermitEcrecoverCallSuccess {evm evm' : EVM.State} {I : ExecutionEnv}
-    {structHash digest recovered : Value} {out : ByteArray}
+    {structHash digest : Value} {recovered : ABIValue} {out : ByteArray}
     (hcall : typedCallViaEVM config evm (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, evm', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered]) :
@@ -1006,7 +1006,7 @@ theorem uniswapPermitEcrecoverCallSuccess {evm evm' : EVM.State} {I : ExecutionE
           [.var "digest", .var "v", .var "r", .var "s"] "recoveredAddress" (perm := false) ]
       (.ok (show Frame from
         { contract := contract,
-          locals := permitAfterEcrecoverStore evm I structHash digest recovered }) evm') := by
+          locals := permitAfterEcrecoverStore evm I structHash digest (Value.ofABI recovered) }) evm') := by
   simpa [permitAfterEcrecoverStore, collapseReturns] using
     (Reasoning.Theory.externalCallSuccess
       (cfg := config) (C := contract) (evm := evm) (evm' := evm')
@@ -1023,7 +1023,7 @@ theorem uniswapPermitEcrecoverCallSuccess {evm evm' : EVM.State} {I : ExecutionE
       hcall hdec)
 
 theorem uniswapPermitEcrecoverCallSuccessAt {base cur cur' : EVM.State} {I : ExecutionEnv}
-    {structHash digest recovered : Value} {out : ByteArray}
+    {structHash digest : Value} {recovered : ABIValue} {out : ByteArray}
     (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered]) :
@@ -1033,7 +1033,7 @@ theorem uniswapPermitEcrecoverCallSuccessAt {base cur cur' : EVM.State} {I : Exe
           [.var "digest", .var "v", .var "r", .var "s"] "recoveredAddress" (perm := false) ]
       (.ok (show Frame from
         { contract := contract,
-          locals := permitAfterEcrecoverStore base I structHash digest recovered }) cur') := by
+          locals := permitAfterEcrecoverStore base I structHash digest (Value.ofABI recovered) }) cur') := by
   simpa [permitAfterEcrecoverStore, collapseReturns] using
     (Reasoning.Theory.externalCallSuccess
       (cfg := config) (C := contract) (evm := cur) (evm' := cur')
@@ -1224,13 +1224,14 @@ theorem evalExpr_permit_domainSeparator_storage (evm : EVM.State) (I : Execution
       (er := ({ base := "DOMAIN_SEPARATOR", steps := [] } : EvaledStorageRef))
       (t := .bytes bytes32Width)
       (loc := bytes32Loc ⟨3⟩)
+      (value := .fixedBytes bytes32Width (EVM.Word.toBytesBE (permitDomainSeparatorLoadedWord evm)))
       (hbase := permitStore_domainSeparatorRef I)
       (her := evalStorageRef_permit_domainSeparator evm I)
       (hty := storageTypeAt_permit_domainSeparator)
       (hloc := storageLayout_permit_domainSeparator)
       (hload := by
         rw [uniswapStorageLocLoad_bytes32]
-        simp [permitDomainSeparatorLoadedValue, permitWordBytes32Value, bytes32Width])
+        simp [permitDomainSeparatorLoadedWord, bytes32Width])
 
 theorem evalExpr_permit_nonce_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := permitStore I } evm
@@ -1238,6 +1239,7 @@ theorem evalExpr_permit_nonce_storage (evm : EVM.State) (I : ExecutionEnv) :
   exact evalExpr_storage_scalar_value
       (er := permitNonceEvaledRef I) (t := .int uint256Int)
       (loc := wordLoc (permitNonceStorageSlot I))
+      (value := .int (Int.ofNat (permitNonceLoadedWord evm I).toNat))
       (hbase := permitStore_nonces I)
       (her := evalStorageRef_permit_nonce evm I)
       (hty := storageTypeAt_permit_nonce I)
@@ -1251,6 +1253,7 @@ theorem evalExpr_permit_afterDomain_nonce_storage (evm : EVM.State) (I : Executi
   exact evalExpr_storage_scalar_value
       (er := permitNonceEvaledRef I) (t := .int uint256Int)
       (loc := wordLoc (permitNonceStorageSlot I))
+      (value := .int (Int.ofNat (permitNonceLoadedWord evm I).toNat))
       (hbase := permitAfterDomainLoadStore_nonces evm I)
       (her := evalStorageRef_permit_afterDomain_nonce evm I)
       (hty := storageTypeAt_permit_nonce I)
@@ -1280,6 +1283,7 @@ theorem permitAssignNonce (evm : EVM.State) (I : ExecutionEnv) :
   rw [assignStorageRef?]
   simp only [resolveStorageRef_permit_afterNonce_nonce, EvalResult.bind, bind,
     EvalResult.ofOption, storageLayout_permit_nonce I, pure]
+  simp only [permitNonceNextLoadedValue, Value.toABI?, Option.bind]
   rw [uniswapStorageLocStore_uint256]
   simp [permitAfterNonceState]
 

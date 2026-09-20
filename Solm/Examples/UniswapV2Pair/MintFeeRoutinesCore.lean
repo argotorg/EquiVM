@@ -88,7 +88,7 @@ theorem evalExpr_mintFee_kLast (evm : EVM.State) (reserve0 reserve1 : UInt256) :
     (her := evalStorageRef_mintFee_kLast evm reserve0 reserve1)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm ⟨11⟩)
+  exact congrArg (fun v => (EvalResult.ok (Value.ofABI v) : EvalResult Value)) (uniswapStorageLocLoad_uint256 evm ⟨11⟩)
 
 theorem uniswapLookupMintFeeFunction :
     lookupCallable? contract "_mintFee" = some mintFeeFunction.toCallable := by
@@ -357,7 +357,7 @@ theorem evalExpr_mintFee_afterFeeOn_kLast
     (her := evalStorageRef_mintFee_afterFeeOn_kLast evm reserve0 reserve1 feeTo feeOn)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm ⟨11⟩)
+  exact congrArg (fun v => (EvalResult.ok (Value.ofABI v) : EvalResult Value)) (uniswapStorageLocLoad_uint256 evm ⟨11⟩)
 
 theorem evalExpr_mintFee_afterKLast_feeOn
     (evm : EVM.State) (reserve0 reserve1 : UInt256) (feeTo : AccountAddress)
@@ -644,7 +644,7 @@ theorem evalExpr_mintFee_afterRootKLast_totalSupply
       feeOn kLast rootK rootKLast)
     (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm ⟨0⟩)
+  exact congrArg (fun v => (EvalResult.ok (Value.ofABI v) : EvalResult Value)) (uniswapStorageLocLoad_uint256 evm ⟨0⟩)
 
 theorem evalExpr_mintFee_rootK_gt_rootKLast_true
     (evm : EVM.State) (reserve0 reserve1 : UInt256) (feeTo : AccountAddress)

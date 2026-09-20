@@ -12,37 +12,26 @@ namespace ERC20.SolidityProof
 
 theorem erc20Args_balanceOf_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
     (hbig : I.calldata.size < 2 ^ 255 + 4) (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus) :
-    decodeArgs erc20Cfg erc20Flat.types fnBalanceOf.decl I.calldata = some [balanceOfOwnerValue I] := by
+    decodeArgs erc20Cfg erc20Flat.types fnBalanceOf.decl I.calldata = some [.address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat)] := by
   rw [decodeArgs_unfold _ _ sigBalanceOf sigOf_balanceOf]
-  have h := decodeCalldata_address_ok (cd := I.calldata) (x := "arg0") hsz36 hbig hcanon
-  simp only [fnBalanceOf, List.zipIdx, List.map, paramName, Option.getD, sigBalanceOf]
-  rw [h]
-  simp [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, balanceOfOwnerValue, balanceOfOwnerWord,
-    calldataWord, -getElem?_pos, -getElem?_neg]
-  rfl
+  exact decodeCalldataValues_address_ok hsz36 hbig hcanon
 
 theorem erc20Args_balanceOf_none_short {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size)
     (hshort : I.calldata.size < 36) :
     decodeArgs erc20Cfg erc20Flat.types fnBalanceOf.decl I.calldata = none := by
   rw [decodeArgs_unfold _ _ sigBalanceOf sigOf_balanceOf]
-  simp only [fnBalanceOf, List.zipIdx, List.map, paramName, Option.getD, sigBalanceOf]
-  rw [decodeCalldata_address_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort]
-  rfl
+  exact decodeCalldataValues_address_none_short hsz4 hshort
 
 theorem erc20Args_balanceOf_none_noncanon {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
     (hbig : I.calldata.size < 2 ^ 255 + 4) (hnc : ¬ (balanceOfOwnerWord I).toNat < EVM.addressModulus) :
     decodeArgs erc20Cfg erc20Flat.types fnBalanceOf.decl I.calldata = none := by
   rw [decodeArgs_unfold _ _ sigBalanceOf sigOf_balanceOf]
-  simp only [fnBalanceOf, List.zipIdx, List.map, paramName, Option.getD, sigBalanceOf]
-  rw [decodeCalldata_address_none_noncanon (cd := I.calldata) (x := "arg0") hsz36 hbig hnc]
-  rfl
+  exact decodeCalldataValues_address_none_noncanon hsz36 hbig hnc
 
 theorem erc20Args_balanceOf_none_huge {I : ExecutionEnv} (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
     decodeArgs erc20Cfg erc20Flat.types fnBalanceOf.decl I.calldata = none := by
   rw [decodeArgs_unfold _ _ sigBalanceOf sigOf_balanceOf]
-  simp only [fnBalanceOf, List.zipIdx, List.map, paramName, Option.getD, sigBalanceOf]
-  rw [decodeCalldata_address_none_huge (cd := I.calldata) (x := "arg0") hbig]
-  rfl
+  exact decodeCalldataValues_address_none_huge hbig
 
 /-! ## The spec derivation -/
 

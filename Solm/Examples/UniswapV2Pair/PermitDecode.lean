@@ -149,12 +149,13 @@ theorem uniswapDecode_permit_none_short_core {I : ExecutionEnv}
   have htlen : I.calldata.toList.length = I.calldata.size := by
     rw [byteArray_toList_eq, Array.length_toList]
     rfl
-  unfold decodeCalldataWithMode decodeCalldata
+  unfold decodeCalldataWithMode decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
-  unfold decodeCalldata.decodeArgs
+  unfold decodeCalldataValues?.decodeArgs
   simp [legacyAddr, addr, uint256, uint8, bytes32, bytes32Width, uint256Int, uint8Int,
     abiTupleHeadSize?, staticABIEncodedSize?, bind, Option.bind, isDynamicABIType,
     List.length_drop, htlen]
   rw [if_pos (by omega : I.calldata.size - 4 < 224)]
+  rfl
 
 end UniswapV2Pair

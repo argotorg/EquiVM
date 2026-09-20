@@ -329,7 +329,7 @@ theorem mkLogEntry_evTransfer (this : EVM.Address) (a b : EVM.Address) (w : UInt
   unfold ABI.encodeReturnValue? ABI.encodeReturnValues? at henc
   obtain ⟨bs, hbs, -⟩ := Option.bind_eq_some_iff.mp henc
   simp only [Int.ofNat_eq_coe] at hbs
-  simp [mkLogEntry, evTransfer, topicOf, topicWordOf, Solm.valueToWord, hbs]
+  simp [mkLogEntry, evTransfer, topicOf, topicWordOf, ABI.valueToWord, hbs]
 
 theorem mkLogEntry_evApproval (this : EVM.Address) (a b : EVM.Address) (w : UInt256) :
     ∃ le, mkLogEntry this evApproval [.address a, .address b, .int (Int.ofNat w.toNat)] = some le := by
@@ -337,7 +337,7 @@ theorem mkLogEntry_evApproval (this : EVM.Address) (a b : EVM.Address) (w : UInt
   unfold ABI.encodeReturnValue? ABI.encodeReturnValues? at henc
   obtain ⟨bs, hbs, -⟩ := Option.bind_eq_some_iff.mp henc
   simp only [Int.ofNat_eq_coe] at hbs
-  simp [mkLogEntry, evApproval, topicOf, topicWordOf, Solm.valueToWord, hbs]
+  simp [mkLogEntry, evApproval, topicOf, topicWordOf, ABI.valueToWord, hbs]
 
 /-! ## Arguments -/
 
@@ -346,9 +346,10 @@ theorem mkLogEntry_evApproval (this : EVM.Address) (a b : EVM.Address) (w : UInt
   simp [ofAbi]
 
 @[simp] theorem ofAbi_u256 (env : TypeEnv) (fuel : Nat) (w : UInt256) (h : Heap) :
-    ofAbi env (fuel + 1) u256 (.int (Int.ofNat w.toNat)) h = some (u256Val w.toNat, h) := by
+    ofAbi env (fuel + 1) u256 (.int (w.toNat : Int)) h = some (u256Val w.toNat, h) := by
+  show ofAbi env (fuel + 1) u256 (.int (Int.ofNat w.toNat)) h = _
   simp only [ofAbi]
-  rw [scalarOfSolm_u256]
+  rw [scalarOfAbi_u256]
   rfl
 
 theorem sigOf_transfer : sigOf erc20Flat.types "transfer" [addrTy, u256] = some sigTransfer := rfl
@@ -358,12 +359,10 @@ theorem sigOf_balanceOf : sigOf erc20Flat.types "balanceOf" [addrTy] = some sigB
 theorem sigOf_allowance : sigOf erc20Flat.types "allowance" [addrTy, addrTy] = some sigAllowance := rfl
 theorem sigOf_totalSupply : sigOf erc20Flat.types "totalSupply" [] = some sigTotalSupply := rfl
 
-/-- `decodeArgs` of a concrete function: the calldata decoder on the parameter names/types. -/
+/-- `decodeArgs` of a concrete function: the calldata decoder on the parameter types. -/
 theorem decodeArgs_unfold (d : FnDecl) (cd : ByteArray) (sig : ABI.Signature)
     (hsig : sigOf erc20Flat.types d.name (d.params.map (·.ty)) = some sig) :
-    decodeArgs erc20Cfg erc20Flat.types d cd =
-      (ABI.decodeCalldata (d.params.zipIdx.map fun (p, i) => paramName i p) sig.paramTypes cd .modern).bind
-        fun store => (d.params.zipIdx.map fun (p, i) => paramName i p).mapM store.get? := by
+    decodeArgs erc20Cfg erc20Flat.types d cd = ABI.decodeCalldataValues? sig.paramTypes cd .modern := by
   unfold decodeArgs
   rw [hsig, Opt.some_bind]
   rfl

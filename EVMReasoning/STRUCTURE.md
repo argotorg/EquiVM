@@ -21,7 +21,7 @@ trusted spec of the FFI hash; asserts nothing about collision resistance).
 | `EVMWord.lean` | `UInt256` arithmetic: no-wrap `toNat` lemmas, bitwise normalization, unsigned comparisons, signed `SLT`, `compare` order instances, the word-rounding used by solc memory allocation. |
 | `Memory.lean` | Byte-level memory: little-endian word arithmetic, `MSTORE`/`MLOAD` read-write facts, scratch memory for mapping hashes, selector extraction, calldata decode coupling, mapping-slot keccak facts. Home of the `keccak_size` axiom. |
 | `Reach.lean` | The EVM trace layer. `RD` (reached-or-out-of-gas invariant), one forward step lemma per opcode (`RD.<op>`), `CALL`/`STATICCALL` with the callee treated as an opaque `Θ` result, terminal forms `RDret`/`RDrev` with `xiResult`, `Cursor`/`RDc`, and the `evm_run` macro that chains steps with auto-discharged decode/overflow side conditions. |
-| `ABI.lean` | Calldata decoding and return-value encoding: per-shape decode lemmas (address/uint256/bool/bytes32/string/dynamic-array combinations), decode-mode variants, failure cases (short, huge, non-canonical), return encodings. |
+| `ABI.lean` | Calldata decoding and return-value encoding on `ABIValue`: per-shape positional decode lemmas (`decodeCalldataValues_*`: address/uint256/bool/bytes32/string/dynamic-array combinations), decode-mode variants, failure cases (short, huge, non-canonical), return encodings. |
 | `MemCascade.lean` | Collapsing chains of memory writes into a canonical form. |
 | `JumpDest.lean` | The `@[valid_jumps]` attribute and `jump_dest` tactic discharging jump-target validity (via `native_decide`, deliberately). |
 | `Initcode.lean` | Constructor-time facts: decode of the initcode prefix, jump-table survival, constructor-argument arithmetic. |
@@ -36,8 +36,8 @@ now live in `Solm/Reasoning/`.
 ## Dependencies
 
 External: `Ethereum.*` (evmlean — EVM semantics and opcode lemmas), `Storage`, `Refinement`,
-`ABI`, Mathlib (EVMWord and Memory only). Transitively still `Solm.Value`, see the root
-`STRUCTURE.md`.
+`ABI`, Mathlib (EVMWord and Memory only). `Storage.lean` also imports `Solm.Value` for the
+mapping-key words (`keyValueToWord`), see the root `STRUCTURE.md`.
 
 Within `EVMReasoning/`, imports flow upward:
 

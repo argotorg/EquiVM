@@ -882,7 +882,7 @@ theorem catIlksBodyCoreOk
           (.int (Int.ofNat chopWord.toNat)), (.int (Int.ofNat dunkWord.toNat))])
         ilksTransition.returnType := by
     rw [show ilksTransition.returnType = [addr, uint256, uint256] by rfl]
-    exact returnEquiv.returned rfl (catAddrUintUintReturnEncoding flipWord chopWord dunkWord)
+    exact returnEquiv.returned rfl rfl (catAddrUintUintReturnEncoding flipWord chopWord dunkWord)
   exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
 
 theorem catIlksBodyCoreDecodeFailed_short

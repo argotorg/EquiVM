@@ -838,7 +838,7 @@ theorem accessControlSupportsInterfaceBody {cA gh bl σ_evm σ_solm σ₀ A I}
           exact (accessControlX_supportsInterface (g := Sat256.ofUInt256 g)
               hsz36 hsize hbig hpadSome hreach)
             |>.reEquivExecutionTransport hcode hd hdec hbody rfl hAccounts
-              (returnEquiv_of_encode (by
+              (returnEquiv_of_encode (arv := .bool (supportsInterfaceResult I)) (by
                 by_cases hr : supportsInterfaceResult I
                 · simpa [supportsInterfaceResultWord, hr] using boolTrueReturnEncodingAC
                 · simpa [boolTy, supportsInterfaceResultWord, hr] using boolFalseReturnEncoding))

@@ -99,7 +99,7 @@ inductive delegateCallViaEVM (o : Oracle) (m : Machine) (target : EVM.Address) (
 
 /-- Contract creation (`new`) via `Λ`: `(address, machine, success, returndata)`. -/
 inductive newViaEVM (cfg : Config) (o : Oracle) (m : Machine) (name : Ident) (value : Nat)
-    (args : List Solm.Value) (salt : Option ByteArray) : (EVM.Address × Machine × Bool × EVM.Bytes) → Prop where
+    (args : List ABI.ABIValue) (salt : Option ByteArray) : (EVM.Address × Machine × Bool × EVM.Bytes) → Prop where
   | created :
       cfg.creationCode name args = .some initCode →
       valueWord = EVM.Word.ofNat value →

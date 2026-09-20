@@ -68,10 +68,10 @@ def vowFessSelector : ByteArray := selectorBytes 0x69 0x7e 0xfb 0x78
 def clipperIlkSelector : ByteArray := selectorBytes 0xc5 0xce 0x28 0x1e
 def clipperKickSelector : ByteArray := selectorBytes 0x89 0x8e 0xb2 0x67
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 ty out).map (fun v => [v])
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) :=
   some []
 
 def externalABI : ExternalCallABI where

@@ -1027,7 +1027,7 @@ theorem vatIlksBodyCoreOk
           (.int (Int.ofNat dustWord.toNat))])
         ilksTransition.returnType := by
     rw [show ilksTransition.returnType = [uint256, uint256, uint256, uint256, uint256] by rfl]
-    exact returnEquiv.returned rfl
+    exact returnEquiv.returned rfl rfl
       (uint256FiveReturnEncoding artWord rateWord spotWord lineWord dustWord)
   exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
 

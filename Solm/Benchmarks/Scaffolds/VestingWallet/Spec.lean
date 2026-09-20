@@ -41,7 +41,7 @@ def selectorBytes (a b c d : UInt8) : ByteArray := ⟨#[a, b, c, d]⟩
 def balanceOfSelector : ByteArray := selectorBytes 0x70 0xa0 0x82 0x31
 def transferSelector : ByteArray := selectorBytes 0xa9 0x05 0x9c 0xbb
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValueWithMode? DecodeMode.modern ty out).map (fun v => [v])
 
 def externalABI : ExternalCallABI where

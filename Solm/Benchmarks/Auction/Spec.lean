@@ -510,7 +510,7 @@ def transferFromSelector : ByteArray := selectorBytes 0x23 0xb8 0x72 0xdd
 def depositSelector : ByteArray := selectorBytes 0xd0 0xe3 0x0d 0xb0
 def transferSelector : ByteArray := selectorBytes 0xa9 0x05 0x9c 0xbb
 
-def encodeCallWithSelector? (sel : ByteArray) (tys : List ABIType) (args : List Value) :
+def encodeCallWithSelector? (sel : ByteArray) (tys : List ABIType) (args : List ABIValue) :
     Option EVM.Bytes := do
   let payload <- ABI.encodeABIValues? tys args
   some (sel ++ payload.toByteArray)
@@ -521,10 +521,10 @@ def isVoidExternal (name : Ident) : Bool :=
   else if name = "deposit" then true
   else false
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValue? ty out).map (fun v => [v])
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) :=
   some []
 
 /-! ## Hand-written storage layout

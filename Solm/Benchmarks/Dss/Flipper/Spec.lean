@@ -66,7 +66,7 @@ def vatFluxSelector : ByteArray := selectorBytes 0x61 0x11 0xbe 0x2e
 def moveSelector : ByteArray := selectorBytes 0xbb 0x35 0x78 0x3b
 def catClawSelector : ByteArray := selectorBytes 0xe6 0x6d 0x27 0x9b
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) :=
   some []
 
 def externalABI : ExternalCallABI where

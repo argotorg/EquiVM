@@ -54,8 +54,8 @@ theorem erc20TotalSupplySpec (o : Oracle) {cA gh bl σ σ₀ g A I}
       (.abi [abiU256]) := by
   have hsz := size_ge_of_sel rfl hsel
   have hsvs : decodeArgs erc20Cfg erc20Flat.types fnTotalSupply.decl I.calldata = some [] := by
-    unfold decodeArgs
-    simp [sigOf, fnTotalSupply, ABI.decodeCalldataWithMode, erc20Cfg, decodeCalldata_empty_ok hsz]
+    rw [decodeArgs_unfold _ _ sigTotalSupply sigOf_totalSupply]
+    exact decodeCalldataValues_empty_ok hsz
   have hout : [tsVal (initMachine cA gh bl σ σ₀ g A I)].mapM (toAbi (initMachine cA gh bl σ σ₀ g A I).heap fuelDefault) =
       some [.int (Int.ofNat (totalSupplyWord σ I).toNat)] := by
     simp [fuelDefault]

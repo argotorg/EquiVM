@@ -493,7 +493,7 @@ theorem evalExpr_dropSrcsLength (evm : EVM.State) (I : ExecutionEnv) :
     EvalResult.bind, pure, bind]
   change
     (match storageLocLoad evm (wordLoc ⟨2⟩) with
-    | Value.int n => EvalResult.ok (Value.int n)
+    | ABIValue.int n => EvalResult.ok (Value.int n)
     | _ => EvalResult.error EvalError.storageError) =
       EvalResult.ok (Value.int ↑(Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)
   rw [cureStorageLocLoad_uint256]

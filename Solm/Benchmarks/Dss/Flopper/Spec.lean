@@ -65,10 +65,10 @@ def mintSelector : ByteArray := selectorBytes 0x40 0xc1 0x0f 0x19
 def AshSelector : ByteArray := selectorBytes 0x2a 0x1d 0x2b 0x3c
 def kissSelector : ByteArray := selectorBytes 0x25 0x06 0x85 0x5a
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 ty out).map (fun v => [v])
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) :=
   some []
 
 def externalABI : ExternalCallABI where

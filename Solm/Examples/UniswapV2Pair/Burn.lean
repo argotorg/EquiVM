@@ -135,11 +135,11 @@ theorem uniswapBurnBody
               let token1 := UInt256.land solcAddrMask
                 (uniswapSlotWord ⟨7⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)
               have hdec0 : config.externalABI.decode? "balanceOf" out =
-                  some [uniswapUint256Value balance0] := uniswapBalanceOfDecode_ok hout32
+                  some [uniswapUint256Abi balance0] := uniswapBalanceOfDecode_ok hout32
               have hfirst : ExecBlock config { contract := contract, locals := locals } evmL
                   (balanceOfThisStmts (.var "_token0") "balance0")
                   (.ok { contract := contract, locals := burnBalance0Store evmL I balance0 } evm0) :=
-                checkedExternalCallSuccess (value := [uniswapUint256Value balance0])
+                checkedExternalCallSuccess (value := [uniswapUint256Abi balance0])
                   (retVar := "balance0") hguard hreceiver hargs hcall0 hdec0
               obtain ⟨_, _, rd4387⟩ := uniswapBurnRuntimeSecondBalanceOfExtcodesize
                 rd4324 hout32 houtSize (by simp only [List.length_cons, List.length_nil]; omega)
@@ -212,12 +212,12 @@ theorem uniswapBurnBody
                     obtain ⟨_, _, rd4444⟩ := hcont1 hz1 hout132
                     let balance1 := UInt256.ofNat (fromByteArrayBigEndian (out1.extract 0 32))
                     have hdec1 : config.externalABI.decode? "balanceOf" out1 =
-                        some [uniswapUint256Value balance1] := uniswapBalanceOfDecode_ok hout132
+                        some [uniswapUint256Abi balance1] := uniswapBalanceOfDecode_ok hout132
                     have hsecond : ExecBlock config
                         { contract := contract, locals := burnBalance0Store evmL I balance0 }
                         evm0 (balanceOfThisStmts (.var "_token1") "balance1")
                         (.ok { contract := contract, locals := burnBalanceStore evmL I balance0 balance1 } evm1) :=
-                      checkedExternalCallSuccess (value := [uniswapUint256Value balance1])
+                      checkedExternalCallSuccess (value := [uniswapUint256Abi balance1])
                         (retVar := "balance1") hguard1 hreceiver1 hargs1 hcall1True hdec1
                     have hprefix := uniswapBurnBeforeFeePrefix evmS evm0 evm1 I balance0 balance1
                       (by simpa only [evmS, initState] using hwv) hunlockedSolm hfirst hsecond
@@ -505,7 +505,7 @@ theorem uniswapBurnBody
                                     exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
                                       (uniswapDecode_burn_ok hsz36) hbody
                                       (by rw [hcFinal, hcUpdate, hcBalance3]) haFinal
-                                      (returnEquiv.returned rfl (uniswapUint256PairReturnEncoding _ _))
+                                      (returnEquiv.returned rfl rfl (uniswapUint256PairReturnEncoding _ _))
         · have hdepth1024 : I.depth = 1024 := Fin.ext (by have := I.depth.isLt; omega)
           let target := EVM.address (uniswapAddressAtSlot evmL ⟨6⟩)
           have hcall : typedCallViaEVM config evmL target "balanceOf" 0

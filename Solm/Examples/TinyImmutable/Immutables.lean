@@ -40,9 +40,9 @@ def immValues (v : TinyImmutables) : List (Ident × Value) :=
   [ ("imm_owner", .address v.owner),
     ("imm_scale", .int (Int.ofNat v.scale.toNat)) ]
 
-/-- A `Value`'s 32-byte word (big-endian), as `valueToWord` computes it. -/
+/-- A `Value`'s 32-byte word (big-endian): its ABI value's word. -/
 def wordBytes? (v : Value) : Option ByteArray :=
-  (valueToWord v).map (fun w => ByteArray.mk (EVM.Word.toBytesBE w).toArray)
+  (v.toABI? >>= valueToWord).map (fun w => ByteArray.mk (EVM.Word.toBytesBE w).toArray)
 
 /-- Build the `(offset, 32-byte word)` patch list by looking each `imm_<name>` up via `get`. -/
 def patchesFrom (get : Ident → Option Value) : Option (List (Nat × ByteArray)) :=

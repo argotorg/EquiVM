@@ -76,7 +76,7 @@ theorem delegateCallViaEVM_sound (o : Oracle) (m : Machine) (t : EVM.Address) (c
   · rename_i hc
     exact .callNotMade (by_contra hc)
 
-theorem newViaEVM_sound (cfg : Config) (o : Oracle) (m : Machine) (c : Ident) (v : Nat) (args : List Solm.Value)
+theorem newViaEVM_sound (cfg : Config) (o : Oracle) (m : Machine) (c : Ident) (v : Nat) (args : List ABI.ABIValue)
     (salt : Option ByteArray) {r} (h : Interp.newViaEVM cfg o m c v args salt = some r) :
     newViaEVM cfg o m c v args salt r := by
   dsimp only [Interp.newViaEVM] at h

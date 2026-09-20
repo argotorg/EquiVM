@@ -260,7 +260,7 @@ theorem evalExpr_transferFrom_operator (evm : EVM.State) (I : ExecutionEnv) :
     (hloc := by simp [config, storageLayout, transferFromOperatorEvaledRef,
       transferFromOperatorSlot])]
   simpa [transferFromOperatorValue, transferFromOperatorWord, boolLoc, boolOffset0Loc] using
-    storageLocLoad_bool_offset0 evm (transferFromOperatorSlot evm I)
+    congrArg Value.ofABI (storageLocLoad_bool_offset0 evm (transferFromOperatorSlot evm I))
 
 theorem evalExpr_transferFrom_env_sender (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferFromStore I } evm sender =

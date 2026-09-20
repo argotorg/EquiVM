@@ -57,7 +57,7 @@ theorem cureTCountBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       change
         (match storageLocLoad
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (wordLoc ⟨2⟩) with
-        | Value.int n => EvalResult.ok (Value.int n)
+        | ABIValue.int n => EvalResult.ok (Value.int n)
         | _ => EvalResult.error EvalError.storageError) =
           EvalResult.ok (Value.int ↑(cureSlotWord ⟨2⟩ σ_solm I).toNat)
       rw [cureStorageLocLoad_uint256]

@@ -36,7 +36,7 @@ def immValues (v : AttesterImmutables) : List (Ident × Value) :=
   [("imm_eas", .address v.eas)]
 
 def wordBytes? (x : Value) : Option ByteArray :=
-  (valueToWord x).map (fun w => ByteArray.mk (EVM.Word.toBytesBE w).toArray)
+  (x.toABI? >>= valueToWord).map (fun w => ByteArray.mk (EVM.Word.toBytesBE w).toArray)
 
 def patchesFrom (get : Ident → Option Value) : Option (List (Nat × ByteArray)) :=
   offsets.foldrM (fun p acc => do

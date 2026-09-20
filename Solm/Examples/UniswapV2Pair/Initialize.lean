@@ -135,7 +135,7 @@ theorem evalExpr_initialize_factory (evm : EVM.State) (I : ExecutionEnv) :
       bind, pure])
     (hty := hty)
     (hloc := by rfl)]
-  exact congrArg EvalResult.ok (uniswapStorageLocLoad_address_offset0 evm ⟨5⟩)
+  exact congrArg (fun v => (EvalResult.ok (Value.ofABI v) : EvalResult Value)) (uniswapStorageLocLoad_address_offset0 evm ⟨5⟩)
 
 theorem evalExpr_initialize_factory_eq_sender_true (evm : EVM.State) (I : ExecutionEnv)
     (hfactory :
@@ -190,7 +190,7 @@ theorem evalExpr_initialize_factory_eq_sender_false (evm : EVM.State) (I : Execu
 theorem initializeAddressValue_masked (w : UInt256) :
     (.address (AccountAddress.ofNat w.toNat) : Value) =
       .address (AccountAddress.ofNat (UInt256.land solcAddrMask w).toNat) := by
-  exact solcAddressValue_masked w
+  exact congrArg Value.ofABI (solcAddressValue_masked w)
 
 theorem initializeToken0MaskedWord_canonical (I : ExecutionEnv) :
     (initializeToken0MaskedWord I).toNat < EVM.addressModulus := by
@@ -226,9 +226,9 @@ theorem initializeAssignToken0 (evm : EVM.State) (I : ExecutionEnv) :
       ({ base := "token0", steps := [] } : EvaledStorageRef) = some addrSt := by
     decide
   have hstore :
-      storageLocStore evm (addrLoc ⟨6⟩) (initializeToken0Value I) =
+      storageLocStore evm (addrLoc ⟨6⟩)
+          (.address (AccountAddress.ofNat (initializeToken0MaskedWord I).toNat)) =
         some (initializeToken0State evm I) := by
-    rw [initializeToken0Value_masked I]
     simpa [initializeToken0State] using
       uniswapStorageLocStore_address_offset0 evm ⟨6⟩ (initializeToken0MaskedWord I)
         (initializeToken0MaskedWord_canonical I)
@@ -237,7 +237,7 @@ theorem initializeAssignToken0 (evm : EVM.State) (I : ExecutionEnv) :
     (evm' := initializeToken0State evm I) (slot := token0Ref)
     (er := { base := "token0", steps := [] }) (ty := addrSt) (loc := addrLoc ⟨6⟩)
     (value := initializeToken0Value I) (initializeStore_token0Base I) her hty (by rfl)
-    (by trivial) hstore
+    (by trivial) hstore (hconv := by rw [initializeToken0Value_masked I] <;> rfl)
 
 theorem initializeAssignToken1 (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := initializeStore I }
@@ -253,9 +253,8 @@ theorem initializeAssignToken1 (evm : EVM.State) (I : ExecutionEnv) :
     decide
   have hstore :
       storageLocStore (initializeToken0State evm I) (addrLoc ⟨7⟩)
-          (initializeToken1Value I) =
+          (.address (AccountAddress.ofNat (initializeToken1MaskedWord I).toNat)) =
         some (initializePostState evm I) := by
-    rw [initializeToken1Value_masked I]
     simpa [initializePostState] using
       uniswapStorageLocStore_address_offset0 (initializeToken0State evm I) ⟨7⟩
         (initializeToken1MaskedWord I) (initializeToken1MaskedWord_canonical I)
@@ -265,6 +264,7 @@ theorem initializeAssignToken1 (evm : EVM.State) (I : ExecutionEnv) :
     (slot := token1Ref) (er := { base := "token1", steps := [] }) (ty := addrSt)
     (loc := addrLoc ⟨7⟩) (value := initializeToken1Value I)
     (initializeStore_token1Base I) her hty (by rfl) (by trivial) hstore
+    (hconv := by rw [initializeToken1Value_masked I] <;> rfl)
 
 theorem uniswapDecode_initialize_ok {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size) :

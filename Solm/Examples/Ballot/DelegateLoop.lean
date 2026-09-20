@@ -141,9 +141,9 @@ theorem evalExpr_delegate_current_voter_delegate (evm : EVM.State) (I : Executio
       readStorage? ballotConfig evm (delegateCurrentVoterFieldRef w "delegate") (.elem .address) =
         .ok (delegateCurrentNextValue evm w) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    change EvalResult.ok (storageLocLoad evm
+    change EvalResult.ok (Value.ofABI (storageLocLoad evm
         { slot := delegateVoterPackedSlot w, offset := 1, size := 20,
-          hbound := _, type := .address }) =
+          hbound := _, type := .address })) =
       EvalResult.ok (delegateCurrentNextValue evm w)
     rw [storageLocLoad_address_offset1]
     simp [delegateCurrentNextValue, delegateCurrentVoterDelegateWordCurrent,

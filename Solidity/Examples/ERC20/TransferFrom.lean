@@ -19,56 +19,35 @@ theorem erc20Args_transferFrom_ok {I : ExecutionEnv} (hsz100 : 100 ≤ I.calldat
     (hbig : I.calldata.size < 2 ^ 255 + 4) (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus) :
     decodeArgs erc20Cfg erc20Flat.types fnTransferFrom.decl I.calldata =
-      some [transferFromFromValue I, transferFromToValue I, transferFromValueValue I] := by
+      some [.address (AccountAddress.ofNat (transferFromFromWord I).toNat),
+        .address (AccountAddress.ofNat (transferFromToWord I).toNat),
+        .int (Int.ofNat (transferFromValueWord I).toNat)] := by
   rw [decodeArgs_unfold _ _ sigTransferFrom sigOf_transferFrom]
-  have h := decodeCalldata_address_address_uint256_ok (cd := I.calldata) (x := "from") (y := "to") (z := "value")
-    hsz100 hbig hcanonFrom hcanonTo
-  simp only [fnTransferFrom, List.zipIdx, List.map, paramName, Option.getD, sigTransferFrom]
-  rw [show ABI.decodeCalldata ["from", "to", "value"] [abiAddr, abiAddr, abiU256] I.calldata = _ from h]
-  simp [Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert, transferFromFromValue, transferFromToValue,
-    transferFromValueValue, transferFromFromWord, transferFromToWord, transferFromValueWord, calldataWord,
-    -getElem?_pos, -getElem?_neg]
-  exact ⟨rfl, rfl, rfl⟩
+  exact decodeCalldataValues_address_address_uint256_ok hsz100 hbig hcanonFrom hcanonTo
 
 theorem erc20Args_transferFrom_none_short {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size)
     (hshort : I.calldata.size < 100) :
     decodeArgs erc20Cfg erc20Flat.types fnTransferFrom.decl I.calldata = none := by
   rw [decodeArgs_unfold _ _ sigTransferFrom sigOf_transferFrom]
-  simp only [fnTransferFrom, List.zipIdx, List.map, paramName, Option.getD, sigTransferFrom]
-  rw [show ABI.decodeCalldata ["from", "to", "value"] [abiAddr, abiAddr, abiU256] I.calldata = none from
-    decodeCalldata_address_address_uint256_none_short (cd := I.calldata) (x := "from") (y := "to") (z := "value")
-      hsz4 hshort]
-  rfl
+  exact decodeCalldataValues_address_address_uint256_none_short hsz4 hshort
 
 theorem erc20Args_transferFrom_none_noncanon0 {I : ExecutionEnv} (hsz100 : 100 ≤ I.calldata.size)
     (hbig : I.calldata.size < 2 ^ 255 + 4) (hnc : ¬ (transferFromFromWord I).toNat < EVM.addressModulus) :
     decodeArgs erc20Cfg erc20Flat.types fnTransferFrom.decl I.calldata = none := by
   rw [decodeArgs_unfold _ _ sigTransferFrom sigOf_transferFrom]
-  simp only [fnTransferFrom, List.zipIdx, List.map, paramName, Option.getD, sigTransferFrom]
-  rw [show ABI.decodeCalldata ["from", "to", "value"] [abiAddr, abiAddr, abiU256] I.calldata = none from
-    decodeCalldata_address_address_uint256_none_noncanon0 (cd := I.calldata) (x := "from") (y := "to")
-      (z := "value") hsz100 hbig hnc]
-  rfl
+  exact decodeCalldataValues_address_address_uint256_none_noncanon0 hsz100 hbig hnc
 
 theorem erc20Args_transferFrom_none_noncanon1 {I : ExecutionEnv} (hsz100 : 100 ≤ I.calldata.size)
     (hbig : I.calldata.size < 2 ^ 255 + 4) (hcanon0 : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hnc : ¬ (transferFromToWord I).toNat < EVM.addressModulus) :
     decodeArgs erc20Cfg erc20Flat.types fnTransferFrom.decl I.calldata = none := by
   rw [decodeArgs_unfold _ _ sigTransferFrom sigOf_transferFrom]
-  simp only [fnTransferFrom, List.zipIdx, List.map, paramName, Option.getD, sigTransferFrom]
-  rw [show ABI.decodeCalldata ["from", "to", "value"] [abiAddr, abiAddr, abiU256] I.calldata = none from
-    decodeCalldata_address_address_uint256_none_noncanon1 (cd := I.calldata) (x := "from") (y := "to")
-      (z := "value") hsz100 hbig hcanon0 hnc]
-  rfl
+  exact decodeCalldataValues_address_address_uint256_none_noncanon1 hsz100 hbig hcanon0 hnc
 
 theorem erc20Args_transferFrom_none_huge {I : ExecutionEnv} (hbig : 2 ^ 255 + 4 ≤ I.calldata.size) :
     decodeArgs erc20Cfg erc20Flat.types fnTransferFrom.decl I.calldata = none := by
   rw [decodeArgs_unfold _ _ sigTransferFrom sigOf_transferFrom]
-  simp only [fnTransferFrom, List.zipIdx, List.map, paramName, Option.getD, sigTransferFrom]
-  rw [show ABI.decodeCalldata ["from", "to", "value"] [abiAddr, abiAddr, abiU256] I.calldata = none from
-    decodeCalldata_address_address_uint256_none_huge (cd := I.calldata) (x := "from") (y := "to") (z := "value")
-      hbig]
-  rfl
+  exact decodeCalldataValues_address_address_uint256_none_huge hbig
 
 /-! ## The spec derivations -/
 

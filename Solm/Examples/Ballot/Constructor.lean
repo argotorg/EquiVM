@@ -10,6 +10,7 @@ import EVMReasoning.Solc
 import Solm.Reasoning.SolmBody
 import Solm.Reasoning.Dispatch
 import EVMReasoning.JumpDest
+import Solm.Reasoning.Constructor
 
 /-!
 # Ballot — constructor / creation-code equivalence
@@ -135,13 +136,15 @@ are `offset(0x20) ‖ length ‖ elements`. -/
 
 theorem ballotDeployment_shape {args : List Value} {deployedInitcode : ByteArray} :
     ballotConfig.selfDeployment ballotInitcode args = some deployedInitcode →
-    ∃ (vs : List Value) (elemBytes : List UInt8),
+    ∃ (vs : List Value) (avs : List ABIValue) (elemBytes : List UInt8),
       args = [.array vs]
-        ∧ ABI.encodeABIStaticArrayElems? Ballot.bytes32 vs = some elemBytes
+        ∧ Value.toABIList? vs = some avs
+        ∧ ABI.encodeABIStaticArrayElems? Ballot.bytes32 avs = some elemBytes
         ∧ deployedInitcode
             = ballotInitcode
                 ++ (ABI.natBytes 32 ++ (ABI.natBytes vs.length ++ elemBytes)).toByteArray := by
   intro h
+  have hlen := genSolidityConstructorDeployment_length h
   simp only [ballotConfig, genSolidityConstructorDeployment, ballotContract, Ballot.constructorDecl,
     List.map_cons, List.map_nil, Option.bind_eq_bind] at h
   match args with
@@ -149,21 +152,27 @@ theorem ballotDeployment_shape {args : List Value} {deployedInitcode : ByteArray
       simp [ABI.encodeABIValues?, ABI.encodeABIValuesFrom?, ABI.abiTupleHeadSize?,
         ABI.isDynamicABIType] at h
   | [.array vs] =>
-      rw [Reasoning.Theory.encodeABIValues_single_dynArray_static
-        (by decide : ABI.isDynamicABIType Ballot.bytes32 = false)] at h
-      cases he : ABI.encodeABIStaticArrayElems? Ballot.bytes32 vs with
-      | none => rw [he] at h; simp at h
-      | some elemBytes =>
-          rw [he] at h
-          simp only [Option.bind_some, Option.some.injEq] at h
-          exact ⟨vs, elemBytes, rfl, he, h.symm⟩
+      cases hvs : Value.toABIList? vs with
+      | none => simp [hvs] at h
+      | some avs =>
+          simp only [Value.toABIList?, Value.toABI?, hvs, Option.map_some, Option.some_bind] at h
+          rw [Reasoning.Theory.encodeABIValues_single_dynArray_static
+            (by decide : ABI.isDynamicABIType Ballot.bytes32 = false)] at h
+          cases he : ABI.encodeABIStaticArrayElems? Ballot.bytes32 avs with
+          | none => rw [he] at h; simp at h
+          | some elemBytes =>
+              rw [he] at h
+              simp only [Option.bind_some, Option.some.injEq] at h
+              refine ⟨vs, avs, elemBytes, rfl, hvs, he, ?_⟩
+              rw [← Reasoning.Theory.toABIList?_length hvs]
+              exact h.symm
   | [.int _] | [.bool _] | [.address _] | [.fixedBytes _ _] | [.bytes _] | [.tuple _]
   | [.struct _ _] | [.unit] | [.storageRef _ _] =>
       simp [ABI.encodeABIValues?, ABI.encodeABIValuesFrom?, ABI.abiTupleHeadSize?,
-        ABI.isDynamicABIType, ABI.encodeABIValue?] at h
+        ABI.isDynamicABIType, ABI.encodeABIValue?, Option.bind_eq_some_iff,
+        Option.map_eq_some_iff] at h
   | _ :: _ :: _ =>
-      simp [ABI.encodeABIValues?, ABI.encodeABIValuesFrom?, ABI.abiTupleHeadSize?,
-        ABI.isDynamicABIType] at h
+      simp [ballotContract, Ballot.constructorDecl] at hlen
 
 /-! ## Prologue trace (pc 0 → ABI decoder entry at pc 0xd2)
 
@@ -331,7 +340,7 @@ theorem natBytes_toByteArray_size (n : ℕ) : (ABI.natBytes n).toByteArray.size 
   unfold ABI.natBytes; exact word_toBytesBE_toByteArray_size _
 
 /-- Every successful ABI encoding of a `bytes32` value is exactly one 32-byte word. -/
-theorem encodeABIValue_bytes32_length {v : Value} {bs : List UInt8}
+theorem encodeABIValue_bytes32_length {v : ABIValue} {bs : List UInt8}
     (h : ABI.encodeABIValue? Ballot.bytes32 v = some bs) : bs.length = 32 := by
   cases v <;> simp [Ballot.bytes32, ABI.encodeABIValue?, ABI.encodeABIWord?] at h
   case fixedBytes n bytes =>
@@ -340,7 +349,7 @@ theorem encodeABIValue_bytes32_length {v : Value} {bs : List UInt8}
     simp [ABI.zeroBytes, hlen]
 
 /-- A successful ABI encoding of a `bytes32[]` element tail has one 32-byte word per element. -/
-theorem encodeABIStaticArrayElems_bytes32_length {vs : List Value} {elemBytes : List UInt8}
+theorem encodeABIStaticArrayElems_bytes32_length {vs : List ABIValue} {elemBytes : List UInt8}
     (h : ABI.encodeABIStaticArrayElems? Ballot.bytes32 vs = some elemBytes) :
     elemBytes.length = 32 * vs.length := by
   induction vs generalizing elemBytes with

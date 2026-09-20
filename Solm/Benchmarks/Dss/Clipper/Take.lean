@@ -236,13 +236,13 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_ok {cd : Byte
         (start := (calldataWord cd 132).toNat)
         (len := (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat)
         hreadLen hlenMax hpayload
-  unfold decodeCalldataWithMode decodeCalldata
+  unfold decodeCalldataWithMode decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by
     rintro ⟨_, hhuge⟩
     rw [htlen] at hhuge
     omega)]
-  simp only [decodeCalldata.decodeArgs]
+  simp only [decodeCalldataValues?.decodeArgs]
   rw [show abiTupleHeadSize? [uint256, uint256, uint256, addr, bytesDyn] = some 160 by
     native_decide]
   simp only [Option.bind, bind]
@@ -314,13 +314,13 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_short
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]
     rfl
-  unfold decodeCalldataWithMode decodeCalldata
+  unfold decodeCalldataWithMode decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by
     rintro ⟨_, hhuge⟩
     rw [htlen] at hhuge
     omega)]
-  simp only [decodeCalldata.decodeArgs]
+  simp only [decodeCalldataValues?.decodeArgs]
   rw [show abiTupleHeadSize? [uint256, uint256, uint256, addr, bytesDyn] = some 160 by
     native_decide]
   simp only [Option.bind, bind]
@@ -392,13 +392,13 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_offset_h
   have hreadOff :
       readNat? (cd.toList.drop 4) 128 = some (calldataWord cd 132).toNat := by
     simpa using readNat_drop4_at_eq_calldataWord (cd := cd) 128 (by omega)
-  unfold decodeCalldataWithMode decodeCalldata
+  unfold decodeCalldataWithMode decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by
     rintro ⟨_, hhuge⟩
     rw [htlen] at hhuge
     omega)]
-  simp only [decodeCalldata.decodeArgs]
+  simp only [decodeCalldataValues?.decodeArgs]
   rw [show abiTupleHeadSize? [uint256, uint256, uint256, addr, bytesDyn] = some 160 by
     native_decide]
   simp only [Option.bind, bind]
@@ -533,13 +533,13 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_length_s
       decodeABIValue? bytesDyn (cd.toList.drop 4) (calldataWord cd 132).toNat
           DecodeMode.legacySolc05 = none :=
     decodeABIValue_legacyBytes_none_length_short hreadLen
-  unfold decodeCalldataWithMode decodeCalldata
+  unfold decodeCalldataWithMode decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by
     rintro ⟨_, hhuge⟩
     rw [htlen] at hhuge
     omega)]
-  simp only [decodeCalldata.decodeArgs]
+  simp only [decodeCalldataValues?.decodeArgs]
   rw [show abiTupleHeadSize? [uint256, uint256, uint256, addr, bytesDyn] = some 160 by
     native_decide]
   simp only [Option.bind, bind]
@@ -645,13 +645,13 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_length_h
       decodeABIValue? bytesDyn (cd.toList.drop 4) (calldataWord cd 132).toNat
           DecodeMode.legacySolc05 = none :=
     decodeABIValue_legacyBytes_none_length_huge hreadLen hlenHuge
-  unfold decodeCalldataWithMode decodeCalldata
+  unfold decodeCalldataWithMode decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by
     rintro ⟨_, hhuge⟩
     rw [htlen] at hhuge
     omega)]
-  simp only [decodeCalldata.decodeArgs]
+  simp only [decodeCalldataValues?.decodeArgs]
   rw [show abiTupleHeadSize? [uint256, uint256, uint256, addr, bytesDyn] = some 160 by
     native_decide]
   simp only [Option.bind, bind]
@@ -761,13 +761,13 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_payload_
       decodeABIValue? bytesDyn (cd.toList.drop 4) (calldataWord cd 132).toNat
           DecodeMode.legacySolc05 = none :=
     decodeABIValue_legacyBytes_none_payload_short hreadLen hlenMax hpayloadShort
-  unfold decodeCalldataWithMode decodeCalldata
+  unfold decodeCalldataWithMode decodeCalldata decodeCalldataValues?
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by
     rintro ⟨_, hhuge⟩
     rw [htlen] at hhuge
     omega)]
-  simp only [decodeCalldata.decodeArgs]
+  simp only [decodeCalldataValues?.decodeArgs]
   rw [show abiTupleHeadSize? [uint256, uint256, uint256, addr, bytesDyn] = some 160 by
     native_decide]
   simp only [Option.bind, bind]

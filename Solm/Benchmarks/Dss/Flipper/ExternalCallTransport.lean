@@ -51,7 +51,7 @@ theorem flipper_typedCallViaEVM_accountMapEquiv_noSubstate
           accountMap := σ'_solm
           substate := A'_solm
           createdAccounts := evm'_evm.createdAccounts } := by
-  obtain ⟨calldata, hdecode, hcall⟩ := hcall
+  obtain ⟨abiArgs, calldata, hargs, hdecode, hcall⟩ := hcall
   have h_ext_eq : accountMapExtensionalEq evm_evm.accountMap evm_solm.accountMap :=
     flipper_accountMapExtensionalEq_of_accountMapEquiv hAccounts
   cases hcall with
@@ -132,7 +132,7 @@ theorem flipper_typedCallViaEVM_accountMapEquiv_noSubstate
       use thetaRes.2.1
       use thetaRes.2.2.2.1
       constructor
-      · refine ⟨calldata, hdecode, ?_⟩
+      · refine ⟨abiArgs, calldata, hargs, hdecode, ?_⟩
         exact callViaEVM.callMade (perm := callPerm) hvalue
           ⟨callGas, A_in, hTheta_s⟩ rfl (by
           rw [hEnv]
@@ -149,7 +149,7 @@ theorem flipper_typedCallViaEVM_accountMapEquiv_noSubstate
       use evm_solm.accountMap
       use A'
       constructor
-      · refine ⟨calldata, hdecode, ?_⟩
+      · refine ⟨abiArgs, calldata, hargs, hdecode, ?_⟩
         apply callViaEVM.callNotMade (perm := callPerm)
         · rfl
         · simp [A', hCreated, hevm']

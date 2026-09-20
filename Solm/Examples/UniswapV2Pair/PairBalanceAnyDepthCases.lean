@@ -55,7 +55,7 @@ theorem uniswapPairBalanceCallRuntimeAnyDepthCases
       have hcall : typedCallViaEVM config evm (EVM.address token) "balanceOf" 0
           [.address evm.executionEnv.codeOwner]
           (false, { evm with substate := (evm.addAccessedAccount (EVM.address token)).substate }, ByteArray.empty) false := by
-        refine ⟨_, balanceOfThisCalldataMem_encode evm.executionEnv.codeOwner, ?_⟩
+        refine ⟨_, _, rfl, balanceOfThisCalldataMem_encode evm.executionEnv.codeOwner, ?_⟩
         apply callViaEVM.callNotMade rfl rfl
         rintro ⟨_, hne⟩
         exact hne (by rw [he]; exact hd)

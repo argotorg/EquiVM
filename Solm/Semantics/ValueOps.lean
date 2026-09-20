@@ -409,42 +409,6 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
 #guard evalBinaryOp? .lt (.address (.ofNat 3)) (.address (.ofNat 5)) = .ok (.bool true)
 #guard evalBinaryOp? .gt (.address (.ofNat 3)) (.address (.ofNat 5)) = .ok (.bool false)
 
-/-- `abi.encodePacked` of an array: each element is a full 32-byte padded word, no length prefix
-    (verified from solc 0.8.35 Yul IR — `add(pos, 0x20)` per element).  Elementary elements only
-    (`encodeABIWord?` returns `none` for nested/dynamic element types). -/
-def encodePackedArrayElems? (elemTy : ABIType) : List Value → Option (List UInt8)
-  | [] => some []
-  | v :: vs => do
-      let w <- encodeABIWord? elemTy v
-      let rest <- encodePackedArrayElems? elemTy vs
-      some (EVM.Word.toBytesBE w ++ rest)
-
-/-- Packed ("non-padded") ABI encoding of a single value, per Solidity's `abi.encodePacked`: each
-    value takes its natural byte width with no left/right padding and no length prefix — `uintN`/`intN`
-    are `N/8` big-endian bytes, `bool` is one byte, `address` is its 20 bytes, `bytesN` is its `N`
-    bytes, and dynamic `bytes` is its raw contents.  Only the cases needed by current specs are
-    handled; anything else returns `none` rather than risk a silent mis-encoding. -/
-def encodePackedValue? (ty : ABIType) (v : Value) : Option (List UInt8) :=
-  match ty, v with
-  | .elem .bool, .bool b => some [if b then (1 : UInt8) else 0]
-  | .array elemTy _, .array vs => encodePackedArrayElems? elemTy vs
-  | .dynamicArray elemTy, .array vs => encodePackedArrayElems? elemTy vs
-  | .elem .address, .address a => some ((EVM.word a).toBytesBE.drop 12)
-  | .elem (.int (.uint bits)), .int _ => do
-      let w <- encodeABIWord? ty v
-      some (w.toBytesBE.drop (32 - bits.val / 8))
-  | .elem (.int (.sint bits)), .int _ => do
-      let w <- encodeABIWord? ty v
-      some (w.toBytesBE.drop (32 - bits.val / 8))
-  | .elem (.bytes n), .fixedBytes m bytes =>
-      if m = n ∧ bytes.length = fixedBytesSize n then some bytes else none
-  | .bytes, .bytes ba => some ba.toList
-  | .string, .bytes ba => some ba.toList
-  | _, _ => none
-
-#guard encodePackedValue? (.dynamicArray (.elem (.int (.uint ⟨8, by decide⟩)))) (.array [.int 1, .int 2])
-  = some (List.replicate 31 0 ++ [1] ++ List.replicate 31 0 ++ [2])
-
 /-- `b[s:e]`: solc compiles `d[x:y]` to two `GT → REVERT` guards (verified solc 0.6.12 & 0.8.35):
     revert iff `s > e` or `e > b.size`; negative bounds are ill-typed. -/
 def sliceBytes? (ba : ByteArray) (s e : Int) : EvalResult Value :=

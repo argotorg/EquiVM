@@ -124,7 +124,7 @@ theorem uniswapAllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
             allowanceOwnerValue, allowanceSpenderValue, allowanceOwnerKey, allowanceSpenderKey])
         (hty := by rfl)
         (hloc := by rfl)]
-      exact congrArg EvalResult.ok (uniswapStorageLocLoad_uint256 evm (allowanceStorageSlot I)))
+      exact congrArg (fun v => (EvalResult.ok (Value.ofABI v) : EvalResult Value)) (uniswapStorageLocLoad_uint256 evm (allowanceStorageSlot I)))
 
 /-! ## EVM trace -/
 
@@ -255,7 +255,7 @@ theorem uniswapAllowanceBodyCoreOk
   exact (uniswapX_allowance_ok (g := Sat256.ofUInt256 g) hsz68 hsize hreach)
     |>.reEquivExecutionTransport hcode hdispatch hdecode hbody (by rw [← hword])
       hAccounts
-      (returnEquiv_of_encode
+      (returnEquiv_of_encode (arv := .int (Int.ofNat (allowanceWord σ_evm I).toNat))
         (by simpa [uint256] using uint256ReturnEncoding (allowanceWord σ_evm I)))
 
 /-- Short-calldata decode-failure refinement slice for `allowance(address,address)`.

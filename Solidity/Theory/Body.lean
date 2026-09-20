@@ -6,7 +6,7 @@ import EVMReasoning.Storage
 
 Small rewriting lemmas used when building `EvalExpr`/`ExecStmt`/`CallFn` derivations by hand:
 frame lookups, scalar conversions, zero values, and full-word (`uint256`) storage reads and
-writes through a layout.  `storageLocLoad`/`scalarOfSolm` are eliminated by `rw`, never by
+writes through a layout.  `storageLocLoad`/`scalarOfAbi` are eliminated by `rw`, never by
 definitional unfolding (their unfolding on a symbolic state does not terminate quickly).
 -/
 
@@ -82,30 +82,30 @@ theorem EvalExpr.localVal {cfg : Config} {o : Oracle} {fc : FlatContract} {fr : 
 
 @[simp] theorem toAbi_uint (h : Heap) (fuel : Nat) (w : ABI.BitWidth) (n : Nat) :
     toAbi h (fuel + 1) (.uint w n) = some (.int n) := by
-  simp [toAbi, scalarToSolm]
+  simp [toAbi, scalarToAbi]
 
 @[simp] theorem toAbi_bool (h : Heap) (fuel : Nat) (b : Bool) :
     toAbi h (fuel + 1) (.bool b) = some (.bool b) := by
-  simp [toAbi, scalarToSolm]
+  simp [toAbi, scalarToAbi]
 
 @[simp] theorem toAbi_address (h : Heap) (fuel : Nat) (a : EVM.Address) :
     toAbi h (fuel + 1) (.address a) = some (.address a) := by
-  simp [toAbi, scalarToSolm]
+  simp [toAbi, scalarToAbi]
 
-theorem scalarOfSolm_u256 (env : TypeEnv) (w : UInt256) :
-    scalarOfSolm env u256Ty (.int (Int.ofNat w.toNat)) = some (u256Val w.toNat) := by
+theorem scalarOfAbi_u256 (env : TypeEnv) (w : UInt256) :
+    scalarOfAbi env u256Ty (.int (Int.ofNat w.toNat)) = some (u256Val w.toNat) := by
   have h : w.toNat < 2 ^ 256 := w.val.isLt
-  simp [scalarOfSolm]
+  simp [scalarOfAbi]
   omega
 
-theorem scalarOfSolm_u256_nat (env : TypeEnv) (n : Nat) (hn : n < UInt256.size) :
-    scalarOfSolm env u256Ty (.int (Int.ofNat n)) = some (u256Val n) := by
-  simp [scalarOfSolm]
+theorem scalarOfAbi_u256_nat (env : TypeEnv) (n : Nat) (hn : n < UInt256.size) :
+    scalarOfAbi env u256Ty (.int (Int.ofNat n)) = some (u256Val n) := by
+  simp [scalarOfAbi]
   exact hn
 
-@[simp] theorem scalarOfSolm_address (env : TypeEnv) (a : EVM.Address) :
-    scalarOfSolm env (.address false) (.address a) = some (.address a) := by
-  simp [scalarOfSolm]
+@[simp] theorem scalarOfAbi_address (env : TypeEnv) (a : EVM.Address) :
+    scalarOfAbi env (.address false) (.address a) = some (.address a) := by
+  simp [scalarOfAbi]
 
 @[simp] theorem implicitConv_uint (env : TypeEnv) (h : Heap) (n : Nat) :
     implicitConv env h (u256Val n) u256Ty = some (u256Val n, h) := by
@@ -127,7 +127,7 @@ theorem readScalar_u256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : S
     readScalar cfg env evm er u256Ty =
       some (u256Val (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
   unfold readScalar
-  rw [h, Opt.some_bind, storageLocLoad_uint256, scalarOfSolm_u256]
+  rw [h, Opt.some_bind, storageLocLoad_uint256, scalarOfAbi_u256]
 
 theorem loadIfScalar_u256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
     (h : cfg.storage.layout er evm = some (uint256Loc slot)) :
@@ -144,7 +144,7 @@ theorem writeScalar_u256 {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStora
       some (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot w) := by
   unfold writeScalar
   rw [h, Opt.some_bind]
-  show (some (Solm.Value.int (Int.ofNat w.toNat)) >>= _) = _
+  show (some (ABI.ABIValue.int (Int.ofNat w.toNat)) >>= _) = _
   rw [Opt.some_bind, storageLocStore_uint256]
 
 /-- `writeStorageDeep` of a `uint256` value into a `uint256` slot. -/

@@ -88,13 +88,13 @@ def mintCallbackSelector : ByteArray := selectorBytes 0xd3 0x48 0x79 0x97
 def swapCallbackSelector : ByteArray := selectorBytes 0xfa 0x46 0x1e 0x33
 def flashCallbackSelector : ByteArray := selectorBytes 0xe9 0xcb 0xaf 0xb0
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 ty out).map (fun v => [v])
 
-def decodeReturns? (tys : List ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturns? (tys : List ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 tys out
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) :=
   some []
 
 def poolExternalABI : ExternalCallABI where

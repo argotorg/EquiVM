@@ -47,27 +47,27 @@ theorem balanceCallAddress_self (a : AccountAddress) : EVM.address a.val = a := 
 
 theorem uniswapBalanceOfDecode_ok {returndata : ByteArray} (hlo : 32 ≤ returndata.size) :
     config.externalABI.decode? "balanceOf" returndata =
-      some [uniswapUint256Value
+      some [uniswapUint256Abi
         (UInt256.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))] := by
   let n := fromByteArrayBigEndian (returndata.extract 0 32)
   have hword :
       (UInt256.ofNat n).toNat = n := by
     exact UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)
   have hret :
-      some [uniswapUint256Value (UInt256.ofNat n)] =
-        some [Value.int (Int.ofNat n)] := by
-    change some [Value.int (Int.ofNat (UInt256.ofNat n).toNat)] =
-      some [Value.int (Int.ofNat n)]
+      some [uniswapUint256Abi (UInt256.ofNat n)] =
+        some [ABIValue.int (Int.ofNat n)] := by
+    change some [ABIValue.int (Int.ofNat (UInt256.ofNat n).toNat)] =
+      some [ABIValue.int (Int.ofNat n)]
     rw [hword]
   have hdecode :
       ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 uint256 returndata =
-        some (Value.int (Int.ofNat n)) := by
+        some (ABIValue.int (Int.ofNat n)) := by
     change
       ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 abiUInt256 returndata =
-        some (Value.int (Int.ofNat n))
+        some (ABIValue.int (Int.ofNat n))
     exact decodeReturnValueWithMode_legacy_uint256_ok (returndata := returndata) hlo
   change uniswapExternalABI.decode? "balanceOf" returndata =
-    some [uniswapUint256Value (UInt256.ofNat n)]
+    some [uniswapUint256Abi (UInt256.ofNat n)]
   rw [hret]
   change
     (if "balanceOf" = "balanceOf" then
@@ -82,7 +82,7 @@ theorem uniswapBalanceOfDecode_ok {returndata : ByteArray} (hlo : 32 ≤ returnd
       else if "balanceOf" = "ecrecover" then
         (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 addr returndata).map (fun v => [v])
       else
-        none) = some [Value.int (Int.ofNat n)]
+        none) = some [ABIValue.int (Int.ofNat n)]
   rw [if_pos rfl, hdecode]
   rfl
 

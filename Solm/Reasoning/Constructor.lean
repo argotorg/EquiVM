@@ -15,6 +15,36 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Reach
 
 namespace Reasoning.Theory
 
+theorem toABIList?_length {vs : List Value} {avs : List ABIValue}
+    (h : Value.toABIList? vs = some avs) : avs.length = vs.length := by
+  induction vs generalizing avs with
+  | nil => simp at h; subst h; rfl
+  | cons v vs ih =>
+      simp only [Value.toABIList?, bind, Option.bind_eq_some_iff, Option.some.injEq] at h
+      obtain ⟨_, _, as, has, rfl⟩ := h
+      simp [ih has]
+
+theorem encodeABIValuesFrom?_length :
+    ∀ {tys : List ABIType} {vs : List ABIValue} {hs : Nat} {head tail bs : List UInt8},
+      encodeABIValuesFrom? tys vs hs head tail = some bs → vs.length = tys.length
+  | [], [], _, _, _, _, _ => rfl
+  | [], _ :: _, _, _, _, _, h => by simp [encodeABIValuesFrom?] at h
+  | _ :: _, [], _, _, _, _, h => by simp [encodeABIValuesFrom?] at h
+  | ty :: tys, v :: vs, hs, head, tail, bs, h => by
+      simp only [encodeABIValuesFrom?, bind, Option.bind_eq_some_iff] at h
+      obtain ⟨_, _, hrest⟩ := h
+      split at hrest <;> simp [encodeABIValuesFrom?_length hrest]
+
+/-- A Solidity deployment encodes only an argument list of the parameter length. -/
+theorem genSolidityConstructorDeployment_length {params : List Param} {init : EVM.Bytes}
+    {args : List Value} {d : EVM.Bytes}
+    (h : genSolidityConstructorDeployment params init args = some d) :
+    args.length = params.length := by
+  simp only [genSolidityConstructorDeployment, encodeABIValues?, bind, Option.bind_eq_some_iff]
+    at h
+  obtain ⟨avs, havs, _, ⟨_, _, hfrom⟩, _⟩ := h
+  rw [← toABIList?_length havs, encodeABIValuesFrom?_length hfrom, List.length_map]
+
 /-- Successful Solidity deployment of an empty-parameter constructor implies the argument list has
     the constructor parameter length. -/
 theorem emptyCtorDeployment_args_length
@@ -29,8 +59,9 @@ theorem emptyCtorDeployment_args_length
   cases args with
   | nil => rfl
   | cons arg rest =>
-      simp [genSolidityConstructorDeployment, encodeABIValues?, encodeABIValuesFrom?,
-        abiTupleHeadSize?] at hdeploy
+      simp [genSolidityConstructorDeployment, encodeABIValues?, abiTupleHeadSize?] at hdeploy
+      cases harg : arg.toABI? <;> simp [harg] at hdeploy
+      cases hrest : Value.toABIList? rest <;> simp [hrest, encodeABIValuesFrom?] at hdeploy
 
 /-- Successful Solidity deployment of an empty-parameter constructor appends no ABI tail. -/
 theorem emptyCtorDeployment_eq_initcode
@@ -47,8 +78,9 @@ theorem emptyCtorDeployment_eq_initcode
         abiTupleHeadSize?, ByteArray.append_empty] at hdeploy
       exact hdeploy.symm
   | cons arg rest =>
-      simp [genSolidityConstructorDeployment, encodeABIValues?, encodeABIValuesFrom?,
-        abiTupleHeadSize?] at hdeploy
+      simp [genSolidityConstructorDeployment, encodeABIValues?, abiTupleHeadSize?] at hdeploy
+      cases harg : arg.toABI? <;> simp [harg] at hdeploy
+      cases hrest : Value.toABIList? rest <;> simp [hrest, encodeABIValuesFrom?] at hdeploy
 
 theorem emptyCtorBodyReturns
     {cfg : Config} {contract : ContractDecl} (evm : EVM.State) (locals : Store)

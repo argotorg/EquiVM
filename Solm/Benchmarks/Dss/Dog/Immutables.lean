@@ -33,7 +33,7 @@ def immValues (v : DogImmutables) : List (Ident × Value) :=
   [("imm_vat", .address v.vat)]
 
 def wordBytes? (x : Value) : Option ByteArray :=
-  (valueToWord x).map (fun w => ByteArray.mk (EVM.Word.toBytesBE w).toArray)
+  (x.toABI? >>= valueToWord).map (fun w => ByteArray.mk (EVM.Word.toBytesBE w).toArray)
 
 def patchesFrom (get : Ident → Option Value) : Option (List (Nat × ByteArray)) :=
   offsets.foldrM (fun p acc => do

@@ -1949,11 +1949,11 @@ theorem clipperAddressConstGetterBodyCore (v : ClipperImmutables) {code : ByteAr
         (some [(.address (AccountAddress.ofNat val.toNat))]) transition.returnType := by
     rw [hreturn]
     have hmasked :
-        Value.address (AccountAddress.ofNat val.toNat) =
+        ABIValue.address (AccountAddress.ofNat val.toNat) =
           .address (AccountAddress.ofNat (UInt256.land val solcAddrMask).toNat) := by
       rw [solcAddressValue_masked val]
       rw [u256_land_comm solcAddrMask val]
-    exact returnEquiv_of_encode
+    exact returnEquiv_of_encode (arv := .address (AccountAddress.ofNat val.toNat))
       (by simpa [addr, hmasked] using solcAddressReturnEncoding rfl val)
   have hrd := solcAddressConstGetterExternal (code := code) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (val := val)

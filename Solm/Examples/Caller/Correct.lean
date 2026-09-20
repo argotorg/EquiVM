@@ -84,7 +84,7 @@ theorem callerDispatch :
     storage assign succeeding, `run`'s body runs to completion (`returned … none`), leaving the
     `stored` slot written. -/
 theorem callerBodySuccess (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Address} {nval : ℤ}
-    {value : Value} {evm' evm'' : EVM.State} {out : ByteArray} {solm'' : Frame}
+    {value : ABIValue} {evm' evm'' : EVM.State} {out : ByteArray} {solm'' : Frame}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (ht : locals.get? "t" = some (.address tval))
     (hn : locals.get? "n" = some (.int nval))
@@ -92,8 +92,8 @@ theorem callerBodySuccess (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Ad
               (true, evm', out))
     (hdec : callerConfig.externalABI.decode? "pow2" out = some [value])
     (hassign : assignStorageRef? callerConfig
-        { contract := callerContract, locals := locals.insert "tmp" value } evm'
-        .storage { base := "stored", steps := [] } value = .ok (solm'', evm'')) :
+        { contract := callerContract, locals := locals.insert "tmp" (Value.ofABI value) } evm'
+        .storage { base := "stored", steps := [] } (Value.ofABI value) = .ok (solm'', evm'')) :
     ExecTransitionBody callerConfig callerContract evm locals runTransition.body
       (.returned solm'' evm'' none) := by
   refine ExecFuncBody.execBlockOK
@@ -106,8 +106,9 @@ theorem callerBodySuccess (evm : EVM.State) (locals : Solm.Store) {tval : EVM.Ad
     simp only [evalExpr?]; rfl
   · show evalExprs? callerConfig _ evm [.var "n"] = .ok [.int nval]
     simp only [evalExprs?, evalExpr?, EvalResult.ofOption, hn, EvalResult.bind, bind, pure]
-  · show evalExpr? callerConfig { contract := callerContract, locals := locals.insert "tmp" value }
-          evm' (.var "tmp") = .ok value
+  · show evalExpr? callerConfig
+          { contract := callerContract, locals := locals.insert "tmp" (Value.ofABI value) }
+          evm' (.var "tmp") = .ok (Value.ofABI value)
     simp only [evalExpr?, EvalResult.ofOption, store_get_self]
 
 /-- **The Solm body reverts on a failed sub-call** (`z = false`): `require` passes, the external call

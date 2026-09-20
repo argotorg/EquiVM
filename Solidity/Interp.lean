@@ -64,7 +64,7 @@ def delegateCallViaEVM (o : Oracle) (m : Machine) (target : EVM.Address) (callda
 
 /-- Creation (`new C(...)`) via `Λ`: `(address, machine, success, returndata)`; `none` without
     creation code for `name`. -/
-def newViaEVM (cfg : Config) (o : Oracle) (m : Machine) (name : Ident) (value : Nat) (args : List Solm.Value)
+def newViaEVM (cfg : Config) (o : Oracle) (m : Machine) (name : Ident) (value : Nat) (args : List ABI.ABIValue)
     (salt : Option ByteArray) : Option (EVM.Address × Machine × Bool × EVM.Bytes) :=
   match cfg.creationCode name args with
   | none => none
@@ -445,7 +445,7 @@ def evalAbi : Nat → Frame → Machine → Ident → List Expr → EV
       let (vs, fr1, m1) ← evalExprs fuel fr m es
       let tys ← liftOpt (vs.mapM (abiTyOfValue fc.types m1.heap))
       let (svs, m2) ← liftOp (abiArgsAbi cfg fc.types m1 tys vs)
-      let parts ← liftOpt ((tys.zip svs).mapM fun (t, sv) => Solm.encodePackedValue? t sv)
+      let parts ← liftOpt ((tys.zip svs).mapM fun (t, sv) => ABI.encodePackedValue? t sv)
       let (v, m3) := allocBytes m2 false parts.flatten.toByteArray
       pure (v, fr1, m3)
     | _ => failure
@@ -894,7 +894,7 @@ def ctorPayableB (fc : FlatContract) (I : Ethereum.ExecutionEnv) : Bool :=
   | none => I.weiValue == ⟨0⟩
 
 /-- Construction (mirrors `solidityCtorExec`). -/
-def interpCtor (fuel : Nat) (args : List Solm.Value)
+def interpCtor (fuel : Nat) (args : List ABI.ABIValue)
     (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
     (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
     (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)

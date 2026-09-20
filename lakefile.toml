@@ -20,7 +20,7 @@ name = "Refinement"
 
 [[lean_lib]]
 name = "EVMReasoning"
-globs = ["EVMReasoning.+"]
+globs = ["EVMReasoning.*"]
 
 # Roots only: `lake build Solm` builds the language, not its proofs (explicit targets).
 [[lean_lib]]

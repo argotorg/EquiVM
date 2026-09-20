@@ -2892,9 +2892,9 @@ theorem RD.solcAddressAddressUint256ExternalMaskAndJump {code : ByteArray} {g : 
 /-- Decoding an EVM word as an address only depends on the low 160 bits, so applying solc's
     address-cleanup mask before `AccountAddress.ofNat` is value-preserving. -/
 theorem solcAddressValue_masked (w : UInt256) :
-    (Solm.Value.address (AccountAddress.ofNat w.toNat)) =
-      Solm.Value.address (AccountAddress.ofNat (UInt256.land solcAddrMask w).toNat) := by
-  apply congrArg Solm.Value.address
+    (ABIValue.address (AccountAddress.ofNat w.toNat)) =
+      ABIValue.address (AccountAddress.ofNat (UInt256.land solcAddrMask w).toNat) := by
+  apply congrArg ABIValue.address
   apply Fin.ext
   unfold AccountAddress.ofNat
   simp only [Fin.val_ofNat]

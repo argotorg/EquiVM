@@ -5,6 +5,7 @@ import Solm.Reasoning.Dispatch
 import Solm.Reasoning.SolmBody
 import EVMReasoning.Reach
 import Solm.Reasoning.Reach
+import Solm.Reasoning.Constructor
 
 /-!
 # CtorStore — whole-contract equivalence for a constructor storage write
@@ -68,10 +69,8 @@ theorem ctorStoreDeployment_args_length {args : List Value} {deployedInitcode : 
       cases rest with
       | nil => rfl
       | cons arg2 rest =>
-          cases arg <;>
-            simp [ctorStoreConfig, genSolidityConstructorDeployment, CtorStore.contract,
-              CtorStore.ctor, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
-              CtorStore.uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+          have hlen := genSolidityConstructorDeployment_length h
+          simp [CtorStore.contract, CtorStore.ctor] at hlen
 
 theorem ctorStoreDeployment_shape {args : List Value} {deployedInitcode : ByteArray} :
     ctorStoreConfig.selfDeployment ctorStoreInitcode args = some deployedInitcode →
@@ -88,10 +87,8 @@ theorem ctorStoreDeployment_shape {args : List Value} {deployedInitcode : ByteAr
   | cons arg rest =>
       cases rest with
       | cons arg2 rest =>
-          cases arg <;>
-            simp [ctorStoreConfig, genSolidityConstructorDeployment, CtorStore.contract,
-              CtorStore.ctor, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
-              CtorStore.uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+          have hlen := genSolidityConstructorDeployment_length h
+          simp [CtorStore.contract, CtorStore.ctor] at hlen
       | nil =>
           cases arg with
           | int i =>
@@ -129,11 +126,13 @@ theorem ctorStoreDeployment_shape {args : List Value} {deployedInitcode : ByteAr
           | array xs =>
               simp [ctorStoreConfig, genSolidityConstructorDeployment, CtorStore.contract,
                 CtorStore.ctor, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
-                CtorStore.uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+                CtorStore.uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?,
+                encodeABIWord?, Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
           | tuple xs =>
               simp [ctorStoreConfig, genSolidityConstructorDeployment, CtorStore.contract,
                 CtorStore.ctor, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
-                CtorStore.uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
+                CtorStore.uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?,
+                encodeABIWord?, Option.bind_eq_some_iff, Option.map_eq_some_iff] at h
           | fixedBytes n bs =>
               simp [ctorStoreConfig, genSolidityConstructorDeployment, CtorStore.contract,
                 CtorStore.ctor, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,

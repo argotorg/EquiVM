@@ -1,5 +1,6 @@
 import Solidity.Elab
 import Storage.SolcLayout
+import Solm.Value
 
 /-!
 # Canonical Solidity storage layout

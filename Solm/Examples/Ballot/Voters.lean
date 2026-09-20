@@ -110,7 +110,7 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       (.returned { contract := ballotContract, locals := votersStore I } evm
         (some  [
           .int (Int.ofNat (votersWeightWord evm.accountMap I).toNat),
-          wordToElem .bool (votersVotedWord evm.accountMap I),
+          Value.ofABI (wordToElem .bool (votersVotedWord evm.accountMap I)),
           .address (AccountAddress.ofNat (votersDelegateWord evm.accountMap I).toNat),
           .int (Int.ofNat (votersVoteWord evm.accountMap I).toNat)])) := by
   exact ExecFuncBody.execBlockRet <|
@@ -132,7 +132,7 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       have hvoted :
           evalExpr? ballotConfig { contract := ballotContract, locals := votersStore I } evm
             (.storage (voterF (.var "a") "voted")) =
-              .ok (wordToElem .bool (votersVotedWord evm.accountMap I)) := by
+              .ok (Value.ofABI (wordToElem .bool (votersVotedWord evm.accountMap I))) := by
         rw [evalExpr_storage_scalar (t := .bool)
           (hbase := by simp [votersStore, voterF])
           (her := evalStorageRef_votersField evm I "voted")
@@ -933,7 +933,7 @@ theorem ballotVotersBodyCore
                 (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
                 (some  [
                   .int (Int.ofNat (votersWeightWord σ_solm I).toNat),
-                  wordToElem .bool (votersVotedWord σ_solm I),
+                  Value.ofABI (wordToElem .bool (votersVotedWord σ_solm I)),
                   .address (AccountAddress.ofNat (votersDelegateWord σ_solm I).toNat),
                   .int (Int.ofNat (votersVoteWord σ_solm I).toNat)])) := by
           simpa [initState] using ballotVotersBodyReturns
@@ -943,7 +943,13 @@ theorem ballotVotersBodyCore
           |>.reEquivExecutionTransport hcode hd hdec hbody
             (by simp [hweight, hpacked, hvote, votersVotedWord, votersDelegateWord])
             hAccounts
-            (returnEquiv.returned rfl
+            (returnEquiv.returned
+              (vs := [.int (Int.ofNat (votersWeightWord σ_evm I).toNat),
+                Value.ofABI (wordToElem .bool (UInt256.land (votersPackedWord σ_evm I) ⟨255⟩)),
+                .address (AccountAddress.ofNat
+                  (UInt256.land (UInt256.div (votersPackedWord σ_evm I) ⟨256⟩) solcAddrMask).toNat),
+                .int (Int.ofNat (votersVoteWord σ_evm I).toNat)])
+              rfl (by simp [wordToElem_bool_roundTrip])
               (ballotVotersReturnEncoding (votersWeightWord σ_evm I)
                 (votersPackedWord σ_evm I) (votersVoteWord σ_evm I)))
       · have hdec := ballotDecode_voters_none_noncanon (I := I) hsz36 hbig hcanon

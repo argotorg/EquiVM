@@ -683,7 +683,7 @@ theorem erc6909BalanceOfBodyCore
             hsz68 hsize hbig hcanon hreach)
           |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [← hword])
             hAccounts
-            (returnEquiv_of_encode (by
+            (returnEquiv_of_encode (arv := .int (Int.ofNat (balanceOfWord σ_evm I).toNat)) (by
               simpa [uint256] using uint256ReturnEncoding (balanceOfWord σ_evm I)))
       · have hdec := erc6909Decode_balanceOf_none_noncanon (I := I) hsz68 hbig hcanon
         have hnc : UInt256.eq (balanceOfOwnerWord I)

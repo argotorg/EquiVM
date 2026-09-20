@@ -117,9 +117,9 @@ theorem isOperatorStore_operatorApprovals (I : ExecutionEnv) :
 theorem evalExpr_isOperator_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := isOperatorStore I } evm
       (.storage (operatorApprovalRef (.var "owner") (.var "spender"))) =
-        .ok (wordToElem .bool
+        .ok (Value.ofABI (wordToElem .bool
           (UInt256.land
-            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (isOperatorSlot I)) ⟨255⟩)) := by
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (isOperatorSlot I)) ⟨255⟩))) := by
   have hgowner := isOperatorStore_owner_getElem? I
   have hgspender := isOperatorStore_spender_getElem? I
   have her : evalStorageRef config { contract := contract, locals := isOperatorStore I }
@@ -146,13 +146,14 @@ theorem evalExpr_isOperator_storage (evm : EVM.State) (I : ExecutionEnv) :
   rw [evalExpr_storage_scalar (t := .bool)
     (hbase := isOperatorStore_operatorApprovals I)
     (her := her) (hty := hty) (hloc := hloc)]
-  simpa [boolLoc, boolOffset0Loc] using storageLocLoad_bool_offset0 evm (isOperatorSlot I)
+  simpa [boolLoc, boolOffset0Loc] using
+    congrArg Value.ofABI (storageLocLoad_bool_offset0 evm (isOperatorSlot I))
 
 theorem erc6909IsOperatorBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract evm (isOperatorStore I) isOperatorTransition.body
       (.returned { contract := contract, locals := isOperatorStore I } evm
-        (some [(wordToElem .bool
+        (some [Value.ofABI (wordToElem .bool
           (UInt256.land
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (isOperatorSlot I)) ⟨255⟩))])) := by
   exact ExecFuncBody.execBlockRet <|
@@ -758,7 +759,7 @@ theorem erc6909IsOperatorBodyCore
                 isOperatorTransition.body
                 (.returned { contract := contract, locals := isOperatorStore I }
                   (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                  (some [(wordToElem .bool
+                  (some [Value.ofABI (wordToElem .bool
                     (UInt256.land (isOperatorStorageWord σ_solm I) ⟨255⟩))])) := by
             simpa [isOperatorStorageWord, isOperatorSlot, initState, Solm.EVM.storageLoad,
               State.lookupAccount] using erc6909IsOperatorBodyReturns
@@ -769,10 +770,11 @@ theorem erc6909IsOperatorBodyCore
             |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword])
               hAccounts
               (returnEquiv_of_encode (abit := boolTy)
-                (rv := wordToElem .bool (UInt256.land (isOperatorStorageWord σ_evm I) ⟨255⟩))
+                (arv := wordToElem .bool (UInt256.land (isOperatorStorageWord σ_evm I) ⟨255⟩))
                 (o := UInt256.toByteArray (isOperatorReturnWord σ_evm I))
                 (by simpa [boolTy, isOperatorReturnWord] using
-                  boolWordReturnEncoding (isOperatorStorageWord σ_evm I)))
+                  boolWordReturnEncoding (isOperatorStorageWord σ_evm I))
+                (wordToElem_bool_roundTrip _))
         · have hdec := erc6909Decode_isOperator_none_noncanon_spender
             (I := I) hsz68 hbig hcanonOwner hcanonSpender
           have hnc : UInt256.eq (isOperatorSpenderWord I)

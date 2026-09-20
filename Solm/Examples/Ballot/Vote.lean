@@ -343,8 +343,8 @@ theorem evalExpr_vote_sender_voted_false (evm : EVM.State) (I : ExecutionEnv)
       readStorage? ballotConfig evm (voteSenderEvaledRef I "voted") (.elem .bool) =
         .ok (.bool false) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    change EvalResult.ok (storageLocLoad evm
-        { slot := voteSenderPackedSlot I, offset := 0, size := 1, hbound := _, type := .bool }) =
+    change EvalResult.ok (Value.ofABI (storageLocLoad evm
+        { slot := voteSenderPackedSlot I, offset := 0, size := 1, hbound := _, type := .bool })) =
       EvalResult.ok (Value.bool false)
     rw [voteStorageLocLoad_bool_offset0_false evm (voteSenderPackedSlot I)]
     simpa [voteSenderVotedByteCurrent, voteSenderPackedCurrent] using hvoted
@@ -360,8 +360,8 @@ theorem evalExpr_vote_sender_voted_true (evm : EVM.State) (I : ExecutionEnv)
       readStorage? ballotConfig evm (voteSenderEvaledRef I "voted") (.elem .bool) =
         .ok (.bool true) := by
     rw [readStorage?_elem (hloc := by rfl)]
-    change EvalResult.ok (storageLocLoad evm
-        { slot := voteSenderPackedSlot I, offset := 0, size := 1, hbound := _, type := .bool }) =
+    change EvalResult.ok (Value.ofABI (storageLocLoad evm
+        { slot := voteSenderPackedSlot I, offset := 0, size := 1, hbound := _, type := .bool })) =
       EvalResult.ok (Value.bool true)
     rw [voteStorageLocLoad_bool_offset0_true evm (voteSenderPackedSlot I)]
     simpa [voteSenderVotedByteCurrent, voteSenderPackedCurrent] using hvoted
@@ -488,7 +488,7 @@ theorem evalExpr_vote_proposal_count (evm : EVM.State) (I : ExecutionEnv)
       (ballotStorageLocLoad_uint256 evm (voteProposalCountSlot I))
   rw [evalExpr_storage_scalar (t := .int uint256Int) (hbase := hbase)
     (her := evalStorageRef_vote_proposalCount evm I hbound) (hty := hty) (hloc := hloc)]
-  simpa using congrArg EvalResult.ok hload
+  rw [hload]
 
 theorem evalExpr_vote_proposal (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? ballotConfig { contract := ballotContract, locals := voteAliasStore I } evm
@@ -580,6 +580,7 @@ theorem voteAssignVoted (evm : EVM.State) (I : ExecutionEnv) :
     EvalResult.ofOption, pure]
   simp only [ballotConfig, ballotStorageLayout, voteSenderEvaledRef, voteSenderPackedSlot,
     voteSenderSlot]
+  simp only [Value.toABI?, Option.bind]
   rw [voteStorageLocStore_bool_true_offset0]
   simp [voteAfterVotedState, voteSenderVotedStoreCurrent, voteSenderPackedCurrent,
     voteSenderPackedSlot, voteSenderSlot]
@@ -594,6 +595,7 @@ theorem voteAssignVote (evm : EVM.State) (I : ExecutionEnv) :
     bind, EvalResult.bind, EvalResult.ofOption, pure]
   simp only [ballotConfig, ballotStorageLayout, voteSenderEvaledRef, voteSenderVoteSlot,
     voteSenderSlot]
+  simp only [voteProposalValue, Value.toABI?, Option.bind]
   rw [voteStorageLocStore_uint256]
   simp [voteAfterVoteState, voteAfterVotedState, voteProposalValue, voteSenderVoteSlot,
     voteSenderSlot, Solm.EVM.storageStore]

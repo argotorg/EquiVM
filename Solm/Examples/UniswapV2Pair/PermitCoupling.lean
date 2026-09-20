@@ -22,7 +22,7 @@ theorem uniswapPermitHashPrefixAt {base cur : EVM.State} {I : ExecutionEnv}
   exact ExecBlock.consNormal (ExecStmt.letDecl hdigest) ExecBlock.nil
 
 theorem uniswapPermitHashEcrecoverSuccessAt {base cur cur' : EVM.State} {I : ExecutionEnv}
-    {structHash digest recovered : Value} {out : ByteArray}
+    {structHash digest : Value} {recovered : ABIValue} {out : ByteArray}
     (hstruct :
       evalExpr? config { contract := contract, locals := permitAfterNonceLoadStore base I }
         cur permitStructHashExpr = .ok structHash)
@@ -39,7 +39,7 @@ theorem uniswapPermitHashEcrecoverSuccessAt {base cur cur' : EVM.State} {I : Exe
           [.var "digest", .var "v", .var "r", .var "s"] "recoveredAddress" (perm := false) ]
       (.ok (show Frame from
         { contract := contract,
-          locals := permitAfterEcrecoverStore base I structHash digest recovered }) cur') := by
+          locals := permitAfterEcrecoverStore base I structHash digest (Value.ofABI recovered) }) cur') := by
   have hhash := uniswapPermitHashPrefixAt (base := base) (cur := cur)
     (I := I) hstruct hdigest
   have hecrecover := uniswapPermitEcrecoverCallSuccessAt (base := base) (cur := cur)
@@ -98,7 +98,7 @@ theorem uniswapPermitHashEcrecoverDecodeRevertAt {base cur cur' : EVM.State}
   simpa using hblock
 
 theorem uniswapPermitHashEcrecoverRequireSuccessAt {base cur cur' : EVM.State}
-    {I : ExecutionEnv} {structHash digest recovered : Value} {out : ByteArray}
+    {I : ExecutionEnv} {structHash digest : Value} {recovered : ABIValue} {out : ByteArray}
     (hstruct :
       evalExpr? config { contract := contract, locals := permitAfterNonceLoadStore base I }
         cur permitStructHashExpr = .ok structHash)
@@ -108,8 +108,8 @@ theorem uniswapPermitHashEcrecoverRequireSuccessAt {base cur cur' : EVM.State}
     (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered])
-    (hnz : recovered ≠ .address (AccountAddress.ofNat 0))
-    (heq : recovered = permitOwnerValue I) :
+    (hnz : (Value.ofABI recovered) ≠ .address (AccountAddress.ofNat 0))
+    (heq : (Value.ofABI recovered) = permitOwnerValue I) :
     ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       [ .letDecl "structHash" (some bytes32) permitStructHashExpr,
         .letDecl "digest" (some bytes32) permitDigestExpr,
@@ -120,30 +120,30 @@ theorem uniswapPermitHashEcrecoverRequireSuccessAt {base cur cur' : EVM.State}
           (.binary .eq (.var "recoveredAddress") (.var "owner"))) ]
       (.ok (show Frame from
         { contract := contract,
-          locals := permitAfterEcrecoverStore base I structHash digest recovered }) cur') := by
+          locals := permitAfterEcrecoverStore base I structHash digest (Value.ofABI recovered) }) cur') := by
   have hprefix := uniswapPermitHashEcrecoverSuccessAt (base := base) (cur := cur)
     (cur' := cur') (I := I) (structHash := structHash) (digest := digest)
     (recovered := recovered) (out := out) hstruct hdigest hcall hdec
   have hrequire :
       ExecBlock config
         { contract := contract,
-          locals := permitAfterEcrecoverStore base I structHash digest recovered } cur'
+          locals := permitAfterEcrecoverStore base I structHash digest (Value.ofABI recovered) } cur'
         [ .require (.binary .and
           (.binary .ne (.var "recoveredAddress") zeroAddr)
           (.binary .eq (.var "recoveredAddress") (.var "owner"))) ]
         (.ok
           { contract := contract,
-            locals := permitAfterEcrecoverStore base I structHash digest recovered } cur') := by
+            locals := permitAfterEcrecoverStore base I structHash digest (Value.ofABI recovered) } cur') := by
     exact ExecBlock.consNormal
       (ExecStmt.requireTrue
-        (evalExpr_permit_afterEcrecover_require_true base cur' I structHash digest recovered
+        (evalExpr_permit_afterEcrecover_require_true base cur' I structHash digest (Value.ofABI recovered)
           hnz heq))
       ExecBlock.nil
   have hblock := execBlock_append hprefix hrequire
   simpa using hblock
 
 theorem uniswapPermitHashEcrecoverRequireZeroRevertAt {base cur cur' : EVM.State}
-    {I : ExecutionEnv} {structHash digest recovered : Value} {out : ByteArray}
+    {I : ExecutionEnv} {structHash digest : Value} {recovered : ABIValue} {out : ByteArray}
     (hstruct :
       evalExpr? config { contract := contract, locals := permitAfterNonceLoadStore base I }
         cur permitStructHashExpr = .ok structHash)
@@ -153,7 +153,7 @@ theorem uniswapPermitHashEcrecoverRequireZeroRevertAt {base cur cur' : EVM.State
     (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered])
-    (hzero : recovered = .address (AccountAddress.ofNat 0)) :
+    (hzero : (Value.ofABI recovered) = .address (AccountAddress.ofNat 0)) :
     ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       [ .letDecl "structHash" (some bytes32) permitStructHashExpr,
         .letDecl "digest" (some bytes32) permitDigestExpr,
@@ -169,7 +169,7 @@ theorem uniswapPermitHashEcrecoverRequireZeroRevertAt {base cur cur' : EVM.State
   have hrequire :
       ExecBlock config
         { contract := contract,
-          locals := permitAfterEcrecoverStore base I structHash digest recovered } cur'
+          locals := permitAfterEcrecoverStore base I structHash digest (Value.ofABI recovered) } cur'
         [ .require (.binary .and
           (.binary .ne (.var "recoveredAddress") zeroAddr)
           (.binary .eq (.var "recoveredAddress") (.var "owner"))) ]
@@ -177,12 +177,12 @@ theorem uniswapPermitHashEcrecoverRequireZeroRevertAt {base cur cur' : EVM.State
     exact ExecBlock.consRevert
       (ExecStmt.requireFalse
         (evalExpr_permit_afterEcrecover_require_false_zero base cur' I structHash digest
-          recovered hzero))
+          (Value.ofABI recovered) hzero))
   have hblock := execBlock_append hprefix hrequire
   simpa using hblock
 
 theorem uniswapPermitHashEcrecoverRequireMismatchRevertAt {base cur cur' : EVM.State}
-    {I : ExecutionEnv} {structHash digest recovered : Value} {out : ByteArray}
+    {I : ExecutionEnv} {structHash digest : Value} {recovered : ABIValue} {out : ByteArray}
     {recoveredAddr : AccountAddress}
     (hstruct :
       evalExpr? config { contract := contract, locals := permitAfterNonceLoadStore base I }
@@ -193,7 +193,7 @@ theorem uniswapPermitHashEcrecoverRequireMismatchRevertAt {base cur cur' : EVM.S
     (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered])
-    (haddr : recovered = .address recoveredAddr)
+    (haddr : (Value.ofABI recovered) = .address recoveredAddr)
     (hnz : recoveredAddr ≠ AccountAddress.ofNat 0)
     (hne : .address recoveredAddr ≠ permitOwnerValue I) :
     ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
@@ -211,7 +211,7 @@ theorem uniswapPermitHashEcrecoverRequireMismatchRevertAt {base cur cur' : EVM.S
   have hrequire :
       ExecBlock config
         { contract := contract,
-          locals := permitAfterEcrecoverStore base I structHash digest recovered } cur'
+          locals := permitAfterEcrecoverStore base I structHash digest (Value.ofABI recovered) } cur'
         [ .require (.binary .and
           (.binary .ne (.var "recoveredAddress") zeroAddr)
           (.binary .eq (.var "recoveredAddress") (.var "owner"))) ]
@@ -219,12 +219,12 @@ theorem uniswapPermitHashEcrecoverRequireMismatchRevertAt {base cur cur' : EVM.S
     exact ExecBlock.consRevert
       (ExecStmt.requireFalse
         (evalExpr_permit_afterEcrecover_require_false_mismatch base cur' I structHash digest
-          recovered recoveredAddr haddr hnz hne))
+          (Value.ofABI recovered) recoveredAddr haddr hnz hne))
   have hblock := execBlock_append hprefix hrequire
   simpa using hblock
 
 theorem uniswapPermitAfterNonceSuccessAt {base cur cur' : EVM.State}
-    {I : ExecutionEnv} {structHash digest recovered : Value} {out : ByteArray}
+    {I : ExecutionEnv} {structHash digest : Value} {recovered : ABIValue} {out : ByteArray}
     (hstruct :
       evalExpr? config { contract := contract, locals := permitAfterNonceLoadStore base I }
         cur permitStructHashExpr = .ok structHash)
@@ -234,19 +234,19 @@ theorem uniswapPermitAfterNonceSuccessAt {base cur cur' : EVM.State}
     (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered])
-    (hnz : recovered ≠ .address (AccountAddress.ofNat 0))
-    (heq : recovered = permitOwnerValue I) :
+    (hnz : (Value.ofABI recovered) ≠ .address (AccountAddress.ofNat 0))
+    (heq : (Value.ofABI recovered) = permitOwnerValue I) :
     ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       permitAfterNonceBody
       (.ok (show Frame from
         { contract := contract,
-          locals := permitAfterApproveStore base I structHash digest recovered })
+          locals := permitAfterApproveStore base I structHash digest (Value.ofABI recovered) })
         (permitApprovePostState cur' I)) := by
   have hprefix := uniswapPermitHashEcrecoverRequireSuccessAt (base := base) (cur := cur)
     (cur' := cur') (I := I) (structHash := structHash) (digest := digest)
     (recovered := recovered) (out := out) hstruct hdigest hcall hdec hnz heq
   have happ := uniswapPermitApproveCallSuccessAt (base := base) (cur := cur')
-    (I := I) (structHash := structHash) (digest := digest) (recovered := recovered)
+    (I := I) (structHash := structHash) (digest := digest) (recovered := Value.ofABI recovered)
   have hblock := execBlock_append hprefix happ
   simpa [permitAfterNonceBody] using hblock
 
@@ -302,7 +302,7 @@ theorem uniswapPermitAfterNonceEcrecoverDecodeRevertAt {base cur cur' : EVM.Stat
   simpa [permitAfterNonceBody] using hblock
 
 theorem uniswapPermitAfterNonceRequireZeroRevertAt {base cur cur' : EVM.State}
-    {I : ExecutionEnv} {structHash digest recovered : Value} {out : ByteArray}
+    {I : ExecutionEnv} {structHash digest : Value} {recovered : ABIValue} {out : ByteArray}
     (hstruct :
       evalExpr? config { contract := contract, locals := permitAfterNonceLoadStore base I }
         cur permitStructHashExpr = .ok structHash)
@@ -312,7 +312,7 @@ theorem uniswapPermitAfterNonceRequireZeroRevertAt {base cur cur' : EVM.State}
     (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered])
-    (hzero : recovered = .address (AccountAddress.ofNat 0)) :
+    (hzero : (Value.ofABI recovered) = .address (AccountAddress.ofNat 0)) :
     ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
       permitAfterNonceBody .reverted := by
   have hprefix := uniswapPermitHashEcrecoverRequireZeroRevertAt (base := base) (cur := cur)
@@ -326,7 +326,7 @@ theorem uniswapPermitAfterNonceRequireZeroRevertAt {base cur cur' : EVM.State}
   simpa [permitAfterNonceBody] using hblock
 
 theorem uniswapPermitAfterNonceRequireMismatchRevertAt {base cur cur' : EVM.State}
-    {I : ExecutionEnv} {structHash digest recovered : Value} {out : ByteArray}
+    {I : ExecutionEnv} {structHash digest : Value} {recovered : ABIValue} {out : ByteArray}
     {recoveredAddr : AccountAddress}
     (hstruct :
       evalExpr? config { contract := contract, locals := permitAfterNonceLoadStore base I }
@@ -337,7 +337,7 @@ theorem uniswapPermitAfterNonceRequireMismatchRevertAt {base cur cur' : EVM.Stat
     (hcall : typedCallViaEVM config cur (AccountAddress.ofNat 1) "ecrecover" 0
       [digest, permitVValue I, permitRValue I, permitSValue I] (true, cur', out) false)
     (hdec : config.externalABI.decode? "ecrecover" out = some [recovered])
-    (haddr : recovered = .address recoveredAddr)
+    (haddr : (Value.ofABI recovered) = .address recoveredAddr)
     (hnz : recoveredAddr ≠ AccountAddress.ofNat 0)
     (hne : .address recoveredAddr ≠ permitOwnerValue I) :
     ExecBlock config { contract := contract, locals := permitAfterNonceLoadStore base I } cur
@@ -1021,8 +1021,7 @@ theorem uniswapPermitEcrecoverTypedCall_source
     rw [permitEcrecoverInputMem_read482_128, permitEcrecoverInputMem_read482_128,
       hdigestEq]
   have hcdE :
-      config.externalABI.encode? "ecrecover"
-          [permitDigestValue σ_solm I, permitVValue I, permitRValue I, permitSValue I] =
+      config.externalABI.encode? "ecrecover" (permitEcrecoverAbiArgs σ_solm I) =
         some ((permitEcrecoverInputMem σ_evm I).readWithPadding 482 128) := by
     have hcd := uniswapEcrecoverEncode_eq σ_solm I hsz228
     rwa [hreadEq] at hcd

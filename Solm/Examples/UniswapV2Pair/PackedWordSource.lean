@@ -9,6 +9,10 @@ namespace UniswapV2Pair
 abbrev permitWordBytes32Value (w : UInt256) : Value :=
   .fixedBytes bytes32Width (EVM.Word.toBytesBE w)
 
+/-- ABI twin of `permitWordBytes32Value` (packed-encoder position). -/
+abbrev permitWordBytes32Abi (w : UInt256) : ABIValue :=
+  .fixedBytes bytes32Width (EVM.Word.toBytesBE w)
+
 -- LIBRARY CANDIDATE: ByteArray round trip through its list representation.
 theorem byteArray_mk_toList_toArray (b : ByteArray) :
     ByteArray.mk b.toList.toArray = b := by
@@ -37,30 +41,32 @@ theorem permitEncodePacked_uint256 (w : UInt256) :
   simp [encodePackedValue?, uint256, uint256Int, encodeABIWord?, hword, hlt]
 
 theorem permitEncodePacked_bytes32 (w : UInt256) :
-    encodePackedValue? bytes32 (permitWordBytes32Value w) =
+    encodePackedValue? bytes32 (permitWordBytes32Abi w) =
       some (EVM.Word.toBytesBE w) := by
   have hlen : (EVM.Word.toBytesBE w).length = 32 := by
     simpa using word_toBytesBE_toByteArray_size w
-  simp [encodePackedValue?, bytes32, bytes32Width, permitWordBytes32Value,
+  simp [encodePackedValue?, bytes32, bytes32Width, permitWordBytes32Abi,
     fixedBytesSize, hlen]
 
 -- LIBRARY CANDIDATE: packed argument evaluation composed from a head and tail.
 theorem permitEvalPackedArgs_cons {cfg : Config} {solm : Frame} {evm : EVM.State}
-    {ty : ABIType} {e : Expr} {v : Value} {head tailBytes : List UInt8}
+    {ty : ABIType} {e : Expr} {v : Value} {av : ABIValue} {head tailBytes : List UInt8}
     {rest : List (ABIType × Expr)}
     (he : evalExpr? cfg solm evm e = .ok v)
-    (henc : encodePackedValue? ty v = some head)
-    (htail : evalPackedArgs? cfg solm evm rest = .ok tailBytes) :
+    (henc : encodePackedValue? ty av = some head)
+    (htail : evalPackedArgs? cfg solm evm rest = .ok tailBytes)
+    (hconv : v.toABI? = some av := by rfl) :
     evalPackedArgs? cfg solm evm ((ty, e) :: rest) = .ok (head ++ tailBytes) := by
   rw [evalPackedArgs?]
-  simp only [he, henc, htail, EvalResult.bind, EvalResult.ofOption, bind, pure]
+  simp only [he, hconv, Option.bind, henc, htail, EvalResult.bind, EvalResult.ofOption, bind, pure]
 
 -- LIBRARY CANDIDATE: singleton packed argument evaluation.
 theorem permitEvalPackedArgs_single {cfg : Config} {solm : Frame} {evm : EVM.State}
-    {ty : ABIType} {e : Expr} {v : Value} {head : List UInt8}
+    {ty : ABIType} {e : Expr} {v : Value} {av : ABIValue} {head : List UInt8}
     (he : evalExpr? cfg solm evm e = .ok v)
-    (henc : encodePackedValue? ty v = some head) :
+    (henc : encodePackedValue? ty av = some head)
+    (hconv : v.toABI? = some av := by rfl) :
     evalPackedArgs? cfg solm evm [(ty, e)] = .ok head := by
-  simp [evalPackedArgs?, he, henc, EvalResult.bind, EvalResult.ofOption, bind, pure]
+  simp [evalPackedArgs?, he, hconv, henc, EvalResult.bind, EvalResult.ofOption, bind, pure]
 
 end UniswapV2Pair

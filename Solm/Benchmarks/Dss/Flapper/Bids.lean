@@ -1128,7 +1128,7 @@ theorem flapperBidsBodyCoreOk
           (.int (Int.ofNat (UInt256.land endRaw flapperUint48Mask).toNat))])
         bidsTransition.returnType := by
     rw [show bidsTransition.returnType = [uint256, uint256, addr, uint48, uint48] by rfl]
-    exact returnEquiv.returned rfl
+    exact returnEquiv.returned rfl rfl
       (flapperBidsReturnEncoding bidWord lotWord packedWord ticRaw endRaw)
   exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
 

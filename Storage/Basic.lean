@@ -1,6 +1,7 @@
 import EVM.Types
 import EVM.Lemmas
-import Solm.Value
+import ABI.Value
+import Solm.Syntax
 import Ethereum.Semantics
 import Ethereum.UInt256
 import Ethereum.Wheels
@@ -76,7 +77,7 @@ inductive StorageReadResult (α : Type) where
 -- In that case maybe the loads should be also be layout-parametric..
 
 -- May not actually need the proof that there is no wraparound
-def storageLocLoad (self : EVM.State) (loc : StorageLoc) : Value :=
+def storageLocLoad (self : EVM.State) (loc : StorageLoc) : ABIValue :=
   let slot := EVM.storageLoad self self.executionEnv.codeOwner loc.slot
   let ⟨slotBytes, hprevStorageRefSize⟩ := EVM.Word.toBytesLEWithSizeProof slot -- LITTLE ENDIAN! easier extraction
   let startByte := loc.offset.val
@@ -109,7 +110,7 @@ def storageLocWriteWord (slot : EVM.Word) (startByte : Nat)
       EVM.word (valueWord.toNat * lowBits + previousLowBits)
 
 -- TODO: Should the given value be restricted to fit in the location?
-def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Option EVM.State := do
+def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : ABIValue) : Option EVM.State := do
   let slot := EVM.storageLoad self self.executionEnv.codeOwner loc.slot
   -- LITTLE ENDIAN (`toBytes' ++ zero-pad`) — the *correct* LE serialization, matching
   -- `storageLocLoad` byte-for-byte so that load∘store round-trips and a whole-slot `uint256`
@@ -158,11 +159,11 @@ structure StorageLayout where
   layout : EvaledStorageRef -> EVM.State -> Option StorageLoc
   -- Optional high-level storage read hook. Keep ordinary scalar/structured storage on `layout`;
   -- layouts that need representation-specific behavior can opt in at selected leaves.
-  readValue? : EvaledStorageRef -> StorageType -> EVM.State -> Option (StorageReadResult Value) :=
+  readValue? : EvaledStorageRef -> StorageType -> EVM.State -> Option (StorageReadResult ABIValue) :=
     fun _ _ _ => none
   -- Optional high-level storage write hook. Used for representation-sensitive leaves such as
   -- Solidity `bytes`/`string`, where slot-level byte locations are not the ABI boundary.
-  writeValue? : EvaledStorageRef -> StorageType -> Value -> EVM.State ->
+  writeValue? : EvaledStorageRef -> StorageType -> ABIValue -> EVM.State ->
       Option (StorageReadResult EVM.State) :=
     fun _ _ _ _ => none
   -- Optional high-level storage clear hook, for the same representation-sensitive leaves.

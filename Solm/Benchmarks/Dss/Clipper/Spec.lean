@@ -97,10 +97,10 @@ def vatIlksSelector : ByteArray := selectorBytes 0xd9 0x63 0x8d 0x36
 def vatMoveSelector : ByteArray := selectorBytes 0xbb 0x35 0x78 0x3b
 def vatSuckSelector : ByteArray := selectorBytes 0xf2 0x4e 0x23 0xeb
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 ty out).map (fun v => [v])
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) := some []
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) := some []
 
 def externalABI : ExternalCallABI where
   encode? := fun name args =>

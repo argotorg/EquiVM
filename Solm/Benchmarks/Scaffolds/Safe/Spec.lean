@@ -252,10 +252,10 @@ def checkAfterModuleExecutionSelector : ByteArray := selectorBytes 0x2a 0xcc 0x3
 
 def safeDecodeMode : DecodeMode := DecodeMode.modern
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValueWithMode? safeDecodeMode ty out).map (fun v => [v])
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) :=
   some []
 
 def safeExternalABI : ExternalCallABI where

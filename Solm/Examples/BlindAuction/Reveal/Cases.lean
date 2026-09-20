@@ -721,12 +721,12 @@ theorem scratch_blindAuctionDecode_reveal_fakes_slt {I : ExecutionEnv} {callargs
           ⟨32⟩)
         (UInt256.mul ⟨32⟩ i + (((⟨4⟩ : UInt256) + revealFakesOffsetWord I) + ⟨32⟩)))
       ⟨32⟩ = ⟨0⟩ := by
-  obtain ⟨_e0, _e1, _e2, _hval0, hval1, _hval2⟩ :=
+  obtain ⟨_, afs, _, _e0, _e1, _e2, _hval0, _, hval1, hfs, _hval2, _⟩ :=
     blindAuctionDecode_reveal_array_decodes hdec hstore
   have hread :
       readNat? (List.drop 4 I.calldata.toList)
         ((revealFakesOffsetWord I).toNat + 32 + 32 * i.toNat) = some word := by
-    exact revealDecode_dynamicArray_bool_lookup_readNat hval1 hlookup
+    exact revealDecode_dynamicArray_bool_lookup_readNat hval1 hfs hlookup
   have hreadLen := readNat?_some_length hread
   have htlen : I.calldata.toList.length = I.calldata.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -773,12 +773,12 @@ theorem scratch_blindAuctionDecode_reveal_fakes_word_toNat {I : ExecutionEnv}
           "secrets" (.array secrets))
     (hlookup : lookupNth? fakes i.toNat = some (rawBoolWordValue word)) :
     (UInt256.ofNat word).toNat = word := by
-  obtain ⟨_e0, _e1, _e2, _hval0, hval1, _hval2⟩ :=
+  obtain ⟨_, afs, _, _e0, _e1, _e2, _hval0, _, hval1, hfs, _hval2, _⟩ :=
     blindAuctionDecode_reveal_array_decodes hdec hstore
   have hread :
       readNat? (List.drop 4 I.calldata.toList)
         ((revealFakesOffsetWord I).toNat + 32 + 32 * i.toNat) = some word := by
-    exact revealDecode_dynamicArray_bool_lookup_readNat hval1 hlookup
+    exact revealDecode_dynamicArray_bool_lookup_readNat hval1 hfs hlookup
   have hreadLen := readNat?_some_length hread
   have htlen : I.calldata.toList.length = I.calldata.size := by
     rw [byteArray_toList_eq, Array.length_toList]

@@ -156,9 +156,7 @@ theorem evalExpr_allowance_storage (evm : EVM.State) (I : ExecutionEnv) :
       rw [allowanceStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
         store_get_ne _ _ (by decide)]
       simp)
-    (her := her) (hty := hty) (hloc := hloc)]
-  congr 1
-  exact erc6909StorageLocLoad_uint256 evm (allowanceSlotOf I)
+    (her := her) (hty := hty) (hloc := hloc), erc6909StorageLocLoad_uint256]
 
 theorem erc6909AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
@@ -966,7 +964,7 @@ theorem erc6909AllowanceBodyCore
               hsz100 hsize hbig hcanonOwner hcanonSpender hreach)
             |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [← hword])
               hAccounts
-              (returnEquiv_of_encode (by
+              (returnEquiv_of_encode (arv := .int (Int.ofNat (allowanceWord σ_evm I).toNat)) (by
                 simpa [uint256] using uint256ReturnEncoding (allowanceWord σ_evm I)))
         · have hdec := erc6909Decode_allowance_none_noncanon_spender
             (I := I) hsz100 hbig hcanonOwner hcanonSpender

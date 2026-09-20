@@ -355,10 +355,13 @@ theorem clipperDogDigsCalldataMem_read128_68 (v : ClipperImmutables) (tab : UInt
 
 theorem clipperDogDigsEncode_eq (v : ClipperImmutables) (tab : UInt256)
     {mem : ByteArray} (hmem : mem.size = 96) :
-    (config v).externalABI.encode? "digs" [v.ilk, .int (Int.ofNat tab.toNat)] =
+    (Value.toABIList? [v.ilk, .int (Int.ofNat tab.toNat)]).bind
+        ((config v).externalABI.encode? "digs") =
       some ((clipperDogDigsCalldataMem v tab mem).readWithPadding 128 68) := by
   rcases v.ilk_wf with ⟨bs, hilk, hlen⟩
   rw [hilk]
+  change (config v).externalABI.encode? "digs"
+    [.fixedBytes ⟨31, by decide⟩ bs, .int (Int.ofNat tab.toNat)] = _
   have hilkWord :
       clipperYankIlkWord v = EVM.Word.ofNat (fromBytesBigEndian bs) := by
     simp [clipperYankIlkWord, hilk]
@@ -721,11 +724,14 @@ theorem clipperVatFluxCalldataMem_read128_132 (v : ClipperImmutables) (I : Execu
 
 theorem clipperVatFluxEncode_eq (v : ClipperImmutables) (I : ExecutionEnv)
     (lot : UInt256) {mem : ByteArray} (hmem : mem.size = 196) :
-    (config v).externalABI.encode? "flux"
-      [v.ilk, .address I.codeOwner, .address I.source, .int (Int.ofNat lot.toNat)] =
+    (Value.toABIList? [v.ilk, .address I.codeOwner, .address I.source, .int (Int.ofNat lot.toNat)]).bind
+        ((config v).externalABI.encode? "flux") =
       some ((clipperVatFluxCalldataMem v I lot mem).readWithPadding 128 132) := by
   rcases v.ilk_wf with ⟨bs, hilk, hlen⟩
   rw [hilk]
+  change (config v).externalABI.encode? "flux"
+    [.fixedBytes ⟨31, by decide⟩ bs, .address I.codeOwner, .address I.source,
+      .int (Int.ofNat lot.toNat)] = _
   have hilkWord :
       clipperYankIlkWord v = EVM.Word.ofNat (fromBytesBigEndian bs) := by
     simp [clipperYankIlkWord, hilk]
@@ -1628,9 +1634,11 @@ theorem clipperYankX_dogDigsPostCall {cA gh bl σ₀ σStart σ I}
   · exact rd2317raw
   · let evmDog : EVM.State :=
       { initState cA gh bl σStart σ₀ g A I with accountMap := σ }
+    obtain ⟨abiArgs, hargs, hcd⟩ := Option.bind_eq_some_iff.mp
+      (clipperDogDigsEncode_eq v tab (clipperYankSalesHashMemRefresh_size I))
     refine callCoincides (cfg := config v)
       (evm := evmDog)
-      (name := "digs") (args := [v.ilk, .int (Int.ofNat tab.toNat)])
+      (name := "digs") (args := [v.ilk, .int (Int.ofNat tab.toNat)]) (hargs := hargs)
       (tgt := EVM.address (AccountAddress.ofUInt256 target))
       (targetWord := target)
       (cA' := cA_dog) (σ' := σ_dog) (A' := A_dog) (A_in := A_in)
@@ -1642,9 +1650,7 @@ theorem clipperYankX_dogDigsPostCall {cA gh bl σ₀ σStart σ I}
           simpa [evmDog, initState] using h
         rw [hI]
         decide))
-      ?_ (by
-        simpa [clipperYankSalesHashMemRefresh_size I] using
-          clipperDogDigsEncode_eq v tab (clipperYankSalesHashMemRefresh_size I)) ?_
+      ?_ (by simpa [clipperYankSalesHashMemRefresh_size I] using hcd) ?_
     · apply Fin.ext
       simp [EVM.address, EVM.uintN]
       exact Nat.mod_eq_of_lt (by simp [EVM.twoPow, AccountAddress.size])

@@ -69,10 +69,10 @@ def vatUrnsSelector : ByteArray := selectorBytes 0x24 0x24 0xbe 0x5c
 def vowFessSelector : ByteArray := selectorBytes 0x69 0x7e 0xfb 0x78
 def kickerKickSelector : ByteArray := selectorBytes 0x35 0x1d 0xe6 0x00
 
-def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
+def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List ABIValue) :=
   (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 ty out).map (fun v => [v])
 
-def decodeVoid? (_out : EVM.Bytes) : Option (List Value) :=
+def decodeVoid? (_out : EVM.Bytes) : Option (List ABIValue) :=
   some []
 
 def externalABI : ExternalCallABI where
