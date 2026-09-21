@@ -82,7 +82,7 @@ def solcWordAlignMaskExpr : Expr :=
   .intLit (Int.ofNat (Ethereum.UInt256.size - 32))
 
 def wordRoundedSize (size : Expr) : Expr :=
-  .binary .bitAnd solcWordAlignMaskExpr (.binary .add size (.intLit 31))
+  .binary (.bitAnd uint256Int) solcWordAlignMaskExpr (.binary .add size (.intLit 31))
 
 -- Internal helper parameters carry the free-memory cursor because the catch decoder checks its
 -- allocation against uint64. A preceding auction snapshot or call can advance it beyond 128.

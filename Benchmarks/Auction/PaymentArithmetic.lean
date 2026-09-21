@@ -40,21 +40,28 @@ theorem wordRoundedSizeSource {evm : EVM.State} {locals : Store} {e : Expr} {siz
   have hr : (returnReserveSize size).toNat = Nat.land (UInt256.size - 32) (size + 31) := by
     rw [returnReserveSize, uland_toNat, hadd]
     rfl
+  have hmask : normalizeInt uint256Int (Int.ofNat (UInt256.size - 32)) =
+      Int.ofNat (UInt256.size - 32) := by
+    apply normalizeInt_uint_eq_self
+    · exact Int.natCast_nonneg _
+    · decide
+  have hsize : normalizeInt uint256Int (Int.ofNat (size + 31)) = Int.ofNat (size + 31) := by
+    apply normalizeInt_uint_eq_self
+    · exact Int.natCast_nonneg _
+    · exact Int.ofNat_lt.mpr hb
+  have hand : normalizeInt uint256Int (Int.ofNat (Nat.land (UInt256.size - 32) (size + 31))) =
+      Int.ofNat (Nat.land (UInt256.size - 32) (size + 31)) := by
+    apply normalizeInt_uint_eq_self
+    · exact Int.natCast_nonneg _
+    · apply Int.ofNat_lt.mpr
+      exact lt_of_le_of_lt Nat.and_le_right hb
+  have hsum : Int.ofNat size + 31 = Int.ofNat (size + 31) := by
+    simp only [Int.ofNat_eq_natCast, Nat.cast_add, Nat.cast_ofNat]
+  simp only [uint256Int] at hmask hsize hand
   simp only [wordRoundedSize, solcWordAlignMaskExpr, evalExpr?, he, pure, bind,
-    EvalResult.bind, evalBinaryOp?]
-  rw [hr]
-  have hguard : 0 ≤ Int.ofNat (UInt256.size - 32) ∧
-      Int.ofNat (UInt256.size - 32) < (EVM.wordModulus : Int) ∧
-      0 ≤ Int.ofNat size + 31 ∧ Int.ofNat size + 31 < (EVM.wordModulus : Int) := by
-    change 0 ≤ Int.ofNat (2 ^ 256 - 32) ∧
-      Int.ofNat (2 ^ 256 - 32) < (2 ^ 256 : Int) ∧
-      0 ≤ Int.ofNat size + 31 ∧ Int.ofNat size + 31 < (2 ^ 256 : Int)
-    change size + 31 < 2 ^ 256 at hb
-    simp only [Int.ofNat_eq_natCast]
-    refine ⟨by decide, by decide, by omega, ?_⟩
-    exact_mod_cast hb
-  rw [if_pos hguard]
-  congr 3
+    EvalResult.bind, evalBinaryOp?, evalIntBitwise, uint256Int, IntType.bitWidth]
+  rw [hmask, hsum, hsize]
+  simp only [Int.toNat, hand, hr]
 
 theorem bytesAllocSize_eq_returnReserveSize {size : Nat} (hb : size + 63 < UInt256.size) :
     bytesAllocSize size = returnReserveSize (size + 32) := by

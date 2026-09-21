@@ -382,8 +382,8 @@ def contractSyntax : ContractDecl :=
       }
       uint256 gasForCheck = gasleft();
       require(gasForCheck >=
-        ((((safeTxGas << 6) / 63 > ((safeTxGas + 2500) as uint256) ?
-            (safeTxGas << 6) / 63 : ((safeTxGas + 2500) as uint256)) + 500) as uint256));
+        ((((safeTxGas <<[uint256] 6) / 63 > ((safeTxGas + 2500) as uint256) ?
+            (safeTxGas <<[uint256] 6) / 63 : ((safeTxGas + 2500) as uint256)) + 500) as uint256));
       uint256 gasBefore = gasleft();
       uint256 txGasLeft = gasleft();
       var success = execute(«to», value, data, operation,

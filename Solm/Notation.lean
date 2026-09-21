@@ -49,6 +49,9 @@ def contractGen : ContractDecl := solidity% contract WETH9 {
   a `TransitionDecl`), `#n` embeds a Lean `Int` term as an `Expr.intLit`.
 * Solidity names that are Lean keywords (`from`, `to`, `end`) are written with guillemets:
   `«from»`, `«to»`.
+* Integer bit operations specify their width and signed interpretation at the operator:
+  `x &[uint8] y`, `x >>[int256] n`, and `~[uint32] x`. Unqualified bit operators act on
+  fixed bytes, whose values already carry their width. Arithmetic remains mathematical.
 -/
 
 open Lean
@@ -182,6 +185,7 @@ syntax:max "#" term:max : solExpr                                     -- Lean `I
 
 syntax:75 "!" solExpr:75 : solExpr
 syntax:75 "~" solExpr:75 : solExpr
+syntax:75 "~[" ident "] " solExpr:75 : solExpr
 syntax:75 "-" solExpr:75 : solExpr
 syntax:74 solExpr:75 " ** " solExpr:74 : solExpr
 syntax:70 solExpr:70 " * " solExpr:71 : solExpr
@@ -191,9 +195,14 @@ syntax:65 solExpr:65 " + " solExpr:66 : solExpr
 syntax:65 solExpr:65 " - " solExpr:66 : solExpr
 syntax:60 solExpr:60 " << " solExpr:61 : solExpr
 syntax:60 solExpr:60 " >> " solExpr:61 : solExpr
+syntax:60 solExpr:60 " <<[" ident "] " solExpr:61 : solExpr
+syntax:60 solExpr:60 " >>[" ident "] " solExpr:61 : solExpr
 syntax:57 solExpr:57 " & " solExpr:58 : solExpr
+syntax:57 solExpr:57 " &[" ident "] " solExpr:58 : solExpr
 syntax:55 solExpr:55 " ^ " solExpr:56 : solExpr
+syntax:55 solExpr:55 " ^[" ident "] " solExpr:56 : solExpr
 syntax:53 solExpr:53 " | " solExpr:54 : solExpr
+syntax:53 solExpr:53 " |[" ident "] " solExpr:54 : solExpr
 syntax:50 solExpr:51 " < " solExpr:51 : solExpr
 syntax:50 solExpr:51 " <= " solExpr:51 : solExpr
 syntax:50 solExpr:51 " > " solExpr:51 : solExpr
@@ -509,7 +518,10 @@ private partial def elabExpr (env : Env) (stx : TSyntax `solExpr) : MacroM Term 
   | `(solExpr| $a:solExpr [ $i:solExpr : $j:solExpr ]) => do
       `(Solm.Expr.bytesSlice $(← elabExpr env a) $(← elabExpr env i) $(← elabExpr env j))
   | `(solExpr| ! $a) => do `(Solm.Expr.unary Solm.UnaryOp.not $(← elabExpr env a))
-  | `(solExpr| ~ $a) => do `(Solm.Expr.unary Solm.UnaryOp.bitNot $(← elabExpr env a))
+  | `(solExpr| ~ $a) => do `(Solm.Expr.unary Solm.UnaryOp.fixedBitNot $(← elabExpr env a))
+  | `(solExpr| ~[$ty:ident] $a) => do
+      `(Solm.Expr.unary (Solm.UnaryOp.bitNot $(← intTypeTerm ty.raw ty.getId.toString))
+        $(← elabExpr env a))
   | `(solExpr| - $a) => do `(Solm.Expr.unary Solm.UnaryOp.neg $(← elabExpr env a))
   | `(solExpr| $a ** $b) => mkBin env `exp a b
   | `(solExpr| $a * $b) => mkBin env `mul a b
@@ -517,11 +529,16 @@ private partial def elabExpr (env : Env) (stx : TSyntax `solExpr) : MacroM Term 
   | `(solExpr| $a % $b) => mkBin env `mod a b
   | `(solExpr| $a + $b) => mkBin env `add a b
   | `(solExpr| $a - $b) => mkBin env `sub a b
-  | `(solExpr| $a << $b) => mkBin env `shl a b
-  | `(solExpr| $a >> $b) => mkBin env `shr a b
-  | `(solExpr| $a & $b) => mkBin env `bitAnd a b
-  | `(solExpr| $a ^ $b) => mkBin env `bitXor a b
-  | `(solExpr| $a | $b) => mkBin env `bitOr a b
+  | `(solExpr| $a << $b) => mkBin env `fixedShl a b
+  | `(solExpr| $a >> $b) => mkBin env `fixedShr a b
+  | `(solExpr| $a & $b) => mkBin env `fixedBitAnd a b
+  | `(solExpr| $a ^ $b) => mkBin env `fixedBitXor a b
+  | `(solExpr| $a | $b) => mkBin env `fixedBitOr a b
+  | `(solExpr| $a <<[$ty:ident] $b) => mkBitBin env `shl ty a b
+  | `(solExpr| $a >>[$ty:ident] $b) => mkBitBin env `shr ty a b
+  | `(solExpr| $a &[$ty:ident] $b) => mkBitBin env `bitAnd ty a b
+  | `(solExpr| $a ^[$ty:ident] $b) => mkBitBin env `bitXor ty a b
+  | `(solExpr| $a |[$ty:ident] $b) => mkBitBin env `bitOr ty a b
   | `(solExpr| $a < $b) => mkBin env `lt a b
   | `(solExpr| $a <= $b) => mkBin env `le a b
   | `(solExpr| $a > $b) => mkBin env `gt a b
@@ -549,6 +566,11 @@ private partial def isThisAddr (stx : TSyntax `solExpr) : Bool :=
 
 private partial def mkBin (env : Env) (op : Name) (a b : TSyntax `solExpr) : MacroM Term := do
   `(Solm.Expr.binary $(mkIdent (`Solm.BinaryOp ++ op)) $(← elabExpr env a) $(← elabExpr env b))
+
+private partial def mkBitBin (env : Env) (op : Name) (ty : LIdent)
+    (a b : TSyntax `solExpr) : MacroM Term := do
+  `(Solm.Expr.binary ($(mkIdent (`Solm.BinaryOp ++ op))
+      $(← intTypeTerm ty.raw ty.getId.toString)) $(← elabExpr env a) $(← elabExpr env b))
 
 /-- Translate a call-form expression (`f(args)` with `f` possibly dotted). -/
 private partial def elabCall (env : Env) (stx : Syntax) (f : LIdent)

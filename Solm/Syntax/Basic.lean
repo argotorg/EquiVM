@@ -70,7 +70,9 @@ inductive EnvVar where
 inductive UnaryOp where
   | not
   | neg
-  | bitNot
+  /-- Integer complement at an explicit width and signed interpretation. -/
+  | bitNot : IntType -> UnaryOp
+  | fixedBitNot
   deriving Repr, Inhabited
 
 inductive BinaryOp where
@@ -93,11 +95,17 @@ inductive BinaryOp where
   | ge
   | and
   | or
-  | bitAnd
-  | bitOr
-  | bitXor
-  | shl
-  | shr
+  | bitAnd : IntType -> BinaryOp
+  | bitOr : IntType -> BinaryOp
+  | bitXor : IntType -> BinaryOp
+  | shl : IntType -> BinaryOp
+  /-- Logical for unsigned types, arithmetic for signed types. -/
+  | shr : IntType -> BinaryOp
+  | fixedBitAnd
+  | fixedBitOr
+  | fixedBitXor
+  | fixedShl
+  | fixedShr
   | exp
   deriving Repr, Inhabited
 

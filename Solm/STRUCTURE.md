@@ -18,6 +18,14 @@ zero and give a nonzero remainder the dividend's sign: `sdiv(-5, 3)` is `-1`,
 `srem(-5, 3)` is `-2`, and `-5 % 3` is `1`. Their results remain unbounded;
 division, remainder, and modulo by zero revert.
 
+Integer bit operations use an explicit width and signed interpretation:
+`x &[uint8] y`, `x |[uint8] y`, `x ^[uint8] y`, `~[uint8] x`,
+`x <<[uint8] n`, and `x >>[int8] n`. Operands are interpreted as bit patterns
+at that width; signed right shift extends the sign. Negative shift counts are
+type errors. Counts at least as large as the width yield zero, or negative one
+for a signed right shift of a negative value. Unqualified bit operators act on
+fixed bytes, with the width carried by the values.
+
 Currently, Sol⁻ does not currently model events, error payloads, or gas.
 ```
 Solm/

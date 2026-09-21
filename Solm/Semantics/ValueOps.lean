@@ -272,17 +272,24 @@ def evalUnaryOp? (op : UnaryOp) (v : Value) : Option Value :=
   match op, v with
   | .not, .bool b => some (.bool (!b))
   | .neg, .int i => some (.int (-i))
-  | .bitNot, .fixedBytes n bytes =>
+  | .fixedBitNot, .fixedBytes n bytes =>
       if fixedBytesValid n bytes then some (.fixedBytes n (bytes.map (fun b => ~~~b))) else none
-  -- `~x` on an int is the word complement, defined only on `[0, 2^256)`.
-  | .bitNot, .int x =>
-      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) then some (.int (EVM.wordModulus - 1 - x.toNat))
-      else none
+  | .bitNot intType, .int i =>
+      let bits := intType.bitWidth
+      let residue := normalizeInt (.uint bits) i
+      some (.int (normalizeInt intType (Int.ofNat (EVM.twoPow bits.val - 1 - residue.toNat))))
   | _, _ => none
 
-#guard evalUnaryOp? .bitNot (.int 0) = some (.int (EVM.wordModulus - 1))
-#guard evalUnaryOp? .bitNot (.int (EVM.wordModulus - 1)) = some (.int 0)
-#guard evalUnaryOp? .bitNot (.int (-1)) = none
+#guard evalUnaryOp? (.bitNot (.uint ⟨8, by decide⟩)) (.int 0) = some (.int 255)
+#guard evalUnaryOp? (.bitNot (.sint ⟨8, by decide⟩)) (.int (-1)) = some (.int 0)
+
+/-- Interpret both operands as bit patterns at the requested width, then interpret
+the resulting pattern with the requested signedness. -/
+def evalIntBitwise (intType : IntType) (op : Nat -> Nat -> Nat) (x y : Int) : Value :=
+  let bits := intType.bitWidth
+  let x := (normalizeInt (.uint bits) x).toNat
+  let y := (normalizeInt (.uint bits) y).toNat
+  .int (normalizeInt intType (Int.ofNat (op x y)))
 
 def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
   match op, v₁, v₂ with
@@ -335,7 +342,7 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
         | some x, some y => .ok (.bool (x >= y))
         | _, _ => .error .typeError
       else .error .typeError
-  | .bitAnd, .fixedBytes n xs, .fixedBytes m ys =>
+  | .fixedBitAnd, .fixedBytes n xs, .fixedBytes m ys =>
       if n = m then
         if fixedBytesValid n xs && fixedBytesValid m ys then
           match fixedBytesBytewise? (· &&& ·) xs ys with
@@ -343,7 +350,7 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
           | none => .error .typeError
         else .error .typeError
       else .error .typeError
-  | .bitOr, .fixedBytes n xs, .fixedBytes m ys =>
+  | .fixedBitOr, .fixedBytes n xs, .fixedBytes m ys =>
       if n = m then
         if fixedBytesValid n xs && fixedBytesValid m ys then
           match fixedBytesBytewise? (· ||| ·) xs ys with
@@ -351,7 +358,7 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
           | none => .error .typeError
         else .error .typeError
       else .error .typeError
-  | .bitXor, .fixedBytes n xs, .fixedBytes m ys =>
+  | .fixedBitXor, .fixedBytes n xs, .fixedBytes m ys =>
       if n = m then
         if fixedBytesValid n xs && fixedBytesValid m ys then
           match fixedBytesBytewise? (· ^^^ ·) xs ys with
@@ -359,7 +366,7 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
           | none => .error .typeError
         else .error .typeError
       else .error .typeError
-  | .shl, .fixedBytes n xs, .int s =>
+  | .fixedShl, .fixedBytes n xs, .int s =>
       if s < 0 then .error .typeError
       else
         match fixedBytesToNat? n xs with
@@ -368,7 +375,7 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
             if s.toNat >= width then .ok (.fixedBytes n (List.replicate (fixedBytesSize n) 0))
             else .ok (fixedBytesFromNat n (x * 2 ^ s.toNat))
         | none => .error .typeError
-  | .shr, .fixedBytes n xs, .int s =>
+  | .fixedShr, .fixedBytes n xs, .int s =>
       if s < 0 then .error .typeError
       else
         match fixedBytesToNat? n xs with
@@ -377,41 +384,27 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
             if s.toNat >= width then .ok (.fixedBytes n (List.replicate (fixedBytesSize n) 0))
             else .ok (fixedBytesFromNat n (x / 2 ^ s.toNat))
         | none => .error .typeError
-  -- Integer bitwise/shift: defined only on operands in `[0, 2^256)`; a negative or oversized
-  -- operand is `.error .typeError`, so specs on signed values must re-encode to a word first.
-  | .bitAnd, .int x, .int y =>
-      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ y ∧ y < (EVM.wordModulus : Int) then
-        .ok (.int (Nat.land x.toNat y.toNat))
-      else .error .typeError
-  | .bitOr, .int x, .int y =>
-      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ y ∧ y < (EVM.wordModulus : Int) then
-        .ok (.int (Nat.lor x.toNat y.toNat))
-      else .error .typeError
-  | .bitXor, .int x, .int y =>
-      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ y ∧ y < (EVM.wordModulus : Int) then
-        .ok (.int (Nat.xor x.toNat y.toNat))
-      else .error .typeError
-  -- `x << s`: the shift `s` must be a non-negative int; `s ≥ 256` gives `0` (EVM `SHL`).
-  | .shl, .int x, .int s =>
-      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ s then
-        if (256 : Int) ≤ s then .ok (.int 0)
-        else .ok (.int ((x.toNat * 2 ^ s.toNat) % EVM.wordModulus))
-      else .error .typeError
-  -- `x >> s`: the shift `s` must be a non-negative int; `s ≥ 256` gives `0` (EVM `SHR`).
-  | .shr, .int x, .int s =>
-      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ s then
-        if (256 : Int) ≤ s then .ok (.int 0)
-        else .ok (.int (x.toNat / 2 ^ s.toNat))
-      else .error .typeError
+  | .bitAnd intType, .int x, .int y => .ok (evalIntBitwise intType Nat.land x y)
+  | .bitOr intType, .int x, .int y => .ok (evalIntBitwise intType Nat.lor x y)
+  | .bitXor intType, .int x, .int y => .ok (evalIntBitwise intType Nat.xor x y)
+  | .shl intType, .int x, .int s =>
+      if s < 0 then .error .typeError
+      else if intType.bitWidth.val ≤ s.toNat then .ok (.int 0)
+      else .ok (.int (normalizeInt intType (x * Int.ofNat (EVM.twoPow s.toNat))))
+  | .shr intType, .int x, .int s =>
+      if s < 0 then .error .typeError
+      else
+        let x := normalizeInt intType x
+        if intType.bitWidth.val ≤ s.toNat then
+          .ok (.int (if intType.isSigned && x < 0 then -1 else 0))
+        else .ok (.int (x / Int.ofNat (EVM.twoPow s.toNat)))
   | _, _, _ => .error .typeError
 
--- Bitwise mask = mod; single-bit xor flip; `shl` wraps at the top word; `shr` of the max word;
--- and a negative operand is a type error.
-#guard evalBinaryOp? .bitAnd (.int 0xABCDEF) (.int 0xFF) = .ok (.int (0xABCDEF % 256))
-#guard evalBinaryOp? .bitXor (.int 5) (.int 2) = .ok (.int 7)
-#guard evalBinaryOp? .shl (.int (2 ^ 255)) (.int 1) = .ok (.int 0)
-#guard evalBinaryOp? .shr (.int (2 ^ 256 - 1)) (.int 255) = .ok (.int 1)
-#guard evalBinaryOp? .bitAnd (.int (-1)) (.int 0) = .error .typeError
+#guard evalBinaryOp? (.bitAnd (.uint ⟨256, by decide⟩)) (.int 0xABCDEF) (.int 0xFF) =
+  .ok (.int (0xABCDEF % 256))
+#guard evalBinaryOp? (.bitXor (.uint ⟨8, by decide⟩)) (.int 5) (.int 2) = .ok (.int 7)
+#guard evalBinaryOp? (.shl (.uint ⟨8, by decide⟩)) (.int 128) (.int 1) = .ok (.int 0)
+#guard evalBinaryOp? (.shr (.sint ⟨8, by decide⟩)) (.int (-3)) (.int 1) = .ok (.int (-2))
 #guard evalBinaryOp? .exp (.int 2) (.int 10) = .ok (.int 1024)
 #guard evalBinaryOp? .exp (.int 0) (.int 0) = .ok (.int 1)
 #guard evalBinaryOp? .exp (.int 2) (.int (-1)) = .error .typeError
