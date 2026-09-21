@@ -77,8 +77,14 @@ inductive BinaryOp where
   | add
   | sub
   | mul
+  /-- Euclidean integer division. -/
   | div
+  /-- Mathematical modulo, used for explicit wrapping. -/
   | mod
+  /-- Integer division truncated toward zero, without a width or overflow mode. -/
+  | sdiv
+  /-- Remainder paired with `sdiv`; a nonzero remainder has the dividend's sign. -/
+  | srem
   | eq
   | ne
   | lt

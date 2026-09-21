@@ -289,9 +289,11 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
   | .add, .int x, .int y => .ok (.int (x + y))
   | .sub, .int x, .int y => .ok (.int (x - y))
   | .mul, .int x, .int y => .ok (.int (x * y))
-  -- division/modulo by zero reverts (Solidity Panic 0x12)
+  -- Division, modulo, and remainder by zero revert.
   | .div, .int x, .int y => if y = 0 then .revert else .ok (.int (x / y))
   | .mod, .int x, .int y => if y = 0 then .revert else .ok (.int (x % y))
+  | .sdiv, .int x, .int y => if y = 0 then .revert else .ok (.int (x.tdiv y))
+  | .srem, .int x, .int y => if y = 0 then .revert else .ok (.int (x.tmod y))
   | .eq, .storageRef _ _, _ => .error .typeError
   | .eq, _, .storageRef _ _ => .error .typeError
   | .ne, .storageRef _ _, _ => .error .typeError

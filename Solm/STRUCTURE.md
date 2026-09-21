@@ -12,6 +12,12 @@ produces 260; `uint8(250 + 10)` produces 4; `(250 + 10) as uint8` reverts.
 Storage conversion also applies the field's width. ABI encoding and modern
 ABI decoding validate values instead of silently truncating them.
 
+`/` and `%` retain mathematical (Euclidean) division and modulo. The explicit
+operations `sdiv(x, y)` and `srem(x, y)` instead truncate the quotient toward
+zero and give a nonzero remainder the dividend's sign: `sdiv(-5, 3)` is `-1`,
+`srem(-5, 3)` is `-2`, and `-5 % 3` is `1`. Their results remain unbounded;
+division, remainder, and modulo by zero revert.
+
 Currently, Sol⁻ does not currently model events, error payloads, or gas.
 ```
 Solm/

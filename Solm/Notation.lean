@@ -558,6 +558,10 @@ private partial def elabCall (env : Env) (stx : Syntax) (f : LIdent)
     unless args.size == 1 do Macro.throwErrorAt stx "solm: expected one argument"
     elabExpr env args[0]!
   match comps with
+  | ["sdiv"] | ["srem"] => do
+      unless args.size == 2 do
+        Macro.throwErrorAt stx "solm: signed division/remainder expects two arguments"
+      mkBin env (Name.mkSimple comps.head!) args[0]! args[1]!
   | ["keccak256"] => `(Solm.Expr.keccak256 $(← arg1))
   | ["blockhash"] => `(Solm.Expr.blockhash $(← arg1))
   | ["extCodePrefix"] =>
