@@ -99,7 +99,7 @@ theorem apCall (o : Oracle) (m : Machine) (a : EVM.Address) (w : UInt256) :
     ∃ le, CallFn erc20Cfg o erc20Flat (rootFrame erc20Flat) m fnApprove [.address a, u256Val w.toNat]
       (.ok [.bool true] ((apStored m a w).pushLog le)) := by
   obtain ⟨le, hb⟩ := apBody o m a w
-  refine ⟨le, CallFn.ok (apEnter m a w) EvalMods.nil rfl (ExecChain.body hb) rfl ?_⟩
+  refine ⟨le, CallFn.ok (apEnter m a w) rfl (ExecChain.body hb) rfl ?_⟩
   frame_simp [retVals, bodyFrame, apFrame]
 
 theorem erc20ApproveSpec (o : Oracle) {cA gh bl σ σ₀ g A I}

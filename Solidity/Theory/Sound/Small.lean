@@ -202,43 +202,28 @@ theorem execChain_sound_step {n} (ih : SoundAt cfg o fc n) :
   | nil =>
     simp only [execChain] at h
     exact .body (ih.block _ _ _ _ h)
-  | cons mv rest =>
-    obtain ⟨md, vs⟩ := mv
-    simp only [execChain] at h
-    rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr1, m1⟩, hb, h⟩ <;> try dsimp only at h
-    · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
-      exact .modifierPanic hp
-    · split at h
-      · rename_i mb hmb
-        rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨r', hr, h⟩
-        · exact .modifier (liftOp_ok hb) hmb (ih.block _ _ _ _ hd)
-        · rw [IM.pure_some h]
-          exact .modifier (liftOp_ok hb) hmb (ih.block _ _ _ _ hr)
-      · exact (IM.failure_some h).elim
-
-theorem evalMods_sound_step {n} (ih : SoundAt cfg o fc n) :
-    ∀ fr m mis r, (evalMods cfg o fc (n+1) fr m mis).run = some r → EvalMods cfg o fc fr m mis (resOf r) := by
-  intro fr m mis r h
-  cases mis with
-  | nil =>
-    simp only [evalMods] at h
-    rw [IM.pure_some h]; exact .nil
   | cons mi rest =>
-    simp only [evalMods] at h
+    simp only [execChain] at h
     split at h
     · rename_i md hmd
-      rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩
+      rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
       · exact (liftOpt_error hd).elim
       · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr1, m1⟩, hvs, h⟩ <;> try dsimp only at h
-        · exact .consRevert hmd (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
-        · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨mods, fr2, m2⟩, hm, h⟩ <;> try dsimp only at h
-          · exact .consTailRevert hmd (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (ih.mods _ _ _ _ hd)
-          · rw [IM.pure_some h]
-            exact .cons hmd (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (ih.mods _ _ _ _ hm)
+        · exact .modifierArgsRevert hmd (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
+        · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr2, m2⟩, hb, h⟩ <;> try dsimp only at h
+          · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+            exact .modifierPanic hmd (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) hp
+          · split at h
+            · rename_i mb hmb
+              rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨r', hr, h⟩
+              · exact .modifier hmd (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hb) hmb (ih.block _ _ _ _ hd)
+              · rw [IM.pure_some h]
+                exact .modifier hmd (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hb) hmb (ih.block _ _ _ _ hr)
+            · exact (IM.failure_some h).elim
     · rename_i hmd
       split at h
       · rename_i hlin
-        exact .skipBase hmd hlin (ih.mods _ _ _ _ h)
+        exact .skipBase hmd hlin (ih.chain _ _ _ _ _ h)
       · exact (IM.failure_some h).elim
 
 theorem callFn_sound_step {n} (ih : SoundAt cfg o fc n) :
@@ -248,37 +233,35 @@ theorem callFn_sound_step {n} (ih : SoundAt cfg o fc n) :
   rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr0, m0⟩, he, h⟩ <;> try dsimp only at h
   · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
     exact .enterPanic hp
-  · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨mods, fr1, m1⟩, hm, h⟩ <;> try dsimp only at h
-    · exact .modsReverted (liftOp_ok he) (ih.mods _ _ _ _ hd)
-    · split at h
-      · rename_i body hbody
-        rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨r', hr, h⟩
-        · exact .reverted (liftOp_ok he) (ih.mods _ _ _ _ hm) hbody (ih.chain _ _ _ _ _ hd)
-        · have hc := ih.chain _ _ _ _ _ hr
-          cases r' with
-          | reverted d => rw [IM.throw_some h]; exact .reverted (liftOp_ok he) (ih.mods _ _ _ _ hm) hbody hc
-          | normal fr2 m2 =>
-            rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr2', m2'⟩, hf, h⟩ <;> try dsimp only at h
+  · split at h
+    · rename_i body hbody
+      rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨r', hr, h⟩
+      · exact .reverted (liftOp_ok he) hbody (ih.chain _ _ _ _ _ hd)
+      · have hc := ih.chain _ _ _ _ _ hr
+        cases r' with
+        | reverted d => rw [IM.throw_some h]; exact .reverted (liftOp_ok he) hbody hc
+        | normal fr2 m2 =>
+          rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr2', m2'⟩, hf, h⟩ <;> try dsimp only at h
+          · exact (liftOpt_error hd).elim
+          · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨rets, hrets, h⟩
             · exact (liftOpt_error hd).elim
-            · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨rets, hrets, h⟩
-              · exact (liftOpt_error hd).elim
-              · rw [IM.pure_some h]
-                exact .ok (liftOp_ok he) (ih.mods _ _ _ _ hm) hbody hc (liftOpt_ok hf) (liftOpt_ok hrets)
-          | returned fr2 m2 =>
-            rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr2', m2'⟩, hf, h⟩ <;> try dsimp only at h
+            · rw [IM.pure_some h]
+              exact .ok (liftOp_ok he) hbody hc (liftOpt_ok hf) (liftOpt_ok hrets)
+        | returned fr2 m2 =>
+          rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr2', m2'⟩, hf, h⟩ <;> try dsimp only at h
+          · exact (liftOpt_error hd).elim
+          · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨rets, hrets, h⟩
             · exact (liftOpt_error hd).elim
-            · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨rets, hrets, h⟩
-              · exact (liftOpt_error hd).elim
-              · rw [IM.pure_some h]
-                exact .ok (liftOp_ok he) (ih.mods _ _ _ _ hm) hbody hc (liftOpt_ok hf) (liftOpt_ok hrets)
-          | «break» fr2 m2 =>
-            rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr2', m2'⟩, hf, h⟩ <;> try dsimp only at h
-            · exact (liftOpt_error hd).elim
-            · exact absurd (liftOpt_ok hf) (by simp [finished])
-          | «continue» fr2 m2 =>
-            rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr2', m2'⟩, hf, h⟩ <;> try dsimp only at h
-            · exact (liftOpt_error hd).elim
-            · exact absurd (liftOpt_ok hf) (by simp [finished])
-      · exact (IM.failure_some h).elim
+            · rw [IM.pure_some h]
+              exact .ok (liftOp_ok he) hbody hc (liftOpt_ok hf) (liftOpt_ok hrets)
+        | «break» fr2 m2 =>
+          rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr2', m2'⟩, hf, h⟩ <;> try dsimp only at h
+          · exact (liftOpt_error hd).elim
+          · exact absurd (liftOpt_ok hf) (by simp [finished])
+        | «continue» fr2 m2 =>
+          rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr2', m2'⟩, hf, h⟩ <;> try dsimp only at h
+          · exact (liftOpt_error hd).elim
+          · exact absurd (liftOpt_ok hf) (by simp [finished])
+    · exact (IM.failure_some h).elim
 
 end Solidity

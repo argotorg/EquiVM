@@ -36,7 +36,6 @@ theorem soundAt_succ {n} (ih : SoundAt cfg o fc n) : SoundAt cfg o fc (n+1) wher
   loopBody := execLoopBody_sound_step ih
   block := execBlock_sound_step ih
   chain := execChain_sound_step ih
-  mods := evalMods_sound_step ih
   callFn := callFn_sound_step ih
 
 theorem soundAt (cfg : Config) (o : Oracle) (fc : FlatContract) : ∀ n, SoundAt cfg o fc n

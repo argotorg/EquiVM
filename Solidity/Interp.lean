@@ -171,9 +171,9 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
         let (v, fr1, m1) ← evalExpr fuel fr m e
         let r ← liftOp (unop (!fr1.unchecked) op v)
         pure (r, fr1, m1)
-    | .binary op a b => do
-      let (va, fr1, m1) ← evalExpr fuel fr m a
-      if op == .and then
+    | .binary op a b =>
+      if op == .and then do
+        let (va, fr1, m1) ← evalExpr fuel fr m a
         match va with
         | .bool false => pure (.bool false, fr1, m1)
         | .bool true =>
@@ -182,7 +182,8 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
           | .bool y => pure (.bool y, fr2, m2)
           | _ => failure
         | _ => failure
-      else if op == .or then
+      else if op == .or then do
+        let (va, fr1, m1) ← evalExpr fuel fr m a
         match va with
         | .bool true => pure (.bool true, fr1, m1)
         | .bool false =>
@@ -191,8 +192,9 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
           | .bool y => pure (.bool y, fr2, m2)
           | _ => failure
         | _ => failure
-      else
-        let (vb, fr2, m2) ← evalExpr fuel fr1 m1 b
+      else do
+        let (vb, fr1, m1) ← evalExpr fuel fr m b
+        let (va, fr2, m2) ← evalExpr fuel fr1 m1 a
         let v ← liftOp (binop (!fr2.unchecked) op va vb)
         pure (v, fr2, m2)
     | .cond c t e => do
@@ -655,7 +657,9 @@ def declareTuple : Nat → Frame → Machine → List (Option Param) → List Va
 def execStmt : Nat → Frame → Machine → Stmt → IM ExecResult
   | 0, _, _, _ => failure
   | fuel+1, fr, m, a1 => match a1 with
-    | .block ss => execBlock fuel fr m ss
+    | .block ss => do
+      let r ← execBlock fuel fr m ss
+      pure (exitBlock fr r)
     | .varDecl ty loc x none => do
       let (fr', m') ← liftOp (declare cfg fc.types fr m ty loc x none)
       pure (.normal fr' m')
@@ -692,7 +696,9 @@ def execStmt : Nat → Frame → Machine → Stmt → IM ExecResult
       | some s =>
         let r ← execStmt fuel fr m s
         match r with
-        | .normal fr1 m1 => execLoop fuel fr1 m1 c post body
+        | .normal fr1 m1 => do
+          let r ← execLoop fuel fr1 m1 c post body
+          pure (exitBlock fr r)
         | .reverted d => throw d
         | _ => failure
     | .break => pure (.break fr m)
@@ -725,7 +731,7 @@ def execStmt : Nat → Frame → Machine → Stmt → IM ExecResult
       throw d
     | .unchecked ss => do
       let r ← execBlock fuel { fr with unchecked := true } m ss
-      pure (restoreUnchecked fr.unchecked r)
+      pure (exitBlock fr (restoreUnchecked fr.unchecked r))
     | .placeholder => do
       let r ← execChain fuel (popFrame fr) m fr.chain fr.body
       liftOpt (settlePlaceholder fr r)
@@ -753,13 +759,15 @@ def execStmt : Nat → Frame → Machine → Stmt → IM ExecResult
             match tryRets cfg fc.types m6 ps rtys out with
             | some (rets, m7) =>
               let (fr5, m8) ← liftOp (bindTryParams cfg fc.types fr4 m7 ps rets)
-              execBlock fuel fr5 m8 body
+              let r ← execBlock fuel fr5 m8 body
+              pure (exitBlock fr r)
             | none => throw ByteArray.empty
           else
             match selectCatch cfg m6 cs out with
             | some (cc, cvs, m7) =>
               let (fr5, m8) ← liftOp (bindTryParams cfg fc.types fr4 m7 (catchParams cc) cvs)
-              execBlock fuel fr5 m8 (catchBody cc)
+              let r ← execBlock fuel fr5 m8 (catchBody cc)
+              pure (exitBlock fr r)
             | none => throw out
         | _ => failure
       | .call (.new ty) opts args =>
@@ -773,12 +781,14 @@ def execStmt : Nat → Frame → Machine → Stmt → IM ExecResult
           let (a, m5, z, out) ← liftOpt (newViaEVM cfg o m4 c value.1 svs salt.1)
           if z then
             let (fr4, m6) ← liftOp (bindTryParams cfg fc.types fr3 m5 ps (if ps.isEmpty then [] else [.contract c a]))
-            execBlock fuel fr4 m6 body
+            let r ← execBlock fuel fr4 m6 body
+            pure (exitBlock fr r)
           else
             match selectCatch cfg m5 cs out with
             | some (cc, cvs, m6) =>
               let (fr4, m7) ← liftOp (bindTryParams cfg fc.types fr3 m6 (catchParams cc) cvs)
-              execBlock fuel fr4 m7 (catchBody cc)
+              let r ← execBlock fuel fr4 m7 (catchBody cc)
+              pure (exitBlock fr r)
             | none => throw out
         | none => failure
       | _ => failure
@@ -824,38 +834,29 @@ def execBlock : Nat → Frame → Machine → List Stmt → IM ExecResult
       | .reverted d => throw d
       | r => pure r
 
-def execChain : Nat → Frame → Machine → List (ModDef × List Value) → Block → IM ExecResult
+def execChain : Nat → Frame → Machine → List ModifierInvocation → Block → IM ExecResult
   | 0, _, _, _, _ => failure
   | fuel+1, fr, m, a1, a2 => match a1, a2 with
     | [], body => execBlock fuel fr m body
-    | (md, vs) :: rest, body => do
-      let (fr1, m1) ← liftOp (bindModParams cfg fc.types (pushScope fr rest body) m md.decl.params vs)
-      let some mb := md.decl.body | failure
-      let r ← execBlock fuel fr1 m1 mb
-      pure (popScope r)
-
-def evalMods : Nat → Frame → Machine → List ModifierInvocation → IM (List (ModDef × List Value) × Frame × Machine)
-  | 0, _, _, _ => failure
-  | fuel+1, fr, m, a1 => match a1 with
-    | [] => pure ([], fr, m)
-    | mi :: rest =>
+    | mi :: rest, body =>
       match fc.modifier? mi.name with
       | some md => do
         let es ← liftOpt (argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])))
         let (vs, fr1, m1) ← evalExprs fuel fr m es
-        let (mods, fr2, m2) ← evalMods fuel fr1 m1 rest
-        pure ((md, vs) :: mods, fr2, m2)
+        let (fr2, m2) ← liftOp (bindModParams cfg fc.types (pushScope md.declaredIn fr1 rest body) m1 md.decl.params vs)
+        let some mb := md.decl.body | failure
+        let r ← execBlock fuel fr2 m2 mb
+        pure (popScope r)
       | none =>
-        if fc.linearization.contains mi.name then evalMods fuel fr m rest else failure
+        if fc.linearization.contains mi.name then execChain fuel fr m rest body else failure
 
 /-- Run a function in a fresh frame; returns its return values and the machine. -/
 def callFn : Nat → Frame → Machine → FnDef → List Value → IM (List Value × Machine)
   | 0, _, _, _, _ => failure
   | fuel+1, _fr, m, fn, args => do
     let (fr0, m0) ← liftOp (enterFn cfg fc.types fn.declaredIn fn.decl args m)
-    let (mods, fr1, m1) ← evalMods fuel fr0 m0 fn.decl.modifiers
     let some body := fn.decl.body | failure
-    let r ← execChain fuel { fr1 with chain := mods, body := body } m1 mods body
+    let r ← execChain fuel { fr0 with chain := fn.decl.modifiers, body := body } m0 fn.decl.modifiers body
     match r with
     | .reverted d => throw d
     | r =>
@@ -951,9 +952,8 @@ def ctorStep (fuel : Nat) (frP : Frame) (topArgs : List Value) (acc : Machine ×
     let fn ← liftOpt fc.fns[fid]?
     let (vs, m1) ← ctorArgsOf cfg o fc fuel frP topArgs acc.1 step
     let (fr2, m2) ← liftOp (enterFn cfg fc.types fn.declaredIn fn.decl vs m1 acc.2)
-    let (mods, fr3, m3) ← evalMods cfg o fc fuel fr2 m2 fn.decl.modifiers
     let some body := fn.decl.body | failure
-    let r ← execChain cfg o fc fuel { fr3 with chain := mods, body := body } m3 mods body
+    let r ← execChain cfg o fc fuel { fr2 with chain := fn.decl.modifiers, body := body } m2 fn.decl.modifiers body
     let (fr4, m4) ← liftOpt (finished r)
     pure (m4, immStore fr4)
 

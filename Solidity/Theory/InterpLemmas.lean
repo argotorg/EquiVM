@@ -174,7 +174,6 @@ structure SoundAt (n : Nat) : Prop where
   block : ∀ fr m ss r, (execBlock cfg o fc n fr m ss).run = some r → ExecBlock cfg o fc fr m ss (execOf r)
   chain : ∀ fr m mods body r, (execChain cfg o fc n fr m mods body).run = some r →
     ExecChain cfg o fc fr m mods body (execOf r)
-  mods : ∀ fr m mis r, (evalMods cfg o fc n fr m mis).run = some r → EvalMods cfg o fc fr m mis (resOf r)
   callFn : ∀ fr m fn args r, (callFn cfg o fc n fr m fn args).run = some r → CallFn cfg o fc fr m fn args (fnOf r)
 
 /-- At fuel `0` every member fails. -/
@@ -198,7 +197,6 @@ theorem soundAt_zero : SoundAt cfg o fc 0 where
   loopBody := by intros; simp [execLoopBody] at *
   block := by intros; simp [execBlock] at *
   chain := by intros; simp [execChain] at *
-  mods := by intros; simp [evalMods] at *
   callFn := by intros; simp [callFn] at *
 
 end Solidity
@@ -224,6 +222,14 @@ theorem IM.throw_some {α} {d : ByteArray} {r : Except ByteArray α} (h : (throw
 
 theorem IM.failure_some {α} {r : Except ByteArray α} (h : (failure : IM α).run = some r) : False := by
   simp at h
+
+/-- A block-exit step wraps the inner result. -/
+theorem exitBlock_run {x : IM ExecResult} {fr : Frame} {r}
+    (h : (do let r ← x; pure (exitBlock fr r) : IM ExecResult).run = some r) :
+    ∃ r0, x.run = some r0 ∧ execOf r = exitBlock fr (execOf r0) := by
+  rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨r', hr, h⟩
+  · exact ⟨_, hd, rfl⟩
+  · cases IM.pure_some h; exact ⟨_, hr, rfl⟩
 
 /-- A `pure` step in a `do` block. -/
 theorem IM.pure_bind_some {α β} {a : α} {f : α → IM β} {r} (h : ((pure a : IM α) >>= f).run = some r) :

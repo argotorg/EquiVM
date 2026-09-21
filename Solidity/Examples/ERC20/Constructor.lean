@@ -150,7 +150,7 @@ theorem erc20CtorSpec (o : Oracle) {cA gh bl σ σ₀ g A I} (w : UInt256) (hwv 
   · rw [erc20Flat_initializers]; exact ExecInits.nil
   · rw [erc20Flat_ctorChain]
     refine ExecCtorChain.run (vs := [u256Val w.toNat]) rfl erc20Flat_fns0 (CtorArgs.top rfl) (ctorEnter _ w)
-      EvalMods.nil rfl (ExecChain.body hb) rfl ExecCtorChain.nil
+      rfl (ExecChain.body hb) rfl ExecCtorChain.nil
 
 theorem erc20CtorSpecNonPayable (o : Oracle) {cA gh bl σ σ₀ g A I} (args : List ABI.ABIValue) (hwv : I.weiValue ≠ ⟨0⟩) :
     solidityCtorExec erc20Cfg o erc20Flat args cA gh bl σ σ₀ g A I (.reverted ByteArray.empty) :=

@@ -145,32 +145,25 @@ theorem chainFold_complete {frP topArgs imms m steps r} (h : ExecCtorChain cfg o
     obtain ⟨n, ihn⟩ := ih
     refine ⟨n, fun k hk => ?_⟩
     interp_simp [List.foldlM_cons, ctorStep, hfn, ihn k hk]
-  | run hfid hfn hca henter hmods hbody hchain hfin _ ih =>
+  | run hfid hfn hca henter hbody hchain hfin _ ih =>
     obtain ⟨na, iha⟩ := ctorArgs_complete hca
-    obtain ⟨nm, ihm⟩ := evalMods_complete hmods
     obtain ⟨nc, ihc⟩ := execChain_complete hchain
     obtain ⟨nr, ihr⟩ := ih
-    refine ⟨na + nm + nc + nr, fun k hk => ?_⟩
+    refine ⟨na + nc + nr, fun k hk => ?_⟩
     have ihc' := ihc k (by omega)
     rw [toExec_of_finished hfin] at ihc'
     interp_simp [List.foldlM_cons, ctorStep, toArgs, toChain, hfid, hfn, henter, hbody, hfin, iha k (by omega),
-      ihm k (by omega), ihc', ihr k (by omega)]
+      ihc', ihr k (by omega)]
   | argsReverted hfid hfn hca =>
     obtain ⟨na, iha⟩ := ctorArgs_complete hca
     refine ⟨na, fun k hk => ?_⟩
     interp_simp [List.foldlM_cons, ctorStep, toArgs, toChain, hfid, hfn, iha k hk]
-  | modsReverted hfid hfn hca henter hmods =>
+  | bodyReverted hfid hfn hca henter hbody hchain =>
     obtain ⟨na, iha⟩ := ctorArgs_complete hca
-    obtain ⟨nm, ihm⟩ := evalMods_complete hmods
-    refine ⟨na + nm, fun k hk => ?_⟩
-    interp_simp [List.foldlM_cons, ctorStep, toArgs, toChain, hfid, hfn, henter, iha k (by omega), ihm k (by omega)]
-  | bodyReverted hfid hfn hca henter hmods hbody hchain =>
-    obtain ⟨na, iha⟩ := ctorArgs_complete hca
-    obtain ⟨nm, ihm⟩ := evalMods_complete hmods
     obtain ⟨nc, ihc⟩ := execChain_complete hchain
-    refine ⟨na + nm + nc, fun k hk => ?_⟩
+    refine ⟨na + nc, fun k hk => ?_⟩
     interp_simp [List.foldlM_cons, ctorStep, toArgs, toChain, hfid, hfn, henter, hbody, iha k (by omega),
-      ihm k (by omega), ihc k (by omega)]
+      ihc k (by omega)]
   | enterPanic hfid hfn hca henter =>
     obtain ⟨na, iha⟩ := ctorArgs_complete hca
     refine ⟨na, fun k hk => ?_⟩

@@ -148,16 +148,16 @@ theorem tfEvalCond1 (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256)
     EvalExpr erc20Cfg o erc20Flat (tfFr2 f t w m) m tfCond1
       (.ok (.bool (decide (w.toNat ≤ (curAllow m f).toNat))) (tfFr2 f t w m) m) :=
   EvalExpr.binary (by decide) (by decide)
-    (EvalExpr.localVal u256 none (by frame_simp [tfFr2, tfFr, bodyFrame, tfFrame]))
-    (EvalExpr.localVal u256 (some .memory) (by frame_simp [tfFr2, tfFr, bodyFrame, tfFrame])) (binop_ge_u256 ..)
+    (EvalExpr.localVal u256 (some .memory) (by frame_simp [tfFr2, tfFr, bodyFrame, tfFrame]))
+    (EvalExpr.localVal u256 none (by frame_simp [tfFr2, tfFr, bodyFrame, tfFrame])) (binop_ge_u256 ..)
 
 theorem tfEvalCond2 (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256) :
     EvalExpr erc20Cfg o erc20Flat (tfFr2 f t w m) m tfCond2
       (.ok (.bool (decide (w.toNat ≤ (fromBal m f).toNat))) (tfFr2 f t w m) m) :=
   EvalExpr.binary (by decide) (by decide)
+    (EvalExpr.localVal u256 (some .memory) (by frame_simp [tfFr2, tfFr, bodyFrame, tfFrame]))
     (evalBalanceOfIndex o _ m "from" f (by frame_simp [tfFr2, tfFr, bodyFrame, tfFrame])
-      (by frame_simp [tfFr2, tfFr, bodyFrame, tfFrame]))
-    (EvalExpr.localVal u256 (some .memory) (by frame_simp [tfFr2, tfFr, bodyFrame, tfFrame])) (binop_ge_u256 ..)
+      (by frame_simp [tfFr2, tfFr, bodyFrame, tfFrame])) (binop_ge_u256 ..)
 
 /-- `allowance[from][msg.sender] = currentAllowance - value;` -/
 theorem tfAllowStore (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256)
@@ -174,8 +174,8 @@ theorem tfAllowStore (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256
     (lvalAllowanceLocalSender o _ m "from" f (by frame_simp [tfFr2, tfFr, bodyFrame, tfFrame])
       (by frame_simp [tfFr2, tfFr, bodyFrame, tfFrame])) hassign)
   exact EvalExpr.binary (by decide) (by decide)
-    (EvalExpr.localVal u256 none (by frame_simp [tfFr2, tfFr, bodyFrame, tfFrame]))
     (EvalExpr.localVal u256 (some .memory) (by frame_simp [tfFr2, tfFr, bodyFrame, tfFrame]))
+    (EvalExpr.localVal u256 none (by frame_simp [tfFr2, tfFr, bodyFrame, tfFrame]))
     (binop_sub_u256_ok _ _ hb hallow)
 
 /-- `balanceOf[from] -= value;` (no underflow). -/
@@ -333,14 +333,14 @@ theorem tfCallOk (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256)
     ∃ le, CallFn erc20Cfg o erc20Flat (rootFrame erc20Flat) m fnTransferFrom [.address f, .address t, u256Val w.toNat]
       (.ok [.bool true] ((tfM3 m f t w).pushLog le)) := by
   obtain ⟨le, hb⟩ := tfBodyOk o m f t w hallow hbal hdebit hfit
-  refine ⟨le, CallFn.ok (tfEnter m f t w) EvalMods.nil rfl (ExecChain.body hb) rfl ?_⟩
+  refine ⟨le, CallFn.ok (tfEnter m f t w) rfl (ExecChain.body hb) rfl ?_⟩
   frame_simp [retVals, tfFr2, tfFr, bodyFrame, tfFrame]
 
 theorem tfCallRevert (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256) (d : ByteArray)
     (hb : ExecBlock erc20Cfg o erc20Flat (tfFr f t w) m tfStmts (.reverted d)) :
     CallFn erc20Cfg o erc20Flat (rootFrame erc20Flat) m fnTransferFrom [.address f, .address t, u256Val w.toNat]
       (.reverted d) :=
-  CallFn.reverted (tfEnter m f t w) EvalMods.nil rfl (ExecChain.body hb)
+  CallFn.reverted (tfEnter m f t w) rfl (ExecChain.body hb)
 
 /-! ## The dispatch-level spec runs -/
 

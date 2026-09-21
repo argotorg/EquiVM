@@ -71,7 +71,7 @@ theorem boBody (o : Oracle) (m : Machine) (a : EVM.Address) :
 
 theorem boCall (o : Oracle) (m : Machine) (a : EVM.Address) :
     CallFn erc20Cfg o erc20Flat (rootFrame erc20Flat) m fnBalanceOf [.address a] (.ok [boVal m a] m) := by
-  refine CallFn.ok (boEnter m a) EvalMods.nil rfl (ExecChain.body (boBody o m a)) rfl ?_
+  refine CallFn.ok (boEnter m a) rfl (ExecChain.body (boBody o m a)) rfl ?_
   frame_simp [retVals, bodyFrame, boFrame]
 
 theorem erc20BalanceOfSpec (o : Oracle) {cA gh bl σ σ₀ g A I}

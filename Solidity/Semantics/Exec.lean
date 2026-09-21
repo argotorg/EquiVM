@@ -141,14 +141,15 @@ def enterFn (cfg : Config) (env : TypeEnv) (here : Ident) (d : FnDecl) (args : L
   d.returns.zipIdx.foldlM (fun (fr, m) (p, i) =>
       declare cfg env fr m p.ty (p.loc <|> some .memory) (retName i p) none) (fr1, m1)
 
-/-- Enter a modifier body: a fresh scope for its parameters over the suspended function scope. -/
-def pushScope (fr : Frame) (rest : List (ModDef × List Value)) (body : Block) : Frame :=
-  { fr with locals := ∅, outer := fr.locals :: fr.outer, chain := rest, body := body }
+/-- Enter the body of a modifier declared in `here`: a fresh scope for its parameters over the
+    suspended scope. -/
+def pushScope (here : Ident) (fr : Frame) (rest : List ModifierInvocation) (body : Block) : Frame :=
+  { fr with here := here, locals := ∅, outer := (fr.here, fr.locals) :: fr.outer, chain := rest, body := body }
 
 /-- Back to the suspended scope (the function scope seen from a modifier body). -/
 def popFrame (fr : Frame) : Frame :=
   match fr.outer with
-  | s :: rest => { fr with locals := s, outer := rest }
+  | (h, s) :: rest => { fr with here := h, locals := s, outer := rest }
   | [] => fr
 
 /-- Leave a modifier body. -/
@@ -160,7 +161,8 @@ def popScope : ExecResult → ExecResult
 /-- Resume the modifier scope `fr` after `_;` ran the rest of the chain in the function scope,
     which is now `fr'.locals`. -/
 def resumeScope (fr fr' : Frame) : Frame :=
-  { fr' with locals := fr.locals, outer := fr'.locals :: fr'.outer, chain := fr.chain, body := fr.body }
+  { fr' with here := fr.here, locals := fr.locals, outer := (fr'.here, fr'.locals) :: fr'.outer,
+             chain := fr.chain, body := fr.body }
 
 /-- Result of a `_;`: a `return` inside the body only leaves the body. -/
 def settlePlaceholder (fr : Frame) : ExecResult → Option ExecResult
@@ -174,6 +176,14 @@ def restoreUnchecked (u : Bool) : ExecResult → ExecResult
   | .returned fr m => .returned { fr with unchecked := u } m
   | .break fr m => .break { fr with unchecked := u } m
   | .continue fr m => .continue { fr with unchecked := u } m
+  | .reverted d => .reverted d
+
+/-- Leave a block entered from `fr` (see `Frame.exitScope`). -/
+def exitBlock (fr : Frame) : ExecResult → ExecResult
+  | .normal fr' m => .normal (fr.exitScope fr') m
+  | .returned fr' m => .returned (fr.exitScope fr') m
+  | .break fr' m => .break (fr.exitScope fr') m
+  | .continue fr' m => .continue (fr.exitScope fr') m
   | .reverted d => .reverted d
 
 /-- Bytes of a `bytes memory` / `string memory` / literal argument. -/
@@ -867,13 +877,20 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | orShort : EvalExpr fr m a (.ok (.bool true) fr1 m1) → EvalExpr fr m (.binary .or a b) (.ok (.bool true) fr1 m1)
   | orFull : EvalExpr fr m a (.ok (.bool false) fr1 m1) → EvalExpr fr1 m1 b (.ok (.bool y) fr2 m2) →
       EvalExpr fr m (.binary .or a b) (.ok (.bool y) fr2 m2)
-  | binary : op ≠ .and → op ≠ .or → EvalExpr fr m a (.ok va fr1 m1) → EvalExpr fr1 m1 b (.ok vb fr2 m2) →
+  | andLeftRevert : EvalExpr fr m a (.reverted d) → EvalExpr fr m (.binary .and a b) (.reverted d)
+  | andRightRevert : EvalExpr fr m a (.ok (.bool true) fr1 m1) → EvalExpr fr1 m1 b (.reverted d) →
+      EvalExpr fr m (.binary .and a b) (.reverted d)
+  | orLeftRevert : EvalExpr fr m a (.reverted d) → EvalExpr fr m (.binary .or a b) (.reverted d)
+  | orRightRevert : EvalExpr fr m a (.ok (.bool false) fr1 m1) → EvalExpr fr1 m1 b (.reverted d) →
+      EvalExpr fr m (.binary .or a b) (.reverted d)
+  -- other binary operators: legacy solc evaluates the right operand first
+  | binary : op ≠ .and → op ≠ .or → EvalExpr fr m b (.ok vb fr1 m1) → EvalExpr fr1 m1 a (.ok va fr2 m2) →
       binop (!fr2.unchecked) op va vb = some (.ok v) → EvalExpr fr m (.binary op a b) (.ok v fr2 m2)
-  | binaryPanic : op ≠ .and → op ≠ .or → EvalExpr fr m a (.ok va fr1 m1) → EvalExpr fr1 m1 b (.ok vb fr2 m2) →
+  | binaryPanic : op ≠ .and → op ≠ .or → EvalExpr fr m b (.ok vb fr1 m1) → EvalExpr fr1 m1 a (.ok va fr2 m2) →
       binop (!fr2.unchecked) op va vb = some (.error p) → EvalExpr fr m (.binary op a b) (.reverted p.data)
-  | binaryLeftRevert : EvalExpr fr m a (.reverted d) → EvalExpr fr m (.binary op a b) (.reverted d)
-  | binaryRightRevert : EvalExpr fr m a (.ok va fr1 m1) → EvalExpr fr1 m1 b (.reverted d) →
-      (op ≠ .and ∨ va = .bool true) → (op ≠ .or ∨ va = .bool false) → EvalExpr fr m (.binary op a b) (.reverted d)
+  | binaryRightRevert : op ≠ .and → op ≠ .or → EvalExpr fr m b (.reverted d) → EvalExpr fr m (.binary op a b) (.reverted d)
+  | binaryLeftRevert : op ≠ .and → op ≠ .or → EvalExpr fr m b (.ok vb fr1 m1) → EvalExpr fr1 m1 a (.reverted d) →
+      EvalExpr fr m (.binary op a b) (.reverted d)
   | condT : EvalExpr fr m c (.ok (.bool true) fr1 m1) → EvalExpr fr1 m1 t r → EvalExpr fr m (.cond c t e) r
   | condF : EvalExpr fr m c (.ok (.bool false) fr1 m1) → EvalExpr fr1 m1 e r → EvalExpr fr m (.cond c t e) r
   | condRevert : EvalExpr fr m c (.reverted d) → EvalExpr fr m (.cond c t e) (.reverted d)
@@ -969,7 +986,8 @@ inductive AssignTuple : Frame → Machine → List (Option Expr) → List Value 
       AssignTuple fr m (some l :: ls) (v :: vs) (.reverted p.data)
 
 inductive ExecStmt : Frame → Machine → Stmt → ExecResult → Prop where
-  | block : ExecBlock fr m ss r → ExecStmt fr m (.block ss) r
+  -- blocks, `for` initializers and `try` bindings are scoped: their declarations end with the statement
+  | block : ExecBlock fr m ss r → ExecStmt fr m (.block ss) (exitBlock fr r)
   | varDeclNone : declare cfg fc.types fr m ty loc x none = some (.ok (fr', m')) →
       ExecStmt fr m (.varDecl ty loc x none) (.normal fr' m')
   | varDecl : EvalExpr fr m e (.ok v fr1 m1) → declare cfg fc.types fr1 m1 ty loc x (some v) = some (.ok (fr2, m2)) →
@@ -999,7 +1017,8 @@ inductive ExecStmt : Frame → Machine → Stmt → ExecResult → Prop where
   | doWhileReturn : ExecStmt fr m body (.returned fr1 m1) → ExecStmt fr m (.doWhile body c) (.returned fr1 m1)
   | doWhileRevert : ExecStmt fr m body (.reverted d) → ExecStmt fr m (.doWhile body c) (.reverted d)
   | forNoInit : ExecLoop fr m c post body r → ExecStmt fr m (.for none c post body) r
-  | forInit : ExecStmt fr m init (.normal fr1 m1) → ExecLoop fr1 m1 c post body r → ExecStmt fr m (.for (some init) c post body) r
+  | forInit : ExecStmt fr m init (.normal fr1 m1) → ExecLoop fr1 m1 c post body r →
+      ExecStmt fr m (.for (some init) c post body) (exitBlock fr r)
   | forInitRevert : ExecStmt fr m init (.reverted d) → ExecStmt fr m (.for (some init) c post body) (.reverted d)
   | break : ExecStmt fr m .break (.break fr m)
   | continue : ExecStmt fr m .continue (.continue fr m)
@@ -1032,7 +1051,7 @@ inductive ExecStmt : Frame → Machine → Stmt → ExecResult → Prop where
       EvalExprs fr m es (.ok vs fr1 m1) → abiArgs cfg fc.types m1 (ei.decl.params.map (·.ty)) vs = some (.error p) →
       ExecStmt fr m (.revert (.ident err) args) (.reverted p.data)
   | unchecked : ExecBlock { fr with unchecked := true } m ss r →
-      ExecStmt fr m (.unchecked ss) (restoreUnchecked fr.unchecked r)
+      ExecStmt fr m (.unchecked ss) (exitBlock fr (restoreUnchecked fr.unchecked r))
   | placeholder : ExecChain (popFrame fr) m fr.chain fr.body r → settlePlaceholder fr r = some r' →
       ExecStmt fr m .placeholder r'
   -- `try recv.f{opts}(args) returns (ps) { body } catch …`: only the call itself is caught; the
@@ -1047,7 +1066,7 @@ inductive ExecStmt : Frame → Machine → Stmt → ExecResult → Prop where
       callViaEVM o m5 a value (selectorOf sigStr ++ bs.toByteArray) (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 gasReq value) (true, m6, out) →
       tryRets cfg fc.types m6 ps rtys out = some (rets, m7) →
       bindTryParams cfg fc.types fr4 m7 ps rets = some (.ok (fr5, m8)) → ExecBlock fr5 m8 body r →
-      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) r
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (exitBlock fr r)
   | tryCallBindPanic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
       EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.ok gasReq fr3 m3) →
       argExprsAny args = some es → EvalExprs fr3 m3 es (.ok vs fr4 m4) →
@@ -1079,7 +1098,7 @@ inductive ExecStmt : Frame → Machine → Stmt → ExecResult → Prop where
       callViaEVM o m5 a value (selectorOf sigStr ++ bs.toByteArray) (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 gasReq value) (false, m6, out) →
       selectCatch cfg m6 cs out = some (cc, cvs, m7) →
       bindTryParams cfg fc.types fr4 m7 (catchParams cc) cvs = some (.ok (fr5, m8)) → ExecBlock fr5 m8 (catchBody cc) r →
-      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) r
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (exitBlock fr r)
   | tryCallCaughtBindPanic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
       EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.ok gasReq fr3 m3) →
       argExprsAny args = some es → EvalExprs fr3 m3 es (.ok vs fr4 m4) →
@@ -1133,7 +1152,7 @@ inductive ExecStmt : Frame → Machine → Stmt → ExecResult → Prop where
       newViaEVM cfg o m4 c value svs salt (a, m5, true, out) →
       bindTryParams cfg fc.types fr3 m5 ps (if ps.isEmpty then [] else [.contract c a]) = some (.ok (fr4, m6)) →
       ExecBlock fr4 m6 body r →
-      ExecStmt fr m (.tryCatch (.call (.new ty) opts args) ps body cs) r
+      ExecStmt fr m (.tryCatch (.call (.new ty) opts args) ps body cs) (exitBlock fr r)
   | tryNewBindPanic : newContract? fc ty = some (c, tys) → EvalValueOpt fr m (valueOpt opts) (.ok value fr1 m1) →
       EvalSaltOpt fr1 m1 (saltOpt opts) (.ok salt fr2 m2) → argExprsAny args = some es →
       EvalExprs fr2 m2 es (.ok vs fr3 m3) → abiArgs cfg fc.types m3 tys vs = some (.ok (svs, m4)) →
@@ -1146,7 +1165,7 @@ inductive ExecStmt : Frame → Machine → Stmt → ExecResult → Prop where
       newViaEVM cfg o m4 c value svs salt (a, m5, false, out) →
       selectCatch cfg m5 cs out = some (cc, cvs, m6) →
       bindTryParams cfg fc.types fr3 m6 (catchParams cc) cvs = some (.ok (fr4, m7)) → ExecBlock fr4 m7 (catchBody cc) r →
-      ExecStmt fr m (.tryCatch (.call (.new ty) opts args) ps body cs) r
+      ExecStmt fr m (.tryCatch (.call (.new ty) opts args) ps body cs) (exitBlock fr r)
   | tryNewCaughtBindPanic : newContract? fc ty = some (c, tys) → EvalValueOpt fr m (valueOpt opts) (.ok value fr1 m1) →
       EvalSaltOpt fr1 m1 (saltOpt opts) (.ok salt fr2 m2) → argExprsAny args = some es →
       EvalExprs fr2 m2 es (.ok vs fr3 m3) → abiArgs cfg fc.types m3 tys vs = some (.ok (svs, m4)) →
@@ -1221,38 +1240,31 @@ inductive ExecBlock : Frame → Machine → List Stmt → ExecResult → Prop wh
   | consContinue : ExecStmt fr m s (.continue fr1 m1) → ExecBlock fr m (s :: ss) (.continue fr1 m1)
   | consRevert : ExecStmt fr m s (.reverted d) → ExecBlock fr m (s :: ss) (.reverted d)
 
-/-- Run the remaining modifier chain, then the body. -/
-inductive ExecChain : Frame → Machine → List (ModDef × List Value) → Block → ExecResult → Prop where
+/-- Run the remaining modifier chain, then the body.  A modifier's arguments are evaluated when it is
+    entered (at the outer modifier's `_;`, every time), in the function scope. -/
+inductive ExecChain : Frame → Machine → List ModifierInvocation → Block → ExecResult → Prop where
   | body : ExecBlock fr m body r → ExecChain fr m [] body r
-  | modifier : bindModParams cfg fc.types (pushScope fr rest body) m md.decl.params vs = some (.ok (fr1, m1)) →
-      md.decl.body = some mb → ExecBlock fr1 m1 mb r → ExecChain fr m ((md, vs) :: rest) body (popScope r)
-  | modifierPanic : bindModParams cfg fc.types (pushScope fr rest body) m md.decl.params vs = some (.error p) →
-      ExecChain fr m ((md, vs) :: rest) body (.reverted p.data)
-
-/-- Resolve and evaluate the modifier invocations of a function (base-constructor calls are skipped). -/
-inductive EvalMods : Frame → Machine → List ModifierInvocation → Res (List (ModDef × List Value)) → Prop where
-  | nil : EvalMods fr m [] (.ok [] fr m)
-  | cons : fc.modifier? mi.name = some md → argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])) = some es →
-      EvalExprs fr m es (.ok vs fr1 m1) → EvalMods fr1 m1 rest (.ok mods fr2 m2) →
-      EvalMods fr m (mi :: rest) (.ok ((md, vs) :: mods) fr2 m2)
-  | consRevert : fc.modifier? mi.name = some md → argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])) = some es →
-      EvalExprs fr m es (.reverted d) → EvalMods fr m (mi :: rest) (.reverted d)
-  | consTailRevert : fc.modifier? mi.name = some md → argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])) = some es →
-      EvalExprs fr m es (.ok vs fr1 m1) → EvalMods fr1 m1 rest (.reverted d) → EvalMods fr m (mi :: rest) (.reverted d)
+  | modifier : fc.modifier? mi.name = some md → argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])) = some es →
+      EvalExprs fr m es (.ok vs fr1 m1) →
+      bindModParams cfg fc.types (pushScope md.declaredIn fr1 rest body) m1 md.decl.params vs = some (.ok (fr2, m2)) →
+      md.decl.body = some mb → ExecBlock fr2 m2 mb r → ExecChain fr m (mi :: rest) body (popScope r)
+  | modifierArgsRevert : fc.modifier? mi.name = some md → argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])) = some es →
+      EvalExprs fr m es (.reverted d) → ExecChain fr m (mi :: rest) body (.reverted d)
+  | modifierPanic : fc.modifier? mi.name = some md → argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])) = some es →
+      EvalExprs fr m es (.ok vs fr1 m1) →
+      bindModParams cfg fc.types (pushScope md.declaredIn fr1 rest body) m1 md.decl.params vs = some (.error p) →
+      ExecChain fr m (mi :: rest) body (.reverted p.data)
   | skipBase : fc.modifier? mi.name = none → fc.linearization.contains mi.name = true →
-      EvalMods fr m rest r → EvalMods fr m (mi :: rest) r
+      ExecChain fr m rest body r → ExecChain fr m (mi :: rest) body r
 
 /-- Call a function with evaluated arguments in a fresh frame. -/
 inductive CallFn : Frame → Machine → FnDef → List Value → FnResult → Prop where
-  | ok : enterFn cfg fc.types fn.declaredIn fn.decl args m = some (.ok (fr0, m0)) →
-      EvalMods fr0 m0 fn.decl.modifiers (.ok mods fr1 m1) → fn.decl.body = some body →
-      ExecChain { fr1 with chain := mods, body := body } m1 mods body r → finished r = some (fr2, m2) →
-      retVals fr2 = some rets → CallFn fr m fn args (.ok rets m2)
-  | reverted : enterFn cfg fc.types fn.declaredIn fn.decl args m = some (.ok (fr0, m0)) →
-      EvalMods fr0 m0 fn.decl.modifiers (.ok mods fr1 m1) → fn.decl.body = some body →
-      ExecChain { fr1 with chain := mods, body := body } m1 mods body (.reverted d) → CallFn fr m fn args (.reverted d)
-  | modsReverted : enterFn cfg fc.types fn.declaredIn fn.decl args m = some (.ok (fr0, m0)) →
-      EvalMods fr0 m0 fn.decl.modifiers (.reverted d) → CallFn fr m fn args (.reverted d)
+  | ok : enterFn cfg fc.types fn.declaredIn fn.decl args m = some (.ok (fr0, m0)) → fn.decl.body = some body →
+      ExecChain { fr0 with chain := fn.decl.modifiers, body := body } m0 fn.decl.modifiers body r →
+      finished r = some (fr2, m2) → retVals fr2 = some rets → CallFn fr m fn args (.ok rets m2)
+  | reverted : enterFn cfg fc.types fn.declaredIn fn.decl args m = some (.ok (fr0, m0)) → fn.decl.body = some body →
+      ExecChain { fr0 with chain := fn.decl.modifiers, body := body } m0 fn.decl.modifiers body (.reverted d) →
+      CallFn fr m fn args (.reverted d)
   | enterPanic : enterFn cfg fc.types fn.declaredIn fn.decl args m = some (.error p) → CallFn fr m fn args (.reverted p.data)
 
 end

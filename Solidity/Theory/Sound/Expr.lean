@@ -154,47 +154,49 @@ theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
           · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
             exact .unaryPanic (ih.expr _ _ _ _ hv) hp hinc' hdel'
           · rw [IM.pure_some h]; exact .unary (ih.expr _ _ _ _ hv) (liftOp_ok hr) hinc' hdel'
-  · -- a op b
-    rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨va, fr1, m1⟩, ha, h⟩ <;> try dsimp only at h
-    · exact .binaryLeftRevert (ih.expr _ _ _ _ hd)
-    · split at h
-      · rename_i hand
-        have hand' := hand
-        simp only [beq_iff_eq] at hand'
-        split at h
+  · -- a op b: `&&`/`||` short-circuit left to right; other operators evaluate the right operand first
+    split at h
+    · rename_i hand
+      have hand' := hand
+      simp only [beq_iff_eq] at hand'
+      rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨va, fr1, m1⟩, ha, h⟩ <;> try dsimp only at h
+      · rw [hand']; exact .andLeftRevert (ih.expr _ _ _ _ hd)
+      · split at h
         · rw [IM.pure_some h, hand']; exact .andShort (ih.expr _ _ _ _ ha)
         · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vb, fr2, m2⟩, hb, h⟩ <;> try dsimp only at h
-          · rw [hand']
-            exact .binaryRightRevert (ih.expr _ _ _ _ ha) (ih.expr _ _ _ _ hd) (Or.inr rfl) (Or.inl (by decide))
+          · rw [hand']; exact .andRightRevert (ih.expr _ _ _ _ ha) (ih.expr _ _ _ _ hd)
           · split at h
             · rw [IM.pure_some h, hand']; exact .andFull (ih.expr _ _ _ _ ha) (ih.expr _ _ _ _ hb)
             · simp at h
         · simp at h
-      · rename_i hand
-        have hop1 := hand
-        simp only [beq_iff_eq] at hop1
-        split at h
-        · rename_i hor
-          have hor' := hor
-          simp only [beq_iff_eq] at hor'
-          split at h
+    · rename_i hand
+      have hop1 := hand
+      simp only [beq_iff_eq] at hop1
+      split at h
+      · rename_i hor
+        have hor' := hor
+        simp only [beq_iff_eq] at hor'
+        rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨va, fr1, m1⟩, ha, h⟩ <;> try dsimp only at h
+        · rw [hor']; exact .orLeftRevert (ih.expr _ _ _ _ hd)
+        · split at h
           · rw [IM.pure_some h, hor']; exact .orShort (ih.expr _ _ _ _ ha)
           · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vb, fr2, m2⟩, hb, h⟩ <;> try dsimp only at h
-            · rw [hor']
-              exact .binaryRightRevert (ih.expr _ _ _ _ ha) (ih.expr _ _ _ _ hd) (Or.inl (by decide)) (Or.inr rfl)
+            · rw [hor']; exact .orRightRevert (ih.expr _ _ _ _ ha) (ih.expr _ _ _ _ hd)
             · split at h
               · rw [IM.pure_some h, hor']; exact .orFull (ih.expr _ _ _ _ ha) (ih.expr _ _ _ _ hb)
               · simp at h
           · simp at h
-        · rename_i hor
-          have hop2 := hor
-          simp only [beq_iff_eq] at hop2
-          rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vb, fr2, m2⟩, hb, h⟩ <;> try dsimp only at h
-          · exact .binaryRightRevert (ih.expr _ _ _ _ ha) (ih.expr _ _ _ _ hd) (Or.inl hop1) (Or.inl hop2)
+      · rename_i hor
+        have hop2 := hor
+        simp only [beq_iff_eq] at hop2
+        rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vb, fr1, m1⟩, hb, h⟩ <;> try dsimp only at h
+        · exact .binaryRightRevert hop1 hop2 (ih.expr _ _ _ _ hd)
+        · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨va, fr2, m2⟩, ha, h⟩ <;> try dsimp only at h
+          · exact .binaryLeftRevert hop1 hop2 (ih.expr _ _ _ _ hb) (ih.expr _ _ _ _ hd)
           · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨v, hv, h⟩ <;> try dsimp only at h
             · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
-              exact .binaryPanic hop1 hop2 (ih.expr _ _ _ _ ha) (ih.expr _ _ _ _ hb) hp
-            · rw [IM.pure_some h]; exact .binary hop1 hop2 (ih.expr _ _ _ _ ha) (ih.expr _ _ _ _ hb) (liftOp_ok hv)
+              exact .binaryPanic hop1 hop2 (ih.expr _ _ _ _ hb) (ih.expr _ _ _ _ ha) hp
+            · rw [IM.pure_some h]; exact .binary hop1 hop2 (ih.expr _ _ _ _ hb) (ih.expr _ _ _ _ ha) (liftOp_ok hv)
   · -- c ? t : e
     rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨cv, fr1, m1⟩, hcv, h⟩ <;> try dsimp only at h
     · exact .condRevert (ih.expr _ _ _ _ hd)

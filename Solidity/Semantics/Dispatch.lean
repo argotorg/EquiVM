@@ -173,20 +173,15 @@ inductive ExecCtorChain (frP : Frame) (topArgs : List Value) : Store → Machine
   | nil : ExecCtorChain frP topArgs imms m [] (.ok m imms)
   | skip : step.fn = none → ExecCtorChain frP topArgs imms m rest r → ExecCtorChain frP topArgs imms m (step :: rest) r
   | run : step.fn = some fid → fc.fns[fid]? = some fn → CtorArgs cfg o fc frP topArgs m step (.ok vs _ m1) →
-      enterFn cfg fc.types fn.declaredIn fn.decl vs m1 imms = some (.ok (fr2, m2)) →
-      EvalMods cfg o fc fr2 m2 fn.decl.modifiers (.ok mods fr3 m3) → fn.decl.body = some body →
-      ExecChain cfg o fc { fr3 with chain := mods, body := body } m3 mods body res → finished res = some (fr4, m4) →
+      enterFn cfg fc.types fn.declaredIn fn.decl vs m1 imms = some (.ok (fr2, m2)) → fn.decl.body = some body →
+      ExecChain cfg o fc { fr2 with chain := fn.decl.modifiers, body := body } m2 fn.decl.modifiers body res →
+      finished res = some (fr4, m4) →
       ExecCtorChain frP topArgs (immStore fr4) m4 rest r → ExecCtorChain frP topArgs imms m (step :: rest) r
   | argsReverted : step.fn = some fid → fc.fns[fid]? = some fn → CtorArgs cfg o fc frP topArgs m step (.reverted d) →
       ExecCtorChain frP topArgs imms m (step :: rest) (.reverted d)
-  | modsReverted : step.fn = some fid → fc.fns[fid]? = some fn → CtorArgs cfg o fc frP topArgs m step (.ok vs _ m1) →
-      enterFn cfg fc.types fn.declaredIn fn.decl vs m1 imms = some (.ok (fr2, m2)) →
-      EvalMods cfg o fc fr2 m2 fn.decl.modifiers (.reverted d) →
-      ExecCtorChain frP topArgs imms m (step :: rest) (.reverted d)
   | bodyReverted : step.fn = some fid → fc.fns[fid]? = some fn → CtorArgs cfg o fc frP topArgs m step (.ok vs _ m1) →
-      enterFn cfg fc.types fn.declaredIn fn.decl vs m1 imms = some (.ok (fr2, m2)) →
-      EvalMods cfg o fc fr2 m2 fn.decl.modifiers (.ok mods fr3 m3) → fn.decl.body = some body →
-      ExecChain cfg o fc { fr3 with chain := mods, body := body } m3 mods body (.reverted d) →
+      enterFn cfg fc.types fn.declaredIn fn.decl vs m1 imms = some (.ok (fr2, m2)) → fn.decl.body = some body →
+      ExecChain cfg o fc { fr2 with chain := fn.decl.modifiers, body := body } m2 fn.decl.modifiers body (.reverted d) →
       ExecCtorChain frP topArgs imms m (step :: rest) (.reverted d)
   | enterPanic : step.fn = some fid → fc.fns[fid]? = some fn → CtorArgs cfg o fc frP topArgs m step (.ok vs _ m1) →
       enterFn cfg fc.types fn.declaredIn fn.decl vs m1 imms = some (.error p) →

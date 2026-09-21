@@ -19,3 +19,4 @@ import Solidity.Test.Specs.HexLit
 import Solidity.Test.Specs.TryCatch
 import Solidity.Test.Specs.BaseCall
 import Solidity.Test.Specs.Ecrecover
+import Solidity.Test.Specs.Fixes

@@ -92,7 +92,8 @@ theorem execStmt_sound_step {n} (ih : SoundAt cfg o fc n) :
   cases s with
   | block ss =>
     simp only [execStmt] at h
-    exact .block (ih.block _ _ _ _ h)
+    obtain ⟨r0, h0, hr⟩ := exitBlock_run h
+    rw [hr]; exact .block (ih.block _ _ _ _ h0)
   | varDecl ty loc x init =>
     cases init with
     | none =>
@@ -159,7 +160,9 @@ theorem execStmt_sound_step {n} (ih : SoundAt cfg o fc n) :
       · exact .forInitRevert (ih.stmt _ _ _ _ hd)
       · have hs := ih.stmt _ _ _ _ hr
         cases r' with
-        | normal fr1 m1 => exact .forInit hs (ih.loop _ _ _ _ _ _ h)
+        | normal fr1 m1 =>
+          obtain ⟨r0, h0, hr⟩ := exitBlock_run h
+          rw [hr]; exact .forInit hs (ih.loop _ _ _ _ _ _ h0)
         | reverted d => rw [IM.throw_some h]; exact .forInitRevert hs
         | _ => simp at h
   | «break» => simp only [execStmt] at h; rw [IM.pure_some h]; exact .break
@@ -293,9 +296,11 @@ theorem execStmt_sound_step {n} (ih : SoundAt cfg o fc n) :
                                     · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
                                       exact .tryCallCaughtBindPanic hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs)
                                         (liftOpt_ok hdcl) (liftOpt_ok hsig) (liftOp_ok hsvs) (liftOpt_ok hbs) hnc hbridge hsel hp
-                                    · exact .tryCallCaught hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
+                                    · obtain ⟨r0, h0, hr⟩ := exitBlock_run h
+                                      rw [hr]
+                                      exact .tryCallCaught hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
                                         (liftOpt_ok hsig) (liftOp_ok hsvs) (liftOpt_ok hbs) hnc hbridge hsel (liftOp_ok hbind)
-                                        (ih.block _ _ _ _ h)
+                                        (ih.block _ _ _ _ h0)
                                   · rename_i hsel
                                     rw [IM.throw_some h]
                                     exact .tryCallUncaught hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
@@ -307,9 +312,11 @@ theorem execStmt_sound_step {n} (ih : SoundAt cfg o fc n) :
                                     · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
                                       exact .tryCallBindPanic hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
                                         (liftOpt_ok hsig) (liftOp_ok hsvs) (liftOpt_ok hbs) hnc hbridge hrets hp
-                                    · exact .tryCallOk hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
+                                    · obtain ⟨r0, h0, hr⟩ := exitBlock_run h
+                                      rw [hr]
+                                      exact .tryCallOk hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
                                         (liftOpt_ok hsig) (liftOp_ok hsvs) (liftOpt_ok hbs) hnc hbridge hrets (liftOp_ok hbind)
-                                        (ih.block _ _ _ _ h)
+                                        (ih.block _ _ _ _ h0)
                                   · rename_i hrets
                                     rw [IM.throw_some h]
                                     exact .tryCallDecodeFail hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
@@ -342,8 +349,10 @@ theorem execStmt_sound_step {n} (ih : SoundAt cfg o fc n) :
                           rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr4, m7⟩, hbind, h⟩ <;> try dsimp only at h
                           · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
                             exact .tryNewCaughtBindPanic hct hv hs (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) hbridge hsel hp
-                          · exact .tryNewCaught hct hv hs (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) hbridge hsel
-                              (liftOp_ok hbind) (ih.block _ _ _ _ h)
+                          · obtain ⟨r0, h0, hr⟩ := exitBlock_run h
+                            rw [hr]
+                            exact .tryNewCaught hct hv hs (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) hbridge hsel
+                              (liftOp_ok hbind) (ih.block _ _ _ _ h0)
                         · rename_i hsel
                           rw [IM.throw_some h]
                           exact .tryNewUncaught hct hv hs (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) hbridge hsel
@@ -351,8 +360,10 @@ theorem execStmt_sound_step {n} (ih : SoundAt cfg o fc n) :
                         rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr4, m6⟩, hbind, h⟩ <;> try dsimp only at h
                         · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
                           exact .tryNewBindPanic hct hv hs (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) hbridge hp
-                        · exact .tryNewOk hct hv hs (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) hbridge (liftOp_ok hbind)
-                            (ih.block _ _ _ _ h)
+                        · obtain ⟨r0, h0, hr⟩ := exitBlock_run h
+                          rw [hr]
+                          exact .tryNewOk hct hv hs (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) hbridge (liftOp_ok hbind)
+                            (ih.block _ _ _ _ h0)
         · simp at h
       all_goals simp [execStmt] at h
     all_goals simp [execStmt] at h

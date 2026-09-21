@@ -50,10 +50,10 @@ structure Frame where
   retVars : List Ident
   unchecked : Bool := false
   /-- Remaining modifier chain and function body, run by `_;`. -/
-  chain : List (ModDef × List Value) := []
+  chain : List ModifierInvocation := []
   body : Block := []
-  /-- Scopes suspended while a modifier body runs (the function scope, for `_;`). -/
-  outer : List Store := []
+  /-- Scopes suspended while a modifier body runs: the contract and locals to return to. -/
+  outer : List (Ident × Store) := []
 
 inductive ExecResult where
   | normal (fr : Frame) (m : Machine)
@@ -91,6 +91,10 @@ def setVal (fr : Frame) (x : Ident) (v : Value) : Frame :=
   match fr.locals.get? x with
   | some l => { fr with locals := fr.locals.insert x { l with val := v } }
   | none => fr
+
+/-- Leave a block entered from `fr`: names declared inside are dropped, the others keep their new values. -/
+def exitScope (fr fr' : Frame) : Frame :=
+  { fr' with locals := fr'.locals.filter fun k _ => fr.locals.contains k }
 
 end Frame
 

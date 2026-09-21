@@ -106,7 +106,7 @@ macro_rules
   | `(tactic| interp_simp [$ls,*]) => `(tactic|
       simp +decide only [evalExpr, evalMember, evalCall, evalBuiltin, evalNamedCall, evalAbi, evalMemberCall,
         evalValueOpt, evalSaltOpt, evalGasOpt, evalExprs, evalLValue, assignTuple, declareTuple, execStmt, execLoop, execLoopBody, execBlock,
-        execChain, evalMods, callFn, toRes, toUnit, toExec, toFn,
+        execChain, callFn, exitBlock, toRes, toUnit, toExec, toFn,
         IM.run_bind, IM.run_pure, IM.run_throw, IM.run_failure, liftOp_run, liftOpt_run, guard'_run,
         ite_true, ite_false, dite_true, dite_false, Bool.true_or, Bool.false_or, Bool.or_true, Bool.or_false,
         Bool.true_and, Bool.false_and, Bool.and_true, Bool.and_false, Bool.not_true, Bool.not_false,
@@ -958,6 +958,28 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     refine ⟨n1 + n2 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     interp_simp [ih1 k' (by omega), ih2 k' (by omega)]
+  | .andLeftRevert p1 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    refine ⟨n1 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [ih1 k' (by omega)]
+  | .andRightRevert p1 p2 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    refine ⟨n1 + n2 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [ih1 k' (by omega), ih2 k' (by omega)]
+  | .orLeftRevert p1 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    refine ⟨n1 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [ih1 k' (by omega)]
+  | .orRightRevert p1 p2 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    refine ⟨n1 + n2 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [ih1 k' (by omega), ih2 k' (by omega)]
   | .binary p1 p2 p3 p4 p5 => by
     obtain ⟨n3, ih3⟩ := evalExpr_complete p3
     obtain ⟨n4, ih4⟩ := evalExpr_complete p4
@@ -970,27 +992,17 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     refine ⟨n3 + n4 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     interp_simp [p1, p2, p5, ih3 k' (by omega), ih4 k' (by omega)]
-  | .binaryLeftRevert p1 => by
-    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
-    refine ⟨n1 + 1, fun k hk => ?_⟩
+  | .binaryRightRevert p1 p2 p3 => by
+    obtain ⟨n3, ih3⟩ := evalExpr_complete p3
+    refine ⟨n3 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [ih1 k' (by omega)]
-  | .binaryRightRevert (op := op) p1 p2 p3 p4 => by
-    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
-    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
-    refine ⟨n1 + n2 + 1, fun k hk => ?_⟩
+    interp_simp [p1, p2, ih3 k' (by omega)]
+  | .binaryLeftRevert p1 p2 p3 p4 => by
+    obtain ⟨n3, ih3⟩ := evalExpr_complete p3
+    obtain ⟨n4, ih4⟩ := evalExpr_complete p4
+    refine ⟨n3 + n4 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    by_cases hand : op = .and
-    · subst hand
-      rcases p3 with h3 | rfl
-      · exact absurd rfl h3
-      · interp_simp [ih1 k' (by omega), ih2 k' (by omega)]
-    · by_cases hor : op = .or
-      · subst hor
-        rcases p4 with h4 | rfl
-        · exact absurd rfl h4
-        · interp_simp [ih1 k' (by omega), ih2 k' (by omega)]
-      · interp_simp [hand, hor, ih1 k' (by omega), ih2 k' (by omega)]
+    interp_simp [p1, p2, ih3 k' (by omega), ih4 k' (by omega)]
   | .condT p1 p2 => by
     obtain ⟨n1, ih1⟩ := evalExpr_complete p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
@@ -1271,11 +1283,11 @@ theorem assignTuple_complete {fr m ls vs r} (h : AssignTuple cfg o fc fr m ls vs
 theorem execStmt_complete {fr m s r} (h : ExecStmt cfg o fc fr m s r) :
     ∃ n, ∀ k, n ≤ k → (execStmt cfg o fc k fr m s).run = some (toExec r) :=
   match h with
-  | .block p1 => by
+  | .block (r := rr) p1 => by
     obtain ⟨n1, ih1⟩ := execBlock_complete p1
     refine ⟨n1 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [ih1 k' (by omega)]
+    cases rr <;> interp_simp [exitBlock, ih1 k' (by omega)]
   | .varDeclNone p1 => by
     refine ⟨1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add hk
@@ -1385,12 +1397,12 @@ theorem execStmt_complete {fr m s r} (h : ExecStmt cfg o fc fr m s r) :
     refine ⟨n1 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     interp_simp [ih1 k' (by omega)]
-  | .forInit p1 p2 => by
+  | .forInit (r := rr) p1 p2 => by
     obtain ⟨n1, ih1⟩ := execStmt_complete p1
     obtain ⟨n2, ih2⟩ := execLoop_complete p2
     refine ⟨n1 + n2 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [ih1 k' (by omega), ih2 k' (by omega)]
+    cases rr <;> interp_simp [exitBlock, ih1 k' (by omega), ih2 k' (by omega)]
   | .forInitRevert p1 => by
     obtain ⟨n1, ih1⟩ := execStmt_complete p1
     refine ⟨n1 + 1, fun k hk => ?_⟩
@@ -1479,13 +1491,13 @@ theorem execStmt_complete {fr m s r} (h : ExecStmt cfg o fc fr m s r) :
     obtain ⟨n1, ih1⟩ := execBlock_complete p1
     refine ⟨n1 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    cases rr <;> interp_simp [restoreUnchecked, ih1 k' (by omega)]
+    cases rr <;> interp_simp [exitBlock, restoreUnchecked, ih1 k' (by omega)]
   | .placeholder (r := rr) (r' := r') p1 p2 => by
     obtain ⟨n1, ih1⟩ := execChain_complete p1
     refine ⟨n1 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     cases rr <;> simp [settlePlaceholder] at p2 <;> (try subst p2) <;> interp_simp [settlePlaceholder, ih1 k' (by omega)]
-  | .tryCallOk p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15 => by
+  | .tryCallOk (r := rr) p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15 => by
     obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     have hnc := noCode_false p11
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
@@ -1496,7 +1508,7 @@ theorem execStmt_complete {fr m s r} (h : ExecStmt cfg o fc fr m s r) :
     obtain ⟨n15, ih15⟩ := execBlock_complete p15
     refine ⟨n2 + n3 + n4 + n6 + n15 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, p14, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega), ih15 k' (by omega)]
+    cases rr <;> interp_simp [exitBlock, hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, p14, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega), ih15 k' (by omega)]
   | .tryCallBindPanic p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 => by
     obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     have hnc := noCode_false p11
@@ -1519,7 +1531,7 @@ theorem execStmt_complete {fr m s r} (h : ExecStmt cfg o fc fr m s r) :
     refine ⟨n2 + n3 + n4 + n6 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     interp_simp [hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega)]
-  | .tryCallCaught p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15 => by
+  | .tryCallCaught (r := rr) p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 p15 => by
     obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     have hnc := noCode_false p11
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
@@ -1530,7 +1542,7 @@ theorem execStmt_complete {fr m s r} (h : ExecStmt cfg o fc fr m s r) :
     obtain ⟨n15, ih15⟩ := execBlock_complete p15
     refine ⟨n2 + n3 + n4 + n6 + n15 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, p14, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega), ih15 k' (by omega)]
+    cases rr <;> interp_simp [exitBlock, hmd1, hmd2, hmd3, hmd4, hnc, p1, p5, p7, p8, p9, p10, p11, hb12, p13, p14, ih2 k' (by omega), ih3 k' (by omega), ih4 k' (by omega), ih6 k' (by omega), ih15 k' (by omega)]
   | .tryCallCaughtBindPanic p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 p11 p12 p13 p14 => by
     obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     have hnc := noCode_false p11
@@ -1602,7 +1614,7 @@ theorem execStmt_complete {fr m s r} (h : ExecStmt cfg o fc fr m s r) :
     refine ⟨n2 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     interp_simp [hmd1, hmd2, hmd3, hmd4, p1, ih2 k' (by omega)]
-  | .tryNewOk p1 p2 p3 p4 p5 p6 p7 p8 p9 => by
+  | .tryNewOk (r := rr) p1 p2 p3 p4 p5 p6 p7 p8 p9 => by
     obtain ⟨n2, ih2⟩ := evalValueOpt_complete p2
     obtain ⟨n3, ih3⟩ := evalSaltOpt_complete p3
     obtain ⟨n5, ih5⟩ := evalExprs_complete p5
@@ -1610,7 +1622,7 @@ theorem execStmt_complete {fr m s r} (h : ExecStmt cfg o fc fr m s r) :
     obtain ⟨n9, ih9⟩ := execBlock_complete p9
     refine ⟨n2 + n3 + n5 + n9 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [p1, p4, p6, hb7, p8, ih2 k' (by omega), ih3 k' (by omega), ih5 k' (by omega), ih9 k' (by omega)]
+    cases rr <;> interp_simp [exitBlock, p1, p4, p6, hb7, p8, ih2 k' (by omega), ih3 k' (by omega), ih5 k' (by omega), ih9 k' (by omega)]
   | .tryNewBindPanic p1 p2 p3 p4 p5 p6 p7 p8 => by
     obtain ⟨n2, ih2⟩ := evalValueOpt_complete p2
     obtain ⟨n3, ih3⟩ := evalSaltOpt_complete p3
@@ -1619,7 +1631,7 @@ theorem execStmt_complete {fr m s r} (h : ExecStmt cfg o fc fr m s r) :
     refine ⟨n2 + n3 + n5 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     interp_simp [p1, p4, p6, hb7, p8, ih2 k' (by omega), ih3 k' (by omega), ih5 k' (by omega)]
-  | .tryNewCaught p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 => by
+  | .tryNewCaught (r := rr) p1 p2 p3 p4 p5 p6 p7 p8 p9 p10 => by
     obtain ⟨n2, ih2⟩ := evalValueOpt_complete p2
     obtain ⟨n3, ih3⟩ := evalSaltOpt_complete p3
     obtain ⟨n5, ih5⟩ := evalExprs_complete p5
@@ -1627,7 +1639,7 @@ theorem execStmt_complete {fr m s r} (h : ExecStmt cfg o fc fr m s r) :
     obtain ⟨n10, ih10⟩ := execBlock_complete p10
     refine ⟨n2 + n3 + n5 + n10 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [p1, p4, p6, hb7, p8, p9, ih2 k' (by omega), ih3 k' (by omega), ih5 k' (by omega), ih10 k' (by omega)]
+    cases rr <;> interp_simp [exitBlock, p1, p4, p6, hb7, p8, p9, ih2 k' (by omega), ih3 k' (by omega), ih5 k' (by omega), ih10 k' (by omega)]
   | .tryNewCaughtBindPanic p1 p2 p3 p4 p5 p6 p7 p8 p9 => by
     obtain ⟨n2, ih2⟩ := evalValueOpt_complete p2
     obtain ⟨n3, ih3⟩ := evalSaltOpt_complete p3
@@ -1872,42 +1884,24 @@ theorem execChain_complete {fr m mods body r} (h : ExecChain cfg o fc fr m mods 
     refine ⟨n1 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     interp_simp [ih1 k' (by omega)]
-  | .modifier (r := rr) p1 p2 p3 => by
-    obtain ⟨n3, ih3⟩ := execBlock_complete p3
-    refine ⟨n3 + 1, fun k hk => ?_⟩
-    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    cases rr <;> interp_simp [popScope, p1, p2, ih3 k' (by omega)]
-  | .modifierPanic p1 => by
-    refine ⟨1, fun k hk => ?_⟩
-    obtain ⟨k', rfl⟩ := exists_add hk
-    interp_simp [p1]
-
-theorem evalMods_complete {fr m mis r} (h : EvalMods cfg o fc fr m mis r) :
-    ∃ n, ∀ k, n ≤ k → (evalMods cfg o fc k fr m mis).run = some (toRes r) :=
-  match h with
-  | .nil => by
-    refine ⟨1, fun k hk => ?_⟩
-    obtain ⟨k', rfl⟩ := exists_add hk
-    interp_simp
-  | .cons p1 p2 p3 p4 => by
+  | .modifier (r := rr) p1 p2 p3 p4 p5 p6 => by
     obtain ⟨n3, ih3⟩ := evalExprs_complete p3
-    obtain ⟨n4, ih4⟩ := evalMods_complete p4
-    refine ⟨n3 + n4 + 1, fun k hk => ?_⟩
+    obtain ⟨n6, ih6⟩ := execBlock_complete p6
+    refine ⟨n3 + n6 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [p1, p2, ih3 k' (by omega), ih4 k' (by omega)]
-  | .consRevert p1 p2 p3 => by
+    cases rr <;> interp_simp [popScope, p1, p2, p4, p5, ih3 k' (by omega), ih6 k' (by omega)]
+  | .modifierArgsRevert p1 p2 p3 => by
     obtain ⟨n3, ih3⟩ := evalExprs_complete p3
     refine ⟨n3 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     interp_simp [p1, p2, ih3 k' (by omega)]
-  | .consTailRevert p1 p2 p3 p4 => by
+  | .modifierPanic p1 p2 p3 p4 => by
     obtain ⟨n3, ih3⟩ := evalExprs_complete p3
-    obtain ⟨n4, ih4⟩ := evalMods_complete p4
-    refine ⟨n3 + n4 + 1, fun k hk => ?_⟩
+    refine ⟨n3 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [p1, p2, ih3 k' (by omega), ih4 k' (by omega)]
+    interp_simp [p1, p2, p4, ih3 k' (by omega)]
   | .skipBase p1 p2 p3 => by
-    obtain ⟨n3, ih3⟩ := evalMods_complete p3
+    obtain ⟨n3, ih3⟩ := execChain_complete p3
     refine ⟨n3 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     interp_simp [p1, p2, ih3 k' (by omega)]
@@ -1915,28 +1909,21 @@ theorem evalMods_complete {fr m mis r} (h : EvalMods cfg o fc fr m mis r) :
 theorem callFn_complete {fr m fn args r} (h : CallFn cfg o fc fr m fn args r) :
     ∃ n, ∀ k, n ≤ k → (callFn cfg o fc k fr m fn args).run = some (toFn r) :=
   match h with
-  | .ok (r := rr) p1 p2 p3 p4 p5 p6 => by
-    obtain ⟨n2, ih2⟩ := evalMods_complete p2
-    obtain ⟨n4, ih4⟩ := execChain_complete p4
-    refine ⟨n2 + n4 + 1, fun k hk => ?_⟩
+  | .ok (r := rr) p1 p2 p3 p4 p5 => by
+    obtain ⟨n3, ih3⟩ := execChain_complete p3
+    refine ⟨n3 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     cases rr with
-    | normal fr' m' => interp_simp [p1, p3, p5, p6, ih2 k' (by omega), ih4 k' (by omega)]
-    | returned fr' m' => interp_simp [p1, p3, p5, p6, ih2 k' (by omega), ih4 k' (by omega)]
-    | «break» fr' m' => simp [finished] at p5
-    | «continue» fr' m' => simp [finished] at p5
-    | reverted d => simp [finished] at p5
-  | .reverted p1 p2 p3 p4 => by
-    obtain ⟨n2, ih2⟩ := evalMods_complete p2
-    obtain ⟨n4, ih4⟩ := execChain_complete p4
-    refine ⟨n2 + n4 + 1, fun k hk => ?_⟩
+    | normal fr' m' => interp_simp [p1, p2, p4, p5, ih3 k' (by omega)]
+    | returned fr' m' => interp_simp [p1, p2, p4, p5, ih3 k' (by omega)]
+    | «break» fr' m' => simp [finished] at p4
+    | «continue» fr' m' => simp [finished] at p4
+    | reverted d => simp [finished] at p4
+  | .reverted p1 p2 p3 => by
+    obtain ⟨n3, ih3⟩ := execChain_complete p3
+    refine ⟨n3 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [p1, p3, ih2 k' (by omega), ih4 k' (by omega)]
-  | .modsReverted p1 p2 => by
-    obtain ⟨n2, ih2⟩ := evalMods_complete p2
-    refine ⟨n2 + 1, fun k hk => ?_⟩
-    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [p1, ih2 k' (by omega)]
+    interp_simp [p1, p2, ih3 k' (by omega)]
   | .enterPanic p1 => by
     refine ⟨1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add hk

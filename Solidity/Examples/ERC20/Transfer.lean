@@ -107,8 +107,8 @@ theorem lvalBalanceOfLocal (o : Oracle) (fr : Frame) (m : Machine) (x : Ident) (
 theorem trEvalCond (o : Oracle) (m : Machine) (a : EVM.Address) (w : UInt256) :
     EvalExpr erc20Cfg o erc20Flat (trFr a w) m trCond
       (.ok (.bool (decide (w.toNat ≤ (senderBal m).toNat))) (trFr a w) m) :=
-  EvalExpr.binary (by decide) (by decide) (evalBalanceOfSender o _ m (by frame_simp [trFr, bodyFrame, trFrame]))
-    (EvalExpr.localVal u256 (some .memory) (by frame_simp [trFr, bodyFrame, trFrame])) (binop_ge_u256 ..)
+  EvalExpr.binary (by decide) (by decide) (EvalExpr.localVal u256 (some .memory) (by frame_simp [trFr, bodyFrame, trFrame]))
+    (evalBalanceOfSender o _ m (by frame_simp [trFr, bodyFrame, trFrame])) (binop_ge_u256 ..)
 
 /-- `require` fails: `Error("ERC20: insufficient balance")`. -/
 theorem trBodyInsufficient (o : Oracle) (m : Machine) (a : EVM.Address) (w : UInt256)
@@ -201,13 +201,13 @@ theorem trCallOk (o : Oracle) (m : Machine) (a : EVM.Address) (w : UInt256)
     ∃ le, CallFn erc20Cfg o erc20Flat (rootFrame erc20Flat) m fnTransfer [.address a, u256Val w.toNat]
       (.ok [.bool true] ((trCredited m a w).pushLog le)) := by
   obtain ⟨le, hb⟩ := trBodyOk o m a w henough hfit
-  refine ⟨le, CallFn.ok (trEnter m a w) EvalMods.nil rfl (ExecChain.body hb) rfl ?_⟩
+  refine ⟨le, CallFn.ok (trEnter m a w) rfl (ExecChain.body hb) rfl ?_⟩
   frame_simp [retVals, trFr, bodyFrame, trFrame]
 
 theorem trCallRevert (o : Oracle) (m : Machine) (a : EVM.Address) (w : UInt256) (d : ByteArray)
     (hb : ExecBlock erc20Cfg o erc20Flat (trFr a w) m trStmts (.reverted d)) :
     CallFn erc20Cfg o erc20Flat (rootFrame erc20Flat) m fnTransfer [.address a, u256Val w.toNat] (.reverted d) :=
-  CallFn.reverted (trEnter m a w) EvalMods.nil rfl (ExecChain.body hb)
+  CallFn.reverted (trEnter m a w) rfl (ExecChain.body hb)
 
 /-! ## The dispatch-level spec runs -/
 

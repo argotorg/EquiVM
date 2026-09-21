@@ -106,7 +106,7 @@ macro_rules
   | `(tactic| interp_simp [$ls,*]) => `(tactic|
       simp +decide only [evalExpr, evalMember, evalCall, evalBuiltin, evalNamedCall, evalAbi, evalMemberCall,
         evalValueOpt, evalSaltOpt, evalGasOpt, evalExprs, evalLValue, assignTuple, declareTuple, execStmt, execLoop, execLoopBody, execBlock,
-        execChain, evalMods, callFn, toRes, toUnit, toExec, toFn,
+        execChain, callFn, exitBlock, toRes, toUnit, toExec, toFn,
         IM.run_bind, IM.run_pure, IM.run_throw, IM.run_failure, liftOp_run, liftOpt_run, guard'_run,
         ite_true, ite_false, dite_true, dite_false, Bool.true_or, Bool.false_or, Bool.or_true, Bool.or_false,
         Bool.true_and, Bool.false_and, Bool.and_true, Bool.and_false, Bool.not_true, Bool.not_false,

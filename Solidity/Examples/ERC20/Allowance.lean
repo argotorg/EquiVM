@@ -88,7 +88,7 @@ theorem alBody (o : Oracle) (m : Machine) (a b : EVM.Address) :
 theorem alCall (o : Oracle) (m : Machine) (a b : EVM.Address) :
     CallFn erc20Cfg o erc20Flat (rootFrame erc20Flat) m fnAllowance [.address a, .address b]
       (.ok [alVal m a b] m) := by
-  refine CallFn.ok (alEnter m a b) EvalMods.nil rfl (ExecChain.body (alBody o m a b)) rfl ?_
+  refine CallFn.ok (alEnter m a b) rfl (ExecChain.body (alBody o m a b)) rfl ?_
   frame_simp [retVals, bodyFrame, alFrame]
 
 theorem erc20AllowanceSpec (o : Oracle) {cA gh bl σ σ₀ g A I}

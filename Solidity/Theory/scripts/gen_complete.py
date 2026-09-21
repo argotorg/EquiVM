@@ -14,7 +14,6 @@ FAM={
  'ExecLoop':('execLoop_complete','execLoop','fr m c post body','toExec'),
  'ExecBlock':('execBlock_complete','execBlock','fr m ss','toExec'),
  'ExecChain':('execChain_complete','execChain','fr m mods body','toExec'),
- 'EvalMods':('evalMods_complete','evalMods','fr m mis','toRes'),
  'CallFn':('callFn_complete','callFn','fr m fn args','toFn'),
 }
 OFF2=set('memberField memberStorageLength memberStorageLengthPanic memberMemField memberMemLength memberBalance memberBytesLength memberRevert convert convertPanic convertRevert newArray newArrayRevert newContract newContractFailed newContractAbiPanic newContractArgsRevert newContractSaltRevert newContractValueRevert superCall superCallRevert superArgsRevert libraryCall libraryCallRevert libraryArgsRevert baseCall baseCallRevert baseArgsRevert'.split())
@@ -36,6 +35,8 @@ for b in 'requireTrue requireFalse requireMsg requireMsgRevert requireCustom req
     EXTRA[b]=EXTRA.get(b,[])+['isBuiltinFn']
 KW={'local','while','break','continue','return','for','if','then','else','do','match','fun','let','have','show','from','at','by','in','with','end','open','import','where','instance','structure','class','def','theorem','private','section','namespace','variable','unsafe','partial','try','catch','finally','throw','unless','calc','some','none','skip'}
 MANUAL=json.load(open(SP+'manual.json'))
+# statements whose conclusion is `exitBlock fr r`: the completeness proof splits on `r`
+SCOPED=set('block forInit tryCallOk tryCallCaught tryNewOk tryNewCaught'.split())
 LOOPBODY=set('iterate iterateContinue postRevert postRevertContinue breakOut returnOut bodyRevert'.split())
 def offset(fam,name):
     if fam=='ExecLoop' and name in LOOPBODY: return 2
@@ -128,7 +129,11 @@ for fam,rules in R.items():
             lines.append("    obtain ⟨k', rfl⟩ := exists_add hk")
         ihs=[f"ih{i+1} k' (by omega)" for i,k in enumerate(kinds) if k[0]=='der']
         allf=facts+ihs
-        lines.append('    interp_simp'+(f' [{", ".join(allf)}]' if allf else ''))
+        if fam=='ExecStmt' and name in SCOPED:
+            head=f'  | .{lname} (r := rr)'+(' '+' '.join(names) if names else '')+' => by'
+            lines.append(f'    cases rr <;> interp_simp [exitBlock, {", ".join(allf)}]')
+        else:
+            lines.append('    interp_simp'+(f' [{", ".join(allf)}]' if allf else ''))
         out.append(head+'\n'+'\n'.join(lines))
     out.append('')
 header=open(SP+'complete_header.lean').read()

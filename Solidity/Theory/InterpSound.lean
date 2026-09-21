@@ -233,19 +233,16 @@ theorem chainFold_sound (fuel : Nat) (frP : Frame) (topArgs : List Value) : ∀ 
             rcases IM.bind_some hd with ⟨d', hd', hdd⟩ | ⟨⟨fr2, m2⟩, henter, hd⟩ <;> try dsimp only at hd
             · obtain ⟨p, hp, hpd⟩ := liftOp_error hd'
               cases hdd; cases hpd; exact .enterPanic hfid (liftOpt_ok hfn) hca hp
-            · rcases IM.bind_some hd with ⟨d', hd', hdd⟩ | ⟨⟨mods, fr3, m3⟩, hmods, hd⟩ <;> try dsimp only at hd
-              · cases hdd
-                exact .modsReverted hfid (liftOpt_ok hfn) hca (liftOp_ok henter) ((soundAt cfg o fc fuel).mods _ _ _ _ hd')
-              · split at hd
-                · rename_i body hbody
-                  rcases IM.bind_some hd with ⟨d', hd', hdd⟩ | ⟨r', hr, hd⟩ <;> try dsimp only at hd
-                  · cases hdd
-                    exact .bodyReverted hfid (liftOpt_ok hfn) hca (liftOp_ok henter)
-                      ((soundAt cfg o fc fuel).mods _ _ _ _ hmods) hbody ((soundAt cfg o fc fuel).chain _ _ _ _ _ hd')
-                  · rcases IM.bind_some hd with ⟨d', hd', hdd⟩ | ⟨⟨fr4, m4⟩, hfin, hd⟩ <;> try dsimp only at hd
-                    · exact (liftOpt_error hd').elim
-                    · cases IM.pure_some hd
-                · simp at hd
+            · split at hd
+              · rename_i body hbody
+                rcases IM.bind_some hd with ⟨d', hd', hdd⟩ | ⟨r', hr, hd⟩ <;> try dsimp only at hd
+                · cases hdd
+                  exact .bodyReverted hfid (liftOpt_ok hfn) hca (liftOp_ok henter) hbody
+                    ((soundAt cfg o fc fuel).chain _ _ _ _ _ hd')
+                · rcases IM.bind_some hd with ⟨d', hd', hdd⟩ | ⟨⟨fr4, m4⟩, hfin, hd⟩ <;> try dsimp only at hd
+                  · exact (liftOpt_error hd').elim
+                  · cases IM.pure_some hd
+              · simp at hd
     · simp only [ctorStep] at hstep
       split at hstep
       · cases IM.pure_some hstep
@@ -258,19 +255,17 @@ theorem chainFold_sound (fuel : Nat) (frP : Frame) (topArgs : List Value) : ∀ 
           · obtain ⟨fr', hca⟩ := ctorArgs_sound hargs
             rcases IM.bind_some hstep with ⟨d', hd', hdd⟩ | ⟨⟨fr2, m2⟩, henter, hstep⟩ <;> try dsimp only at hstep
             · cases hdd
-            · rcases IM.bind_some hstep with ⟨d', hd', hdd⟩ | ⟨⟨mods, fr3, m3⟩, hmods, hstep⟩ <;> try dsimp only at hstep
-              · cases hdd
-              · split at hstep
-                · rename_i body hbody
-                  rcases IM.bind_some hstep with ⟨d', hd', hdd⟩ | ⟨r', hr, hstep⟩ <;> try dsimp only at hstep
-                  · cases hdd
-                  · rcases IM.bind_some hstep with ⟨d', hd', hdd⟩ | ⟨⟨fr4, m4⟩, hfin, hstep⟩ <;> try dsimp only at hstep
-                    · exact (liftOpt_error hd').elim
-                    · cases IM.pure_some hstep
-                      exact .run hfid (liftOpt_ok hfn) hca (liftOp_ok henter) ((soundAt cfg o fc fuel).mods _ _ _ _ hmods)
-                        hbody ((soundAt cfg o fc fuel).chain _ _ _ _ _ hr) (liftOpt_ok hfin)
-                        (chainFold_sound fuel frP topArgs steps _ _ _ h)
-                · simp at hstep
+            · split at hstep
+              · rename_i body hbody
+                rcases IM.bind_some hstep with ⟨d', hd', hdd⟩ | ⟨r', hr, hstep⟩ <;> try dsimp only at hstep
+                · cases hdd
+                · rcases IM.bind_some hstep with ⟨d', hd', hdd⟩ | ⟨⟨fr4, m4⟩, hfin, hstep⟩ <;> try dsimp only at hstep
+                  · exact (liftOpt_error hd').elim
+                  · cases IM.pure_some hstep
+                    exact .run hfid (liftOpt_ok hfn) hca (liftOp_ok henter) hbody
+                      ((soundAt cfg o fc fuel).chain _ _ _ _ _ hr) (liftOpt_ok hfin)
+                      (chainFold_sound fuel frP topArgs steps _ _ _ h)
+              · simp at hstep
 
 theorem ctorPayableB_iff {I : Ethereum.ExecutionEnv} : ctorPayableB fc I = true ↔ ctorPayable fc I := by
   unfold ctorPayableB ctorPayable

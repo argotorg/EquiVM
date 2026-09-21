@@ -43,7 +43,7 @@ theorem tsBody (o : Oracle) (m : Machine) :
 
 theorem tsCall (o : Oracle) (m : Machine) :
     CallFn erc20Cfg o erc20Flat (rootFrame erc20Flat) m fnTotalSupply [] (.ok [tsVal m] m) := by
-  refine CallFn.ok (tsEnter m) EvalMods.nil rfl (ExecChain.body (tsBody o m)) rfl ?_
+  refine CallFn.ok (tsEnter m) rfl (ExecChain.body (tsBody o m)) rfl ?_
   frame_simp [retVals, bodyFrame, tsFrame]
 
 theorem erc20TotalSupplySpec (o : Oracle) {cA gh bl σ σ₀ g A I}
