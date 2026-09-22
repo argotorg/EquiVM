@@ -902,6 +902,70 @@ theorem Run.returndatacopyOOG (mcost : ℕ) {o : ByteArray}
     Reverted code s0 o :=
   Or.inl (Run.returndatacopyOOG_error mcost h hdec hguard hmc hOOG hov)
 
+/-! ### Memory instructions with the expansion cost read from the reached state
+
+For symbolic offsets or active words, where no `mem_cost` witness can be computed: the counters
+become existential (as for `SLOAD`), the cursor stays literal. -/
+
+theorem Run.mstoreVar (h : Run code s0 ⟨pc, a :: b :: t, mem, aw, rdata, w⟩ k C)
+    (hdec : decode code pc = some (.MSTORE, .none)) (hov : t.length ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨pc + ⟨1⟩, t, b.toByteArray.write 0 mem a.toNat 32,
+      UInt256.ofNat (MachineState.M aw.toNat a.toNat 32), rdata, w⟩ k' C' :=
+  h.stepVar (guard := fun s => memoryExpansionCost s .MSTORE + 3)
+    (cost := fun s => memoryExpansionCost s .MSTORE + 3)
+    (fun s hc _ hcur => by
+      obtain ⟨hpc, hstk, -, -, -, -, -, -⟩ := cursorOf_eq.mp hcur
+      exact mstore_xstep hc hpc hdec hstk hov)
+    (by intro s _ hst hcur
+        obtain ⟨hpc, hstk, hmem, haw, hrdata, hcA, hσ, hlogs⟩ := cursorOf_eq.mp hcur
+        refine ⟨?_, ?_, ?_, le_refl _, ⟨rfl, rfl, rfl, rfl⟩⟩
+        · simp [cursorOf, stMStore, hpc, hmem, haw, hrdata, hcA, hσ, hlogs]
+        · simp only [stMStore, Sat256.subNat_subNat]
+        · dsimp only; omega)
+
+theorem Run.mloadVar (h : Run code s0 ⟨pc, a :: t, mem, aw, rdata, w⟩ k C)
+    (hdec : decode code pc = some (.MLOAD, .none)) (hov : t.length + 1 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨pc + ⟨1⟩,
+      (if a.toNat ≥ mem.size ∨ a ≥ aw * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding a.toNat 32))) :: t,
+      mem, UInt256.ofNat (MachineState.M aw.toNat a.toNat 32), rdata, w⟩ k' C' :=
+  h.stepVar (guard := fun s => memoryExpansionCost s .MLOAD + 3)
+    (cost := fun s => memoryExpansionCost s .MLOAD + 3)
+    (fun s hc _ hcur => by
+      obtain ⟨hpc, hstk, -, -, -, -, -, -⟩ := cursorOf_eq.mp hcur
+      exact mload_xstep hc hpc hdec hstk hov)
+    (by intro s _ hst hcur
+        obtain ⟨hpc, hstk, hmem, haw, hrdata, hcA, hσ, hlogs⟩ := cursorOf_eq.mp hcur
+        refine ⟨?_, ?_, ?_, le_refl _, ⟨rfl, rfl, rfl, rfl⟩⟩
+        · refine cursorOf_eq.mpr ⟨?_, ?_, ?_, ?_, hrdata, hcA, hσ, hlogs⟩
+          · simp only [stMLoad]; rw [hpc]
+          · simp only [stMLoad]; rw [hmem, haw]
+          · simp only [stMLoad]; exact hmem
+          · simp only [stMLoad]; rw [haw]
+        · simp only [stMLoad, Sat256.subNat_subNat]
+        · dsimp only; omega)
+
+theorem Run.keccak256Var (h : Run code s0 ⟨pc, a :: b :: t, mem, aw, rdata, w⟩ k C)
+    (hdec : decode code pc = some (.KECCAK256, .none)) (hov : t.length + 1 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨pc + ⟨1⟩,
+      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (mem.readWithPadding a.toNat b.toNat))) :: t,
+      mem, UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat), rdata, w⟩ k' C' :=
+  h.stepVar (guard := fun s => memoryExpansionCost s .KECCAK256
+      + (GasConstants.Gkeccak256 + GasConstants.Gkeccak256word * ((b.toNat + 31) / 32)))
+    (cost := fun s => memoryExpansionCost s .KECCAK256
+      + (GasConstants.Gkeccak256 + GasConstants.Gkeccak256word * ((b.toNat + 31) / 32)))
+    (fun s hc _ hcur => by
+      obtain ⟨hpc, hstk, -, -, -, -, -, -⟩ := cursorOf_eq.mp hcur
+      exact keccak_xstep hc hpc hdec hstk hov)
+    (by intro s _ hst hcur
+        obtain ⟨hpc, hstk, hmem, haw, hrdata, hcA, hσ, hlogs⟩ := cursorOf_eq.mp hcur
+        refine ⟨?_, ?_, ?_, le_refl _, ⟨rfl, rfl, rfl, rfl⟩⟩
+        · simp [cursorOf, stKeccak, hpc, hmem, haw, hrdata, hcA, hσ, hlogs]
+        · simp only [stKeccak, Sat256.subNat_subNat]
+        · dsimp only
+          have : 1 ≤ GasConstants.Gkeccak256 := by decide
+          omega)
+
 /-! ## Logs
 
 `LOGn` appends `⟨codeOwner, topics, mem[offset .. offset+size]⟩` to the world's log series.
@@ -1568,7 +1632,7 @@ abbrev noCallCursor (pc : UInt256) (t : List UInt256) (mem : ByteArray) (aw : UI
     ByteArray.empty, w⟩
 
 /-- Shared tail of the no-call-made branches: charge `mc + (gc - callgas)` and repackage. -/
-private theorem Run.callNoCallMade {inOffset inSize outOffset outSize : UInt256} {s s' : State}
+theorem Run.callNoCallMade {inOffset inSize outOffset outSize : UInt256} {s s' : State}
     {mc gc G : ℕ}
     (hXP : X ((budget s0).toNat + 1) (D_J code 0) s0 = X ((budget s0).toNat - k) (D_J code 0) s')
     (hgas : s.machineState.gasAvailable = (budget s0).subNat C) (hk : k ≤ C)
@@ -1945,6 +2009,27 @@ theorem Run.whileLoop {α : Type} (Inv : ℕ → α → Prop) (cur exitCur : α 
     obtain ⟨a', k', C', hInv', h'⟩ := hbody v a hInv k C h
     exact ih a' hInv' k' C' h'
 
+/-- **Counting loop.**  A loop whose carried state has a counter `idx` running up to `len`: the
+    body advances the counter by one while `idx < len`, the exit fires once `len ≤ idx`.  An
+    instance of `Run.whileLoop` with variant `len - idx`. -/
+theorem Run.countingLoop {α : Type} (Inv : α → Prop) (idx : α → UInt256) (len : ℕ)
+    (cur exitCur : α → Cursor)
+    (hexit : ∀ a, Inv a → len ≤ (idx a).toNat → ∀ k C, Run code s0 (cur a) k C →
+        ∃ k' C', Run code s0 (exitCur a) k' C')
+    (hbody : ∀ a, Inv a → (idx a).toNat < len → ∀ k C, Run code s0 (cur a) k C →
+        ∃ a' k' C', Inv a' ∧ (idx a').toNat = (idx a).toNat + 1 ∧ Run code s0 (cur a') k' C') :
+    ∀ a, Inv a → ∀ k C, Run code s0 (cur a) k C →
+      ∃ a' k' C', Inv a' ∧ len ≤ (idx a').toNat ∧ Run code s0 (exitCur a') k' C' := by
+  intro a hInv k C h
+  obtain ⟨a', k', C', ⟨hInv', hv⟩, h'⟩ := Run.whileLoop (fun v a => Inv a ∧ len - (idx a).toNat = v)
+    cur exitCur
+    (fun a ⟨hInv, hv⟩ k C h => hexit a hInv (by omega) k C h)
+    (fun v a ⟨hInv, hv⟩ k C h => by
+      obtain ⟨a', k', C', hInv', hidx, h'⟩ := hbody a hInv (by omega) k C h
+      exact ⟨a', k', C', ⟨hInv', by omega⟩, h'⟩)
+    (len - (idx a).toNat) a ⟨hInv, rfl⟩ k C h
+  exact ⟨a', k', C', hInv', by omega, h'⟩
+
 /-! ## Halting terminals
 
 `RETURN`/`STOP` turn a cursor into `Returned` (output and final world), `REVERT` into `Reverted`
@@ -2012,6 +2097,35 @@ theorem Run.rev {off len : UInt256} (mcost : ℕ) (oval : ByteArray)
   rw [hmc s haw hstk, show s.machineState.memory.readWithPadding off.toNat len.toNat = oval from by
     rw [hmem, hoval]] at st
   by_cases gg : (budget s0).toNat < C + mcost
+  · exact Or.inl (terminalOOG hgas st hk hC gg hX)
+  · exact Or.inr ⟨_, hX.trans (stepHaltRevert hgas st hk (by omega))⟩
+
+/-- `RETURN` with its expansion cost read from the reached state (symbolic offsets). -/
+theorem Run.retVar {off len : UInt256}
+    (h : Run code s0 ⟨pc, off :: len :: t, mem, aw, rdata, w⟩ k C)
+    (hdec : decode code pc = some (.RETURN, .none)) (hov : t.length ≤ 1024) :
+    Returned code s0 w (mem.readWithPadding off.toNat len.toNat) := by
+  rcases h with hoog | ⟨s, hX, hcode, hcur, hgas, hk, hC, _⟩
+  · exact Or.inl hoog
+  obtain ⟨hpc, hstk, hmem, _, _, hcA, hσ, hlogs⟩ := cursorOf_eq.mp hcur
+  have st := return_xstep hcode hpc hdec hstk hov
+  rw [hmem] at st
+  by_cases gg : (budget s0).toNat < C + memoryExpansionCost s .RETURN
+  · exact Or.inl (terminalOOG hgas st hk hC gg hX)
+  · exact Or.inr ⟨stReturn s off len t, hX.trans (stepHaltSuccess hgas st hk (by omega)),
+      hcA, hσ, hlogs⟩
+
+/-- `REVERT` with its expansion cost read from the reached state (symbolic offsets). -/
+theorem Run.revVar {off len : UInt256}
+    (h : Run code s0 ⟨pc, off :: len :: t, mem, aw, rdata, w⟩ k C)
+    (hdec : decode code pc = some (.REVERT, .none)) (hov : t.length ≤ 1024) :
+    Reverted code s0 (mem.readWithPadding off.toNat len.toNat) := by
+  rcases h with hoog | ⟨s, hX, hcode, hcur, hgas, hk, hC, _⟩
+  · exact Or.inl hoog
+  obtain ⟨hpc, hstk, hmem, _, _, _, _, _⟩ := cursorOf_eq.mp hcur
+  have st := revert_xstep hcode hpc hdec hstk hov
+  rw [hmem] at st
+  by_cases gg : (budget s0).toNat < C + memoryExpansionCost s .REVERT
   · exact Or.inl (terminalOOG hgas st hk hC gg hX)
   · exact Or.inr ⟨_, hX.trans (stepHaltRevert hgas st hk (by omega))⟩
 

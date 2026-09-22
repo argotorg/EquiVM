@@ -8,3 +8,6 @@ import EVMReasoning.ABI
 import EVMReasoning.Storage
 import EVMReasoning.JumpDest
 import EVMReasoning.Initcode
+import EVMReasoning.Trace
+import EVMReasoning.SolcTrace
+import EVMReasoning.SolcIdioms
