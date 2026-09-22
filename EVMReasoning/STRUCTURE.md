@@ -7,7 +7,8 @@ literals, selectors, storage layout) and the coupling lemmas of the spec languag
 language's syntax or semantics.
 
 Everything is in namespace `Reasoning.Theory`, except the EVM trace layer (`RD`, `evm_run`, and the
-`RD.*` lemma halves of `Solc.lean`), which is in `Reasoning.Reach`. `JumpDest.lean` has no
+`RD.*` lemma halves of `Solc.lean`), which is in `Reasoning.Reach`, and its successor `Trace.lean` (`Run`, `Returned`, `Reverted`), which is in
+`Reasoning.Trace`. `JumpDest.lean` has no
 namespace (it defines a tactic and an attribute).
 
 One axiom in the whole library: `keccak_size` in `Memory.lean` (a keccak digest is 32 bytes —
@@ -21,6 +22,7 @@ trusted spec of the FFI hash; asserts nothing about collision resistance).
 | `EVMWord.lean` | `UInt256` arithmetic: no-wrap `toNat` lemmas, bitwise normalization, unsigned comparisons, signed `SLT`, `compare` order instances, the word-rounding used by solc memory allocation. |
 | `Memory.lean` | Byte-level memory: little-endian word arithmetic, `MSTORE`/`MLOAD` read-write facts, scratch memory for mapping hashes, selector extraction, calldata decode coupling, mapping-slot keccak facts. Home of the `keccak_size` axiom. |
 | `Reach.lean` | The EVM trace layer. `RD` (reached-or-out-of-gas invariant), one forward step lemma per opcode (`RD.<op>`), `CALL`/`STATICCALL` with the callee treated as an opaque `Θ` result, terminal forms `RDret`/`RDrev` with `xiResult`, `Cursor`/`RDc`, and the `evm_run` macro that chains steps with auto-discharged decode/overflow side conditions. |
+| `Trace.lean` | The successor of `Reach.lean`: `Run` (reached-or-out-of-gas over a `Cursor` — machine state plus a `World` of accounts and event log — from the initial state; no duplicated run constants), one step lemma per opcode via the generic `Run.step`/`Run.stepVar`, `CALL` with the callee's substate exposed, selector dispatch, a single cursor-valued while-rule, and the terminals `Returned` (world and output) / `Reverted` (exact revert data) with their `Ξ` bridges. Reuses Reach's `evm_run`/`evm_ov`/`mem_cost` and bytecode-shape definitions; namespace `Reasoning.Trace`. |
 | `ABI.lean` | Calldata decoding and return-value encoding on `ABIValue`: per-shape positional decode lemmas (`decodeCalldataValues_*`: address/uint256/bool/bytes32/string/dynamic-array combinations), decode-mode variants, failure cases (short, huge, non-canonical), return encodings. |
 | `MemCascade.lean` | Collapsing chains of memory writes into a canonical form. |
 | `JumpDest.lean` | The `@[valid_jumps]` attribute and `jump_dest` tactic discharging jump-target validity (via `native_decide`, deliberately). |
@@ -47,7 +49,7 @@ Stepping   EVMWord
     ├── Memory ── MemCascade
     │      │
     │      ├── ABI
-    │      └── Reach
+    │      └── Reach ── Trace
     │           │
     └───────── Solc
                 │
