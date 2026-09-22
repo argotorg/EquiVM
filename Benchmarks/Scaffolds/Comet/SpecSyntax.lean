@@ -260,7 +260,7 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     }
 
     function isAbsorbPaused() external returns (bool) {
-      return (pauseFlags & (1 << 3)) != 0;
+      return (pauseFlags &[uint8] (1 <<[uint8] 3)) != 0;
     }
 
     function isAllowed(address arg0, address arg1) external returns (bool) {
@@ -272,7 +272,7 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     }
 
     function isBuyPaused() external returns (bool) {
-      return (pauseFlags & (1 << 4)) != 0;
+      return (pauseFlags &[uint8] (1 <<[uint8] 4)) != 0;
     }
 
     function isLiquidatable(address account) external returns (bool) {
@@ -280,15 +280,15 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     }
 
     function isSupplyPaused() external returns (bool) {
-      return (pauseFlags & (1 << 0)) != 0;
+      return (pauseFlags &[uint8] (1 <<[uint8] 0)) != 0;
     }
 
     function isTransferPaused() external returns (bool) {
-      return (pauseFlags & (1 << 1)) != 0;
+      return (pauseFlags &[uint8] (1 <<[uint8] 1)) != 0;
     }
 
     function isWithdrawPaused() external returns (bool) {
-      return (pauseFlags & (1 << 2)) != 0;
+      return (pauseFlags &[uint8] (1 <<[uint8] 2)) != 0;
     }
 
     function liquidatorPoints(address arg0) external returns (uint32, uint64, uint128, uint32) {
@@ -304,11 +304,11 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
         bool absorbPaused, bool buyPaused) external {
       require(msg.sender == ${Immutables.governor v} ||
         msg.sender == ${Immutables.pauseGuardian v});
-      pauseFlags = (((supplyPaused ? 1 : 0) << 0) |
-        (((transferPaused ? 1 : 0) << 1) |
-          (((withdrawPaused ? 1 : 0) << 2) |
-            (((absorbPaused ? 1 : 0) << 3) |
-              ((buyPaused ? 1 : 0) << 4))))) as uint8;
+      pauseFlags = (((supplyPaused ? 1 : 0) <<[uint8] 0) |[uint8]
+        (((transferPaused ? 1 : 0) <<[uint8] 1) |[uint8]
+          (((withdrawPaused ? 1 : 0) <<[uint8] 2) |[uint8]
+            (((absorbPaused ? 1 : 0) <<[uint8] 3) |[uint8]
+              ((buyPaused ? 1 : 0) <<[uint8] 4))))) as uint8;
     }
 
     function pauseGuardian() external returns (address) {

@@ -4,10 +4,27 @@ Sol⁻ is the high-level specification language of EquiVM. Its structure
 mirrors a subset of Solidity. Solidity's structs like inheritance, 
 modifiers are assumed to be desugared away.
 
-Note that there are semantics differences between Solidity and Sol⁻, 
-for example in Sol⁻, in-memory integers have unbounded range.
-This facilitates reasoning using unbounded mathematical integers, and only 
-converts to bounded integers at the storage boundary.
+Sol⁻ uses unbounded mathematical integers for in-memory values and arithmetic,
+including negation. Overflow handling is explicit: `uintN(e)` and `intN(e)`
+normalize to the target width, while `e as uintN` and `e as intN` assert that
+the value is in range and revert otherwise. For example, adding 250 and 10
+produces 260; `uint8(250 + 10)` produces 4; `(250 + 10) as uint8` reverts.
+Storage conversion also applies the field's width. ABI encoding and modern
+ABI decoding validate values instead of silently truncating them.
+
+`/` and `%` retain mathematical (Euclidean) division and modulo. The explicit
+operations `sdiv(x, y)` and `srem(x, y)` instead truncate the quotient toward
+zero and give a nonzero remainder the dividend's sign: `sdiv(-5, 3)` is `-1`,
+`srem(-5, 3)` is `-2`, and `-5 % 3` is `1`. Their results remain unbounded;
+division, remainder, and modulo by zero revert.
+
+Integer bit operations use an explicit width and signed interpretation:
+`x &[uint8] y`, `x |[uint8] y`, `x ^[uint8] y`, `~[uint8] x`,
+`x <<[uint8] n`, and `x >>[int8] n`. Operands are interpreted as bit patterns
+at that width; signed right shift extends the sign. Negative shift counts are
+type errors. Counts at least as large as the width yield zero, or negative one
+for a signed right shift of a negative value. Unqualified bit operators act on
+fixed bytes, with the width carried by the values.
 
 Currently, Sol⁻ does not currently model events, error payloads, or gas.
 ```

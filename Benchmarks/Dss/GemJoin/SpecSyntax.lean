@@ -50,7 +50,7 @@ def contractSyntax : ContractDecl := solidity% contract GemJoin {
   function exit(address usr, uint256 wad) external {
     require(wad <= #intLimit);
     require(${Expr.extCodeSize (Expr.storage vatRef)} > 0);
-    var slipRet = vat.slip(ilk, msg.sender, -int256(wad));
+    var slipRet = vat.slip(ilk, msg.sender, int256(-int256(wad)));
     require(${Expr.extCodeSize (Expr.storage gemRef)} > 0);
     var transferOk = gem.transfer(usr, wad);
     require(transferOk);

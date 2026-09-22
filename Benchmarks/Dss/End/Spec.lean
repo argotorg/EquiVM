@@ -564,7 +564,7 @@ def skimTransition : TransitionDecl :=
             (.binary .le (.var "art") (.intLit int256Limit))) ] ++
       checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-         .unary .neg (asInt256 (.var "wad")), .unary .neg (asInt256 (.var "art"))]
+         asInt256 (.unary .neg (asInt256 (.var "wad"))), asInt256 (.unary .neg (asInt256 (.var "art")))]
         "_grab" }
 
 def freeTransition : TransitionDecl :=
@@ -580,7 +580,7 @@ def freeTransition : TransitionDecl :=
         .require (.binary .eq (.var "art") (.intLit 0)),
         .require (.binary .le (.var "ink") (.intLit int256Limit)) ] ++
       checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
-        [.var "ilk", sender, sender, vowAddr, .unary .neg (asInt256 (.var "ink")), .intLit 0]
+        [.var "ilk", sender, sender, vowAddr, asInt256 (.unary .neg (asInt256 (.var "ink"))), .intLit 0]
         "_grab" }
 
 def thawTransition : TransitionDecl :=

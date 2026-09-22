@@ -761,16 +761,19 @@ theorem evalExpr_wad {evm : EVM.State} {solm : Frame} :
   have h : (WAD : Int) = Int.ofNat wadU.toNat := by rw [wadU_toNat]; rfl
   simp only [evalExpr?, pure, bw]; rw [h]
 
-/-- `-int256(v)` for a `uint256`-valued local. -/
-theorem evalExpr_negInt256_var {evm : EVM.State} {locals : Store} {name : Ident} {d : UInt256}
-    (hd : locals.get? name = some (bw d)) :
+/-- Explicitly wrapping `int256(-int256(v))` for a `uint256`-valued local. -/
+theorem evalExpr_wrappedNegInt256_var {evm : EVM.State} {locals : Store} {name : Ident} {d : UInt256}
+    (hd : locals.get? name = some (bw d))
+    (hbound : Int.ofNat d.toNat ≤ int256Limit) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (.unary .neg (asInt256 (.var name))) = .ok (.int (-(Int.ofNat d.toNat))) := by
+      (asInt256 (.unary .neg (asInt256 (.var name)))) = .ok (.int (-(Int.ofNat d.toNat))) := by
   have hvar : evalExpr? config { contract := contract, locals := locals } evm (.var name) =
       .ok (bw d) := by
     rw [evalExpr?]; change EvalResult.ofOption _ (locals.get? name) = _; rw [hd]; rfl
   simp only [asInt256, evalExpr?, EvalResult.bind, bind, hvar, evalUnaryOp?, castValue?,
     int256St, int256Int, EvalResult.ofOption, bw]
+  rw [normalizeInt_sint256_neg_word_of_le]
+  exact Int.ofNat_le.mp (by simpa only [int256Limit_eq_twoPow] using hbound)
 
 theorem evalExpr_this {evm : EVM.State} {locals : Store} :
     evalExpr? config { contract := contract, locals := locals } evm thisAddr =
@@ -1095,8 +1098,8 @@ def biteArith2Stmts : List Stmt :=
 
 def biteTailStmts : List Stmt :=
   checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
-    [ .var "ilk", .var "urn", thisAddr, vowAddr, .unary .neg (asInt256 (.var "dink")),
-      .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+    [ .var "ilk", .var "urn", thisAddr, vowAddr, asInt256 (.unary .neg (asInt256 (.var "dink"))),
+      asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet" ++
   checkedMulUintInto "dartRate" (.var "dart") (.var "rate") ++
   checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "dartRate"] "_fessRet" ++
   checkedMulUintInto "tabBase" (.var "dartRate") (.var "milkChop") ++
@@ -1376,23 +1379,27 @@ theorem evalExpr_intLit {evm : EVM.State} {locals : Store} (n : Int) :
   simp [evalExpr?, pure]
 
 /-- The `grab(ilk, urn, this, vow, -dink, -dart)` argument list evaluated at `bsDink`. -/
-theorem biteGrabArgsEval (I : ExecutionEnv) (evmUrn : EVM.State) (a r s l d ink art : UInt256) :
+theorem biteGrabArgsEval (I : ExecutionEnv) (evmUrn : EVM.State) (a r s l d ink art : UInt256)
+    (hdartLim : Int.ofNat (biteDartV I evmUrn r art).toNat ≤ int256Limit)
+    (hdinkLim : Int.ofNat (biteDinkV I evmUrn r art ink).toNat ≤ int256Limit) :
     evalExprs? config { contract := contract, locals := bsDink I evmUrn a r s l d ink art } evmUrn
-      [ .var "ilk", .var "urn", thisAddr, vowAddr, .unary .neg (asInt256 (.var "dink")),
-        .unary .neg (asInt256 (.var "dart")) ] =
+      [ .var "ilk", .var "urn", thisAddr, vowAddr, asInt256 (.unary .neg (asInt256 (.var "dink"))),
+        asInt256 (.unary .neg (asInt256 (.var "dart"))) ] =
       .ok [biteIlkVal I, biteUrnVal I, .address evmUrn.executionEnv.codeOwner,
         .address (biteVowAddrV evmUrn), .int (-(Int.ofNat (biteDinkV I evmUrn r art ink).toNat)),
         .int (-(Int.ofNat (biteDartV I evmUrn r art).toNat))] := by
   simp [evalExprs?, evalExpr_biteIlk I (bsDink_get_ilk I evmUrn a r s l d ink art),
     evalExpr_biteUrn I (bsDink_get_urn I evmUrn a r s l d ink art), evalExpr_this,
     evalExpr_vowAddr (bsDink_get_vow I evmUrn a r s l d ink art),
-    evalExpr_negInt256_var (bsDink_get_dink I evmUrn a r s l d ink art),
-    evalExpr_negInt256_var (bsDink_get_dart I evmUrn a r s l d ink art),
+    evalExpr_wrappedNegInt256_var (bsDink_get_dink I evmUrn a r s l d ink art) hdinkLim,
+    evalExpr_wrappedNegInt256_var (bsDink_get_dart I evmUrn a r s l d ink art) hdartLim,
     EvalResult.bind, bind, pure]
 
 /-- The `grab` external call succeeding (`bsDink → btGrab`). -/
 theorem biteGrabSuccessStmt {I : ExecutionEnv} {evmUrn evmGrab : EVM.State} {grabOut : ByteArray}
     {a r s l d ink art : UInt256}
+    (hdartLim : Int.ofNat (biteDartV I evmUrn r art).toNat ≤ int256Limit)
+    (hdinkLim : Int.ofNat (biteDinkV I evmUrn r art ink).toNat ≤ int256Limit)
     (hGrabCall :
       typedCallViaEVM config evmUrn (EVM.address (biteVatAddr evmUrn)) "grab" 0
         [biteIlkVal I, biteUrnVal I, .address evmUrn.executionEnv.codeOwner,
@@ -1401,21 +1408,21 @@ theorem biteGrabSuccessStmt {I : ExecutionEnv} {evmUrn evmGrab : EVM.State} {gra
     (hGrabDec : config.externalABI.decode? "grab" grabOut = some []) :
     ExecStmt config { contract := contract, locals := bsDink I evmUrn a r s l d ink art } evmUrn
       (.externalCall (.storage vatRef) "grab" (.intLit 0)
-        [ .var "ilk", .var "urn", thisAddr, vowAddr, .unary .neg (asInt256 (.var "dink")),
-          .unary .neg (asInt256 (.var "dart")) ] "_grabRet" (perm := true))
+        [ .var "ilk", .var "urn", thisAddr, vowAddr, asInt256 (.unary .neg (asInt256 (.var "dink"))),
+          asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet" (perm := true))
       (.ok { contract := contract, locals := btGrab I evmUrn a r s l d ink art } evmGrab) := by
   simpa [btGrab, collapseReturns] using
     ExecStmt.externalCallSuccess
       (cfg := config) (solm := { contract := contract, locals := bsDink I evmUrn a r s l d ink art })
       (evm := evmUrn) (evm' := evmGrab) (receiver := .storage vatRef) (name := "grab") (sendVal := 0)
       (target := biteVatAddr evmUrn)
-      (args := [ .var "ilk", .var "urn", thisAddr, vowAddr, .unary .neg (asInt256 (.var "dink")),
-          .unary .neg (asInt256 (.var "dart")) ])
+      (args := [ .var "ilk", .var "urn", thisAddr, vowAddr, asInt256 (.unary .neg (asInt256 (.var "dink"))),
+          asInt256 (.unary .neg (asInt256 (.var "dart"))) ])
       (argVals := [biteIlkVal I, biteUrnVal I, .address evmUrn.executionEnv.codeOwner,
         .address (biteVowAddrV evmUrn), .int (-(Int.ofNat (biteDinkV I evmUrn r art ink).toNat)),
         .int (-(Int.ofNat (biteDartV I evmUrn r art).toNat))]) (out := grabOut) (perm := true)
       (value := []) (biteVatRead (bsDink_get_vat I evmUrn a r s l d ink art)) (by simp [evalExpr?, pure])
-      (biteGrabArgsEval I evmUrn a r s l d ink art) hGrabCall hGrabDec
+      (biteGrabArgsEval I evmUrn a r s l d ink art hdartLim hdinkLim) hGrabCall hGrabDec
 
 /-- The `fess` external call succeeding (`btDartRate → btFess`). -/
 theorem biteFessSuccessStmt {I : ExecutionEnv} {evmUrn evmGrab evmFess : EVM.State}
@@ -1459,6 +1466,8 @@ theorem catBiteSourceTail {I : ExecutionEnv}
     (hfitDartRate : (biteDartV I evmUrn r art).toNat * r.toNat < UInt256.size)
     (hfitTabBase : (biteDartRateV I evmUrn r art).toNat * (biteChopW I evmUrn).toNat < UInt256.size)
     (hfitLitterNew : (biteLitW evmFess).toNat + (biteTabV I evmUrn r art).toNat < UInt256.size)
+    (hdartLim : Int.ofNat (biteDartV I evmUrn r art).toNat ≤ int256Limit)
+    (hdinkLim : Int.ofNat (biteDinkV I evmUrn r art ink).toNat ≤ int256Limit)
     (hvatCodeMid :
       0 < (UInt256.ofNat
         ((evmUrn.lookupAccount (biteVatAddr evmUrn)).option 0 (fun acc => acc.code.size))).toNat)
@@ -1493,30 +1502,30 @@ theorem catBiteSourceTail {I : ExecutionEnv}
   -- grab args
   have hGrabArgs :
       evalExprs? config { contract := contract, locals := bsDink I evmUrn a r s l d ink art } evmUrn
-        [ .var "ilk", .var "urn", thisAddr, vowAddr, .unary .neg (asInt256 (.var "dink")),
-          .unary .neg (asInt256 (.var "dart")) ] =
+        [ .var "ilk", .var "urn", thisAddr, vowAddr, asInt256 (.unary .neg (asInt256 (.var "dink"))),
+          asInt256 (.unary .neg (asInt256 (.var "dart"))) ] =
         .ok [biteIlkVal I, biteUrnVal I, .address evmUrn.executionEnv.codeOwner,
           .address (biteVowAddrV evmUrn), .int (-(Int.ofNat (biteDinkV I evmUrn r art ink).toNat)),
           .int (-(Int.ofNat (biteDartV I evmUrn r art).toNat))] := by
     simp [evalExprs?, evalExpr_biteIlk I (bsDink_get_ilk I evmUrn a r s l d ink art),
       evalExpr_biteUrn I (bsDink_get_urn I evmUrn a r s l d ink art), evalExpr_this,
       evalExpr_vowAddr (bsDink_get_vow I evmUrn a r s l d ink art),
-      evalExpr_negInt256_var (bsDink_get_dink I evmUrn a r s l d ink art),
-      evalExpr_negInt256_var (bsDink_get_dart I evmUrn a r s l d ink art),
+      evalExpr_wrappedNegInt256_var (bsDink_get_dink I evmUrn a r s l d ink art) hdinkLim,
+      evalExpr_wrappedNegInt256_var (bsDink_get_dart I evmUrn a r s l d ink art) hdartLim,
       EvalResult.bind, bind, pure]
   have hGrabStmt :
       ExecStmt config { contract := contract, locals := bsDink I evmUrn a r s l d ink art } evmUrn
         (.externalCall (.storage vatRef) "grab" (.intLit 0)
-          [ .var "ilk", .var "urn", thisAddr, vowAddr, .unary .neg (asInt256 (.var "dink")),
-            .unary .neg (asInt256 (.var "dart")) ] "_grabRet" (perm := true))
+          [ .var "ilk", .var "urn", thisAddr, vowAddr, asInt256 (.unary .neg (asInt256 (.var "dink"))),
+            asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet" (perm := true))
         (.ok { contract := contract, locals := btGrab I evmUrn a r s l d ink art } evmGrab) := by
     simpa [btGrab, collapseReturns] using
       ExecStmt.externalCallSuccess
         (cfg := config) (solm := { contract := contract, locals := bsDink I evmUrn a r s l d ink art })
         (evm := evmUrn) (evm' := evmGrab) (receiver := .storage vatRef) (name := "grab") (sendVal := 0)
         (target := biteVatAddr evmUrn)
-        (args := [ .var "ilk", .var "urn", thisAddr, vowAddr, .unary .neg (asInt256 (.var "dink")),
-            .unary .neg (asInt256 (.var "dart")) ])
+        (args := [ .var "ilk", .var "urn", thisAddr, vowAddr, asInt256 (.unary .neg (asInt256 (.var "dink"))),
+            asInt256 (.unary .neg (asInt256 (.var "dart"))) ])
         (argVals := [biteIlkVal I, biteUrnVal I, .address evmUrn.executionEnv.codeOwner,
           .address (biteVowAddrV evmUrn), .int (-(Int.ofNat (biteDinkV I evmUrn r art ink).toNat)),
           .int (-(Int.ofNat (biteDartV I evmUrn r art).toNat))])
@@ -1709,7 +1718,8 @@ theorem catBiteSourceSuccess
         (execBlock_append
           (catBiteSourceArith2 hratePos hartPos hmilkChopPos hfitDunkRoomWad hfitInkDart hdartPos
             hdinkPos hdartLim hdinkLim)
-          (catBiteSourceTail hratePos hmilkChopPos hfitDartRate hfitTabBase hfitLitterNew hvatCodeMid
+          (catBiteSourceTail hratePos hmilkChopPos hfitDartRate hfitTabBase hfitLitterNew
+            hdartLim hdinkLim hvatCodeMid
             hGrabCall hGrabDec hvowCode hFessCall hFessDec hLitStore hflipCode hKickCall hKickDec))))
 
 /-! ## Revert branches
@@ -2431,7 +2441,8 @@ theorem catBiteSourceGrabFailRevert
     (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
   exact ExecBlock.consRevert (ExecStmt.externalCallFailure
     (biteVatRead (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art)) (by simp [evalExpr?, pure])
-    (biteGrabArgsEval I evmUrn iArt iRate iSpot iLine iDust ink art) hGrabFailCall)
+    (biteGrabArgsEval I evmUrn iArt iRate iSpot iLine iDust ink art hdartLim hdinkLim)
+    hGrabFailCall)
 
 theorem catBiteSourceDartRateOverflowRevert
     (hGrabCall :
@@ -2450,7 +2461,7 @@ theorem catBiteSourceDartRateOverflowRevert
     List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
-  refine ExecBlock.consNormal (biteGrabSuccessStmt hGrabCall hGrabDec) ?_
+  refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
   exact ExecBlock.consRevert (ExecStmt.letDeclRevert
     (evalExpr_mul256_revert (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) hover))
@@ -2478,7 +2489,7 @@ theorem catBiteSourceFessFailRevert
     List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
-  refine ExecBlock.consNormal (biteGrabSuccessStmt hGrabCall hGrabDec) ?_
+  refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_
@@ -2522,7 +2533,7 @@ theorem catBiteSourceTabBaseOverflowRevert
     List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
-  refine ExecBlock.consNormal (biteGrabSuccessStmt hGrabCall hGrabDec) ?_
+  refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_
@@ -2574,7 +2585,7 @@ theorem catBiteSourceKickFailRevert
     List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
-  refine ExecBlock.consNormal (biteGrabSuccessStmt hGrabCall hGrabDec) ?_
+  refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_
@@ -2665,7 +2676,7 @@ theorem catBiteSourceKickDecodeRevert
     List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
-  refine ExecBlock.consNormal (biteGrabSuccessStmt hGrabCall hGrabDec) ?_
+  refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_
@@ -2738,7 +2749,7 @@ theorem catBiteSourceFessNoCodeRevert
     List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
-  refine ExecBlock.consNormal (biteGrabSuccessStmt hGrabCall hGrabDec) ?_
+  refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_
@@ -2786,7 +2797,7 @@ theorem catBiteSourceKickNoCodeRevert
     List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
-  refine ExecBlock.consNormal (biteGrabSuccessStmt hGrabCall hGrabDec) ?_
+  refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_

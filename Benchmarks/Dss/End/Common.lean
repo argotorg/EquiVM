@@ -538,10 +538,7 @@ theorem endDecodeABIValues_bytes32_uint256_legacy_ok {bytes : List UInt8}
   simp [decodeABIValues?, abiBytes32, abiBytes32Width, abiUInt256, isDynamicABIType,
     staticABIEncodedSize?, decodeABIValue?, readBytes?, hlen0]
   simp [readWord?, readBytes?, decodeABIWord?, hlen32]
-  rw [Int.emod_eq_of_lt]
-  · simp [UInt256.toNat]
-  · exact Int.natCast_nonneg _
-  · exact_mod_cast (ABI.bytesToWord ((bytes.drop 32).take 32)).val.isLt
+  exact normalizeInt_uint256_word (ABI.bytesToWord ((bytes.drop 32).take 32))
 
 theorem endDecodeABIValues_bytes32_uint256_legacy_none_short {bytes : List UInt8}
     (hshort : bytes.length < 64) :
@@ -1232,6 +1229,44 @@ theorem endExecAddFunctionRevert (evm : EVM.State) {x y : UInt256}
         .reverted := by
     exact ExecBlock.consRevert (ExecStmt.letDeclRevert hAddRev)
   simpa [addFunction, locals] using ExecFuncBody.execBlockRevert hblock
+
+theorem endInternalAddFunctionReturn (evm : EVM.State) {locals : Store}
+    {args : List Expr} {retVar : Ident} {x y sum : UInt256}
+    (hargs :
+      evalExprs? config { contract := contract, locals := locals } evm args =
+        .ok [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
+    (hsum : sum = x + y) (hfit : x.toNat + y.toNat < UInt256.size) :
+    ExecStmt config { contract := contract, locals := locals } evm
+      (.internalCall "add" args retVar)
+      (.ok
+        (resumeAfterInternalCall { contract := contract, locals := locals } retVar
+          (some [.int (Int.ofNat sum.toNat)]))
+        evm) := by
+  exact internalCallFunctionReturn
+    (cfg := config) (caller := { contract := contract, locals := locals })
+    (evm := evm) (name := "add") (retVar := retVar) (args := args)
+    (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
+    (callee := addFunction) (locals := endUintBinaryLocals x y)
+    hargs (by rfl)
+    (by simp [addFunction, uint256, bindParams?, endUintBinaryLocals])
+    (endExecAddFunctionReturn evm hsum hfit)
+
+theorem endInternalAddFunctionRevert (evm : EVM.State) {locals : Store}
+    {args : List Expr} {retVar : Ident} {x y : UInt256}
+    (hargs :
+      evalExprs? config { contract := contract, locals := locals } evm args =
+        .ok [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
+    (hover : UInt256.size ≤ x.toNat + y.toNat) :
+    ExecStmt config { contract := contract, locals := locals } evm
+      (.internalCall "add" args retVar) .reverted := by
+  exact internalCallFunctionRevert
+    (cfg := config) (caller := { contract := contract, locals := locals })
+    (evm := evm) (name := "add") (retVar := retVar) (args := args)
+    (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
+    (callee := addFunction) (locals := endUintBinaryLocals x y)
+    hargs (by rfl)
+    (by simp [addFunction, uint256, bindParams?, endUintBinaryLocals])
+    (endExecAddFunctionRevert evm hover)
 
 theorem endExecMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
     (hprod : prod = x * y) (hfit : x.toNat * y.toNat < UInt256.size) :

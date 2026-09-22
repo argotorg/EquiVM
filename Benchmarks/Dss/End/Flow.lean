@@ -366,34 +366,15 @@ theorem endFlowVatIlksPostCallMem_read64_long (I : ExecutionEnv) (out : ByteArra
     (twoWordHashMem_read64 (endFlowIlkWord I) ⟨15⟩ solcFreePtrMem_size
       solcFreePtrMem_read64)
 
-theorem endFlowVatIlksPostCallMem_size_gt64 (I : ExecutionEnv) (out : ByteArray) :
-    64 < (endFlowVatIlksPostCallMem I out).size := by
-  unfold endFlowVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+theorem write128Min160_size_gt64 (base out : ByteArray) (hbaseSize : base.size = 164) :
+    64 < (out.write 0 base 128 (min 160 out.size)).size := by
   by_cases hlen0 : min 160 out.size = 0
-  · rw [hlen0, byteArray_write_len_zero]
-    rw [endFlowFixHashMem]
-    rw [endFlowVatIlksCalldataMem_size I
-      (twoWordHashMem_size_96 (endFlowIlkWord I) ⟨15⟩ solcFreePtrMem_size)]
+  · rw [hlen0, byteArray_write_len_zero, hbaseSize]
     omega
-  · by_cases hext :
-        (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)).size < 128 + min 160 out.size
-    · rw [write_eq_gen_extend out (endFlowVatIlksCalldataMem I (endFlowFixHashMem I))
-        128 (min 160 out.size) hlen0 (Nat.min_le_right _ _)
-        (by
-          rw [endFlowFixHashMem]
-          rw [endFlowVatIlksCalldataMem_size I
-            (twoWordHashMem_size_96 (endFlowIlkWord I) ⟨15⟩ solcFreePtrMem_size)]
-          omega)
-        hext]
-      have hbaseSize : (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)).size = 164 := by
-        rw [endFlowFixHashMem]
-        exact endFlowVatIlksCalldataMem_size I
-          (twoWordHashMem_size_96 (endFlowIlkWord I) ⟨15⟩ solcFreePtrMem_size)
-      have hprefix :
-          ((endFlowVatIlksCalldataMem I (endFlowFixHashMem I)).extract 0 128).size =
-            128 := by
+  · by_cases hext : base.size < 128 + min 160 out.size
+    · rw [write_eq_gen_extend out base 128 (min 160 out.size) hlen0
+        (Nat.min_le_right _ _) (by omega) hext]
+      have hprefix : (base.extract 0 128).size = 128 := by
         rw [ByteArray.size_extract, hbaseSize]
         omega
       have hsrc : (out.extract 0 (min 160 out.size)).size = min 160 out.size := by
@@ -402,34 +383,34 @@ theorem endFlowVatIlksPostCallMem_size_gt64 (I : ExecutionEnv) (out : ByteArray)
       rw [ByteArray.size_append, hprefix, hsrc]
       have hleout : min 160 out.size ≤ out.size := Nat.min_le_right _ _
       omega
-    · have hin :
-          128 + min 160 out.size ≤
-            (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)).size := by
+    · have hin : 128 + min 160 out.size ≤ base.size := by
         omega
-      rw [write_eq_gen out (endFlowVatIlksCalldataMem I (endFlowFixHashMem I))
-        128 (min 160 out.size) hlen0 (Nat.min_le_right _ _) hin]
-      have hbaseSize : (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)).size = 164 := by
-        rw [endFlowFixHashMem]
-        exact endFlowVatIlksCalldataMem_size I
-          (twoWordHashMem_size_96 (endFlowIlkWord I) ⟨15⟩ solcFreePtrMem_size)
-      have hprefix :
-          ((endFlowVatIlksCalldataMem I (endFlowFixHashMem I)).extract 0 128).size =
-            128 := by
+      rw [write_eq_gen out base 128 (min 160 out.size) hlen0
+        (Nat.min_le_right _ _) hin]
+      have hprefix : (base.extract 0 128).size = 128 := by
         rw [ByteArray.size_extract, hbaseSize]
         omega
       have hsrc : (out.extract 0 (min 160 out.size)).size = min 160 out.size := by
         rw [ByteArray.size_extract]
         omega
       have htail :
-          ((endFlowVatIlksCalldataMem I (endFlowFixHashMem I)).extract
-            (128 + min 160 out.size)
-            (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)).size).size =
-              164 - (128 + min 160 out.size) := by
+          (base.extract (128 + min 160 out.size) base.size).size =
+            164 - (128 + min 160 out.size) := by
         rw [ByteArray.size_extract, hbaseSize]
         omega
       rw [ByteArray.size_append, ByteArray.size_append, hprefix, hsrc, htail]
       have hleout : min 160 out.size ≤ out.size := Nat.min_le_right _ _
       omega
+
+theorem endFlowVatIlksPostCallMem_size_gt64 (I : ExecutionEnv) (out : ByteArray) :
+    64 < (endFlowVatIlksPostCallMem I out).size := by
+  unfold endFlowVatIlksPostCallMem
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
+    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  apply write128Min160_size_gt64
+  rw [endFlowFixHashMem]
+  exact endFlowVatIlksCalldataMem_size I
+    (twoWordHashMem_size_96 (endFlowIlkWord I) ⟨15⟩ solcFreePtrMem_size)
 
 theorem endFlowVatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray) :
     (endFlowVatIlksPostCallMem I out).readWithPadding 64 32 =
@@ -3010,6 +2991,24 @@ theorem evalExpr_endFlow_Art_of_get {locals : Store} (evm : EVM.State)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
     (hloc := by rfl)
     (hload := endStorageLocLoad_uint256 evm (endFlowArtSlot I))
+
+theorem endFlowAssignArtOfGet {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
+    (artNew : UInt256)
+    (hbase : locals.get? "Art" = none)
+    (hget : locals.get? "ilk" = some (endFlowIlkValue I))
+    (hsz36 : 36 ≤ I.calldata.size) :
+    assignStorageRef? config { contract := contract, locals := locals } evm
+      .storage (ArtRef (.var "ilk")) (.int (Int.ofNat artNew.toNat)) =
+        .ok ({ contract := contract, locals := locals },
+          Solm.EVM.storageStore evm evm.executionEnv.codeOwner (endFlowArtSlot I) artNew) := by
+  apply assignStorageRef_storage_scalar
+      (ty := uint256St)
+      (loc := wordLoc (endFlowArtSlot I))
+      (hbase := hbase)
+      (her := evalStorageRef_endFlow_Art_of_get evm I hget hsz36)
+      (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
+      (hloc := by rfl)
+  exact endStorageLocStore_uint256 evm (endFlowArtSlot I) artNew
 
 theorem evalStorageRef_endFlow_tag_of_get {locals : Store} (evm : EVM.State)
     (I : ExecutionEnv)

@@ -300,7 +300,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     gap[ilk] = gapNew;
     require(wad <= #int256Limit && art <= #int256Limit);
     require(vat.code.length > 0);
-    var _grab = vat.grab(ilk, urn, address(this), vow, -int256(wad), -int256(art));
+    var _grab = vat.grab(ilk, urn, address(this), vow, int256(-int256(wad)), int256(-int256(art)));
   }
 
   function free(bytes32 ilk) external {
@@ -312,7 +312,7 @@ def contractSyntax : ContractDecl := solidity% contract End {
     require(art == 0);
     require(ink <= #int256Limit);
     require(vat.code.length > 0);
-    var _grab = vat.grab(ilk, msg.sender, msg.sender, vow, -int256(ink), 0);
+    var _grab = vat.grab(ilk, msg.sender, msg.sender, vow, int256(-int256(ink)), 0);
   }
 
   function thaw() external {

@@ -85,23 +85,23 @@ def boolToUint8 (e : Expr) : Expr :=
   .ite e (.intLit 1) (.intLit 0)
 
 def shiftedFlag (e : Expr) (offset : Int) : Expr :=
-  .binary .shl (boolToUint8 e) (.intLit offset)
+  .binary (.shl uint8Int) (boolToUint8 e) (.intLit offset)
 
 def pauseFlagsValue
     (supplyPaused transferPaused withdrawPaused absorbPaused buyPaused : Expr) : Expr :=
-  u8 (.binary .bitOr
+  u8 (.binary (.bitOr uint8Int)
     (shiftedFlag supplyPaused 0)
-    (.binary .bitOr
+    (.binary (.bitOr uint8Int)
       (shiftedFlag transferPaused 1)
-      (.binary .bitOr
+      (.binary (.bitOr uint8Int)
         (shiftedFlag withdrawPaused 2)
-        (.binary .bitOr
+        (.binary (.bitOr uint8Int)
           (shiftedFlag absorbPaused 3)
           (shiftedFlag buyPaused 4)))))
 
 def pauseFlag (offset : Int) : Expr :=
   .binary .ne
-    (.binary .bitAnd (.storage { base := "pauseFlags" }) (.binary .shl (.intLit 1) (.intLit offset)))
+    (.binary (.bitAnd uint8Int) (.storage { base := "pauseFlags" }) (.binary (.shl uint8Int) (.intLit 1) (.intLit offset)))
     (.intLit 0)
 
 def presentValueSupplyExpr (index principal : Expr) : Expr :=

@@ -70,15 +70,23 @@ inductive EnvVar where
 inductive UnaryOp where
   | not
   | neg
-  | bitNot
+  /-- Integer complement at an explicit width and signed interpretation. -/
+  | bitNot : IntType -> UnaryOp
+  | fixedBitNot
   deriving Repr, Inhabited
 
 inductive BinaryOp where
   | add
   | sub
   | mul
+  /-- Euclidean integer division. -/
   | div
+  /-- Mathematical modulo, used for explicit wrapping. -/
   | mod
+  /-- Integer division truncated toward zero, without a width or overflow mode. -/
+  | sdiv
+  /-- Remainder paired with `sdiv`; a nonzero remainder has the dividend's sign. -/
+  | srem
   | eq
   | ne
   | lt
@@ -87,11 +95,17 @@ inductive BinaryOp where
   | ge
   | and
   | or
-  | bitAnd
-  | bitOr
-  | bitXor
-  | shl
-  | shr
+  | bitAnd : IntType -> BinaryOp
+  | bitOr : IntType -> BinaryOp
+  | bitXor : IntType -> BinaryOp
+  | shl : IntType -> BinaryOp
+  /-- Logical for unsigned types, arithmetic for signed types. -/
+  | shr : IntType -> BinaryOp
+  | fixedBitAnd
+  | fixedBitOr
+  | fixedBitXor
+  | fixedShl
+  | fixedShr
   | exp
   deriving Repr, Inhabited
 

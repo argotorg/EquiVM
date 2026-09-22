@@ -1876,27 +1876,10 @@ theorem decodeABIValues_bytes32_address_address_uint256_legacy_ok {bytes : List 
   have hge96 : 32 ≤ bytes.length - 96 := by
     rw [List.length_take, List.length_drop] at hlen96
     omega
-  have htakeBytes32 :
-      List.take (↑bytes32Width + 1) (List.take 32 bytes) = List.take 32 bytes := by
-    simp [bytes32Width]
-  have hltWord96 :
-      ↑(ABI.bytesToWord ((bytes.drop 96).take 32)).val < EVM.wordModulus := by
-    change (ABI.bytesToWord ((bytes.drop 96).take 32)).val.val < EVM.twoPow 256
-    exact (ABI.bytesToWord ((bytes.drop 96).take 32)).val.isLt
-  have hmod96Val :
-      (↑(ABI.bytesToWord ((bytes.drop 96).take 32)).val) % EVM.wordModulus =
-        ↑(ABI.bytesToWord ((bytes.drop 96).take 32)).val :=
-    Nat.mod_eq_of_lt hltWord96
-  have hmod96Int :
-      ((↑(↑(ABI.bytesToWord ((bytes.drop 96).take 32)).val) : Int) %
-          (↑EVM.wordModulus : Int)) =
-        (↑(↑(ABI.bytesToWord ((bytes.drop 96).take 32)).val) : Int) := by
-    exact Int.emod_eq_of_lt (Int.ofNat_nonneg _) (by exact_mod_cast hltWord96)
   simp [decodeABIValues?, decodeABIValue?, readBytes?, readWord?, decodeABIWord?,
     bytes32, addr, uint256, bytes32Width, uint256Int, isDynamicABIType,
-    staticABIEncodedSize?, hlen0, hlen32, hlen64, hlen96, htakeBytes32, hge32, hge64,
-    hge96, UInt256.toNat, show EVM.twoPow 256 = EVM.wordModulus by rfl]
-  rw [hmod96Int]
+    staticABIEncodedSize?, hlen0, hge32, hge64, hge96, UInt256.toNat]
+  exact normalizeInt_uint256_word (ABI.bytesToWord ((bytes.drop 96).take 32))
 
 set_option maxHeartbeats 0 in
 theorem decodeCalldata_legacyBytes32_address_address_uint256_ok {cd : ByteArray}

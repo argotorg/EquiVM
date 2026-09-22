@@ -135,7 +135,7 @@ theorem flapperStorageLocLoad_uint48_offset0 (evm : EVM.State) (slot : UInt256) 
         flapperUint48Mask).toNat) := by
   simpa [uint48Loc, flapperUint48Mask] using
     storageLocLoad_uint_offset0 evm slot ⟨6, by decide⟩ ⟨48, by decide⟩
-      (hbound := by decide) (by decide)
+      (hbound := by decide) (by decide) (by decide)
 
 theorem flapperStorageLocLoad_uint48_offset6 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (uint48Loc slot ⟨6, by decide⟩ (by decide)) =
@@ -145,7 +145,7 @@ theorem flapperStorageLocLoad_uint48_offset6 (evm : EVM.State) (slot : UInt256) 
         flapperUint48Mask).toNat) := by
   simpa [uint48Loc, flapperUint48Mask] using
     storageLocLoad_uint_offset evm slot ⟨6, by decide⟩ ⟨6, by decide⟩ ⟨48, by decide⟩
-      (hbound := by decide) (by decide) (by decide)
+      (hbound := by decide) (by decide) (by decide) (by decide)
 
 theorem flapperStorageLocLoad_uint48_offset20 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (uint48Loc slot ⟨20, by decide⟩ (by decide)) =
@@ -155,7 +155,7 @@ theorem flapperStorageLocLoad_uint48_offset20 (evm : EVM.State) (slot : UInt256)
         flapperUint48Mask).toNat) := by
   simpa [uint48Loc, flapperUint48Mask] using
     storageLocLoad_uint_offset evm slot ⟨20, by decide⟩ ⟨6, by decide⟩ ⟨48, by decide⟩
-      (hbound := by decide) (by decide) (by decide)
+      (hbound := by decide) (by decide) (by decide) (by decide)
 
 theorem flapperStorageLocLoad_uint48_offset26 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (uint48Loc slot ⟨26, by decide⟩ (by decide)) =
@@ -165,7 +165,7 @@ theorem flapperStorageLocLoad_uint48_offset26 (evm : EVM.State) (slot : UInt256)
         flapperUint48Mask).toNat) := by
   simpa [uint48Loc, flapperUint48Mask] using
     storageLocLoad_uint_offset evm slot ⟨26, by decide⟩ ⟨6, by decide⟩ ⟨48, by decide⟩
-      (hbound := by decide) (by decide) (by decide)
+      (hbound := by decide) (by decide) (by decide) (by decide)
 
 theorem flapperAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}

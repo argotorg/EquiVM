@@ -894,6 +894,17 @@ theorem evalStorageRef_clipperFileUint_chip (v : ClipperImmutables) (evm : EVM.S
       chipRef = .ok { base := "chip", steps := [] } := by
   simp [chipRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
 
+private theorem evalExpr_mod_intLit {cfg : Config} {frame : Frame} {evm : EVM.State}
+    {e : Expr} {x modulus : Int} (he : evalExpr? cfg frame evm e = .ok (.int x))
+    (hmodulus : modulus ≠ 0) :
+    evalExpr? cfg frame evm (.binary .mod e (.intLit modulus)) =
+      .ok (.int (x % modulus)) := by
+  rw [evalExpr?]
+  · simp only [he, evalExpr?, EvalResult.bind, bind, pure, evalBinaryOp?, hmodulus,
+      ↓reduceIte]
+  · decide
+  · decide
+
 theorem evalExpr_clipperFileUint_wrap64_data {v : ClipperImmutables} {evm : EVM.State}
     {I : ExecutionEnv} {locals : Store}
     (h : locals.get? "data" = some (.int (Int.ofNat (clipperFileUintData I).toNat))) :
@@ -901,14 +912,9 @@ theorem evalExpr_clipperFileUint_wrap64_data {v : ClipperImmutables} {evm : EVM.
       (wrap64 (.var "data")) = .ok (.int (Int.ofNat (clipperFileUintChipData I).toNat)) := by
   have hdata :=
     evalExpr_clipperFileUint_data (v := v) (evm := evm) (I := I) (locals := locals) h
-  rw [wrap64, evalExpr?]
-  simp only [hdata, EvalResult.bind, bind]
-  simp only [evalExpr?, evalBinaryOp?]
-  norm_num [uint64Modulus, clipperFileUintChipData]
-  · rw [clipperFileUintLand64_toNat]
-    norm_num
-  · decide
-  · decide
+  rw [wrap64, evalExpr_mod_intLit hdata (by decide),
+    clipperFileUintChipData, clipperFileUintLand64_toNat]
+  rfl
 
 theorem assign_clipperFileUint_chip (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
@@ -943,14 +949,9 @@ theorem evalExpr_clipperFileUint_wrap192_data {v : ClipperImmutables} {evm : EVM
       (wrap192 (.var "data")) = .ok (.int (Int.ofNat (clipperFileUintTipData I).toNat)) := by
   have hdata :=
     evalExpr_clipperFileUint_data (v := v) (evm := evm) (I := I) (locals := locals) h
-  rw [wrap192, evalExpr?]
-  simp only [hdata, EvalResult.bind, bind]
-  simp only [evalExpr?, evalBinaryOp?]
-  norm_num [uint192Modulus, clipperFileUintTipData]
-  · rw [clipperFileUintLand192_toNat]
-    norm_num
-  · decide
-  · decide
+  rw [wrap192, evalExpr_mod_intLit hdata (by decide),
+    clipperFileUintTipData, clipperFileUintLand192_toNat]
+  rfl
 
 theorem assign_clipperFileUint_tip (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :

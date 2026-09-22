@@ -99,159 +99,159 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
   function getSqrtRatioAtTick(int24 tick) internal returns (uint160) {
     uint256 absTick = tick < 0 ? 0 - tick : tick;
     require(absTick <= 887272);
-    uint256 ratio = absTick & 0x1 != 0 ? 0xfffcb933bd6fad37aa2d162d1a594001 : #(2 ^ 128);
-    if (absTick & 0x2 != 0) {
-      ratio = ratio * 0xfff97272373d413259a46990580e213a >> 128;
+    uint256 ratio = absTick &[uint256] 0x1 != 0 ? 0xfffcb933bd6fad37aa2d162d1a594001 : #(2 ^ 128);
+    if (absTick &[uint256] 0x2 != 0) {
+      ratio = ratio * 0xfff97272373d413259a46990580e213a >>[uint256] 128;
     }
-    if (absTick & 0x4 != 0) {
-      ratio = ratio * 0xfff2e50f5f656932ef12357cf3c7fdcc >> 128;
+    if (absTick &[uint256] 0x4 != 0) {
+      ratio = ratio * 0xfff2e50f5f656932ef12357cf3c7fdcc >>[uint256] 128;
     }
-    if (absTick & 0x8 != 0) {
-      ratio = ratio * 0xffe5caca7e10e4e61c3624eaa0941cd0 >> 128;
+    if (absTick &[uint256] 0x8 != 0) {
+      ratio = ratio * 0xffe5caca7e10e4e61c3624eaa0941cd0 >>[uint256] 128;
     }
-    if (absTick & 0x10 != 0) {
-      ratio = ratio * 0xffcb9843d60f6159c9db58835c926644 >> 128;
+    if (absTick &[uint256] 0x10 != 0) {
+      ratio = ratio * 0xffcb9843d60f6159c9db58835c926644 >>[uint256] 128;
     }
-    if (absTick & 0x20 != 0) {
-      ratio = ratio * 0xff973b41fa98c081472e6896dfb254c0 >> 128;
+    if (absTick &[uint256] 0x20 != 0) {
+      ratio = ratio * 0xff973b41fa98c081472e6896dfb254c0 >>[uint256] 128;
     }
-    if (absTick & 0x40 != 0) {
-      ratio = ratio * 0xff2ea16466c96a3843ec78b326b52861 >> 128;
+    if (absTick &[uint256] 0x40 != 0) {
+      ratio = ratio * 0xff2ea16466c96a3843ec78b326b52861 >>[uint256] 128;
     }
-    if (absTick & 0x80 != 0) {
-      ratio = ratio * 0xfe5dee046a99a2a811c461f1969c3053 >> 128;
+    if (absTick &[uint256] 0x80 != 0) {
+      ratio = ratio * 0xfe5dee046a99a2a811c461f1969c3053 >>[uint256] 128;
     }
-    if (absTick & 0x100 != 0) {
-      ratio = ratio * 0xfcbe86c7900a88aedcffc83b479aa3a4 >> 128;
+    if (absTick &[uint256] 0x100 != 0) {
+      ratio = ratio * 0xfcbe86c7900a88aedcffc83b479aa3a4 >>[uint256] 128;
     }
-    if (absTick & 0x200 != 0) {
-      ratio = ratio * 0xf987a7253ac413176f2b074cf7815e54 >> 128;
+    if (absTick &[uint256] 0x200 != 0) {
+      ratio = ratio * 0xf987a7253ac413176f2b074cf7815e54 >>[uint256] 128;
     }
-    if (absTick & 0x400 != 0) {
-      ratio = ratio * 0xf3392b0822b70005940c7a398e4b70f3 >> 128;
+    if (absTick &[uint256] 0x400 != 0) {
+      ratio = ratio * 0xf3392b0822b70005940c7a398e4b70f3 >>[uint256] 128;
     }
-    if (absTick & 0x800 != 0) {
-      ratio = ratio * 0xe7159475a2c29b7443b29c7fa6e889d9 >> 128;
+    if (absTick &[uint256] 0x800 != 0) {
+      ratio = ratio * 0xe7159475a2c29b7443b29c7fa6e889d9 >>[uint256] 128;
     }
-    if (absTick & 0x1000 != 0) {
-      ratio = ratio * 0xd097f3bdfd2022b8845ad8f792aa5825 >> 128;
+    if (absTick &[uint256] 0x1000 != 0) {
+      ratio = ratio * 0xd097f3bdfd2022b8845ad8f792aa5825 >>[uint256] 128;
     }
-    if (absTick & 0x2000 != 0) {
-      ratio = ratio * 0xa9f746462d870fdf8a65dc1f90e061e5 >> 128;
+    if (absTick &[uint256] 0x2000 != 0) {
+      ratio = ratio * 0xa9f746462d870fdf8a65dc1f90e061e5 >>[uint256] 128;
     }
-    if (absTick & 0x4000 != 0) {
-      ratio = ratio * 0x70d869a156d2a1b890bb3df62baf32f7 >> 128;
+    if (absTick &[uint256] 0x4000 != 0) {
+      ratio = ratio * 0x70d869a156d2a1b890bb3df62baf32f7 >>[uint256] 128;
     }
-    if (absTick & 0x8000 != 0) {
-      ratio = ratio * 0x31be135f97d08fd981231505542fcfa6 >> 128;
+    if (absTick &[uint256] 0x8000 != 0) {
+      ratio = ratio * 0x31be135f97d08fd981231505542fcfa6 >>[uint256] 128;
     }
-    if (absTick & 0x10000 != 0) {
-      ratio = ratio * 0x9aa508b5b7a84e1c677de54f3e99bc9 >> 128;
+    if (absTick &[uint256] 0x10000 != 0) {
+      ratio = ratio * 0x9aa508b5b7a84e1c677de54f3e99bc9 >>[uint256] 128;
     }
-    if (absTick & 0x20000 != 0) {
-      ratio = ratio * 0x5d6af8dedb81196699c329225ee604 >> 128;
+    if (absTick &[uint256] 0x20000 != 0) {
+      ratio = ratio * 0x5d6af8dedb81196699c329225ee604 >>[uint256] 128;
     }
-    if (absTick & 0x40000 != 0) {
-      ratio = ratio * 0x2216e584f5fa1ea926041bedfe98 >> 128;
+    if (absTick &[uint256] 0x40000 != 0) {
+      ratio = ratio * 0x2216e584f5fa1ea926041bedfe98 >>[uint256] 128;
     }
-    if (absTick & 0x80000 != 0) {
-      ratio = ratio * 0x48a170391f7dc42444e8fa2 >> 128;
+    if (absTick &[uint256] 0x80000 != 0) {
+      ratio = ratio * 0x48a170391f7dc42444e8fa2 >>[uint256] 128;
     }
     if (tick > 0) {
       ratio = type(uint256).max / ratio;
     }
-    return (ratio >> 32) + (ratio % #(2 ^ 32) == 0 ? 0 : 1);
+    return (ratio >>[uint256] 32) + (ratio % #(2 ^ 32) == 0 ? 0 : 1);
   }
 
   function getTickAtSqrtRatio(uint160 sqrtPriceX96) internal returns (int24) {
     require(sqrtPriceX96 >= 4295128739 &&
       sqrtPriceX96 < 1461446703485210103287273052203988822378723970342);
-    uint256 ratio = sqrtPriceX96 << 32;
+    uint256 ratio = sqrtPriceX96 <<[uint256] 32;
     uint256 r = ratio;
     uint256 msb = 0;
     uint256 f = r > 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF ? #(2 ^ 7) : 0;
     msb = msb + f;
-    r = r >> f;
+    r = r >>[uint256] f;
     uint256 f = r > 0xFFFFFFFFFFFFFFFF ? #(2 ^ 6) : 0;
     msb = msb + f;
-    r = r >> f;
+    r = r >>[uint256] f;
     uint256 f = r > 0xFFFFFFFF ? #(2 ^ 5) : 0;
     msb = msb + f;
-    r = r >> f;
+    r = r >>[uint256] f;
     uint256 f = r > 0xFFFF ? #(2 ^ 4) : 0;
     msb = msb + f;
-    r = r >> f;
+    r = r >>[uint256] f;
     uint256 f = r > 0xFF ? #(2 ^ 3) : 0;
     msb = msb + f;
-    r = r >> f;
+    r = r >>[uint256] f;
     uint256 f = r > 0xF ? #(2 ^ 2) : 0;
     msb = msb + f;
-    r = r >> f;
+    r = r >>[uint256] f;
     uint256 f = r > 0x3 ? #(2 ^ 1) : 0;
     msb = msb + f;
-    r = r >> f;
+    r = r >>[uint256] f;
     uint256 f = r > 0x1 ? 1 : 0;
     msb = msb + f;
     if (msb >= 128) {
-      r = ratio >> (msb - 127);
+      r = ratio >>[uint256] (msb - 127);
     } else {
-      r = ratio << (127 - msb);
+      r = ratio <<[uint256] (127 - msb);
     }
     int256 log_2 = (msb - 128) * #(2 ^ 64);
-    r = r * r >> 127;
-    uint256 f = r >> 128;
+    r = r * r >>[uint256] 127;
+    uint256 f = r >>[uint256] 128;
     log_2 = log_2 + f * #(2 ^ 63);
-    r = r >> f;
-    r = r * r >> 127;
-    uint256 f = r >> 128;
+    r = r >>[uint256] f;
+    r = r * r >>[uint256] 127;
+    uint256 f = r >>[uint256] 128;
     log_2 = log_2 + f * #(2 ^ 62);
-    r = r >> f;
-    r = r * r >> 127;
-    uint256 f = r >> 128;
+    r = r >>[uint256] f;
+    r = r * r >>[uint256] 127;
+    uint256 f = r >>[uint256] 128;
     log_2 = log_2 + f * #(2 ^ 61);
-    r = r >> f;
-    r = r * r >> 127;
-    uint256 f = r >> 128;
+    r = r >>[uint256] f;
+    r = r * r >>[uint256] 127;
+    uint256 f = r >>[uint256] 128;
     log_2 = log_2 + f * #(2 ^ 60);
-    r = r >> f;
-    r = r * r >> 127;
-    uint256 f = r >> 128;
+    r = r >>[uint256] f;
+    r = r * r >>[uint256] 127;
+    uint256 f = r >>[uint256] 128;
     log_2 = log_2 + f * #(2 ^ 59);
-    r = r >> f;
-    r = r * r >> 127;
-    uint256 f = r >> 128;
+    r = r >>[uint256] f;
+    r = r * r >>[uint256] 127;
+    uint256 f = r >>[uint256] 128;
     log_2 = log_2 + f * #(2 ^ 58);
-    r = r >> f;
-    r = r * r >> 127;
-    uint256 f = r >> 128;
+    r = r >>[uint256] f;
+    r = r * r >>[uint256] 127;
+    uint256 f = r >>[uint256] 128;
     log_2 = log_2 + f * #(2 ^ 57);
-    r = r >> f;
-    r = r * r >> 127;
-    uint256 f = r >> 128;
+    r = r >>[uint256] f;
+    r = r * r >>[uint256] 127;
+    uint256 f = r >>[uint256] 128;
     log_2 = log_2 + f * #(2 ^ 56);
-    r = r >> f;
-    r = r * r >> 127;
-    uint256 f = r >> 128;
+    r = r >>[uint256] f;
+    r = r * r >>[uint256] 127;
+    uint256 f = r >>[uint256] 128;
     log_2 = log_2 + f * #(2 ^ 55);
-    r = r >> f;
-    r = r * r >> 127;
-    uint256 f = r >> 128;
+    r = r >>[uint256] f;
+    r = r * r >>[uint256] 127;
+    uint256 f = r >>[uint256] 128;
     log_2 = log_2 + f * #(2 ^ 54);
-    r = r >> f;
-    r = r * r >> 127;
-    uint256 f = r >> 128;
+    r = r >>[uint256] f;
+    r = r * r >>[uint256] 127;
+    uint256 f = r >>[uint256] 128;
     log_2 = log_2 + f * #(2 ^ 53);
-    r = r >> f;
-    r = r * r >> 127;
-    uint256 f = r >> 128;
+    r = r >>[uint256] f;
+    r = r * r >>[uint256] 127;
+    uint256 f = r >>[uint256] 128;
     log_2 = log_2 + f * #(2 ^ 52);
-    r = r >> f;
-    r = r * r >> 127;
-    uint256 f = r >> 128;
+    r = r >>[uint256] f;
+    r = r * r >>[uint256] 127;
+    uint256 f = r >>[uint256] 128;
     log_2 = log_2 + f * #(2 ^ 51);
-    r = r >> f;
-    r = r * r >> 127;
-    uint256 f = r >> 128;
+    r = r >>[uint256] f;
+    r = r * r >>[uint256] 127;
+    uint256 f = r >>[uint256] 128;
     log_2 = log_2 + f * #(2 ^ 50);
     int256 log_sqrt10001 = log_2 * 255738958999603826347141;
     int24 tickLow = (log_sqrt10001 - 3402992956809132418596140100660247210) / #(2 ^ 128);
@@ -277,7 +277,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     int56 tickCumulative =
       ${int56Wrap (addE (.var "lastTickCumulative") (mulE (.var "tick") (.var "delta")))};
     uint160 secondsPerLiquidityCumulativeX128 =
-      (lastSecondsPerLiquidityCumulativeX128 + (delta << 128) / liquidityDenominator)
+      (lastSecondsPerLiquidityCumulativeX128 + (delta <<[uint256] 128) / liquidityDenominator)
         % #(2 ^ 160);
     return blockTimestamp, tickCumulative, secondsPerLiquidityCumulativeX128, true;
   }
@@ -485,8 +485,8 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     int24 compressed = tick / tickSpacing;
     int16 wordPos = compressed / 256;
     uint8 bitPos = compressed % 256;
-    uint256 mask = 1 << bitPos;
-    tickBitmap[wordPos] = tickBitmap[wordPos] ^ mask;
+    uint256 mask = 1 <<[uint256] bitPos;
+    tickBitmap[wordPos] = tickBitmap[wordPos] ^[uint256] mask;
   }
 
   function positionUpdate(bytes32 positionKey, int128 liquidityDelta,
@@ -523,7 +523,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       sqrtRatioA = sqrtRatioBX96;
       sqrtRatioB = sqrtRatioAX96;
     }
-    uint256 numerator1 = liquidity << 96;
+    uint256 numerator1 = liquidity <<[uint256] 96;
     uint256 numerator2 = sqrtRatioB - sqrtRatioA;
     require(sqrtRatioA > 0);
     if (roundUp) {
@@ -691,31 +691,31 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     require(x > 0);
     uint8 r = 0;
     if (x >= #(2 ^ 128)) {
-      x = x >> 128;
+      x = x >>[uint256] 128;
       r = r + 128;
     }
     if (x >= #(2 ^ 64)) {
-      x = x >> 64;
+      x = x >>[uint256] 64;
       r = r + 64;
     }
     if (x >= #(2 ^ 32)) {
-      x = x >> 32;
+      x = x >>[uint256] 32;
       r = r + 32;
     }
     if (x >= #(2 ^ 16)) {
-      x = x >> 16;
+      x = x >>[uint256] 16;
       r = r + 16;
     }
     if (x >= #(2 ^ 8)) {
-      x = x >> 8;
+      x = x >>[uint256] 8;
       r = r + 8;
     }
     if (x >= #(2 ^ 4)) {
-      x = x >> 4;
+      x = x >>[uint256] 4;
       r = r + 4;
     }
     if (x >= #(2 ^ 2)) {
-      x = x >> 2;
+      x = x >>[uint256] 2;
       r = r + 2;
     }
     if (x >= 2) {
@@ -727,42 +727,42 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
   function leastSignificantBit(uint256 x) internal returns (uint8) {
     require(x > 0);
     uint8 r = 255;
-    if (x & #(2 ^ 128 - 1) > 0) {
+    if (x &[uint256] #(2 ^ 128 - 1) > 0) {
       r = r - 128;
     } else {
-      x = x >> 128;
+      x = x >>[uint256] 128;
     }
-    if (x & #(2 ^ 64 - 1) > 0) {
+    if (x &[uint256] #(2 ^ 64 - 1) > 0) {
       r = r - 64;
     } else {
-      x = x >> 64;
+      x = x >>[uint256] 64;
     }
-    if (x & #(2 ^ 32 - 1) > 0) {
+    if (x &[uint256] #(2 ^ 32 - 1) > 0) {
       r = r - 32;
     } else {
-      x = x >> 32;
+      x = x >>[uint256] 32;
     }
-    if (x & #(2 ^ 16 - 1) > 0) {
+    if (x &[uint256] #(2 ^ 16 - 1) > 0) {
       r = r - 16;
     } else {
-      x = x >> 16;
+      x = x >>[uint256] 16;
     }
-    if (x & #(2 ^ 8 - 1) > 0) {
+    if (x &[uint256] #(2 ^ 8 - 1) > 0) {
       r = r - 8;
     } else {
-      x = x >> 8;
+      x = x >>[uint256] 8;
     }
-    if (x & 0xf > 0) {
+    if (x &[uint256] 0xf > 0) {
       r = r - 4;
     } else {
-      x = x >> 4;
+      x = x >>[uint256] 4;
     }
-    if (x & 0x3 > 0) {
+    if (x &[uint256] 0x3 > 0) {
       r = r - 2;
     } else {
-      x = x >> 2;
+      x = x >>[uint256] 2;
     }
-    if (x & 0x1 > 0) {
+    if (x &[uint256] 0x1 > 0) {
       r = r - 1;
     }
     return r;
@@ -774,9 +774,9 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     if (lte) {
       int16 wordPos = compressed / 256;
       uint8 bitPos = compressed % 256;
-      uint256 oneAtBit = 1 << bitPos;
+      uint256 oneAtBit = 1 <<[uint256] bitPos;
       uint256 mask = (oneAtBit - 1) + oneAtBit;
-      uint256 masked = tickBitmap[wordPos] & mask;
+      uint256 masked = tickBitmap[wordPos] &[uint256] mask;
       bool initialized = masked != 0;
       if (initialized) {
         var msb = mostSignificantBit(masked);
@@ -788,8 +788,8 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       int24 compressedPlusOne = compressed + 1;
       int16 wordPos = compressedPlusOne / 256;
       uint8 bitPos = compressedPlusOne % 256;
-      uint256 mask = ~((1 << bitPos) - 1);
-      uint256 masked = tickBitmap[wordPos] & mask;
+      uint256 mask = ~[uint256]((1 <<[uint256] bitPos) - 1);
+      uint256 masked = tickBitmap[wordPos] &[uint256] mask;
       bool initialized = masked != 0;
       if (initialized) {
         var lsb = leastSignificantBit(masked);
@@ -822,7 +822,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     if (amount == 0) {
       return sqrtPX96;
     }
-    uint256 numerator1 = liquidity << 96;
+    uint256 numerator1 = liquidity <<[uint256] 96;
     if (add) {
       uint256 product = amount * sqrtPX96 % #(2 ^ 256);
       if (product / amount == sqrtPX96) {
@@ -867,7 +867,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       uint256 amount, bool add) internal returns (uint160) {
     if (add) {
       if (amount <= type(uint160).max) {
-        uint256 quotient = (amount << 96) / liquidity;
+        uint256 quotient = (amount <<[uint256] 96) / liquidity;
       } else {
         require(liquidity > 0);
         uint256 quotient = amount * #(2 ^ 96) / liquidity;
@@ -879,8 +879,8 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     } else {
       if (amount <= type(uint160).max) {
         require(liquidity > 0);
-        uint256 quotient = (amount << 96) / liquidity;
-        if ((amount << 96) % liquidity > 0) {
+        uint256 quotient = (amount <<[uint256] 96) / liquidity;
+        if ((amount <<[uint256] 96) % liquidity > 0) {
           require(quotient < type(uint256).max);
           quotient = quotient + 1;
         }
@@ -1146,8 +1146,8 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       feeGrowthGlobal0X128 = feeGrowthGlobal0X128 + feeGrowth0Delta;
     }
     if (paid1 > 0) {
-      uint8 feeProtocol1 = 0 << 0;
-      feeProtocol1 = slot0.feeProtocol >> 4;
+      uint8 feeProtocol1 = 0 <<[uint256] 0;
+      feeProtocol1 = slot0.feeProtocol >>[uint256] 4;
       uint256 fees1 = feeProtocol1 == 0 ? 0 : paid1 / feeProtocol1;
       if (fees1 % #(2 ^ 128) > 0) {
         protocolFees.token1 = protocolFees.token1 + fees1 % #(2 ^ 128);
@@ -1265,7 +1265,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     require((feeProtocol0 == 0 || (feeProtocol0 >= 4 && feeProtocol0 <= 10)) &&
       (feeProtocol1 == 0 || (feeProtocol1 >= 4 && feeProtocol1 <= 10)));
     uint8 feeProtocolOld = slot0.feeProtocol;
-    slot0.feeProtocol = feeProtocol0 + (feeProtocol1 << 4);
+    slot0.feeProtocol = feeProtocol0 + (feeProtocol1 <<[uint256] 4);
     slot0.unlocked = true;
   }
 
@@ -1331,7 +1331,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     uint128 cacheLiquidityStart = liquidity;
     uint32 cacheBlockTimestamp = block.timestamp % #(2 ^ 32);
     uint8 cacheFeeProtocol = zeroForOne ?
-      slot0StartFeeProtocol % 16 : slot0StartFeeProtocol >> 4;
+      slot0StartFeeProtocol % 16 : slot0StartFeeProtocol >>[uint256] 4;
     uint160 cacheSecondsPerLiquidityCumulativeX128 = 0;
     int56 cacheTickCumulative = 0;
     bool cacheComputedLatestObservation = false;

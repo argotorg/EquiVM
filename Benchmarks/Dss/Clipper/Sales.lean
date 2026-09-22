@@ -88,7 +88,7 @@ theorem clipperStorageLocLoad_uint96 (evm : EVM.State) (slot : UInt256) :
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨96⟩) ⟨1⟩)).toNat) := by
   have h := storageLocLoad_uint_offset (evm := evm) (slot := slot)
     (offset := ⟨20, by decide⟩) (size := ⟨12, by decide⟩)
-    (width := ⟨96, by decide⟩) (hbound := by decide) (by decide) (by decide)
+    (width := ⟨96, by decide⟩) (hbound := by decide) (by decide) (by decide) (by decide)
   simpa [uint96Loc, uint96Int, show (256 ^ 20 = 2 ^ 160) by native_decide,
     show (256 ^ 12 = 2 ^ 96) by native_decide, UInt256.ofNat] using h
 

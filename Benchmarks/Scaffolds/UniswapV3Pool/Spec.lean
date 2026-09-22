@@ -367,16 +367,14 @@ def subE (lhs rhs : Expr) : Expr := .binary .sub lhs rhs
 def mulE (lhs rhs : Expr) : Expr := .binary .mul lhs rhs
 def divE (lhs rhs : Expr) : Expr := .binary .div lhs rhs
 def modE (lhs rhs : Expr) : Expr := .binary .mod lhs rhs
-def shlE (lhs rhs : Expr) : Expr := .binary .shl lhs rhs
-def shrE (lhs rhs : Expr) : Expr := .binary .shr lhs rhs
-def bitAndE (lhs rhs : Expr) : Expr := .binary .bitAnd lhs rhs
-def bitXorE (lhs rhs : Expr) : Expr := .binary .bitXor lhs rhs
+def shlE (lhs rhs : Expr) : Expr := .binary (.shl uint256Int) lhs rhs
+def shrE (lhs rhs : Expr) : Expr := .binary (.shr uint256Int) lhs rhs
+def bitAndE (lhs rhs : Expr) : Expr := .binary (.bitAnd uint256Int) lhs rhs
+def bitXorE (lhs rhs : Expr) : Expr := .binary (.bitXor uint256Int) lhs rhs
 def notE (e : Expr) : Expr := .unary .not e
 
 def sdivTowardZeroE (lhs rhs : Expr) : Expr :=
-  .ite (ltE lhs (.intLit 0))
-    (subE (.intLit 0) (divE (subE (.intLit 0) lhs) rhs))
-    (divE lhs rhs)
+  .binary .sdiv lhs rhs
 
 def uint256Modulus : Expr := .intLit (2 ^ 256)
 def uint256MaxExpr : Expr := .intLit (2 ^ 256 - 1)
@@ -1321,7 +1319,7 @@ def tickBitmapNextInitializedTickWithinOneWordFunction : FunctionDecl :=
             .letDecl "wordPos" (some int16) (divE (.var "compressedPlusOne") (.intLit 256)),
             .letDecl "bitPos" (some uint8) (modE (.var "compressedPlusOne") (.intLit 256)),
             .letDecl "mask" (some uint256)
-              (.unary .bitNot (subE (shlE (.intLit 1) (.var "bitPos")) (.intLit 1))),
+              (.unary (.bitNot uint256Int) (subE (shlE (.intLit 1) (.var "bitPos")) (.intLit 1))),
             .letDecl "masked" (some uint256)
               (bitAndE (.storage (tickBitmapRef (.var "wordPos"))) (.var "mask")),
             .letDecl "initialized" (some boolTy) (neE (.var "masked") (.intLit 0)),
@@ -1778,7 +1776,7 @@ def flashTransition (v : PoolImmutables) : TransitionDecl :=
           ([ .letDecl "feeProtocol1" (some uint8)
                 (shlE (.intLit 0) (.intLit 0)),
              .assign .localVar (varRef "feeProtocol1")
-                (.binary .shr (.storage (slot0F "feeProtocol")) (.intLit 4)),
+                (.binary (.shr uint256Int) (.storage (slot0F "feeProtocol")) (.intLit 4)),
              .letDecl "fees1" (some uint256)
                 (.ite (eqE (.var "feeProtocol1") (.intLit 0))
                   (.intLit 0)
