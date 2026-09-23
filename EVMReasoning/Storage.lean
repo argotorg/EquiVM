@@ -1549,6 +1549,12 @@ theorem storageStore_executionEnv (evm : EVM.State) (addr : AccountAddress)
   simp only [Storage.EVM.storageStore, State.lookupAccount]
   cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
 
+theorem storageStore_substate (evm : EVM.State) (addr : AccountAddress)
+    (slot val : UInt256) :
+    (Storage.EVM.storageStore evm addr slot val).substate = evm.substate := by
+  simp only [Storage.EVM.storageStore, State.lookupAccount]
+  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
+
 theorem storageStore_absent (evm : EVM.State) (addr : AccountAddress)
     (hmissing : evm.accountMap.find? addr = none) (slot val : UInt256) :
     Storage.EVM.storageStore evm addr slot val = evm := by

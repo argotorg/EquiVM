@@ -13,3 +13,6 @@ import Solidity.Behaviors
 import Solidity.Setup
 import Solidity.Interp
 import Solidity.Theory.InterpEquiv
+import Solidity.Theory.Trace
+import Solidity.Theory.Derivations
+import Solidity.Theory.Strings

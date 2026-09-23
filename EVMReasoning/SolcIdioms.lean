@@ -783,4 +783,172 @@ theorem Run.solcByteArrayLengthShortMalformed {validPc unusedRet panicPc header 
   rw [if_pos hflag] at hsplit
   exact hsplit.solcByteArrayLengthMalformedTail hwf hpanic hbad hpanicJd hov
 
+/-! ## Revert blocks and custom-error tails
+
+`revert E(args)` builds its payload at the free memory pointer (`0x80`): the selector word, then
+the ABI-encoded arguments; the revert block `PUSH1 64; MLOAD; DUP1; SWAP2; SUB; SWAP1; REVERT`
+(with or without a leading `JUMPDEST`) then reverts with `mem[0x80 .. end)`. -/
+
+/-- `JUMPDEST; PUSH1 64; MLOAD; DUP1; SWAP2; SUB; SWAP1; REVERT`: the revert twin of `solcReturnBlockWf`. -/
+@[reducible] def solcRevertBlockWf (code : ByteArray) (pc : UInt256) : Prop :=
+  decode code pc = some (.JUMPDEST, .none)
+  ∧ decode code (pc + ⟨1⟩) = some (.Push .PUSH1, some (⟨64⟩, 1))
+  ∧ decode code (pc + ⟨1⟩ + UInt256.ofNat 2) = some (.MLOAD, .none)
+  ∧ decode code (pc + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) = some (.DUP1, .none)
+  ∧ decode code (pc + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) = some (.SWAP2, .none)
+  ∧ decode code (pc + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.SUB, .none)
+  ∧ decode code (pc + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.SWAP1, .none)
+  ∧ decode code (pc + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.REVERT, .none)
+
+theorem Run.solcRevertBlock {endW : UInt256}
+    (h : Run code s0 ⟨pc, endW :: R, mem, aw, rdata, w⟩ k C)
+    (hwf : solcRevertBlockWf code pc)
+    (hmload64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩)
+    (hov : R.length + 3 ≤ 1024) :
+    Reverted code s0 (mem.readWithPadding 128 (UInt256.sub endW ⟨128⟩).toNat) := by
+  rcases hwf with ⟨hd0, hd1, hd3, hd4, hd5, hd6, hd7, hd8⟩
+  obtain ⟨_, _, h4⟩ := (h.jumpdest hd0 (by evm_ov) |>.push1 ⟨64⟩ hd1 (by evm_ov)).mloadVar hd3
+    (by evm_ov)
+  rw [hmload64] at h4
+  have hrev := (h4.dup1 hd4 (by evm_ov) |>.swap2 hd5 (by evm_ov) |>.sub hd6 (by evm_ov)
+    |>.swap1 hd7 (by evm_ov)).revVar hd8 (by evm_ov)
+  rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide] at hrev
+  exact hrev
+
+/-- `PUSH1 64; MLOAD; DUP1; SWAP2; SUB; SWAP1; REVERT` (no leading `JUMPDEST`, the inline form). -/
+@[reducible] def solcRevertTailWf (code : ByteArray) (pc : UInt256) : Prop :=
+  decode code pc = some (.Push .PUSH1, some (⟨64⟩, 1))
+  ∧ decode code (pc + UInt256.ofNat 2) = some (.MLOAD, .none)
+  ∧ decode code (pc + UInt256.ofNat 2 + ⟨1⟩) = some (.DUP1, .none)
+  ∧ decode code (pc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) = some (.SWAP2, .none)
+  ∧ decode code (pc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.SUB, .none)
+  ∧ decode code (pc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.SWAP1, .none)
+  ∧ decode code (pc + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.REVERT, .none)
+
+theorem Run.solcRevertTail {endW : UInt256}
+    (h : Run code s0 ⟨pc, endW :: R, mem, aw, rdata, w⟩ k C)
+    (hwf : solcRevertTailWf code pc)
+    (hmload64 :
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+       else UInt256.ofNat
+         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩)
+    (hov : R.length + 3 ≤ 1024) :
+    Reverted code s0 (mem.readWithPadding 128 (UInt256.sub endW ⟨128⟩).toNat) := by
+  rcases hwf with ⟨hd0, hd2, hd3, hd4, hd5, hd6, hd7⟩
+  obtain ⟨_, _, h3⟩ := (h.push1 ⟨64⟩ hd0 (by evm_ov)).mloadVar hd2 (by evm_ov)
+  rw [hmload64] at h3
+  have hrev := (h3.dup1 hd3 (by evm_ov) |>.swap2 hd4 (by evm_ov) |>.sub hd5 (by evm_ov)
+    |>.swap1 hd6 (by evm_ov)).revVar hd7 (by evm_ov)
+  rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide] at hrev
+  exact hrev
+
+/-- `PUSH1 64; MLOAD; PUSH4 rawSel; PUSH1 shift; SHL; DUP2; MSTORE; PUSH1 4; ADD`: the selector of a
+    custom error stored at `0x80`, the end pointer `0x84` left on the stack. -/
+@[reducible] def solcErrorSelectorStoreWf (code : ByteArray) (pc rawSel shift : UInt256) : Prop :=
+  let p2 := pc + UInt256.ofNat 2
+  let p3 := p2 + ⟨1⟩
+  let p8 := p3 + UInt256.ofNat 5
+  let p10 := p8 + UInt256.ofNat 2
+  let p11 := p10 + ⟨1⟩
+  let p12 := p11 + ⟨1⟩
+  let p13 := p12 + ⟨1⟩
+  let p15 := p13 + UInt256.ofNat 2
+  decode code pc = some (.Push .PUSH1, some (⟨64⟩, 1))
+  ∧ decode code p2 = some (.MLOAD, .none)
+  ∧ decode code p3 = some (.Push .PUSH4, some (rawSel, 4))
+  ∧ decode code p8 = some (.Push .PUSH1, some (shift, 1))
+  ∧ decode code p10 = some (.SHL, .none)
+  ∧ decode code p11 = some (.DUP2, .none)
+  ∧ decode code p12 = some (.MSTORE, .none)
+  ∧ decode code p13 = some (.Push .PUSH1, some (⟨4⟩, 1))
+  ∧ decode code p15 = some (.ADD, .none)
+
+/-- The pc after the selector store's `ADD`. -/
+@[reducible] def solcErrorSelectorStoreOutPc (pc : UInt256) : UInt256 :=
+  pc + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 5 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩
+
+/-- The selector store from the prologue memory (`mem.size = 96`, three active words). -/
+theorem Run.solcErrorSelectorStore {rawSel shift selWord : UInt256}
+    (h : Run code s0 ⟨pc, R, mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcErrorSelectorStoreWf code pc rawSel shift)
+    (hword : UInt256.shiftLeft rawSel shift = selWord)
+    (hmem : mem.size = 96) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : R.length + 3 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨solcErrorSelectorStoreOutPc pc, (⟨4⟩ + ⟨128⟩) :: R,
+      (UInt256.toByteArray selWord).write 0 mem 128 32, UInt256.ofNat 5, rdata, w⟩ k' C' := by
+  rcases hwf with ⟨hd0, hd2, hd3, hd8, hd10, hd11, hd12, hd13, hd15⟩
+  have h3 := evm_run h with [
+    raw push1 ⟨64⟩ hd0 (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd2 mem_cost
+      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64) (by decide) (by evm_ov)]
+  have h11 := (h3.push4 rawSel hd3 (by evm_ov) |>.push1 shift hd8 (by evm_ov)).shl hd10 (by evm_ov)
+  rw [hword] at h11
+  exact ⟨_, _, evm_run h11 with [
+    raw dup2 hd11 (by evm_ov),
+    raw mstore 6 ((UInt256.toByteArray selWord).write 0 mem 128 32) (UInt256.ofNat 5) hd12 mem_cost
+      (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨4⟩ hd13 (by evm_ov),
+    raw add hd15 (by evm_ov)]⟩
+
+/-- The four selector bytes read back from the selector store. -/
+theorem errorSelectorMem_read4 (selWord : UInt256) (mem : ByteArray) (hmem : mem.size ≤ 128) :
+    ((UInt256.toByteArray selWord).write 0 mem 128 32).readWithPadding 128 4 =
+      (UInt256.toByteArray selWord).extract 0 4 := by
+  rw [toByteArray_write_eq _ _ _ hmem (lt_usize _ (by omega))]
+  have hP : (mem ++ ffi.ByteArray.zeroes (128 - mem.size)).size = 128 := by
+    rw [ByteArray.size_append, ByteArray_zeroes_size]; omega
+  rw [readWithPadding_eq_extract' _ _ _ (by omega) (by decide)
+      (by rw [ByteArray.size_append, hP, toByteArray_size]; omega),
+    extract_append_right_window _ _ _ _ (by rw [hP]), hP]
+
+/-- The selector and one argument word read back (`revert E(x)`). -/
+theorem errorSelectorArgMem_read36 (selWord arg : UInt256) (mem : ByteArray) (hmem : mem.size ≤ 128) :
+    ByteArray.readWithPadding
+        ((UInt256.toByteArray arg).write 0 ((UInt256.toByteArray selWord).write 0 mem 128 32) 132 32) 128 36 =
+      (UInt256.toByteArray selWord).extract 0 4 ++ UInt256.toByteArray arg := by
+  set P := mem ++ ffi.ByteArray.zeroes (128 - mem.size) with hP
+  have hPs : P.size = 128 := by rw [hP, ByteArray.size_append, ByteArray_zeroes_size]; omega
+  have h0 : (UInt256.toByteArray selWord).write 0 mem 128 32 = P ++ UInt256.toByteArray selWord := by
+    rw [toByteArray_write_eq _ _ _ hmem (lt_usize _ (by omega))]
+  have h0s : (P ++ UInt256.toByteArray selWord).size = 160 := by
+    rw [ByteArray.size_append, hPs, toByteArray_size]
+  rw [h0, write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [h0s]; omega), toByteArray_extract_all,
+    (ByteArray.extract_eq_empty_iff (b := P ++ UInt256.toByteArray selWord) (i := 132 + 32)
+      (j := (P ++ UInt256.toByteArray selWord).size)).mpr (by rw [h0s]; omega),
+    ByteArray.append_empty, extract_append_span P _ 0 132 (by omega) (by rw [hPs]; omega),
+    byteArray_extract_self, hPs]
+  have hT : ((UInt256.toByteArray selWord).extract 0 (132 - 128) ++ UInt256.toByteArray arg).size = 36 := by
+    rw [ByteArray.size_append, ByteArray.size_extract, toByteArray_size, toByteArray_size]
+    omega
+  rw [ByteArray.append_assoc, readWithPadding_eq_extract' _ _ _ (by omega) (by decide)
+      (by rw [ByteArray.size_append, hPs, hT]),
+    extract_append_right_window P _ _ _ (by rw [hPs]), hPs, Nat.sub_self, Nat.add_sub_cancel_left, ← hT,
+    byteArray_extract_self]
+
+/-- `revert E()` from the prologue memory: selector store, then the inline revert tail. -/
+theorem Run.solcCustomErrorRevert {rawSel shift selWord : UInt256}
+    (h : Run code s0 ⟨pc, R, mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcErrorSelectorStoreWf code pc rawSel shift)
+    (htail : solcRevertTailWf code (solcErrorSelectorStoreOutPc pc))
+    (hword : UInt256.shiftLeft rawSel shift = selWord)
+    (hmem : mem.size = 96) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : R.length + 3 ≤ 1024) :
+    Reverted code s0 ((UInt256.toByteArray selWord).extract 0 4) := by
+  obtain ⟨_, _, h1⟩ := Run.solcErrorSelectorStore h hwf hword hmem hread64 hov
+  have hsz : ((UInt256.toByteArray selWord).write 0 mem 128 32).size = 160 := by
+    rw [toByteArray_write_eq _ _ _ (by omega) (lt_usize _ (by omega)), ByteArray.size_append,
+      ByteArray.size_append, hmem, ByteArray_zeroes_size, toByteArray_size]
+  have hread64' : ((UInt256.toByteArray selWord).write 0 mem 128 32).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+    rw [toByteArray_write_read_below_of_gap _ _ 128 64 (by omega) (by omega) (lt_usize _ (by omega))]
+    exact hread64
+  have hrev := Run.solcRevertTail h1 htail
+    (mloadFreePtrValue (by rw [hsz]; decide) (by decide) hread64') (by evm_ov)
+  rw [show (UInt256.sub (⟨4⟩ + ⟨128⟩) ⟨128⟩).toNat = 4 from by decide,
+    errorSelectorMem_read4 selWord mem (by omega)] at hrev
+  exact hrev
+
 end Reasoning.Trace
