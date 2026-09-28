@@ -59,7 +59,7 @@ def bytesLikeLengthLoc (baseSlot : EVM.Word) (evm : EVM.State) : StorageLoc :=
       bitOffset := some 1, type := .int (.uint ⟨256, by decide⟩) }
 
 def solidityBytesDataBaseSlot (baseSlot : EVM.Word) : EVM.Word :=
-  Ethereum.uInt256OfByteArray (ffi.KEC baseSlot.toByteArray)
+  Ethereum.uInt256OfByteArray (Ethereum.KEC baseSlot.toByteArray)
 
 def solidityBytesDataSlot (baseSlot : EVM.Word) (wordIndex : Nat) : EVM.Word :=
   solidityBytesDataBaseSlot baseSlot + Ethereum.UInt256.ofNat wordIndex
@@ -299,7 +299,7 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
     | .mapping _ t => do
       let (size, node) <- slotTypeSolidityStorageNode structs t
       pure (32, .indexed (λ word idxVal _ ↦
-        { slot := Ethereum.uInt256OfByteArray (ffi.KEC ((keyValueToWord idxVal).toByteArray ++ word.toByteArray))
+        { slot := Ethereum.uInt256OfByteArray (Ethereum.KEC ((keyValueToWord idxVal).toByteArray ++ word.toByteArray))
           offset := 0
           size := size
           bitOffset := .none
@@ -314,7 +314,7 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
               let idxWord := keyValueToWord idxVal
               -- TODO: maybe go directly to nat?
               let idxNat := idxWord.toNat
-              { slot := Ethereum.uInt256OfByteArray (ffi.KEC word.toByteArray) + Ethereum.UInt256.ofNat (idxNat/elemsPerWord)
+              { slot := Ethereum.uInt256OfByteArray (Ethereum.KEC word.toByteArray) + Ethereum.UInt256.ofNat (idxNat/elemsPerWord)
                 offset := .ofNat 32 (idxNat%elemsPerWord * elemSize)
                 size := elemSize
                 bitOffset := .none
@@ -337,7 +337,7 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
               let idxWord := keyValueToWord idxVal
               -- TODO: maybe go directly to nat?
               let idxNat := idxWord.toNat
-              { slot := Ethereum.uInt256OfByteArray (ffi.KEC word.toByteArray) + Ethereum.UInt256.ofNat (idxNat*wordsPerElem)
+              { slot := Ethereum.uInt256OfByteArray (Ethereum.KEC word.toByteArray) + Ethereum.UInt256.ofNat (idxNat*wordsPerElem)
                 offset := 0 -- am I sure?
                 size := elemSize
                 bitOffset := .none
@@ -378,7 +378,7 @@ def slotTypeSolidityStorageNode (structs : List StructDecl)
             let idxWord := keyValueToWord idxVal
             -- TODO: maybe go directly to nat?
             let idxNat := idxWord.toNat
-            { slot := Ethereum.uInt256OfByteArray (ffi.KEC word.toByteArray) + Ethereum.UInt256.ofNat (idxNat/elemsPerWord)
+            { slot := Ethereum.uInt256OfByteArray (Ethereum.KEC word.toByteArray) + Ethereum.UInt256.ofNat (idxNat/elemsPerWord)
               offset := .ofNat 32 (idxNat%elemsPerWord * elemSize)
               size := elemSize
               bitOffset := .none

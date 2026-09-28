@@ -162,7 +162,7 @@ inductive Expr where
      storage array length; local paths read the in-memory value and return its array/byte count. -/
   | arrayLength : VarOrigin -> StorageRef -> Expr
   /- `keccak256(b)`: the Keccak-256 hash of the dynamic bytes `b`, as a `bytes32` value.  The hash
-     primitive is the same `ffi.KEC` the EVM's `KECCAK256` opcode uses. -/
+     primitive is the same pure `Ethereum.KEC` the EVM's `KECCAK256` opcode uses. -/
   | keccak256 : Expr -> Expr
   /- `abi.encodePacked(e₁, …)`: the non-padded ("packed") ABI encoding of the listed values, as a
      dynamic `bytes`.  Each operand carries its (statically known) `ABIType`, which fixes its packed

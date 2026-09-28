@@ -22,7 +22,7 @@ This differs from Solidity's `keccak256(key ++ baseSlot)` convention.  Nested ma
 function: first derive the outer map slot, then use that as the base slot for the inner map.
 -/
 def vyperMappingSlot (baseSlot : EVM.Word) (key : KeyValue) : EVM.Word :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (baseSlot.toByteArray ++ (keyValueToWord key).toByteArray))
+  Ethereum.uInt256OfByteArray (Ethereum.KEC (baseSlot.toByteArray ++ (keyValueToWord key).toByteArray))
 
 @[simp] theorem vyperUint256Loc_def (slot : EVM.Word) :
     vyperUint256Loc slot = vyperWordLoc slot (.int (.uint ⟨256, by decide⟩)) :=

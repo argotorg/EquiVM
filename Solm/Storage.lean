@@ -40,13 +40,6 @@ end EVM
 
 
 
-/- This is to avoid a failure that happens for some reason
- - - TODO: investigate
- -/
--- Didn't work.
--- opaque localKEC (d : data) : ByteArray
--- axiom localKEC_ffiKEC : ∀ d, localKEC d = ffi.KEC d
-
 
 -- Think: maybe have offset/size be optional,
 -- so that whole-slot values

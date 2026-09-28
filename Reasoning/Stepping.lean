@@ -1796,7 +1796,7 @@ def stKeccak (s : State) (a b : UInt256) (t : List UInt256) : State :=
   { s with machineState := { s.machineState with
       pc := s.machineState.pc + ⟨1⟩,
       stack := UInt256.ofNat (fromByteArrayBigEndian
-                 (ffi.KEC (s.machineState.memory.readWithPadding a.toNat b.toNat))) :: t,
+                 (KEC (s.machineState.memory.readWithPadding a.toNat b.toNat))) :: t,
       activeWords := UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat b.toNat),
       execLength := s.machineState.execLength + 1,
       gasAvailable :=

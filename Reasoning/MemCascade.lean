@@ -13,11 +13,11 @@ open Ethereum Ethereum.EVM Solm ABI
 namespace Reasoning.Theory
 
 /-- A single EVM-style 32-byte word write. -/
-noncomputable def writeWord (mem : ByteArray) (off : Nat) (word : UInt256) : ByteArray :=
+def writeWord (mem : ByteArray) (off : Nat) (word : UInt256) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem off 32
 
 /-- Chronological cascade of 32-byte word writes. -/
-noncomputable def writeCascade (mem : ByteArray) : List (Nat × UInt256) → ByteArray
+def writeCascade (mem : ByteArray) : List (Nat × UInt256) → ByteArray
   | [] => mem
   | (off, word) :: rest => writeCascade (writeWord mem off word) rest
 

@@ -6,9 +6,9 @@ import Mathlib.Data.Nat.Digits.Lemmas
 /-!
 # Memory — reusable EVM memory / `ByteArray` lemmas
 
-The EVM `MSTORE`/`MLOAD`/`RETURN`, `ffi.ByteArray.zeroes`, and the `UInt256.toByteArray` word
+The EVM `MSTORE`/`MLOAD`/`RETURN`, `ByteArray.zeroes`, `KEC`, and the `UInt256.toByteArray` word
 encoding are computable `ByteArray` operations, unlike genuinely opaque bytecode facts such as
-`D_J`/keccak.  This module proves the generic, contract-agnostic memory lemmas: the big-endian
+`D_J`.  This module proves the generic, contract-agnostic memory lemmas: the big-endian
 byte round-trip, `fromByteArrayBigEndian ∘ toByteArray = toNat`, the
 `MSTORE`-then-`MLOAD`/`RETURN` round-trip, and the `toByteArray`/`toBytesBE` bridge.  ABI-level
 encode/decode reasoning lives in `Reasoning.ABI` (which imports this module).
@@ -20,15 +20,14 @@ set_option maxRecDepth 8000
 
 namespace Reasoning.Theory
 
-/-- `ffi.ByteArray.zeroes` yields zero bytes. -/
+/-- `ByteArray.zeroes` yields zero bytes. -/
 theorem byteArray_zeroes_toList (n : Nat) :
-    (ffi.ByteArray.zeroes n).data.toList = List.replicate n 0 := by
-  simp [ffi.ByteArray.zeroes]
+    (ByteArray.zeroes n).data.toList = List.replicate n 0 := by
+  simp [ByteArray.zeroes]
 
-/-- **Trusted (extern spec).** Keccak-256 returns a 32-byte digest.  This does not assert
-    collision-resistance or injectivity; it only exposes the byte length guaranteed by the FFI
-    implementation of `ffi.KEC`. -/
-axiom keccak_size (b : ByteArray) : (ffi.KEC b).size = 32
+/-- Keccak-256 returns a 32-byte digest. -/
+theorem keccak_size (b : ByteArray) : (KEC b).size = 32 := by
+  exact Ethereum.Keccak256.hash_size_eq_32 b
 
 /-! ## 0. Memory expansion cost shorthands -/
 
@@ -197,7 +196,7 @@ theorem list_toByteArray_append (xs ys : List UInt8) :
   simp
 
 /-- **MLOAD round-trip.**  Big-endian-decoding the 32-byte encoding of `v` recovers `v.toNat`.
-    The only opacity (the `ffi.zeroes` leading padding) cancels because it is zero. -/
+    The leading `ByteArray.zeroes` padding cancels because it is zero. -/
 theorem fromByteArrayBigEndian_toByteArray (v : UInt256) :
     fromByteArrayBigEndian (UInt256.toByteArray v) = v.toNat := by
   unfold fromByteArrayBigEndian UInt256.toByteArray BE
@@ -245,14 +244,14 @@ theorem byteArray_write_len_zero (src base : ByteArray) (srcOff dstOff : ℕ) :
   unfold ByteArray.write
   simp
 
-/-- `ffi.ByteArray.zeroes` of a `toNat`-zero size is the empty array. -/
-theorem zeroes_zero {n : Nat} (hn : n = 0) : ffi.ByteArray.zeroes n = ByteArray.empty := by
+/-- `ByteArray.zeroes` of a `toNat`-zero size is the empty array. -/
+theorem zeroes_zero {n : Nat} (hn : n = 0) : ByteArray.zeroes n = ByteArray.empty := by
   apply ByteArray.ext
   apply Array.toList_inj.mp
   rw [byteArray_zeroes_toList, hn]; rfl
 
 theorem zero_toByteArray_eq_zeroes32 :
-    UInt256.toByteArray (⟨0⟩ : UInt256) = ffi.ByteArray.zeroes 32 := by
+    UInt256.toByteArray (⟨0⟩ : UInt256) = ByteArray.zeroes 32 := by
   native_decide
 
 /-- Reading zero bytes with padding returns the empty bytearray. -/
@@ -276,11 +275,11 @@ theorem empty_readWithPadding_word_zero :
 theorem toByteArray_write_eq (v : UInt256) (mem : ByteArray) (off : ℕ)
     (hoff : mem.size ≤ off) (_hb : off - mem.size < USize.size) :
     (UInt256.toByteArray v).write 0 mem off 32
-      = mem ++ ffi.ByteArray.zeroes (off - mem.size) ++ UInt256.toByteArray v := by
+      = mem ++ ByteArray.zeroes (off - mem.size) ++ UInt256.toByteArray v := by
   have hsz : (UInt256.toByteArray v).data.size = 32 := UInt256.toByteArrayWithSizeProof v |>.2
-  have hpz : (ffi.ByteArray.zeroes (off - mem.size)).data.size = off - mem.size := by
-    rw [show (ffi.ByteArray.zeroes (off - mem.size)).data.size
-          = (ffi.ByteArray.zeroes (off - mem.size)).size from rfl,
+  have hpz : (ByteArray.zeroes (off - mem.size)).data.size = off - mem.size := by
+    rw [show (ByteArray.zeroes (off - mem.size)).data.size
+          = (ByteArray.zeroes (off - mem.size)).size from rfl,
         ByteArray_zeroes_size]
   apply ByteArray.ext
   unfold ByteArray.write
@@ -289,11 +288,11 @@ theorem toByteArray_write_eq (v : UInt256) (mem : ByteArray) (off : ℕ)
                 rw [show (UInt256.toByteArray v).size = 32 from hsz]; omega)]
   simp only [ByteArray.data_copySlice, ByteArray.data_append]
   have hv : v.toByteArray.size = 32 := hsz
-  have hDsz : (mem.data ++ (ffi.ByteArray.zeroes (off - mem.size)).data).size = off := by
+  have hDsz : (mem.data ++ (ByteArray.zeroes (off - mem.size)).data).size = off := by
     rw [Array.size_append, hpz]; show mem.size + (off - mem.size) = off; omega
   rw [hv, show (min 32 (32 - 0) : ℕ) = 32 from rfl,
       show min mem.size (off + 32) - (off + 32) = 0 from by omega,
-      show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+      show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
         rw [zeroes_zero (n := 0) (by rfl)]; rfl]
   rw [Array.append_empty]
   rw [Array.extract_eq_self_of_le (by rw [hDsz]),
@@ -318,7 +317,7 @@ theorem write32_eq (src base : ByteArray) (destAddr : ℕ)
   have hsp : min base.size (destAddr + 32) - (destAddr + 32) = 0 :=
     Nat.sub_eq_zero_of_le (Nat.min_le_right _ _)
   have hdp : destAddr - base.size = 0 := Nat.sub_eq_zero_of_le hlo
-  have hz0 : ffi.ByteArray.zeroes 0 = ByteArray.empty :=
+  have hz0 : ByteArray.zeroes 0 = ByteArray.empty :=
     zeroes_zero (by rfl)
   simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract,
     show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
@@ -400,7 +399,7 @@ theorem lt_usize (n : ℕ) (h : n < 2 ^ 32) : n < USize.size := by
 
 /-- The size of a `zeroes` block. -/
 theorem zeroes_ofNat_size (n : ℕ) (_h : n < 2 ^ 32) :
-    (ffi.ByteArray.zeroes n).size = n := by
+    (ByteArray.zeroes n).size = n := by
   rw [ByteArray_zeroes_size]
 
 -- `zeroes` used to be an `opaque` extern in evmlean, i.e. an unfolding WALL during defeq.  It is
@@ -408,11 +407,11 @@ theorem zeroes_ofNat_size (n : ℕ) (_h : n < 2 ^ 32) :
 -- comparisons stack-overflow (observed in UniswapV2Pair/Mint).  Re-erect the wall: reason about
 -- `zeroes` only through the equations above (`ByteArray_zeroes_size`, `zeroes_zero`, …).
 set_option allowUnsafeReducibility true in
-attribute [irreducible] ffi.ByteArray.zeroes
+attribute [irreducible] ByteArray.zeroes
 
 theorem zeroes32_extract_zeroes (n : Nat) (hn : n ≤ 32) :
-    (ffi.ByteArray.zeroes 32).extract 0 n =
-      ffi.ByteArray.zeroes n := by
+    (ByteArray.zeroes 32).extract 0 n =
+      ByteArray.zeroes n := by
   apply ByteArray.ext
   apply Array.toList_inj.mp
   rw [ByteArray.data_extract, Array.toList_extract]
@@ -514,7 +513,7 @@ theorem write_eq_gen (src base : ByteArray) (destAddr len : ℕ)
   have hsp : min base.size (destAddr + len) - (destAddr + len) = 0 :=
     Nat.sub_eq_zero_of_le (Nat.min_le_right _ _)
   have hdp : destAddr - base.size = 0 := Nat.sub_eq_zero_of_le (by omega)
-  have hz0 : ffi.ByteArray.zeroes 0 = ByteArray.empty := zeroes_zero (by rfl)
+  have hz0 : ByteArray.zeroes 0 = ByteArray.empty := zeroes_zero (by rfl)
   simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract,
     show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
     hsize, hpL, hsp, Nat.add_zero, Nat.zero_add, show base.data.size = base.size from rfl]
@@ -535,7 +534,7 @@ theorem write_eq_gen_extend (src base : ByteArray) (destAddr len : ℕ)
     rw [Nat.min_eq_left (by omega)]
     omega
   have hdp : destAddr - base.size = 0 := Nat.sub_eq_zero_of_le hdest
-  have hz0 : ffi.ByteArray.zeroes 0 = ByteArray.empty :=
+  have hz0 : ByteArray.zeroes 0 = ByteArray.empty :=
     zeroes_zero (by rfl)
   simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append,
     ByteArray.data_extract, show (ByteArray.empty).data = (#[] : Array UInt8) from rfl,
@@ -560,7 +559,7 @@ theorem write_eq_gen_from (src base : ByteArray) (srcAddr destAddr len : ℕ)
   have hsp : min base.size (destAddr + len) - (destAddr + len) = 0 :=
     Nat.sub_eq_zero_of_le (Nat.min_le_right _ _)
   have hdp : destAddr - base.size = 0 := Nat.sub_eq_zero_of_le (by omega)
-  have hz0 : ffi.ByteArray.zeroes 0 = ByteArray.empty := zeroes_zero (by rfl)
+  have hz0 : ByteArray.zeroes 0 = ByteArray.empty := zeroes_zero (by rfl)
   simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract,
     show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
     hsize, hpL, hsp, Nat.add_zero, show base.data.size = base.size from rfl]
@@ -574,7 +573,7 @@ theorem write0_data (src base : ByteArray) (len : ℕ)
   simp only [show min len (src.size - 0) = len from by omega,
     show min base.size (0 + len) - (0 + len) = 0 from by omega,
     show 0 - base.size = 0 from by omega]
-  have hz : (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) := by
+  have hz : (ByteArray.zeroes 0).data = (#[] : Array UInt8) := by
     rw [zeroes_zero (n := 0) (by rfl)]
     rfl
   simp only [ByteArray.data_copySlice, ByteArray.data_append, hz, Array.append_empty, Nat.zero_add]
@@ -595,7 +594,7 @@ theorem write0_data_from (src base : ByteArray) (srcAddr len : ℕ)
   simp only [show min len (src.size - srcAddr) = len from by omega,
     show min base.size (0 + len) - (0 + len) = 0 from by omega,
     show 0 - base.size = 0 from by omega]
-  have hz : (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) := by
+  have hz : (ByteArray.zeroes 0).data = (#[] : Array UInt8) := by
     rw [zeroes_zero (n := 0) (by rfl)]
     rfl
   simp only [ByteArray.data_copySlice, ByteArray.data_append, hz, Array.append_empty, Nat.zero_add]
@@ -627,7 +626,7 @@ theorem write0_read_back_gen (src base : ByteArray) (len : ℕ)
     rw [ByteArray.size_extract]
     omega
   rw [ByteArray.data_append]
-  rw [show (ffi.ByteArray.zeroes (len - ((src.write 0 base 0 len).extract 0 len).size)).data
+  rw [show (ByteArray.zeroes (len - ((src.write 0 base 0 len).extract 0 len).size)).data
       = (#[] : Array UInt8) from by
     rw [zeroes_zero (n := len - ((src.write 0 base 0 len).extract 0 len).size)
       (by rw [hextract_size]; omega)]
@@ -664,7 +663,7 @@ theorem write0_read_back_from_gen (src base : ByteArray) (srcAddr len : ℕ)
     rw [ByteArray.size_extract]
     omega
   rw [ByteArray.data_append]
-  rw [show (ffi.ByteArray.zeroes (len - ((src.write srcAddr base 0 len).extract 0 len).size)).data
+  rw [show (ByteArray.zeroes (len - ((src.write srcAddr base 0 len).extract 0 len).size)).data
       = (#[] : Array UInt8) from by
     rw [zeroes_zero (n := len - ((src.write srcAddr base 0 len).extract 0 len).size)
       (by rw [hextract_size]; omega)]
@@ -854,7 +853,7 @@ theorem write_at_end_eq (src base : ByteArray) (len : ℕ)
   have htail : min base.size (base.size + len) - (base.size + len) = 0 := by omega
   have hgap : base.size - base.size = 0 := by omega
   rw [hcopy, htail, hgap]
-  rw [show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
     rw [zeroes_zero (n := 0) (by rfl)]
     rfl]
   simp only [Array.append_empty, Nat.add_zero]
@@ -880,7 +879,7 @@ theorem write_at_end_eq_from (src base : ByteArray) (srcAddr len : ℕ)
   have htail : min base.size (base.size + len) - (base.size + len) = 0 := by omega
   have hgap : base.size - base.size = 0 := by omega
   rw [hcopy, htail, hgap]
-  rw [show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
     rw [zeroes_zero (n := 0) (by rfl)]
     rfl]
   simp only [Array.append_empty, Nat.add_zero]
@@ -950,7 +949,7 @@ theorem toByteArray_write_read_back_of_gap (b : UInt256) (mem : ByteArray) (off 
         toByteArray_size]
       omega)]
     rw [extract_append_right_window
-      (mem ++ ffi.ByteArray.zeroes (off - mem.size))
+      (mem ++ ByteArray.zeroes (off - mem.size))
       (UInt256.toByteArray b) off (off + 32) (by
         rw [ByteArray.size_append, ByteArray_zeroes_size]
         omega)]
@@ -1035,7 +1034,7 @@ theorem toByteArray_write_read_window_of_gap
   · have hge : mem.size ≤ off := by omega
     rw [toByteArray_write_eq _ _ off hge hgap]
     have hprefix :
-        (mem ++ ffi.ByteArray.zeroes (off - mem.size)).size = off := by
+        (mem ++ ByteArray.zeroes (off - mem.size)).size = off := by
       rw [ByteArray.size_append, ByteArray_zeroes_size]
       omega
     rw [readWithPadding_eq_extract' _ (off + start) len hpos hlen64 (by
@@ -1047,13 +1046,13 @@ theorem toByteArray_write_read_window_of_gap
 
 /-! ## 4. Two-word scratch memory for mapping-slot hashes -/
 
-noncomputable def wordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+def wordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 0 32
 
-noncomputable def wordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+def wordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 32 32
 
-noncomputable def twoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
+def twoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
   wordAt32Mem slot (wordAt0Mem key mem)
 
 theorem wordAt0Mem_read0 (word : UInt256) (mem : ByteArray) :
@@ -1067,8 +1066,8 @@ theorem wordAt0Mem_read0 (word : UInt256) (mem : ByteArray) :
 
 theorem wordAt0Mem_keccak_word (word : UInt256) (mem : ByteArray) :
     UInt256.ofNat
-      (fromByteArrayBigEndian (ffi.KEC ((wordAt0Mem word mem).readWithPadding 0 32))) =
-    UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (UInt256.toByteArray word))) := by
+      (fromByteArrayBigEndian (KEC ((wordAt0Mem word mem).readWithPadding 0 32))) =
+    UInt256.ofNat (fromByteArrayBigEndian (KEC (UInt256.toByteArray word))) := by
   rw [wordAt0Mem_read0]
 
 theorem writeWord_size_of_96 (base : ByteArray) (w : UInt256) (dest : ℕ)
@@ -1170,9 +1169,9 @@ theorem twoWordHashMem_read0_64 {mem : ByteArray} (key slot : UInt256)
 /-! ## 5. `RETURN`/ABI encoding: `UInt256.toByteArray` as the big-endian word list -/
 
 /-- **`toByteArray` is the 32-byte big-endian list.**  `UInt256.toByteArray v` (the EVM
-    `MSTORE`/`RETURN` word, with the opaque `ffi.zeroes` leading pad) equals the *concrete*
+    `MSTORE`/`RETURN` word, with the `ByteArray.zeroes` leading pad) equals the *concrete*
     `EVM.Word.toBytesBE v` (`List.replicate`-padded), as `ByteArray`s.  The bridge between the
-    opaque-memory and the pure-ABI worlds; the only opacity (`ffi.zeroes`) cancels. -/
+    memory and pure-ABI worlds; the leading zero padding cancels. -/
 theorem toByteArray_eq_toBytesBE (v : UInt256) :
     UInt256.toByteArray v = ⟨(EVM.Word.toBytesBE v).toArray⟩ := by
   have hb : (BE v.toNat).size ≤ 32 := by
@@ -1267,7 +1266,7 @@ theorem readWithPadding_zero_toList_of_size_lt32 (b : ByteArray)
   rw [if_neg (by omega : ¬ (0 : Nat) ≥ b.size)]
   change
     (b.extract 0 (0 + min 32 b.size) ++
-        ffi.ByteArray.zeroes (32 - (b.extract 0 (0 + min 32 b.size)).size)).toList =
+        ByteArray.zeroes (32 - (b.extract 0 (0 + min 32 b.size)).size)).toList =
       b.toList ++ List.replicate (32 - b.size) 0
   rw [byteArray_toList_eq (_ ++ _), ByteArray.data_append, Array.toList_append]
   rw [ByteArray.data_extract, Array.toList_extract, List.extract_eq_take_drop, List.drop_zero,
@@ -1438,7 +1437,7 @@ theorem toBytesBE_uInt256OfByteArray_of_size {arr : ByteArray}
     rw [hleft, hright]
 
 theorem toBytesBE_keccak_uInt256OfByteArray (b : ByteArray) :
-    EVM.Word.toBytesBE (uInt256OfByteArray (ffi.KEC b)) = (ffi.KEC b).toList :=
+    EVM.Word.toBytesBE (uInt256OfByteArray (KEC b)) = (KEC b).toList :=
   toBytesBE_uInt256OfByteArray_of_size (keccak_size b)
 
 /-- `readBytes cd off 32` is `cd`'s bytes `[off, off+32)` when `cd` has at least `off+32` bytes. -/
@@ -1456,7 +1455,7 @@ theorem readBytes_at_toList (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.
   unfold ByteArray.readBytes
   rw [if_pos (by simp only [Bool.and_eq_true, decide_eq_true_eq]; exact ⟨hoff, by decide⟩)]
   change (cd.copySlice off ByteArray.empty 0 32 ++
-      ffi.ByteArray.zeroes (32 - (cd.copySlice off ByteArray.empty 0 32).size)).data.toList =
+      ByteArray.zeroes (32 - (cd.copySlice off ByteArray.empty 0 32).size)).data.toList =
     (cd.data.toList.drop off).take 32
   rw [ByteArray.data_append, Array.toList_append, hcl, byteArray_zeroes_toList, hcsize]
   simp
@@ -1480,7 +1479,7 @@ theorem readBytes_at_toList_any (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤
       change ((cd.toList.drop off).take 32).toArray.size = 32
       simp [hlen]
     change ((ByteArray.mk ((cd.toList.drop off).take 32).toArray) ++
-        ffi.ByteArray.zeroes
+        ByteArray.zeroes
           (32 - (ByteArray.mk ((cd.toList.drop off).take 32).toArray).size)).data.toList =
       (cd.data.toList.drop off).take 32
     rw [ByteArray.data_append, Array.toList_append, byteArray_zeroes_toList, hreadSize]
@@ -1545,15 +1544,15 @@ memory/`storageLocStore` lemmas; these supply the mapping-specific keccak-slot i
 /-- The slot word an EVM `KECCAK256` pushes (`RD.keccak256`'s result — the big-endian decode of the
     hash) is exactly the Solm layout's mapping-slot interpretation `uInt256OfByteArray (KEC …)`. -/
 theorem keccakSlot_eq (b : ByteArray) :
-    UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC b)) = uInt256OfByteArray (ffi.KEC b) :=
+    UInt256.ofNat (fromByteArrayBigEndian (KEC b)) = uInt256OfByteArray (KEC b) :=
   (uInt256OfByteArray_eq _).symm
 
 /-- **Single-mapping slot.**  The EVM `KECCAK256` over the 64-byte preimage `key ‖ baseSlot` (both
     32-byte big-endian words) yields the Solm layout slot for `mapping[key]` at base `baseSlot`. -/
 theorem mappingSlot_single (key baseSlot : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray)))
-      = uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray)) :=
+        (KEC (key.toByteArray ++ baseSlot.toByteArray)))
+      = uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray)) :=
   keccakSlot_eq _
 
 

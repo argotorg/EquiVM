@@ -12,7 +12,7 @@ returns the first whose selector matches the calldata prefix.  Everything here i
   the bridge and list-walking lemmas that handle a contract with any number of functions;
 - **Single-transition instances** (`contract.transitions = [transition]`): `dispatchMsg` reduces
   to a 4-byte calldata-prefix compare, instantiated per contract with its `transitions = [t]`
-  proof (`rfl`) and its selector axiom, bundled in `SingleSelectorDispatch`;
+  proof (`rfl`) and its selector fact, bundled in `SingleSelectorDispatch`;
 - **`Reasoning.Reach` bridges** (`RDret`/`RDrev.reEquiv*`): package the runtime-equivalence
   coupling, e.g. `RDrev.reEquivNonPayable` for the whole `callvalue ≠ 0` branch.
 -/
@@ -29,12 +29,12 @@ variable {contract : ContractDecl} {transition : TransitionDecl} {selBytes : Byt
 returns the first whose selector matches the calldata prefix.  `dispatchList` is its pure
 list-recursive form and `dispatchMsg_eq_dispatchList` bridges the two, after which a contract with
 *any* number of functions is handled by walking the list with `dispatchList_cons` / `dispatchList_nil`
-and the per-transition selector axioms.  The single-transition lemmas below are the `n = 1`
+and the per-transition selector facts.  The single-transition lemmas below are the `n = 1`
 instances. -/
 
 /-- The 4-byte function selector of a transition, `keccak(signature)[0:4]`. -/
 def selectorOf (t : TransitionDecl) : ByteArray :=
-  (ffi.KEC (String.toByteArray (transitionSigStr t))).extract 0 4
+  (Ethereum.KEC (String.toByteArray (transitionSigStr t))).extract 0 4
 
 /-- Pure list form of `dispatchMsg`: the first transition whose selector matches `cd`'s 4-byte
     prefix, scanning in order. -/
@@ -58,7 +58,7 @@ theorem selectorDispatchMsg_eq_dispatchList (contract : ContractDecl) (cd : Byte
   | cons t ts ih =>
     simp only [List.map_cons, List.find?_cons, Prod.map, id_eq, Function.comp_apply]
     rw [dispatchList_cons, selectorOf]
-    by_cases hb : ((ffi.KEC (String.toByteArray (transitionSigStr t))).extract 0 4
+    by_cases hb : ((Ethereum.KEC (String.toByteArray (transitionSigStr t))).extract 0 4
         == cd.extract 0 4) = true
     · rw [if_pos hb]; simp only [hb]
     · rw [if_neg hb]; simp only [Bool.not_eq_true] at hb; simp only [hb]; exact ih
@@ -163,7 +163,7 @@ theorem dispatchMsg_eq_some_of_split {contract : ContractDecl} {pre post : List 
 theorem dispatch_eq
     (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
-    (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
+    (hsel : (Ethereum.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
     (cd : ByteArray)
     (hreceive : contract.receive = none := by rfl) :
     dispatchMsg contract cd = if (selBytes == cd.extract 0 4) then some transition else none := by
@@ -191,7 +191,7 @@ theorem dispatch_unique
 theorem dispatch_none_short
     (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
-    (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
+    (hsel : (Ethereum.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
     (hsize : selBytes.size = 4) {cd : ByteArray} (h : cd.size < 4)
     (hreceive : contract.receive = none := by rfl) :
     dispatchMsg contract cd = none := by
@@ -209,7 +209,7 @@ theorem dispatch_none_short
 theorem dispatch_none_nomatch
     (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
-    (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
+    (hsel : (Ethereum.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
     {cd : ByteArray} (h : (selBytes == cd.extract 0 4) = false)
     (hreceive : contract.receive = none := by rfl) :
     dispatchMsg contract cd = none := by
@@ -219,7 +219,7 @@ theorem dispatch_none_nomatch
 
 The three single-transition facts (`dispatch_eq` / `dispatch_none_short` / `dispatch_none_nomatch`)
 packaged into one record.  A single-function example builds it once from its `transitions = [t]`
-proof and selector axiom (`singleSelectorDispatch`), then uses `.eq` / `.none_short` / `.none_nomatch`
+proof and selector fact (`singleSelectorDispatch`), then uses `.eq` / `.none_short` / `.none_nomatch`
 in place of the hand-written per-contract dispatch triple. -/
 
 /-- Bundle of the three single-selector dispatch facts for a one-transition contract. -/
@@ -232,11 +232,11 @@ structure SingleSelectorDispatch (contract : ContractDecl) (transition : Transit
         dispatchMsg contract cd = none
 
 /-- Build the single-selector bundle from a single-transition contract proof (`htr`), its selector
-    axiom (`hsel`, the usual `keccak(sig)[0:4] = selBytes`), and `selBytes.size = 4`. -/
+    fact (`hsel`, the usual `keccak(sig)[0:4] = selBytes`), and `selBytes.size = 4`. -/
 theorem singleSelectorDispatch
     (hfallback : contract.fallback = none := by rfl)
     (htr : contract.transitions = [transition])
-    (hsel : (ffi.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
+    (hsel : (Ethereum.KEC (String.toByteArray (Solm.transitionSigStr transition))).extract 0 4 = selBytes)
     (hsize : selBytes.size = 4)
     (hreceive : contract.receive = none := by rfl) :
     SingleSelectorDispatch contract transition selBytes where

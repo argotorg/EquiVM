@@ -12,24 +12,24 @@ structure Signature where
 -- TODO: maybe turn all of the following into a typeclass
 
 def intTypeToSigStr : IntType → String
-  | .uint b => "uint" ++ reprStr b
-  | .sint b => "int" ++ reprStr b
+  | .uint b => "uint" ++ toString b.val
+  | .sint b => "int" ++ toString b.val
 
 def fixedTypeToSigStr : FixedType → String
-  | .ufixed m n => "ufixed" ++ reprStr m ++ "x" ++ reprStr n
-  | .fixed m n => "fixed" ++ reprStr m ++ "x" ++ reprStr n
+  | .ufixed m n => "ufixed" ++ toString m.val ++ "x" ++ toString n.val
+  | .fixed m n => "fixed" ++ toString m.val ++ "x" ++ toString n.val
 
 def elemToSigStr : ElemType → String
   | .int i => intTypeToSigStr i
   | .bool => "bool"
   | .address => "address"
-  | .bytes n => "bytes" ++ reprStr (n.val + 1)
+  | .bytes n => "bytes" ++ toString (n.val + 1)
   | .fixed f => fixedTypeToSigStr f
   | .function => "function"
 
 def abiToSigStr : ABIType → String
   | .elem t => elemToSigStr t
-  | .array t n => abiToSigStr t ++ "[" ++ reprStr n ++ "]"
+  | .array t n => abiToSigStr t ++ "[" ++ toString n ++ "]"
   | .tuple ts => "(" ++ (",".intercalate <| ts.map abiToSigStr) ++ ")"
   | .string => "string"
   | .bytes => "bytes"

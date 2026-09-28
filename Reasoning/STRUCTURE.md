@@ -8,8 +8,7 @@ Everything is in namespace `Reasoning.Theory`, except the EVM trace layer (`RD`,
 `RD.*` lemma halves of `Solc.lean` and `Dispatch.lean`), which is in `Reasoning.Reach`.
 `JumpDest.lean` has no namespace (it defines a tactic and an attribute).
 
-One axiom in the whole library: `keccak_size` in `Memory.lean` (a keccak digest is 32 bytes —
-trusted spec of the FFI hash; asserts nothing about collision resistance).
+The shared reasoning library introduces no axioms.
 
 ## Files
 
@@ -18,7 +17,7 @@ trusted spec of the FFI hash; asserts nothing about collision resistance).
 | `Stepping.lean` | Base layer. Trace drivers — `initState` (the fresh EVM state), the `Ξ`-to-iterator bridge (`Xi_*_of_X`), single-step peeling (`X_peel`, `stepContinue`, `stepOOG`, `stepHalt*`) — plus one lemma per opcode (`<op>_xstep`) evaluating a single `Xstep` to an explicit gas-guarded successor state (`st<Op>` definitions). |
 | `EVMWord.lean` | `UInt256` arithmetic: no-wrap `toNat` lemmas, bitwise normalization, unsigned comparisons, signed `SLT`, `compare` order instances, the word-rounding used by solc memory allocation. |
 | `SolmBody.lean` | The Solm side: `ExecTransitionBody`/`ExecStmt`/`ExecBlock` lemmas. Non-payable guard, call wrappers (external/checked/low-level/delegate), loop rules, block sequencing (`execBlock_append`), locals lookup, storage-access collapse. |
-| `Memory.lean` | Byte-level memory: little-endian word arithmetic, `MSTORE`/`MLOAD` read-write facts, scratch memory for mapping hashes, selector extraction, calldata decode coupling, mapping-slot keccak facts. Home of the `keccak_size` axiom. |
+| `Memory.lean` | Byte-level memory: little-endian word arithmetic, `MSTORE`/`MLOAD` read-write facts, scratch memory for mapping hashes, selector extraction, calldata decode coupling, mapping-slot keccak facts, and the `keccak_size` theorem. |
 | `Reach.lean` | The EVM trace layer. `RD` (reached-or-out-of-gas invariant), one forward step lemma per opcode (`RD.<op>`), `CALL`/`STATICCALL` with the callee treated as an opaque `Θ` result, terminal forms `RDret`/`RDrev` with the `reEquiv_*` case builders for `runtimeEquivalenceFor` and the `reEquivElim` eliminators, `Cursor`/`RDc`, and the `evm_run` macro that chains steps with auto-discharged decode/overflow side conditions. |
 | `ABI.lean` | Calldata decoding and return-value encoding: per-shape decode lemmas (address/uint256/bool/bytes32/string/dynamic-array combinations), decode-mode variants, failure cases (short, huge, non-canonical), return encodings. |
 | `MemCascade.lean` | Collapsing chains of memory writes into a canonical form. |
