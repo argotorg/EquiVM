@@ -930,7 +930,7 @@ theorem powCorrect : runtimeEquivalence powConfig powBytecode Pow.powContract :=
 
 /-! ## Constructor and full-contract equivalence -/
 
-noncomputable def powInitReturnMem : ByteArray :=
+def powInitReturnMem : ByteArray :=
   (powInitcode).write 12 ByteArray.empty 0 290
 
 theorem powBytecode_size : powBytecode.size = 290 := by

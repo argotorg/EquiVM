@@ -11,8 +11,8 @@ set_option maxRecDepth 2000
 def constructorTypeInputMem : ByteArray :=
   uniswapV2PairInitcode.write 9094 solcFreePtrMem 128 82
 
-noncomputable abbrev constructorTypeHashWord : UInt256 :=
-  UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC eip712DomainTypehashBytes))
+abbrev constructorTypeHashWord : UInt256 :=
+  UInt256.ofNat (fromByteArrayBigEndian (KEC eip712DomainTypehashBytes))
 
 def constructorLiteralMem : ByteArray :=
   let m0 := (⟨192⟩ : UInt256).toByteArray.write 0 constructorTypeInputMem 64 32

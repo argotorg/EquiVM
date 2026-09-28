@@ -697,16 +697,16 @@ theorem ballotDecode_winningProposal {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.
 
 /-! ### EVM memory used by `winningProposal` -/
 
-noncomputable def winningProposalBaseSlotMem : ByteArray :=
+def winningProposalBaseSlotMem : ByteArray :=
   (UInt256.toByteArray (⟨2⟩ : UInt256)).write 0 solcFreePtrMem 0 32
 
-noncomputable def winningProposalReturnMem (val : UInt256) : ByteArray :=
+def winningProposalReturnMem (val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 winningProposalBaseSlotMem 128 32
 
-noncomputable def winningProposalStoreBaseMem (mem : ByteArray) : ByteArray :=
+def winningProposalStoreBaseMem (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (⟨2⟩ : UInt256)).write 0 mem 0 32
 
-noncomputable def winningProposalReturnFromMem (mem : ByteArray) (val : UInt256) : ByteArray :=
+def winningProposalReturnFromMem (mem : ByteArray) (val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 mem 128 32
 
 theorem winningProposalBaseSlotMem_size : winningProposalBaseSlotMem.size = 96 := by
@@ -748,7 +748,7 @@ theorem winningProposalBaseSlotMem_mload64 :
 
 theorem winningProposalDataBaseKeccak :
     UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC (winningProposalBaseSlotMem.readWithPadding 0 32))) =
+        (fromByteArrayBigEndian (KEC (winningProposalBaseSlotMem.readWithPadding 0 32))) =
       proposalsDataBase := by
   rw [winningProposalBaseSlotMem_read0]
   unfold proposalsDataBase
@@ -777,7 +777,7 @@ theorem winningProposalReturnMem_read64 (val : UInt256) :
       toByteArray_size]
     omega)]
   rw [extract_append_left winningProposalBaseSlotMem
-      (ffi.ByteArray.zeroes (128 - winningProposalBaseSlotMem.size) ++
+      (ByteArray.zeroes (128 - winningProposalBaseSlotMem.size) ++
         UInt256.toByteArray val)
       64 96 (by rw [winningProposalBaseSlotMem_size])]
   rw [← readWithPadding_eq_extract' winningProposalBaseSlotMem 64 32
@@ -803,7 +803,7 @@ theorem winningProposalReturnMem_read128 (val : UInt256) :
       (by rw [winningProposalBaseSlotMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_right_window
       (winningProposalBaseSlotMem ++
-        ffi.ByteArray.zeroes (128 - winningProposalBaseSlotMem.size))
+        ByteArray.zeroes (128 - winningProposalBaseSlotMem.size))
       (UInt256.toByteArray val) 128 160 (by
         rw [ByteArray.size_append, winningProposalBaseSlotMem_size, ByteArray_zeroes_size,
           show 128 - 96 = 32 from by norm_num])]
@@ -846,7 +846,7 @@ theorem winningProposalStoreBaseMem_read64 (mem : ByteArray)
 
 theorem winningProposalStoreBaseMem_keccak (mem : ByteArray) (hsize : mem.size = 96) :
     UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC ((winningProposalStoreBaseMem mem).readWithPadding 0 32))) =
+        (fromByteArrayBigEndian (KEC ((winningProposalStoreBaseMem mem).readWithPadding 0 32))) =
       proposalsDataBase := by
   rw [winningProposalStoreBaseMem_read0 mem hsize]
   unfold proposalsDataBase
@@ -877,7 +877,7 @@ theorem winningProposalReturnFromMem_read64 (mem : ByteArray) (val : UInt256)
       toByteArray_size]
     omega)]
   rw [extract_append_left mem
-      (ffi.ByteArray.zeroes (128 - mem.size) ++ UInt256.toByteArray val)
+      (ByteArray.zeroes (128 - mem.size) ++ UInt256.toByteArray val)
       64 96 (by rw [hsize])]
   rw [← readWithPadding_eq_extract' mem 64 32 (by norm_num) (by norm_num) (by rw [hsize])]
   exact hread64
@@ -907,7 +907,7 @@ theorem winningProposalReturnFromMem_read128 (mem : ByteArray) (val : UInt256)
   rw [toByteArray_write_eq _ _ _ (by rw [hsize]; omega)
       (by rw [hsize]; exact lt_usize _ (by norm_num))]
   rw [extract_append_right_window
-      (mem ++ ffi.ByteArray.zeroes (128 - mem.size))
+      (mem ++ ByteArray.zeroes (128 - mem.size))
       (UInt256.toByteArray val) 128 160 (by
         rw [ByteArray.size_append, hsize, ByteArray_zeroes_size,
           show 128 - 96 = 32 from by norm_num])]

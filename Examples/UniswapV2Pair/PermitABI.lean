@@ -104,7 +104,7 @@ theorem permitNonceStorageSlot_eq_mapSlot_masked (I : ExecutionEnv) :
 abbrev permitDomainSeparatorWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   codeOwnerStorageWord I σ ⟨3⟩
 
-noncomputable abbrev permitNonceHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev permitNonceHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (permitOwnerMaskedWord I) ⟨4⟩ solcFreePtrMem
 
 theorem permitNonceHashMem_size (I : ExecutionEnv) :
@@ -133,7 +133,7 @@ theorem permitNonceHashMem_mload64 (I : ExecutionEnv) :
 
 theorem permitNonceKeccakSlot (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((permitNonceHashMem I).readWithPadding 0 64))) =
+        (KEC ((permitNonceHashMem I).readWithPadding 0 64))) =
       mapSlot (permitOwnerMaskedWord I) ⟨4⟩ := by
   rw [permitNonceHashMem, twoWordHashMem_read0_64 _ _ solcFreePtrMem_size]
   simpa [mapSlot, solcMappingSlot] using mappingSlot_single (permitOwnerMaskedWord I) ⟨4⟩
@@ -147,43 +147,43 @@ abbrev permitNonceNextWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 abbrev permitTypehashWord : UInt256 :=
   permitRuntimeTypehashWord
 
-noncomputable def permitStructHashDataWrites (σ : AccountMap) (I : ExecutionEnv) :
+def permitStructHashDataWrites (σ : AccountMap) (I : ExecutionEnv) :
     List (Nat × UInt256) :=
   permitRuntimeStructHashDataWrites (permitOwnerMaskedWord I) (permitSpenderMaskedWord I)
     (permitValueWord I) (permitNonceWord σ I) (permitDeadlineWord I)
 
-noncomputable def permitStructHashDataMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def permitStructHashDataMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   permitRuntimeStructHashDataMem (permitNonceHashMem I) (permitOwnerMaskedWord I)
     (permitSpenderMaskedWord I) (permitValueWord I) (permitNonceWord σ I)
     (permitDeadlineWord I)
 
-noncomputable def permitStructHashLenMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def permitStructHashLenMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   permitRuntimeStructHashLenMem (permitNonceHashMem I) (permitOwnerMaskedWord I)
     (permitSpenderMaskedWord I) (permitValueWord I) (permitNonceWord σ I)
     (permitDeadlineWord I)
 
-noncomputable def permitStructHashMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def permitStructHashMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   permitRuntimeStructHashMem (permitNonceHashMem I) (permitOwnerMaskedWord I)
     (permitSpenderMaskedWord I) (permitValueWord I) (permitNonceWord σ I)
     (permitDeadlineWord I)
 
-noncomputable abbrev permitStructHashWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
+abbrev permitStructHashWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   permitRuntimeStructHashWord (permitNonceHashMem I) (permitOwnerMaskedWord I)
     (permitSpenderMaskedWord I) (permitValueWord I) (permitNonceWord σ I)
     (permitDeadlineWord I)
 
-noncomputable abbrev permitStructHashValue (σ : AccountMap) (I : ExecutionEnv) : Value :=
+abbrev permitStructHashValue (σ : AccountMap) (I : ExecutionEnv) : Value :=
   permitWordBytes32Value (permitStructHashWord σ I)
 
-noncomputable abbrev permitDigestMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev permitDigestMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   permitRuntimeDigestMem (permitStructHashMem σ I) (permitDomainSeparatorWord σ I)
     (permitStructHashWord σ I)
 
-noncomputable abbrev permitDigestWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
+abbrev permitDigestWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   permitRuntimeDigestWord (permitStructHashMem σ I) (permitDomainSeparatorWord σ I)
     (permitStructHashWord σ I)
 
-noncomputable abbrev permitDigestValue (σ : AccountMap) (I : ExecutionEnv) : Value :=
+abbrev permitDigestValue (σ : AccountMap) (I : ExecutionEnv) : Value :=
   permitWordBytes32Value (permitDigestWord σ I)
 
 theorem permitStructHashMem_size (σ : AccountMap) (I : ExecutionEnv) :
@@ -217,12 +217,12 @@ theorem permitDigestMem_read384_66 (σ : AccountMap) (I : ExecutionEnv) :
     permitRuntimeDigestMem_read384_66 (permitDomainSeparatorWord σ I) (permitStructHashWord σ I)
       (permitStructHashMem_size σ I)
 
-noncomputable abbrev permitEcrecoverInputMem (σ : AccountMap) (I : ExecutionEnv) :
+abbrev permitEcrecoverInputMem (σ : AccountMap) (I : ExecutionEnv) :
     ByteArray :=
   permitRuntimeEcrecoverInputMem (permitDigestMem σ I) (permitDigestWord σ I)
     (permitVWord I) (permitRWord I) (permitSWord I)
 
-noncomputable abbrev permitEcrecoverStaticcallMem
+abbrev permitEcrecoverStaticcallMem
     (σ : AccountMap) (I : ExecutionEnv) (o : ByteArray) : ByteArray :=
   permitRuntimeEcrecoverStaticcallMem (permitDigestMem σ I) (permitDigestWord σ I)
     (permitVWord I) (permitRWord I) (permitSWord I) o

@@ -15,8 +15,7 @@ Function selectors (in the dispatcher):
 `giveRightToVote(address) = 0x9e7b8d61`, `voters(address) = 0xa3ec138d`,
 `winnerName() = 0xe2ba53f0`.
 
-As in `Truth`/`Pow`/`Reuse`, this trusted file records the keccak selector facts and the
-bytecode-derived valid jump set.
+This file records the selector facts and bytecode-derived valid jump set.
 -/
 
 def ballotBytecode : ByteArray :=
@@ -107,45 +106,98 @@ def ballotBytecode : ByteArray :=
     173, 110, 99, 147, 254, 44, 23, 34, 250, 20, 153, 116, 74, 105, 92, 149, 68, 119, 71, 100,
     115, 111, 108, 99, 67, 0, 8, 35, 0, 51]⟩
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("vote(uint256)")[0:4] = 0x0121b93f`. -/
-axiom ballotVoteSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Ballot.voteTransition))).extract 0 4
-      = ⟨#[0x01, 0x21, 0xb9, 0x3f]⟩
+theorem ballotVoteSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr Ballot.voteTransition))).extract 0 4
+      = ⟨#[0x01, 0x21, 0xb9, 0x3f]⟩ := by
+  have hsig : Solm.transitionSigStr Ballot.voteTransition = "vote(uint256)" := by
+    simp [Solm.transitionSigStr, ABI.printSignature, transitionSignature,
+      Ballot.voteTransition, Ballot.uint256, Ballot.uint256Int,
+      ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+      show Nat.repr 256 = "256" by decide +kernel]
+    decide +kernel
+  rw [hsig]
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("proposals(uint256)")[0:4] = 0x013cf08b`. -/
-axiom ballotProposalsSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Ballot.proposalsGetter))).extract 0 4
-      = ⟨#[0x01, 0x3c, 0xf0, 0x8b]⟩
+theorem ballotProposalsSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr Ballot.proposalsGetter))).extract 0 4
+      = ⟨#[0x01, 0x3c, 0xf0, 0x8b]⟩ := by
+  have hsig : Solm.transitionSigStr Ballot.proposalsGetter = "proposals(uint256)" := by
+    simp [Solm.transitionSigStr, ABI.printSignature, transitionSignature,
+      Ballot.proposalsGetter, Ballot.uint256, Ballot.uint256Int,
+      ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr,
+      show Nat.repr 256 = "256" by decide +kernel]
+    decide +kernel
+  rw [hsig]
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("chairperson()")[0:4] = 0x2e4176cf`. -/
-axiom ballotChairpersonSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Ballot.chairpersonGetter))).extract 0 4
-      = ⟨#[0x2e, 0x41, 0x76, 0xcf]⟩
+theorem ballotChairpersonSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr Ballot.chairpersonGetter))).extract 0 4
+      = ⟨#[0x2e, 0x41, 0x76, 0xcf]⟩ := by
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("delegate(address)")[0:4] = 0x5c19a95c`. -/
-axiom ballotDelegateSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Ballot.delegateTransition))).extract 0 4
-      = ⟨#[0x5c, 0x19, 0xa9, 0x5c]⟩
+theorem ballotDelegateSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr Ballot.delegateTransition))).extract 0 4
+      = ⟨#[0x5c, 0x19, 0xa9, 0x5c]⟩ := by
+  have hsig : Solm.transitionSigStr Ballot.delegateTransition = "delegate(address)" := by
+    simp [Solm.transitionSigStr, ABI.printSignature, transitionSignature,
+      Ballot.delegateTransition, Ballot.addr, ABI.abiToSigStr, ABI.elemToSigStr]
+    decide +kernel
+  rw [hsig]
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("winningProposal()")[0:4] = 0x609ff1bd`. -/
-axiom ballotWinningProposalSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Ballot.winningProposalTransition))).extract 0 4
-      = ⟨#[0x60, 0x9f, 0xf1, 0xbd]⟩
+theorem ballotWinningProposalSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr Ballot.winningProposalTransition))).extract 0 4
+      = ⟨#[0x60, 0x9f, 0xf1, 0xbd]⟩ := by
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("giveRightToVote(address)")[0:4] = 0x9e7b8d61`. -/
-axiom ballotGiveRightToVoteSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Ballot.giveRightToVoteTransition))).extract 0 4
-      = ⟨#[0x9e, 0x7b, 0x8d, 0x61]⟩
+theorem ballotGiveRightToVoteSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr Ballot.giveRightToVoteTransition))).extract 0 4
+      = ⟨#[0x9e, 0x7b, 0x8d, 0x61]⟩ := by
+  have hsig : Solm.transitionSigStr Ballot.giveRightToVoteTransition = "giveRightToVote(address)" := by
+    simp [Solm.transitionSigStr, ABI.printSignature, transitionSignature,
+      Ballot.giveRightToVoteTransition, Ballot.addr, ABI.abiToSigStr, ABI.elemToSigStr]
+    decide +kernel
+  rw [hsig]
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("voters(address)")[0:4] = 0xa3ec138d`. -/
-axiom ballotVotersSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Ballot.votersGetter))).extract 0 4
-      = ⟨#[0xa3, 0xec, 0x13, 0x8d]⟩
+theorem ballotVotersSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr Ballot.votersGetter))).extract 0 4
+      = ⟨#[0xa3, 0xec, 0x13, 0x8d]⟩ := by
+  have hsig : Solm.transitionSigStr Ballot.votersGetter = "voters(address)" := by
+    simp [Solm.transitionSigStr, ABI.printSignature, transitionSignature,
+      Ballot.votersGetter, Ballot.addr, ABI.abiToSigStr, ABI.elemToSigStr]
+    decide +kernel
+  rw [hsig]
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("winnerName()")[0:4] = 0xe2ba53f0`. -/
-axiom ballotWinnerNameSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Ballot.winnerNameTransition))).extract 0 4
-      = ⟨#[0xe2, 0xba, 0x53, 0xf0]⟩
+theorem ballotWinnerNameSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr Ballot.winnerNameTransition))).extract 0 4
+      = ⟨#[0xe2, 0xba, 0x53, 0xf0]⟩ := by
+  decide +kernel
 
 /-- The `JUMPDEST` set of `ballotBytecode` (confirmed from the bytecode disassembly). -/
 @[valid_jumps] theorem ballotValidJumps :

@@ -228,23 +228,23 @@ theorem skimSafeTransferMem7_mload224
     (by rw [skimSafeTransferMem7_size self toWord value ho32 hoSize]; decide)
     (by native_decide) (skimSafeTransferMem7_read224 self toWord value ho32 hoSize)
 
-noncomputable def skimSafeTransferCallMem0
+def skimSafeTransferCallMem0
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray (skimSafeTransferPatchedSelectorWord self o toWord value)).write 0
     (skimSafeTransferMem7 self o toWord value) 292 32
 
-noncomputable def skimSafeTransferCopyWord1
+def skimSafeTransferCopyWord1
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : UInt256 :=
   UInt256.ofNat
     (fromByteArrayBigEndian
       ((skimSafeTransferCallMem0 self o toWord value).readWithPadding 256 32))
 
-noncomputable def skimSafeTransferCallMem1
+def skimSafeTransferCallMem1
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray (skimSafeTransferCopyWord1 self o toWord value)).write 0
     (skimSafeTransferCallMem0 self o toWord value) 324 32
 
-noncomputable def skimSafeTransferTailSourceWord
+def skimSafeTransferTailSourceWord
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : UInt256 :=
   UInt256.ofNat
     (fromByteArrayBigEndian
@@ -253,14 +253,14 @@ noncomputable def skimSafeTransferTailSourceWord
 abbrev skimSafeTransferTailMask : UInt256 :=
   UInt256.sub (UInt256.exp ⟨256⟩ (UInt256.sub ⟨32⟩ ⟨4⟩)) ⟨1⟩
 
-noncomputable def skimSafeTransferTailWord
+def skimSafeTransferTailWord
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : UInt256 :=
   UInt256.lor
     (UInt256.land (skimSafeTransferTailSourceWord self o toWord value)
       (UInt256.lnot skimSafeTransferTailMask))
     (UInt256.land ⟨0⟩ skimSafeTransferTailMask)
 
-noncomputable def skimSafeTransferCallMem2
+def skimSafeTransferCallMem2
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray (skimSafeTransferTailWord self o toWord value)).write 0
     (skimSafeTransferCallMem1 self o toWord value) 356 32
@@ -1243,22 +1243,22 @@ theorem RD.uniswapSkimSafeTransferEntryToCallMade {g : Sat256} {s0 : State}
 def uniswapSafeTransferFailedStringWord : UInt256 :=
   ⟨38641673103035791731704587915945305821834519506660595196760963476668136030208⟩
 
-noncomputable def skimSafeTransferFailedMem0
+def skimSafeTransferFailedMem0
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray uniswapErrorStringSelector).write 0
     (skimSafeTransferCallMem2 self o toWord value) 292 32
 
-noncomputable def skimSafeTransferFailedMem1
+def skimSafeTransferFailedMem1
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0
     (skimSafeTransferFailedMem0 self o toWord value) 296 32
 
-noncomputable def skimSafeTransferFailedMem2
+def skimSafeTransferFailedMem2
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨26⟩ : UInt256)).write 0
     (skimSafeTransferFailedMem1 self o toWord value) 328 32
 
-noncomputable def skimSafeTransferFailedMem3
+def skimSafeTransferFailedMem3
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray uniswapSafeTransferFailedStringWord).write 0
     (skimSafeTransferFailedMem2 self o toWord value) 360 32
@@ -1376,19 +1376,19 @@ def skimSafeTransferReturnDataRounded (out : ByteArray) : UInt256 :=
 def skimSafeTransferReturnDataPtr (out : ByteArray) : UInt256 :=
   (⟨292⟩ : UInt256) + skimSafeTransferReturnDataRounded out
 
-noncomputable def skimSafeTransferReturnDataPtrMem
+def skimSafeTransferReturnDataPtrMem
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) (out : ByteArray) :
     ByteArray :=
   (UInt256.toByteArray (skimSafeTransferReturnDataPtr out)).write 0
     (skimSafeTransferCallMem2 self o toWord value) 64 32
 
-noncomputable def skimSafeTransferReturnDataSizeMem
+def skimSafeTransferReturnDataSizeMem
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) (out : ByteArray) :
     ByteArray :=
   (UInt256.toByteArray (UInt256.ofNat out.size)).write 0
     (skimSafeTransferReturnDataPtrMem self o toWord value out) 292 32
 
-noncomputable def skimSafeTransferReturnDataMem
+def skimSafeTransferReturnDataMem
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) (out : ByteArray) :
     ByteArray :=
   out.write 0 (skimSafeTransferReturnDataSizeMem self o toWord value out) 324 out.size

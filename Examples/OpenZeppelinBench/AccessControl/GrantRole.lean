@@ -622,7 +622,7 @@ theorem grantRoleTargetKeccakSlotFrom (I : ExecutionEnv) (mem : ByteArray)
     (hmem : mem.size = 96)
     (hcanonAccount : (grantRoleAccountWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I)
+        (KEC ((revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I)
           (grantRoleAccountWord I) mem).readWithPadding 0 64)))
       = grantRoleTargetSlot I := by
   rw [revokeRoleHasRoleSlotHashMemFrom_read0_64 _ _ hmem, grantRoleBaseKeccakSlot I hsz68]
@@ -654,7 +654,7 @@ theorem grantRoleTargetSlot_fixedBytes32 (I : ExecutionEnv)
 theorem grantRoleAdminHasRoleKeccakSlotFrom (adminRole account : UInt256) (mem : ByteArray)
     (hmem : mem.size = 96) (hcanonAccount : account.toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revokeRoleHasRoleSlotHashMemFrom adminRole account mem)
+        (KEC ((revokeRoleHasRoleSlotHashMemFrom adminRole account mem)
           |>.readWithPadding 0 64)))
       =
         roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE adminRole))
@@ -676,7 +676,7 @@ theorem accessControlGrantRoleX_adminLoaded {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd353⟩ := hreach
   have hslotRaw :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((revokeRoleBaseHashMem (grantRoleRoleWord I)).readWithPadding 0 64))) =
+          (KEC ((revokeRoleBaseHashMem (grantRoleRoleWord I)).readWithPadding 0 64))) =
         revokeRoleBaseSlot (grantRoleRoleWord I) := rfl
   have rd370pre := evm_run rd353 with [
     jumpdest, push0, dup3, dup2,
@@ -927,7 +927,7 @@ theorem accessControlGrantRoleX_grant_noop {cA gh bl σ σ₀ A I} {g : Sat256}
   have htargetSlotEq := grantRoleTargetSlot_fixedBytes32 I hsz68 hcanonAccount
   have hslot' :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I)
+          (KEC ((revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I)
             (grantRoleAccountWord I) memOnlyRole).readWithPadding 0 64))) =
         roleHasRoleSlot
           (.fixedBytes bytes32Width (EVM.Word.toBytesBE (grantRoleRoleWord I)))
@@ -1005,7 +1005,7 @@ theorem accessControlGrantRoleX_grant_write {cA gh bl σ σ₀ A I} {g : Sat256}
   have hslotBase := grantRoleTargetKeccakSlotFrom I memOnlyRole hsz68 hmemOnlyRole hcanonAccount
   have hslot' :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I)
+          (KEC ((revokeRoleHasRoleSlotHashMemFrom (grantRoleRoleWord I)
             (grantRoleAccountWord I) memOnlyRole).readWithPadding 0 64))) =
         roleHasRoleSlot
           (.fixedBytes bytes32Width (EVM.Word.toBytesBE (grantRoleRoleWord I)))
@@ -1049,7 +1049,7 @@ theorem accessControlGrantRoleX_grant_write {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨64⟩, dup1, dup4]
   have hbaseSlotRaw :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((revokeRoleBaseHashMemFrom (grantRoleRoleWord I) memTarget)
+          (KEC ((revokeRoleBaseHashMemFrom (grantRoleRoleWord I) memTarget)
             |>.readWithPadding 0 64))) =
         revokeRoleBaseSlot (grantRoleRoleWord I) := by
     unfold revokeRoleBaseSlot

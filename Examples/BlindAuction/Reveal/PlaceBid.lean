@@ -1012,10 +1012,10 @@ theorem scratch_RD_placeBid_true_zero {g : Sat256} {s0 : State} {I : ExecutionEn
   have rd1655 := evm_run rd1652 with [push1 ⟨1⟩, jumpdest]
   exact ⟨_, _, evm_run rd1655 with [swap3, swap2, pop, pop, jump hret]⟩
 
-noncomputable def scratch_placeBidPendingKeyMem (mem : ByteArray) (key : UInt256) : ByteArray :=
+def scratch_placeBidPendingKeyMem (mem : ByteArray) (key : UInt256) : ByteArray :=
   (UInt256.toByteArray key).write 0 mem 0 32
 
-noncomputable def scratch_placeBidPendingHashMem (mem : ByteArray) (key : UInt256) : ByteArray :=
+def scratch_placeBidPendingHashMem (mem : ByteArray) (key : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨7⟩ : UInt256)).write 0
     (scratch_placeBidPendingKeyMem mem key) 32 32
 
@@ -1165,7 +1165,7 @@ theorem scratch_placeBidPendingKeccak (mem : ByteArray) (key : UInt256)
     (hmem : mem.size = 96) (hcanon : key.toNat < EVM.addressModulus) :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC ((scratch_placeBidPendingHashMem mem key).readWithPadding 0 64))) =
+          (KEC ((scratch_placeBidPendingHashMem mem key).readWithPadding 0 64))) =
       pendingReturnsSlot (.address (AccountAddress.ofNat key.toNat)) := by
   rw [scratch_placeBidPendingHashMem_read0_64 mem key hmem]
   unfold pendingReturnsSlot blindAuctionMappingSlot
@@ -1181,7 +1181,7 @@ theorem scratch_placeBidPendingKeccak_any (mem : ByteArray) (key : UInt256)
     (hcanon : key.toNat < EVM.addressModulus) :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC ((scratch_placeBidPendingHashMem mem key).readWithPadding 0 64))) =
+          (KEC ((scratch_placeBidPendingHashMem mem key).readWithPadding 0 64))) =
       pendingReturnsSlot (.address (AccountAddress.ofNat key.toNat)) := by
   rw [scratch_placeBidPendingHashMem_read0_64_any mem key]
   unfold pendingReturnsSlot blindAuctionMappingSlot

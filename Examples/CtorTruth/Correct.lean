@@ -101,7 +101,7 @@ theorem ctorTruthRuntimeCorrect :
 
 /-! ## Constructor side -/
 
-noncomputable def ctorTruthInitReturnMem : ByteArray :=
+def ctorTruthInitReturnMem : ByteArray :=
   ctorTruthRuntimeBytecode.write 0 solcFreePtrMem 0 123
 
 theorem ctorTruthRuntime_size : ctorTruthRuntimeBytecode.size = 123 := by

@@ -1,5 +1,5 @@
 import Examples.UniswapV2Pair.ConstructorMemory
-import Examples.UniswapV2Pair.Trusted
+import Examples.UniswapV2Pair.ConstructorHashes
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -7,7 +7,7 @@ namespace UniswapV2Pair
 
 set_option maxRecDepth 2000
 
-noncomputable def constructorDomainDataMem (typeHash thisWord : UInt256) : ByteArray :=
+def constructorDomainDataMem (typeHash thisWord : UInt256) : ByteArray :=
   writeCascade constructorLiteralMem [(288, typeHash), (320, constructorNameHashWord),
     (352, constructorVersionHashWord), (384, ⟨1⟩), (416, thisWord)]
 
@@ -26,7 +26,7 @@ theorem constructorDomainDataMem_read64 (typeHash thisWord : UInt256) :
   exact constructorLiteralMem_read64
 
 theorem constructorDomainDataMem_eq (typeHash thisWord : UInt256) :
-    constructorDomainDataMem typeHash thisWord = constructorLiteralMem ++ ffi.ByteArray.zeroes 32 ++
+    constructorDomainDataMem typeHash thisWord = constructorLiteralMem ++ ByteArray.zeroes 32 ++
       typeHash.toByteArray ++ constructorNameHashWord.toByteArray ++
       constructorVersionHashWord.toByteArray ++ (⟨1⟩ : UInt256).toByteArray ++
       thisWord.toByteArray := by
@@ -56,8 +56,8 @@ theorem constructorDomainDataMem_eq (typeHash thisWord : UInt256) :
       constructorLiteralMem_size]; native_decide)]
   simp only [ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size,
     constructorLiteralMem_size]
-  change _ ++ ffi.ByteArray.zeroes 0 ++ thisWord.toByteArray = _
-  simp only [show ffi.ByteArray.zeroes 0 = ByteArray.empty by native_decide, ByteArray.append_empty]
+  change _ ++ ByteArray.zeroes 0 ++ thisWord.toByteArray = _
+  simp only [show ByteArray.zeroes 0 = ByteArray.empty by native_decide, ByteArray.append_empty]
 
 def constructorDomainBytes (typeHash thisWord : UInt256) : ByteArray :=
   typeHash.toByteArray ++ constructorNameHashWord.toByteArray ++
@@ -70,16 +70,16 @@ theorem constructorDomainDataMem_read288 (typeHash thisWord : UInt256) :
   rw [readWithPadding_eq_extract' _ _ _ (by decide) (by decide)
     (by rw [constructorDomainDataMem_size]),
     constructorDomainDataMem_eq]
-  have hs : (constructorLiteralMem ++ ffi.ByteArray.zeroes 32).size = 288 := by
+  have hs : (constructorLiteralMem ++ ByteArray.zeroes 32).size = 288 := by
     rw [ByteArray.size_append, constructorLiteralMem_size, ByteArray_zeroes_size]
   have hb : (constructorDomainBytes typeHash thisWord).size = 160 := by
     simp only [constructorDomainBytes, ByteArray.size_append, toByteArray_size]
-  have h := extract_append_right (constructorLiteralMem ++ ffi.ByteArray.zeroes 32)
+  have h := extract_append_right (constructorLiteralMem ++ ByteArray.zeroes 32)
     (constructorDomainBytes typeHash thisWord)
   rw [hs, hb] at h
   simpa only [constructorDomainBytes, ByteArray.append_assoc] using h
 
-noncomputable def constructorDomainMem (typeHash thisWord : UInt256) : ByteArray :=
+def constructorDomainMem (typeHash thisWord : UInt256) : ByteArray :=
   writeCascade (constructorDomainDataMem typeHash thisWord) [(256, ⟨160⟩), (64, ⟨448⟩)]
 
 theorem constructorDomainMem_size (typeHash thisWord : UInt256) :

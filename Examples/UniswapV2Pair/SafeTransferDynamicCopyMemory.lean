@@ -4,34 +4,34 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
-noncomputable def safeTransferDynamicCallMem0 (base : ByteArray) (ptr toWord value : UInt256) : ByteArray :=
+def safeTransferDynamicCallMem0 (base : ByteArray) (ptr toWord value : UInt256) : ByteArray :=
   (safeTransferDynamicPatchedSelectorWord base ptr toWord value).toByteArray.write 0
     (safeTransferDynamicMem7 base ptr toWord value) (ptr + ⟨164⟩).toNat 32
 
 abbrev safeTransferDynamicCallWords0 (aw ptr : UInt256) : UInt256 :=
   memoryWordActiveWords (safeTransferDynamicWords4 aw ptr) (ptr + ⟨164⟩)
 
-noncomputable def safeTransferDynamicCopyWord1 (base : ByteArray) (ptr toWord value : UInt256) : UInt256 :=
+def safeTransferDynamicCopyWord1 (base : ByteArray) (ptr toWord value : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
     ((safeTransferDynamicCallMem0 base ptr toWord value).readWithPadding (ptr + ⟨128⟩).toNat 32))
 
-noncomputable def safeTransferDynamicCallMem1 (base : ByteArray) (ptr toWord value : UInt256) : ByteArray :=
+def safeTransferDynamicCallMem1 (base : ByteArray) (ptr toWord value : UInt256) : ByteArray :=
   (safeTransferDynamicCopyWord1 base ptr toWord value).toByteArray.write 0
     (safeTransferDynamicCallMem0 base ptr toWord value) (ptr + ⟨196⟩).toNat 32
 
 abbrev safeTransferDynamicCallWords1 (aw ptr : UInt256) : UInt256 :=
   memoryWordActiveWords (safeTransferDynamicCallWords0 aw ptr) (ptr + ⟨196⟩)
 
-noncomputable def safeTransferDynamicTailSourceWord (base : ByteArray) (ptr toWord value : UInt256) : UInt256 :=
+def safeTransferDynamicTailSourceWord (base : ByteArray) (ptr toWord value : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
     ((safeTransferDynamicCallMem1 base ptr toWord value).readWithPadding (ptr + ⟨160⟩).toNat 32))
 
-noncomputable def safeTransferDynamicTailWord (base : ByteArray) (ptr toWord value : UInt256) : UInt256 :=
+def safeTransferDynamicTailWord (base : ByteArray) (ptr toWord value : UInt256) : UInt256 :=
   UInt256.lor (UInt256.land (safeTransferDynamicTailSourceWord base ptr toWord value)
     (UInt256.lnot skimSafeTransferTailMask))
     (UInt256.land ⟨0⟩ skimSafeTransferTailMask)
 
-noncomputable def safeTransferDynamicCallMem2 (base : ByteArray) (ptr toWord value : UInt256) : ByteArray :=
+def safeTransferDynamicCallMem2 (base : ByteArray) (ptr toWord value : UInt256) : ByteArray :=
   (safeTransferDynamicTailWord base ptr toWord value).toByteArray.write 0
     (safeTransferDynamicCallMem1 base ptr toWord value) (ptr + ⟨228⟩).toNat 32
 

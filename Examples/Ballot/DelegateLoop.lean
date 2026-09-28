@@ -29,7 +29,7 @@ abbrev delegateCurrentWithDelegateStore (I : ExecutionEnv) (w : UInt256) : Store
   (delegateCurrentWithSenderStore I w).insert "delegate_"
     (.storageRef (delegateCurrentVoterRef w) voterStructTy)
 
-noncomputable def delegateCurrentLoopMem (I : ExecutionEnv) (w : UInt256) : ByteArray :=
+def delegateCurrentLoopMem (I : ExecutionEnv) (w : UInt256) : ByteArray :=
   delegateLoopHashMem w (delegateSourceWord I)
 
 theorem delegateCurrentStore_to (w : UInt256) :
@@ -288,19 +288,19 @@ theorem ballotDelegateSolm_loopRevertSenderCurrent (evm : EVM.State) (I : Execut
 def delegateLoopFoundStringWord : UInt256 :=
   ⟨0x466f756e64206c6f6f7020696e2064656c65676174696f6e2e00000000000000⟩
 
-noncomputable def delegateLoopFoundErrorMem0 (toWord senderWord : UInt256) : ByteArray :=
+def delegateLoopFoundErrorMem0 (toWord senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray delegateErrorSelector).write 0
     (delegateLoopHashMem toWord senderWord) 128 32
 
-noncomputable def delegateLoopFoundErrorMem1 (toWord senderWord : UInt256) : ByteArray :=
+def delegateLoopFoundErrorMem1 (toWord senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0
     (delegateLoopFoundErrorMem0 toWord senderWord) 132 32
 
-noncomputable def delegateLoopFoundErrorMem2 (toWord senderWord : UInt256) : ByteArray :=
+def delegateLoopFoundErrorMem2 (toWord senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨25⟩ : UInt256)).write 0
     (delegateLoopFoundErrorMem1 toWord senderWord) 164 32
 
-noncomputable def delegateLoopFoundErrorMem3 (toWord senderWord : UInt256) : ByteArray :=
+def delegateLoopFoundErrorMem3 (toWord senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray delegateLoopFoundStringWord).write 0
     (delegateLoopFoundErrorMem2 toWord senderWord) 196 32
 

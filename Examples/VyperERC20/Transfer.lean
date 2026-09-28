@@ -496,28 +496,28 @@ theorem transferDispatchMem_size : transferDispatchMem.size = 32 := by
 def transferToArgMem (dst : UInt256) : ByteArray :=
   (UInt256.toByteArray dst).write 0 transferDispatchMem 64 32
 
-noncomputable def transferSenderKeyMem (dst owner : UInt256) : ByteArray :=
+def transferSenderKeyMem (dst owner : UInt256) : ByteArray :=
   wordAt32Mem owner (transferToArgMem dst)
 
-noncomputable def transferSenderHashMem (dst owner : UInt256) : ByteArray :=
+def transferSenderHashMem (dst owner : UInt256) : ByteArray :=
   wordAt0Mem ⟨0⟩ (transferSenderKeyMem dst owner)
 
-noncomputable def transferSenderKeyMemAgain (dst owner : UInt256) : ByteArray :=
+def transferSenderKeyMemAgain (dst owner : UInt256) : ByteArray :=
   wordAt32Mem owner (transferSenderHashMem dst owner)
 
-noncomputable def transferSenderHashMemAgain (dst owner : UInt256) : ByteArray :=
+def transferSenderHashMemAgain (dst owner : UInt256) : ByteArray :=
   wordAt0Mem ⟨0⟩ (transferSenderKeyMemAgain dst owner)
 
-noncomputable def transferToKeyMem (dst owner : UInt256) : ByteArray :=
+def transferToKeyMem (dst owner : UInt256) : ByteArray :=
   wordAt32Mem dst (transferSenderHashMemAgain dst owner)
 
-noncomputable def transferToHashMem (dst owner : UInt256) : ByteArray :=
+def transferToHashMem (dst owner : UInt256) : ByteArray :=
   wordAt0Mem ⟨0⟩ (transferToKeyMem dst owner)
 
-noncomputable def transferLogMem (dst owner val : UInt256) : ByteArray :=
+def transferLogMem (dst owner val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 (transferToHashMem dst owner) 96 32
 
-noncomputable def transferReturnMem (dst owner val : UInt256) : ByteArray :=
+def transferReturnMem (dst owner val : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0 (transferLogMem dst owner val) 96 32
 
 theorem transferToArgMem_size (dst : UInt256) :
@@ -700,7 +700,7 @@ theorem transferSenderHashMemAgain_read0_64 (dst owner : UInt256) :
 
 theorem transferSenderKeccakSlot (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((transferSenderHashMem (transferToWord I) (approveOwnerWord I))
+        (KEC ((transferSenderHashMem (transferToWord I) (approveOwnerWord I))
           |>.readWithPadding 0 64)))
       = transferSenderSlotI I := by
   rw [transferSenderHashMem_read0_64]
@@ -711,7 +711,7 @@ theorem transferSenderKeccakSlot (I : ExecutionEnv) :
 
 theorem transferSenderKeccakSlotAgain (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((transferSenderHashMemAgain (transferToWord I) (approveOwnerWord I))
+        (KEC ((transferSenderHashMemAgain (transferToWord I) (approveOwnerWord I))
           |>.readWithPadding 0 64)))
       = transferSenderSlotI I := by
   rw [transferSenderHashMemAgain_read0_64]
@@ -786,7 +786,7 @@ theorem transferToHashMem_read0_64 (dst owner : UInt256) :
 theorem transferToKeccakSlot (I : ExecutionEnv)
     (hcanonTo : (transferToWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((transferToHashMem (transferToWord I) (approveOwnerWord I))
+        (KEC ((transferToHashMem (transferToWord I) (approveOwnerWord I))
           |>.readWithPadding 0 64)))
       = transferToSlot I := by
   rw [transferToHashMem_read0_64]

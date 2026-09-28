@@ -8,7 +8,7 @@ set_option maxRecDepth 2000000
 -- LIBRARY CANDIDATE: the ABI byte-list padding agrees with bytearray zero padding.
 theorem padRightToWord_toByteArray (data : ByteArray) :
     (ABI.padRightToWord data.toList).toByteArray =
-      data ++ ffi.ByteArray.zeroes (ABI.paddedSize data.size - data.size) := by
+      data ++ ByteArray.zeroes (ABI.paddedSize data.size - data.size) := by
   apply ByteArray.ext
   apply Array.toList_inj.mp
   simp [ABI.padRightToWord, ABI.zeroBytes, byteArray_zeroes_toList, byteArray_toList_eq]

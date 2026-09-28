@@ -3,7 +3,7 @@ import Solm.Semantics
 import Ethereum.Semantics
 import Reasoning.JumpDest
 
-/-! # Pow — deployed runtime bytecode and its two trusted-base facts (see `MISSPEC.md`). -/
+/-! # Pow — deployed runtime bytecode, selector, and jump destinations. -/
 
 open Solm Ethereum Ethereum.EVM
 
@@ -27,10 +27,19 @@ def powInitcode : ByteArray :=
   ⟨#[0x61, 0x01, 0x22, 0x60, 0x0c, 0x5f, 0x39, 0x61, 0x01, 0x22, 0x5f, 0xf3]⟩
     ++ powBytecode
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("pow2(uint256)")[0:4] = 0x442b7ffb`. -/
-axiom powSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Pow.powTransition))).extract 0 4
-      = ⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩
+theorem powSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr Pow.powTransition))).extract 0 4
+      = ⟨#[0x44, 0x2b, 0x7f, 0xfb]⟩ := by
+  have hsig : Solm.transitionSigStr Pow.powTransition = "pow2(uint256)" := by
+    simp [Solm.transitionSigStr, ABI.printSignature, transitionSignature,
+      Pow.powTransition, Pow.uint256, ABI.abiToSigStr, ABI.elemToSigStr,
+      ABI.intTypeToSigStr, show Nat.repr 256 = "256" by decide +kernel]
+    decide +kernel
+  rw [hsig]
+  decide +kernel
 
 /-- The `JUMPDEST` set of `powBytecode` (confirmed by `#eval`; `D_J_aux` is `partial`). -/
 @[valid_jumps] theorem powValidJumps :

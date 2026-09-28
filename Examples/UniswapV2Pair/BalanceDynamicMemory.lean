@@ -5,14 +5,14 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
-noncomputable def balanceDynamicSelectorMem (base : ByteArray) (ptr : UInt256) : ByteArray :=
+def balanceDynamicSelectorMem (base : ByteArray) (ptr : UInt256) : ByteArray :=
   balanceOfSelectorShifted.toByteArray.write 0 base ptr.toNat 32
-noncomputable def balanceDynamicCalldataMem (base : ByteArray) (ptr self : UInt256) : ByteArray :=
+def balanceDynamicCalldataMem (base : ByteArray) (ptr self : UInt256) : ByteArray :=
   self.toByteArray.write 0 (balanceDynamicSelectorMem base ptr) (ptr + ⟨4⟩).toNat 32
 abbrev balanceDynamicSelectorWords (aw ptr : UInt256) : UInt256 := memoryWordActiveWords aw ptr
 abbrev balanceDynamicCalldataWords (aw ptr : UInt256) : UInt256 :=
   memoryWordActiveWords (balanceDynamicSelectorWords aw ptr) (ptr + ⟨4⟩)
-noncomputable def balanceDynamicReturnMem (base : ByteArray) (ptr self : UInt256) (out : ByteArray) : ByteArray :=
+def balanceDynamicReturnMem (base : ByteArray) (ptr self : UInt256) (out : ByteArray) : ByteArray :=
   out.write 0 (balanceDynamicCalldataMem base ptr self) ptr.toNat
     (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat
 

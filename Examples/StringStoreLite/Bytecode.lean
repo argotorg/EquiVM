@@ -5,7 +5,7 @@ import Reasoning.Initcode
 import Reasoning.JumpDest
 
 /-!
-# StringStoreLite — deployed runtime bytecode trusted base
+# StringStoreLite — deployed runtime bytecode and selector facts
 
 The runtime is produced by:
 
@@ -149,17 +149,32 @@ theorem stringStoreLiteDecode9 :
       ] := by
   native_decide
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("set(string)")[0:4]`. -/
-axiom setSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr StringStoreLite.setTransition))).extract 0 4
-      = ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩
+theorem setSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr StringStoreLite.setTransition))).extract 0 4
+      = ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩ := by
+  have hsig : Solm.transitionSigStr StringStoreLite.setTransition = "set(string)" := by
+    simp [Solm.transitionSigStr, ABI.printSignature, transitionSignature,
+      StringStoreLite.setTransition, StringStoreLite.stringTy,
+      ABI.abiToSigStr]
+    decide +kernel
+  rw [hsig]
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("clearCurrent()")[0:4]`. -/
-axiom clearCurrentSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr StringStoreLite.clearCurrentTransition))).extract 0 4
-      = ⟨#[0xa6, 0xdf, 0xa2, 0x62]⟩
+theorem clearCurrentSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr StringStoreLite.clearCurrentTransition))).extract 0 4
+      = ⟨#[0xa6, 0xdf, 0xa2, 0x62]⟩ := by
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("currentLength()")[0:4]`. -/
-axiom currentLengthSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr StringStoreLite.currentLengthGetter))).extract 0 4
-      = ⟨#[0xa3, 0xd3, 0x5f, 0x36]⟩
+theorem currentLengthSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr StringStoreLite.currentLengthGetter))).extract 0 4
+      = ⟨#[0xa3, 0xd3, 0x5f, 0x36]⟩ := by
+  decide +kernel

@@ -8,7 +8,7 @@ Solm specification for the public ERC-6909 surface implemented by OpenZeppelin. 
 error payloads are omitted; storage effects, allowance rules, and return values are modelled.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace OpenZeppelinBench.ERC6909
 
@@ -49,7 +49,7 @@ def storageDecls : List StorageDecl :=
       ty := .mapping .address (.mapping .address (.mapping (.int uint256Int) uint256St)) } ]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def balanceSlot (owner id : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord id) (mapSlot (keyValueToWord owner) ⟨0⟩)

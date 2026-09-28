@@ -1495,34 +1495,34 @@ theorem currentLengthHeaderWord_eq_of_accountMapEquiv {σ_evm σ_solm : AccountM
 def solcPanicSelectorWord : UInt256 :=
   ⟨35408467139433450592217433187231851964531694900788300625387963629091585785856⟩
 
-noncomputable def solcPanic22Mem1 : ByteArray :=
+def solcPanic22Mem1 : ByteArray :=
   solcPanicSelectorWord.toByteArray.write 0 solcFreePtrMem 0 32
 
-noncomputable def solcPanic22Mem : ByteArray :=
+def solcPanic22Mem : ByteArray :=
   (⟨34⟩ : UInt256).toByteArray.write 0 solcPanic22Mem1 4 32
 
-noncomputable def currentLengthZeroAllocMem : ByteArray :=
+def currentLengthZeroAllocMem : ByteArray :=
   (⟨160⟩ : UInt256).toByteArray.write 0 solcFreePtrMem 64 32
 
-noncomputable def currentLengthZeroMem : ByteArray :=
+def currentLengthZeroMem : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0 currentLengthZeroAllocMem 128 32
 
-noncomputable def currentLengthZeroReturnMem : ByteArray :=
+def currentLengthZeroReturnMem : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0 currentLengthZeroMem 160 32
 
-noncomputable def setMalformedPanicMem1 : ByteArray :=
+def setMalformedPanicMem1 : ByteArray :=
   solcPanicSelectorWord.toByteArray.write 0 currentLengthZeroReturnMem 0 32
 
-noncomputable def setMalformedPanicMem : ByteArray :=
+def setMalformedPanicMem : ByteArray :=
   (⟨34⟩ : UInt256).toByteArray.write 0 setMalformedPanicMem1 4 32
 
-noncomputable def setMalformedPanicMem1Of (mem : ByteArray) : ByteArray :=
+def setMalformedPanicMem1Of (mem : ByteArray) : ByteArray :=
   solcPanicSelectorWord.toByteArray.write 0 mem 0 32
 
-noncomputable def setMalformedPanicMemOf (mem : ByteArray) : ByteArray :=
+def setMalformedPanicMemOf (mem : ByteArray) : ByteArray :=
   (⟨34⟩ : UInt256).toByteArray.write 0 (setMalformedPanicMem1Of mem) 4 32
 
-noncomputable def setEmptyReturnMem : ByteArray :=
+def setEmptyReturnMem : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0 currentLengthZeroReturnMem 160 32
 
 def currentLengthAllocSize (len : UInt256) : UInt256 :=
@@ -1531,19 +1531,19 @@ def currentLengthAllocSize (len : UInt256) : UInt256 :=
 def currentLengthFreePtr (len : UInt256) : UInt256 :=
   ⟨128⟩ + currentLengthAllocSize len
 
-noncomputable def currentLengthAllocMem (len : UInt256) : ByteArray :=
+def currentLengthAllocMem (len : UInt256) : ByteArray :=
   (currentLengthFreePtr len).toByteArray.write 0 solcFreePtrMem 64 32
 
-noncomputable def currentLengthMem (len : UInt256) : ByteArray :=
+def currentLengthMem (len : UInt256) : ByteArray :=
   len.toByteArray.write 0 (currentLengthAllocMem len) 128 32
 
 def currentLengthPayloadWord (header : UInt256) : UInt256 :=
   (header / ⟨256⟩) * ⟨256⟩
 
-noncomputable def currentLengthPayloadMem (len header : UInt256) : ByteArray :=
+def currentLengthPayloadMem (len header : UInt256) : ByteArray :=
   (currentLengthPayloadWord header).toByteArray.write 0 (currentLengthMem len) 160 32
 
-noncomputable def currentLengthPayloadReturnMem (len header : UInt256) : ByteArray :=
+def currentLengthPayloadReturnMem (len header : UInt256) : ByteArray :=
   len.toByteArray.write 0 (currentLengthPayloadMem len header) 192 32
 
 theorem currentLengthAllocMem_size (len : UInt256) : (currentLengthAllocMem len).size = 96 := by
@@ -1706,7 +1706,7 @@ theorem currentLengthZeroAllocMem_read64 :
 
 theorem currentLengthZeroMem_eq :
     currentLengthZeroMem =
-      (currentLengthZeroAllocMem ++ ffi.ByteArray.zeroes 32) ++
+      (currentLengthZeroAllocMem ++ ByteArray.zeroes 32) ++
         UInt256.toByteArray ⟨0⟩ := by
   rw [currentLengthZeroMem,
     toByteArray_write_eq _ _ _ (by rw [currentLengthZeroAllocMem_size]; decide)
@@ -1770,7 +1770,7 @@ theorem currentLengthZeroMem_mload64 :
 
 theorem currentLengthZeroReturnMem_eq :
     currentLengthZeroReturnMem =
-      (currentLengthZeroMem ++ ffi.ByteArray.zeroes 0) ++
+      (currentLengthZeroMem ++ ByteArray.zeroes 0) ++
         UInt256.toByteArray ⟨0⟩ := by
   rw [currentLengthZeroReturnMem,
     toByteArray_write_eq _ _ _ (by rw [currentLengthZeroMem_size])
@@ -3003,11 +3003,11 @@ theorem stringStoreLite_write_len_zero (src base : ByteArray) (sa da : Nat) :
     src.write sa base da 0 = base := by
   simp [ByteArray.write]
 
-noncomputable def setCalldataMem
+def setCalldataMem
     (cd : ByteArray) (len payloadStart : UInt256) : ByteArray :=
   cd.write payloadStart.toNat (currentLengthMem len) 160 len.toNat
 
-noncomputable def setPaddedMem
+def setPaddedMem
     (cd : ByteArray) (len payloadStart : UInt256) : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0
     (setCalldataMem cd len payloadStart) (((⟨160⟩ : UInt256) + len).toNat) 32
@@ -3022,7 +3022,7 @@ def setHelperEntryAw (len : UInt256) : UInt256 :=
 def setHelperPayloadAw (len : UInt256) : UInt256 :=
   UInt256.ofNat (MachineState.M (setHelperEntryAw len).toNat 160 32)
 
-noncomputable def setHelperPayloadWord
+def setHelperPayloadWord
     (cd : ByteArray) (len payloadStart : UInt256) : UInt256 :=
   if (⟨160⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size ∨
       (⟨160⟩ : UInt256) ≥ setHelperEntryAw len * ⟨32⟩ then
@@ -3741,7 +3741,7 @@ theorem setPaddedMem_mload128_short_nonzero_payloadAw
         setPaddedMem_read128 cd len payloadStart hnz hsrc
           (setDataEnd_toNat_of_short hshort))
 
-noncomputable def setShortReturnMem
+def setShortReturnMem
     (cd : ByteArray) (len payloadStart : UInt256) : ByteArray :=
   len.toByteArray.write 0 (setPaddedMem cd len payloadStart) 192 32
 
@@ -5415,10 +5415,10 @@ theorem clearCurrentLongValid_gt31 {header len : UInt256}
       omega)]
   decide
 
-noncomputable def clearCurrentBaseMem : ByteArray :=
+def clearCurrentBaseMem : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0 solcFreePtrMem 0 32
 
-noncomputable def clearCurrentBaseMemFrom (mem : ByteArray) : ByteArray :=
+def clearCurrentBaseMemFrom (mem : ByteArray) : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0 mem 0 32
 
 def clearCurrentBaseAw (aw : UInt256) : UInt256 :=
@@ -5429,8 +5429,8 @@ def clearCurrentHashAw (aw : UInt256) : UInt256 :=
     (MachineState.M (clearCurrentBaseAw aw).toNat (⟨0⟩ : UInt256).toNat
       (⟨32⟩ : UInt256).toNat)
 
-noncomputable def clearCurrentBaseWord : UInt256 :=
-  UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (clearCurrentBaseMem.readWithPadding 0 32)))
+def clearCurrentBaseWord : UInt256 :=
+  UInt256.ofNat (fromByteArrayBigEndian (KEC (clearCurrentBaseMem.readWithPadding 0 32)))
 
 theorem clearCurrentBaseMem_read0 :
     clearCurrentBaseMem.readWithPadding 0 32 = UInt256.toByteArray ⟨0⟩ := by
@@ -5473,7 +5473,7 @@ theorem clearCurrentBaseMemFrom_read0 (mem : ByteArray) :
 
 theorem clearCurrentBaseMemFrom_keccak (mem : ByteArray) :
     UInt256.ofNat
-      (fromByteArrayBigEndian (ffi.KEC ((clearCurrentBaseMemFrom mem).readWithPadding 0 32))) =
+      (fromByteArrayBigEndian (KEC ((clearCurrentBaseMemFrom mem).readWithPadding 0 32))) =
         clearCurrentBaseWord := by
   rw [clearCurrentBaseWord, clearCurrentBaseMemFrom_read0, clearCurrentBaseMem_read0]
 

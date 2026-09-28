@@ -162,24 +162,24 @@ theorem erc20AllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 /-! ## EVM scratch memory for the `allowance` nested mapping access -/
 
 /-- Memory after `allowance` stores the outer mapping base slot `1` at scratch offset `0x20`. -/
-noncomputable def allowanceInnerBaseMem : ByteArray :=
+def allowanceInnerBaseMem : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0 solcFreePtrMem 32 32
 
 /-- Memory after `allowance` stores the `owner` key at scratch offset `0x00`. -/
-noncomputable def allowanceInnerHashMem (owner : UInt256) : ByteArray :=
+def allowanceInnerHashMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray owner).write 0 allowanceInnerBaseMem 0 32
 
 /-- The first keccak slot, Solidity's base for `allowance[owner]`. -/
-noncomputable def allowanceInnerSlot (owner : UInt256) : UInt256 :=
+def allowanceInnerSlot (owner : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((allowanceInnerHashMem owner).readWithPadding 0 64)))
+    (Ethereum.KEC ((allowanceInnerHashMem owner).readWithPadding 0 64)))
 
 /-- Memory after `allowance` stores the inner mapping slot at scratch offset `0x20`. -/
-noncomputable def allowanceOuterBaseMem (owner : UInt256) : ByteArray :=
+def allowanceOuterBaseMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray (allowanceInnerSlot owner)).write 0 (allowanceInnerHashMem owner) 32 32
 
 /-- Memory after `allowance` stores the `spender` key at scratch offset `0x00`. -/
-noncomputable def allowanceOuterHashMem (owner spender : UInt256) : ByteArray :=
+def allowanceOuterHashMem (owner spender : UInt256) : ByteArray :=
   (UInt256.toByteArray spender).write 0 (allowanceOuterBaseMem owner) 0 32
 
 theorem allowanceInnerBaseMem_size : allowanceInnerBaseMem.size = 96 := by
@@ -405,7 +405,7 @@ theorem allowanceOuterKeccakSlot (I : ExecutionEnv)
     (hcanonOwner : (allowanceOwnerWord I).toNat < EVM.addressModulus)
     (hcanonSpender : (allowanceSpenderWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((allowanceOuterHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
+        (Ethereum.KEC ((allowanceOuterHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
           |>.readWithPadding 0 64)))
       = allowanceSlot I := by
   rw [allowanceOuterHashMem_read0_64, allowanceInnerKeccakSlot I hcanonOwner]
@@ -416,7 +416,7 @@ theorem allowanceOuterKeccakSlot (I : ExecutionEnv)
     (erc20MappingSlot (allowanceOwnerWord I) ⟨1⟩)
 
 /-- Memory after the shared uint256 encoder writes the `allowance` return word at `0x80`. -/
-noncomputable def allowanceReturnMem (owner spender val : UInt256) : ByteArray :=
+def allowanceReturnMem (owner spender val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 (allowanceOuterHashMem owner spender) 128 32
 
 theorem allowanceReturnMem_size (owner spender val : UInt256) :
@@ -467,7 +467,7 @@ theorem allowanceReturnMem_read128 (owner spender val : UInt256) :
       )]
   rw [extract_append_right_window
       (allowanceOuterHashMem owner spender ++
-        ffi.ByteArray.zeroes (128 - (allowanceOuterHashMem owner spender).size))
+        ByteArray.zeroes (128 - (allowanceOuterHashMem owner spender).size))
       (UInt256.toByteArray val) 128 160 (by
         rw [ByteArray.size_append, allowanceOuterHashMem_size, ByteArray_zeroes_size,
           ]

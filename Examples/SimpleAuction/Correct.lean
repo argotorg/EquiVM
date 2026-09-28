@@ -159,12 +159,12 @@ theorem simpleAuctionInitcode_runtime_window :
     simpleAuctionCtorPrefix_size.symm
     (by rw [simpleAuctionCtorPrefix_size, simpleAuctionBytecode_size])
 
-noncomputable def simpleAuctionCtorArgTail (biddingTime : UInt256)
+def simpleAuctionCtorArgTail (biddingTime : UInt256)
     (beneficiaryAddress : AccountAddress) : ByteArray :=
   (EVM.Word.toBytesBE biddingTime).toByteArray
     ++ (EVM.Word.toBytesBE (EVM.word beneficiaryAddress)).toByteArray
 
-noncomputable def simpleAuctionCtorCode (biddingTime : UInt256)
+def simpleAuctionCtorCode (biddingTime : UInt256)
     (beneficiaryAddress : AccountAddress) : ByteArray :=
   simpleAuctionInitcode ++ simpleAuctionCtorArgTail biddingTime beneficiaryAddress
 
@@ -267,11 +267,11 @@ theorem simpleAuctionDeployment_shape {args : List Value} {deployedInitcode : By
                 rw [if_neg hbounds] at h
                 simp at h
 
-noncomputable def simpleAuctionBeneficiaryMem (biddingTime : UInt256)
+def simpleAuctionBeneficiaryMem (biddingTime : UInt256)
     (beneficiaryAddress : AccountAddress) : ByteArray :=
   (simpleAuctionCtorCode biddingTime beneficiaryAddress).write 1194 ByteArray.empty 0 32
 
-noncomputable def simpleAuctionBiddingMem (biddingTime : UInt256)
+def simpleAuctionBiddingMem (biddingTime : UInt256)
     (beneficiaryAddress : AccountAddress) : ByteArray :=
   (simpleAuctionCtorCode biddingTime beneficiaryAddress).write 1162
     (simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress) 0 32
@@ -399,7 +399,7 @@ theorem simpleAuctionCtorCheckedAddNoOverflowLt (timestamp biddingTime : UInt256
     UInt256.lt (biddingTime + timestamp) timestamp = ⟨0⟩ :=
   constructorCheckedAddNoOverflowLt timestamp biddingTime hno
 
-noncomputable def simpleAuctionReturnMem (biddingTime : UInt256)
+def simpleAuctionReturnMem (biddingTime : UInt256)
     (beneficiaryAddress : AccountAddress) : ByteArray :=
   (simpleAuctionCtorCode biddingTime beneficiaryAddress).write 115
     (simpleAuctionBiddingMem biddingTime beneficiaryAddress) 0 1047

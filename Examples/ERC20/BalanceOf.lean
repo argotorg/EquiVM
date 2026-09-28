@@ -84,11 +84,11 @@ theorem erc20BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 /-! ## EVM scratch memory for the `balanceOf` mapping access -/
 
 /-- Memory after `balanceOf` stores base slot `0` at scratch offset `0x20`. -/
-noncomputable def balanceOfBaseSlotMem : ByteArray :=
+def balanceOfBaseSlotMem : ByteArray :=
   (UInt256.toByteArray (⟨0⟩ : UInt256)).write 0 solcFreePtrMem 32 32
 
 /-- Memory after `balanceOf` stores the owner key at scratch offset `0x00`. -/
-noncomputable def balanceOfHashMem (owner : UInt256) : ByteArray :=
+def balanceOfHashMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray owner).write 0 balanceOfBaseSlotMem 0 32
 
 theorem balanceOfBaseSlotMem_size : balanceOfBaseSlotMem.size = 96 := by
@@ -198,7 +198,7 @@ theorem balanceOfHashMem_read0_64 (owner : UInt256) :
 theorem balanceOfKeccakSlot (I : ExecutionEnv)
     (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((balanceOfHashMem (balanceOfOwnerWord I)).readWithPadding 0 64)))
+        (Ethereum.KEC ((balanceOfHashMem (balanceOfOwnerWord I)).readWithPadding 0 64)))
       = balanceOfSlot I := by
   rw [balanceOfHashMem_read0_64]
   unfold balanceOfSlot erc20BalanceOfSlot erc20MappingSlot
@@ -206,7 +206,7 @@ theorem balanceOfKeccakSlot (I : ExecutionEnv)
   exact mappingSlot_single (balanceOfOwnerWord I) ⟨0⟩
 
 /-- Memory after the shared uint256 encoder writes the `balanceOf` return word at `0x80`. -/
-noncomputable def balanceOfReturnMem (owner val : UInt256) : ByteArray :=
+def balanceOfReturnMem (owner val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 (balanceOfHashMem owner) 128 32
 
 theorem balanceOfReturnMem_size (owner val : UInt256) :
@@ -259,7 +259,7 @@ theorem balanceOfReturnMem_read128 (owner val : UInt256) :
         toByteArray_size]
       )]
   rw [extract_append_right_window
-      (balanceOfHashMem owner ++ ffi.ByteArray.zeroes (128 - (balanceOfHashMem owner).size))
+      (balanceOfHashMem owner ++ ByteArray.zeroes (128 - (balanceOfHashMem owner).size))
       (UInt256.toByteArray val) 128 160 (by
         rw [ByteArray.size_append, balanceOfHashMem_size, ByteArray_zeroes_size,
           show 128 - 96 = 32 from by norm_num]

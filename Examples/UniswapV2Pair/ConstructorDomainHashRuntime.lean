@@ -6,8 +6,8 @@ namespace UniswapV2Pair
 
 set_option maxRecDepth 2000
 
-noncomputable abbrev constructorDomainHashWord (thisWord : UInt256) : UInt256 :=
-  UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC
+abbrev constructorDomainHashWord (thisWord : UInt256) : UInt256 :=
+  UInt256.ofNat (fromByteArrayBigEndian (KEC
     (constructorDomainBytes constructorTypeHashWord thisWord)))
 
 set_option maxHeartbeats 1000000 in
@@ -51,7 +51,7 @@ theorem RD.uniswapConstructorDomainHash {g : Sat256} {s0 : State} {I : Execution
     simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
       List.getElem!_cons_zero, List.getElem!_cons_succ]
     native_decide
-  · change UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC
+  · change UInt256.ofNat (fromByteArrayBigEndian (KEC
       ((constructorDomainMem _ _).readWithPadding 288 160))) = _
     rw [constructorDomainMem_read288]
   · native_decide

@@ -13,10 +13,10 @@ abbrev uniswapSyncReserve0Word (packed : UInt256) : UInt256 :=
 abbrev uniswapSyncReserve1Word (packed : UInt256) : UInt256 :=
   UInt256.land reserve112Mask (UInt256.div packed reserve112Shift)
 
-noncomputable def uniswapSyncLogReserve0Mem (packed : UInt256) (mem : ByteArray) : ByteArray :=
+def uniswapSyncLogReserve0Mem (packed : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (uniswapSyncReserve0Word packed)).write 0 mem 128 32
 
-noncomputable def uniswapSyncLogMem (packed : UInt256) (mem : ByteArray) : ByteArray :=
+def uniswapSyncLogMem (packed : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (uniswapSyncReserve1Word packed)).write 0
     (uniswapSyncLogReserve0Mem packed mem) 160 32
 

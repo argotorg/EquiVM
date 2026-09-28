@@ -421,36 +421,36 @@ theorem toByteArray_extract0_32 (w : UInt256) :
     rw [toByteArray_size])
 
 /-- Memory after storing the `owner` key at scratch offset `0x00`. -/
-noncomputable def allowanceOwnerMem (owner : UInt256) : ByteArray :=
+def allowanceOwnerMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray owner).write 0 solcFreePtrMem 0 32
 
 /-- Memory after storing the `_allowances` base slot `2` at scratch offset `0x20`. -/
-noncomputable def allowanceOwnerHashMem (owner : UInt256) : ByteArray :=
+def allowanceOwnerHashMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨2⟩ : UInt256)).write 0 (allowanceOwnerMem owner) 32 32
 
 /-- Solidity's base slot for `_allowances[owner]`. -/
-noncomputable def allowanceOwnerSlotWord (owner : UInt256) : UInt256 :=
+def allowanceOwnerSlotWord (owner : UInt256) : UInt256 :=
   mapSlot owner ⟨2⟩
 
 /-- Memory after storing the `spender` key at scratch offset `0x00`. -/
-noncomputable def allowanceSpenderMem (owner spender : UInt256) : ByteArray :=
+def allowanceSpenderMem (owner spender : UInt256) : ByteArray :=
   (UInt256.toByteArray spender).write 0 (allowanceOwnerHashMem owner) 0 32
 
 /-- Memory after storing the `_allowances[owner]` base slot at scratch offset `0x20`. -/
-noncomputable def allowanceSpenderHashMem (owner spender : UInt256) : ByteArray :=
+def allowanceSpenderHashMem (owner spender : UInt256) : ByteArray :=
   (UInt256.toByteArray (allowanceOwnerSlotWord owner)).write 0
     (allowanceSpenderMem owner spender) 32 32
 
 /-- Solidity's base slot for `_allowances[owner][spender]`. -/
-noncomputable def allowanceSpenderSlotWord (owner spender : UInt256) : UInt256 :=
+def allowanceSpenderSlotWord (owner spender : UInt256) : UInt256 :=
   mapSlot spender (allowanceOwnerSlotWord owner)
 
 /-- Memory after storing the `id` key at scratch offset `0x00`. -/
-noncomputable def allowanceIdMem (owner spender id : UInt256) : ByteArray :=
+def allowanceIdMem (owner spender id : UInt256) : ByteArray :=
   (UInt256.toByteArray id).write 0 (allowanceSpenderHashMem owner spender) 0 32
 
 /-- Memory after storing the `_allowances[owner][spender]` base slot at scratch offset `0x20`. -/
-noncomputable def allowanceIdHashMem (owner spender id : UInt256) : ByteArray :=
+def allowanceIdHashMem (owner spender id : UInt256) : ByteArray :=
   (UInt256.toByteArray (allowanceSpenderSlotWord owner spender)).write 0
     (allowanceIdMem owner spender id) 32 32
 
@@ -558,7 +558,7 @@ theorem allowanceOwnerHashMem_read0_64 (owner : UInt256) :
 
 theorem allowanceOwnerKeccakSlot (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((allowanceOwnerHashMem (allowanceOwnerWord I)).readWithPadding 0 64)))
+        (KEC ((allowanceOwnerHashMem (allowanceOwnerWord I)).readWithPadding 0 64)))
       = allowanceOwnerSlotWord (allowanceOwnerWord I) := by
   rw [allowanceOwnerHashMem_read0_64]
   unfold allowanceOwnerSlotWord mapSlot
@@ -637,7 +637,7 @@ theorem allowanceSpenderHashMem_read0_64 (owner spender : UInt256) :
 
 theorem allowanceSpenderKeccakSlot (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((allowanceSpenderHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
+        (KEC ((allowanceSpenderHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
           |>.readWithPadding 0 64)))
       = allowanceSpenderSlotWord (allowanceOwnerWord I) (allowanceSpenderWord I) := by
   rw [allowanceSpenderHashMem_read0_64]
@@ -729,7 +729,7 @@ theorem allowanceFinalKeccakSlot (I : ExecutionEnv)
     (hcanonOwner : (allowanceOwnerWord I).toNat < EVM.addressModulus)
     (hcanonSpender : (allowanceSpenderWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((allowanceIdHashMem (allowanceOwnerWord I) (allowanceSpenderWord I)
+        (KEC ((allowanceIdHashMem (allowanceOwnerWord I) (allowanceSpenderWord I)
           (allowanceIdWord I)).readWithPadding 0 64)))
       = allowanceSlotOf I := by
   rw [allowanceIdHashMem_read0_64]
@@ -738,14 +738,14 @@ theorem allowanceFinalKeccakSlot (I : ExecutionEnv)
     keyValueToWord_address_of_canonical _ hcanonSpender]
   rw [keyValueToWord_uint256 (allowanceIdWord I)]
   exact mappingSlot_single (allowanceIdWord I)
-    (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (allowanceSpenderWord I) ++
+    (uInt256OfByteArray (KEC (UInt256.toByteArray (allowanceSpenderWord I) ++
       UInt256.toByteArray
-        (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (allowanceOwnerWord I) ++
+        (uInt256OfByteArray (KEC (UInt256.toByteArray (allowanceOwnerWord I) ++
           UInt256.toByteArray (⟨2⟩ : UInt256)))))))
 
 /-! ## Return memory after the shared one-word wrapper -/
 
-noncomputable def allowanceReturnMem (owner spender id val : UInt256) : ByteArray :=
+def allowanceReturnMem (owner spender id val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 (allowanceIdHashMem owner spender id) 128 32
 
 theorem allowanceReturnMem_size (owner spender id val : UInt256) :
@@ -801,7 +801,7 @@ theorem allowanceReturnMem_read128 (owner spender id val : UInt256) :
         toByteArray_size])]
   rw [extract_append_right_window
       (allowanceIdHashMem owner spender id ++
-        ffi.ByteArray.zeroes (128 - (allowanceIdHashMem owner spender id).size))
+        ByteArray.zeroes (128 - (allowanceIdHashMem owner spender id).size))
       (UInt256.toByteArray val) 128 160 (by
         rw [ByteArray.size_append, allowanceIdHashMem_size, ByteArray_zeroes_size,
           show 128 - 96 = 32 from by norm_num])]

@@ -232,10 +232,10 @@ theorem blindAuctionRevealDecodeArrays1806_to_887
   have rd887 := evm_run rd413 with [jumpdest, push2 ⟨887⟩, jump (by jump_dest)]
   exact ⟨_, _, by simpa [revealDecodedStack] using rd887⟩
 
-noncomputable def revealScratchBidsSourceMem (I : ExecutionEnv) : ByteArray :=
+def revealScratchBidsSourceMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (UInt256.ofNat I.source.val)).write 0 solcFreePtrMem 0 32
 
-noncomputable def revealScratchBidsHashMem (I : ExecutionEnv) : ByteArray :=
+def revealScratchBidsHashMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨4⟩ : UInt256)).write 0 (revealScratchBidsSourceMem I) 32 32
 
 theorem revealScratchBidsSourceMem_size (I : ExecutionEnv) :
@@ -369,14 +369,14 @@ theorem revealScratchBidsHashMem_read0_64 (I : ExecutionEnv) :
 
 theorem revealScratchBidsMappingBaseKeccak (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+        (KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
       revealScratchBidsLengthSlot I := by
   rw [revealScratchBidsHashMem_read0_64]
   unfold revealScratchBidsLengthSlot bidsBase blindAuctionMappingSlot
   rw [keyValueToWord_address]
   exact keccakSlot_eq _
 
-noncomputable def revealTimeRevertMem (arg errSel : UInt256) : ByteArray :=
+def revealTimeRevertMem (arg errSel : UInt256) : ByteArray :=
   (UInt256.toByteArray arg).write 0 (solcReturnMem errSel) 132 32
 
 theorem revealTimeRevertMem_size (arg errSel : UInt256) :
@@ -575,7 +575,7 @@ theorem blindAuctionRevealX_from887_lengthMismatch_empty {cA σ I} {g : Sat256}
     (hbidsNonzero : revealScratchBidsLengthWord σ I ≠ ⟨0⟩)
     (hbidsHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+        (KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
           revealScratchBidsLengthSlot I) :
     RDrev blindAuctionBytecode g s0 := by
   obtain ⟨_, _, rd963⟩ :=
@@ -668,7 +668,7 @@ theorem blindAuctionRevealX_from887_valuesLengthMismatch {cA σ I} {g : Sat256}
     (hvaluesNe : revealScratchBidsLengthWord σ I ≠ valuesLen)
     (hbidsHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+        (KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
           revealScratchBidsLengthSlot I) :
     RDrev blindAuctionBytecode g s0 := by
   obtain ⟨_, _, rd963⟩ :=
@@ -716,7 +716,7 @@ theorem blindAuctionRevealX_from887_fakesLengthMismatch {cA σ I} {g : Sat256}
     (hfakesNe : revealScratchBidsLengthWord σ I ≠ fakesLen)
     (hbidsHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+        (KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
           revealScratchBidsLengthSlot I) :
     RDrev blindAuctionBytecode g s0 := by
   obtain ⟨_, _, rd963⟩ :=
@@ -773,7 +773,7 @@ theorem blindAuctionRevealX_from887_secretsLengthMismatch {cA σ I} {g : Sat256}
     (hsecretsNe : revealScratchBidsLengthWord σ I ≠ secretsLen)
     (hbidsHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+        (KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
           revealScratchBidsLengthSlot I) :
     RDrev blindAuctionBytecode g s0 := by
   obtain ⟨_, _, rd963⟩ :=
@@ -873,7 +873,7 @@ theorem blindAuctionRevealDecodeArrays1806_valuesLengthMismatch_reverts
     (hvaluesNe : revealScratchBidsLengthWord σ I ≠ valuesLen)
     (hbidsHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+        (KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
           revealScratchBidsLengthSlot I) :
     RDrev blindAuctionBytecode g s0 := by
   obtain ⟨_, _, rd887⟩ :=
@@ -933,7 +933,7 @@ theorem blindAuctionRevealDecodeArrays1806_fakesLengthMismatch_reverts
     (hfakesNe : revealScratchBidsLengthWord σ I ≠ fakesLen)
     (hbidsHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+        (KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
           revealScratchBidsLengthSlot I) :
     RDrev blindAuctionBytecode g s0 := by
   obtain ⟨_, _, rd887⟩ :=
@@ -994,7 +994,7 @@ theorem blindAuctionRevealDecodeArrays1806_secretsLengthMismatch_reverts
     (hsecretsNe : revealScratchBidsLengthWord σ I ≠ secretsLen)
     (hbidsHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+        (KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
           revealScratchBidsLengthSlot I) :
     RDrev blindAuctionBytecode g s0 := by
   obtain ⟨_, _, rd887⟩ :=
@@ -1016,7 +1016,7 @@ theorem blindAuctionRevealX_from963_lengthsOk_toLoopInit {cA σ I} {g : Sat256}
     (hsecretsEq : revealScratchBidsLengthWord σ I = secretsLen)
     (hbidsHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+        (KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
           revealScratchBidsLengthSlot I) :
     ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1014⟩
       [⟨0⟩, ⟨0⟩, revealScratchBidsLengthWord σ I,
@@ -1083,7 +1083,7 @@ theorem blindAuctionRevealX_from963_lengthsOk_zero_toCall {cA σ I} {g : Sat256}
     (hsecretsEq : revealScratchBidsLengthWord σ I = secretsLen)
     (hbidsHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+        (KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
           revealScratchBidsLengthSlot I) :
     ∃ gasArg k' C', RD blindAuctionBytecode I g s0 ⟨1349⟩
       [gasArg, revealScratchSenderWord I, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨128⟩, ⟨0⟩,
@@ -1146,7 +1146,7 @@ theorem blindAuctionRevealX_from963_lengthsOk_nonzero_toLoopBody {cA σ I}
     (hsecretsEq : revealScratchBidsLengthWord σ I = secretsLen)
     (hbidsHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+        (KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
           revealScratchBidsLengthSlot I) :
     ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1023⟩
       [⟨0⟩, ⟨0⟩, revealScratchBidsLengthWord σ I,
@@ -1178,7 +1178,7 @@ theorem blindAuctionRevealX_from963_empty_toCall {cA σ I} {g : Sat256}
     (hbidsZero : revealScratchBidsLengthWord σ I = ⟨0⟩)
     (hbidsHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+        (KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
           revealScratchBidsLengthSlot I) :
     ∃ gasArg k' C', RD blindAuctionBytecode I g s0 ⟨1349⟩
       [gasArg, revealScratchSenderWord I, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨128⟩, ⟨0⟩,
@@ -1257,7 +1257,7 @@ theorem blindAuctionRevealX_from963_empty_callMade {cA gh bl σ σ₀ A I} {g : 
     (hbidsZero : revealScratchBidsLengthWord σ I = ⟨0⟩)
     (hbidsHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+        (KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
           revealScratchBidsLengthSlot I) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
@@ -1303,7 +1303,7 @@ theorem blindAuctionRevealX_from963_empty_callDepth {cA gh bl σ σ₀ A I} {g :
     (hbidsZero : revealScratchBidsLengthWord σ I = ⟨0⟩)
     (hbidsHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
+        (KEC ((revealScratchBidsHashMem I).readWithPadding 0 64))) =
           revealScratchBidsLengthSlot I) :
     ∃ k' C', RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1350⟩
       [⟨0⟩, ⟨128⟩, ⟨0⟩, revealScratchSenderWord I, ⟨0⟩, ⟨0⟩, ⟨0⟩,
@@ -2725,7 +2725,7 @@ def scratch_revealEvmLoopStack (i refund len revealEnd biddingEnd secretsLen sec
   [i, refund, len, revealEnd, biddingEnd, secretsLen, secretsEnd, fakesLen, fakesEnd,
     valuesLen, valuesEnd, ⟨276⟩, sel]
 
-noncomputable def scratch_revealBidsArrayDataMem (I : ExecutionEnv) : ByteArray :=
+def scratch_revealBidsArrayDataMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (revealScratchBidsLengthSlot I)).write 0
     (revealScratchBidsHashMem I) 0 32
 
@@ -2773,13 +2773,13 @@ theorem scratch_revealBidsArrayDataMem_mload64 (I : ExecutionEnv) :
 
 theorem scratch_revealBidsArrayDataKeccak (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((scratch_revealBidsArrayDataMem I).readWithPadding 0 32))) =
-      uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))) := by
+        (KEC ((scratch_revealBidsArrayDataMem I).readWithPadding 0 32))) =
+      uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))) := by
   rw [scratch_revealBidsArrayDataMem_read0]
   exact keccakSlot_eq _
 
 theorem scratch_revealBidsElemSlot_eq (I : ExecutionEnv) (i : UInt256) :
-    uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))) +
+    uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))) +
         UInt256.mul i ⟨2⟩ =
       bidsElemSlot (.address I.source) (.int (Int.ofNat i.toNat)) := by
   unfold revealScratchBidsLengthSlot bidsElemSlot
@@ -2828,7 +2828,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
     (haw64 : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw)
     (hbaseHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC
+        (KEC
           (((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
             ((UInt256.toByteArray (revealScratchSenderWord I)).write 0 mem 0 32)
               32 32).readWithPadding 0 64))) =
@@ -2839,12 +2839,12 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
     (hbound : i.toNat < len.toNat)
     (hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC
+        (KEC
           (((UInt256.toByteArray (revealScratchBidsLengthSlot I)).write 0
             ((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
               ((UInt256.toByteArray (revealScratchSenderWord I)).write 0 mem 0 32)
               32 32) 0 32).readWithPadding 0 32))) =
-        uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I)))) :
+        uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I)))) :
     ∃ mem' aw' k' C', RD blindAuctionBytecode I g s0 ⟨1069⟩
       [bidsElemSlot (.address I.source) (.int (Int.ofNat i.toNat)), i, refund, len, revealEnd,
         biddingEnd, secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
@@ -2906,7 +2906,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
       (by rfl) haw0 (by evm_ov),
     push1 ⟨32⟩, push0,
     raw keccak256 0
-      (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
+      (uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
       aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
@@ -2917,7 +2917,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
       (by evm_ov)]
   have hslot :
       UInt256.mul ⟨2⟩ i +
-          uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))) =
+          uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))) =
         bidsElemSlot (.address I.source) (.int (Int.ofNat i.toNat)) := by
     have hmul : UInt256.mul ⟨2⟩ i = UInt256.mul i ⟨2⟩ := by
       apply u256_inj
@@ -3184,24 +3184,24 @@ theorem scratch_blindAuctionRevealX_loopBody_secret_toPacked {I} {g : Sat256}
   have rd1167 := evm_run rd1160 with [swap3, pop, swap3, pop, swap3, pop]
   exact ⟨_, _, by simpa using rd1167⟩
 
-noncomputable def scratch_revealPackedValueMem (mem : ByteArray) (base value : UInt256) :
+def scratch_revealPackedValueMem (mem : ByteArray) (base value : UInt256) :
     ByteArray :=
   (UInt256.toByteArray value).write 0 mem base.toNat 32
 
-noncomputable def scratch_revealPackedFakeMem (mem : ByteArray) (base fakeWord : UInt256) :
+def scratch_revealPackedFakeMem (mem : ByteArray) (base fakeWord : UInt256) :
     ByteArray :=
   (UInt256.toByteArray (UInt256.shiftLeft (UInt256.isZero (UInt256.isZero fakeWord)) ⟨248⟩)).write
     0 mem base.toNat 32
 
-noncomputable def scratch_revealPackedSecretMem (mem : ByteArray) (base secret : UInt256) :
+def scratch_revealPackedSecretMem (mem : ByteArray) (base secret : UInt256) :
     ByteArray :=
   (UInt256.toByteArray secret).write 0 mem base.toNat 32
 
-noncomputable def scratch_revealPackedLenMem (mem : ByteArray) (base len : UInt256) :
+def scratch_revealPackedLenMem (mem : ByteArray) (base len : UInt256) :
     ByteArray :=
   (UInt256.toByteArray len).write 0 mem base.toNat 32
 
-noncomputable def scratch_revealPackedFreePtrMem (mem : ByteArray) (freePtr : UInt256) :
+def scratch_revealPackedFreePtrMem (mem : ByteArray) (freePtr : UInt256) :
     ByteArray :=
   (UInt256.toByteArray freePtr).write 0 mem 64 32
 
@@ -3312,7 +3312,7 @@ theorem scratch_blindAuctionRevealX_loopBody_packed_suffix {I} {g : Sat256}
       let mem4 := scratch_revealPackedLenMem mem fp packedLen
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
+          (fromByteArrayBigEndian (KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
         hash)
     (hstore :
       (σ.find? I.codeOwner).option ⟨0⟩
@@ -3509,7 +3509,7 @@ def scratch_revealPackedHashExpr : Expr :=
 
 def scratch_revealPackedHashValue (value : UInt256) (fake : Bool) (secret : UInt256) : Value :=
   .fixedBytes ⟨31, bytes32._proof_1⟩
-    (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)).toList
+    (KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)).toList
 
 theorem scratch_encodePacked_uint256 (value : UInt256) :
     encodePackedValue? uint256 (.int (Int.ofNat value.toNat)) =

@@ -1,4 +1,4 @@
-import Examples.SimpleAuction.Trusted
+import Examples.SimpleAuction.Selectors
 import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.Memory

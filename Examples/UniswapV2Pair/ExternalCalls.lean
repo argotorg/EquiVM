@@ -19,32 +19,32 @@ abbrev transferSelectorWord : UInt256 := ⟨2835717307⟩
 abbrev transferSelectorShifted : UInt256 :=
   UInt256.shiftLeft transferSelectorWord ⟨224⟩
 
-noncomputable def balanceOfThisSelectorMem : ByteArray :=
+def balanceOfThisSelectorMem : ByteArray :=
   (UInt256.toByteArray balanceOfSelectorShifted).write 0 solcFreePtrMem 128 32
 
-noncomputable def transferSelectorMem : ByteArray :=
+def transferSelectorMem : ByteArray :=
   (UInt256.toByteArray transferSelectorShifted).write 0 solcFreePtrMem 128 32
 
-noncomputable def balanceOfThisCalldataMem (self : UInt256) : ByteArray :=
+def balanceOfThisCalldataMem (self : UInt256) : ByteArray :=
   (UInt256.toByteArray self).write 0 balanceOfThisSelectorMem 132 32
 
-noncomputable def transferArgsMem (recipient : UInt256) : ByteArray :=
+def transferArgsMem (recipient : UInt256) : ByteArray :=
   (UInt256.toByteArray recipient).write 0 transferSelectorMem 132 32
 
-noncomputable def transferCalldataMem (recipient value : UInt256) : ByteArray :=
+def transferCalldataMem (recipient value : UInt256) : ByteArray :=
   (UInt256.toByteArray value).write 0 (transferArgsMem recipient) 164 32
 
-noncomputable def balanceOfThisStaticcallMem (self : UInt256) (o : ByteArray) : ByteArray :=
+def balanceOfThisStaticcallMem (self : UInt256) (o : ByteArray) : ByteArray :=
   o.write 0 (balanceOfThisCalldataMem self) 128 (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat
 
-noncomputable def balanceOfThisRebuiltSelectorMem (self : UInt256) (o : ByteArray) : ByteArray :=
+def balanceOfThisRebuiltSelectorMem (self : UInt256) (o : ByteArray) : ByteArray :=
   (UInt256.toByteArray balanceOfSelectorShifted).write 0
     (balanceOfThisStaticcallMem self o) 128 32
 
-noncomputable def balanceOfThisRebuiltCalldataMem (self : UInt256) (o : ByteArray) : ByteArray :=
+def balanceOfThisRebuiltCalldataMem (self : UInt256) (o : ByteArray) : ByteArray :=
   (UInt256.toByteArray self).write 0 (balanceOfThisRebuiltSelectorMem self o) 132 32
 
-noncomputable def balanceOfThisRebuiltStaticcallMem
+def balanceOfThisRebuiltStaticcallMem
     (self : UInt256) (oPrev o : ByteArray) : ByteArray :=
   o.write 0 (balanceOfThisRebuiltCalldataMem self oPrev) 128
     (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat
@@ -95,13 +95,13 @@ theorem transferCalldataMem_read128_4 (recipient value : UInt256) :
       (by rw [transferSelectorMem_size]; omega) (by omega)
       (by rw [transferSelectorMem_size]; omega)
       (by norm_num) (by norm_num)]
-  have hzero32 : (ffi.ByteArray.zeroes 32).size = 32 := ByteArray_zeroes_size 32
+  have hzero32 : (ByteArray.zeroes 32).size = 32 := ByteArray_zeroes_size 32
   rw [show transferSelectorMem = solcReturnMem transferSelectorShifted from rfl]
   rw [readWithPadding_eq_extract' _ 128 4 (by norm_num) (by norm_num)
       (by rw [solcReturnMem_size]; omega)]
   rw [solcReturnMem_eq]
   rw [extract_append_right_window
-      (solcFreePtrMem ++ ffi.ByteArray.zeroes (32))
+      (solcFreePtrMem ++ ByteArray.zeroes (32))
       (UInt256.toByteArray transferSelectorShifted) 128 (128 + 4) (by
         simp [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size])]
   rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size]
@@ -196,13 +196,13 @@ theorem transferCalldataMem_encode (recipient : AccountAddress) (value : UInt256
 
 theorem balanceOfThisSelectorMem_read128_4 :
     balanceOfThisSelectorMem.readWithPadding 128 4 = balanceOfSelector := by
-  have hzero32 : (ffi.ByteArray.zeroes 32).size = 32 := ByteArray_zeroes_size 32
+  have hzero32 : (ByteArray.zeroes 32).size = 32 := ByteArray_zeroes_size 32
   rw [show balanceOfThisSelectorMem = solcReturnMem balanceOfSelectorShifted from rfl]
   rw [readWithPadding_eq_extract' _ 128 4 (by norm_num) (by norm_num)
       (by rw [solcReturnMem_size]; omega)]
   rw [solcReturnMem_eq]
   rw [extract_append_right_window
-      (solcFreePtrMem ++ ffi.ByteArray.zeroes (32))
+      (solcFreePtrMem ++ ByteArray.zeroes (32))
       (UInt256.toByteArray balanceOfSelectorShifted) 128 (128 + 4) (by
         simp [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size])]
   rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size]

@@ -6,7 +6,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace UniswapV2Pair
 
-noncomputable abbrev mintRuntimeMintMap (σ : AccountMap) (I : ExecutionEnv)
+abbrev mintRuntimeMintMap (σ : AccountMap) (I : ExecutionEnv)
     (recipient value : UInt256) (mem : ByteArray) : AccountMap :=
   sstoreAccountMap I.codeOwner
     (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + value))
@@ -16,7 +16,7 @@ noncomputable abbrev mintRuntimeMintMap (σ : AccountMap) (I : ExecutionEnv)
       (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + value))
       (uniswapInternalMintBalanceHashSlot recipient mem) + value)
 
-noncomputable abbrev mintRuntimeMintMem (recipient value : UInt256) (mem : ByteArray) : ByteArray :=
+abbrev mintRuntimeMintMem (recipient value : UInt256) (mem : ByteArray) : ByteArray :=
   uniswapInternalMintLogMem value
     (uniswapInternalMintBalanceHashMem recipient
       (uniswapInternalMintBalanceHashMem recipient mem))

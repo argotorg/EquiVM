@@ -41,7 +41,7 @@ theorem erc20X_transferFromAfterToLoad {cA gh bl σ σ₀ A I} {g : Sat256}
         (transferFromCurrentAllowanceRaw σ I)
   have hslot :
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC ((transferFromAfterToLoadMemI σ I).readWithPadding 0 64))) =
+          (fromByteArrayBigEndian (KEC ((transferFromAfterToLoadMemI σ I).readWithPadding 0 64))) =
         transferFromToSlot I := by
     rw [hread0_64]
     unfold transferFromToSlot erc20BalanceOfSlot vyperMappingSlot

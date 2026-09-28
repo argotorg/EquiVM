@@ -44,13 +44,13 @@ theorem byteArray_write_all_size (src base : ByteArray) (dest : Nat) (hdest : de
       omega
 
 -- LIBRARY CANDIDATES: Solidity's dynamic return-data allocation and copy.
-noncomputable def solcReturnDataPtrMem (mem : ByteArray) (ptr : UInt256) (out : ByteArray) : ByteArray :=
+def solcReturnDataPtrMem (mem : ByteArray) (ptr : UInt256) (out : ByteArray) : ByteArray :=
   (ptr + UInt256.land (UInt256.ofNat out.size + ⟨63⟩) (UInt256.lnot ⟨31⟩)).toByteArray.write 0 mem 64 32
 
-noncomputable def solcReturnDataSizeMem (mem : ByteArray) (ptr : UInt256) (out : ByteArray) : ByteArray :=
+def solcReturnDataSizeMem (mem : ByteArray) (ptr : UInt256) (out : ByteArray) : ByteArray :=
   (UInt256.ofNat out.size).toByteArray.write 0 (solcReturnDataPtrMem mem ptr out) ptr.toNat 32
 
-noncomputable def solcReturnDataMem (mem : ByteArray) (ptr : UInt256) (out : ByteArray) : ByteArray :=
+def solcReturnDataMem (mem : ByteArray) (ptr : UInt256) (out : ByteArray) : ByteArray :=
   out.write 0 (solcReturnDataSizeMem mem ptr out) (ptr + ⟨32⟩).toNat out.size
 
 abbrev solcReturnDataActiveWords (aw ptr : UInt256) (out : ByteArray) : UInt256 :=

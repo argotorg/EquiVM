@@ -172,7 +172,7 @@ theorem voteSourceWord_toNat (I : ExecutionEnv) :
 
 theorem voteSenderSlot_eq_hash (I : ExecutionEnv) :
     voteSenderSlot I =
-      uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (voteSourceWord I) ++
+      uInt256OfByteArray (KEC (UInt256.toByteArray (voteSourceWord I) ++
         UInt256.toByteArray (⟨1⟩ : UInt256))) := by
   unfold voteSenderSlot voterBase mapSlot
   rw [show keyValueToWord (.address I.source) = voteSourceWord I by
@@ -747,13 +747,13 @@ theorem ballotVoteBodyReverts_overflow (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ## EVM scratch memory -/
 
-noncomputable def voteKeyMem (I : ExecutionEnv) : ByteArray :=
+def voteKeyMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (voteSourceWord I)).write 0 solcFreePtrMem 0 32
 
-noncomputable def voteHashMem (I : ExecutionEnv) : ByteArray :=
+def voteHashMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0 (voteKeyMem I) 32 32
 
-noncomputable def voteProposalBaseMem (I : ExecutionEnv) : ByteArray :=
+def voteProposalBaseMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨2⟩ : UInt256)).write 0 (voteHashMem I) 0 32
 
 theorem voteKeyMem_size (I : ExecutionEnv) : (voteKeyMem I).size = 96 := by
@@ -848,7 +848,7 @@ theorem voteProposalBaseMem_read0 (I : ExecutionEnv) :
 
 theorem voteProposalsDataBaseKeccak (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((voteProposalBaseMem I).readWithPadding 0 32))) = proposalsDataBase := by
+        (KEC ((voteProposalBaseMem I).readWithPadding 0 32))) = proposalsDataBase := by
   rw [voteProposalBaseMem_read0]
   unfold proposalsDataBase
   exact keccakSlot_eq _
@@ -900,7 +900,7 @@ theorem voteHashMem_read0_64 (I : ExecutionEnv) :
 
 theorem voteSenderKeccakSlot (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((voteHashMem I).readWithPadding 0 64))) = voteSenderSlot I := by
+        (KEC ((voteHashMem I).readWithPadding 0 64))) = voteSenderSlot I := by
   rw [voteHashMem_read0_64, keccakSlot_eq, ← voteSenderSlot_eq_hash I]
 
 def voteErrorSelector : UInt256 :=
@@ -918,22 +918,22 @@ def voteVotedStringRaw : UInt256 :=
 def voteVotedStringWord : UInt256 :=
   UInt256.shiftLeft voteVotedStringRaw ⟨145⟩
 
-noncomputable def voteErrorMem0 (I : ExecutionEnv) : ByteArray :=
+def voteErrorMem0 (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray voteErrorSelector).write 0 (voteHashMem I) 128 32
 
-noncomputable def voteErrorMem1 (I : ExecutionEnv) : ByteArray :=
+def voteErrorMem1 (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 (voteErrorMem0 I) 132 32
 
-noncomputable def voteWeightErrorMem2 (I : ExecutionEnv) : ByteArray :=
+def voteWeightErrorMem2 (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨20⟩ : UInt256)).write 0 (voteErrorMem1 I) 164 32
 
-noncomputable def voteWeightErrorMem3 (I : ExecutionEnv) : ByteArray :=
+def voteWeightErrorMem3 (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray voteWeightStringWord).write 0 (voteWeightErrorMem2 I) 196 32
 
-noncomputable def voteVotedErrorMem2 (I : ExecutionEnv) : ByteArray :=
+def voteVotedErrorMem2 (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨14⟩ : UInt256)).write 0 (voteErrorMem1 I) 164 32
 
-noncomputable def voteVotedErrorMem3 (I : ExecutionEnv) : ByteArray :=
+def voteVotedErrorMem3 (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray voteVotedStringWord).write 0 (voteVotedErrorMem2 I) 196 32
 
 theorem voteErrorMem0_size (I : ExecutionEnv) : (voteErrorMem0 I).size = 160 := by

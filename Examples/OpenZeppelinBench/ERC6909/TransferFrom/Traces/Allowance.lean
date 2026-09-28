@@ -299,10 +299,10 @@ theorem erc6909TransferFromX_from1147_afterAllowanceLoad
       (by
         unfold approveOwnerSlot
         change UInt256.ofNat
-            (fromByteArrayBigEndian (ffi.KEC (ownerMem.readWithPadding 0 64))) =
+            (fromByteArrayBigEndian (KEC (ownerMem.readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC ((approveOwnerHashMem (transferFromSenderWord I)).readWithPadding 0 64)))
+              (KEC ((approveOwnerHashMem (transferFromSenderWord I)).readWithPadding 0 64)))
         rw [show ownerMem.readWithPadding 0 64 =
             UInt256.toByteArray (transferFromSenderWord I) ++ UInt256.toByteArray ⟨2⟩ by
           dsimp [ownerMem]
@@ -328,10 +328,10 @@ theorem erc6909TransferFromX_from1147_afterAllowanceLoad
       (by
         unfold approveSpenderSlot
         change UInt256.ofNat
-            (fromByteArrayBigEndian (ffi.KEC (spenderMem.readWithPadding 0 64))) =
+            (fromByteArrayBigEndian (KEC (spenderMem.readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC ((approveSpenderHashMem (transferFromSenderWord I)
+              (KEC ((approveSpenderHashMem (transferFromSenderWord I)
                 (transferFromCallerWord I)).readWithPadding 0 64)))
         rw [show spenderMem.readWithPadding 0 64 =
             UInt256.toByteArray (transferFromCallerWord I) ++
@@ -351,7 +351,7 @@ theorem erc6909TransferFromX_from1147_afterAllowanceLoad
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         change UInt256.ofNat
-            (fromByteArrayBigEndian (ffi.KEC (idMem.readWithPadding 0 64))) =
+            (fromByteArrayBigEndian (KEC (idMem.readWithPadding 0 64))) =
           transferFromAllowanceSlotI I
         rw [show idMem.readWithPadding 0 64 =
             UInt256.toByteArray (transferFromIdWord I) ++
@@ -372,7 +372,7 @@ theorem erc6909TransferFromX_from1147_afterAllowanceLoad
       spenderMem, spenderKeyMem, ownerMem, ownerKeyMem]
       using rd1193₀⟩
 
-noncomputable def transferFromAllowanceScratchMem (base : ByteArray)
+def transferFromAllowanceScratchMem (base : ByteArray)
     (I : ExecutionEnv) : ByteArray :=
   approveTwoWordHashMem (transferFromIdWord I)
     (approveSpenderSlot (transferFromSenderWord I) (transferFromCallerWord I))
@@ -406,7 +406,7 @@ theorem transferFromAllowanceScratchMem_read64 {base : ByteArray} (I : Execution
       (approveTwoWordHashMem_size (transferFromSenderWord I) ⟨2⟩ hbase)
       (approveTwoWordHashMem_read64 (transferFromSenderWord I) ⟨2⟩ hbase hread64))
 
-noncomputable def transferFromOperatorAllowanceScratchMem (I : ExecutionEnv) : ByteArray :=
+def transferFromOperatorAllowanceScratchMem (I : ExecutionEnv) : ByteArray :=
   transferFromAllowanceScratchMem
     (isOperatorOuterHashMem (transferFromSenderWord I) (transferFromCallerWord I)) I
 
@@ -761,10 +761,10 @@ theorem erc6909TransferFromX_from1193_allowanceDebit_to661_base
       (by
         unfold approveOwnerSlot
         change UInt256.ofNat
-            (fromByteArrayBigEndian (ffi.KEC (ownerMem.readWithPadding 0 64))) =
+            (fromByteArrayBigEndian (KEC (ownerMem.readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC ((approveOwnerHashMem (transferFromSenderWord I)).readWithPadding 0 64)))
+              (KEC ((approveOwnerHashMem (transferFromSenderWord I)).readWithPadding 0 64)))
         rw [show ownerMem.readWithPadding 0 64 =
             UInt256.toByteArray (transferFromSenderWord I) ++ UInt256.toByteArray ⟨2⟩ by
           dsimp [ownerMem]
@@ -792,10 +792,10 @@ theorem erc6909TransferFromX_from1193_allowanceDebit_to661_base
       (by
         unfold approveSpenderSlot
         change UInt256.ofNat
-            (fromByteArrayBigEndian (ffi.KEC (spenderMem.readWithPadding 0 64))) =
+            (fromByteArrayBigEndian (KEC (spenderMem.readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC ((approveSpenderHashMem (transferFromSenderWord I)
+              (KEC ((approveSpenderHashMem (transferFromSenderWord I)
                 (transferFromCallerWord I)).readWithPadding 0 64)))
         rw [show spenderMem.readWithPadding 0 64 =
             UInt256.toByteArray (transferFromCallerWord I) ++
@@ -818,7 +818,7 @@ theorem erc6909TransferFromX_from1193_allowanceDebit_to661_base
       (UInt256.ofNat 3) (by decide) mem_cost
       (by
         change UInt256.ofNat
-            (fromByteArrayBigEndian (ffi.KEC (idMem.readWithPadding 0 64))) =
+            (fromByteArrayBigEndian (KEC (idMem.readWithPadding 0 64))) =
           transferFromAllowanceSlotI I
         rw [show idMem.readWithPadding 0 64 =
             UInt256.toByteArray (transferFromIdWord I) ++

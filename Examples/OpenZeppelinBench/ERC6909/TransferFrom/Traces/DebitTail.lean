@@ -447,12 +447,12 @@ theorem erc6909TransferFromX_from1323_afterLoad_base {cA gh bl σ σ₀ σcur A 
         unfold transferInnerSlot
         change UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩ base
                   ).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC ((transferInnerHashMem (transferFromSenderWord I)).readWithPadding 0 64)))
+              (KEC ((transferInnerHashMem (transferFromSenderWord I)).readWithPadding 0 64)))
         rw [approveTwoWordHashMem_read0_64 (transferFromSenderWord I) ⟨0⟩ hbase,
           transferInnerHashMem_read0_64])
       (by decide) (by evm_ov),
@@ -471,12 +471,12 @@ theorem erc6909TransferFromX_from1323_afterLoad_base {cA gh bl σ σ₀ σcur A 
         unfold transferOuterSlot
         change UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferMapScratchMem base (transferFromSenderWord I)
                     (transferFromIdWord I)).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I)
                   ).readWithPadding 0 64)))
         rw [transferMapScratchMem_read0_64 (transferFromSenderWord I)
@@ -689,13 +689,13 @@ theorem erc6909TransferFromX_from1323_afterDebit {cA gh bl σ σ₀ σcur A I}
         unfold transferInnerSlot
         change UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩
                     (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
                   ).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC ((transferInnerHashMem (transferFromSenderWord I)).readWithPadding 0 64)))
+              (KEC ((transferInnerHashMem (transferFromSenderWord I)).readWithPadding 0 64)))
         rw [approveTwoWordHashMem_read0_64 (transferFromSenderWord I) ⟨0⟩
           (transferOuterHashMem_size (transferFromSenderWord I) (transferFromIdWord I)),
           transferInnerHashMem_read0_64])
@@ -720,13 +720,13 @@ theorem erc6909TransferFromX_from1323_afterDebit {cA gh bl σ σ₀ σcur A I}
         unfold transferOuterSlot
         change UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferMapScratchMem
                     (transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I))
                     (transferFromSenderWord I) (transferFromIdWord I)).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I)
                   ).readWithPadding 0 64)))
         rw [transferMapScratchMem_read0_64 (transferFromSenderWord I) (transferFromIdWord I)
@@ -837,12 +837,12 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd {cA gh bl σ σ₀ σcur A I}
         unfold transferInnerSlot
         change UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((approveTwoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem
                   ).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferInnerHashMem (transferFromReceiverWord I)).readWithPadding 0 64)))
         rw [approveTwoWordHashMem_read0_64 (transferFromReceiverWord I) ⟨0⟩
           hdebitMemSize, transferInnerHashMem_read0_64])
@@ -864,12 +864,12 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd {cA gh bl σ σ₀ σcur A I}
         unfold transferOuterSlot
         change UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferMapScratchMem debitMem (transferFromReceiverWord I)
                     (transferFromIdWord I)).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferOuterHashMem (transferFromReceiverWord I) (transferFromIdWord I)
                   ).readWithPadding 0 64)))
         rw [transferMapScratchMem_read0_64 (transferFromReceiverWord I)
@@ -1244,12 +1244,12 @@ theorem erc6909TransferFromX_from1323_afterDebit_base
         unfold transferInnerSlot
         change UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((approveTwoWordHashMem (transferFromSenderWord I) ⟨0⟩ senderMem
                   ).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC ((transferInnerHashMem (transferFromSenderWord I)).readWithPadding 0 64)))
+              (KEC ((transferInnerHashMem (transferFromSenderWord I)).readWithPadding 0 64)))
         rw [approveTwoWordHashMem_read0_64 (transferFromSenderWord I) ⟨0⟩
           hsenderMemSize, transferInnerHashMem_read0_64])
       (by decide) (by evm_ov) ]
@@ -1270,12 +1270,12 @@ theorem erc6909TransferFromX_from1323_afterDebit_base
         unfold transferOuterSlot
         change UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferMapScratchMem senderMem (transferFromSenderWord I)
                     (transferFromIdWord I)).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferOuterHashMem (transferFromSenderWord I) (transferFromIdWord I)
                   ).readWithPadding 0 64)))
         rw [transferMapScratchMem_read0_64 (transferFromSenderWord I) (transferFromIdWord I)
@@ -1396,12 +1396,12 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd_base
         unfold transferInnerSlot
         change UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((approveTwoWordHashMem (transferFromReceiverWord I) ⟨0⟩ debitMem
                   ).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferInnerHashMem (transferFromReceiverWord I)).readWithPadding 0 64)))
         rw [approveTwoWordHashMem_read0_64 (transferFromReceiverWord I) ⟨0⟩
           hdebitMemSize, transferInnerHashMem_read0_64])
@@ -1423,12 +1423,12 @@ theorem erc6909TransferFromX_from1323_toCheckedAdd_base
         unfold transferOuterSlot
         change UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferMapScratchMem debitMem (transferFromReceiverWord I)
                     (transferFromIdWord I)).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferOuterHashMem (transferFromReceiverWord I) (transferFromIdWord I)
                   ).readWithPadding 0 64)))
         rw [transferMapScratchMem_read0_64 (transferFromReceiverWord I)

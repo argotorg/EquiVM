@@ -14,9 +14,8 @@ import Reasoning.Constructor
 # Truth — runtime-equivalence proof for `truth()`
 
 Every call (`callvalue ≠ 0`, short calldata, wrong selector, and the `truth()` success path)
-is shown equivalent to the Solm spec, via the generic `Reasoning` library.  `#print axioms
-truthCorrect` lists only Lean's three and the two documented trusted selector/jump axioms
-(`Examples/Truth/Bytecode.lean`) — no `sorryAx`.
+is shown equivalent to the Solm spec via the generic `Reasoning` library. The selector fact in
+`Bytecode.lean` is proved by kernel reduction; the jump table uses `native_decide`.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -258,7 +257,7 @@ theorem truthCorrect :
 
 /-! ## 7. Constructor and full-contract equivalence -/
 
-noncomputable def truthInitReturnMem : ByteArray :=
+def truthInitReturnMem : ByteArray :=
   truthBytecode.write 0 solcFreePtrMem 0 123
 
 theorem truthRuntime_size : truthBytecode.size = 123 := by

@@ -454,10 +454,10 @@ theorem ballotGiveRightToVoteBodyReverts_weight (evm : EVM.State) (I : Execution
 
 /-! ### Memory helpers for mapping slots and revert tails -/
 
-noncomputable def giveRightKeyMem (voter : UInt256) : ByteArray :=
+def giveRightKeyMem (voter : UInt256) : ByteArray :=
   (UInt256.toByteArray voter).write 0 solcFreePtrMem 0 32
 
-noncomputable def giveRightHashMem (voter : UInt256) : ByteArray :=
+def giveRightHashMem (voter : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0 (giveRightKeyMem voter) 32 32
 
 theorem giveRightKeyMem_size (voter : UInt256) : (giveRightKeyMem voter).size = 96 := by
@@ -683,7 +683,7 @@ theorem giveRightHashMem_read0_64 (voter : UInt256) :
 theorem giveRightVoterKeccakSlot (I : ExecutionEnv)
     (hcanon : (giveRightVoterWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((giveRightHashMem (giveRightVoterWord I)).readWithPadding 0 64)))
+        (KEC ((giveRightHashMem (giveRightVoterWord I)).readWithPadding 0 64)))
       = giveRightVoterSlot I := by
   rw [giveRightHashMem_read0_64]
   unfold giveRightVoterSlot voterBase mapSlot
@@ -702,31 +702,31 @@ def giveRightChairStringWord1 : UInt256 :=
 def giveRightVotedStringWord : UInt256 :=
   ⟨38178729327303347999353090858815437626006740157220245089528091632167991377920⟩
 
-noncomputable def giveRightChairErrorMem0 : ByteArray :=
+def giveRightChairErrorMem0 : ByteArray :=
   (UInt256.toByteArray ballotErrorSelector).write 0 solcFreePtrMem 128 32
 
-noncomputable def giveRightChairErrorMem1 : ByteArray :=
+def giveRightChairErrorMem1 : ByteArray :=
   (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 giveRightChairErrorMem0 132 32
 
-noncomputable def giveRightChairErrorMem2 : ByteArray :=
+def giveRightChairErrorMem2 : ByteArray :=
   (UInt256.toByteArray (⟨40⟩ : UInt256)).write 0 giveRightChairErrorMem1 164 32
 
-noncomputable def giveRightChairErrorMem3 : ByteArray :=
+def giveRightChairErrorMem3 : ByteArray :=
   (UInt256.toByteArray giveRightChairStringWord0).write 0 giveRightChairErrorMem2 196 32
 
-noncomputable def giveRightChairErrorMem4 : ByteArray :=
+def giveRightChairErrorMem4 : ByteArray :=
   (UInt256.toByteArray giveRightChairStringWord1).write 0 giveRightChairErrorMem3 228 32
 
-noncomputable def giveRightVotedErrorMem0 (voter : UInt256) : ByteArray :=
+def giveRightVotedErrorMem0 (voter : UInt256) : ByteArray :=
   (UInt256.toByteArray ballotErrorSelector).write 0 (giveRightHashMem voter) 128 32
 
-noncomputable def giveRightVotedErrorMem1 (voter : UInt256) : ByteArray :=
+def giveRightVotedErrorMem1 (voter : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 (giveRightVotedErrorMem0 voter) 132 32
 
-noncomputable def giveRightVotedErrorMem2 (voter : UInt256) : ByteArray :=
+def giveRightVotedErrorMem2 (voter : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨24⟩ : UInt256)).write 0 (giveRightVotedErrorMem1 voter) 164 32
 
-noncomputable def giveRightVotedErrorMem3 (voter : UInt256) : ByteArray :=
+def giveRightVotedErrorMem3 (voter : UInt256) : ByteArray :=
   (UInt256.toByteArray giveRightVotedStringWord).write 0 (giveRightVotedErrorMem2 voter) 196 32
 
 theorem giveRightChairErrorMem0_size : giveRightChairErrorMem0.size = 160 := by

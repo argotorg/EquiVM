@@ -9,7 +9,7 @@ Solm specification for the concrete `AccessControlBench` wrapper.  The wrapper g
 omitted; storage effects and return values are modelled.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace OpenZeppelinBench.AccessControl
 
@@ -49,7 +49,7 @@ def roleDataStruct : StructDecl :=
         { name := "adminRole", ty := bytes32St } ] }
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def addSlot (slot : Ethereum.UInt256) (offset : Nat) : Ethereum.UInt256 :=
   EVM.word (slot.toNat + offset)

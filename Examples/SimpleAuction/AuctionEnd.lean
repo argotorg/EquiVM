@@ -46,10 +46,10 @@ def auctionEndAfterEndedMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
 def auctionEndedTopic : UInt256 :=
   ⟨0xdaec4582d5d9595688c8c98545fdd1c696d41c6aeaeb636737e84ed2f5c00eda⟩
 
-noncomputable def auctionEndEventMemWinner (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def auctionEndEventMemWinner (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (auctionEndWinnerWord σ I)).write 0 solcFreePtrMem 128 32
 
-noncomputable def auctionEndEventMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def auctionEndEventMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (auctionEndHighestBidWord σ I)).write 0
     (auctionEndEventMemWinner σ I) 160 32
 

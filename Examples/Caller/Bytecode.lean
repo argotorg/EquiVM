@@ -3,11 +3,10 @@ import Solm.Semantics
 import Ethereum.Semantics
 import Reasoning.JumpDest
 
-/-! # Caller — deployed runtime bytecode and its two trusted-base facts (see `MISSPEC.md`).
+/-! # Caller — deployed runtime bytecode, selector, and jump destinations.
 
 `callerBytecode` is `solc --bin-runtime --evm-version shanghai Caller.sol` (optimizer OFF), the same
-recipe that produced `powBytecode`.  The two axioms below are the per-contract trusted base, mirroring
-`powSelectorBytes` / `powValidJumps`: the function selector and the `JUMPDEST` set. -/
+recipe that produced `powBytecode`. -/
 
 open Solm Ethereum Ethereum.EVM
 
@@ -44,10 +43,20 @@ def callerInitcode : ByteArray :=
   ⟨#[0x61, 0x02, 0x37, 0x60, 0x0c, 0x5f, 0x39, 0x61, 0x02, 0x37, 0x5f, 0xf3]⟩
     ++ callerBytecode
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("run(address,uint256)")[0:4] = 0x381fd190`. -/
-axiom callerSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Caller.runTransition))).extract 0 4
-      = ⟨#[0x38, 0x1f, 0xd1, 0x90]⟩
+theorem callerSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr Caller.runTransition))).extract 0 4
+      = ⟨#[0x38, 0x1f, 0xd1, 0x90]⟩ := by
+  have hsig : Solm.transitionSigStr Caller.runTransition = "run(address,uint256)" := by
+    simp [Solm.transitionSigStr, ABI.printSignature, transitionSignature,
+      Caller.runTransition, Caller.addr, Caller.uint256, ABI.abiToSigStr,
+      ABI.elemToSigStr, ABI.intTypeToSigStr,
+      show Nat.repr 256 = "256" by decide +kernel]
+    decide +kernel
+  rw [hsig]
+  decide +kernel
 
 /-- The `JUMPDEST` set of `callerBytecode` (computed by `#eval`; `D_J_aux` is `partial`). -/
 @[valid_jumps] theorem callerValidJumps :

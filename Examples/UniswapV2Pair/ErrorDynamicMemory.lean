@@ -6,13 +6,13 @@ namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
 -- GENERALIZES Reasoning.Theory.solcErrorStringMem0–3: arbitrary free-memory pointer.
-noncomputable def solcErrorDynamicMem0 (mem : ByteArray) (ptr : UInt256) : ByteArray :=
+def solcErrorDynamicMem0 (mem : ByteArray) (ptr : UInt256) : ByteArray :=
   solcErrorStringSelector.toByteArray.write 0 mem ptr.toNat 32
-noncomputable def solcErrorDynamicMem1 (mem : ByteArray) (ptr : UInt256) : ByteArray :=
+def solcErrorDynamicMem1 (mem : ByteArray) (ptr : UInt256) : ByteArray :=
   (⟨32⟩ : UInt256).toByteArray.write 0 (solcErrorDynamicMem0 mem ptr) (ptr + ⟨4⟩).toNat 32
-noncomputable def solcErrorDynamicMem2 (mem : ByteArray) (ptr len : UInt256) : ByteArray :=
+def solcErrorDynamicMem2 (mem : ByteArray) (ptr len : UInt256) : ByteArray :=
   len.toByteArray.write 0 (solcErrorDynamicMem1 mem ptr) (ptr + ⟨36⟩).toNat 32
-noncomputable def solcErrorDynamicMem3 (mem : ByteArray) (ptr len word : UInt256) : ByteArray :=
+def solcErrorDynamicMem3 (mem : ByteArray) (ptr len word : UInt256) : ByteArray :=
   word.toByteArray.write 0 (solcErrorDynamicMem2 mem ptr len) (ptr + ⟨68⟩).toNat 32
 abbrev solcErrorDynamicWords0 (aw ptr : UInt256) : UInt256 := memoryWordActiveWords aw ptr
 abbrev solcErrorDynamicWords1 (aw ptr : UInt256) : UInt256 := memoryWordActiveWords (solcErrorDynamicWords0 aw ptr) (ptr + ⟨4⟩)

@@ -274,7 +274,7 @@ theorem ballotX_winnerName_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
   have hnameBaseMemRead64 : nameBaseMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     simpa [nameBaseMem] using winningProposalStoreBaseMem_read64 mem' hmem' hread64'
   have hkeccak :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (nameBaseMem.readWithPadding 0 32))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (nameBaseMem.readWithPadding 0 32))) =
         proposalsDataBase := by
     simpa [nameBaseMem] using winningProposalStoreBaseMem_keccak mem' hmem'
   have rd1742pre := evm_run rd1734 with [

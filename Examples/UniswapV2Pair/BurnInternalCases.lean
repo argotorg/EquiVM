@@ -6,13 +6,13 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 
 
-noncomputable abbrev burnRuntimeBalanceMap (σ : AccountMap) (I : ExecutionEnv)
+abbrev burnRuntimeBalanceMap (σ : AccountMap) (I : ExecutionEnv)
     (holder value : UInt256) : AccountMap :=
   sstoreAccountMap I.codeOwner σ (mapSlot (UInt256.land holder solcAddrMask) ⟨1⟩)
     (UInt256.sub (uniswapCodeOwnerStorageWord I σ
       (mapSlot (UInt256.land holder solcAddrMask) ⟨1⟩)) value)
 
-noncomputable abbrev burnRuntimePostMap (σ : AccountMap) (I : ExecutionEnv)
+abbrev burnRuntimePostMap (σ : AccountMap) (I : ExecutionEnv)
     (holder value : UInt256) : AccountMap :=
   sstoreAccountMap I.codeOwner (burnRuntimeBalanceMap σ I holder value) ⟨0⟩
     (UInt256.sub (uniswapCodeOwnerStorageWord I (burnRuntimeBalanceMap σ I holder value)

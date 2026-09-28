@@ -71,10 +71,10 @@ abbrev feeToSelectorWord : UInt256 := ⟨25067096⟩
 abbrev feeToSelectorShifted : UInt256 :=
   UInt256.shiftLeft feeToSelectorWord ⟨224⟩
 
-noncomputable def feeToSelectorMem (base : ByteArray) : ByteArray :=
+def feeToSelectorMem (base : ByteArray) : ByteArray :=
   (UInt256.toByteArray feeToSelectorShifted).write 0 base 128 32
 
-noncomputable def feeToStaticcallMem (base o : ByteArray) : ByteArray :=
+def feeToStaticcallMem (base o : ByteArray) : ByteArray :=
   o.write 0 (feeToSelectorMem base) 128
     (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat
 

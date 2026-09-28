@@ -27,10 +27,10 @@ def CurrentLengthLoopState.stack (s : CurrentLengthLoopState) (endp len : UInt25
     (I : ExecutionEnv) : List UInt256 :=
   [s.ptr, s.slot, endp, len, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I]
 
-noncomputable def currentLengthLongScratchMem (len : UInt256) : ByteArray :=
+def currentLengthLongScratchMem (len : UInt256) : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0 (currentLengthMem len) 0 32
 
-noncomputable def currentLengthCopyMem (mem : ByteArray) (ptr word : UInt256) : ByteArray :=
+def currentLengthCopyMem (mem : ByteArray) (ptr word : UInt256) : ByteArray :=
   word.toByteArray.write 0 mem ptr.toNat 32
 
 def currentLengthLoopMstoreStack (σ : AccountMap) (I : ExecutionEnv) (endp len : UInt256)
@@ -47,7 +47,7 @@ def currentLengthLoopMstoreCost (σ : AccountMap) (I : ExecutionEnv) (endp len :
         stack := currentLengthLoopMstoreStack σ I endp len s } }
     .MSTORE
 
-noncomputable def currentLengthGeneratedLoopState (σ : AccountMap) (I : ExecutionEnv)
+def currentLengthGeneratedLoopState (σ : AccountMap) (I : ExecutionEnv)
     (len : UInt256) : Nat → CurrentLengthLoopState
   | 0 =>
       { ptr := ⟨160⟩
@@ -155,7 +155,7 @@ structure CurrentLengthLoopFinal (σ : AccountMap) (I : ExecutionEnv) (endp len 
       (fromByteArrayBigEndian (memout.readWithPadding (⟨128⟩ : UInt256).toNat 32))) = len
   hawLoad : UInt256.ofNat (MachineState.M awStore.toNat (⟨128⟩ : UInt256).toNat 32) = awLoad
 
-noncomputable def currentLengthGeneratedLoopStep {σ : AccountMap} {I : ExecutionEnv}
+def currentLengthGeneratedLoopStep {σ : AccountMap} {I : ExecutionEnv}
     {endp len : UInt256} {i : Nat}
     (hcontinue : UInt256.gt endp
       ((⟨32⟩ : UInt256) + (currentLengthGeneratedLoopState σ I len i).ptr) ≠ ⟨0⟩) :
@@ -179,7 +179,7 @@ noncomputable def currentLengthGeneratedLoopStep {σ : AccountMap} {I : Executio
   · simp [currentLengthGeneratedLoopState_succ]
   · simp [currentLengthGeneratedLoopState_succ]
 
-noncomputable def currentLengthGeneratedLoopSteps {σ : AccountMap} {I : ExecutionEnv}
+def currentLengthGeneratedLoopSteps {σ : AccountMap} {I : ExecutionEnv}
     {endp len : UInt256} {fuel : Nat}
     (hcontinue : ∀ i, i < fuel →
       UInt256.gt endp ((⟨32⟩ : UInt256) + (currentLengthGeneratedLoopState σ I len i).ptr) ≠
@@ -192,7 +192,7 @@ noncomputable def currentLengthGeneratedLoopSteps {σ : AccountMap} {I : Executi
   exact currentLengthGeneratedLoopStep (σ := σ) (I := I) (endp := endp) (len := len)
     (i := i) (hcontinue i hi)
 
-noncomputable def currentLengthGeneratedLoopFinal {σ : AccountMap} {I : ExecutionEnv}
+def currentLengthGeneratedLoopFinal {σ : AccountMap} {I : ExecutionEnv}
     {endp len : UInt256} {fuel finalMloadCost : Nat} {awLoad : UInt256}
     (hdone : UInt256.gt endp
       ((⟨32⟩ : UInt256) + (currentLengthGeneratedLoopState σ I len fuel).ptr) = ⟨0⟩)
@@ -415,7 +415,7 @@ theorem currentLengthLongScratchMem_mload128 (len : UInt256) :
 theorem currentLengthLongScratchMem_keccak0 (len : UInt256) :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC ((currentLengthLongScratchMem len).readWithPadding 0 32))) =
+          (KEC ((currentLengthLongScratchMem len).readWithPadding 0 32))) =
       bytesLikeDataBase ⟨0⟩ := by
   rw [currentLengthLongScratchMem_read0]
   simpa [bytesLikeDataBase] using keccakSlot_eq (UInt256.toByteArray (⟨0⟩ : UInt256))

@@ -186,7 +186,7 @@ theorem allowanceInnerKeccakSlot_word (owner : UInt256)
 -- (`solcAddrMask_clean` / `_left`); the `erc20*` wrappers now live in `Examples.ERC20.Common`.
 
 /-- Approve stores the owner key at scratch offset `0x00` before it stores the allowance base slot. -/
-noncomputable def approveInnerOwnerMem (owner : UInt256) : ByteArray :=
+def approveInnerOwnerMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray owner).write 0 solcFreePtrMem 0 32
 
 theorem approveInnerOwnerMem_size (owner : UInt256) :
@@ -271,7 +271,7 @@ theorem approveInnerOwnerMem_writeSlot (owner : UInt256) :
   exact ByteArray.append_assoc
 
 /-- Approve stores the spender key at scratch offset `0x00` before replacing the inner base slot. -/
-noncomputable def approveOuterSpenderMem (owner spender : UInt256) : ByteArray :=
+def approveOuterSpenderMem (owner spender : UInt256) : ByteArray :=
   (UInt256.toByteArray spender).write 0 (allowanceInnerHashMem owner) 0 32
 
 theorem approveOuterSpenderMem_size (owner spender : UInt256) :
@@ -365,7 +365,7 @@ theorem allowanceOuterKeccakSlot_word (owner spender : UInt256)
     (hcanonOwner : owner.toNat < EVM.addressModulus)
     (hcanonSpender : spender.toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((allowanceOuterHashMem owner spender).readWithPadding 0 64)))
+        (Ethereum.KEC ((allowanceOuterHashMem owner spender).readWithPadding 0 64)))
       =
         erc20AllowanceSlot (.address (AccountAddress.ofNat owner.toNat))
           (.address (AccountAddress.ofNat spender.toNat)) := by
@@ -378,7 +378,7 @@ theorem allowanceOuterKeccakSlot_word (owner spender : UInt256)
 theorem approveOuterKeccakSlot (I : ExecutionEnv)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((allowanceOuterHashMem (approveOwnerWord I) (approveSpenderWord I))
+        (Ethereum.KEC ((allowanceOuterHashMem (approveOwnerWord I) (approveSpenderWord I))
           |>.readWithPadding 0 64)))
       = approveSlotI I := by
   have howner := approveOwnerWord_canonical I
@@ -388,7 +388,7 @@ theorem approveOuterKeccakSlot (I : ExecutionEnv)
   rw [approveOwner_ofNat]
 
 /-- Memory after approve's bool-return encoder overwrites the event data word at `0x80`. -/
-noncomputable def approveReturnMem (owner spender value : UInt256) : ByteArray :=
+def approveReturnMem (owner spender value : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0
     (allowanceReturnMem owner spender value) 128 32
 

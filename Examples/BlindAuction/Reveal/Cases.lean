@@ -315,9 +315,9 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
          let mem4 := scratch_revealPackedLenMem memPacked fp packedLen
          let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
          UInt256.ofNat
-            (fromByteArrayBigEndian (ffi.KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
+            (fromByteArrayBigEndian (KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
           uInt256OfByteArray
-            (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray))) ∧
+            (KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray))) ∧
         newFree = (⟨65⟩ : UInt256) + ((⟨32⟩ : UInt256) + fp) ∧
         (let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
          let mem4 := scratch_revealPackedLenMem memPacked fp packedLen
@@ -429,9 +429,9 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
        let mem4 := scratch_revealPackedLenMem memP3 fp packedLen
        let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
        UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
+        (fromByteArrayBigEndian (KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
           uInt256OfByteArray
-            (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray))) := by
+            (KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray))) := by
     simpa [base, fakeBase, secretBase, newFree, packedLen, memP1, memP2, memP3,
       memP4, memP5]
       using scratch_revealPackedMem_hash (mem := mem) (fp := fp) (value := value)
@@ -586,7 +586,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
     (haw32 : UInt256.ofNat (MachineState.M aw.toNat 32 32) = aw)
     (haw64 : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw)
     (hbaseHash :
-      (ffi.KEC
+      (KEC
         (((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
           ((UInt256.toByteArray (revealScratchSenderWord I)).write 0 mem 0 32)
             32 32).readWithPadding 0 64)) =
@@ -597,12 +597,12 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
     (hbound : i.toNat < curLen.toNat)
     (hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC
+        (KEC
           (((UInt256.toByteArray (revealScratchBidsLengthSlot I)).write 0
             ((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
               ((UInt256.toByteArray (revealScratchSenderWord I)).write 0 mem 0 32)
               32 32) 0 32).readWithPadding 0 32))) =
-        uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I)))) :
+        uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I)))) :
     let mem1 : ByteArray := (UInt256.toByteArray (revealScratchSenderWord I)).write 0 mem 0 32
     let mem2 : ByteArray := (UInt256.toByteArray (⟨4⟩ : UInt256)).write 0 mem1 32 32
     let mem3 : ByteArray := (UInt256.toByteArray (revealScratchBidsLengthSlot I)).write 0 mem2 0 32
@@ -643,7 +643,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
       (by
         have hword :
             UInt256.ofNat (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 (((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
                   ((UInt256.toByteArray (revealScratchSenderWord I)).write 0 mem 0 32)
                     32 32).readWithPadding 0 64))) =
@@ -676,7 +676,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
       (by rfl) haw0 (by evm_ov),
     push1 ⟨32⟩, push0,
     raw keccak256 0
-      (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
+      (uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
       aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
@@ -687,7 +687,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
       (by evm_ov)]
   have hslot :
       UInt256.mul ⟨2⟩ i +
-          uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))) =
+          uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))) =
         bidsElemSlot (.address I.source) (.int (Int.ofNat i.toNat)) := by
     have hmul : UInt256.mul ⟨2⟩ i = UInt256.mul i ⟨2⟩ := by
       apply u256_inj
@@ -877,16 +877,16 @@ theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256
       let mem4 := scratch_revealPackedLenMem mem fp packedLen
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
+          (fromByteArrayBigEndian (KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
         uInt256OfByteArray
-          (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)))
+          (KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)))
     (hstore :
       (σ.find? I.codeOwner).option ⟨0⟩
         (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
-            (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray))) =
+            (KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray))) =
         ⟨1⟩)
     (hdepositEvm :
       (σ.find? I.codeOwner).option ⟨0⟩
@@ -954,14 +954,14 @@ theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256
   let aw5 := UInt256.ofNat (MachineState.M aw4.toNat base.toNat packedLen.toNat)
   have heq :
       EVM.Word.toBytesBE blinded =
-        (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)).toList := by
+        (KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)).toList := by
     exact scratch_revealPackedHash_eq_of_u256_eq_one
       (blinded := blinded) (value := value) (secret := secret) (fake := fake) hflag
   have hhashEval := scratch_evalExpr_revealPackedHash_of_secretStoreOf evm L i value secret fake
   have hsrc :=
     scratch_revealLoopBody_ok_noPlace_of_get evm L values fakes secrets curLen refund i value
       secret blinded deposit fake fakeRaw
-      (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)).toList
+      (KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)).toList
       hbids hvalues hfakes hsecrets hi hrefund hlen hboundBids hboundValues hboundFakes
       hboundSecrets hvalueLookup hfakeLookup hfakeNorm hsecretLookup hblinded hdeposit
       hhashEval heq hfit hskipPlace
@@ -976,7 +976,7 @@ theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256
       (valuesEnd := valuesEnd) (sel := sel) (fp := fp)
       (hash :=
         uInt256OfByteArray
-          (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)))
+          (KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)))
       (blinded := blinded) (flag := ⟨1⟩)
       rd hfp hlenPacked hhashPacked hstore hflag
   obtain ⟨k2, C2, rd1247⟩ :=
@@ -2076,16 +2076,16 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
       let mem4 := scratch_revealPackedLenMem mem fp packedLen
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
+          (fromByteArrayBigEndian (KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
         uInt256OfByteArray
-          (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
+          (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
     (hstore :
       (σ.find? I.codeOwner).option ⟨0⟩
         (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
-            (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray))) =
+            (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray))) =
         ⟨1⟩)
     (hdepositEvm :
       (σ.find? I.codeOwner).option ⟨0⟩
@@ -2158,7 +2158,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
   let aw5 := UInt256.ofNat (MachineState.M aw4.toNat base.toNat packedLen.toNat)
   have heq :
       EVM.Word.toBytesBE blinded =
-        (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)).toList := by
+        (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)).toList := by
     exact scratch_revealPackedHash_eq_of_u256_eq_one
       (blinded := blinded) (value := value) (secret := secret) (fake := false) hflag
   have hhashEval :=
@@ -2166,7 +2166,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
   have hsrc :=
     scratch_revealLoopBody_ok_placeBid_false_of_get evm L values fakes secrets curLen refund i
       value secret blinded deposit high fakeRaw
-      (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)).toList
+      (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)).toList
       hbids hvalues hfakes hsecrets hi hrefund hlen hboundBids hboundValues hboundFakes
       hboundSecrets hvalueLookup hfakeLookup hfakeNorm hsecretLookup hblinded hdeposit hhigh
       hhashEval heq hfit hdepositGe hplaceFalse
@@ -2181,7 +2181,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
       (valuesEnd := valuesEnd) (sel := sel) (fp := fp)
       (hash :=
         uInt256OfByteArray
-          (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
+          (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
       (blinded := blinded) (flag := ⟨1⟩)
       rd hfp hlenPacked hhashPacked hstore hflag
   obtain ⟨k2, C2, rd1247⟩ :=
@@ -2254,16 +2254,16 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
       let mem4 := scratch_revealPackedLenMem mem fp packedLen
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
+          (fromByteArrayBigEndian (KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
         uInt256OfByteArray
-          (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
+          (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
     (hstore :
       (σ.find? I.codeOwner).option ⟨0⟩
         (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
-            (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray))) =
+            (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray))) =
         ⟨1⟩)
     (hdepositEvm :
       (σ.find? I.codeOwner).option ⟨0⟩
@@ -2344,7 +2344,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
   let aw5 := UInt256.ofNat (MachineState.M aw4.toNat base.toNat packedLen.toNat)
   have heq :
       EVM.Word.toBytesBE blinded =
-        (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)).toList := by
+        (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)).toList := by
     exact scratch_revealPackedHash_eq_of_u256_eq_one
       (blinded := blinded) (value := value) (secret := secret) (fake := false) hflag
   have hhashEval :=
@@ -2352,7 +2352,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
   have hsrc :=
     scratch_revealLoopBody_ok_placeBid_true_zero_of_get evm L values fakes secrets curLen refund i
       value secret blinded deposit high old fakeRaw
-      (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)).toList
+      (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)).toList
       hbids hvalues hfakes hsecrets hi hrefund hlen hboundBids hboundValues hboundFakes
       hboundSecrets hvalueLookup hfakeLookup hfakeNorm hsecretLookup hblinded hdeposit hhigh
       hold hhashEval heq hfit hdepositGe hlt hzero
@@ -2367,7 +2367,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
       (valuesEnd := valuesEnd) (sel := sel) (fp := fp)
       (hash :=
         uInt256OfByteArray
-          (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
+          (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
       (blinded := blinded) (flag := ⟨1⟩)
       rd hfp hlenPacked hhashPacked hstore hflag
   obtain ⟨k2, C2, rd1247⟩ :=
@@ -2448,16 +2448,16 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
       let mem4 := scratch_revealPackedLenMem mem fp packedLen
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
+          (fromByteArrayBigEndian (KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
         uInt256OfByteArray
-          (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
+          (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
     (hstore :
       (σ.find? I.codeOwner).option ⟨0⟩
         (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
-            (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray))) =
+            (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray))) =
         ⟨1⟩)
     (hdepositEvm :
       (σ.find? I.codeOwner).option ⟨0⟩
@@ -2560,7 +2560,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
   let awPB3 := UInt256.ofNat (MachineState.M awPB2.toNat (⟨0⟩ : UInt256).toNat 64)
   have heq :
       EVM.Word.toBytesBE blinded =
-        (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)).toList := by
+        (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)).toList := by
     exact scratch_revealPackedHash_eq_of_u256_eq_one
       (blinded := blinded) (value := value) (secret := secret) (fake := false) hflag
   have hhashEval :=
@@ -2568,7 +2568,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
   have hsrc :=
     scratch_revealLoopBody_ok_placeBid_true_nonzero_of_get evm L values fakes secrets curLen
       refund i value secret blinded deposit high old pending oldAddr fakeRaw
-      (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)).toList
+      (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)).toList
       hbids hvalues hfakes hsecrets hi hrefund hlen hboundBids hboundValues hboundFakes
       hboundSecrets hvalueLookup hfakeLookup hfakeNorm hsecretLookup hblinded hdeposit hhigh
       hold holdAddr hpending hhashEval heq hfit hdepositGe hlt hnonzero hsum
@@ -2583,7 +2583,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
       (valuesEnd := valuesEnd) (sel := sel) (fp := fp)
       (hash :=
         uInt256OfByteArray
-          (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
+          (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
       (blinded := blinded) (flag := ⟨1⟩)
       rd hfp hlenPacked hhashPacked hstore hflag
   obtain ⟨k2, C2, rd1247⟩ :=

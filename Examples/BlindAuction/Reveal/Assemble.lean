@@ -154,7 +154,7 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
         secretsLen secretsEnd fakesLen fakesEnd valuesLen valuesEnd sel)
       a.mem a.aw ByteArray.empty a.acc k C)
     (hbaseHash :
-      (ffi.KEC
+      (KEC
         (((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
           ((UInt256.toByteArray (revealScratchSenderWord I)).write 0 a.mem 0 32) 32 32)
             |>.readWithPadding 0 64)) =
@@ -165,12 +165,12 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
     (hboundBids : a.idx.toNat < curLen.toNat)
     (hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC
+        (KEC
           (((UInt256.toByteArray (revealScratchBidsLengthSlot I)).write 0
             ((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
               ((UInt256.toByteArray (revealScratchSenderWord I)).write 0 a.mem 0 32) 32 32)
             0 32).readWithPadding 0 32))) =
-        uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
+        uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
     (hfp128 : a.fp.toNat + 128 < UInt256.size)
     (hfp96 : 96 ≤ a.fp.toNat)
     (hvalueBound : a.idx.toNat < valuesLen.toNat)
@@ -310,7 +310,7 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
       scratch_revealBidBlindedSlot, slot, u256_zero_add, henv] using hfind.symm
   let hashWord : UInt256 :=
     uInt256OfByteArray
-      (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value true secret).toArray))
+      (KEC (ByteArray.mk (scratch_revealPackedBytes value true secret).toArray))
   obtain ⟨newFree, memPacked, awPacked, memNext, awNext,
         kPacked, CPacked, rd1207, hawNext, hawNextSmall,
         hfpNext, hreadNext, hmemNext96, hmemNextLe,
@@ -334,7 +334,7 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
   by_cases hflag0 : UInt256.eq blinded hashWord = (⟨0⟩ : UInt256)
   · have hne :
         EVM.Word.toBytesBE blinded ≠
-          (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value true secret).toArray)).toList := by
+          (KEC (ByteArray.mk (scratch_revealPackedBytes value true secret).toArray)).toList := by
       exact scratch_revealPackedHash_ne_of_u256_eq_zero
         (blinded := blinded) (value := value) (secret := secret) (fake := true)
         (by simpa [hashWord] using hflag0)
@@ -349,7 +349,7 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
             evm) := by
       exact scratch_revealLoopBody_continue_hash_mismatch_of_get evm L values fakes secrets
         curLen a.refund a.idx value secret blinded true (rawBoolWordValue word)
-        (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value true secret).toArray)).toList
+        (KEC (ByteArray.mk (scratch_revealPackedBytes value true secret).toArray)).toList
         hbidsL hvaluesL hfakesL hsecretsL hiL hlenSrc hboundBids hboundValues hboundFakes
         hboundSecrets hvalueLookup hfakeLookup hfakeNorm hsecretLookup hblindedSrc hhashEval hne
     obtain ⟨k1235, C1235, rd1235⟩ :=
@@ -460,7 +460,7 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
     · have hover : UInt256.size ≤ a.refund.toNat + deposit.toNat := Nat.le_of_not_gt hfit
       have heq :
           EVM.Word.toBytesBE blinded =
-            (ffi.KEC (ByteArray.mk (scratch_revealPackedBytes value true secret).toArray)).toList := by
+            (KEC (ByteArray.mk (scratch_revealPackedBytes value true secret).toArray)).toList := by
         exact scratch_revealPackedHash_eq_of_u256_eq_one
           (blinded := blinded) (value := value) (secret := secret)
           (fake := true) (by simpa [hashWord] using hflag1)
@@ -526,7 +526,7 @@ theorem scratch_revealLoopBody_fakeInvalid_fromLoopStart {I} {g : Sat256}
       a.mem a.aw ByteArray.empty a.acc k C)
     (hbaseHashWord :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC
+        (KEC
           (((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
             ((UInt256.toByteArray (revealScratchSenderWord I)).write 0 a.mem 0 32)
               32 32).readWithPadding 0 64))) =
@@ -537,12 +537,12 @@ theorem scratch_revealLoopBody_fakeInvalid_fromLoopStart {I} {g : Sat256}
     (hboundBids : a.idx.toNat < curLen.toNat)
     (hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC
+        (KEC
           (((UInt256.toByteArray (revealScratchBidsLengthSlot I)).write 0
             ((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
               ((UInt256.toByteArray (revealScratchSenderWord I)).write 0 a.mem 0 32) 32 32)
             0 32).readWithPadding 0 32))) =
-        uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
+        uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
     (hvalueBound : a.idx.toNat < valuesLen.toNat)
     (hfakesBound : a.idx.toNat < fakesLen.toNat)
     (hvalueLoad :
@@ -600,7 +600,7 @@ theorem scratch_revealLoopBody_bounds_fromLoopStart {I} {g : Sat256} {s0 : State
       a.mem a.aw ByteArray.empty a.acc k C)
     (hbaseHashWord :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC
+        (KEC
           (((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
             ((UInt256.toByteArray (revealScratchSenderWord I)).write 0 a.mem 0 32)
               32 32).readWithPadding 0 64))) =

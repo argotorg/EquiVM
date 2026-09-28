@@ -1,4 +1,4 @@
-import Examples.OpenZeppelinBench.Ownable2Step.Trusted
+import Examples.OpenZeppelinBench.Ownable2Step.Selectors
 import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.Memory
@@ -323,7 +323,7 @@ theorem ownable2StepSubRet32_toNat :
 def ownable2StepUnauthorizedSelector : UInt256 :=
   UInt256.shiftLeft (⟨0x118cdaa7⟩ : UInt256) ⟨224⟩
 
-noncomputable def ownable2StepUnauthorizedMem (caller : UInt256) : ByteArray :=
+def ownable2StepUnauthorizedMem (caller : UInt256) : ByteArray :=
   (UInt256.toByteArray (UInt256.land solcAddrMask caller)).write 0
     (solcReturnMem ownable2StepUnauthorizedSelector) 132 32
 

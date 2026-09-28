@@ -48,10 +48,13 @@ def ctorTruthRuntimeBytecode : ByteArray :=
     0x50, 0x50, 0x56
   ]⟩
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- The 4-byte function selector of `truth()` is `0x9e9f51d2`. -/
-axiom ctorTruthSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr CtorTruth.truthTransition))).extract 0 4
-      = ⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩
+theorem ctorTruthSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr CtorTruth.truthTransition))).extract 0 4
+      = ⟨#[0x9e, 0x9f, 0x51, 0xd2]⟩ := by
+  decide +kernel
 
 /-- The `JUMPDEST` positions of `ctorTruthRuntimeBytecode`. -/
 @[valid_jumps] theorem ctorTruthRuntimeValidJumps :

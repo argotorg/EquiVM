@@ -162,26 +162,26 @@ theorem approveDispatchMem_size : approveDispatchMem.size = 32 := by
 def approveSpenderArgMem (spender : UInt256) : ByteArray :=
   (UInt256.toByteArray spender).write 0 approveDispatchMem 64 32
 
-noncomputable def approveInnerKeyMem (owner spender : UInt256) : ByteArray :=
+def approveInnerKeyMem (owner spender : UInt256) : ByteArray :=
   wordAt32Mem owner (approveSpenderArgMem spender)
 
-noncomputable def approveInnerHashMem (owner spender : UInt256) : ByteArray :=
+def approveInnerHashMem (owner spender : UInt256) : ByteArray :=
   wordAt0Mem ⟨1⟩ (approveInnerKeyMem owner spender)
 
-noncomputable def approveInnerSlotWord (owner spender : UInt256) : UInt256 :=
+def approveInnerSlotWord (owner spender : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((approveInnerHashMem owner spender).readWithPadding 0 64)))
+    (KEC ((approveInnerHashMem owner spender).readWithPadding 0 64)))
 
-noncomputable def approveOuterKeyMem (owner spender : UInt256) : ByteArray :=
+def approveOuterKeyMem (owner spender : UInt256) : ByteArray :=
   wordAt32Mem spender (approveInnerHashMem owner spender)
 
-noncomputable def approveOuterHashMem (owner spender : UInt256) : ByteArray :=
+def approveOuterHashMem (owner spender : UInt256) : ByteArray :=
   wordAt0Mem (approveInnerSlotWord owner spender) (approveOuterKeyMem owner spender)
 
-noncomputable def approveLogMem (owner spender val : UInt256) : ByteArray :=
+def approveLogMem (owner spender val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 (approveOuterHashMem owner spender) 96 32
 
-noncomputable def approveReturnMem (owner spender val : UInt256) : ByteArray :=
+def approveReturnMem (owner spender val : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0 (approveLogMem owner spender val) 96 32
 
 theorem approveSpenderArgMem_size (spender : UInt256) :
@@ -369,7 +369,7 @@ theorem approveOuterHashMem_read0_64 (owner spender : UInt256) :
 theorem approveOuterKeccakSlot (I : ExecutionEnv)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((approveOuterHashMem (approveOwnerWord I) (approveSpenderWord I))
+        (KEC ((approveOuterHashMem (approveOwnerWord I) (approveSpenderWord I))
           |>.readWithPadding 0 64)))
       = approveSlotI I := by
   rw [approveOuterHashMem_read0_64, approveInnerKeccakSlot I (approveOwnerWord_canonical I)]

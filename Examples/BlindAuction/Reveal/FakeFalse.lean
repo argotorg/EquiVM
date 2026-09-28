@@ -22,7 +22,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
         secretsLenWord secretsEnd fakesLenWord fakesEnd valuesLenWord valuesEnd sel)
       a.mem a.aw ByteArray.empty a.acc k C)
     (hbaseHash :
-      ffi.KEC
+      KEC
         (((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
           ((UInt256.toByteArray (revealScratchSenderWord I)).write 0 a.mem 0 32) 32 32)
           |>.readWithPadding 0 64) =
@@ -33,12 +33,12 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
     (hboundBids : a.idx.toNat < curLen.toNat)
     (hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC
+        (KEC
           (((UInt256.toByteArray (revealScratchBidsLengthSlot I)).write 0
             ((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
               ((UInt256.toByteArray (revealScratchSenderWord I)).write 0 a.mem 0 32) 32 32)
             0 32).readWithPadding 0 32))) =
-        uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
+        uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
     (hvaluesEq : loopLen = valuesLenWord)
     (hfp128 : a.fp.toNat + 128 < UInt256.size)
     (hfp96 : 96 ≤ a.fp.toNat)
@@ -217,7 +217,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
         u256_zero_add, henv] using hfind.symm
     let hashWord : UInt256 :=
       uInt256OfByteArray
-        (ffi.KEC
+        (KEC
           (ByteArray.mk
             (scratch_revealPackedBytes value false secret).toArray))
     by_cases hflag0 : UInt256.eq blinded hashWord = ⟨0⟩
@@ -699,7 +699,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                   Nat.le_of_not_gt hsum
                 have heq :
                     EVM.Word.toBytesBE blinded =
-                      (ffi.KEC (ByteArray.mk
+                      (KEC (ByteArray.mk
                         (scratch_revealPackedBytes value false secret).toArray)).toList := by
                   exact scratch_revealPackedHash_eq_of_u256_eq_one
                     (blinded := blinded) (value := value)
@@ -726,7 +726,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                     evm L values fakes secrets curLen (refundOf a)
                     (idx a) value secret blinded deposit
                     (rawBoolWordValue word)
-                    (ffi.KEC (ByteArray.mk
+                    (KEC (ByteArray.mk
                       (scratch_revealPackedBytes value false secret).toArray)).toList
                     hbidsL hvaluesL hfakesL hsecretsL hiL hrefundL
                     hlenSrc hboundBids hboundValues hboundFakes
@@ -850,7 +850,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
           Nat.le_of_not_gt hfit
         have heq :
             EVM.Word.toBytesBE blinded =
-              (ffi.KEC (ByteArray.mk
+              (KEC (ByteArray.mk
                 (scratch_revealPackedBytes value false secret).toArray)).toList := by
           exact scratch_revealPackedHash_eq_of_u256_eq_one
             (blinded := blinded) (value := value) (secret := secret)

@@ -187,35 +187,100 @@ def erc20CtorPrefix : ByteArray :=
 /-- Pure creation/initcode for `ERC20`, without appended constructor ABI arguments. -/
 def erc20Initcode : ByteArray := erc20CtorPrefix ++ erc20Bytecode
 
+private lemma natRepr256 : Nat.repr 256 = "256" := by
+  decide +kernel
+
+private lemma erc20ApproveSigStr :
+    Solm.transitionSigStr ERC20.approveTransition = "approve(address,uint256)" := by
+  simp [ERC20.approveTransition, Solm.transitionSigStr, ABI.printSignature,
+    transitionSignature, ERC20.uint256, ERC20.addr, ABI.abiToSigStr, ABI.elemToSigStr,
+    ERC20.uint256Int, ABI.intTypeToSigStr, natRepr256]
+  decide +kernel
+
+private lemma erc20TotalSupplySigStr :
+    Solm.transitionSigStr ERC20.totalSupplyTransition = "totalSupply()" := by
+  rfl
+
+private lemma erc20TransferFromSigStr :
+    Solm.transitionSigStr ERC20.transferFromTransition =
+      "transferFrom(address,address,uint256)" := by
+  simp [ERC20.transferFromTransition, Solm.transitionSigStr, ABI.printSignature,
+    transitionSignature, ERC20.uint256, ERC20.addr, ABI.abiToSigStr, ABI.elemToSigStr,
+    ERC20.uint256Int, ABI.intTypeToSigStr, natRepr256]
+  decide +kernel
+
+private lemma erc20BalanceOfSigStr :
+    Solm.transitionSigStr ERC20.balanceOfTransition = "balanceOf(address)" := by
+  simp [ERC20.balanceOfTransition, Solm.transitionSigStr, ABI.printSignature,
+    transitionSignature, ERC20.addr, ABI.abiToSigStr, ABI.elemToSigStr]
+  decide +kernel
+
+private lemma erc20TransferSigStr :
+    Solm.transitionSigStr ERC20.transferTransition = "transfer(address,uint256)" := by
+  simp [ERC20.transferTransition, Solm.transitionSigStr, ABI.printSignature,
+    transitionSignature, ERC20.uint256, ERC20.addr, ABI.abiToSigStr, ABI.elemToSigStr,
+    ERC20.uint256Int, ABI.intTypeToSigStr, natRepr256]
+  decide +kernel
+
+private lemma erc20AllowanceSigStr :
+    Solm.transitionSigStr ERC20.allowanceTransition = "allowance(address,address)" := by
+  simp [ERC20.allowanceTransition, Solm.transitionSigStr, ABI.printSignature,
+    transitionSignature, ERC20.addr, ABI.abiToSigStr, ABI.elemToSigStr]
+  decide +kernel
+
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("approve(address,uint256)")[0:4] = 0x095ea7b3`. -/
-axiom erc20ApproveSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr ERC20.approveTransition))).extract 0 4
-      = ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩
+lemma erc20ApproveSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr ERC20.approveTransition))).extract 0 4
+      = ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ := by
+  rw [erc20ApproveSigStr]
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("totalSupply()")[0:4] = 0x18160ddd`. -/
-axiom erc20TotalSupplySelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr ERC20.totalSupplyTransition))).extract 0 4
-      = ⟨#[0x18, 0x16, 0x0d, 0xdd]⟩
+lemma erc20TotalSupplySelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr ERC20.totalSupplyTransition))).extract 0 4
+      = ⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ := by
+  rw [erc20TotalSupplySigStr]
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("transferFrom(address,address,uint256)")[0:4] = 0x23b872dd`. -/
-axiom erc20TransferFromSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr ERC20.transferFromTransition))).extract 0 4
-      = ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩
+lemma erc20TransferFromSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr ERC20.transferFromTransition))).extract 0 4
+      = ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ := by
+  rw [erc20TransferFromSigStr]
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("balanceOf(address)")[0:4] = 0x70a08231`. -/
-axiom erc20BalanceOfSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr ERC20.balanceOfTransition))).extract 0 4
-      = ⟨#[0x70, 0xa0, 0x82, 0x31]⟩
+lemma erc20BalanceOfSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr ERC20.balanceOfTransition))).extract 0 4
+      = ⟨#[0x70, 0xa0, 0x82, 0x31]⟩ := by
+  rw [erc20BalanceOfSigStr]
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("transfer(address,uint256)")[0:4] = 0xa9059cbb`. -/
-axiom erc20TransferSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr ERC20.transferTransition))).extract 0 4
-      = ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩
+lemma erc20TransferSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr ERC20.transferTransition))).extract 0 4
+      = ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ := by
+  rw [erc20TransferSigStr]
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("allowance(address,address)")[0:4] = 0xdd62ed3e`. -/
-axiom erc20AllowanceSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr ERC20.allowanceTransition))).extract 0 4
-      = ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩
+lemma erc20AllowanceSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr ERC20.allowanceTransition))).extract 0 4
+      = ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ := by
+  rw [erc20AllowanceSigStr]
+  decide +kernel
 
 /-- The `JUMPDEST` set of `erc20Bytecode` (computed with PUSH-data skipping). -/
 @[valid_jumps] theorem erc20ValidJumps :

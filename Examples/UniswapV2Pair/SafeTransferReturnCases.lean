@@ -6,12 +6,12 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
-noncomputable def safeTransferRuntimeFinalMem
+def safeTransferRuntimeFinalMem
     (base : ByteArray) (toWord value : UInt256) (out : ByteArray) : ByteArray :=
   if out.size = 0 then safeTransferRuntimeCallMem2 base toWord value
   else safeTransferRuntimeReturnDataMem base toWord value out
 
-noncomputable def safeTransferRuntimeFinalActiveWords (out : ByteArray) : UInt256 :=
+def safeTransferRuntimeFinalActiveWords (out : ByteArray) : UInt256 :=
   if out.size = 0 then UInt256.ofNat 13 else safeTransferRuntimeReturnDataActiveWords out
 
 set_option maxHeartbeats 1000000 in

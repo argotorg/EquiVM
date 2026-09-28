@@ -570,13 +570,13 @@ theorem revokeRoleSourceWord_toNat (I : ExecutionEnv) :
   exact ulit_toNat' _ (lt_of_lt_of_le I.source.isLt
     (show AccountAddress.size ≤ UInt256.size from by decide))
 
-noncomputable def revokeRoleWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+def revokeRoleWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 0 32
 
-noncomputable def revokeRoleWordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+def revokeRoleWordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 32 32
 
-noncomputable def revokeRoleTwoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
+def revokeRoleTwoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
   revokeRoleWordAt32Mem slot (revokeRoleWordAt0Mem key mem)
 
 theorem revokeRoleWordAt0Mem_size {mem : ByteArray} (word : UInt256)
@@ -677,27 +677,27 @@ theorem revokeRoleTwoWordHashMem_read0_64 {mem : ByteArray} (key slot : UInt256)
       norm_num]
   rw [hleft, hright]
 
-noncomputable def revokeRoleBaseHashMem (role : UInt256) : ByteArray :=
+def revokeRoleBaseHashMem (role : UInt256) : ByteArray :=
   revokeRoleTwoWordHashMem role ⟨0⟩ solcFreePtrMem
 
-noncomputable def revokeRoleBaseSlot (role : UInt256) : UInt256 :=
+def revokeRoleBaseSlot (role : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((revokeRoleBaseHashMem role).readWithPadding 0 64)))
+    (KEC ((revokeRoleBaseHashMem role).readWithPadding 0 64)))
 
-noncomputable def revokeRoleHasRoleAccountMem (role account : UInt256) : ByteArray :=
+def revokeRoleHasRoleAccountMem (role account : UInt256) : ByteArray :=
   revokeRoleWordAt0Mem account (revokeRoleBaseHashMem role)
 
-noncomputable def revokeRoleHasRoleSlotHashMem (role account : UInt256) : ByteArray :=
+def revokeRoleHasRoleSlotHashMem (role account : UInt256) : ByteArray :=
   revokeRoleWordAt32Mem (revokeRoleBaseSlot role) (revokeRoleHasRoleAccountMem role account)
 
-noncomputable def revokeRoleBaseHashMemFrom (role : UInt256) (mem : ByteArray) : ByteArray :=
+def revokeRoleBaseHashMemFrom (role : UInt256) (mem : ByteArray) : ByteArray :=
   revokeRoleTwoWordHashMem role ⟨0⟩ mem
 
-noncomputable def revokeRoleHasRoleAccountMemFrom
+def revokeRoleHasRoleAccountMemFrom
     (role account : UInt256) (mem : ByteArray) : ByteArray :=
   revokeRoleWordAt0Mem account (revokeRoleBaseHashMemFrom role mem)
 
-noncomputable def revokeRoleHasRoleSlotHashMemFrom
+def revokeRoleHasRoleSlotHashMemFrom
     (role account : UInt256) (mem : ByteArray) : ByteArray :=
   revokeRoleWordAt32Mem (revokeRoleBaseSlot role)
     (revokeRoleHasRoleAccountMemFrom role account mem)
@@ -853,7 +853,7 @@ theorem revokeRoleTargetKeccakSlot (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size)
     (hcanonAccount : (revokeRoleAccountWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revokeRoleHasRoleSlotHashMem (revokeRoleRoleWord I) (revokeRoleAccountWord I))
+        (KEC ((revokeRoleHasRoleSlotHashMem (revokeRoleRoleWord I) (revokeRoleAccountWord I))
           |>.readWithPadding 0 64)))
       = revokeRoleTargetSlot I := by
   rw [revokeRoleHasRoleSlotHashMem_read0_64, revokeRoleBaseKeccakSlot I hsz68]
@@ -869,7 +869,7 @@ theorem revokeRoleTargetKeccakSlotFrom (I : ExecutionEnv) (mem : ByteArray)
     (hmem : mem.size = 96)
     (hcanonAccount : (revokeRoleAccountWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revokeRoleHasRoleSlotHashMemFrom (revokeRoleRoleWord I)
+        (KEC ((revokeRoleHasRoleSlotHashMemFrom (revokeRoleRoleWord I)
           (revokeRoleAccountWord I) mem).readWithPadding 0 64)))
       = revokeRoleTargetSlot I := by
   rw [revokeRoleHasRoleSlotHashMemFrom_read0_64 _ _ hmem, revokeRoleBaseKeccakSlot I hsz68]
@@ -901,7 +901,7 @@ theorem revokeRoleTargetSlot_fixedBytes32 (I : ExecutionEnv)
 theorem revokeRoleAdminHasRoleKeccakSlot (adminRole account : UInt256)
     (hcanonAccount : account.toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revokeRoleHasRoleSlotHashMem adminRole account)
+        (KEC ((revokeRoleHasRoleSlotHashMem adminRole account)
           |>.readWithPadding 0 64)))
       =
         roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE adminRole))
@@ -915,7 +915,7 @@ theorem revokeRoleAdminHasRoleKeccakSlot (adminRole account : UInt256)
 theorem revokeRoleAdminHasRoleKeccakSlotFrom (adminRole account : UInt256) (mem : ByteArray)
     (hmem : mem.size = 96) (hcanonAccount : account.toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revokeRoleHasRoleSlotHashMemFrom adminRole account mem)
+        (KEC ((revokeRoleHasRoleSlotHashMemFrom adminRole account mem)
           |>.readWithPadding 0 64)))
       =
         roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE adminRole))
@@ -935,7 +935,7 @@ theorem accessControlX_hasRole_internal {cA gh bl σ σ₀ A I} {g : Sat256}
     (hret : (D_J accessControlBenchBytecode 0).contains ret = true)
     (hov : R.length + 10 ≤ 1024)
     (hslot : UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((revokeRoleHasRoleSlotHashMemFrom role account mem0).readWithPadding 0 64))) =
+        (KEC ((revokeRoleHasRoleSlotHashMemFrom role account mem0).readWithPadding 0 64))) =
       roleHasRoleSlot (.fixedBytes bytes32Width (EVM.Word.toBytesBE role))
         (.address (AccountAddress.ofNat account.toNat)))
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
@@ -961,7 +961,7 @@ theorem accessControlX_hasRole_internal {cA gh bl σ σ₀ A I} {g : Sat256}
       mem_cost
       (by
         change UInt256.ofNat (fromByteArrayBigEndian
-            (ffi.KEC ((revokeRoleBaseHashMemFrom role mem0).readWithPadding 0 64))) =
+            (KEC ((revokeRoleBaseHashMemFrom role mem0).readWithPadding 0 64))) =
           revokeRoleBaseSlot role
         unfold revokeRoleBaseSlot
         rw [revokeRoleBaseHashMemFrom_read0_64 role hmem0,
@@ -1027,22 +1027,22 @@ def revokeRoleUnauthorizedSelector : UInt256 :=
 def revokeRoleRevokedTopic : UInt256 :=
   ⟨111369887473982945697897258602409287065386435722986207154590940387224246097691⟩
 
-noncomputable def revokeRoleUnauthorizedAccountMem (account : UInt256) : ByteArray :=
+def revokeRoleUnauthorizedAccountMem (account : UInt256) : ByteArray :=
   (UInt256.toByteArray (UInt256.land solcAddrMask account)).write 0
     (solcReturnMem revokeRoleUnauthorizedSelector) 132 32
 
-noncomputable def revokeRoleUnauthorizedMem (account role : UInt256) : ByteArray :=
+def revokeRoleUnauthorizedMem (account role : UInt256) : ByteArray :=
   (UInt256.toByteArray role).write 0 (revokeRoleUnauthorizedAccountMem account) 164 32
 
-noncomputable def revokeRoleUnauthorizedSelectorMemFrom (mem : ByteArray) : ByteArray :=
+def revokeRoleUnauthorizedSelectorMemFrom (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray revokeRoleUnauthorizedSelector).write 0 mem 128 32
 
-noncomputable def revokeRoleUnauthorizedAccountMemFrom
+def revokeRoleUnauthorizedAccountMemFrom
     (account : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (UInt256.land solcAddrMask account)).write 0
     (revokeRoleUnauthorizedSelectorMemFrom mem) 132 32
 
-noncomputable def revokeRoleUnauthorizedMemFrom
+def revokeRoleUnauthorizedMemFrom
     (account role : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray role).write 0 (revokeRoleUnauthorizedAccountMemFrom account mem) 164 32
 
@@ -1198,7 +1198,7 @@ theorem accessControlRevokeRoleX_adminLoaded {cA gh bl σ σ₀ A I} {g : Sat256
   obtain ⟨_, _, rd491⟩ := hreach
   have hslotRaw :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((revokeRoleBaseHashMem (revokeRoleRoleWord I)).readWithPadding 0 64))) =
+          (KEC ((revokeRoleBaseHashMem (revokeRoleRoleWord I)).readWithPadding 0 64))) =
         revokeRoleBaseSlot (revokeRoleRoleWord I) := rfl
   have rd508pre := evm_run rd491 with [
     jumpdest, push0, dup3, dup2,
@@ -1455,7 +1455,7 @@ theorem accessControlRevokeRoleX_revoke_noop {cA gh bl σ σ₀ A I} {g : Sat256
   have htargetSlotEq := revokeRoleTargetSlot_fixedBytes32 I hsz68 hcanonAccount
   have hslot' :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((revokeRoleHasRoleSlotHashMemFrom (revokeRoleRoleWord I)
+          (KEC ((revokeRoleHasRoleSlotHashMemFrom (revokeRoleRoleWord I)
             (revokeRoleAccountWord I) memOnlyRole).readWithPadding 0 64))) =
         roleHasRoleSlot
           (.fixedBytes bytes32Width (EVM.Word.toBytesBE (revokeRoleRoleWord I)))
@@ -1533,7 +1533,7 @@ theorem accessControlRevokeRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat25
   have hslotBase := revokeRoleTargetKeccakSlotFrom I memOnlyRole hsz68 hmemOnlyRole hcanonAccount
   have hslot' :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((revokeRoleHasRoleSlotHashMemFrom (revokeRoleRoleWord I)
+          (KEC ((revokeRoleHasRoleSlotHashMemFrom (revokeRoleRoleWord I)
             (revokeRoleAccountWord I) memOnlyRole).readWithPadding 0 64))) =
         roleHasRoleSlot
           (.fixedBytes bytes32Width (EVM.Word.toBytesBE (revokeRoleRoleWord I)))
@@ -1577,7 +1577,7 @@ theorem accessControlRevokeRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat25
     push1 ⟨64⟩, dup1, dup4]
   have hbaseSlotRaw :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((revokeRoleBaseHashMemFrom (revokeRoleRoleWord I) memTarget)
+          (KEC ((revokeRoleBaseHashMemFrom (revokeRoleRoleWord I) memTarget)
             |>.readWithPadding 0 64))) =
         revokeRoleBaseSlot (revokeRoleRoleWord I) := by
     unfold revokeRoleBaseSlot

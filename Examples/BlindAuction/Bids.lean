@@ -91,7 +91,7 @@ theorem bidsLengthSlot_spec (I : ExecutionEnv)
 theorem bidsElementSlot_spec (I : ExecutionEnv)
     (hcanon : (bidsAddressWord I).toNat < EVM.addressModulus) :
     bidsElementSlot I =
-      uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (bidsLengthSlot I))) +
+      uInt256OfByteArray (KEC (UInt256.toByteArray (bidsLengthSlot I))) +
         UInt256.mul (bidsIndexWord I) ⟨2⟩ := by
   unfold bidsElementSlot bidsElemSlot bidsIndexKey
   rw [keyValueToWord_uint256, bidsLengthSlot]
@@ -305,19 +305,19 @@ theorem blindAuctionBidsReturnEncoding (blinded deposit : UInt256) :
 
 /-! ## EVM scratch memory for the two-key getter -/
 
-noncomputable def bidsBaseSlotMem : ByteArray :=
+def bidsBaseSlotMem : ByteArray :=
   (UInt256.toByteArray (⟨4⟩ : UInt256)).write 0 solcFreePtrMem 32 32
 
-noncomputable def bidsHashMem (a : UInt256) : ByteArray :=
+def bidsHashMem (a : UInt256) : ByteArray :=
   (UInt256.toByteArray a).write 0 bidsBaseSlotMem 0 32
 
-noncomputable def bidsArrayDataMem (a base : UInt256) : ByteArray :=
+def bidsArrayDataMem (a base : UInt256) : ByteArray :=
   (UInt256.toByteArray base).write 0 (bidsHashMem a) 0 32
 
-noncomputable def bidsReturnBlindedMem (a base blinded : UInt256) : ByteArray :=
+def bidsReturnBlindedMem (a base blinded : UInt256) : ByteArray :=
   (UInt256.toByteArray blinded).write 0 (bidsArrayDataMem a base) 128 32
 
-noncomputable def bidsReturnMem (a base blinded deposit : UInt256) : ByteArray :=
+def bidsReturnMem (a base blinded deposit : UInt256) : ByteArray :=
   (UInt256.toByteArray deposit).write 0 (bidsReturnBlindedMem a base blinded) 160 32
 
 theorem bidsBaseSlotMem_size : bidsBaseSlotMem.size = 96 := by
@@ -443,7 +443,7 @@ theorem bidsHashMem_mload64 (a : UInt256) :
 theorem bidsMappingBaseKeccak (I : ExecutionEnv)
     (hcanon : (bidsAddressWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((bidsHashMem (bidsAddressWord I)).readWithPadding 0 64)))
+        (KEC ((bidsHashMem (bidsAddressWord I)).readWithPadding 0 64)))
       = bidsLengthSlot I := by
   rw [bidsHashMem_read0_64, bidsLengthSlot_spec I hcanon]
   exact keccakSlot_eq _
@@ -479,8 +479,8 @@ theorem bidsArrayDataMem_mload64 (a base : UInt256) :
 
 theorem bidsArrayDataKeccak (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((bidsArrayDataMem (bidsAddressWord I) (bidsLengthSlot I)).readWithPadding 0 32)))
-      = uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (bidsLengthSlot I))) := by
+        (KEC ((bidsArrayDataMem (bidsAddressWord I) (bidsLengthSlot I)).readWithPadding 0 32)))
+      = uInt256OfByteArray (KEC (UInt256.toByteArray (bidsLengthSlot I))) := by
   rw [bidsArrayDataMem_read0]
   exact keccakSlot_eq _
 
@@ -517,7 +517,7 @@ theorem bidsReturnBlindedMem_read64 (a base blinded : UInt256) :
       toByteArray_size]
     omega)]
   rw [extract_append_left (bidsArrayDataMem a base)
-      (ffi.ByteArray.zeroes (128 - (bidsArrayDataMem a base).size) ++
+      (ByteArray.zeroes (128 - (bidsArrayDataMem a base).size) ++
         UInt256.toByteArray blinded)
       64 96 (by rw [bidsArrayDataMem_size])]
   rw [← readWithPadding_eq_extract' (bidsArrayDataMem a base) 64 32
@@ -552,7 +552,7 @@ theorem bidsReturnMem_read128_64 (a base blinded deposit : UInt256) :
       (by rw [bidsReturnBlindedMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_span
       (bidsReturnBlindedMem a base blinded ++
-        ffi.ByteArray.zeroes (160 - (bidsReturnBlindedMem a base blinded).size))
+        ByteArray.zeroes (160 - (bidsReturnBlindedMem a base blinded).size))
       (UInt256.toByteArray deposit) 128 192 (by
         rw [ByteArray.size_append, bidsReturnBlindedMem_size, ByteArray_zeroes_size,
           show 160 - 160 = 0 from by norm_num]
@@ -562,16 +562,16 @@ theorem bidsReturnMem_read128_64 (a base blinded deposit : UInt256) :
         omega)]
   rw [ByteArray.size_append, bidsReturnBlindedMem_size, ByteArray_zeroes_size,
     show 160 - 160 = 0 from by norm_num]
-  rw [show ffi.ByteArray.zeroes 0 = ByteArray.empty by
+  rw [show ByteArray.zeroes 0 = ByteArray.empty by
       exact zeroes_zero (n := 0) (by rfl)]
   rw [ByteArray.append_empty]
   unfold bidsReturnBlindedMem
   rw [toByteArray_write_eq _ _ _ (by rw [bidsArrayDataMem_size]; omega)
       (by rw [bidsArrayDataMem_size]; exact lt_usize _ (by norm_num))]
-  rw [show ffi.ByteArray.zeroes (128 - (bidsArrayDataMem a base).size) =
-      ffi.ByteArray.zeroes 32 by rw [bidsArrayDataMem_size]]
+  rw [show ByteArray.zeroes (128 - (bidsArrayDataMem a base).size) =
+      ByteArray.zeroes 32 by rw [bidsArrayDataMem_size]]
   rw [extract_append_right_window
-      (bidsArrayDataMem a base ++ ffi.ByteArray.zeroes 32)
+      (bidsArrayDataMem a base ++ ByteArray.zeroes 32)
       (UInt256.toByteArray blinded) 128 160 (by
         rw [ByteArray.size_append, bidsArrayDataMem_size, ByteArray_zeroes_size,
           show 32 = 32 from by norm_num])]
@@ -806,12 +806,12 @@ theorem blindAuctionBidsX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
   have hmapping := bidsMappingBaseKeccak I hcanon
   have hdata := bidsArrayDataKeccak I
   have hElemSlotL :
-      uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (bidsLengthSlot I))) +
+      uInt256OfByteArray (KEC (UInt256.toByteArray (bidsLengthSlot I))) +
         UInt256.mul (bidsIndexWord I) ⟨2⟩ = bidsElementSlot I := by
     rw [bidsElementSlot_spec I hcanon]
   have hElemSlotR :
       UInt256.mul (bidsIndexWord I) ⟨2⟩ +
-        uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (bidsLengthSlot I))) =
+        uInt256OfByteArray (KEC (UInt256.toByteArray (bidsLengthSlot I))) =
         bidsElementSlot I := by
     rw [u256_add_comm, hElemSlotL]
   have rd523 := evm_run rd510 with [
@@ -843,7 +843,7 @@ theorem blindAuctionBidsX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
       (UInt256.ofNat 3) (by decide) mem_cost
       (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, swap1, swap2,
-    raw keccak256 0 (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (bidsLengthSlot I))))
+    raw keccak256 0 (uInt256OfByteArray (KEC (UInt256.toByteArray (bidsLengthSlot I))))
       (UInt256.ofNat 3) (by decide) mem_cost hdata (by decide) (by evm_ov),
     push1 ⟨2⟩, swap1, swap2, mul, add, dup1 ]
   have rd551' := rd551

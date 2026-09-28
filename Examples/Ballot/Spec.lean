@@ -38,7 +38,7 @@ This is spec-level data only; the bytecode/jump facts live in `Bytecode.lean` an
 the per-function files / `Correct.lean`.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace Ballot
 
@@ -105,14 +105,14 @@ def ballotStorageDecls : List StorageDecl :=
 
 /-- Solidity mapping slot: `keccak256(key ‖ baseSlot)`. -/
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (Ethereum.KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 /-- Base slot of `voters[a]` (the mapping lives at declaration slot `1`). -/
 def voterBase (a : KeyValue) : Ethereum.UInt256 := mapSlot (keyValueToWord a) ⟨1⟩
 
 /-- Data region of `proposals` (the dynamic array length lives at declaration slot `2`). -/
 def proposalsDataBase : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (Ethereum.UInt256.toByteArray ⟨2⟩))
+  Ethereum.uInt256OfByteArray (Ethereum.KEC (Ethereum.UInt256.toByteArray ⟨2⟩))
 
 /-- Base slot of `proposals[i]` (each `Proposal` element occupies two words). -/
 def proposalElemSlot (i : KeyValue) : Ethereum.UInt256 :=

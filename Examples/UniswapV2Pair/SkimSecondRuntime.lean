@@ -8,17 +8,17 @@ namespace UniswapV2Pair
 
 /-! ## `skim(address)` second `balanceOf` runtime tail -/
 
-noncomputable def skimSecondBalanceSelectorMem
+def skimSecondBalanceSelectorMem
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray balanceOfSelectorShifted).write 0
     (skimSafeTransferCallMem2 self o toWord value) 292 32
 
-noncomputable def skimSecondBalanceCalldataMem
+def skimSecondBalanceCalldataMem
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray self).write 0
     (skimSecondBalanceSelectorMem self o toWord value) 296 32
 
-noncomputable def skimSecondBalanceCalldataMemWrites (self : UInt256) : List (Nat × UInt256) :=
+def skimSecondBalanceCalldataMemWrites (self : UInt256) : List (Nat × UInt256) :=
   [(292, balanceOfSelectorShifted), (296, self)]
 
 theorem skimSecondBalanceCalldataMem_eq_writeCascade
@@ -40,7 +40,7 @@ theorem skimSecondBalanceCalldataMemWrites_disjoint64 (self : UInt256) :
     WindowDisjointFromWrites 388 64 32 (skimSecondBalanceCalldataMemWrites self) := by
   simp [WindowDisjointFromWrites, skimSecondBalanceCalldataMemWrites]
 
-noncomputable def skimSecondBalanceStaticcallMem
+def skimSecondBalanceStaticcallMem
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) (out : ByteArray) :
     ByteArray :=
   out.write 0 (skimSecondBalanceCalldataMem self o toWord value) 292

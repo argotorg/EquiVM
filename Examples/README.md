@@ -39,7 +39,4 @@ All proofs are complete.
 
 ## Trusted base
 
-Concrete keccak values cannot be computed inside Lean (`ffi.keccak256` is an opaque extern
-function), so each contract's 4-byte function selectors are stated as per-contract axioms
-(in `Bytecode.lean` or `Trusted.lean`). Jump-destination tables are verified with
-`native_decide`, which trusts the Lean compiler.
+Jump-destination tables are verified with `native_decide`, which trusts the Lean compiler.

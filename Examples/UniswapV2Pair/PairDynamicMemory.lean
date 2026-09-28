@@ -6,9 +6,9 @@ set_option maxRecDepth 2000000
 
 
 -- GENERALIZES the fixed-pointer Sync memory layout to two arbitrary words.
-noncomputable def pairDynamicMem0 (mem : ByteArray) (ptr word0 : UInt256) : ByteArray :=
+def pairDynamicMem0 (mem : ByteArray) (ptr word0 : UInt256) : ByteArray :=
   word0.toByteArray.write 0 mem ptr.toNat 32
-noncomputable def pairDynamicMem (mem : ByteArray) (ptr word0 word1 : UInt256) : ByteArray :=
+def pairDynamicMem (mem : ByteArray) (ptr word0 word1 : UInt256) : ByteArray :=
   word1.toByteArray.write 0 (pairDynamicMem0 mem ptr word0) (ptr + ⟨32⟩).toNat 32
 abbrev pairDynamicWords0 (aw ptr : UInt256) : UInt256 := memoryWordActiveWords aw ptr
 abbrev pairDynamicWords (aw ptr : UInt256) : UInt256 := memoryWordActiveWords (pairDynamicWords0 aw ptr) (ptr + ⟨32⟩)

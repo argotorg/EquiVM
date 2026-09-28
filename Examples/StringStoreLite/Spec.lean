@@ -83,7 +83,7 @@ def uint8Loc (slot : Ethereum.UInt256) (offset : Fin 32) : StorageLoc :=
   { slot := slot, offset := offset, size := 1, hbound := by omega, type := .int uint8Int }
 
 def bytesLikeDataBase (baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC baseSlot.toByteArray)
+  Ethereum.uInt256OfByteArray (KEC baseSlot.toByteArray)
 
 abbrev bytesLikeLengthLoc := Solm.bytesLikeLengthLoc
 

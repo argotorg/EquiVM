@@ -24,7 +24,7 @@ the proof should introduce a single `RD`-routine lemma for that body and apply i
 external-entry refinement (`f`) and the internal-call refinement (inside `g`) — without re-unfolding
 `f`'s body.  See `C.sol` for the compiled-shape evidence.
 
-The bytecode proof uses the trusted `valid_jumps`/selector facts in `Bytecode.lean`, then discharges
+The bytecode proof uses the selector and jump-destination facts in `Bytecode.lean`, then discharges
 the optimizer-on dispatch, decode, and shared-body routine.
 -/
 
@@ -68,10 +68,10 @@ abbrev cFResultValue (I : ExecutionEnv) : Value :=
 def cPanicSelector : UInt256 :=
   ⟨35408467139433450592217433187231851964531694900788300625387963629091585785856⟩
 
-noncomputable def cPanicMem0 (mem : ByteArray) : ByteArray :=
+def cPanicMem0 (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray cPanicSelector).write 0 mem 0 32
 
-noncomputable def cPanicMem (mem : ByteArray) : ByteArray :=
+def cPanicMem (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (⟨17⟩ : UInt256)).write 0 (cPanicMem0 mem) 4 32
 
 /-- Both selector arms decode as `DUP1; PUSH4; EQ; PUSH1; JUMPI`. -/
@@ -1138,7 +1138,7 @@ theorem cCorrect : runtimeEquivalence cConfig cBytecode Reuse.cContract := by
 
 /-! ## Constructor and full-contract equivalence -/
 
-noncomputable def cInitReturnMem : ByteArray :=
+def cInitReturnMem : ByteArray :=
   (cInitcode).write 12 ByteArray.empty 0 271
 
 theorem cBytecode_size : cBytecode.size = 271 := by

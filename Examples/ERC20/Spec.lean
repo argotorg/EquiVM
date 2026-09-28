@@ -44,7 +44,7 @@ def erc20Uint256Loc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 32, hbound := by decide, type := .int uint256Int }
 
 def erc20MappingSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (Ethereum.KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def erc20BalanceOfSlot (owner : KeyValue) : Ethereum.UInt256 :=
   erc20MappingSlot (keyValueToWord owner) ⟨0⟩

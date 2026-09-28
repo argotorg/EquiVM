@@ -4,7 +4,7 @@ namespace UniswapV2Pair
 set_option maxRecDepth 2000
 
 -- LIBRARY CANDIDATE: four consecutive word writes, composed from two pairs.
-noncomputable def quadDynamicMem (mem : ByteArray) (ptr word0 word1 word2 word3 : UInt256) : ByteArray :=
+def quadDynamicMem (mem : ByteArray) (ptr word0 word1 word2 word3 : UInt256) : ByteArray :=
   pairDynamicMem (pairDynamicMem mem ptr word0 word1) (ptr + ⟨64⟩) word2 word3
 abbrev quadDynamicWords (aw ptr : UInt256) : UInt256 :=
   pairDynamicWords (pairDynamicWords aw ptr) (ptr + ⟨64⟩)

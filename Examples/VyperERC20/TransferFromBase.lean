@@ -1108,104 +1108,104 @@ def transferFromFromArgMem (src : UInt256) : ByteArray :=
 def transferFromArgsMem (src dst : UInt256) : ByteArray :=
   (UInt256.toByteArray dst).write 0 (transferFromFromArgMem src) 96 32
 
-noncomputable def transferFromAllowanceInnerKeyMem (src dst : UInt256) : ByteArray :=
+def transferFromAllowanceInnerKeyMem (src dst : UInt256) : ByteArray :=
   wordAt32Mem src (transferFromArgsMem src dst)
 
-noncomputable def transferFromAllowanceInnerHashMem (src dst : UInt256) : ByteArray :=
+def transferFromAllowanceInnerHashMem (src dst : UInt256) : ByteArray :=
   wordAt0Mem ⟨1⟩ (transferFromAllowanceInnerKeyMem src dst)
 
-noncomputable def transferFromAllowanceInnerSlotWord (src dst : UInt256) : UInt256 :=
+def transferFromAllowanceInnerSlotWord (src dst : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((transferFromAllowanceInnerHashMem src dst).readWithPadding 0 64)))
+    (KEC ((transferFromAllowanceInnerHashMem src dst).readWithPadding 0 64)))
 
-noncomputable def transferFromAllowanceOuterKeyMem (src dst caller : UInt256) : ByteArray :=
+def transferFromAllowanceOuterKeyMem (src dst caller : UInt256) : ByteArray :=
   wordAt32Mem caller (transferFromAllowanceInnerHashMem src dst)
 
-noncomputable def transferFromAllowanceOuterHashMem (src dst caller : UInt256) : ByteArray :=
+def transferFromAllowanceOuterHashMem (src dst caller : UInt256) : ByteArray :=
   wordAt0Mem (transferFromAllowanceInnerSlotWord src dst)
     (transferFromAllowanceOuterKeyMem src dst caller)
 
-noncomputable def transferFromAllowanceMem
+def transferFromAllowanceMem
     (src dst caller allowance : UInt256) : ByteArray :=
   (UInt256.toByteArray allowance).write 0
     (transferFromAllowanceOuterHashMem src dst caller) 128 32
 
-noncomputable def transferFromFromBalanceKeyMem
+def transferFromFromBalanceKeyMem
     (src dst caller allowance : UInt256) : ByteArray :=
   wordAt32Mem src (transferFromAllowanceMem src dst caller allowance)
 
-noncomputable def transferFromFromBalanceHashMem
+def transferFromFromBalanceHashMem
     (src dst caller allowance : UInt256) : ByteArray :=
   wordAt0Mem ⟨0⟩ (transferFromFromBalanceKeyMem src dst caller allowance)
 
-noncomputable def transferFromToBalanceKeyMem
+def transferFromToBalanceKeyMem
     (src dst caller allowance : UInt256) : ByteArray :=
   wordAt32Mem dst (transferFromFromBalanceHashMem src dst caller allowance)
 
-noncomputable def transferFromToBalanceHashMem
+def transferFromToBalanceHashMem
     (src dst caller allowance : UInt256) : ByteArray :=
   wordAt0Mem ⟨0⟩ (transferFromToBalanceKeyMem src dst caller allowance)
 
-noncomputable def transferFromAllowanceInnerScratchMem
+def transferFromAllowanceInnerScratchMem
     (src dst caller allowance : UInt256) : ByteArray :=
   wordAt0Mem ⟨1⟩ (wordAt32Mem src (transferFromFromBalanceHashMem src dst caller allowance))
 
-noncomputable def transferFromAllowanceScratchMem
+def transferFromAllowanceScratchMem
     (src dst caller allowance : UInt256) : ByteArray :=
   wordAt0Mem (transferFromAllowanceInnerSlotWord src dst)
     (wordAt32Mem caller (transferFromAllowanceInnerScratchMem src dst caller allowance))
 
-noncomputable def transferFromAllowanceInnerSlotI (I : ExecutionEnv) : UInt256 :=
+def transferFromAllowanceInnerSlotI (I : ExecutionEnv) : UInt256 :=
   transferFromAllowanceInnerSlotWord (transferFromFromWord I) (transferFromToWord I)
 
-noncomputable def transferFromAllowanceInnerScratchMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def transferFromAllowanceInnerScratchMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   transferFromAllowanceInnerScratchMem
     (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
     (transferFromCurrentAllowanceRaw σ I)
 
-noncomputable def transferFromAllowanceScratchMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def transferFromAllowanceScratchMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   transferFromAllowanceScratchMem
     (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
     (transferFromCurrentAllowanceRaw σ I)
 
-noncomputable def transferFromFromBalanceKeyMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def transferFromFromBalanceKeyMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   transferFromFromBalanceKeyMem
     (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
     (transferFromCurrentAllowanceRaw σ I)
 
-noncomputable def transferFromFromBalanceHashMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def transferFromFromBalanceHashMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   transferFromFromBalanceHashMem
     (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
     (transferFromCurrentAllowanceRaw σ I)
 
-noncomputable def transferFromAfterFromLoadMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def transferFromAfterFromLoadMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   wordAt0Mem ⟨0⟩ (wordAt32Mem (transferFromFromWord I) (transferFromAllowanceScratchMemI σ I))
 
-noncomputable def transferFromToBalanceKeyMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def transferFromToBalanceKeyMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   transferFromToBalanceKeyMem
     (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
     (transferFromCurrentAllowanceRaw σ I)
 
-noncomputable def transferFromToBalanceHashMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def transferFromToBalanceHashMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   transferFromToBalanceHashMem
     (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
     (transferFromCurrentAllowanceRaw σ I)
 
-noncomputable def transferFromAfterToLoadMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def transferFromAfterToLoadMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   wordAt0Mem ⟨0⟩ (wordAt32Mem (transferFromToWord I) (transferFromAfterFromLoadMemI σ I))
 
-noncomputable def transferFromAllowanceDebitI
+def transferFromAllowanceDebitI
     (cA : Batteries.RBSet AccountAddress compare)
     (gh : BlockHeader) (bl : ProcessedBlocks)
     (σ σ₀ : AccountMap) (A : Substate) (I : ExecutionEnv) (g : Sat256) : UInt256 :=
   transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I
 
-noncomputable def transferFromLogMem
+def transferFromLogMem
     (src dst caller allowance val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0
     (transferFromToBalanceHashMem src dst caller allowance) 160 32
 
-noncomputable def transferFromReturnMem
+def transferFromReturnMem
     (src dst caller allowance val : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0
     (transferFromLogMem src dst caller allowance val) 160 32
@@ -1609,7 +1609,7 @@ theorem transferFromAllowanceOuterHashMem_read0_64 (src dst caller : UInt256) :
 theorem transferFromAllowanceOuterKeccakSlot (I : ExecutionEnv)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((transferFromAllowanceOuterHashMem
+        (KEC ((transferFromAllowanceOuterHashMem
           (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I))
           |>.readWithPadding 0 64))) =
       transferFromAllowanceSlotI I := by
@@ -2188,7 +2188,7 @@ theorem transferFromFromBalanceKeccakSlot (I : ExecutionEnv)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (allowance : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((transferFromFromBalanceHashMem
+        (KEC ((transferFromFromBalanceHashMem
           (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I) allowance)
           |>.readWithPadding 0 64))) =
       transferFromFromSlot I := by
@@ -2283,7 +2283,7 @@ theorem transferFromToBalanceKeccakSlot (I : ExecutionEnv)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (allowance : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((transferFromToBalanceHashMem
+        (KEC ((transferFromToBalanceHashMem
           (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I) allowance)
           |>.readWithPadding 0 64))) =
       transferFromToSlot I := by

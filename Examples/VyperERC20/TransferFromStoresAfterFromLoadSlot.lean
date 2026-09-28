@@ -39,7 +39,7 @@ theorem erc20X_transferFromAfterFromLoadSlot {cA gh bl σ σ₀ A I} {g : Sat256
   have hslot :
       UInt256.ofNat
           (fromByteArrayBigEndian
-            (ffi.KEC
+            (KEC
               (((wordAt0Mem ⟨0⟩
                 (wordAt32Mem (transferFromFromWord I) (transferFromAllowanceScratchMemI σ I))).readWithPadding 0 64)))) =
         transferFromFromSlot I := by

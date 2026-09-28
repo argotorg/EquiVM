@@ -348,7 +348,7 @@ theorem skimSafeTransferReturnDataMem_size_le_ptr_add32
     omega
 
 private theorem byteArray_zeroes_size_le (n : Nat) :
-    (ffi.ByteArray.zeroes n).size ≤ n :=
+    (ByteArray.zeroes n).size ≤ n :=
   (ByteArray_zeroes_size n).le
 
 private theorem byteArray_copySlice_size_le
@@ -372,7 +372,7 @@ theorem byteArray_write_size_le
     by_cases hsrc : sourceOffset ≥ source.size
     · simp [hsrc]
       have hcopy := byteArray_copySlice_size_le
-        (ffi.ByteArray.zeroes
+        (ByteArray.zeroes
           (min length (destination.size - destinationOffset)))
         destination 0 (min destinationOffset destination.size)
         (min length (destination.size - destinationOffset))
@@ -385,21 +385,21 @@ theorem byteArray_write_size_le
       exact le_max_iff.mp (le_trans hcopy hbound)
     · simp [hsrc]
       have hpad :
-          (ffi.ByteArray.zeroes
+          (ByteArray.zeroes
               (destinationOffset - destination.size)).size ≤
             destinationOffset - destination.size :=
         byteArray_zeroes_size_le _
       have hdest :
-          (destination ++ ffi.ByteArray.zeroes
+          (destination ++ ByteArray.zeroes
               (destinationOffset - destination.size)).size ≤
             max destination.size (destinationOffset + length) := by
         rw [ByteArray.size_append]
         omega
       have hcopy := byteArray_copySlice_size_le
-        (source ++ ffi.ByteArray.zeroes
+        (source ++ ByteArray.zeroes
           (min destination.size (destinationOffset + length) -
             (destinationOffset + min length (source.size - sourceOffset))))
-        (destination ++ ffi.ByteArray.zeroes
+        (destination ++ ByteArray.zeroes
           (destinationOffset - destination.size))
         sourceOffset destinationOffset
         (min length (source.size - sourceOffset) +
@@ -552,7 +552,7 @@ theorem skimSecondSafeTransferDynamicWordsCall2_toNat_ge13 (out : ByteArray)
       simpa using skimSecondSafeTransferDynamicBasePtr_window_lt out 228 32
         houtSize (by norm_num) (by norm_num))
 
-noncomputable def skimSecondSafeTransferDynamicMem0
+def skimSecondSafeTransferDynamicMem0
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) : ByteArray :=
   (UInt256.toByteArray (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩)).write 0
@@ -629,14 +629,14 @@ theorem skimSecondSafeTransferDynamicMem0_read64
       rw [toByteArray_size]]
     exact byteArray_extract_self _]
 
-noncomputable def skimSecondSafeTransferDynamicMem1
+def skimSecondSafeTransferDynamicMem1
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) : ByteArray :=
   (UInt256.toByteArray (⟨25⟩ : UInt256)).write 0
     (skimSecondSafeTransferDynamicMem0 self o toWord prevValue out1 out2)
     (skimSecondSafeTransferDynamicBasePtr out1).toNat 32
 
-noncomputable def skimSecondSafeTransferDynamicMem2
+def skimSecondSafeTransferDynamicMem2
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) : ByteArray :=
   (UInt256.toByteArray skimSafeTransferSignatureWord).write 0
@@ -760,14 +760,14 @@ theorem skimSecondSafeTransferDynamicMem2_mload64
         skimSecondSafeTransferDynamicMem2_read64 self toWord prevValue
           ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size)
 
-noncomputable def skimSecondSafeTransferDynamicMem3
+def skimSecondSafeTransferDynamicMem3
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) : ByteArray :=
   (UInt256.toByteArray (UInt256.land solcAddrMask toWord)).write 0
     (skimSecondSafeTransferDynamicMem2 self o toWord prevValue out1 out2)
     (skimSecondSafeTransferDynamicBasePtr out1 + ⟨100⟩).toNat 32
 
-noncomputable def skimSecondSafeTransferDynamicMem4
+def skimSecondSafeTransferDynamicMem4
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) (value : UInt256) : ByteArray :=
   (UInt256.toByteArray value).write 0
@@ -926,14 +926,14 @@ theorem skimSecondSafeTransferDynamicMem4_mload64
         skimSecondSafeTransferDynamicMem4_read64 self toWord prevValue value
           ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size)
 
-noncomputable def skimSecondSafeTransferDynamicMem5
+def skimSecondSafeTransferDynamicMem5
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) (value : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨68⟩ : UInt256)).write 0
     (skimSecondSafeTransferDynamicMem4 self o toWord prevValue out1 out2 value)
     (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩).toNat 32
 
-noncomputable def skimSecondSafeTransferDynamicMem6
+def skimSecondSafeTransferDynamicMem6
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) (value : UInt256) : ByteArray :=
   (UInt256.toByteArray (skimSecondSafeTransferDynamicCallPtr out1)).write 0
@@ -1030,7 +1030,7 @@ theorem skimSecondSafeTransferDynamicWordsMem4_mload_base96_same (out : ByteArra
     (skimSecondSafeTransferDynamicWordsMem4_mul32_lt out houtSize)
     (skimSecondSafeTransferDynamicWordsMem4_cover_base96 out houtSize)
 
-noncomputable def skimSecondSafeTransferDynamicWord96
+def skimSecondSafeTransferDynamicWord96
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) (value : UInt256) : UInt256 :=
   UInt256.ofNat
@@ -1094,14 +1094,14 @@ theorem skimSecondSafeTransferDynamicMem6_read64
     have hptr := skimSecondSafeTransferDynamicBasePtr_toNat_ge out1 hout1Size
     omega
 
-noncomputable def skimSecondSafeTransferDynamicPatchedSelectorWord
+def skimSecondSafeTransferDynamicPatchedSelectorWord
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) (value : UInt256) : UInt256 :=
   UInt256.lor (UInt256.shiftLeft transferSelectorWord ⟨224⟩)
     (UInt256.land skimSafeTransferSelectorPatchMask
       (skimSecondSafeTransferDynamicWord96 self o toWord prevValue out1 out2 value))
 
-noncomputable def skimSecondSafeTransferDynamicMem7
+def skimSecondSafeTransferDynamicMem7
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) (value : UInt256) : ByteArray :=
   (UInt256.toByteArray
@@ -1443,7 +1443,7 @@ theorem skimSecondSafeTransferDynamicMem7_mload_base96
         (out1 := out1) (out2 := out2) (value := value)
         ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size)
 
-noncomputable def skimSecondSafeTransferDynamicCallMem0
+def skimSecondSafeTransferDynamicCallMem0
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) (value : UInt256) : ByteArray :=
   (UInt256.toByteArray
@@ -1452,7 +1452,7 @@ noncomputable def skimSecondSafeTransferDynamicCallMem0
       (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicCallPtr out1).toNat 32
 
-noncomputable def skimSecondSafeTransferDynamicCopyWord1
+def skimSecondSafeTransferDynamicCopyWord1
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) (value : UInt256) : UInt256 :=
   UInt256.ofNat
@@ -1460,7 +1460,7 @@ noncomputable def skimSecondSafeTransferDynamicCopyWord1
       ((skimSecondSafeTransferDynamicCallMem0 self o toWord prevValue out1 out2 value)
         |>.readWithPadding (skimSecondSafeTransferDynamicBasePtr out1 + ⟨128⟩).toNat 32))
 
-noncomputable def skimSecondSafeTransferDynamicCallMem1
+def skimSecondSafeTransferDynamicCallMem1
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) (value : UInt256) : ByteArray :=
   (UInt256.toByteArray
@@ -1469,7 +1469,7 @@ noncomputable def skimSecondSafeTransferDynamicCallMem1
       (skimSecondSafeTransferDynamicCallMem0 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicRetPtr out1).toNat 32
 
-noncomputable def skimSecondSafeTransferDynamicTailSourceWord
+def skimSecondSafeTransferDynamicTailSourceWord
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) (value : UInt256) : UInt256 :=
   UInt256.ofNat
@@ -1477,7 +1477,7 @@ noncomputable def skimSecondSafeTransferDynamicTailSourceWord
       ((skimSecondSafeTransferDynamicCallMem1 self o toWord prevValue out1 out2 value)
         |>.readWithPadding (skimSecondSafeTransferDynamicBasePtr out1 + ⟨160⟩).toNat 32))
 
-noncomputable def skimSecondSafeTransferDynamicTailWord
+def skimSecondSafeTransferDynamicTailWord
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) (value : UInt256) : UInt256 :=
   UInt256.lor
@@ -1486,7 +1486,7 @@ noncomputable def skimSecondSafeTransferDynamicTailWord
       (UInt256.lnot skimSafeTransferTailMask))
     (UInt256.land ⟨0⟩ skimSafeTransferTailMask)
 
-noncomputable def skimSecondSafeTransferDynamicCallMem2
+def skimSecondSafeTransferDynamicCallMem2
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256)
     (out1 out2 : ByteArray) (value : UInt256) : ByteArray :=
   (UInt256.toByteArray

@@ -20,13 +20,13 @@ namespace TinyImmutable
 set_option maxHeartbeats 1500000
 set_option maxRecDepth 10000
 
-noncomputable def tinyCtorTail (owner : AccountAddress) (scale : UInt256)
+def tinyCtorTail (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) : ByteArray :=
   (EVM.Word.toBytesBE (EVM.word (↑owner : Nat))).toByteArray ++
     ((EVM.Word.toBytesBE scale).toByteArray ++
       (EVM.Word.toBytesBE useScale.toUInt256).toByteArray)
 
-noncomputable def tinyCtorCode (owner : AccountAddress) (scale : UInt256)
+def tinyCtorCode (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) : ByteArray :=
   tinyImmutableCreationBytecode ++ tinyCtorTail owner scale useScale
 
@@ -129,7 +129,7 @@ theorem write_from_gap_eq (src base : ByteArray) (srcAddr destAddr len : Nat)
     (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
     (hge : base.size ≤ destAddr) (hgap : destAddr - base.size < USize.size) :
     src.write srcAddr base destAddr len =
-      base ++ ffi.ByteArray.zeroes (destAddr - base.size) ++
+      base ++ ByteArray.zeroes (destAddr - base.size) ++
         src.extract srcAddr (srcAddr + len) := by
   apply ByteArray.ext
   unfold ByteArray.write
@@ -139,17 +139,17 @@ theorem write_from_gap_eq (src base : ByteArray) (srcAddr destAddr len : Nat)
   simp only [hcopy, htail, ByteArray.data_copySlice, ByteArray.data_append,
     ByteArray.data_extract, show (destAddr - base.size) =
       destAddr - base.size from rfl]
-  have hpz : (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
+  have hpz : (ByteArray.zeroes (destAddr - base.size)).data.size =
       destAddr - base.size := by
-    rw [show (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ffi.ByteArray.zeroes (destAddr - base.size)).size from rfl,
+    rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
+          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
       ByteArray_zeroes_size]
   have hDsz : (base.data ++
-        (ffi.ByteArray.zeroes (destAddr - base.size)).data).size =
+        (ByteArray.zeroes (destAddr - base.size)).data).size =
       destAddr := by
     rw [Array.size_append, hpz, show base.data.size = base.size from rfl]
     omega
-  rw [show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
     rw [zeroes_zero (n := (0)) (by rfl)]
     rfl]
   simp only [Array.append_empty, Nat.add_zero]
@@ -158,7 +158,7 @@ theorem write_from_gap_eq (src base : ByteArray) (srcAddr destAddr len : Nat)
     omega]
   rw [Array.extract_eq_self_of_le (by rw [hDsz])]
   rw [show (base.data ++
-        (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract
+        (ByteArray.zeroes (destAddr - base.size)).data).extract
           (destAddr + len) = (#[] : Array UInt8) from by
     apply Array.extract_eq_empty_of_le
     rw [hDsz]
@@ -196,15 +196,15 @@ theorem tinyCtorCode_runtime_window (owner : AccountAddress) (scale : UInt256)
     202 (202 + 432) (by rw [tinyImmutableCreationBytecode_size])]
   exact tinyCtorCreation_runtime_window
 
-noncomputable def tinyCtorFreePtrMem : ByteArray :=
+def tinyCtorFreePtrMem : ByteArray :=
   writeWord ByteArray.empty 64 (⟨192⟩ : UInt256)
 
-noncomputable def tinyCtorAbiMem (owner : AccountAddress) (scale : UInt256)
+def tinyCtorAbiMem (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) : ByteArray :=
-  tinyCtorFreePtrMem ++ ffi.ByteArray.zeroes 96 ++
+  tinyCtorFreePtrMem ++ ByteArray.zeroes 96 ++
     tinyCtorTail owner scale useScale
 
-noncomputable def tinyCtorAbiFreeMem (owner : AccountAddress) (scale : UInt256)
+def tinyCtorAbiFreeMem (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) : ByteArray :=
   writeWord (tinyCtorAbiMem owner scale useScale) 64 (⟨288⟩ : UInt256)
 
@@ -268,14 +268,14 @@ theorem tinyCtorAbiMem_read192 (owner : AccountAddress) (scale : UInt256)
   rw [readWithPadding_eq_extract' _ 192 32 (by norm_num) (by norm_num)
     (by rw [tinyCtorAbiMem_size]; norm_num)]
   unfold tinyCtorAbiMem tinyCtorTail
-  rw [extract_append_right_window (tinyCtorFreePtrMem ++ ffi.ByteArray.zeroes 96)
+  rw [extract_append_right_window (tinyCtorFreePtrMem ++ ByteArray.zeroes 96)
     ((EVM.Word.toBytesBE (EVM.word (↑owner : Nat))).toByteArray ++
       ((EVM.Word.toBytesBE scale).toByteArray ++
         (EVM.Word.toBytesBE useScale.toUInt256).toByteArray)) 192 (192 + 32) (by
       rw [ByteArray.size_append, tinyCtorFreePtrMem_size, ByteArray_zeroes_size])]
-  rw [show 192 - (tinyCtorFreePtrMem ++ ffi.ByteArray.zeroes 96).size = 0 by
+  rw [show 192 - (tinyCtorFreePtrMem ++ ByteArray.zeroes 96).size = 0 by
     rw [ByteArray.size_append, tinyCtorFreePtrMem_size, ByteArray_zeroes_size]]
-  rw [show 192 + 32 - (tinyCtorFreePtrMem ++ ffi.ByteArray.zeroes 96).size =
+  rw [show 192 + 32 - (tinyCtorFreePtrMem ++ ByteArray.zeroes 96).size =
       32 by
     rw [ByteArray.size_append, tinyCtorFreePtrMem_size, ByteArray_zeroes_size]]
   rw [extract_append_left (EVM.Word.toBytesBE (EVM.word (↑owner : Nat))).toByteArray
@@ -293,7 +293,7 @@ theorem tinyCtorAbiMem_read224 (owner : AccountAddress) (scale : UInt256)
   rw [readWithPadding_eq_extract' _ 224 32 (by norm_num) (by norm_num)
     (by rw [tinyCtorAbiMem_size]; norm_num)]
   unfold tinyCtorAbiMem tinyCtorTail
-  set preBuf := tinyCtorFreePtrMem ++ ffi.ByteArray.zeroes 96
+  set preBuf := tinyCtorFreePtrMem ++ ByteArray.zeroes 96
   have hpreBuf : preBuf.size = 192 := by
     unfold preBuf
     rw [ByteArray.size_append, tinyCtorFreePtrMem_size, ByteArray_zeroes_size]
@@ -325,7 +325,7 @@ theorem tinyCtorAbiMem_read256 (owner : AccountAddress) (scale : UInt256)
   rw [readWithPadding_eq_extract' _ 256 32 (by norm_num) (by norm_num)
     (by rw [tinyCtorAbiMem_size])]
   unfold tinyCtorAbiMem tinyCtorTail
-  set preBuf := tinyCtorFreePtrMem ++ ffi.ByteArray.zeroes 96
+  set preBuf := tinyCtorFreePtrMem ++ ByteArray.zeroes 96
   have hpreBuf : preBuf.size = 192 := by
     unfold preBuf
     rw [ByteArray.size_append, tinyCtorFreePtrMem_size, ByteArray_zeroes_size]
@@ -457,16 +457,16 @@ theorem write0_eq_extract_from_of_base_le (src base : ByteArray) (srcAddr len : 
     simpa using hbase]
   simp
 
-noncomputable def tinyCtorOwnerMem (owner : AccountAddress) (scale : UInt256)
+def tinyCtorOwnerMem (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) : ByteArray :=
   writeWord (tinyCtorAbiFreeMem owner scale useScale) 128 (EVM.word (↑owner : Nat))
 
-noncomputable def tinyCtorDecodedMem (owner : AccountAddress) (scale : UInt256)
+def tinyCtorDecodedMem (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) : ByteArray :=
   if useScale then writeWord (tinyCtorOwnerMem owner scale useScale) 160 scale
   else tinyCtorOwnerMem owner scale useScale
 
-noncomputable def tinyCtorPatchedRuntime (owner : AccountAddress) (scale : UInt256) :
+def tinyCtorPatchedRuntime (owner : AccountAddress) (scale : UInt256) :
     ByteArray :=
   writeCascade tinyImmutableBytecode
     [ (186, scale), (361, scale), (72, EVM.word (↑owner : Nat)),
@@ -584,11 +584,11 @@ theorem tinyCtorAbiMem_read160 (owner : AccountAddress) (scale : UInt256)
   unfold tinyCtorAbiMem
   rw [ByteArray.append_assoc]
   rw [extract_append_right_window tinyCtorFreePtrMem
-    (ffi.ByteArray.zeroes 96 ++ tinyCtorTail owner scale useScale)
+    (ByteArray.zeroes 96 ++ tinyCtorTail owner scale useScale)
     160 (160 + 32) (by rw [tinyCtorFreePtrMem_size]; norm_num)]
   rw [show 160 - tinyCtorFreePtrMem.size = 64 by rw [tinyCtorFreePtrMem_size]]
   rw [show 160 + 32 - tinyCtorFreePtrMem.size = 96 by rw [tinyCtorFreePtrMem_size]]
-  rw [extract_append_left (ffi.ByteArray.zeroes 96)
+  rw [extract_append_left (ByteArray.zeroes 96)
     (tinyCtorTail owner scale useScale) 64 96 (by
       rw [zeroes_ofNat_size 96 (by norm_num)])]
   native_decide

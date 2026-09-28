@@ -6,11 +6,11 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
-noncomputable def safeTransferDynamicFinalMem (base : ByteArray) (ptr toWord value : UInt256) (out : ByteArray) : ByteArray :=
+def safeTransferDynamicFinalMem (base : ByteArray) (ptr toWord value : UInt256) (out : ByteArray) : ByteArray :=
   if out.size = 0 then safeTransferDynamicCallMem2 base ptr toWord value
   else solcReturnDataMem (safeTransferDynamicCallMem2 base ptr toWord value) (ptr + ⟨164⟩) out
 
-noncomputable def safeTransferDynamicFinalWords (aw ptr : UInt256) (out : ByteArray) : UInt256 :=
+def safeTransferDynamicFinalWords (aw ptr : UInt256) (out : ByteArray) : UInt256 :=
   if out.size = 0 then safeTransferDynamicCallWords2 aw ptr
   else solcReturnDataActiveWords (safeTransferDynamicCallWords2 aw ptr) (ptr + ⟨164⟩) out
 

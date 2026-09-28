@@ -736,7 +736,7 @@ theorem RD.uniswapTransferInternalAfterDebit {g : Sat256} {s0 : State}
   simpa using RD.uniswapTransferInternalAfterDebitMem
     (mem := solcFreePtrMem) h solcFreePtrMem_size hcanonSrc hbalance hov
 
-noncomputable abbrev uniswapTransferDebitHashMemOf (src : UInt256) (mem : ByteArray) :
+abbrev uniswapTransferDebitHashMemOf (src : UInt256) (mem : ByteArray) :
     ByteArray :=
   twoWordHashMem src ⟨1⟩ (twoWordHashMem src ⟨1⟩ mem)
 
@@ -746,7 +746,7 @@ theorem uniswapTransferDebitHashMemOf_size (src : UInt256) {mem : ByteArray}
   unfold uniswapTransferDebitHashMemOf
   exact twoWordHashMem_size_96 src ⟨1⟩ (twoWordHashMem_size_96 src ⟨1⟩ hmem)
 
-noncomputable abbrev uniswapTransferDebitHashMem (src : UInt256) : ByteArray :=
+abbrev uniswapTransferDebitHashMem (src : UInt256) : ByteArray :=
   uniswapTransferDebitHashMemOf src solcFreePtrMem
 
 theorem uniswapTransferDebitHashMem_size (src : UInt256) :
@@ -798,7 +798,7 @@ theorem RD.uniswapTransferInternalStoreDebit {g : Sat256} {s0 : State}
   simpa [uniswapTransferDebitHashMem] using RD.uniswapTransferInternalStoreDebitMem
     (mem := solcFreePtrMem) h solcFreePtrMem_size hperm hcanonSrc hov
 
-noncomputable abbrev uniswapTransferToHashMemOf (src toWord : UInt256) (mem : ByteArray) :
+abbrev uniswapTransferToHashMemOf (src toWord : UInt256) (mem : ByteArray) :
     ByteArray :=
   wordAt0Mem toWord (uniswapTransferDebitHashMemOf src mem)
 
@@ -808,7 +808,7 @@ theorem uniswapTransferToHashMemOf_size (src toWord : UInt256) {mem : ByteArray}
   unfold uniswapTransferToHashMemOf
   exact wordAt0Mem_size_96 toWord (uniswapTransferDebitHashMemOf_size src hmem)
 
-noncomputable abbrev uniswapTransferToHashMem (src toWord : UInt256) : ByteArray :=
+abbrev uniswapTransferToHashMem (src toWord : UInt256) : ByteArray :=
   uniswapTransferToHashMemOf src toWord solcFreePtrMem
 
 theorem uniswapTransferToHashMem_size (src toWord : UInt256) :
@@ -887,7 +887,7 @@ theorem uniswapTransferToHashMem_read0_64 (src toWord : UInt256) :
 theorem uniswapTransferToHashMemOf_slot (src toWord : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96) :
     UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC ((uniswapTransferToHashMemOf src toWord mem).readWithPadding
+        (fromByteArrayBigEndian (KEC ((uniswapTransferToHashMemOf src toWord mem).readWithPadding
           0 64))) =
       mapSlot toWord ⟨1⟩ := by
   rw [uniswapTransferToHashMemOf_read0_64 src toWord hmem]
@@ -896,7 +896,7 @@ theorem uniswapTransferToHashMemOf_slot (src toWord : UInt256) {mem : ByteArray}
 
 theorem uniswapTransferToHashMem_slot (src toWord : UInt256) :
     UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC ((uniswapTransferToHashMem src toWord).readWithPadding
+        (fromByteArrayBigEndian (KEC ((uniswapTransferToHashMem src toWord).readWithPadding
           0 64))) =
       mapSlot toWord ⟨1⟩ := by
   exact uniswapTransferToHashMemOf_slot src toWord solcFreePtrMem_size
@@ -998,7 +998,7 @@ theorem RD.uniswapTransferInternalAfterCreditCalc {g : Sat256} {s0 : State}
     RD.uniswapTransferInternalAfterCreditCalcMem
       (mem := solcFreePtrMem) h solcFreePtrMem_size hcanonTo hfit hov
 
-noncomputable abbrev uniswapTransferCreditHashMem (src toWord : UInt256) : ByteArray :=
+abbrev uniswapTransferCreditHashMem (src toWord : UInt256) : ByteArray :=
   twoWordHashMem toWord ⟨1⟩ (uniswapTransferToHashMem src toWord)
 
 theorem uniswapTransferCreditHashMem_size (src toWord : UInt256) :
@@ -1008,7 +1008,7 @@ theorem uniswapTransferCreditHashMem_size (src toWord : UInt256) :
 
 theorem uniswapTransferCreditHashMem_slot (src toWord : UInt256) :
     UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC ((uniswapTransferCreditHashMem src toWord).readWithPadding
+        (fromByteArrayBigEndian (KEC ((uniswapTransferCreditHashMem src toWord).readWithPadding
           0 64))) =
       mapSlot toWord ⟨1⟩ := by
   unfold uniswapTransferCreditHashMem
@@ -1084,7 +1084,7 @@ theorem uniswapTransferCreditHashMem_mload64 (src toWord : UInt256) :
   mloadFreePtrValue (by rw [uniswapTransferCreditHashMem_size]; decide) (by decide)
     (uniswapTransferCreditHashMem_read64 src toWord)
 
-noncomputable def uniswapTransferLogMem (src toWord value : UInt256) : ByteArray :=
+def uniswapTransferLogMem (src toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray value).write 0 (uniswapTransferCreditHashMem src toWord) 128 32
 
 theorem uniswapTransferLogMem_size (src toWord value : UInt256) :
@@ -1136,7 +1136,7 @@ theorem uniswapTransferLogMem_read128 (src toWord value : UInt256) :
         toByteArray_size])]
   rw [extract_append_right_window
       (uniswapTransferCreditHashMem src toWord ++
-        ffi.ByteArray.zeroes ((128 - (uniswapTransferCreditHashMem src toWord).size)))
+        ByteArray.zeroes ((128 - (uniswapTransferCreditHashMem src toWord).size)))
       (UInt256.toByteArray value) 128 (128 + 32) (by
         rw [ByteArray.size_append, uniswapTransferCreditHashMem_size, ByteArray_zeroes_size])]
   rw [ByteArray.size_append, uniswapTransferCreditHashMem_size, ByteArray_zeroes_size]
@@ -1147,7 +1147,7 @@ theorem uniswapTransferLogMem_read128 (src toWord value : UInt256) :
     change (UInt256.toByteArray value).size ≤ 32
     rw [toByteArray_size])
 
-noncomputable def uniswapTransferReturnMem
+def uniswapTransferReturnMem
     (src toWord logValue retValue : UInt256) : ByteArray :=
   (UInt256.toByteArray retValue).write 0
     (uniswapTransferLogMem src toWord logValue) 128 32
@@ -1243,13 +1243,13 @@ theorem RD.uniswapInternalTransferReturnTrue {g : Sat256} {s0 : State}
 def uniswapApprovalTopic : UInt256 :=
   ⟨0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925⟩
 
-noncomputable abbrev uniswapApproveHashMem (owner spender : UInt256) : ByteArray :=
+abbrev uniswapApproveHashMem (owner spender : UInt256) : ByteArray :=
   twoWordHashMem spender (mapSlot owner ⟨2⟩) (twoWordHashMem owner ⟨2⟩ solcFreePtrMem)
 
-noncomputable def uniswapApproveLogMem (owner spender value : UInt256) : ByteArray :=
+def uniswapApproveLogMem (owner spender value : UInt256) : ByteArray :=
   (UInt256.toByteArray value).write 0 (uniswapApproveHashMem owner spender) 128 32
 
-noncomputable def uniswapApproveReturnMem
+def uniswapApproveReturnMem
     (owner spender logValue retValue : UInt256) : ByteArray :=
   (UInt256.toByteArray retValue).write 0
     (uniswapApproveLogMem owner spender logValue) 128 32
@@ -1395,7 +1395,7 @@ theorem uniswapApproveLogMem_read128 (owner spender value : UInt256) :
         toByteArray_size])]
   rw [extract_append_right_window
       (uniswapApproveHashMem owner spender ++
-        ffi.ByteArray.zeroes ((128 - (uniswapApproveHashMem owner spender).size)))
+        ByteArray.zeroes ((128 - (uniswapApproveHashMem owner spender).size)))
       (UInt256.toByteArray value) 128 (128 + 32) (by
         rw [ByteArray.size_append, uniswapApproveHashMem_size, ByteArray_zeroes_size])]
   rw [ByteArray.size_append, uniswapApproveHashMem_size, ByteArray_zeroes_size]

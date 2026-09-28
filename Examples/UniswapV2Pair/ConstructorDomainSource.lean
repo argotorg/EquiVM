@@ -8,7 +8,7 @@ namespace UniswapV2Pair
 set_option maxRecDepth 2000
 
 theorem constructorTypeHashWord_bytes :
-    constructorTypeHashWord.toByteArray = ffi.KEC eip712DomainTypehashBytes := by
+    constructorTypeHashWord.toByteArray = KEC eip712DomainTypehashBytes := by
   have h := toBytesBE_keccak_uInt256OfByteArray eip712DomainTypehashBytes
   rw [← keccakSlot_eq, word_toBytesBE_eq_toByteArray_toList] at h
   apply ByteArray.ext
@@ -16,7 +16,7 @@ theorem constructorTypeHashWord_bytes :
   simpa only [byteArray_toList_eq] using h
 
 theorem evalExpr_constructor_hashLiteral {caller : Frame} (evm : EVM.State)
-    (bytes : ByteArray) (word : UInt256) (h : ffi.KEC bytes = word.toByteArray) :
+    (bytes : ByteArray) (word : UInt256) (h : KEC bytes = word.toByteArray) :
     evalExpr? config caller evm (.keccak256 (.bytesLit bytes)) =
       .ok (permitWordBytes32Value word) := by
   simp only [evalExpr?, EvalResult.bind, bind, pure, h, permitWordBytes32Value,

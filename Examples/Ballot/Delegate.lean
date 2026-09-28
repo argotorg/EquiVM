@@ -1894,19 +1894,19 @@ theorem delegateTrueSuccessState_EVMStateEquiv
 
 /-! ### Memory helpers for the sender mapping slot -/
 
-noncomputable def delegateKeyMem (senderWord : UInt256) : ByteArray :=
+def delegateKeyMem (senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray senderWord).write 0 solcFreePtrMem 0 32
 
-noncomputable def delegateHashMem (senderWord : UInt256) : ByteArray :=
+def delegateHashMem (senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0 (delegateKeyMem senderWord) 32 32
 
-noncomputable def delegateLoopKeyMem (toWord senderWord : UInt256) : ByteArray :=
+def delegateLoopKeyMem (toWord senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray toWord).write 0 (delegateHashMem senderWord) 0 32
 
-noncomputable def delegateLoopHashMem (toWord senderWord : UInt256) : ByteArray :=
+def delegateLoopHashMem (toWord senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0 (delegateLoopKeyMem toWord senderWord) 32 32
 
-noncomputable def delegateProposalBaseMem (toWord senderWord : UInt256) : ByteArray :=
+def delegateProposalBaseMem (toWord senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨2⟩ : UInt256)).write 0
     (delegateLoopHashMem toWord senderWord) 0 32
 
@@ -2074,16 +2074,16 @@ def delegateErrorSelector : UInt256 :=
 def delegateWeightStringWord : UInt256 :=
   ⟨40452771926134549143109899274521035002332574754166580779127900301869740720128⟩
 
-noncomputable def delegateWeightErrorMem0 (senderWord : UInt256) : ByteArray :=
+def delegateWeightErrorMem0 (senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray delegateErrorSelector).write 0 (delegateHashMem senderWord) 128 32
 
-noncomputable def delegateWeightErrorMem1 (senderWord : UInt256) : ByteArray :=
+def delegateWeightErrorMem1 (senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 (delegateWeightErrorMem0 senderWord) 132 32
 
-noncomputable def delegateWeightErrorMem2 (senderWord : UInt256) : ByteArray :=
+def delegateWeightErrorMem2 (senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨25⟩ : UInt256)).write 0 (delegateWeightErrorMem1 senderWord) 164 32
 
-noncomputable def delegateWeightErrorMem3 (senderWord : UInt256) : ByteArray :=
+def delegateWeightErrorMem3 (senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray delegateWeightStringWord).write 0
     (delegateWeightErrorMem2 senderWord) 196 32
 
@@ -2186,10 +2186,10 @@ def delegateVotedStringRaw : UInt256 :=
 def delegateVotedStringWord : UInt256 :=
   UInt256.shiftLeft delegateVotedStringRaw ⟨113⟩
 
-noncomputable def delegateVotedErrorMem2 (senderWord : UInt256) : ByteArray :=
+def delegateVotedErrorMem2 (senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨18⟩ : UInt256)).write 0 (delegateWeightErrorMem1 senderWord) 164 32
 
-noncomputable def delegateVotedErrorMem3 (senderWord : UInt256) : ByteArray :=
+def delegateVotedErrorMem3 (senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray delegateVotedStringWord).write 0
     (delegateVotedErrorMem2 senderWord) 196 32
 
@@ -2242,10 +2242,10 @@ theorem delegateVotedErrorMem3_mload64 (senderWord : UInt256) :
 def delegateSelfStringWord : UInt256 :=
   ⟨0x53656c662d64656c65676174696f6e20697320646973616c6c6f7765642e0000⟩
 
-noncomputable def delegateSelfErrorMem2 (senderWord : UInt256) : ByteArray :=
+def delegateSelfErrorMem2 (senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨30⟩ : UInt256)).write 0 (delegateWeightErrorMem1 senderWord) 164 32
 
-noncomputable def delegateSelfErrorMem3 (senderWord : UInt256) : ByteArray :=
+def delegateSelfErrorMem3 (senderWord : UInt256) : ByteArray :=
   (UInt256.toByteArray delegateSelfStringWord).write 0
     (delegateSelfErrorMem2 senderWord) 196 32
 
@@ -2508,7 +2508,7 @@ theorem delegateLoopHashMem_writeBase (toWord senderWord : UInt256) :
 
 theorem delegateSenderKeccakSlot (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((delegateHashMem (delegateSourceWord I)).readWithPadding 0 64)))
+        (KEC ((delegateHashMem (delegateSourceWord I)).readWithPadding 0 64)))
       = delegateSenderSlot I := by
   rw [delegateHashMem_read0_64]
   unfold delegateSenderSlot voterBase mapSlot
@@ -2518,7 +2518,7 @@ theorem delegateSenderKeccakSlot (I : ExecutionEnv) :
 
 theorem delegateVoterKeccakSlot (w : UInt256) (hcanon : w.toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((delegateHashMem w).readWithPadding 0 64)))
+        (KEC ((delegateHashMem w).readWithPadding 0 64)))
       = delegateVoterSlot w := by
   rw [delegateHashMem_read0_64]
   unfold delegateVoterSlot voterBase mapSlot
@@ -2528,7 +2528,7 @@ theorem delegateVoterKeccakSlot (w : UInt256) (hcanon : w.toNat < EVM.addressMod
 theorem delegateLoopVoterKeccakSlot (toWord senderWord : UInt256)
     (hcanon : toWord.toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((delegateLoopHashMem toWord senderWord).readWithPadding 0 64)))
+        (KEC ((delegateLoopHashMem toWord senderWord).readWithPadding 0 64)))
       = delegateVoterSlot toWord := by
   rw [delegateLoopHashMem_read0_64]
   unfold delegateVoterSlot voterBase mapSlot
@@ -2537,7 +2537,7 @@ theorem delegateLoopVoterKeccakSlot (toWord senderWord : UInt256)
 
 theorem delegateProposalsDataBaseKeccak (toWord senderWord : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((delegateProposalBaseMem toWord senderWord).readWithPadding 0 32))) =
+        (KEC ((delegateProposalBaseMem toWord senderWord).readWithPadding 0 32))) =
       proposalsDataBase := by
   rw [delegateProposalBaseMem_read0]
   unfold proposalsDataBase

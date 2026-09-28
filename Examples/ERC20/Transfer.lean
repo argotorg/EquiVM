@@ -471,7 +471,7 @@ def transferTransferTopic : UInt256 :=
 theorem balanceOfKeccakSlot_word (owner : UInt256)
     (hcanon : owner.toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((balanceOfHashMem owner).readWithPadding 0 64)))
+        (Ethereum.KEC ((balanceOfHashMem owner).readWithPadding 0 64)))
       = erc20BalanceOfSlot (.address (AccountAddress.ofNat owner.toNat)) := by
   rw [balanceOfHashMem_read0_64]
   unfold erc20BalanceOfSlot erc20MappingSlot
@@ -480,7 +480,7 @@ theorem balanceOfKeccakSlot_word (owner : UInt256)
 
 theorem transferSenderKeccakSlot (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((balanceOfHashMem (transferSenderWord I)).readWithPadding 0 64)))
+        (Ethereum.KEC ((balanceOfHashMem (transferSenderWord I)).readWithPadding 0 64)))
       = transferSenderSlotI I := by
   rw [balanceOfKeccakSlot_word (transferSenderWord I) (approveOwnerWord_canonical I)]
   unfold transferSenderSlotI transferSenderWord
@@ -489,13 +489,13 @@ theorem transferSenderKeccakSlot (I : ExecutionEnv) :
 theorem transferToKeccakSlot (I : ExecutionEnv)
     (hcanonTo : (transferToWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((balanceOfHashMem (transferToWord I)).readWithPadding 0 64)))
+        (Ethereum.KEC ((balanceOfHashMem (transferToWord I)).readWithPadding 0 64)))
       = transferToSlot I := by
   rw [balanceOfKeccakSlot_word (transferToWord I) hcanonTo]
   rfl
 
 /-- Transfer stores a balance owner key at scratch offset `0x00` before it stores base slot `0`. -/
-noncomputable def transferBalanceOwnerMem (owner : UInt256) : ByteArray :=
+def transferBalanceOwnerMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray owner).write 0 solcFreePtrMem 0 32
 
 theorem transferBalanceOwnerMem_size (owner : UInt256) :
@@ -771,7 +771,7 @@ theorem balanceOfHashMem_writeSlot_self (owner : UInt256) :
   exact ByteArray.append_assoc
 
 /-- Memory after transfer's bool-return encoder overwrites the event data word at `0x80`. -/
-noncomputable def transferReturnMem (toWord value : UInt256) : ByteArray :=
+def transferReturnMem (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0 (balanceOfReturnMem toWord value) 128 32
 
 theorem transferReturnMem_size (toWord value : UInt256) :
@@ -817,10 +817,10 @@ theorem transferReturnMem_read128 (toWord value : UInt256) :
 def transferPanicSelector : UInt256 :=
   ⟨35408467139433450592217433187231851964531694900788300625387963629091585785856⟩
 
-noncomputable def transferPanicMem0 (mem : ByteArray) : ByteArray :=
+def transferPanicMem0 (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray transferPanicSelector).write 0 mem 0 32
 
-noncomputable def transferPanicMem (mem : ByteArray) : ByteArray :=
+def transferPanicMem (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (⟨17⟩ : UInt256)).write 0 (transferPanicMem0 mem) 4 32
 
 /-- `Error(string)` selector word (`0x08c379a0`) used by Solidity `require` reverts. -/
@@ -831,18 +831,18 @@ def transferErrorSelector : UInt256 :=
 def transferInsufficientBalanceWord : UInt256 :=
   ⟨31354931781638678538084197150757782427756587561755285162078044387127265853440⟩
 
-noncomputable def transferInsufficientSelectorMem (owner : UInt256) : ByteArray :=
+def transferInsufficientSelectorMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray transferErrorSelector).write 0 (balanceOfHashMem owner) 128 32
 
-noncomputable def transferInsufficientOffsetMem (owner : UInt256) : ByteArray :=
+def transferInsufficientOffsetMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0
     (transferInsufficientSelectorMem owner) 132 32
 
-noncomputable def transferInsufficientLengthMem (owner : UInt256) : ByteArray :=
+def transferInsufficientLengthMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨27⟩ : UInt256)).write 0
     (transferInsufficientOffsetMem owner) 164 32
 
-noncomputable def transferInsufficientStringMem (owner : UInt256) : ByteArray :=
+def transferInsufficientStringMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray transferInsufficientBalanceWord).write 0
     (transferInsufficientLengthMem owner) 196 32
 

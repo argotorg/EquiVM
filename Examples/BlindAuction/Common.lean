@@ -1,4 +1,4 @@
-import Examples.BlindAuction.Trusted
+import Examples.BlindAuction.Selectors
 import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.Memory

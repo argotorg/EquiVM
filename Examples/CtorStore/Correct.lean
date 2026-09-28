@@ -177,10 +177,10 @@ theorem ctorStoreArgTail_extract (w : UInt256) :
     ctorStoreInitcode_size.symm
     (by rw [ctorStoreInitcode_size, word_toBytesBE_toByteArray_size])
 
-noncomputable def ctorStoreArgMem (w : UInt256) : ByteArray :=
+def ctorStoreArgMem (w : UInt256) : ByteArray :=
   (ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray).write 28 ByteArray.empty 0 32
 
-noncomputable def ctorStoreReturnMem (w : UInt256) : ByteArray :=
+def ctorStoreReturnMem (w : UInt256) : ByteArray :=
   (ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray).write 20 (ctorStoreArgMem w) 0 8
 
 theorem ctorStoreArgMem_read (w : UInt256) :

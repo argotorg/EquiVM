@@ -6,7 +6,7 @@ namespace UniswapV2Pair
 abbrev memoryWordActiveWords (aw offset : UInt256) : UInt256 :=
   UInt256.ofNat (MachineState.M aw.toNat offset.toNat 32)
 
-noncomputable abbrev memoryWordLoad (mem : ByteArray) (aw offset : UInt256) : UInt256 :=
+abbrev memoryWordLoad (mem : ByteArray) (aw offset : UInt256) : UInt256 :=
   if offset.toNat ≥ mem.size ∨ offset ≥ aw * ⟨32⟩ then ⟨0⟩
   else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding offset.toNat 32))
 

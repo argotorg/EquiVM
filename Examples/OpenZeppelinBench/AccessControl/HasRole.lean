@@ -206,13 +206,13 @@ theorem hasRoleRoleKeyValueToWord {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.
     readBytes_at_toList I.calldata 4 (by omega) (by decide), ← byteArray_toList_eq I.calldata]
 
 -- PROMOTE -> Common.lean: generic two-word scratch-memory helpers.
-noncomputable def accessControlWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+def accessControlWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 0 32
 
-noncomputable def accessControlWordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+def accessControlWordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 32 32
 
-noncomputable def accessControlTwoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
+def accessControlTwoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
   accessControlWordAt32Mem slot (accessControlWordAt0Mem key mem)
 
 theorem accessControlWordAt0Mem_size {mem : ByteArray} (word : UInt256)
@@ -313,20 +313,20 @@ theorem accessControlTwoWordHashMem_read0_64 {mem : ByteArray} (key slot : UInt2
       norm_num]
   rw [hleft, hright]
 
-noncomputable def hasRoleBaseHashMem (role : UInt256) : ByteArray :=
+def hasRoleBaseHashMem (role : UInt256) : ByteArray :=
   accessControlTwoWordHashMem role ⟨0⟩ solcFreePtrMem
 
-noncomputable def hasRoleBaseSlot (role : UInt256) : UInt256 :=
+def hasRoleBaseSlot (role : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((hasRoleBaseHashMem role).readWithPadding 0 64)))
+    (KEC ((hasRoleBaseHashMem role).readWithPadding 0 64)))
 
-noncomputable def hasRoleAccountMem (role account : UInt256) : ByteArray :=
+def hasRoleAccountMem (role account : UInt256) : ByteArray :=
   accessControlWordAt0Mem account (hasRoleBaseHashMem role)
 
-noncomputable def hasRoleSlotHashMem (role account : UInt256) : ByteArray :=
+def hasRoleSlotHashMem (role account : UInt256) : ByteArray :=
   accessControlWordAt32Mem (hasRoleBaseSlot role) (hasRoleAccountMem role account)
 
-noncomputable def hasRoleReturnMem (role account val : UInt256) : ByteArray :=
+def hasRoleReturnMem (role account val : UInt256) : ByteArray :=
   (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))).write 0
     (hasRoleSlotHashMem role account) 128 32
 
@@ -431,7 +431,7 @@ theorem hasRoleReturnMem_read128 (role account val : UInt256) :
         toByteArray_size])]
   rw [extract_append_right_window
       (hasRoleSlotHashMem role account ++
-        ffi.ByteArray.zeroes (128 - (hasRoleSlotHashMem role account).size))
+        ByteArray.zeroes (128 - (hasRoleSlotHashMem role account).size))
       (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))) 128 160 (by
         rw [ByteArray.size_append, hasRoleSlotHashMem_size, ByteArray_zeroes_size,
           show 128 - 96 = 32 from by norm_num])]
@@ -455,7 +455,7 @@ theorem hasRoleOuterKeccakSlot (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size)
     (hcanonAccount : (hasRoleAccountWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((hasRoleSlotHashMem (hasRoleRoleWord I) (hasRoleAccountWord I))
+        (KEC ((hasRoleSlotHashMem (hasRoleRoleWord I) (hasRoleAccountWord I))
           |>.readWithPadding 0 64)))
       = hasRoleSlot I := by
   rw [hasRoleSlotHashMem_read0_64, hasRoleBaseKeccakSlot I hsz68]
