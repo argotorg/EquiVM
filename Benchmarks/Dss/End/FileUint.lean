@@ -587,7 +587,7 @@ theorem endReachFileUintBody {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-! ### Runtime trace -/
 
-noncomputable def endFileUintLogDataMem (I : ExecutionEnv) : ByteArray :=
+def endFileUintLogDataMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (endFileUintData I)).write 0 (endRelyAuthHashMem I) 128 32
 
 theorem endFileUintLogDataMem_size (I : ExecutionEnv) :

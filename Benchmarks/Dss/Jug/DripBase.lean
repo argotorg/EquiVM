@@ -10,7 +10,7 @@ namespace Benchmarks.Dss.Jug
 abbrev dripLocals (I : ExecutionEnv) : Store :=
   (∅ : Store).insert "ilk" (.fixedBytes bytes32Width (fileDutyIlkBytes I))
 
-noncomputable abbrev dripIlkHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev dripIlkHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ solcFreePtrMem
 
 theorem dripIlkHashMem_size (I : ExecutionEnv) :
@@ -97,29 +97,29 @@ abbrev dripVatIlksArtWord (out : ByteArray) : UInt256 :=
 abbrev dripVatIlksPrevWord (out : ByteArray) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian (out.extract 32 64))
 
-noncomputable def dripVatIlksSelectorMem (mem : ByteArray) : ByteArray :=
+def dripVatIlksSelectorMem (mem : ByteArray) : ByteArray :=
   dripVatIlksSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def dripVatIlksCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def dripVatIlksCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (fileDutyIlkWord I).toByteArray.write 0 (dripVatIlksSelectorMem mem) 132 32
 
-noncomputable def dripVatIlksPostCallMem (I : ExecutionEnv) (out : ByteArray) : ByteArray :=
+def dripVatIlksPostCallMem (I : ExecutionEnv) (out : ByteArray) : ByteArray :=
   out.write 0 (dripVatIlksCalldataMem I (dripIlkHashMem I)) dripVatIlksOutPtr.toNat
     (min (⟨64⟩ : UInt256) (UInt256.ofNat out.size)).toNat
 
-noncomputable def dripVatFoldSelectorMem (mem : ByteArray) : ByteArray :=
+def dripVatFoldSelectorMem (mem : ByteArray) : ByteArray :=
   dripVatFoldSelectorShifted.toByteArray.write 0 mem dripVatFoldOutPtr.toNat 32
 
-noncomputable def dripVatFoldIlkMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def dripVatFoldIlkMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (fileDutyIlkWord I).toByteArray.write 0 (dripVatFoldSelectorMem mem)
     (dripVatFoldOutPtr + ⟨4⟩).toNat 32
 
-noncomputable def dripVatFoldVowMem (σ : AccountMap) (I : ExecutionEnv)
+def dripVatFoldVowMem (σ : AccountMap) (I : ExecutionEnv)
     (mem : ByteArray) : ByteArray :=
   (dripVowTargetWord σ I).toByteArray.write 0 (dripVatFoldIlkMem I mem)
     (dripVatFoldOutPtr + ⟨36⟩).toNat 32
 
-noncomputable def dripVatFoldCalldataMem (σ : AccountMap) (I : ExecutionEnv)
+def dripVatFoldCalldataMem (σ : AccountMap) (I : ExecutionEnv)
     (delta : UInt256) (mem : ByteArray) : ByteArray :=
   delta.toByteArray.write 0 (dripVatFoldVowMem σ I mem)
     (dripVatFoldOutPtr + ⟨68⟩).toNat 32
@@ -410,7 +410,7 @@ theorem dripVatFoldCalldataMem_mload64 (σ : AccountMap) (I : ExecutionEnv)
   exact mloadFreePtrValue (by rw [dripVatFoldCalldataMem_size σ I delta hmem]; decide)
     (by decide) (dripVatFoldCalldataMem_read64 σ I delta hmem hread64)
 
-noncomputable def dripVatFoldReturnMem (mem : ByteArray) (rate : UInt256) : ByteArray :=
+def dripVatFoldReturnMem (mem : ByteArray) (rate : UInt256) : ByteArray :=
   (UInt256.toByteArray rate).write 0 mem 128 32
 
 theorem dripVatFoldReturnMem_size {mem : ByteArray} (rate : UInt256)
@@ -523,7 +523,7 @@ theorem drip_twoWordHashMem_read0_64_of_ge64 {mem : ByteArray} (key slot : UInt2
 theorem drip_twoWordHashMem_solcMappingSlot_of_ge64 (baseSlot key : UInt256)
     {mem : ByteArray} (hmem : 64 ≤ mem.size) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   rw [drip_twoWordHashMem_read0_64_of_ge64 key baseSlot hmem]
   unfold solcMappingSlot
@@ -537,7 +537,7 @@ theorem dripVatIlksSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 96)
     native_decide
   rw [toByteArray_write_eq dripVatIlksSelectorShifted mem 128 (by omega) hgap]
   have hprefix :
-      (mem ++ ffi.ByteArray.zeroes (128 - mem.size)).size = 128 := by
+      (mem ++ ByteArray.zeroes (128 - mem.size)).size = 128 := by
     rw [ByteArray.size_append, ByteArray_zeroes_size,
       hmem]
   rw [extract_append_right_window _ _ 128 132 (by rw [hprefix]), hprefix,

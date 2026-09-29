@@ -336,7 +336,7 @@ theorem RD.jugDripVatFoldStoreRhoReturns
     exact drip_twoWordHashMem_read64_of_ge96 (fileDutyIlkWord I) (⟨1⟩ : UInt256)
       (by rw [hmem]; omega) hread64
   have hslot :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (hashMem.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (hashMem.readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) := by
     dsimp [hashMem]
     exact drip_twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256)

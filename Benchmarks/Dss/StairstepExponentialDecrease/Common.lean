@@ -317,7 +317,7 @@ theorem solcErrorStringMem2_read64 (len : UInt256) {mem : ByteArray}
       (by omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
   exact hread64
 
-noncomputable def stairstepAuthErrorMem (mem : ByteArray) : ByteArray :=
+def stairstepAuthErrorMem (mem : ByteArray) : ByteArray :=
   stairstepExponentialDecreaseBytecode.write 1287
     (solcErrorStringMem2 (⟨43⟩ : UInt256) mem) 196 43
 
@@ -528,7 +528,7 @@ theorem RD.stairstepAuthCodecopyRevertTail {g : Sat256} {s0 : State}
 
 /-! The same tail, parameterized by the string window in the deployed code. -/
 
-noncomputable def stairstepCodecopyErrorMem (offset len : UInt256)
+def stairstepCodecopyErrorMem (offset len : UInt256)
     (mem : ByteArray) : ByteArray :=
   stairstepExponentialDecreaseBytecode.write offset.toNat
     (solcErrorStringMem2 len mem) 196 len.toNat

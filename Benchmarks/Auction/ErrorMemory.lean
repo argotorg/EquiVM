@@ -5,7 +5,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Auction
 
 -- GENERALIZES the Reasoning.Solc error-string memory helpers to a second payload word.
-noncomputable def errorStringMem4 (len first second : UInt256) (mem : ByteArray) : ByteArray :=
+def errorStringMem4 (len first second : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray second).write 0 (solcErrorStringMem3 len first mem) 228 32
 
 theorem errorStringMem4_size (len first second : UInt256) {mem : ByteArray}

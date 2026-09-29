@@ -30,7 +30,7 @@ at offset `0x80`. `catBiteReachPostUrns` needs `hFree64`@64, `hRate`@160, `hSpot
 
 /-- The concrete memory `catBiteReachPostIlks` outputs at pc 1249: the `ilks` return `o` copied at
 `0x80` over the pre-call calldata scratch. -/
-noncomputable def catBiteIlksPostCallMem (I : ExecutionEnv) (o : ByteArray) : ByteArray :=
+def catBiteIlksPostCallMem (I : ExecutionEnv) (o : ByteArray) : ByteArray :=
   o.write 0 (catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem) catBiteIlksOutPtr.toNat
     (min catBiteIlksOutSize (UInt256.ofNat o.size)).toNat
 
@@ -116,7 +116,7 @@ post-ilks scratch `mem` (`196 ≤ mem.size`, free-ptr `0x80`). `catBiteReach1399
 `hFree64`@64, `hInk`@128, `hArt`@160. -/
 
 /-- The concrete memory `catBiteReachPostUrns` outputs at pc 1399. -/
-noncomputable def catBiteUrnsPostCallMem (I : ExecutionEnv) (mem o : ByteArray) : ByteArray :=
+def catBiteUrnsPostCallMem (I : ExecutionEnv) (mem o : ByteArray) : ByteArray :=
   o.write 0 (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem) (⟨128⟩ : UInt256).toNat
     (min (⟨64⟩ : UInt256) (UInt256.ofNat o.size)).toNat
 
@@ -216,7 +216,7 @@ calldata scratch `mem` (`292 ≤ mem.size`, free-ptr `0x80`). `catBiteReach2532t
 MLOAD-value if-forms `hFree8`@64 and `hId8`@128. -/
 
 /-- The concrete memory `catBiteReach2532toRet` receives at pc 2532 (`RD.catBiteKickPostCall` output). -/
-noncomputable def catBiteKickPostCallMem (urn vow tab dink : UInt256) (mem o : ByteArray) : ByteArray :=
+def catBiteKickPostCallMem (urn vow tab dink : UInt256) (mem o : ByteArray) : ByteArray :=
   o.write 0 (kickCalldataMem urn vow tab dink mem) (⟨128⟩ : UInt256).toNat
     (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat
 

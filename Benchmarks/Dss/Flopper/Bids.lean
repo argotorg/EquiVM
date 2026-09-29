@@ -496,14 +496,14 @@ theorem RD.flopperBidsStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
     simpa [solcSlotWord, hshift160, hshift208, u256_add_comm] using
       rd67.jump hd67 hret (by evm_ov)⟩
 
-noncomputable abbrev flopperBidsReturnBytes
+abbrev flopperBidsReturnBytes
     (bid lot guy tic endw : UInt256) : ByteArray :=
   UInt256.toByteArray bid ++ UInt256.toByteArray lot ++
     UInt256.toByteArray (UInt256.land guy solcAddrMask) ++
     UInt256.toByteArray (UInt256.land tic flopperUint48Mask) ++
     UInt256.toByteArray (UInt256.land endw flopperUint48Mask)
 
-noncomputable abbrev flopperBidsReturnMem
+abbrev flopperBidsReturnMem
     (scratch : ByteArray) (bid lot guy tic endw : UInt256) : ByteArray :=
   writeCascade scratch
     [ (128, bid),
@@ -519,7 +519,7 @@ theorem flopperBidsReturnBytes_size (bid lot guy tic endw : UInt256) :
 theorem flopperBidsReturnMem_eq {scratch : ByteArray}
     (bid lot guy tic endw : UInt256) (hscratch : scratch.size = 96) :
     flopperBidsReturnMem scratch bid lot guy tic endw =
-      (scratch ++ ffi.ByteArray.zeroes 32) ++
+      (scratch ++ ByteArray.zeroes 32) ++
         flopperBidsReturnBytes bid lot guy tic endw := by
   unfold flopperBidsReturnMem flopperBidsReturnBytes
   simp only [writeCascade_cons, writeCascade_nil]
@@ -527,38 +527,38 @@ theorem flopperBidsReturnMem_eq {scratch : ByteArray}
   rw [toByteArray_write_eq bid scratch 128 (by rw [hscratch]; omega)
     (by rw [hscratch]; exact lt_usize _ (by norm_num))]
   rw [show (160 : Nat) =
-      (scratch ++ ffi.ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid).size by
+      (scratch ++ ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid).size by
         simp [ByteArray.size_append, ByteArray_zeroes_size, hscratch]]
   rw [write_at_end_eq (UInt256.toByteArray lot)
-    (scratch ++ ffi.ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) 32
+    (scratch ++ ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) 32
     (by decide) (by rw [toByteArray_size])]
   rw [toByteArray_extract_all lot]
   rw [show (192 : Nat) =
-      ((scratch ++ ffi.ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
+      ((scratch ++ ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
         UInt256.toByteArray lot).size by
         simp [ByteArray.size_append, ByteArray_zeroes_size, hscratch]]
   rw [write_at_end_eq (UInt256.toByteArray (UInt256.land guy solcAddrMask))
-    ((scratch ++ ffi.ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
+    ((scratch ++ ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
       UInt256.toByteArray lot) 32 (by decide) (by rw [toByteArray_size])]
   rw [toByteArray_extract_all (UInt256.land guy solcAddrMask)]
   rw [show (224 : Nat) =
-      (((scratch ++ ffi.ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
+      (((scratch ++ ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
         UInt256.toByteArray lot) ++
         UInt256.toByteArray (UInt256.land guy solcAddrMask)).size by
         simp [ByteArray.size_append, ByteArray_zeroes_size, hscratch]]
   rw [write_at_end_eq (UInt256.toByteArray (UInt256.land tic flopperUint48Mask))
-    (((scratch ++ ffi.ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
+    (((scratch ++ ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
       UInt256.toByteArray lot) ++
       UInt256.toByteArray (UInt256.land guy solcAddrMask)) 32
     (by decide) (by rw [toByteArray_size])]
   rw [toByteArray_extract_all (UInt256.land tic flopperUint48Mask)]
   rw [show (256 : Nat) =
-      ((((scratch ++ ffi.ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
+      ((((scratch ++ ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
         UInt256.toByteArray lot) ++ UInt256.toByteArray (UInt256.land guy solcAddrMask)) ++
         UInt256.toByteArray (UInt256.land tic flopperUint48Mask)).size by
         simp [ByteArray.size_append, ByteArray_zeroes_size, hscratch]]
   rw [write_at_end_eq (UInt256.toByteArray (UInt256.land endw flopperUint48Mask))
-    ((((scratch ++ ffi.ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
+    ((((scratch ++ ByteArray.zeroes (128 - scratch.size) ++ UInt256.toByteArray bid) ++
       UInt256.toByteArray lot) ++ UInt256.toByteArray (UInt256.land guy solcAddrMask)) ++
       UInt256.toByteArray (UInt256.land tic flopperUint48Mask)) 32
     (by decide) (by rw [toByteArray_size])]
@@ -607,7 +607,7 @@ theorem flopperBidsReturnMem_read128_160 {scratch : ByteArray}
   rw [flopperBidsReturnMem_eq bid lot guy tic endw hscratch]
   rw [readWithPadding_eq_extract' _ 128 160 (by norm_num) (by norm_num) (by
     simp [ByteArray.size_append, ByteArray_zeroes_size, hscratch])]
-  exact extract_append_right' (scratch ++ ffi.ByteArray.zeroes 32)
+  exact extract_append_right' (scratch ++ ByteArray.zeroes 32)
     (flopperBidsReturnBytes bid lot guy tic endw) 128 288
     (by simp [ByteArray.size_append, ByteArray_zeroes_size, hscratch])
     (by simp [ByteArray.size_append, ByteArray_zeroes_size, hscratch])

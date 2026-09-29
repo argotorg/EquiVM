@@ -279,22 +279,22 @@ abbrev clipperTakeVatFluxSelectorWord : UInt256 :=
 abbrev clipperTakeThisWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.codeOwner.val
 
-noncomputable def clipperTakeVatFluxSelectorMem (mem : ByteArray) : ByteArray :=
+def clipperTakeVatFluxSelectorMem (mem : ByteArray) : ByteArray :=
   clipperTakeVatFluxSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def clipperTakeVatFluxIlkMem (v : ClipperImmutables)
+def clipperTakeVatFluxIlkMem (v : ClipperImmutables)
     (mem : ByteArray) : ByteArray :=
   (clipperTakeIlkWord v).toByteArray.write 0 (clipperTakeVatFluxSelectorMem mem) 132 32
 
-noncomputable def clipperTakeVatFluxThisMem (I : ExecutionEnv)
+def clipperTakeVatFluxThisMem (I : ExecutionEnv)
     (mem : ByteArray) : ByteArray :=
   (clipperTakeThisWord I).toByteArray.write 0 mem 164 32
 
-noncomputable def clipperTakeVatFluxWhoMem (who : UInt256) (mem : ByteArray) :
+def clipperTakeVatFluxWhoMem (who : UInt256) (mem : ByteArray) :
     ByteArray :=
   (UInt256.land solcAddrMask who).toByteArray.write 0 mem 196 32
 
-noncomputable def clipperTakeVatFluxCalldataMem (v : ClipperImmutables)
+def clipperTakeVatFluxCalldataMem (v : ClipperImmutables)
     (I : ExecutionEnv) (who slice : UInt256) (mem : ByteArray) : ByteArray :=
   slice.toByteArray.write 0
     (clipperTakeVatFluxWhoMem who
@@ -1193,7 +1193,7 @@ theorem RD.clipperTakeAfterMaxToMul {code : ByteArray}
   intro base lot tab slice
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem id (⟨12⟩ : UInt256) mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem id (⟨12⟩ : UInt256) mem).readWithPadding 0 64))) =
         base := by
     simpa [base] using twoWordHashMem_solcMappingSlot_of_ge (⟨12⟩ : UInt256) id hmem
   have rdHash := evm_run h with [

@@ -1,153 +1,171 @@
 import Benchmarks.Dss.Dai.Common
 
 /-!
-# Trusted Dai selector facts
+# Dai selector proofs
 
-Lean does not reduce the FFI-backed Keccak computation used by `selectorOf`.  These facts are the
-contract-local selector bytes used to connect Solm dispatch to the runtime dispatcher constants.
+The selector theorems connect Solm signatures to the runtime dispatcher constants.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM
 
 namespace Benchmarks.Dss.Dai
 
+set_option maxHeartbeats 0
+set_option maxRecDepth 1000000
+
 /-- `keccak("allowance(address,address)")[0:4] = 0xdd62ed3e`. -/
-axiom daiAllowanceSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr allowanceTransition))).extract 0 4
-      = daiSelBytes 0
+theorem daiAllowanceSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr allowanceTransition))).extract 0 4
+      = daiSelBytes 0 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, allowanceTransition, addr]; decide +kernel
 
 /-- `keccak("approve(address,uint256)")[0:4] = 0x095ea7b3`. -/
-axiom daiApproveSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr approveTransition))).extract 0 4
-      = daiSelBytes 1
+theorem daiApproveSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr approveTransition))).extract 0 4
+      = daiSelBytes 1 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, approveTransition, addr, uint256]; decide +kernel
 
 /-- `keccak("balanceOf(address)")[0:4] = 0x70a08231`. -/
-axiom daiBalanceOfSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr balanceOfTransition))).extract 0 4
-      = daiSelBytes 2
+theorem daiBalanceOfSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr balanceOfTransition))).extract 0 4
+      = daiSelBytes 2 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, balanceOfTransition, addr]; decide +kernel
 
 /-- `keccak("burn(address,uint256)")[0:4] = 0x9dc29fac`. -/
-axiom daiBurnSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr burnTransition))).extract 0 4
-      = daiSelBytes 3
+theorem daiBurnSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr burnTransition))).extract 0 4
+      = daiSelBytes 3 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, burnTransition, addr, uint256]; decide +kernel
 
 /-- `keccak("decimals()")[0:4] = 0x313ce567`. -/
-axiom daiDecimalsSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr decimalsTransition))).extract 0 4
-      = daiSelBytes 4
+theorem daiDecimalsSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr decimalsTransition))).extract 0 4
+      = daiSelBytes 4 := by decide +kernel
 
 /-- `keccak("deny(address)")[0:4] = 0x9c52a7f1`. -/
-axiom daiDenySelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr denyTransition))).extract 0 4
-      = daiSelBytes 5
+theorem daiDenySelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr denyTransition))).extract 0 4
+      = daiSelBytes 5 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, denyTransition, addr]; decide +kernel
 
 /-- `keccak("DOMAIN_SEPARATOR()")[0:4] = 0x3644e515`. -/
-axiom daiDomainSeparatorSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr domainSeparatorTransition))).extract 0 4
-      = daiSelBytes 6
+theorem daiDomainSeparatorSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr domainSeparatorTransition))).extract 0 4
+      = daiSelBytes 6 := by decide +kernel
 
 /-- `keccak("mint(address,uint256)")[0:4] = 0x40c10f19`. -/
-axiom daiMintSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr mintTransition))).extract 0 4
-      = daiSelBytes 7
+theorem daiMintSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr mintTransition))).extract 0 4
+      = daiSelBytes 7 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, mintTransition, addr, uint256]; decide +kernel
 
 /-- `keccak("move(address,address,uint256)")[0:4] = 0xbb35783b`. -/
-axiom daiMoveSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr moveTransition))).extract 0 4
-      = daiSelBytes 8
+theorem daiMoveSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr moveTransition))).extract 0 4
+      = daiSelBytes 8 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, moveTransition, addr, uint256]; decide +kernel
 
 /-- `keccak("name()")[0:4] = 0x06fdde03`. -/
-axiom daiNameSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr nameTransition))).extract 0 4
-      = daiSelBytes 9
+theorem daiNameSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr nameTransition))).extract 0 4
+      = daiSelBytes 9 := by decide +kernel
 
 /-- `keccak("nonces(address)")[0:4] = 0x7ecebe00`. -/
-axiom daiNoncesSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr noncesTransition))).extract 0 4
-      = daiSelBytes 10
+theorem daiNoncesSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr noncesTransition))).extract 0 4
+      = daiSelBytes 10 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, noncesTransition, addr]; decide +kernel
 
 /-- `keccak("permit(address,address,uint256,uint256,bool,uint8,bytes32,bytes32)")[0:4] =
     0x8fcbaf0c`. -/
-axiom daiPermitSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr permitTransition))).extract 0 4
-      = daiSelBytes 11
+theorem daiPermitSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr permitTransition))).extract 0 4
+      = daiSelBytes 11 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr,
+    ABI.elemToSigStr, ABI.intTypeToSigStr, permitTransition, addr, uint256, uint256Int,
+    boolTy, uint8, uint8Int, bytes32, bytes32Width]; decide +kernel
 
 /-- `keccak("PERMIT_TYPEHASH()")[0:4] = 0x30adf81f`. -/
-axiom daiPermitTypehashSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr permitTypehashTransition))).extract 0 4
-      = daiSelBytes 12
+theorem daiPermitTypehashSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr permitTypehashTransition))).extract 0 4
+      = daiSelBytes 12 := by decide +kernel
 
 /-- `keccak("pull(address,uint256)")[0:4] = 0xf2d5d56b`. -/
-axiom daiPullSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr pullTransition))).extract 0 4
-      = daiSelBytes 13
+theorem daiPullSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr pullTransition))).extract 0 4
+      = daiSelBytes 13 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, pullTransition, addr, uint256]; decide +kernel
 
 /-- `keccak("push(address,uint256)")[0:4] = 0xb753a98c`. -/
-axiom daiPushSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr pushTransition))).extract 0 4
-      = daiSelBytes 14
+theorem daiPushSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr pushTransition))).extract 0 4
+      = daiSelBytes 14 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, pushTransition, addr, uint256]; decide +kernel
 
 /-- `keccak("rely(address)")[0:4] = 0x65fae35e`. -/
-axiom daiRelySelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr relyTransition))).extract 0 4
-      = daiSelBytes 15
+theorem daiRelySelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr relyTransition))).extract 0 4
+      = daiSelBytes 15 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, relyTransition, addr]; decide +kernel
 
 /-- `keccak("symbol()")[0:4] = 0x95d89b41`. -/
-axiom daiSymbolSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr symbolTransition))).extract 0 4
-      = daiSelBytes 16
+theorem daiSymbolSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr symbolTransition))).extract 0 4
+      = daiSelBytes 16 := by decide +kernel
 
 /-- `keccak("totalSupply()")[0:4] = 0x18160ddd`. -/
-axiom daiTotalSupplySelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr totalSupplyTransition))).extract 0 4
-      = daiSelBytes 17
+theorem daiTotalSupplySelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr totalSupplyTransition))).extract 0 4
+      = daiSelBytes 17 := by decide +kernel
 
 /-- `keccak("transfer(address,uint256)")[0:4] = 0xa9059cbb`. -/
-axiom daiTransferSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr transferTransition))).extract 0 4
-      = daiSelBytes 18
+theorem daiTransferSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr transferTransition))).extract 0 4
+      = daiSelBytes 18 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, transferTransition, addr, uint256]; decide +kernel
 
 /-- `keccak("transferFrom(address,address,uint256)")[0:4] = 0x23b872dd`. -/
-axiom daiTransferFromSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr transferFromTransition))).extract 0 4
-      = daiSelBytes 19
+theorem daiTransferFromSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr transferFromTransition))).extract 0 4
+      = daiSelBytes 19 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, transferFromTransition, addr, uint256]; decide +kernel
 
 /-- `keccak("version()")[0:4] = 0x54fd4d50`. -/
-axiom daiVersionSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr versionTransition))).extract 0 4
-      = daiSelBytes 20
+theorem daiVersionSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr versionTransition))).extract 0 4
+      = daiSelBytes 20 := by decide +kernel
 
 /-- `keccak("wards(address)")[0:4] = 0xbf353dbb`. -/
-axiom daiWardsSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr wardsTransition))).extract 0 4
-      = daiSelBytes 21
+theorem daiWardsSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr wardsTransition))).extract 0 4
+      = daiSelBytes 21 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, wardsTransition, addr]; decide +kernel
 
-/-! Constructor-domain keccak constants.
-
-These are the opaque `ffi.KEC` facts needed to connect the constructor bytecode's literal
-EIP-712 domain hash constants to the Solm source expression.
--/
+/-! Constructor-domain Keccak constants connecting the bytecode's EIP-712 literals to Solm. -/
 
 /-- `keccak("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")`.
 -/
-axiom daiCtorTypeHashBytes_trusted :
+theorem daiCtorTypeHashBytes_trusted :
     UInt256.toByteArray
         ⟨63076024560530113402979550242307453568063438748328787417531900361828837441551⟩ =
       (List.toByteArray
-        (ByteArray.toList (ffi.KEC
+        (ByteArray.toList (KEC
           (String.toByteArray
-            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"))))
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")))) := by
+  decide +kernel
 
 /-- `keccak("Dai Stablecoin")`. -/
-axiom daiCtorNameHashBytes_trusted :
+theorem daiCtorNameHashBytes_trusted :
     UInt256.toByteArray
         ⟨5011453723555049355537294002125739255229783229906611468909068372094763020939⟩ =
-      (List.toByteArray (ByteArray.toList (ffi.KEC (String.toByteArray "Dai Stablecoin"))))
+      (List.toByteArray (ByteArray.toList (KEC (String.toByteArray "Dai Stablecoin")))) := by
+  decide +kernel
 
 /-- `keccak("1")`. -/
-axiom daiCtorVersionHashBytes_trusted :
+theorem daiCtorVersionHashBytes_trusted :
     UInt256.toByteArray
         ⟨90743482286830539503240959006302832933333810038750515972785732718729991261126⟩ =
-      (List.toByteArray (ByteArray.toList (ffi.KEC (String.toByteArray "1"))))
+      (List.toByteArray (ByteArray.toList (KEC (String.toByteArray "1")))) := by
+  decide +kernel
 
 end Benchmarks.Dss.Dai

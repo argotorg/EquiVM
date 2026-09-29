@@ -1255,7 +1255,7 @@ theorem flopperDentX_toGuyGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ (dentIdWord I) solcFreePtrMem
   have rd1723 := rd1722pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1403,7 +1403,7 @@ theorem flopperDentX_toTicGtGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memTic.readWithPadding 0 64))) = base := by
+        (KEC (memTic.readWithPadding 0 64))) = base := by
     simpa [base, memTic, memGuy, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memGuy
   have rd1821 := rd1820pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1513,7 +1513,7 @@ theorem flopperDentX_ticFinished {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memTicZero.readWithPadding 0 64))) = base := by
+        (KEC (memTicZero.readWithPadding 0 64))) = base := by
     simpa [base, memTicZero, memTic, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd1863 := rd1862pre.keccak256 0 base (UInt256.ofNat 3)

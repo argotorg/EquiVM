@@ -182,7 +182,7 @@ private theorem keyValueToWord_ilksArgKey_aux {I : ExecutionEnv}
     exact hto.symm
   simpa [ilksArgKey, bytes32Width, hbytes] using keyValueToWord_fixedBytes32 (ilksArgWord I)
 
-noncomputable def solcScratchReturn2Mem
+def solcScratchReturn2Mem
     (scratch : ByteArray) (first second : UInt256) : ByteArray :=
   (UInt256.toByteArray second).write 0 (solcScratchReturnMem scratch first) 160 32
 

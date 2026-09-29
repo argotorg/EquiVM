@@ -71,7 +71,7 @@ abbrev clipperKickInitializedMap (σ : AccountMap) (I : ExecutionEnv) : AccountM
   sstoreAccountMap I.codeOwner (clipperKickSalesLotMap σ I)
     (clipperKickPackedSlot σ I) (clipperKickPackedWord σ I)
 
-noncomputable abbrev clipperKickSalesHashMem
+abbrev clipperKickSalesHashMem
     (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (clipperKickIdWord σ I) ⟨12⟩ (clipperRelyAuthHashMem I)
 
@@ -210,7 +210,7 @@ theorem clipperKickX_initializeAuction {cA σ I} {g : Sat256} {s0 : State}
     (by native_decide) (by evm_ov)
   have hsalesSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperKickSalesHashMem σ I).readWithPadding 0 64))) =
+          (KEC ((clipperKickSalesHashMem σ I).readWithPadding 0 64))) =
         clipperKickSalesBaseSlot σ I := by
     simpa [clipperKickSalesHashMem, clipperKickSalesBaseSlot] using
       twoWordHashMem_solcMappingSlot (⟨12⟩ : UInt256) (clipperKickIdWord σ I)

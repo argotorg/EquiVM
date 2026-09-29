@@ -393,7 +393,7 @@ def clipperSalesReturnWrites (pos tab lot usr tic top : UInt256) : List (Nat × 
   [(128, pos), (160, tab), (192, lot), (224, UInt256.land usr solcAddrMask),
     (256, tic), (288, top)]
 
-noncomputable def clipperSalesReturnMem
+def clipperSalesReturnMem
     (scratch : ByteArray) (pos tab lot usr tic top : UInt256) : ByteArray :=
   writeCascade scratch (clipperSalesReturnWrites pos tab lot usr tic top)
 

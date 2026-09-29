@@ -7,6 +7,8 @@ set_option maxHeartbeats 0
 
 namespace Benchmarks.Dss.Vat
 
+attribute [local irreducible] Ethereum.KEC
+
 theorem RD.vatHealSinSubUnderflow
     {cA gh bl σ σ₀ A I} {g sel rad : UInt256} {k C : ℕ}
     (rd : RD vatBytecode I (Sat256.ofUInt256 g)
@@ -38,7 +40,7 @@ theorem RD.vatHealSinSubUnderflow
     raw swap1 (by native_decide) (by evm_ov)]
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem).readWithPadding 0 64))) =
         solcMappingSlot ⟨6⟩ (healSourceWord I) :=
     twoWordHashMem_solcMappingSlot ⟨6⟩ (healSourceWord I) solcFreePtrMem_size
   have rd6439 := rd6438pre.keccak256 0 (solcMappingSlot ⟨6⟩ (healSourceWord I))
@@ -102,7 +104,7 @@ theorem RD.vatHealSinSubSuccess
     raw swap1 (by native_decide) (by evm_ov)]
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem).readWithPadding 0 64))) =
         solcMappingSlot ⟨6⟩ (healSourceWord I) :=
     twoWordHashMem_solcMappingSlot ⟨6⟩ (healSourceWord I) solcFreePtrMem_size
   have rd6439 := rd6438pre.keccak256 0 (solcMappingSlot ⟨6⟩ (healSourceWord I))
@@ -196,7 +198,7 @@ theorem RD.vatHealDaiLoaded
     (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
   have hsinHash :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC (((twoWordHashMem (healSourceWord I) ⟨6⟩
+          (KEC (((twoWordHashMem (healSourceWord I) ⟨6⟩
             (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem))).readWithPadding 0 64))) =
         solcMappingSlot ⟨6⟩ (healSourceWord I) := by
     exact twoWordHashMem_solcMappingSlot ⟨6⟩ (healSourceWord I)
@@ -240,7 +242,7 @@ theorem RD.vatHealDaiLoaded
       (twoWordHashMem_size_96 (healSourceWord I) ⟨6⟩ solcFreePtrMem_size)
   have hdaiHash :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC (daiMem.readWithPadding 0 64))) =
+          (KEC (daiMem.readWithPadding 0 64))) =
         solcMappingSlot ⟨5⟩ (healSourceWord I) := by
     exact wordAt32Mem_solcMappingSlot_of_read0 (healSourceWord I) ⟨5⟩ hdaiMemSize hdaiRead0
   have rd6486 := rd6485.keccak256 0 (solcMappingSlot ⟨5⟩ (healSourceWord I))
@@ -400,7 +402,7 @@ theorem RD.vatHealViceLoaded
         (twoWordHashMem_size_96 (healSourceWord I) ⟨6⟩ solcFreePtrMem_size))
   have hdaiHash :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC (daiHashMem.readWithPadding 0 64))) =
+          (KEC (daiHashMem.readWithPadding 0 64))) =
         solcMappingSlot ⟨5⟩ (healSourceWord I) := by
     dsimp [daiHashMem]
     exact twoWordHashMem_solcMappingSlot ⟨5⟩ (healSourceWord I) hdaiMemSize

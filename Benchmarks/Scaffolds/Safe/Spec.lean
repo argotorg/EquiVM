@@ -12,7 +12,7 @@ observes successful return values, storage/world effects, and revert-vs-success 
 logs or revert payloads.  The fallback and receive entrypoints are modeled explicitly.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace Benchmarks.Safe
 
@@ -179,7 +179,7 @@ def storageDecls : List StorageDecl :=
     { name := "_rawStorage", ty := .mapping (.int uint256Int) uint256St } ]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def modulesSlot (module : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord module) ⟨1⟩

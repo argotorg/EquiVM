@@ -6,7 +6,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Auction
 
 -- LIBRARY CANDIDATE: two ABI words written at the free cursor for an event payload.
-noncomputable def pairEventMem (mem : ByteArray) (ptr first second : UInt256) : ByteArray :=
+def pairEventMem (mem : ByteArray) (ptr first second : UInt256) : ByteArray :=
   writeWord (writeWord mem ptr.toNat first) (ptr.toNat + 32) second
 
 def pairEventWords (aw ptr : UInt256) : UInt256 :=

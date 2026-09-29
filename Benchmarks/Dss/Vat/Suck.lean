@@ -1853,7 +1853,7 @@ theorem RD.vatSuckSinLoadToAdd
     exact solcAddrMask_clean (suckUMaskedWord_canonical I)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (suckUMaskedWord I) ⟨6⟩ memAuth).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (suckUMaskedWord I) ⟨6⟩ memAuth).readWithPadding 0 64))) =
         solcMappingSlot ⟨6⟩ (suckUMaskedWord I) :=
     twoWordHashMem_solcMappingSlot ⟨6⟩ (suckUMaskedWord I) hmem
   have rd6283pre := evm_run h with [
@@ -1985,7 +1985,7 @@ theorem RD.vatSuckSinStore
     exact solcAddrMask_clean (suckUMaskedWord_canonical I)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (suckUMaskedWord I) ⟨6⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (suckUMaskedWord I) ⟨6⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨6⟩ (suckUMaskedWord I) :=
     twoWordHashMem_solcMappingSlot ⟨6⟩ (suckUMaskedWord I) hmem
   have hslotEq : solcMappingSlot ⟨6⟩ (suckUMaskedWord I) = suckSinSlot I := by
@@ -2065,7 +2065,7 @@ theorem RD.vatSuckDaiLoadToAdd
     solcAddrMask_clean (suckVMaskedWord_canonical I)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (suckVMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (suckVMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨5⟩ (suckVMaskedWord I) :=
     twoWordHashMem_solcMappingSlot ⟨5⟩ (suckVMaskedWord I) hmem
   have rd6342pre := evm_run h with [
@@ -2187,7 +2187,7 @@ theorem RD.vatSuckDaiStore
     exact solcAddrMask_clean (suckVMaskedWord_canonical I)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (suckVMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (suckVMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨5⟩ (suckVMaskedWord I) :=
     twoWordHashMem_solcMappingSlot ⟨5⟩ (suckVMaskedWord I) hmem
   have hslotEq : solcMappingSlot ⟨5⟩ (suckVMaskedWord I) = suckDaiSlot I := by

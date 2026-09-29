@@ -1383,24 +1383,24 @@ theorem flipperSolcErrorStringMem2_read64 (len : UInt256) {mem : ByteArray}
       (by omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
   exact hread64
 
-noncomputable def flipperAuthScratchMem (mem : ByteArray) : ByteArray :=
+def flipperAuthScratchMem (mem : ByteArray) : ByteArray :=
   flipperBytecode.write flipperAuthErrorOffset.toNat
     (solcErrorStringMem2 flipperAuthErrorLen mem) 0 32
 
-noncomputable def flipperAuthOriginalWord (mem : ByteArray) : UInt256 :=
+def flipperAuthOriginalWord (mem : ByteArray) : UInt256 :=
   UInt256.ofNat
     (fromByteArrayBigEndian
       ((solcErrorStringMem2 flipperAuthErrorLen mem).readWithPadding 0 32))
 
-noncomputable def flipperAuthScratchWord (mem : ByteArray) : UInt256 :=
+def flipperAuthScratchWord (mem : ByteArray) : UInt256 :=
   UInt256.ofNat
     (fromByteArrayBigEndian ((flipperAuthScratchMem mem).readWithPadding 0 32))
 
-noncomputable def flipperAuthRestoredMem (mem : ByteArray) : ByteArray :=
+def flipperAuthRestoredMem (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (flipperAuthOriginalWord mem)).write 0
     (flipperAuthScratchMem mem) 0 32
 
-noncomputable def flipperAuthCodecopyErrorMem (mem : ByteArray) : ByteArray :=
+def flipperAuthCodecopyErrorMem (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (flipperAuthScratchWord mem)).write 0
     (flipperAuthRestoredMem mem) 196 32
 

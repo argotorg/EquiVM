@@ -45,7 +45,7 @@ theorem rawEthAllocated {I g s0 z amount recipient ret R mem aw ptr out acc k C}
 def rawReturnPtr (ptr : UInt256) (out : ByteArray) : UInt256 :=
   if out.size = 0 then ptr else bytesAllocPtr ptr out.size
 
-noncomputable def rawReturnMem (mem out : ByteArray) (ptr : UInt256) : ByteArray :=
+def rawReturnMem (mem out : ByteArray) (ptr : UInt256) : ByteArray :=
   if out.size = 0 then mem else bytesAllocMem mem out ptr
 
 def rawReturnWords (aw ptr : UInt256) (out : ByteArray) : UInt256 :=

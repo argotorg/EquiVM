@@ -10197,7 +10197,7 @@ set_option maxHeartbeats 1000000 in
 theorem forkWordAt0Mem_twoWordHashMem_solcMappingSlot (baseSlot key oldKey : UInt256)
     {mem : ByteArray} (hmem : mem.size = 96) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((wordAt0Mem key (twoWordHashMem oldKey baseSlot mem)).readWithPadding 0 64))) =
+        (KEC ((wordAt0Mem key (twoWordHashMem oldKey baseSlot mem)).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   have hbase : (twoWordHashMem oldKey baseSlot mem).size = 96 :=
     twoWordHashMem_size_96 oldKey baseSlot hmem
@@ -10422,7 +10422,7 @@ theorem RD.vatForkSrcInkSubSuccess
   have rd4743pre := rd4742.dup4 (by native_decide) (by evm_ov)
   have hurnsIlk :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (forkIlkWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (forkIlkWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
         urnsIlk := by
     simpa [urnsIlk] using twoWordHashMem_solcMappingSlot ⟨3⟩ (forkIlkWord I) hmem
   have rd4744 := rd4743pre.keccak256 0 urnsIlk (UInt256.ofNat 3)
@@ -10464,7 +10464,7 @@ theorem RD.vatForkSrcInkSubSuccess
     twoWordHashMem_size_96 (forkIlkWord I) ⟨3⟩ hmem
   have hsrcBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (forkSrcMaskedWord I) urnsIlk
+          (KEC ((twoWordHashMem (forkSrcMaskedWord I) urnsIlk
             (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem)).readWithPadding 0 64))) =
         srcBase := by
     simpa [srcBase] using
@@ -10498,7 +10498,7 @@ theorem RD.vatForkSrcInkSubSuccess
     twoWordHashMem_size_96 (forkSrcMaskedWord I) urnsIlk hmemIlk3
   have hdstBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((wordAt0Mem (forkDstMaskedWord I)
+          (KEC ((wordAt0Mem (forkDstMaskedWord I)
             (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
               (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem))).readWithPadding 0 64))) =
         dstBase := by
@@ -10534,7 +10534,7 @@ theorem RD.vatForkSrcInkSubSuccess
     wordAt0Mem_size_96 (forkDstMaskedWord I) hmemSrcBase
   have hilkBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (forkIlkWord I) ⟨2⟩
+          (KEC ((twoWordHashMem (forkIlkWord I) ⟨2⟩
             (wordAt0Mem (forkDstMaskedWord I)
               (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
                 (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem)))).readWithPadding 0 64))) =
@@ -10617,7 +10617,7 @@ theorem RD.vatForkSrcInkSubRevert
   have rd4743pre := rd4742.dup4 (by native_decide) (by evm_ov)
   have hurnsIlk :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (forkIlkWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (forkIlkWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
         urnsIlk := by
     simpa [urnsIlk] using twoWordHashMem_solcMappingSlot ⟨3⟩ (forkIlkWord I) hmem
   have rd4744 := rd4743pre.keccak256 0 urnsIlk (UInt256.ofNat 3)
@@ -10659,7 +10659,7 @@ theorem RD.vatForkSrcInkSubRevert
     twoWordHashMem_size_96 (forkIlkWord I) ⟨3⟩ hmem
   have hsrcBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (forkSrcMaskedWord I) urnsIlk
+          (KEC ((twoWordHashMem (forkSrcMaskedWord I) urnsIlk
             (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem)).readWithPadding 0 64))) =
         srcBase := by
     simpa [srcBase] using
@@ -10693,7 +10693,7 @@ theorem RD.vatForkSrcInkSubRevert
     twoWordHashMem_size_96 (forkSrcMaskedWord I) urnsIlk hmemIlk3
   have hdstBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((wordAt0Mem (forkDstMaskedWord I)
+          (KEC ((wordAt0Mem (forkDstMaskedWord I)
             (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
               (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem))).readWithPadding 0 64))) =
         dstBase := by
@@ -10729,7 +10729,7 @@ theorem RD.vatForkSrcInkSubRevert
     wordAt0Mem_size_96 (forkDstMaskedWord I) hmemSrcBase
   have hilkBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (forkIlkWord I) ⟨2⟩
+          (KEC ((twoWordHashMem (forkIlkWord I) ⟨2⟩
             (wordAt0Mem (forkDstMaskedWord I)
               (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
                 (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem)))).readWithPadding 0 64))) =
@@ -11921,7 +11921,7 @@ theorem RD.vatForkWishLoadedAt6557
     raw dup5 (by native_decide) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem usr ⟨1⟩ mem)
+          (KEC ((twoWordHashMem usr ⟨1⟩ mem)
             |>.readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ usr :=
     twoWordHashMem_solcMappingSlot ⟨1⟩ usr hmem
@@ -11964,7 +11964,7 @@ theorem RD.vatForkWishLoadedAt6557
     raw dup3 (by native_decide) (by evm_ov)]
   have houter :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (hopeSourceWord I)
+          (KEC ((twoWordHashMem (hopeSourceWord I)
             (solcMappingSlot ⟨1⟩ usr)
             (twoWordHashMem usr ⟨1⟩ mem)).readWithPadding 0 64))) =
         slot := by

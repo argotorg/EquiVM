@@ -2010,7 +2010,7 @@ theorem flapperKickX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -2059,7 +2059,7 @@ theorem flapperKickX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     RDrev flapperBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -2568,7 +2568,7 @@ theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memStore.readWithPadding 0 64))) = base := by
+        (KEC (memStore.readWithPadding 0 64))) = base := by
     simpa [base, memStore, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id (relyAuthHashMem I)
   have rd4262 := rd4261pre.keccak256 0 base (UInt256.ofNat 3)
@@ -2882,7 +2882,7 @@ theorem flapperKickX_toMoveSetupStart {cA σ I} {g : Sat256} {s0 : State}
     raw dup3 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memEndStore.readWithPadding 0 64))) = base := by
+        (KEC (memEndStore.readWithPadding 0 64))) = base := by
     simpa [base, memEndStore, memStore, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStore
   have rd4335 := rd4333pre.keccak256 0 base (UInt256.ofNat 3)

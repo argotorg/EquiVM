@@ -96,44 +96,44 @@ abbrev dealCatSelectorWord : UInt256 :=
 abbrev dealVatFluxSelectorWord : UInt256 :=
   UInt256.shiftLeft (⟨814276375⟩ : UInt256) ⟨225⟩
 
-noncomputable abbrev dealHashMem0 (I : ExecutionEnv) : ByteArray :=
+abbrev dealHashMem0 (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (dealId I) ⟨1⟩ solcFreePtrMem
 
-noncomputable abbrev dealHashMem1 (I : ExecutionEnv) : ByteArray :=
+abbrev dealHashMem1 (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (dealId I) ⟨1⟩ (dealHashMem0 I)
 
-noncomputable abbrev dealHashMem2 (I : ExecutionEnv) : ByteArray :=
+abbrev dealHashMem2 (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (dealId I) ⟨1⟩ (dealHashMem1 I)
 
-noncomputable abbrev dealCatHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev dealCatHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (dealId I) ⟨1⟩ (dealHashMem2 I)
 
-noncomputable abbrev dealCatSelectorMem (I : ExecutionEnv) : ByteArray :=
+abbrev dealCatSelectorMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray dealCatSelectorWord).write 0 (dealCatHashMem I) 128 32
 
-noncomputable abbrev dealCatCallMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev dealCatCallMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (bidTabWord (dealId I) σ I)).write 0
     (dealCatSelectorMem I) 132 32
 
-noncomputable abbrev dealVatHashMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev dealVatHashMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (dealId I) ⟨1⟩ (dealCatCallMem σ I)
 
-noncomputable abbrev dealVatFluxSelectorMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev dealVatFluxSelectorMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray dealVatFluxSelectorWord).write 0 (dealVatHashMem σ I) 128 32
 
-noncomputable abbrev dealVatFluxIlkMem (σmem σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev dealVatFluxIlkMem (σmem σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (flipperSlotWord ⟨3⟩ σ I)).write 0
     (dealVatFluxSelectorMem σmem I) 132 32
 
-noncomputable abbrev dealVatFluxThisMem (σmem σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev dealVatFluxThisMem (σmem σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (EVM.word I.codeOwner.val)).write 0
     (dealVatFluxIlkMem σmem σ I) 164 32
 
-noncomputable abbrev dealVatFluxGuyMem (σmem σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev dealVatFluxGuyMem (σmem σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (bidGuyWord (dealId I) σ I)).write 0
     (dealVatFluxThisMem σmem σ I) 196 32
 
-noncomputable abbrev dealVatFluxCallMem (σmem σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev dealVatFluxCallMem (σmem σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (bidLotWord (dealId I) σ I)).write 0
     (dealVatFluxGuyMem σmem σ I) 228 32
 
@@ -361,7 +361,7 @@ theorem dealVatHashMem_read0_64 (σ : AccountMap) (I : ExecutionEnv) :
 
 theorem dealVatHashMem_solcMappingSlot (σ : AccountMap) (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((dealVatHashMem σ I).readWithPadding 0 64))) =
+        (KEC ((dealVatHashMem σ I).readWithPadding 0 64))) =
       solcMappingSlot ⟨1⟩ (dealId I) := by
   rw [dealVatHashMem_read0_64]
   unfold solcMappingSlot
@@ -546,7 +546,7 @@ theorem dealVatFluxCallMem_read (σmem σ : AccountMap) (I : ExecutionEnv) :
   rw [dealVatFluxCallMem_read196, dealVatFluxCallMem_read228]
   simp [ByteArray.append_assoc]
 
-noncomputable abbrev dealDeleteHashMem (σmem σ : AccountMap) (I : ExecutionEnv)
+abbrev dealDeleteHashMem (σmem σ : AccountMap) (I : ExecutionEnv)
     (id : UInt256) : ByteArray :=
   writeCascade (dealVatFluxCallMem σmem σ I) [(0, id), (32, ⟨1⟩)]
 
@@ -599,7 +599,7 @@ theorem dealDeleteHashMem_read0_64 (σmem σ : AccountMap) (I : ExecutionEnv)
 theorem dealDeleteHashMem_solcMappingSlot (σmem σ : AccountMap) (I : ExecutionEnv)
     (id : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((dealDeleteHashMem σmem σ I id).readWithPadding 0 64))) =
+        (KEC ((dealDeleteHashMem σmem σ I id).readWithPadding 0 64))) =
       solcMappingSlot ⟨1⟩ id := by
   rw [dealDeleteHashMem_read0_64]
   unfold solcMappingSlot
@@ -1810,7 +1810,7 @@ theorem flipperDealX_vatDeleteReturn {I} {g : Sat256} {s0 : State}
   let clear4 := setAddressOffset0Word old4 ⟨0⟩
   let σ4 := sstoreAccountMap I.codeOwner σ3 (base + ⟨4⟩) clear4
   have hslot :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (memHash.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (memHash.readWithPadding 0 64))) =
         base := by
     simpa [memHash, base, bidBaseOfWord] using
       dealDeleteHashMem_solcMappingSlot σmem σcall I id

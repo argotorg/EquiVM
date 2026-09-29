@@ -1,126 +1,151 @@
 import Benchmarks.Dss.Vat.Common
 
 /-!
-# MakerDAO/Sky DSS Vat trusted selector facts
+# MakerDAO/Sky DSS Vat selector proofs
 
-Lean does not reduce the FFI-backed Keccak computation used by `selectorOf`. These facts are the
-contract-local selector bytes used to connect Solm dispatch to the runtime dispatcher constants.
+The selector theorems connect Solm signatures to the runtime dispatcher constants.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM
 
 namespace Benchmarks.Dss.Vat
 
-axiom LineSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr LineTransition))).extract 0 4 =
-      vatSelBytes 0
+set_option maxHeartbeats 0
+set_option maxRecDepth 1000000
 
-axiom cageSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr cageTransition))).extract 0 4 =
-      vatSelBytes 1
+theorem LineSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr LineTransition))).extract 0 4 =
+      vatSelBytes 0 := by decide +kernel
 
-axiom canSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr canTransition))).extract 0 4 =
-      vatSelBytes 2
+theorem cageSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr cageTransition))).extract 0 4 =
+      vatSelBytes 1 := by decide +kernel
 
-axiom daiSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr daiTransition))).extract 0 4 =
-      vatSelBytes 3
+theorem canSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr canTransition))).extract 0 4 =
+      vatSelBytes 2 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, canTransition, addr]; decide +kernel
 
-axiom debtSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr debtTransition))).extract 0 4 =
-      vatSelBytes 4
+theorem daiSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr daiTransition))).extract 0 4 =
+      vatSelBytes 3 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, daiTransition, addr]; decide +kernel
 
-axiom denySelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr denyTransition))).extract 0 4 =
-      vatSelBytes 5
+theorem debtSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr debtTransition))).extract 0 4 =
+      vatSelBytes 4 := by decide +kernel
 
-axiom fileIlkSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr fileIlkTransition))).extract 0 4 =
-      vatSelBytes 6
+theorem denySelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr denyTransition))).extract 0 4 =
+      vatSelBytes 5 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, denyTransition, addr]; decide +kernel
 
-axiom fileLineSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr fileLineTransition))).extract 0 4 =
-      vatSelBytes 7
+theorem fileIlkSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr fileIlkTransition))).extract 0 4 =
+      vatSelBytes 6 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, fileIlkTransition, bytes32, uint256]; decide +kernel
 
-axiom fluxSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr fluxTransition))).extract 0 4 =
-      vatSelBytes 8
+theorem fileLineSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr fileLineTransition))).extract 0 4 =
+      vatSelBytes 7 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, fileLineTransition, bytes32, uint256]; decide +kernel
 
-axiom foldSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr foldTransition))).extract 0 4 =
-      vatSelBytes 9
+theorem fluxSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr fluxTransition))).extract 0 4 =
+      vatSelBytes 8 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, fluxTransition, bytes32, addr, uint256]; decide +kernel
 
-axiom forkSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr forkTransition))).extract 0 4 =
-      vatSelBytes 10
+theorem foldSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr foldTransition))).extract 0 4 =
+      vatSelBytes 9 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, foldTransition, bytes32, addr, int256]; decide +kernel
 
-axiom frobSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr frobTransition))).extract 0 4 =
-      vatSelBytes 11
+theorem forkSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr forkTransition))).extract 0 4 =
+      vatSelBytes 10 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, forkTransition, bytes32, addr, int256]; decide +kernel
 
-axiom gemSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr gemTransition))).extract 0 4 =
-      vatSelBytes 12
+theorem frobSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr frobTransition))).extract 0 4 =
+      vatSelBytes 11 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, frobTransition, bytes32, addr, int256]; decide +kernel
 
-axiom grabSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr grabTransition))).extract 0 4 =
-      vatSelBytes 13
+theorem gemSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr gemTransition))).extract 0 4 =
+      vatSelBytes 12 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, gemTransition, bytes32, addr]; decide +kernel
 
-axiom healSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr healTransition))).extract 0 4 =
-      vatSelBytes 14
+theorem grabSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr grabTransition))).extract 0 4 =
+      vatSelBytes 13 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, grabTransition, bytes32, addr, int256]; decide +kernel
 
-axiom hopeSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr hopeTransition))).extract 0 4 =
-      vatSelBytes 15
+theorem healSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr healTransition))).extract 0 4 =
+      vatSelBytes 14 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, healTransition, uint256]; decide +kernel
 
-axiom ilksSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr ilksTransition))).extract 0 4 =
-      vatSelBytes 16
+theorem hopeSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr hopeTransition))).extract 0 4 =
+      vatSelBytes 15 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, hopeTransition, addr]; decide +kernel
 
-axiom initSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr initTransition))).extract 0 4 =
-      vatSelBytes 17
+theorem ilksSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr ilksTransition))).extract 0 4 =
+      vatSelBytes 16 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ilksTransition, bytes32]; decide +kernel
 
-axiom liveSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr liveTransition))).extract 0 4 =
-      vatSelBytes 18
+theorem initSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr initTransition))).extract 0 4 =
+      vatSelBytes 17 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, initTransition, bytes32]; decide +kernel
 
-axiom moveSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr moveTransition))).extract 0 4 =
-      vatSelBytes 19
+theorem liveSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr liveTransition))).extract 0 4 =
+      vatSelBytes 18 := by decide +kernel
 
-axiom nopeSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr nopeTransition))).extract 0 4 =
-      vatSelBytes 20
+theorem moveSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr moveTransition))).extract 0 4 =
+      vatSelBytes 19 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, moveTransition, addr, uint256]; decide +kernel
 
-axiom relySelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr relyTransition))).extract 0 4 =
-      vatSelBytes 21
+theorem nopeSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr nopeTransition))).extract 0 4 =
+      vatSelBytes 20 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, nopeTransition, addr]; decide +kernel
 
-axiom sinSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr sinTransition))).extract 0 4 =
-      vatSelBytes 22
+theorem relySelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr relyTransition))).extract 0 4 =
+      vatSelBytes 21 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, relyTransition, addr]; decide +kernel
 
-axiom slipSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr slipTransition))).extract 0 4 =
-      vatSelBytes 23
+theorem sinSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr sinTransition))).extract 0 4 =
+      vatSelBytes 22 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, sinTransition, addr]; decide +kernel
 
-axiom suckSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr suckTransition))).extract 0 4 =
-      vatSelBytes 24
+theorem slipSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr slipTransition))).extract 0 4 =
+      vatSelBytes 23 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, slipTransition, bytes32, addr, int256]; decide +kernel
 
-axiom urnsSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr urnsTransition))).extract 0 4 =
-      vatSelBytes 25
+theorem suckSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr suckTransition))).extract 0 4 =
+      vatSelBytes 24 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, suckTransition, addr, uint256]; decide +kernel
 
-axiom viceSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr viceTransition))).extract 0 4 =
-      vatSelBytes 26
+theorem urnsSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr urnsTransition))).extract 0 4 =
+      vatSelBytes 25 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, urnsTransition, bytes32, addr]; decide +kernel
 
-axiom wardsSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr wardsTransition))).extract 0 4 =
-      vatSelBytes 27
+theorem viceSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr viceTransition))).extract 0 4 =
+      vatSelBytes 26 := by decide +kernel
+
+theorem wardsSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr wardsTransition))).extract 0 4 =
+      vatSelBytes 27 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, wardsTransition, addr]; decide +kernel
 
 end Benchmarks.Dss.Vat

@@ -325,7 +325,7 @@ theorem RD.solcIlksStruct5Getter {code : ByteArray} {g : Sat256} {s0 : State}
 abbrev ilksReturn5Writes (art rate spot line dust : UInt256) : List (Nat × UInt256) :=
   [(128, art), (160, rate), (192, spot), (224, line), (256, dust)]
 
-noncomputable def solcScratchReturn5Mem
+def solcScratchReturn5Mem
     (scratch : ByteArray) (art rate spot line dust : UInt256) : ByteArray :=
   writeCascade scratch (ilksReturn5Writes art rate spot line dust)
 

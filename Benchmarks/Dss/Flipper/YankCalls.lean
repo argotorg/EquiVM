@@ -220,7 +220,7 @@ theorem yankVatMoveSelectorWord_prefix :
     (UInt256.toByteArray yankVatMoveSelectorWord).extract 0 4 = moveSelector := by
   native_decide
 
-noncomputable abbrev yankMoveHashMem (σmem σflux : AccountMap) (I : ExecutionEnv)
+abbrev yankMoveHashMem (σmem σflux : AccountMap) (I : ExecutionEnv)
     (id : UInt256) : ByteArray :=
   writeCascade (yankVatFluxCallMem σmem σflux I) [(0, id), (32, ⟨1⟩)]
 
@@ -284,13 +284,13 @@ theorem yankMoveHashMem_read0_64 (σmem σflux : AccountMap) (I : ExecutionEnv)
 theorem yankMoveHashMem_solcMappingSlot (σmem σflux : AccountMap) (I : ExecutionEnv)
     (id : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((yankMoveHashMem σmem σflux I id).readWithPadding 0 64))) =
+        (KEC ((yankMoveHashMem σmem σflux I id).readWithPadding 0 64))) =
       solcMappingSlot ⟨1⟩ id := by
   rw [yankMoveHashMem_read0_64]
   unfold solcMappingSlot
   exact mappingSlot_single id ⟨1⟩
 
-noncomputable abbrev yankVatMoveCallMem (σmem σflux σ : AccountMap) (I : ExecutionEnv) :
+abbrev yankVatMoveCallMem (σmem σflux σ : AccountMap) (I : ExecutionEnv) :
     ByteArray :=
   writeCascade (yankMoveHashMem σmem σflux I (yankId I))
     [(128, yankVatMoveSelectorWord),
@@ -1612,7 +1612,7 @@ theorem flipperYankX_moveCallSuccessToDeleteStart {I} {g : Sat256} {s0 : State}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd1635⟩
 
-noncomputable abbrev yankDeleteHashMem (σmem σflux σ : AccountMap) (I : ExecutionEnv)
+abbrev yankDeleteHashMem (σmem σflux σ : AccountMap) (I : ExecutionEnv)
     (id : UInt256) : ByteArray :=
   writeCascade (yankVatMoveCallMem σmem σflux σ I) [(0, id), (32, ⟨1⟩)]
 
@@ -1669,7 +1669,7 @@ theorem yankDeleteHashMem_read0_64 (σmem σflux σ : AccountMap) (I : Execution
 theorem yankDeleteHashMem_solcMappingSlot (σmem σflux σ : AccountMap) (I : ExecutionEnv)
     (id : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((yankDeleteHashMem σmem σflux σ I id).readWithPadding 0 64))) =
+        (KEC ((yankDeleteHashMem σmem σflux σ I id).readWithPadding 0 64))) =
       solcMappingSlot ⟨1⟩ id := by
   rw [yankDeleteHashMem_read0_64]
   unfold solcMappingSlot
@@ -1702,7 +1702,7 @@ theorem flipperYankX_deleteReturn {I} {g : Sat256} {s0 : State}
   let clear4 := setAddressOffset0Word old4 ⟨0⟩
   let σ4 := sstoreAccountMap I.codeOwner σ3 (base + ⟨4⟩) clear4
   have hslot :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (memHash.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (memHash.readWithPadding 0 64))) =
         base := by
     simpa [memHash, base, bidBaseOfWord] using
       yankDeleteHashMem_solcMappingSlot σmem σflux σcall I id

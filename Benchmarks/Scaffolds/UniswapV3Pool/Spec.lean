@@ -16,7 +16,7 @@ library stack those transitions call. Events and fallback/receive dispatch remai
 outside this benchmark surface.
 -/
 
-open Solm ABI Benchmarks.UniswapV3Pool.Immutables
+open Solm ABI Ethereum Benchmarks.UniswapV3Pool.Immutables
 
 namespace Benchmarks.UniswapV3Pool
 
@@ -245,7 +245,7 @@ def structs : List StructDecl :=
     observationStructDecl ]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def ticksBase (tick : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord tick) ⟨5⟩

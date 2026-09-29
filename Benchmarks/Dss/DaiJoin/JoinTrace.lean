@@ -31,16 +31,16 @@ abbrev joinMoveSelectorPlainWord : UInt256 := ⟨0xbb35783b⟩
 abbrev joinMoveSelectorShiftedWord : UInt256 :=
   UInt256.shiftLeft joinMoveSelectorPlainWord ⟨224⟩
 
-noncomputable def joinMoveSelectorMem (mem : ByteArray) : ByteArray :=
+def joinMoveSelectorMem (mem : ByteArray) : ByteArray :=
   joinMoveSelectorShiftedWord.toByteArray.write 0 mem 128 32
 
-noncomputable def joinMoveThisMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def joinMoveThisMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (UInt256.ofNat I.codeOwner.val).toByteArray.write 0 (joinMoveSelectorMem mem) 132 32
 
-noncomputable def joinMoveUsrMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def joinMoveUsrMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (joinUsrMaskedWord I).toByteArray.write 0 (joinMoveThisMem I mem) 164 32
 
-noncomputable def joinMoveCalldataMem (I : ExecutionEnv) (rad : UInt256)
+def joinMoveCalldataMem (I : ExecutionEnv) (rad : UInt256)
     (mem : ByteArray) : ByteArray :=
   rad.toByteArray.write 0 (joinMoveUsrMem I mem) 196 32
 
@@ -241,13 +241,13 @@ abbrev joinBurnSelectorPlainWord : UInt256 := ⟨0x9dc29fac⟩
 abbrev joinBurnSelectorShiftedWord : UInt256 :=
   UInt256.shiftLeft joinBurnSelectorSeedWord ⟨226⟩
 
-noncomputable def joinBurnSelectorMem (mem : ByteArray) : ByteArray :=
+def joinBurnSelectorMem (mem : ByteArray) : ByteArray :=
   joinBurnSelectorShiftedWord.toByteArray.write 0 mem 128 32
 
-noncomputable def joinBurnSenderMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def joinBurnSenderMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (solcSourceWord I).toByteArray.write 0 (joinBurnSelectorMem mem) 132 32
 
-noncomputable def joinBurnCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def joinBurnCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (joinWadWord I).toByteArray.write 0 (joinBurnSenderMem I mem) 164 32
 
 theorem joinBurnSelectorMem_size {mem : ByteArray} (hmem : mem.size = 228) :
@@ -302,7 +302,7 @@ theorem joinBurnCalldataMem_read64 (I : ExecutionEnv) {mem : ByteArray}
 abbrev joinEventSignatureWord : UInt256 :=
   ⟨0xb4e09949657f21548b58afe74e7b86cd2295da5ff1598ae1e5faecb1cf19ca95⟩
 
-noncomputable def joinJoinEventMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def joinJoinEventMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (joinWadWord I).toByteArray.write 0 mem 128 32
 
 theorem joinJoinEventMem_size (I : ExecutionEnv) {mem : ByteArray} (hmem : mem.size = 228) :

@@ -38,10 +38,10 @@ theorem stairstep_ctor_params_nil : contract.ctor.params = [] := rfl
 abbrev stairstepCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
   solcMappingSlot ⟨0⟩ (solcSourceWord I)
 
-noncomputable def stairstepCtorWardsHashMem (I : ExecutionEnv) : ByteArray :=
+def stairstepCtorWardsHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem
 
-noncomputable def stairstepCtorReturnMem (I : ExecutionEnv) : ByteArray :=
+def stairstepCtorReturnMem (I : ExecutionEnv) : ByteArray :=
   exponentialDecreaseCreationBytecode.write 89 (stairstepCtorWardsHashMem I) 0 1321
 
 theorem stairstepCtorCallerWardsSlot_eq (I : ExecutionEnv) :
@@ -61,7 +61,7 @@ theorem stairstepCtorWardsHashMem_read64 (I : ExecutionEnv) :
 
 theorem stairstepCtorWardsHashSlot (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((stairstepCtorWardsHashMem I).readWithPadding 0 64))) =
+        (KEC ((stairstepCtorWardsHashMem I).readWithPadding 0 64))) =
       stairstepCtorCallerWardsSlot I := by
   simpa [stairstepCtorWardsHashMem, stairstepCtorCallerWardsSlot] using
     twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (solcSourceWord I)

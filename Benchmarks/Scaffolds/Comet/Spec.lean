@@ -12,7 +12,7 @@ The current runtime target is solc's unpatched runtime template.  Immutable read
 centralized through `Comet.Immutables`, whose values match that template bytecode.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 open Benchmarks.CompoundIII.Comet.Immutables (CometImmutables)
 
@@ -212,7 +212,7 @@ def storageDecls : List StorageDecl :=
 def structs : List StructDecl := [LiquidatorPointsStructDecl, TotalsCollateralStructDecl, UserBasicStructDecl, UserCollateralStructDecl]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def slotAdd (slot : Ethereum.UInt256) (n : Nat) : Ethereum.UInt256 :=
   slot + Ethereum.UInt256.ofNat n

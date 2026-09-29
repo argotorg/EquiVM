@@ -71,15 +71,15 @@ abbrev biteUrnsSelectorShifted : UInt256 :=
   UInt256.shiftLeft ⟨151596951⟩ ⟨226⟩
 
 /-- Free-pointer scratch with the `urns` selector word written at offset `128`. -/
-noncomputable def biteUrnsSelectorMem (mem : ByteArray) : ByteArray :=
+def biteUrnsSelectorMem (mem : ByteArray) : ByteArray :=
   biteUrnsSelectorShifted.toByteArray.write 0 mem 128 32
 
 /-- ... plus `ilk` written at offset `132`. -/
-noncomputable def biteUrnsIlkMem (ilkW : UInt256) (mem : ByteArray) : ByteArray :=
+def biteUrnsIlkMem (ilkW : UInt256) (mem : ByteArray) : ByteArray :=
   ilkW.toByteArray.write 0 (biteUrnsSelectorMem mem) 132 32
 
 /-- ... plus `urn` written at offset `164`: the complete `urns(bytes32,address)` calldata. -/
-noncomputable def biteUrnsCalldataMem (ilkW urnW : UInt256) (mem : ByteArray) : ByteArray :=
+def biteUrnsCalldataMem (ilkW urnW : UInt256) (mem : ByteArray) : ByteArray :=
   urnW.toByteArray.write 0 (biteUrnsIlkMem ilkW mem) 164 32
 
 theorem biteUrnsSelectorMem_size {mem : ByteArray} (hmem : 196 ≤ mem.size) :

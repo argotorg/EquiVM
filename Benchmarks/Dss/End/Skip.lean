@@ -74,15 +74,15 @@ def endSkipStoreCatIlk (I : ExecutionEnv) (catOut : ByteArray) : Store :=
 def endSkipStoreFlip (I : ExecutionEnv) (catOut : ByteArray) : Store :=
   (endSkipStoreCatIlk I catOut).insert "flip" (.address (endSkipCatIlkFlipAddr catOut))
 
-noncomputable def endSkipCatIlksBaseMem (I : ExecutionEnv) : ByteArray :=
+def endSkipCatIlksBaseMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (endSkipIlkWord I) ⟨12⟩ solcFreePtrMem
 
-noncomputable def endSkipCatIlksCalldataMem (I : ExecutionEnv) : ByteArray :=
+def endSkipCatIlksCalldataMem (I : ExecutionEnv) : ByteArray :=
   endFlowVatIlksCalldataMem I (endSkipCatIlksBaseMem I)
 
 abbrev endSkipCatIlksOutSize : UInt256 := ⟨96⟩
 
-noncomputable def endSkipCatIlksPostCallMem (I : ExecutionEnv) (catOut : ByteArray) :
+def endSkipCatIlksPostCallMem (I : ExecutionEnv) (catOut : ByteArray) :
     ByteArray :=
   catOut.write 0 (endSkipCatIlksCalldataMem I) endFlowVatIlksOutPtr.toNat
     (min endSkipCatIlksOutSize.toNat catOut.size)
@@ -99,11 +99,11 @@ def endSkipStoreRate (I : ExecutionEnv) (catOut vatOut : ByteArray) : Store :=
   (endSkipStoreVatIlk I catOut vatOut).insert "rate"
     (.int (Int.ofNat (endFlowVatIlkRateWord vatOut).toNat))
 
-noncomputable def endSkipVatIlksCalldataMem (I : ExecutionEnv) (catOut : ByteArray) :
+def endSkipVatIlksCalldataMem (I : ExecutionEnv) (catOut : ByteArray) :
     ByteArray :=
   endFlowVatIlksCalldataMem I (endSkipCatIlksPostCallMem I catOut)
 
-noncomputable def endSkipVatIlksPostCallMem (I : ExecutionEnv)
+def endSkipVatIlksPostCallMem (I : ExecutionEnv)
     (catOut vatOut : ByteArray) : ByteArray :=
   vatOut.write 0 (endSkipVatIlksCalldataMem I catOut) endFlowVatIlksOutPtr.toNat
     (min endFlowVatIlksOutSize.toNat vatOut.size)
@@ -113,17 +113,17 @@ abbrev endSkipBidsSelectorShifted : UInt256 :=
   ⟨0x4423c5f100000000000000000000000000000000000000000000000000000000⟩
 abbrev endSkipBidsOutSize : UInt256 := ⟨256⟩
 
-noncomputable def endSkipBidsSelectorMem (I : ExecutionEnv)
+def endSkipBidsSelectorMem (I : ExecutionEnv)
     (catOut vatOut : ByteArray) : ByteArray :=
   endSkipBidsSelectorShifted.toByteArray.write 0
     (endSkipVatIlksPostCallMem I catOut vatOut) endFlowVatIlksOutPtr.toNat 32
 
-noncomputable def endSkipBidsCalldataMem (I : ExecutionEnv)
+def endSkipBidsCalldataMem (I : ExecutionEnv)
     (catOut vatOut : ByteArray) : ByteArray :=
   (endSkipIdWord I).toByteArray.write 0 (endSkipBidsSelectorMem I catOut vatOut)
     (endFlowVatIlksOutPtr + ⟨4⟩).toNat 32
 
-noncomputable def endSkipBidsPostCallMem (I : ExecutionEnv)
+def endSkipBidsPostCallMem (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   bidOut.write 0 (endSkipBidsCalldataMem I catOut vatOut) endFlowVatIlksOutPtr.toNat
     (min endSkipBidsOutSize.toNat bidOut.size)
@@ -283,7 +283,7 @@ def endSkipStoreGrab (σ : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : Store :=
   (endSkipStoreArtNew σ I catOut vatOut bidOut).insert "_grab" (collapseReturns [])
 
-noncomputable def endSkipSuck1CalldataMem (σ : AccountMap) (I : ExecutionEnv)
+def endSkipSuck1CalldataMem (σ : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeCascade (endSkipBidsPostCallMem I catOut vatOut bidOut)
     [ (128, endSkipSuckSelectorShifted),
@@ -291,12 +291,12 @@ noncomputable def endSkipSuck1CalldataMem (σ : AccountMap) (I : ExecutionEnv)
       (164, endPackVowWord σ I),
       (196, endSkipTabWord bidOut) ]
 
-noncomputable def endSkipSuck1PostCallMem (σ : AccountMap) (I : ExecutionEnv)
+def endSkipSuck1PostCallMem (σ : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut ret : ByteArray) : ByteArray :=
   ret.write 0 (endSkipSuck1CalldataMem σ I catOut vatOut bidOut)
     endSkipSuckOutPtr.toNat (min endSkipSuckOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endSkipSuck2CalldataMem (σ : AccountMap) (I : ExecutionEnv)
+def endSkipSuck2CalldataMem (σ : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeCascade (endSkipSuck1PostCallMem σ I catOut vatOut bidOut ByteArray.empty)
     [ (128, endSkipSuckSelectorShifted),
@@ -304,12 +304,12 @@ noncomputable def endSkipSuck2CalldataMem (σ : AccountMap) (I : ExecutionEnv)
       (164, endSkipThisWord I),
       (196, endSkipBidWord bidOut) ]
 
-noncomputable def endSkipSuck2PostCallMem (σ : AccountMap) (I : ExecutionEnv)
+def endSkipSuck2PostCallMem (σ : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut ret : ByteArray) : ByteArray :=
   ret.write 0 (endSkipSuck2CalldataMem σ I catOut vatOut bidOut)
     endSkipSuckOutPtr.toNat (min endSkipSuckOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endSkipSuck2CalldataMemFor (σmem σcall : AccountMap)
+def endSkipSuck2CalldataMemFor (σmem σcall : AccountMap)
     (I : ExecutionEnv) (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeCascade (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut ByteArray.empty)
     [ (128, endSkipSuckSelectorShifted),
@@ -317,69 +317,69 @@ noncomputable def endSkipSuck2CalldataMemFor (σmem σcall : AccountMap)
       (164, endSkipThisWord I),
       (196, endSkipBidWord bidOut) ]
 
-noncomputable def endSkipSuck2PostCallMemFor (σmem σcall : AccountMap)
+def endSkipSuck2PostCallMemFor (σmem σcall : AccountMap)
     (I : ExecutionEnv) (catOut vatOut bidOut ret : ByteArray) : ByteArray :=
   ret.write 0 (endSkipSuck2CalldataMemFor σmem σcall I catOut vatOut bidOut)
     endSkipSuckOutPtr.toNat (min endSkipSuckOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endSkipHopeCalldataMem (σ : AccountMap) (I : ExecutionEnv)
+def endSkipHopeCalldataMem (σ : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeCascade (endSkipSuck2PostCallMem σ I catOut vatOut bidOut ByteArray.empty)
     [ (128, endSkipHopeSelectorShifted),
       (132, endSkipCatIlkFlipTargetWord catOut) ]
 
-noncomputable def endSkipHopePostCallMem (σ : AccountMap) (I : ExecutionEnv)
+def endSkipHopePostCallMem (σ : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut ret : ByteArray) : ByteArray :=
   ret.write 0 (endSkipHopeCalldataMem σ I catOut vatOut bidOut)
     endSkipHopeOutPtr.toNat (min endSkipHopeOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endSkipHopeCalldataMemFor (σmem σcall : AccountMap)
+def endSkipHopeCalldataMemFor (σmem σcall : AccountMap)
     (I : ExecutionEnv) (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeCascade (endSkipSuck2PostCallMemFor σmem σcall I catOut vatOut bidOut ByteArray.empty)
     [ (128, endSkipHopeSelectorShifted),
       (132, endSkipCatIlkFlipTargetWord catOut) ]
 
-noncomputable def endSkipHopePostCallMemFor (σmem σcall : AccountMap)
+def endSkipHopePostCallMemFor (σmem σcall : AccountMap)
     (I : ExecutionEnv) (catOut vatOut bidOut ret : ByteArray) : ByteArray :=
   ret.write 0 (endSkipHopeCalldataMemFor σmem σcall I catOut vatOut bidOut)
     endSkipHopeOutPtr.toNat (min endSkipHopeOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endSkipYankCalldataMem (σ : AccountMap) (I : ExecutionEnv)
+def endSkipYankCalldataMem (σ : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeCascade (endSkipHopePostCallMem σ I catOut vatOut bidOut ByteArray.empty)
     [ (128, endSkipYankSelectorShifted), (132, endSkipIdWord I) ]
 
-noncomputable def endSkipYankPostCallMem (σ : AccountMap) (I : ExecutionEnv)
+def endSkipYankPostCallMem (σ : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut ret : ByteArray) : ByteArray :=
   ret.write 0 (endSkipYankCalldataMem σ I catOut vatOut bidOut)
     endSkipYankOutPtr.toNat (min endSkipYankOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endSkipYankCalldataMemFor (σmem σcall : AccountMap)
+def endSkipYankCalldataMemFor (σmem σcall : AccountMap)
     (I : ExecutionEnv) (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeCascade (endSkipHopePostCallMemFor σmem σcall I catOut vatOut bidOut ByteArray.empty)
     [ (128, endSkipYankSelectorShifted), (132, endSkipIdWord I) ]
 
-noncomputable def endSkipYankPostCallMemFor (σmem σcall : AccountMap)
+def endSkipYankPostCallMemFor (σmem σcall : AccountMap)
     (I : ExecutionEnv) (catOut vatOut bidOut ret : ByteArray) : ByteArray :=
   ret.write 0 (endSkipYankCalldataMemFor σmem σcall I catOut vatOut bidOut)
     endSkipYankOutPtr.toNat (min endSkipYankOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endSkipArtHashMem (σ : AccountMap) (I : ExecutionEnv)
+def endSkipArtHashMem (σ : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   twoWordHashMem (endSkipIlkWord I) ⟨14⟩
     (endSkipYankPostCallMem σ I catOut vatOut bidOut ByteArray.empty)
 
-noncomputable def endSkipArtStoreHashMem (σ : AccountMap) (I : ExecutionEnv)
+def endSkipArtStoreHashMem (σ : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   twoWordHashMem (endSkipIlkWord I) ⟨14⟩
     (endSkipArtHashMem σ I catOut vatOut bidOut)
 
-noncomputable def endSkipArtHashMemFor (σmem σcall : AccountMap) (I : ExecutionEnv)
+def endSkipArtHashMemFor (σmem σcall : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   twoWordHashMem (endSkipIlkWord I) ⟨14⟩
     (endSkipYankPostCallMemFor σmem σcall I catOut vatOut bidOut ByteArray.empty)
 
-noncomputable def endSkipArtStoreHashMemFor (σmem σcall : AccountMap) (I : ExecutionEnv)
+def endSkipArtStoreHashMemFor (σmem σcall : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   twoWordHashMem (endSkipIlkWord I) ⟨14⟩
     (endSkipArtHashMemFor σmem σcall I catOut vatOut bidOut)
@@ -394,79 +394,79 @@ def endSkipGrabWritesFor (σCall σLoc : AccountMap) (I : ExecutionEnv)
     (260, endSkipLotWord bidOut),
     (292, endSkipArtWord vatOut bidOut) ]
 
-noncomputable def endSkipGrabCalldataMemFor (σCall σLoc : AccountMap)
+def endSkipGrabCalldataMemFor (σCall σLoc : AccountMap)
     (I : ExecutionEnv) (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeCascade (endSkipArtStoreHashMem σLoc I catOut vatOut bidOut)
     (endSkipGrabWritesFor σCall σLoc I catOut vatOut bidOut)
 
-noncomputable def endSkipGrabPostCallMemFor (σCall σLoc : AccountMap)
+def endSkipGrabPostCallMemFor (σCall σLoc : AccountMap)
     (I : ExecutionEnv) (catOut vatOut bidOut ret : ByteArray) : ByteArray :=
   ret.write 0 (endSkipGrabCalldataMemFor σCall σLoc I catOut vatOut bidOut)
     endFreeGrabOutPtr.toNat (min endFreeGrabOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endSkipGrabCalldataMemForTrace
+def endSkipGrabCalldataMemForTrace
     (σCall σmem σcall : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeCascade (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut)
     (endSkipGrabWritesFor σCall σmem I catOut vatOut bidOut)
 
-noncomputable def endSkipGrabMem1Trace (σmem σcall : AccountMap) (I : ExecutionEnv)
+def endSkipGrabMem1Trace (σmem σcall : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeWord (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut) 128
     endFreeGrabSelectorShifted
 
-noncomputable def endSkipGrabMem2Trace (σmem σcall : AccountMap) (I : ExecutionEnv)
+def endSkipGrabMem2Trace (σmem σcall : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeWord (endSkipGrabMem1Trace σmem σcall I catOut vatOut bidOut) 132
     (endSkipIlkWord I)
 
-noncomputable def endSkipGrabMem3Trace (σmem σcall : AccountMap) (I : ExecutionEnv)
+def endSkipGrabMem3Trace (σmem σcall : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeWord (endSkipGrabMem2Trace σmem σcall I catOut vatOut bidOut) 164
     (endSkipUsrAddrWord bidOut)
 
-noncomputable def endSkipGrabMem4Trace (σmem σcall : AccountMap) (I : ExecutionEnv)
+def endSkipGrabMem4Trace (σmem σcall : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeWord (endSkipGrabMem3Trace σmem σcall I catOut vatOut bidOut) 196
     (endSkipThisWord I)
 
-noncomputable def endSkipGrabMem5Trace
+def endSkipGrabMem5Trace
     (σCall σmem σcall : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeWord (endSkipGrabMem4Trace σmem σcall I catOut vatOut bidOut) 228
     (endPackVowWord σCall I)
 
-noncomputable def endSkipGrabMem6Trace
+def endSkipGrabMem6Trace
     (σCall σmem σcall : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeWord (endSkipGrabMem5Trace σCall σmem σcall I catOut vatOut bidOut) 260
     (endSkipLotWord bidOut)
 
-noncomputable def endSkipGrabMem7Trace
+def endSkipGrabMem7Trace
     (σCall σmem σcall : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) : ByteArray :=
   writeWord (endSkipGrabMem6Trace σCall σmem σcall I catOut vatOut bidOut) 292
     (endSkipArtWord vatOut bidOut)
 
-noncomputable def endSkipGrabPostCallMemForTrace
+def endSkipGrabPostCallMemForTrace
     (σCall σmem σcall : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut ret : ByteArray) : ByteArray :=
   ret.write 0 (endSkipGrabCalldataMemForTrace σCall σmem σcall I catOut vatOut bidOut)
     endFreeGrabOutPtr.toNat (min endFreeGrabOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endSkipLogDataMemForTrace
+def endSkipLogDataMemForTrace
     (σCall σmem σcall : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut ret : ByteArray) : ByteArray :=
   (endSkipTabWord bidOut).toByteArray.write 0
     (endSkipGrabPostCallMemForTrace σCall σmem σcall I catOut vatOut bidOut ret) 128 32
 
-noncomputable def endSkipLogDataMem2ForTrace
+def endSkipLogDataMem2ForTrace
     (σCall σmem σcall : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut ret : ByteArray) : ByteArray :=
   (endSkipLotWord bidOut).toByteArray.write 0
     (endSkipLogDataMemForTrace σCall σmem σcall I catOut vatOut bidOut ret) 160 32
 
-noncomputable def endSkipLogDataMem3ForTrace
+def endSkipLogDataMem3ForTrace
     (σCall σmem σcall : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut ret : ByteArray) : ByteArray :=
   (endSkipArtWord vatOut bidOut).toByteArray.write 0
@@ -3330,7 +3330,7 @@ theorem endSkipX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw swap1 (by native_decide) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨12⟩ key solcFreePtrMem_size
   have rd3239pre := rd3238pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
@@ -3414,7 +3414,7 @@ theorem endSkipX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw swap1 (by native_decide) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨12⟩ key solcFreePtrMem_size
   have rd3239pre := rd3238pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
@@ -6095,7 +6095,7 @@ theorem endSkipX_artAddEntry {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
       endSkipYankCalldataMemFor_size σmem σcall I catOut vatOut bidOut
         hloCat hloVat hloBid
   have hhash :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (mem14.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (mem14.readWithPadding 0 64))) =
         solcMappingSlot ⟨14⟩ key := by
     simpa [mem14, endSkipArtHashMemFor, key, mem0, endSkipYankPostCallMemFor_eq] using
       endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem0) ⟨14⟩ key
@@ -6318,7 +6318,7 @@ theorem endSkipX_artStoreAtHash {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
   have hmem14Size : mem14.size = 384 := by
     rw [hmem14SizeEq, hpostSize]
   have hhash :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (memStore.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (memStore.readWithPadding 0 64))) =
         solcMappingSlot ⟨14⟩ key := by
     simpa [memStore, endSkipArtStoreHashMemFor, key, mem14] using
       endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem14) ⟨14⟩ key

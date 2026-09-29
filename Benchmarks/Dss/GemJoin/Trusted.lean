@@ -10,59 +10,67 @@ open Solm ABI Ethereum Ethereum.EVM
 
 namespace Benchmarks.Dss.GemJoin
 
+set_option maxHeartbeats 0
+set_option maxRecDepth 1000000
+
 /-- `keccak("cage()")[0:4] = 0x69245009`. -/
-axiom gemJoinCageSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr cageTransition))).extract 0 4 =
-      gemJoinSelBytes 0
+theorem gemJoinCageSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr cageTransition))).extract 0 4 =
+      gemJoinSelBytes 0 := by decide +kernel
 
 /-- `keccak("dec()")[0:4] = 0xb3bcfa82`. -/
-axiom gemJoinDecSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr decTransition))).extract 0 4 =
-      gemJoinSelBytes 1
+theorem gemJoinDecSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr decTransition))).extract 0 4 =
+      gemJoinSelBytes 1 := by decide +kernel
 
 /-- `keccak("deny(address)")[0:4] = 0x9c52a7f1`. -/
-axiom gemJoinDenySelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr denyTransition))).extract 0 4 =
-      gemJoinSelBytes 2
+theorem gemJoinDenySelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr denyTransition))).extract 0 4 =
+      gemJoinSelBytes 2 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, denyTransition, addr]; decide +kernel
 
 /-- `keccak("exit(address,uint256)")[0:4] = 0xef693bed`. -/
-axiom gemJoinExitSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr exitTransition))).extract 0 4 =
-      gemJoinSelBytes 3
+theorem gemJoinExitSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr exitTransition))).extract 0 4 =
+      gemJoinSelBytes 3 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, exitTransition, addr, uint256]; decide +kernel
 
 /-- `keccak("gem()")[0:4] = 0x7bd2bea7`. -/
-axiom gemJoinGemSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr gemTransition))).extract 0 4 =
-      gemJoinSelBytes 4
+theorem gemJoinGemSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr gemTransition))).extract 0 4 =
+      gemJoinSelBytes 4 := by decide +kernel
 
 /-- `keccak("ilk()")[0:4] = 0xc5ce281e`. -/
-axiom gemJoinIlkSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr ilkTransition))).extract 0 4 =
-      gemJoinSelBytes 5
+theorem gemJoinIlkSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr ilkTransition))).extract 0 4 =
+      gemJoinSelBytes 5 := by decide +kernel
 
 /-- `keccak("join(address,uint256)")[0:4] = 0x3b4da69f`. -/
-axiom gemJoinJoinSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr joinTransition))).extract 0 4 =
-      gemJoinSelBytes 6
+theorem gemJoinJoinSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr joinTransition))).extract 0 4 =
+      gemJoinSelBytes 6 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, joinTransition, addr, uint256]; decide +kernel
 
 /-- `keccak("live()")[0:4] = 0x957aa58c`. -/
-axiom gemJoinLiveSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr liveTransition))).extract 0 4 =
-      gemJoinSelBytes 7
+theorem gemJoinLiveSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr liveTransition))).extract 0 4 =
+      gemJoinSelBytes 7 := by decide +kernel
 
 /-- `keccak("rely(address)")[0:4] = 0x65fae35e`. -/
-axiom gemJoinRelySelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr relyTransition))).extract 0 4 =
-      gemJoinSelBytes 8
+theorem gemJoinRelySelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr relyTransition))).extract 0 4 =
+      gemJoinSelBytes 8 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, relyTransition, addr]; decide +kernel
 
 /-- `keccak("vat()")[0:4] = 0x36569e77`. -/
-axiom gemJoinVatSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr vatTransition))).extract 0 4 =
-      gemJoinSelBytes 9
+theorem gemJoinVatSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr vatTransition))).extract 0 4 =
+      gemJoinSelBytes 9 := by decide +kernel
 
 /-- `keccak("wards(address)")[0:4] = 0xbf353dbb`. -/
-axiom gemJoinWardsSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr wardsTransition))).extract 0 4 =
-      gemJoinSelBytes 10
+theorem gemJoinWardsSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr wardsTransition))).extract 0 4 =
+      gemJoinSelBytes 10 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, wardsTransition, addr]; decide +kernel
 
 end Benchmarks.Dss.GemJoin

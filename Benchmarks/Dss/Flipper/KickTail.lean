@@ -8,7 +8,7 @@ set_option maxHeartbeats 0
 namespace Benchmarks.Dss.Flipper
 
 theorem test_kickFieldHashMem_solcMappingSlot (σ : AccountMap) (I : ExecutionEnv) :
-    UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC ((kickFieldHashMem σ I).readWithPadding 0 64))) =
+    UInt256.ofNat (fromByteArrayBigEndian (KEC ((kickFieldHashMem σ I).readWithPadding 0 64))) =
       bidBaseOfWord (kickIdWord σ I) := by
   unfold kickFieldHashMem
   simpa [bidBaseOfWord] using
@@ -854,7 +854,7 @@ theorem test_flipperKickX_vatCallSuccessToLogStart {I} {g : Sat256} {s0 : State}
 abbrev test_kickKickEventTopic : UInt256 :=
   ⟨90598421132990109512674422884689516419241996603330962467584404604738313333370⟩
 
-noncomputable abbrev test_kickKickLogMem
+abbrev test_kickKickLogMem
     (σmem σcall σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   writeCascade (kickVatFluxCallMem σmem σcall I)
     [(128, kickIdWord σ I),
@@ -911,7 +911,7 @@ theorem test_kickKickLogMem_read128
     (by native_decide)
     (by simp [WindowDisjointFromWrites] <;> native_decide)
 
-noncomputable abbrev test_kickReturnMem
+abbrev test_kickReturnMem
     (σmem σcall σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   Reasoning.Theory.writeWord (test_kickKickLogMem σmem σcall σ I) 128 (kickIdWord σ I)
 

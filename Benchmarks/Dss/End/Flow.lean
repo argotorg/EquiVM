@@ -157,20 +157,20 @@ def endFlowPostAccountMap (σ : AccountMap) (I : ExecutionEnv) (fixV : UInt256) 
     AccountMap :=
   sstoreAccountMap I.codeOwner σ (endFlowFixSlot I) fixV
 
-noncomputable def endFlowFixHashMem (I : ExecutionEnv) : ByteArray :=
+def endFlowFixHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (endFlowIlkWord I) ⟨15⟩ solcFreePtrMem
 
-noncomputable def endFlowVatIlksSelectorMem (mem : ByteArray) : ByteArray :=
+def endFlowVatIlksSelectorMem (mem : ByteArray) : ByteArray :=
   endFlowVatIlksSelectorShifted.toByteArray.write 0 mem endFlowVatIlksOutPtr.toNat 32
 
-noncomputable def endFlowVatIlksArg0Mem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def endFlowVatIlksArg0Mem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (endFlowIlkWord I).toByteArray.write 0 (endFlowVatIlksSelectorMem mem)
     (endFlowVatIlksOutPtr + ⟨4⟩).toNat 32
 
-noncomputable def endFlowVatIlksCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def endFlowVatIlksCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   endFlowVatIlksArg0Mem I mem
 
-noncomputable def endFlowVatIlksPostCallMem (I : ExecutionEnv) (out : ByteArray) :
+def endFlowVatIlksPostCallMem (I : ExecutionEnv) (out : ByteArray) :
     ByteArray :=
   out.write 0 (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)) endFlowVatIlksOutPtr.toNat
     (min endFlowVatIlksOutSize.toNat out.size)
@@ -257,7 +257,7 @@ theorem endFlow_twoWordHashMem_read0_64_of_ge64 {mem : ByteArray} (key slot : UI
 theorem endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (baseSlot key : UInt256)
     {mem : ByteArray} (hmem : 64 ≤ mem.size) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   rw [endFlow_twoWordHashMem_read0_64_of_ge64 key baseSlot hmem]
   unfold solcMappingSlot
@@ -543,7 +543,7 @@ theorem endFlowVatIlksSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 
     native_decide
   rw [toByteArray_write_eq endFlowVatIlksSelectorShifted mem 128 (by omega) hgap]
   have hprefix :
-      (mem ++ ffi.ByteArray.zeroes (128 - mem.size)).size = 128 := by
+      (mem ++ ByteArray.zeroes (128 - mem.size)).size = 128 := by
     rw [ByteArray.size_append, ByteArray_zeroes_size, hmem]
   rw [extract_append_right_window _ _ 128 132 (by rw [hprefix]), hprefix,
     show 128 - 128 = 0 from rfl, show 132 - 128 = 4 from rfl,
@@ -984,7 +984,7 @@ theorem endFlowX_fixNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw swap1 (by native_decide) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key ⟨15⟩ solcFreePtrMem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key ⟨15⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨15⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨15⟩ key solcFreePtrMem_size
   have rd2801pre := rd2800pre.keccak256 0 (solcMappingSlot ⟨15⟩ key)
@@ -1115,7 +1115,7 @@ theorem endFlowX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     raw swap1 (by native_decide) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key ⟨15⟩ solcFreePtrMem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key ⟨15⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨15⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨15⟩ key solcFreePtrMem_size
   have rd2801pre := rd2800pre.keccak256 0 (solcMappingSlot ⟨15⟩ key)
@@ -1518,7 +1518,7 @@ theorem endFlowX_wad0RmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (by native_decide) (by evm_ov)
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC
+        (KEC
           ((twoWordHashMem key ⟨14⟩ (endFlowVatIlksPostCallMem I out)).readWithPadding
             0 64))) =
         solcMappingSlot ⟨14⟩ key :=
@@ -1598,7 +1598,7 @@ theorem endFlowX_wadRmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (by native_decide) (by evm_ov)
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key ⟨12⟩ mem14).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key ⟨12⟩ mem14).readWithPadding 0 64))) =
         solcMappingSlot ⟨12⟩ key :=
     endFlow_twoWordHashMem_solcMappingSlot_of_ge64 ⟨12⟩ key
       (by
@@ -1958,7 +1958,7 @@ theorem endFlowX_tailSubEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     exact endFlow_twoWordHashMem_size_of_ge64 key ⟨12⟩
       (by rw [hmem14Size, hpostSize]; omega)
   have hgapHash :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (mem13.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (mem13.readWithPadding 0 64))) =
         solcMappingSlot ⟨13⟩ key :=
     endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem12) ⟨13⟩ key
       (by rw [hmem12Size, hmem14Size, hpostSize]; omega)
@@ -2317,12 +2317,12 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     endFlow_twoWordHashMem_read64_of_ge96 key ⟨15⟩
       (by rw [hmem13Size, hmem12Size, hmem14Size, hpostSize]; omega) hmem13Read64
   have hgapHash :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (mem13.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (mem13.readWithPadding 0 64))) =
         solcMappingSlot ⟨13⟩ key :=
     endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem12) ⟨13⟩ key
       (by rw [hmem12Size, hmem14Size, hpostSize]; omega)
   have hfixHash :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (mem15.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (mem15.readWithPadding 0 64))) =
         solcMappingSlot ⟨15⟩ key :=
     endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem13) ⟨15⟩ key
       (by rw [hmem13Size, hmem12Size, hmem14Size, hpostSize]; omega)

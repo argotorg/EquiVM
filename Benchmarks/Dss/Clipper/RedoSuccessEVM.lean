@@ -300,7 +300,7 @@ theorem RD.clipperRedoTopPositiveToIncentiveValues {code : ByteArray}
     (by evm_ov)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem id (⟨12⟩ : UInt256) mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem id (⟨12⟩ : UInt256) mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨12⟩ id := by
     exact twoWordHashMem_solcMappingSlot_of_ge (⟨12⟩ : UInt256) id (by omega)
   have rdHash := evm_run rd7813 with [

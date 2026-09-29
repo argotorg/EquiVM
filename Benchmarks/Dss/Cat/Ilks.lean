@@ -153,10 +153,10 @@ theorem ilksDunkSlotFor_eq {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
 
 /-! ### 3-word return scratch memory (extends Jug's 2-word scratch) -/
 
-noncomputable def catScratchReturn2Mem (scratch : ByteArray) (first second : UInt256) : ByteArray :=
+def catScratchReturn2Mem (scratch : ByteArray) (first second : UInt256) : ByteArray :=
   (UInt256.toByteArray second).write 0 (solcScratchReturnMem scratch first) 160 32
 
-noncomputable def catScratchReturn3Mem
+def catScratchReturn3Mem
     (scratch : ByteArray) (first second third : UInt256) : ByteArray :=
   (UInt256.toByteArray third).write 0 (catScratchReturn2Mem scratch first second) 192 32
 

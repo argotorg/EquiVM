@@ -72,13 +72,13 @@ abbrev dealMintOutSize : UInt256 := ⟨0⟩
 
 abbrev dealMintEndPtr : UInt256 := ⟨196⟩
 
-noncomputable def dealMintSelectorMem (mem : ByteArray) : ByteArray :=
+def dealMintSelectorMem (mem : ByteArray) : ByteArray :=
   dealMintSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def dealMintGuyMem (guy : UInt256) (mem : ByteArray) : ByteArray :=
+def dealMintGuyMem (guy : UInt256) (mem : ByteArray) : ByteArray :=
   guy.toByteArray.write 0 (dealMintSelectorMem mem) 132 32
 
-noncomputable def dealMintCalldataMem (guy lot : UInt256) (mem : ByteArray) : ByteArray :=
+def dealMintCalldataMem (guy lot : UInt256) (mem : ByteArray) : ByteArray :=
   lot.toByteArray.write 0 (dealMintGuyMem guy mem) 164 32
 
 theorem dealMintSelectorMem_size {mem : ByteArray} (hmem : mem.size = 96) :
@@ -1084,7 +1084,7 @@ theorem flopperDealX_toTicGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id solcFreePtrMem
   have rd3981 := rd3980pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1260,7 +1260,7 @@ theorem flopperDealX_toTicLtGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memTic.readWithPadding 0 64))) = base := by
+        (KEC (memTic.readWithPadding 0 64))) = base := by
     have hmem0Size : mem0.size = 96 := by
       simpa [mem0, id] using
         twoWordHashMem_size_96 (dealIdWord I) ⟨1⟩ solcFreePtrMem_size
@@ -1358,7 +1358,7 @@ theorem flopperDealX_toEndLtGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memEnd.readWithPadding 0 64))) = base := by
+        (KEC (memEnd.readWithPadding 0 64))) = base := by
     simpa [base, memEnd, memTic, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd4065 := rd4064pre.keccak256 0 base (UInt256.ofNat 3)

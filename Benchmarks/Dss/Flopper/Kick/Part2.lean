@@ -222,7 +222,7 @@ theorem flopperKickX_toEventStart {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memEndStore.readWithPadding 0 64))) = base := by
+        (KEC (memEndStore.readWithPadding 0 64))) = base := by
     simpa [base, memEndStore, memStore, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStore
   have rd3756 := rd3755pre.keccak256 0 base (UInt256.ofNat 3)

@@ -34,10 +34,10 @@ theorem RD.jugDripToRpowRoutine
     rw [drip_twoWordHashMem_size_of_ge64 (fileDutyIlkWord I) (⟨1⟩ : UInt256) hpostSize]
     exact hpostSize
   have hslot :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (mem1.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (mem1.readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) := by
     change UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ mem0).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ mem0).readWithPadding 0 64))) =
       solcMappingSlot ⟨1⟩ (fileDutyIlkWord I)
     exact drip_twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256)
       (fileDutyIlkWord I) hmem0

@@ -36,10 +36,10 @@ theorem end_ctor_params_nil : contract.ctor.params = [] := rfl
 abbrev endCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
   solcMappingSlot ⟨0⟩ (solcSourceWord I)
 
-noncomputable def endCtorWardsHashMem (I : ExecutionEnv) : ByteArray :=
+def endCtorWardsHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem
 
-noncomputable def endCtorReturnMem (I : ExecutionEnv) : ByteArray :=
+def endCtorReturnMem (I : ExecutionEnv) : ByteArray :=
   endCreationBytecode.write 94 (endCtorWardsHashMem I) 0 10265
 
 theorem endCtorCallerWardsSlot_eq (I : ExecutionEnv) :
@@ -59,7 +59,7 @@ theorem endCtorWardsHashMem_read64 (I : ExecutionEnv) :
 
 theorem endCtorWardsHashSlot (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((endCtorWardsHashMem I).readWithPadding 0 64))) =
+        (KEC ((endCtorWardsHashMem I).readWithPadding 0 64))) =
       endCtorCallerWardsSlot I := by
   simpa [endCtorWardsHashMem, endCtorCallerWardsSlot] using
     twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (solcSourceWord I)

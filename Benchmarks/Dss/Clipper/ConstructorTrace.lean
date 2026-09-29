@@ -373,41 +373,41 @@ theorem clipperCtorRelyLogReach
   have rd230 := clipper_ctor_run rdLog with [pop, pop, pop, pop]
   exact ⟨_, _, rd230⟩
 
-noncomputable def clipperCtorPatch01 (vat : AccountAddress) : ByteArray :=
+def clipperCtorPatch01 (vat : AccountAddress) : ByteArray :=
   writeWord clipperBytecode 1463 (EVM.word vat.val)
-noncomputable def clipperCtorPatch02 (vat : AccountAddress) : ByteArray :=
+def clipperCtorPatch02 (vat : AccountAddress) : ByteArray :=
   writeWord (clipperCtorPatch01 vat) 2437 (EVM.word vat.val)
-noncomputable def clipperCtorPatch03 (vat : AccountAddress) : ByteArray :=
+def clipperCtorPatch03 (vat : AccountAddress) : ByteArray :=
   writeWord (clipperCtorPatch02 vat) 3145 (EVM.word vat.val)
-noncomputable def clipperCtorPatch04 (vat : AccountAddress) : ByteArray :=
+def clipperCtorPatch04 (vat : AccountAddress) : ByteArray :=
   writeWord (clipperCtorPatch03 vat) 4318 (EVM.word vat.val)
-noncomputable def clipperCtorPatch05 (vat : AccountAddress) : ByteArray :=
+def clipperCtorPatch05 (vat : AccountAddress) : ByteArray :=
   writeWord (clipperCtorPatch04 vat) 4441 (EVM.word vat.val)
-noncomputable def clipperCtorPatch06 (vat : AccountAddress) : ByteArray :=
+def clipperCtorPatch06 (vat : AccountAddress) : ByteArray :=
   writeWord (clipperCtorPatch05 vat) 4751 (EVM.word vat.val)
-noncomputable def clipperCtorPatch07 (vat : AccountAddress) : ByteArray :=
+def clipperCtorPatch07 (vat : AccountAddress) : ByteArray :=
   writeWord (clipperCtorPatch06 vat) 5115 (EVM.word vat.val)
-noncomputable def clipperCtorPatch08 (vat : AccountAddress) : ByteArray :=
+def clipperCtorPatch08 (vat : AccountAddress) : ByteArray :=
   writeWord (clipperCtorPatch07 vat) 6295 (EVM.word vat.val)
-noncomputable def clipperCtorPatch09 (vat : AccountAddress) : ByteArray :=
+def clipperCtorPatch09 (vat : AccountAddress) : ByteArray :=
   writeWord (clipperCtorPatch08 vat) 7936 (EVM.word vat.val)
-noncomputable def clipperCtorPatch10 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
+def clipperCtorPatch10 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
   writeWord (clipperCtorPatch09 vat) 1510 (ABI.bytesToWord ilk)
-noncomputable def clipperCtorPatch11 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
+def clipperCtorPatch11 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
   writeWord (clipperCtorPatch10 vat ilk) 1661 (ABI.bytesToWord ilk)
-noncomputable def clipperCtorPatch12 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
+def clipperCtorPatch12 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
   writeWord (clipperCtorPatch11 vat ilk) 2221 (ABI.bytesToWord ilk)
-noncomputable def clipperCtorPatch13 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
+def clipperCtorPatch13 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
   writeWord (clipperCtorPatch12 vat ilk) 2369 (ABI.bytesToWord ilk)
-noncomputable def clipperCtorPatch14 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
+def clipperCtorPatch14 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
   writeWord (clipperCtorPatch13 vat ilk) 4239 (ABI.bytesToWord ilk)
-noncomputable def clipperCtorPatch15 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
+def clipperCtorPatch15 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
   writeWord (clipperCtorPatch14 vat ilk) 4866 (ABI.bytesToWord ilk)
-noncomputable def clipperCtorPatch16 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
+def clipperCtorPatch16 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
   writeWord (clipperCtorPatch15 vat ilk) 5046 (ABI.bytesToWord ilk)
-noncomputable def clipperCtorPatch17 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
+def clipperCtorPatch17 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
   writeWord (clipperCtorPatch16 vat ilk) 6800 (ABI.bytesToWord ilk)
-noncomputable def clipperCtorPatch18 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
+def clipperCtorPatch18 (vat : AccountAddress) (ilk : List UInt8) : ByteArray :=
   writeWord (clipperCtorPatch17 vat ilk) 8747 (ABI.bytesToWord ilk)
 
 theorem clipperCtorPatch18_eq (vat : AccountAddress) (ilk : List UInt8) :

@@ -10,7 +10,7 @@ set_option linter.unusedTactic false
 theorem clipperListArrayHashMem_keccak_slot (len : UInt256) :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC ((clipperListArrayHashMem len).readWithPadding (⟨0⟩ : UInt256).toNat
+          (KEC ((clipperListArrayHashMem len).readWithPadding (⟨0⟩ : UInt256).toNat
             (⟨32⟩ : UInt256).toNat))) =
       activeDataSlot := by
   simpa [clipperListArrayHashMem, activeDataSlot,

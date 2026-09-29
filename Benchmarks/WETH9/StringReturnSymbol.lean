@@ -205,7 +205,7 @@ symbol-specific. -/
 def weth9SymLongDataBase : UInt256 := solidityBytesDataBaseSlot ⟨1⟩
 
 /-- Scratch memory at the copy-loop entry: routine memory with the base slot (`1`) at `mem[0]`. -/
-noncomputable def weth9SymLongScratchMem (header : UInt256) : ByteArray :=
+def weth9SymLongScratchMem (header : UInt256) : ByteArray :=
   writeWord (weth9RoutineMem header) 0 ⟨1⟩
 
 theorem weth9SymLongScratchMem_read0 (H : UInt256) :
@@ -216,7 +216,7 @@ theorem weth9SymLongScratchMem_read0 (H : UInt256) :
 /-- The `KECCAK256(0, 32)` at the loop setup yields the data base slot `keccak(slot 1)`. -/
 theorem weth9SymLongScratchMem_keccak1 (H : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((weth9SymLongScratchMem H).readWithPadding 0 32))) = weth9SymLongDataBase := by
+        (KEC ((weth9SymLongScratchMem H).readWithPadding 0 32))) = weth9SymLongDataBase := by
   rw [weth9SymLongScratchMem_read0, weth9SymLongDataBase, solidityBytesDataBaseSlot,
     uInt256OfByteArray_eq]
 
@@ -421,7 +421,7 @@ theorem weth9SymLongLoopMstoreCost_spec {σ : AccountMap} {I : ExecutionEnv} {en
   simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw]
 
 /-- The generated symbol copy-loop state after `n` iterations (base = keccak(slot 1)). -/
-noncomputable def weth9SymLongGeneratedLoopState (σ : AccountMap) (I : ExecutionEnv) :
+def weth9SymLongGeneratedLoopState (σ : AccountMap) (I : ExecutionEnv) :
     Nat → Weth9LongLoopState
   | 0 =>
       { ptr := ⟨160⟩
@@ -448,7 +448,7 @@ theorem weth9SymLongGeneratedLoopState_succ (σ : AccountMap) (I : ExecutionEnv)
          aw := UInt256.ofNat (MachineState.M s.aw.toNat s.ptr.toNat 32) }) := rfl
 
 /-- One generated copy-loop step for symbol. -/
-noncomputable def weth9SymLongGeneratedLoopStep {σ : AccountMap} {I : ExecutionEnv}
+def weth9SymLongGeneratedLoopStep {σ : AccountMap} {I : ExecutionEnv}
     {endp len : UInt256} {i : Nat}
     (hcontinue : UInt256.gt endp
       ((⟨32⟩ : UInt256) + (weth9SymLongGeneratedLoopState σ I i).ptr) ≠ ⟨0⟩) :
@@ -466,7 +466,7 @@ noncomputable def weth9SymLongGeneratedLoopStep {σ : AccountMap} {I : Execution
     hslotNext := by simp [weth9SymLongGeneratedLoopState_succ] }
 
 /-- The generated final step for symbol. -/
-noncomputable def weth9SymLongGeneratedLoopFinal {σ : AccountMap} {I : ExecutionEnv}
+def weth9SymLongGeneratedLoopFinal {σ : AccountMap} {I : ExecutionEnv}
     {endp len : UInt256} {fuel : Nat}
     (hdone : UInt256.gt endp
       ((⟨32⟩ : UInt256) + (weth9SymLongGeneratedLoopState σ I fuel).ptr) = ⟨0⟩) :
@@ -540,13 +540,13 @@ theorem weth9SymLongDone {σ : AccountMap} {I : ExecutionEnv}
   exact ugt_zero (by rw [weth9LongEnd_toNat, hrhs]; omega)
 
 /-- The memory after the storage→memory copy loop finishes (all `wc` data words copied). -/
-noncomputable def weth9SymLongFinalMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def weth9SymLongFinalMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   weth9LongCopyMem (weth9SymLongGeneratedLoopState σ I (weth9SymLongWC σ I)).mem
     (weth9SymLongGeneratedLoopState σ I (weth9SymLongWC σ I)).ptr
     (weth9LongStorageWord σ I (weth9SymLongGeneratedLoopState σ I (weth9SymLongWC σ I)).slot)
 
 /-- Active-words count after the copy loop. -/
-noncomputable def weth9SymLongFinalAw (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
+def weth9SymLongFinalAw (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat (MachineState.M (weth9SymLongGeneratedLoopState σ I (weth9SymLongWC σ I)).aw.toNat
     (weth9SymLongGeneratedLoopState σ I (weth9SymLongWC σ I)).ptr.toNat 32)
 

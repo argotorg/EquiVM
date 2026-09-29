@@ -26,7 +26,7 @@ abbrev wtfAllowSlot (ee : ExecutionEnv) (owner : UInt256) : UInt256 :=
   solcMappingSlot (solcMappingSlot ⟨4⟩ owner) (solcSourceWord ee)
 
 /-- The scratch memory after building the `balanceOf[src]` key (`src ‖ 3` at `0x00`). -/
-noncomputable abbrev wtfBalHashMem (s : UInt256) : ByteArray := twoWordHashMem s ⟨3⟩ solcFreePtrMem
+abbrev wtfBalHashMem (s : UInt256) : ByteArray := twoWordHashMem s ⟨3⟩ solcFreePtrMem
 
 /-- Mask literal helper: `src ∧ ((1<<160)-1) = src` for a canonical (address-sized) `src`. -/
 private theorem wtf_maskLiteral {src : UInt256} (hsrc : src.toNat < EVM.addressModulus) :
@@ -49,7 +49,7 @@ theorem weth9TFReqBalanceOk {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask from by decide]
     exact solcAddrMask_clean hsrc
   have hkecval : UInt256.ofNat (fromByteArrayBigEndian
-      (ffi.KEC ((wtfBalHashMem src).readWithPadding 0 64))) = wtfBalSlot src :=
+      (KEC ((wtfBalHashMem src).readWithPadding 0 64))) = wtfBalSlot src :=
     twoWordHashMem_solcMappingSlot ⟨3⟩ src solcFreePtrMem_size
   have rdMasked := h.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
     |>.push1 ⟨1⟩ (by native_decide) (by simp only [List.length_cons]; omega)
@@ -93,7 +93,7 @@ theorem weth9TFReqBalanceRev {ee g s0 rdata cA σ k C} {src dst wad ret : UInt25
     (hov : S.length + 8 ≤ 1024) :
     RDrev weth9Bytecode g s0 := by
   have hkecval : UInt256.ofNat (fromByteArrayBigEndian
-      (ffi.KEC ((wtfBalHashMem src).readWithPadding 0 64))) = wtfBalSlot src :=
+      (KEC ((wtfBalHashMem src).readWithPadding 0 64))) = wtfBalSlot src :=
     twoWordHashMem_solcMappingSlot ⟨3⟩ src solcFreePtrMem_size
   have rdMasked := h.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
     |>.push1 ⟨1⟩ (by native_decide) (by simp only [List.length_cons]; omega)
@@ -165,7 +165,7 @@ theorem weth9TFBranchSkipSender {ee g s0 rdata cA σ k C} {src dst wad ret : UIn
     (by rw [heq, u256_eq_refl]; decide) (by jump_dest) (by simp only [List.length_cons]; omega)⟩
 
 /-- The allowance scratch memory (nested `keccak(caller ‖ keccak(src ‖ 4))`). -/
-noncomputable abbrev wtfAllowHashMem (ee : ExecutionEnv) (src : UInt256) : ByteArray :=
+abbrev wtfAllowHashMem (ee : ExecutionEnv) (src : UInt256) : ByteArray :=
   solcNestedMappingCallerHashMem ⟨4⟩ src ee (wtfBalHashMem src)
 
 /-- Branch, case `src ≠ msg.sender` (pc 1124 → 1186): fall through the `EQ`, `POP`, then load
@@ -185,11 +185,11 @@ theorem weth9TFAllowLoaded {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256}
   have hinnerSize : (twoWordHashMem src ⟨4⟩ (wtfBalHashMem src)).size = 96 :=
     twoWordHashMem_size_96 src ⟨4⟩ hmem
   have hinner : UInt256.ofNat (fromByteArrayBigEndian
-      (ffi.KEC ((twoWordHashMem src ⟨4⟩ (wtfBalHashMem src)).readWithPadding 0 64)))
+      (KEC ((twoWordHashMem src ⟨4⟩ (wtfBalHashMem src)).readWithPadding 0 64)))
         = solcMappingSlot ⟨4⟩ src :=
     twoWordHashMem_solcMappingSlot ⟨4⟩ src hmem
   have houter : UInt256.ofNat (fromByteArrayBigEndian
-      (ffi.KEC ((wtfAllowHashMem ee src).readWithPadding 0 64))) = wtfAllowSlot ee src := by
+      (KEC ((wtfAllowHashMem ee src).readWithPadding 0 64))) = wtfAllowSlot ee src := by
     unfold wtfAllowHashMem solcNestedMappingCallerHashMem
     exact twoWordHashMem_solcMappingSlot (solcMappingSlot ⟨4⟩ src) (solcSourceWord ee) hinnerSize
   -- pc 1124 → 1144: `src == caller` test fails, pop the flag
@@ -314,10 +314,10 @@ theorem weth9TFRequireAllowance {ee g s0 rdata cA σ k C} {src dst wad ret : UIn
       (solcSlotWord σ ee (wtfAllowSlot ee src) :: ⟨0⟩ :: wad :: dst :: src :: ret :: S)
       (solcNestedMappingCallerHashMem ⟨4⟩ src ee mem) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
   have hinner : UInt256.ofNat (fromByteArrayBigEndian
-      (ffi.KEC ((twoWordHashMem src ⟨4⟩ mem).readWithPadding 0 64))) = solcMappingSlot ⟨4⟩ src :=
+      (KEC ((twoWordHashMem src ⟨4⟩ mem).readWithPadding 0 64))) = solcMappingSlot ⟨4⟩ src :=
     twoWordHashMem_solcMappingSlot ⟨4⟩ src hmemsize
   have houter : UInt256.ofNat (fromByteArrayBigEndian
-      (ffi.KEC ((solcNestedMappingCallerHashMem ⟨4⟩ src ee mem).readWithPadding 0 64)))
+      (KEC ((solcNestedMappingCallerHashMem ⟨4⟩ src ee mem).readWithPadding 0 64)))
         = wtfAllowSlot ee src := by
     unfold solcNestedMappingCallerHashMem
     exact twoWordHashMem_solcMappingSlot (solcMappingSlot ⟨4⟩ src) (solcSourceWord ee)
@@ -379,10 +379,10 @@ theorem weth9TFDecrementAllowance {ee g s0 rdata cA σ k C} {src dst wad ret : U
       (cA, sstoreAccountMap ee.codeOwner σ (wtfAllowSlot ee src)
         (UInt256.sub (solcSlotWord σ ee (wtfAllowSlot ee src)) wad)) k' C' := by
   have hinner : UInt256.ofNat (fromByteArrayBigEndian
-      (ffi.KEC ((twoWordHashMem src ⟨4⟩ mem).readWithPadding 0 64))) = solcMappingSlot ⟨4⟩ src :=
+      (KEC ((twoWordHashMem src ⟨4⟩ mem).readWithPadding 0 64))) = solcMappingSlot ⟨4⟩ src :=
     twoWordHashMem_solcMappingSlot ⟨4⟩ src hmemsize
   have houter : UInt256.ofNat (fromByteArrayBigEndian
-      (ffi.KEC ((solcNestedMappingCallerHashMem ⟨4⟩ src ee mem).readWithPadding 0 64)))
+      (KEC ((solcNestedMappingCallerHashMem ⟨4⟩ src ee mem).readWithPadding 0 64)))
         = wtfAllowSlot ee src := by
     unfold solcNestedMappingCallerHashMem
     exact twoWordHashMem_solcMappingSlot (solcMappingSlot ⟨4⟩ src) (solcSourceWord ee)
@@ -537,7 +537,7 @@ private theorem wtfTail_wordAt0Mem_read64 {m : ByteArray} (word : UInt256) (hm :
     hash to the mapping slot `keccak(key ‖ slot)`. -/
 private theorem wtfTail_wordAt0Mem_keccak {m : ByteArray} (key slot : UInt256) (hm : m.size = 96)
     (hread32 : m.readWithPadding 32 32 = UInt256.toByteArray slot) :
-    UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC ((wordAt0Mem key m).readWithPadding 0 64))) =
+    UInt256.ofNat (fromByteArrayBigEndian (KEC ((wordAt0Mem key m).readWithPadding 0 64))) =
       solcMappingSlot slot key := by
   have hread0 : (wordAt0Mem key m).readWithPadding 0 32 = UInt256.toByteArray key :=
     wordAt0Mem_read0 key m
@@ -585,10 +585,10 @@ theorem weth9TFTail {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256} {S : L
       = UInt256.toByteArray ⟨128⟩ := by
     rw [wtfTail_wordAt0Mem_read64 dst hmem0size, twoWordHashMem_read64 src ⟨3⟩ hmemsize hread64]
   have hkecSrc : UInt256.ofNat (fromByteArrayBigEndian
-      (ffi.KEC ((twoWordHashMem src ⟨3⟩ mem).readWithPadding 0 64))) = wtfBalSlot src :=
+      (KEC ((twoWordHashMem src ⟨3⟩ mem).readWithPadding 0 64))) = wtfBalSlot src :=
     twoWordHashMem_solcMappingSlot ⟨3⟩ src hmemsize
   have hkecDst : UInt256.ofNat (fromByteArrayBigEndian
-      (ffi.KEC ((wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)).readWithPadding 0 64)))
+      (KEC ((wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)).readWithPadding 0 64)))
         = wtfBalSlot dst :=
     wtfTail_wordAt0Mem_keccak dst ⟨3⟩ hmem0size (twoWordHashMem_read32 src ⟨3⟩ hmemsize)
   -- pc 1282 → 1293: build the address mask, mask `src`

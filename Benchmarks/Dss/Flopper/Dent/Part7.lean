@@ -61,7 +61,7 @@ theorem flopperDentX_successFromAddOkAw8
     raw swap4 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memStore.readWithPadding 0 64))) = base := by
+        (KEC (memStore.readWithPadding 0 64))) = base := by
     simpa [base, memStore, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2948pre := rd2947pre.keccak256 0 base (UInt256.ofNat 8)

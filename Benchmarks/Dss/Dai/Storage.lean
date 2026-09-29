@@ -8,10 +8,10 @@ namespace Benchmarks.Dss.Dai
 
 /-! ## Single-mapping scratch memory -/
 
-noncomputable abbrev daiMappingBaseSlotMem (baseSlot : UInt256) : ByteArray :=
+abbrev daiMappingBaseSlotMem (baseSlot : UInt256) : ByteArray :=
   solcMappingBaseSlotMem baseSlot
 
-noncomputable abbrev daiMappingHashMem (baseSlot key : UInt256) : ByteArray :=
+abbrev daiMappingHashMem (baseSlot key : UInt256) : ByteArray :=
   solcMappingHashMem baseSlot key
 
 theorem daiMappingHashMem_mload64 (baseSlot key : UInt256) :
@@ -25,7 +25,7 @@ theorem daiMappingHashMem_mload64 (baseSlot key : UInt256) :
 
 /-! ## Return memory after a mapping getter -/
 
-noncomputable abbrev daiMappingReturnMem (baseSlot key val : UInt256) : ByteArray :=
+abbrev daiMappingReturnMem (baseSlot key val : UInt256) : ByteArray :=
   solcScratchReturnMem (daiMappingHashMem baseSlot key) val
 
 theorem daiMappingReturnMem_mload64 (baseSlot key val : UInt256) :
@@ -46,7 +46,7 @@ theorem daiMappingReturnMem_read128 (baseSlot key val : UInt256) :
 
 /-! ## Nested-mapping scratch memory -/
 
-noncomputable abbrev daiNestedMappingHashMem
+abbrev daiNestedMappingHashMem
     (baseSlot owner spender : UInt256) : ByteArray :=
   solcNestedMappingHashMem baseSlot owner spender
 
@@ -62,7 +62,7 @@ theorem daiNestedMappingHashMem_mload64 (baseSlot owner spender : UInt256) :
 
 /-! ## Return memory after a nested-mapping getter -/
 
-noncomputable abbrev daiNestedMappingReturnMem
+abbrev daiNestedMappingReturnMem
     (baseSlot owner spender val : UInt256) : ByteArray :=
   solcScratchReturnMem (daiNestedMappingHashMem baseSlot owner spender) val
 

@@ -226,10 +226,10 @@ theorem endRelyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
       hwv
       (evalExpr_endRely_auth_false evm I hsrc hauth)
 
-noncomputable abbrev endRelyAuthHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev endRelyAuthHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem
 
-noncomputable abbrev endRelyStoreHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev endRelyStoreHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (endRelyUsrMaskedWord I) ⟨0⟩ (endRelyAuthHashMem I)
 
 theorem endRelyUsrMaskedWord_canonical (I : ExecutionEnv) :
@@ -573,7 +573,7 @@ theorem endRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       ByteArray.empty := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((endRelyStoreHashMem I).readWithPadding 0 64))) =
+          (KEC ((endRelyStoreHashMem I).readWithPadding 0 64))) =
         mapSlot (endRelyUsrMaskedWord I) ⟨0⟩ := by
     simpa [endRelyStoreHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (endRelyUsrMaskedWord I)

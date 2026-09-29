@@ -75,7 +75,7 @@ theorem clipperKickX_authCheck {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (clipperRelySourceWord I) ⟨0⟩ := by
     simpa [clipperRelyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (clipperRelySourceWord I)

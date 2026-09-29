@@ -8,7 +8,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-noncomputable def burnData (nounId : UInt256) : ByteArray := burnSelector ++ nounId.toByteArray
+def burnData (nounId : UInt256) : ByteArray := burnSelector ++ nounId.toByteArray
 
 theorem burnData_size (nounId : UInt256) : (burnData nounId).size = 36 := by
   simp only [burnData, ByteArray.size_append, toByteArray_size]

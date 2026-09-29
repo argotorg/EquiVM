@@ -32,7 +32,7 @@ The `k`-th string data word is the storage word copied by Loop-1 into `mem[0xa0+
 the Loop-1 read-preservation lemmas (`weth9SymLongFinalMem_read64/_read128`) to the data region. -/
 
 /-- The `k`-th long-string data word: the storage word copied by Loop-1 into `mem[0xa0 + 32·k]`. -/
-noncomputable def weth9SymLongDataWordAt (σ : AccountMap) (I : ExecutionEnv) (k : Nat) : UInt256 :=
+def weth9SymLongDataWordAt (σ : AccountMap) (I : ExecutionEnv) (k : Nat) : UInt256 :=
   weth9LongStorageWord σ I (weth9SymLongGeneratedLoopState σ I k).slot
 
 /-- Loop-1 memory at step `i` holds data word `k` at `0xa0 + 32·k` for every `k < i`. -/
@@ -90,7 +90,7 @@ the partial case. -/
 
 /-- The trailing data word as returned: masked (`~(2^(8·(32-31&len))-1) & data`) when `len` is not a
     multiple of 32, else the full last data word (the mask store is skipped by the runtime). -/
-noncomputable def weth9SymLongMaskWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
+def weth9SymLongMaskWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   if UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) = ⟨0⟩ then
     weth9SymLongDataWordAt σ I (weth9SymLongWC σ I)
   else
@@ -102,7 +102,7 @@ noncomputable def weth9SymLongMaskWord (σ : AccountMap) (I : ExecutionEnv) : UI
 
 /-- The ABI encoding a long-string getter returns: `offset 0x20 ‖ len ‖ (wc-1) data words ‖ masked
     last word`. -/
-noncomputable def weth9SymLongStringAbi (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def weth9SymLongStringAbi (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   UInt256.toByteArray ⟨32⟩ ++
     (UInt256.toByteArray (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) ++
       (wordConcat (weth9SymLongDataWordAt σ I) 0 (weth9SymLongWC σ I) ++
@@ -198,18 +198,18 @@ length word at `newFp+0x20`.  Both writes are at the running end, so the free po
 word (`0x80`), and the source data region `[0xa0, newFp)` all survive. -/
 
 /-- Object memory with the ABI offset word `0x20` at `newFp`. -/
-noncomputable def weth9SymLongEncMemA (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def weth9SymLongEncMemA (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   writeWord (weth9SymLongFinalMem σ I) (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat ⟨32⟩
 
 /-- `MemA` plus the ABI length word at `newFp+0x20`. -/
-noncomputable def weth9SymLongEncMemB (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def weth9SymLongEncMemB (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   writeWord (weth9SymLongEncMemA σ I)
     ((weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩)).toNat + 32)
     (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩))
 
 /-- Loop-2 memory after `j` mem→mem copies: `MemB` with data words `0..j-1` written into the ABI
     data region at `newFp+0x40 + 32·k = 0x100 + 32·(wc-1) + 32·k`. -/
-noncomputable def weth9SymLong2Mem (σ : AccountMap) (I : ExecutionEnv) : Nat → ByteArray
+def weth9SymLong2Mem (σ : AccountMap) (I : ExecutionEnv) : Nat → ByteArray
   | 0 => weth9SymLongEncMemB σ I
   | j + 1 =>
       writeWord (weth9SymLong2Mem σ I j) (256 + 32 * weth9SymLongWC σ I + 32 * j)
@@ -596,7 +596,7 @@ theorem weth9SymNameLong2CopyLoop {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-- Memory at the RETURN: the Loop-2 output, with the trailing data word replaced by its masked value
     (the mask store is skipped when `len` is a multiple of 32, in which case the last word is full). -/
-noncomputable def weth9SymLong2FinalMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def weth9SymLong2FinalMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   if UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) = ⟨0⟩ then
     weth9SymLong2Mem σ I (weth9SymLongWC σ I + 1)
   else

@@ -6,7 +6,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-noncomputable def settleEventMem (mem : ByteArray) (ptr : UInt256) (s : Snapshot) : ByteArray :=
+def settleEventMem (mem : ByteArray) (ptr : UInt256) (s : Snapshot) : ByteArray :=
   pairEventMem mem ptr s.bidderWord s.amount
 
 def settleEventWords (aw ptr : UInt256) : UInt256 :=

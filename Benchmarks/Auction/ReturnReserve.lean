@@ -27,7 +27,7 @@ def returnReserveSize (size : Nat) : UInt256 :=
 
 def returnReservePtr (ptr : UInt256) (size : Nat) : UInt256 := ptr + returnReserveSize size
 
-noncomputable def returnReserveMem (mem : ByteArray) (ptr : UInt256) (size : Nat) : ByteArray :=
+def returnReserveMem (mem : ByteArray) (ptr : UInt256) (size : Nat) : ByteArray :=
   writeWord mem 64 (returnReservePtr ptr size)
 
 theorem returnReserveSize_toNat {size : Nat} (hb : size + 31 < UInt256.size) :

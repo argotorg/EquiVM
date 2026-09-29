@@ -151,29 +151,29 @@ theorem burnUsrMaskedWord_canonical (I : ExecutionEnv) :
   rw [u256_land_comm solcAddrMask (burnUsrWord I)]
   exact solcAddrMask_result_canonical (burnUsrWord I)
 
-noncomputable abbrev burnUsrHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev burnUsrHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (burnUsrMaskedWord I) ⟨2⟩ solcFreePtrMem
 
-noncomputable abbrev burnAllowanceHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev burnAllowanceHashMem (I : ExecutionEnv) : ByteArray :=
   solcNestedMappingCallerHashMem ⟨3⟩ (burnUsrMaskedWord I) I (burnUsrHashMem I)
 
-noncomputable abbrev burnAllowanceReloadHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev burnAllowanceReloadHashMem (I : ExecutionEnv) : ByteArray :=
   solcNestedMappingCallerHashMem ⟨3⟩ (burnUsrMaskedWord I) I (burnAllowanceHashMem I)
 
-noncomputable abbrev burnAllowanceStoreHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev burnAllowanceStoreHashMem (I : ExecutionEnv) : ByteArray :=
   solcNestedMappingCallerHashMem ⟨3⟩ (burnUsrMaskedWord I) I
     (burnAllowanceReloadHashMem I)
 
-noncomputable abbrev burnAllowancePostStoreHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev burnAllowancePostStoreHashMem (I : ExecutionEnv) : ByteArray :=
   solcNestedMappingCallerHashMem ⟨3⟩ (burnUsrMaskedWord I) I
     (burnAllowanceStoreHashMem I)
 
-noncomputable abbrev burnTailUsrStoreMem (mem : ByteArray) (I : ExecutionEnv) :
+abbrev burnTailUsrStoreMem (mem : ByteArray) (I : ExecutionEnv) :
     ByteArray :=
   twoWordHashMem (burnUsrMaskedWord I) ⟨2⟩
     (twoWordHashMem (burnUsrMaskedWord I) ⟨2⟩ mem)
 
-noncomputable abbrev burnTailLogMem (mem : ByteArray) (I : ExecutionEnv) : ByteArray :=
+abbrev burnTailLogMem (mem : ByteArray) (I : ExecutionEnv) : ByteArray :=
   solcScratchReturnMem (burnTailUsrStoreMem mem I) (burnWadWord I)
 
 abbrev burnEvmUsrSlot (I : ExecutionEnv) : UInt256 :=
@@ -333,7 +333,7 @@ theorem daiBurnX_initialBalanceOkCont {cA σ I} {g : Sat256} {s0 : State} {k C :
       (burnUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((burnUsrHashMem I).readWithPadding 0 64))) =
+          (KEC ((burnUsrHashMem I).readWithPadding 0 64))) =
         burnEvmUsrSlot I := by
     simpa [burnUsrHashMem, burnEvmUsrSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (burnUsrMaskedWord I)
@@ -414,7 +414,7 @@ theorem daiBurnX_initialBalanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
     RDrev daiBytecode g s0 := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((burnUsrHashMem I).readWithPadding 0 64))) =
+          (KEC ((burnUsrHashMem I).readWithPadding 0 64))) =
         burnEvmUsrSlot I := by
     simpa [burnUsrHashMem, burnEvmUsrSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (burnUsrMaskedWord I)
@@ -638,7 +638,7 @@ theorem daiBurnX_allowanceLoadedCont {cA σ I} {g : Sat256} {s0 : State}
   have rdLoadStart := evm_run rdFall with [raw pop (by native_decide) (by evm_ov)]
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨3⟩
+          (KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨3⟩
             (burnUsrHashMem I)).readWithPadding 0 64))) =
         mapSlot (burnUsrMaskedWord I) ⟨3⟩ := by
     simpa [mapSlot, solcMappingSlot] using
@@ -646,7 +646,7 @@ theorem daiBurnX_allowanceLoadedCont {cA σ I} {g : Sat256} {s0 : State}
         (burnUsrHashMem_size I)
   have houterSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((burnAllowanceHashMem I).readWithPadding 0 64))) =
+          (KEC ((burnAllowanceHashMem I).readWithPadding 0 64))) =
         burnEvmAllowanceSlot I := by
     unfold burnAllowanceHashMem solcNestedMappingCallerHashMem
     simpa [burnEvmAllowanceSlot, mapSlot, solcMappingSlot] using
@@ -818,7 +818,7 @@ theorem daiBurnX_allowanceSpendCheckOkCont {cA σ I} {g : Sat256} {s0 : State}
     exact solcAddrMask_clean (burnUsrMaskedWord_canonical I)
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨3⟩
+          (KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨3⟩
             (burnAllowanceHashMem I)).readWithPadding 0 64))) =
         mapSlot (burnUsrMaskedWord I) ⟨3⟩ := by
     simpa [mapSlot, solcMappingSlot] using
@@ -826,7 +826,7 @@ theorem daiBurnX_allowanceSpendCheckOkCont {cA σ I} {g : Sat256} {s0 : State}
         (burnAllowanceHashMem_size I)
   have houterSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((burnAllowanceReloadHashMem I).readWithPadding 0 64))) =
+          (KEC ((burnAllowanceReloadHashMem I).readWithPadding 0 64))) =
         burnEvmAllowanceSlot I := by
     unfold burnAllowanceReloadHashMem solcNestedMappingCallerHashMem
     simpa [burnEvmAllowanceSlot, mapSlot, solcMappingSlot] using
@@ -1015,7 +1015,7 @@ theorem daiBurnX_allowanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
     exact solcAddrMask_clean (burnUsrMaskedWord_canonical I)
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨3⟩
+          (KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨3⟩
             (burnAllowanceHashMem I)).readWithPadding 0 64))) =
         mapSlot (burnUsrMaskedWord I) ⟨3⟩ := by
     simpa [mapSlot, solcMappingSlot] using
@@ -1023,7 +1023,7 @@ theorem daiBurnX_allowanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
         (burnAllowanceHashMem_size I)
   have houterSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((burnAllowanceReloadHashMem I).readWithPadding 0 64))) =
+          (KEC ((burnAllowanceReloadHashMem I).readWithPadding 0 64))) =
         burnEvmAllowanceSlot I := by
     unfold burnAllowanceReloadHashMem solcNestedMappingCallerHashMem
     simpa [burnEvmAllowanceSlot, mapSlot, solcMappingSlot] using
@@ -1146,7 +1146,7 @@ theorem daiBurnX_spendToTailCont {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     exact solcAddrMask_clean (burnUsrMaskedWord_canonical I)
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨3⟩
+          (KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨3⟩
             (burnAllowanceReloadHashMem I)).readWithPadding 0 64))) =
         mapSlot (burnUsrMaskedWord I) ⟨3⟩ := by
     simpa [mapSlot, solcMappingSlot] using
@@ -1154,7 +1154,7 @@ theorem daiBurnX_spendToTailCont {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         (burnAllowanceReloadHashMem_size I)
   have houterSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((burnAllowanceStoreHashMem I).readWithPadding 0 64))) =
+          (KEC ((burnAllowanceStoreHashMem I).readWithPadding 0 64))) =
         burnEvmAllowanceSlot I := by
     unfold burnAllowanceStoreHashMem solcNestedMappingCallerHashMem
     simpa [burnEvmAllowanceSlot, mapSlot, solcMappingSlot] using
@@ -1239,7 +1239,7 @@ theorem daiBurnX_spendToTailCont {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     simpa [burnEvmAllowanceDebitWord] using rdAfterSubRaw
   have hinnerStoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨3⟩
+          (KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨3⟩
             (burnAllowanceStoreHashMem I)).readWithPadding 0 64))) =
         mapSlot (burnUsrMaskedWord I) ⟨3⟩ := by
     simpa [mapSlot, solcMappingSlot] using
@@ -1247,7 +1247,7 @@ theorem daiBurnX_spendToTailCont {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         (burnAllowanceStoreHashMem_size I)
   have houterStoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((burnAllowancePostStoreHashMem I).readWithPadding 0 64))) =
+          (KEC ((burnAllowancePostStoreHashMem I).readWithPadding 0 64))) =
         burnEvmAllowanceSlot I := by
     unfold burnAllowancePostStoreHashMem solcNestedMappingCallerHashMem
     simpa [burnEvmAllowanceSlot, mapSlot, solcMappingSlot] using
@@ -1431,7 +1431,7 @@ theorem daiBurnX_tailSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     exact solcAddrMask_clean (burnUsrMaskedWord_canonical I)
   have hUsrSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨2⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨2⟩ mem).readWithPadding 0 64))) =
         burnEvmUsrSlot I := by
     simpa [burnEvmUsrSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (burnUsrMaskedWord I) hmem
@@ -1486,7 +1486,7 @@ theorem daiBurnX_tailSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     simpa [burnEvmTailUsrDebitWord] using rdAfterUsrSubRaw
   have hUsrStoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((burnTailUsrStoreMem mem I).readWithPadding 0 64))) =
+          (KEC ((burnTailUsrStoreMem mem I).readWithPadding 0 64))) =
         burnEvmUsrSlot I := by
     simpa [burnTailUsrStoreMem, burnEvmUsrSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (burnUsrMaskedWord I)
@@ -1603,7 +1603,7 @@ theorem daiBurnX_tailUsrDebitRevertCont {cA σ I} {g : Sat256} {s0 : State}
     exact solcAddrMask_clean (burnUsrMaskedWord_canonical I)
   have hUsrSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨2⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨2⟩ mem).readWithPadding 0 64))) =
         burnEvmUsrSlot I := by
     simpa [burnEvmUsrSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (burnUsrMaskedWord I) hmem
@@ -1727,7 +1727,7 @@ theorem daiBurnX_tailAfterUsrStoreCont {cA σ I} {g : Sat256} {s0 : State}
     exact solcAddrMask_clean (burnUsrMaskedWord_canonical I)
   have hUsrSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨2⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (burnUsrMaskedWord I) ⟨2⟩ mem).readWithPadding 0 64))) =
         burnEvmUsrSlot I := by
     simpa [burnEvmUsrSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (burnUsrMaskedWord I) hmem
@@ -1784,7 +1784,7 @@ theorem daiBurnX_tailAfterUsrStoreCont {cA σ I} {g : Sat256} {s0 : State}
     simpa [burnEvmTailUsrDebitWord] using rdAfterUsrSubRaw
   have hUsrStoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((burnTailUsrStoreMem mem I).readWithPadding 0 64))) =
+          (KEC ((burnTailUsrStoreMem mem I).readWithPadding 0 64))) =
         burnEvmUsrSlot I := by
     simpa [burnTailUsrStoreMem, burnEvmUsrSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (burnUsrMaskedWord I)

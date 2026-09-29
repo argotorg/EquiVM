@@ -6,7 +6,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-noncomputable def transferFinalMem (mem out : ByteArray) (ptr recipient amount : UInt256) :
+def transferFinalMem (mem out : ByteArray) (ptr recipient amount : UInt256) :
   ByteArray :=
   returnReserveMem (transferCallMem mem out ptr recipient amount) ptr out.size
 

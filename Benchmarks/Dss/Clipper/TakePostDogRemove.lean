@@ -142,7 +142,7 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
     (by simpa [activeMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have hslot :
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC (activeMem.readWithPadding 0 32))) =
+          (fromByteArrayBigEndian (KEC (activeMem.readWithPadding 0 32))) =
         activeDataSlot := by
     simpa [activeMem, activeDataSlot,
       show (⟨0⟩ : UInt256).toNat = 0 from by decide,
@@ -230,12 +230,12 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
     (by rfl) (by rfl) (by evm_ov)
   have hsalesBase :
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC (saleHashMem.readWithPadding 0 64))) =
+          (fromByteArrayBigEndian (KEC (saleHashMem.readWithPadding 0 64))) =
         clipperYankSalesBaseSlot ee := by
     change
       UInt256.ofNat
           (fromByteArrayBigEndian
-            (ffi.KEC
+            (KEC
               ((twoWordHashMem (clipperYankArgWord ee) (⟨12⟩ : UInt256) activeMem).readWithPadding
                 0 64))) =
         clipperYankSalesBaseSlot ee
@@ -295,7 +295,7 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
     (by simpa [activeIndexMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have hactiveBase :
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC (activeIndexMem.readWithPadding 0 32))) =
+          (fromByteArrayBigEndian (KEC (activeIndexMem.readWithPadding 0 32))) =
         activeDataSlot := by
     simpa [activeIndexMem, activeDataSlot,
       show (⟨0⟩ : UInt256).toNat = 0 from by decide,
@@ -387,12 +387,12 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
     exact le_trans hactiveIndexMemSize (Nat.le_max_left _ _)
   have hmoveBase :
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC (moveHashMem.readWithPadding 0 64))) =
+          (fromByteArrayBigEndian (KEC (moveHashMem.readWithPadding 0 64))) =
         clipperYankSalesMovePosSlot move := by
     change
       UInt256.ofNat
           (fromByteArrayBigEndian
-            (ffi.KEC
+            (KEC
               ((twoWordHashMem move (⟨12⟩ : UInt256) activeIndexMem).readWithPadding 0 64))) =
         clipperYankSalesMovePosSlot move
     rw [clipperYankTwoWordHashMem_read0_64_of_ge move (⟨12⟩ : UInt256)
@@ -547,7 +547,7 @@ theorem RD.clipperTakeRemoveIdNeMoveIndexOobInvalid
     (by simpa [activeMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have hslot :
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC (activeMem.readWithPadding 0 32))) =
+          (fromByteArrayBigEndian (KEC (activeMem.readWithPadding 0 32))) =
         activeDataSlot := by
     simpa [activeMem, activeDataSlot,
       show (⟨0⟩ : UInt256).toNat = 0 from by decide,
@@ -624,12 +624,12 @@ theorem RD.clipperTakeRemoveIdNeMoveIndexOobInvalid
     (by rfl) (by rfl) (by evm_ov)
   have hsalesBase :
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC (saleHashMem.readWithPadding 0 64))) =
+          (fromByteArrayBigEndian (KEC (saleHashMem.readWithPadding 0 64))) =
         clipperYankSalesBaseSlot ee := by
     change
       UInt256.ofNat
           (fromByteArrayBigEndian
-            (ffi.KEC
+            (KEC
               ((twoWordHashMem (clipperYankArgWord ee) (⟨12⟩ : UInt256) activeMem).readWithPadding
                 0 64))) =
         clipperYankSalesBaseSlot ee

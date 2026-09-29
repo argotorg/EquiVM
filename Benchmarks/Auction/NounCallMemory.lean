@@ -12,7 +12,7 @@ theorem transferFromWord_prefix : transferFromWord.toByteArray.extract 0 4 =
   transferFromSelector := by
   native_decide
 
-noncomputable def callMem1 (mem : ByteArray) (ptr selector arg : UInt256) : ByteArray :=
+def callMem1 (mem : ByteArray) (ptr selector arg : UInt256) : ByteArray :=
   writeWord (selectorMem mem ptr selector) (ptr.toNat + 4) arg
 
 def callWords1 (aw ptr : UInt256) : UInt256 :=
@@ -54,7 +54,7 @@ theorem callMem1_read {mem aw ptr} (h : HeapMemory mem aw ptr) (selector arg : U
       (Or.inl ⟨by omega, by omega⟩) (by decide) (by decide),
     selectorMem_read h selector, writeWord_read_back _ (ptr.toNat + 4) arg hg]
 
-noncomputable def callMem3 (mem : ByteArray) (ptr selector arg1 arg2 arg3 : UInt256) : ByteArray :=
+def callMem3 (mem : ByteArray) (ptr selector arg1 arg2 arg3 : UInt256) : ByteArray :=
   writeWord (callMem2 mem ptr selector arg1 arg2) (ptr.toNat + 68) arg3
 
 def callWords3 (aw ptr : UInt256) : UInt256 :=

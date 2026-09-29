@@ -19,7 +19,7 @@ theorem copyWindow_eq (src mem : ByteArray) (srcOff dest len : Nat)
   have hsp : min mem.size (dest + len) - (dest + len) = 0 :=
     Nat.sub_eq_zero_of_le (Nat.min_le_right _ _)
   have hdp : dest - mem.size = 0 := Nat.sub_eq_zero_of_le hdest
-  have hz0 : ffi.ByteArray.zeroes 0 = ByteArray.empty := zeroes_zero (by rfl)
+  have hz0 : ByteArray.zeroes 0 = ByteArray.empty := zeroes_zero (by rfl)
   simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract,
     show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
     hsize, hpL, hsp, Nat.add_zero, show mem.data.size = mem.size from rfl]

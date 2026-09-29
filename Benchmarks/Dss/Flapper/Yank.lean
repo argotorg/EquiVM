@@ -128,7 +128,7 @@ theorem clearUint48Offset26_after_offset20_after_address_zero (old : UInt256) :
 
 theorem twoWordHashMem_solcMappingSlot_any (baseSlot key : UInt256) (mem : ByteArray) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key :=
   Benchmarks.Dss.Flopper.twoWordHashMem_solcMappingSlot_any baseSlot key mem
 
@@ -482,16 +482,16 @@ abbrev yankMoveOutSize : UInt256 := ⟨0⟩
 
 abbrev yankMoveEndPtr : UInt256 := ⟨228⟩
 
-noncomputable def yankMoveSelectorMem (mem : ByteArray) : ByteArray :=
+def yankMoveSelectorMem (mem : ByteArray) : ByteArray :=
   yankMoveSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def yankMoveSrcMem (src : UInt256) (mem : ByteArray) : ByteArray :=
+def yankMoveSrcMem (src : UInt256) (mem : ByteArray) : ByteArray :=
   src.toByteArray.write 0 (yankMoveSelectorMem mem) 132 32
 
-noncomputable def yankMoveGuyMem (src guy : UInt256) (mem : ByteArray) : ByteArray :=
+def yankMoveGuyMem (src guy : UInt256) (mem : ByteArray) : ByteArray :=
   guy.toByteArray.write 0 (yankMoveSrcMem src mem) 164 32
 
-noncomputable def yankMoveCalldataMem (src guy bid : UInt256) (mem : ByteArray) : ByteArray :=
+def yankMoveCalldataMem (src guy bid : UInt256) (mem : ByteArray) : ByteArray :=
   bid.toByteArray.write 0 (yankMoveGuyMem src guy mem) 196 32
 
 theorem yankMoveSelectorMem_size {mem : ByteArray} (hmem : mem.size = 96) :
@@ -759,7 +759,7 @@ theorem RD.flapperAuctionDeleteTail
     raw dup3 (by native_decide) (by evm_ov)]
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC (mem2.readWithPadding 0 64))) = base := by
+          (KEC (mem2.readWithPadding 0 64))) = base := by
     simpa [base, mem2] using twoWordHashMem_solcMappingSlot_any ⟨1⟩ id mem
   have rd1211raw := rd1210pre.keccak256 0 base aw
     (by native_decide)
@@ -1604,7 +1604,7 @@ theorem flapperYankX_guyNotSet {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (mem2.readWithPadding 0 64))) = base := by
+        (KEC (mem2.readWithPadding 0 64))) = base := by
     simpa [base, mem2, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ (yankIdWord I) solcFreePtrMem
   have rd967 := rd966pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1734,7 +1734,7 @@ theorem flapperYankX_readyToMove {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (mem2.readWithPadding 0 64))) = base := by
+        (KEC (mem2.readWithPadding 0 64))) = base := by
     simpa [base, mem2, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ (yankIdWord I) solcFreePtrMem
   have rd967 := rd966pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1877,7 +1877,7 @@ theorem flapperYankX_toMoveExtcodesizeGuard
     raw dup3 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id, memHash] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memHash
   have rd1081 := rd1080pre.keccak256 0 base (UInt256.ofNat 3)

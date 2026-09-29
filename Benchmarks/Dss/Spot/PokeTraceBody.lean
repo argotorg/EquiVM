@@ -786,7 +786,7 @@ theorem RD.spotPokeAfterRdivParToRdivMat
       (twoWordHashMem (pokeIlkWord I) ⟨1⟩ mem) (UInt256.ofNat 6) out (cA', σ') k' C' := by
   let mem1 := twoWordHashMem (pokeIlkWord I) ⟨1⟩ mem
   have hslot :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (mem1.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (mem1.readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (pokeIlkWord I) := by
     dsimp [mem1]
     exact poke_twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256)

@@ -246,7 +246,7 @@ theorem wordAt32Mem_solcMappingSlot_of_read0 {mem : ByteArray} (key baseSlot : U
     (hmem : mem.size = 96)
     (hread0 : mem.readWithPadding 0 32 = UInt256.toByteArray key) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((wordAt32Mem baseSlot mem).readWithPadding 0 64))) =
+        (KEC ((wordAt32Mem baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   have hmem32 : (wordAt32Mem baseSlot mem).size = 96 :=
     wordAt32Mem_size_96 baseSlot hmem

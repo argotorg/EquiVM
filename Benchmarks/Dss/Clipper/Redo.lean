@@ -106,7 +106,7 @@ abbrev clipperRedoLocalsTop (evm : EVM.State) (I : ExecutionEnv) : Store :=
   (clipperRedoLocalsTic evm I).insert "top"
     (.int (Int.ofNat (clipperRedoSalesTopEVMWord evm I).toNat))
 
-noncomputable abbrev clipperRedoSalesHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev clipperRedoSalesHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (clipperRedoIdWord I) ⟨12⟩ solcFreePtrMem
 
 theorem clipperRedoSalesHashMem_size (I : ExecutionEnv) :
@@ -1515,7 +1515,7 @@ theorem clipperRedoX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   let base : UInt256 := solcMappingSlot ⟨12⟩ (clipperRedoIdWord I)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperRedoSalesHashMem I).readWithPadding 0 64))) =
+          (KEC ((clipperRedoSalesHashMem I).readWithPadding 0 64))) =
         base := by
     simpa [clipperRedoSalesHashMem, base] using
       twoWordHashMem_solcMappingSlot ⟨12⟩ (clipperRedoIdWord I) solcFreePtrMem_size
@@ -1626,7 +1626,7 @@ theorem clipperRedoX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   let base : UInt256 := solcMappingSlot ⟨12⟩ (clipperRedoIdWord I)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperRedoSalesHashMem I).readWithPadding 0 64))) =
+          (KEC ((clipperRedoSalesHashMem I).readWithPadding 0 64))) =
         base := by
     simpa [clipperRedoSalesHashMem, base] using
       twoWordHashMem_solcMappingSlot ⟨12⟩ (clipperRedoIdWord I) solcFreePtrMem_size

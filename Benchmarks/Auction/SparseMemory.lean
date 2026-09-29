@@ -7,22 +7,22 @@ namespace Auction
 -- LIBRARY CANDIDATE: zeroes uses a Nat length, so a word write needs no USize gap bound.
 theorem writeWord_sparse_eq (mem : ByteArray) (off : Nat) (word : UInt256)
     (hoff : mem.size ≤ off) :
-    writeWord mem off word = mem ++ ffi.ByteArray.zeroes (off - mem.size) ++ word.toByteArray := by
+    writeWord mem off word = mem ++ ByteArray.zeroes (off - mem.size) ++ word.toByteArray := by
   have hsz : word.toByteArray.data.size = 32 := word.toByteArrayWithSizeProof.2
-  have hpz : (ffi.ByteArray.zeroes (off - mem.size)).data.size = off - mem.size :=
+  have hpz : (ByteArray.zeroes (off - mem.size)).data.size = off - mem.size :=
     ByteArray_zeroes_size _
   apply ByteArray.ext
   unfold Reasoning.Theory.writeWord ByteArray.write
   rw [if_neg (by decide : ¬ ((32 : Nat) = 0)),
     if_neg (show ¬ (0 ≥ word.toByteArray.size) from by rw [toByteArray_size]; omega)]
   simp only [ByteArray.data_copySlice, ByteArray.data_append]
-  have hdsz : (mem.data ++ (ffi.ByteArray.zeroes (off - mem.size)).data).size = off := by
+  have hdsz : (mem.data ++ (ByteArray.zeroes (off - mem.size)).data).size = off := by
     rw [Array.size_append, hpz]
     change mem.size + (off - mem.size) = off
     omega
   rw [toByteArray_size, show min 32 (32 - 0) = 32 from rfl,
     show min mem.size (off + 32) - (off + 32) = 0 by omega,
-    show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+    show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
       rw [zeroes_zero (n := 0) rfl]
       rfl, Array.append_empty]
   rw [Array.extract_eq_self_of_le (by rw [hdsz]),
@@ -62,7 +62,7 @@ theorem writeWord_sparse_read_window (mem : ByteArray) (off start len : Nat) (wo
   · exact writeWord_read_window mem off start len word hwithin hpos hlen
       (by have hu := lt_usize 0 (by decide); omega)
   · rw [writeWord_sparse_eq mem off word (by omega)]
-    have hprefix : (mem ++ ffi.ByteArray.zeroes (off - mem.size)).size = off := by
+    have hprefix : (mem ++ ByteArray.zeroes (off - mem.size)).size = off := by
       rw [ByteArray.size_append, ByteArray_zeroes_size]
       omega
     rw [readWithPadding_eq_extract' _ (off + start) len hpos hlen (by

@@ -258,7 +258,7 @@ theorem flopperDealX_toMintExtcodesizeGuard
     raw dup4 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd4179 := rd4178pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)

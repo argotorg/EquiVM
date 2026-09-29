@@ -7,13 +7,13 @@ namespace Benchmarks.Dss.Vow
 /-! Shared memory facts for solc-generated `vat.dai(address(this))` calls from any
     164-byte memory with the standard free-memory pointer at offset 64. -/
 
-noncomputable def vatDaiSelectorMem (mem : ByteArray) : ByteArray :=
+def vatDaiSelectorMem (mem : ByteArray) : ByteArray :=
   kissDaiSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def vatDaiCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def vatDaiCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (UInt256.ofNat I.codeOwner.val).toByteArray.write 0 (vatDaiSelectorMem mem) 132 32
 
-noncomputable def vatDaiCalldataMemFor (arg : UInt256) (mem : ByteArray) : ByteArray :=
+def vatDaiCalldataMemFor (arg : UInt256) (mem : ByteArray) : ByteArray :=
   arg.toByteArray.write 0 (vatDaiSelectorMem mem) 132 32
 
 theorem vatDaiSelectorMem_size {mem : ByteArray} (hmem : mem.size = 164) :

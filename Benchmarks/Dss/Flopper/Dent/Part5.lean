@@ -77,7 +77,7 @@ theorem flopperDentX_ticZeroOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memTicZero.readWithPadding 0 64))) = base := by
+        (KEC (memTicZero.readWithPadding 0 64))) = base := by
     simpa [base, memTicZero, memTic, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd1863 := rd1862pre.keccak256 0 base (UInt256.ofNat 3)
@@ -197,7 +197,7 @@ theorem flopperDentX_toEndGtGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memEnd.readWithPadding 0 64))) = base := by
+        (KEC (memEnd.readWithPadding 0 64))) = base := by
     simpa [base, memEnd, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd1979 := rd1978pre.keccak256 0 base (UInt256.ofNat 3)
@@ -351,7 +351,7 @@ theorem flopperDentX_toBidEqGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memBid.readWithPadding 0 64))) = base := by
+        (KEC (memBid.readWithPadding 0 64))) = base := by
     simpa [base, memBid, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2096pre := rd2095pre.keccak256 0 base (UInt256.ofNat 3)
@@ -477,7 +477,7 @@ theorem flopperDentX_toLotLtGuard
     raw swap2 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memLot.readWithPadding 0 64))) = base := by
+        (KEC (memLot.readWithPadding 0 64))) = base := by
     simpa [base, memLot, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2197pre := rd2196pre.keccak256 0 base (UInt256.ofNat 3)
@@ -614,7 +614,7 @@ theorem flopperDentX_toLotOneMulStart
     raw swap2 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memLotOne.readWithPadding 0 64))) = base := by
+        (KEC (memLotOne.readWithPadding 0 64))) = base := by
     simpa [base, memLotOne, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2292pre := rd2290pre.keccak256 0 base (UInt256.ofNat 3)
@@ -887,7 +887,7 @@ theorem flopperDentX_toCallerEqGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memCaller.readWithPadding 0 64))) = base := by
+        (KEC (memCaller.readWithPadding 0 64))) = base := by
     simpa [base, memCaller, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2420 := rd2419pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1068,7 +1068,7 @@ theorem flopperDentX_toMoveExtcodesizeGuard
     raw dup3 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memCaller
   have rd2457 := rd2456pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1425,7 +1425,7 @@ theorem flopperDentX_moveSuccessTicNonzeroToTail
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memTic.readWithPadding 0 64))) = base := by
+        (KEC (memTic.readWithPadding 0 64))) = base := by
     simpa [base, memTic, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id mem
   have rd2579pre := rd2578pre.keccak256 0 base (UInt256.ofNat 8)
@@ -1514,7 +1514,7 @@ theorem flopperDentX_moveSuccessTicNonzeroToTail
     raw swap1 (by native_decide) (by evm_ov)]
   have hbaseGuy :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memGuy.readWithPadding 0 64))) = base := by
+        (KEC (memGuy.readWithPadding 0 64))) = base := by
     simpa [base, memGuy, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd2870pre := rd2869pre.keccak256 0 base (UInt256.ofNat 8)

@@ -5,7 +5,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-noncomputable def mintFinalMem (mem out : ByteArray) (ptr : UInt256) : ByteArray :=
+def mintFinalMem (mem out : ByteArray) (ptr : UInt256) : ByteArray :=
   returnReserveMem (mintCallMem mem out ptr) ptr out.size
 
 def mintFinalWords (aw ptr : UInt256) : UInt256 :=

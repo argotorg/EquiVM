@@ -231,11 +231,11 @@ abstract free pointer `p` instead of the concrete `128`.  Selector at `p`, the f
 at `p+4, p+36, p+68, p+100, p+132`; the 164-byte calldata slice reads back at `[p, p+164)`. -/
 
 /-- Selector word `0x351de600` written at the abstract scratch offset `p`. -/
-noncomputable def kickSelectorMemP (p : UInt256) (mem : ByteArray) : ByteArray :=
+def kickSelectorMemP (p : UInt256) (mem : ByteArray) : ByteArray :=
   kickSelectorShifted.toByteArray.write 0 mem p.toNat 32
 
 /-- The full 164-byte `kick` calldata laid at the free pointer `p` over base memory `mem`. -/
-noncomputable def kickCalldataMemP (p urn vow tab dink : UInt256) (mem : ByteArray) : ByteArray :=
+def kickCalldataMemP (p urn vow tab dink : UInt256) (mem : ByteArray) : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0
     (dink.toByteArray.write 0
       (tab.toByteArray.write 0

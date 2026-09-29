@@ -4,11 +4,11 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Cure
 
-noncomputable def listReturnOffsetMem (fmp : UInt256) (mem : ByteArray) :
+def listReturnOffsetMem (fmp : UInt256) (mem : ByteArray) :
     ByteArray :=
   (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 mem fmp.toNat 32
 
-noncomputable def listReturnLengthMem (len fmp : UInt256) (mem : ByteArray) :
+def listReturnLengthMem (len fmp : UInt256) (mem : ByteArray) :
     ByteArray :=
   (UInt256.toByteArray len).write 0 (listReturnOffsetMem fmp mem)
     (fmp + (⟨32⟩ : UInt256)).toNat 32
@@ -37,7 +37,7 @@ abbrev listReturnCopyStepAw (aw src dst i : UInt256) : UInt256 :=
   UInt256.ofNat (MachineState.M (listReturnCopyMloadAw aw src i).toNat
     (i + dst).toNat 32)
 
-noncomputable def listReturnCopyStepMem
+def listReturnCopyStepMem
     (word dst i : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem (i + dst).toNat 32
 
@@ -51,13 +51,13 @@ def listReturnCopyOffset : Nat → UInt256
 def listReturnDataWord (σ : AccountMap) (I : ExecutionEnv) (idx : Nat) : UInt256 :=
   UInt256.land (solcSlotWord σ I (listArraySlot idx)) solcAddrMask
 
-noncomputable def listReturnBaseMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def listReturnBaseMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   listReturnLengthMem (cureSlotWord ⟨2⟩ σ I)
     (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
     (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
       (cureSlotWord ⟨2⟩ σ I).toNat)
 
-noncomputable def listReturnCopiedMem (σ : AccountMap) (I : ExecutionEnv) : Nat → ByteArray
+def listReturnCopiedMem (σ : AccountMap) (I : ExecutionEnv) : Nat → ByteArray
   | 0 => listReturnBaseMem σ I
   | n + 1 =>
       (UInt256.toByteArray (listReturnDataWord σ I n)).write 0

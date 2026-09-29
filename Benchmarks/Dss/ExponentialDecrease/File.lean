@@ -554,7 +554,7 @@ theorem stairstepFileSourceBodyUnrecognizedReverts {cA gh bl σ σ₀ A I} {g : 
 
 /-! ## EVM/refinement assembly -/
 
-noncomputable def fileLogDataMem (I : ExecutionEnv) : ByteArray :=
+def fileLogDataMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (fileData I)).write 0 (relyAuthHashMem I) 128 32
 
 theorem fileLogDataMem_size (I : ExecutionEnv) :
@@ -673,7 +673,7 @@ theorem stairstepFileX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -724,7 +724,7 @@ theorem stairstepFileX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : �
     RDrev exponentialDecreaseBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)

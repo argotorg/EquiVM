@@ -636,7 +636,7 @@ theorem RD.vatFluxWishLoaded
     raw dup5 (by native_decide) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (fluxSrcMaskedWord I) ⟨1⟩ solcFreePtrMem)
+          (KEC ((twoWordHashMem (fluxSrcMaskedWord I) ⟨1⟩ solcFreePtrMem)
             |>.readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (fluxSrcMaskedWord I) :=
     twoWordHashMem_solcMappingSlot ⟨1⟩ (fluxSrcMaskedWord I) solcFreePtrMem_size
@@ -679,7 +679,7 @@ theorem RD.vatFluxWishLoaded
     raw dup3 (by native_decide) (by evm_ov)]
   have houter :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (hopeSourceWord I)
+          (KEC ((twoWordHashMem (hopeSourceWord I)
             (solcMappingSlot ⟨1⟩ (fluxSrcMaskedWord I))
             (twoWordHashMem (fluxSrcMaskedWord I) ⟨1⟩ solcFreePtrMem)).readWithPadding 0 64))) =
         fluxWishSlot I := by
@@ -836,7 +836,7 @@ theorem RD.vatFluxSourceSubSuccess
     raw dup4 (by native_decide) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         inner := by
     simpa [inner] using twoWordHashMem_solcMappingSlot ⟨4⟩ (fluxIlkWord I) hmem
   have rd2562 := rd2562pre.keccak256 0 inner (UInt256.ofNat 3)
@@ -876,7 +876,7 @@ theorem RD.vatFluxSourceSubSuccess
     twoWordHashMem_size_96 (fluxIlkWord I) ⟨4⟩ hmem
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (fluxSrcMaskedWord I) inner
+          (KEC ((twoWordHashMem (fluxSrcMaskedWord I) inner
             (twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem)).readWithPadding 0 64))) =
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot inner (fluxSrcMaskedWord I) hmemInner
@@ -939,7 +939,7 @@ theorem RD.vatFluxSourceSubRevert
     raw dup4 (by native_decide) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         inner := by
     simpa [inner] using twoWordHashMem_solcMappingSlot ⟨4⟩ (fluxIlkWord I) hmem
   have rd2562 := rd2562pre.keccak256 0 inner (UInt256.ofNat 3)
@@ -979,7 +979,7 @@ theorem RD.vatFluxSourceSubRevert
     twoWordHashMem_size_96 (fluxIlkWord I) ⟨4⟩ hmem
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (fluxSrcMaskedWord I) inner
+          (KEC ((twoWordHashMem (fluxSrcMaskedWord I) inner
             (twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem)).readWithPadding 0 64))) =
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot inner (fluxSrcMaskedWord I) hmemInner
@@ -1050,7 +1050,7 @@ theorem RD.vatFluxSourceStoreValue
     raw dup4 (by native_decide) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
         inner := by
     simpa [inner] using twoWordHashMem_solcMappingSlot ⟨4⟩ ilk hmem
   have rd2607 := rd2607pre.keccak256 0 inner (UInt256.ofNat 3)
@@ -1091,7 +1091,7 @@ theorem RD.vatFluxSourceStoreValue
     twoWordHashMem_size_96 ilk ⟨4⟩ hmem
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem src inner
+          (KEC ((twoWordHashMem src inner
             (twoWordHashMem ilk ⟨4⟩ mem)).readWithPadding 0 64))) =
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot inner src hmemInner
@@ -1109,7 +1109,7 @@ set_option maxHeartbeats 1000000 in
 theorem wordAt0Mem_twoWordHashMem_solcMappingSlot (baseSlot key oldKey : UInt256)
     {mem : ByteArray} (hmem : mem.size = 96) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((wordAt0Mem key (twoWordHashMem oldKey baseSlot mem)).readWithPadding 0 64))) =
+        (KEC ((wordAt0Mem key (twoWordHashMem oldKey baseSlot mem)).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   have hbase : (twoWordHashMem oldKey baseSlot mem).size = 96 :=
     twoWordHashMem_size_96 oldKey baseSlot hmem
@@ -1182,7 +1182,7 @@ theorem RD.vatFluxDestAddSuccess
     (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((wordAt0Mem dst
+          (KEC ((wordAt0Mem dst
             (twoWordHashMem src inner (twoWordHashMem ilk ⟨4⟩ mem))).readWithPadding 0 64))) =
         slot := by
     have hinnerMem : (twoWordHashMem ilk ⟨4⟩ mem).size = 96 :=
@@ -1248,7 +1248,7 @@ theorem RD.vatFluxDestAddRevert
     (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((wordAt0Mem dst
+          (KEC ((wordAt0Mem dst
             (twoWordHashMem src inner (twoWordHashMem ilk ⟨4⟩ mem))).readWithPadding 0 64))) =
         slot := by
     have hinnerMem : (twoWordHashMem ilk ⟨4⟩ mem).size = 96 :=
@@ -1322,7 +1322,7 @@ theorem RD.vatFluxDestStoreReturn
     raw dup8 (by native_decide) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
         inner := by
     simpa [inner] using twoWordHashMem_solcMappingSlot ⟨4⟩ ilk hmem
   have rd2662 := rd2662pre.keccak256 0 inner (UInt256.ofNat 3)
@@ -1364,7 +1364,7 @@ theorem RD.vatFluxDestStoreReturn
     twoWordHashMem_size_96 ilk ⟨4⟩ hmem
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem dst inner (twoWordHashMem ilk ⟨4⟩ mem)).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem dst inner (twoWordHashMem ilk ⟨4⟩ mem)).readWithPadding 0 64))) =
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot inner dst hmemInner
   have rd2682 := rd2682pre.keccak256 0 slot (UInt256.ofNat 3)

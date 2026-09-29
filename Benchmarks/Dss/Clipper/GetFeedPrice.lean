@@ -258,14 +258,14 @@ theorem clipperGetFeedPriceCallRevertsSpotterIlksCallFailure
     (clipperBindParamsGetFeedPrice v)
     (clipperGetFeedPriceFunctionRevertsSpotterIlksCallFailure v hcode hcall)
 
-noncomputable def clipperSpotterIlksSelectorMem (mem : ByteArray) : ByteArray :=
+def clipperSpotterIlksSelectorMem (mem : ByteArray) : ByteArray :=
   clipperSpotterIlksSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def clipperSpotterIlksCalldataMem
+def clipperSpotterIlksCalldataMem
     (ilk : UInt256) (mem : ByteArray) : ByteArray :=
   ilk.toByteArray.write 0 (clipperSpotterIlksSelectorMem mem) 132 32
 
-noncomputable def clipperSpotterIlksPostCallMem
+def clipperSpotterIlksPostCallMem
     (v : ClipperImmutables) (mem out : ByteArray) : ByteArray :=
   out.write 0 (clipperSpotterIlksCalldataMem (clipperIlkWord v) mem) 128
     (min (⟨64⟩ : UInt256) (UInt256.ofNat out.size)).toNat
@@ -286,10 +286,10 @@ abbrev clipperSpotterIlksValues (out : ByteArray) : List Value :=
   [.address (clipperSpotterIlksPipAddress out),
     .int (Int.ofNat (clipperSpotterIlksMatWord out).toNat)]
 
-noncomputable def clipperPipPeekSelectorMem (mem : ByteArray) : ByteArray :=
+def clipperPipPeekSelectorMem (mem : ByteArray) : ByteArray :=
   clipperPipPeekSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def clipperPipPeekPostCallMem (mem out : ByteArray) : ByteArray :=
+def clipperPipPeekPostCallMem (mem out : ByteArray) : ByteArray :=
   out.write 0 mem 128
     (min (⟨64⟩ : UInt256) (UInt256.ofNat out.size)).toNat
 

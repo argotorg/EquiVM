@@ -51,17 +51,17 @@ end Reasoning.Reach
 
 namespace Benchmarks.Dss.Clipper
 
-noncomputable abbrev clipperRedoEventMem0 (mem : ByteArray) (top : UInt256) : ByteArray :=
+abbrev clipperRedoEventMem0 (mem : ByteArray) (top : UInt256) : ByteArray :=
   top.toByteArray.write 0 mem 128 32
 
-noncomputable abbrev clipperRedoEventMem1 (mem : ByteArray) (top tab : UInt256) : ByteArray :=
+abbrev clipperRedoEventMem1 (mem : ByteArray) (top tab : UInt256) : ByteArray :=
   tab.toByteArray.write 0 (clipperRedoEventMem0 mem top) 160 32
 
-noncomputable abbrev clipperRedoEventMem2 (mem : ByteArray)
+abbrev clipperRedoEventMem2 (mem : ByteArray)
     (top tab lot : UInt256) : ByteArray :=
   lot.toByteArray.write 0 (clipperRedoEventMem1 mem top tab) 192 32
 
-noncomputable abbrev clipperRedoEventMem (mem : ByteArray)
+abbrev clipperRedoEventMem (mem : ByteArray)
     (top tab lot coin : UInt256) : ByteArray :=
   coin.toByteArray.write 0 (clipperRedoEventMem2 mem top tab lot) 224 32
 

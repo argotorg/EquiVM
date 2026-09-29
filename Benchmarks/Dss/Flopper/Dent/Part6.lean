@@ -125,7 +125,7 @@ theorem flopperDentX_moveSuccessTicZeroToAshExtcodesizeGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbaseTic :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memTic.readWithPadding 0 64))) = base := by
+        (KEC (memTic.readWithPadding 0 64))) = base := by
     simpa [base, memTic, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id mem
   have rd2579pre := rd2578pre.keccak256 0 base (UInt256.ofNat 8)
@@ -216,7 +216,7 @@ theorem flopperDentX_moveSuccessTicZeroToAshExtcodesizeGuard
     raw dup4 (by native_decide) (by evm_ov)]
   have hbaseAsh :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memAsh.readWithPadding 0 64))) = base := by
+        (KEC (memAsh.readWithPadding 0 64))) = base := by
     simpa [base, memAsh, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd2623pre := rd2622pre.keccak256 0 base (UInt256.ofNat 8)
@@ -718,7 +718,7 @@ theorem flopperDentX_ashDecodeOkToKissExtcodesizeGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id mem
   have rd2745pre := rd2744pre.keccak256 0 base (UInt256.ofNat 8)
@@ -1039,7 +1039,7 @@ theorem flopperDentX_guyStoreTailFrom2855
     raw swap1 (by native_decide) (by evm_ov)]
   have hbaseGuy :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memGuy.readWithPadding 0 64))) = base := by
+        (KEC (memGuy.readWithPadding 0 64))) = base := by
     simpa [base, memGuy, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id mem
   have rd2870pre := rd2869pre.keccak256 0 base (UInt256.ofNat 8)
@@ -1186,7 +1186,7 @@ theorem flopperDentX_toCheckedAddStartFromTail
     raw swap2 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memLotStore.readWithPadding 0 64))) = base := by
+        (KEC (memLotStore.readWithPadding 0 64))) = base := by
     simpa [base, memLotStore, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2907pre := rd2906pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1407,7 +1407,7 @@ theorem flopperDentX_successFromAddOk
     raw swap4 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memStore.readWithPadding 0 64))) = base := by
+        (KEC (memStore.readWithPadding 0 64))) = base := by
     simpa [base, memStore, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2948pre := rd2947pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1571,7 +1571,7 @@ theorem flopperDentX_toCheckedAddStartFromTailAw8
     raw swap2 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memLotStore.readWithPadding 0 64))) = base := by
+        (KEC (memLotStore.readWithPadding 0 64))) = base := by
     simpa [base, memLotStore, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2907pre := rd2906pre.keccak256 0 base (UInt256.ofNat 8)

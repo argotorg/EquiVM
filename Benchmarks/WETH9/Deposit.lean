@@ -103,7 +103,7 @@ theorem weth9DepositStore {cA gh bl σ σ₀ A I} {R : List UInt256} {g : Sat256
     |>.dup3 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
     |>.swap1 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
   have hkecval : UInt256.ofNat (fromByteArrayBigEndian
-      (ffi.KEC ((twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem).readWithPadding 0 64)))
+      (KEC ((twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem).readWithPadding 0 64)))
         = callerBalSlot I := by
     rw [twoWordHashMem_solcMappingSlot ⟨3⟩ (solcSourceWord I) solcFreePtrMem_size]
     exact (callerBalSlot_eq I).symm
@@ -142,20 +142,20 @@ theorem weth9DepositLog {cA gh bl σ σ₀ A I acc} {R : List UInt256} {g : Sat2
     native_decide
   have hgap32 : (128 : ℕ) - thm.size = 32 := by rw [hthmsize]
   set dlm := (UInt256.toByteArray I.weiValue).write 0 thm 128 32 with hdlm
-  have hgapeq : dlm = thm ++ ffi.ByteArray.zeroes 32
+  have hgapeq : dlm = thm ++ ByteArray.zeroes 32
       ++ UInt256.toByteArray I.weiValue := by
     rw [hdlm, toByteArray_write_eq _ _ _ (by rw [hthmsize]; omega)
       (by rw [hgap32]; exact lt_usize 32 (by norm_num)), hgap32]
   have hcvsize : (UInt256.toByteArray I.weiValue).size = 32 :=
     (UInt256.toByteArrayWithSizeProof I.weiValue).2
-  have hzsize : (ffi.ByteArray.zeroes 32).size = 32 := by
+  have hzsize : (ByteArray.zeroes 32).size = 32 := by
     rw [ByteArray_zeroes_size]
   have hdlmsize : dlm.size = 160 := by
     rw [hgapeq, ByteArray.size_append, ByteArray.size_append, hthmsize, hzsize, hcvsize]
   have hdlmread64 : dlm.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     have h1 : dlm.readWithPadding 64 32 = dlm.extract 64 (64 + 32) :=
       readWithPadding_eq_extract _ 64 (by rw [hdlmsize]; omega)
-    have h2 : (64 : ℕ) + 32 ≤ (thm ++ ffi.ByteArray.zeroes 32).size := by
+    have h2 : (64 : ℕ) + 32 ≤ (thm ++ ByteArray.zeroes 32).size := by
       rw [ByteArray.size_append, hthmsize, hzsize]; omega
     have h3 : (64 : ℕ) + 32 ≤ thm.size := by rw [hthmsize]
     rw [h1, hgapeq, extract_append_left _ _ 64 (64 + 32) h2,

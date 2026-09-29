@@ -9,7 +9,7 @@ Faithful Solm benchmark spec for upstream `dss/src/clip.sol`.
 Events are omitted, matching the existing event-bearing DSS benchmarks.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 open Benchmarks.Dss.Clipper.Immutables
 
 namespace Benchmarks.Dss.Clipper
@@ -217,11 +217,11 @@ def storageDecls : List StorageDecl :=
     { name := "stopped", ty := uint256St } ]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def wardsSlot (usr : KeyValue) : Ethereum.UInt256 := mapSlot (keyValueToWord usr) ⟨0⟩
 def activeDataSlot : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (Ethereum.UInt256.toByteArray ⟨11⟩))
+  Ethereum.uInt256OfByteArray (KEC (Ethereum.UInt256.toByteArray ⟨11⟩))
 def activeSlot (idx : KeyValue) : Ethereum.UInt256 := activeDataSlot + keyValueToWord idx
 def salesBase (id : KeyValue) : Ethereum.UInt256 := mapSlot (keyValueToWord id) ⟨12⟩
 

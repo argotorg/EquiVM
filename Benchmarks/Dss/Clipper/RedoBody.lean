@@ -540,7 +540,7 @@ theorem RD.clipperRedoDoneBranchToGetFeedPrice {code : ByteArray} (v : ClipperIm
   intro base packedSlot updatedPacked
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem id (⟨12⟩ : UInt256) mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem id (⟨12⟩ : UInt256) mem).readWithPadding 0 64))) =
         base := by
     simpa [base] using twoWordHashMem_solcMappingSlot_of_ge (⟨12⟩ : UInt256) id hmem
   have haddrMask :

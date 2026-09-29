@@ -66,8 +66,8 @@ Scaffold notes:
   `SourceLike.cure()`. It has no `CALL`, `DELEGATECALL`, contract creation, or selfdestruct.
 - `SourceLike.cure()` is represented with a custom external ABI and modeled as `perm := false`,
   matching the upstream `view` interface and runtime `STATICCALL`.
-- `Trusted.lean` records the 20 opaque Keccak selector facts needed to connect Solm dispatch to the
-  runtime dispatcher constants; the values match the selectors embedded in `runtime.hex`.
+- `Trusted.lean` proves the 20 selectors that connect Solm dispatch to the runtime constants in
+  `runtime.hex`.
 - Checked `_add`/`_sub` use the same revert conditions as Solidity 0.6 wrapped arithmetic plus the
   source `require`s. The `lCount++` in `load` is modeled as unchecked modulo-2^256 wrapping.
 - Events are intentionally omitted from the Solm specs, matching the existing event-bearing DSS

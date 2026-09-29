@@ -1622,7 +1622,7 @@ theorem RD.vatFoldDaiStoreOk
   have rd5806 := rd5805.swap1 (by native_decide) (by evm_ov)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
         daiSlotWord := by
     simpa [daiSlotWord] using
       twoWordHashMem_solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I) hmem
@@ -1679,7 +1679,7 @@ theorem RD.vatFoldDaiStoreOk
     twoWordHashMem_size_96 (foldUsrMaskedWord I) ⟨5⟩ hmem
   have hslot2 :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC
+          (KEC
             ((twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩
               (twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩ mem)).readWithPadding 0 64))) =
         daiSlotWord := by
@@ -1746,7 +1746,7 @@ theorem RD.vatFoldDaiStoreRevert
   have rd5806 := rd5805.swap1 (by native_decide) (by evm_ov)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
         daiSlotWord := by
     simpa [daiSlotWord] using
       twoWordHashMem_solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I) hmem

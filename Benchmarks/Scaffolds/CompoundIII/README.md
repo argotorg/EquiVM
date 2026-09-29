@@ -57,9 +57,8 @@ Scaffold notes:
 - `Spec.lean` files expose ABI-shaped transition declarations and solc storage layouts.
 - `SpecSyntax.lean` files expose syntax-facing contract values checked by `rfl` against the AST
   specs.
-- Selector bytes, if needed in downstream proofs, should follow the `Examples/*/Trusted.lean`
-  convention: trust only opaque Keccak selector byte computations, then prove dispatch facts from
-  those axioms.
+- Selector bytes, if needed in downstream proofs, can be proved by kernel reduction of pure `KEC`
+  expressions, as in `Examples/*/Selectors.lean`; dispatch facts then use those theorems.
 - `CometRewards` has been handed off for proof and semantically audited for the current equivalence
   relation. Its 0.8.15 via-IR artifacts match the Lean byte arrays, its packed storage layout
   matches the spec, and its no-return `accrueAccount` calls include the solc `EXTCODESIZE` guards

@@ -23,7 +23,7 @@ abbrev dentRefundMoveArgValsMap (σ : AccountMap) (I : ExecutionEnv) : List Valu
     .address (AccountAddress.ofNat (bidGuyWord (dentId I) σ I).toNat),
     .int (Int.ofNat (dentBid I).toNat)]
 
-noncomputable abbrev dentVatRefundCallMem (mem : ByteArray) (σ : AccountMap)
+abbrev dentVatRefundCallMem (mem : ByteArray) (σ : AccountMap)
     (I : ExecutionEnv) : ByteArray :=
   writeCascade (dentVatHashMem mem I)
     [(128, yankVatMoveSelectorWord),

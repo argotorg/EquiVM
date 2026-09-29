@@ -50,7 +50,7 @@ abbrev tickEndStoredWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 abbrev tickLocalsWithEnd (σ : AccountMap) (I : ExecutionEnv) : Store :=
   (tickLocals I).insert "end_" (.int (Int.ofNat (tickEndNewWord σ I).toNat))
 
-noncomputable abbrev tickTicCheckedMem (I : ExecutionEnv) : ByteArray :=
+abbrev tickTicCheckedMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (tickId I) ⟨1⟩
     (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem)
 

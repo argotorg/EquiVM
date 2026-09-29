@@ -619,7 +619,7 @@ theorem endFileAddressX_notLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       repeat' first | apply And.intro | native_decide)
     hliveSolc (endRelyAuthHashMem_size I) (endRelyAuthHashMem_read64 I) (by simp)
 
-noncomputable def endFileAddressLogDataMem (I : ExecutionEnv) : ByteArray :=
+def endFileAddressLogDataMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (endFileAddressDataMaskedWord I)).write 0 (endRelyAuthHashMem I) 128 32
 
 theorem endFileAddressLogDataMem_size (I : ExecutionEnv) :

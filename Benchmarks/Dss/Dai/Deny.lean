@@ -252,10 +252,10 @@ theorem daiDenyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ## EVM trace -/
 
-noncomputable abbrev denyAuthHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev denyAuthHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (denySourceWord I) ⟨0⟩ solcFreePtrMem
 
-noncomputable abbrev denyStoreHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev denyStoreHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (denyGuyMaskedWord I) ⟨0⟩ (denyAuthHashMem I)
 
 theorem denyGuyMaskedWord_canonical (I : ExecutionEnv) :
@@ -321,7 +321,7 @@ theorem daiDenyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (denyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((denyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((denyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (denySourceWord I) ⟨0⟩ := by
     simpa [denyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (denySourceWord I)
@@ -369,7 +369,7 @@ theorem daiDenyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     RDrev daiBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((denyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((denyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (denySourceWord I) ⟨0⟩ := by
     simpa [denyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (denySourceWord I)
@@ -437,7 +437,7 @@ theorem daiDenyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       ByteArray.empty := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((denyStoreHashMem I).readWithPadding 0 64))) =
+          (KEC ((denyStoreHashMem I).readWithPadding 0 64))) =
         mapSlot (denyGuyMaskedWord I) ⟨0⟩ := by
     simpa [denyStoreHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (denyGuyMaskedWord I)

@@ -66,18 +66,18 @@ abbrev clipperRedoSuckSelectorWord : UInt256 := ⟨0xf24e23eb⟩
 abbrev clipperRedoSuckSelectorShifted : UInt256 :=
   UInt256.shiftLeft clipperRedoSuckSelectorWord ⟨224⟩
 
-noncomputable def clipperRedoSuckSelectorMem (mem : ByteArray) : ByteArray :=
+def clipperRedoSuckSelectorMem (mem : ByteArray) : ByteArray :=
   clipperRedoSuckSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def clipperRedoSuckVowMem (σ : AccountMap) (ee : ExecutionEnv)
+def clipperRedoSuckVowMem (σ : AccountMap) (ee : ExecutionEnv)
     (mem : ByteArray) : ByteArray :=
   (clipperRedoVowTarget σ ee).toByteArray.write 0 (clipperRedoSuckSelectorMem mem) 132 32
 
-noncomputable def clipperRedoSuckKprMem (σ : AccountMap) (ee : ExecutionEnv)
+def clipperRedoSuckKprMem (σ : AccountMap) (ee : ExecutionEnv)
     (kpr : UInt256) (mem : ByteArray) : ByteArray :=
   (clipperRedoKprTarget kpr).toByteArray.write 0 (clipperRedoSuckVowMem σ ee mem) 164 32
 
-noncomputable def clipperRedoSuckCalldataMem (σ : AccountMap) (ee : ExecutionEnv)
+def clipperRedoSuckCalldataMem (σ : AccountMap) (ee : ExecutionEnv)
     (kpr coin : UInt256) (mem : ByteArray) : ByteArray :=
   coin.toByteArray.write 0 (clipperRedoSuckKprMem σ ee kpr mem) 196 32
 

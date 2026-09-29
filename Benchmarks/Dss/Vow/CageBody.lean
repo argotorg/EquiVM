@@ -105,7 +105,7 @@ def cageMinStmts : List Stmt :=
 def cageVatHealStmts : List Stmt :=
   checkedExternalCallStmts (.storage vatRef) "heal" (.intLit 0) [.var "healRad"] "_healRet"
 
-noncomputable def cageHealCalldataMem (healRad : UInt256) (mem : ByteArray) : ByteArray :=
+def cageHealCalldataMem (healRad : UInt256) (mem : ByteArray) : ByteArray :=
   healRad.toByteArray.write 0 (kissHealSelectorMem mem) 132 32
 
 theorem cageHealCalldataMem_size (healRad : UInt256) {mem : ByteArray}

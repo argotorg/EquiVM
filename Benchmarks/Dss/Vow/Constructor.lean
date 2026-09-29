@@ -35,7 +35,7 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
     (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
     (hbase : base.size ≤ destAddr) (hgap : destAddr - base.size < USize.size) :
     src.write srcAddr base destAddr len =
-      base ++ ffi.ByteArray.zeroes (destAddr - base.size) ++
+      base ++ ByteArray.zeroes (destAddr - base.size) ++
         src.extract srcAddr (srcAddr + len) := by
   have hsrcNonempty : ¬ srcAddr ≥ src.size := by omega
   have hcopy : min len (src.size - srcAddr) = len := by
@@ -48,14 +48,14 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
     have hle : min base.size (destAddr + len) ≤ destAddr + len := Nat.min_le_right _ _
     omega
   have hDsz :
-      (base.data ++ (ffi.ByteArray.zeroes (destAddr - base.size)).data).size =
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size =
         destAddr := by
     rw [Array.size_append]
     have hz :
-        (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
+        (ByteArray.zeroes (destAddr - base.size)).data.size =
           destAddr - base.size := by
-      rw [show (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ffi.ByteArray.zeroes (destAddr - base.size)).size from rfl,
+      rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
+          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
         ByteArray_zeroes_size]
     rw [hz]
     change base.size + (destAddr - base.size) = destAddr
@@ -65,10 +65,10 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
   rw [if_neg hlen, if_neg hsrcNonempty]
   simp only [ByteArray.data_copySlice, ByteArray.data_append]
   change (base.data ++
-          (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract 0
+          (ByteArray.zeroes (destAddr - base.size)).data).extract 0
           destAddr ++
         (src.data ++
-            (ffi.ByteArray.zeroes
+            (ByteArray.zeroes
               (min base.size (destAddr + len) -
                 (destAddr + min len (src.size - srcAddr)))).data).extract
           srcAddr
@@ -77,21 +77,21 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
               (min base.size (destAddr + len) -
                 (destAddr + min len (src.size - srcAddr))))) ++
         (base.data ++
-          (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract
+          (ByteArray.zeroes (destAddr - base.size)).data).extract
           (destAddr +
             min
               (min len (src.size - srcAddr) +
                 (min base.size (destAddr + len) -
                   (destAddr + min len (src.size - srcAddr))))
               ((src.data ++
-                    (ffi.ByteArray.zeroes
+                    (ByteArray.zeroes
                       (min base.size (destAddr + len) -
                         (destAddr + min len (src.size - srcAddr)))).data).size -
                 srcAddr)) =
-      base.data ++ (ffi.ByteArray.zeroes (destAddr - base.size)).data ++
+      base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
         (src.extract srcAddr (srcAddr + len)).data
   rw [hcopy, htail]
-  rw [show (ffi.ByteArray.zeroes 0).data =
+  rw [show (ByteArray.zeroes 0).data =
       (#[] : Array UInt8) from by
     rw [zeroes_zero (n := 0) (by rfl)]
     rfl]
@@ -102,7 +102,7 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
   rw [hcopyData]
   rw [show
       (base.data ++
-          (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract
+          (ByteArray.zeroes (destAddr - base.size)).data).extract
         (destAddr + len) = #[] from by
     apply Array.extract_eq_empty_of_le
     rw [hDsz]
@@ -225,7 +225,7 @@ private theorem vowCreationBytecode_size : vowCreationBytecode.size = 5410 := by
 
 theorem vowCtorCopiedMem_eq (vat flapper flopper : AccountAddress) :
     vowCtorCopiedMem vat flapper flopper =
-      solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++
+      solcFreePtrMem ++ ByteArray.zeroes 32 ++
         vowCtorArgsTail vat flapper flopper := by
   rw [vowCtorCopiedMem]
   rw [byteArray_write_from_ge_eq]
@@ -244,7 +244,7 @@ theorem vowCtorCopiedMem_eq (vat flapper flopper : AccountAddress) :
     exact lt_usize 32 (by norm_num)
 
 private theorem vowCtorArgsMem_base_size (vat flapper flopper : AccountAddress) :
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++
+    (solcFreePtrMem ++ ByteArray.zeroes 32 ++
       vowCtorArgsTail vat flapper flopper).size = 224 := by
   rw [ByteArray.size_append, ByteArray.size_append, solcFreePtrMem_size,
     zeroes_ofNat_size _ (by norm_num), vowCtorArgsTail_size]
@@ -253,7 +253,7 @@ theorem vowCtorArgsMem_size (vat flapper flopper : AccountAddress) :
     (vowCtorArgsMem vat flapper flopper).size = 224 := by
   rw [vowCtorArgsMem, vowCtorCopiedMem_eq]
   rw [toByteArray_write32_size_of_le
-    (base := solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++
+    (base := solcFreePtrMem ++ ByteArray.zeroes 32 ++
       vowCtorArgsTail vat flapper flopper)
     (word := (⟨224⟩ : UInt256)) (off := 64) (baseSize := 224) (finalSize := 224)]
   · exact vowCtorArgsMem_base_size vat flapper flopper
@@ -294,19 +294,19 @@ private theorem vowCtorArgsMem_read_word (vat flapper flopper : AccountAddress)
   rw [vowCtorArgsMem, vowCtorCopiedMem_eq]
   rw [write32_read_above_len
     (src := UInt256.toByteArray (⟨224⟩ : UInt256))
-    (base := solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++
+    (base := solcFreePtrMem ++ ByteArray.zeroes 32 ++
       vowCtorArgsTail vat flapper flopper)
     (dest := 64) (read := 128 + start) (len := 32)]
   · have hprefix :
-        (solcFreePtrMem ++ ffi.ByteArray.zeroes 32).size = 128 := by
+        (solcFreePtrMem ++ ByteArray.zeroes 32).size = 128 := by
       rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size 32 (by norm_num)]
     rw [readWithPadding_eq_extract'
-      (solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++
+      (solcFreePtrMem ++ ByteArray.zeroes 32 ++
         vowCtorArgsTail vat flapper flopper)
       (128 + start) 32 (by norm_num) (by norm_num)
       (by rw [vowCtorArgsMem_base_size]; omega)]
     rw [extract_append_right_window
-      (solcFreePtrMem ++ ffi.ByteArray.zeroes 32)
+      (solcFreePtrMem ++ ByteArray.zeroes 32)
       (vowCtorArgsTail vat flapper flopper) (128 + start) (128 + start + 32)
       (by rw [hprefix]; omega), hprefix]
     rw [show 128 + start - 128 = start by omega,
@@ -590,7 +590,7 @@ theorem vowCtorArgsReach
 abbrev vowCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
   solcMappingSlot ⟨0⟩ (solcSourceWord I)
 
-noncomputable def vowCtorWardsHashMem (I : ExecutionEnv) (vat flapper flopper : AccountAddress) :
+def vowCtorWardsHashMem (I : ExecutionEnv) (vat flapper flopper : AccountAddress) :
     ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ (vowCtorArgsMem vat flapper flopper)
 
@@ -657,7 +657,7 @@ theorem vowCtorWardsHashMem_read0_64 (I : ExecutionEnv) (vat flapper flopper : A
 
 theorem vowCtorWardsHashSlot (I : ExecutionEnv) (vat flapper flopper : AccountAddress) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((vowCtorWardsHashMem I vat flapper flopper).readWithPadding 0 64))) =
+        (KEC ((vowCtorWardsHashMem I vat flapper flopper).readWithPadding 0 64))) =
       vowCtorCallerWardsSlot I := by
   rw [vowCtorWardsHashMem_read0_64]
   unfold vowCtorCallerWardsSlot solcMappingSlot
@@ -1033,10 +1033,10 @@ abbrev vowCtorCallInSize : UInt256 :=
 abbrev vowCtorCallEndPtr : UInt256 :=
   UInt256.add vowCtorCallOutPtr ⟨36⟩
 
-noncomputable def vowCtorHopeSelectorMem (mem : ByteArray) : ByteArray :=
+def vowCtorHopeSelectorMem (mem : ByteArray) : ByteArray :=
   vowCtorHopeSelectorShifted.toByteArray.write 0 mem 224 32
 
-noncomputable def vowCtorHopeCalldataMem (arg : UInt256) (mem : ByteArray) : ByteArray :=
+def vowCtorHopeCalldataMem (arg : UInt256) (mem : ByteArray) : ByteArray :=
   arg.toByteArray.write 0 (vowCtorHopeSelectorMem mem) 228 32
 
 theorem vowCtorHopeSelectorMem_size {mem : ByteArray} (hmem : mem.size = 224) :

@@ -1,44 +1,51 @@
 import Benchmarks.Dss.ExponentialDecrease.Common
 
 /-!
-# MakerDAO/Sky DSS ExponentialDecrease trusted selector facts
+# MakerDAO/Sky DSS ExponentialDecrease selector proofs
 
-Lean does not reduce the FFI-backed Keccak computation used by `selectorOf`. These facts are the
-contract-local selector bytes used to connect Solm dispatch to the runtime dispatcher constants.
+The selector theorems connect Solm signatures to the runtime dispatcher constants.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM
 
 namespace Benchmarks.Dss.ExponentialDecrease
 
+set_option maxHeartbeats 0
+set_option maxRecDepth 1000000
+
 /-- `keccak("cut()")[0:4] = 0xe6fd604c`. -/
-axiom cutSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr cutTransition))).extract 0 4 =
-      stairstepSelBytes 0
+theorem cutSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr cutTransition))).extract 0 4 =
+      stairstepSelBytes 0 := by decide +kernel
 
 /-- `keccak("deny(address)")[0:4] = 0x9c52a7f1`. -/
-axiom denySelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr denyTransition))).extract 0 4 =
-      stairstepSelBytes 1
+theorem denySelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr denyTransition))).extract 0 4 =
+      stairstepSelBytes 1 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, denyTransition, addr]; decide +kernel
 
 /-- `keccak("file(bytes32,uint256)")[0:4] = 0x29ae8114`. -/
-axiom fileSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr fileTransition))).extract 0 4 =
-      stairstepSelBytes 2
+theorem fileSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr fileTransition))).extract 0 4 =
+      stairstepSelBytes 2 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, fileTransition, bytes32, uint256]; decide +kernel
 
 /-- `keccak("price(uint256,uint256)")[0:4] = 0x487a2395`. -/
-axiom priceSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr priceTransition))).extract 0 4 =
-      stairstepSelBytes 3
+theorem priceSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr priceTransition))).extract 0 4 =
+      stairstepSelBytes 3 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, ABI.intTypeToSigStr, priceTransition, uint256]; decide +kernel
 
 /-- `keccak("rely(address)")[0:4] = 0x65fae35e`. -/
-axiom relySelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr relyTransition))).extract 0 4 =
-      stairstepSelBytes 4
+theorem relySelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr relyTransition))).extract 0 4 =
+      stairstepSelBytes 4 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, relyTransition, addr]; decide +kernel
 
 /-- `keccak("wards(address)")[0:4] = 0xbf353dbb`. -/
-axiom wardsSelectorBytes :
-    (ffi.KEC (String.toByteArray (transitionSigStr wardsTransition))).extract 0 4 =
-      stairstepSelBytes 5
+theorem wardsSelectorBytes :
+    (KEC (String.toByteArray (transitionSigStr wardsTransition))).extract 0 4 =
+      stairstepSelBytes 5 := by
+  simp [transitionSigStr, transitionSignature, ABI.printSignature, ABI.abiToSigStr, ABI.elemToSigStr, wardsTransition, addr]; decide +kernel
 
 end Benchmarks.Dss.ExponentialDecrease

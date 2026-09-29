@@ -10,7 +10,7 @@ token release models OpenZeppelin `SafeERC20.safeTransfer` as the raw call plus 
 return check used by the compiled bytecode.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace OpenZeppelinBench.VestingWallet
 
@@ -77,7 +77,7 @@ def storageDecls : List StorageDecl :=
     { name := "_erc20Released", ty := .mapping .address uint256St } ]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def erc20ReleasedSlot (token : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord token) ⟨2⟩

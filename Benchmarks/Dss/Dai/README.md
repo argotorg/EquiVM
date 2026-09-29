@@ -66,6 +66,5 @@ Scaffold notes:
   `ecrecover` return-data lemmas rather than baking them into one contract-specific proof.
 - The `permit` proof uses local legacy-mode ABI decode lemmas for the Solidity 0.6 wrapper's
   `uint8`, `bool`, and `bytes32` calldata behavior.
-- Selector bytes, if needed during proof development, should follow the `Examples/*/Trusted.lean`
-  convention: trust only the opaque Keccak selector byte computations, then prove dispatch facts
-  from those axioms.
+- Selector bytes, if needed during proof development, can be proved by kernel reduction of pure
+  `KEC` expressions, as in `Examples/*/Selectors.lean`; dispatch facts then use those theorems.

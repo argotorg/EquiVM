@@ -289,10 +289,10 @@ abbrev fileAddressCallInSize : UInt256 :=
 abbrev fileAddressCallEndPtr : UInt256 :=
   UInt256.add fileAddressCallOutPtr ⟨36⟩
 
-noncomputable def fileAddressNopeSelectorMem (mem : ByteArray) : ByteArray :=
+def fileAddressNopeSelectorMem (mem : ByteArray) : ByteArray :=
   fileAddressNopeSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def fileAddressNopeCalldataMem (arg : UInt256) (mem : ByteArray) : ByteArray :=
+def fileAddressNopeCalldataMem (arg : UInt256) (mem : ByteArray) : ByteArray :=
   arg.toByteArray.write 0 (fileAddressNopeSelectorMem mem) 132 32
 
 theorem fileAddressCallInSize_eq : fileAddressCallInSize = ⟨36⟩ := by
@@ -330,7 +330,7 @@ theorem fileAddressNopeSelectorMem_selector {mem : ByteArray} (hmem : mem.size =
   rw [toByteArray_write_eq fileAddressNopeSelectorShifted mem 128
     (by rw [hmem]; omega) hgap]
   have hprefix :
-      (mem ++ ffi.ByteArray.zeroes (128 - mem.size)).size = 128 := by
+      (mem ++ ByteArray.zeroes (128 - mem.size)).size = 128 := by
     rw [ByteArray.size_append, ByteArray_zeroes_size, hmem]
   rw [extract_append_right_window _ _ 128 132 (by rw [hprefix]), hprefix,
     show 128 - 128 = 0 from rfl, show 132 - 128 = 4 from rfl,

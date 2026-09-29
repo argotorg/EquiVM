@@ -31,7 +31,7 @@ abbrev filePipLocals (I : ExecutionEnv) : Store :=
     "what" (.fixedBytes bytes32Width (filePipWhatBytes I))).insert
     "pip_" (.address (filePipAddress I))
 
-noncomputable abbrev filePipIlkHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev filePipIlkHashMem (I : ExecutionEnv) : ByteArray :=
   fileMatIlkHashMem I
 
 theorem filePipMaskedWord_canonical (I : ExecutionEnv) :
@@ -573,7 +573,7 @@ theorem spotFilePipX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -621,7 +621,7 @@ theorem spotFilePipX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     RDrev spotBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -750,7 +750,7 @@ theorem spotFilePipX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
       ByteArray.empty := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((filePipIlkHashMem I).readWithPadding 0 64))) =
+          (KEC ((filePipIlkHashMem I).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (filePipIlkWord I) := by
     simpa [filePipIlkHashMem, filePipIlkWord] using
       twoWordHashMem_solcMappingSlot (⟨1⟩ : UInt256) (fileMatIlkWord I)

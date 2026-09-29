@@ -7029,7 +7029,7 @@ theorem RD.vatGrabUrnInkAddSuccess
   have rd4303 := rd4302.dup4 (by native_decide) (by evm_ov)
   have hurnsIlk :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabIWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (grabIWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
         urnsIlk := by
     simpa [urnsIlk] using twoWordHashMem_solcMappingSlot ⟨3⟩ (grabIWord I) hmem
   have rd4304 := rd4303.keccak256 0 urnsIlk (UInt256.ofNat 3) (by native_decide)
@@ -7066,7 +7066,7 @@ theorem RD.vatGrabUrnInkAddSuccess
     twoWordHashMem_size_96 (grabIWord I) ⟨3⟩ hmem
   have hurnBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabUMaskedWord I) urnsIlk
+          (KEC ((twoWordHashMem (grabUMaskedWord I) urnsIlk
             (twoWordHashMem (grabIWord I) ⟨3⟩ mem)).readWithPadding 0 64))) =
         urnBase := by
     simpa [urnBase] using
@@ -7098,7 +7098,7 @@ theorem RD.vatGrabUrnInkAddSuccess
     twoWordHashMem_size_96 (grabUMaskedWord I) urnsIlk hmemUrnsIlk
   have hilkBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabIWord I) ⟨2⟩
+          (KEC ((twoWordHashMem (grabIWord I) ⟨2⟩
             (twoWordHashMem (grabUMaskedWord I) urnsIlk
               (twoWordHashMem (grabIWord I) ⟨3⟩ mem))).readWithPadding 0 64))) =
         ilkBase := by
@@ -7169,7 +7169,7 @@ theorem RD.vatGrabUrnInkAddRevert
   have rd4303 := rd4302.dup4 (by native_decide) (by evm_ov)
   have hurnsIlk :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabIWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (grabIWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
         urnsIlk := by
     simpa [urnsIlk] using twoWordHashMem_solcMappingSlot ⟨3⟩ (grabIWord I) hmem
   have rd4304 := rd4303.keccak256 0 urnsIlk (UInt256.ofNat 3) (by native_decide)
@@ -7206,7 +7206,7 @@ theorem RD.vatGrabUrnInkAddRevert
     twoWordHashMem_size_96 (grabIWord I) ⟨3⟩ hmem
   have hurnBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabUMaskedWord I) urnsIlk
+          (KEC ((twoWordHashMem (grabUMaskedWord I) urnsIlk
             (twoWordHashMem (grabIWord I) ⟨3⟩ mem)).readWithPadding 0 64))) =
         urnBase := by
     simpa [urnBase] using
@@ -7238,7 +7238,7 @@ theorem RD.vatGrabUrnInkAddRevert
     twoWordHashMem_size_96 (grabUMaskedWord I) urnsIlk hmemUrnsIlk
   have hilkBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabIWord I) ⟨2⟩
+          (KEC ((twoWordHashMem (grabIWord I) ⟨2⟩
             (twoWordHashMem (grabUMaskedWord I) urnsIlk
               (twoWordHashMem (grabIWord I) ⟨3⟩ mem))).readWithPadding 0 64))) =
         ilkBase := by
@@ -7744,7 +7744,7 @@ theorem RD.vatGrabGemSubSuccess
   have rd4414 := rd4413.dup4 (by native_decide) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (grabIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     simpa [gemBase, grabGemBase] using twoWordHashMem_solcMappingSlot ⟨4⟩ (grabIWord I) hmem
   have rd4415 := rd4414.keccak256 0 gemBase (UInt256.ofNat 3) (by native_decide)
@@ -7780,7 +7780,7 @@ theorem RD.vatGrabGemSubSuccess
     twoWordHashMem_size_96 (grabIWord I) ⟨4⟩ hmem
   have hgemSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabVMaskedWord I) gemBase
+          (KEC ((twoWordHashMem (grabVMaskedWord I) gemBase
             (twoWordHashMem (grabIWord I) ⟨4⟩ mem)).readWithPadding 0 64))) =
         gemSlot := by
     simpa [gemSlot, grabGemVSlot, gemBase] using
@@ -7863,7 +7863,7 @@ theorem RD.vatGrabGemSubRevert
   have rd4414 := rd4413.dup4 (by native_decide) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (grabIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     simpa [gemBase, grabGemBase] using twoWordHashMem_solcMappingSlot ⟨4⟩ (grabIWord I) hmem
   have rd4415 := rd4414.keccak256 0 gemBase (UInt256.ofNat 3) (by native_decide)
@@ -7899,7 +7899,7 @@ theorem RD.vatGrabGemSubRevert
     twoWordHashMem_size_96 (grabIWord I) ⟨4⟩ hmem
   have hgemSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabVMaskedWord I) gemBase
+          (KEC ((twoWordHashMem (grabVMaskedWord I) gemBase
             (twoWordHashMem (grabIWord I) ⟨4⟩ mem)).readWithPadding 0 64))) =
         gemSlot := by
     simpa [gemSlot, grabGemVSlot, gemBase] using
@@ -7997,7 +7997,7 @@ theorem RD.vatGrabSinSubSuccess
   have rd4462 := rd4461.dup4 (by native_decide) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (grabIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     simpa [gemBase, grabGemBase] using twoWordHashMem_solcMappingSlot ⟨4⟩ (grabIWord I) hmem
   have rd4463 := rd4462.keccak256 0 gemBase (UInt256.ofNat 3) (by native_decide)
@@ -8035,7 +8035,7 @@ theorem RD.vatGrabSinSubSuccess
     twoWordHashMem_size_96 (grabIWord I) ⟨4⟩ hmem
   have hgemSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabVMaskedWord I) gemBase
+          (KEC ((twoWordHashMem (grabVMaskedWord I) gemBase
             (twoWordHashMem (grabIWord I) ⟨4⟩ mem)).readWithPadding 0 64))) =
         gemSlot := by
     simpa [gemSlot, grabGemVSlot, gemBase] using
@@ -8091,7 +8091,7 @@ theorem RD.vatGrabSinSubSuccess
     twoWordHashMem_size_96 (grabVMaskedWord I) gemBase hmemGemBase
   have hsinSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabWMaskedWord I) ⟨6⟩
+          (KEC ((twoWordHashMem (grabWMaskedWord I) ⟨6⟩
             (twoWordHashMem (grabVMaskedWord I) gemBase
               (twoWordHashMem (grabIWord I) ⟨4⟩ mem))).readWithPadding 0 64))) =
         grabSinSlot I := by
@@ -8187,7 +8187,7 @@ theorem RD.vatGrabSinSubRevert
   have rd4462 := rd4461.dup4 (by native_decide) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (grabIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     simpa [gemBase, grabGemBase] using twoWordHashMem_solcMappingSlot ⟨4⟩ (grabIWord I) hmem
   have rd4463 := rd4462.keccak256 0 gemBase (UInt256.ofNat 3) (by native_decide)
@@ -8225,7 +8225,7 @@ theorem RD.vatGrabSinSubRevert
     twoWordHashMem_size_96 (grabIWord I) ⟨4⟩ hmem
   have hgemSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabVMaskedWord I) gemBase
+          (KEC ((twoWordHashMem (grabVMaskedWord I) gemBase
             (twoWordHashMem (grabIWord I) ⟨4⟩ mem)).readWithPadding 0 64))) =
         gemSlot := by
     simpa [gemSlot, grabGemVSlot, gemBase] using
@@ -8281,7 +8281,7 @@ theorem RD.vatGrabSinSubRevert
     twoWordHashMem_size_96 (grabVMaskedWord I) gemBase hmemGemBase
   have hsinSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabWMaskedWord I) ⟨6⟩
+          (KEC ((twoWordHashMem (grabWMaskedWord I) ⟨6⟩
             (twoWordHashMem (grabVMaskedWord I) gemBase
               (twoWordHashMem (grabIWord I) ⟨4⟩ mem))).readWithPadding 0 64))) =
         grabSinSlot I := by
@@ -8385,7 +8385,7 @@ theorem RD.vatGrabViceSubSuccess
   have rd4530 := rd4529.swap1 (by native_decide) (by evm_ov)
   have hsinSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabWMaskedWord I) ⟨6⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (grabWMaskedWord I) ⟨6⟩ mem).readWithPadding 0 64))) =
         grabSinSlot I := by
     simpa [grabSinSlot] using
       twoWordHashMem_solcMappingSlot ⟨6⟩ (grabWMaskedWord I) hmem
@@ -8497,7 +8497,7 @@ theorem RD.vatGrabViceSubRevert
   have rd4530 := rd4529.swap1 (by native_decide) (by evm_ov)
   have hsinSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (grabWMaskedWord I) ⟨6⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (grabWMaskedWord I) ⟨6⟩ mem).readWithPadding 0 64))) =
         grabSinSlot I := by
     simpa [grabSinSlot] using
       twoWordHashMem_solcMappingSlot ⟨6⟩ (grabWMaskedWord I) hmem

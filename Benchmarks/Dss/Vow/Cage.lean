@@ -54,10 +54,10 @@ abbrev flapCageOutSize : UInt256 := ⟨0⟩
 
 abbrev flapCageEndPtr : UInt256 := ⟨164⟩
 
-noncomputable def flapCageSelectorMem (mem : ByteArray) : ByteArray :=
+def flapCageSelectorMem (mem : ByteArray) : ByteArray :=
   flapCageSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def flapCageCalldataMem (rad : UInt256) (mem : ByteArray) : ByteArray :=
+def flapCageCalldataMem (rad : UInt256) (mem : ByteArray) : ByteArray :=
   rad.toByteArray.write 0 (flapCageSelectorMem mem) 132 32
 
 theorem flapCageSelectorMem_size {mem : ByteArray} (hmem : mem.size = 164) :
@@ -176,7 +176,7 @@ abbrev flopCageOutSize : UInt256 := ⟨0⟩
 
 abbrev flopCageEndPtr : UInt256 := ⟨132⟩
 
-noncomputable def flopCageCalldataMem (mem : ByteArray) : ByteArray :=
+def flopCageCalldataMem (mem : ByteArray) : ByteArray :=
   flopCageSelectorShifted.toByteArray.write 0 mem 128 32
 
 theorem flopCageCalldataMem_size {mem : ByteArray} (hmem : mem.size = 164) :

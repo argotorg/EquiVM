@@ -999,17 +999,17 @@ abbrev joinSlipOutPtr : UInt256 := ⟨128⟩
 abbrev joinSlipInSize : UInt256 := ⟨100⟩
 abbrev joinSlipEndPtr : UInt256 := ⟨228⟩
 
-noncomputable def joinSlipSelectorMem (mem : ByteArray) : ByteArray :=
+def joinSlipSelectorMem (mem : ByteArray) : ByteArray :=
   joinSlipSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def joinSlipIlkMem (ilk : UInt256) (mem : ByteArray) : ByteArray :=
+def joinSlipIlkMem (ilk : UInt256) (mem : ByteArray) : ByteArray :=
   ilk.toByteArray.write 0 (joinSlipSelectorMem mem) 132 32
 
-noncomputable def joinSlipUsrMem (usr : UInt256) (ilk : UInt256) (mem : ByteArray) :
+def joinSlipUsrMem (usr : UInt256) (ilk : UInt256) (mem : ByteArray) :
     ByteArray :=
   usr.toByteArray.write 0 (joinSlipIlkMem ilk mem) 164 32
 
-noncomputable def joinSlipCalldataMem (I : ExecutionEnv) (σ : AccountMap)
+def joinSlipCalldataMem (I : ExecutionEnv) (σ : AccountMap)
     (mem : ByteArray) : ByteArray :=
   (joinWadWord I).toByteArray.write 0
     (joinSlipUsrMem (joinUsrMaskedWord I) (gemJoinSlotWord ⟨2⟩ σ I) mem) 196 32
@@ -1257,16 +1257,16 @@ abbrev joinTransferFromInSize : UInt256 := ⟨100⟩
 abbrev joinTransferFromOutSize : UInt256 := ⟨32⟩
 abbrev joinTransferFromEndPtr : UInt256 := ⟨228⟩
 
-noncomputable def joinTransferFromSelectorMem (mem : ByteArray) : ByteArray :=
+def joinTransferFromSelectorMem (mem : ByteArray) : ByteArray :=
   joinTransferFromSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def joinTransferFromSrcMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def joinTransferFromSrcMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (UInt256.ofNat I.source.val).toByteArray.write 0 (joinTransferFromSelectorMem mem) 132 32
 
-noncomputable def joinTransferFromDstMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def joinTransferFromDstMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (UInt256.ofNat I.codeOwner.val).toByteArray.write 0 (joinTransferFromSrcMem I mem) 164 32
 
-noncomputable def joinTransferFromCalldataMem (I : ExecutionEnv) (mem : ByteArray) :
+def joinTransferFromCalldataMem (I : ExecutionEnv) (mem : ByteArray) :
     ByteArray :=
   (joinWadWord I).toByteArray.write 0 (joinTransferFromDstMem I mem) 196 32
 

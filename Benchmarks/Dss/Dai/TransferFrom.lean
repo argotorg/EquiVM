@@ -397,14 +397,14 @@ theorem transferFromDstMaskedWord_canonical (I : ExecutionEnv) :
   rw [u256_land_comm solcAddrMask (transferFromDstWord I)]
   exact solcAddrMask_result_canonical (transferFromDstWord I)
 
-noncomputable abbrev transferFromSrcHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev transferFromSrcHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (transferFromSrcMaskedWord I) ⟨2⟩ solcFreePtrMem
 
-noncomputable abbrev transferFromAllowanceHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev transferFromAllowanceHashMem (I : ExecutionEnv) : ByteArray :=
   solcNestedMappingCallerHashMem ⟨3⟩ (transferFromSrcMaskedWord I) I
     (transferFromSrcHashMem I)
 
-noncomputable abbrev transferFromDstHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev transferFromDstHashMem (I : ExecutionEnv) : ByteArray :=
   wordAt0Mem (transferFromDstMaskedWord I)
     (twoWordHashMem (transferFromSrcMaskedWord I) ⟨2⟩
       (transferFromSrcHashMem I))
@@ -455,11 +455,11 @@ theorem solcNestedMappingCallerHashMem_read64_96 {mem : ByteArray}
     (twoWordHashMem_size_96 owner baseSlot hmem)
     (twoWordHashMem_read64 owner baseSlot hmem hread64)
 
-noncomputable abbrev transferFromAllowanceReloadHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev transferFromAllowanceReloadHashMem (I : ExecutionEnv) : ByteArray :=
   solcNestedMappingCallerHashMem ⟨3⟩ (transferFromSrcMaskedWord I) I
     (transferFromAllowanceHashMem I)
 
-noncomputable abbrev transferFromAllowanceStoreHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev transferFromAllowanceStoreHashMem (I : ExecutionEnv) : ByteArray :=
   solcNestedMappingCallerHashMem ⟨3⟩ (transferFromSrcMaskedWord I) I
     (transferFromAllowanceReloadHashMem I)
 
@@ -507,10 +507,10 @@ theorem transferFromDstHashMem_read64 (I : ExecutionEnv) :
   exact twoWordHashMem_read64 (transferFromSrcMaskedWord I) ⟨2⟩
     (transferFromSrcHashMem_size I) (transferFromSrcHashMem_read64 I)
 
-noncomputable abbrev transferFromLogMem (value : UInt256) (I : ExecutionEnv) : ByteArray :=
+abbrev transferFromLogMem (value : UInt256) (I : ExecutionEnv) : ByteArray :=
   solcScratchReturnMem (transferFromDstHashMem I) value
 
-noncomputable abbrev transferFromBoolReturnMem (I : ExecutionEnv) : ByteArray :=
+abbrev transferFromBoolReturnMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)))).write 0
     (transferFromLogMem (transferFromWadWord I) I) 128 32
 
@@ -576,7 +576,7 @@ theorem wordAt0Mem_solcMappingSlot_of_read32 {mem : ByteArray} (key slot : UInt2
     (hmem : mem.size = 96)
     (hread32 : mem.readWithPadding 32 32 = UInt256.toByteArray slot) :
     UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC ((wordAt0Mem key mem).readWithPadding 0 64))) =
+        (fromByteArrayBigEndian (KEC ((wordAt0Mem key mem).readWithPadding 0 64))) =
       solcMappingSlot slot key := by
   have hread0 :
       (wordAt0Mem key mem).readWithPadding 0 32 = UInt256.toByteArray key :=
@@ -614,17 +614,17 @@ theorem wordAt0Mem_solcMappingSlot_of_read32 {mem : ByteArray} (key slot : UInt2
   unfold solcMappingSlot
   exact mappingSlot_single key slot
 
-noncomputable abbrev transferFromTailSrcStoreMem (mem : ByteArray) (I : ExecutionEnv) :
+abbrev transferFromTailSrcStoreMem (mem : ByteArray) (I : ExecutionEnv) :
     ByteArray :=
   twoWordHashMem (transferFromSrcMaskedWord I) ⟨2⟩
     (twoWordHashMem (transferFromSrcMaskedWord I) ⟨2⟩ mem)
 
-noncomputable abbrev transferFromTailDstStoreMem (mem : ByteArray) (I : ExecutionEnv) :
+abbrev transferFromTailDstStoreMem (mem : ByteArray) (I : ExecutionEnv) :
     ByteArray :=
   twoWordHashMem (transferFromDstMaskedWord I) ⟨2⟩
     (wordAt0Mem (transferFromDstMaskedWord I) (transferFromTailSrcStoreMem mem I))
 
-noncomputable abbrev transferFromTailBoolReturnMem
+abbrev transferFromTailBoolReturnMem
     (scratch : ByteArray) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)))).write 0
     (solcScratchReturnMem scratch (transferFromWadWord I)) 128 32
@@ -2676,7 +2676,7 @@ theorem daiTransferFromX_initialBalanceOkCont {cA σ I} {g : Sat256} {s0 : State
       (transferFromSrcHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((transferFromSrcHashMem I).readWithPadding 0 64))) =
+          (KEC ((transferFromSrcHashMem I).readWithPadding 0 64))) =
         mapSlot (transferFromSrcMaskedWord I) ⟨2⟩ := by
     simpa [transferFromSrcHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (transferFromSrcMaskedWord I)
@@ -2770,7 +2770,7 @@ theorem daiTransferFromX_initialBalanceRevertCont {cA σ I} {g : Sat256} {s0 : S
     RDrev daiBytecode g s0 := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((transferFromSrcHashMem I).readWithPadding 0 64))) =
+          (KEC ((transferFromSrcHashMem I).readWithPadding 0 64))) =
         mapSlot (transferFromSrcMaskedWord I) ⟨2⟩ := by
     simpa [transferFromSrcHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (transferFromSrcMaskedWord I)
@@ -2975,7 +2975,7 @@ theorem daiTransferFromX_allowanceLoadedCont {cA σ I} {g : Sat256} {s0 : State}
   have rdLoadStart := evm_run rdFall with [raw pop (by native_decide) (by evm_ov)]
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨3⟩
+          (KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨3⟩
             (transferFromSrcHashMem I)).readWithPadding 0 64))) =
         mapSlot (transferFromSrcMaskedWord I) ⟨3⟩ := by
     simpa [mapSlot, solcMappingSlot] using
@@ -2983,7 +2983,7 @@ theorem daiTransferFromX_allowanceLoadedCont {cA σ I} {g : Sat256} {s0 : State}
         (transferFromSrcHashMem_size I)
   have houterSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((transferFromAllowanceHashMem I).readWithPadding 0 64))) =
+          (KEC ((transferFromAllowanceHashMem I).readWithPadding 0 64))) =
         transferFromEvmAllowanceSlot I := by
     unfold transferFromAllowanceHashMem solcNestedMappingCallerHashMem
     simpa [transferFromEvmAllowanceSlot, mapSlot, solcMappingSlot] using
@@ -3163,7 +3163,7 @@ theorem daiTransferFromX_allowanceSpendCheckOkCont {cA σ I} {g : Sat256} {s0 : 
     exact solcAddrMask_clean (transferFromSrcMaskedWord_canonical I)
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨3⟩
+          (KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨3⟩
             (transferFromAllowanceHashMem I)).readWithPadding 0 64))) =
         mapSlot (transferFromSrcMaskedWord I) ⟨3⟩ := by
     simpa [mapSlot, solcMappingSlot] using
@@ -3171,7 +3171,7 @@ theorem daiTransferFromX_allowanceSpendCheckOkCont {cA σ I} {g : Sat256} {s0 : 
         (transferFromAllowanceHashMem_size I)
   have houterSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((transferFromAllowanceReloadHashMem I).readWithPadding 0 64))) =
+          (KEC ((transferFromAllowanceReloadHashMem I).readWithPadding 0 64))) =
         transferFromEvmAllowanceSlot I := by
     unfold transferFromAllowanceReloadHashMem solcNestedMappingCallerHashMem
     simpa [transferFromEvmAllowanceSlot, mapSlot, solcMappingSlot] using
@@ -3297,7 +3297,7 @@ theorem daiTransferFromX_tailSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k 
     exact solcAddrMask_clean (transferFromDstMaskedWord_canonical I)
   have hsrcSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨2⟩ mem).readWithPadding
+          (KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨2⟩ mem).readWithPadding
             0 64))) =
         transferFromEvmSrcSlot I := by
     simpa [transferFromEvmSrcSlot, mapSlot, solcMappingSlot] using
@@ -3379,7 +3379,7 @@ theorem daiTransferFromX_tailSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k 
     (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
   have hsrcStoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((transferFromTailSrcStoreMem mem I).readWithPadding 0 64))) =
+          (KEC ((transferFromTailSrcStoreMem mem I).readWithPadding 0 64))) =
         transferFromEvmSrcSlot I := by
     simpa [transferFromTailSrcStoreMem, transferFromEvmSrcSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (transferFromSrcMaskedWord I)
@@ -3416,7 +3416,7 @@ theorem daiTransferFromX_tailSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k 
       (twoWordHashMem_size_96 (transferFromSrcMaskedWord I) ⟨2⟩ hmem)
   have hdstLoadSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((wordAt0Mem (transferFromDstMaskedWord I)
+          (KEC ((wordAt0Mem (transferFromDstMaskedWord I)
             (transferFromTailSrcStoreMem mem I)).readWithPadding 0 64))) =
         transferFromEvmDstSlot I := by
     simpa [transferFromEvmDstSlot, mapSlot] using
@@ -3477,7 +3477,7 @@ theorem daiTransferFromX_tailSuccessJump {cA σ I} {g : Sat256} {s0 : State} {k 
     (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
   have hdstStoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((transferFromTailDstStoreMem mem I).readWithPadding 0 64))) =
+          (KEC ((transferFromTailDstStoreMem mem I).readWithPadding 0 64))) =
         transferFromEvmDstSlot I := by
     simpa [transferFromTailDstStoreMem, transferFromEvmDstSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (transferFromDstMaskedWord I)
@@ -3581,7 +3581,7 @@ theorem daiTransferFromX_spendSuccess {cA σ I} {g : Sat256} {s0 : State} {k C :
     exact solcAddrMask_clean (transferFromSrcMaskedWord_canonical I)
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨3⟩
+          (KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨3⟩
             (transferFromAllowanceReloadHashMem I)).readWithPadding 0 64))) =
         mapSlot (transferFromSrcMaskedWord I) ⟨3⟩ := by
     simpa [mapSlot, solcMappingSlot] using
@@ -3589,7 +3589,7 @@ theorem daiTransferFromX_spendSuccess {cA σ I} {g : Sat256} {s0 : State} {k C :
         (transferFromAllowanceReloadHashMem_size I)
   have houterSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((transferFromAllowanceStoreHashMem I).readWithPadding 0 64))) =
+          (KEC ((transferFromAllowanceStoreHashMem I).readWithPadding 0 64))) =
         transferFromEvmAllowanceSlot I := by
     unfold transferFromAllowanceStoreHashMem solcNestedMappingCallerHashMem
     simpa [transferFromEvmAllowanceSlot, mapSlot, solcMappingSlot] using
@@ -3846,7 +3846,7 @@ theorem daiTransferFromX_allowanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
     exact solcAddrMask_clean (transferFromSrcMaskedWord_canonical I)
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨3⟩
+          (KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨3⟩
             (transferFromAllowanceHashMem I)).readWithPadding 0 64))) =
         mapSlot (transferFromSrcMaskedWord I) ⟨3⟩ := by
     simpa [mapSlot, solcMappingSlot] using
@@ -3854,7 +3854,7 @@ theorem daiTransferFromX_allowanceRevertCont {cA σ I} {g : Sat256} {s0 : State}
         (transferFromAllowanceHashMem_size I)
   have houterSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((transferFromAllowanceReloadHashMem I).readWithPadding 0 64))) =
+          (KEC ((transferFromAllowanceReloadHashMem I).readWithPadding 0 64))) =
         transferFromEvmAllowanceSlot I := by
     unfold transferFromAllowanceReloadHashMem solcNestedMappingCallerHashMem
     simpa [transferFromEvmAllowanceSlot, mapSlot, solcMappingSlot] using
@@ -3972,7 +3972,7 @@ theorem daiTransferFromX_tailSrcDebitRevertCont {cA σ I} {g : Sat256} {s0 : Sta
     exact solcAddrMask_clean (transferFromSrcMaskedWord_canonical I)
   have hsrcSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨2⟩ mem).readWithPadding
+          (KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨2⟩ mem).readWithPadding
             0 64))) =
         transferFromEvmSrcSlot I := by
     simpa [transferFromEvmSrcSlot, mapSlot, solcMappingSlot] using
@@ -4110,7 +4110,7 @@ theorem daiTransferFromX_tailDstOverflowRevertCont {cA σ I} {g : Sat256} {s0 : 
     exact solcAddrMask_clean (transferFromDstMaskedWord_canonical I)
   have hsrcSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨2⟩ mem).readWithPadding
+          (KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨2⟩ mem).readWithPadding
             0 64))) =
         transferFromEvmSrcSlot I := by
     simpa [transferFromEvmSrcSlot, mapSlot, solcMappingSlot] using
@@ -4192,7 +4192,7 @@ theorem daiTransferFromX_tailDstOverflowRevertCont {cA σ I} {g : Sat256} {s0 : 
     (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
   have hsrcStoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((transferFromTailSrcStoreMem mem I).readWithPadding 0 64))) =
+          (KEC ((transferFromTailSrcStoreMem mem I).readWithPadding 0 64))) =
         transferFromEvmSrcSlot I := by
     simpa [transferFromTailSrcStoreMem, transferFromEvmSrcSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (transferFromSrcMaskedWord I)
@@ -4229,7 +4229,7 @@ theorem daiTransferFromX_tailDstOverflowRevertCont {cA σ I} {g : Sat256} {s0 : 
       (twoWordHashMem_size_96 (transferFromSrcMaskedWord I) ⟨2⟩ hmem)
   have hdstLoadSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((wordAt0Mem (transferFromDstMaskedWord I)
+          (KEC ((wordAt0Mem (transferFromDstMaskedWord I)
             (transferFromTailSrcStoreMem mem I)).readWithPadding 0 64))) =
         transferFromEvmDstSlot I := by
     simpa [transferFromEvmDstSlot, mapSlot] using
@@ -4321,7 +4321,7 @@ theorem daiTransferFromX_tailDstOverflowRevert {cA σ I} {g : Sat256} {s0 : Stat
     hperm hmem hread64 (by simp only [List.length_cons, List.length_nil]; omega)
     hsrcEnough hover (by simpa using h)
 
-noncomputable abbrev transferFromAllowancePostStoreHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev transferFromAllowancePostStoreHashMem (I : ExecutionEnv) : ByteArray :=
   solcNestedMappingCallerHashMem ⟨3⟩ (transferFromSrcMaskedWord I) I
     (transferFromAllowanceStoreHashMem I)
 
@@ -4366,7 +4366,7 @@ theorem daiTransferFromX_spendToTailCont {cA σ I} {g : Sat256} {s0 : State} {k 
     exact solcAddrMask_clean (transferFromSrcMaskedWord_canonical I)
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨3⟩
+          (KEC ((twoWordHashMem (transferFromSrcMaskedWord I) ⟨3⟩
             (transferFromAllowanceReloadHashMem I)).readWithPadding 0 64))) =
         mapSlot (transferFromSrcMaskedWord I) ⟨3⟩ := by
     simpa [mapSlot, solcMappingSlot] using
@@ -4374,7 +4374,7 @@ theorem daiTransferFromX_spendToTailCont {cA σ I} {g : Sat256} {s0 : State} {k 
         (transferFromAllowanceReloadHashMem_size I)
   have houterSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((transferFromAllowanceStoreHashMem I).readWithPadding 0 64))) =
+          (KEC ((transferFromAllowanceStoreHashMem I).readWithPadding 0 64))) =
         transferFromEvmAllowanceSlot I := by
     unfold transferFromAllowanceStoreHashMem solcNestedMappingCallerHashMem
     simpa [transferFromEvmAllowanceSlot, mapSlot, solcMappingSlot] using

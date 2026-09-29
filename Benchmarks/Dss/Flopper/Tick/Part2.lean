@@ -83,7 +83,7 @@ theorem flopperTickX_toCheckedMulStart
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memLot.readWithPadding 0 64))) = base := by
+        (KEC (memLot.readWithPadding 0 64))) = base := by
     simpa [base, memLot, memTic, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd4550 := rd4549pre.keccak256 0 base (UInt256.ofNat 3)
@@ -236,7 +236,7 @@ theorem flopperTickX_toCheckedAddStart
     raw swap2 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memStore.readWithPadding 0 64))) = base := by
+        (KEC (memStore.readWithPadding 0 64))) = base := by
     simpa [base, memStore, memLot, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memLot
   have rd4583 := rd4582pre.keccak256 0 base (UInt256.ofNat 3)
@@ -437,7 +437,7 @@ theorem flopperTickX_success
     raw swap2 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memEndStore.readWithPadding 0 64))) = base := by
+        (KEC (memEndStore.readWithPadding 0 64))) = base := by
     simpa [base, memEndStore, memStore, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStore
   have rd4634 := rd4633pre.keccak256 0 base (UInt256.ofNat 3)

@@ -1283,7 +1283,7 @@ theorem RD.vatSlipToStoreValue {g : Sat256} {s0 : State}
   have rd4657 := rd4656.dup4 (by native_decide) (by evm_ov)
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
         inner := by
     simpa [inner] using twoWordHashMem_solcMappingSlot ⟨4⟩ ilk hmem
   have rd4658 := rd4657.keccak256 0 inner (UInt256.ofNat 3) (by native_decide)
@@ -1313,7 +1313,7 @@ theorem RD.vatSlipToStoreValue {g : Sat256} {s0 : State}
     twoWordHashMem_size_96 ilk ⟨4⟩ hmem
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem usr inner (twoWordHashMem ilk ⟨4⟩ mem)).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem usr inner (twoWordHashMem ilk ⟨4⟩ mem)).readWithPadding 0 64))) =
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot inner usr hmemInner
   have rd4675 := rd4674.keccak256 0 slot (UInt256.ofNat 3) (by native_decide)
@@ -1375,7 +1375,7 @@ theorem RD.vatSlipToStoreRevert {g : Sat256} {s0 : State}
   have rd4657 := rd4656.dup4 (by native_decide) (by evm_ov)
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
         inner := by
     simpa [inner] using twoWordHashMem_solcMappingSlot ⟨4⟩ ilk hmem
   have rd4658 := rd4657.keccak256 0 inner (UInt256.ofNat 3) (by native_decide)
@@ -1405,7 +1405,7 @@ theorem RD.vatSlipToStoreRevert {g : Sat256} {s0 : State}
     twoWordHashMem_size_96 ilk ⟨4⟩ hmem
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem usr inner (twoWordHashMem ilk ⟨4⟩ mem)).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem usr inner (twoWordHashMem ilk ⟨4⟩ mem)).readWithPadding 0 64))) =
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot inner usr hmemInner
   have rd4675 := rd4674.keccak256 0 slot (UInt256.ofNat 3) (by native_decide)
@@ -1459,7 +1459,7 @@ theorem RD.vatSlipStoreValue {g : Sat256} {s0 : State}
   have rd4702 := rd4701.dup7 (by native_decide) (by evm_ov)
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
         inner := by
     simpa [inner] using twoWordHashMem_solcMappingSlot ⟨4⟩ ilk hmem
   have rd4703 := rd4702.keccak256 0 inner (UInt256.ofNat 3) (by native_decide)
@@ -1492,7 +1492,7 @@ theorem RD.vatSlipStoreValue {g : Sat256} {s0 : State}
     twoWordHashMem_size_96 ilk ⟨4⟩ hmem
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem usr inner (twoWordHashMem ilk ⟨4⟩ mem)).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem usr inner (twoWordHashMem ilk ⟨4⟩ mem)).readWithPadding 0 64))) =
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot inner usr hmemInner
   have rd4723 := rd4722.keccak256 0 slot (UInt256.ofNat 3) (by native_decide)

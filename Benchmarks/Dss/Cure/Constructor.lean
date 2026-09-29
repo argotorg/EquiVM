@@ -24,10 +24,10 @@ macro "ctor_jump_dest" : tactic =>
 abbrev cureCtorWardsSlot (I : ExecutionEnv) : UInt256 :=
   solcMappingSlot ⟨0⟩ (solcSourceWord I)
 
-noncomputable abbrev cureCtorWardsHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev cureCtorWardsHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem
 
-noncomputable abbrev cureCtorReturnMem (I : ExecutionEnv) : ByteArray :=
+abbrev cureCtorReturnMem (I : ExecutionEnv) : ByteArray :=
   cureCreationBytecode.write 96 (cureCtorWardsHashMem I) 0 3875
 
 abbrev cureCtorLiveMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
@@ -66,7 +66,7 @@ theorem cureCtorWardsHashMem_size (I : ExecutionEnv) :
 
 theorem cureCtorWardsHashMem_hash (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((cureCtorWardsHashMem I).readWithPadding 0 64))) =
+        (KEC ((cureCtorWardsHashMem I).readWithPadding 0 64))) =
       cureCtorWardsSlot I := by
   unfold cureCtorWardsHashMem cureCtorWardsSlot solcMappingSlot
   rw [twoWordHashMem_read0_64 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size]

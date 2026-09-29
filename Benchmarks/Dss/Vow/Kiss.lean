@@ -28,13 +28,13 @@ abbrev kissDaiSelectorShifted : UInt256 :=
 abbrev kissDaiSelector : ByteArray :=
   ⟨#[0x6c, 0x25, 0xb3, 0x46]⟩
 
-noncomputable def kissDaiSelectorMem : ByteArray :=
+def kissDaiSelectorMem : ByteArray :=
   kissDaiSelectorShifted.toByteArray.write 0 solcFreePtrMem 128 32
 
-noncomputable def kissDaiCalldataMem (I : ExecutionEnv) : ByteArray :=
+def kissDaiCalldataMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.ofNat I.codeOwner.val).toByteArray.write 0 kissDaiSelectorMem 132 32
 
-noncomputable def kissDaiOutPtr (I : ExecutionEnv) : UInt256 :=
+def kissDaiOutPtr (I : ExecutionEnv) : UInt256 :=
   if (⟨64⟩ : UInt256).toNat ≥ (kissDaiCalldataMem I).size
       ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then
     ⟨0⟩
@@ -43,10 +43,10 @@ noncomputable def kissDaiOutPtr (I : ExecutionEnv) : UInt256 :=
       (fromByteArrayBigEndian ((kissDaiCalldataMem I).readWithPadding
         (⟨64⟩ : UInt256).toNat 32))
 
-noncomputable def kissDaiInSize (I : ExecutionEnv) : UInt256 :=
+def kissDaiInSize (I : ExecutionEnv) : UInt256 :=
   UInt256.add (UInt256.sub ⟨128⟩ (kissDaiOutPtr I)) ⟨36⟩
 
-noncomputable def kissDaiEndPtr (_I : ExecutionEnv) : UInt256 :=
+def kissDaiEndPtr (_I : ExecutionEnv) : UInt256 :=
   (⟨128⟩ : UInt256) + ⟨36⟩
 
 theorem kissDaiSelectorMem_size : kissDaiSelectorMem.size = 160 :=

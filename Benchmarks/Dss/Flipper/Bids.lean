@@ -109,34 +109,34 @@ def bidsReturnData (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   UInt256.toByteArray (bidsGalWord σ I) ++
   UInt256.toByteArray (bidsTabWord σ I)
 
-noncomputable abbrev bidsHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev bidsHashMem (I : ExecutionEnv) : ByteArray :=
   solcMappingHashMem ⟨1⟩ (bidsId I)
 
-noncomputable abbrev bidsReturnPrefix (I : ExecutionEnv) : ByteArray :=
-  bidsHashMem I ++ ffi.ByteArray.zeroes 32
+abbrev bidsReturnPrefix (I : ExecutionEnv) : ByteArray :=
+  bidsHashMem I ++ ByteArray.zeroes 32
 
-noncomputable abbrev bidsReturnMem1 (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev bidsReturnMem1 (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   bidsReturnPrefix I ++ UInt256.toByteArray (bidsBidWord σ I)
 
-noncomputable abbrev bidsReturnMem2 (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev bidsReturnMem2 (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   bidsReturnMem1 σ I ++ UInt256.toByteArray (bidsLotWord σ I)
 
-noncomputable abbrev bidsReturnMem3 (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev bidsReturnMem3 (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   bidsReturnMem2 σ I ++ UInt256.toByteArray (bidsGuyWord σ I)
 
-noncomputable abbrev bidsReturnMem4 (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev bidsReturnMem4 (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   bidsReturnMem3 σ I ++ UInt256.toByteArray (bidsTicWord σ I)
 
-noncomputable abbrev bidsReturnMem5 (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev bidsReturnMem5 (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   bidsReturnMem4 σ I ++ UInt256.toByteArray (bidsEndWord σ I)
 
-noncomputable abbrev bidsReturnMem6 (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev bidsReturnMem6 (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   bidsReturnMem5 σ I ++ UInt256.toByteArray (bidsUsrWord σ I)
 
-noncomputable abbrev bidsReturnMem7 (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev bidsReturnMem7 (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   bidsReturnMem6 σ I ++ UInt256.toByteArray (bidsGalWord σ I)
 
-noncomputable abbrev bidsReturnMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev bidsReturnMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   bidsReturnPrefix I ++ bidsReturnData σ I
 
 theorem bidsBase_eq_bidsBase (I : ExecutionEnv) :
@@ -706,7 +706,7 @@ theorem flipperBidsX_loadStruct {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
   have hdiv208 : UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨208⟩ = uint48Divisor26 := by
     rfl
   have hhash : UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((bidsHashMem I).readWithPadding 0 64))) = base := by
+        (KEC ((bidsHashMem I).readWithPadding 0 64))) = base := by
     simpa [bidsHashMem, bidsBaseWord, bidBaseOfWord] using
       (solcMappingKeccakSlot ⟨1⟩ (bidsId I))
   have rd2586 := evm_run h with [

@@ -10,7 +10,7 @@ Axiom footprint of each = `propext`/`Classical.choice`/`Quot.sound` + trusted `*
 Shared infra (frozen, reusable): `Common` (binary-dispatch reach lemmas `catReach{LowLow,LowHigh,HighLow,HighHigh}Body`,
 `catUint256/AddressGetterBodyCore`, `catSelWord_eq_of_beq`, noMatch reverts), `Storage` (`catAuthGuardEval_*`,
 `RD.catAuthCheckOk/Revert`, mapping/scalar store routines), `Arithmetic` (`execMin*`, `execSub*`,
-`evalExpr_{mul,add,sub}256_ok/_revert`, comparisons), `Trusted` (16 selector axioms).
+`evalExpr_{mul,add,sub}256_ok/_revert`, comparisons), `Trusted` (16 selector proofs).
 
 ## Remaining: `bite` and `fileIlkFlip` — both blocked on the SAME final step (the Θ-transport connect)
 

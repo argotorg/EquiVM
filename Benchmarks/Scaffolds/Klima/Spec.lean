@@ -26,7 +26,7 @@ Events are omitted (the equivalence observes neither logs nor revert data).  Mod
   decoded through the legacy coder (size-check only, matching the discarded runtime decode).
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace Benchmarks.Klima
 
@@ -104,7 +104,7 @@ def storageDecls : List StorageDecl :=
     { name := "twapEpochPeriod", ty := uint256St } ]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def balancesSlot (usr : KeyValue) : Ethereum.UInt256 := mapSlot (keyValueToWord usr) ⟨0⟩
 def allowanceOwnerSlot (owner : KeyValue) : Ethereum.UInt256 := mapSlot (keyValueToWord owner) ⟨1⟩
@@ -114,7 +114,7 @@ def noncesSlot (usr : KeyValue) : Ethereum.UInt256 := mapSlot (keyValueToWord us
 def dexIndexSlot (k : KeyValue) : Ethereum.UInt256 := mapSlot (keyValueToWord k) ⟨11⟩
 /-- Dynamic-array data region: elements of `_values` (slot 10) live at `keccak(10) + i`. -/
 def dexValuesDataSlot : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (Ethereum.UInt256.toByteArray ⟨10⟩))
+  Ethereum.uInt256OfByteArray (KEC (Ethereum.UInt256.toByteArray ⟨10⟩))
 def dexElemSlot (i : KeyValue) : Ethereum.UInt256 := dexValuesDataSlot + keyValueToWord i
 
 def wordLoc (slot : Ethereum.UInt256) (ty : ElemType) : StorageLoc :=

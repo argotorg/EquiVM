@@ -52,7 +52,7 @@ theorem RD.vatFoldRateStoreOk
   have rd5747 := rd5746.swap1 (by native_decide) (by evm_ov)
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (foldIlkWord I) ⟨2⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (foldIlkWord I) ⟨2⟩ mem).readWithPadding 0 64))) =
         base := by
     simpa [base] using twoWordHashMem_solcMappingSlot ⟨2⟩ (foldIlkWord I) hmem
   have rd5748 := rd5747.keccak256 0 base (UInt256.ofNat 3) (by native_decide)
@@ -129,7 +129,7 @@ theorem RD.vatFoldRateStoreRevert
   have rd5747 := rd5746.swap1 (by native_decide) (by evm_ov)
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (foldIlkWord I) ⟨2⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (foldIlkWord I) ⟨2⟩ mem).readWithPadding 0 64))) =
         base := by
     simpa [base] using twoWordHashMem_solcMappingSlot ⟨2⟩ (foldIlkWord I) hmem
   have rd5748 := rd5747.keccak256 0 base (UInt256.ofNat 3) (by native_decide)

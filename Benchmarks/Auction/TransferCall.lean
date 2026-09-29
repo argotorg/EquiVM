@@ -7,7 +7,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-noncomputable def transferData (recipient amount : UInt256) : ByteArray :=
+def transferData (recipient amount : UInt256) : ByteArray :=
   transferSelector ++ (UInt256.land recipient solcAddrMask).toByteArray ++ amount.toByteArray
 
 theorem transferData_size (recipient amount : UInt256) :
@@ -35,7 +35,7 @@ theorem transferData_encode (recipient amount : UInt256) :
     Bool.false_eq_true, List.nil_append, List.append_nil, list_toByteArray_append,
     word_toBytesBE_toByteArray_eq_toByteArray, transferData, ByteArray.append_assoc]
 
-noncomputable def transferCallMem (mem out : ByteArray) (ptr recipient amount : UInt256) :
+def transferCallMem (mem out : ByteArray) (ptr recipient amount : UInt256) :
   ByteArray :=
   callOutputMem (callMem2 mem ptr transferWord (UInt256.land recipient solcAddrMask) amount)
     out ptr ⟨32⟩

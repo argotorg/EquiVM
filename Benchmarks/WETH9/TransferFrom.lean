@@ -59,7 +59,7 @@ theorem wtf_wordAt0Mem_read64 (word : UInt256) {mem : ByteArray} (hmem : mem.siz
     (by rw [hmem])]
 
 /-- The bool-encoder scratch memory (`isZero(isZero 1) = 1` written at the free pointer 0x80). -/
-noncomputable abbrev wtfBoolReturnMem (src dst wad : UInt256) (mem : ByteArray) : ByteArray :=
+abbrev wtfBoolReturnMem (src dst wad : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)))).write 0
     (solcScratchReturnMem (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)) wad) 128 32
 

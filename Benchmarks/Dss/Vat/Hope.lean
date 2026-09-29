@@ -165,13 +165,13 @@ theorem vatReachHopeBody {cA gh bl σ σ₀ A I} {g : Sat256}
   exact vatReachArms163Body 1 (by omega) ⟨1207⟩ hcode hwv hsz hsize
     hroot hhigh hhighlow heq0 htake (by jump_dest) (by native_decide)
 
-noncomputable abbrev hopeInnerMem (I : ExecutionEnv) : ByteArray :=
+abbrev hopeInnerMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (hopeSourceWord I) ⟨1⟩ solcFreePtrMem
 
-noncomputable abbrev hopeInnerSlot (I : ExecutionEnv) : UInt256 :=
+abbrev hopeInnerSlot (I : ExecutionEnv) : UInt256 :=
   mapSlot (hopeSourceWord I) ⟨1⟩
 
-noncomputable abbrev hopeHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev hopeHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (hopeUsrMaskedWord I) (hopeInnerSlot I) (hopeInnerMem I)
 
 theorem hopeUsrMaskedWord_canonical (I : ExecutionEnv) :
@@ -244,14 +244,14 @@ theorem vatHopeX_storeOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       ByteArray.empty := by
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((hopeInnerMem I).readWithPadding 0 64))) =
+          (KEC ((hopeInnerMem I).readWithPadding 0 64))) =
         hopeInnerSlot I := by
     simpa [hopeInnerMem, hopeInnerSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨1⟩ : UInt256) (hopeSourceWord I)
         solcFreePtrMem_size
   have houterSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((hopeHashMem I).readWithPadding 0 64))) =
+          (KEC ((hopeHashMem I).readWithPadding 0 64))) =
         mapSlot (hopeUsrMaskedWord I) (hopeInnerSlot I) := by
     simpa [hopeHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (hopeInnerSlot I) (hopeUsrMaskedWord I)

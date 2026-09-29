@@ -189,27 +189,27 @@ builds it: `PUSH4 0x01eeacfd; PUSH1 0xe6; SHL`. -/
 abbrev catGrabSelectorShifted : UInt256 :=
   UInt256.shiftLeft ⟨32419069⟩ ⟨230⟩
 
-noncomputable def catGrabSelMem (mem : ByteArray) : ByteArray :=
+def catGrabSelMem (mem : ByteArray) : ByteArray :=
   catGrabSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def catGrabIlkMem (ilkW : UInt256) (mem : ByteArray) : ByteArray :=
+def catGrabIlkMem (ilkW : UInt256) (mem : ByteArray) : ByteArray :=
   ilkW.toByteArray.write 0 (catGrabSelMem mem) 132 32
 
-noncomputable def catGrabUrnMem (ilkW urnW : UInt256) (mem : ByteArray) : ByteArray :=
+def catGrabUrnMem (ilkW urnW : UInt256) (mem : ByteArray) : ByteArray :=
   urnW.toByteArray.write 0 (catGrabIlkMem ilkW mem) 164 32
 
-noncomputable def catGrabThisMem (ilkW urnW thisW : UInt256) (mem : ByteArray) : ByteArray :=
+def catGrabThisMem (ilkW urnW thisW : UInt256) (mem : ByteArray) : ByteArray :=
   thisW.toByteArray.write 0 (catGrabUrnMem ilkW urnW mem) 196 32
 
-noncomputable def catGrabVowMem (ilkW urnW thisW vowW : UInt256) (mem : ByteArray) : ByteArray :=
+def catGrabVowMem (ilkW urnW thisW vowW : UInt256) (mem : ByteArray) : ByteArray :=
   vowW.toByteArray.write 0 (catGrabThisMem ilkW urnW thisW mem) 228 32
 
-noncomputable def catGrabDinkMem (ilkW urnW thisW vowW dinkW : UInt256)
+def catGrabDinkMem (ilkW urnW thisW vowW dinkW : UInt256)
     (mem : ByteArray) : ByteArray :=
   dinkW.toByteArray.write 0 (catGrabVowMem ilkW urnW thisW vowW mem) 260 32
 
 /-- The full 196-byte `grab` calldata laid at `0x80` over base memory `mem`. -/
-noncomputable def catGrabCalldataMem (ilkW urnW thisW vowW dinkW dartW : UInt256)
+def catGrabCalldataMem (ilkW urnW thisW vowW dinkW dartW : UInt256)
     (mem : ByteArray) : ByteArray :=
   dartW.toByteArray.write 0 (catGrabDinkMem ilkW urnW thisW vowW dinkW mem) 292 32
 

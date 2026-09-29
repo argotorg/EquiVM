@@ -233,7 +233,7 @@ theorem endDenyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       ByteArray.empty := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((endRelyStoreHashMem I).readWithPadding 0 64))) =
+          (KEC ((endRelyStoreHashMem I).readWithPadding 0 64))) =
         mapSlot (endRelyUsrMaskedWord I) ⟨0⟩ := by
     simpa [endRelyStoreHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (endRelyUsrMaskedWord I)

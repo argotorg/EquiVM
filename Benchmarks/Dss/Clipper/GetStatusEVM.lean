@@ -15,17 +15,17 @@ abbrev clipperStatusPriceSelectorWord : UInt256 :=
 abbrev clipperStatusPriceSelectorShifted : UInt256 :=
   UInt256.shiftLeft clipperStatusPriceSelectorWord ⟨224⟩
 
-noncomputable def clipperStatusPriceSelectorMem (mem : ByteArray) : ByteArray :=
+def clipperStatusPriceSelectorMem (mem : ByteArray) : ByteArray :=
   clipperStatusPriceSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def clipperStatusPriceTopMem (top : UInt256) (mem : ByteArray) : ByteArray :=
+def clipperStatusPriceTopMem (top : UInt256) (mem : ByteArray) : ByteArray :=
   top.toByteArray.write 0 (clipperStatusPriceSelectorMem mem) 132 32
 
-noncomputable def clipperStatusPriceCalldataMem
+def clipperStatusPriceCalldataMem
     (top age : UInt256) (mem : ByteArray) : ByteArray :=
   age.toByteArray.write 0 (clipperStatusPriceTopMem top mem) 164 32
 
-noncomputable def clipperStatusPricePostCallMem
+def clipperStatusPricePostCallMem
     (top age : UInt256) (mem out : ByteArray) : ByteArray :=
   out.write 0 (clipperStatusPriceCalldataMem top age mem) 128
     (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat
@@ -217,7 +217,7 @@ abbrev clipperGetStatusNeedsRedoWord (usr done : UInt256) : UInt256 :=
 def clipperGetStatusReturnWrites (needs price lot tab : UInt256) : List (Nat × UInt256) :=
   [(128, UInt256.isZero (UInt256.isZero needs)), (160, price), (192, lot), (224, tab)]
 
-noncomputable def clipperGetStatusReturnMem
+def clipperGetStatusReturnMem
     (scratch : ByteArray) (needs price lot tab : UInt256) : ByteArray :=
   writeCascade scratch (clipperGetStatusReturnWrites needs price lot tab)
 
@@ -378,7 +378,7 @@ theorem twoWordHashMem_read64_of_ge {mem : ByteArray} (key slot : UInt256)
 theorem twoWordHashMem_solcMappingSlot_of_ge (baseSlot key : UInt256) {mem : ByteArray}
     (hmem : 64 ≤ mem.size) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   rw [twoWordHashMem_read0_64_of_ge key baseSlot hmem]
   unfold solcMappingSlot
@@ -875,7 +875,7 @@ theorem RD.clipperGetStatusToStatus {code : ByteArray} (v : ClipperImmutables)
   let base : UInt256 := solcMappingSlot ⟨12⟩ id
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem id (⟨12⟩ : UInt256) mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem id (⟨12⟩ : UInt256) mem).readWithPadding 0 64))) =
         base := by
     simpa [base] using twoWordHashMem_solcMappingSlot (⟨12⟩ : UInt256) id hmem
   have rd3199 := evm_run h with [
@@ -1433,7 +1433,7 @@ theorem RD.clipperGetStatusReturnLoadsFrom3283
   let base : UInt256 := solcMappingSlot ⟨12⟩ id
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem id (⟨12⟩ : UInt256) mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem id (⟨12⟩ : UInt256) mem).readWithPadding 0 64))) =
         base := by
     simpa [base] using twoWordHashMem_solcMappingSlot_of_ge (⟨12⟩ : UInt256) id hmem
   have rdHash := evm_run rd3283 with [

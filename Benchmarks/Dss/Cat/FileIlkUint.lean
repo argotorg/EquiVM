@@ -716,7 +716,7 @@ theorem RD.catFileIlkStoreChop {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩) data) k' C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ ilk :=
     twoWordHashMem_solcMappingSlot ⟨1⟩ ilk hmem
   have rd873 := h.jumpdest (by native_decide) (by evm_ov)
@@ -802,7 +802,7 @@ theorem RD.catFileIlkStoreDunk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩) data) k' C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ ilk :=
     twoWordHashMem_solcMappingSlot ⟨1⟩ ilk hmem
   have rd914 := h.jumpdest (by native_decide) (by evm_ov)

@@ -8,7 +8,7 @@ namespace Auction
 def errorOffset (out : ByteArray) : UInt256 := calldataWord out 4
 def errorLength (out : ByteArray) : UInt256 := calldataWord out (4 + (errorOffset out).toNat)
 
-noncomputable def errorPayloadMem (mem out : ByteArray) (ptr : UInt256) : ByteArray :=
+def errorPayloadMem (mem out : ByteArray) (ptr : UInt256) : ByteArray :=
   out.write 4 mem ptr.toNat (out.size - 4)
 
 def errorPayloadWords (aw ptr : UInt256) (out : ByteArray) : UInt256 :=

@@ -1186,10 +1186,10 @@ theorem clipperTakePostTabWord_eq {σ τ : AccountMap} {evm : EVM.State}
     clipperTakeSalesBaseSlot_eq I, solcSlotWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage, hacc, howner] using hslot
 
-noncomputable abbrev clipperTakeSalesHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev clipperTakeSalesHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (clipperTakeIdWord I) ⟨12⟩ solcFreePtrMem
 
-noncomputable abbrev clipperTakeSalesTopHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev clipperTakeSalesTopHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (clipperTakeIdWord I) ⟨12⟩ (clipperTakeSalesHashMem I)
 
 theorem clipperTakeSalesHashMem_size (I : ExecutionEnv) :

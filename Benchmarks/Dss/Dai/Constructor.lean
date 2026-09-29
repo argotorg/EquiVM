@@ -118,7 +118,7 @@ theorem daiCreationBytecode_runtime_window :
     daiCreationBytecode.extract 301 (301 + 4011) = daiBytecode := by
   native_decide
 
-noncomputable def daiCtorCode (chainIdWord : UInt256) : ByteArray :=
+def daiCtorCode (chainIdWord : UInt256) : ByteArray :=
   daiCreationBytecode ++ (EVM.Word.toBytesBE chainIdWord).toByteArray
 
 theorem daiCreationBytecode_decode_append (tail : ByteArray) (pc : UInt256)
@@ -157,7 +157,7 @@ macro "dai_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => do
     | _ => Macro.throwUnsupported
   return acc
 
-noncomputable def daiCtorRuntimeMem : ByteArray :=
+def daiCtorRuntimeMem : ByteArray :=
   daiCreationBytecode.write 301 ByteArray.empty 0 4011
 
 theorem daiCtorRuntimeMem_read :
@@ -180,8 +180,8 @@ theorem daiCtorArgLen_eq (chainIdWord : UInt256) :
   rw [daiCtorCode_size]
   native_decide
 
-noncomputable def daiCtorArgMem (chainIdWord : UInt256) : ByteArray :=
-  solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++ UInt256.toByteArray chainIdWord
+def daiCtorArgMem (chainIdWord : UInt256) : ByteArray :=
+  solcFreePtrMem ++ ByteArray.zeroes 32 ++ UInt256.toByteArray chainIdWord
 
 theorem daiCtorArg_codecopy_mem (chainIdWord : UInt256) :
     (daiCtorCode chainIdWord).write 4312 solcFreePtrMem 128 32 =
@@ -207,17 +207,17 @@ theorem daiCtorArg_codecopy_mem (chainIdWord : UInt256) :
   simp only [ByteArray.data_copySlice, ByteArray.data_append, e1, solcFreePtrMem_size,
     show (128 : Nat) - 96 = 32 from by norm_num,
     show min 96 (128 + 32) - (128 + 32) = 0 from by norm_num]
-  rw [show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
     rw [zeroes_zero (n := 0) (by rfl)]
     rfl]
-  have hz32 : (ffi.ByteArray.zeroes 32).data.size = 32 := by
-    show (ffi.ByteArray.zeroes 32).size = 32
+  have hz32 : (ByteArray.zeroes 32).data.size = 32 := by
+    show (ByteArray.zeroes 32).size = 32
     exact zeroes_ofNat_size 32 (by norm_num)
   simp only [Array.append_empty, Nat.add_zero]
   have ext1 :
-      (solcFreePtrMem.data ++ (ffi.ByteArray.zeroes 32).data).extract
+      (solcFreePtrMem.data ++ (ByteArray.zeroes 32).data).extract
           0 128 =
-        solcFreePtrMem.data ++ (ffi.ByteArray.zeroes 32).data :=
+        solcFreePtrMem.data ++ (ByteArray.zeroes 32).data :=
     Array.extract_eq_self_of_le (by rw [Array.size_append, hsfpD, hz32])
   have ext2 :
       (daiCreationBytecode.data ++ (EVM.Word.toBytesBE chainIdWord).toByteArray.data).extract
@@ -267,7 +267,7 @@ theorem daiCtorArgMem_mload128 (chainIdWord : UInt256) :
     (by decide)
     (daiCtorArgMem_read128 chainIdWord)
 
-noncomputable def daiCtorArgFreeMem (chainIdWord : UInt256) : ByteArray :=
+def daiCtorArgFreeMem (chainIdWord : UInt256) : ByteArray :=
   (UInt256.toByteArray ⟨160⟩).write 0 (daiCtorArgMem chainIdWord) 64 32
 
 theorem daiCtorArgFreeMem_size (chainIdWord : UInt256) :
@@ -329,19 +329,19 @@ abbrev daiCtorSourceWord (I : ExecutionEnv) : UInt256 :=
 
 abbrev daiCtorDomainPackedByteArray (chainIdWord : UInt256) (thisWord : UInt256) :
     ByteArray :=
-  (ffi.KEC
+  (KEC
     (String.toByteArray
       "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")).toList.toByteArray ++
-    ((ffi.KEC (String.toByteArray "Dai Stablecoin")).toList.toByteArray ++
-      ((ffi.KEC (String.toByteArray "1")).toList.toByteArray ++
+    ((KEC (String.toByteArray "Dai Stablecoin")).toList.toByteArray ++
+      ((KEC (String.toByteArray "1")).toList.toByteArray ++
         ((EVM.Word.toBytesBE chainIdWord).toByteArray ++
           (EVM.Word.toBytesBE thisWord).toByteArray)))
 
 abbrev daiCtorDomainBytes (chainIdWord : UInt256) (thisWord : UInt256) : List UInt8 :=
-  (ffi.KEC (daiCtorDomainPackedByteArray chainIdWord thisWord)).toList
+  (KEC (daiCtorDomainPackedByteArray chainIdWord thisWord)).toList
 
 abbrev daiCtorDomainWord (chainIdWord : UInt256) (thisWord : UInt256) : UInt256 :=
-  uInt256OfByteArray (ffi.KEC (daiCtorDomainPackedByteArray chainIdWord thisWord))
+  uInt256OfByteArray (KEC (daiCtorDomainPackedByteArray chainIdWord thisWord))
 
 abbrev daiCtorTypeHashWord : UInt256 :=
   ⟨63076024560530113402979550242307453568063438748328787417531900361828837441551⟩
@@ -360,22 +360,22 @@ abbrev daiCtorVersionMemoryWord : UInt256 :=
 
 theorem daiCtorTypeHashBytes :
     UInt256.toByteArray daiCtorTypeHashWord =
-      (ffi.KEC
+      (KEC
         (String.toByteArray
           "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")).toList.toByteArray := by
   simpa [daiCtorTypeHashWord] using daiCtorTypeHashBytes_trusted
 
 theorem daiCtorNameHashBytes :
     UInt256.toByteArray daiCtorNameHashWord =
-      (ffi.KEC (String.toByteArray "Dai Stablecoin")).toList.toByteArray := by
+      (KEC (String.toByteArray "Dai Stablecoin")).toList.toByteArray := by
   simpa [daiCtorNameHashWord] using daiCtorNameHashBytes_trusted
 
 theorem daiCtorVersionHashBytes :
     UInt256.toByteArray daiCtorVersionHashWord =
-      (ffi.KEC (String.toByteArray "1")).toList.toByteArray := by
+      (KEC (String.toByteArray "1")).toList.toByteArray := by
   simpa [daiCtorVersionHashWord] using daiCtorVersionHashBytes_trusted
 
-noncomputable abbrev daiCtorWardsHashMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorWardsHashMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   twoWordHashMem (daiCtorSourceWord I) ⟨0⟩ (daiCtorArgFreeMem chainIdWord)
 
@@ -478,7 +478,7 @@ theorem daiCtorWardsHashMem_mload64 (I : ExecutionEnv) (chainIdWord : UInt256) :
 
 theorem daiCtorWardsKeccakSlot (I : ExecutionEnv) (chainIdWord : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((daiCtorWardsHashMem I chainIdWord).readWithPadding 0 64))) =
+        (KEC ((daiCtorWardsHashMem I chainIdWord).readWithPadding 0 64))) =
       daiCtorWardsSlot I := by
   unfold daiCtorWardsHashMem daiCtorWardsSlot wardsSlot mapSlot
   rw [twoWordHashMem_read0_64_160]
@@ -486,65 +486,65 @@ theorem daiCtorWardsKeccakSlot (I : ExecutionEnv) (chainIdWord : UInt256) :
     exact mappingSlot_single (daiCtorSourceWord I) ⟨0⟩
   · exact daiCtorArgFreeMem_size chainIdWord
 
-noncomputable abbrev daiCtorDomainNameMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorDomainNameMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   writeCascade (daiCtorWardsHashMem I chainIdWord)
     [(64, (⟨224⟩ : UInt256)), (160, (⟨14⟩ : UInt256)), (192, daiCtorNameMemoryWord)]
 
-noncomputable abbrev daiCtorDomainPreMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorDomainPreMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   writeCascade (daiCtorDomainNameMem I chainIdWord)
     [(64, (⟨288⟩ : UInt256)), (224, (⟨1⟩ : UInt256)),
       (256, daiCtorVersionMemoryWord)]
 
-noncomputable abbrev daiCtorDomainWordsMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorDomainWordsMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   writeCascade (daiCtorDomainPreMem I chainIdWord)
     [(320, daiCtorTypeHashWord), (352, daiCtorNameHashWord),
       (384, daiCtorVersionHashWord), (416, chainIdWord), (448, daiCtorThisWord I)]
 
-noncomputable abbrev daiCtorDomainHashMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorDomainHashMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   writeCascade (daiCtorDomainWordsMem I chainIdWord)
     [(288, (⟨160⟩ : UInt256)), (64, (⟨480⟩ : UInt256))]
 
-noncomputable abbrev daiCtorDomainNameFreeMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorDomainNameFreeMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   writeWord (daiCtorWardsHashMem I chainIdWord) 64 ⟨224⟩
 
-noncomputable abbrev daiCtorDomainNameLenMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorDomainNameLenMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   writeWord (daiCtorDomainNameFreeMem I chainIdWord) 160 ⟨14⟩
 
-noncomputable abbrev daiCtorDomainPreFreeMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorDomainPreFreeMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   writeWord (daiCtorDomainNameMem I chainIdWord) 64 ⟨288⟩
 
-noncomputable abbrev daiCtorDomainVersionLenMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorDomainVersionLenMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   writeWord (daiCtorDomainPreFreeMem I chainIdWord) 224 ⟨1⟩
 
-noncomputable abbrev daiCtorDomainTypeMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorDomainTypeMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   writeWord (daiCtorDomainPreMem I chainIdWord) 320 daiCtorTypeHashWord
 
-noncomputable abbrev daiCtorDomainNameHashMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorDomainNameHashMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   writeWord (daiCtorDomainTypeMem I chainIdWord) 352 daiCtorNameHashWord
 
-noncomputable abbrev daiCtorDomainVersionHashMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorDomainVersionHashMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   writeWord (daiCtorDomainNameHashMem I chainIdWord) 384 daiCtorVersionHashWord
 
-noncomputable abbrev daiCtorDomainChainMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorDomainChainMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   writeWord (daiCtorDomainVersionHashMem I chainIdWord) 416 chainIdWord
 
-noncomputable abbrev daiCtorDomainLenMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorDomainLenMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   writeWord (daiCtorDomainWordsMem I chainIdWord) 288 ⟨160⟩
 
-noncomputable abbrev daiCtorReturnMem (I : ExecutionEnv) (chainIdWord : UInt256) :
+abbrev daiCtorReturnMem (I : ExecutionEnv) (chainIdWord : UInt256) :
     ByteArray :=
   (daiCtorCode chainIdWord).write 301 (daiCtorDomainHashMem I chainIdWord) 0 4011
 
@@ -833,7 +833,7 @@ theorem daiCtorDomainHashMem_read320 (I : ExecutionEnv) (chainIdWord : UInt256) 
 
 theorem daiCtorDomainKeccakWord (I : ExecutionEnv) (chainIdWord : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((daiCtorDomainHashMem I chainIdWord).readWithPadding 320 160))) =
+        (KEC ((daiCtorDomainHashMem I chainIdWord).readWithPadding 320 160))) =
       daiCtorDomainWord chainIdWord (daiCtorThisWord I) := by
   rw [daiCtorDomainHashMem_read320]
   unfold daiCtorDomainWord daiCtorDomainPackedByteArray
@@ -894,7 +894,7 @@ theorem byteArray_mk_toArray_eq_toByteArray (xs : List UInt8) :
   rw [show xs.toArray.toList = xs by simp]
   rw [List.toList_data_toByteArray]
 
-theorem keccak_toList_length (bytes : ByteArray) : (ffi.KEC bytes).toList.length = 32 := by
+theorem keccak_toList_length (bytes : ByteArray) : (KEC bytes).toList.length = 32 := by
   rw [byteArray_toList_eq, Array.length_toList]
   exact keccak_size bytes
 
@@ -948,11 +948,11 @@ theorem evalExpr_daiCtor_domain (evm : EVM.State) (chainId : Int)
       .ok (.fixedBytes bytes32Width
         (daiCtorDomainBytes (EVM.word chainId.toNat)
           (UInt256.ofNat evm.executionEnv.codeOwner.val))) := by
-  let typeHash := (ffi.KEC
+  let typeHash := (KEC
     (String.toByteArray
       "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")).toList
-  let nameHash := (ffi.KEC (String.toByteArray "Dai Stablecoin")).toList
-  let versionHash := (ffi.KEC (String.toByteArray "1")).toList
+  let nameHash := (KEC (String.toByteArray "Dai Stablecoin")).toList
+  let versionHash := (KEC (String.toByteArray "1")).toList
   let chainWord := EVM.word chainId.toNat
   let thisWord := UInt256.ofNat evm.executionEnv.codeOwner.val
   have hpacked :
@@ -1022,11 +1022,11 @@ theorem evalExpr_daiCtor_domain (evm : EVM.State) (chainId : Int)
   rw [evalExpr?]
   rw [hpacked]
   change EvalResult.ok (Value.fixedBytes bytes32Width
-      (ffi.KEC (ByteArray.mk
+      (KEC (ByteArray.mk
         (typeHash ++ (nameHash ++ (versionHash ++
           (EVM.Word.toBytesBE chainWord ++ EVM.Word.toBytesBE thisWord)))).toArray)).toList) =
     EvalResult.ok (Value.fixedBytes bytes32Width
-      (ffi.KEC
+      (KEC
         (typeHash.toByteArray ++ (nameHash.toByteArray ++
           (versionHash.toByteArray ++
             ((EVM.Word.toBytesBE chainWord).toByteArray ++

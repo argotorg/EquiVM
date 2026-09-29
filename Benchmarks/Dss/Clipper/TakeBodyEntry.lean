@@ -20,6 +20,8 @@ open Benchmarks.Dss.Clipper.Immutables
 
 namespace Benchmarks.Dss.Clipper
 
+attribute [local irreducible] Ethereum.KEC
+
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 2000 in
 theorem clipperTakeX_decode_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -441,7 +443,7 @@ theorem clipperTakeX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   let base : UInt256 := solcMappingSlot ⟨12⟩ (clipperTakeIdWord I)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperTakeSalesHashMem I).readWithPadding 0 64))) =
+          (KEC ((clipperTakeSalesHashMem I).readWithPadding 0 64))) =
         base := by
     simpa [clipperTakeSalesHashMem, base] using
       twoWordHashMem_solcMappingSlot ⟨12⟩ (clipperTakeIdWord I) solcFreePtrMem_size
@@ -541,7 +543,7 @@ theorem clipperTakeX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   let base : UInt256 := solcMappingSlot ⟨12⟩ (clipperTakeIdWord I)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperTakeSalesHashMem I).readWithPadding 0 64))) =
+          (KEC ((clipperTakeSalesHashMem I).readWithPadding 0 64))) =
         base := by
     simpa [clipperTakeSalesHashMem, base] using
       twoWordHashMem_solcMappingSlot ⟨12⟩ (clipperTakeIdWord I) solcFreePtrMem_size
@@ -643,7 +645,7 @@ theorem clipperTakeX_enterStatus {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   let base : UInt256 := solcMappingSlot ⟨12⟩ (clipperTakeIdWord I)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperTakeSalesTopHashMem I).readWithPadding 0 64))) =
+          (KEC ((clipperTakeSalesTopHashMem I).readWithPadding 0 64))) =
         base := by
     have hmem : 64 ≤ (clipperTakeSalesHashMem I).size := by
       rw [clipperTakeSalesHashMem_size I]
