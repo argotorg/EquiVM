@@ -11,8 +11,8 @@ the runtime target into the whole-contract equivalence.  Mirrors
 `Benchmarks/Dss/Pot/Correct.lean` — copy that file's `NonPayable`/`NoDispatch`/
 `NoSelectorMatches` scaffolding and rename.
 
-After it compiles, verify axiom hygiene on the capstone: only the `Trusted.lean` selector
-axioms and the standard Lean axioms may appear.
+After it compiles, verify axiom hygiene on the capstone. The expected footprint consists of standard
+Lean axioms and documented `native_decide` evaluation facts.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
