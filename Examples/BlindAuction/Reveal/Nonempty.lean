@@ -1638,8 +1638,8 @@ theorem RD.blindAuctionPanic32Revert1967 {g : Sat256} {s0 : State} {ee : Executi
   have rd1978 := evm_run rd1974 with [
     raw mstore 0 (scratch_revealPanicMem0 mem) aw
       (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [scratch_reveal_aw_mstore0_of_ge3 haw]
         simp)
       (by rfl) (scratch_reveal_aw_mstore0_of_ge3 haw) (by evm_ov),
@@ -1647,16 +1647,16 @@ theorem RD.blindAuctionPanic32Revert1967 {g : Sat256} {s0 : State} {ee : Executi
   have rd1984 := evm_run rd1978 with [
     raw mstore 0 (scratch_revealPanicMem ⟨0x32⟩ mem) aw
       (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [show (⟨4⟩ : UInt256).toNat = 4 by native_decide]
         rw [scratch_reveal_aw_mstore4_of_ge3 haw]
         simp)
       (by rfl) (scratch_reveal_aw_mstore4_of_ge3 haw) (by evm_ov),
     push1 ⟨0x24⟩, push0]
   exact rd1984.rev 0 (by decide)
-    (fun s haws hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+    (by
+      simp [M]
       rw [show (⟨36⟩ : UInt256).toNat = 36 by native_decide]
       have hM : MachineState.M aw.toNat 0 36 = aw.toNat := by
         simp [MachineState.M]
@@ -1682,8 +1682,8 @@ theorem RD.blindAuctionPanic11Revert2025 {g : Sat256} {s0 : State} {ee : Executi
   have rd2036 := evm_run rd2032 with [
     raw mstore 0 (scratch_revealPanicMem0 mem) aw
       (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [scratch_reveal_aw_mstore0_of_ge3 haw]
         simp)
       (by rfl) (scratch_reveal_aw_mstore0_of_ge3 haw) (by evm_ov),
@@ -1691,16 +1691,16 @@ theorem RD.blindAuctionPanic11Revert2025 {g : Sat256} {s0 : State} {ee : Executi
   have rd2042 := evm_run rd2036 with [
     raw mstore 0 (scratch_revealPanicMem ⟨0x11⟩ mem) aw
       (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [show (⟨4⟩ : UInt256).toNat = 4 by native_decide]
         rw [scratch_reveal_aw_mstore4_of_ge3 haw]
         simp)
       (by rfl) (scratch_reveal_aw_mstore4_of_ge3 haw) (by evm_ov),
     push1 ⟨0x24⟩, push0]
   exact rd2042.rev 0 (by decide)
-    (fun s haws hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+    (by
+      simp [M]
       rw [show (⟨36⟩ : UInt256).toNat = 36 by native_decide]
       have hM : MachineState.M aw.toNat 0 36 = aw.toNat := by
         simp [MachineState.M]
@@ -1834,24 +1834,23 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen {I} {g : Sat256}
   have rd1027 := evm_run rd' with [
     caller, push0, swap1, dup2,
     raw mstore 0 mem1 aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [haw0]
         simp)
       (by rfl) haw0 (by evm_ov)]
   have rd1033 := evm_run rd1027 with [
     push1 ⟨4⟩, push1 ⟨32⟩,
     raw mstore 0 mem2 aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
-        rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [haw32]
         simp)
       (by rfl) haw32 (by evm_ov),
     push1 ⟨64⟩, dup2,
     raw keccak256 0 (revealScratchBidsLengthSlot I) aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M]
         rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
         rw [haw64]
         simp)
@@ -1873,8 +1872,8 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen {I} {g : Sat256}
   have rd1062 := evm_run rd1054 with [
     swap1, push0,
     raw mstore 0 mem3 aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [haw0]
         simp)
       (by rfl) haw0 (by evm_ov),
@@ -1882,8 +1881,8 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen {I} {g : Sat256}
     raw keccak256 0
       (uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
       aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M]
         rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
         rw [haw0]
         simp)
@@ -1940,24 +1939,23 @@ theorem scratch_blindAuctionRevealX_loopBody_bounds_revert {I} {g : Sat256}
   have rd1027 := evm_run rd' with [
     caller, push0, swap1, dup2,
     raw mstore 0 mem1 aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [scratch_reveal_aw_mstore0_of_ge3 haw]
         simp)
       (by rfl) (scratch_reveal_aw_mstore0_of_ge3 haw) (by evm_ov)]
   have rd1033 := evm_run rd1027 with [
     push1 ⟨4⟩, push1 ⟨32⟩,
     raw mstore 0 mem2 aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
-        rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [scratch_reveal_aw_mstore32_of_ge3 haw]
         simp)
       (by rfl) (scratch_reveal_aw_mstore32_of_ge3 haw) (by evm_ov),
     push1 ⟨64⟩, dup2,
     raw keccak256 0 (revealScratchBidsLengthSlot I) aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M]
         rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
         rw [scratch_reveal_aw_keccak64_of_ge3 haw]
         simp)

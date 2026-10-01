@@ -605,7 +605,7 @@ theorem blindAuctionRevealX_from887_lengthMismatch_empty {cA σ I} {g : Sat256}
   rw [heq0] at rd982
   have rd988 := evm_run rd982 with [push2 ⟨989⟩, jumpiNT (by decide), push0, push0]
   exact RD.rev _ rd988 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by evm_ov)
 
 theorem blindAuctionRevealX_from887_afterTimeGuards {cA σ I} {g : Sat256}
@@ -698,7 +698,7 @@ theorem blindAuctionRevealX_from887_valuesLengthMismatch {cA σ I} {g : Sat256}
   rw [heq0] at rd982
   have rd988 := evm_run rd982 with [push2 ⟨989⟩, jumpiNT (by decide), push0, push0]
   exact RD.rev _ rd988 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by evm_ov)
 
 theorem blindAuctionRevealX_from887_fakesLengthMismatch {cA σ I} {g : Sat256}
@@ -754,7 +754,7 @@ theorem blindAuctionRevealX_from887_fakesLengthMismatch {cA σ I} {g : Sat256}
   rw [heqFakes] at rd993
   have rd999 := evm_run rd993 with [push2 ⟨1000⟩, jumpiNT (by decide), push0, push0]
   exact RD.rev _ rd999 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by evm_ov)
 
 theorem blindAuctionRevealX_from887_secretsLengthMismatch {cA σ I} {g : Sat256}
@@ -819,7 +819,7 @@ theorem blindAuctionRevealX_from887_secretsLengthMismatch {cA σ I} {g : Sat256}
   rw [heqSecrets] at rd1004
   have rd1010 := evm_run rd1004 with [push2 ⟨1011⟩, jumpiNT (by decide), push0, push0]
   exact RD.rev _ rd1010 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by evm_ov)
 
 theorem blindAuctionRevealDecodeArrays1806_valuesLengthMismatch_reverts
@@ -1382,8 +1382,8 @@ theorem blindAuctionRevealX_postCallNonempty_toRequire {I} {g : Sat256} {s0 : St
     returndatasize, dup3,
     raw mstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
       mem3 (UInt256.ofNat 5) (by decide)
-      (fun s haw hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      (by
+        simp [M]
         decide)
       (by rfl) (by decide) (by evm_ov)]
   have rd1390 := evm_run rd1384 with [returndatasize, push0, push1 ⟨32⟩, dup5, add]
@@ -1406,8 +1406,7 @@ theorem blindAuctionRevealX_postCallNonempty_toRequire {I} {g : Sat256} {s0 : St
     rd1390 (by decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, copyDest, copyLen,
+      simp [M, copyDest, copyLen,
         SimpleAuction.withdrawReturnDataActiveWords, hcopyDest_toNat, hcopyLen_toNat])
     (by rfl)
     haw4
@@ -1443,7 +1442,7 @@ theorem blindAuctionRevealX_postCallRequire_failure_revert {I} {g : Sat256} {s0 
   have rd1410 := evm_run rd with [
     dup1, push2 ⟨1413⟩, jumpiNT (by decide), push0, push0]
   exact RD.rev _ rd1410 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by evm_ov)
 
 theorem scratch_blindAuctionRevealX_postCallRequire_success_stop_general {I} {g : Sat256}
@@ -1476,7 +1475,7 @@ theorem scratch_blindAuctionRevealX_postCallRequire_failure_revert_general {I} {
   have rd1410 := evm_run rd with [
     dup1, push2 ⟨1413⟩, jumpiNT (by decide), push0, push0]
   exact RD.rev _ rd1410 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by evm_ov)
 
 theorem blindAuctionRevealX_postCallEmpty_success_stop {I} {g : Sat256} {s0 : State}
@@ -2564,8 +2563,8 @@ theorem scratch_blindAuctionRevealX_postCallNonempty_toRequire_general {I} {g : 
     returndatasize, dup3,
     raw mstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
       mem3 (UInt256.ofNat 5) (by decide)
-      (fun s haw hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      (by
+        simp [M]
         decide)
       (by rfl) (by decide) (by evm_ov)]
   have rd1390 := evm_run rd1384 with [returndatasize, push0, push1 ⟨32⟩, dup5, add]
@@ -2588,8 +2587,7 @@ theorem scratch_blindAuctionRevealX_postCallNonempty_toRequire_general {I} {g : 
     rd1390 (by decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, copyDest, copyLen,
+      simp [M, copyDest, copyLen,
         SimpleAuction.withdrawReturnDataActiveWords, hcopyDest_toNat, hcopyLen_toNat])
     (by rfl)
     haw4
@@ -2640,22 +2638,22 @@ theorem scratch_blindAuctionRevealX_postCallNonempty_toRequire_freePtr {I} {g : 
   have rd1381 := evm_run rd1363 with [
     push1 ⟨64⟩,
     raw mload (Cₘ aw1 - Cₘ aw) freePtr aw1 (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk, aw1])
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw1])
       hfree (by rfl) (by evm_ov),
     swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and, dup3, add,
     push1 ⟨64⟩,
     raw mstore (Cₘ aw2 - Cₘ aw1) mem2 aw2 (by decide)
-      (fun s haw hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw2])
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw2])
       (by rfl) (by rfl) (by evm_ov)]
   let mem3 : ByteArray := (UInt256.toByteArray rdsz).write 0 mem2 freePtr.toNat 32
   let aw3 : UInt256 := UInt256.ofNat (MachineState.M aw2.toNat freePtr.toNat 32)
   have rd1384 := evm_run rd1381 with [
     returndatasize, dup3,
     raw mstore (Cₘ aw3 - Cₘ aw2) mem3 aw3 (by decide)
-      (fun s haw hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw3])
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw3])
       (by rfl) (by rfl) (by evm_ov)]
   have rd1390 := evm_run rd1384 with [returndatasize, push0, push1 ⟨32⟩, dup5, add]
   let copyDest : UInt256 := freePtr + ⟨32⟩
@@ -2669,8 +2667,7 @@ theorem scratch_blindAuctionRevealX_postCallNonempty_toRequire_freePtr {I} {g : 
     rd1390 (by decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, copyDest, copyLen, aw4,
+      simp [M, copyDest, copyLen, aw4,
         hcopyLen_toNat])
     (by rfl) (by rfl) (by evm_ov)
   have rd1400 := evm_run rd1391 with [push2 ⟨1400⟩, jump (by jump_dest), jumpdest]
@@ -2707,10 +2704,9 @@ theorem scratch_blindAuctionRevealX_loopExit_toCall {I} {g : Sat256} {s0 : State
     jumpdest, pop, push1 ⟨64⟩,
     raw mload 0 freePtr aw
       (by decide)
-      (fun s haw hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-        rw [hawM']
-        simp)
+      (by
+        simp only [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+          hawM', Nat.sub_self])
       hfree
       hawM'
       (by simp),
@@ -2857,24 +2853,24 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
   have rd1027 := evm_run rd' with [
     caller, push0, swap1, dup2,
     raw mstore 0 mem1 aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [haw0]
         simp)
       (by rfl) haw0 (by evm_ov)]
   have rd1033 := evm_run rd1027 with [
     push1 ⟨4⟩, push1 ⟨32⟩,
     raw mstore 0 mem2 aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M]
         rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
         rw [haw32]
         simp)
       (by rfl) haw32 (by evm_ov),
     push1 ⟨64⟩, dup2,
     raw keccak256 0 (revealScratchBidsLengthSlot I) aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M]
         rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
         rw [haw64]
         simp)
@@ -2896,8 +2892,8 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
   have rd1062 := evm_run rd1054 with [
     swap1, push0,
     raw mstore 0 mem3 aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [haw0]
         simp)
       (by rfl) haw0 (by evm_ov),
@@ -2905,8 +2901,8 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
     raw keccak256 0
       (uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
       aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M]
         rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
         rw [haw0]
         simp)
@@ -3247,25 +3243,25 @@ theorem scratch_blindAuctionRevealX_loopBody_packed_prefix {I} {g : Sat256}
   have rd1185 := evm_run rd with [
     dup3, dup3, dup3, push1 ⟨64⟩,
     raw mload (Cₘ aw1 - Cₘ aw) fp aw1 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw1])
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw1])
       hfp (by rfl) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨1207⟩, swap4, swap3, swap2, swap1, swap3, dup4,
     raw mstore (Cₘ aw2 - Cₘ aw1) mem1 aw2 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, base, aw2])
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, base, aw2])
       (by rfl) (by rfl) (by evm_ov)]
   have rd1207 := evm_run rd1185 with [
     swap1, iszero, iszero, push1 ⟨248⟩, shl, push1 ⟨32⟩, dup4, add,
     raw mstore (Cₘ aw3 - Cₘ aw2) mem2 aw3 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, base, fakeBase,
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, base, fakeBase,
           aw3])
       (by rfl) (by rfl) (by evm_ov),
     push1 ⟨33⟩, dup3, add,
     raw mstore (Cₘ aw4 - Cₘ aw3) mem3 aw4 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, base, secretBase,
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, base, secretBase,
           aw4])
       (by rfl) (by rfl) (by evm_ov),
     push1 ⟨65⟩, add, swap1, jump (by jump_dest)]
@@ -3340,30 +3336,30 @@ theorem scratch_blindAuctionRevealX_loopBody_packed_suffix {I} {g : Sat256}
   have rd1224 := evm_run rd with [
     jumpdest, push1 ⟨64⟩,
     raw mload (Cₘ aw1 - Cₘ aw) fp aw1 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw1])
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw1])
       hfp (by rfl) (by evm_ov),
     push1 ⟨32⟩, dup2, dup4, sub, sub, dup2,
     raw mstore (Cₘ aw2 - Cₘ aw1) mem4 aw2 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw2])
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw2])
       (by rfl) (by rfl) (by evm_ov),
     swap1, push1 ⟨64⟩,
     raw mstore (Cₘ aw3 - Cₘ aw2) mem5 aw3 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw3])
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw3])
       (by rfl) (by rfl) (by evm_ov),
     dup1,
     raw mload (Cₘ aw4 - Cₘ aw3) packedLen aw4 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw4])
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw4])
       (by simpa [base, newFree, packedLen, mem4, mem5, aw1, aw2, aw3] using hlen)
       (by rfl) (by evm_ov)]
   have rd1233₀ := evm_run rd1224 with [
     swap1, push1 ⟨32⟩, add,
     raw keccak256 (Cₘ aw5 - Cₘ aw4) hash aw5 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, base, aw5])
+      (by
+        simp [M, base, aw5])
       (by simpa [base, newFree, packedLen, mem4, mem5] using hhash)
       (by rfl) (by evm_ov),
     dup5, push0, add]

@@ -934,10 +934,8 @@ theorem tinyCtorInitcodeToBody
     push2 ⟨634⟩, codesize, sub, dup1, push2 ⟨634⟩, dup4,
     raw codecopy 18 (tinyCtorAbiMem owner scale useScale) (UInt256.ofNat 9)
       (by tiny_ctor_decode)
-      (fun s haws hstks => by
-        set_option linter.unusedSimpArgs false in
-          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-            List.getElem!_cons_zero, List.getElem!_cons_succ]
+      (by
+        simp only [M]
         rw [tinyCtorCode_size]
         decide)
       (by

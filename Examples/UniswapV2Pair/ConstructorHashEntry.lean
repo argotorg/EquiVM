@@ -26,9 +26,7 @@ theorem RD.uniswapConstructorTypeHash {g : Sat256} {s0 : State} {I : ExecutionEn
   have rd48 := evm_run rd40 with [swap2, dup3, swap1, sub, push1 ⟨82⟩, add, dup3]
   refine ⟨_, _, RD.keccak256 0 constructorTypeHashWord ⟨7⟩ rd48
     (by native_decide) ?_ ?_ ?_ (by evm_ov)⟩
-  · intro s haw hstk
-    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-      List.getElem!_cons_zero, List.getElem!_cons_succ]
+  · simp only [M]
     native_decide
   · change UInt256.ofNat (fromByteArrayBigEndian (KEC
       (constructorTypeInputMem.readWithPadding 128 82))) = _

@@ -859,8 +859,7 @@ theorem simpleAuctionX_bid_successNoPending {cA gh bl σ σ₀ A I} {g : Sat256}
   rw [hlen64] at rd553'
   have rd554 := RD.log1 0 (UInt256.ofNat 6) rd553' (by decide) hperm
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      simp [M]
       native_decide)
     (by decide) (by evm_ov)
   have rd123 := evm_run rd554 with [jump (by jump_dest), jumpdest]
@@ -924,8 +923,7 @@ theorem simpleAuctionX_bid_successWithPending {cA gh bl σ σ₀ A I} {g : Sat25
   rw [hlen64] at rd553'
   have rd554 := RD.log1 0 (UInt256.ofNat 6) rd553' (by decide) hperm
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      simp [M]
       native_decide)
     (by decide) (by evm_ov)
   have rd123 := evm_run rd554 with [jump (by jump_dest), jumpdest]

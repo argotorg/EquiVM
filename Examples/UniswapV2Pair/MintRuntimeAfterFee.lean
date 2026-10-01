@@ -443,9 +443,7 @@ theorem RD.uniswapLog2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 :
     {a b c d : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
     (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG2, .none)) (hperm : ee.perm = true)
-    (hmc : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = a :: b :: c :: d :: t →
-        memoryExpansionCost s .LOG2 = mcost)
+    (hmc : Cₘ (M aw a b) - Cₘ aw = mcost)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
     (hov : t.length ≤ 1024) :
     RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
@@ -455,7 +453,9 @@ theorem RD.uniswapLog2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 :
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata,
       hacc, hee, hworld⟩
   · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .LOG2 = mcost := hmc s haw hstk
+  · have hmcS : memoryExpansionCost s .LOG2 = mcost := by
+      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have hperms : s.executionEnv.perm = true := by
       rw [hee]
       exact hperm
@@ -705,42 +705,20 @@ theorem uniswapMintRuntimeUpdateEmitSyncReturn
         balance1, balance0, ⟨3926⟩, totalSupply, feeOn, amount1, amount0, balance1,
         balance0, reserve1, reserve0, liquidity, toWord, ⟨861⟩, sel]
       mem aw rdata (cAFee, σUpd) k C)
-    (hmcLoad : ∀ s : State, s.machineState.activeWords = aw →
-      s.machineState.stack = ⟨64⟩ :: ⟨64⟩ :: reserve112Shift :: reserve112Mask :: packed ::
-        elapsed :: timestamp :: reserve1 :: reserve0 :: balance1 :: balance0 :: ⟨3926⟩ ::
-        totalSupply :: feeOn :: amount1 :: amount0 :: balance1 :: balance0 :: reserve1 ::
-        reserve0 :: liquidity :: toWord :: ⟨861⟩ :: sel :: [] →
-      memoryExpansionCost s .MLOAD = mcostLoad)
+    (hmcLoad : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = mcostLoad)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hawLoad : UInt256.ofNat (MachineState.M aw.toNat 64 32) = awLoad)
-    (hmcStore0 : ∀ s : State, s.machineState.activeWords = awLoad →
-      s.machineState.stack = ⟨128⟩ :: uniswapSyncReserve0Word packed :: ⟨128⟩ ::
-        ⟨64⟩ :: reserve112Shift :: reserve112Mask :: packed :: elapsed :: timestamp ::
-        reserve1 :: reserve0 :: balance1 :: balance0 :: ⟨3926⟩ :: totalSupply :: feeOn ::
-        amount1 :: amount0 :: balance1 :: balance0 :: reserve1 :: reserve0 :: liquidity ::
-        toWord :: ⟨861⟩ :: sel :: [] →
-      memoryExpansionCost s .MSTORE = mcostStore0)
+    (hmcStore0 : Cₘ (M awLoad ⟨128⟩ ⟨32⟩) - Cₘ awLoad = mcostStore0)
     (hawStore0 : UInt256.ofNat (MachineState.M awLoad.toNat 128 32) = awLog)
-    (hmcStore1 : ∀ s : State, s.machineState.activeWords = awLog →
-      s.machineState.stack = ((⟨128⟩ : UInt256) + ⟨32⟩) ::
-        uniswapSyncReserve1Word packed :: ⟨128⟩ :: ⟨64⟩ :: elapsed :: timestamp ::
-        reserve1 :: reserve0 :: balance1 :: balance0 :: ⟨3926⟩ :: totalSupply :: feeOn ::
-        amount1 :: amount0 :: balance1 :: balance0 :: reserve1 :: reserve0 :: liquidity ::
-        toWord :: ⟨861⟩ :: sel :: [] →
-      memoryExpansionCost s .MSTORE = mcostStore1)
+    (hmcStore1 : Cₘ (M awLog (⟨128⟩ + ⟨32⟩) ⟨32⟩) - Cₘ awLog = mcostStore1)
     (hawStore1 :
       UInt256.ofNat (MachineState.M awLog.toNat (((⟨128⟩ : UInt256) + ⟨32⟩).toNat) 32) =
         awLog)
-    (hmcLoadLog : ∀ s : State, s.machineState.activeWords = awLog →
-      s.machineState.stack = ⟨64⟩ :: ⟨128⟩ :: ⟨64⟩ :: elapsed :: timestamp ::
-        reserve1 :: reserve0 :: balance1 :: balance0 :: ⟨3926⟩ :: totalSupply :: feeOn ::
-        amount1 :: amount0 :: balance1 :: balance0 :: reserve1 :: reserve0 :: liquidity ::
-        toWord :: ⟨861⟩ :: sel :: [] →
-      memoryExpansionCost s .MLOAD = mcostLoadLog)
+    (hmcLoadLog : Cₘ (M awLog ⟨64⟩ ⟨32⟩) - Cₘ awLog = mcostLoadLog)
     (hmload64Log :
       (if (⟨64⟩ : UInt256).toNat ≥ (uniswapSyncLogMem packed mem).size then ⟨0⟩
        else UInt256.ofNat
@@ -748,13 +726,7 @@ theorem uniswapMintRuntimeUpdateEmitSyncReturn
           ((uniswapSyncLogMem packed mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hawLoadLog : UInt256.ofNat (MachineState.M awLog.toNat 64 32) = awLog)
-    (hmcLog : ∀ s : State, s.machineState.activeWords = awLog →
-      s.machineState.stack = ⟨128⟩ ::
-        ((⟨64⟩ : UInt256) + UInt256.sub ⟨128⟩ ⟨128⟩) :: uniswapSyncTopic ::
-        elapsed :: timestamp :: reserve1 :: reserve0 :: balance1 :: balance0 :: ⟨3926⟩ ::
-        totalSupply :: feeOn :: amount1 :: amount0 :: balance1 :: balance0 :: reserve1 ::
-        reserve0 :: liquidity :: toWord :: ⟨861⟩ :: sel :: [] →
-      memoryExpansionCost s .LOG1 = mcostLog)
+    (hmcLog : Cₘ (M awLog ⟨128⟩ (⟨64⟩ + UInt256.sub ⟨128⟩ ⟨128⟩)) - Cₘ awLog = mcostLog)
     (hawLog : UInt256.ofNat
       (MachineState.M awLog.toNat 128
         (((⟨64⟩ : UInt256) + UInt256.sub ⟨128⟩ ⟨128⟩).toNat)) = awLog)

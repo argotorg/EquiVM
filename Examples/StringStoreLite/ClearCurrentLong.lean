@@ -63,38 +63,9 @@ def currentLengthGeneratedLoopState (σ : AccountMap) (I : ExecutionEnv)
 
 theorem currentLengthLoopMstoreCost_spec {σ : AccountMap} {I : ExecutionEnv}
     {endp len : UInt256} {s : CurrentLengthLoopState} :
-    ∀ st : State, st.machineState.activeWords = s.aw →
-      st.machineState.stack = currentLengthLoopMstoreStack σ I endp len s →
-      memoryExpansionCost st .MSTORE =
-        currentLengthLoopMstoreCost σ I endp len s := by
-  intro st haw hstk
-  rw [currentLengthLoopMstoreCost]
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw]
-
-theorem mloadCostSpec {aw off : UInt256} {stk : List UInt256} :
-    ∀ st : State, st.machineState.activeWords = aw →
-      st.machineState.stack = off :: stk →
-      memoryExpansionCost st .MLOAD =
-        Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)) - Cₘ aw := by
-  intro st haw hstk
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw, List.getElem!_cons_zero]
-
-theorem mstoreCostSpec {aw off : UInt256} {stk : List UInt256} :
-    ∀ st : State, st.machineState.activeWords = aw →
-      st.machineState.stack = off :: stk →
-      memoryExpansionCost st .MSTORE =
-        Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)) - Cₘ aw := by
-  intro st haw hstk
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw, List.getElem!_cons_zero]
-
-theorem returnCostSpec {aw off len : UInt256} {stk : List UInt256} :
-    ∀ st : State, st.machineState.activeWords = aw →
-      st.machineState.stack = off :: len :: stk →
-      memoryExpansionCost st .RETURN =
-        Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat len.toNat)) - Cₘ aw := by
-  intro st haw hstk
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw,
-    List.getElem!_cons_zero, List.getElem!_cons_succ]
+    Cₘ (M s.aw s.ptr ⟨32⟩) - Cₘ s.aw =
+      currentLengthLoopMstoreCost σ I endp len s := by
+  rfl
 
 theorem currentLengthGeneratedLoopState_zero {σ : AccountMap} {I : ExecutionEnv}
     {len : UInt256} :
@@ -121,11 +92,7 @@ structure CurrentLengthLoopStep (σ : AccountMap) (I : ExecutionEnv) (endp len :
   hcontinue : UInt256.gt endp ((⟨32⟩ : UInt256) + s.ptr) ≠ ⟨0⟩
   hmemout :
     (currentLengthStorageWord σ I s.slot).toByteArray.write 0 s.mem s.ptr.toNat 32 = t.mem
-  hmstoreCost : ∀ st : State, st.machineState.activeWords = s.aw →
-    st.machineState.stack =
-      [s.ptr, currentLengthStorageWord σ I s.slot, s.ptr, s.slot, endp, len, ⟨0⟩,
-        ⟨128⟩, ⟨0⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
-    memoryExpansionCost st .MSTORE = mstoreCost
+  hmstoreCost : Cₘ (M s.aw s.ptr ⟨32⟩) - Cₘ s.aw = mstoreCost
   hawStore : UInt256.ofNat (MachineState.M s.aw.toNat s.ptr.toNat 32) = t.aw
   hptrNext : t.ptr = (⟨32⟩ : UInt256) + s.ptr
   hslotNext : t.slot = (⟨1⟩ : UInt256) + s.slot
@@ -140,15 +107,9 @@ structure CurrentLengthLoopFinal (σ : AccountMap) (I : ExecutionEnv) (endp len 
   hdone : UInt256.gt endp ((⟨32⟩ : UInt256) + s.ptr) = ⟨0⟩
   hmemout :
     (currentLengthStorageWord σ I s.slot).toByteArray.write 0 s.mem s.ptr.toNat 32 = memout
-  hmstoreCost : ∀ st : State, st.machineState.activeWords = s.aw →
-    st.machineState.stack =
-      [s.ptr, currentLengthStorageWord σ I s.slot, s.ptr, s.slot, endp, len, ⟨0⟩,
-        ⟨128⟩, ⟨0⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
-    memoryExpansionCost st .MSTORE = mstoreCost
+  hmstoreCost : Cₘ (M s.aw s.ptr ⟨32⟩) - Cₘ s.aw = mstoreCost
   hawStore : UInt256.ofNat (MachineState.M s.aw.toNat s.ptr.toNat 32) = awStore
-  hmloadCost : ∀ st : State, st.machineState.activeWords = awStore →
-    st.machineState.stack = [⟨128⟩, ⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
-    memoryExpansionCost st .MLOAD = mloadCost
+  hmloadCost : Cₘ (M (awStore) ⟨128⟩ ⟨32⟩) - Cₘ (awStore) = mloadCost
   hloadVal : (if (⟨128⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
     else UInt256.ofNat
       (fromByteArrayBigEndian (memout.readWithPadding (⟨128⟩ : UInt256).toNat 32))) = len
@@ -171,9 +132,8 @@ def currentLengthGeneratedLoopStep {σ : AccountMap} {I : ExecutionEnv}
       hptrNext := ?_
       hslotNext := ?_ }
   · simp [currentLengthGeneratedLoopState_succ, currentLengthCopyMem]
-  · intro st haw hstk
-    exact currentLengthLoopMstoreCost_spec (σ := σ) (I := I) (endp := endp)
-      (len := len) (s := s) st haw (by simpa [currentLengthLoopMstoreStack, s] using hstk)
+  · simpa [s] using currentLengthLoopMstoreCost_spec
+      (σ := σ) (I := I) (endp := endp) (len := len) (s := s)
   · simp [currentLengthGeneratedLoopState_succ]
   · simp [currentLengthGeneratedLoopState_succ]
   · simp [currentLengthGeneratedLoopState_succ]
@@ -195,13 +155,11 @@ def currentLengthGeneratedLoopFinal {σ : AccountMap} {I : ExecutionEnv}
     {endp len : UInt256} {fuel finalMloadCost : Nat} {awLoad : UInt256}
     (hdone : UInt256.gt endp
       ((⟨32⟩ : UInt256) + (currentLengthGeneratedLoopState σ I len fuel).ptr) = ⟨0⟩)
-    (hmloadCost : ∀ st : State,
-      st.machineState.activeWords =
-        UInt256.ofNat
+    (hmloadCost : Cₘ (M (UInt256.ofNat
           (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) →
-      st.machineState.stack = [⟨128⟩, ⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
-      memoryExpansionCost st .MLOAD = finalMloadCost)
+            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32)) ⟨128⟩ ⟨32⟩) - Cₘ (UInt256.ofNat
+          (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
+            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32)) = finalMloadCost)
     (hloadVal :
       (if (⟨128⟩ : UInt256).toNat ≥
           (currentLengthCopyMem
@@ -241,9 +199,8 @@ def currentLengthGeneratedLoopFinal {σ : AccountMap} {I : ExecutionEnv}
       hmloadCost := by simpa [s] using hmloadCost
       hloadVal := by simpa [s, currentLengthCopyMem] using hloadVal
       hawLoad := by simpa [s] using hawLoad }
-  intro st haw hstk
-  exact currentLengthLoopMstoreCost_spec (σ := σ) (I := I) (endp := endp)
-    (len := len) (s := s) st haw (by simpa [currentLengthLoopMstoreStack, s] using hstk)
+  simpa [s] using currentLengthLoopMstoreCost_spec
+    (σ := σ) (I := I) (endp := endp) (len := len) (s := s)
 
 theorem currentLengthCopyMem_read64 {mem : ByteArray} {ptr word : UInt256}
     (hptr : 96 ≤ ptr.toNat) (hin : ptr.toNat ≤ mem.size) :
@@ -607,13 +564,11 @@ theorem currentLengthGeneratedLoopFinal_read64 {σ : AccountMap} {I : ExecutionE
     (hdone : UInt256.gt ((⟨160⟩ : UInt256) + len)
       ((⟨32⟩ : UInt256) +
         (currentLengthGeneratedLoopState σ I len fuel).ptr) = ⟨0⟩)
-    (hmloadCost : ∀ st : State,
-      st.machineState.activeWords =
-        UInt256.ofNat
+    (hmloadCost : Cₘ (M (UInt256.ofNat
           (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) →
-      st.machineState.stack = [⟨128⟩, ⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
-      memoryExpansionCost st .MLOAD = finalMloadCost)
+            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32)) ⟨128⟩ ⟨32⟩) - Cₘ (UInt256.ofNat
+          (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
+            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32)) = finalMloadCost)
     (hloadVal :
       (if (⟨128⟩ : UInt256).toNat ≥
           (currentLengthCopyMem
@@ -1189,13 +1144,11 @@ theorem currentLengthGeneratedLoopFinal_read64_of_add32 {σ : AccountMap} {I : E
     (hdone : UInt256.gt ((⟨160⟩ : UInt256) + len)
       ((⟨32⟩ : UInt256) +
         (currentLengthGeneratedLoopState σ I len fuel).ptr) = ⟨0⟩)
-    (hmloadCost : ∀ st : State,
-      st.machineState.activeWords =
-        UInt256.ofNat
+    (hmloadCost : Cₘ (M (UInt256.ofNat
           (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) →
-      st.machineState.stack = [⟨128⟩, ⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
-      memoryExpansionCost st .MLOAD = finalMloadCost)
+            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32)) ⟨128⟩ ⟨32⟩) - Cₘ (UInt256.ofNat
+          (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
+            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32)) = finalMloadCost)
     (hloadVal :
       (if (⟨128⟩ : UInt256).toNat ≥
           (currentLengthCopyMem
@@ -1255,13 +1208,11 @@ theorem currentLengthGeneratedLoopFinal_read128 {σ : AccountMap} {I : Execution
     (hdone : UInt256.gt ((⟨160⟩ : UInt256) + len)
       ((⟨32⟩ : UInt256) +
         (currentLengthGeneratedLoopState σ I len fuel).ptr) = ⟨0⟩)
-    (hmloadCost : ∀ st : State,
-      st.machineState.activeWords =
-        UInt256.ofNat
+    (hmloadCost : Cₘ (M (UInt256.ofNat
           (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) →
-      st.machineState.stack = [⟨128⟩, ⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
-      memoryExpansionCost st .MLOAD = finalMloadCost)
+            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32)) ⟨128⟩ ⟨32⟩) - Cₘ (UInt256.ofNat
+          (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
+            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32)) = finalMloadCost)
     (hloadVal :
       (if (⟨128⟩ : UInt256).toNat ≥
           (currentLengthCopyMem
@@ -1317,13 +1268,11 @@ theorem currentLengthGeneratedLoopFinal_read128_of_add32 {σ : AccountMap} {I : 
     (hdone : UInt256.gt ((⟨160⟩ : UInt256) + len)
       ((⟨32⟩ : UInt256) +
         (currentLengthGeneratedLoopState σ I len fuel).ptr) = ⟨0⟩)
-    (hmloadCost : ∀ st : State,
-      st.machineState.activeWords =
-        UInt256.ofNat
+    (hmloadCost : Cₘ (M (UInt256.ofNat
           (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) →
-      st.machineState.stack = [⟨128⟩, ⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
-      memoryExpansionCost st .MLOAD = finalMloadCost)
+            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32)) ⟨128⟩ ⟨32⟩) - Cₘ (UInt256.ofNat
+          (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
+            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32)) = finalMloadCost)
     (hloadVal :
       (if (⟨128⟩ : UInt256).toNat ≥
           (currentLengthCopyMem
@@ -1384,13 +1333,11 @@ theorem currentLengthGeneratedLoopFinal_mload128_of_add32
     (hdone : UInt256.gt ((⟨160⟩ : UInt256) + len)
       ((⟨32⟩ : UInt256) +
         (currentLengthGeneratedLoopState σ I len fuel).ptr) = ⟨0⟩)
-    (hmloadCost : ∀ st : State,
-      st.machineState.activeWords =
-        UInt256.ofNat
+    (hmloadCost : Cₘ (M (UInt256.ofNat
           (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) →
-      st.machineState.stack = [⟨128⟩, ⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
-      memoryExpansionCost st .MLOAD = finalMloadCost)
+            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32)) ⟨128⟩ ⟨32⟩) - Cₘ (UInt256.ofNat
+          (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
+            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32)) = finalMloadCost)
     (hloadVal :
       (if (⟨128⟩ : UInt256).toNat ≥
           (currentLengthCopyMem
@@ -2246,9 +2193,7 @@ theorem stringStoreLiteX_clearCurrentLongReachCopyLoop {cA gh bl σ σ₀ A I} {
   have rd396 := rd395.keccak256 0 (bytesLikeDataBase ⟨0⟩) (UInt256.ofNat 5)
     (by native_decide)
     (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw,
-        List.getElem!_cons_zero, List.getElem!_cons_succ,
+      simp only [M,
         show (⟨0⟩ : UInt256).toNat = 0 from rfl,
         show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       native_decide)
@@ -2268,15 +2213,9 @@ theorem stringStoreLiteX_clearCurrentLongFinalCopyToDelete {cA gh bl σ σ₀ A 
     (hdone : UInt256.gt endp ((⟨32⟩ : UInt256) + ptr) = ⟨0⟩)
     (hmemout :
       (currentLengthStorageWord σ I slot).toByteArray.write 0 m ptr.toNat 32 = memout)
-    (hmstoreCost : ∀ s : State, s.machineState.activeWords = aw →
-      s.machineState.stack =
-        [ptr, currentLengthStorageWord σ I slot, ptr, slot, endp, len, ⟨0⟩, ⟨128⟩,
-          ⟨0⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
-      memoryExpansionCost s .MSTORE = mstoreCost)
+    (hmstoreCost : Cₘ (M aw ptr ⟨32⟩) - Cₘ aw = mstoreCost)
     (hawStore : UInt256.ofNat (MachineState.M aw.toNat ptr.toNat 32) = awStore)
-    (hmloadCost : ∀ s : State, s.machineState.activeWords = awStore →
-      s.machineState.stack = [⟨128⟩, ⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
-      memoryExpansionCost s .MLOAD = mloadCost)
+    (hmloadCost : Cₘ (M awStore ⟨128⟩ ⟨32⟩) - Cₘ awStore = mloadCost)
     (hloadVal : (if (⟨128⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (memout.readWithPadding (⟨128⟩ : UInt256).toNat 32))) = len)
@@ -2321,11 +2260,7 @@ theorem stringStoreLiteX_clearCurrentLongCopyContinue {cA gh bl σ σ₀ A I}
     (hcontinue : UInt256.gt endp ((⟨32⟩ : UInt256) + ptr) ≠ ⟨0⟩)
     (hmemout :
       (currentLengthStorageWord σ I slot).toByteArray.write 0 m ptr.toNat 32 = memout)
-    (hmstoreCost : ∀ s : State, s.machineState.activeWords = aw →
-      s.machineState.stack =
-        [ptr, currentLengthStorageWord σ I slot, ptr, slot, endp, len, ⟨0⟩, ⟨128⟩,
-          ⟨0⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
-      memoryExpansionCost s .MSTORE = mstoreCost)
+    (hmstoreCost : Cₘ (M aw ptr ⟨32⟩) - Cₘ aw = mstoreCost)
     (hawStore : UInt256.ofNat (MachineState.M aw.toNat ptr.toNat 32) = awStore) :
     ∃ k C, RD stringStoreLiteBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨397⟩
@@ -2523,12 +2458,7 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteGenerated
           (σ := σ) (I := I) (len := len)
           (clearCurrent_len_toNat_lt_sign_of_div2 (header := currentLengthHeaderWord σ I) hlen)
           hgt31)
-        (by
-          intro st haw hstk
-          simpa [finalMloadCost, awStore] using
-            (mloadCostSpec
-              (aw := awStore) (off := (⟨128⟩ : UInt256))
-              (stk := [⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I]) st haw hstk))
+        (by rfl)
         (currentLengthConcreteFuel_finalMload128
           (σ := σ) (I := I) (len := len)
           (clearCurrent_len_toNat_lt_sign_of_div2 (header := currentLengthHeaderWord σ I) hlen))
@@ -2540,12 +2470,7 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteGenerated
           (σ := σ) (I := I) (len := len)
           (clearCurrent_len_toNat_lt_sign_of_div2 (header := currentLengthHeaderWord σ I) hlen)
           hgt31)
-        (by
-          intro st haw hstk
-          simpa [finalMloadCost, awStore] using
-            (mloadCostSpec
-              (aw := awStore) (off := (⟨128⟩ : UInt256))
-              (stk := [⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I]) st haw hstk))
+        (by rfl)
         (currentLengthConcreteFuel_finalMload128
           (σ := σ) (I := I) (len := len)
           (clearCurrent_len_toNat_lt_sign_of_div2 (header := currentLengthHeaderWord σ I) hlen))
@@ -2574,14 +2499,8 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteGenerated
     simpa [fuel] using
       currentLengthConcreteFuel_done
         (σ := σ) (I := I) (len := len) hlenLt hgt31
-  have hmloadCost : ∀ st : State, st.machineState.activeWords = awStore →
-      st.machineState.stack = [⟨128⟩, ⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
-      memoryExpansionCost st .MLOAD = finalMloadCost := by
-    intro st haw hstk
-    simpa [finalMloadCost, awStore] using
-      (mloadCostSpec
-        (aw := awStore) (off := (⟨128⟩ : UInt256))
-        (stk := [⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I]) st haw hstk)
+  have hmloadCost : Cₘ (M awStore ⟨128⟩ ⟨32⟩) - Cₘ awStore = finalMloadCost := by
+    rfl
   have hloadVal :
       (if (⟨128⟩ : UInt256).toNat ≥
           (currentLengthCopyMem
@@ -2624,25 +2543,17 @@ theorem stringStoreLiteX_clearCurrentReturnFromWrapperGeneric
     (hreach : ∃ k C, RD stringStoreLiteBytecode I g
       (initState cA gh bl σinit σ₀ g A I) ⟨153⟩
       [len, stringStoreLiteSelWord I] mem aw rdata (cA, τ) k C)
-    (hmloadCost : ∀ s : State, s.machineState.activeWords = aw →
-      s.machineState.stack = [⟨64⟩, len, stringStoreLiteSelWord I] →
-      memoryExpansionCost s .MLOAD = mloadCost)
+    (hmloadCost : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = mloadCost)
     (hfreePtr : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = freePtr)
     (hawLoad : UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32) =
       awLoad)
     (hmemret : len.toByteArray.write 0 mem (freePtr + ⟨0⟩).toNat 32 = memret)
-    (hmstoreCost : ∀ s : State, s.machineState.activeWords = awLoad →
-      s.machineState.stack =
-        [freePtr + ⟨0⟩, len, len, freePtr + ⟨0⟩, ⟨763⟩, freePtr + ⟨32⟩,
-          freePtr, len, ⟨166⟩, stringStoreLiteSelWord I] →
-      memoryExpansionCost s .MSTORE = mstoreCost)
+    (hmstoreCost : Cₘ (M awLoad (freePtr + ⟨0⟩) ⟨32⟩) - Cₘ awLoad = mstoreCost)
     (hawStore : UInt256.ofNat (MachineState.M awLoad.toNat (freePtr + ⟨0⟩).toNat 32) =
       awStore)
-    (hfinalMloadCost : ∀ s : State, s.machineState.activeWords = awStore →
-      s.machineState.stack = [⟨64⟩, freePtr + ⟨32⟩, stringStoreLiteSelWord I] →
-      memoryExpansionCost s .MLOAD = finalMloadCost)
+    (hfinalMloadCost : Cₘ (M awStore ⟨64⟩ ⟨32⟩) - Cₘ awStore = finalMloadCost)
     (hfinalFreePtr : (if (⟨64⟩ : UInt256).toNat ≥ memret.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (memret.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -2653,10 +2564,8 @@ theorem stringStoreLiteX_clearCurrentReturnFromWrapperGeneric
     (hretBytes :
       memret.readWithPadding freePtr.toNat
         (UInt256.sub (freePtr + ⟨32⟩) freePtr).toNat = UInt256.toByteArray len)
-    (hretCost : ∀ s : State, s.machineState.activeWords = awFinal →
-      s.machineState.stack =
-        [freePtr, UInt256.sub (freePtr + ⟨32⟩) freePtr, stringStoreLiteSelWord I] →
-      memoryExpansionCost s .RETURN = retCost) :
+    (hretCost : Cₘ (M awFinal freePtr (UInt256.sub (freePtr + ⟨32⟩) freePtr)) -
+      Cₘ awFinal = retCost) :
     RDret stringStoreLiteBytecode g (initState cA gh bl σinit σ₀ g A I) (cA, τ)
       (UInt256.toByteArray len) := by
   obtain ⟨_, _, rd153⟩ := hreach
@@ -2771,14 +2680,8 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {cA gh bl σ σ₀ A I}
     simpa [fuel] using
       currentLengthConcreteFuel_done
         (σ := σ) (I := I) (len := len) hlenLt hgt31
-  have hcopyMloadCost : ∀ st : State, st.machineState.activeWords = copyAwStore →
-      st.machineState.stack = [⟨128⟩, ⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
-      memoryExpansionCost st .MLOAD = copyMloadCost := by
-    intro st haw hstk
-    simpa [copyMloadCost, copyAwStore] using
-      (mloadCostSpec
-        (aw := copyAwStore) (off := (⟨128⟩ : UInt256))
-        (stk := [⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I]) st haw hstk)
+  have hcopyMloadCost : Cₘ (M copyAwStore ⟨128⟩ ⟨32⟩) - Cₘ copyAwStore = copyMloadCost := by
+    rfl
   have hcopyLoadVal :
       (if (⟨128⟩ : UInt256).toNat ≥
           (currentLengthCopyMem
@@ -2902,17 +2805,10 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {cA gh bl σ σ₀ A I}
   let wrapperMstoreCost := Cₘ wrapperAwStore - Cₘ deleteAw
   let returnMem := len.toByteArray.write 0 deleteMem (freePtr + ⟨0⟩).toNat 32
   have hreturnMem : len.toByteArray.write 0 deleteMem (freePtr + ⟨0⟩).toNat 32 = returnMem := rfl
-  have hmstoreCost : ∀ s : State, s.machineState.activeWords = deleteAw →
-      s.machineState.stack =
-        [freePtr + ⟨0⟩, len, len, freePtr + ⟨0⟩, ⟨763⟩, freePtr + ⟨32⟩,
-          freePtr, len, ⟨166⟩, stringStoreLiteSelWord I] →
-      memoryExpansionCost s .MSTORE =
-        wrapperMstoreCost := by
-    intro s haw hstk
-    simpa [wrapperMstoreCost, wrapperAwStore, currentLength_add_zero_toNat] using
-      (mstoreCostSpec (aw := deleteAw) (off := freePtr + ⟨0⟩)
-        (stk := [len, len, freePtr + ⟨0⟩, ⟨763⟩, freePtr + ⟨32⟩, freePtr, len,
-          ⟨166⟩, stringStoreLiteSelWord I]) s haw hstk)
+  have hmstoreCost : Cₘ (M deleteAw (freePtr + ⟨0⟩) ⟨32⟩) - Cₘ deleteAw =
+      wrapperMstoreCost := by
+    simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+      wrapperMstoreCost, wrapperAwStore, currentLength_add_zero_toNat]
   have hwrapperAwStore :
       UInt256.ofNat (MachineState.M deleteAw.toNat (freePtr + ⟨0⟩).toNat 32) =
         wrapperAwStore := by
@@ -2974,16 +2870,9 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {cA gh bl σ σ₀ A I}
   let wrapperRetCost :=
     Cₘ (UInt256.ofNat (MachineState.M wrapperAwFinal.toNat freePtr.toNat
       (UInt256.sub (freePtr + ⟨32⟩) freePtr).toNat)) - Cₘ wrapperAwFinal
-  have hretCost : ∀ s : State, s.machineState.activeWords = wrapperAwFinal →
-      s.machineState.stack =
-        [freePtr, UInt256.sub (freePtr + ⟨32⟩) freePtr, stringStoreLiteSelWord I] →
-      memoryExpansionCost s .RETURN = wrapperRetCost := by
-    intro s haw hstk
-    simpa [wrapperRetCost] using
-      (returnCostSpec
-        (aw := wrapperAwFinal) (off := freePtr)
-        (len := UInt256.sub (freePtr + ⟨32⟩) freePtr)
-        (stk := [stringStoreLiteSelWord I]) s haw hstk)
+  have hretCost : Cₘ (M wrapperAwFinal freePtr
+      (UInt256.sub (freePtr + ⟨32⟩) freePtr)) - Cₘ wrapperAwFinal = wrapperRetCost := by
+    rfl
   exact stringStoreLiteX_clearCurrentReturnFromWrapperGeneric
     (cA := cA) (gh := gh) (bl := bl) (σinit := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g)
@@ -2999,21 +2888,13 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {cA gh bl σ σ₀ A I}
     (finalMloadCost := wrapperFinalMloadCost)
     (retCost := wrapperRetCost)
     (by simpa [deleteMem, deleteAw] using hdelReach)
-    (by
-      intro s haw hstk
-      simpa [wrapperMloadCost] using
-        (mloadCostSpec (aw := deleteAw) (off := (⟨64⟩ : UInt256))
-          (stk := [len, stringStoreLiteSelWord I]) s haw hstk))
+    (by rfl)
     hfreePtrVal
     hwrapperAwLoad
     hreturnMem
     hmstoreCost
     hwrapperAwStore
-    (by
-      intro s haw hstk
-      simpa [wrapperFinalMloadCost, wrapperAwFinal] using
-        (mloadCostSpec (aw := wrapperAwStore) (off := (⟨64⟩ : UInt256))
-          (stk := [freePtr + ⟨32⟩, stringStoreLiteSelWord I]) s haw hstk))
+    (by rfl)
     hfinalFreePtrVal
     hwrapperAwFinal
     hretBytes

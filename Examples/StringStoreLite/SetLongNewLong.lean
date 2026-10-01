@@ -234,8 +234,7 @@ theorem stringStoreLiteSetNewLongRuntime
               (aw := setHelperEntryAw len) (mem := setPaddedMem I.calldata len payloadStart)
               (rdata := ByteArray.empty)
               hperm hlong hmod rd1405
-              (longDataWordsLoopMloadCost_setHelper_zero (I := I)
-                (len := len) (oldLen := oldLen) (payloadStart := payloadStart) hlenMaxLen)
+              (longDataWordsLoopMloadCost_setHelper_zero (len := len) hlenMaxLen)
           have hawLoop :
               longDataWordsLoopAw (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩ ⟨32⟩
                 (len.toNat / 32) =
@@ -328,10 +327,8 @@ theorem stringStoreLiteSetNewLongRuntime
               (aw := setHelperEntryAw len) (mem := setPaddedMem I.calldata len payloadStart)
               (rdata := ByteArray.empty)
               hperm hlong hmod rd1405
-              (longDataWordsLoopMloadCost_setHelper_zero (I := I)
-                (len := len) (oldLen := oldLen) (payloadStart := payloadStart) hlenMaxLen)
-              (longDataWordsLoopTailMloadCost_setHelper_zero (I := I)
-                (len := len) (oldLen := oldLen) (payloadStart := payloadStart) hlenMaxLen hmod)
+              (longDataWordsLoopMloadCost_setHelper_zero (len := len) hlenMaxLen)
+              (longDataWordsLoopTailMloadCost_setHelper_zero (len := len) hlenMaxLen hmod)
               hmloadTail
               (longDataWordsLoopAw_setHelper_tail_mload_eq (len := len) hlenMaxLen hmod)
           have hreach261 :

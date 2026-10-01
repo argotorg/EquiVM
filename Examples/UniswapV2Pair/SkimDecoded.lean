@@ -948,7 +948,7 @@ theorem uniswapSkimBodyDecoded
                             by_cases hout3Empty : out3.size = 0
                             · have rdRev :=
                                 RD.uniswapSkimSecondSafeTransferEmptyFailureReverts
-                                  rd6595False hout3Empty ho32 hoSize ho32_2 hout2Size
+                                  rd6595False hout3Empty ho32 hoSize ho32_2
                               exact rdRev.reEquivExecutionRevert hcode hdispatch
                                 hdecode hbody
                             · by_cases hout3Sign : out3.size < 2 ^ 255

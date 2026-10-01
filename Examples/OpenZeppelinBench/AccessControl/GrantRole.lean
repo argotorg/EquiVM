@@ -876,8 +876,7 @@ theorem accessControlGrantRoleX_onlyRole_revert {cA gh bl σ σ₀ A I} {g : Sat
   rw [hlen68] at rd848'
   exact rd848'.rev 0 (by decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      simp [M]
       native_decide)
     (by simp)
 
@@ -1155,8 +1154,7 @@ theorem accessControlGrantRoleX_grant_write {cA gh bl σ σ₀ A I} {g : Sat256}
   rw [hlen0] at rd668'
   have rd669 := RD.log4 0 (UInt256.ofNat 3) rd668' (by decide) hperm
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      simp [M]
       native_decide)
     (by decide) (by simp)
   have rd233 := evm_run rd669 with [

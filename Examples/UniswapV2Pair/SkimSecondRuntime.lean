@@ -329,8 +329,8 @@ theorem RD.uniswapSkimSecondBalanceReturnWordDecodeOk {g : Sat256} {s0 : State}
   have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by native_decide) (by omega)
   have rdMload64 := RD.mload 0 ⟨292⟩ (UInt256.ofNat 13)
     rdPush64 (by native_decide)
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+    (by
+      simp [M, Cₘ]
       native_decide)
     (skimSecondBalanceStaticcallMem_mload64_of_size_ge self toWord value out
       ho32 hoSize hout32 houtSize)
@@ -364,8 +364,8 @@ theorem RD.uniswapSkimSecondBalanceReturnWordDecodeOk {g : Sat256} {s0 : State}
   have rdMload292 := RD.mload 0
     (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))) (UInt256.ofNat 13)
     rdPopLen (by native_decide)
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+    (by
+      simp [M, Cₘ]
       native_decide)
     (skimSecondBalanceStaticcallMem_mload292_of_size_ge self toWord value out
       ho32 hoSize hout32 houtSize)
@@ -392,8 +392,8 @@ theorem RD.uniswapSkimSecondBalanceReturnWordDecodeShortReverts {g : Sat256} {s0
   have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by native_decide) (by omega)
   have rdMload64 := RD.mload 0 ⟨292⟩ (UInt256.ofNat 13)
     rdPush64 (by native_decide)
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+    (by
+      simp [M, Cₘ]
       native_decide)
     (skimSecondBalanceStaticcallMem_mload64_of_size_lt self toWord value out
       ho32 hoSize hshort houtSize)

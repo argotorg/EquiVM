@@ -56,9 +56,7 @@ theorem RD.uniswapBurnEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
   rw [u256_sub_self, show (⟨64⟩ : UInt256) + ⟨0⟩ = ⟨64⟩ by rfl] at rd5005
   have hwLog := UInt256_M_same_of_cover_len aw ptr 64 hcover
   exact ⟨_, _, rd5005.log3 0 aw (by native_decide) hperm (by
-    intro s haws hstk
-    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk,
-      List.getElem!_cons_zero, List.getElem!_cons_succ]
+    simp only [M]
     change Cₘ (UInt256.ofNat (MachineState.M aw.toNat ptr.toNat 64)) - Cₘ aw = 0
     rw [hwLog, Nat.sub_self]) hwLog (by evm_ov)⟩
 

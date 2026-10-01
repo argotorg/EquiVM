@@ -75,7 +75,7 @@ theorem vyperRuntimeRevert801 {cA gh bl σ σ₀ A I} {g : Sat256}
     push0,
     dup1]
   exact rd804.rev 0 (by vyper_erc20_runtime_decode)
-    (fun s _ hstks => memExpRevert0 s hstks) (by omega)
+    (by simp [M, MachineState.M, u256_ofNat_toNat]) (by omega)
 
 theorem vyperRuntimeRevert797 {cA gh bl σ σ₀ A I} {g : Sat256}
     {pc stk mem aw rdata acc k C}
@@ -90,7 +90,7 @@ theorem vyperRuntimeRevert797 {cA gh bl σ σ₀ A I} {g : Sat256}
     push0,
     push0]
   exact rd800.rev 0 (by vyper_erc20_runtime_decode)
-    (fun s _ hstks => memExpRevert0 s hstks) (by omega)
+    (by simp [M, MachineState.M, u256_ofNat_toNat]) (by omega)
 
 theorem calldataSizeGuardOk {n m : Nat}
     (hm : m ≤ n) (hsize : n < UInt256.size) :

@@ -1488,8 +1488,7 @@ theorem skimSecondSafeTransferReturnDataSizeMem_read456
     (self : UInt256) {o : ByteArray} (toWord prevValue : UInt256) {out2 : ByteArray}
     (value : UInt256) (out : ByteArray)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
-    (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size)
-    (houtRetSize : out.size < UInt256.size) :
+    (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size) :
     (skimSecondSafeTransferReturnDataSizeMem self o toWord prevValue out2 value out).readWithPadding
       456 32 =
       UInt256.toByteArray (UInt256.ofNat out.size) := by
@@ -1510,7 +1509,7 @@ theorem skimSecondSafeTransferReturnDataMem_read456
     (value : UInt256) (out : ByteArray)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out2.size) (houtSize : out2.size < UInt256.size)
-    (houtNe : out.size ≠ 0) (houtRetSize : out.size < UInt256.size) :
+    (houtNe : out.size ≠ 0) :
     (skimSecondSafeTransferReturnDataMem self o toWord prevValue out2 value out).readWithPadding
       456 32 =
       UInt256.toByteArray (UInt256.ofNat out.size) := by
@@ -1522,7 +1521,7 @@ theorem skimSecondSafeTransferReturnDataMem_read456
       (skimSecondSafeTransferReturnDataSizeMem self o toWord prevValue out2 value out)
       488 out.size 456 houtNe le_rfl hin (by omega)]
     exact skimSecondSafeTransferReturnDataSizeMem_read456 self toWord prevValue value out
-      ho32 hoSize hout32 houtSize houtRetSize
+      ho32 hoSize hout32 houtSize
   · have hbase :
         (skimSecondSafeTransferReturnDataSizeMem self o toWord prevValue out2 value out).size =
           552 :=
@@ -1543,7 +1542,7 @@ theorem skimSecondSafeTransferReturnDataMem_read456
       (skimSecondSafeTransferReturnDataSizeMem self o toWord prevValue out2 value out)
       456 (by rw [hbase]; omega)]
     exact skimSecondSafeTransferReturnDataSizeMem_read456 self toWord prevValue value out
-      ho32 hoSize hout32 houtSize houtRetSize
+      ho32 hoSize hout32 houtSize
 
 theorem skimSecondSafeTransferReturnDataMem_read64
     (self : UInt256) {o : ByteArray} (toWord prevValue : UInt256) {out2 : ByteArray}

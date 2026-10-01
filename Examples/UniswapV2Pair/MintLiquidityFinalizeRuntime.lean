@@ -134,31 +134,22 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateElapsedZeroFeeOffReturns
       (by
         simpa [packed, σPacked, uniswapUpdateElapsedWord, uniswapUpdateTimestampWord,
           uniswapSlotWord] using rd7339)
-      (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+      (by simp [M, Cₘ]; native_decide)
       hmload64
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide)
-      (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+      (by simp [M, Cₘ]; native_decide)
       (uniswapMintSyncLogMem_mload64_of_size_le packed hmemLo hmemHi hmem64)
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide) hperm
   exact uniswapMintRuntimeAfterUpdateFeeOffReturns rd3926 hfeeOff
@@ -232,31 +223,22 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateElapsedZeroFeeOnReturns
       (by
         simpa [packed, σPacked, uniswapUpdateElapsedWord, uniswapUpdateTimestampWord,
           uniswapSlotWord] using rd7339)
-      (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+      (by simp [M, Cₘ]; native_decide)
       hmload64
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide)
-      (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+      (by simp [M, Cₘ]; native_decide)
       (uniswapMintSyncLogMem_mload64_of_size_le packed hmemLo hmemHi hmem64)
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide) hperm
   exact uniswapMintRuntimeAfterUpdateFeeOnReturns rd3926 hfeeOn
@@ -343,33 +325,24 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOffReturns
           uniswapUpdateElapsedFromStorage, uniswapUpdateElapsedWord,
           uniswapUpdateTimestampWord, uniswapSlotWord] using
           rd7339)
-      (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+      (by simp [M, Cₘ]; native_decide)
       hmload64
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide)
-      (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+      (by simp [M, Cₘ]; native_decide)
       (uniswapMintSyncLogMem_mload64_of_size_le
         (uniswapUpdateCumulativePackedWordWith σMint I balance0 balance1 reserve0 reserve1)
         hmemLo hmemHi hmem64)
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide) hperm
   simpa [uniswapUpdateCumulativeReturnMapWith] using
@@ -487,33 +460,24 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOnReturns
           uniswapUpdateElapsedFromStorage, uniswapUpdateElapsedWord,
           uniswapUpdateTimestampWord, uniswapSlotWord] using
           rd7339)
-      (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+      (by simp [M, Cₘ]; native_decide)
       hmload64
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide)
-      (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+      (by simp [M, Cₘ]; native_decide)
       (uniswapMintSyncLogMem_mload64_of_size_le
         (uniswapUpdateCumulativePackedWordWith σMint I balance0 balance1 reserve0 reserve1)
         hmemLo hmemHi hmem64)
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide) hperm
   simpa [uniswapUpdateCumulativePackedMapWith, uniswapUpdateCumulativePackedWordWith] using

@@ -374,10 +374,7 @@ theorem simpleAuctionX_auctionEnd_afterStoreAndLog {cA gh bl σ σ₀ A I} {g : 
   have rd713' := rd713
   rw [hlen64] at rd713'
   have rd714 := RD.log1 0 (UInt256.ofNat 6) rd713' (by decide) hperm
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      native_decide)
+    (by simp [M, MachineState.M, u256_ofNat_toNat]; native_decide)
     (by decide) (by evm_ov)
   exact ⟨_, _, by simpa [σa] using rd714⟩
 
@@ -500,9 +497,7 @@ theorem simpleAuctionX_auctionEnd_postCallNonempty_toRequire {cA gh bl σ σ₀ 
     (UInt256.ofNat (MachineState.M (UInt256.ofNat 6).toNat copyDest.toNat copyLen.toNat))
     rd783 (by decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, copyDest, copyLen])
+    (by rfl)
     (by rfl)
     (by rfl)
     (by evm_ov)
@@ -528,7 +523,7 @@ theorem simpleAuctionX_auctionEnd_requireSuccess_revert {cA gh bl σ σ₀ A I} 
     RDrev simpleAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have rd803 := evm_run rd with [dup1, push2 ⟨806⟩, jumpiNT (by decide), push0, push0]
   exact RD.rev _ rd803 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by evm_ov)
 
 theorem simpleAuctionX_auctionEnd_callMade {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1066,7 +1061,7 @@ theorem simpleAuctionX_auctionEnd_afterCall_return {cA gh bl σ σ₀ A I} {g : 
 
 theorem simpleAuctionAuctionEndBody {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
-    (hcode : I.code = simpleAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
+    (hcode : I.code = simpleAuctionBytecode)
     (hperm : I.perm = true) (hsel : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩)
     (hreach : ∃ k C, RD simpleAuctionBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨124⟩

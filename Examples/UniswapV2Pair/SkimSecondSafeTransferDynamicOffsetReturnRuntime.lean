@@ -1154,8 +1154,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
     (Cₘ awLoad64 - Cₘ aw0) (skimSecondSafeTransferDynamicCallPtr out1) awLoad64
     rd6610 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, awLoad64, aw0])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, awLoad64, aw0])
     (by
       simpa [aw0] using
         skimSecondSafeTransferDynamicCallMem2_mload64 self toWord prevValue value
@@ -1174,8 +1173,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
   have rd6626₀ := RD.mstore
     (Cₘ awLoad64 - Cₘ aw0) mem2 awLoad64 rd6626pre (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, awLoad64, aw0])
+      simp [M, awLoad64, aw0, show (⟨32⟩ : UInt256).toNat = 32 from by decide])
     (by unfold mem2 rounded rdsz; rfl)
     (by simpa [awLoad64, aw0] using hawLoad64)
     (by evm_ov)
@@ -1193,8 +1191,8 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
       (Cₘ awSize - Cₘ (skimSecondSafeTransferDynamicWordsCall2 out1))
       mem3 awSize
       (by native_decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, awSize])
+      (by
+        simp [M, awSize, show (⟨32⟩ : UInt256).toNat = 32 from by decide])
       (by rfl) (by rfl) (by evm_ov)]
   have rd6636 := evm_run rd6629 with [returndatasize, push1 ⟨0⟩, push1 ⟨32⟩, dup5, add]
   let copyDest : UInt256 := skimSecondSafeTransferDynamicCallPtr out1 + ⟨32⟩
@@ -1229,8 +1227,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck_dynamic_offset
     rd6636 (by native_decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, copyDest, copyLen,
+      simp [M, copyDest, copyLen,
         skimSecondSafeTransferDynamicReturnDataActiveWords, awSize, hcopyDest_eq,
         hcopyLen_toNat])
     (by rfl)
@@ -1293,8 +1290,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded_dynamic
     0 (UInt256.ofNat out.size) (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out)
     rd6661 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, hawCall])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, hawCall])
     hloadCall hawCall
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6675 := evm_run rd6662 with [
@@ -1304,8 +1300,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded_dynamic
     0 (UInt256.ofNat out.size) (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out)
     rd6675 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, hawCall])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, hawCall])
     hloadCall hawCall
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by
@@ -1367,8 +1362,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
   have rd6701' := RD.mload
     (Cₘ aw1 - Cₘ aw) fp0 aw1 rd6701 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw1])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw1])
     (by rfl)
     (by rfl)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1380,8 +1374,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
   have rd6710 := RD.mstore
     (Cₘ aw2 - Cₘ aw1) err0 aw2 rd6708 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw1, aw2])
+      simp [M, aw1, aw2, show (⟨32⟩ : UInt256).toNat = 32 from by decide])
     (by simp [err0, uniswapErrorStringSelector, solcErrorStringSelector])
     (by rfl)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1392,8 +1385,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
   have rd6717 := RD.mstore
     (Cₘ aw3 - Cₘ aw2) err1 aw3 rd6716 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw2, aw3, off1])
+      simp [M, aw2, aw3, off1, show (⟨32⟩ : UInt256).toNat = 32 from by decide])
     (by simp [err1, off1])
     (by rfl)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1404,8 +1396,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
   have rd6724 := RD.mstore
     (Cₘ aw4 - Cₘ aw3) err2 aw4 rd6723 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw3, aw4, off2])
+      simp [M, aw3, aw4, off2, show (⟨32⟩ : UInt256).toNat = 32 from by decide])
     (by simp [err2, off2])
     (by rfl)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1419,8 +1410,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
   have rd6762 := RD.mstore
     (Cₘ aw5 - Cₘ aw4) err3 aw5 rd6760 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw4, aw5, off3])
+      simp [M, aw4, aw5, off3, show (⟨32⟩ : UInt256).toNat = 32 from by decide])
     (by simp [err3, off3])
     (by rfl)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1433,8 +1423,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
   have rd6764 := RD.mload
     (Cₘ aw6 - Cₘ aw5) fp1 aw6 rd6763 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw5, aw6])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw5, aw6])
     (by rfl)
     (by rfl)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1446,8 +1435,7 @@ theorem RD.uniswapSkimSecondSafeTransferFailureMessageFrom6697Reverts_generic
       Cₘ aw6)
     rd6772 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk])
+      simp [M])
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
@@ -1490,8 +1478,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyFalseReverts_dynamic_offset
     0 (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))
     (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out) rd6691 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, hawRet])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, hawRet])
     (skimSecondSafeTransferDynamicReturnDataMem_mloadRetPtr self toWord prevValue value
       ho32 hoSize hout1Ne hout1Size hout1Small hout2_32 hout2Size hout32 houtSmall)
     hawRet
@@ -1553,8 +1540,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueToRet_dynamic_offset
     0 (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))
     (skimSecondSafeTransferDynamicReturnDataActiveWords out1 out) rd6691 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, hawRet])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, hawRet])
     (skimSecondSafeTransferDynamicReturnDataMem_mloadRetPtr self toWord prevValue value
       ho32 hoSize hout1Ne hout1Size hout1Small hout2_32 hout2Size hout32 houtSmall)
     hawRet
@@ -1610,8 +1596,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyReturnToRet_dynamic_offset
     pop, dup1,
     raw mload 0 ⟨0⟩ (skimSecondSafeTransferDynamicWordsCall2 out1) (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw96])
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, haw96])
       (skimSecondSafeTransferDynamicCallMem2_mload96_zero self toWord prevValue value
         ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size)
       haw96 (by evm_ov),

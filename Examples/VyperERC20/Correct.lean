@@ -592,7 +592,7 @@ theorem erc20InitcodeNonpayableRevert
     jumpiT hwv (by vyper_erc20_ctor_jd),
     jumpdest, push0, dup1]
   exact rd103.rev 0 (by vyper_erc20_ctor_decode)
-    (fun s _ hstks => memExpRevert0 s hstks) (by simp)
+    (by simp [M, MachineState.M, u256_ofNat_toNat]) (by simp)
 
 theorem erc20InitcodeSuccess
     {createdAccounts : Batteries.RBSet AccountAddress compare}

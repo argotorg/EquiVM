@@ -883,7 +883,7 @@ theorem transferRevertStub {cA gh bl σ σ₀ A I} {g : Sat256}
     push0,
     dup1]
   exact rd804.rev 0 (by vyper_erc20_transfer_decode)
-    (fun s _ hstks => memExpRevert0 s hstks) (by omega)
+    (by simp [M, MachineState.M, u256_ofNat_toNat]) (by omega)
 
 theorem calldataSizeGuard68_short {n : Nat}
     (hsize : n < UInt256.size) (hshort : n < 68) :

@@ -221,9 +221,7 @@ theorem ballotReachDecoder
       (code.write 2368 solcFreePtrMem 128 aL)
       (UInt256.ofNat (MachineState.M (UInt256.ofNat 3).toNat 128 aL))
       (by ctor_decode)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, List.getElem!_cons_succ, h128, haL])
+      (by simpa only [M, h128, haL])
       rfl (by rw [h128]) (by evm_ov) ]
   set AW1 := UInt256.ofNat (MachineState.M (UInt256.ofNat 3).toNat 128 aL) with hAW1
   have rd45 := ctor_run rd30 with [
@@ -234,9 +232,8 @@ theorem ballotReachDecoder
         (code.write 2368 solcFreePtrMem 128 aL) 64 32)
       (UInt256.ofNat (MachineState.M AW1.toNat 64 32))
       (by ctor_decode)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, h64])
+      (by simpa only [M, h64,
+        show (⟨32⟩ : UInt256).toNat = 32 from by decide])
       (by rw [h64]) (by rw [h64]) (by evm_ov),
     push2 ⟨46⟩, swap2, push2 ⟨210⟩, jump (by ctor_jd) ]
   exact ⟨_, _, rd45⟩
@@ -625,9 +622,8 @@ theorem ballotDecoderValidations {cA : Batteries.RBSet AccountAddress compare} {
     jumpiT (ballotDecoderValid1 argBytes hszH h64 h255') (by ctor_jd),
     jumpdest, dup2,
     raw mload 0 (UInt256.ofNat 32) (ballotDecoderAW argBytes) (by ctor_decode)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, show (⟨128⟩:UInt256).toNat = 128 from by decide,
+      (by
+        simp only [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, show (⟨128⟩:UInt256).toNat = 128 from by decide,
           ballotDecoderAW_mloadStable argBytes hszH h64 128 (by omega), u256_ofNat_toNat,
           Nat.sub_self])
       (mloadWordValue_of_readWithPadding
@@ -642,9 +638,8 @@ theorem ballotDecoderValidations {cA : Batteries.RBSet AccountAddress compare} {
     jumpiT (ballotDecoderValid2 argBytes hszH h64 h255) (by ctor_jd),
     jumpdest, dup1,
     raw mload 0 (UInt256.ofNat n) (ballotDecoderAW argBytes) (by ctor_decode)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, arrayHead_toNat,
+      (by
+        simp only [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, arrayHead_toNat,
           ballotDecoderAW_mloadStable argBytes hszH h64 160 (by omega), u256_ofNat_toNat,
           Nat.sub_self])
       (mloadWordValue_of_readWithPadding
@@ -824,9 +819,8 @@ theorem ballotDecoderAlloc {cA : Batteries.RBSet AccountAddress compare} {gh : B
   have rd1 := ctor_run rd288 with [
     jumpdest, push1 ⟨0x40⟩,
     raw mload 0 fp (ballotDecoderAW argBytes) (by ctor_decode)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, show (⟨64⟩:UInt256).toNat = 64 from by decide,
+      (by
+        simp only [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, show (⟨64⟩:UInt256).toNat = 64 from by decide,
           ballotDecoderAW_mloadStable argBytes hszH h64 64 (by omega), u256_ofNat_toNat,
           Nat.sub_self])
       (mloadWordValue_of_readWithPadding
@@ -852,9 +846,8 @@ theorem ballotDecoderAlloc {cA : Batteries.RBSet AccountAddress compare} {gh : B
       ((fp + UInt256.land (UInt256.lnot ⟨31⟩) (UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩ + ⟨63⟩)).toByteArray.write
         0 (ballotDecoderMem argBytes) 64 32)
       (ballotDecoderAW argBytes) (by ctor_decode)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, show (⟨64⟩:UInt256).toNat = 64 from by decide,
+      (by simp only [M, show (⟨64⟩:UInt256).toNat = 64 from by decide,
+          show (⟨32⟩:UInt256).toNat = 32 from by decide,
           ballotDecoderAW_mloadStable argBytes hszH h64 64 (by omega), u256_ofNat_toNat, Nat.sub_self])
       (by rfl)
       (by rw [show (⟨64⟩:UInt256).toNat = 64 from by decide,
@@ -871,9 +864,7 @@ theorem ballotDecoderAlloc {cA : Batteries.RBSet AccountAddress compare} {gh : B
           0 (ballotDecoderMem argBytes) 64 32)
         fp.toNat 32)
       (UInt256.ofNat (7 + n)) (by ctor_decode)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero])
+      (by rfl)
       (by rfl)
       (by rw [hfp, ballotAllocAW n elemBytes argBytes hstruct helems hszH h64])
       (by evm_ov) ]
@@ -1082,9 +1073,8 @@ theorem ballotDecoderCopyLoop {cA : Batteries.RBSet AccountAddress compare} {gh 
       jumpiNT (by rw [hlt1]; decide),
       dup5,
       raw mload 0 (srcWords a.i) (UInt256.ofNat (7 + n + a.i)) (by ctor_decode)
-        (fun s haws hstks => by
-          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-            List.getElem!_cons_zero, hsrc, hawN, M_copy_stable, Nat.sub_self])
+        (by
+          simp only [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, hsrc, hawN, M_copy_stable, Nat.sub_self])
         (mloadWordValue_of_readWithPadding hsrcLt hread)
         (by rw [hawN, hsrc, M_copy_stable])
         (by evm_ov),
@@ -1094,9 +1084,7 @@ theorem ballotDecoderCopyLoop {cA : Batteries.RBSet AccountAddress compare} {gh 
           - Cₘ (UInt256.ofNat (7 + n + a.i)))
         ((UInt256.toByteArray (srcWords a.i)).write 0 a.mem a.dst.toNat 32)
         (UInt256.ofNat (7 + n + a.i + 1)) (by ctor_decode)
-        (fun s haws hstks => by
-          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-            List.getElem!_cons_zero])
+        (by rfl)
         (by rfl)
         (by rw [hawN, hdst, M_copy_grow]; congr 1; omega)
         (by evm_ov),
@@ -1319,18 +1307,15 @@ theorem ballotConstructorPrelude {cA : Batteries.RBSet AccountAddress compare} {
     dup2,
     raw mstore 0 ((UInt256.toByteArray (ballotSourceWord I)).write 0 mem 0 32)
       (UInt256.ofNat (7 + n + n)) (by ctor_decode)
-        (fun s haws hstks => by
-          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-            List.getElem!_cons_zero, hawN, hM0w, Nat.sub_self])
+        (by simp only [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+          hawN, hM0w, Nat.sub_self])
         (by rfl)
         (by rw [hawN, hM0w])
         (by evm_ov),
       push1 ⟨1⟩, push1 ⟨0x20⟩, dup2, swap1 ]
   have rd75 := ctor_run rd68 with [
     raw mstore 0 (ballotCtorScratchMem I mem) (UInt256.ofNat (7 + n + n)) (by ctor_decode)
-      (fun s haws hstks => by
-          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-            List.getElem!_cons_zero, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+      (by simp only [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
             hawN, hM32, Nat.sub_self])
         (by rfl)
         (by rw [hawN, hM32w])
@@ -1338,9 +1323,7 @@ theorem ballotConstructorPrelude {cA : Batteries.RBSet AccountAddress compare} {
       push1 ⟨0x40⟩, dup3 ]
   have rd79 := ctor_run rd75 with [
     raw keccak256 0 (ballotCtorVoterSlot I mem) (UInt256.ofNat (7 + n + n)) (by ctor_decode)
-        (fun s haws hstks => by
-          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-            List.getElem!_cons_zero, List.getElem!_cons_succ, hawN, hM64w, Nat.sub_self])
+        (by simp only [M, hawN, hM64w, Nat.sub_self])
         (by rfl)
         (by rw [hawN, hM64w])
         (by evm_ov) ]

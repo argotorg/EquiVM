@@ -952,8 +952,8 @@ theorem blindAuctionX_withdraw_postCallNonempty_toBranch {cA gh bl σ σ₀ A I}
     returndatasize, dup3,
     raw mstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
       mem3 (UInt256.ofNat 5) (by decide)
-      (fun s haw hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      (by
+        simp [M]
         decide)
       (by rfl) (by decide) (by evm_ov)]
   have rd807 := evm_run rd801 with [returndatasize, push0, push1 ⟨32⟩, dup5, add]
@@ -976,8 +976,7 @@ theorem blindAuctionX_withdraw_postCallNonempty_toBranch {cA gh bl σ σ₀ A I}
     rd807 (by decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, copyDest, copyLen,
+      simp [M, copyDest, copyLen,
         SimpleAuction.withdrawReturnDataActiveWords, hcopyDest_toNat, hcopyLen_toNat])
     (by rfl)
     haw4
@@ -1006,7 +1005,7 @@ theorem blindAuctionX_withdraw_requireSuccess_revert {cA gh bl σ σ₀ A I} {g 
     RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have rd827 := evm_run rd with [dup1, push2 ⟨830⟩, jumpiNT (by decide), push0, push0]
   exact RD.rev _ rd827 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by evm_ov)
 
 theorem blindAuctionX_withdraw_afterCall_revert {cA gh bl σ σ₀ A I} {g : Sat256}

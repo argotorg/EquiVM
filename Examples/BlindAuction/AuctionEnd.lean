@@ -744,8 +744,7 @@ theorem blindAuctionX_auctionEnd_afterStoreAndLog {cA gh bl σ σ₀ A I} {g : S
   rw [hlen64] at rd719'
   have rd720 := RD.log1 0 (UInt256.ofNat 6) rd719' (by decide) hperm
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      simp [M]
       native_decide)
     (by decide) (by evm_ov)
   have rd723 := evm_run rd720 with [push1 ⟨3⟩, dup1]
@@ -905,8 +904,7 @@ theorem blindAuctionX_auctionEnd_postCallNonempty_toRequire {cA gh bl σ σ₀ A
     rd807 (by decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, copyDest, copyLen])
+      simp [M, copyDest, copyLen])
     (by rfl)
     (by rfl)
     (by evm_ov)
@@ -934,7 +932,7 @@ theorem blindAuctionX_auctionEnd_requireSuccess_revert {cA gh bl σ σ₀ A I} {
     RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have rd827 := evm_run rd with [dup1, push2 ⟨830⟩, jumpiNT (by decide), push0, push0]
   exact RD.rev _ rd827 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by evm_ov)
 
 theorem blindAuctionX_auctionEnd_callMade {cA gh bl σ σ₀ A I} {g : Sat256}

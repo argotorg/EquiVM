@@ -603,24 +603,23 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
   have rd1027 := evm_run rd' with [
     caller, push0, swap1, dup2,
     raw mstore 0 mem1 aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [haw0]
         simp)
       (by rfl) haw0 (by evm_ov)]
   have rd1033 := evm_run rd1027 with [
     push1 ⟨4⟩, push1 ⟨32⟩,
     raw mstore 0 mem2 aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
-        rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [haw32]
         simp)
       (by rfl) haw32 (by evm_ov),
     push1 ⟨64⟩, dup2,
     raw keccak256 0 (revealScratchBidsLengthSlot I) aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M]
         rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
         rw [haw64]
         simp)
@@ -653,8 +652,8 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
   have rd1062 := evm_run rd1054 with [
     swap1, push0,
     raw mstore 0 mem3 aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [haw0]
         simp)
       (by rfl) haw0 (by evm_ov),
@@ -662,8 +661,8 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
     raw keccak256 0
       (uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
       aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M]
         rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
         rw [haw0]
         simp)

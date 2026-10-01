@@ -74,7 +74,7 @@ theorem simpleAuctionCorrect :
             (by jump_dest) (by decide))
           hAccounts
       · by_cases h2 : selIs I ⟨#[0x2a, 0x24, 0xf4, 0x6c]⟩
-        · exact simpleAuctionAuctionEndBody hcode hsize hperm h2
+        · exact simpleAuctionAuctionEndBody hcode hperm h2
             (simpleAuctionReachLowBody 1 (by omega) ⟨124⟩ hcode hsz hsize
               (simpleAuctionPivotTaken 1 (by omega) hsz
                 (by simpa [selIs, simpleAuctionLowSelBytes] using h2))

@@ -45,9 +45,7 @@ theorem RD.uniswapConstructorStoreAndReturn {g : Sat256} {s0 : State} {I : Execu
   have rd257 := RD.codecopyAny rd256 (by native_decide) (by evm_ov)
   have rd259 := evm_run rd257 with [push1 ⟨0⟩]
   apply RD.ret 0 uniswapV2PairBytecode rd259 (by native_decide) ?_ ?_ (by evm_ov)
-  · intro s haw hstk
-    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-      List.getElem!_cons_zero, List.getElem!_cons_succ]
+  · simp only [M]
     native_decide
   · change (uniswapV2PairInitcode.write 261 mem 0 8833).readWithPadding 0 8833 = _
     rw [write0_read_back_from_gen _ _ _ _ (by decide) (by native_decide) (by decide)]

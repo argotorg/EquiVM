@@ -780,7 +780,7 @@ theorem ballotX_voters_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     push2 ⟨194⟩, swap5, swap4, swap3, swap2, swap1, swap4, dup5]
   have rd385 := evm_run rd384 with [
     raw mstore 6 (votersReturnWeightMem (votersArgWord I) (votersWeightWord σ I)) (UInt256.ofNat 5)
-      (by decide) (fun s haw hstk => mstoreCost_of_stack haw hstk (by decide))
+      (by decide) (by decide)
       (by rfl) (by decide) (by evm_ov)]
   have rd392 := evm_run rd385 with [
     swap2, iszero, iszero, push1 ⟨32⟩, dup5, add]
@@ -788,7 +788,7 @@ theorem ballotX_voters_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw mstore 3
       (votersReturnVotedMem (votersArgWord I) (votersWeightWord σ I) (votersBoolWord σ I))
       (UInt256.ofNat 6) (by decide)
-      (fun s haw hstk => mstoreCost_of_stack haw hstk (by decide))
+      (by decide)
       (by rfl) (by decide) (by evm_ov)]
   have rd405 := evm_run rd393 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and, push1 ⟨64⟩, dup4, add]
@@ -797,7 +797,7 @@ theorem ballotX_voters_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (votersReturnDelegateMem (votersArgWord I) (votersWeightWord σ I) (votersBoolWord σ I)
         (votersDelegateWord σ I))
       (UInt256.ofNat 7) (by decide)
-      (fun s haw hstk => mstoreCost_of_stack haw hstk (by decide))
+      (by decide)
       (by
         change (UInt256.toByteArray
             (UInt256.land solcAddrMask
@@ -815,7 +815,7 @@ theorem ballotX_voters_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (votersReturnMem (votersArgWord I) (votersWeightWord σ I) (votersBoolWord σ I)
         (votersDelegateWord σ I) (votersVoteWord σ I))
       (UInt256.ofNat 8) (by decide)
-      (fun s haw hstk => mstoreCost_of_stack haw hstk (by decide))
+      (by decide)
       (by rfl) (by decide) (by evm_ov)]
   have rd416 := evm_run rd412 with [push1 ⟨128⟩, add, swap1, jump (by jump_dest)]
   have rd423 := evm_run rd416 with [

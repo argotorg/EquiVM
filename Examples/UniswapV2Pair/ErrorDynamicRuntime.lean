@@ -54,9 +54,7 @@ theorem RD.solcErrorStringRevertTail_dynamic
   have hcover := (solcErrorDynamicWords3_bounds aw ptr haw hfit).2
   have hwRev := UInt256_M_same_of_cover_len (solcErrorDynamicWords3 aw ptr) ptr 100 hcover
   exact RD.rev 0 rdRev hdRev (by
-    intro s haws hstk
-    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk, List.getElem!_cons_zero, List.getElem!_cons_succ]
-    change Cₘ (UInt256.ofNat (MachineState.M (solcErrorDynamicWords3 aw ptr).toNat ptr.toNat 100)) - Cₘ (solcErrorDynamicWords3 aw ptr) = 0
-    rw [hwRev, Nat.sub_self]) (by omega)
+    simpa only [M, show (⟨100⟩ : UInt256).toNat = 100 from by decide,
+      hwRev, Nat.sub_self]) (by omega)
 
 end UniswapV2Pair

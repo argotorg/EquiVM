@@ -105,7 +105,7 @@ theorem RD.blindAuctionRevealDecodeArray1713_startRevert {g : Sat256} {s0 : Stat
       (by exact hstart),
     push0, push0]
   exact RD.rev _ rd1728 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by evm_ov)
 
 theorem RD.blindAuctionRevealDecodeArray1713_lengthRevert {g : Sat256} {s0 : State}
@@ -137,7 +137,7 @@ theorem RD.blindAuctionRevealDecodeArray1713_lengthRevert {g : Sat256} {s0 : Sta
         decide),
     push0, push0]
   exact RD.rev _ rd1751 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by evm_ov)
 
 theorem RD.blindAuctionRevealDecodeArray1713_endRevert {g : Sat256} {s0 : State}
@@ -181,7 +181,7 @@ theorem RD.blindAuctionRevealDecodeArray1713_endRevert {g : Sat256} {s0 : State}
         decide),
     push0, push0]
   exact RD.rev _ rd1777 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by evm_ov)
 
 end Reasoning.Reach

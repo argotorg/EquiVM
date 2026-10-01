@@ -36,19 +36,14 @@ theorem RD.uniswapUpdateEmitSyncAndJump_dynamic {g : Sat256} {s0 : State}
     (mcostStore1 := Cₘ (pairDynamicWords aw ptr) - Cₘ (pairDynamicWords0 aw ptr))
     (mcostLoadLog := 0) (mcostLog := 0) rd ?_ hm64 hw64 ?_ rfl ?_ rfl ?_ hmLog hwLog ?_ ?_
     hperm hret hov
-  · intro s haws hstk
-    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk,
-      List.getElem!_cons_zero, hw64, Nat.sub_self]
-  · intro s haws hstk
-    exact mstoreCost_of_stack haws hstk rfl
-  · intro s haws hstk
-    exact mstoreCost_of_stack haws hstk rfl
-  · intro s haws hstk
-    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk,
-      List.getElem!_cons_zero, hwLog, Nat.sub_self]
-  · intro s haws hstk
-    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk,
-      List.getElem!_cons_zero, List.getElem!_cons_succ, hlen]
+  · have hM : M aw ⟨64⟩ ⟨32⟩ = aw := by simpa [M] using hw64
+    simp only [hM, Nat.sub_self]
+  · rfl
+  · rfl
+  · have hM : M (pairDynamicWords aw ptr) ⟨64⟩ ⟨32⟩ = pairDynamicWords aw ptr := by
+      simpa [M, memoryWordActiveWords] using hwLog
+    simp only [hM, Nat.sub_self]
+  · simp only [M, hlen]
     change Cₘ (UInt256.ofNat (MachineState.M (pairDynamicWords aw ptr).toNat ptr.toNat 64)) - Cₘ (pairDynamicWords aw ptr) = 0
     rw [hwLog64, Nat.sub_self]
   · simpa only [hlen] using hwLog64

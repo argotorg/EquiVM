@@ -41,9 +41,7 @@ theorem RD.uniswapBurnReturnPair {g : Sat256} {s0 : State} {I : ExecutionEnv}
   rw [u256_sub_self, show (⟨0⟩ : UInt256) + ⟨64⟩ = ⟨64⟩ by rfl] at rd1225
   have hwRet := UInt256_M_same_of_cover_len aw ptr 64 hcover
   exact rd1225.ret 0 _ (by native_decide) (by
-    intro s haws hstk
-    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk,
-      List.getElem!_cons_zero, List.getElem!_cons_succ]
+    simp only [M]
     change Cₘ (UInt256.ofNat (MachineState.M aw.toNat ptr.toNat 64)) - Cₘ aw = 0
     rw [hwRet, Nat.sub_self])
     (pairDynamicMem_read_ptr ptr amount0 amount1 hgap (by omega)) (by evm_ov)

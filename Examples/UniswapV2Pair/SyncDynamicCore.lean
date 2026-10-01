@@ -34,33 +34,19 @@ theorem RD.uniswapUpdateEmitSyncAndJumpCore {g : Sat256} {s0 : State}
       (reserve112Shift :: reserve112Mask :: packed :: elapsed :: timestamp :: reserve1 ::
         reserve0 :: balance1 :: balance0 :: ret :: R)
       mem aw rdata acc k C)
-    (hmcLoad : ∀ s : State, s.machineState.activeWords = aw →
-      s.machineState.stack = ⟨64⟩ :: ⟨64⟩ :: reserve112Shift :: reserve112Mask :: packed ::
-        elapsed :: timestamp :: reserve1 :: reserve0 :: balance1 :: balance0 :: ret :: R →
-      memoryExpansionCost s .MLOAD = mcostLoad)
+    (hmcLoad : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = mcostLoad)
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ptr)
     (hawLoad : UInt256.ofNat (MachineState.M aw.toNat 64 32) = awLoad)
-    (hmcStore0 : ∀ s : State, s.machineState.activeWords = awLoad →
-      s.machineState.stack = ptr :: uniswapSyncReserve0Word packed :: ptr ::
-        ⟨64⟩ :: reserve112Shift :: reserve112Mask :: packed :: elapsed :: timestamp ::
-        reserve1 :: reserve0 :: balance1 :: balance0 :: ret :: R →
-      memoryExpansionCost s .MSTORE = mcostStore0)
+    (hmcStore0 : Cₘ (M awLoad ptr ⟨32⟩) - Cₘ awLoad = mcostStore0)
     (hawStore0 : UInt256.ofNat (MachineState.M awLoad.toNat ptr.toNat 32) = awStore0)
-    (hmcStore1 : ∀ s : State, s.machineState.activeWords = awStore0 →
-      s.machineState.stack = ((ptr : UInt256) + ⟨32⟩) ::
-        uniswapSyncReserve1Word packed :: ptr :: ⟨64⟩ :: elapsed :: timestamp ::
-        reserve1 :: reserve0 :: balance1 :: balance0 :: ret :: R →
-      memoryExpansionCost s .MSTORE = mcostStore1)
+    (hmcStore1 : Cₘ (M awStore0 (ptr + ⟨32⟩) ⟨32⟩) - Cₘ awStore0 = mcostStore1)
     (hawStore1 :
       UInt256.ofNat (MachineState.M awStore0.toNat (((ptr : UInt256) + ⟨32⟩).toNat) 32) =
         awLog)
-    (hmcLoadLog : ∀ s : State, s.machineState.activeWords = awLog →
-      s.machineState.stack = ⟨64⟩ :: ptr :: ⟨64⟩ :: elapsed :: timestamp ::
-        reserve1 :: reserve0 :: balance1 :: balance0 :: ret :: R →
-      memoryExpansionCost s .MLOAD = mcostLoadLog)
+    (hmcLoadLog : Cₘ (M awLog ⟨64⟩ ⟨32⟩) - Cₘ awLog = mcostLoadLog)
     (hmload64Log :
       (if (⟨64⟩ : UInt256).toNat ≥ (pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed)).size then ⟨0⟩
        else UInt256.ofNat
@@ -68,11 +54,7 @@ theorem RD.uniswapUpdateEmitSyncAndJumpCore {g : Sat256} {s0 : State}
           ((pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed)).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ptr)
     (hawLoadLog : UInt256.ofNat (MachineState.M awLog.toNat 64 32) = awLog)
-    (hmcLog : ∀ s : State, s.machineState.activeWords = awLog →
-      s.machineState.stack = ptr ::
-        ((⟨64⟩ : UInt256) + UInt256.sub ptr ptr) :: uniswapSyncTopic ::
-        elapsed :: timestamp :: reserve1 :: reserve0 :: balance1 :: balance0 :: ret :: R →
-      memoryExpansionCost s .LOG1 = mcostLog)
+    (hmcLog : Cₘ (M awLog ptr (⟨64⟩ + UInt256.sub ptr ptr)) - Cₘ awLog = mcostLog)
     (hawLog : UInt256.ofNat
       (MachineState.M awLog.toNat ptr.toNat
         (((⟨64⟩ : UInt256) + UInt256.sub ptr ptr).toNat)) =

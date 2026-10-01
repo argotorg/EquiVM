@@ -1791,8 +1791,8 @@ theorem simpleAuctionX_withdraw_postCallNonempty_toBranch {cA gh bl σ σ₀ A I
     returndatasize, dup3,
     raw mstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
       mem3 (UInt256.ofNat 5) (by decide)
-      (fun s haw hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      (by
+        simp [M]
         decide)
       (by rfl) (by decide) (by evm_ov)]
   have rd903 := evm_run rd897 with [returndatasize, push0, push1 ⟨32⟩, dup5, add]
@@ -1820,8 +1820,7 @@ theorem simpleAuctionX_withdraw_postCallNonempty_toBranch {cA gh bl σ σ₀ A I
     rd903 (by decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, copyDest, copyLen,
+      simp [M, copyDest, copyLen,
         withdrawReturnDataActiveWords, hcopyDest_toNat, hcopyLen_toNat])
     (by rfl)
     haw4
@@ -1875,8 +1874,8 @@ theorem simpleAuctionX_withdraw_postCallNonempty_huge_oog {cA gh bl σ σ₀ A I
     returndatasize, dup3,
     raw mstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
       mem3 (UInt256.ofNat 5) (by decide)
-      (fun s haw hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      (by
+        simp [M]
         decide)
       (by rfl) (by decide) (by evm_ov)]
   have rd903 := evm_run rd897 with [returndatasize, push0, push1 ⟨32⟩, dup5, add]
@@ -1891,8 +1890,7 @@ theorem simpleAuctionX_withdraw_postCallNonempty_huge_oog {cA gh bl σ σ₀ A I
     rd903 (by decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, copyDest, copyLen,
+      simp [M, copyDest, copyLen,
         withdrawReturnDataActiveWords, hcopyDest_toNat, hcopyLen_toNat])
     (by
       simpa [withdrawReturnDataActiveWords] using
@@ -1951,11 +1949,9 @@ theorem simpleAuctionX_withdraw_successNonempty_return {cA gh bl σ σ₀ A I} {
   have rd226 := RD.mload 0 (withdrawReturnDataPtr o) (withdrawReturnDataActiveWords o)
     rd225 (by decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
-      rw [withdrawReturnDataActiveWords_mem64_same o hosz]
-      simp)
+      change Cₘ (UInt256.ofNat (MachineState.M (withdrawReturnDataActiveWords o).toNat 64 32)) -
+        Cₘ (withdrawReturnDataActiveWords o) = _
+      rw [withdrawReturnDataActiveWords_mem64_same o hosz, Nat.sub_self])
     (withdrawReturnDataMem_mload64 I o ho0 hosz)
     (withdrawReturnDataActiveWords_mem64_same o hosz)
     (by evm_ov)
@@ -1965,10 +1961,8 @@ theorem simpleAuctionX_withdraw_successNonempty_return {cA gh bl σ σ₀ A I} {
     (withdrawReturnDataBoolMem I o ⟨1⟩)
     (withdrawReturnDataBoolActiveWords o)
     rdBeforeMstore (by decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        withdrawReturnDataBoolActiveWords])
+    (by simp only [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+      withdrawReturnDataBoolActiveWords])
     (by rfl)
     (by rfl)
     (by evm_ov)
@@ -1977,19 +1971,16 @@ theorem simpleAuctionX_withdraw_successNonempty_return {cA gh bl σ σ₀ A I} {
   have rd236 := RD.mload 0 (withdrawReturnDataPtr o) (withdrawReturnDataBoolActiveWords o)
     rd235 (by decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
-      rw [withdrawReturnDataBoolActiveWords_mem64_same o hosz]
-      simp)
+      change Cₘ (UInt256.ofNat (MachineState.M (withdrawReturnDataBoolActiveWords o).toNat 64 32)) -
+        Cₘ (withdrawReturnDataBoolActiveWords o) = _
+      rw [withdrawReturnDataBoolActiveWords_mem64_same o hosz, Nat.sub_self])
     (withdrawReturnDataBoolMem_mload64 I o ⟨1⟩ ho0 hosz)
     (withdrawReturnDataBoolActiveWords_mem64_same o hosz)
     (by evm_ov)
   have rdBeforeRet := evm_run rd236 with [dup1, swap2, sub, swap1]
   exact RD.ret 0 (UInt256.toByteArray (⟨1⟩ : UInt256)) rdBeforeRet (by decide)
     (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+        simp [M]
         rw [withdrawReturnDataPtr_add_sub o hosz]
         rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide,
           withdrawReturnDataBoolActiveWords_ptr32_same o hosz]
@@ -2067,10 +2058,9 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {cA gh bl σ σ₀ A I} {
     (withdrawReturnDataRestoreKeyMem I o)
     (withdrawReturnDataActiveWords o) rdBeforeStoreKey (by decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      rw [withdrawReturnDataActiveWords_mstore0_same o hosz]
-      simp)
+      simp only [M, show (⟨0⟩ : UInt256).toNat = 0 from rfl,
+        show (⟨32⟩ : UInt256).toNat = 32 from by decide]
+      rw [withdrawReturnDataActiveWords_mstore0_same o hosz])
     (by rfl)
     (withdrawReturnDataActiveWords_mstore0_same o hosz)
     (by evm_ov)
@@ -2080,8 +2070,7 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {cA gh bl σ σ₀ A I} {
     (withdrawReturnDataRestoreHashMem I o)
     (withdrawReturnDataActiveWords o) rdBeforeStoreHash (by decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      simp [M]
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide,
         withdrawReturnDataActiveWords_mstore32_same o hosz]
       simp)
@@ -2094,8 +2083,7 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {cA gh bl σ σ₀ A I} {
     (withdrawPendingSlot I)
     (withdrawReturnDataActiveWords o) rdBeforeKeccak (by decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      simp [M]
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
         withdrawReturnDataActiveWords_keccak0_64_same o hosz]
       simp)
@@ -2111,11 +2099,9 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {cA gh bl σ σ₀ A I} {
     (withdrawReturnDataPtr o) (withdrawReturnDataActiveWords o)
     rd225 (by decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
-        withdrawReturnDataActiveWords_mem64_same o hosz]
-      simp)
+      change Cₘ (UInt256.ofNat (MachineState.M (withdrawReturnDataActiveWords o).toNat 64 32)) -
+        Cₘ (withdrawReturnDataActiveWords o) = _
+      rw [withdrawReturnDataActiveWords_mem64_same o hosz] <;> simp only [Nat.sub_self])
     (withdrawReturnDataRestoreHashMem_mload64 I o ho0 hosz)
     (withdrawReturnDataActiveWords_mem64_same o hosz)
     (by evm_ov)
@@ -2125,10 +2111,8 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {cA gh bl σ σ₀ A I} {
     (withdrawReturnDataRestoreBoolMem I o ⟨0⟩)
     (withdrawReturnDataBoolActiveWords o)
     rdBeforeMstore (by decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        withdrawReturnDataBoolActiveWords])
+    (by simp only [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+      withdrawReturnDataBoolActiveWords])
     (by rfl)
     (by rfl)
     (by evm_ov)
@@ -2139,11 +2123,9 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {cA gh bl σ σ₀ A I} {
     (withdrawReturnDataPtr o) (withdrawReturnDataBoolActiveWords o)
     rd235 (by decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
-        withdrawReturnDataBoolActiveWords_mem64_same o hosz]
-      simp)
+      change Cₘ (UInt256.ofNat (MachineState.M (withdrawReturnDataBoolActiveWords o).toNat 64 32)) -
+        Cₘ (withdrawReturnDataBoolActiveWords o) = _
+      rw [withdrawReturnDataBoolActiveWords_mem64_same o hosz] <;> simp only [Nat.sub_self])
     (withdrawReturnDataRestoreBoolMem_mload64 I o ⟨0⟩ ho0 hosz)
     (withdrawReturnDataBoolActiveWords_mem64_same o hosz)
     (by evm_ov)
@@ -2152,8 +2134,7 @@ theorem simpleAuctionX_withdraw_failureNonempty_return {cA gh bl σ σ₀ A I} {
     (Cₘ (withdrawReturnDataBoolActiveWords o) - Cₘ (withdrawReturnDataBoolActiveWords o))
     (UInt256.toByteArray (⟨0⟩ : UInt256)) rdBeforeRet (by decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      simp [M]
       rw [withdrawReturnDataPtr_add_sub o hosz]
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide,
         withdrawReturnDataBoolActiveWords_ptr32_same o hosz]

@@ -647,15 +647,9 @@ theorem RD.uniswapBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : Execution
       (UniswapV2Pair.balanceOfThisStaticcallMem self o)
       UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk h hlo hhi
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
     (by native_decide)
     (UniswapV2Pair.balanceOfThisStaticcallMem_mload64_of_size_ge self o hlo hhi)
     (UniswapV2Pair.balanceOfThisStaticcallMem_mload128_of_size_ge self o hlo hhi)
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
     (by native_decide)
     hPop0 hPop1 hPop2 hPush64 hMload64 hReturndatasize hPush32 hDup2 hLt hIszero
     hPushOk hJumpi hjd hJumpdest hPopLen hMload128 hov
@@ -730,9 +724,6 @@ theorem RD.uniswapBalanceOfReturnWordDecodeShortReverts {code : ByteArray} {ee :
     (hov : R.length + 4 ≤ 1024) :
     RDrev code g s0 := by
   exact RD.solcUint256ReturnWordDecodeShortReverts h hshort hhi
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
     (by native_decide)
     (UniswapV2Pair.balanceOfThisStaticcallMem_mload64_of_size_lt self o hshort hhi)
     hPop0 hPop1 hPop2 hPush64 hMload64 hReturndatasize hPush32 hDup2 hLt hIszero
@@ -797,17 +788,11 @@ theorem RD.uniswapRebuiltBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : Ex
       (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem self oPrev o)
       UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk h hlo hhi
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
     (by native_decide)
     (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge self oPrev o
       hprevlo hprevhi hlo hhi)
     (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem_mload128_of_size_ge self oPrev o
       hprevlo hprevhi hlo hhi)
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
     (by native_decide)
     hPop0 hPop1 hPop2 hPush64 hMload64 hReturndatasize hPush32 hDup2 hLt hIszero
     hPushOk hJumpi hjd hJumpdest hPopLen hMload128 hov
@@ -883,9 +868,6 @@ theorem RD.uniswapRebuiltBalanceOfReturnWordDecodeShortReverts
     (hov : R.length + 4 ≤ 1024) :
     RDrev code g s0 := by
   exact RD.solcUint256ReturnWordDecodeShortReverts h hshort hhi
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
     (by native_decide)
     (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem_mload64_of_size_lt self oPrev o
       hprevlo hprevhi hshort hhi)

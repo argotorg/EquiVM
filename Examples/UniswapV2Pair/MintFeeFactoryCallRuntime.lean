@@ -207,9 +207,6 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCallOfTail
         (by simp only [List.length_cons]; omega)
     exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨7799⟩) (okPc := ⟨7819⟩)
       rd7799 hshort houtFeeSize
-      (fun s haw hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
       (by native_decide)
       (mloadFreePtrValue
         (by rw [feeToStaticcallMem_size_of_ge160 outFee hmem houtFeeSize]; omega) (feeToStaticcallMem_read64_of_ge160 outFee hmem houtFeeSize hread64))
@@ -231,9 +228,6 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCallOfTail
       RD.solcUint256ReturnWordDecodeOk (pc := ⟨7799⟩) (okPc := ⟨7819⟩)
         (retWord := UInt256.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)))
         rd7799 hout32 houtFeeSize
-        (fun s haw hstk => by
-          simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-          native_decide)
         (by native_decide)
         (mloadFreePtrValue
         (by rw [feeToStaticcallMem_size_of_ge160 outFee hmem houtFeeSize]; omega) (feeToStaticcallMem_read64_of_ge160 outFee hmem houtFeeSize hread64))
@@ -244,9 +238,6 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCallOfTail
           · rw [feeToStaticcallMem_size_of_ge160 outFee hmem houtFeeSize]
             change ¬ 128 ≥ mem.size
             omega)
-        (fun s haw hstk => by
-          simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-          native_decide)
         (by native_decide)
         (by native_decide) (by native_decide) (by native_decide) (by native_decide)
         (by native_decide) (by native_decide) (by native_decide) (by native_decide)

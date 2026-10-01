@@ -764,7 +764,7 @@ theorem callerX_postRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd156 := RD.returndatasize rd155 (by decide) (by simp only [List.length_cons]; omega)
   have rd157 := RD.push0 rd156 (by decide) (by simp only [List.length_cons]; omega)
   exact RD.rev _ rd157 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by simp only [List.length_cons]; omega)
 
 theorem callerContains158 : (D_J callerBytecode 0).contains ⟨158⟩ = true := by

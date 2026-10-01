@@ -75,9 +75,7 @@ theorem RD.uniswapSwapEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
     pairDynamicWords, pairDynamicWords0, hsum] using
     (show ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2797⟩ _ _ _ rdata acc k' C' from
       ⟨_, _, RD.log3 0 _ rd2796 (by native_decide) hperm (by
-        intro s haws hstk
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk,
-          List.getElem!_cons_zero, List.getElem!_cons_succ]
+        simp only [M]
         change Cₘ (UInt256.ofNat (MachineState.M _ ptr.toNat 128)) - Cₘ _ = 0
         rw [hwLog, Nat.sub_self]) hwLog (by evm_ov)⟩)
 

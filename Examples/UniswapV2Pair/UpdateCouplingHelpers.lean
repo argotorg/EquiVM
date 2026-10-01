@@ -82,23 +82,18 @@ theorem RD.uniswapUpdateEmitSyncAndJump_aw6
     (awLoad := feeToStaticcallActiveWords) (awLog := feeToStaticcallActiveWords)
     (mcostLoad := 0) (mcostStore0 := 0) (mcostStore1 := 0) (mcostLoadLog := 0)
     (mcostLog := 0) rd
-    (by intro s haw hstk; simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk];
-        native_decide)
+    (by simp [M, Cₘ]; native_decide)
     (mloadFreePtrValue (by rw [hmem]; omega) hmem64)
     (by native_decide)
-    (by intro s haw hstk; simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk];
-        native_decide)
+    (by simp [M, Cₘ]; native_decide)
     (by native_decide)
-    (by intro s haw hstk; simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk];
-        native_decide)
+    (by simp [M, Cₘ]; native_decide)
     (by native_decide)
-    (by intro s haw hstk; simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk];
-        native_decide)
+    (by simp [M, Cₘ]; native_decide)
     (uniswapMintSyncLogMem_mload64_of_size_le packed (by rw [hmem]; omega)
       (by rw [hmem]; omega) hmem64)
     (by native_decide)
-    (by intro s haw hstk; simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk];
-        native_decide)
+    (by simp [M, Cₘ]; native_decide)
     (by native_decide) hperm hret hov
 
 end UniswapV2Pair

@@ -43,9 +43,7 @@ theorem RD.uniswapConstructorDomainHash {g : Sat256} {s0 : State} {I : Execution
   have rd219 := RD.mloadWord rd218 (by native_decide) hm256 (by evm_ov)
   have rd224 := evm_run rd219 with [swap3, add, swap2, swap1, swap2]
   refine ⟨_, _, RD.keccak256 0 _ ⟨14⟩ rd224 (by native_decide) ?_ ?_ ?_ (by evm_ov)⟩
-  · intro s haw hstk
-    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-      List.getElem!_cons_zero, List.getElem!_cons_succ]
+  · simp only [M]
     native_decide
   · change UInt256.ofNat (fromByteArrayBigEndian (KEC
       ((constructorDomainMem _ _).readWithPadding 288 160))) = _

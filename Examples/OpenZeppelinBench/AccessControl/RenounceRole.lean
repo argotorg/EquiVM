@@ -793,8 +793,7 @@ theorem accessControlRenounceRoleX_caller_revert {cA gh bl σ σ₀ A I} {g : Sa
   rw [hlen4] at rd435'
   exact rd435'.rev 0 (by decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      simp [M]
       native_decide)
     (by simp)
 
@@ -1007,8 +1006,7 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
   have rd780 := evm_run rd745 with [swap2, swap1]
   have rd781 := RD.log4 0 (UInt256.ofNat 3) rd780 (by decide) hperm
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      simp [M]
       native_decide)
     (by decide) (by simp)
   have rd233 := evm_run rd781 with [

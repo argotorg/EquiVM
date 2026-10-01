@@ -1895,34 +1895,25 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroReturns
       (mcostLoadLog := 0) (mcostLog := 0)
       (by simpa [packed, mem0, uniswapUpdateElapsedWord, uniswapUpdateTimestampWord,
         uniswapSlotWord] using rd7339)
-      (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+      (by simp [M, Cₘ]; native_decide)
       (by
         simpa [mem0] using
           balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
             (UInt256.ofNat I.codeOwner.val) o o1 ho32 hoSize ho132 ho1Size)
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide)
-      (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+      (by simp [M, Cₘ]; native_decide)
       (by simpa [mem0] using uniswapSyncLogMem_mload64 packed mem0 hmemSize hmemRead64)
       (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+        simp [M, Cₘ]
         native_decide)
       (by native_decide) hperm (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega)

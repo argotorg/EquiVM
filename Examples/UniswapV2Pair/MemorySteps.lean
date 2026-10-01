@@ -21,7 +21,7 @@ theorem RD.mstoreWord
       (memoryWordActiveWords aw offset) rdata acc (k + 1)
       (C + (Cₘ (memoryWordActiveWords aw offset) - Cₘ aw + 3)) := by
   exact RD.mstore _ _ _ rd hdec
-    (fun _ haw hstk ↦ mstoreCost_of_stack haw hstk rfl) rfl rfl hov
+    (by rfl) rfl rfl hov
 
 -- GENERALIZES Reasoning.Reach.RD.mload: derive the expansion and gas witnesses.
 theorem RD.mloadWord
@@ -33,10 +33,7 @@ theorem RD.mloadWord
     (hvalue : memoryWordLoad mem offset = value) (hov : R.length + 1 ≤ 1024) :
     RD code I g s0 (pc + ⟨1⟩) (value :: R) mem (memoryWordActiveWords aw offset) rdata acc
       (k + 1) (C + (Cₘ (memoryWordActiveWords aw offset) - Cₘ aw + 3)) := by
-  exact RD.mload _ _ _ rd hdec
-    (fun s haw hstk ↦ by
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, memoryWordActiveWords]) hvalue rfl hov
+  exact RD.mload _ _ _ rd hdec rfl hvalue rfl hov
 
 -- LIBRARY CANDIDATES: bounds and read coverage for active memory words.
 theorem MachineState_M_mul32_lt_of_bounds {s f l : Nat}
