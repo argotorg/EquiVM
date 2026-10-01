@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Vat.Trusted
+import Benchmarks.Dss.Vat.Selectors
 
 /-!
 # MakerDAO/Sky DSS Vat dispatcher facts

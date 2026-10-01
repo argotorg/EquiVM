@@ -1,4 +1,4 @@
-import Benchmarks.Dss.StairstepExponentialDecrease.Trusted
+import Benchmarks.Dss.StairstepExponentialDecrease.Selectors
 
 /-!
 # MakerDAO/Sky DSS StairstepExponentialDecrease dispatcher facts

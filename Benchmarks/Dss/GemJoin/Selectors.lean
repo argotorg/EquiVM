@@ -1,7 +1,7 @@
 import Benchmarks.Dss.GemJoin.Common
 
 /-!
-# Trusted selector facts for MakerDAO/Sky DSS GemJoin
+# Selector proofs for MakerDAO/Sky DSS GemJoin
 
 These are the ABI selector facts accepted by the benchmark prompt.
 -/

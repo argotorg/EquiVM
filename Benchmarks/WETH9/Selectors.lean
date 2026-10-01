@@ -1,7 +1,7 @@
 import Benchmarks.WETH9.Common
 
 /-!
-# Trusted WETH9 selector facts
+# WETH9 selector proofs
 
 The selector theorems connect Solm signatures to the runtime dispatcher constants.
 -/

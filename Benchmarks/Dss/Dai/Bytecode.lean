@@ -410,4 +410,31 @@ def daiCreationBytecode : ByteArray :=
       ⟨4156⟩, ⟨4169⟩, ⟨4176⟩, ⟨4187⟩, ⟨4192⟩, ⟨4203⟩, ⟨4209⟩, ⟨4227⟩, ⟨4256⟩, ⟨4267⟩, ⟨4283⟩] := by
   native_decide
 
+/-! Constructor-domain Keccak constants connecting the bytecode's EIP-712 literals to Solm. -/
+
+/-- `keccak("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")`.
+-/
+theorem daiCtorTypeHashBytes_trusted :
+    UInt256.toByteArray
+        ⟨63076024560530113402979550242307453568063438748328787417531900361828837441551⟩ =
+      (List.toByteArray
+        (ByteArray.toList (KEC
+          (String.toByteArray
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")))) := by
+  decide +kernel
+
+/-- `keccak("Dai Stablecoin")`. -/
+theorem daiCtorNameHashBytes_trusted :
+    UInt256.toByteArray
+        ⟨5011453723555049355537294002125739255229783229906611468909068372094763020939⟩ =
+      (List.toByteArray (ByteArray.toList (KEC (String.toByteArray "Dai Stablecoin")))) := by
+  decide +kernel
+
+/-- `keccak("1")`. -/
+theorem daiCtorVersionHashBytes_trusted :
+    UInt256.toByteArray
+        ⟨90743482286830539503240959006302832933333810038750515972785732718729991261126⟩ =
+      (List.toByteArray (ByteArray.toList (KEC (String.toByteArray "1")))) := by
+  decide +kernel
+
 end Benchmarks.Dss.Dai

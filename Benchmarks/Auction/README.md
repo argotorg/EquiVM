@@ -47,10 +47,7 @@ the Reasoning library were changed.
 
 ## Validation
 
-The selector identities in `Trusted.lean` are kernel-checked theorems. The following reports
-match Lean's current `#print axioms` output:
-
-The full, unabridged Lean axiom reports are saved as:
+Lean's `#print axioms` reports are saved as:
 
 - [Runtime](axioms-runtime.txt): 3008 dependencies, including 3005 native-evaluation facts.
 - [Constructor and runtime](axioms-contract.txt): 3034 dependencies, including 3031

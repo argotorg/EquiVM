@@ -1,4 +1,4 @@
-import Benchmarks.Dss.DaiJoin.Trusted
+import Benchmarks.Dss.DaiJoin.Selectors
 
 /-!
 # MakerDAO/Sky DSS DaiJoin dispatcher facts

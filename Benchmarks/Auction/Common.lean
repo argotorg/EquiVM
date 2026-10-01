@@ -1,4 +1,4 @@
-import Benchmarks.Auction.Trusted
+import Benchmarks.Auction.Selectors
 import Reasoning.Dispatch
 import Reasoning.Solc
 import Reasoning.SolmBody

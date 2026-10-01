@@ -1,5 +1,5 @@
 import Benchmarks.Dss.Cure.Rely
-import Benchmarks.Dss.Cure.Trusted
+import Benchmarks.Dss.Cure.Selectors
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 

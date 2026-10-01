@@ -1,4 +1,4 @@
-import Benchmarks.Dss.GemJoin.Trusted
+import Benchmarks.Dss.GemJoin.Selectors
 
 /-!
 # MakerDAO/Sky DSS GemJoin dispatcher scaffold

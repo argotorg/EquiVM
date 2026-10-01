@@ -1,4 +1,4 @@
-import Benchmarks.Dss.ExponentialDecrease.Trusted
+import Benchmarks.Dss.ExponentialDecrease.Selectors
 
 /-!
 # MakerDAO/Sky DSS ExponentialDecrease dispatcher facts

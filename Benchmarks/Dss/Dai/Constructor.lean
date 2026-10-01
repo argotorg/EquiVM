@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Dai.Bytecode
 import Benchmarks.Dss.Dai.Storage
-import Benchmarks.Dss.Dai.Trusted
+import Benchmarks.Dss.Dai.Selectors
 import Reasoning.Initcode
 import Reasoning.MemCascade
 import Reasoning.Memory

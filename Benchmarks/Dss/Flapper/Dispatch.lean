@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Flapper.Trusted
+import Benchmarks.Dss.Flapper.Selectors
 
 /-!
 # MakerDAO/Sky DSS Flapper dispatcher facts

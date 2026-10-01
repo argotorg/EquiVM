@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Jug.Trusted
+import Benchmarks.Dss.Jug.Selectors
 
 /-!
 # MakerDAO/Sky DSS Jug dispatcher facts

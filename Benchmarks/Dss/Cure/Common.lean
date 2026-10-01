@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Cure.Trusted
+import Benchmarks.Dss.Cure.Selectors
 import Reasoning.ABI
 import Reasoning.Stepping
 import Reasoning.Reach

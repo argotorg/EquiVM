@@ -1,4 +1,4 @@
-import Benchmarks.Dss.LinearDecrease.Trusted
+import Benchmarks.Dss.LinearDecrease.Selectors
 
 /-!
 # MakerDAO/Sky DSS LinearDecrease dispatcher facts

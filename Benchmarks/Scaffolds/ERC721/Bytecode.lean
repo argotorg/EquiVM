@@ -18,8 +18,6 @@ Function selectors (a **binary-search** dispatcher, pivot `0x6352211e`):
 `ownerOf(uint256) = 0x6352211e`, `setApprovalForAll(address,bool) = 0xa22cb465`,
 `transferFrom(address,address,uint256) = 0x23b872dd`.
 
-Trusted facts (as in `Truth`/`Pow`/`Reuse`/`Ballot`): the keccak selector facts and the
-bytecode-derived valid jump set.
 -/
 
 def erc721Bytecode : ByteArray :=

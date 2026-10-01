@@ -2,11 +2,9 @@ import Benchmarks.Dss.Cat.Bytecode
 import Solm.Semantics
 
 /-!
-# MakerDAO/Sky DSS Cat bytecode proofs
+# MakerDAO/Sky DSS Cat selector proofs
 
-The selector facts are trusted because `KEC` is opaque to Lean. The `JUMPDEST` tables are already
-proved (via `native_decide`) and tagged `@[valid_jumps]` in `Bytecode.lean` (`validJumps`,
-`creationValidJumps`), so the `jump_dest` tactic sees them directly; no re-export is needed here.
+The selector theorems connect Solm signatures to the runtime dispatcher constants.
 -/
 
 open Solm Ethereum Ethereum.EVM

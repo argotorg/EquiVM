@@ -35,7 +35,7 @@ Generated artifacts and scaffold files:
 - `runtime.hex`: optimized deployed runtime bytecode, 3875 bytes.
 - `Cure.abi.json`: ABI emitted by solc.
 - `Bytecode.lean`: creation/runtime bytecode as Lean `ByteArray`s plus verified `JUMPDEST` sets.
-- `Trusted.lean`: selector Keccak facts plus proof-local names for the verified `JUMPDEST` sets.
+- `Selectors.lean`: selector Keccak proofs. `Bytecode.lean` holds the verified `JUMPDEST` sets.
 - `Spec.lean`: Solm AST benchmark scaffold with storage layout and full public ABI surface.
 - `SpecSyntax.lean`: Solm notation companion wired to the AST spec, checked by `rfl`.
 - `Constructor.lean`: top-level constructor-equivalence theorem, intentionally `sorry`.
@@ -66,7 +66,7 @@ Scaffold notes:
   `SourceLike.cure()`. It has no `CALL`, `DELEGATECALL`, contract creation, or selfdestruct.
 - `SourceLike.cure()` is represented with a custom external ABI and modeled as `perm := false`,
   matching the upstream `view` interface and runtime `STATICCALL`.
-- `Trusted.lean` proves the 20 selectors that connect Solm dispatch to the runtime constants in
+- `Selectors.lean` proves the 20 selectors that connect Solm dispatch to the runtime constants in
   `runtime.hex`.
 - Checked `_add`/`_sub` use the same revert conditions as Solidity 0.6 wrapped arithmetic plus the
   source `require`s. The `lCount++` in `load` is modeled as unchecked modulo-2^256 wrapping.

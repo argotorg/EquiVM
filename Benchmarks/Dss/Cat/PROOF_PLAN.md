@@ -4,13 +4,13 @@
 `Correct.lean` builds; `catContractCorrect = contractEquivalence.intro catConstructorCorrect catCorrect`.
 Proved: getters `live box litter vat vow wards ilks`; auth setters `rely deny cage claw`;
 file setters `file(bytes32,uint256) file(bytes32,address) file(bytes32,bytes32,uint256)`; the constructor.
-Axiom footprint of each = `propext`/`Classical.choice`/`Quot.sound` + trusted `*SelectorBytes` + `native_decide`
+Axiom footprint of each = `propext`/`Classical.choice`/`Quot.sound` + `native_decide`
 (`ofReduceBool`); no `sorryAx`, no custom axioms. `ByteArray_zeroes_size` not even needed by the ctor.
 
 Shared infra (frozen, reusable): `Common` (binary-dispatch reach lemmas `catReach{LowLow,LowHigh,HighLow,HighHigh}Body`,
 `catUint256/AddressGetterBodyCore`, `catSelWord_eq_of_beq`, noMatch reverts), `Storage` (`catAuthGuardEval_*`,
 `RD.catAuthCheckOk/Revert`, mapping/scalar store routines), `Arithmetic` (`execMin*`, `execSub*`,
-`evalExpr_{mul,add,sub}256_ok/_revert`, comparisons), `Trusted` (16 selector proofs).
+`evalExpr_{mul,add,sub}256_ok/_revert`, comparisons), `Selectors` (16 selector proofs).
 
 ## Remaining: `bite` and `fileIlkFlip` — both blocked on the SAME final step (the Θ-transport connect)
 

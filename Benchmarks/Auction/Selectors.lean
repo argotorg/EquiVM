@@ -8,8 +8,6 @@ namespace Auction
 set_option maxHeartbeats 0
 set_option maxRecDepth 1000000
 
-/-! Kernel-checked ABI selector proofs. -/
-
 theorem durationSelectorBytes :
     (KEC (String.toByteArray (transitionSigStr durationGetter))).extract 0 4 =
       ⟨#[0x0f, 0xb5, 0xa6, 0xb4]⟩ := by decide +kernel

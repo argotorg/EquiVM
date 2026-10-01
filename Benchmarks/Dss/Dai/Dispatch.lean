@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Dai.Trusted
+import Benchmarks.Dss.Dai.Selectors
 
 /-!
 # MakerDAO DSS Dai dispatcher reach slices
