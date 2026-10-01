@@ -29,22 +29,6 @@ theorem byteArray_zeroes_toList (n : Nat) :
 theorem keccak_size (b : ByteArray) : (KEC b).size = 32 := by
   exact Ethereum.Keccak256.hash_size_eq_32 b
 
-/-! ## 0. Memory expansion cost shorthands -/
-
-/-- Compute `MSTORE` memory expansion cost from the literal stack shape. -/
-theorem mstoreCost_of_stack {s : State} {aw off val : UInt256} {t : List UInt256}
-    {mcost : ℕ}
-    (haw : s.machineState.activeWords = aw)
-    (hstk : s.machineState.stack = off :: val :: t)
-    (hcost : Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)) - Cₘ aw = mcost) :
-    memoryExpansionCost s .MSTORE = mcost := by
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ']
-  have htop : s.machineState.stack[0]! = off := by
-    rw [hstk]
-    rfl
-  rw [htop, haw]
-  exact hcost
-
 /-! ## 1. Little-endian byte arithmetic (`fromBytes'` / `toBytes'`) -/
 
 theorem fromBytes'_replicate_zero (k : ℕ) : fromBytes' (List.replicate k (0 : UInt8)) = 0 := by

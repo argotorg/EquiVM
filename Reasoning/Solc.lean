@@ -6209,7 +6209,7 @@ theorem RD.revertStub {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : 
     RDrev code g s0 :=
   h.push0 hd0 (by omega)
     |>.push0 hd1 (by simp only [List.length_cons]; omega)
-    |>.rev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
+    |>.rev 0 hd2 (by simp [M, MachineState.M, u256_ofNat_toNat]) (by omega)
 
 /-- Legacy solc `revert(0,0)` terminal emitted as `PUSH1 0; DUP1; REVERT`. -/
 theorem RD.solcPush1Dup1Revert0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
@@ -6224,7 +6224,7 @@ theorem RD.solcPush1Dup1Revert0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat2
     RDrev code g s0 :=
   h.push1 ⟨0⟩ hd0 (by omega)
     |>.dup1 hd1 (by omega)
-    |>.rev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
+    |>.rev 0 hd2 (by simp [M, MachineState.M, u256_ofNat_toNat]) (by omega)
 
 set_option maxHeartbeats 2000000 in
 /-- Generic solc high-level-call uint256 return decoder after a successful CALL-like opcode. -/
@@ -6234,10 +6234,6 @@ theorem RD.solcUint256ReturnWordDecodeOk {code : ByteArray} {ee : ExecutionEnv}
     {d0 d1 d2 retWord : UInt256} {R : List UInt256}
     (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size)
-    (hMload64Cost :
-      ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = (⟨64⟩ : UInt256) :: R →
-        memoryExpansionCost s .MLOAD = 0)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hMload64Value :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -6249,10 +6245,6 @@ theorem RD.solcUint256ReturnWordDecodeOk {code : ByteArray} {ee : ExecutionEnv}
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord)
-    (hMload128Cost :
-      ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = (⟨128⟩ : UInt256) :: R →
-        memoryExpansionCost s .MLOAD = 0)
     (hMload128Aw : UInt256.ofNat (MachineState.M aw.toNat 128 32) = aw)
     (hPop0 : decode code pc = some (.POP, .none))
     (hPop1 : decode code (pc + ⟨1⟩) = some (.POP, .none))
@@ -6306,7 +6298,9 @@ theorem RD.solcUint256ReturnWordDecodeOk {code : ByteArray} {ee : ExecutionEnv}
   have rdPop2 := RD.pop rdPop1 hPop2 (by omega)
   have rdPush64 := RD.push1 rdPop2 ⟨64⟩ hPush64 (by omega)
   have rdMload64 := RD.mload 0 ⟨128⟩ aw rdPush64 hMload64
-    hMload64Cost
+    (by
+      have hM : M aw ⟨64⟩ ⟨32⟩ = aw := by simpa [M] using hMload64Aw
+      simp only [hM, Nat.sub_self])
     hMload64Value
     hMload64Aw
     (by omega)
@@ -6332,7 +6326,9 @@ theorem RD.solcUint256ReturnWordDecodeOk {code : ByteArray} {ee : ExecutionEnv}
     (by simp only [List.length_cons]; omega)
   have rdPopLen := RD.pop rdJumpdest hPopLen (by simp only [List.length_cons]; omega)
   have rdMload128 := RD.mload 0 retWord aw rdPopLen hMload128
-    hMload128Cost
+    (by
+      have hM : M aw ⟨128⟩ ⟨32⟩ = aw := by simpa [M] using hMload128Aw
+      simp only [hM, Nat.sub_self])
     hMload128Value
     hMload128Aw
     (by omega)
@@ -6345,10 +6341,6 @@ theorem RD.solcUint256ReturnWordDecodeShortReverts {code : ByteArray} {ee : Exec
     {d0 d1 d2 : UInt256} {R : List UInt256}
     (h : RD code ee g s0 pc (d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hshort : o.size < 32) (hhi : o.size < UInt256.size)
-    (hMload64Cost :
-      ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = (⟨64⟩ : UInt256) :: R →
-        memoryExpansionCost s .MLOAD = 0)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hMload64Value :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -6420,7 +6412,9 @@ theorem RD.solcUint256ReturnWordDecodeShortReverts {code : ByteArray} {ee : Exec
   have rdPop2 := RD.pop rdPop1 hPop2 (by omega)
   have rdPush64 := RD.push1 rdPop2 ⟨64⟩ hPush64 (by omega)
   have rdMload64 := RD.mload 0 ⟨128⟩ aw rdPush64 hMload64
-    hMload64Cost
+    (by
+      have hM : M aw ⟨64⟩ ⟨32⟩ = aw := by simpa [M] using hMload64Aw
+      simp only [hM, Nat.sub_self])
     hMload64Value
     hMload64Aw
     (by omega)
@@ -6701,8 +6695,7 @@ theorem RD.solcCallSuccessGuardMissing {code : ByteArray} {ee : ExecutionEnv}
       dsimp [len]
       rw [ulit_toNat' rdata.size hrdataSize]
       omega)
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, len, awout])
+    (by rfl)
     (by rfl) (by rfl)
     (by simp only [List.length_cons]; omega)
   have rdReturndatasizeRevert := RD.returndatasize rdCopy hReturndatasizeRevert
@@ -6711,8 +6704,7 @@ theorem RD.solcCallSuccessGuardMissing {code : ByteArray} {ee : ExecutionEnv}
     (by simp only [List.length_cons]; omega)
   exact RD.rev (Cₘ (UInt256.ofNat (MachineState.M awout.toNat 0 len.toNat)) - Cₘ awout)
     rdPushRevert0 hRevert
-    (fun s haw hstk => by
-      simpa [awout, len, haw] using memExpRevertZeroOff s hstk)
+    (by rfl)
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
