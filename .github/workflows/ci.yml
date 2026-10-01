@@ -26,6 +26,9 @@ jobs:
           build-args: EquiVM EVM ABI Solm Reasoning Proofs
           use-github-cache: true
 
+      - name: Check ABI signature reduction
+        run: lake build ABI.SignatureTests
+
       # Standalone regression modules are not imported by the Solm library root.
       - name: Check Solminus integer semantics
         run: lake build Solm.CastTests Solm.IntegerTests
