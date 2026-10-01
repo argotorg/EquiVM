@@ -35,7 +35,7 @@ the source semantics and bytecode storage reads exactly.
 - `Common.lean` contains ERC20-wide ABI, memory, selector, and return helpers.
 - `Storage.lean` contains ERC20-wide storage load/store, RBMap preservation, and bool-return facts.
 - `Spec.lean` defines the Solm ERC20 spec and storage layout. Do not silently change it.
-- `Bytecode.lean` defines runtime bytecode, kernel-checked selector theorems, and the verified
+- `Bytecode.lean` defines runtime bytecode, selector theorems, and the verified
   jump-destination fact.
 
 ## Proof Architecture
@@ -188,7 +188,7 @@ Adjust the first two commands to match the file being edited.
 4. Do not move general-looking lemmas into `Reasoning/` during ERC20 work unless explicitly asked.
 5. Do not edit `Spec.lean` just to make a proof easier. If the spec looks wrong, stop, explain the
    source/bytecode mismatch, and get approval before changing it.
-6. Do not edit `Bytecode.lean` selector facts casually; keep their concrete hashes kernel-checked.
+6. Do not edit `Bytecode.lean` selector facts casually; keep their concrete hashes proved.
 7. For mapping accesses, first identify the Solidity slot expression, then prove the bytecode
    scratch-memory `KECCAK256` path computes the same slot.
 8. For mutating bodies, prove source behavior and EVM reachability branch by branch.

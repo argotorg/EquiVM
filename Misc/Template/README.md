@@ -26,7 +26,7 @@ Every contract directory follows this structure (`Examples/<C>/` or
 | `Immutables.lean` | contracts with immutables only: the valuation structure + read exprs | user |
 | `Spec.lean` | derived assembly: `def contract := Syntax.contractSyntax`, named transition handles, storage layout, `Config` | agent |
 | `Bytecode.lean` | runtime/creation bytes as chunked `ByteArray`s + jump-dest facts, transcribed from the `.hex` files | agent |
-| `Selectors.lean` | selector table, `selIs`/`selWord`, and kernel-checked ABI selector theorems | agent |
+| `Selectors.lean` | selector table, `selIs`/`selWord`, and ABI selector theorems | agent |
 | `Common.lean` | single proof import point; re-exports contract modules and shared reasoning, and holds cross-file helpers | agent |
 | `Storage.lean` | contract-wide storage load/store facts (contracts with storage) | agent |
 | `Trusted.lean` (when required) | explicitly authorized contract-specific assumptions | agent |
@@ -42,7 +42,7 @@ provide both: exactly one of the two files carries the spec, and for new work
 that is `SpecSyntax.lean` — `Spec.lean` only references it.
 
 `Selectors.lean` owns the complete selector interface: `xxxSelBytes`, `xxxSelWord`, `selIs`, and
-the kernel proofs connecting the table to the ABI signatures. `Common.lean` is the stable import
+the proofs connecting the table to the ABI signatures. `Common.lean` is the stable import
 point used by the proof modules and may also contain contract-specific helpers shared across those
 modules. If the user explicitly authorizes a contract-specific assumption that cannot be derived
 from the model or artifact, create `Trusted.lean` as its isolation boundary. That file records the

@@ -68,7 +68,7 @@ theorem truthContains14 : (D_J truthBytecode 0).contains ⟨14⟩ = true := by
 theorem truthContains38 : (D_J truthBytecode 0).contains ⟨38⟩ = true := by
   jump_dest
 
-/-! ### Selector decode (proved, not an axiom): the EVM `CALLDATALOAD; PUSH 0xe0; SHR` selector
+/-! ### Selector decode: the EVM `CALLDATALOAD; PUSH 0xe0; SHR` selector
     vs `calldata.extract 0 4` — a generic instance of `evmSelectorDecode`. -/
 
 /-- The EVM selector check `eq(0x9e9f51d2, SHR(calldata,224))` agrees with the dispatcher's
