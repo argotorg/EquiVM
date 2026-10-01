@@ -14,7 +14,7 @@ theorem depositWord_prefix : depositWord.toByteArray.extract 0 4 = depositSelect
 theorem transferWord_prefix : transferWord.toByteArray.extract 0 4 = transferSelector := by
   native_decide
 
-noncomputable def selectorMem (mem : ByteArray) (ptr selector : UInt256) : ByteArray :=
+def selectorMem (mem : ByteArray) (ptr selector : UInt256) : ByteArray :=
   writeWord mem ptr.toNat selector
 
 theorem selectorMem_read {mem aw ptr} (h : HeapMemory mem aw ptr) (selector : UInt256) :
@@ -33,7 +33,7 @@ theorem selectorMem_prefix {mem aw ptr} (h : HeapMemory mem aw ptr) (selector : 
   memoryPrefix_writeWord mem ptr.toNat ptr.toNat selector
     (by have hu := lt_usize 32 (by decide); have hg := h.gap; omega) (Or.inl (le_refl _))
 
-noncomputable def callMem2 (mem : ByteArray) (ptr selector arg1 arg2 : UInt256) : ByteArray :=
+def callMem2 (mem : ByteArray) (ptr selector arg1 arg2 : UInt256) : ByteArray :=
   writeWord (writeWord (selectorMem mem ptr selector) (ptr.toNat + 4) arg1)
     (ptr.toNat + 36) arg2
 

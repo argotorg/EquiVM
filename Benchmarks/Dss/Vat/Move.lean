@@ -1083,7 +1083,7 @@ theorem RD.vatMoveWishLoaded
     raw dup5 (by native_decide) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (moveSrcMaskedWord I) ⟨1⟩ solcFreePtrMem)
+          (KEC ((twoWordHashMem (moveSrcMaskedWord I) ⟨1⟩ solcFreePtrMem)
             |>.readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (moveSrcMaskedWord I) :=
     twoWordHashMem_solcMappingSlot ⟨1⟩ (moveSrcMaskedWord I) solcFreePtrMem_size
@@ -1126,7 +1126,7 @@ theorem RD.vatMoveWishLoaded
     raw dup3 (by native_decide) (by evm_ov)]
   have houter :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (hopeSourceWord I)
+          (KEC ((twoWordHashMem (hopeSourceWord I)
             (solcMappingSlot ⟨1⟩ (moveSrcMaskedWord I))
             (twoWordHashMem (moveSrcMaskedWord I) ⟨1⟩ solcFreePtrMem)).readWithPadding 0 64))) =
         moveWishSlot I := by
@@ -1289,7 +1289,7 @@ theorem RD.vatMoveSourceSubSuccess
     raw swap1 (by native_decide) (by evm_ov)]
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (moveSrcMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (moveSrcMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot ⟨5⟩ (moveSrcMaskedWord I) hmem
   have rd5975 := rd5975pre.keccak256 0 slot (UInt256.ofNat 3)
@@ -1365,7 +1365,7 @@ theorem RD.vatMoveSourceSubRevert
     raw swap1 (by native_decide) (by evm_ov)]
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (moveSrcMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (moveSrcMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot ⟨5⟩ (moveSrcMaskedWord I) hmem
   have rd5975 := rd5975pre.keccak256 0 slot (UInt256.ofNat 3)
@@ -1430,7 +1430,7 @@ theorem RD.vatMoveDestAddSuccess
       mem (UInt256.ofNat 3) rdata (cA, σ) k C)
     (hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((wordAt0Mem dst mem).readWithPadding 0 64))) =
+        (KEC ((wordAt0Mem dst mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨5⟩ dst)
     (hdstCanon : dst.toNat < EVM.addressModulus)
     (hfit : (solcSlotWord σ ee (solcMappingSlot ⟨5⟩ dst)).toNat + rad.toNat < UInt256.size)
@@ -1488,7 +1488,7 @@ theorem RD.vatMoveDestAddRevert
       mem (UInt256.ofNat 3) rdata (cA, σ) k C)
     (hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((wordAt0Mem dst mem).readWithPadding 0 64))) =
+        (KEC ((wordAt0Mem dst mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨5⟩ dst)
     (hdstCanon : dst.toNat < EVM.addressModulus)
     (hover : UInt256.size ≤
@@ -1585,7 +1585,7 @@ theorem RD.vatMoveDestStoreReturn
     raw swap1 (by native_decide) (by evm_ov)]
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem dst ⟨5⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem dst ⟨5⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨5⟩ dst := by
     exact twoWordHashMem_solcMappingSlot ⟨5⟩ dst hmem
   have rd6058 := rd6058pre.keccak256 0 (solcMappingSlot ⟨5⟩ dst)
@@ -1712,7 +1712,7 @@ theorem vatMoveAuthorizedPath
         (twoWordHashMem (moveSrcMaskedWord I) ⟨5⟩ memWish)
     have hdstHashSlot :
         UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((wordAt0Mem (moveDstMaskedWord I) memDestIn).readWithPadding 0 64))) =
+          (KEC ((wordAt0Mem (moveDstMaskedWord I) memDestIn).readWithPadding 0 64))) =
           solcMappingSlot ⟨5⟩ (moveDstMaskedWord I) := by
       dsimp [memDestIn]
       apply wordAt0Mem_twoWordHashMem_solcMappingSlot

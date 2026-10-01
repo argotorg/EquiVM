@@ -1895,7 +1895,7 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToEventTail {code : ByteArray}
   have hsalesBase :
       UInt256.ofNat
           (fromByteArrayBigEndian
-            (ffi.KEC ((twoWordHashMem id ⟨12⟩ mem).readWithPadding 0 64))) =
+            (KEC ((twoWordHashMem id ⟨12⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨12⟩ id := by
     rw [clipperYankTwoWordHashMem_read0_64_of_ge id ⟨12⟩ (by omega)]
     unfold solcMappingSlot

@@ -226,13 +226,13 @@ theorem ballotProposalsBodyReverts_oob (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ## Memory used by the proposal getter -/
 
-noncomputable def proposalsBaseSlotMem : ByteArray :=
+def proposalsBaseSlotMem : ByteArray :=
   (UInt256.toByteArray (⟨2⟩ : UInt256)).write 0 solcFreePtrMem 0 32
 
-noncomputable def proposalsReturnNameMem (name : UInt256) : ByteArray :=
+def proposalsReturnNameMem (name : UInt256) : ByteArray :=
   (UInt256.toByteArray name).write 0 proposalsBaseSlotMem 128 32
 
-noncomputable def proposalsReturnMem (name count : UInt256) : ByteArray :=
+def proposalsReturnMem (name count : UInt256) : ByteArray :=
   (UInt256.toByteArray count).write 0 (proposalsReturnNameMem name) 160 32
 
 theorem proposalsBaseSlotMem_size : proposalsBaseSlotMem.size = 96 := by
@@ -272,7 +272,7 @@ theorem proposalsBaseSlotMem_mload64 :
     proposalsBaseSlotMem_read64
 
 theorem proposalsDataBaseKeccak :
-    UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (proposalsBaseSlotMem.readWithPadding 0 32))) =
+    UInt256.ofNat (fromByteArrayBigEndian (KEC (proposalsBaseSlotMem.readWithPadding 0 32))) =
       proposalsDataBase := by
   rw [proposalsBaseSlotMem_read0]
   unfold proposalsDataBase
@@ -310,7 +310,7 @@ theorem proposalsReturnNameMem_read64 (name : UInt256) :
       toByteArray_size]
     omega)]
   rw [extract_append_left proposalsBaseSlotMem
-      (ffi.ByteArray.zeroes (128 - proposalsBaseSlotMem.size) ++ UInt256.toByteArray name)
+      (ByteArray.zeroes (128 - proposalsBaseSlotMem.size) ++ UInt256.toByteArray name)
       64 96 (by rw [proposalsBaseSlotMem_size])]
   rw [← readWithPadding_eq_extract' proposalsBaseSlotMem 64 32 (by norm_num) (by norm_num)
       (by rw [proposalsBaseSlotMem_size])]
@@ -342,7 +342,7 @@ theorem proposalsReturnMem_read128_64 (name count : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [proposalsReturnNameMem_size])
       (by rw [proposalsReturnNameMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_span
-      (proposalsReturnNameMem name ++ ffi.ByteArray.zeroes (160 - (proposalsReturnNameMem name).size))
+      (proposalsReturnNameMem name ++ ByteArray.zeroes (160 - (proposalsReturnNameMem name).size))
       (UInt256.toByteArray count) 128 192 (by
         rw [ByteArray.size_append, proposalsReturnNameMem_size, ByteArray_zeroes_size,
           show 160 - 160 = 0 from by norm_num]
@@ -356,13 +356,13 @@ theorem proposalsReturnMem_read128_64 (name count : UInt256) :
   unfold proposalsReturnNameMem
   rw [toByteArray_write_eq _ _ _ (by rw [proposalsBaseSlotMem_size]; omega)
       (by rw [proposalsBaseSlotMem_size]; exact lt_usize _ (by norm_num))]
-  rw [show ffi.ByteArray.zeroes (128 - proposalsBaseSlotMem.size) =
-      ffi.ByteArray.zeroes 32 by rw [proposalsBaseSlotMem_size]]
-  rw [show ffi.ByteArray.zeroes 0 = ByteArray.empty by
+  rw [show ByteArray.zeroes (128 - proposalsBaseSlotMem.size) =
+      ByteArray.zeroes 32 by rw [proposalsBaseSlotMem_size]]
+  rw [show ByteArray.zeroes 0 = ByteArray.empty by
       exact zeroes_zero (n := 0) (by rfl)]
   rw [ByteArray.append_empty]
   rw [extract_append_right_window
-      (proposalsBaseSlotMem ++ ffi.ByteArray.zeroes 32)
+      (proposalsBaseSlotMem ++ ByteArray.zeroes 32)
       (UInt256.toByteArray name) 128 160 (by
         rw [ByteArray.size_append, proposalsBaseSlotMem_size, ByteArray_zeroes_size,
           show 32 = 32 from by norm_num])]

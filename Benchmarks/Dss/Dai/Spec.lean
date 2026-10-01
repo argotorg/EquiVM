@@ -12,7 +12,7 @@ EIP-712 digest construction and an `ecrecover` precompile-shaped static call; pr
 faithfully will require reusable precompile/ABI lemmas.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace Benchmarks.Dss.Dai
 
@@ -85,7 +85,7 @@ def storageDecls : List StorageDecl :=
     { name := "DOMAIN_SEPARATOR", ty := bytes32St } ]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def wardsSlot (usr : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord usr) ⟨0⟩

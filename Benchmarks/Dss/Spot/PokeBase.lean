@@ -37,7 +37,7 @@ abbrev pokePipRawWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 abbrev pokePipTargetWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (pokePipRawWord σ I) solcAddrMask
 
-noncomputable abbrev pokePipHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev pokePipHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (pokeIlkWord I) ⟨1⟩ solcFreePtrMem
 
 abbrev pokePeekSelectorPlainWord : UInt256 :=
@@ -58,11 +58,11 @@ abbrev pokePeekOutSize : UInt256 :=
 abbrev pokePeekEndPtr : UInt256 :=
   ⟨132⟩
 
-noncomputable def pokePeekCalldataMem (I : ExecutionEnv) : ByteArray :=
+def pokePeekCalldataMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray pokePeekSelectorWord).write 0
     (pokePipHashMem I) 128 32
 
-noncomputable def pokePeekPostCallMem (I : ExecutionEnv) (out : ByteArray) : ByteArray :=
+def pokePeekPostCallMem (I : ExecutionEnv) (out : ByteArray) : ByteArray :=
   out.write 0 (pokePeekCalldataMem I) pokePeekOutPtr.toNat
     (min pokePeekOutSize (UInt256.ofNat out.size)).toNat
 
@@ -115,18 +115,18 @@ abbrev pokeVatFileOutSize : UInt256 :=
 abbrev pokeVatFileEndPtr : UInt256 :=
   ⟨228⟩
 
-noncomputable def pokeVatFileSelectorMem (mem : ByteArray) : ByteArray :=
+def pokeVatFileSelectorMem (mem : ByteArray) : ByteArray :=
   pokeVatFileSelectorShifted.toByteArray.write 0 mem pokeVatFileOutPtr.toNat 32
 
-noncomputable def pokeVatFileIlkMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def pokeVatFileIlkMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (pokeIlkWord I).toByteArray.write 0 (pokeVatFileSelectorMem mem)
     (pokeVatFileOutPtr + ⟨4⟩).toNat 32
 
-noncomputable def pokeVatFileWhatMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def pokeVatFileWhatMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   pokeSpotParamWord.toByteArray.write 0 (pokeVatFileIlkMem I mem)
     (pokeVatFileOutPtr + ⟨36⟩).toNat 32
 
-noncomputable def pokeVatFileCalldataMem
+def pokeVatFileCalldataMem
     (I : ExecutionEnv) (spot : UInt256) (mem : ByteArray) : ByteArray :=
   spot.toByteArray.write 0 (pokeVatFileWhatMem I mem)
     (pokeVatFileOutPtr + ⟨68⟩).toNat 32
@@ -134,14 +134,14 @@ noncomputable def pokeVatFileCalldataMem
 abbrev pokeEventTopic : UInt256 :=
   ⟨101246123879181155085265228494766967589555279929922161514950944312404277086318⟩
 
-noncomputable def pokeEventIlkMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def pokeEventIlkMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (pokeIlkWord I).toByteArray.write 0 mem pokeVatFileOutPtr.toNat 32
 
-noncomputable def pokeEventValMem (I : ExecutionEnv) (val : UInt256)
+def pokeEventValMem (I : ExecutionEnv) (val : UInt256)
     (mem : ByteArray) : ByteArray :=
   val.toByteArray.write 0 (pokeEventIlkMem I mem) (pokeVatFileOutPtr + ⟨32⟩).toNat 32
 
-noncomputable def pokeEventSpotMem (I : ExecutionEnv) (val spot : UInt256)
+def pokeEventSpotMem (I : ExecutionEnv) (val spot : UInt256)
     (mem : ByteArray) : ByteArray :=
   spot.toByteArray.write 0 (pokeEventValMem I val mem) (⟨64⟩ + pokeVatFileOutPtr).toNat 32
 
@@ -826,7 +826,7 @@ theorem poke_twoWordHashMem_read0_64_of_ge64 {mem : ByteArray} (key slot : UInt2
 theorem poke_twoWordHashMem_solcMappingSlot_of_ge64 (baseSlot key : UInt256)
     {mem : ByteArray} (hmem : 64 ≤ mem.size) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   rw [poke_twoWordHashMem_read0_64_of_ge64 key baseSlot hmem]
   unfold solcMappingSlot

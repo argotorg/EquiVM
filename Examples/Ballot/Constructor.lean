@@ -173,17 +173,17 @@ pointer past them, and `JUMP`s into solc's `bytes32[]` ABI decoder at pc 210 wit
 (= `argBytes.size`) and the copied memory are carried symbolically. -/
 
 /-- The decoded argument length the constructor computes: `CODESIZE − 0x0940 = argBytes.size`. -/
-noncomputable def ballotArgLen (argBytes : ByteArray) : UInt256 :=
+def ballotArgLen (argBytes : ByteArray) : UInt256 :=
   (UInt256.ofNat (ballotInitcode ++ argBytes).size).sub ⟨2368⟩
 
 /-- Active-words count when the prologue jumps into the ABI decoder. -/
-noncomputable def ballotDecoderAW (argBytes : ByteArray) : UInt256 :=
+def ballotDecoderAW (argBytes : ByteArray) : UInt256 :=
   UInt256.ofNat (MachineState.M
     (UInt256.ofNat (MachineState.M (UInt256.ofNat 3).toNat 128 (ballotArgLen argBytes).toNat)).toNat 64 32)
 
 /-- Memory image when the prologue jumps into the ABI decoder: the free pointer (`0x80 + argLen`) at
     `0x40`, and the appended ABI argument bytes copied to `[0x80, …)`. -/
-noncomputable def ballotDecoderMem (argBytes : ByteArray) : ByteArray :=
+def ballotDecoderMem (argBytes : ByteArray) : ByteArray :=
   (⟨128⟩ + ballotArgLen argBytes).toByteArray.write 0
     ((ballotInitcode ++ argBytes).write 2368 solcFreePtrMem 128 (ballotArgLen argBytes).toNat) 64 32
 
@@ -267,7 +267,7 @@ theorem ballotArgLen_toNat (argBytes : ByteArray)
 theorem ballotInnerMem_eq (argBytes : ByteArray)
     (hsz : (ballotInitcode ++ argBytes).size < UInt256.size) (hpos : 0 < argBytes.size) :
     (ballotInitcode ++ argBytes).write 2368 solcFreePtrMem 128 (ballotArgLen argBytes).toNat
-      = (solcFreePtrMem ++ ffi.ByteArray.zeroes 32) ++ argBytes := by
+      = (solcFreePtrMem ++ ByteArray.zeroes 32) ++ argBytes := by
   rw [ballotArgLen_toNat argBytes hsz]
   have hcodeS : (ballotInitcode ++ argBytes).size = 2368 + argBytes.size := by
     rw [ByteArray.size_append, ballotInitcode_size]
@@ -282,14 +282,14 @@ theorem ballotInnerMem_eq (argBytes : ByteArray)
   simp only [ByteArray.data_copySlice, ByteArray.data_append, e1, solcFreePtrMem_size,
     show (128 : ℕ) - 96 = 32 from by norm_num,
     show min 96 (128 + argBytes.size) - (128 + argBytes.size) = 0 from by omega]
-  rw [show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
         rw [zeroes_zero (n := 0) (by rfl)]; rfl]
-  have hz32 : (ffi.ByteArray.zeroes 32).data.size = 32 := by
-    show (ffi.ByteArray.zeroes 32).size = 32
+  have hz32 : (ByteArray.zeroes 32).data.size = 32 := by
+    show (ByteArray.zeroes 32).size = 32
     exact zeroes_ofNat_size 32 (by norm_num)
   simp only [Array.append_empty, Nat.add_zero]
-  have ext1 : (solcFreePtrMem.data ++ (ffi.ByteArray.zeroes 32).data).extract 0 128
-      = solcFreePtrMem.data ++ (ffi.ByteArray.zeroes 32).data :=
+  have ext1 : (solcFreePtrMem.data ++ (ByteArray.zeroes 32).data).extract 0 128
+      = solcFreePtrMem.data ++ (ByteArray.zeroes 32).data :=
     Array.extract_eq_self_of_le (by rw [Array.size_append, hsfpD, hz32])
   have ext2 : (ballotInitcode.data ++ argBytes.data).extract 2368 (2368 + argBytes.size)
       = argBytes.data := by
@@ -306,7 +306,7 @@ theorem ballotDecoderMem_read (argBytes : ByteArray)
     (hsz : (ballotInitcode ++ argBytes).size < UInt256.size) (hpos : 0 < argBytes.size)
     (k : ℕ) (hk : k + 32 ≤ argBytes.size) :
     (ballotDecoderMem argBytes).readWithPadding (128 + k) 32 = argBytes.readWithPadding k 32 := by
-  have hbase : (solcFreePtrMem ++ ffi.ByteArray.zeroes 32).size = 128 := by
+  have hbase : (solcFreePtrMem ++ ByteArray.zeroes 32).size = 128 := by
     rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size 32 (by norm_num)]
   unfold ballotDecoderMem
   rw [ballotInnerMem_eq argBytes hsz hpos,
@@ -415,7 +415,7 @@ theorem ballotDecoderMem_lengthVal (a b : ℕ) (rest : List UInt8)
 theorem ballotDecoderMem_size (argBytes : ByteArray)
     (hsz : (ballotInitcode ++ argBytes).size < UInt256.size) (hpos : 0 < argBytes.size) :
     (ballotDecoderMem argBytes).size = 128 + argBytes.size := by
-  have hbase : ((solcFreePtrMem ++ ffi.ByteArray.zeroes 32) ++ argBytes).size
+  have hbase : ((solcFreePtrMem ++ ByteArray.zeroes 32) ++ argBytes).size
       = 128 + argBytes.size := by
     rw [ByteArray.size_append, ByteArray.size_append, solcFreePtrMem_size,
       zeroes_ofNat_size 32 (by norm_num)]
@@ -792,7 +792,7 @@ also threads cleanly into the loop/body (which use `fp` symbolically). -/
 
 /-- Copy-loop-header memory: the allocation base — `newFP` stored at `mem[0x40]` and the array length
     `n` stored at `mem[fp]` (the copy loop then fills the elements above `fp`). -/
-noncomputable def ballotAllocMem (argBytes : ByteArray) (n : ℕ) (fp : UInt256) : ByteArray :=
+def ballotAllocMem (argBytes : ByteArray) (n : ℕ) (fp : UInt256) : ByteArray :=
   (UInt256.ofNat n).toByteArray.write 0
     ((fp + UInt256.land (UInt256.lnot ⟨31⟩) (UInt256.shiftLeft (UInt256.ofNat n) ⟨5⟩ + ⟨63⟩)).toByteArray.write
       0 (ballotDecoderMem argBytes) 64 32)
@@ -1241,20 +1241,20 @@ abbrev ballotSourceWord (I : ExecutionEnv) : UInt256 := UInt256.ofNat I.source.v
 def ballotStorageWord (σ : AccountMap) (I : ExecutionEnv) (slot : UInt256) : UInt256 :=
   σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩)
 
-noncomputable def ballotCtorChairWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
+def ballotCtorChairWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.lor
     (UInt256.land (ballotStorageWord σ I ⟨0⟩) (UInt256.lnot solcAddrMask))
     (ballotSourceWord I)
 
-noncomputable def ballotCtorScratchMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def ballotCtorScratchMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray ⟨1⟩).write 0
     ((UInt256.toByteArray (ballotSourceWord I)).write 0 mem 0 32) 32 32
 
-noncomputable def ballotCtorVoterSlot (I : ExecutionEnv) (mem : ByteArray) : UInt256 :=
+def ballotCtorVoterSlot (I : ExecutionEnv) (mem : ByteArray) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((ballotCtorScratchMem I mem).readWithPadding 0 64)))
+    (KEC ((ballotCtorScratchMem I mem).readWithPadding 0 64)))
 
-noncomputable def ballotCtorPreludeMap (σ : AccountMap) (I : ExecutionEnv)
+def ballotCtorPreludeMap (σ : AccountMap) (I : ExecutionEnv)
     (mem : ByteArray) : AccountMap :=
   sstoreAccountMap I.codeOwner
     (sstoreAccountMap I.codeOwner σ ⟨0⟩ (ballotCtorChairWord σ I))

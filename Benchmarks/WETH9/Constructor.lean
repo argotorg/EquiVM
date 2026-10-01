@@ -169,21 +169,21 @@ theorem weth9CtorMemSym_read224 :
 def weth9StoreV (len : UInt256) (dataword : UInt256) : UInt256 :=
   UInt256.lor (len + len) (UInt256.land (UInt256.lnot ⟨255⟩) dataword)
 
-noncomputable def weth9OldWordsOf (σ : AccountMap) (cO : AccountAddress) (slot : UInt256) : Nat :=
+def weth9OldWordsOf (σ : AccountMap) (cO : AccountAddress) (slot : UInt256) : Nat :=
   solidityBytesDataWordCount
     (weth9DecodeLenWord (σ.find? cO |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩))).toNat
 
-noncomputable def weth9EvmNameMap (σ : AccountMap) (cO : AccountAddress) : AccountMap :=
+def weth9EvmNameMap (σ : AccountMap) (cO : AccountAddress) : AccountMap :=
   clearDataWordsForwardFrom cO
     (sstoreAccountMap cO σ ⟨0⟩ (weth9StoreV ⟨13⟩ weth9NameWord))
     (Solm.solidityBytesDataBaseSlot ⟨0⟩) ⟨0⟩ (weth9OldWordsOf σ cO ⟨0⟩)
 
-noncomputable def weth9EvmSymMap (σ : AccountMap) (cO : AccountAddress) : AccountMap :=
+def weth9EvmSymMap (σ : AccountMap) (cO : AccountAddress) : AccountMap :=
   clearDataWordsForwardFrom cO
     (sstoreAccountMap cO (weth9EvmNameMap σ cO) ⟨1⟩ (weth9StoreV ⟨4⟩ weth9SymWord))
     (Solm.solidityBytesDataBaseSlot ⟨1⟩) ⟨0⟩ (weth9OldWordsOf (weth9EvmNameMap σ cO) cO ⟨1⟩)
 
-noncomputable def weth9EvmFinalMap (σ : AccountMap) (cO : AccountAddress) : AccountMap :=
+def weth9EvmFinalMap (σ : AccountMap) (cO : AccountAddress) : AccountMap :=
   sstoreAccountMap cO (weth9EvmSymMap σ cO) ⟨2⟩
     (UInt256.lor ⟨18⟩ (UInt256.land (UInt256.lnot ⟨255⟩)
       ((weth9EvmSymMap σ cO).find? cO |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩))))

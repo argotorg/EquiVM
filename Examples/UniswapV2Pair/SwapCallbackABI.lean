@@ -6,7 +6,7 @@ set_option maxRecDepth 2000000
 
 abbrev swapCallbackArgs (senderAddr : AccountAddress) (amount0Out amount1Out : UInt256) (data : ByteArray) : List Value :=
   [.address senderAddr, uniswapUint256Value amount0Out, uniswapUint256Value amount1Out, .bytes data]
-noncomputable def swapCallbackCalldata (senderAddr : AccountAddress) (amount0Out amount1Out : UInt256) (data : ByteArray) : ByteArray :=
+def swapCallbackCalldata (senderAddr : AccountAddress) (amount0Out amount1Out : UInt256) (data : ByteArray) : ByteArray :=
   uniswapV2CallSelector ++ (UInt256.ofNat senderAddr.val).toByteArray ++ amount0Out.toByteArray ++ amount1Out.toByteArray ++
     (⟨128⟩ : UInt256).toByteArray ++ (UInt256.ofNat data.size).toByteArray ++ (ABI.padRightToWord data.toList).toByteArray
 

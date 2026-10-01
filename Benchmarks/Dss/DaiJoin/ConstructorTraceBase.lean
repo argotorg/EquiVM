@@ -81,7 +81,7 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
     (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
     (hbase : base.size ≤ destAddr) (_hgap : destAddr - base.size < USize.size) :
     src.write srcAddr base destAddr len =
-      base ++ ffi.ByteArray.zeroes (destAddr - base.size) ++
+      base ++ ByteArray.zeroes (destAddr - base.size) ++
         src.extract srcAddr (srcAddr + len) := by
   apply ByteArray.ext
   unfold ByteArray.write
@@ -90,17 +90,17 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
   have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by omega
   simp only [hcopy, htail, ByteArray.data_copySlice, ByteArray.data_append,
     ByteArray.data_extract]
-  have hpz : (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
+  have hpz : (ByteArray.zeroes (destAddr - base.size)).data.size =
       destAddr - base.size := by
-    rw [show (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ffi.ByteArray.zeroes (destAddr - base.size)).size from rfl,
+    rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
+          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
       ByteArray_zeroes_size]
   have hDsz :
-      (base.data ++ (ffi.ByteArray.zeroes (destAddr - base.size)).data).size =
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size =
         destAddr := by
     rw [Array.size_append, hpz, show base.data.size = base.size from rfl]
     omega
-  rw [show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
     rw [zeroes_zero (n := 0) (by rfl)]
     rfl]
   simp only [Array.append_empty, Nat.add_zero]
@@ -109,22 +109,22 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
     omega]
   rw [Array.extract_eq_self_of_le (by rw [hDsz])]
   rw [show
-      (base.data ++ (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract
         (destAddr + len) = #[] from by
     apply Array.extract_eq_empty_of_le
     rw [hDsz]
     omega]
   simp [Array.append_assoc]
 
-noncomputable def daiJoinCtorArgMem (vat dai : AccountAddress) : ByteArray :=
+def daiJoinCtorArgMem (vat dai : AccountAddress) : ByteArray :=
   (daiJoinCtorCode vat dai).write 1876 solcFreePtrMem 128 64
 
-noncomputable def daiJoinCtorArgFreeMem (vat dai : AccountAddress) : ByteArray :=
+def daiJoinCtorArgFreeMem (vat dai : AccountAddress) : ByteArray :=
   (UInt256.toByteArray ⟨192⟩).write 0 (daiJoinCtorArgMem vat dai) 64 32
 
 theorem daiJoinCtorArgMem_eq (vat dai : AccountAddress) :
     daiJoinCtorArgMem vat dai =
-      solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++
+      solcFreePtrMem ++ ByteArray.zeroes 32 ++
         daiJoinCtorArgsTail vat dai := by
   rw [daiJoinCtorArgMem, daiJoinCtorCode, byteArray_write_from_ge_eq]
   · rw [extract_append_right' daiJoinCreationBytecode (daiJoinCtorArgsTail vat dai)
@@ -158,16 +158,16 @@ theorem daiJoinCtorArgMem_read128 (vat dai : AccountAddress) :
       UInt256.toByteArray (EVM.word vat.val) := by
   rw [daiJoinCtorArgMem_eq]
   have hprefix :
-      (solcFreePtrMem ++ ffi.ByteArray.zeroes 32).size = 128 := by
+      (solcFreePtrMem ++ ByteArray.zeroes 32).size = 128 := by
     rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size 32 (by norm_num)]
   rw [readWithPadding_eq_extract'
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++
+    (solcFreePtrMem ++ ByteArray.zeroes 32 ++
       daiJoinCtorArgsTail vat dai)
     128 32 (by norm_num) (by norm_num) (by
       rw [ByteArray.size_append, hprefix, daiJoinCtorArgsTail_size]
       omega)]
   rw [extract_append_right_window
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32)
+    (solcFreePtrMem ++ ByteArray.zeroes 32)
     (daiJoinCtorArgsTail vat dai) 128 (128 + 32) (by rw [hprefix]), hprefix]
   rw [show 128 - 128 = 0 by omega, show 128 + 32 - 128 = 32 by omega]
   unfold daiJoinCtorArgsTail
@@ -181,15 +181,15 @@ theorem daiJoinCtorArgMem_read160 (vat dai : AccountAddress) :
       UInt256.toByteArray (EVM.word dai.val) := by
   rw [daiJoinCtorArgMem_eq]
   have hprefix :
-      (solcFreePtrMem ++ ffi.ByteArray.zeroes 32).size = 128 := by
+      (solcFreePtrMem ++ ByteArray.zeroes 32).size = 128 := by
     rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size 32 (by norm_num)]
   rw [readWithPadding_eq_extract'
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++
+    (solcFreePtrMem ++ ByteArray.zeroes 32 ++
       daiJoinCtorArgsTail vat dai)
     160 32 (by norm_num) (by norm_num) (by
       rw [ByteArray.size_append, hprefix, daiJoinCtorArgsTail_size])]
   rw [extract_append_right_window
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32)
+    (solcFreePtrMem ++ ByteArray.zeroes 32)
     (daiJoinCtorArgsTail vat dai) 160 (160 + 32)
     (by rw [hprefix]; omega), hprefix]
   rw [show 160 - 128 = 32 by omega, show 160 + 32 - 128 = 64 by omega]
@@ -248,7 +248,7 @@ theorem daiJoinCtorArgFreeMem_mload160 (vat dai : AccountAddress) :
 abbrev daiJoinCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
   solcMappingSlot ⟨0⟩ (solcSourceWord I)
 
-noncomputable def daiJoinCtorWardsHashMem (I : ExecutionEnv) (vat dai : AccountAddress) :
+def daiJoinCtorWardsHashMem (I : ExecutionEnv) (vat dai : AccountAddress) :
     ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ (daiJoinCtorArgFreeMem vat dai)
 
@@ -323,14 +323,14 @@ private theorem twoWordHashMem_read0_64_192 {mem : ByteArray} (key slot : UInt25
 
 theorem daiJoinCtorWardsHashSlot (I : ExecutionEnv) (vat dai : AccountAddress) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((daiJoinCtorWardsHashMem I vat dai).readWithPadding 0 64))) =
+        (KEC ((daiJoinCtorWardsHashMem I vat dai).readWithPadding 0 64))) =
       daiJoinCtorCallerWardsSlot I := by
   unfold daiJoinCtorWardsHashMem daiJoinCtorCallerWardsSlot solcMappingSlot
   rw [twoWordHashMem_read0_64_192]
   · exact mappingSlot_single (solcSourceWord I) ⟨0⟩
   · exact daiJoinCtorArgFreeMem_size vat dai
 
-noncomputable def daiJoinCtorReturnMem (I : ExecutionEnv) (vat dai : AccountAddress) :
+def daiJoinCtorReturnMem (I : ExecutionEnv) (vat dai : AccountAddress) :
     ByteArray :=
   (daiJoinCtorCode vat dai).write 143 (daiJoinCtorWardsHashMem I vat dai) 0 1733
 

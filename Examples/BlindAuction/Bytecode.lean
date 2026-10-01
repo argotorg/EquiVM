@@ -23,8 +23,8 @@ Function selectors (in the dispatcher):
 `highestBid() = 0xd57bde79`,
 `bids(address,uint256) = 0x01495c1c`.
 
-As in `Ballot`/`ERC20`, this trusted file records the deployed runtime bytes; the keccak selector
-facts and the bytecode-derived valid jump set are added when the proof needs them.
+This file records the deployed runtime bytes and computes their valid jump set.
+`Selectors.lean` proves the selector facts.
 -/
 
 def blindAuctionBytecode : ByteArray :=
@@ -228,3 +228,25 @@ def blindAuctionCtorPrefix : ByteArray :=
 
 /-- Pure creation/initcode for `BlindAuction`, without appended constructor ABI arguments. -/
 def blindAuctionInitcode : ByteArray := blindAuctionCtorPrefix ++ blindAuctionBytecode
+
+namespace BlindAuction
+
+/-- The `JUMPDEST` set of `blindAuctionBytecode`, computed from the bytecode. -/
+@[valid_jumps] theorem blindAuctionValidJumps :
+    Ethereum.EVM.D_J blindAuctionBytecode 0 =
+      #[⟨98⟩, ⟨154⟩, ⟨158⟩, ⟨169⟩, ⟨184⟩, ⟨189⟩, ⟨206⟩, ⟨215⟩, ⟨226⟩,
+        ⟨240⟩, ⟨256⟩, ⟨267⟩, ⟨276⟩, ⟨278⟩, ⟨289⟩, ⟨308⟩, ⟨332⟩, ⟨343⟩,
+        ⟨352⟩, ⟨363⟩, ⟨373⟩, ⟨387⟩, ⟨398⟩, ⟨413⟩, ⟨418⟩, ⟨429⟩, ⟨449⟩,
+        ⟨463⟩, ⟨468⟩, ⟨479⟩, ⟨489⟩, ⟨500⟩, ⟨510⟩, ⟨535⟩, ⟨566⟩, ⟨600⟩,
+        ⟨609⟩, ⟨645⟩, ⟨754⟩, ⟨812⟩, ⟨817⟩, ⟨830⟩, ⟨834⟩, ⟨884⟩, ⟨887⟩,
+        ⟨925⟩, ⟨963⟩, ⟨989⟩, ⟨1000⟩, ⟨1011⟩, ⟨1014⟩, ⟨1054⟩, ⟨1089⟩,
+        ⟨1114⟩, ⟨1135⟩, ⟨1153⟩, ⟨1207⟩, ⟨1247⟩, ⟨1262⟩, ⟨1282⟩,
+        ⟨1297⟩, ⟨1312⟩, ⟨1315⟩, ⟨1323⟩, ⟨1331⟩, ⟨1395⟩, ⟨1400⟩,
+        ⟨1413⟩, ⟨1426⟩, ⟨1464⟩, ⟨1534⟩, ⟨1551⟩, ⟨1612⟩, ⟨1618⟩,
+        ⟨1654⟩, ⟨1660⟩, ⟨1677⟩, ⟨1699⟩, ⟨1713⟩, ⟨1729⟩, ⟨1752⟩,
+        ⟨1778⟩, ⟨1785⟩, ⟨1806⟩, ⟨1828⟩, ⟨1840⟩, ⟨1871⟩, ⟨1883⟩,
+        ⟨1914⟩, ⟨1926⟩, ⟨1944⟩, ⟨1960⟩, ⟨1967⟩, ⟨1987⟩, ⟨2003⟩,
+        ⟨2018⟩, ⟨2025⟩, ⟨2045⟩, ⟨2064⟩] := by
+  native_decide
+
+end BlindAuction

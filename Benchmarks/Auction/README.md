@@ -47,18 +47,12 @@ the Reasoning library were changed.
 
 ## Validation
 
-The final contract build completed successfully with 3652 jobs. The placeholder scan returned
-no matches. All proof files are below 2000 lines, and authored proof code uses at most 100
-characters per line.
+Lean's `#print axioms` reports are saved as:
 
-The full, unabridged Lean axiom reports are saved as:
-
-- [Runtime](axioms-runtime.txt): 3035 dependencies, including 3005 native-evaluation facts.
-- [Constructor and runtime](axioms-contract.txt): 3061 dependencies, including 3031
+- [Runtime](axioms-runtime.txt): 3008 dependencies, including 3005 native-evaluation facts.
+- [Constructor and runtime](axioms-contract.txt): 3034 dependencies, including 3031
   native-evaluation facts.
 - [Constructor](axioms-constructor.txt): 29 dependencies, including 26 native-evaluation facts.
 
-The runtime and combined theorem have the same remaining 30 dependencies: the three standard
-logical axioms, 20 ABI selector facts, and seven pre-existing EVM precompile output-size
-axioms. The constructor's remaining dependencies are only the three logical axioms.
-The audit found no dependencies outside the permitted trusted base.
+Apart from the native-evaluation facts, each theorem depends only on Lean's standard logical
+axioms (`propext`, `Classical.choice`, and `Quot.sound`).

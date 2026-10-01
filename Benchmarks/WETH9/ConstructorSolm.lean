@@ -129,14 +129,14 @@ theorem weth9SolmAssignBytes (evm : EVM.State) (frame : Frame) (slotRef : Storag
 
 /-! ## The Solm constructor final state -/
 
-noncomputable def weth9SolmNameState (evm : EVM.State) : EVM.State :=
+def weth9SolmNameState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore
     (clearSolidityBytesDataWordsFrom evm ⟨0⟩ 0
       (solidityBytesDataWordCount
         (weth9DecodeLenWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨0⟩)).toNat))
     evm.executionEnv.codeOwner ⟨0⟩ (solidityShortBytesWord (String.toByteArray "Wrapped Ether"))
 
-noncomputable def weth9SolmSymbolState (evm : EVM.State) : EVM.State :=
+def weth9SolmSymbolState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore
     (clearSolidityBytesDataWordsFrom (weth9SolmNameState evm) ⟨1⟩ 0
       (solidityBytesDataWordCount
@@ -145,7 +145,7 @@ noncomputable def weth9SolmSymbolState (evm : EVM.State) : EVM.State :=
     (weth9SolmNameState evm).executionEnv.codeOwner ⟨1⟩
     (solidityShortBytesWord (String.toByteArray "WETH"))
 
-noncomputable def weth9SolmFinalState (evm : EVM.State) : EVM.State :=
+def weth9SolmFinalState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore (weth9SolmSymbolState evm)
     (weth9SolmSymbolState evm).executionEnv.codeOwner ⟨2⟩
     (UInt256.lor (UInt256.land (Solm.EVM.storageLoad (weth9SolmSymbolState evm)

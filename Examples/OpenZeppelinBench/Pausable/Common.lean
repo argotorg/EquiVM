@@ -1,4 +1,4 @@
-import Examples.OpenZeppelinBench.Pausable.Trusted
+import Examples.OpenZeppelinBench.Pausable.Selectors
 import Examples.OpenZeppelinBench.Pausable.Storage
 import Reasoning.ABI
 import Reasoning.Dispatch
@@ -56,7 +56,7 @@ theorem pausableSenderWord_canonical (I : ExecutionEnv) :
   rw [pausableSenderWord_toNat]
   exact I.source.isLt
 
-noncomputable def pausableEventMem (I : ExecutionEnv) : ByteArray :=
+def pausableEventMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (pausableSenderWord I)).write 0 solcFreePtrMem 128 32
 
 theorem pausableEventMem_size (I : ExecutionEnv) : (pausableEventMem I).size = 160 := by

@@ -244,7 +244,7 @@ theorem cureSrcsSourceBodyOob {cA gh bl σ σ₀ A I} {g : UInt256}
     rw [hsrc]
     rfl))
 
-noncomputable abbrev srcsBaseSlotMem : ByteArray :=
+abbrev srcsBaseSlotMem : ByteArray :=
   wordAt0Mem ⟨2⟩ solcFreePtrMem
 
 theorem srcsBaseSlotMem_size : srcsBaseSlotMem.size = 96 := by
@@ -259,7 +259,7 @@ theorem srcsBaseSlotMem_read64 :
 
 theorem srcsBaseSlotMem_keccak :
     UInt256.ofNat
-      (fromByteArrayBigEndian (ffi.KEC (srcsBaseSlotMem.readWithPadding 0 32))) =
+      (fromByteArrayBigEndian (KEC (srcsBaseSlotMem.readWithPadding 0 32))) =
         srcsDataSlot := by
   simpa [srcsBaseSlotMem, srcsDataSlot, uInt256OfByteArray_eq] using
     wordAt0Mem_keccak_word (⟨2⟩ : UInt256) solcFreePtrMem

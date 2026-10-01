@@ -16,7 +16,7 @@ def transitionSigStr (transition : TransitionDecl) : String :=
 def selectorDispatchMsg (contract : ContractDecl) (calldata : ByteArray)
   : Option TransitionDecl :=
   let sigs := contract.transitions.map (λ t ↦ (t, transitionSigStr t))
-  let sigHashes := sigs.map (Prod.map id (ffi.KEC ∘ String.toByteArray))
+  let sigHashes := sigs.map (Prod.map id (Ethereum.KEC ∘ String.toByteArray))
   let selectors := sigHashes.map (Prod.map id (λ b ↦ b.extract 0 4))
   let currentSelector := calldata.extract 0 4
   match selectors.find? (λ (_,s) ↦ s == currentSelector) with

@@ -915,7 +915,7 @@ theorem RD.clipperYankRemoveIdEqMoveToJoinGeneric {code : ByteArray}
     (by simp [activeMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have hslot :
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC (activeMem.readWithPadding 0 32))) =
+          (fromByteArrayBigEndian (KEC (activeMem.readWithPadding 0 32))) =
         activeDataSlot := by
     simpa [activeMem, activeDataSlot,
       show (⟨0⟩ : UInt256).toNat = 0 from by decide,
@@ -1024,7 +1024,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
     (by simp [activeMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have hslot :
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC (activeMem.readWithPadding 0 32))) =
+          (fromByteArrayBigEndian (KEC (activeMem.readWithPadding 0 32))) =
         activeDataSlot := by
     simpa [activeMem, activeDataSlot,
       show (⟨0⟩ : UInt256).toNat = 0 from by decide,
@@ -1113,12 +1113,12 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
     (by rfl) (by rfl) (by evm_ov)
   have hbase :
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC (saleHashMem.readWithPadding 0 64))) =
+          (fromByteArrayBigEndian (KEC (saleHashMem.readWithPadding 0 64))) =
         base := by
     change
       UInt256.ofNat
           (fromByteArrayBigEndian
-            (ffi.KEC
+            (KEC
               ((twoWordHashMem (clipperYankArgWord ee) (⟨12⟩ : UInt256) activeMem).readWithPadding
                 0 64))) =
         clipperYankSalesBaseSlot ee

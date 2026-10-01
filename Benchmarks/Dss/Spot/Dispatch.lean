@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Spot.Trusted
+import Benchmarks.Dss.Spot.Selectors
 
 /-!
 # MakerDAO/Sky DSS Spotter dispatcher facts

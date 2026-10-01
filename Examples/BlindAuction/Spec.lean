@@ -21,7 +21,7 @@ Notable Solm features exercised:
 * the solc-generated public getters, including the two-key `bids(address,uint256)` array getter;
 * the `reveal` hash check `bidToCheck.blindedBid != keccak256(abi.encodePacked(value, fake, secret))`,
   using the **`keccak256`** and **`abiEncodePacked`** `Expr` nodes (`Solm/Syntax.lean`).  The spec
-  `keccak256` evaluates to the same `ffi.KEC` the EVM's `KECCAK256` opcode uses, so runtime-equivalence
+  `keccak256` evaluates to the same `KEC` the EVM's `KECCAK256` opcode uses, so runtime-equivalence
   reduces to equality of the hashed bytes — i.e. that our packed encoding matches what solc lays out
   in memory before hashing.
 
@@ -30,7 +30,7 @@ The storage layout is **hand-written** to match the deployed bytecode (the neste
 default.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace BlindAuction
 
@@ -307,7 +307,7 @@ def blindAuctionBytes32Loc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 32, hbound := by decide, type := .bytes ⟨31, by decide⟩ }
 
 def blindAuctionMappingSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 /-- Base slot of `bids[a]` (mapping at decl slot 4); the array **length** lives here. -/
 def bidsBase (a : KeyValue) : Ethereum.UInt256 :=
@@ -315,7 +315,7 @@ def bidsBase (a : KeyValue) : Ethereum.UInt256 :=
 
 /-- Slot of `bids[a][i]` — data region `keccak256(base)` plus `2·i` (each `Bid` is two words). -/
 def bidsElemSlot (a i : KeyValue) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (bidsBase a).toByteArray)
+  Ethereum.uInt256OfByteArray (KEC (bidsBase a).toByteArray)
     + Ethereum.UInt256.ofNat ((keyValueToWord i).toNat * 2)
 
 def pendingReturnsSlot (a : KeyValue) : Ethereum.UInt256 :=

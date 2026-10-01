@@ -49,10 +49,10 @@ abbrev fileDutyLocals (I : ExecutionEnv) : Store :=
     "what" (.fixedBytes bytes32Width (fileDutyWhatBytes I))).insert
     "data" (.int (Int.ofNat (fileDutyData I).toNat))
 
-noncomputable abbrev fileDutyIlkHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev fileDutyIlkHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ (relyAuthHashMem I)
 
-noncomputable abbrev fileDutyIlkStoreHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev fileDutyIlkStoreHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ (fileDutyIlkHashMem I)
 
 theorem fileDutyIlkBytes_length {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
@@ -724,7 +724,7 @@ theorem jugFileDutyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -773,7 +773,7 @@ theorem jugFileDutyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     RDrev jugBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -842,7 +842,7 @@ theorem jugFileDutyX_rhoOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (fileDutyIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((fileDutyIlkHashMem I).readWithPadding 0 64))) =
+          (KEC ((fileDutyIlkHashMem I).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) := by
     simpa [fileDutyIlkHashMem] using
       twoWordHashMem_solcMappingSlot (⟨1⟩ : UInt256) (fileDutyIlkWord I)
@@ -891,7 +891,7 @@ theorem jugFileDutyX_rhoReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     RDrev jugBytecode g s0 := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((fileDutyIlkHashMem I).readWithPadding 0 64))) =
+          (KEC ((fileDutyIlkHashMem I).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) := by
     simpa [fileDutyIlkHashMem] using
       twoWordHashMem_solcMappingSlot (⟨1⟩ : UInt256) (fileDutyIlkWord I)
@@ -960,7 +960,7 @@ theorem jugFileDutyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
       ByteArray.empty := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((fileDutyIlkStoreHashMem I).readWithPadding 0 64))) =
+          (KEC ((fileDutyIlkStoreHashMem I).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) := by
     simpa [fileDutyIlkStoreHashMem] using
       twoWordHashMem_solcMappingSlot (⟨1⟩ : UInt256) (fileDutyIlkWord I)

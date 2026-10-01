@@ -5,7 +5,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-noncomputable def nounTransferData (I : ExecutionEnv) (bidder nounId : UInt256) : ByteArray :=
+def nounTransferData (I : ExecutionEnv) (bidder nounId : UInt256) : ByteArray :=
   transferFromSelector ++ (contractAddressWord I).toByteArray ++
     (UInt256.land bidder solcAddrMask).toByteArray ++ nounId.toByteArray
 

@@ -21,10 +21,10 @@ theorem erc6909ScratchMem_mload64 {base : ByteArray}
       = ⟨128⟩ :=
   mloadFreePtrValue (by rw [hbase]; decide) (by decide) hread64
 
-noncomputable def solcReturnBaseMem (base : ByteArray) (selector : UInt256) : ByteArray :=
+def solcReturnBaseMem (base : ByteArray) (selector : UInt256) : ByteArray :=
   (UInt256.toByteArray selector).write 0 base 128 32
 
-noncomputable def approveErrorBaseMem (base : ByteArray) (selector arg : UInt256) : ByteArray :=
+def approveErrorBaseMem (base : ByteArray) (selector arg : UInt256) : ByteArray :=
   (UInt256.toByteArray arg).write 0 (solcReturnBaseMem base selector) 132 32
 
 theorem solcReturnBaseMem_size {base : ByteArray} (selector : UInt256)
@@ -92,26 +92,26 @@ theorem approveErrorBaseMem_mload64 {base : ByteArray} (selector arg : UInt256)
   mloadFreePtrValue (by rw [approveErrorBaseMem_size selector arg hbase]; decide)
     (by decide) (approveErrorBaseMem_read64 selector arg hbase hread64)
 
-noncomputable def transferInsufficientBalanceSelectorBaseMem
+def transferInsufficientBalanceSelectorBaseMem
     (base : ByteArray) : ByteArray :=
   (UInt256.toByteArray transferInsufficientBalanceSelectorWord).write 0 base 128 32
 
-noncomputable def transferInsufficientBalanceSenderBaseMem
+def transferInsufficientBalanceSenderBaseMem
     (base : ByteArray) (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray owner).write 0
     (transferInsufficientBalanceSelectorBaseMem base) 132 32
 
-noncomputable def transferInsufficientBalanceBalanceBaseMem
+def transferInsufficientBalanceBalanceBaseMem
     (base : ByteArray) (owner balance : UInt256) : ByteArray :=
   (UInt256.toByteArray balance).write 0
     (transferInsufficientBalanceSenderBaseMem base owner) 164 32
 
-noncomputable def transferInsufficientBalanceAmountBaseMem
+def transferInsufficientBalanceAmountBaseMem
     (base : ByteArray) (owner balance amount : UInt256) : ByteArray :=
   (UInt256.toByteArray amount).write 0
     (transferInsufficientBalanceBalanceBaseMem base owner balance) 196 32
 
-noncomputable def transferInsufficientBalanceIdBaseMem
+def transferInsufficientBalanceIdBaseMem
     (base : ByteArray) (owner id balance amount : UInt256) : ByteArray :=
   (UInt256.toByteArray id).write 0
     (transferInsufficientBalanceAmountBaseMem base owner balance amount) 228 32
@@ -252,26 +252,26 @@ theorem transferInsufficientBalanceIdBaseMem_mload64 {base : ByteArray}
 def transferFromInsufficientAllowanceSelectorWord : UInt256 :=
   UInt256.shiftLeft ⟨0x2c51fead⟩ ⟨225⟩
 
-noncomputable def transferFromInsufficientAllowanceSelectorBaseMem
+def transferFromInsufficientAllowanceSelectorBaseMem
     (base : ByteArray) : ByteArray :=
   (UInt256.toByteArray transferFromInsufficientAllowanceSelectorWord).write 0 base 128 32
 
-noncomputable def transferFromInsufficientAllowanceSenderBaseMem
+def transferFromInsufficientAllowanceSenderBaseMem
     (base : ByteArray) (sender : UInt256) : ByteArray :=
   (UInt256.toByteArray sender).write 0
     (transferFromInsufficientAllowanceSelectorBaseMem base) 132 32
 
-noncomputable def transferFromInsufficientAllowanceAllowanceBaseMem
+def transferFromInsufficientAllowanceAllowanceBaseMem
     (base : ByteArray) (sender allowance : UInt256) : ByteArray :=
   (UInt256.toByteArray allowance).write 0
     (transferFromInsufficientAllowanceSenderBaseMem base sender) 164 32
 
-noncomputable def transferFromInsufficientAllowanceAmountBaseMem
+def transferFromInsufficientAllowanceAmountBaseMem
     (base : ByteArray) (sender allowance amount : UInt256) : ByteArray :=
   (UInt256.toByteArray amount).write 0
     (transferFromInsufficientAllowanceAllowanceBaseMem base sender allowance) 196 32
 
-noncomputable def transferFromInsufficientAllowanceIdBaseMem
+def transferFromInsufficientAllowanceIdBaseMem
     (base : ByteArray) (sender id allowance amount : UInt256) : ByteArray :=
   (UInt256.toByteArray id).write 0
     (transferFromInsufficientAllowanceAmountBaseMem base sender allowance amount) 228 32

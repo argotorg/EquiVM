@@ -118,7 +118,7 @@ theorem gemJoinRelyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
       hwv
       (evalExpr_auth_false_of_wards_none evm I (relyStore I) (relyStore_wards I) hsrc hauth)
 
-noncomputable abbrev relyStoreHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev relyStoreHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (relyUsrMaskedWord I) ⟨0⟩ (relyAuthHashMem I)
 
 theorem relyUsrMaskedWord_canonical (I : ExecutionEnv) :
@@ -221,7 +221,7 @@ theorem gemJoinRelyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -269,7 +269,7 @@ theorem gemJoinRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     RDrev gemJoinBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -338,7 +338,7 @@ theorem gemJoinRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
       ByteArray.empty := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
         mapSlot (relyUsrMaskedWord I) ⟨0⟩ := by
     simpa [relyStoreHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relyUsrMaskedWord I)

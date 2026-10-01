@@ -61,13 +61,13 @@ def bidFinalMapNoPending (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
 def bidFinalMapWithPending (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   bidWriteHighestBidMap (bidWriteHighestBidderMap (bidPendingMap σ I) I) I
 
-noncomputable def bidPendingBaseMem : ByteArray :=
+def bidPendingBaseMem : ByteArray :=
   (UInt256.toByteArray (⟨4⟩ : UInt256)).write 0 solcFreePtrMem 32 32
 
-noncomputable def bidPendingHashMem (key : UInt256) : ByteArray :=
+def bidPendingHashMem (key : UInt256) : ByteArray :=
   (UInt256.toByteArray key).write 0 bidPendingBaseMem 0 32
 
-noncomputable def bidPendingKeyMem (key : UInt256) : ByteArray :=
+def bidPendingKeyMem (key : UInt256) : ByteArray :=
   (UInt256.toByteArray key).write 0 solcFreePtrMem 0 32
 
 def bidAuctionAlreadyEndedSelector : UInt256 :=
@@ -76,23 +76,23 @@ def bidAuctionAlreadyEndedSelector : UInt256 :=
 def bidNotHighEnoughSelector : UInt256 :=
   UInt256.shiftLeft (⟨0x4e12c1bb⟩ : UInt256) ⟨224⟩
 
-noncomputable def bidNotHighEnoughMem (high : UInt256) : ByteArray :=
+def bidNotHighEnoughMem (high : UInt256) : ByteArray :=
   (UInt256.toByteArray high).write 0 (solcReturnMem bidNotHighEnoughSelector) 132 32
 
 def bidHighestBidIncreasedTopic : UInt256 :=
   ⟨0xf4757a49b326036464bec6fe419a4ae38c8a02ce3e68bf0809674f6aab8ad300⟩
 
-noncomputable def bidEventMemCaller (I : ExecutionEnv) : ByteArray :=
+def bidEventMemCaller (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (bidSenderWord I)).write 0 solcFreePtrMem 128 32
 
-noncomputable def bidEventMem (I : ExecutionEnv) : ByteArray :=
+def bidEventMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray I.weiValue).write 0 (bidEventMemCaller I) 160 32
 
-noncomputable def bidPendingEventMemCaller (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def bidPendingEventMemCaller (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (bidSenderWord I)).write 0
     (bidPendingHashMem (bidHighestBidderWord σ I)) 128 32
 
-noncomputable def bidPendingEventMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def bidPendingEventMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray I.weiValue).write 0 (bidPendingEventMemCaller σ I) 160 32
 
 theorem bidSenderWord_canonical (I : ExecutionEnv) :
@@ -362,7 +362,7 @@ theorem bidPendingEventMem_read64 (σ : AccountMap) (I : ExecutionEnv) :
       show 128 - 96 = 32 from by norm_num]
     norm_num)]
   rw [extract_append_left (bidPendingHashMem (bidHighestBidderWord σ I))
-      (ffi.ByteArray.zeroes
+      (ByteArray.zeroes
         (128 - (bidPendingHashMem (bidHighestBidderWord σ I)).size)) 64 96
       (by rw [bidPendingHashMem_size])]
   rw [← readWithPadding_eq_extract (bidPendingHashMem (bidHighestBidderWord σ I)) 64
@@ -381,7 +381,7 @@ theorem bidPendingEventMem_mload64 (σ : AccountMap) (I : ExecutionEnv) :
 theorem bidPendingKeccak (σ : AccountMap) (I : ExecutionEnv) :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC ((bidPendingHashMem (bidHighestBidderWord σ I)).readWithPadding 0 64)))
+          (KEC ((bidPendingHashMem (bidHighestBidderWord σ I)).readWithPadding 0 64)))
       = bidPendingSlot σ I := by
   rw [bidPendingHashMem_read0_64, bidPendingSlot_eq]
   exact mappingSlot_single (bidHighestBidderWord σ I) ⟨4⟩

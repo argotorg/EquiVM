@@ -298,16 +298,16 @@ abbrev yankSuckOutSize : UInt256 := ⟨0⟩
 
 abbrev yankSuckEndPtr : UInt256 := ⟨228⟩
 
-noncomputable def yankSuckSelectorMem (mem : ByteArray) : ByteArray :=
+def yankSuckSelectorMem (mem : ByteArray) : ByteArray :=
   yankSuckSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def yankSuckVowMem (vow : UInt256) (mem : ByteArray) : ByteArray :=
+def yankSuckVowMem (vow : UInt256) (mem : ByteArray) : ByteArray :=
   vow.toByteArray.write 0 (yankSuckSelectorMem mem) 132 32
 
-noncomputable def yankSuckGuyMem (vow guy : UInt256) (mem : ByteArray) : ByteArray :=
+def yankSuckGuyMem (vow guy : UInt256) (mem : ByteArray) : ByteArray :=
   guy.toByteArray.write 0 (yankSuckVowMem vow mem) 164 32
 
-noncomputable def yankSuckCalldataMem (vow guy bid : UInt256) (mem : ByteArray) : ByteArray :=
+def yankSuckCalldataMem (vow guy bid : UInt256) (mem : ByteArray) : ByteArray :=
   bid.toByteArray.write 0 (yankSuckGuyMem vow guy mem) 196 32
 
 theorem yankSuckSelectorMem_size {mem : ByteArray} (hmem : mem.size = 96) :
@@ -1284,7 +1284,7 @@ theorem flopperYankX_guyNotSet {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (mem2.readWithPadding 0 64))) = base := by
+        (KEC (mem2.readWithPadding 0 64))) = base := by
     simpa [base, mem2, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ (yankIdWord I) solcFreePtrMem
   have rd967 := rd966pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1414,7 +1414,7 @@ theorem flopperYankX_readyToSuck {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (mem2.readWithPadding 0 64))) = base := by
+        (KEC (mem2.readWithPadding 0 64))) = base := by
     simpa [base, mem2, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ (yankIdWord I) solcFreePtrMem
   have rd967 := rd966pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1565,7 +1565,7 @@ theorem flopperYankX_toSuckExtcodesizeGuard
     raw dup3 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id, memHash] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memHash
   have rd1073 := rd1072pre.keccak256 0 base (UInt256.ofNat 3)

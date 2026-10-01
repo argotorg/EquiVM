@@ -414,7 +414,7 @@ theorem erc20Initcode_runtime_window :
     erc20CtorPrefix_size.symm
     (by rw [erc20CtorPrefix_size, erc20Bytecode_size])
 
-noncomputable def erc20CtorCode (initialSupply : UInt256) : ByteArray :=
+def erc20CtorCode (initialSupply : UInt256) : ByteArray :=
   erc20Initcode ++ (EVM.Word.toBytesBE initialSupply).toByteArray
 
 theorem erc20Initcode_decode_append (tail : ByteArray) (pc : UInt256)
@@ -538,13 +538,13 @@ theorem erc20Deployment_shape {args : List Value} {deployedInitcode : ByteArray}
                 constructorDecl, encodeABIValues?, encodeABIValuesFrom?, abiTupleHeadSize?,
                 uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
 
-noncomputable def erc20CtorArgMem (initialSupply : UInt256) : ByteArray :=
+def erc20CtorArgMem (initialSupply : UInt256) : ByteArray :=
   (UInt256.toByteArray initialSupply).write 0 solcFreePtrMem 64 32
 
-noncomputable def erc20CtorHashMem (caller : AccountAddress) (initialSupply : UInt256) : ByteArray :=
+def erc20CtorHashMem (caller : AccountAddress) (initialSupply : UInt256) : ByteArray :=
   twoWordHashMem (UInt256.ofNat caller.val) ⟨0⟩ (erc20CtorArgMem initialSupply)
 
-noncomputable def erc20CtorReturnMem (caller : AccountAddress) (initialSupply : UInt256) : ByteArray :=
+def erc20CtorReturnMem (caller : AccountAddress) (initialSupply : UInt256) : ByteArray :=
   (erc20CtorCode initialSupply).write 55 (erc20CtorHashMem caller initialSupply) 0 2708
 
 theorem erc20CtorArg_extract (initialSupply : UInt256) :
@@ -605,7 +605,7 @@ theorem erc20CtorHashMem_size (caller : AccountAddress) (initialSupply : UInt256
 
 theorem erc20CtorKeccakSlot (caller : AccountAddress) (initialSupply : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((erc20CtorHashMem caller initialSupply).readWithPadding 0 64)))
+        (Ethereum.KEC ((erc20CtorHashMem caller initialSupply).readWithPadding 0 64)))
       = erc20BalanceOfSlot (.address caller) := by
   unfold erc20CtorHashMem erc20BalanceOfSlot erc20MappingSlot
   rw [twoWordHashMem_read0_64 (UInt256.ofNat caller.val) ⟨0⟩

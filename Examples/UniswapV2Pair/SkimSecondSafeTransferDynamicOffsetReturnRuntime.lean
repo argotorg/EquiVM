@@ -324,20 +324,20 @@ theorem skimSecondSafeTransferDynamicWord96_extract4_32
 def skimSecondSafeTransferDynamicReturnDataPtr (out1 out : ByteArray) : UInt256 :=
   skimSecondSafeTransferDynamicCallPtr out1 + skimSafeTransferReturnDataRounded out
 
-noncomputable def skimSecondSafeTransferDynamicReturnDataPtrMem
+def skimSecondSafeTransferDynamicReturnDataPtrMem
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256) (out1 out2 : ByteArray)
     (value : UInt256) (out : ByteArray) : ByteArray :=
   (UInt256.toByteArray (skimSecondSafeTransferDynamicReturnDataPtr out1 out)).write 0
     (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value) 64 32
 
-noncomputable def skimSecondSafeTransferDynamicReturnDataSizeMem
+def skimSecondSafeTransferDynamicReturnDataSizeMem
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256) (out1 out2 : ByteArray)
     (value : UInt256) (out : ByteArray) : ByteArray :=
   (UInt256.toByteArray (UInt256.ofNat out.size)).write 0
     (skimSecondSafeTransferDynamicReturnDataPtrMem self o toWord prevValue out1 out2 value out)
     (skimSecondSafeTransferDynamicCallPtr out1).toNat 32
 
-noncomputable def skimSecondSafeTransferDynamicReturnDataMem
+def skimSecondSafeTransferDynamicReturnDataMem
     (self : UInt256) (o : ByteArray) (toWord prevValue : UInt256) (out1 out2 : ByteArray)
     (value : UInt256) (out : ByteArray) : ByteArray :=
   out.write 0

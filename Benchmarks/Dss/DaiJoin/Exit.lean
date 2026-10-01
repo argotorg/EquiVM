@@ -245,13 +245,13 @@ theorem evalExprs_daiJoinExitDaiMintArgs (evm : EVM.State) (I : ExecutionEnv) :
     rfl
   simp [evalExprs?, hUsr, hWad, EvalResult.bind, bind, pure]
 
-noncomputable def exitMoveSenderMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def exitMoveSenderMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (solcSourceWord I).toByteArray.write 0 (joinMoveSelectorMem mem) 132 32
 
-noncomputable def exitMoveThisMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def exitMoveThisMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (UInt256.ofNat I.codeOwner.val).toByteArray.write 0 (exitMoveSenderMem I mem) 164 32
 
-noncomputable def exitMoveCalldataMem (I : ExecutionEnv) (rad : UInt256)
+def exitMoveCalldataMem (I : ExecutionEnv) (rad : UInt256)
     (mem : ByteArray) : ByteArray :=
   rad.toByteArray.write 0 (exitMoveThisMem I mem) 196 32
 
@@ -424,13 +424,13 @@ abbrev exitMintSelectorPlainWord : UInt256 := ⟨0x40c10f19⟩
 abbrev exitMintSelectorShiftedWord : UInt256 :=
   UInt256.shiftLeft exitMintSelectorPlainWord ⟨224⟩
 
-noncomputable def exitMintSelectorMem (mem : ByteArray) : ByteArray :=
+def exitMintSelectorMem (mem : ByteArray) : ByteArray :=
   exitMintSelectorShiftedWord.toByteArray.write 0 mem 128 32
 
-noncomputable def exitMintUsrMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def exitMintUsrMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (exitUsrMaskedWord I).toByteArray.write 0 (exitMintSelectorMem mem) 132 32
 
-noncomputable def exitMintCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def exitMintCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (exitWadWord I).toByteArray.write 0 (exitMintUsrMem I mem) 164 32
 
 theorem exitMintSelectorMem_size {mem : ByteArray} (hmem : mem.size = 228) :
@@ -573,7 +573,7 @@ theorem exitMintEncode_eq (I : ExecutionEnv) {mem : ByteArray}
 abbrev exitEventSignatureWord : UInt256 :=
   ⟨0x22d324652c93739755cf4581508b60875ebdd78c20c0cff5cf8e23452b299631⟩
 
-noncomputable def exitExitEventMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def exitExitEventMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (exitWadWord I).toByteArray.write 0 mem 128 32
 
 theorem exitExitEventMem_size (I : ExecutionEnv) {mem : ByteArray} (hmem : mem.size = 228) :

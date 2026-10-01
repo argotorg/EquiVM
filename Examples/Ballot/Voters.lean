@@ -90,7 +90,7 @@ theorem votersDelegateWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEn
 theorem votersBaseSlot_spec (I : ExecutionEnv)
     (hcanon : (votersArgWord I).toNat < EVM.addressModulus) :
     votersBaseSlot I =
-      uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (votersArgWord I) ++
+      uInt256OfByteArray (KEC (UInt256.toByteArray (votersArgWord I) ++
         UInt256.toByteArray (⟨1⟩ : UInt256))) := by
   unfold votersBaseSlot voterBase mapSlot
   rw [keyValueToWord_address_of_canonical (votersArgWord I) hcanon]
@@ -173,22 +173,22 @@ theorem ballotVotersBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ## Memory used by the voter getter -/
 
-noncomputable def votersBaseSlotMem : ByteArray :=
+def votersBaseSlotMem : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0 solcFreePtrMem 32 32
 
-noncomputable def votersHashMem (a : UInt256) : ByteArray :=
+def votersHashMem (a : UInt256) : ByteArray :=
   (UInt256.toByteArray a).write 0 votersBaseSlotMem 0 32
 
-noncomputable def votersReturnWeightMem (scratch weight : UInt256) : ByteArray :=
+def votersReturnWeightMem (scratch weight : UInt256) : ByteArray :=
   (UInt256.toByteArray weight).write 0 (votersHashMem scratch) 128 32
 
-noncomputable def votersReturnVotedMem (scratch weight voted : UInt256) : ByteArray :=
+def votersReturnVotedMem (scratch weight voted : UInt256) : ByteArray :=
   (UInt256.toByteArray voted).write 0 (votersReturnWeightMem scratch weight) 160 32
 
-noncomputable def votersReturnDelegateMem (scratch weight voted delegate : UInt256) : ByteArray :=
+def votersReturnDelegateMem (scratch weight voted delegate : UInt256) : ByteArray :=
   (UInt256.toByteArray delegate).write 0 (votersReturnVotedMem scratch weight voted) 192 32
 
-noncomputable def votersReturnMem (scratch weight voted delegate vote : UInt256) : ByteArray :=
+def votersReturnMem (scratch weight voted delegate vote : UInt256) : ByteArray :=
   (UInt256.toByteArray vote).write 0 (votersReturnDelegateMem scratch weight voted delegate) 224 32
 
 theorem votersBaseSlotMem_size : votersBaseSlotMem.size = 96 := by
@@ -264,7 +264,7 @@ theorem votersHashMem_mload64 (a : UInt256) :
 theorem votersKeccakSlot' (I : ExecutionEnv)
     (hcanon : (votersArgWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((votersHashMem (votersArgWord I)).readWithPadding 0 64)))
+        (KEC ((votersHashMem (votersArgWord I)).readWithPadding 0 64)))
       = votersBaseSlot I := by
   have hread :
       (votersHashMem (votersArgWord I)).readWithPadding 0 64 =
@@ -336,7 +336,7 @@ theorem votersReturnWeightMem_read64 (scratch weight : UInt256) :
       toByteArray_size]
     omega)]
   rw [extract_append_left (votersHashMem scratch)
-      (ffi.ByteArray.zeroes (128 - (votersHashMem scratch).size) ++
+      (ByteArray.zeroes (128 - (votersHashMem scratch).size) ++
         UInt256.toByteArray weight)
       64 96 (by rw [votersHashMem_size])]
   rw [← readWithPadding_eq_extract' (votersHashMem scratch) 64 32
@@ -408,7 +408,7 @@ theorem votersReturnMem_read128_128 (scratch weight voted delegate vote : UInt25
       (by rw [votersReturnDelegateMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_span
       (votersReturnDelegateMem scratch weight voted delegate ++
-        ffi.ByteArray.zeroes
+        ByteArray.zeroes
           (224 - (votersReturnDelegateMem scratch weight voted delegate).size))
       (UInt256.toByteArray vote) 128 256 (by
         rw [ByteArray.size_append, votersReturnDelegateMem_size, ByteArray_zeroes_size,
@@ -419,7 +419,7 @@ theorem votersReturnMem_read128_128 (scratch weight voted delegate vote : UInt25
         omega)]
   rw [ByteArray.size_append, votersReturnDelegateMem_size, ByteArray_zeroes_size,
     show 224 - 224 = 0 from by norm_num]
-  rw [show ffi.ByteArray.zeroes (224 - 224) =
+  rw [show ByteArray.zeroes (224 - 224) =
       ByteArray.empty by
         exact zeroes_zero (n := 0) (by rfl)]
   simp
@@ -428,7 +428,7 @@ theorem votersReturnMem_read128_128 (scratch weight voted delegate vote : UInt25
       (by rw [votersReturnVotedMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_span
       (votersReturnVotedMem scratch weight voted ++
-        ffi.ByteArray.zeroes
+        ByteArray.zeroes
           (192 - (votersReturnVotedMem scratch weight voted).size))
       (UInt256.toByteArray delegate) 128 224 (by
         rw [ByteArray.size_append, votersReturnVotedMem_size, ByteArray_zeroes_size,
@@ -439,7 +439,7 @@ theorem votersReturnMem_read128_128 (scratch weight voted delegate vote : UInt25
         omega)]
   rw [ByteArray.size_append, votersReturnVotedMem_size, ByteArray_zeroes_size,
     show 192 - 192 = 0 from by norm_num]
-  rw [show ffi.ByteArray.zeroes (192 - 192) =
+  rw [show ByteArray.zeroes (192 - 192) =
       ByteArray.empty by
         exact zeroes_zero (n := 0) (by rfl)]
   simp
@@ -448,7 +448,7 @@ theorem votersReturnMem_read128_128 (scratch weight voted delegate vote : UInt25
       (by rw [votersReturnWeightMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_span
       (votersReturnWeightMem scratch weight ++
-        ffi.ByteArray.zeroes (160 - (votersReturnWeightMem scratch weight).size))
+        ByteArray.zeroes (160 - (votersReturnWeightMem scratch weight).size))
       (UInt256.toByteArray voted) 128 192 (by
         rw [ByteArray.size_append, votersReturnWeightMem_size, ByteArray_zeroes_size,
           show 160 - 160 = 0 from by norm_num]
@@ -458,7 +458,7 @@ theorem votersReturnMem_read128_128 (scratch weight voted delegate vote : UInt25
         omega)]
   rw [ByteArray.size_append, votersReturnWeightMem_size, ByteArray_zeroes_size,
     show 160 - 160 = 0 from by norm_num]
-  rw [show ffi.ByteArray.zeroes (160 - 160) =
+  rw [show ByteArray.zeroes (160 - 160) =
       ByteArray.empty by
         exact zeroes_zero (n := 0) (by rfl)]
   simp
@@ -466,7 +466,7 @@ theorem votersReturnMem_read128_128 (scratch weight voted delegate vote : UInt25
   rw [toByteArray_write_eq _ _ _ (by rw [votersHashMem_size]; omega)
       (by rw [votersHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_right_window
-      (votersHashMem scratch ++ ffi.ByteArray.zeroes (128 - (votersHashMem scratch).size))
+      (votersHashMem scratch ++ ByteArray.zeroes (128 - (votersHashMem scratch).size))
       (UInt256.toByteArray weight) 128 160 (by
         rw [ByteArray.size_append, votersHashMem_size, ByteArray_zeroes_size,
           show 128 - 96 = 32 from by norm_num])]

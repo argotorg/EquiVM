@@ -49,13 +49,13 @@ abbrev endSkimReturnPc : UInt256 := ⟨562⟩
 abbrev endSkimDecodedPc : UInt256 := ⟨873⟩
 abbrev endSkimBodyPc : UInt256 := ⟨6705⟩
 
-noncomputable def endSkimVatIlksBaseMem (I : ExecutionEnv) : ByteArray :=
+def endSkimVatIlksBaseMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (endSkimIlkWord I) ⟨12⟩ solcFreePtrMem
 
-noncomputable def endSkimVatIlksCalldataMem (I : ExecutionEnv) : ByteArray :=
+def endSkimVatIlksCalldataMem (I : ExecutionEnv) : ByteArray :=
   endFlowVatIlksCalldataMem I (endSkimVatIlksBaseMem I)
 
-noncomputable def endSkimVatIlksPostCallMem (I : ExecutionEnv) (out : ByteArray) :
+def endSkimVatIlksPostCallMem (I : ExecutionEnv) (out : ByteArray) :
     ByteArray :=
   out.write 0 (endSkimVatIlksCalldataMem I) endFlowVatIlksOutPtr.toNat
     (min endFlowVatIlksOutSize.toNat out.size)
@@ -72,35 +72,35 @@ abbrev endSkimStoreRate (I : ExecutionEnv) (out : ByteArray) : Store :=
   (endSkimStoreVatIlk I out).insert "rate"
     (.int (Int.ofNat (endFlowVatIlkRateWord out).toNat))
 
-noncomputable def endSkimUrnsSelectorMem (I : ExecutionEnv) (vatOut : ByteArray) :
+def endSkimUrnsSelectorMem (I : ExecutionEnv) (vatOut : ByteArray) :
     ByteArray :=
   endFreeUrnsSelectorShifted.toByteArray.write 0 (endSkimVatIlksPostCallMem I vatOut)
     endFreeUrnsOutPtr.toNat 32
 
-noncomputable def endSkimUrnsArg0Mem (I : ExecutionEnv) (vatOut : ByteArray) :
+def endSkimUrnsArg0Mem (I : ExecutionEnv) (vatOut : ByteArray) :
     ByteArray :=
   (endSkimIlkWord I).toByteArray.write 0 (endSkimUrnsSelectorMem I vatOut)
     (endFreeUrnsOutPtr + ⟨4⟩).toNat 32
 
-noncomputable def endSkimUrnsCalldataMem (I : ExecutionEnv) (vatOut : ByteArray) :
+def endSkimUrnsCalldataMem (I : ExecutionEnv) (vatOut : ByteArray) :
     ByteArray :=
   (endSkimUrnKey I).toByteArray.write 0 (endSkimUrnsArg0Mem I vatOut)
     (endFreeUrnsOutPtr + ⟨36⟩).toNat 32
 
-noncomputable def endSkimUrnsPostCallMem (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
+def endSkimUrnsPostCallMem (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
     ByteArray :=
   urnOut.write 0 (endSkimUrnsCalldataMem I vatOut) endFreeUrnsOutPtr.toNat
     (min endFreeUrnsOutSize.toNat urnOut.size)
 
-noncomputable def endSkimTagHashMem (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
+def endSkimTagHashMem (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
     ByteArray :=
   twoWordHashMem (endSkimIlkWord I) ⟨12⟩ (endSkimUrnsPostCallMem I vatOut urnOut)
 
-noncomputable def endSkimGapHashMem (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
+def endSkimGapHashMem (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
     ByteArray :=
   twoWordHashMem (endSkimIlkWord I) ⟨13⟩ (endSkimTagHashMem I vatOut urnOut)
 
-noncomputable def endSkimGapStoreHashMem (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
+def endSkimGapStoreHashMem (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
     ByteArray :=
   twoWordHashMem (endSkimIlkWord I) ⟨13⟩ (endSkimGapHashMem I vatOut urnOut)
 
@@ -222,47 +222,47 @@ def endSkimGrabWrites (σ : AccountMap) (I : ExecutionEnv) (vatOut urnOut : Byte
     (260, endSkimGrabDinkWord σ I vatOut urnOut),
     (292, endSkimGrabDartWord urnOut) ]
 
-noncomputable def endSkimGrabCalldataMem (σ : AccountMap) (I : ExecutionEnv)
+def endSkimGrabCalldataMem (σ : AccountMap) (I : ExecutionEnv)
     (vatOut urnOut : ByteArray) : ByteArray :=
   writeCascade (endSkimGapStoreHashMem I vatOut urnOut)
     (endSkimGrabWrites σ I vatOut urnOut)
 
-noncomputable def endSkimGrabMem1 (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
+def endSkimGrabMem1 (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
     ByteArray :=
   writeWord (endSkimGapStoreHashMem I vatOut urnOut) 128 endFreeGrabSelectorShifted
 
-noncomputable def endSkimGrabMem2 (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
+def endSkimGrabMem2 (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
     ByteArray :=
   writeWord (endSkimGrabMem1 I vatOut urnOut) 132 (endSkimIlkWord I)
 
-noncomputable def endSkimGrabMem3 (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
+def endSkimGrabMem3 (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
     ByteArray :=
   writeWord (endSkimGrabMem2 I vatOut urnOut) 164 (endSkimUrnKey I)
 
-noncomputable def endSkimGrabMem4 (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
+def endSkimGrabMem4 (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
     ByteArray :=
   writeWord (endSkimGrabMem3 I vatOut urnOut) 196 (endSkimThisWord I)
 
-noncomputable def endSkimGrabMem5 (σ : AccountMap) (I : ExecutionEnv)
+def endSkimGrabMem5 (σ : AccountMap) (I : ExecutionEnv)
     (vatOut urnOut : ByteArray) : ByteArray :=
   writeWord (endSkimGrabMem4 I vatOut urnOut) 228 (endPackVowWord σ I)
 
-noncomputable def endSkimGrabMem6 (σ : AccountMap) (I : ExecutionEnv)
+def endSkimGrabMem6 (σ : AccountMap) (I : ExecutionEnv)
     (vatOut urnOut : ByteArray) : ByteArray :=
   writeWord (endSkimGrabMem5 σ I vatOut urnOut) 260
     (endSkimGrabDinkWord σ I vatOut urnOut)
 
-noncomputable def endSkimGrabMem7 (σ : AccountMap) (I : ExecutionEnv)
+def endSkimGrabMem7 (σ : AccountMap) (I : ExecutionEnv)
     (vatOut urnOut : ByteArray) : ByteArray :=
   writeWord (endSkimGrabMem6 σ I vatOut urnOut) 292
     (endSkimGrabDartWord urnOut)
 
-noncomputable def endSkimGrabPostCallMem (σ : AccountMap) (I : ExecutionEnv)
+def endSkimGrabPostCallMem (σ : AccountMap) (I : ExecutionEnv)
     (vatOut urnOut ret : ByteArray) : ByteArray :=
   ret.write 0 (endSkimGrabCalldataMem σ I vatOut urnOut)
     endFreeGrabOutPtr.toNat (min endFreeGrabOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endSkimLogDataMem (σ : AccountMap) (I : ExecutionEnv)
+def endSkimLogDataMem (σ : AccountMap) (I : ExecutionEnv)
     (vatOut urnOut ret : ByteArray) : ByteArray :=
   (endSkimWadWord σ I vatOut urnOut).toByteArray.write 0
     (endSkimGrabPostCallMem σ I vatOut urnOut ret) 128 32
@@ -277,31 +277,31 @@ def endSkimGrabWritesFor (σCall σLoc : AccountMap) (I : ExecutionEnv)
     (260, endSkimGrabDinkWord σLoc I vatOut urnOut),
     (292, endSkimGrabDartWord urnOut) ]
 
-noncomputable def endSkimGrabCalldataMemFor (σCall σLoc : AccountMap)
+def endSkimGrabCalldataMemFor (σCall σLoc : AccountMap)
     (I : ExecutionEnv) (vatOut urnOut : ByteArray) : ByteArray :=
   writeCascade (endSkimGapStoreHashMem I vatOut urnOut)
     (endSkimGrabWritesFor σCall σLoc I vatOut urnOut)
 
-noncomputable def endSkimGrabMem5For (σCall : AccountMap) (I : ExecutionEnv)
+def endSkimGrabMem5For (σCall : AccountMap) (I : ExecutionEnv)
     (vatOut urnOut : ByteArray) : ByteArray :=
   writeWord (endSkimGrabMem4 I vatOut urnOut) 228 (endPackVowWord σCall I)
 
-noncomputable def endSkimGrabMem6For (σCall σLoc : AccountMap) (I : ExecutionEnv)
+def endSkimGrabMem6For (σCall σLoc : AccountMap) (I : ExecutionEnv)
     (vatOut urnOut : ByteArray) : ByteArray :=
   writeWord (endSkimGrabMem5For σCall I vatOut urnOut) 260
     (endSkimGrabDinkWord σLoc I vatOut urnOut)
 
-noncomputable def endSkimGrabMem7For (σCall σLoc : AccountMap) (I : ExecutionEnv)
+def endSkimGrabMem7For (σCall σLoc : AccountMap) (I : ExecutionEnv)
     (vatOut urnOut : ByteArray) : ByteArray :=
   writeWord (endSkimGrabMem6For σCall σLoc I vatOut urnOut) 292
     (endSkimGrabDartWord urnOut)
 
-noncomputable def endSkimGrabPostCallMemFor (σCall σLoc : AccountMap)
+def endSkimGrabPostCallMemFor (σCall σLoc : AccountMap)
     (I : ExecutionEnv) (vatOut urnOut ret : ByteArray) : ByteArray :=
   ret.write 0 (endSkimGrabCalldataMemFor σCall σLoc I vatOut urnOut)
     endFreeGrabOutPtr.toNat (min endFreeGrabOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endSkimLogDataMemFor (σCall σLoc : AccountMap) (I : ExecutionEnv)
+def endSkimLogDataMemFor (σCall σLoc : AccountMap) (I : ExecutionEnv)
     (vatOut urnOut ret : ByteArray) : ByteArray :=
   (endSkimWadWord σLoc I vatOut urnOut).toByteArray.write 0
     (endSkimGrabPostCallMemFor σCall σLoc I vatOut urnOut ret) 128 32
@@ -981,7 +981,7 @@ theorem endSkimX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw swap1 (by native_decide) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨12⟩ key solcFreePtrMem_size
   have rd6720pre := rd6719pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
@@ -1065,7 +1065,7 @@ theorem endSkimX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw swap1 (by native_decide) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨12⟩ key solcFreePtrMem_size
   have rd6720pre := rd6719pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
@@ -1888,7 +1888,7 @@ theorem endSkimX_oweRmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
   have hpostSize : mem0.size = 288 := by
     simpa [mem0] using endSkimUrnsPostCallMem_size I vatOut urnOut hloVat
   have hhash :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (mem12.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (mem12.readWithPadding 0 64))) =
         solcMappingSlot ⟨12⟩ key := by
     simpa [mem12, endSkimTagHashMem, key] using
       endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem0) ⟨12⟩ key
@@ -2046,7 +2046,7 @@ theorem endSkimX_gapSubEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     exact endFlow_twoWordHashMem_size_of_ge64 key ⟨12⟩
       (by rw [hpostSize]; omega)
   have hhash :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (mem13.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (mem13.readWithPadding 0 64))) =
         solcMappingSlot ⟨13⟩ key := by
     simpa [mem13, endSkimGapHashMem, key] using
       endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem12) ⟨13⟩ key
@@ -3019,7 +3019,7 @@ theorem endSkimLogDataMemFor_read64 (σCall σLoc : AccountMap) (I : ExecutionEn
       endSkimGrabCalldataMemFor_size σCall σLoc I vatOut urnOut hloVat]; native_decide)]
   exact endSkimGrabPostCallMemFor_read64 σCall σLoc I vatOut urnOut ret hloVat
 
-noncomputable def endSkimLogDataMem2For (σCall σLoc : AccountMap) (I : ExecutionEnv)
+def endSkimLogDataMem2For (σCall σLoc : AccountMap) (I : ExecutionEnv)
     (vatOut urnOut ret : ByteArray) : ByteArray :=
   (endFreeUrnArtWord urnOut).toByteArray.write 0
     (endSkimLogDataMemFor σCall σLoc I vatOut urnOut ret) 160 32
@@ -3480,7 +3480,7 @@ theorem endSkimX_gapStoreAtHash {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     exact endFlow_twoWordHashMem_size_of_ge64 key ⟨13⟩
       (by rw [hmem12Size, hpostSize]; omega)
   have hhash :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (memStore.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (memStore.readWithPadding 0 64))) =
         solcMappingSlot ⟨13⟩ key := by
     simpa [memStore, endSkimGapStoreHashMem, key, mem13] using
       endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem13) ⟨13⟩ key
@@ -3550,7 +3550,7 @@ theorem endSkimX_gapStoreIntGuardOk {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     exact endFlow_twoWordHashMem_size_of_ge64 key ⟨13⟩
       (by rw [hmem12Size, hpostSize]; omega)
   have hhash :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (memStore.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (memStore.readWithPadding 0 64))) =
         solcMappingSlot ⟨13⟩ key := by
     simpa [memStore, endSkimGapStoreHashMem, key, mem13] using
       endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem13) ⟨13⟩ key

@@ -259,7 +259,7 @@ theorem RD.clipperKickTopPositiveToIncentive {code : ByteArray}
     (clipperKickJumpDest6149 v hpatch) (by evm_ov)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem id (⟨12⟩ : UInt256) mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem id (⟨12⟩ : UInt256) mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨12⟩ id :=
     twoWordHashMem_solcMappingSlot_of_ge (⟨12⟩ : UInt256) id (by rw [hmem]; omega)
   have rdHash := evm_run rd6149 with [

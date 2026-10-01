@@ -6,13 +6,13 @@ namespace Auction
 
 def addressEventPtr (mem : ByteArray) (aw : UInt256) : UInt256 := loadedWord mem aw ⟨64⟩
 
-noncomputable def addressEventMem (mem : ByteArray) (aw value : UInt256) : ByteArray :=
+def addressEventMem (mem : ByteArray) (aw value : UInt256) : ByteArray :=
   (UInt256.land value solcAddrMask).toByteArray.write 0 mem (addressEventPtr mem aw).toNat 32
 
 def addressEventStoredWords (mem : ByteArray) (aw : UInt256) : UInt256 :=
   expandedWords (expandedWords aw ⟨64⟩ ⟨32⟩) (addressEventPtr mem aw) ⟨32⟩
 
-noncomputable def addressEventWords (mem : ByteArray) (aw value : UInt256) : UInt256 :=
+def addressEventWords (mem : ByteArray) (aw value : UInt256) : UInt256 :=
   let aw' := addressEventStoredWords mem aw
   let ptr' := loadedWord (addressEventMem mem aw value) aw' ⟨64⟩
   expandedWords (expandedWords aw' ⟨64⟩ ⟨32⟩) ptr'

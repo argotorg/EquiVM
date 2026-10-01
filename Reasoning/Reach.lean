@@ -1517,8 +1517,8 @@ theorem Theta_returnedGas_le
   exact Ethereum.EVM.Theta_gas_le
 
 /-- `Θ` return data is word-size-bounded when the calldata supplied to `Θ` is word-size-bounded.
-    The only remaining trusted base is evmlean's opaque-precompile case; interpreted bytecode is
-    proved in `Ethereum.Theory.ReturnDataBound`. -/
+    EVMLean proves both interpreted-bytecode and checked-precompile cases in
+    `Ethereum.Theory.ReturnDataBound`. -/
 theorem Theta_returnData_size_lt
     (blob : List ByteArray) (cA : Batteries.RBSet AccountAddress compare)
     (gh : BlockHeader) (blocks : ProcessedBlocks) (σ σ₀ : AccountMap) (A : Substate)
@@ -1796,7 +1796,7 @@ theorem RD.keccak256 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
     (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: t →
         memoryExpansionCost s .KECCAK256 = mcost)
     (hval : UInt256.ofNat (fromByteArrayBigEndian
-              (ffi.KEC (mem.readWithPadding a.toNat b.toNat))) = kecval)
+              (KEC (mem.readWithPadding a.toNat b.toNat))) = kecval)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
     (hov : t.length + 1 ≤ 1024) :
     RD code ee g s0 (pc + ⟨1⟩) (kecval :: t) mem awout rdata acc (k + 1)

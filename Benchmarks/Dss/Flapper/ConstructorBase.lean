@@ -20,7 +20,7 @@ def flapperCtorArgsTail (vat gem : AccountAddress) : ByteArray :=
   (EVM.Word.toBytesBE (EVM.word vat.val) ++
     EVM.Word.toBytesBE (EVM.word gem.val)).toByteArray
 
-noncomputable def flapperCtorCode (vat gem : AccountAddress) : ByteArray :=
+def flapperCtorCode (vat gem : AccountAddress) : ByteArray :=
   flapperCreationBytecode ++ flapperCtorArgsTail vat gem
 
 private theorem byteArray_append_toList (a b : ByteArray) :
@@ -131,7 +131,7 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
     (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
     (hbase : base.size ≤ destAddr) (hgap : destAddr - base.size < USize.size) :
     src.write srcAddr base destAddr len =
-      base ++ ffi.ByteArray.zeroes (destAddr - base.size) ++
+      base ++ ByteArray.zeroes (destAddr - base.size) ++
         src.extract srcAddr (srcAddr + len) := by
   apply ByteArray.ext
   unfold ByteArray.write
@@ -140,17 +140,17 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
   have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by omega
   simp only [hcopy, htail, ByteArray.data_copySlice, ByteArray.data_append,
     ByteArray.data_extract]
-  have hpz : (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
+  have hpz : (ByteArray.zeroes (destAddr - base.size)).data.size =
       destAddr - base.size := by
-    rw [show (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ffi.ByteArray.zeroes (destAddr - base.size)).size from rfl,
+    rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
+          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
       ByteArray_zeroes_size]
   have hDsz :
-      (base.data ++ (ffi.ByteArray.zeroes (destAddr - base.size)).data).size =
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size =
         destAddr := by
     rw [Array.size_append, hpz, show base.data.size = base.size from rfl]
     omega
-  rw [show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
     rw [zeroes_zero (n := 0) (by rfl)]
     rfl]
   simp only [Array.append_empty, Nat.add_zero]
@@ -159,22 +159,22 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
     omega]
   rw [Array.extract_eq_self_of_le (by rw [hDsz])]
   rw [show
-      (base.data ++ (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract
         (destAddr + len) = #[] from by
     apply Array.extract_eq_empty_of_le
     rw [hDsz]
     omega]
   simp [Array.append_assoc]
 
-noncomputable def flapperCtorCopiedMem (vat gem : AccountAddress) : ByteArray :=
+def flapperCtorCopiedMem (vat gem : AccountAddress) : ByteArray :=
   (flapperCtorCode vat gem).write 5216 solcFreePtrMem 128 64
 
-noncomputable def flapperCtorArgsMem (vat gem : AccountAddress) : ByteArray :=
+def flapperCtorArgsMem (vat gem : AccountAddress) : ByteArray :=
   (UInt256.toByteArray ⟨192⟩).write 0 (flapperCtorCopiedMem vat gem) 64 32
 
 theorem flapperCtorCopiedMem_eq (vat gem : AccountAddress) :
     flapperCtorCopiedMem vat gem =
-      solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++
+      solcFreePtrMem ++ ByteArray.zeroes 32 ++
         flapperCtorArgsTail vat gem := by
   rw [flapperCtorCopiedMem, flapperCtorCode, byteArray_write_from_ge_eq]
   · rw [extract_append_right' flapperCreationBytecode (flapperCtorArgsTail vat gem)
@@ -191,7 +191,7 @@ theorem flapperCtorCopiedMem_eq (vat gem : AccountAddress) :
     exact lt_usize 32 (by norm_num)
 
 private theorem flapperCtorArgsMem_base_size (vat gem : AccountAddress) :
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++
+    (solcFreePtrMem ++ ByteArray.zeroes 32 ++
       flapperCtorArgsTail vat gem).size = 192 := by
   rw [ByteArray.size_append, ByteArray.size_append, solcFreePtrMem_size,
     zeroes_ofNat_size _ (by norm_num), flapperCtorArgsTail_size]
@@ -200,7 +200,7 @@ theorem flapperCtorArgsMem_size (vat gem : AccountAddress) :
     (flapperCtorArgsMem vat gem).size = 192 := by
   rw [flapperCtorArgsMem, flapperCtorCopiedMem_eq]
   rw [toByteArray_write32_size_of_le
-    (base := solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++
+    (base := solcFreePtrMem ++ ByteArray.zeroes 32 ++
       flapperCtorArgsTail vat gem)
     (word := (⟨192⟩ : UInt256)) (off := 64) (baseSize := 192) (finalSize := 192)]
   · exact flapperCtorArgsMem_base_size vat gem
@@ -231,19 +231,19 @@ private theorem flapperCtorArgsMem_read_word (vat gem : AccountAddress)
   rw [flapperCtorArgsMem, flapperCtorCopiedMem_eq]
   rw [write32_read_above_len
     (src := UInt256.toByteArray (⟨192⟩ : UInt256))
-    (base := solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++
+    (base := solcFreePtrMem ++ ByteArray.zeroes 32 ++
       flapperCtorArgsTail vat gem)
     (dest := 64) (read := 128 + start) (len := 32)]
   · have hprefix :
-        (solcFreePtrMem ++ ffi.ByteArray.zeroes 32).size = 128 := by
+        (solcFreePtrMem ++ ByteArray.zeroes 32).size = 128 := by
       rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size 32 (by norm_num)]
     rw [readWithPadding_eq_extract'
-      (solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++
+      (solcFreePtrMem ++ ByteArray.zeroes 32 ++
         flapperCtorArgsTail vat gem)
       (128 + start) 32 (by norm_num) (by norm_num)
       (by rw [flapperCtorArgsMem_base_size]; omega)]
     rw [extract_append_right_window
-      (solcFreePtrMem ++ ffi.ByteArray.zeroes 32)
+      (solcFreePtrMem ++ ByteArray.zeroes 32)
       (flapperCtorArgsTail vat gem) (128 + start) (128 + start + 32)
       (by rw [hprefix]; omega), hprefix]
     rw [show 128 + start - 128 = start by omega,
@@ -289,7 +289,7 @@ theorem flapperCtorArgsMem_mload_gem (vat gem : AccountAddress) :
 abbrev flapperCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
   solcMappingSlot ⟨0⟩ (solcSourceWord I)
 
-noncomputable def flapperCtorWardsHashMem (I : ExecutionEnv) (vat gem : AccountAddress) :
+def flapperCtorWardsHashMem (I : ExecutionEnv) (vat gem : AccountAddress) :
     ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ (flapperCtorArgsMem vat gem)
 
@@ -375,14 +375,14 @@ private theorem twoWordHashMem_read0_64_192 {mem : ByteArray} (key slot : UInt25
 
 theorem flapperCtorWardsHashSlot (I : ExecutionEnv) (vat gem : AccountAddress) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((flapperCtorWardsHashMem I vat gem).readWithPadding 0 64))) =
+        (KEC ((flapperCtorWardsHashMem I vat gem).readWithPadding 0 64))) =
       flapperCtorCallerWardsSlot I := by
   unfold flapperCtorWardsHashMem flapperCtorCallerWardsSlot solcMappingSlot
   rw [twoWordHashMem_read0_64_192]
   · exact mappingSlot_single (solcSourceWord I) ⟨0⟩
   · exact flapperCtorArgsMem_size vat gem
 
-noncomputable def flapperCtorReturnMem (I : ExecutionEnv) (vat gem : AccountAddress) : ByteArray :=
+def flapperCtorReturnMem (I : ExecutionEnv) (vat gem : AccountAddress) : ByteArray :=
   (flapperCtorCode vat gem).write 208 (flapperCtorWardsHashMem I vat gem) 0 5008
 
 theorem flapperCtorReturnMem_read (I : ExecutionEnv) (vat gem : AccountAddress) :

@@ -849,7 +849,7 @@ theorem cureTellReturn_time {cA gh bl σ σ₀ A I} {g : UInt256}
     (by simp)
   simpa using hret
 
-noncomputable def cureTellRevertLiteralMem : ByteArray :=
+def cureTellRevertLiteralMem : ByteArray :=
   cureBytecode.write 3826 (solcErrorStringMem2 ⟨37⟩ solcFreePtrMem) 196 37
 
 theorem solcErrorStringMem2_read64 (len : UInt256) {mem : ByteArray}

@@ -178,7 +178,7 @@ theorem evalExpr_auth_false_of_wards_none (evm : EVM.State) (I : ExecutionEnv)
   simp only [evalBinaryOp?]
   rw [hbeq]
 
-noncomputable abbrev relyAuthHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev relyAuthHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (relySourceWord I) ⟨0⟩ solcFreePtrMem
 
 theorem relyAuthHashMem_size (I : ExecutionEnv) :

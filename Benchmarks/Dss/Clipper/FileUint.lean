@@ -227,7 +227,7 @@ theorem clipperFileUintAuthHashMem_mload64 (I : ExecutionEnv) :
     (by decide)
     (clipperRelyAuthHashMem_read64 I)
 
-noncomputable abbrev clipperFileUintEventMem (I : ExecutionEnv) : ByteArray :=
+abbrev clipperFileUintEventMem (I : ExecutionEnv) : ByteArray :=
   solcScratchReturnMem (clipperRelyAuthHashMem I) (clipperFileUintData I)
 
 theorem clipperFileUintEventMem_mload64 (I : ExecutionEnv) :
@@ -253,7 +253,7 @@ theorem clipperFileUintX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : �
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (clipperRelySourceWord I) ⟨0⟩ := by
     simpa [clipperRelyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (clipperRelySourceWord I)
@@ -1292,7 +1292,7 @@ theorem clipperFileUintX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C :
     RDrev code g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (clipperRelySourceWord I) ⟨0⟩ := by
     simpa [clipperRelyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (clipperRelySourceWord I)

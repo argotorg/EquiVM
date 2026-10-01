@@ -69,15 +69,15 @@ def endSnipStoreDogIlk (I : ExecutionEnv) (out : ByteArray) : Store :=
 def endSnipStoreClip (I : ExecutionEnv) (out : ByteArray) : Store :=
   (endSnipStoreDogIlk I out).insert "clip" (.address (endSnipDogIlkClipAddr out))
 
-noncomputable def endSnipDogIlksBaseMem (I : ExecutionEnv) : ByteArray :=
+def endSnipDogIlksBaseMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (endSnipIlkWord I) ⟨12⟩ solcFreePtrMem
 
-noncomputable def endSnipDogIlksCalldataMem (I : ExecutionEnv) : ByteArray :=
+def endSnipDogIlksCalldataMem (I : ExecutionEnv) : ByteArray :=
   endFlowVatIlksCalldataMem I (endSnipDogIlksBaseMem I)
 
 abbrev endSnipDogIlksOutSize : UInt256 := ⟨128⟩
 
-noncomputable def endSnipDogIlksPostCallMem (I : ExecutionEnv) (out : ByteArray) :
+def endSnipDogIlksPostCallMem (I : ExecutionEnv) (out : ByteArray) :
     ByteArray :=
   out.write 0 (endSnipDogIlksCalldataMem I) endFlowVatIlksOutPtr.toNat
     (min endSnipDogIlksOutSize.toNat out.size)
@@ -94,11 +94,11 @@ def endSnipStoreRate (I : ExecutionEnv) (dogOut vatOut : ByteArray) : Store :=
   (endSnipStoreVatIlk I dogOut vatOut).insert "rate"
     (.int (Int.ofNat (endFlowVatIlkRateWord vatOut).toNat))
 
-noncomputable def endSnipVatIlksCalldataMem (I : ExecutionEnv) (dogOut : ByteArray) :
+def endSnipVatIlksCalldataMem (I : ExecutionEnv) (dogOut : ByteArray) :
     ByteArray :=
   endFlowVatIlksCalldataMem I (endSnipDogIlksPostCallMem I dogOut)
 
-noncomputable def endSnipVatIlksPostCallMem (I : ExecutionEnv) (dogOut vatOut : ByteArray) :
+def endSnipVatIlksPostCallMem (I : ExecutionEnv) (dogOut vatOut : ByteArray) :
     ByteArray :=
   vatOut.write 0 (endSnipVatIlksCalldataMem I dogOut) endFlowVatIlksOutPtr.toNat
     (min endFlowVatIlksOutSize.toNat vatOut.size)
@@ -113,17 +113,17 @@ abbrev endSnipSalesOutSize : UInt256 := ⟨192⟩
 abbrev endSnipSalesClipWord (dogOut : ByteArray) : UInt256 :=
   UInt256.land solcAddrMask (endSnipDogIlkClipWord dogOut)
 
-noncomputable def endSnipSalesSelectorMem (I : ExecutionEnv) (dogOut vatOut : ByteArray) :
+def endSnipSalesSelectorMem (I : ExecutionEnv) (dogOut vatOut : ByteArray) :
     ByteArray :=
   endSnipSalesSelectorShifted.toByteArray.write 0
     (endSnipVatIlksPostCallMem I dogOut vatOut) endFlowVatIlksOutPtr.toNat 32
 
-noncomputable def endSnipSalesCalldataMem (I : ExecutionEnv) (dogOut vatOut : ByteArray) :
+def endSnipSalesCalldataMem (I : ExecutionEnv) (dogOut vatOut : ByteArray) :
     ByteArray :=
   (endSnipIdWord I).toByteArray.write 0 (endSnipSalesSelectorMem I dogOut vatOut)
     (endFlowVatIlksOutPtr + ⟨4⟩).toNat 32
 
-noncomputable def endSnipSalesPostCallMem
+def endSnipSalesPostCallMem
     (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   saleOut.write 0 (endSnipSalesCalldataMem I dogOut vatOut)
     endFlowVatIlksOutPtr.toNat (min endSnipSalesOutSize.toNat saleOut.size)
@@ -382,7 +382,7 @@ def endSnipStoreGrab (σ : AccountMap) (I : ExecutionEnv)
 
 abbrev endSnipThisWord (I : ExecutionEnv) : UInt256 := UInt256.ofNat I.codeOwner.val
 
-noncomputable def endSnipSuckCalldataMem (σ : AccountMap) (I : ExecutionEnv)
+def endSnipSuckCalldataMem (σ : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   writeCascade (endSnipSalesPostCallMem I dogOut vatOut saleOut)
     [ (128, endSnipSuckSelectorShifted),
@@ -390,45 +390,45 @@ noncomputable def endSnipSuckCalldataMem (σ : AccountMap) (I : ExecutionEnv)
       (164, endPackVowWord σ I),
       (196, endSnipSaleTabWord saleOut) ]
 
-noncomputable def endSnipSuckMem1 (I : ExecutionEnv)
+def endSnipSuckMem1 (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   writeWord (endSnipSalesPostCallMem I dogOut vatOut saleOut) 128
     endSnipSuckSelectorShifted
 
-noncomputable def endSnipSuckMem2 (σ : AccountMap) (I : ExecutionEnv)
+def endSnipSuckMem2 (σ : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   writeWord (endSnipSuckMem1 I dogOut vatOut saleOut) 132 (endPackVowWord σ I)
 
-noncomputable def endSnipSuckMem3 (σ : AccountMap) (I : ExecutionEnv)
+def endSnipSuckMem3 (σ : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   writeWord (endSnipSuckMem2 σ I dogOut vatOut saleOut) 164 (endPackVowWord σ I)
 
-noncomputable def endSnipSuckPostCallMem (σ : AccountMap) (I : ExecutionEnv)
+def endSnipSuckPostCallMem (σ : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut ret : ByteArray) : ByteArray :=
   ret.write 0 (endSnipSuckCalldataMem σ I dogOut vatOut saleOut)
     endSnipSuckOutPtr.toNat (min endSnipSuckOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endSnipYankCalldataMem (σ : AccountMap) (I : ExecutionEnv)
+def endSnipYankCalldataMem (σ : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   writeCascade (endSnipSuckCalldataMem σ I dogOut vatOut saleOut)
     [ (128, endSnipYankSelectorShifted), (132, endSnipIdWord I) ]
 
-noncomputable def endSnipYankMem1 (σ : AccountMap) (I : ExecutionEnv)
+def endSnipYankMem1 (σ : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   writeWord (endSnipSuckCalldataMem σ I dogOut vatOut saleOut) 128
     endSnipYankSelectorShifted
 
-noncomputable def endSnipYankPostCallMem (σ : AccountMap) (I : ExecutionEnv)
+def endSnipYankPostCallMem (σ : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut ret : ByteArray) : ByteArray :=
   ret.write 0 (endSnipYankCalldataMem σ I dogOut vatOut saleOut)
     endSnipYankOutPtr.toNat (min endSnipYankOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endSnipArtHashMem (σ : AccountMap) (I : ExecutionEnv)
+def endSnipArtHashMem (σ : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   twoWordHashMem (endSnipIlkWord I) ⟨14⟩
     (endSnipYankPostCallMem σ I dogOut vatOut saleOut ByteArray.empty)
 
-noncomputable def endSnipArtStoreHashMem (σ : AccountMap) (I : ExecutionEnv)
+def endSnipArtStoreHashMem (σ : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   twoWordHashMem (endSnipIlkWord I) ⟨14⟩
     (endSnipArtHashMem σ I dogOut vatOut saleOut)
@@ -443,62 +443,62 @@ def endSnipGrabWritesFor (σCall σLoc : AccountMap) (I : ExecutionEnv)
     (260, endSnipSaleLotWord saleOut),
     (292, endSnipArtWord vatOut saleOut) ]
 
-noncomputable def endSnipGrabCalldataMemFor (σCall σLoc : AccountMap)
+def endSnipGrabCalldataMemFor (σCall σLoc : AccountMap)
     (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   writeCascade (endSnipArtStoreHashMem σLoc I dogOut vatOut saleOut)
     (endSnipGrabWritesFor σCall σLoc I dogOut vatOut saleOut)
 
-noncomputable def endSnipGrabMem1 (σLoc : AccountMap) (I : ExecutionEnv)
+def endSnipGrabMem1 (σLoc : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   writeWord (endSnipArtStoreHashMem σLoc I dogOut vatOut saleOut) 128
     endFreeGrabSelectorShifted
 
-noncomputable def endSnipGrabMem2 (σLoc : AccountMap) (I : ExecutionEnv)
+def endSnipGrabMem2 (σLoc : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   writeWord (endSnipGrabMem1 σLoc I dogOut vatOut saleOut) 132
     (endSnipIlkWord I)
 
-noncomputable def endSnipGrabMem3 (σLoc : AccountMap) (I : ExecutionEnv)
+def endSnipGrabMem3 (σLoc : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   writeWord (endSnipGrabMem2 σLoc I dogOut vatOut saleOut) 164
     (endSnipSaleUsrAddrWord saleOut)
 
-noncomputable def endSnipGrabMem4 (σLoc : AccountMap) (I : ExecutionEnv)
+def endSnipGrabMem4 (σLoc : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   writeWord (endSnipGrabMem3 σLoc I dogOut vatOut saleOut) 196
     (endSnipThisWord I)
 
-noncomputable def endSnipGrabMem5For (σCall σLoc : AccountMap) (I : ExecutionEnv)
+def endSnipGrabMem5For (σCall σLoc : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   writeWord (endSnipGrabMem4 σLoc I dogOut vatOut saleOut) 228
     (endPackVowWord σCall I)
 
-noncomputable def endSnipGrabMem6For (σCall σLoc : AccountMap) (I : ExecutionEnv)
+def endSnipGrabMem6For (σCall σLoc : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   writeWord (endSnipGrabMem5For σCall σLoc I dogOut vatOut saleOut) 260
     (endSnipSaleLotWord saleOut)
 
-noncomputable def endSnipGrabMem7For (σCall σLoc : AccountMap) (I : ExecutionEnv)
+def endSnipGrabMem7For (σCall σLoc : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : ByteArray :=
   writeWord (endSnipGrabMem6For σCall σLoc I dogOut vatOut saleOut) 292
     (endSnipArtWord vatOut saleOut)
 
-noncomputable def endSnipGrabPostCallMemFor (σCall σLoc : AccountMap)
+def endSnipGrabPostCallMemFor (σCall σLoc : AccountMap)
     (I : ExecutionEnv) (dogOut vatOut saleOut ret : ByteArray) : ByteArray :=
   ret.write 0 (endSnipGrabCalldataMemFor σCall σLoc I dogOut vatOut saleOut)
     endFreeGrabOutPtr.toNat (min endFreeGrabOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endSnipLogDataMemFor (σCall σLoc : AccountMap) (I : ExecutionEnv)
+def endSnipLogDataMemFor (σCall σLoc : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut ret : ByteArray) : ByteArray :=
   (endSnipSaleTabWord saleOut).toByteArray.write 0
     (endSnipGrabPostCallMemFor σCall σLoc I dogOut vatOut saleOut ret) 128 32
 
-noncomputable def endSnipLogDataMem2For (σCall σLoc : AccountMap) (I : ExecutionEnv)
+def endSnipLogDataMem2For (σCall σLoc : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut ret : ByteArray) : ByteArray :=
   (endSnipSaleLotWord saleOut).toByteArray.write 0
     (endSnipLogDataMemFor σCall σLoc I dogOut vatOut saleOut ret) 160 32
 
-noncomputable def endSnipLogDataMem3For (σCall σLoc : AccountMap) (I : ExecutionEnv)
+def endSnipLogDataMem3For (σCall σLoc : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut ret : ByteArray) : ByteArray :=
   (endSnipArtWord vatOut saleOut).toByteArray.write 0
     (endSnipLogDataMem2For σCall σLoc I dogOut vatOut saleOut ret) 192 32
@@ -2687,7 +2687,7 @@ theorem endSnipX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw swap1 (by native_decide) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨12⟩ key solcFreePtrMem_size
   have rd1664pre := rd1663pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
@@ -2771,7 +2771,7 @@ theorem endSnipX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw swap1 (by native_decide) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨12⟩ key solcFreePtrMem_size
   have rd1664pre := rd1663pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
@@ -4916,7 +4916,7 @@ theorem endSnipX_artAddEntry {cA cA' gh bl σ σmem σpost σ₀ A I}
     simpa [mem0, endSnipYankPostCallMem_eq] using
       endSnipYankCalldataMem_size σmem I dogOut vatOut saleOut hloDog hloVat hloSale
   have hhash :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (mem14.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (mem14.readWithPadding 0 64))) =
         solcMappingSlot ⟨14⟩ key := by
     simpa [mem14, endSnipArtHashMem, key, mem0, endSnipYankPostCallMem_eq] using
       endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem0) ⟨14⟩ key
@@ -5137,7 +5137,7 @@ theorem endSnipX_artStoreAtHash {cA cA' gh bl σ σmem σpost σ₀ A I} {g : Sa
   have hmem14Size : mem14.size = 320 := by
     rw [hmem14SizeEq, hpostSize]
   have hhash :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (memStore.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (memStore.readWithPadding 0 64))) =
         solcMappingSlot ⟨14⟩ key := by
     simpa [memStore, endSnipArtStoreHashMem, key, mem14] using
       endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem14) ⟨14⟩ key

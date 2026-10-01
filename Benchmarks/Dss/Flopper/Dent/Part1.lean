@@ -265,25 +265,25 @@ abbrev dentKissOutSize : UInt256 := ⟨0⟩
 
 abbrev dentKissEndPtr : UInt256 := ⟨164⟩
 
-noncomputable def dentMoveSelectorMem (mem : ByteArray) : ByteArray :=
+def dentMoveSelectorMem (mem : ByteArray) : ByteArray :=
   dentMoveSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def dentAshSelectorMem (mem : ByteArray) : ByteArray :=
+def dentAshSelectorMem (mem : ByteArray) : ByteArray :=
   dentAshSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def dentKissSelectorMem (mem : ByteArray) : ByteArray :=
+def dentKissSelectorMem (mem : ByteArray) : ByteArray :=
   dentKissSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def dentKissCalldataMem (amt : UInt256) (mem : ByteArray) : ByteArray :=
+def dentKissCalldataMem (amt : UInt256) (mem : ByteArray) : ByteArray :=
   amt.toByteArray.write 0 (dentKissSelectorMem mem) 132 32
 
-noncomputable def dentMoveSrcMem (src : UInt256) (mem : ByteArray) : ByteArray :=
+def dentMoveSrcMem (src : UInt256) (mem : ByteArray) : ByteArray :=
   src.toByteArray.write 0 (dentMoveSelectorMem mem) 132 32
 
-noncomputable def dentMoveGuyMem (src guy : UInt256) (mem : ByteArray) : ByteArray :=
+def dentMoveGuyMem (src guy : UInt256) (mem : ByteArray) : ByteArray :=
   guy.toByteArray.write 0 (dentMoveSrcMem src mem) 164 32
 
-noncomputable def dentMoveCalldataMem (src guy bid : UInt256) (mem : ByteArray) : ByteArray :=
+def dentMoveCalldataMem (src guy bid : UInt256) (mem : ByteArray) : ByteArray :=
   bid.toByteArray.write 0 (dentMoveGuyMem src guy mem) 196 32
 
 theorem dentMoveSelectorMem_size {mem : ByteArray} (hmem : mem.size = 96) :
@@ -671,16 +671,16 @@ theorem byteArray_write_size_ge_base
   · simp
   · split
     · change base.data.size ≤
-        (ByteArray.copySlice (ffi.ByteArray.zeroes (min len (base.size - destOff))) 0 base
+        (ByteArray.copySlice (ByteArray.zeroes (min len (base.size - destOff))) 0 base
           (min destOff base.size) (min len (base.size - destOff)) true).data.size
       rw [ByteArray.data_copySlice]
       simp [Array.size_append, Array.size_extract]
       omega
     · change base.data.size ≤
         (ByteArray.copySlice
-          (src ++ ffi.ByteArray.zeroes
+          (src ++ ByteArray.zeroes
             (min base.size (destOff + len) - (destOff + min len (src.size - srcOff))))
-          srcOff (base ++ ffi.ByteArray.zeroes (destOff - base.size)) destOff
+          srcOff (base ++ ByteArray.zeroes (destOff - base.size)) destOff
           (min len (src.size - srcOff) +
             (min base.size (destOff + len) - (destOff + min len (src.size - srcOff))))
           true).data.size

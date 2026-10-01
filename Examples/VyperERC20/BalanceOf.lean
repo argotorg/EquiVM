@@ -108,13 +108,13 @@ theorem balanceOfDispatchMem_size : balanceOfDispatchMem.size = 32 := by
 def balanceOfOwnerArgMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray owner).write 0 balanceOfDispatchMem 64 32
 
-noncomputable def balanceOfKeyMem (owner : UInt256) : ByteArray :=
+def balanceOfKeyMem (owner : UInt256) : ByteArray :=
   wordAt32Mem owner (balanceOfOwnerArgMem owner)
 
-noncomputable def balanceOfHashMem (owner : UInt256) : ByteArray :=
+def balanceOfHashMem (owner : UInt256) : ByteArray :=
   wordAt0Mem ⟨0⟩ (balanceOfKeyMem owner)
 
-noncomputable def balanceOfReturnMem (owner val : UInt256) : ByteArray :=
+def balanceOfReturnMem (owner val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 (balanceOfHashMem owner) 96 32
 
 theorem balanceOfOwnerArgMem_size (owner : UInt256) :
@@ -185,7 +185,7 @@ theorem balanceOfHashMem_read0_64 (owner : UInt256) :
 theorem balanceOfKeccakSlot (I : ExecutionEnv)
     (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((balanceOfHashMem (balanceOfOwnerWord I)).readWithPadding 0 64)))
+        (KEC ((balanceOfHashMem (balanceOfOwnerWord I)).readWithPadding 0 64)))
       = balanceOfSlot I := by
   rw [balanceOfHashMem_read0_64]
   unfold balanceOfSlot erc20BalanceOfSlot vyperMappingSlot

@@ -6,6 +6,8 @@ open Benchmarks.Dss.Clipper.Immutables
 
 namespace Benchmarks.Dss.Clipper
 
+attribute [local irreducible] Ethereum.KEC
+
 set_option linter.unusedTactic false
 
 theorem clipperGetStatusSalesBaseSlot_eq (I : ExecutionEnv) :

@@ -12,7 +12,7 @@ The benchmark intentionally targets the full production Pair runtime, including 
 events are omitted, as in the other examples.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace UniswapV2Pair
 
@@ -135,7 +135,7 @@ def storageDecls : List StorageDecl :=
     { name := "unlocked", ty := uint256St } ]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def balanceOfSlot (owner : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord owner) ⟨1⟩

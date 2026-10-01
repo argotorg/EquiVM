@@ -48,10 +48,10 @@ def auctionEndAfterEndedMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
 def auctionEndedTopic : UInt256 :=
   ⟨0xdaec4582d5d9595688c8c98545fdd1c696d41c6aeaeb636737e84ed2f5c00eda⟩
 
-noncomputable def auctionEndEventMemWinner (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def auctionEndEventMemWinner (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (auctionEndWinnerWord σ I)).write 0 solcFreePtrMem 128 32
 
-noncomputable def auctionEndEventMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def auctionEndEventMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (auctionEndHighestBidWord σ I)).write 0
     (auctionEndEventMemWinner σ I) 160 32
 
@@ -507,7 +507,7 @@ theorem blindAuctionX_auctionEndToBody {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpiT (by rw [hwv]; decide) (by jump_dest),
     jumpdest, pop, push2 ⟨276⟩, push2 ⟨566⟩, jump (by jump_dest)]⟩
 
-noncomputable def auctionEndTimeRevertMem (arg errSel : UInt256) : ByteArray :=
+def auctionEndTimeRevertMem (arg errSel : UInt256) : ByteArray :=
   (UInt256.toByteArray arg).write 0 (solcReturnMem errSel) 132 32
 
 theorem auctionEndTimeRevertMem_size (arg errSel : UInt256) :

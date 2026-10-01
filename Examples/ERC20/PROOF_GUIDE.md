@@ -20,13 +20,12 @@ ERC20 should have no `sorry` or `admit`:
 rg -n '\b(sorry|admit)\b' Examples/ERC20
 ```
 
-The remaining ERC20-local trusted facts are intentional:
+The function selector byte facts in `Examples/ERC20/Bytecode.lean` are proved by kernel reduction
+of the pure `Ethereum.KEC` implementation. They are not ERC20-local axioms.
 
-- Function selector byte axioms in `Examples/ERC20/Bytecode.lean`.
-
-ERC20 should not need storage-layout noncollision axioms. `ffi.KEC` is opaque, so Lean cannot prove
-general Keccak noncollision facts, but the ERC20 proof should avoid depending on such facts by
-matching the source semantics and bytecode storage reads exactly.
+ERC20 should not need storage-layout noncollision axioms. The pure Keccak model computes concrete
+hashes, but the ERC20 proof still avoids depending on general Keccak noncollision facts by matching
+the source semantics and bytecode storage reads exactly.
 
 ## File Roles
 
@@ -36,7 +35,8 @@ matching the source semantics and bytecode storage reads exactly.
 - `Common.lean` contains ERC20-wide ABI, memory, selector, and return helpers.
 - `Storage.lean` contains ERC20-wide storage load/store, RBMap preservation, and bool-return facts.
 - `Spec.lean` defines the Solm ERC20 spec and storage layout. Do not silently change it.
-- `Bytecode.lean` defines runtime bytecode and selector/jump trusted facts.
+- `Bytecode.lean` defines runtime bytecode, selector theorems, and the verified
+  jump-destination fact.
 
 ## Proof Architecture
 
@@ -128,7 +128,7 @@ The correct proof split has two balance facts:
   subtraction.
 
 If `hbalanceDebit` fails, both source and bytecode revert through the Solidity checked-subtraction
-panic path. This branch is what lets the proof stay axiom-free even in the opaque-`KEC` model.
+panic path. This branch lets the proof avoid an unsupported Keccak noncollision assumption.
 
 ### Avoiding New Axioms
 
@@ -188,7 +188,7 @@ Adjust the first two commands to match the file being edited.
 4. Do not move general-looking lemmas into `Reasoning/` during ERC20 work unless explicitly asked.
 5. Do not edit `Spec.lean` just to make a proof easier. If the spec looks wrong, stop, explain the
    source/bytecode mismatch, and get approval before changing it.
-6. Do not edit `Bytecode.lean` selector facts casually; they are trusted bytecode facts.
+6. Do not edit `Bytecode.lean` selector facts casually; keep their concrete hashes proved.
 7. For mapping accesses, first identify the Solidity slot expression, then prove the bytecode
    scratch-memory `KECCAK256` path computes the same slot.
 8. For mutating bodies, prove source behavior and EVM reachability branch by branch.

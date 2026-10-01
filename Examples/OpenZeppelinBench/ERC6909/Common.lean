@@ -1,4 +1,4 @@
-import Examples.OpenZeppelinBench.ERC6909.Trusted
+import Examples.OpenZeppelinBench.ERC6909.Selectors
 import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.Memory

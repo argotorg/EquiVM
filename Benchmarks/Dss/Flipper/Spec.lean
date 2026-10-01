@@ -8,7 +8,7 @@ Faithful Solm benchmark spec for upstream `dss/src/flip.sol`.
 Events are omitted, matching the existing event-bearing DSS benchmarks.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace Benchmarks.Dss.Flipper
 
@@ -143,7 +143,7 @@ def storageDecls : List StorageDecl :=
     { name := "cat", ty := addrSt } ]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def wardsSlot (usr : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord usr) ⟨0⟩

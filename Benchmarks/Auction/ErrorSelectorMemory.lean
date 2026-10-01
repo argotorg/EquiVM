@@ -7,7 +7,7 @@ namespace Auction
 def returnSelector (out : ByteArray) : UInt256 :=
   if 4 ≤ out.size then UInt256.shiftRight (calldataWord out 0) ⟨224⟩ else ⟨0⟩
 
-noncomputable def errorSelectorMem (mem out : ByteArray) : ByteArray :=
+def errorSelectorMem (mem out : ByteArray) : ByteArray :=
   if 4 ≤ out.size then out.write 0 mem 0 4 else mem
 
 def errorSelectorWords (aw : UInt256) (out : ByteArray) : UInt256 :=

@@ -114,25 +114,25 @@ abbrev endPackEvaledBagRef (I : ExecutionEnv) : EvaledStorageRef :=
 def endPackPostState (evm : EVM.State) (I : ExecutionEnv) (bagNew : UInt256) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (endPackBagSlot I) bagNew
 
-noncomputable def endPackMoveSelectorMem (mem : ByteArray) : ByteArray :=
+def endPackMoveSelectorMem (mem : ByteArray) : ByteArray :=
   endPackMoveSelectorShifted.toByteArray.write 0 mem endPackMoveOutPtr.toNat 32
 
-noncomputable def endPackMoveArg0Mem (_σ : AccountMap) (I : ExecutionEnv)
+def endPackMoveArg0Mem (_σ : AccountMap) (I : ExecutionEnv)
     (mem : ByteArray) : ByteArray :=
   (solcSourceWord I).toByteArray.write 0 (endPackMoveSelectorMem mem)
     (endPackMoveOutPtr + ⟨4⟩).toNat 32
 
-noncomputable def endPackMoveArg1Mem (σ : AccountMap) (I : ExecutionEnv)
+def endPackMoveArg1Mem (σ : AccountMap) (I : ExecutionEnv)
     (mem : ByteArray) : ByteArray :=
   (endPackVowWord σ I).toByteArray.write 0 (endPackMoveArg0Mem σ I mem)
     (endPackMoveOutPtr + ⟨36⟩).toNat 32
 
-noncomputable def endPackMoveCalldataMem (σ : AccountMap) (I : ExecutionEnv)
+def endPackMoveCalldataMem (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (mem : ByteArray) : ByteArray :=
   amt.toByteArray.write 0 (endPackMoveArg1Mem σ I mem)
     (endPackMoveOutPtr + ⟨68⟩).toNat 32
 
-noncomputable def endPackMovePostCallMem (σ : AccountMap) (I : ExecutionEnv)
+def endPackMovePostCallMem (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) : ByteArray :=
   out.write 0 (endPackMoveCalldataMem σ I amt solcFreePtrMem) endPackMoveOutPtr.toNat
     (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat
@@ -233,15 +233,15 @@ theorem endPackMovePostCallMem_eq (σ : AccountMap) (I : ExecutionEnv)
   exact byteArray_write_len_zero out (endPackMoveCalldataMem σ I amt solcFreePtrMem)
     0 endPackMoveOutPtr.toNat
 
-noncomputable def endPackBagHashMem (σ : AccountMap) (I : ExecutionEnv)
+def endPackBagHashMem (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨16⟩ (endPackMovePostCallMem σ I amt out)
 
-noncomputable def endPackBagStoreKeyMem (σ : AccountMap) (I : ExecutionEnv)
+def endPackBagStoreKeyMem (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) : ByteArray :=
   wordAt0Mem (solcSourceWord I) (endPackBagHashMem σ I amt out)
 
-noncomputable def endPackBagStoreSlotMem (σ : AccountMap) (I : ExecutionEnv)
+def endPackBagStoreSlotMem (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨16⟩ (endPackBagHashMem σ I amt out)
 
@@ -345,7 +345,7 @@ theorem endTwoWordHashMem_read0_64_228 (key slot : UInt256) {mem : ByteArray}
 theorem endPackBagHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((endPackBagHashMem σ I amt out).readWithPadding 0 64))) =
+        (KEC ((endPackBagHashMem σ I amt out).readWithPadding 0 64))) =
       endPackBagSlot I := by
   rw [endPackBagSlot_eq]
   unfold endPackBagHashMem
@@ -389,7 +389,7 @@ theorem endPackBagStoreSlotMem_read64 (σ : AccountMap) (I : ExecutionEnv)
 theorem endPackBagStoreSlotMem_slot (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((endPackBagStoreSlotMem σ I amt out).readWithPadding 0 64))) =
+        (KEC ((endPackBagStoreSlotMem σ I amt out).readWithPadding 0 64))) =
       endPackBagSlot I := by
   rw [endPackBagSlot_eq]
   unfold endPackBagStoreSlotMem
@@ -398,7 +398,7 @@ theorem endPackBagStoreSlotMem_slot (σ : AccountMap) (I : ExecutionEnv)
   unfold solcMappingSlot
   exact mappingSlot_single (solcSourceWord I) ⟨16⟩
 
-noncomputable def endPackLogDataMem (σ : AccountMap) (I : ExecutionEnv)
+def endPackLogDataMem (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) : ByteArray :=
   (UInt256.toByteArray (endPackWadWord I)).write 0
     (endPackBagStoreSlotMem σ I amt out) 128 32

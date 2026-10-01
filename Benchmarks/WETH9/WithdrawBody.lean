@@ -348,7 +348,7 @@ theorem weth9WithdrawReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
 /-- The caller-keyed keccak of `caller ‖ 3` on the first-segment memory. -/
 theorem withdrawKeccak1 (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem).readWithPadding 0 64)))
+        (KEC ((twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem).readWithPadding 0 64)))
       = callerBalSlot I := by
   rw [twoWordHashMem_solcMappingSlot ⟨3⟩ (solcSourceWord I) solcFreePtrMem_size]
   exact (callerBalSlot_eq I).symm
@@ -356,7 +356,7 @@ theorem withdrawKeccak1 (I : ExecutionEnv) :
 /-- The caller-keyed keccak of `caller ‖ 3` on the second-segment (re-hashed) memory. -/
 theorem withdrawKeccak2 (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem (solcSourceWord I) ⟨3⟩
+        (KEC ((twoWordHashMem (solcSourceWord I) ⟨3⟩
           (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem)).readWithPadding 0 64)))
       = callerBalSlot I := by
   rw [twoWordHashMem_solcMappingSlot ⟨3⟩ (solcSourceWord I)
@@ -442,7 +442,7 @@ theorem weth9WithdrawReachStore {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
 /-! ## EVM trace: `CALL` setup (pc 1447 → 1464) -/
 
 /-- The mapping-hash store memory (mem after the two keccak stores). -/
-noncomputable def withdrawStoreMem (I : ExecutionEnv) : ByteArray :=
+def withdrawStoreMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨3⟩ (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem)
 
 theorem withdrawStoreMem_size (I : ExecutionEnv) : (withdrawStoreMem I).size = 96 :=
@@ -525,25 +525,25 @@ theorem weth9WithdrawFailureTail {cA gh bl σ σ₀ A I} {g : Sat256} {mem o : B
     (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws]) (by evm_ov)
 
 /-- The `Withdrawal(caller, wad)` log-data memory (`wad` stored at the free pointer 0x80). -/
-noncomputable def withdrawLogMem (I : ExecutionEnv) : ByteArray :=
+def withdrawLogMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (withdrawWadWord I)).write 0 (withdrawStoreMem I) 128 32
 
 theorem withdrawLogMem_read64 (I : ExecutionEnv) :
     (withdrawLogMem I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   have hthmsize : (withdrawStoreMem I).size = 96 := withdrawStoreMem_size I
   have hgap32 : (128 : ℕ) - (withdrawStoreMem I).size = 32 := by rw [hthmsize]
-  have hgapeq : withdrawLogMem I = withdrawStoreMem I ++ ffi.ByteArray.zeroes 32
+  have hgapeq : withdrawLogMem I = withdrawStoreMem I ++ ByteArray.zeroes 32
       ++ UInt256.toByteArray (withdrawWadWord I) := by
     rw [withdrawLogMem, toByteArray_write_eq _ _ _ (by rw [hthmsize]; omega)
       (by rw [hgap32]; exact lt_usize 32 (by norm_num)), hgap32]
-  have hzsize : (ffi.ByteArray.zeroes 32).size = 32 := by
+  have hzsize : (ByteArray.zeroes 32).size = 32 := by
     rw [ByteArray_zeroes_size]
   have hcvsize : (UInt256.toByteArray (withdrawWadWord I)).size = 32 :=
     (UInt256.toByteArrayWithSizeProof (withdrawWadWord I)).2
   have h1 : (withdrawLogMem I).readWithPadding 64 32 = (withdrawLogMem I).extract 64 (64 + 32) :=
     readWithPadding_eq_extract _ 64 (by
       rw [hgapeq, ByteArray.size_append, ByteArray.size_append, hthmsize, hzsize, hcvsize]; omega)
-  have h2 : (64 : ℕ) + 32 ≤ (withdrawStoreMem I ++ ffi.ByteArray.zeroes 32).size := by
+  have h2 : (64 : ℕ) + 32 ≤ (withdrawStoreMem I ++ ByteArray.zeroes 32).size := by
     rw [ByteArray.size_append, hthmsize, hzsize]; omega
   have h3 : (64 : ℕ) + 32 ≤ (withdrawStoreMem I).size := by rw [hthmsize]
   rw [h1, hgapeq, extract_append_left _ _ 64 (64 + 32) h2, extract_append_left _ _ 64 (64 + 32) h3,
@@ -552,11 +552,11 @@ theorem withdrawLogMem_read64 (I : ExecutionEnv) :
 theorem withdrawLogMem_size (I : ExecutionEnv) : (withdrawLogMem I).size = 160 := by
   have hthmsize : (withdrawStoreMem I).size = 96 := withdrawStoreMem_size I
   have hgap32 : (128 : ℕ) - (withdrawStoreMem I).size = 32 := by rw [hthmsize]
-  have hgapeq : withdrawLogMem I = withdrawStoreMem I ++ ffi.ByteArray.zeroes 32
+  have hgapeq : withdrawLogMem I = withdrawStoreMem I ++ ByteArray.zeroes 32
       ++ UInt256.toByteArray (withdrawWadWord I) := by
     rw [withdrawLogMem, toByteArray_write_eq _ _ _ (by rw [hthmsize]; omega)
       (by rw [hgap32]; exact lt_usize 32 (by norm_num)), hgap32]
-  have hzsize : (ffi.ByteArray.zeroes 32).size = 32 := by
+  have hzsize : (ByteArray.zeroes 32).size = 32 := by
     rw [ByteArray_zeroes_size]
   have hcvsize : (UInt256.toByteArray (withdrawWadWord I)).size = 32 :=
     (UInt256.toByteArrayWithSizeProof (withdrawWadWord I)).2

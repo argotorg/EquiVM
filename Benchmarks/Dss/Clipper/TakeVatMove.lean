@@ -45,19 +45,19 @@ theorem clipperTakeJumpDest4845 (v : ClipperImmutables) {code : ByteArray}
       simp [hIlk]
       native_decide
 
-noncomputable def clipperTakeVatMoveSelectorMem (mem : ByteArray) : ByteArray :=
+def clipperTakeVatMoveSelectorMem (mem : ByteArray) : ByteArray :=
   clipperTakeVatMoveSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def clipperTakeVatMoveSenderMem (I : ExecutionEnv) (mem : ByteArray) :
+def clipperTakeVatMoveSenderMem (I : ExecutionEnv) (mem : ByteArray) :
     ByteArray :=
   (solcSourceWord I).toByteArray.write 0 (clipperTakeVatMoveSelectorMem mem) 132 32
 
-noncomputable def clipperTakeVatMoveVowMem (σ : AccountMap) (I : ExecutionEnv)
+def clipperTakeVatMoveVowMem (σ : AccountMap) (I : ExecutionEnv)
     (mem : ByteArray) : ByteArray :=
   (clipperTakeVowTarget σ I).toByteArray.write 0
     (clipperTakeVatMoveSenderMem I mem) 164 32
 
-noncomputable def clipperTakeVatMoveCalldataMem (σ : AccountMap) (I : ExecutionEnv)
+def clipperTakeVatMoveCalldataMem (σ : AccountMap) (I : ExecutionEnv)
     (owe : UInt256) (mem : ByteArray) : ByteArray :=
   owe.toByteArray.write 0 (clipperTakeVatMoveVowMem σ I mem) 196 32
 

@@ -418,7 +418,7 @@ theorem RD.jugDripLoadBaseDuty
       (UInt256.ofNat 6) out (cA', σ') k' C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
+          (KEC ((twoWordHashMem (fileDutyIlkWord I) ⟨1⟩
             (dripVatIlksPostCallMem I out)).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) := by
     exact drip_twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256) (fileDutyIlkWord I)

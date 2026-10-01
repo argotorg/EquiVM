@@ -158,24 +158,24 @@ theorem erc6909BalanceOfBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 /-! ## EVM scratch memory for the nested `_balances[owner][id]` access -/
 
 /-- Memory after the body stores the masked owner key at scratch offset `0x00`. -/
-noncomputable def balanceOfOwnerMem (owner : UInt256) : ByteArray :=
+def balanceOfOwnerMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray (UInt256.land owner solcAddrMask)).write 0 solcFreePtrMem 0 32
 
 /-- Memory after the body stores `_balances`' base slot `0` at scratch offset `0x20`. -/
-noncomputable def balanceOfInnerHashMem (owner : UInt256) : ByteArray :=
+def balanceOfInnerHashMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨0⟩ : UInt256)).write 0 (balanceOfOwnerMem owner) 32 32
 
 /-- The first keccak slot, Solidity's base for `_balances[owner]`. -/
-noncomputable def balanceOfInnerSlot (owner : UInt256) : UInt256 :=
+def balanceOfInnerSlot (owner : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((balanceOfInnerHashMem owner).readWithPadding 0 64)))
+    (KEC ((balanceOfInnerHashMem owner).readWithPadding 0 64)))
 
 /-- Memory after the body stores the `id` key at scratch offset `0x00`. -/
-noncomputable def balanceOfOuterIdMem (owner id : UInt256) : ByteArray :=
+def balanceOfOuterIdMem (owner id : UInt256) : ByteArray :=
   (UInt256.toByteArray id).write 0 (balanceOfInnerHashMem owner) 0 32
 
 /-- Memory after the body stores the inner mapping slot at scratch offset `0x20`. -/
-noncomputable def balanceOfOuterHashMem (owner id : UInt256) : ByteArray :=
+def balanceOfOuterHashMem (owner id : UInt256) : ByteArray :=
   (UInt256.toByteArray (balanceOfInnerSlot owner)).write 0 (balanceOfOuterIdMem owner id) 32 32
 
 theorem balanceOfOwnerMem_size (owner : UInt256) : (balanceOfOwnerMem owner).size = 96 := by
@@ -367,18 +367,18 @@ theorem balanceOfOuterHashMem_read0_64 (owner id : UInt256) :
 theorem balanceOfOuterKeccakSlot (I : ExecutionEnv)
     (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((balanceOfOuterHashMem (balanceOfOwnerWord I) (balanceOfIdWord I))
+        (KEC ((balanceOfOuterHashMem (balanceOfOwnerWord I) (balanceOfIdWord I))
           |>.readWithPadding 0 64)))
       = balanceOfSlot I := by
   rw [balanceOfOuterHashMem_read0_64, balanceOfInnerKeccakSlot I hcanon]
   unfold balanceOfSlot balanceSlot mapSlot
   rw [keyValueToWord_address_of_canonical _ hcanon, keyValueToWord_uint256]
   exact mappingSlot_single (balanceOfIdWord I)
-    (uInt256OfByteArray (ffi.KEC ((balanceOfOwnerWord I).toByteArray ++
+    (uInt256OfByteArray (KEC ((balanceOfOwnerWord I).toByteArray ++
       (⟨0⟩ : UInt256).toByteArray)))
 
 /-- Memory after the shared uint256 return tail writes the loaded balance at `0x80`. -/
-noncomputable def balanceOfReturnMem (owner id val : UInt256) : ByteArray :=
+def balanceOfReturnMem (owner id val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 (balanceOfOuterHashMem owner id) 128 32
 
 theorem balanceOfReturnMem_size (owner id val : UInt256) :
@@ -432,7 +432,7 @@ theorem balanceOfReturnMem_read128 (owner id val : UInt256) :
         toByteArray_size])]
   rw [extract_append_right_window
       (balanceOfOuterHashMem owner id ++
-        ffi.ByteArray.zeroes (128 - (balanceOfOuterHashMem owner id).size))
+        ByteArray.zeroes (128 - (balanceOfOuterHashMem owner id).size))
       (UInt256.toByteArray val) 128 160 (by
         rw [ByteArray.size_append, balanceOfOuterHashMem_size, ByteArray_zeroes_size,
           show 128 - 96 = 32 from by norm_num])]

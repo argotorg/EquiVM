@@ -330,7 +330,7 @@ theorem vyperERC20Initcode_runtime_window :
     vyperERC20CtorPrefix_size.symm
     (by rw [vyperERC20CtorPrefix_size, vyperERC20Bytecode_size])
 
-noncomputable def erc20CtorCode (initialSupply : UInt256) : ByteArray :=
+def erc20CtorCode (initialSupply : UInt256) : ByteArray :=
   vyperERC20Initcode ++ (EVM.Word.toBytesBE initialSupply).toByteArray
 
 theorem vyperERC20Initcode_decode_append (tail : ByteArray) (pc : UInt256)
@@ -369,26 +369,26 @@ macro "vyper_erc20_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term 
     | _ => Macro.throwUnsupported
   return acc
 
-noncomputable def erc20CtorArgMem (initialSupply : UInt256) : ByteArray :=
+def erc20CtorArgMem (initialSupply : UInt256) : ByteArray :=
   (erc20CtorCode initialSupply).write 926 ByteArray.empty 0 32
 
-noncomputable def erc20CtorOwnerMem (caller : AccountAddress) (initialSupply : UInt256) :
+def erc20CtorOwnerMem (caller : AccountAddress) (initialSupply : UInt256) :
     ByteArray :=
   wordAt32Mem (UInt256.ofNat caller.val) (erc20CtorArgMem initialSupply)
 
-noncomputable def erc20CtorHashMem (caller : AccountAddress) (initialSupply : UInt256) :
+def erc20CtorHashMem (caller : AccountAddress) (initialSupply : UInt256) :
     ByteArray :=
   wordAt0Mem ⟨0⟩ (erc20CtorOwnerMem caller initialSupply)
 
-noncomputable def erc20CtorArgAgainMem (caller : AccountAddress) (initialSupply : UInt256) :
+def erc20CtorArgAgainMem (caller : AccountAddress) (initialSupply : UInt256) :
     ByteArray :=
   (erc20CtorCode initialSupply).write 926 (erc20CtorHashMem caller initialSupply) 0 32
 
-noncomputable def erc20CtorLogMem (caller : AccountAddress) (initialSupply : UInt256) :
+def erc20CtorLogMem (caller : AccountAddress) (initialSupply : UInt256) :
     ByteArray :=
   (erc20CtorCode initialSupply).write 926 (erc20CtorArgAgainMem caller initialSupply) 64 32
 
-noncomputable def erc20CtorReturnMem (caller : AccountAddress) (initialSupply : UInt256) :
+def erc20CtorReturnMem (caller : AccountAddress) (initialSupply : UInt256) :
     ByteArray :=
   (erc20CtorCode initialSupply).write 107 (erc20CtorLogMem caller initialSupply) 0 819
 
@@ -506,7 +506,7 @@ theorem erc20CtorHashMem_read0_64 (caller : AccountAddress) (initialSupply : UIn
 
 theorem erc20CtorKeccakSlot (caller : AccountAddress) (initialSupply : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((erc20CtorHashMem caller initialSupply).readWithPadding 0 64)))
+        (KEC ((erc20CtorHashMem caller initialSupply).readWithPadding 0 64)))
       = erc20BalanceOfSlot (.address caller) := by
   unfold erc20BalanceOfSlot vyperMappingSlot
   rw [erc20CtorHashMem_read0_64 caller initialSupply, keyValueToWord_address caller]

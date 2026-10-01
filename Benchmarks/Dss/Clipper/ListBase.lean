@@ -660,11 +660,11 @@ theorem clipperListReturnFromMemWfPatched (v : ClipperImmutables) {code : ByteAr
     rw [clipperDecodeBeforeFirstPatch v hpatch _ (by native_decide)]
     native_decide
 
-noncomputable def clipperListReturnOffsetMem (fmp : UInt256) (mem : ByteArray) :
+def clipperListReturnOffsetMem (fmp : UInt256) (mem : ByteArray) :
     ByteArray :=
   (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 mem fmp.toNat 32
 
-noncomputable def clipperListReturnLengthMem (len fmp : UInt256) (mem : ByteArray) :
+def clipperListReturnLengthMem (len fmp : UInt256) (mem : ByteArray) :
     ByteArray :=
   (UInt256.toByteArray len).write 0 (clipperListReturnOffsetMem fmp mem)
     (fmp + (⟨32⟩ : UInt256)).toNat 32
@@ -693,7 +693,7 @@ abbrev clipperListReturnCopyStepAw (aw src dst i : UInt256) : UInt256 :=
   UInt256.ofNat (MachineState.M (clipperListReturnCopyMloadAw aw src i).toNat
     (i + dst).toNat 32)
 
-noncomputable def clipperListReturnCopyStepMem
+def clipperListReturnCopyStepMem
     (word dst i : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem (i + dst).toNat 32
 
@@ -1087,10 +1087,10 @@ abbrev clipperListArrayAllocSize (len : UInt256) : UInt256 :=
 abbrev clipperListArrayFreePtr (len : UInt256) : UInt256 :=
   clipperListArrayBasePtr + clipperListArrayAllocSize len
 
-noncomputable def clipperListArrayAllocMem (len : UInt256) : ByteArray :=
+def clipperListArrayAllocMem (len : UInt256) : ByteArray :=
   (UInt256.toByteArray (clipperListArrayFreePtr len)).write 0 solcFreePtrMem 64 32
 
-noncomputable def clipperListArrayLengthMem (len : UInt256) : ByteArray :=
+def clipperListArrayLengthMem (len : UInt256) : ByteArray :=
   (UInt256.toByteArray len).write 0 (clipperListArrayAllocMem len) 128 32
 
 theorem clipperListArrayAllocMem_size (len : UInt256) :
@@ -1278,10 +1278,10 @@ theorem clipperListReturnSize_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
   · rw [clipperListReturnEnd_toNat_of_wf hwf, clipperListArrayFreePtr_toNat_of_wf hwf]
     omega
 
-noncomputable def clipperListArrayHashMem (len : UInt256) : ByteArray :=
+def clipperListArrayHashMem (len : UInt256) : ByteArray :=
   wordAt0Mem (⟨11⟩ : UInt256) (clipperListArrayLengthMem len)
 
-noncomputable def clipperListArrayCopyStepMem
+def clipperListArrayCopyStepMem
     (σ : AccountMap) (ee : ExecutionEnv) (slot dest : UInt256) (mem : ByteArray) :
     ByteArray :=
   (UInt256.toByteArray (solcSlotWord σ ee slot)).write 0 mem dest.toNat 32
@@ -1318,7 +1318,7 @@ def clipperListArraySlot : Nat → UInt256
   | 0 => activeDataSlot
   | n + 1 => (⟨1⟩ : UInt256) + clipperListArraySlot n
 
-noncomputable def clipperListArrayCopiedMem
+def clipperListArrayCopiedMem
     (σ : AccountMap) (ee : ExecutionEnv) (len : UInt256) : Nat → ByteArray
   | 0 => clipperListArrayHashMem len
   | n + 1 =>

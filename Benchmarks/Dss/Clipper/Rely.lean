@@ -683,10 +683,10 @@ theorem clipperRelyX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     (routine := (⟨3340⟩ : UInt256)) hreach
     (clipperRelyOneAddressEntryWf v hpatch) hsz4 hsize hshort
 
-noncomputable abbrev clipperRelyAuthHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev clipperRelyAuthHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (clipperRelySourceWord I) ⟨0⟩ solcFreePtrMem
 
-noncomputable abbrev clipperRelyStoreHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev clipperRelyStoreHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (clipperRelyUsrMaskedWord I) ⟨0⟩ (clipperRelyAuthHashMem I)
 
 theorem clipperRelyUsrMaskedWord_canonical (I : ExecutionEnv) :
@@ -726,14 +726,14 @@ theorem clipperRelyStoreHashMem_mload64 (I : ExecutionEnv) :
     (by decide)
     (clipperRelyStoreHashMem_read64 I)
 
-noncomputable abbrev clipperRelyErrorMem2 (I : ExecutionEnv) : ByteArray :=
+abbrev clipperRelyErrorMem2 (I : ExecutionEnv) : ByteArray :=
   solcErrorStringMem2 (⟨22⟩ : UInt256) (clipperRelyAuthHashMem I)
 
-noncomputable abbrev clipperRelyErrorCopiedMem (code : ByteArray) (I : ExecutionEnv) :
+abbrev clipperRelyErrorCopiedMem (code : ByteArray) (I : ExecutionEnv) :
     ByteArray :=
   code.write 9316 (clipperRelyErrorMem2 I) 0 32
 
-noncomputable abbrev clipperRelyErrorRestoredMem (code : ByteArray) (I : ExecutionEnv) :
+abbrev clipperRelyErrorRestoredMem (code : ByteArray) (I : ExecutionEnv) :
     ByteArray :=
   (UInt256.toByteArray (clipperRelySourceWord I)).write 0
     (clipperRelyErrorCopiedMem code I) 0 32
@@ -741,7 +741,7 @@ noncomputable abbrev clipperRelyErrorRestoredMem (code : ByteArray) (I : Executi
 abbrev clipperRelyNotAuthorizedStringWord : UInt256 :=
   ⟨0x436c69707065722f6e6f742d617574686f72697a656400000000000000000000⟩
 
-noncomputable abbrev clipperRelyErrorStringMem (code : ByteArray) (I : ExecutionEnv) :
+abbrev clipperRelyErrorStringMem (code : ByteArray) (I : ExecutionEnv) :
     ByteArray :=
   (UInt256.toByteArray clipperRelyNotAuthorizedStringWord).write 0
     (clipperRelyErrorRestoredMem code I) 196 32
@@ -1079,7 +1079,7 @@ theorem clipperRelyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (clipperRelySourceWord I) ⟨0⟩ := by
     simpa [clipperRelyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (clipperRelySourceWord I)
@@ -1133,7 +1133,7 @@ theorem clipperRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     RDrev code g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (clipperRelySourceWord I) ⟨0⟩ := by
     simpa [clipperRelyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (clipperRelySourceWord I)
@@ -1278,7 +1278,7 @@ theorem clipperRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
       ByteArray.empty := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperRelyStoreHashMem I).readWithPadding 0 64))) =
+          (KEC ((clipperRelyStoreHashMem I).readWithPadding 0 64))) =
         mapSlot (clipperRelyUsrMaskedWord I) ⟨0⟩ := by
     simpa [clipperRelyStoreHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (clipperRelyUsrMaskedWord I)

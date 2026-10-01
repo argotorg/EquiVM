@@ -178,13 +178,13 @@ theorem uniswapGetReservesBodyReturns (evm : EVM.State)
 
 /-! ## Return wrapper memory -/
 
-noncomputable def getReservesReturn0Mem (r0 : UInt256) : ByteArray :=
+def getReservesReturn0Mem (r0 : UInt256) : ByteArray :=
   (UInt256.toByteArray r0).write 0 solcFreePtrMem 128 32
 
-noncomputable def getReservesReturn1Mem (r0 r1 : UInt256) : ByteArray :=
+def getReservesReturn1Mem (r0 r1 : UInt256) : ByteArray :=
   (UInt256.toByteArray r1).write 0 (getReservesReturn0Mem r0) 160 32
 
-noncomputable def getReservesReturnMem (r0 r1 ts : UInt256) : ByteArray :=
+def getReservesReturnMem (r0 r1 ts : UInt256) : ByteArray :=
   (UInt256.toByteArray ts).write 0 (getReservesReturn1Mem r0 r1) 192 32
 
 theorem getReservesReturn0Mem_size (r0 : UInt256) :
@@ -260,34 +260,34 @@ theorem getReservesReturnMem_read128_96 (r0 r1 ts : UInt256) :
       (by rw [getReservesReturn1Mem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_span
       (getReservesReturn1Mem r0 r1 ++
-        ffi.ByteArray.zeroes ((192 - (getReservesReturn1Mem r0 r1).size)))
+        ByteArray.zeroes ((192 - (getReservesReturn1Mem r0 r1).size)))
       (UInt256.toByteArray ts) 128 (128 + 96) (by
         rw [ByteArray.size_append, getReservesReturn1Mem_size, ByteArray_zeroes_size]
         omega) (by
         rw [ByteArray.size_append, getReservesReturn1Mem_size, ByteArray_zeroes_size]
         omega)]
   rw [ByteArray.size_append, getReservesReturn1Mem_size, ByteArray_zeroes_size]
-  rw [show ffi.ByteArray.zeroes (192 - 192) = ByteArray.empty from zeroes_zero rfl]
+  rw [show ByteArray.zeroes (192 - 192) = ByteArray.empty from zeroes_zero rfl]
   simp
   unfold getReservesReturn1Mem
   rw [toByteArray_write_eq _ _ _ (by rw [getReservesReturn0Mem_size])
       (by rw [getReservesReturn0Mem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_span
       (getReservesReturn0Mem r0 ++
-        ffi.ByteArray.zeroes ((160 - (getReservesReturn0Mem r0).size)))
+        ByteArray.zeroes ((160 - (getReservesReturn0Mem r0).size)))
       (UInt256.toByteArray r1) 128 192 (by
         rw [ByteArray.size_append, getReservesReturn0Mem_size, ByteArray_zeroes_size]
         omega) (by
         rw [ByteArray.size_append, getReservesReturn0Mem_size, ByteArray_zeroes_size]
         omega)]
   rw [ByteArray.size_append, getReservesReturn0Mem_size, ByteArray_zeroes_size]
-  rw [show ffi.ByteArray.zeroes (160 - 160) = ByteArray.empty from zeroes_zero rfl]
+  rw [show ByteArray.zeroes (160 - 160) = ByteArray.empty from zeroes_zero rfl]
   simp
   unfold getReservesReturn0Mem
   rw [toByteArray_write_eq _ _ _ (by rw [solcFreePtrMem_size]; omega)
       (by rw [solcFreePtrMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_right_window
-      (solcFreePtrMem ++ ffi.ByteArray.zeroes ((128 - solcFreePtrMem.size)))
+      (solcFreePtrMem ++ ByteArray.zeroes ((128 - solcFreePtrMem.size)))
       (UInt256.toByteArray r0) 128 160 (by
         rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size])]
   rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size]

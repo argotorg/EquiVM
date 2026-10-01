@@ -30,7 +30,7 @@ The ABI data region is a chronological concatenation of 32-byte words.  `wordCon
 concatenates `n` words `f idx, …, f (idx+n-1)`, right-nested (matching `byteArray_readWithPadding_split`). -/
 
 /-- Right-nested concatenation of the 32-byte encodings of `f idx, …, f (idx+n-1)`. -/
-noncomputable def wordConcat (f : Nat → UInt256) (idx : Nat) : Nat → ByteArray
+def wordConcat (f : Nat → UInt256) (idx : Nat) : Nat → ByteArray
   | 0 => ByteArray.empty
   | n + 1 => (f idx).toByteArray ++ wordConcat f (idx + 1) n
 
@@ -106,7 +106,7 @@ The `k`-th string data word is the storage word copied by Loop-1 into `mem[0xa0+
 the Loop-1 read-preservation lemmas (`weth9LongFinalMem_read64/_read128`) to the data region. -/
 
 /-- The `k`-th long-string data word: the storage word copied by Loop-1 into `mem[0xa0 + 32·k]`. -/
-noncomputable def weth9LongDataWordAt (σ : AccountMap) (I : ExecutionEnv) (k : Nat) : UInt256 :=
+def weth9LongDataWordAt (σ : AccountMap) (I : ExecutionEnv) (k : Nat) : UInt256 :=
   weth9LongStorageWord σ I (weth9LongGeneratedLoopState σ I k).slot
 
 /-- Loop-1 memory at step `i` holds data word `k` at `0xa0 + 32·k` for every `k < i`. -/
@@ -164,7 +164,7 @@ the partial case. -/
 
 /-- The trailing data word as returned: masked (`~(2^(8·(32-31&len))-1) & data`) when `len` is not a
     multiple of 32, else the full last data word (the mask store is skipped by the runtime). -/
-noncomputable def weth9LongMaskWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
+def weth9LongMaskWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   if UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) = ⟨0⟩ then
     weth9LongDataWordAt σ I (weth9LongWC σ I)
   else
@@ -176,7 +176,7 @@ noncomputable def weth9LongMaskWord (σ : AccountMap) (I : ExecutionEnv) : UInt2
 
 /-- The ABI encoding a long-string getter returns: `offset 0x20 ‖ len ‖ (wc-1) data words ‖ masked
     last word`. -/
-noncomputable def weth9LongStringAbi (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def weth9LongStringAbi (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   UInt256.toByteArray ⟨32⟩ ++
     (UInt256.toByteArray (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) ++
       (wordConcat (weth9LongDataWordAt σ I) 0 (weth9LongWC σ I) ++
@@ -299,18 +299,18 @@ length word at `newFp+0x20`.  Both writes are at the running end, so the free po
 word (`0x80`), and the source data region `[0xa0, newFp)` all survive. -/
 
 /-- Object memory with the ABI offset word `0x20` at `newFp`. -/
-noncomputable def weth9LongEncMemA (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def weth9LongEncMemA (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   writeWord (weth9LongFinalMem σ I) (weth9StringNewFp (weth9StringSlotWord σ I ⟨0⟩)).toNat ⟨32⟩
 
 /-- `MemA` plus the ABI length word at `newFp+0x20`. -/
-noncomputable def weth9LongEncMemB (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def weth9LongEncMemB (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   writeWord (weth9LongEncMemA σ I)
     ((weth9StringNewFp (weth9StringSlotWord σ I ⟨0⟩)).toNat + 32)
     (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩))
 
 /-- Loop-2 memory after `j` mem→mem copies: `MemB` with data words `0..j-1` written into the ABI
     data region at `newFp+0x40 + 32·k = 0x100 + 32·(wc-1) + 32·k`. -/
-noncomputable def weth9Long2Mem (σ : AccountMap) (I : ExecutionEnv) : Nat → ByteArray
+def weth9Long2Mem (σ : AccountMap) (I : ExecutionEnv) : Nat → ByteArray
   | 0 => weth9LongEncMemB σ I
   | j + 1 =>
       writeWord (weth9Long2Mem σ I j) (256 + 32 * weth9LongWC σ I + 32 * j)
@@ -697,7 +697,7 @@ theorem weth9NameLong2CopyLoop {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-- Memory at the RETURN: the Loop-2 output, with the trailing data word replaced by its masked value
     (the mask store is skipped when `len` is a multiple of 32, in which case the last word is full). -/
-noncomputable def weth9Long2FinalMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def weth9Long2FinalMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   if UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) = ⟨0⟩ then
     weth9Long2Mem σ I (weth9LongWC σ I + 1)
   else

@@ -9,21 +9,21 @@ namespace UniswapV2Pair
 
 /-! ## `skim(address)` second `balanceOf` after nonempty first `_safeTransfer` returndata -/
 
-noncomputable def skimSecondBalanceDynamicSelectorMem
+def skimSecondBalanceDynamicSelectorMem
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) (out1 : ByteArray) :
     ByteArray :=
   (UInt256.toByteArray balanceOfSelectorShifted).write 0
     (skimSafeTransferReturnDataMem self o toWord value out1)
     (skimSafeTransferReturnDataPtr out1).toNat 32
 
-noncomputable def skimSecondBalanceDynamicCalldataMem
+def skimSecondBalanceDynamicCalldataMem
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) (out1 : ByteArray) :
     ByteArray :=
   (UInt256.toByteArray self).write 0
     (skimSecondBalanceDynamicSelectorMem self o toWord value out1)
     ((skimSafeTransferReturnDataPtr out1) + ⟨4⟩).toNat 32
 
-noncomputable def skimSecondBalanceDynamicStaticcallMem
+def skimSecondBalanceDynamicStaticcallMem
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) (out1 out2 : ByteArray) :
     ByteArray :=
   out2.write 0 (skimSecondBalanceDynamicCalldataMem self o toWord value out1)

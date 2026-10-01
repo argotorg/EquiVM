@@ -850,7 +850,7 @@ free pointer `fp := mem[0x40]` and zero-inits `[fp, fp+96)`), then hashes `kecca
 memory snapshots (allocator output, post-`keccak`-scratch, final `milk` region). -/
 
 /-- Memory after the `@3818` allocator: `mem[0x40] := fp+96`, then `[fp, fp+96)` zero-initialised. -/
-noncomputable def catBiteHelperMem (mem : ByteArray) (fp : UInt256) : ByteArray :=
+def catBiteHelperMem (mem : ByteArray) (fp : UInt256) : ByteArray :=
   (UInt256.toByteArray ⟨0⟩).write 0
     ((UInt256.toByteArray ⟨0⟩).write 0
       ((UInt256.toByteArray ⟨0⟩).write 0
@@ -860,14 +860,14 @@ noncomputable def catBiteHelperMem (mem : ByteArray) (fp : UInt256) : ByteArray 
     (⟨32⟩ + (⟨32⟩ + fp)).toNat 32
 
 /-- Allocator memory plus the `keccak(ilk ‖ 1)` scratch: `mem[0] := ilk`, `mem[32] := 1`. -/
-noncomputable def catBiteScratchMem (mem : ByteArray) (fp ilk : UInt256) : ByteArray :=
+def catBiteScratchMem (mem : ByteArray) (fp ilk : UInt256) : ByteArray :=
   (UInt256.toByteArray ⟨1⟩).write 0
     ((UInt256.toByteArray ilk).write 0 (catBiteHelperMem mem fp) 0 32)
     32 32
 
 /-- Final memory: the `milk` struct `[flip, chop, dunk]` written at `[q, q+96)`, with `mem[0x40] :=
 q+96`. -/
-noncomputable def catBiteMilkMem
+def catBiteMilkMem
     (mem : ByteArray) (fp ilk q flip chop dunk : UInt256) : ByteArray :=
   (UInt256.toByteArray dunk).write 0
     ((UInt256.toByteArray chop).write 0
@@ -1467,7 +1467,7 @@ private theorem catBiteMCollapse (a : UInt256) (o1 o2 : ℕ) (hle : o1 ≤ o2)
 /-- Active-words after a size-32 memory op at offset `off`, kept **irreducible** so `isDefEq` treats
 it as an atom (unfolding it exposes `M`'s `max`/`Div.div`/`if`, which blows up on the abstract free
 pointer) — we `unfold` it only in the helper lemmas below. -/
-@[irreducible] private noncomputable def catBiteAwStep (aw : UInt256) (off : ℕ) : UInt256 :=
+@[irreducible] private def catBiteAwStep (aw : UInt256) (off : ℕ) : UInt256 :=
   UInt256.ofNat (MachineState.M aw.toNat off 32)
 
 /-- The collapse (`catBiteMCollapse`) re-expressed on `catBiteAwStep`, with the outer step in its
@@ -1495,32 +1495,32 @@ private theorem catBiteMstoreCostM {aw off val : UInt256} {t : List UInt256} :
 
 /-! #### `grab` calldata memory (7 words at `p, p+4, p+36, p+68, p+100, p+132, p+164`) -/
 
-noncomputable def catBiteGrabSelMemP (p : UInt256) (mem : ByteArray) : ByteArray :=
+def catBiteGrabSelMemP (p : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.shiftLeft ⟨32419069⟩ ⟨230⟩).toByteArray.write 0 mem p.toNat 32
 
-noncomputable def catBiteGrabIlkMemP (p ilk : UInt256) (mem : ByteArray) : ByteArray :=
+def catBiteGrabIlkMemP (p ilk : UInt256) (mem : ByteArray) : ByteArray :=
   ilk.toByteArray.write 0 (catBiteGrabSelMemP p mem) (p + ⟨4⟩).toNat 32
 
-noncomputable def catBiteGrabUrnMemP (p ilk urn : UInt256) (mem : ByteArray) : ByteArray :=
+def catBiteGrabUrnMemP (p ilk urn : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.land biteAddrMaskWord urn).toByteArray.write 0 (catBiteGrabIlkMemP p ilk mem)
     (p + ⟨36⟩).toNat 32
 
-noncomputable def catBiteGrabThisMemP (p ilk urn thisW : UInt256)
+def catBiteGrabThisMemP (p ilk urn thisW : UInt256)
     (mem : ByteArray) : ByteArray :=
   thisW.toByteArray.write 0 (catBiteGrabUrnMemP p ilk urn mem) (p + ⟨68⟩).toNat 32
 
-noncomputable def catBiteGrabVowMemP (p ilk urn thisW vowRaw : UInt256)
+def catBiteGrabVowMemP (p ilk urn thisW vowRaw : UInt256)
     (mem : ByteArray) : ByteArray :=
   (UInt256.land biteAddrMaskWord vowRaw).toByteArray.write 0
     (catBiteGrabThisMemP p ilk urn thisW mem) (p + ⟨100⟩).toNat 32
 
-noncomputable def catBiteGrabDinkMemP (p ilk urn thisW vowRaw dink : UInt256)
+def catBiteGrabDinkMemP (p ilk urn thisW vowRaw dink : UInt256)
     (mem : ByteArray) : ByteArray :=
   (UInt256.sub ⟨0⟩ dink).toByteArray.write 0 (catBiteGrabVowMemP p ilk urn thisW vowRaw mem)
     (p + ⟨132⟩).toNat 32
 
 /-- The full 196-byte `grab` calldata laid at the free pointer `p` over base memory `mem`. -/
-noncomputable def catBiteGrabCalldataMemP (p ilk urn thisW vowRaw dink dart : UInt256)
+def catBiteGrabCalldataMemP (p ilk urn thisW vowRaw dink dart : UInt256)
     (mem : ByteArray) : ByteArray :=
   (UInt256.sub ⟨0⟩ dart).toByteArray.write 0 (catBiteGrabDinkMemP p ilk urn thisW vowRaw dink mem)
     (p + ⟨164⟩).toNat 32
@@ -1655,12 +1655,12 @@ theorem catBiteGrabCalldataMemP_read64 (p ilk urn thisW vowRaw dink dart : UInt2
 
 /-! #### `fess` calldata memory (2 words at `p2, p2+4`; selector `0x697efb78`) -/
 
-noncomputable def catBiteFessSelMemP (p2 : UInt256) (mem : ByteArray) : ByteArray :=
+def catBiteFessSelMemP (p2 : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.shiftLeft (UInt256.land ⟨4294967295⟩ ⟨1769929592⟩) ⟨224⟩).toByteArray.write 0 mem
     p2.toNat 32
 
 /-- The full 36-byte `fess` calldata laid at the free pointer `p2` over base memory `mem`. -/
-noncomputable def catBiteFessCalldataMemP (p2 dartRate : UInt256) (mem : ByteArray) :
+def catBiteFessCalldataMemP (p2 dartRate : UInt256) (mem : ByteArray) :
     ByteArray :=
   dartRate.toByteArray.write 0 (catBiteFessSelMemP p2 mem) (⟨4⟩ + p2).toNat 32
 
@@ -2518,11 +2518,11 @@ theorem catBiteTraceSeg8aCalldata {cA gh bl σ σ₀ A I} {g : UInt256}
   exact ⟨_, _, rd2516⟩
 
 -- kick args abbreviation
-noncomputable abbrev seg8UrnM (urn : UInt256) : UInt256 := UInt256.land biteAddrMaskWord urn
-noncomputable abbrev seg8VowM (σx : AccountMap) (I : ExecutionEnv) : UInt256 :=
+abbrev seg8UrnM (urn : UInt256) : UInt256 := UInt256.land biteAddrMaskWord urn
+abbrev seg8VowM (σx : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land biteAddrMaskWord (UInt256.land biteAddrMaskWord
     (UInt256.div (solcSlotWord σx I ⟨4⟩) (UInt256.exp ⟨256⟩ ⟨0⟩)))
-noncomputable abbrev seg8KickArgs (σx : AccountMap) (I : ExecutionEnv) (urn tab dink : UInt256) : List Value :=
+abbrev seg8KickArgs (σx : AccountMap) (I : ExecutionEnv) (urn tab dink : UInt256) : List Value :=
   [.address (AccountAddress.ofNat (seg8UrnM urn).toNat),
    .address (AccountAddress.ofNat (seg8VowM σx I).toNat),
    .int (Int.ofNat tab.toNat), .int (Int.ofNat dink.toNat), .int 0]

@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Dog.Trusted
+import Benchmarks.Dss.Dog.Selectors
 
 /-!
 # MakerDAO/Sky DSS Dog dispatcher facts

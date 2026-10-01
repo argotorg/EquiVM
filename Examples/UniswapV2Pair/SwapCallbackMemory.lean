@@ -4,7 +4,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
-noncomputable def swapCallbackMem (I : ExecutionEnv) (mem : ByteArray) (ptr amount0Out amount1Out dataPtr dataLen : UInt256) : ByteArray :=
+def swapCallbackMem (I : ExecutionEnv) (mem : ByteArray) (ptr amount0Out amount1Out dataPtr dataLen : UInt256) : ByteArray :=
   swapCallbackPaddedMem I.calldata
     (swapCallbackHeadMem5 mem ptr (UInt256.ofNat I.source.val) amount0Out amount1Out dataLen) ptr dataPtr dataLen
 abbrev swapCallbackWords (aw ptr dataLen : UInt256) : UInt256 :=

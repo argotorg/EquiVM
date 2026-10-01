@@ -11,13 +11,13 @@ namespace Ballot
 
 /-- The Solidity delegate chain: `0` is the ABI argument, and successors follow
 `voters[w].delegate` in the initial account map. -/
-noncomputable def delegateChainWord (σ : AccountMap) (I : ExecutionEnv) : Nat → UInt256
+def delegateChainWord (σ : AccountMap) (I : ExecutionEnv) : Nat → UInt256
   | 0 => delegateToWord I
   | n + 1 => delegateVoterDelegateWord σ I (delegateChainWord σ I n)
 
 /-- Previous chain word, used to describe the scratch memory present at the
 loop header for indices after the first iteration. -/
-noncomputable def delegateChainPrev (σ : AccountMap) (I : ExecutionEnv) : Nat → UInt256
+def delegateChainPrev (σ : AccountMap) (I : ExecutionEnv) : Nat → UInt256
   | 0 => delegateToWord I
   | n + 1 => delegateChainWord σ I n
 
@@ -317,15 +317,15 @@ theorem delegateCurrentVoterDelegateWordCurrent_init_word {cA gh bl σ σ₀ A I
       delegateVoterDelegateWord σ I w := by
   rfl
 
-noncomputable def delegateChainStack (σ : AccountMap) (I : ExecutionEnv) (sel : UInt256)
+def delegateChainStack (σ : AccountMap) (I : ExecutionEnv) (sel : UInt256)
     (n : Nat) : List UInt256 :=
   [delegateSenderSlot I, delegateChainWord σ I n, ⟨156⟩, sel]
 
-noncomputable def delegateChainHeaderMem (σ : AccountMap) (I : ExecutionEnv)
+def delegateChainHeaderMem (σ : AccountMap) (I : ExecutionEnv)
     (n : Nat) : ByteArray :=
   delegateCurrentLoopMem I (delegateChainPrev σ I n)
 
-noncomputable def delegateChainExitMem (σ : AccountMap) (I : ExecutionEnv)
+def delegateChainExitMem (σ : AccountMap) (I : ExecutionEnv)
     (n : Nat) : ByteArray :=
   delegateCurrentLoopMem I (delegateChainWord σ I n)
 

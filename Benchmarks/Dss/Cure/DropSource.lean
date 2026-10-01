@@ -1,5 +1,5 @@
 import Benchmarks.Dss.Cure.Rely
-import Benchmarks.Dss.Cure.Trusted
+import Benchmarks.Dss.Cure.Selectors
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -275,7 +275,7 @@ theorem dropWordAt32TwoWordHashMem_read0_64 {mem : ByteArray}
 theorem dropWordAt32TwoWordHashMem_solcMappingSlot {mem : ByteArray}
     (baseSlot key oldSlot : UInt256) (hmem : mem.size = 96) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((wordAt32Mem baseSlot (twoWordHashMem key oldSlot mem)).readWithPadding 0 64))) =
+        (KEC ((wordAt32Mem baseSlot (twoWordHashMem key oldSlot mem)).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   rw [dropWordAt32TwoWordHashMem_read0_64 key oldSlot baseSlot hmem]
   unfold solcMappingSlot

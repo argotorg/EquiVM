@@ -622,17 +622,17 @@ theorem potDecode_exit_none_short {I : ExecutionEnv}
 /-! ## `exit(uint256)` — post-store state abbreviations -/
 
 /-- EVM post-`pie`-store account map. -/
-noncomputable abbrev exitSigma' (σ_evm : AccountMap) (I : ExecutionEnv) : AccountMap :=
+abbrev exitSigma' (σ_evm : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner σ_evm (joinPieSlot I)
     (UInt256.sub (joinPie0 σ_evm I) (joinWadWord I))
 
 /-- EVM post-`Pie`-store account map. -/
-noncomputable abbrev exitSigma'' (σ_evm : AccountMap) (I : ExecutionEnv) : AccountMap :=
+abbrev exitSigma'' (σ_evm : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner (exitSigma' σ_evm I) ⟨2⟩
     (UInt256.sub (solcSlotWord (exitSigma' σ_evm I) I ⟨2⟩) (joinWadWord I))
 
 /-- Solm post-`pie`-store state. -/
-noncomputable abbrev exitSolmEvm1 (cA : Batteries.RBSet AccountAddress compare)
+abbrev exitSolmEvm1 (cA : Batteries.RBSet AccountAddress compare)
     (gh : BlockHeader) (bl : ProcessedBlocks) (σ_solm σ₀ : AccountMap) (g : Sat256) (A : Substate)
     (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner (pieSlot (.address I.source))
@@ -640,7 +640,7 @@ noncomputable abbrev exitSolmEvm1 (cA : Batteries.RBSet AccountAddress compare)
       (pieSlot (.address I.source))) (joinWadWord I))
 
 /-- Solm post-`Pie`-store state. -/
-noncomputable abbrev exitSolmEvm2 (cA : Batteries.RBSet AccountAddress compare)
+abbrev exitSolmEvm2 (cA : Batteries.RBSet AccountAddress compare)
     (gh : BlockHeader) (bl : ProcessedBlocks) (σ_solm σ₀ : AccountMap) (g : Sat256) (A : Substate)
     (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore (exitSolmEvm1 cA gh bl σ_solm σ₀ g A I) I.codeOwner ⟨2⟩

@@ -390,25 +390,25 @@ theorem setOperatorBoolNoncanonJump {word : UInt256}
   rw [hone]
   exact u256_eq_of_ne hno
 
-noncomputable def setOperatorOwnerHashMem (owner : UInt256) : ByteArray :=
+def setOperatorOwnerHashMem (owner : UInt256) : ByteArray :=
   approveTwoWordHashMem owner ⟨1⟩ solcFreePtrMem
 
-noncomputable def setOperatorOwnerSlot (owner : UInt256) : UInt256 :=
+def setOperatorOwnerSlot (owner : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((setOperatorOwnerHashMem owner).readWithPadding 0 64)))
+    (KEC ((setOperatorOwnerHashMem owner).readWithPadding 0 64)))
 
-noncomputable def setOperatorSpenderHashMem (owner spender : UInt256) : ByteArray :=
+def setOperatorSpenderHashMem (owner spender : UInt256) : ByteArray :=
   approveTwoWordHashMem spender (setOperatorOwnerSlot owner) (setOperatorOwnerHashMem owner)
 
-noncomputable def setOperatorSpenderSlot (owner spender : UInt256) : UInt256 :=
+def setOperatorSpenderSlot (owner spender : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((setOperatorSpenderHashMem owner spender).readWithPadding 0 64)))
+    (KEC ((setOperatorSpenderHashMem owner spender).readWithPadding 0 64)))
 
-noncomputable def setOperatorEventMem (owner spender approved : UInt256) : ByteArray :=
+def setOperatorEventMem (owner spender approved : UInt256) : ByteArray :=
   (UInt256.toByteArray (UInt256.isZero (UInt256.isZero approved))).write 0
     (setOperatorSpenderHashMem owner spender) 128 32
 
-noncomputable def setOperatorReturnMem (owner spender approved : UInt256) : ByteArray :=
+def setOperatorReturnMem (owner spender approved : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0
     (setOperatorEventMem owner spender approved) 128 32
 
@@ -563,7 +563,7 @@ theorem setOperatorFinalKeccakSlot (I : ExecutionEnv)
   rw [setOperatorSpenderHashMem_read0_64, setOperatorOwnerKeccakSlot I]
   rw [hownerKey, hspenderKey]
   exact mappingSlot_single (setOperatorSpenderWord I)
-    (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (setOperatorOwnerWord I) ++
+    (uInt256OfByteArray (KEC (UInt256.toByteArray (setOperatorOwnerWord I) ++
       UInt256.toByteArray (⟨1⟩ : UInt256))))
 
 /-! ## EVM trace for `setOperator(address,bool)` -/

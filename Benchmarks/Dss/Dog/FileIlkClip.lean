@@ -57,10 +57,10 @@ abbrev dogFileIlkClipLogTopic : UInt256 :=
 abbrev fileIlkClipIlkSelectorWord : UInt256 :=
   UInt256.shiftLeft ⟨3318622238⟩ ⟨224⟩
 
-noncomputable abbrev fileIlkClipCallMem (mem : ByteArray) : ByteArray :=
+abbrev fileIlkClipCallMem (mem : ByteArray) : ByteArray :=
   writeWord mem 128 fileIlkClipIlkSelectorWord
 
-noncomputable abbrev fileIlkClipPostCallMem (mem out : ByteArray) : ByteArray :=
+abbrev fileIlkClipPostCallMem (mem out : ByteArray) : ByteArray :=
   out.write 0 (fileIlkClipCallMem mem) 128
     (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat
 
@@ -2686,7 +2686,7 @@ theorem twoWordHashMem_read0_64_160 {mem : ByteArray} (key slot : UInt256)
 theorem twoWordHashMem_solcMappingSlot_160 (baseSlot key : UInt256) {mem : ByteArray}
     (hmem : mem.size = 160) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   rw [twoWordHashMem_read0_64_160 key baseSlot hmem]
   unfold solcMappingSlot
@@ -2991,7 +2991,7 @@ theorem RD.dogFileIlkClipStoreLog {v : DogImmutables} {code : ByteArray}
     twoWordHashMem_read64_160 ilk ⟨1⟩ hmem hread64
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ ilk :=
     twoWordHashMem_solcMappingSlot_160 ⟨1⟩ ilk hmem
   have rdKeccakPrefix := evm_run rdHashMem with [

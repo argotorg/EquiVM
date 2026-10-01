@@ -129,17 +129,17 @@ abbrev flopKickOutSize : UInt256 := ⟨32⟩
 
 abbrev flopKickEndPtr : UInt256 := ⟨228⟩
 
-noncomputable def flopKickSelectorMem (mem : ByteArray) : ByteArray :=
+def flopKickSelectorMem (mem : ByteArray) : ByteArray :=
   flopKickSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def flopKickAddressMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def flopKickAddressMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (UInt256.ofNat I.codeOwner.val).toByteArray.write 0 (flopKickSelectorMem mem) 132 32
 
-noncomputable def flopKickDumpMem (I : ExecutionEnv) (dump : UInt256)
+def flopKickDumpMem (I : ExecutionEnv) (dump : UInt256)
     (mem : ByteArray) : ByteArray :=
   dump.toByteArray.write 0 (flopKickAddressMem I mem) 164 32
 
-noncomputable def flopKickCalldataMem (I : ExecutionEnv) (dump sump : UInt256)
+def flopKickCalldataMem (I : ExecutionEnv) (dump sump : UInt256)
     (mem : ByteArray) : ByteArray :=
   sump.toByteArray.write 0 (flopKickDumpMem I dump mem) 196 32
 

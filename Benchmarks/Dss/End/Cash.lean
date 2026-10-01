@@ -106,33 +106,33 @@ abbrev endCashPostBagWord (σ : AccountMap) (I : ExecutionEnv) (outNew : UInt256
     UInt256 :=
   endSlotWord (endCashBagSlot I) (endCashPostAccountMap σ I outNew) I
 
-noncomputable def endCashFixHashMem (I : ExecutionEnv) : ByteArray :=
+def endCashFixHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (endCashIlkWord I) ⟨15⟩ solcFreePtrMem
 
-noncomputable def endCashFixHashMem2 (I : ExecutionEnv) : ByteArray :=
+def endCashFixHashMem2 (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (endCashIlkWord I) ⟨15⟩ (endCashFixHashMem I)
 
-noncomputable def endCashFluxSelectorMem (mem : ByteArray) : ByteArray :=
+def endCashFluxSelectorMem (mem : ByteArray) : ByteArray :=
   endCashFluxSelectorShifted.toByteArray.write 0 mem endCashFluxOutPtr.toNat 32
 
-noncomputable def endCashFluxArg0Mem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def endCashFluxArg0Mem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (endCashIlkWord I).toByteArray.write 0 (endCashFluxSelectorMem mem)
     (endCashFluxOutPtr + ⟨4⟩).toNat 32
 
-noncomputable def endCashFluxArg1Mem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def endCashFluxArg1Mem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (endCashThisWord I).toByteArray.write 0 (endCashFluxArg0Mem I mem)
     (endCashFluxOutPtr + ⟨36⟩).toNat 32
 
-noncomputable def endCashFluxArg2Mem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def endCashFluxArg2Mem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (solcSourceWord I).toByteArray.write 0 (endCashFluxArg1Mem I mem)
     (endCashFluxOutPtr + ⟨68⟩).toNat 32
 
-noncomputable def endCashFluxCalldataMem (σ : AccountMap) (I : ExecutionEnv)
+def endCashFluxCalldataMem (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (mem : ByteArray) : ByteArray :=
   amt.toByteArray.write 0 (endCashFluxArg2Mem I mem)
     (endCashFluxOutPtr + ⟨100⟩).toNat 32
 
-noncomputable def endCashFluxPostCallMem (σ : AccountMap) (I : ExecutionEnv)
+def endCashFluxPostCallMem (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) : ByteArray :=
   out.write 0 (endCashFluxCalldataMem σ I amt (endCashFixHashMem2 I))
     endCashFluxOutPtr.toNat
@@ -314,11 +314,11 @@ theorem endCashFluxPostCallMem_read64 (σ : AccountMap) (I : ExecutionEnv)
   exact endCashFluxCalldataMem_read64 σ I amt
     (endCashFixHashMem2_size I) (endCashFixHashMem2_read64 I)
 
-noncomputable def endCashOutInnerHashMem (σ : AccountMap) (I : ExecutionEnv)
+def endCashOutInnerHashMem (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) : ByteArray :=
   twoWordHashMem (endCashIlkWord I) ⟨17⟩ (endCashFluxPostCallMem σ I amt out)
 
-noncomputable def endCashOutHashMem (σ : AccountMap) (I : ExecutionEnv)
+def endCashOutHashMem (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) : ByteArray :=
   twoWordHashMem (solcSourceWord I) (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
     (endCashOutInnerHashMem σ I amt out)
@@ -451,7 +451,7 @@ theorem endCashOutInnerHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
 theorem endCashOutInnerHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((endCashOutInnerHashMem σ I amt out).readWithPadding 0 64))) =
+        (KEC ((endCashOutInnerHashMem σ I amt out).readWithPadding 0 64))) =
       solcMappingSlot ⟨17⟩ (endCashIlkWord I) := by
   unfold endCashOutInnerHashMem
   rw [endTwoWordHashMem_read0_64_260 (endCashIlkWord I) ⟨17⟩
@@ -480,7 +480,7 @@ theorem endCashOutHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
 theorem endCashOutHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) (hsz68 : 68 ≤ I.calldata.size) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((endCashOutHashMem σ I amt out).readWithPadding 0 64))) =
+        (KEC ((endCashOutHashMem σ I amt out).readWithPadding 0 64))) =
       endCashOutSlot I := by
   rw [endCashOutSlot_eq (I := I) hsz68]
   unfold endCashOutHashMem
@@ -490,25 +490,25 @@ theorem endCashOutHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
   unfold solcMappingSlot
   exact mappingSlot_single (solcSourceWord I) (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
 
-noncomputable def endCashOutStoreInnerHashMem (σ : AccountMap) (I : ExecutionEnv)
+def endCashOutStoreInnerHashMem (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) : ByteArray :=
   twoWordHashMem (endCashIlkWord I) ⟨17⟩ (endCashOutHashMem σ I amt out)
 
-noncomputable def endCashOutStoreHashMem (σ : AccountMap) (I : ExecutionEnv)
+def endCashOutStoreHashMem (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) : ByteArray :=
   twoWordHashMem (solcSourceWord I) (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
     (endCashOutStoreInnerHashMem σ I amt out)
 
-noncomputable def endCashBagHashMem (σ : AccountMap) (I : ExecutionEnv)
+def endCashBagHashMem (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) : ByteArray :=
   wordAt32Mem ⟨16⟩ (endCashOutStoreHashMem σ I amt out)
 
-noncomputable def endCashOutHashMemAfterBag (σ : AccountMap) (I : ExecutionEnv)
+def endCashOutHashMemAfterBag (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) : ByteArray :=
   wordAt32Mem (solcMappingSlot ⟨17⟩ (endCashIlkWord I))
     (endCashBagHashMem σ I amt out)
 
-noncomputable def endCashLogDataMem (σ : AccountMap) (I : ExecutionEnv)
+def endCashLogDataMem (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) : ByteArray :=
   (UInt256.toByteArray (endCashWadWord I)).write 0
     (endCashOutHashMemAfterBag σ I amt out) 128 32
@@ -532,7 +532,7 @@ theorem endCashOutStoreInnerHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
 theorem endCashOutStoreInnerHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((endCashOutStoreInnerHashMem σ I amt out).readWithPadding 0 64))) =
+        (KEC ((endCashOutStoreInnerHashMem σ I amt out).readWithPadding 0 64))) =
       solcMappingSlot ⟨17⟩ (endCashIlkWord I) := by
   unfold endCashOutStoreInnerHashMem
   rw [endTwoWordHashMem_read0_64_260 (endCashIlkWord I) ⟨17⟩
@@ -570,7 +570,7 @@ theorem endCashOutStoreHashMem_read0 (σ : AccountMap) (I : ExecutionEnv)
 theorem endCashOutStoreHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) (hsz68 : 68 ≤ I.calldata.size) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((endCashOutStoreHashMem σ I amt out).readWithPadding 0 64))) =
+        (KEC ((endCashOutStoreHashMem σ I amt out).readWithPadding 0 64))) =
       endCashOutSlot I := by
   rw [endCashOutSlot_eq (I := I) hsz68]
   unfold endCashOutStoreHashMem
@@ -599,7 +599,7 @@ theorem endCashBagHashMem_read64 (σ : AccountMap) (I : ExecutionEnv)
 theorem endCashBagHashMem_slot (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) (out : ByteArray) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((endCashBagHashMem σ I amt out).readWithPadding 0 64))) =
+        (KEC ((endCashBagHashMem σ I amt out).readWithPadding 0 64))) =
       endCashBagSlot I := by
   rw [endCashBagSlot_eq]
   unfold endCashBagHashMem
@@ -1021,7 +1021,7 @@ theorem endCashX_fixZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw swap1 (by native_decide) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key ⟨15⟩ solcFreePtrMem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key ⟨15⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨15⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨15⟩ key solcFreePtrMem_size
   have rd9624pre := rd9623pre.keccak256 0 (solcMappingSlot ⟨15⟩ key)
@@ -1095,7 +1095,7 @@ theorem endCashX_fixNonzeroVatLoaded {cA gh bl σ σ₀ A I} {g : Sat256} {sel :
     raw swap1 (by native_decide) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key ⟨15⟩ solcFreePtrMem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key ⟨15⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨15⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨15⟩ key solcFreePtrMem_size
   have rd9624pre := rd9623pre.keccak256 0 (solcMappingSlot ⟨15⟩ key)
@@ -1144,7 +1144,7 @@ theorem endCashX_rmulArgsLoaded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
       twoWordHashMem_size_96 key ⟨15⟩ solcFreePtrMem_size
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((endCashFixHashMem2 I).readWithPadding 0 64))) =
+        (KEC ((endCashFixHashMem2 I).readWithPadding 0 64))) =
           solcMappingSlot ⟨15⟩ key :=
     by
       simpa [endCashFixHashMem2, key] using

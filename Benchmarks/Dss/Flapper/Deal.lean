@@ -344,13 +344,13 @@ abbrev dealBurnOutSize : UInt256 := ⟨0⟩
 
 abbrev dealBurnEndPtr : UInt256 := ⟨196⟩
 
-noncomputable def dealBurnSelectorMem (mem : ByteArray) : ByteArray :=
+def dealBurnSelectorMem (mem : ByteArray) : ByteArray :=
   dealBurnSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def dealBurnSrcMem (src : UInt256) (mem : ByteArray) : ByteArray :=
+def dealBurnSrcMem (src : UInt256) (mem : ByteArray) : ByteArray :=
   src.toByteArray.write 0 (dealBurnSelectorMem mem) 132 32
 
-noncomputable def dealBurnCalldataMem (src bid : UInt256) (mem : ByteArray) : ByteArray :=
+def dealBurnCalldataMem (src bid : UInt256) (mem : ByteArray) : ByteArray :=
   bid.toByteArray.write 0 (dealBurnSrcMem src mem) 164 32
 
 theorem dealBurnSelectorMem_size {mem : ByteArray} (hmem : mem.size = 96) :
@@ -2274,7 +2274,7 @@ theorem flapperDealX_toTicGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id solcFreePtrMem
   have rd3423 := rd3422pre.keccak256 0 base (UInt256.ofNat 3)
@@ -2450,7 +2450,7 @@ theorem flapperDealX_toTicLtGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memTic.readWithPadding 0 64))) = base := by
+        (KEC (memTic.readWithPadding 0 64))) = base := by
     have hmem0Size : mem0.size = 96 := by
       simpa [mem0, id] using
         twoWordHashMem_size_96 (dealIdWord I) ⟨1⟩ solcFreePtrMem_size
@@ -2548,7 +2548,7 @@ theorem flapperDealX_toEndLtGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memEnd.readWithPadding 0 64))) = base := by
+        (KEC (memEnd.readWithPadding 0 64))) = base := by
     simpa [base, memEnd, memTic, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd3507 := rd3506pre.keccak256 0 base (UInt256.ofNat 3)
@@ -2937,7 +2937,7 @@ theorem flapperDealX_toMoveExtcodesizeGuard
     raw dup4 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd3618 := rd3618pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
@@ -3410,7 +3410,7 @@ theorem flapperDealX_toBurnExtcodesizeGuard
     raw dup3 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using twoWordHashMem_solcMappingSlot_any ⟨1⟩ id mem
   have rd3752pre := rd3751pre.keccak256 0 base (UInt256.ofNat 8)
     (by native_decide)
@@ -3734,7 +3734,7 @@ theorem flapperDealX_deleteToFillSub
     raw dup3 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+          (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap] using twoWordHashMem_solcMappingSlot_any ⟨1⟩ id mem
   have rd3868raw := rd3867pre.keccak256 0 base (UInt256.ofNat 8)
     (by native_decide)

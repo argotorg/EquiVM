@@ -29,7 +29,7 @@ theorem wordBytes_eq_list (ws : List UInt256) :
       word_toBytesBE_toByteArray_eq_toByteArray, ih]
 
 def returnMem (ws : List UInt256) : ByteArray :=
-  (solcFreePtrMem ++ ffi.ByteArray.zeroes 32) ++ wordBytes ws
+  (solcFreePtrMem ++ ByteArray.zeroes 32) ++ wordBytes ws
 
 theorem returnMem_size (ws : List UInt256) : (returnMem ws).size = 128 + 32 * ws.length := by
   rw [returnMem, ByteArray.size_append, solcFreePtrMem_pad_size, wordBytes_size]

@@ -192,37 +192,37 @@ abbrev barkVatWord (v : DogImmutables) : UInt256 :=
 abbrev barkVatUrnsSelectorWord : UInt256 :=
   UInt256.shiftLeft ⟨606387804⟩ ⟨224⟩
 
-noncomputable abbrev barkVatUrnsSelectorMem (mem : ByteArray) : ByteArray :=
+abbrev barkVatUrnsSelectorMem (mem : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord mem 128 barkVatUrnsSelectorWord
 
-noncomputable abbrev barkVatUrnsIlkMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+abbrev barkVatUrnsIlkMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkVatUrnsSelectorMem mem) 132 (barkIlkWord I)
 
-noncomputable abbrev barkVatUrnsCallMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+abbrev barkVatUrnsCallMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkVatUrnsIlkMem I mem) 164 (barkUrnKey I)
 
-noncomputable abbrev barkVatUrnsPostCallMem
+abbrev barkVatUrnsPostCallMem
     (I : ExecutionEnv) (mem out : ByteArray) : ByteArray :=
   out.write 0 (barkVatUrnsCallMem I mem) 128
     (min (⟨64⟩ : UInt256) (UInt256.ofNat out.size)).toNat
 
-noncomputable abbrev barkVatUrnsTupleFreeMem
+abbrev barkVatUrnsTupleFreeMem
     (I : ExecutionEnv) (mem out : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkVatUrnsPostCallMem I mem out) 64 ⟨256⟩
 
-noncomputable abbrev barkVatUrnsTupleWord0Mem
+abbrev barkVatUrnsTupleWord0Mem
     (I : ExecutionEnv) (mem out : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkVatUrnsTupleFreeMem I mem out) 128 ⟨0⟩
 
-noncomputable abbrev barkVatUrnsTupleWord1Mem
+abbrev barkVatUrnsTupleWord1Mem
     (I : ExecutionEnv) (mem out : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkVatUrnsTupleWord0Mem I mem out) 160 ⟨0⟩
 
-noncomputable abbrev barkVatUrnsTupleWord2Mem
+abbrev barkVatUrnsTupleWord2Mem
     (I : ExecutionEnv) (mem out : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkVatUrnsTupleWord1Mem I mem out) 192 ⟨0⟩
 
-noncomputable abbrev barkVatUrnsTupleMem
+abbrev barkVatUrnsTupleMem
     (I : ExecutionEnv) (mem out : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkVatUrnsTupleWord2Mem I mem out) 224 ⟨0⟩
 
@@ -312,42 +312,42 @@ abbrev barkIlksHoleWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 abbrev barkIlksDirtWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   solcSlotWord σ I (⟨3⟩ + barkIlksSlot I)
 
-noncomputable abbrev barkIlksHashMem
+abbrev barkIlksHashMem
     (I : ExecutionEnv) (mem out : ByteArray) : ByteArray :=
   twoWordHashMem (barkIlkWord I) ⟨1⟩ (barkVatUrnsTupleMem I mem out)
 
-noncomputable abbrev barkIlksAllocMem
+abbrev barkIlksAllocMem
     (I : ExecutionEnv) (mem out : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkIlksHashMem I mem out) 64 ⟨384⟩
 
-noncomputable abbrev barkIlksClipMem
+abbrev barkIlksClipMem
     (σ : AccountMap) (I : ExecutionEnv) (mem out : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkIlksAllocMem I mem out) 256 (barkIlksClipWord σ I)
 
-noncomputable abbrev barkIlksChopMem
+abbrev barkIlksChopMem
     (σ : AccountMap) (I : ExecutionEnv) (mem out : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkIlksClipMem σ I mem out) 288 (barkIlksChopWord σ I)
 
-noncomputable abbrev barkIlksHoleMem
+abbrev barkIlksHoleMem
     (σ : AccountMap) (I : ExecutionEnv) (mem out : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkIlksChopMem σ I mem out) 320 (barkIlksHoleWord σ I)
 
-noncomputable abbrev barkIlksMem
+abbrev barkIlksMem
     (σ : AccountMap) (I : ExecutionEnv) (mem out : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkIlksHoleMem σ I mem out) 352 (barkIlksDirtWord σ I)
 
 abbrev barkVatIlksSelectorWord : UInt256 :=
   UInt256.shiftLeft ⟨1823590043⟩ ⟨225⟩
 
-noncomputable abbrev barkVatIlksSelectorMem
+abbrev barkVatIlksSelectorMem
     (σ : AccountMap) (I : ExecutionEnv) (mem out : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkIlksMem σ I mem out) 384 barkVatIlksSelectorWord
 
-noncomputable abbrev barkVatIlksCallMem
+abbrev barkVatIlksCallMem
     (σ : AccountMap) (I : ExecutionEnv) (mem out : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkVatIlksSelectorMem σ I mem out) 388 (barkIlkWord I)
 
-noncomputable abbrev barkVatIlksPostCallMem
+abbrev barkVatIlksPostCallMem
     (σ : AccountMap) (I : ExecutionEnv) (mem out outIlks : ByteArray) : ByteArray :=
   outIlks.write 0 (barkVatIlksCallMem σ I mem out) 384
     (min (⟨160⟩ : UInt256) (UInt256.ofNat outIlks.size)).toNat
@@ -615,35 +615,35 @@ abbrev barkVatGrabOutSize : UInt256 :=
 abbrev barkVatGrabEndPtr : UInt256 :=
   ⟨580⟩
 
-noncomputable abbrev barkVatGrabSelectorMem (mem : ByteArray) : ByteArray :=
+abbrev barkVatGrabSelectorMem (mem : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord mem 384 barkVatGrabSelectorShifted
 
-noncomputable abbrev barkVatGrabIlkMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+abbrev barkVatGrabIlkMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkVatGrabSelectorMem mem) 388 (barkIlkWord I)
 
-noncomputable abbrev barkVatGrabUrnMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+abbrev barkVatGrabUrnMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkVatGrabIlkMem I mem) 420 (barkUrnKey I)
 
-noncomputable abbrev barkVatGrabClipMem
+abbrev barkVatGrabClipMem
     (σMem : AccountMap) (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkVatGrabUrnMem I mem) 452 (barkIlksClipWord σMem I)
 
-noncomputable abbrev barkVatGrabVowMem
+abbrev barkVatGrabVowMem
     (σ σMem : AccountMap) (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkVatGrabClipMem σMem I mem) 484 (barkVowWord σ I)
 
-noncomputable abbrev barkVatGrabDinkMem
+abbrev barkVatGrabDinkMem
     (σ σMem : AccountMap) (I : ExecutionEnv) (mem : ByteArray) (dink : UInt256) :
     ByteArray :=
   Reasoning.Theory.writeWord (barkVatGrabVowMem σ σMem I mem) 516 (UInt256.sub ⟨0⟩ dink)
 
-noncomputable abbrev barkVatGrabCallMem
+abbrev barkVatGrabCallMem
     (σ σMem : AccountMap) (I : ExecutionEnv) (mem : ByteArray)
     (dink dart : UInt256) : ByteArray :=
   Reasoning.Theory.writeWord (barkVatGrabDinkMem σ σMem I mem dink) 548
     (UInt256.sub ⟨0⟩ dart)
 
-noncomputable abbrev barkVatGrabPostCallMem
+abbrev barkVatGrabPostCallMem
     (σ σMem : AccountMap) (I : ExecutionEnv) (mem out : ByteArray)
     (dink dart : UInt256) : ByteArray :=
   out.write 0 (barkVatGrabCallMem σ σMem I mem dink dart) barkVatGrabOutPtr.toNat
@@ -667,14 +667,14 @@ abbrev barkVowFessOutSize : UInt256 :=
 abbrev barkVowFessEndPtr : UInt256 :=
   ⟨420⟩
 
-noncomputable abbrev barkVowFessSelectorMem (mem : ByteArray) : ByteArray :=
+abbrev barkVowFessSelectorMem (mem : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord mem 384 barkVowFessSelectorShifted
 
-noncomputable abbrev barkVowFessDueMem (mem : ByteArray) (due : UInt256) :
+abbrev barkVowFessDueMem (mem : ByteArray) (due : UInt256) :
     ByteArray :=
   Reasoning.Theory.writeWord (barkVowFessSelectorMem mem) 388 due
 
-noncomputable abbrev barkVowFessPostCallMem
+abbrev barkVowFessPostCallMem
     (mem out : ByteArray) (due : UInt256) : ByteArray :=
   out.write 0 (barkVowFessDueMem mem due) barkVowFessOutPtr.toNat
     (min barkVowFessOutSize (UInt256.ofNat out.size)).toNat
@@ -697,25 +697,25 @@ abbrev barkKickOutSize : UInt256 :=
 abbrev barkKickEndPtr : UInt256 :=
   ⟨516⟩
 
-noncomputable abbrev barkKickSelectorMem (mem : ByteArray) : ByteArray :=
+abbrev barkKickSelectorMem (mem : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord mem 384 barkKickSelectorShifted
 
-noncomputable abbrev barkKickTabMem (mem : ByteArray) (tab : UInt256) : ByteArray :=
+abbrev barkKickTabMem (mem : ByteArray) (tab : UInt256) : ByteArray :=
   Reasoning.Theory.writeWord (barkKickSelectorMem mem) 388 tab
 
-noncomputable abbrev barkKickDinkMem (mem : ByteArray) (tab dink : UInt256) :
+abbrev barkKickDinkMem (mem : ByteArray) (tab dink : UInt256) :
     ByteArray :=
   Reasoning.Theory.writeWord (barkKickTabMem mem tab) 420 dink
 
-noncomputable abbrev barkKickUrnMem (I : ExecutionEnv) (mem : ByteArray)
+abbrev barkKickUrnMem (I : ExecutionEnv) (mem : ByteArray)
     (tab dink : UInt256) : ByteArray :=
   Reasoning.Theory.writeWord (barkKickDinkMem mem tab dink) 452 (barkUrnKey I)
 
-noncomputable abbrev barkKickCalldataMem (I : ExecutionEnv) (mem : ByteArray)
+abbrev barkKickCalldataMem (I : ExecutionEnv) (mem : ByteArray)
     (tab dink : UInt256) : ByteArray :=
   Reasoning.Theory.writeWord (barkKickUrnMem I mem tab dink) 484 (barkKprKey I)
 
-noncomputable abbrev barkKickPostCallMem (I : ExecutionEnv) (mem out : ByteArray)
+abbrev barkKickPostCallMem (I : ExecutionEnv) (mem out : ByteArray)
     (tab dink : UInt256) : ByteArray :=
   out.write 0 (barkKickCalldataMem I mem tab dink) barkKickOutPtr.toNat
     (min barkKickOutSize (UInt256.ofNat out.size)).toNat
@@ -2351,7 +2351,7 @@ theorem twoWordHashMem_read0_64_256 {mem : ByteArray} (key slot : UInt256)
 theorem twoWordHashMem_solcMappingSlot_256 (baseSlot key : UInt256) {mem : ByteArray}
     (hmem : mem.size = 256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   rw [twoWordHashMem_read0_64_256 key baseSlot hmem]
   unfold solcMappingSlot
@@ -2433,7 +2433,7 @@ theorem twoWordHashMem_read0_64_580 {mem : ByteArray} (key slot : UInt256)
 theorem twoWordHashMem_solcMappingSlot_580 (baseSlot key : UInt256) {mem : ByteArray}
     (hmem : mem.size = 580) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   rw [twoWordHashMem_read0_64_580 key baseSlot hmem]
   unfold solcMappingSlot
@@ -2518,7 +2518,7 @@ theorem barkIlksHashMem_mload64 {I : ExecutionEnv} {mem out : ByteArray}
 theorem barkIlksHashMem_slot {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((barkIlksHashMem I mem out).readWithPadding 0 64))) =
+        (KEC ((barkIlksHashMem I mem out).readWithPadding 0 64))) =
       barkIlksSlot I := by
   unfold barkIlksHashMem barkIlksSlot
   exact twoWordHashMem_solcMappingSlot_256 ⟨1⟩ (barkIlkWord I)
@@ -4759,23 +4759,23 @@ theorem barkKickPostCallMem_mload384_long {I : ExecutionEnv} {tab dink : UInt256
       ⟨by rw [barkKickPostCallMem_size_long hmem hlong hout]; decide,
         by native_decide⟩
 
-noncomputable abbrev barkBarkLogDinkMem (mem : ByteArray) (dink : UInt256) :
+abbrev barkBarkLogDinkMem (mem : ByteArray) (dink : UInt256) :
     ByteArray :=
   Reasoning.Theory.writeWord mem 384 dink
 
-noncomputable abbrev barkBarkLogDartMem (mem : ByteArray) (dink dart : UInt256) :
+abbrev barkBarkLogDartMem (mem : ByteArray) (dink dart : UInt256) :
     ByteArray :=
   Reasoning.Theory.writeWord (barkBarkLogDinkMem mem dink) 416 dart
 
-noncomputable abbrev barkBarkLogDueMem (mem : ByteArray) (dink dart due : UInt256) :
+abbrev barkBarkLogDueMem (mem : ByteArray) (dink dart due : UInt256) :
     ByteArray :=
   Reasoning.Theory.writeWord (barkBarkLogDartMem mem dink dart) 448 due
 
-noncomputable abbrev barkBarkLogMem (mem : ByteArray) (dink dart due clip : UInt256) :
+abbrev barkBarkLogMem (mem : ByteArray) (dink dart due clip : UInt256) :
     ByteArray :=
   Reasoning.Theory.writeWord (barkBarkLogDueMem mem dink dart due) 480 clip
 
-noncomputable abbrev barkReturnIdMem (mem : ByteArray) (id : UInt256) : ByteArray :=
+abbrev barkReturnIdMem (mem : ByteArray) (id : UInt256) : ByteArray :=
   (UInt256.toByteArray id).write 0 mem 384 32
 
 theorem barkBarkLogDinkMem_size {mem : ByteArray} {dink : UInt256}
@@ -4899,17 +4899,17 @@ theorem barkReturnIdMem_read384 {mem : ByteArray} {id : UInt256}
   rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
   rw [toByteArray_extract_all]
 
-noncomputable abbrev barkPostIlksErrorStringMem0 (mem : ByteArray) : ByteArray :=
+abbrev barkPostIlksErrorStringMem0 (mem : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord mem 384 solcErrorStringSelector
 
-noncomputable abbrev barkPostIlksErrorStringMem1 (mem : ByteArray) : ByteArray :=
+abbrev barkPostIlksErrorStringMem1 (mem : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkPostIlksErrorStringMem0 mem) 388 ⟨32⟩
 
-noncomputable abbrev barkPostIlksErrorStringMem2 (len : UInt256) (mem : ByteArray) :
+abbrev barkPostIlksErrorStringMem2 (len : UInt256) (mem : ByteArray) :
     ByteArray :=
   Reasoning.Theory.writeWord (barkPostIlksErrorStringMem1 mem) 420 len
 
-noncomputable abbrev barkPostIlksErrorStringMem3
+abbrev barkPostIlksErrorStringMem3
     (len word : UInt256) (mem : ByteArray) : ByteArray :=
   Reasoning.Theory.writeWord (barkPostIlksErrorStringMem2 len mem) 452 word
 
@@ -5010,7 +5010,7 @@ theorem barkPostIlksErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArra
       simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
         barkPostIlksErrorStringMem3_read64 len word hmem hread64)
 
-noncomputable abbrev barkPostIlksCodecopyErrorMem
+abbrev barkPostIlksCodecopyErrorMem
     (code : ByteArray) (mem : ByteArray) : ByteArray :=
   code.write 4691 (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem) 452 42
 
@@ -22522,7 +22522,7 @@ theorem RD.dogBarkStoreIlkDirt {v : DogImmutables} {code : ByteArray}
         ilkDirtNew) k' C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (barkIlkWord I) ⟨1⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (barkIlkWord I) ⟨1⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (barkIlkWord I) :=
     twoWordHashMem_solcMappingSlot_580 ⟨1⟩ (barkIlkWord I) hmem
   have hslotDirt :

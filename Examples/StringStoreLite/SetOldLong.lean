@@ -1099,7 +1099,7 @@ theorem stringStoreLiteX_setLongReturnFromWriteAfterClearBase
       hretBytes
       (by evm_ov)]
 
-noncomputable def setShortReturnMemAfterClearBase
+def setShortReturnMemAfterClearBase
     (cd : ByteArray) (len payloadStart : UInt256) : ByteArray :=
   len.toByteArray.write 0
     (clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)) 192 32
@@ -1225,7 +1225,7 @@ theorem clearCurrentBaseMemFrom_currentLengthZeroReturnMem_mload128 :
     (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
       clearCurrentBaseMemFrom_currentLengthZeroReturnMem_read128)
 
-noncomputable def setEmptyReturnMemLong : ByteArray :=
+def setEmptyReturnMemLong : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0
     (clearCurrentBaseMemFrom currentLengthZeroReturnMem) 160 32
 
@@ -1698,7 +1698,7 @@ theorem readWithPadding_tail32_toList (b : ByteArray) {addr : Nat}
   rw [show min 32 b.size = 32 by omega]
   change
     (b.extract addr (addr + 32) ++
-        ffi.ByteArray.zeroes (32 - (b.extract addr (addr + 32)).size)).toList =
+        ByteArray.zeroes (32 - (b.extract addr (addr + 32)).size)).toList =
       b.toList.drop addr ++ List.replicate (32 - (b.toList.drop addr).length) 0
   rw [byteArray_toList_eq (_ ++ _), ByteArray.data_append, Array.toList_append]
   rw [ByteArray.data_extract, Array.toList_extract, List.extract_eq_take_drop]

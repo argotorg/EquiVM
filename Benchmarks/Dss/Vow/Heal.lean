@@ -47,10 +47,10 @@ abbrev healSinInSize : UInt256 :=
 abbrev healSinEndPtr : UInt256 :=
   UInt256.add healSinOutPtr ⟨36⟩
 
-noncomputable def healSinSelectorMem (mem : ByteArray) : ByteArray :=
+def healSinSelectorMem (mem : ByteArray) : ByteArray :=
   healSinSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def healSinCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def healSinCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (UInt256.ofNat I.codeOwner.val).toByteArray.write 0 (healSinSelectorMem mem) 132 32
 
 theorem healSinSelectorMem_size {mem : ByteArray} (hmem : mem.size = 164) :

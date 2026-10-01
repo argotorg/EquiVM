@@ -1357,7 +1357,7 @@ theorem RD.dogDigsToSecondSubRoutine {v : DogImmutables} {code : ByteArray}
     mem_cost (by rfl) (by native_decide) (by evm_ov)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ ilk :=
     twoWordHashMem_solcMappingSlot ⟨1⟩ ilk hmem
   have rdKeccakPrefix := evm_run rdHashMem with [
@@ -1558,7 +1558,7 @@ theorem RD.dogDigsSecondSubSuccessStoreLog {v : DogImmutables} {code : ByteArray
     twoWordHashMem_read64 ilk ⟨1⟩ hmem hread64
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ ilk :=
     twoWordHashMem_solcMappingSlot ⟨1⟩ ilk hmem
   have rdKeccakPrefix := evm_run rdHashMem with [

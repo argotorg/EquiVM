@@ -22,7 +22,7 @@ set_option maxRecDepth 2000000
 def catCtorArgsTail (vat : AccountAddress) : ByteArray :=
   (EVM.Word.toBytesBE (EVM.word vat.val)).toByteArray
 
-noncomputable def catCtorCode (vat : AccountAddress) : ByteArray :=
+def catCtorCode (vat : AccountAddress) : ByteArray :=
   catCreationBytecode ++ catCtorArgsTail vat
 
 theorem catCtorDeployment_shape {args : List Value} {deployedInitcode : ByteArray}
@@ -108,7 +108,7 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
     (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
     (hbase : base.size ≤ destAddr) (hgap : destAddr - base.size < USize.size) :
     src.write srcAddr base destAddr len =
-      base ++ ffi.ByteArray.zeroes (destAddr - base.size) ++
+      base ++ ByteArray.zeroes (destAddr - base.size) ++
         src.extract srcAddr (srcAddr + len) := by
   have hsrcNonempty : ¬ srcAddr ≥ src.size := by omega
   have hcopy : min len (src.size - srcAddr) = len := by
@@ -121,14 +121,14 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
     have hle : min base.size (destAddr + len) ≤ destAddr + len := Nat.min_le_right _ _
     omega
   have hDsz :
-      (base.data ++ (ffi.ByteArray.zeroes (destAddr - base.size)).data).size =
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size =
         destAddr := by
     rw [Array.size_append]
     have hz :
-        (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
+        (ByteArray.zeroes (destAddr - base.size)).data.size =
           destAddr - base.size := by
-      rw [show (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ffi.ByteArray.zeroes (destAddr - base.size)).size from rfl,
+      rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
+          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
         ByteArray_zeroes_size]
     rw [hz]
     change base.size + (destAddr - base.size) = destAddr
@@ -138,10 +138,10 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
   rw [if_neg hlen, if_neg hsrcNonempty]
   simp only [ByteArray.data_copySlice, ByteArray.data_append]
   change (base.data ++
-          (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract 0
+          (ByteArray.zeroes (destAddr - base.size)).data).extract 0
           destAddr ++
         (src.data ++
-            (ffi.ByteArray.zeroes
+            (ByteArray.zeroes
                   (min base.size (destAddr + len) -
                     (destAddr + min len (src.size - srcAddr)))).data).extract
           srcAddr
@@ -150,21 +150,21 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
               (min base.size (destAddr + len) -
                 (destAddr + min len (src.size - srcAddr))))) ++
         (base.data ++
-          (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract
+          (ByteArray.zeroes (destAddr - base.size)).data).extract
           (destAddr +
             min
               (min len (src.size - srcAddr) +
                 (min base.size (destAddr + len) -
                   (destAddr + min len (src.size - srcAddr))))
               ((src.data ++
-                    (ffi.ByteArray.zeroes
+                    (ByteArray.zeroes
                           (min base.size (destAddr + len) -
                             (destAddr + min len (src.size - srcAddr)))).data).size -
                 srcAddr)) =
-      base.data ++ (ffi.ByteArray.zeroes (destAddr - base.size)).data ++
+      base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
         (src.extract srcAddr (srcAddr + len)).data
   rw [hcopy, htail]
-  rw [show (ffi.ByteArray.zeroes (0 : ℕ)).data =
+  rw [show (ByteArray.zeroes (0 : ℕ)).data =
       (#[] : Array UInt8) from by
     rw [zeroes_zero (n := (0 : ℕ)) (by rfl)]
     rfl]
@@ -175,22 +175,22 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
   rw [hcopyData]
   rw [show
       (base.data ++
-          (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract
+          (ByteArray.zeroes (destAddr - base.size)).data).extract
         (destAddr + len) = #[] from by
     apply Array.extract_eq_empty_of_le
     rw [hDsz]
     omega]
   simp only [Array.append_empty]
 
-noncomputable def catCtorArgMem (vat : AccountAddress) : ByteArray :=
+def catCtorArgMem (vat : AccountAddress) : ByteArray :=
   (catCtorCode vat).write 3999 solcFreePtrMem 128 32
 
-noncomputable def catCtorArgFreeMem (vat : AccountAddress) : ByteArray :=
+def catCtorArgFreeMem (vat : AccountAddress) : ByteArray :=
   (UInt256.toByteArray ⟨160⟩).write 0 (catCtorArgMem vat) 64 32
 
 theorem catCtorArgMem_eq (vat : AccountAddress) :
     catCtorArgMem vat =
-      solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++ catCtorArgsTail vat := by
+      solcFreePtrMem ++ ByteArray.zeroes 32 ++ catCtorArgsTail vat := by
   rw [catCtorArgMem, catCtorCode, byteArray_write_from_ge_eq]
   · rw [extract_append_right' catCreationBytecode (catCtorArgsTail vat) 3999 (3999 + 32)]
     · rw [solcFreePtrMem_size]
@@ -220,14 +220,14 @@ theorem catCtorArgMem_read128 (vat : AccountAddress) :
       UInt256.toByteArray (EVM.word vat.val) := by
   rw [catCtorArgMem_eq]
   have hprefix :
-      (solcFreePtrMem ++ ffi.ByteArray.zeroes 32).size = 128 := by
+      (solcFreePtrMem ++ ByteArray.zeroes 32).size = 128 := by
     rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size 32 (by norm_num)]
   rw [readWithPadding_eq_extract'
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++ catCtorArgsTail vat)
+    (solcFreePtrMem ++ ByteArray.zeroes 32 ++ catCtorArgsTail vat)
     128 32 (by norm_num) (by norm_num) (by
       rw [ByteArray.size_append, hprefix, catCtorArgsTail_size])]
   rw [extract_append_right_window
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32) (catCtorArgsTail vat) 128
+    (solcFreePtrMem ++ ByteArray.zeroes 32) (catCtorArgsTail vat) 128
     (128 + 32) (by rw [hprefix]), hprefix]
   rw [show 128 - 128 = 0 by omega, show 128 + 32 - 128 = 32 by omega]
   simp [catCtorArgsTail, word_toBytesBE_toByteArray_eq_toByteArray, toByteArray_extract_all]
@@ -256,7 +256,7 @@ theorem catCtorArgFreeMem_mload128 (vat : AccountAddress) :
 abbrev catCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
   solcMappingSlot ⟨0⟩ (solcSourceWord I)
 
-noncomputable def catCtorWardsHashMem (I : ExecutionEnv) (vat : AccountAddress) : ByteArray :=
+def catCtorWardsHashMem (I : ExecutionEnv) (vat : AccountAddress) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ (catCtorArgFreeMem vat)
 
 private theorem wordAt0Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
@@ -330,14 +330,14 @@ private theorem twoWordHashMem_read0_64_160 {mem : ByteArray} (key slot : UInt25
 
 theorem catCtorWardsHashSlot (I : ExecutionEnv) (vat : AccountAddress) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((catCtorWardsHashMem I vat).readWithPadding 0 64))) =
+        (KEC ((catCtorWardsHashMem I vat).readWithPadding 0 64))) =
       catCtorCallerWardsSlot I := by
   unfold catCtorWardsHashMem catCtorCallerWardsSlot solcMappingSlot
   rw [twoWordHashMem_read0_64_160]
   · exact mappingSlot_single (solcSourceWord I) ⟨0⟩
   · exact catCtorArgFreeMem_size vat
 
-noncomputable def catCtorReturnMem (I : ExecutionEnv) (vat : AccountAddress) : ByteArray :=
+def catCtorReturnMem (I : ExecutionEnv) (vat : AccountAddress) : ByteArray :=
   (catCtorCode vat).write 126 (catCtorWardsHashMem I vat) 0 3873
 
 theorem catCtorReturnMem_read (I : ExecutionEnv) (vat : AccountAddress) :

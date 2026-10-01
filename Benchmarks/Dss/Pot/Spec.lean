@@ -10,7 +10,7 @@ The source includes the same hand-written assembly `_rpow` loop shape as `Jug`; 
 that loop structurally. Events are omitted.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace Benchmarks.Dss.Pot
 
@@ -94,7 +94,7 @@ def storageDecls : List StorageDecl :=
     { name := "live", ty := uint256St } ]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def wardsSlot (usr : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord usr) ⟨0⟩

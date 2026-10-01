@@ -360,7 +360,7 @@ def solcFreePtrMem : ByteArray :=
 
 theorem solcFreePtrMem_eq :
     solcFreePtrMem
-      = (ByteArray.empty ++ ffi.ByteArray.zeroes 64) ++ UInt256.toByteArray ⟨128⟩ := by
+      = (ByteArray.empty ++ ByteArray.zeroes 64) ++ UInt256.toByteArray ⟨128⟩ := by
   rw [solcFreePtrMem, toByteArray_write_eq _ _ _ (by decide) (by exact lt_usize _ (by norm_num))]; rfl
 
 theorem solcFreePtrMem_size : solcFreePtrMem.size = 96 := by
@@ -396,7 +396,7 @@ theorem solcFreePtrMem_mload64 :
   mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide) solcFreePtrMem_read64
 
 theorem solcFreePtrMem_pad_size :
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32).size = 128 := by
+    (solcFreePtrMem ++ ByteArray.zeroes 32).size = 128 := by
   rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size _ (by norm_num)]
 
 /-- Memory after solc stores a 32-byte return word `val` at `0x80`, over the free-pointer memory —
@@ -405,7 +405,7 @@ def solcReturnMem (val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 solcFreePtrMem 128 32
 
 theorem solcReturnMem_eq (val : UInt256) :
-    solcReturnMem val = (solcFreePtrMem ++ ffi.ByteArray.zeroes 32) ++ UInt256.toByteArray val := by
+    solcReturnMem val = (solcFreePtrMem ++ ByteArray.zeroes 32) ++ UInt256.toByteArray val := by
   rw [solcReturnMem, toByteArray_write_eq _ _ _ (by rw [solcFreePtrMem_size]; omega)
         (by rw [solcFreePtrMem_size]; exact lt_usize _ (by norm_num))]
   norm_num [solcFreePtrMem_size]
@@ -441,16 +441,16 @@ theorem solcReturnMem_read128 (val : UInt256) :
 def solcErrorStringSelector : UInt256 :=
   UInt256.shiftLeft (⟨4594637⟩ : UInt256) ⟨229⟩
 
-noncomputable def solcErrorStringMem0 (mem : ByteArray) : ByteArray :=
+def solcErrorStringMem0 (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray solcErrorStringSelector).write 0 mem 128 32
 
-noncomputable def solcErrorStringMem1 (mem : ByteArray) : ByteArray :=
+def solcErrorStringMem1 (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 (solcErrorStringMem0 mem) 132 32
 
-noncomputable def solcErrorStringMem2 (len : UInt256) (mem : ByteArray) : ByteArray :=
+def solcErrorStringMem2 (len : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray len).write 0 (solcErrorStringMem1 mem) 164 32
 
-noncomputable def solcErrorStringMem3 (len word : UInt256) (mem : ByteArray) : ByteArray :=
+def solcErrorStringMem3 (len word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 (solcErrorStringMem2 len mem) 196 32
 
 theorem solcErrorStringMem0_size {mem : ByteArray} (hmem : mem.size = 96) :
@@ -611,10 +611,10 @@ theorem solcErrorStringMem3_mload64_of_size164 (len word : UInt256) {mem : ByteA
 
 /-! ## Mapping scratch memory -/
 
-noncomputable def solcMappingBaseSlotMem (baseSlot : UInt256) : ByteArray :=
+def solcMappingBaseSlotMem (baseSlot : UInt256) : ByteArray :=
   wordAt32Mem baseSlot solcFreePtrMem
 
-noncomputable def solcMappingHashMem (baseSlot key : UInt256) : ByteArray :=
+def solcMappingHashMem (baseSlot key : UInt256) : ByteArray :=
   wordAt0Mem key (solcMappingBaseSlotMem baseSlot)
 
 theorem solcMappingBaseSlotMem_size (baseSlot : UInt256) :
@@ -714,20 +714,20 @@ theorem solcMappingHashMem_read0_64 (baseSlot key : UInt256) :
   rw [hleft, hright]
 
 def solcMappingSlot (baseSlot key : UInt256) : UInt256 :=
-  uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 theorem solcMappingKeccakSlot (baseSlot key : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((solcMappingHashMem baseSlot key).readWithPadding 0 64)))
+        (KEC ((solcMappingHashMem baseSlot key).readWithPadding 0 64)))
       = solcMappingSlot baseSlot key := by
   rw [solcMappingHashMem_read0_64]
   unfold solcMappingSlot
   exact mappingSlot_single key baseSlot
 
-noncomputable def solcNestedMappingOuterBaseMem (baseSlot owner : UInt256) : ByteArray :=
+def solcNestedMappingOuterBaseMem (baseSlot owner : UInt256) : ByteArray :=
   wordAt32Mem (solcMappingSlot baseSlot owner) (solcMappingHashMem baseSlot owner)
 
-noncomputable def solcNestedMappingHashMem
+def solcNestedMappingHashMem
     (baseSlot owner spender : UInt256) : ByteArray :=
   wordAt0Mem spender (solcNestedMappingOuterBaseMem baseSlot owner)
 
@@ -832,13 +832,13 @@ theorem solcNestedMappingHashMem_read0_64 (baseSlot owner spender : UInt256) :
 
 theorem solcNestedMappingKeccakSlot (baseSlot owner spender : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((solcNestedMappingHashMem baseSlot owner spender).readWithPadding 0 64)))
+        (KEC ((solcNestedMappingHashMem baseSlot owner spender).readWithPadding 0 64)))
       = solcMappingSlot (solcMappingSlot baseSlot owner) spender := by
   rw [solcNestedMappingHashMem_read0_64]
   unfold solcMappingSlot
   exact mappingSlot_single spender (solcMappingSlot baseSlot owner)
 
-noncomputable def solcScratchReturnMem (scratch : ByteArray) (val : UInt256) : ByteArray :=
+def solcScratchReturnMem (scratch : ByteArray) (val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 scratch 128 32
 
 theorem solcScratchReturnMem_size {scratch : ByteArray} (val : UInt256)
@@ -892,7 +892,7 @@ theorem solcScratchReturnMem_read128 {scratch : ByteArray} (val : UInt256)
       rw [ByteArray.size_append, ByteArray.size_append, hscratch, ByteArray_zeroes_size,
         toByteArray_size])]
   rw [extract_append_right_window
-      (scratch ++ ffi.ByteArray.zeroes (128 - scratch.size))
+      (scratch ++ ByteArray.zeroes (128 - scratch.size))
       (UInt256.toByteArray val) 128 160 (by
         rw [ByteArray.size_append, hscratch, ByteArray_zeroes_size])]
   rw [ByteArray.size_append, hscratch, ByteArray_zeroes_size]
@@ -911,16 +911,16 @@ def solcBytesReturnAllocSize (len : UInt256) : UInt256 :=
 def solcBytesReturnFreePtr (len : UInt256) : UInt256 :=
   ⟨128⟩ + solcBytesReturnAllocSize len
 
-noncomputable def solcBytesReturnAllocMem (len : UInt256) : ByteArray :=
+def solcBytesReturnAllocMem (len : UInt256) : ByteArray :=
   (solcBytesReturnFreePtr len).toByteArray.write 0 solcFreePtrMem 64 32
 
-noncomputable def solcBytesReturnLengthMem (len : UInt256) : ByteArray :=
+def solcBytesReturnLengthMem (len : UInt256) : ByteArray :=
   len.toByteArray.write 0 (solcBytesReturnAllocMem len) 128 32
 
-noncomputable def solcBytesReturnPayloadMem (len payloadWord : UInt256) : ByteArray :=
+def solcBytesReturnPayloadMem (len payloadWord : UInt256) : ByteArray :=
   payloadWord.toByteArray.write 0 (solcBytesReturnLengthMem len) 160 32
 
-noncomputable def solcBytesReturnPayloadReturnMem (len payloadWord : UInt256) : ByteArray :=
+def solcBytesReturnPayloadReturnMem (len payloadWord : UInt256) : ByteArray :=
   len.toByteArray.write 0 (solcBytesReturnPayloadMem len payloadWord) 192 32
 
 theorem solcBytesReturnAllocMem_size (len : UInt256) :
@@ -1135,11 +1135,11 @@ theorem solcBytesReturnFreePtr_eq_192_of_short_nonzero {len : UInt256}
 
 /-! ## Dynamic bytes/string calldata copy memory -/
 
-noncomputable def solcBytesSetCalldataMem
+def solcBytesSetCalldataMem
     (cd : ByteArray) (len payloadStart : UInt256) : ByteArray :=
   cd.write payloadStart.toNat (solcBytesReturnLengthMem len) 160 len.toNat
 
-noncomputable def solcBytesSetPaddedMem
+def solcBytesSetPaddedMem
     (cd : ByteArray) (len payloadStart : UInt256) : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0
     (solcBytesSetCalldataMem cd len payloadStart) (((⟨160⟩ : UInt256) + len).toNat) 32
@@ -1293,7 +1293,7 @@ theorem solcBytesSetPaddedMem_size_ge160
       rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
       exact lt_usize 0 (by norm_num))]
   rw [ByteArray.size_append, ByteArray.size_append, hbase, toByteArray_size, hadd]
-  rw [show ffi.ByteArray.zeroes (160 + len.toNat - (160 + len.toNat)) =
+  rw [show ByteArray.zeroes (160 + len.toNat - (160 + len.toNat)) =
       ByteArray.empty by
         rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
         exact zeroes_zero (n := 0) (by rfl),
@@ -1317,7 +1317,7 @@ theorem solcBytesSetPaddedMem_size
       rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
       exact lt_usize 0 (by norm_num))]
   rw [ByteArray.size_append, ByteArray.size_append, hbase, toByteArray_size, hadd]
-  rw [show ffi.ByteArray.zeroes (160 + len.toNat - (160 + len.toNat)) =
+  rw [show ByteArray.zeroes (160 + len.toNat - (160 + len.toNat)) =
       ByteArray.empty by
         rw [show 160 + len.toNat - (160 + len.toNat) = 0 by omega]
         exact zeroes_zero (n := 0) (by rfl),
@@ -3063,7 +3063,7 @@ abbrev solcSlotWord (σ : AccountMap) (I : ExecutionEnv) (slot : UInt256) : UInt
 theorem twoWordHashMem_solcMappingSlot (baseSlot key : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   rw [twoWordHashMem_read0_64 key baseSlot hmem]
   unfold solcMappingSlot
@@ -3155,7 +3155,7 @@ theorem RD.solcSingleMappingLoadToRoutineMem {code : ByteArray} {g : Sat256} {s0
     exact hmask
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot key :=
     twoWordHashMem_solcMappingSlot baseSlot key hmem
   have rdMasked := evm_run h with [
@@ -3303,7 +3303,7 @@ theorem RD.solcSingleMappingStoreDebitMem {code : ByteArray} {g : Sat256} {s0 : 
     twoWordHashMem_size_96 key baseSlot hmem
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem key baseSlot
+          (KEC ((twoWordHashMem key baseSlot
             (twoWordHashMem key baseSlot mem)).readWithPadding 0 64))) =
         solcMappingSlot baseSlot key :=
     twoWordHashMem_solcMappingSlot baseSlot key hbaseSize
@@ -3440,7 +3440,7 @@ theorem RD.solcSingleMappingStoreCreditMem {code : ByteArray} {g : Sat256} {s0 :
     (hwf : solcSingleMappingStoreCreditMemWf code pc baseSlot)
     (hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot key)
     (hperm : ee.perm = true)
     (hcanonKey : key.toNat < EVM.addressModulus)
@@ -3596,7 +3596,7 @@ theorem RD.solcNestedMappingStoreInnerHash {code : ByteArray} {g : Sat256} {s0 :
     exact solcAddrMask_clean_left hcanonOwner
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot owner :=
     twoWordHashMem_solcMappingSlot baseSlot owner hmem
   have rdMasked := evm_run h with [
@@ -3711,7 +3711,7 @@ theorem RD.solcNestedMappingStoreOuterSstore {code : ByteArray} {g : Sat256} {s0
     solcAddrMask_clean hcanonSpender
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem spender innerSlot mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem spender innerSlot mem).readWithPadding 0 64))) =
         solcMappingSlot innerSlot spender :=
     twoWordHashMem_solcMappingSlot innerSlot spender hmem
   have rdMasked := evm_run h with [
@@ -3742,7 +3742,7 @@ theorem RD.solcNestedMappingStoreOuterSstore {code : ByteArray} {g : Sat256} {s0
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [solcNestedMappingStoreOuterSstoreOutPc] using rdOut⟩
 
-noncomputable def solcNestedMappingCallerHashMem
+def solcNestedMappingCallerHashMem
     (baseSlot owner : UInt256) (ee : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   twoWordHashMem (solcSourceWord ee) (solcMappingSlot baseSlot owner)
     (twoWordHashMem owner baseSlot mem)
@@ -3875,14 +3875,14 @@ theorem RD.solcNestedMappingCallerStoreMem
     exact hmask
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot owner :=
     twoWordHashMem_solcMappingSlot baseSlot owner hmem
   have hinnerSize : (twoWordHashMem owner baseSlot mem).size = 96 :=
     twoWordHashMem_size_96 owner baseSlot hmem
   have houter :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((solcNestedMappingCallerHashMem baseSlot owner ee mem).readWithPadding 0 64))) =
+          (KEC ((solcNestedMappingCallerHashMem baseSlot owner ee mem).readWithPadding 0 64))) =
         solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee) := by
     unfold solcNestedMappingCallerHashMem
     exact twoWordHashMem_solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee)
@@ -4059,14 +4059,14 @@ theorem RD.solcNestedMappingCallerLoad {code : ByteArray} {g : Sat256} {s0 : Sta
     exact hmask
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot owner :=
     twoWordHashMem_solcMappingSlot baseSlot owner hmem
   have hinnerSize : (twoWordHashMem owner baseSlot mem).size = 96 :=
     twoWordHashMem_size_96 owner baseSlot hmem
   have houter :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((solcNestedMappingCallerHashMem baseSlot owner ee mem).readWithPadding 0 64))) =
+          (KEC ((solcNestedMappingCallerHashMem baseSlot owner ee mem).readWithPadding 0 64))) =
         solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee) := by
     unfold solcNestedMappingCallerHashMem
     exact twoWordHashMem_solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee)
@@ -4306,14 +4306,14 @@ theorem RD.solcNestedMappingCallerReloadToRoutineMem
     exact hmask
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem owner baseSlot mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot owner :=
     twoWordHashMem_solcMappingSlot baseSlot owner hmem
   have hinnerSize : (twoWordHashMem owner baseSlot mem).size = 96 :=
     twoWordHashMem_size_96 owner baseSlot hmem
   have houter :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((solcNestedMappingCallerHashMem baseSlot owner ee mem).readWithPadding 0 64))) =
+          (KEC ((solcNestedMappingCallerHashMem baseSlot owner ee mem).readWithPadding 0 64))) =
         solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee) := by
     unfold solcNestedMappingCallerHashMem
     exact twoWordHashMem_solcMappingSlot (solcMappingSlot baseSlot owner) (solcSourceWord ee)
@@ -4416,7 +4416,7 @@ theorem RD.solcPreparedSingleMappingLoadToRoutineMem
     (hwf : solcPreparedSingleMappingLoadToRoutineMemWf code pc afterLoadPc routinePc)
     (hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((wordAt0Mem key mem).readWithPadding 0 64))) =
+          (KEC ((wordAt0Mem key mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot key)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hroutine : (D_J code 0).contains routinePc = true)
@@ -5292,7 +5292,7 @@ theorem RD.solcPreparedSingleMappingLoadCheckedAddMem
     (hadd : solcCheckedAddSuccessWf code routinePc checkedOkPc)
     (hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((wordAt0Mem key mem).readWithPadding 0 64))) =
+          (KEC ((wordAt0Mem key mem).readWithPadding 0 64))) =
         solcMappingSlot baseSlot key)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hfit : (solcSlotWord σ ee (solcMappingSlot baseSlot key)).toNat + value.toNat <

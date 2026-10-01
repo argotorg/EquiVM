@@ -312,10 +312,10 @@ theorem spotRelyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
       hwv
       (evalExpr_rely_auth_false evm I hsrc hauth)
 
-noncomputable abbrev relyAuthHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev relyAuthHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (relySourceWord I) ⟨0⟩ solcFreePtrMem
 
-noncomputable abbrev relyStoreHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev relyStoreHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (relyGuyMaskedWord I) ⟨0⟩ (relyAuthHashMem I)
 
 theorem relyGuyMaskedWord_canonical (I : ExecutionEnv) :
@@ -386,15 +386,15 @@ theorem write32_read_above_from (src base : ByteArray) (srcAddr destAddr readAdd
       show min (destAddr + 32 + (readAddr + 32 - (destAddr + 32))) base.size =
           readAddr + 32 from by omega]
 
-noncomputable def spotCodecopyErrorScratchMem (offset len : UInt256)
+def spotCodecopyErrorScratchMem (offset len : UInt256)
     (mem : ByteArray) : ByteArray :=
   spotBytecode.write offset.toNat (solcErrorStringMem2 len mem) 0 32
 
-noncomputable def spotCodecopyErrorRestoreMem (offset len scratchWord : UInt256)
+def spotCodecopyErrorRestoreMem (offset len scratchWord : UInt256)
     (mem : ByteArray) : ByteArray :=
   scratchWord.toByteArray.write 0 (spotCodecopyErrorScratchMem offset len mem) 0 32
 
-noncomputable def spotCodecopyErrorFinalMem
+def spotCodecopyErrorFinalMem
     (offset len scratchWord copiedWord : UInt256) (mem : ByteArray) : ByteArray :=
   copiedWord.toByteArray.write 0
     (spotCodecopyErrorRestoreMem offset len scratchWord mem) 196 32
@@ -776,7 +776,7 @@ theorem spotRelyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -824,7 +824,7 @@ theorem spotRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     RDrev spotBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -883,7 +883,7 @@ theorem spotRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
       ByteArray.empty := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyStoreHashMem I).readWithPadding 0 64))) =
         mapSlot (relyGuyMaskedWord I) ⟨0⟩ := by
     simpa [relyStoreHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relyGuyMaskedWord I)

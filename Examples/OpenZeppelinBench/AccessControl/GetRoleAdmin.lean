@@ -41,7 +41,7 @@ def getRoleAdminLoc (I : ExecutionEnv) : StorageLoc :=
 
 def getRoleAdminBaseSlot (I : ExecutionEnv) : UInt256 :=
   uInt256OfByteArray
-    (ffi.KEC (UInt256.toByteArray (getRoleAdminRoleWord I) ++
+    (KEC (UInt256.toByteArray (getRoleAdminRoleWord I) ++
       UInt256.toByteArray (⟨0⟩ : UInt256)))
 
 def getRoleAdminWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
@@ -180,13 +180,13 @@ theorem accessControlGetRoleAdminBodyReturns (evm : EVM.State) (I : ExecutionEnv
 /-! ## EVM scratch memory and trace -/
 
 -- PROMOTE -> Common.lean: generic two-word scratch-memory helpers.
-noncomputable def getRoleAdminWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+def getRoleAdminWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 0 32
 
-noncomputable def getRoleAdminWordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+def getRoleAdminWordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 32 32
 
-noncomputable def getRoleAdminTwoWordHashMem (key slot : UInt256) (mem : ByteArray) :
+def getRoleAdminTwoWordHashMem (key slot : UInt256) (mem : ByteArray) :
     ByteArray :=
   getRoleAdminWordAt32Mem slot (getRoleAdminWordAt0Mem key mem)
 
@@ -284,13 +284,13 @@ theorem getRoleAdminTwoWordHashMem_read0_64 {mem : ByteArray} (key slot : UInt25
       norm_num]
   rw [hleft, hright]
 
-noncomputable def getRoleAdminRoleMem (I : ExecutionEnv) : ByteArray :=
+def getRoleAdminRoleMem (I : ExecutionEnv) : ByteArray :=
   getRoleAdminWordAt0Mem (getRoleAdminRoleWord I) solcFreePtrMem
 
-noncomputable def getRoleAdminHashMem (I : ExecutionEnv) : ByteArray :=
+def getRoleAdminHashMem (I : ExecutionEnv) : ByteArray :=
   getRoleAdminTwoWordHashMem (getRoleAdminRoleWord I) ⟨0⟩ solcFreePtrMem
 
-noncomputable def getRoleAdminReturnMem (I : ExecutionEnv) (val : UInt256) : ByteArray :=
+def getRoleAdminReturnMem (I : ExecutionEnv) (val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 (getRoleAdminHashMem I) 128 32
 
 theorem getRoleAdminRoleMem_size (I : ExecutionEnv) :
@@ -328,7 +328,7 @@ theorem getRoleAdminHashMem_read0_64 (I : ExecutionEnv) :
 
 theorem getRoleAdminBaseKeccakSlot (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((getRoleAdminHashMem I).readWithPadding
+        (KEC ((getRoleAdminHashMem I).readWithPadding
           (⟨0⟩ : UInt256).toNat (⟨64⟩ : UInt256).toNat))) =
       getRoleAdminBaseSlot I := by
   rw [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
@@ -386,7 +386,7 @@ theorem getRoleAdminReturnMem_read128 (I : ExecutionEnv) (val : UInt256) :
         show 128 - 96 = 32 from by norm_num,
         toByteArray_size])]
   rw [extract_append_right_window
-      (getRoleAdminHashMem I ++ ffi.ByteArray.zeroes (128 - (getRoleAdminHashMem I).size))
+      (getRoleAdminHashMem I ++ ByteArray.zeroes (128 - (getRoleAdminHashMem I).size))
       (UInt256.toByteArray val) 128 160 (by
         rw [ByteArray.size_append, getRoleAdminHashMem_size, ByteArray_zeroes_size,
           show 128 - 96 = 32 from by norm_num])]

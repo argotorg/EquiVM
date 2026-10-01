@@ -583,19 +583,19 @@ theorem daiMintBodyReverts_supplyOverflow (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ## EVM trace -/
 
-noncomputable abbrev mintAuthHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev mintAuthHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (mintSourceWord I) ⟨0⟩ solcFreePtrMem
 
-noncomputable abbrev mintUsrHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev mintUsrHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (mintUsrMaskedWord I) ⟨2⟩ (mintAuthHashMem I)
 
-noncomputable abbrev mintUsrStoreHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev mintUsrStoreHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (mintUsrMaskedWord I) ⟨2⟩ (mintUsrHashMem I)
 
-noncomputable abbrev mintLogMem (I : ExecutionEnv) : ByteArray :=
+abbrev mintLogMem (I : ExecutionEnv) : ByteArray :=
   solcScratchReturnMem (mintUsrHashMem I) (mintWadWord I)
 
-noncomputable abbrev mintStoreLogMem (I : ExecutionEnv) : ByteArray :=
+abbrev mintStoreLogMem (I : ExecutionEnv) : ByteArray :=
   solcScratchReturnMem (mintUsrStoreHashMem I) (mintWadWord I)
 
 abbrev mintEvmAuthSlot (I : ExecutionEnv) : UInt256 :=
@@ -734,7 +734,7 @@ theorem daiMintX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((mintAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((mintAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (mintSourceWord I) ⟨0⟩ := by
     simpa [mintAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (mintSourceWord I)
@@ -782,7 +782,7 @@ theorem daiMintX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     RDrev daiBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((mintAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((mintAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (mintSourceWord I) ⟨0⟩ := by
     simpa [mintAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (mintSourceWord I)
@@ -929,7 +929,7 @@ theorem daiMintX_usrAddReady {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     exact solcAddrMask_clean (mintUsrMaskedWord_canonical I)
   have hUsrSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((mintUsrHashMem I).readWithPadding 0 64))) =
+          (KEC ((mintUsrHashMem I).readWithPadding 0 64))) =
         mintEvmUsrSlot I := by
     simpa [mintUsrHashMem, mintEvmUsrSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (mintUsrMaskedWord I)
@@ -1084,7 +1084,7 @@ theorem daiMintX_storeUsr_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     (by evm_ov)
   have hUsrStoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((mintUsrStoreHashMem I).readWithPadding 0 64))) =
+          (KEC ((mintUsrStoreHashMem I).readWithPadding 0 64))) =
         mintEvmUsrSlot I := by
     simpa [mintUsrStoreHashMem, mintEvmUsrSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (mintUsrMaskedWord I)

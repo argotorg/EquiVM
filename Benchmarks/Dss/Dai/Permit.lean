@@ -12,6 +12,8 @@ set_option maxHeartbeats 2000000
 
 namespace Benchmarks.Dss.Dai
 
+attribute [local irreducible] Ethereum.KEC
+
 /-! ## ABI decode and source-level locals for `permit(...)` -/
 
 abbrev permitHolderWord (I : ExecutionEnv) : UInt256 :=
@@ -149,10 +151,10 @@ abbrev permitStructPackedByteArray (I : ExecutionEnv) : ByteArray :=
             (EVM.Word.toBytesBE (permitAllowedCleanWord I)).toByteArray))))
 
 abbrev permitStructHashBytes (I : ExecutionEnv) : List UInt8 :=
-  (ffi.KEC (permitStructPackedByteArray I)).toList
+  (KEC (permitStructPackedByteArray I)).toList
 
 abbrev permitStructHashWord (I : ExecutionEnv) : UInt256 :=
-  uInt256OfByteArray (ffi.KEC (permitStructPackedByteArray I))
+  uInt256OfByteArray (KEC (permitStructPackedByteArray I))
 
 abbrev permitDigestPackedBytes (evm : EVM.State) (I : ExecutionEnv) : List UInt8 :=
   [25, 1] ++
@@ -165,10 +167,10 @@ abbrev permitDigestPackedByteArray (evm : EVM.State) (I : ExecutionEnv) : ByteAr
     domainSeparatorStorageSlot)).toByteArray ++ (permitStructHashBytes I).toByteArray
 
 abbrev permitDigestBytes (evm : EVM.State) (I : ExecutionEnv) : List UInt8 :=
-  (ffi.KEC (permitDigestPackedByteArray evm I)).toList
+  (KEC (permitDigestPackedByteArray evm I)).toList
 
 abbrev permitDigestWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
-  uInt256OfByteArray (ffi.KEC (permitDigestPackedByteArray evm I))
+  uInt256OfByteArray (KEC (permitDigestPackedByteArray evm I))
 
 abbrev permitEcrecoverCalldata (evm : EVM.State) (I : ExecutionEnv) : ByteArray :=
   (permitDigestBytes evm I).toByteArray ++
@@ -824,12 +826,12 @@ theorem evalExpr_permitDigest (evm : EVM.State) (I : ExecutionEnv) :
   rw [evalExpr?]
   rw [hpacked]
   change EvalResult.ok (Value.fixedBytes ⟨31, by decide⟩
-      (ffi.KEC
+      (KEC
         (ByteArray.mk
           ([25, 1] ++
             (EVM.Word.toBytesBE (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
               domainSeparatorStorageSlot) ++ permitStructHashBytes I)).toArray)).toList) =
-    EvalResult.ok (Value.fixedBytes bytes32Width (ffi.KEC (permitDigestPackedByteArray evm I)).toList)
+    EvalResult.ok (Value.fixedBytes bytes32Width (KEC (permitDigestPackedByteArray evm I)).toList)
   rw [permitDigestPackedByteArray_eq]
   rfl
 
@@ -2368,7 +2370,7 @@ theorem daiPermitX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
       permitExpiryWord, permitAllowedWord, permitVWord, permitRWord, permitSWord,
       calldataWord, solcAddrMask] using rd2428⟩
 
-noncomputable abbrev permitWordMem (mem : ByteArray) (off : Nat) (word : UInt256) :
+abbrev permitWordMem (mem : ByteArray) (off : Nat) (word : UInt256) :
     ByteArray :=
   Reasoning.Theory.writeWord mem off word
 
@@ -2413,23 +2415,23 @@ theorem permitWordMem_read_back (mem : ByteArray) (off : Nat) (word : UInt256)
   simpa [permitWordMem, Reasoning.Theory.writeWord] using
     Reasoning.Theory.writeWord_read_back mem off word hgap
 
-noncomputable abbrev permitTwoWordHashMem
+abbrev permitTwoWordHashMem
     (mem : ByteArray) (key slot : UInt256) : ByteArray :=
   permitWordMem (permitWordMem mem 0 key) 32 slot
 
-noncomputable abbrev permitNonceHashMem (mem : ByteArray) (I : ExecutionEnv) : ByteArray :=
+abbrev permitNonceHashMem (mem : ByteArray) (I : ExecutionEnv) : ByteArray :=
   permitTwoWordHashMem mem (permitHolderMaskedWord I) (⟨4⟩ : UInt256)
 
-noncomputable abbrev permitAllowanceOwnerHashMem (mem : ByteArray) (I : ExecutionEnv) :
+abbrev permitAllowanceOwnerHashMem (mem : ByteArray) (I : ExecutionEnv) :
     ByteArray :=
   permitTwoWordHashMem mem (permitHolderMaskedWord I) (⟨3⟩ : UInt256)
 
-noncomputable abbrev permitAllowanceHashMem (mem : ByteArray) (I : ExecutionEnv) :
+abbrev permitAllowanceHashMem (mem : ByteArray) (I : ExecutionEnv) :
     ByteArray :=
   permitTwoWordHashMem (permitAllowanceOwnerHashMem mem I) (permitSpenderMaskedWord I)
     (mapSlot (permitHolderMaskedWord I) ⟨3⟩)
 
-noncomputable abbrev permitApprovalLogMem (mem : ByteArray) (I : ExecutionEnv) : ByteArray :=
+abbrev permitApprovalLogMem (mem : ByteArray) (I : ExecutionEnv) : ByteArray :=
   permitWordMem mem 482 (permitWadWord I)
 
 abbrev permitApprovalTopic : UInt256 :=
@@ -2523,7 +2525,7 @@ theorem permitTwoWordHashMem_read0_64 {mem : ByteArray} (key slot : UInt256)
 theorem permitTwoWordHashMem_slot {mem : ByteArray} (key slot : UInt256)
     (hmem : 64 ≤ mem.size) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((permitTwoWordHashMem mem key slot).readWithPadding 0 64))) =
+        (KEC ((permitTwoWordHashMem mem key slot).readWithPadding 0 64))) =
       mapSlot key slot := by
   rw [permitTwoWordHashMem_read0_64 key slot hmem]
   unfold mapSlot
@@ -2556,33 +2558,33 @@ theorem permitTypehashBytes_eq_wordLit :
     permitTypehashBytes = EVM.Word.toBytesBE permitTypehashWordLit := by
   native_decide
 
-noncomputable abbrev permitStructMem1 (I : ExecutionEnv) : ByteArray :=
+abbrev permitStructMem1 (I : ExecutionEnv) : ByteArray :=
   permitWordMem solcFreePtrMem 160 permitTypehashWordLit
 
-noncomputable abbrev permitStructMem2 (I : ExecutionEnv) : ByteArray :=
+abbrev permitStructMem2 (I : ExecutionEnv) : ByteArray :=
   permitWordMem (permitStructMem1 I) 192 (permitHolderMaskedWord I)
 
-noncomputable abbrev permitStructMem3 (I : ExecutionEnv) : ByteArray :=
+abbrev permitStructMem3 (I : ExecutionEnv) : ByteArray :=
   permitWordMem (permitStructMem2 I) 224 (permitSpenderMaskedWord I)
 
-noncomputable abbrev permitStructMem4 (I : ExecutionEnv) : ByteArray :=
+abbrev permitStructMem4 (I : ExecutionEnv) : ByteArray :=
   permitWordMem (permitStructMem3 I) 256 (permitNonceWord I)
 
-noncomputable abbrev permitStructMem5 (I : ExecutionEnv) : ByteArray :=
+abbrev permitStructMem5 (I : ExecutionEnv) : ByteArray :=
   permitWordMem (permitStructMem4 I) 288 (permitExpiryWord I)
 
-noncomputable abbrev permitStructMem6 (I : ExecutionEnv) : ByteArray :=
+abbrev permitStructMem6 (I : ExecutionEnv) : ByteArray :=
   permitWordMem (permitStructMem5 I) 320
     (UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
 
-noncomputable abbrev permitDigestMem7 (I : ExecutionEnv) : ByteArray :=
+abbrev permitDigestMem7 (I : ExecutionEnv) : ByteArray :=
   permitWordMem (permitStructMem6 I) 128 (⟨192⟩ : UInt256)
 
-noncomputable abbrev permitDigestMem8 (I : ExecutionEnv) : ByteArray :=
+abbrev permitDigestMem8 (I : ExecutionEnv) : ByteArray :=
   permitWordMem (permitDigestMem7 I) 64 (⟨352⟩ : UInt256)
 
-noncomputable abbrev permitStructHashMemWord (I : ExecutionEnv) : UInt256 :=
-  UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC ((permitDigestMem8 I).readWithPadding 160 192)))
+abbrev permitStructHashMemWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.ofNat (fromByteArrayBigEndian (KEC ((permitDigestMem8 I).readWithPadding 160 192)))
 
 abbrev permitEip191Word : UInt256 :=
   UInt256.shiftLeft (⟨6401⟩ : UInt256) ⟨240⟩
@@ -2592,23 +2594,23 @@ theorem permitEip191Word_prefix :
   rw [toByteArray_eq_toBytesBE]
   native_decide
 
-noncomputable abbrev permitDigestMem9 (I : ExecutionEnv) (domainWord : UInt256) :
+abbrev permitDigestMem9 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
   permitWordMem (permitDigestMem8 I) 384 permitEip191Word
 
-noncomputable abbrev permitDigestMem10 (I : ExecutionEnv) (domainWord : UInt256) :
+abbrev permitDigestMem10 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
   permitWordMem (permitDigestMem9 I domainWord) 386 domainWord
 
-noncomputable abbrev permitDigestMem11 (I : ExecutionEnv) (domainWord : UInt256) :
+abbrev permitDigestMem11 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
   permitWordMem (permitDigestMem10 I domainWord) 418 (permitStructHashMemWord I)
 
-noncomputable abbrev permitDigestMem12 (I : ExecutionEnv) (domainWord : UInt256) :
+abbrev permitDigestMem12 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
   permitWordMem (permitDigestMem11 I domainWord) 352 (⟨66⟩ : UInt256)
 
-noncomputable abbrev permitDigestMem13 (I : ExecutionEnv) (domainWord : UInt256) :
+abbrev permitDigestMem13 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
   permitWordMem (permitDigestMem12 I domainWord) 64 (⟨450⟩ : UInt256)
 
@@ -3253,7 +3255,7 @@ theorem permitDigestMem13_read384_66_eq (cA gh bl σ σ₀ A I) (g : Sat256) :
 
 theorem permitDigestWord_from_mem13 (cA gh bl σ σ₀ A I) (g : Sat256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((permitDigestMem13 I
+        (KEC ((permitDigestMem13 I
           (Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
             (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
             domainSeparatorStorageSlot)).readWithPadding 384 66))) =
@@ -3326,27 +3328,27 @@ theorem permitVMaskedWord_mask (I : ExecutionEnv) :
   rw [Nat.and_assoc]
   rw [show 255 &&& 255 = 255 by native_decide]
 
-noncomputable abbrev permitEcrecoverMem0 (I : ExecutionEnv) (domainWord : UInt256) :
+abbrev permitEcrecoverMem0 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
   permitWordMem (permitDigestMem13 I domainWord) 450 (⟨0⟩ : UInt256)
 
-noncomputable abbrev permitEcrecoverMem1 (I : ExecutionEnv) (domainWord : UInt256) :
+abbrev permitEcrecoverMem1 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
   permitWordMem (permitEcrecoverMem0 I domainWord) 64 (⟨482⟩ : UInt256)
 
-noncomputable abbrev permitEcrecoverMem2
+abbrev permitEcrecoverMem2
     (I : ExecutionEnv) (domainWord digestWord : UInt256) : ByteArray :=
   permitWordMem (permitEcrecoverMem1 I domainWord) 482 digestWord
 
-noncomputable abbrev permitEcrecoverMem3
+abbrev permitEcrecoverMem3
     (I : ExecutionEnv) (domainWord digestWord : UInt256) : ByteArray :=
   permitWordMem (permitEcrecoverMem2 I domainWord digestWord) 514 (permitVMaskedWord I)
 
-noncomputable abbrev permitEcrecoverMem4
+abbrev permitEcrecoverMem4
     (I : ExecutionEnv) (domainWord digestWord : UInt256) : ByteArray :=
   permitWordMem (permitEcrecoverMem3 I domainWord digestWord) 546 (permitRWord I)
 
-noncomputable abbrev permitEcrecoverMem5
+abbrev permitEcrecoverMem5
     (I : ExecutionEnv) (domainWord digestWord : UInt256) : ByteArray :=
   permitWordMem (permitEcrecoverMem4 I domainWord digestWord) 578 (permitSWord I)
 
@@ -3828,7 +3830,7 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   let mem12 := permitDigestMem12 I domainWord
   let mem13 := permitDigestMem13 I domainWord
   let digestWord :=
-    UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (mem11.readWithPadding 384 66)))
+    UInt256.ofNat (fromByteArrayBigEndian (KEC (mem11.readWithPadding 384 66)))
   have rd2539 := evm_run rd2529 with [
     raw dup5 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 11) (by native_decide)
@@ -4224,7 +4226,7 @@ theorem daiPermitX_nonzeroHolderReach2684 {cA gh bl σ σ₀ A I} {g : Sat256}
   let mem12 := permitDigestMem12 I domainWord
   let mem13 := permitDigestMem13 I domainWord
   let digestWord :=
-    UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (mem11.readWithPadding 384 66)))
+    UInt256.ofNat (fromByteArrayBigEndian (KEC (mem11.readWithPadding 384 66)))
   have rd2539 := evm_run rd2529 with [
     raw dup5 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 11) (by native_decide)
@@ -4759,10 +4761,10 @@ theorem daiPermitX_nonzeroHolderEcrecoverFailureAfter2758
 abbrev permitEcrecoverReturnCopyLen (o : ByteArray) : Nat :=
   (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat
 
-noncomputable abbrev permitEcrecoverReturnMem (mem o : ByteArray) : ByteArray :=
+abbrev permitEcrecoverReturnMem (mem o : ByteArray) : ByteArray :=
   o.write 0 mem 450 (permitEcrecoverReturnCopyLen o)
 
-noncomputable abbrev permitMloadWord (mem : ByteArray) (aw off : UInt256) : UInt256 :=
+abbrev permitMloadWord (mem : ByteArray) (aw off : UInt256) : UInt256 :=
   if off.toNat ≥ mem.size ∨ off ≥ aw * ⟨32⟩ then ⟨0⟩
   else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding off.toNat 32))
 
@@ -5594,7 +5596,7 @@ theorem daiPermitX_nonceBranchAfter2957
     exact solcAddrMask_clean (permitHolderMaskedWord_canonical I)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((permitNonceHashMem memRet I).readWithPadding 0 64))) =
+          (KEC ((permitNonceHashMem memRet I).readWithPadding 0 64))) =
         permitNonceStorageSlot I := by
     simpa [permitNonceHashMem, permitNonceStorageSlot_eq_mapSlot_masked I] using
       permitTwoWordHashMem_slot (mem := memRet) (permitHolderMaskedWord I)
@@ -5903,14 +5905,14 @@ theorem daiPermitX_successStorageAfter3079
         (by rw [hownerSize]; norm_num)).trans hownerRead64
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((memOwner).readWithPadding 0 64))) =
+          (KEC ((memOwner).readWithPadding 0 64))) =
         mapSlot (permitHolderMaskedWord I) ⟨3⟩ := by
     simpa [memOwner, permitAllowanceOwnerHashMem] using
       permitTwoWordHashMem_slot (mem := memNonce) (permitHolderMaskedWord I)
         (⟨3⟩ : UInt256) (by rw [hnonceSize]; norm_num)
   have houterSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((memAllowance).readWithPadding 0 64))) =
+          (KEC ((memAllowance).readWithPadding 0 64))) =
         permitAllowanceStorageSlot I := by
     simpa [memAllowance, permitAllowanceHashMem, memOwner,
       permitAllowanceStorageSlot_eq_mapSlot_masked I] using

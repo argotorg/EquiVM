@@ -8,7 +8,7 @@ Faithful Solm benchmark scaffold for upstream `dss/src/cat.sol`.
 Events are omitted, matching the existing event-bearing DSS benchmarks.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace Benchmarks.Dss.Cat
 
@@ -154,7 +154,7 @@ def storageDecls : List StorageDecl :=
     { name := "litter", ty := uint256St } ]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def wardsSlot (usr : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord usr) ⟨0⟩

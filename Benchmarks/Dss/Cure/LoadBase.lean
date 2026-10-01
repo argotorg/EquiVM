@@ -591,7 +591,7 @@ theorem evalExpr_loadExtCodeSizeGtZero_true_of_src {cA gh bl σ σ₀ A I} {g : 
 abbrev sourceCureSelectorShifted : UInt256 :=
   UInt256.shiftLeft ⟨2215084781⟩ ⟨224⟩
 
-noncomputable def loadCureSelectorMem (mem : ByteArray) : ByteArray :=
+def loadCureSelectorMem (mem : ByteArray) : ByteArray :=
   sourceCureSelectorShifted.toByteArray.write 0 mem 128 32
 
 theorem loadCureSelectorMem_size_of_size96 {mem : ByteArray} (hmem : mem.size = 96) :
@@ -798,7 +798,7 @@ theorem twoWordHashMem_read0_64_160 {mem : ByteArray} (key slot : UInt256)
 theorem twoWordHashMem_solcMappingSlot_160 (baseSlot key : UInt256) {mem : ByteArray}
     (hmem : mem.size = 160) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   rw [twoWordHashMem_read0_64_160 key baseSlot hmem]
   unfold solcMappingSlot

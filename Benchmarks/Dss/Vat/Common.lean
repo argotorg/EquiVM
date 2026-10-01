@@ -681,7 +681,7 @@ theorem RD.solcNestedMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
   obtain ⟨_, _, hload⟩ := RD.solcNestedMappingLoadAndJump houter hwf hret (by omega)
   exact ⟨_, _, hload⟩
 
-noncomputable def solcScratchReturn2Mem
+def solcScratchReturn2Mem
     (scratch : ByteArray) (first second : UInt256) : ByteArray :=
   (UInt256.toByteArray second).write 0 (solcScratchReturnMem scratch first) 160 32
 

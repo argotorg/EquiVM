@@ -334,12 +334,12 @@ theorem weth9ShortLtExit {H : UInt256} (hlt31 : UInt256.lt ⟨31⟩ (weth9String
   rw [ult_zero (by omega)]; decide
 
 /-- Encoder memory after `mstore(0xc0, 0x20)` (the ABI offset word). -/
-noncomputable def weth9ShortMemA (H : UInt256) : ByteArray := writeWord (weth9ShortObjMem H) 192 ⟨32⟩
+def weth9ShortMemA (H : UInt256) : ByteArray := writeWord (weth9ShortObjMem H) 192 ⟨32⟩
 /-- Encoder memory after `mstore(0xe0, len)` (the ABI length word). -/
-noncomputable def weth9ShortMemB (H : UInt256) : ByteArray :=
+def weth9ShortMemB (H : UInt256) : ByteArray :=
   writeWord (weth9ShortMemA H) 224 (weth9StringLen H)
 /-- Encoder memory after the copy loop's `mstore(0x100, data)`. -/
-noncomputable def weth9ShortMemC (H : UInt256) : ByteArray :=
+def weth9ShortMemC (H : UInt256) : ByteArray :=
   writeWord (weth9ShortMemB H) 256 (weth9StringShortDataWord H)
 
 theorem weth9ShortMemA_size (H : UInt256) : (weth9ShortMemA H).size = 224 := by
@@ -443,7 +443,7 @@ def weth9ShortMaskWord (header : UInt256) : UInt256 :=
     (weth9StringShortDataWord header)
 
 /-- Encoder memory after the tail mask re-stores the last word at `0x100`. -/
-noncomputable def weth9ShortMemD (header : UInt256) : ByteArray :=
+def weth9ShortMemD (header : UInt256) : ByteArray :=
   writeWord (weth9ShortMemC header) 256 (weth9ShortMaskWord header)
 
 /-- The ABI encoding a short-string getter returns: `offset 0x20 ‖ len ‖ masked-data`. -/

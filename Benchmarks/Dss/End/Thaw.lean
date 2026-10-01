@@ -100,26 +100,26 @@ abbrev endThawStoreDebtNew (out debtOut tellOut : ByteArray) (deadline debtNew :
     (endThawStoreCureTell out debtOut tellOut deadline).insert "debtNew"
     (.int (Int.ofNat debtNew.toNat))
 
-noncomputable def endThawDaiSelectorMem (mem : ByteArray) : ByteArray :=
+def endThawDaiSelectorMem (mem : ByteArray) : ByteArray :=
     (UInt256.shiftLeft endThawDaiSelectorRaw ⟨225⟩).toByteArray.write 0 mem
     endThawDaiOutPtr.toNat 32
 
-noncomputable def endThawDaiCalldataMem (σ : AccountMap) (I : ExecutionEnv)
+def endThawDaiCalldataMem (σ : AccountMap) (I : ExecutionEnv)
     (mem : ByteArray) : ByteArray :=
     (endThawVowWord σ I).toByteArray.write 0 (endThawDaiSelectorMem mem)
     (endThawDaiOutPtr + ⟨4⟩).toNat 32
 
-noncomputable def endThawDaiPostCallMem (σ : AccountMap) (I : ExecutionEnv)
+def endThawDaiPostCallMem (σ : AccountMap) (I : ExecutionEnv)
     (out : ByteArray) : ByteArray :=
     out.write 0 (endThawDaiCalldataMem σ I solcFreePtrMem) endThawDaiOutPtr.toNat
     (min endThawDaiOutSize (UInt256.ofNat out.size)).toNat
 
-noncomputable def endThawNoArgCalldataMem (selector : UInt256) (mem : ByteArray) :
+def endThawNoArgCalldataMem (selector : UInt256) (mem : ByteArray) :
     ByteArray :=
     (UInt256.shiftLeft selector ⟨224⟩).toByteArray.write 0 mem
     endThawNoArgOutPtr.toNat 32
 
-noncomputable def endThawNoArgPostCallMem (selector : UInt256) (mem out : ByteArray) :
+def endThawNoArgPostCallMem (selector : UInt256) (mem out : ByteArray) :
     ByteArray :=
     out.write 0 (endThawNoArgCalldataMem selector mem) endThawNoArgOutPtr.toNat
     (min endThawNoArgOutSize (UInt256.ofNat out.size)).toNat
@@ -169,7 +169,7 @@ theorem endThawDaiSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 96) 
   rw [toByteArray_write_eq (UInt256.shiftLeft endThawDaiSelectorRaw ⟨225⟩) mem 128
     (by omega) hgap]
   have hprefix :
-      (mem ++ ffi.ByteArray.zeroes (128 - mem.size)).size = 128 := by
+      (mem ++ ByteArray.zeroes (128 - mem.size)).size = 128 := by
     rw [ByteArray.size_append, ByteArray_zeroes_size, hmem]
   rw [extract_append_right_window _ _ 128 132 (by rw [hprefix]), hprefix,
     show 128 - 128 = 0 from rfl, show 132 - 128 = 4 from rfl,

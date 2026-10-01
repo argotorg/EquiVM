@@ -68,16 +68,16 @@ theorem uniswapInternalMintRuntimeTotalSupplyStoredEntry
   obtain ⟨_, _, rd8153⟩ := rd8152.sstore hperm (by native_decide) (by evm_ov)
   exact ⟨_, _, rd8153⟩
 
-noncomputable abbrev uniswapInternalMintBalanceHashMem
+abbrev uniswapInternalMintBalanceHashMem
     (recipient : UInt256) (mem : ByteArray) : ByteArray :=
   twoWordHashMem (UInt256.land recipient solcAddrMask) ⟨1⟩ mem
 
-noncomputable abbrev uniswapInternalMintBalanceHashSlot
+abbrev uniswapInternalMintBalanceHashSlot
     (recipient : UInt256) (mem : ByteArray) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((uniswapInternalMintBalanceHashMem recipient mem).readWithPadding 0 64)))
+    (KEC ((uniswapInternalMintBalanceHashMem recipient mem).readWithPadding 0 64)))
 
-noncomputable abbrev uniswapInternalMintLogMem (value : UInt256) (mem : ByteArray) :
+abbrev uniswapInternalMintLogMem (value : UInt256) (mem : ByteArray) :
     ByteArray :=
   (UInt256.toByteArray value).write 0 mem 128 32
 

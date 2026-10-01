@@ -169,13 +169,13 @@ theorem renounceRoleCallerAddress_eq_source_of_word {I : ExecutionEnv}
   rw [hword, renounceRoleSource_ofNat]
 
 -- PROMOTE -> Common.lean: generic two-word scratch-memory helpers.
-noncomputable def renounceRoleWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+def renounceRoleWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 0 32
 
-noncomputable def renounceRoleWordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+def renounceRoleWordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 32 32
 
-noncomputable def renounceRoleTwoWordHashMem (key slot : UInt256) (mem : ByteArray) :
+def renounceRoleTwoWordHashMem (key slot : UInt256) (mem : ByteArray) :
     ByteArray :=
   renounceRoleWordAt32Mem slot (renounceRoleWordAt0Mem key mem)
 
@@ -280,17 +280,17 @@ theorem renounceRoleTwoWordHashMem_read0_64 {mem : ByteArray} (key slot : UInt25
       norm_num]
   rw [hleft, hright]
 
-noncomputable def renounceRoleBaseHashMem (role : UInt256) : ByteArray :=
+def renounceRoleBaseHashMem (role : UInt256) : ByteArray :=
   renounceRoleTwoWordHashMem role ⟨0⟩ solcFreePtrMem
 
-noncomputable def renounceRoleBaseSlotFromWord (role : UInt256) : UInt256 :=
+def renounceRoleBaseSlotFromWord (role : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((renounceRoleBaseHashMem role).readWithPadding 0 64)))
+    (KEC ((renounceRoleBaseHashMem role).readWithPadding 0 64)))
 
-noncomputable def renounceRoleAccountMem (role account : UInt256) : ByteArray :=
+def renounceRoleAccountMem (role account : UInt256) : ByteArray :=
   renounceRoleWordAt0Mem account (renounceRoleBaseHashMem role)
 
-noncomputable def renounceRoleSlotHashMem (role account : UInt256) : ByteArray :=
+def renounceRoleSlotHashMem (role account : UInt256) : ByteArray :=
   renounceRoleWordAt32Mem (renounceRoleBaseSlotFromWord role)
     (renounceRoleAccountMem role account)
 
@@ -372,7 +372,7 @@ theorem renounceRoleOuterKeccakSlot (I : ExecutionEnv)
     (hsz68 : 68 ≤ I.calldata.size)
     (hcanon : (renounceRoleCallerWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((renounceRoleSlotHashMem (renounceRoleRoleWord I) (renounceRoleCallerWord I))
+        (KEC ((renounceRoleSlotHashMem (renounceRoleRoleWord I) (renounceRoleCallerWord I))
           |>.readWithPadding 0 64))) =
       renounceRoleTargetSlot I := by
   rw [renounceRoleSlotHashMem_read0_64, renounceRoleBaseKeccakSlot I hsz68]
@@ -915,7 +915,7 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
     push1 ⟨64⟩, dup1, dup4]
   have hbaseSlotRaw :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((revokeRoleBaseHashMemFrom (renounceRoleRoleWord I) memTarget)
+          (KEC ((revokeRoleBaseHashMemFrom (renounceRoleRoleWord I) memTarget)
             |>.readWithPadding 0 64))) =
         revokeRoleBaseSlot (renounceRoleRoleWord I) := by
     unfold revokeRoleBaseSlot
@@ -949,7 +949,7 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
     dup1, dup4]
   have hslotWrite :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((revokeRoleHasRoleSlotHashMemFrom (renounceRoleRoleWord I)
+          (KEC ((revokeRoleHasRoleSlotHashMemFrom (renounceRoleRoleWord I)
             (renounceRoleCallerWord I) memTarget).readWithPadding 0 64))) =
         renounceRoleTargetSlot I := by
     rw [revokeRoleAdminHasRoleKeccakSlotFrom (renounceRoleRoleWord I)

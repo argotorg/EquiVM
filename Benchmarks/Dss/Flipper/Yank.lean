@@ -19,13 +19,13 @@ abbrev yankId (I : ExecutionEnv) : UInt256 :=
 abbrev yankLocals (I : ExecutionEnv) : Store :=
   (∅ : Store).insert "id" (.int (Int.ofNat (yankId I).toNat))
 
-noncomputable abbrev yankAuthMem (I : ExecutionEnv) : ByteArray :=
+abbrev yankAuthMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem
 
-noncomputable abbrev yankHashMem0 (I : ExecutionEnv) : ByteArray :=
+abbrev yankHashMem0 (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (yankId I) ⟨1⟩ (yankAuthMem I)
 
-noncomputable abbrev yankHashMem1 (I : ExecutionEnv) : ByteArray :=
+abbrev yankHashMem1 (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (yankId I) ⟨1⟩ (yankHashMem0 I)
 
 abbrev yankCatSelectorWord : UInt256 :=
@@ -34,39 +34,39 @@ abbrev yankCatSelectorWord : UInt256 :=
 abbrev yankVatFluxSelectorWord : UInt256 :=
   UInt256.shiftLeft (⟨814276375⟩ : UInt256) ⟨225⟩
 
-noncomputable abbrev yankCatHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev yankCatHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (yankId I) ⟨1⟩ (yankHashMem1 I)
 
-noncomputable abbrev yankCatSelectorMem (I : ExecutionEnv) : ByteArray :=
+abbrev yankCatSelectorMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray yankCatSelectorWord).write 0 (yankCatHashMem I) 128 32
 
-noncomputable abbrev yankCatCallMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev yankCatCallMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (bidTabWord (yankId I) σ I)).write 0
     (yankCatSelectorMem I) 132 32
 
-noncomputable abbrev yankVatHashMem (σmem : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev yankVatHashMem (σmem : AccountMap) (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (yankId I) ⟨1⟩ (yankCatCallMem σmem I)
 
-noncomputable abbrev yankVatFluxSelectorMem (σmem : AccountMap) (I : ExecutionEnv) :
+abbrev yankVatFluxSelectorMem (σmem : AccountMap) (I : ExecutionEnv) :
     ByteArray :=
   (UInt256.toByteArray yankVatFluxSelectorWord).write 0 (yankVatHashMem σmem I) 128 32
 
-noncomputable abbrev yankVatFluxIlkMem (σmem σ : AccountMap) (I : ExecutionEnv) :
+abbrev yankVatFluxIlkMem (σmem σ : AccountMap) (I : ExecutionEnv) :
     ByteArray :=
   (UInt256.toByteArray (flipperSlotWord ⟨3⟩ σ I)).write 0
     (yankVatFluxSelectorMem σmem I) 132 32
 
-noncomputable abbrev yankVatFluxThisMem (σmem σ : AccountMap) (I : ExecutionEnv) :
+abbrev yankVatFluxThisMem (σmem σ : AccountMap) (I : ExecutionEnv) :
     ByteArray :=
   (UInt256.toByteArray (EVM.word I.codeOwner.val)).write 0
     (yankVatFluxIlkMem σmem σ I) 164 32
 
-noncomputable abbrev yankVatFluxSenderMem (σmem σ : AccountMap) (I : ExecutionEnv) :
+abbrev yankVatFluxSenderMem (σmem σ : AccountMap) (I : ExecutionEnv) :
     ByteArray :=
   (UInt256.toByteArray (solcSourceWord I)).write 0
     (yankVatFluxThisMem σmem σ I) 196 32
 
-noncomputable abbrev yankVatFluxCallMem (σmem σ : AccountMap) (I : ExecutionEnv) :
+abbrev yankVatFluxCallMem (σmem σ : AccountMap) (I : ExecutionEnv) :
     ByteArray :=
   (UInt256.toByteArray (bidLotWord (yankId I) σ I)).write 0
     (yankVatFluxSenderMem σmem σ I) 228 32
@@ -295,7 +295,7 @@ theorem yankVatHashMem_read0_64 (σmem : AccountMap) (I : ExecutionEnv) :
 
 theorem yankVatHashMem_solcMappingSlot (σmem : AccountMap) (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((yankVatHashMem σmem I).readWithPadding 0 64))) =
+        (KEC ((yankVatHashMem σmem I).readWithPadding 0 64))) =
       solcMappingSlot ⟨1⟩ (yankId I) := by
   rw [yankVatHashMem_read0_64]
   unfold solcMappingSlot

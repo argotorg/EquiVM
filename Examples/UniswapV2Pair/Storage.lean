@@ -10,10 +10,10 @@ namespace UniswapV2Pair
 
 /-! ## Single-mapping scratch memory -/
 
-noncomputable abbrev uniswapMappingBaseSlotMem (baseSlot : UInt256) : ByteArray :=
+abbrev uniswapMappingBaseSlotMem (baseSlot : UInt256) : ByteArray :=
   solcMappingBaseSlotMem baseSlot
 
-noncomputable abbrev uniswapMappingHashMem (baseSlot key : UInt256) : ByteArray :=
+abbrev uniswapMappingHashMem (baseSlot key : UInt256) : ByteArray :=
   solcMappingHashMem baseSlot key
 
 theorem uniswapMappingBaseSlotMem_size (baseSlot : UInt256) :
@@ -66,13 +66,13 @@ theorem uniswapMappingHashMem_read0_64 (baseSlot key : UInt256) :
 
 theorem uniswapMappingKeccakSlot (baseSlot key : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((uniswapMappingHashMem baseSlot key).readWithPadding 0 64)))
+        (KEC ((uniswapMappingHashMem baseSlot key).readWithPadding 0 64)))
       = mapSlot key baseSlot := by
   simpa [mapSlot] using solcMappingKeccakSlot baseSlot key
 
 /-! ## Return memory after a mapping getter -/
 
-noncomputable abbrev uniswapMappingReturnMem (baseSlot key val : UInt256) : ByteArray :=
+abbrev uniswapMappingReturnMem (baseSlot key val : UInt256) : ByteArray :=
   solcScratchReturnMem (uniswapMappingHashMem baseSlot key) val
 
 theorem uniswapMappingReturnMem_size (baseSlot key val : UInt256) :
@@ -103,10 +103,10 @@ theorem uniswapMappingReturnMem_read128 (baseSlot key val : UInt256) :
 
 /-! ## Nested-mapping scratch memory -/
 
-noncomputable abbrev uniswapNestedMappingOuterBaseMem (baseSlot owner : UInt256) : ByteArray :=
+abbrev uniswapNestedMappingOuterBaseMem (baseSlot owner : UInt256) : ByteArray :=
   solcNestedMappingOuterBaseMem baseSlot owner
 
-noncomputable abbrev uniswapNestedMappingHashMem
+abbrev uniswapNestedMappingHashMem
     (baseSlot owner spender : UInt256) : ByteArray :=
   solcNestedMappingHashMem baseSlot owner spender
 
@@ -164,14 +164,14 @@ theorem uniswapNestedMappingHashMem_read0_64 (baseSlot owner spender : UInt256) 
 
 theorem uniswapNestedMappingKeccakSlot (baseSlot owner spender : UInt256) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((uniswapNestedMappingHashMem baseSlot owner spender).readWithPadding 0 64)))
+        (KEC ((uniswapNestedMappingHashMem baseSlot owner spender).readWithPadding 0 64)))
       = mapSlot spender (mapSlot owner baseSlot) := by
   simpa [mapSlot, solcMappingSlot] using
     solcNestedMappingKeccakSlot baseSlot owner spender
 
 /-! ## Return memory after a nested-mapping getter -/
 
-noncomputable abbrev uniswapNestedMappingReturnMem
+abbrev uniswapNestedMappingReturnMem
     (baseSlot owner spender val : UInt256) : ByteArray :=
   solcScratchReturnMem (uniswapNestedMappingHashMem baseSlot owner spender) val
 

@@ -10,7 +10,7 @@ The transition bodies mirror the source-level effects and external ABI calls nee
 optimized bytecode proof target.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace Benchmarks.CompoundIII.CometRewards
 
@@ -120,7 +120,7 @@ def storageDecls : List StorageDecl :=
 def structs : List StructDecl := [RewardConfigStructDecl]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def slotAdd (slot : Ethereum.UInt256) (n : Nat) : Ethereum.UInt256 :=
   slot + Ethereum.UInt256.ofNat n

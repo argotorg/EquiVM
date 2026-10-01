@@ -158,7 +158,7 @@ macro "clipper_yank_decode" : tactic =>
     | exact clipperYankDecodeAfterVat _ (by assumption)
         (by native_decide) (by native_decide) (by native_decide))
 
-noncomputable abbrev clipperYankSalesHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev clipperYankSalesHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (clipperYankArgWord I) ⟨12⟩ (clipperRelyAuthHashMem I)
 
 theorem clipperYankSalesHashMem_size (I : ExecutionEnv) :
@@ -172,7 +172,7 @@ theorem clipperYankSalesHashMem_read64 (I : ExecutionEnv) :
   rw [clipperYankSalesHashMem, twoWordHashMem_read64 _ _ (clipperRelyAuthHashMem_size I)]
   exact clipperRelyAuthHashMem_read64 I
 
-noncomputable abbrev clipperYankSalesHashMemRefresh (I : ExecutionEnv) : ByteArray :=
+abbrev clipperYankSalesHashMemRefresh (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (clipperYankArgWord I) ⟨12⟩ (clipperYankSalesHashMem I)
 
 theorem clipperYankSalesHashMemRefresh_size (I : ExecutionEnv) :
@@ -202,14 +202,14 @@ abbrev clipperDogDigsSelectorShifted : UInt256 :=
 abbrev clipperDogDigsSelectorWord : UInt256 :=
   ⟨3362886644⟩
 
-noncomputable def clipperDogDigsSelectorMem (mem : ByteArray) : ByteArray :=
+def clipperDogDigsSelectorMem (mem : ByteArray) : ByteArray :=
   clipperDogDigsSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def clipperDogDigsIlkMem (v : ClipperImmutables) (mem : ByteArray) :
+def clipperDogDigsIlkMem (v : ClipperImmutables) (mem : ByteArray) :
     ByteArray :=
   (clipperYankIlkWord v).toByteArray.write 0 (clipperDogDigsSelectorMem mem) 132 32
 
-noncomputable def clipperDogDigsCalldataMem (v : ClipperImmutables) (tab : UInt256)
+def clipperDogDigsCalldataMem (v : ClipperImmutables) (tab : UInt256)
     (mem : ByteArray) : ByteArray :=
   tab.toByteArray.write 0 (clipperDogDigsIlkMem v mem) 164 32
 
@@ -409,20 +409,20 @@ abbrev clipperVatFluxSelectorWord : UInt256 :=
 abbrev clipperYankThisWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.codeOwner.val
 
-noncomputable def clipperVatFluxSelectorMem (mem : ByteArray) : ByteArray :=
+def clipperVatFluxSelectorMem (mem : ByteArray) : ByteArray :=
   clipperVatFluxSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def clipperVatFluxIlkMem (v : ClipperImmutables) (mem : ByteArray) :
+def clipperVatFluxIlkMem (v : ClipperImmutables) (mem : ByteArray) :
     ByteArray :=
   (clipperYankIlkWord v).toByteArray.write 0 (clipperVatFluxSelectorMem mem) 132 32
 
-noncomputable def clipperVatFluxThisMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def clipperVatFluxThisMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (clipperYankThisWord I).toByteArray.write 0 mem 164 32
 
-noncomputable def clipperVatFluxCallerMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def clipperVatFluxCallerMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (solcSourceWord I).toByteArray.write 0 mem 196 32
 
-noncomputable def clipperVatFluxCalldataMem (v : ClipperImmutables) (I : ExecutionEnv)
+def clipperVatFluxCalldataMem (v : ClipperImmutables) (I : ExecutionEnv)
     (lot : UInt256) (mem : ByteArray) : ByteArray :=
   lot.toByteArray.write 0
     (clipperVatFluxCallerMem I
@@ -1040,7 +1040,7 @@ theorem clipperYankX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (clipperRelySourceWord I) ⟨0⟩ := by
     simpa [clipperRelyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (clipperRelySourceWord I)
@@ -1095,7 +1095,7 @@ theorem clipperYankX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     RDrev code g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (clipperRelySourceWord I) ⟨0⟩ := by
     simpa [clipperRelyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (clipperRelySourceWord I)
@@ -1290,7 +1290,7 @@ theorem clipperYankX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC
+          (KEC
             ((twoWordHashMem (clipperYankArgWord I) ⟨12⟩
               (clipperRelyAuthHashMem I)).readWithPadding 0 64))) =
         clipperYankSalesBaseSlot I := by
@@ -1361,7 +1361,7 @@ theorem clipperYankX_loadDogAndTab {cA σ I} {g : Sat256} {s0 : State} {k C : �
       C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((clipperYankSalesHashMemRefresh I).readWithPadding 0 64))) =
+          (KEC ((clipperYankSalesHashMemRefresh I).readWithPadding 0 64))) =
         clipperYankSalesBaseSlot I := by
     rw [clipperYankSalesHashMemRefresh, clipperYankSalesBaseSlot_eq I]
     exact twoWordHashMem_solcMappingSlot ⟨12⟩ (clipperYankArgWord I)
@@ -1816,7 +1816,7 @@ theorem clipperYankX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     RDrev code g s0 := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC
+          (KEC
             ((clipperYankSalesHashMem I).readWithPadding 0 64))) =
         clipperYankSalesBaseSlot I := by
     rw [clipperYankSalesHashMem, clipperYankSalesBaseSlot_eq I]

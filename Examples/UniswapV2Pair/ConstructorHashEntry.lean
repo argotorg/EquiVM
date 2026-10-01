@@ -30,7 +30,7 @@ theorem RD.uniswapConstructorTypeHash {g : Sat256} {s0 : State} {I : ExecutionEn
     simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
       List.getElem!_cons_zero, List.getElem!_cons_succ]
     native_decide
-  · change UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC
+  · change UInt256.ofNat (fromByteArrayBigEndian (KEC
       (constructorTypeInputMem.readWithPadding 128 82))) = _
     rw [constructorTypeInputMem_read]
   · native_decide

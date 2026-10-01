@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Pot.Trusted
+import Benchmarks.Dss.Pot.Selectors
 
 /-!
 # MakerDAO/Sky DSS Pot dispatcher facts

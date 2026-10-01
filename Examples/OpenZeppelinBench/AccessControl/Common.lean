@@ -1,4 +1,4 @@
-import Examples.OpenZeppelinBench.AccessControl.Trusted
+import Examples.OpenZeppelinBench.AccessControl.Selectors
 import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.Memory

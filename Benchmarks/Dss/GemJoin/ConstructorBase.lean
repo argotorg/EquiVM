@@ -22,7 +22,7 @@ def gemJoinCtorArgsTail (vat : AccountAddress) (ilk : UInt256) (gem : AccountAdd
   (EVM.Word.toBytesBE ilk).toByteArray ++
   (EVM.Word.toBytesBE (EVM.word gem.val)).toByteArray
 
-noncomputable def gemJoinCtorCode (vat : AccountAddress) (ilk : UInt256)
+def gemJoinCtorCode (vat : AccountAddress) (ilk : UInt256)
     (gem : AccountAddress) : ByteArray :=
   gemJoinCreationBytecode ++ gemJoinCtorArgsTail vat ilk gem
 
@@ -145,7 +145,7 @@ theorem gemJoinCtorCode_size (vat : AccountAddress) (ilk : UInt256)
   rw [gemJoinCtorCode, ByteArray.size_append, gemJoinCreationBytecode_size,
     gemJoinCtorArgsTail_size]
 
-noncomputable def gemJoinCtorRuntimeReturnMem (vat : AccountAddress) (ilk : UInt256)
+def gemJoinCtorRuntimeReturnMem (vat : AccountAddress) (ilk : UInt256)
     (gem : AccountAddress) (mem : ByteArray) : ByteArray :=
   (gemJoinCtorCode vat ilk gem).write 304 mem 0 2022
 
@@ -175,7 +175,7 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
     (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
     (hbase : base.size ≤ destAddr) :
     src.write srcAddr base destAddr len =
-      base ++ ffi.ByteArray.zeroes (destAddr - base.size) ++
+      base ++ ByteArray.zeroes (destAddr - base.size) ++
         src.extract srcAddr (srcAddr + len) := by
   have hsrcNonempty : ¬ srcAddr ≥ src.size := by omega
   have hcopy : min len (src.size - srcAddr) = len := by
@@ -188,14 +188,14 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
     have hle : min base.size (destAddr + len) ≤ destAddr + len := Nat.min_le_right _ _
     omega
   have hDsz :
-      (base.data ++ (ffi.ByteArray.zeroes (destAddr - base.size)).data).size =
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size =
         destAddr := by
     rw [Array.size_append]
     have hz :
-        (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
+        (ByteArray.zeroes (destAddr - base.size)).data.size =
           destAddr - base.size := by
-      rw [show (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ffi.ByteArray.zeroes (destAddr - base.size)).size from rfl,
+      rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
+          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
         ByteArray_zeroes_size]
     rw [hz]
     change base.size + (destAddr - base.size) = destAddr
@@ -205,10 +205,10 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
   rw [if_neg hlen, if_neg hsrcNonempty]
   simp only [ByteArray.data_copySlice, ByteArray.data_append]
   change (base.data ++
-          (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract 0
+          (ByteArray.zeroes (destAddr - base.size)).data).extract 0
           destAddr ++
         (src.data ++
-            (ffi.ByteArray.zeroes
+            (ByteArray.zeroes
               (min base.size (destAddr + len) -
                 (destAddr + min len (src.size - srcAddr)))).data).extract
           srcAddr
@@ -217,21 +217,21 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
               (min base.size (destAddr + len) -
                 (destAddr + min len (src.size - srcAddr))))) ++
         (base.data ++
-          (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract
+          (ByteArray.zeroes (destAddr - base.size)).data).extract
           (destAddr +
             min
               (min len (src.size - srcAddr) +
                 (min base.size (destAddr + len) -
                   (destAddr + min len (src.size - srcAddr))))
               ((src.data ++
-                    (ffi.ByteArray.zeroes
+                    (ByteArray.zeroes
                       (min base.size (destAddr + len) -
                         (destAddr + min len (src.size - srcAddr)))).data).size -
                 srcAddr)) =
-      base.data ++ (ffi.ByteArray.zeroes (destAddr - base.size)).data ++
+      base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
         (src.extract srcAddr (srcAddr + len)).data
   rw [hcopy, htail]
-  rw [show (ffi.ByteArray.zeroes 0).data =
+  rw [show (ByteArray.zeroes 0).data =
       (#[] : Array UInt8) from by
     rw [zeroes_zero (n := 0) (by rfl)]
     rfl]
@@ -242,25 +242,25 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destA
   rw [hcopyData]
   rw [show
       (base.data ++
-          (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract
+          (ByteArray.zeroes (destAddr - base.size)).data).extract
         (destAddr + len) = #[] from by
     apply Array.extract_eq_empty_of_le
     rw [hDsz]
     omega]
   simp only [Array.append_empty]
 
-noncomputable def gemJoinCtorArgMem (vat : AccountAddress) (ilk : UInt256)
+def gemJoinCtorArgMem (vat : AccountAddress) (ilk : UInt256)
     (gem : AccountAddress) : ByteArray :=
   (gemJoinCtorCode vat ilk gem).write 2326 solcFreePtrMem 128 96
 
-noncomputable def gemJoinCtorArgFreeMem (vat : AccountAddress) (ilk : UInt256)
+def gemJoinCtorArgFreeMem (vat : AccountAddress) (ilk : UInt256)
     (gem : AccountAddress) : ByteArray :=
   (UInt256.toByteArray ⟨224⟩).write 0 (gemJoinCtorArgMem vat ilk gem) 64 32
 
 theorem gemJoinCtorArgMem_eq (vat : AccountAddress) (ilk : UInt256)
     (gem : AccountAddress) :
     gemJoinCtorArgMem vat ilk gem =
-      solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++
+      solcFreePtrMem ++ ByteArray.zeroes 32 ++
         gemJoinCtorArgsTail vat ilk gem := by
   rw [gemJoinCtorArgMem, gemJoinCtorCode, byteArray_write_from_ge_eq]
   · rw [extract_append_right' gemJoinCreationBytecode (gemJoinCtorArgsTail vat ilk gem) 2326
@@ -316,15 +316,15 @@ theorem gemJoinCtorArgMem_read128 (vat : AccountAddress) (ilk : UInt256)
     (gemJoinCtorArgMem vat ilk gem).readWithPadding 128 32 =
       UInt256.toByteArray (EVM.word vat.val) := by
   rw [gemJoinCtorArgMem_eq]
-  have hprefix : (solcFreePtrMem ++ ffi.ByteArray.zeroes 32).size = 128 := by
+  have hprefix : (solcFreePtrMem ++ ByteArray.zeroes 32).size = 128 := by
     rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size 32 (by norm_num)]
   rw [readWithPadding_eq_extract'
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++ gemJoinCtorArgsTail vat ilk gem)
+    (solcFreePtrMem ++ ByteArray.zeroes 32 ++ gemJoinCtorArgsTail vat ilk gem)
     128 32 (by norm_num) (by norm_num) (by
       rw [ByteArray.size_append, hprefix, gemJoinCtorArgsTail_size]
       omega)]
   rw [extract_append_right_window
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32) (gemJoinCtorArgsTail vat ilk gem) 128
+    (solcFreePtrMem ++ ByteArray.zeroes 32) (gemJoinCtorArgsTail vat ilk gem) 128
     (128 + 32) (by rw [hprefix]), hprefix]
   rw [show 128 - 128 = 0 by omega, show 128 + 32 - 128 = 32 by omega]
   rw [gemJoinCtorArgsTail]
@@ -348,15 +348,15 @@ theorem gemJoinCtorArgMem_read160 (vat : AccountAddress) (ilk : UInt256)
     (gemJoinCtorArgMem vat ilk gem).readWithPadding 160 32 =
       UInt256.toByteArray ilk := by
   rw [gemJoinCtorArgMem_eq]
-  have hprefix : (solcFreePtrMem ++ ffi.ByteArray.zeroes 32).size = 128 := by
+  have hprefix : (solcFreePtrMem ++ ByteArray.zeroes 32).size = 128 := by
     rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size 32 (by norm_num)]
   rw [readWithPadding_eq_extract'
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++ gemJoinCtorArgsTail vat ilk gem)
+    (solcFreePtrMem ++ ByteArray.zeroes 32 ++ gemJoinCtorArgsTail vat ilk gem)
     160 32 (by norm_num) (by norm_num) (by
       rw [ByteArray.size_append, hprefix, gemJoinCtorArgsTail_size]
       omega)]
   rw [extract_append_right_window
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32) (gemJoinCtorArgsTail vat ilk gem) 160
+    (solcFreePtrMem ++ ByteArray.zeroes 32) (gemJoinCtorArgsTail vat ilk gem) 160
     (160 + 32) (by rw [hprefix]; omega), hprefix]
   rw [show 160 - 128 = 32 by omega, show 160 + 32 - 128 = 64 by omega]
   rw [gemJoinCtorArgsTail]
@@ -383,14 +383,14 @@ theorem gemJoinCtorArgMem_read192 (vat : AccountAddress) (ilk : UInt256)
     (gemJoinCtorArgMem vat ilk gem).readWithPadding 192 32 =
       UInt256.toByteArray (EVM.word gem.val) := by
   rw [gemJoinCtorArgMem_eq]
-  have hprefix : (solcFreePtrMem ++ ffi.ByteArray.zeroes 32).size = 128 := by
+  have hprefix : (solcFreePtrMem ++ ByteArray.zeroes 32).size = 128 := by
     rw [ByteArray.size_append, solcFreePtrMem_size, zeroes_ofNat_size 32 (by norm_num)]
   rw [readWithPadding_eq_extract'
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++ gemJoinCtorArgsTail vat ilk gem)
+    (solcFreePtrMem ++ ByteArray.zeroes 32 ++ gemJoinCtorArgsTail vat ilk gem)
     192 32 (by norm_num) (by norm_num) (by
       rw [ByteArray.size_append, hprefix, gemJoinCtorArgsTail_size])]
   rw [extract_append_right_window
-    (solcFreePtrMem ++ ffi.ByteArray.zeroes 32) (gemJoinCtorArgsTail vat ilk gem) 192
+    (solcFreePtrMem ++ ByteArray.zeroes 32) (gemJoinCtorArgsTail vat ilk gem) 192
     (192 + 32) (by rw [hprefix]; omega), hprefix]
   rw [show 192 - 128 = 64 by omega, show 192 + 32 - 128 = 96 by omega]
   rw [gemJoinCtorArgsTail]
@@ -484,7 +484,7 @@ theorem gemJoinCtorArgFreeMem_mload192 (vat : AccountAddress) (ilk : UInt256)
 abbrev gemJoinCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
   solcMappingSlot ⟨0⟩ (solcSourceWord I)
 
-noncomputable def gemJoinCtorWardsHashMem (I : ExecutionEnv) (vat : AccountAddress)
+def gemJoinCtorWardsHashMem (I : ExecutionEnv) (vat : AccountAddress)
     (ilk : UInt256) (gem : AccountAddress) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ (gemJoinCtorArgFreeMem vat ilk gem)
 
@@ -562,7 +562,7 @@ theorem gemJoinCtorWardsHashSlot (I : ExecutionEnv) (vat : AccountAddress)
     (ilk : UInt256) (gem : AccountAddress) :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC ((gemJoinCtorWardsHashMem I vat ilk gem).readWithPadding 0 64))) =
+          (KEC ((gemJoinCtorWardsHashMem I vat ilk gem).readWithPadding 0 64))) =
       gemJoinCtorCallerWardsSlot I := by
   unfold gemJoinCtorWardsHashMem gemJoinCtorCallerWardsSlot solcMappingSlot
   rw [twoWordHashMem_read0_64_224 (solcSourceWord I) ⟨0⟩
@@ -605,7 +605,7 @@ theorem gemJoinCtorWardsHashMem_mload64 (I : ExecutionEnv) (vat : AccountAddress
 abbrev gemJoinCtorDecimalsSelectorShifted : UInt256 :=
   UInt256.shiftLeft ⟨826074471⟩ ⟨224⟩
 
-noncomputable def gemJoinCtorDecimalsCalldataMem (I : ExecutionEnv) (vat : AccountAddress)
+def gemJoinCtorDecimalsCalldataMem (I : ExecutionEnv) (vat : AccountAddress)
     (ilk : UInt256) (gem : AccountAddress) : ByteArray :=
   (UInt256.toByteArray gemJoinCtorDecimalsSelectorShifted).write 0
     (gemJoinCtorWardsHashMem I vat ilk gem) 224 32

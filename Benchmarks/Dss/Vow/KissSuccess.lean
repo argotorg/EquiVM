@@ -27,10 +27,10 @@ abbrev kissHealInSize : UInt256 :=
 abbrev kissHealEndPtr : UInt256 :=
   UInt256.add kissHealOutPtr ⟨36⟩
 
-noncomputable def kissHealSelectorMem (mem : ByteArray) : ByteArray :=
+def kissHealSelectorMem (mem : ByteArray) : ByteArray :=
   kissHealSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def kissHealCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def kissHealCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (kissRad I).toByteArray.write 0 (kissHealSelectorMem mem) 132 32
 
 theorem kissHealSelectorMem_size {mem : ByteArray} (hmem : mem.size = 164) :

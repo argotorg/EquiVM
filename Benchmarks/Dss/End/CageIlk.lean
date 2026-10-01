@@ -133,60 +133,60 @@ abbrev endCageIlkPostTagAccountMap (σ : AccountMap) (I : ExecutionEnv)
     (tagV : UInt256) : AccountMap :=
   sstoreAccountMap I.codeOwner σ (endCageIlkTagSlot I) tagV
 
-noncomputable def endCageIlkTagHashMem (I : ExecutionEnv) : ByteArray :=
+def endCageIlkTagHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (endCageIlkIlkWord I) ⟨12⟩ solcFreePtrMem
 
-noncomputable def endCageIlkVatIlksCalldataMem (I : ExecutionEnv) : ByteArray :=
+def endCageIlkVatIlksCalldataMem (I : ExecutionEnv) : ByteArray :=
   endFlowVatIlksCalldataMem I (endCageIlkTagHashMem I)
 
-noncomputable def endCageIlkVatIlksPostCallMem (I : ExecutionEnv) (out : ByteArray) :
+def endCageIlkVatIlksPostCallMem (I : ExecutionEnv) (out : ByteArray) :
     ByteArray :=
   out.write 0 (endCageIlkVatIlksCalldataMem I) endFlowVatIlksOutPtr.toNat
     (min endFlowVatIlksOutSize.toNat out.size)
 
-noncomputable def endCageIlkArtHashMem (I : ExecutionEnv) (vatOut : ByteArray) :
+def endCageIlkArtHashMem (I : ExecutionEnv) (vatOut : ByteArray) :
     ByteArray :=
   twoWordHashMem (endCageIlkIlkWord I) ⟨14⟩ (endCageIlkVatIlksPostCallMem I vatOut)
 
-noncomputable def endCageIlkSpotIlksCalldataMem (I : ExecutionEnv) (vatOut : ByteArray) :
+def endCageIlkSpotIlksCalldataMem (I : ExecutionEnv) (vatOut : ByteArray) :
     ByteArray :=
   endFlowVatIlksCalldataMem I (endCageIlkArtHashMem I vatOut)
 
-noncomputable def endCageIlkSpotIlksPostCallMem (I : ExecutionEnv)
+def endCageIlkSpotIlksPostCallMem (I : ExecutionEnv)
     (vatOut spotOut : ByteArray) : ByteArray :=
   spotOut.write 0 (endCageIlkSpotIlksCalldataMem I vatOut)
     endFlowVatIlksOutPtr.toNat
     (min (⟨64⟩ : UInt256) (UInt256.ofNat spotOut.size)).toNat
 
-noncomputable def endCageIlkNoArgCalldataMem (selectorShifted mem : ByteArray) :
+def endCageIlkNoArgCalldataMem (selectorShifted mem : ByteArray) :
     ByteArray :=
   selectorShifted.write 0 mem endFlowVatIlksOutPtr.toNat 32
 
-noncomputable def endCageIlkParCalldataMem (I : ExecutionEnv)
+def endCageIlkParCalldataMem (I : ExecutionEnv)
     (vatOut spotOut : ByteArray) : ByteArray :=
   endCageIlkNoArgCalldataMem
     (UInt256.shiftLeft endCageIlkParSelectorWord ⟨224⟩).toByteArray
     (endCageIlkSpotIlksPostCallMem I vatOut spotOut)
 
-noncomputable def endCageIlkNoArgPostCallMem (selectorShifted mem out : ByteArray) :
+def endCageIlkNoArgPostCallMem (selectorShifted mem out : ByteArray) :
     ByteArray :=
   out.write 0 (endCageIlkNoArgCalldataMem selectorShifted mem)
     endFlowVatIlksOutPtr.toNat
     (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat
 
-noncomputable def endCageIlkParPostCallMem (I : ExecutionEnv)
+def endCageIlkParPostCallMem (I : ExecutionEnv)
     (vatOut spotOut parOut : ByteArray) : ByteArray :=
   endCageIlkNoArgPostCallMem
     (UInt256.shiftLeft endCageIlkParSelectorWord ⟨224⟩).toByteArray
     (endCageIlkSpotIlksPostCallMem I vatOut spotOut) parOut
 
-noncomputable def endCageIlkReadCalldataMem (I : ExecutionEnv)
+def endCageIlkReadCalldataMem (I : ExecutionEnv)
     (vatOut spotOut parOut : ByteArray) : ByteArray :=
   endCageIlkNoArgCalldataMem
     (UInt256.shiftLeft endCageIlkReadSelectorRaw ⟨226⟩).toByteArray
     (endCageIlkParPostCallMem I vatOut spotOut parOut)
 
-noncomputable def endCageIlkReadPostCallMem (I : ExecutionEnv)
+def endCageIlkReadPostCallMem (I : ExecutionEnv)
     (vatOut spotOut parOut readOut : ByteArray) : ByteArray :=
   endCageIlkNoArgPostCallMem
     (UInt256.shiftLeft endCageIlkReadSelectorRaw ⟨226⟩).toByteArray
@@ -1224,7 +1224,7 @@ theorem endCageIlkX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     raw swap1 (by native_decide) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨12⟩ key solcFreePtrMem_size
   have rd8917pre := rd8916pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
@@ -1369,7 +1369,7 @@ theorem endCageIlkX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     raw swap1 (by native_decide) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨12⟩ key solcFreePtrMem_size
   have rd8917pre := rd8916pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
@@ -1754,7 +1754,7 @@ theorem endCageIlkX_spotIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     native_decide
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((endCageIlkArtHashMem I vatOut).readWithPadding 0 64))) =
+        (KEC ((endCageIlkArtHashMem I vatOut).readWithPadding 0 64))) =
           solcMappingSlot ⟨14⟩ key := by
     unfold endCageIlkArtHashMem
     exact endFlow_twoWordHashMem_solcMappingSlot_of_ge64 ⟨14⟩ key
@@ -3147,7 +3147,7 @@ theorem endCageIlkX_finish {cA cA' gh bl σ σ' σ₀ A I}
     raw dup3 (by native_decide) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memHash.readWithPadding 0 64))) =
+        (KEC (memHash.readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key := by
     unfold memHash
     exact endFlow_twoWordHashMem_solcMappingSlot_of_ge64 ⟨12⟩ key

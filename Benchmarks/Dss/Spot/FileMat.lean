@@ -46,7 +46,7 @@ abbrev fileMatLocals (I : ExecutionEnv) : Store :=
     "what" (.fixedBytes bytes32Width (fileMatWhatBytes I))).insert
     "data" (.int (Int.ofNat (fileMatData I).toNat))
 
-noncomputable abbrev fileMatIlkHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev fileMatIlkHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (fileMatIlkWord I) ⟨1⟩ (relyAuthHashMem I)
 
 theorem fileMatIlkBytes_length {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
@@ -511,7 +511,7 @@ theorem spotFileMatX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -559,7 +559,7 @@ theorem spotFileMatX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     RDrev spotBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -687,7 +687,7 @@ theorem spotFileMatX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
       ByteArray.empty := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((fileMatIlkHashMem I).readWithPadding 0 64))) =
+          (KEC ((fileMatIlkHashMem I).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (fileMatIlkWord I) := by
     simpa [fileMatIlkHashMem] using
       twoWordHashMem_solcMappingSlot (⟨1⟩ : UInt256) (fileMatIlkWord I)

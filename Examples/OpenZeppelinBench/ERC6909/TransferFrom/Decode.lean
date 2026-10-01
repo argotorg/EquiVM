@@ -287,7 +287,7 @@ def transferFromAllowanceSlotI (I : ExecutionEnv) : UInt256 :=
 theorem transferFromOperatorKeccakSlot (I : ExecutionEnv)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        ((ffi.KEC ((isOperatorOuterHashMem (transferFromSenderWord I)
+        ((KEC ((isOperatorOuterHashMem (transferFromSenderWord I)
           (transferFromCallerWord I)).readWithPadding 0 64)))) =
       transferFromOperatorSlotI I := by
   have hcallerKey : keyValueToWord (.address I.source) = transferFromCallerWord I := by
@@ -309,7 +309,7 @@ theorem transferFromOperatorKeccakSlot (I : ExecutionEnv)
 theorem transferFromAllowanceKeccakSlot (I : ExecutionEnv)
     (hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        ((ffi.KEC ((approveIdHashMem (transferFromSenderWord I)
+        ((KEC ((approveIdHashMem (transferFromSenderWord I)
           (transferFromCallerWord I) (transferFromIdWord I)).readWithPadding 0 64)))) =
       transferFromAllowanceSlotI I := by
   have hcallerKey : keyValueToWord (.address I.source) = transferFromCallerWord I := by

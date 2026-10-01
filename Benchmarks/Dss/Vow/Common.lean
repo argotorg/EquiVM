@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Vow.Trusted
+import Benchmarks.Dss.Vow.Selectors
 import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.Memory

@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Flipper.Trusted
+import Benchmarks.Dss.Flipper.Selectors
 import Benchmarks.Dss.Flipper.CommonRoutines
 
 /-!

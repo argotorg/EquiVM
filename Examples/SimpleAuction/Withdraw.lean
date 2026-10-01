@@ -65,20 +65,20 @@ def withdrawCallStore (amount : UInt256) (success : Bool) (out : ByteArray) : St
 def withdrawCallFrame (amount : UInt256) (success : Bool) (out : ByteArray) : Frame :=
   { contract := simpleAuctionContract, locals := withdrawCallStore amount success out }
 
-noncomputable def withdrawPendingBaseMem : ByteArray :=
+def withdrawPendingBaseMem : ByteArray :=
   (UInt256.toByteArray (⟨4⟩ : UInt256)).write 0 solcFreePtrMem 32 32
 
-noncomputable def withdrawPendingKeyMem (I : ExecutionEnv) : ByteArray :=
+def withdrawPendingKeyMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (withdrawSenderWord I)).write 0 solcFreePtrMem 0 32
 
-noncomputable def withdrawPendingHashMem (I : ExecutionEnv) : ByteArray :=
+def withdrawPendingHashMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨4⟩ : UInt256)).write 0 (withdrawPendingKeyMem I) 32 32
 
-noncomputable def withdrawRehashMem (I : ExecutionEnv) : ByteArray :=
+def withdrawRehashMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
     ((UInt256.toByteArray (withdrawSenderWord I)).write 0 (withdrawPendingHashMem I) 0 32) 32 32
 
-noncomputable def withdrawRestoreHashMem (I : ExecutionEnv) : ByteArray :=
+def withdrawRestoreHashMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
     ((UInt256.toByteArray (withdrawSenderWord I)).write 0 (withdrawRehashMem I) 0 32) 32 32
 
@@ -251,7 +251,7 @@ theorem withdrawBoolReturnMem_read64 (I : ExecutionEnv) (b : UInt256) :
       show 128 - 96 = 32 from by norm_num]
     norm_num)]
   rw [extract_append_left (withdrawPendingHashMem I)
-      (ffi.ByteArray.zeroes (128 - (withdrawPendingHashMem I).size)) 64 96
+      (ByteArray.zeroes (128 - (withdrawPendingHashMem I).size)) 64 96
       (by rw [withdrawPendingHashMem_size])]
   rw [← readWithPadding_eq_extract (withdrawPendingHashMem I) 64
     (by rw [withdrawPendingHashMem_size])]
@@ -277,7 +277,7 @@ theorem withdrawBoolReturnMem_read128 (I : ExecutionEnv) (b : UInt256) :
       (by rw [withdrawPendingHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_right_window
       (withdrawPendingHashMem I ++
-        ffi.ByteArray.zeroes (128 - (withdrawPendingHashMem I).size))
+        ByteArray.zeroes (128 - (withdrawPendingHashMem I).size))
       (UInt256.toByteArray b) 128 160 (by
         rw [ByteArray.size_append, withdrawPendingHashMem_size, ByteArray_zeroes_size,
           show 128 - 96 = 32 from by norm_num])]
@@ -296,13 +296,13 @@ def withdrawReturnDataRounded (o : ByteArray) : UInt256 :=
 def withdrawReturnDataPtr (o : ByteArray) : UInt256 :=
   (⟨128⟩ : UInt256) + withdrawReturnDataRounded o
 
-noncomputable def withdrawReturnDataPtrMem (I : ExecutionEnv) (o : ByteArray) : ByteArray :=
+def withdrawReturnDataPtrMem (I : ExecutionEnv) (o : ByteArray) : ByteArray :=
   (UInt256.toByteArray (withdrawReturnDataPtr o)).write 0 (withdrawRehashMem I) 64 32
 
-noncomputable def withdrawReturnDataSizeMem (I : ExecutionEnv) (o : ByteArray) : ByteArray :=
+def withdrawReturnDataSizeMem (I : ExecutionEnv) (o : ByteArray) : ByteArray :=
   (UInt256.toByteArray (UInt256.ofNat o.size)).write 0 (withdrawReturnDataPtrMem I o) 128 32
 
-noncomputable def withdrawReturnDataMem (I : ExecutionEnv) (o : ByteArray) : ByteArray :=
+def withdrawReturnDataMem (I : ExecutionEnv) (o : ByteArray) : ByteArray :=
   o.write 0 (withdrawReturnDataSizeMem I o) 160 o.size
 
 def withdrawReturnDataActiveWords (o : ByteArray) : UInt256 :=
@@ -312,20 +312,20 @@ def withdrawReturnDataBoolActiveWords (o : ByteArray) : UInt256 :=
   UInt256.ofNat (MachineState.M (withdrawReturnDataActiveWords o).toNat
     (withdrawReturnDataPtr o).toNat 32)
 
-noncomputable def withdrawReturnDataBoolMem (I : ExecutionEnv) (o : ByteArray)
+def withdrawReturnDataBoolMem (I : ExecutionEnv) (o : ByteArray)
     (b : UInt256) : ByteArray :=
   (UInt256.toByteArray b).write 0 (withdrawReturnDataMem I o)
     (withdrawReturnDataPtr o).toNat 32
 
-noncomputable def withdrawReturnDataRestoreKeyMem (I : ExecutionEnv) (o : ByteArray) :
+def withdrawReturnDataRestoreKeyMem (I : ExecutionEnv) (o : ByteArray) :
     ByteArray :=
   (UInt256.toByteArray (withdrawSenderWord I)).write 0 (withdrawReturnDataMem I o) 0 32
 
-noncomputable def withdrawReturnDataRestoreHashMem (I : ExecutionEnv) (o : ByteArray) :
+def withdrawReturnDataRestoreHashMem (I : ExecutionEnv) (o : ByteArray) :
     ByteArray :=
   (UInt256.toByteArray (⟨4⟩ : UInt256)).write 0 (withdrawReturnDataRestoreKeyMem I o) 32 32
 
-noncomputable def withdrawReturnDataRestoreBoolMem (I : ExecutionEnv) (o : ByteArray)
+def withdrawReturnDataRestoreBoolMem (I : ExecutionEnv) (o : ByteArray)
     (b : UInt256) : ByteArray :=
   (UInt256.toByteArray b).write 0 (withdrawReturnDataRestoreHashMem I o)
     (withdrawReturnDataPtr o).toNat 32
@@ -448,7 +448,7 @@ theorem withdrawReturnDataSizeMem_read64 (I : ExecutionEnv) (o : ByteArray) :
       show 128 - 96 = 32 from by norm_num]
     norm_num)]
   rw [extract_append_left (withdrawReturnDataPtrMem I o)
-      (ffi.ByteArray.zeroes (128 - (withdrawReturnDataPtrMem I o).size)) 64 96
+      (ByteArray.zeroes (128 - (withdrawReturnDataPtrMem I o).size)) 64 96
       (by rw [withdrawReturnDataPtrMem_size])]
   rw [← readWithPadding_eq_extract (withdrawReturnDataPtrMem I o) 64
     (by rw [withdrawReturnDataPtrMem_size])]
@@ -990,7 +990,7 @@ theorem withdrawReturnDataRestoreHashKeccak (I : ExecutionEnv) (o : ByteArray)
     (ho0 : o.size ≠ 0) :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC ((withdrawReturnDataRestoreHashMem I o).readWithPadding 0 64))) =
+          (KEC ((withdrawReturnDataRestoreHashMem I o).readWithPadding 0 64))) =
       withdrawPendingSlot I := by
   rw [withdrawReturnDataRestoreHashMem_read0_64 I o ho0, withdrawPendingSlot_eq]
   exact mappingSlot_single (withdrawSenderWord I) ⟨4⟩
@@ -1090,7 +1090,7 @@ theorem withdrawReturnDataRestoreBoolMem_mload64 (I : ExecutionEnv) (o : ByteArr
 theorem withdrawRehashKeccak (I : ExecutionEnv) :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC ((withdrawRehashMem I).readWithPadding 0 64)))
+          (KEC ((withdrawRehashMem I).readWithPadding 0 64)))
       = withdrawPendingSlot I := by
   rw [withdrawRehashMem_read0_64, withdrawPendingSlot_eq]
   exact mappingSlot_single (withdrawSenderWord I) ⟨4⟩
@@ -1118,7 +1118,7 @@ theorem withdrawRehashBoolReturnMem_read64 (I : ExecutionEnv) (b : UInt256) :
       show 128 - 96 = 32 from by norm_num]
     norm_num)]
   rw [extract_append_left (withdrawRehashMem I)
-      (ffi.ByteArray.zeroes (128 - (withdrawRehashMem I).size)) 64 96
+      (ByteArray.zeroes (128 - (withdrawRehashMem I).size)) 64 96
       (by rw [withdrawRehashMem_size])]
   rw [← readWithPadding_eq_extract (withdrawRehashMem I) 64
     (by rw [withdrawRehashMem_size])]
@@ -1144,7 +1144,7 @@ theorem withdrawRehashBoolReturnMem_read128 (I : ExecutionEnv) (b : UInt256) :
       (by rw [withdrawRehashMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_right_window
       (withdrawRehashMem I ++
-        ffi.ByteArray.zeroes (128 - (withdrawRehashMem I).size))
+        ByteArray.zeroes (128 - (withdrawRehashMem I).size))
       (UInt256.toByteArray b) 128 160 (by
         rw [ByteArray.size_append, withdrawRehashMem_size, ByteArray_zeroes_size,
           show 128 - 96 = 32 from by norm_num])]
@@ -1246,7 +1246,7 @@ theorem withdrawRestoreHashMem_mload64 (I : ExecutionEnv) :
 theorem withdrawRestoreHashKeccak (I : ExecutionEnv) :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC ((withdrawRestoreHashMem I).readWithPadding 0 64)))
+          (KEC ((withdrawRestoreHashMem I).readWithPadding 0 64)))
       = withdrawPendingSlot I := by
   rw [withdrawRestoreHashMem_read0_64, withdrawPendingSlot_eq]
   exact mappingSlot_single (withdrawSenderWord I) ⟨4⟩
@@ -1274,7 +1274,7 @@ theorem withdrawRestoreBoolReturnMem_read64 (I : ExecutionEnv) (b : UInt256) :
       show 128 - 96 = 32 from by norm_num]
     norm_num)]
   rw [extract_append_left (withdrawRestoreHashMem I)
-      (ffi.ByteArray.zeroes (128 - (withdrawRestoreHashMem I).size)) 64 96
+      (ByteArray.zeroes (128 - (withdrawRestoreHashMem I).size)) 64 96
       (by rw [withdrawRestoreHashMem_size])]
   rw [← readWithPadding_eq_extract (withdrawRestoreHashMem I) 64
     (by rw [withdrawRestoreHashMem_size])]
@@ -1300,7 +1300,7 @@ theorem withdrawRestoreBoolReturnMem_read128 (I : ExecutionEnv) (b : UInt256) :
       (by rw [withdrawRestoreHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [extract_append_right_window
       (withdrawRestoreHashMem I ++
-        ffi.ByteArray.zeroes (128 - (withdrawRestoreHashMem I).size))
+        ByteArray.zeroes (128 - (withdrawRestoreHashMem I).size))
       (UInt256.toByteArray b) 128 160 (by
         rw [ByteArray.size_append, withdrawRestoreHashMem_size, ByteArray_zeroes_size,
           show 128 - 96 = 32 from by norm_num])]
@@ -1314,7 +1314,7 @@ theorem withdrawRestoreBoolReturnMem_read128 (I : ExecutionEnv) (b : UInt256) :
 theorem withdrawPendingKeccak (I : ExecutionEnv) :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC ((withdrawPendingHashMem I).readWithPadding 0 64)))
+          (KEC ((withdrawPendingHashMem I).readWithPadding 0 64)))
       = withdrawPendingSlot I := by
   rw [withdrawPendingHashMem_read0_64, withdrawPendingSlot_eq]
   exact mappingSlot_single (withdrawSenderWord I) ⟨4⟩

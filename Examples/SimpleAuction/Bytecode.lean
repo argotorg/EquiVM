@@ -19,8 +19,8 @@ Function selectors (in the dispatcher):
 `highestBidder() = 0x91f90157`,
 `highestBid() = 0xd57bde79`.
 
-As in `Ballot`/`ERC20`, this trusted file records the deployed runtime bytes; the keccak selector
-facts and the bytecode-derived valid jump set are added when the proof needs them.
+This file records the deployed runtime bytes and computes their valid jump set.
+`Selectors.lean` proves the selector facts.
 -/
 
 def simpleAuctionBytecode : ByteArray :=
@@ -154,3 +154,17 @@ def simpleAuctionCtorPrefix : ByteArray :=
 
 /-- Pure creation/initcode for `SimpleAuction`, without appended constructor ABI arguments. -/
 def simpleAuctionInitcode : ByteArray := simpleAuctionCtorPrefix ++ simpleAuctionBytecode
+
+namespace SimpleAuction
+
+/-- The `JUMPDEST` set of `simpleAuctionBytecode`, computed from the bytecode. -/
+@[valid_jumps] theorem simpleAuctionValidJumps :
+    Ethereum.EVM.D_J simpleAuctionBytecode 0 =
+      #[⟨76⟩, ⟨110⟩, ⟨114⟩, ⟨122⟩, ⟨124⟩, ⟨135⟩, ⟨144⟩, ⟨155⟩, ⟨174⟩,
+        ⟨194⟩, ⟨203⟩, ⟨214⟩, ⟨223⟩, ⟨239⟩, ⟨250⟩, ⟨260⟩, ⟨274⟩, ⟨285⟩,
+        ⟨305⟩, ⟨316⟩, ⟨326⟩, ⟨361⟩, ⟨401⟩, ⟨410⟩, ⟨462⟩, ⟨468⟩, ⟨555⟩,
+        ⟨590⟩, ⟨626⟩, ⟨788⟩, ⟨793⟩, ⟨806⟩, ⟨809⟩, ⟨908⟩, ⟨913⟩, ⟨946⟩,
+        ⟨948⟩, ⟨956⟩, ⟨987⟩] := by
+  native_decide
+
+end SimpleAuction

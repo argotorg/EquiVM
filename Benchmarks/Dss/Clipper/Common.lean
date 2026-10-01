@@ -1065,7 +1065,7 @@ theorem clipperEncodeABIValue_uint256 (v : UInt256) :
     exact v.val.isLt
   simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hlt]
 
-noncomputable abbrev clipperActiveHashMem : ByteArray :=
+abbrev clipperActiveHashMem : ByteArray :=
   wordAt0Mem (⟨11⟩ : UInt256) solcFreePtrMem
 
 theorem clipperActiveHashMem_size : clipperActiveHashMem.size = 96 := by
@@ -1103,7 +1103,7 @@ theorem clipperActiveHashMem_mload64 :
 theorem clipperActiveHashMem_keccak_slot :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC (clipperActiveHashMem.readWithPadding (⟨0⟩ : UInt256).toNat
+          (KEC (clipperActiveHashMem.readWithPadding (⟨0⟩ : UInt256).toNat
             (⟨32⟩ : UInt256).toNat))) =
       activeDataSlot := by
   simpa [clipperActiveHashMem, activeDataSlot,

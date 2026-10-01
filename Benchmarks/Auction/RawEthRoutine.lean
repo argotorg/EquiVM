@@ -8,7 +8,7 @@ namespace Auction
 def rawEthPtr (ptr : UInt256) (out : ByteArray) : UInt256 :=
   rawReturnPtr (nextEmptyPtr ptr) out
 
-noncomputable def rawEthMem (mem out : ByteArray) (ptr : UInt256) : ByteArray :=
+def rawEthMem (mem out : ByteArray) (ptr : UInt256) : ByteArray :=
   rawReturnMem (emptyEncodedMem mem ptr) out (nextEmptyPtr ptr)
 
 def rawEthWords (aw ptr : UInt256) (out : ByteArray) : UInt256 :=

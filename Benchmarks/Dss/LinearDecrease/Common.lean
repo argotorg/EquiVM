@@ -461,7 +461,7 @@ theorem RD.stairstepInlineErrorStringRevertTail {g : Sat256} {s0 : State}
 
 /-! The same tail, parameterized by the string window in the deployed code. -/
 
-noncomputable def stairstepCodecopyErrorMem (offset len : UInt256)
+def stairstepCodecopyErrorMem (offset len : UInt256)
     (mem : ByteArray) : ByteArray :=
   linearDecreaseBytecode.write offset.toNat
     (solcErrorStringMem2 len mem) 196 len.toNat

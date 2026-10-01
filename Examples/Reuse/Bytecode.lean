@@ -11,8 +11,7 @@ Produced by `solc --optimize --evm-version shanghai --bin-runtime Examples/Reuse
 
 Function selectors (in the dispatcher): `f(uint256) = 0xb3de648b`, `g(uint256) = 0xe420264a`.
 
-For the proof, this file also records the two trusted keccak selector facts and the bytecode-derived
-valid jump set, matching the convention used by `Truth`/`Pow`. -/
+This file also records the selector facts and bytecode-derived valid jump set. -/
 
 def cBytecode : ByteArray :=
   ⟨#[96, 128, 96, 64, 82, 52, 128, 21, 96, 14, 87, 95, 95, 253, 91, 80, 96, 4, 54, 16, 96, 48, 87,
@@ -34,15 +33,35 @@ def cInitcode : ByteArray :=
   ⟨#[0x61, 0x01, 0x0f, 0x60, 0x0c, 0x5f, 0x39, 0x61, 0x01, 0x0f, 0x5f, 0xf3]⟩
     ++ cBytecode
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("f(uint256)")[0:4] = 0xb3de648b`. -/
-axiom cFSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Reuse.fTransition))).extract 0 4
-      = ⟨#[0xb3, 0xde, 0x64, 0x8b]⟩
+theorem cFSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr Reuse.fTransition))).extract 0 4
+      = ⟨#[0xb3, 0xde, 0x64, 0x8b]⟩ := by
+  have hsig : Solm.transitionSigStr Reuse.fTransition = "f(uint256)" := by
+    simp [Solm.transitionSigStr, ABI.printSignature, transitionSignature,
+      Reuse.fTransition, Reuse.uint256, Reuse.uint256Int, ABI.abiToSigStr,
+      ABI.elemToSigStr, ABI.intTypeToSigStr,
+      show Nat.repr 256 = "256" by decide +kernel]
+    decide +kernel
+  rw [hsig]
+  decide +kernel
 
+set_option maxHeartbeats 0 in
+set_option maxRecDepth 1000000 in
 /-- `keccak("g(uint256)")[0:4] = 0xe420264a`. -/
-axiom cGSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr Reuse.gTransition))).extract 0 4
-      = ⟨#[0xe4, 0x20, 0x26, 0x4a]⟩
+theorem cGSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr Reuse.gTransition))).extract 0 4
+      = ⟨#[0xe4, 0x20, 0x26, 0x4a]⟩ := by
+  have hsig : Solm.transitionSigStr Reuse.gTransition = "g(uint256)" := by
+    simp [Solm.transitionSigStr, ABI.printSignature, transitionSignature,
+      Reuse.gTransition, Reuse.uint256, Reuse.uint256Int, ABI.abiToSigStr,
+      ABI.elemToSigStr, ABI.intTypeToSigStr,
+      show Nat.repr 256 = "256" by decide +kernel]
+    decide +kernel
+  rw [hsig]
+  decide +kernel
 
 /-- The `JUMPDEST` set of `cBytecode` (confirmed from the bytecode disassembly). -/
 @[valid_jumps] theorem cValidJumps :

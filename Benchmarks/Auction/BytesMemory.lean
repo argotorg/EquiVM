@@ -68,7 +68,7 @@ theorem bytesAllocPtr_toNat {ptr : UInt256} {size : Nat}
     change _ < 2 ^ 256
     omega), bytesAllocSize_toNat hs]
 
-noncomputable def bytesAllocMem (mem out : ByteArray) (ptr : UInt256) : ByteArray :=
+def bytesAllocMem (mem out : ByteArray) (ptr : UInt256) : ByteArray :=
   out.write 0
     (writeWord (writeWord mem 64 (bytesAllocPtr ptr out.size)) ptr.toNat
       (UInt256.ofNat out.size))

@@ -1623,22 +1623,22 @@ def frobAlloc5Mem (mem : ByteArray) : ByteArray :=
         (writeWordMem 288 ⟨0⟩
           (writeWordMem 256 ⟨0⟩ (writeWordMem 64 ⟨416⟩ mem)))))
 
-noncomputable def frobUrnHashMem (I : ExecutionEnv) : ByteArray :=
+def frobUrnHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (frobIWord I) ⟨3⟩ (frobAlloc2Mem solcFreePtrMem)
 
-noncomputable def frobUrnBaseMem (I : ExecutionEnv) : ByteArray :=
+def frobUrnBaseMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (frobUMaskedWord I) (solcMappingSlot ⟨3⟩ (frobIWord I))
     (frobUrnHashMem I)
 
-noncomputable def frobUrnLoadedMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def frobUrnLoadedMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   writeWordMem 224 (solcSlotWord σ I (frobUrnArtSlot I))
     (writeWordMem 192 (solcSlotWord σ I (frobUrnInkSlot I))
       (writeWordMem 64 ⟨256⟩ (frobUrnBaseMem I)))
 
-noncomputable def frobIlkHashMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def frobIlkHashMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (frobIWord I) ⟨2⟩ (frobAlloc5Mem (frobUrnLoadedMem σ I))
 
-noncomputable def frobIlkLoadedMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def frobIlkLoadedMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   writeWordMem 544 (solcSlotWord σ I (frobIlkDustSlot I))
     (writeWordMem 512 (solcSlotWord σ I (frobIlkLineSlot I))
       (writeWordMem 480 (solcSlotWord σ I (frobIlkSpotSlot I))
@@ -1646,15 +1646,15 @@ noncomputable def frobIlkLoadedMem (σ : AccountMap) (I : ExecutionEnv) : ByteAr
           (writeWordMem 416 (solcSlotWord σ I (frobIlkArtSlot I))
             (writeWordMem 64 ⟨576⟩ (frobIlkHashMem σ I))))))
 
-noncomputable def frobUrnInkUpdatedMem (σ : AccountMap) (I : ExecutionEnv) (urnInkNew : UInt256) :
+def frobUrnInkUpdatedMem (σ : AccountMap) (I : ExecutionEnv) (urnInkNew : UInt256) :
     ByteArray :=
   writeWordMem 192 urnInkNew (frobIlkLoadedMem σ I)
 
-noncomputable def frobUrnArtUpdatedMem (σ : AccountMap) (I : ExecutionEnv)
+def frobUrnArtUpdatedMem (σ : AccountMap) (I : ExecutionEnv)
     (urnInkNew urnArtNew : UInt256) : ByteArray :=
   writeWordMem 224 urnArtNew (frobUrnInkUpdatedMem σ I urnInkNew)
 
-noncomputable def frobIlkArtUpdatedMem (σ : AccountMap) (I : ExecutionEnv)
+def frobIlkArtUpdatedMem (σ : AccountMap) (I : ExecutionEnv)
     (urnInkNew urnArtNew ilkArtNew : UInt256) : ByteArray :=
   writeWordMem 416 ilkArtNew (frobUrnArtUpdatedMem σ I urnInkNew urnArtNew)
 
@@ -1785,7 +1785,7 @@ theorem twoWordHashMem_read0_64_of_ge64 {mem : ByteArray} (key slot : UInt256)
 theorem twoWordHashMem_solcMappingSlot_of_ge64 (baseSlot key : UInt256)
     {mem : ByteArray} (hmem : 64 ≤ mem.size) :
     UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        (fromByteArrayBigEndian (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   rw [twoWordHashMem_read0_64_of_ge64 key baseSlot hmem]
   unfold solcMappingSlot
@@ -3286,7 +3286,7 @@ theorem RD.vatFrobUrnLoads
   have rd3071 := rd3070.dup4 (by native_decide) (by evm_ov)
   have hurnsIlk :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((frobUrnHashMem I).readWithPadding 0 64))) = urnsIlk := by
+          (KEC ((frobUrnHashMem I).readWithPadding 0 64))) = urnsIlk := by
     simpa [frobUrnHashMem, urnsIlk] using
       twoWordHashMem_solcMappingSlot_of_ge64 ⟨3⟩ (frobIWord I)
         (by rw [frobAlloc2Mem_solc_size]; omega)
@@ -3322,7 +3322,7 @@ theorem RD.vatFrobUrnLoads
   have rd3089 := rd3088.swap1 (by native_decide) (by evm_ov)
   have hurnBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((frobUrnBaseMem I).readWithPadding 0 64))) = urnBase := by
+          (KEC ((frobUrnBaseMem I).readWithPadding 0 64))) = urnBase := by
     simpa [frobUrnBaseMem, urnBase, urnsIlk] using
       twoWordHashMem_solcMappingSlot_of_ge64 urnsIlk (frobUMaskedWord I)
         (by rw [frobUrnHashMem_size I]; omega)
@@ -3401,16 +3401,16 @@ theorem RD.vatFrobUrnLoads
 abbrev vatNotInitRawWord : UInt256 :=
   ⟨28704904237161325316230594861668735581⟩
 
-noncomputable def frobNotInitErrorMem0 (mem : ByteArray) : ByteArray :=
+def frobNotInitErrorMem0 (mem : ByteArray) : ByteArray :=
   writeWordMem 576 solcErrorStringSelector mem
 
-noncomputable def frobNotInitErrorMem1 (mem : ByteArray) : ByteArray :=
+def frobNotInitErrorMem1 (mem : ByteArray) : ByteArray :=
   writeWordMem 580 ⟨32⟩ (frobNotInitErrorMem0 mem)
 
-noncomputable def frobNotInitErrorMem2 (mem : ByteArray) : ByteArray :=
+def frobNotInitErrorMem2 (mem : ByteArray) : ByteArray :=
   writeWordMem 612 ⟨16⟩ (frobNotInitErrorMem1 mem)
 
-noncomputable def frobNotInitErrorMem3 (mem : ByteArray) : ByteArray :=
+def frobNotInitErrorMem3 (mem : ByteArray) : ByteArray :=
   writeWordMem 644 (UInt256.shiftLeft vatNotInitRawWord ⟨130⟩)
     (frobNotInitErrorMem2 mem)
 
@@ -3493,16 +3493,16 @@ theorem frobNotInitErrorMem3_read64 {mem : ByteArray}
   · omega
   · rw [herr2Size]; native_decide
 
-noncomputable def frobErrorStringMem0 (mem : ByteArray) : ByteArray :=
+def frobErrorStringMem0 (mem : ByteArray) : ByteArray :=
   writeWordMem 576 solcErrorStringSelector mem
 
-noncomputable def frobErrorStringMem1 (mem : ByteArray) : ByteArray :=
+def frobErrorStringMem1 (mem : ByteArray) : ByteArray :=
   writeWordMem 580 (⟨32⟩ : UInt256) (frobErrorStringMem0 mem)
 
-noncomputable def frobErrorStringMem2 (len : UInt256) (mem : ByteArray) : ByteArray :=
+def frobErrorStringMem2 (len : UInt256) (mem : ByteArray) : ByteArray :=
   writeWordMem 612 len (frobErrorStringMem1 mem)
 
-noncomputable def frobErrorStringMem3 (len word : UInt256) (mem : ByteArray) : ByteArray :=
+def frobErrorStringMem3 (len word : UInt256) (mem : ByteArray) : ByteArray :=
   writeWordMem 644 word (frobErrorStringMem2 len mem)
 
 theorem frobErrorStringMem0_size {mem : ByteArray} (hmem : mem.size = 576) :
@@ -3729,7 +3729,7 @@ theorem RD.vatFrobIlkLoadsRateZero
   have rd3136pre := rd3135.swap1 (by native_decide) (by evm_ov)
   have hilkBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((frobIlkHashMem σ I).readWithPadding 0 64))) = ilkBase := by
+          (KEC ((frobIlkHashMem σ I).readWithPadding 0 64))) = ilkBase := by
     simpa [frobIlkHashMem, ilkBase] using
       twoWordHashMem_solcMappingSlot_of_ge64 ⟨2⟩ (frobIWord I)
         (by rw [frobAlloc5Mem_frobUrnLoaded_size σ I]; omega)
@@ -3992,7 +3992,7 @@ theorem RD.vatFrobIlkLoadsRateNonzero
   have rd3136pre := rd3135.swap1 (by native_decide) (by evm_ov)
   have hilkBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((frobIlkHashMem σ I).readWithPadding 0 64))) = ilkBase := by
+          (KEC ((frobIlkHashMem σ I).readWithPadding 0 64))) = ilkBase := by
     simpa [frobIlkHashMem, ilkBase] using
       twoWordHashMem_solcMappingSlot_of_ge64 ⟨2⟩ (frobIWord I)
         (by rw [frobAlloc5Mem_frobUrnLoaded_size σ I]; omega)
@@ -6179,7 +6179,7 @@ theorem RD.vatWishLoadedAt6557
     raw dup5 (by native_decide) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem usr ⟨1⟩ mem)
+          (KEC ((twoWordHashMem usr ⟨1⟩ mem)
             |>.readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ usr :=
     twoWordHashMem_solcMappingSlot_of_ge64 ⟨1⟩ usr hmem64
@@ -6224,7 +6224,7 @@ theorem RD.vatWishLoadedAt6557
     raw dup3 (by native_decide) (by evm_ov)]
   have houter :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (hopeSourceWord I)
+          (KEC ((twoWordHashMem (hopeSourceWord I)
             (solcMappingSlot ⟨1⟩ usr)
             (twoWordHashMem usr ⟨1⟩ mem)).readWithPadding 0 64))) =
         slot := by
@@ -7593,7 +7593,7 @@ theorem RD.vatFrobGemSubSuccess
   have rd3980 := rd3979.dup4 (by native_decide) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (frobIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (frobIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     exact twoWordHashMem_solcMappingSlot_of_ge64 ⟨4⟩ (frobIWord I) hmem
   have rd3981 := rd3980.keccak256 0 gemBase (UInt256.ofNat 18) (by native_decide)
@@ -7633,7 +7633,7 @@ theorem RD.vatFrobGemSubSuccess
     · exact hmem
   have hgemSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (frobVMaskedWord I) gemBase
+          (KEC ((twoWordHashMem (frobVMaskedWord I) gemBase
             (twoWordHashMem (frobIWord I) ⟨4⟩ mem)).readWithPadding 0 64))) =
         gemSlot := by
     simpa [gemSlot, frobGemVSlot, gemBase] using
@@ -7713,7 +7713,7 @@ theorem RD.vatFrobGemSubRevert
   have rd3980 := rd3979.dup4 (by native_decide) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (frobIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (frobIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     exact twoWordHashMem_solcMappingSlot_of_ge64 ⟨4⟩ (frobIWord I) hmem
   have rd3981 := rd3980.keccak256 0 gemBase (UInt256.ofNat 18)
@@ -7753,7 +7753,7 @@ theorem RD.vatFrobGemSubRevert
     · exact hmem
   have hgemSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (frobVMaskedWord I) gemBase
+          (KEC ((twoWordHashMem (frobVMaskedWord I) gemBase
             (twoWordHashMem (frobIWord I) ⟨4⟩ mem)).readWithPadding 0 64))) =
         gemSlot := by
     simpa [gemSlot, frobGemVSlot, gemBase] using
@@ -7849,7 +7849,7 @@ theorem RD.vatFrobGemStoreDaiAddSuccess
   have rd4025 := rd4024.dup4 (by native_decide) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (frobIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (frobIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     exact twoWordHashMem_solcMappingSlot_of_ge64 ⟨4⟩ (frobIWord I) hmem
   have rd4026 := rd4025.keccak256 0 gemBase (UInt256.ofNat 18) (by native_decide)
@@ -7891,7 +7891,7 @@ theorem RD.vatFrobGemStoreDaiAddSuccess
     · exact hmem
   have hgemSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (frobVMaskedWord I) gemBase
+          (KEC ((twoWordHashMem (frobVMaskedWord I) gemBase
             (twoWordHashMem (frobIWord I) ⟨4⟩ mem)).readWithPadding 0 64))) =
         gemSlot := by
     simpa [gemSlot, frobGemVSlot, gemBase] using
@@ -7949,7 +7949,7 @@ theorem RD.vatFrobGemStoreDaiAddSuccess
     · exact hmemGemBase
   have hdaiSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (frobWMaskedWord I) ⟨5⟩
+          (KEC ((twoWordHashMem (frobWMaskedWord I) ⟨5⟩
             (twoWordHashMem (frobVMaskedWord I) gemBase
               (twoWordHashMem (frobIWord I) ⟨4⟩ mem))).readWithPadding 0 64))) =
         daiSlot := by
@@ -8044,7 +8044,7 @@ theorem RD.vatFrobGemStoreDaiAddRevert
   have rd4025 := rd4024.dup4 (by native_decide) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (frobIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (frobIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     exact twoWordHashMem_solcMappingSlot_of_ge64 ⟨4⟩ (frobIWord I) hmem
   have rd4026 := rd4025.keccak256 0 gemBase (UInt256.ofNat 18) (by native_decide)
@@ -8086,7 +8086,7 @@ theorem RD.vatFrobGemStoreDaiAddRevert
     · exact hmem
   have hgemSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (frobVMaskedWord I) gemBase
+          (KEC ((twoWordHashMem (frobVMaskedWord I) gemBase
             (twoWordHashMem (frobIWord I) ⟨4⟩ mem)).readWithPadding 0 64))) =
         gemSlot := by
     simpa [gemSlot, frobGemVSlot, gemBase] using
@@ -8144,7 +8144,7 @@ theorem RD.vatFrobGemStoreDaiAddRevert
     · exact hmemGemBase
   have hdaiSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (frobWMaskedWord I) ⟨5⟩
+          (KEC ((twoWordHashMem (frobWMaskedWord I) ⟨5⟩
             (twoWordHashMem (frobVMaskedWord I) gemBase
               (twoWordHashMem (frobIWord I) ⟨4⟩ mem))).readWithPadding 0 64))) =
         daiSlot := by
@@ -8236,7 +8236,7 @@ theorem RD.vatFrobDaiStoreSuccess
   have rd4097 := rd4096.dup4 (by native_decide) (by evm_ov)
   have hdaiSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (frobWMaskedWord I) ⟨5⟩ mem).readWithPadding
+          (KEC ((twoWordHashMem (frobWMaskedWord I) ⟨5⟩ mem).readWithPadding
             0 64))) =
         daiSlot := by
     simpa [daiSlot, frobDaiWSlot] using
@@ -8290,7 +8290,7 @@ theorem RD.vatFrobFinalUrnInkStoreSuccess
   have rd4112 := rd4111.dup4 (by native_decide) (by evm_ov)
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem (frobIWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem (frobIWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
         urnInner := by
     have hmem64 : 64 ≤ mem.size := by rw [hmemSize]; omega
     exact twoWordHashMem_solcMappingSlot_of_ge64 ⟨3⟩ (frobIWord I) hmem64
@@ -8341,7 +8341,7 @@ theorem RD.vatFrobFinalUrnInkStoreSuccess
   have rd4123 := rd4122.dup2 (by native_decide) (by evm_ov)
   have rd4124 := rd4123.dup2 (by native_decide) (by evm_ov)
   have hslot :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (memUrn.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (memUrn.readWithPadding 0 64))) =
         urnSlot := by
     have hmemInner : 64 ≤ (twoWordHashMem (frobIWord I) ⟨3⟩ mem).size := by
       rw [twoWordHashMem_size_of_ge64]
@@ -8479,7 +8479,7 @@ theorem RD.vatFrobFinalIlkArtStoreSuccess
   have rd4149 := rd4148.dup2 (by native_decide) (by evm_ov)
   have rd4150 := rd4149.swap1 (by native_decide) (by evm_ov)
   have hilkSlot :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (memIlk.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (memIlk.readWithPadding 0 64))) =
         ilkSlot := by
     have hmem64 : 64 ≤ mem.size := by rw [hmemSize]; omega
     simpa [memIlk, ilkSlot, frobIlkArtSlot, frobIlkBase] using

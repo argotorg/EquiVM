@@ -42,12 +42,12 @@ abbrev fessSelectorShifted : UInt256 :=
   UInt256.shiftLeft (UInt256.land ⟨1769929592⟩ ⟨4294967295⟩) ⟨224⟩
 
 /-- Memory after the selector `MSTORE` at the free pointer `p` (`mem[p..p+32) := sel<<224`). -/
-noncomputable def fessSelectorMem (p : UInt256) (mem : ByteArray) : ByteArray :=
+def fessSelectorMem (p : UInt256) (mem : ByteArray) : ByteArray :=
   fessSelectorShifted.toByteArray.write 0 mem p.toNat 32
 
 /-- Memory after the argument `MSTORE` at `p+4` (`mem[p+4..p+36) := arg`) — the full `fess`
     calldata buffer, whose `[p, p+36)` window is `selector ++ arg`. -/
-noncomputable def fessCalldataMem (p arg : UInt256) (mem : ByteArray) : ByteArray :=
+def fessCalldataMem (p arg : UInt256) (mem : ByteArray) : ByteArray :=
   arg.toByteArray.write 0 (fessSelectorMem p mem) (p.toNat + 4) 32
 
 theorem fessSelectorShifted_size : fessSelectorShifted.toByteArray.size = 32 :=

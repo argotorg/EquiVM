@@ -27,21 +27,21 @@ abbrev dripThisWord (I : ExecutionEnv) : UInt256 := UInt256.ofNat I.codeOwner.va
 
 /-! ## Calldata memory (four 32-byte writes at `0x80`, `0x84`, `0xa4`, `0xc4`) -/
 
-noncomputable def potSuckSelectorMem (mem : ByteArray) : ByteArray :=
+def potSuckSelectorMem (mem : ByteArray) : ByteArray :=
   potSuckSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def potSuckVowMem (σ : AccountMap) (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def potSuckVowMem (σ : AccountMap) (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (dripVowTargetWord σ I).toByteArray.write 0 (potSuckSelectorMem mem) 132 32
 
-noncomputable def potSuckThisMem (σ : AccountMap) (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def potSuckThisMem (σ : AccountMap) (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (dripThisWord I).toByteArray.write 0 (potSuckVowMem σ I mem) 164 32
 
-noncomputable def potSuckCalldataMem (σ : AccountMap) (I : ExecutionEnv) (rad : UInt256)
+def potSuckCalldataMem (σ : AccountMap) (I : ExecutionEnv) (rad : UInt256)
     (mem : ByteArray) : ByteArray :=
   rad.toByteArray.write 0 (potSuckThisMem σ I mem) 196 32
 
 /-- Return memory: solc writes the return word `tmp` at `0x80` before `RETURN`. -/
-noncomputable def potSuckReturnMem (mem : ByteArray) (tmp : UInt256) : ByteArray :=
+def potSuckReturnMem (mem : ByteArray) (tmp : UInt256) : ByteArray :=
   (UInt256.toByteArray tmp).write 0 mem 128 32
 
 /-! ## Canonicality of the two address arguments -/

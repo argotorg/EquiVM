@@ -1,4 +1,4 @@
-import Examples.TinyImmutable.Trusted
+import Examples.TinyImmutable.Selectors
 import Reasoning.Dispatch
 import Reasoning.Initcode
 import Reasoning.MemCascade
@@ -34,7 +34,7 @@ def runtimeWrites (v : TinyImmutables) : List (Nat × UInt256) :=
     (72, EVM.Word.ofNat (↑v.owner : Nat)),
     (245, EVM.Word.ofNat (↑v.owner : Nat)) ]
 
-noncomputable def patchedRuntime (v : TinyImmutables) : ByteArray :=
+def patchedRuntime (v : TinyImmutables) : ByteArray :=
   writeCascade tinyImmutableBytecode (runtimeWrites v)
 
 abbrev tinyFirstArmPc : UInt256 := ⟨30⟩

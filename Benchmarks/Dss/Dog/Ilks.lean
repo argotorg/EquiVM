@@ -191,7 +191,7 @@ theorem dogIlksReturnEncoding (clip chop hole dirt : UInt256) :
   apply ByteArray.ext
   simp [ByteArray.data_append]
 
-noncomputable abbrev dogIlksReturnMem
+abbrev dogIlksReturnMem
     (mem : ByteArray) (clip chop hole dirt : UInt256) : ByteArray :=
   writeCascade mem
     [(128, UInt256.land clip solcAddrMask), (160, chop), (192, hole), (224, dirt)]

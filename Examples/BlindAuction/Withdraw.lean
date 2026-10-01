@@ -38,22 +38,22 @@ def withdrawAmountStore (amount : UInt256) : Store :=
 def withdrawCallStore (amount : UInt256) (success : Bool) (out : ByteArray) : Store :=
   ((withdrawAmountStore amount).insert "success" (.bool success)).insert "_data" (.bytes out)
 
-noncomputable def withdrawBaseSlotMem : ByteArray :=
+def withdrawBaseSlotMem : ByteArray :=
   (UInt256.toByteArray (⟨7⟩ : UInt256)).write 0 solcFreePtrMem 32 32
 
-noncomputable def withdrawHashMem (I : ExecutionEnv) : ByteArray :=
+def withdrawHashMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (withdrawSourceWord I)).write 0 withdrawBaseSlotMem 0 32
 
-noncomputable def withdrawKeyMem (I : ExecutionEnv) : ByteArray :=
+def withdrawKeyMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (withdrawSourceWord I)).write 0 solcFreePtrMem 0 32
 
-noncomputable def withdrawLoadHashMem (I : ExecutionEnv) : ByteArray :=
+def withdrawLoadHashMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨7⟩ : UInt256)).write 0 (withdrawKeyMem I) 32 32
 
-noncomputable def withdrawRehashKeyMem (I : ExecutionEnv) : ByteArray :=
+def withdrawRehashKeyMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (withdrawSourceWord I)).write 0 (withdrawLoadHashMem I) 0 32
 
-noncomputable def withdrawRehashMem (I : ExecutionEnv) : ByteArray :=
+def withdrawRehashMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨7⟩ : UInt256)).write 0 (withdrawRehashKeyMem I) 32 32
 
 theorem withdrawAmountSlot_spec (I : ExecutionEnv) :
@@ -319,21 +319,21 @@ theorem withdrawHashMem_read0_64 (I : ExecutionEnv) :
 
 theorem withdrawMappingKeccak (I : ExecutionEnv) :
     UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC ((withdrawHashMem I).readWithPadding 0 64)))
+        (fromByteArrayBigEndian (KEC ((withdrawHashMem I).readWithPadding 0 64)))
       = withdrawAmountSlot I := by
   rw [withdrawHashMem_read0_64, withdrawAmountSlot_spec]
   exact mappingSlot_single (withdrawSourceWord I) ⟨7⟩
 
 theorem withdrawLoadMappingKeccak (I : ExecutionEnv) :
     UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC ((withdrawLoadHashMem I).readWithPadding 0 64)))
+        (fromByteArrayBigEndian (KEC ((withdrawLoadHashMem I).readWithPadding 0 64)))
       = withdrawAmountSlot I := by
   rw [withdrawLoadHashMem_read0_64, withdrawAmountSlot_spec]
   exact mappingSlot_single (withdrawSourceWord I) ⟨7⟩
 
 theorem withdrawRehashMappingKeccak (I : ExecutionEnv) :
     UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC ((withdrawRehashMem I).readWithPadding 0 64)))
+        (fromByteArrayBigEndian (KEC ((withdrawRehashMem I).readWithPadding 0 64)))
       = withdrawAmountSlot I := by
   rw [withdrawRehashMem_read0_64, withdrawAmountSlot_spec]
   exact mappingSlot_single (withdrawSourceWord I) ⟨7⟩

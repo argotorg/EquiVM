@@ -6,9 +6,9 @@ set_option maxRecDepth 2000000
 
 abbrev swapCallbackPaddedLen (dataLen : UInt256) : UInt256 :=
   UInt256.land (dataLen + ⟨31⟩) (UInt256.lnot ⟨31⟩)
-noncomputable def swapCallbackCopyMem (calldata mem : ByteArray) (ptr dataPtr dataLen : UInt256) : ByteArray :=
+def swapCallbackCopyMem (calldata mem : ByteArray) (ptr dataPtr dataLen : UInt256) : ByteArray :=
   calldata.write dataPtr.toNat mem (ptr + ⟨164⟩).toNat dataLen.toNat
-noncomputable def swapCallbackPaddedMem (calldata mem : ByteArray) (ptr dataPtr dataLen : UInt256) : ByteArray :=
+def swapCallbackPaddedMem (calldata mem : ByteArray) (ptr dataPtr dataLen : UInt256) : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0 (swapCallbackCopyMem calldata mem ptr dataPtr dataLen)
     ((ptr + ⟨164⟩) + dataLen).toNat 32
 abbrev swapCallbackCopyWords (aw ptr dataLen : UInt256) : UInt256 :=

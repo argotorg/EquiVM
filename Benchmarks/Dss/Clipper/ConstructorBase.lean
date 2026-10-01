@@ -23,7 +23,7 @@ def clipperCtorArgsTail (vat spotter dog : AccountAddress) (ilk : List UInt8) : 
   (EVM.Word.toBytesBE (EVM.word spotter.val)).toByteArray ++
   (EVM.Word.toBytesBE (EVM.word dog.val)).toByteArray ++ ilk.toByteArray
 
-noncomputable def clipperCtorCode (vat spotter dog : AccountAddress)
+def clipperCtorCode (vat spotter dog : AccountAddress)
     (ilk : List UInt8) : ByteArray :=
   clipperCreationBytecode ++ clipperCtorArgsTail vat spotter dog ilk
 
@@ -198,14 +198,14 @@ theorem clipperCtorCode_runtime_window (vat spotter dog : AccountAddress) (ilk :
     347 (347 + 9360) (by rw [clipperCreationBytecode_size])]
   exact clipperCreationBytecode_runtime_window
 
-noncomputable def clipperCtorFreePtrMem : ByteArray :=
+def clipperCtorFreePtrMem : ByteArray :=
   writeWord ByteArray.empty 64 (⟨192⟩ : UInt256)
 
-noncomputable def clipperCtorArgMem (vat spotter dog : AccountAddress)
+def clipperCtorArgMem (vat spotter dog : AccountAddress)
     (ilk : List UInt8) : ByteArray :=
   (clipperCtorCode vat spotter dog ilk).write 9707 clipperCtorFreePtrMem 192 128
 
-noncomputable def clipperCtorArgFreeMem (vat spotter dog : AccountAddress)
+def clipperCtorArgFreeMem (vat spotter dog : AccountAddress)
     (ilk : List UInt8) : ByteArray :=
   writeWord (clipperCtorArgMem vat spotter dog ilk) 64 (⟨320⟩ : UInt256)
 
@@ -213,7 +213,7 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray)
     (srcAddr destAddr len : ℕ) (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
     (hbase : base.size ≤ destAddr) :
     src.write srcAddr base destAddr len =
-      base ++ ffi.ByteArray.zeroes (destAddr - base.size) ++
+      base ++ ByteArray.zeroes (destAddr - base.size) ++
         src.extract srcAddr (srcAddr + len) := by
   have hsrcNonempty : ¬ srcAddr ≥ src.size := by omega
   have hcopy : min len (src.size - srcAddr) = len := by omega
@@ -223,22 +223,22 @@ private theorem byteArray_write_from_ge_eq (src base : ByteArray)
   rw [if_neg hlen, if_neg hsrcNonempty]
   simp only [hcopy, htail, ByteArray.data_copySlice, ByteArray.data_append,
     ByteArray.data_extract]
-  have hz : (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
+  have hz : (ByteArray.zeroes (destAddr - base.size)).data.size =
       destAddr - base.size := by
-    rw [show (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
-      (ffi.ByteArray.zeroes (destAddr - base.size)).size from rfl, ByteArray_zeroes_size]
+    rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
+      (ByteArray.zeroes (destAddr - base.size)).size from rfl, ByteArray_zeroes_size]
   have hDsz :
-      (base.data ++ (ffi.ByteArray.zeroes (destAddr - base.size)).data).size = destAddr := by
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size = destAddr := by
     rw [Array.size_append, hz, show base.data.size = base.size from rfl]
     omega
-  rw [show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
     rw [zeroes_zero (n := 0) (by rfl)]; rfl]
   simp only [Array.append_empty, Nat.add_zero]
   rw [show min len (src.data.size - srcAddr) = len by
     have : src.data.size = src.size := rfl
     omega]
   rw [Array.extract_eq_self_of_le (by rw [hDsz])]
-  rw [show (base.data ++ (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract
+  rw [show (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).extract
       (destAddr + len) = (#[] : Array UInt8) from by
     apply Array.extract_eq_empty_of_le
     rw [hDsz]
@@ -269,7 +269,7 @@ theorem clipperCtorFreePtrMem_mload64 :
 theorem clipperCtorArgMem_eq (vat spotter dog : AccountAddress) (ilk : List UInt8)
     (hilk : ilk.length = 32) :
     clipperCtorArgMem vat spotter dog ilk =
-      clipperCtorFreePtrMem ++ ffi.ByteArray.zeroes 96 ++
+      clipperCtorFreePtrMem ++ ByteArray.zeroes 96 ++
         clipperCtorArgsTail vat spotter dog ilk := by
   rw [clipperCtorArgMem, byteArray_write_from_ge_eq]
   · unfold clipperCtorCode
@@ -309,7 +309,7 @@ private theorem clipperCtorArgMem_readWord
     (clipperCtorArgMem vat spotter dog ilk).readWithPadding (192 + off) 32 =
       UInt256.toByteArray w := by
   rw [clipperCtorArgMem_eq _ _ _ _ hilk]
-  let pre := clipperCtorFreePtrMem ++ ffi.ByteArray.zeroes 96
+  let pre := clipperCtorFreePtrMem ++ ByteArray.zeroes 96
   have hpre : pre.size = 192 := by
     simp [pre, ByteArray.size_append, clipperCtorFreePtrMem_size, ByteArray_zeroes_size]
   change (pre ++ clipperCtorArgsTail vat spotter dog ilk).readWithPadding
@@ -531,12 +531,12 @@ theorem clipperCtorAddressHighShiftDecode (a : AccountAddress) :
   rw [Nat.shiftRight_eq_div_pow, hshift, Nat.mul_comm]
   exact Nat.mul_div_right (EVM.word a.val).toNat (by norm_num : 0 < 2 ^ 96)
 
-noncomputable def clipperCtorVatMem (vat spotter dog : AccountAddress)
+def clipperCtorVatMem (vat spotter dog : AccountAddress)
     (ilk : List UInt8) : ByteArray :=
   writeWord (clipperCtorArgFreeMem vat spotter dog ilk) 160
     (UInt256.shiftLeft (EVM.word vat.val) ⟨96⟩)
 
-noncomputable def clipperCtorIlkMem (vat spotter dog : AccountAddress)
+def clipperCtorIlkMem (vat spotter dog : AccountAddress)
     (ilk : List UInt8) : ByteArray :=
   writeWord (clipperCtorVatMem vat spotter dog ilk) 128 (ABI.bytesToWord ilk)
 
@@ -673,7 +673,7 @@ theorem clipperCtorIlkMem_mload160_shr96 (vat spotter dog : AccountAddress)
 abbrev clipperCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
   solcMappingSlot ⟨0⟩ (solcSourceWord I)
 
-noncomputable def clipperCtorWardsHashMem (I : ExecutionEnv)
+def clipperCtorWardsHashMem (I : ExecutionEnv)
     (vat spotter dog : AccountAddress) (ilk : List UInt8) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ (clipperCtorIlkMem vat spotter dog ilk)
 
@@ -737,7 +737,7 @@ private theorem twoWordHashMem_read0_64_320 {mem : ByteArray} (key slot : UInt25
 theorem clipperCtorWardsHashSlot (I : ExecutionEnv)
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) :
     UInt256.ofNat (fromByteArrayBigEndian
-      (ffi.KEC ((clipperCtorWardsHashMem I vat spotter dog ilk).readWithPadding 0 64))) =
+      (KEC ((clipperCtorWardsHashMem I vat spotter dog ilk).readWithPadding 0 64))) =
       clipperCtorCallerWardsSlot I := by
   unfold clipperCtorWardsHashMem clipperCtorCallerWardsSlot solcMappingSlot
   rw [twoWordHashMem_read0_64_320]
@@ -870,7 +870,7 @@ def clipperCtorRuntimeWrites (vat : AccountAddress) (ilk : List UInt8) :
     (5046, ABI.bytesToWord ilk), (6800, ABI.bytesToWord ilk),
     (8747, ABI.bytesToWord ilk) ]
 
-noncomputable def clipperCtorPatchedRuntime (vat : AccountAddress)
+def clipperCtorPatchedRuntime (vat : AccountAddress)
     (ilk : List UInt8) : ByteArray :=
   writeCascade clipperBytecode (clipperCtorRuntimeWrites vat ilk)
 

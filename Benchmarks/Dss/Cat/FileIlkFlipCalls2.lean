@@ -14,16 +14,16 @@ namespace Benchmarks.Dss.Cat
 the concrete `fifNopeCdMem` by `rfl`, so the extract tactics never whnf the 96-byte literal. -/
 
 /-- `nope` selector `MSTORE` at 128 over an abstract base. -/
-noncomputable def fifSelMemG (base : ByteArray) : ByteArray :=
+def fifSelMemG (base : ByteArray) : ByteArray :=
   fifNopeSelShifted.toByteArray.write 0 base 128 32
 
 /-- `nope` calldata (selector + arg) over an abstract base. -/
-noncomputable def fifCdMemG (base : ByteArray) (arg : UInt256) : ByteArray :=
+def fifCdMemG (base : ByteArray) (arg : UInt256) : ByteArray :=
   arg.toByteArray.write 0 (fifSelMemG base) 132 32
 
 theorem fifSelMemG_gapeq (base : ByteArray) (h : base.size = 96) :
     fifSelMemG base =
-      base ++ ffi.ByteArray.zeroes 32 ++ fifNopeSelShifted.toByteArray := by
+      base ++ ByteArray.zeroes 32 ++ fifNopeSelShifted.toByteArray := by
   unfold fifSelMemG
   rw [toByteArray_write_eq fifNopeSelShifted base 128 (by rw [h]; omega)
     (by rw [h]; exact lt_usize 32 (by norm_num)), h]
@@ -35,7 +35,7 @@ theorem fifSelMemG_size (base : ByteArray) (h : base.size = 96) : (fifSelMemG ba
 theorem fifSelMemG_selector (base : ByteArray) (h : base.size = 96) :
     (fifSelMemG base).extract 128 132 = vatNopeSelector := by
   rw [fifSelMemG_gapeq base h]
-  have hABsz : (base ++ ffi.ByteArray.zeroes 32).size = 128 := by
+  have hABsz : (base ++ ByteArray.zeroes 32).size = 128 := by
     rw [ByteArray.size_append, h, fifZeroes32_size]
   rw [extract_append_right_window _ _ 128 132 (by rw [hABsz]), hABsz,
     show (128 : ℕ) - 128 = 0 from rfl, show (132 : ℕ) - 128 = 4 from rfl, toByteArray_eq_toBytesBE]
@@ -289,7 +289,7 @@ theorem RD.catFileIlkFlipStore {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k 
   have rd3596 := rd3595.dup3 (by native_decide) (by evm_ov)
   have hkec :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem (fileIlkFlipIlkWord ee) ⟨1⟩ mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem (fileIlkFlipIlkWord ee) ⟨1⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (fileIlkFlipIlkWord ee) := by
     rw [fifTwoWordRead0_64 (fileIlkFlipIlkWord ee) ⟨1⟩ (by rw [hmem]; omega)]
     unfold solcMappingSlot
@@ -330,10 +330,10 @@ theorem RD.catFileIlkFlipStore {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k 
 /-- `0x28ec8bf1 << 226` — the `hope` selector `0xa3b22fc4` in the top 4 bytes. -/
 abbrev fifHopeSelShifted : UInt256 := UInt256.shiftLeft ⟨686590961⟩ ⟨226⟩
 
-noncomputable def fifHopeSelMem (base : ByteArray) : ByteArray :=
+def fifHopeSelMem (base : ByteArray) : ByteArray :=
   fifHopeSelShifted.toByteArray.write 0 base 128 32
 
-noncomputable def fifHopeCdMem (base : ByteArray) (arg : UInt256) : ByteArray :=
+def fifHopeCdMem (base : ByteArray) (arg : UInt256) : ByteArray :=
   arg.toByteArray.write 0 (fifHopeSelMem base) 132 32
 
 theorem fifHopeSelMem_size {base : ByteArray} (h : base.size = 164) :

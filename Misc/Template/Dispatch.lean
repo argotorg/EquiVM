@@ -1,4 +1,4 @@
-import Benchmarks.Xxx.Trusted
+import Benchmarks.Xxx.Common
 
 /-!
 # Xxx dispatcher walk (TEMPLATE)

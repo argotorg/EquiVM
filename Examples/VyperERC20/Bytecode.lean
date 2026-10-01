@@ -1,4 +1,5 @@
 import Examples.VyperERC20.Spec
+import Examples.ERC20.Bytecode
 import Solm.Semantics
 import Ethereum.Semantics
 import Reasoning.JumpDest
@@ -68,26 +69,26 @@ without appended constructor ABI arguments.
 def vyperERC20Initcode : ByteArray :=
   vyperERC20CtorPrefix ++ vyperERC20Bytecode
 
-axiom vyperERC20ApproveSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr ERC20.approveTransition))).extract 0 4
-      = ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩
+theorem vyperERC20ApproveSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr ERC20.approveTransition))).extract 0 4
+      = ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ := erc20ApproveSelectorBytes
 
-axiom vyperERC20TotalSupplySelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr ERC20.totalSupplyTransition))).extract 0 4
-      = ⟨#[0x18, 0x16, 0x0d, 0xdd]⟩
+theorem vyperERC20TotalSupplySelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr ERC20.totalSupplyTransition))).extract 0 4
+      = ⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ := erc20TotalSupplySelectorBytes
 
-axiom vyperERC20TransferFromSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr ERC20.transferFromTransition))).extract 0 4
-      = ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩
+theorem vyperERC20TransferFromSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr ERC20.transferFromTransition))).extract 0 4
+      = ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ := erc20TransferFromSelectorBytes
 
-axiom vyperERC20BalanceOfSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr ERC20.balanceOfTransition))).extract 0 4
-      = ⟨#[0x70, 0xa0, 0x82, 0x31]⟩
+theorem vyperERC20BalanceOfSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr ERC20.balanceOfTransition))).extract 0 4
+      = ⟨#[0x70, 0xa0, 0x82, 0x31]⟩ := erc20BalanceOfSelectorBytes
 
-axiom vyperERC20TransferSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr ERC20.transferTransition))).extract 0 4
-      = ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩
+theorem vyperERC20TransferSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr ERC20.transferTransition))).extract 0 4
+      = ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ := erc20TransferSelectorBytes
 
-axiom vyperERC20AllowanceSelectorBytes :
-    (ffi.KEC (String.toByteArray (Solm.transitionSigStr ERC20.allowanceTransition))).extract 0 4
-      = ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩
+theorem vyperERC20AllowanceSelectorBytes :
+    (KEC (String.toByteArray (Solm.transitionSigStr ERC20.allowanceTransition))).extract 0 4
+      = ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ := erc20AllowanceSelectorBytes

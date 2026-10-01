@@ -395,13 +395,13 @@ theorem approveMasked_eq_zero_of_zero {w : UInt256} (hzero : w = ⟨0⟩) :
   rw [hzero]
   decide
 
-noncomputable def approveWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+def approveWordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   wordAt0Mem word mem
 
-noncomputable def approveWordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
+def approveWordAt32Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   wordAt32Mem word mem
 
-noncomputable def approveTwoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
+def approveTwoWordHashMem (key slot : UInt256) (mem : ByteArray) : ByteArray :=
   twoWordHashMem key slot mem
 
 theorem approveWordAt0Mem_size {mem : ByteArray} (word : UInt256) (hmem : mem.size = 96) :
@@ -442,28 +442,28 @@ theorem approveTwoWordHashMem_read0_64 {mem : ByteArray} (key slot : UInt256)
       UInt256.toByteArray key ++ UInt256.toByteArray slot := by
   exact twoWordHashMem_read0_64 key slot hmem
 
-noncomputable def approveOwnerHashMem (owner : UInt256) : ByteArray :=
+def approveOwnerHashMem (owner : UInt256) : ByteArray :=
   approveTwoWordHashMem owner ⟨2⟩ solcFreePtrMem
 
-noncomputable def approveOwnerSlot (owner : UInt256) : UInt256 :=
+def approveOwnerSlot (owner : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((approveOwnerHashMem owner).readWithPadding 0 64)))
+    (KEC ((approveOwnerHashMem owner).readWithPadding 0 64)))
 
-noncomputable def approveSpenderHashMem (owner spender : UInt256) : ByteArray :=
+def approveSpenderHashMem (owner spender : UInt256) : ByteArray :=
   approveTwoWordHashMem spender (approveOwnerSlot owner) (approveOwnerHashMem owner)
 
-noncomputable def approveSpenderSlot (owner spender : UInt256) : UInt256 :=
+def approveSpenderSlot (owner spender : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((approveSpenderHashMem owner spender).readWithPadding 0 64)))
+    (KEC ((approveSpenderHashMem owner spender).readWithPadding 0 64)))
 
-noncomputable def approveIdHashMem (owner spender id : UInt256) : ByteArray :=
+def approveIdHashMem (owner spender id : UInt256) : ByteArray :=
   approveTwoWordHashMem id (approveSpenderSlot owner spender)
     (approveSpenderHashMem owner spender)
 
-noncomputable def approveEventMem (owner spender id amount : UInt256) : ByteArray :=
+def approveEventMem (owner spender id amount : UInt256) : ByteArray :=
   (UInt256.toByteArray amount).write 0 (approveIdHashMem owner spender id) 128 32
 
-noncomputable def approveReturnMem (owner spender id amount : UInt256) : ByteArray :=
+def approveReturnMem (owner spender id amount : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0
     (approveEventMem owner spender id amount) 128 32
 
@@ -636,13 +636,13 @@ theorem approveSpenderKeccakSlot (I : ExecutionEnv)
   rw [approveSpenderHashMem_read0_64, approveOwnerKeccakSlot I]
   rw [hownerKey, hspenderKey]
   exact mappingSlot_single (approveSpenderWord I)
-    (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (approveOwnerWord I) ++
+    (uInt256OfByteArray (KEC (UInt256.toByteArray (approveOwnerWord I) ++
       UInt256.toByteArray (⟨2⟩ : UInt256))))
 
 theorem approveFinalKeccakSlot (I : ExecutionEnv)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((approveIdHashMem (approveOwnerWord I) (approveSpenderWord I)
+        (KEC ((approveIdHashMem (approveOwnerWord I) (approveSpenderWord I)
           (approveIdWord I)).readWithPadding 0 64)))
       = approveSlotI I := by
   unfold approveSlotI allowanceSlot mapSlot
@@ -658,9 +658,9 @@ theorem approveFinalKeccakSlot (I : ExecutionEnv)
   rw [hownerKey, hspenderKey]
   rw [keyValueToWord_uint256 (approveIdWord I)]
   exact mappingSlot_single (approveIdWord I)
-    (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (approveSpenderWord I) ++
+    (uInt256OfByteArray (KEC (UInt256.toByteArray (approveSpenderWord I) ++
       UInt256.toByteArray
-        (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (approveOwnerWord I) ++
+        (uInt256OfByteArray (KEC (UInt256.toByteArray (approveOwnerWord I) ++
           UInt256.toByteArray (⟨2⟩ : UInt256)))))))
 
 /-! ## EVM ABI decode traces for the approve body wrapper -/
@@ -767,7 +767,7 @@ def approveInvalidApproverSelectorWord : UInt256 :=
 def approveInvalidSpenderSelectorWord : UInt256 :=
   UInt256.shiftLeft ⟨0x6f65f465⟩ ⟨224⟩
 
-noncomputable def approveErrorMem (selector arg : UInt256) : ByteArray :=
+def approveErrorMem (selector arg : UInt256) : ByteArray :=
   (UInt256.toByteArray arg).write 0 (solcReturnMem selector) 132 32
 
 theorem approveErrorMem_size (selector arg : UInt256) :

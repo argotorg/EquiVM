@@ -31,7 +31,7 @@ theorem erc20X_transferFromAllowanceStoreInnerSlot {cA gh bl σ σ₀ A I} {g : 
   have hslot :
       UInt256.ofNat
           (fromByteArrayBigEndian
-            (ffi.KEC ((transferFromAllowanceInnerScratchMem
+            (KEC ((transferFromAllowanceInnerScratchMem
               (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
               (transferFromCurrentAllowanceRaw σ I)).readWithPadding 0 64))) =
         transferFromAllowanceInnerSlotWord (transferFromFromWord I) (transferFromToWord I) := by

@@ -1303,7 +1303,7 @@ theorem flopperTickX_toEndLtGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id solcFreePtrMem
   have rd4307 := rd4306pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1459,7 +1459,7 @@ theorem flopperTickX_toTicZeroGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memTic.readWithPadding 0 64))) = base := by
+        (KEC (memTic.readWithPadding 0 64))) = base := by
     simpa [base, memTic, memEnd, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memEnd
   have rd4415 := rd4414pre.keccak256 0 base (UInt256.ofNat 3)

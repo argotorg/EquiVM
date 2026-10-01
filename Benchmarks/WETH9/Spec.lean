@@ -14,7 +14,7 @@ The named ABI surface is explicit, and the payable Solidity fallback is modeled 
 bytecode and read by the deployed runtime getters.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace Benchmarks.WETH9
 
@@ -58,7 +58,7 @@ def storageDecls : List StorageDecl :=
     { name := "allowance", ty := .mapping .address (.mapping .address uint256St) } ]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def balanceOfSlot (owner : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord owner) ⟨3⟩

@@ -1,4 +1,4 @@
-import Benchmarks.WETH9.Trusted
+import Benchmarks.WETH9.Selectors
 
 /-!
 # WETH9 runtime dispatcher reach lemmas

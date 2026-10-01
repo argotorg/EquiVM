@@ -179,13 +179,13 @@ theorem blindAuctionInitcode_runtime_window :
     blindAuctionCtorPrefix_size.symm
     (by rw [blindAuctionCtorPrefix_size, blindAuctionBytecode_size])
 
-noncomputable def blindAuctionCtorArgTail (biddingTime revealTime : UInt256)
+def blindAuctionCtorArgTail (biddingTime revealTime : UInt256)
     (beneficiaryAddress : AccountAddress) : ByteArray :=
   (EVM.Word.toBytesBE biddingTime).toByteArray
     ++ (EVM.Word.toBytesBE revealTime).toByteArray
     ++ (EVM.Word.toBytesBE (EVM.word beneficiaryAddress)).toByteArray
 
-noncomputable def blindAuctionCtorCode (biddingTime revealTime : UInt256)
+def blindAuctionCtorCode (biddingTime revealTime : UInt256)
     (beneficiaryAddress : AccountAddress) : ByteArray :=
   blindAuctionInitcode ++ blindAuctionCtorArgTail biddingTime revealTime beneficiaryAddress
 
@@ -330,16 +330,16 @@ theorem blindAuctionDeployment_shape {args : List Value} {deployedInitcode : Byt
                     rw [if_neg hbid] at h
                     simp at h
 
-noncomputable def blindAuctionBeneficiaryMem (biddingTime revealTime : UInt256)
+def blindAuctionBeneficiaryMem (biddingTime revealTime : UInt256)
     (beneficiaryAddress : AccountAddress) : ByteArray :=
   (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress).write 2347 ByteArray.empty 0 32
 
-noncomputable def blindAuctionBiddingMem (biddingTime revealTime : UInt256)
+def blindAuctionBiddingMem (biddingTime revealTime : UInt256)
     (beneficiaryAddress : AccountAddress) : ByteArray :=
   (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress).write 2283
     (blindAuctionBeneficiaryMem biddingTime revealTime beneficiaryAddress) 0 32
 
-noncomputable def blindAuctionRevealMem (biddingTime revealTime : UInt256)
+def blindAuctionRevealMem (biddingTime revealTime : UInt256)
     (beneficiaryAddress : AccountAddress) : ByteArray :=
   (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress).write 2315
     (blindAuctionBiddingMem biddingTime revealTime beneficiaryAddress) 0 32
@@ -550,7 +550,7 @@ theorem blindAuctionCtorCheckedAddNoOverflowLt (base addend : UInt256)
     UInt256.lt (addend + base) base = ⟨0⟩ :=
   constructorCheckedAddNoOverflowLt base addend hno
 
-noncomputable def blindAuctionReturnMem (biddingTime revealTime : UInt256)
+def blindAuctionReturnMem (biddingTime revealTime : UInt256)
     (beneficiaryAddress : AccountAddress) : ByteArray :=
   (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress).write 146
     (blindAuctionRevealMem biddingTime revealTime beneficiaryAddress) 0 2137

@@ -18,7 +18,7 @@ set_option maxRecDepth 2000000
 def dogCtorArgsTail (vat : AccountAddress) : ByteArray :=
   (EVM.Word.toBytesBE (EVM.word vat.val)).toByteArray
 
-noncomputable def dogCtorCode (vat : AccountAddress) : ByteArray :=
+def dogCtorCode (vat : AccountAddress) : ByteArray :=
   dogCreationBytecode ++ dogCtorArgsTail vat
 
 theorem dogCtorDeployment_shape (v : DogImmutables) {args : List Value}
@@ -107,23 +107,23 @@ theorem dogCtorCode_runtime_window (vat : AccountAddress) :
     (by rw [dogCreationBytecode_size])]
   exact dogCreationBytecode_runtime_window
 
-noncomputable def dogCtorFreePtrMem : ByteArray :=
+def dogCtorFreePtrMem : ByteArray :=
   writeWord ByteArray.empty 64 (⟨160⟩ : UInt256)
 
-noncomputable def dogCtorArgMem (vat : AccountAddress) : ByteArray :=
-  dogCtorFreePtrMem ++ ffi.ByteArray.zeroes 64 ++ dogCtorArgsTail vat
+def dogCtorArgMem (vat : AccountAddress) : ByteArray :=
+  dogCtorFreePtrMem ++ ByteArray.zeroes 64 ++ dogCtorArgsTail vat
 
-noncomputable def dogCtorArgFreeMem (vat : AccountAddress) : ByteArray :=
+def dogCtorArgFreeMem (vat : AccountAddress) : ByteArray :=
   writeWord (dogCtorArgMem vat) 64 (⟨192⟩ : UInt256)
 
-noncomputable def dogCtorVatMem (vat : AccountAddress) : ByteArray :=
+def dogCtorVatMem (vat : AccountAddress) : ByteArray :=
   writeWord (dogCtorArgFreeMem vat) 128 (UInt256.shiftLeft (EVM.word vat.val) ⟨96⟩)
 
 def dogRuntimeWrites (vat : AccountAddress) : List (Nat × UInt256) :=
   [ (1405, EVM.word vat.val), (2890, EVM.word vat.val), (3170, EVM.word vat.val),
     (3965, EVM.word vat.val) ]
 
-noncomputable def dogCtorPatchedRuntime (vat : AccountAddress) : ByteArray :=
+def dogCtorPatchedRuntime (vat : AccountAddress) : ByteArray :=
   writeCascade dogBytecode (dogRuntimeWrites vat)
 
 theorem dogCtorFreePtrMem_size : dogCtorFreePtrMem.size = 96 := by
@@ -176,7 +176,7 @@ private theorem write_from_gap_eq (src base : ByteArray) (srcAddr destAddr len :
     (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) (hge : base.size ≤ destAddr)
     (_hgap : destAddr - base.size < USize.size) :
     src.write srcAddr base destAddr len =
-      base ++ ffi.ByteArray.zeroes (destAddr - base.size) ++
+      base ++ ByteArray.zeroes (destAddr - base.size) ++
         src.extract srcAddr (srcAddr + len) := by
   apply ByteArray.ext
   unfold ByteArray.write
@@ -185,18 +185,18 @@ private theorem write_from_gap_eq (src base : ByteArray) (srcAddr destAddr len :
   have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by omega
   simp only [hcopy, htail, ByteArray.data_copySlice, ByteArray.data_append,
     ByteArray.data_extract]
-  have hpz : (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
+  have hpz : (ByteArray.zeroes (destAddr - base.size)).data.size =
       destAddr - base.size := by
-    rw [show (ffi.ByteArray.zeroes (destAddr - base.size)).data.size =
-          (ffi.ByteArray.zeroes (destAddr - base.size)).size from rfl,
+    rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
+          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
       ByteArray_zeroes_size]
   have hDsz :
       (base.data ++
-        (ffi.ByteArray.zeroes (destAddr - base.size)).data).size =
+        (ByteArray.zeroes (destAddr - base.size)).data).size =
         destAddr := by
     rw [Array.size_append, hpz, show base.data.size = base.size from rfl]
     omega
-  rw [show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+  rw [show (ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
     rw [zeroes_zero (n := 0) (by rfl)]
     rfl]
   simp only [Array.append_empty, Nat.add_zero]
@@ -205,7 +205,7 @@ private theorem write_from_gap_eq (src base : ByteArray) (srcAddr destAddr len :
     omega]
   rw [Array.extract_eq_self_of_le (by rw [hDsz])]
   rw [show (base.data ++
-        (ffi.ByteArray.zeroes (destAddr - base.size)).data).extract
+        (ByteArray.zeroes (destAddr - base.size)).data).extract
           (destAddr + len) = (#[] : Array UInt8) from by
     apply Array.extract_eq_empty_of_le
     rw [hDsz]
@@ -237,7 +237,7 @@ theorem dogCtorArgMem_read160 (vat : AccountAddress) :
   rw [readWithPadding_eq_extract' _ 160 32 (by norm_num) (by norm_num)
     (by rw [dogCtorArgMem_size])]
   unfold dogCtorArgMem dogCtorArgsTail
-  set preBuf := dogCtorFreePtrMem ++ ffi.ByteArray.zeroes 64
+  set preBuf := dogCtorFreePtrMem ++ ByteArray.zeroes 64
   have hpreBuf : preBuf.size = 160 := by
     unfold preBuf
     rw [ByteArray.size_append, dogCtorFreePtrMem_size, ByteArray_zeroes_size]
@@ -386,7 +386,7 @@ theorem dogCtorVatMem_mload128_shr96 (vat : AccountAddress) :
 abbrev dogCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
   solcMappingSlot ⟨0⟩ (solcSourceWord I)
 
-noncomputable def dogCtorWardsHashMem (I : ExecutionEnv) (vat : AccountAddress) : ByteArray :=
+def dogCtorWardsHashMem (I : ExecutionEnv) (vat : AccountAddress) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ (dogCtorVatMem vat)
 
 private theorem wordAt0Mem_size_192 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 192) :
@@ -460,7 +460,7 @@ private theorem twoWordHashMem_read0_64_192 {mem : ByteArray} (key slot : UInt25
 
 theorem dogCtorWardsHashSlot (I : ExecutionEnv) (vat : AccountAddress) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((dogCtorWardsHashMem I vat).readWithPadding 0 64))) =
+        (KEC ((dogCtorWardsHashMem I vat).readWithPadding 0 64))) =
       dogCtorCallerWardsSlot I := by
   unfold dogCtorWardsHashMem dogCtorCallerWardsSlot solcMappingSlot
   rw [twoWordHashMem_read0_64_192]

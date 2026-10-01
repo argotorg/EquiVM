@@ -5,23 +5,23 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
-noncomputable def safeTransferDynamicMem0 (base : ByteArray) (ptr : UInt256) : ByteArray :=
+def safeTransferDynamicMem0 (base : ByteArray) (ptr : UInt256) : ByteArray :=
   (ptr + ⟨64⟩).toByteArray.write 0 base 64 32
 
-noncomputable def safeTransferDynamicMem1 (base : ByteArray) (ptr : UInt256) : ByteArray :=
+def safeTransferDynamicMem1 (base : ByteArray) (ptr : UInt256) : ByteArray :=
   (⟨25⟩ : UInt256).toByteArray.write 0 (safeTransferDynamicMem0 base ptr) ptr.toNat 32
 
-noncomputable def safeTransferDynamicMem2 (base : ByteArray) (ptr : UInt256) : ByteArray :=
+def safeTransferDynamicMem2 (base : ByteArray) (ptr : UInt256) : ByteArray :=
   skimSafeTransferSignatureWord.toByteArray.write 0 (safeTransferDynamicMem1 base ptr) (ptr + ⟨32⟩).toNat 32
 
 abbrev safeTransferDynamicWords2 (aw ptr : UInt256) : UInt256 :=
   memoryWordActiveWords (memoryWordActiveWords aw ptr) (ptr + ⟨32⟩)
 
-noncomputable def safeTransferDynamicMem3 (base : ByteArray) (ptr toWord : UInt256) : ByteArray :=
+def safeTransferDynamicMem3 (base : ByteArray) (ptr toWord : UInt256) : ByteArray :=
   (UInt256.land solcAddrMask toWord).toByteArray.write 0 (safeTransferDynamicMem2 base ptr)
     (ptr + ⟨100⟩).toNat 32
 
-noncomputable def safeTransferDynamicMem4 (base : ByteArray) (ptr toWord value : UInt256) : ByteArray :=
+def safeTransferDynamicMem4 (base : ByteArray) (ptr toWord value : UInt256) : ByteArray :=
   value.toByteArray.write 0 (safeTransferDynamicMem3 base ptr toWord) (ptr + ⟨132⟩).toNat 32
 
 abbrev safeTransferDynamicWords3 (aw ptr : UInt256) : UInt256 :=
@@ -193,10 +193,10 @@ theorem safeTransferDynamicMem4_mload64 {base : ByteArray} (aw ptr toWord value 
       (safeTransferDynamicMem4_read64 ptr toWord value hin hgap hptrLo (by omega))
   · exact UInt256_M_same_of_cover _ _ hbound h96
 
-noncomputable def safeTransferDynamicMem5 (base : ByteArray) (ptr toWord value : UInt256) : ByteArray :=
+def safeTransferDynamicMem5 (base : ByteArray) (ptr toWord value : UInt256) : ByteArray :=
   (⟨68⟩ : UInt256).toByteArray.write 0 (safeTransferDynamicMem4 base ptr toWord value) (ptr + ⟨64⟩).toNat 32
 
-noncomputable def safeTransferDynamicMem6 (base : ByteArray) (ptr toWord value : UInt256) : ByteArray :=
+def safeTransferDynamicMem6 (base : ByteArray) (ptr toWord value : UInt256) : ByteArray :=
   (ptr + ⟨164⟩).toByteArray.write 0 (safeTransferDynamicMem5 base ptr toWord value) 64 32
 
 theorem safeTransferDynamicMem5_size {base : ByteArray} (ptr toWord value : UInt256)
@@ -218,16 +218,16 @@ theorem safeTransferDynamicMem6_size {base : ByteArray} (ptr toWord value : UInt
     (ptr + ⟨164⟩) 64 _ (max base.size (ptr.toNat + 164)) hs5 (by rw [hs5]; omega) (by omega)
   exact h
 
-noncomputable def safeTransferDynamicWord96 (base : ByteArray) (ptr toWord value : UInt256) : UInt256 :=
+def safeTransferDynamicWord96 (base : ByteArray) (ptr toWord value : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
     ((safeTransferDynamicMem6 base ptr toWord value).readWithPadding (ptr + ⟨96⟩).toNat 32))
 
-noncomputable def safeTransferDynamicPatchedSelectorWord (base : ByteArray) (ptr toWord value : UInt256) : UInt256 :=
+def safeTransferDynamicPatchedSelectorWord (base : ByteArray) (ptr toWord value : UInt256) : UInt256 :=
   UInt256.lor (UInt256.shiftLeft transferSelectorWord ⟨224⟩)
     (UInt256.land skimSafeTransferSelectorPatchMask
       (safeTransferDynamicWord96 base ptr toWord value))
 
-noncomputable def safeTransferDynamicMem7 (base : ByteArray) (ptr toWord value : UInt256) : ByteArray :=
+def safeTransferDynamicMem7 (base : ByteArray) (ptr toWord value : UInt256) : ByteArray :=
   (safeTransferDynamicPatchedSelectorWord base ptr toWord value).toByteArray.write 0
     (safeTransferDynamicMem6 base ptr toWord value) (ptr + ⟨96⟩).toNat 32
 

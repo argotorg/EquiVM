@@ -251,7 +251,7 @@ theorem RD.erc20MappingHashSuffix {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
     (hbase : (UInt256.toByteArray baseSlot).write 0 memKey
         ((⟨32⟩ : UInt256) + ⟨0⟩).toNat 32 = memHash)
     (hslot : UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC (memHash.readWithPadding 0
+        (fromByteArrayBigEndian (Ethereum.KEC (memHash.readWithPadding 0
           ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + ⟨0⟩)).toNat))) = slot)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD erc20Bytecode ee g s0 (erc20MappingHashSuffixEndPc pc) (slot :: R)

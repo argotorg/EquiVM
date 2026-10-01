@@ -11,10 +11,10 @@ abbrev clipperSpotterParSelectorWord : UInt256 := ⟨1230844619⟩
 abbrev clipperSpotterParSelectorShifted : UInt256 :=
   UInt256.shiftLeft clipperSpotterParSelectorWord ⟨224⟩
 
-noncomputable def clipperSpotterParSelectorMem (mem : ByteArray) : ByteArray :=
+def clipperSpotterParSelectorMem (mem : ByteArray) : ByteArray :=
   clipperSpotterParSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def clipperSpotterParPostCallMem (mem out : ByteArray) : ByteArray :=
+def clipperSpotterParPostCallMem (mem out : ByteArray) : ByteArray :=
   out.write 0 mem 128
     (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat
 

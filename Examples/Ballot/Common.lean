@@ -111,10 +111,10 @@ theorem ballotSubRet32_toNat :
 def ballotPanicSelector : UInt256 :=
   UInt256.shiftLeft (⟨0x4e487b71⟩ : UInt256) ⟨224⟩
 
-noncomputable def ballotPanicMem0 (mem : ByteArray) : ByteArray :=
+def ballotPanicMem0 (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray ballotPanicSelector).write 0 mem 0 32
 
-noncomputable def ballotPanicMem (panicCode : UInt256) (mem : ByteArray) : ByteArray :=
+def ballotPanicMem (panicCode : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray panicCode).write 0 (ballotPanicMem0 mem) 4 32
 
 end Ballot

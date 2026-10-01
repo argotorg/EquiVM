@@ -151,23 +151,23 @@ def allowanceOwnerArgMem (owner : UInt256) : ByteArray :=
 def allowanceSpenderArgMem (owner spender : UInt256) : ByteArray :=
   (UInt256.toByteArray spender).write 0 (allowanceOwnerArgMem owner) 96 32
 
-noncomputable def allowanceInnerKeyMem (owner spender : UInt256) : ByteArray :=
+def allowanceInnerKeyMem (owner spender : UInt256) : ByteArray :=
   wordAt32Mem owner (allowanceSpenderArgMem owner spender)
 
-noncomputable def allowanceInnerHashMem (owner spender : UInt256) : ByteArray :=
+def allowanceInnerHashMem (owner spender : UInt256) : ByteArray :=
   wordAt0Mem ⟨1⟩ (allowanceInnerKeyMem owner spender)
 
-noncomputable def allowanceInnerSlotWord (owner spender : UInt256) : UInt256 :=
+def allowanceInnerSlotWord (owner spender : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((allowanceInnerHashMem owner spender).readWithPadding 0 64)))
+    (KEC ((allowanceInnerHashMem owner spender).readWithPadding 0 64)))
 
-noncomputable def allowanceOuterKeyMem (owner spender : UInt256) : ByteArray :=
+def allowanceOuterKeyMem (owner spender : UInt256) : ByteArray :=
   wordAt32Mem spender (allowanceInnerHashMem owner spender)
 
-noncomputable def allowanceOuterHashMem (owner spender : UInt256) : ByteArray :=
+def allowanceOuterHashMem (owner spender : UInt256) : ByteArray :=
   wordAt0Mem (allowanceInnerSlotWord owner spender) (allowanceOuterKeyMem owner spender)
 
-noncomputable def allowanceReturnMem (owner spender val : UInt256) : ByteArray :=
+def allowanceReturnMem (owner spender val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 (allowanceOuterHashMem owner spender) 128 32
 
 theorem allowanceOwnerArgMem_size (owner : UInt256) :
@@ -383,7 +383,7 @@ theorem allowanceOuterKeccakSlot (I : ExecutionEnv)
     (hcanonOwner : (allowanceOwnerWord I).toNat < EVM.addressModulus)
     (hcanonSpender : (allowanceSpenderWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((allowanceOuterHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
+        (KEC ((allowanceOuterHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
           |>.readWithPadding 0 64)))
       = allowanceSlot I := by
   rw [allowanceOuterHashMem_read0_64, allowanceInnerKeccakSlot I hcanonOwner]

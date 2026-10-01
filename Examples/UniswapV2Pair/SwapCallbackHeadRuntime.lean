@@ -6,27 +6,27 @@ namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
 abbrev swapCallbackSelectorWord : UInt256 := UInt256.shiftLeft ⟨282191964⟩ ⟨224⟩
-noncomputable def swapCallbackHeadMem0 (mem : ByteArray) (ptr _senderWord _amount0Out _amount1Out _dataLen : UInt256) : ByteArray :=
+def swapCallbackHeadMem0 (mem : ByteArray) (ptr _senderWord _amount0Out _amount1Out _dataLen : UInt256) : ByteArray :=
   (swapCallbackSelectorWord : UInt256).toByteArray.write 0 mem ptr.toNat 32
 abbrev swapCallbackHeadWords0 (aw ptr : UInt256) : UInt256 :=
   memoryWordActiveWords aw ptr
-noncomputable def swapCallbackHeadMem1 (mem : ByteArray) (ptr senderWord amount0Out amount1Out dataLen : UInt256) : ByteArray :=
+def swapCallbackHeadMem1 (mem : ByteArray) (ptr senderWord amount0Out amount1Out dataLen : UInt256) : ByteArray :=
   (senderWord : UInt256).toByteArray.write 0 (swapCallbackHeadMem0 mem ptr senderWord amount0Out amount1Out dataLen) (ptr + ⟨4⟩).toNat 32
 abbrev swapCallbackHeadWords1 (aw ptr : UInt256) : UInt256 :=
   memoryWordActiveWords (swapCallbackHeadWords0 aw ptr) (ptr + ⟨4⟩)
-noncomputable def swapCallbackHeadMem2 (mem : ByteArray) (ptr senderWord amount0Out amount1Out dataLen : UInt256) : ByteArray :=
+def swapCallbackHeadMem2 (mem : ByteArray) (ptr senderWord amount0Out amount1Out dataLen : UInt256) : ByteArray :=
   (amount0Out : UInt256).toByteArray.write 0 (swapCallbackHeadMem1 mem ptr senderWord amount0Out amount1Out dataLen) (ptr + ⟨36⟩).toNat 32
 abbrev swapCallbackHeadWords2 (aw ptr : UInt256) : UInt256 :=
   memoryWordActiveWords (swapCallbackHeadWords1 aw ptr) (ptr + ⟨36⟩)
-noncomputable def swapCallbackHeadMem3 (mem : ByteArray) (ptr senderWord amount0Out amount1Out dataLen : UInt256) : ByteArray :=
+def swapCallbackHeadMem3 (mem : ByteArray) (ptr senderWord amount0Out amount1Out dataLen : UInt256) : ByteArray :=
   (amount1Out : UInt256).toByteArray.write 0 (swapCallbackHeadMem2 mem ptr senderWord amount0Out amount1Out dataLen) (ptr + ⟨68⟩).toNat 32
 abbrev swapCallbackHeadWords3 (aw ptr : UInt256) : UInt256 :=
   memoryWordActiveWords (swapCallbackHeadWords2 aw ptr) (ptr + ⟨68⟩)
-noncomputable def swapCallbackHeadMem4 (mem : ByteArray) (ptr senderWord amount0Out amount1Out dataLen : UInt256) : ByteArray :=
+def swapCallbackHeadMem4 (mem : ByteArray) (ptr senderWord amount0Out amount1Out dataLen : UInt256) : ByteArray :=
   (⟨128⟩ : UInt256).toByteArray.write 0 (swapCallbackHeadMem3 mem ptr senderWord amount0Out amount1Out dataLen) (ptr + ⟨100⟩).toNat 32
 abbrev swapCallbackHeadWords4 (aw ptr : UInt256) : UInt256 :=
   memoryWordActiveWords (swapCallbackHeadWords3 aw ptr) (ptr + ⟨100⟩)
-noncomputable def swapCallbackHeadMem5 (mem : ByteArray) (ptr senderWord amount0Out amount1Out dataLen : UInt256) : ByteArray :=
+def swapCallbackHeadMem5 (mem : ByteArray) (ptr senderWord amount0Out amount1Out dataLen : UInt256) : ByteArray :=
   (dataLen : UInt256).toByteArray.write 0 (swapCallbackHeadMem4 mem ptr senderWord amount0Out amount1Out dataLen) (ptr + ⟨132⟩).toNat 32
 abbrev swapCallbackHeadWords5 (aw ptr : UInt256) : UInt256 :=
   memoryWordActiveWords (swapCallbackHeadWords4 aw ptr) (ptr + ⟨132⟩)

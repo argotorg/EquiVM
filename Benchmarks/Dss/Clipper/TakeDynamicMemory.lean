@@ -264,7 +264,7 @@ theorem clipperTakeVatMoveEncode_eq_ge (v : ClipperImmutables) (σ : AccountMap)
         .int (Int.ofNat owe.toNat)] =
       some ((clipperTakeVatMoveCalldataMem σ I owe mem).readWithPadding 128 100) := by
   rw [clipperTakeVatMoveCalldataMem_read128_100_ge σ I owe hmem]
-  let base := ffi.ByteArray.zeroes 260
+  let base := ByteArray.zeroes 260
   have hbase : base.size = 260 := zeroes_ofNat_size 260 (by norm_num)
   have h := clipperTakeVatMoveEncode_eq v σ I owe hbase
   rw [clipperTakeVatMoveCalldataMem_read128_100 σ I owe hbase] at h
@@ -391,7 +391,7 @@ theorem clipperTakeDogDigsEncode_eq_ge (v : ClipperImmutables) (tab : UInt256)
     (config v).externalABI.encode? "digs" [v.ilk, .int (Int.ofNat tab.toNat)] =
       some ((clipperDogDigsCalldataMem v tab mem).readWithPadding 128 68) := by
   rw [clipperTakeDogDigsCalldataMem_read128_68_ge v tab hmem]
-  let base := ffi.ByteArray.zeroes 260
+  let base := ByteArray.zeroes 260
   have hbase : base.size = 260 := zeroes_ofNat_size 260 (by norm_num)
   have h := clipperTakeDogDigsEncode_eq v tab hbase
   rw [clipperTakeDogDigsCalldataMem_read128_68 v tab hbase] at h
@@ -614,7 +614,7 @@ theorem clipperTakeVatFluxEncode_eq_ge (v : ClipperImmutables) (I : ExecutionEnv
         .int (Int.ofNat slice.toNat)] =
       some ((clipperTakeVatFluxCalldataMem v I who slice mem).readWithPadding 128 132) := by
   rw [clipperTakeVatFluxCalldataMem_read128_132_ge v I who slice hmem]
-  let base := ffi.ByteArray.zeroes 260
+  let base := ByteArray.zeroes 260
   have hbase : base.size = 260 := zeroes_ofNat_size 260 (by norm_num)
   have h := clipperTakeVatFluxEncode_eq_260 v I who slice hbase
   rw [clipperTakeVatFluxCalldataMem_read128_132_260 v I who slice hbase] at h

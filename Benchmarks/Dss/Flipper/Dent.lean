@@ -606,13 +606,13 @@ theorem flipperDentSourceBodyTendNotFinished {cA gh bl σ σ₀ A I} {g : UInt25
     checkedExternalCallStmts, checkedAdd48Into, locals, evm0] using
     ExecFuncBody.execBlockRevert hblock
 
-noncomputable abbrev dentHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev dentHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (dentId I) ⟨1⟩ solcFreePtrMem
 
-noncomputable abbrev dentHashMem1 (I : ExecutionEnv) : ByteArray :=
+abbrev dentHashMem1 (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (dentId I) ⟨1⟩ (dentHashMem I)
 
-noncomputable abbrev dentHashMem2 (I : ExecutionEnv) : ByteArray :=
+abbrev dentHashMem2 (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (dentId I) ⟨1⟩ (dentHashMem1 I)
 
 theorem dentHashMem_size (I : ExecutionEnv) :

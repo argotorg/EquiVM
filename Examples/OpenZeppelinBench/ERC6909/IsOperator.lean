@@ -161,24 +161,24 @@ theorem erc6909IsOperatorBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ## EVM scratch memory for the `_operatorApprovals` nested mapping access -/
 
-noncomputable def isOperatorOwnerMem (owner : UInt256) : ByteArray :=
+def isOperatorOwnerMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray owner).write 0 solcFreePtrMem 0 32
 
-noncomputable def isOperatorInnerHashMem (owner : UInt256) : ByteArray :=
+def isOperatorInnerHashMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0 (isOperatorOwnerMem owner) 32 32
 
-noncomputable def isOperatorInnerSlot (owner : UInt256) : UInt256 :=
+def isOperatorInnerSlot (owner : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((isOperatorInnerHashMem owner).readWithPadding 0 64)))
+    (KEC ((isOperatorInnerHashMem owner).readWithPadding 0 64)))
 
-noncomputable def isOperatorSpenderMem (owner spender : UInt256) : ByteArray :=
+def isOperatorSpenderMem (owner spender : UInt256) : ByteArray :=
   (UInt256.toByteArray spender).write 0 (isOperatorInnerHashMem owner) 0 32
 
-noncomputable def isOperatorOuterHashMem (owner spender : UInt256) : ByteArray :=
+def isOperatorOuterHashMem (owner spender : UInt256) : ByteArray :=
   (UInt256.toByteArray (isOperatorInnerSlot owner)).write 0
     (isOperatorSpenderMem owner spender) 32 32
 
-noncomputable def isOperatorReturnMem (owner spender val : UInt256) : ByteArray :=
+def isOperatorReturnMem (owner spender val : UInt256) : ByteArray :=
   (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))).write 0
     (isOperatorOuterHashMem owner spender) 128 32
 
@@ -366,7 +366,7 @@ theorem isOperatorOuterKeccakSlot (I : ExecutionEnv)
     (hcanonOwner : (isOperatorOwnerWord I).toNat < EVM.addressModulus)
     (hcanonSpender : (isOperatorSpenderWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((isOperatorOuterHashMem (isOperatorOwnerWord I) (isOperatorSpenderWord I))
+        (KEC ((isOperatorOuterHashMem (isOperatorOwnerWord I) (isOperatorSpenderWord I))
           |>.readWithPadding 0 64)))
       = isOperatorSlot I := by
   rw [isOperatorOuterHashMem_read0_64, isOperatorInnerKeccakSlot I hcanonOwner]
@@ -428,7 +428,7 @@ theorem isOperatorReturnMem_read128 (owner spender val : UInt256) :
         toByteArray_size])]
   rw [extract_append_right_window
       (isOperatorOuterHashMem owner spender ++
-        ffi.ByteArray.zeroes (128 - (isOperatorOuterHashMem owner spender).size))
+        ByteArray.zeroes (128 - (isOperatorOuterHashMem owner spender).size))
       (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))) 128 160 (by
         rw [ByteArray.size_append, isOperatorOuterHashMem_size, ByteArray_zeroes_size,
           show 128 - 96 = 32 from by norm_num])]

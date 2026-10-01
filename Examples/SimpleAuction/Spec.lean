@@ -24,7 +24,7 @@ The storage layout below is hand-written to match the deployed solc bytecode: sc
 external-call ABI uses the generic empty-call helper.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace SimpleAuction
 
@@ -185,7 +185,7 @@ def simpleAuctionBoolLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 1, hbound := by decide, type := .bool }
 
 def simpleAuctionMappingSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def pendingReturnsSlot (owner : KeyValue) : Ethereum.UInt256 :=
   simpleAuctionMappingSlot (keyValueToWord owner) ⟨4⟩

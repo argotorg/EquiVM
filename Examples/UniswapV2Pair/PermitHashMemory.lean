@@ -95,7 +95,7 @@ theorem twoWordHashMem_read0_64_of_ge64 {mem : ByteArray} (key slot : UInt256)
 theorem twoWordHashMem_mapSlot_of_ge64 {mem : ByteArray} (key baseSlot : UInt256)
     (hmem : 64 ≤ mem.size) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       mapSlot key baseSlot := by
   rw [twoWordHashMem_read0_64_of_ge64 key baseSlot hmem]
   simpa [mapSlot, solcMappingSlot] using mappingSlot_single key baseSlot
@@ -103,7 +103,7 @@ theorem twoWordHashMem_mapSlot_of_ge64 {mem : ByteArray} (key baseSlot : UInt256
 abbrev permitRuntimeTypehashWord : UInt256 :=
   ⟨49955707469362902507454157297736832118868343942642399513960811609542965143241⟩
 
-noncomputable def permitRuntimeStructHashDataWrites
+def permitRuntimeStructHashDataWrites
     (owner spender value nonce deadline : UInt256) : List (Nat × UInt256) :=
   [ (160, permitRuntimeTypehashWord),
     (192, owner),
@@ -112,46 +112,46 @@ noncomputable def permitRuntimeStructHashDataWrites
     (288, nonce),
     (320, deadline) ]
 
-noncomputable def permitRuntimeStructHashDataMem (baseMem : ByteArray)
+def permitRuntimeStructHashDataMem (baseMem : ByteArray)
     (owner spender value nonce deadline : UInt256) : ByteArray :=
   writeCascade baseMem (permitRuntimeStructHashDataWrites owner spender value nonce deadline)
 
-noncomputable def permitRuntimeStructHashLenMem (baseMem : ByteArray)
+def permitRuntimeStructHashLenMem (baseMem : ByteArray)
     (owner spender value nonce deadline : UInt256) : ByteArray :=
   writeCascade (permitRuntimeStructHashDataMem baseMem owner spender value nonce deadline)
     [(128, (⟨192⟩ : UInt256))]
 
-noncomputable def permitRuntimeStructHashMem (baseMem : ByteArray)
+def permitRuntimeStructHashMem (baseMem : ByteArray)
     (owner spender value nonce deadline : UInt256) : ByteArray :=
   writeCascade (permitRuntimeStructHashLenMem baseMem owner spender value nonce deadline)
     [(64, (⟨352⟩ : UInt256))]
 
-noncomputable abbrev permitRuntimeStructHashWord (baseMem : ByteArray)
+abbrev permitRuntimeStructHashWord (baseMem : ByteArray)
     (owner spender value nonce deadline : UInt256) : UInt256 :=
   UInt256.ofNat
     (fromByteArrayBigEndian
-      (ffi.KEC
+      (KEC
         ((permitRuntimeStructHashMem baseMem owner spender value nonce deadline).readWithPadding
           160 192)))
 
-noncomputable def permitRuntimeStructHashDataMem0 (baseMem : ByteArray) : ByteArray :=
+def permitRuntimeStructHashDataMem0 (baseMem : ByteArray) : ByteArray :=
   writeCascade baseMem [(160, permitRuntimeTypehashWord)]
 
-noncomputable def permitRuntimeStructHashDataMem1 (baseMem : ByteArray)
+def permitRuntimeStructHashDataMem1 (baseMem : ByteArray)
     (owner : UInt256) : ByteArray :=
   writeCascade baseMem [(160, permitRuntimeTypehashWord), (192, owner)]
 
-noncomputable def permitRuntimeStructHashDataMem2 (baseMem : ByteArray)
+def permitRuntimeStructHashDataMem2 (baseMem : ByteArray)
     (owner spender : UInt256) : ByteArray :=
   writeCascade baseMem
     [(160, permitRuntimeTypehashWord), (192, owner), (224, spender)]
 
-noncomputable def permitRuntimeStructHashDataMem3 (baseMem : ByteArray)
+def permitRuntimeStructHashDataMem3 (baseMem : ByteArray)
     (owner spender value : UInt256) : ByteArray :=
   writeCascade baseMem
     [(160, permitRuntimeTypehashWord), (192, owner), (224, spender), (256, value)]
 
-noncomputable def permitRuntimeStructHashDataMem4 (baseMem : ByteArray)
+def permitRuntimeStructHashDataMem4 (baseMem : ByteArray)
     (owner spender value nonce : UInt256) : ByteArray :=
   writeCascade baseMem
     [(160, permitRuntimeTypehashWord), (192, owner), (224, spender), (256, value),
@@ -559,36 +559,36 @@ theorem permitRuntimeStructHashMem_read160_192 {baseMem : ByteArray}
 abbrev permitRuntimeDigestPrefixWord : UInt256 :=
   UInt256.shiftLeft (⟨6401⟩ : UInt256) ⟨240⟩
 
-noncomputable def permitRuntimeDigestDataWrites
+def permitRuntimeDigestDataWrites
     (domain structHash : UInt256) : List (Nat × UInt256) :=
   [ (384, permitRuntimeDigestPrefixWord),
     (386, domain),
     (418, structHash) ]
 
-noncomputable def permitRuntimeDigestDataMem (baseMem : ByteArray)
+def permitRuntimeDigestDataMem (baseMem : ByteArray)
     (domain structHash : UInt256) : ByteArray :=
   writeCascade baseMem (permitRuntimeDigestDataWrites domain structHash)
 
-noncomputable def permitRuntimeDigestLenMem (baseMem : ByteArray)
+def permitRuntimeDigestLenMem (baseMem : ByteArray)
     (domain structHash : UInt256) : ByteArray :=
   writeCascade (permitRuntimeDigestDataMem baseMem domain structHash)
     [(352, (⟨66⟩ : UInt256))]
 
-noncomputable def permitRuntimeDigestMem (baseMem : ByteArray)
+def permitRuntimeDigestMem (baseMem : ByteArray)
     (domain structHash : UInt256) : ByteArray :=
   writeCascade (permitRuntimeDigestLenMem baseMem domain structHash)
     [(64, (⟨450⟩ : UInt256))]
 
-noncomputable abbrev permitRuntimeDigestWord (baseMem : ByteArray)
+abbrev permitRuntimeDigestWord (baseMem : ByteArray)
     (domain structHash : UInt256) : UInt256 :=
   UInt256.ofNat
     (fromByteArrayBigEndian
-      (ffi.KEC ((permitRuntimeDigestMem baseMem domain structHash).readWithPadding 384 66)))
+      (KEC ((permitRuntimeDigestMem baseMem domain structHash).readWithPadding 384 66)))
 
-noncomputable def permitRuntimeDigestDataMem0 (baseMem : ByteArray) : ByteArray :=
+def permitRuntimeDigestDataMem0 (baseMem : ByteArray) : ByteArray :=
   writeCascade baseMem [(384, permitRuntimeDigestPrefixWord)]
 
-noncomputable def permitRuntimeDigestDataMem1 (baseMem : ByteArray)
+def permitRuntimeDigestDataMem1 (baseMem : ByteArray)
     (domain : UInt256) : ByteArray :=
   writeCascade baseMem [(384, permitRuntimeDigestPrefixWord), (386, domain)]
 
@@ -824,7 +824,7 @@ theorem permitRuntimeDigestMem_read384_66 {baseMem : ByteArray}
 
 /-! ## Permit `ecrecover` runtime calldata helpers -/
 
-noncomputable def permitRuntimeEcrecoverInputWrites
+def permitRuntimeEcrecoverInputWrites
     (digest v r s : UInt256) : List (Nat × UInt256) :=
   [ (450, (⟨0⟩ : UInt256)),
     (64, (⟨482⟩ : UInt256)),
@@ -833,25 +833,25 @@ noncomputable def permitRuntimeEcrecoverInputWrites
     (546, r),
     (578, s) ]
 
-noncomputable def permitRuntimeEcrecoverMem0 (baseMem : ByteArray) : ByteArray :=
+def permitRuntimeEcrecoverMem0 (baseMem : ByteArray) : ByteArray :=
   writeCascade baseMem [(450, (⟨0⟩ : UInt256))]
 
-noncomputable def permitRuntimeEcrecoverMem1 (baseMem : ByteArray) : ByteArray :=
+def permitRuntimeEcrecoverMem1 (baseMem : ByteArray) : ByteArray :=
   writeCascade (permitRuntimeEcrecoverMem0 baseMem) [(64, (⟨482⟩ : UInt256))]
 
-noncomputable def permitRuntimeEcrecoverMem2 (baseMem : ByteArray)
+def permitRuntimeEcrecoverMem2 (baseMem : ByteArray)
     (digest : UInt256) : ByteArray :=
   writeCascade (permitRuntimeEcrecoverMem1 baseMem) [(482, digest)]
 
-noncomputable def permitRuntimeEcrecoverMem3 (baseMem : ByteArray)
+def permitRuntimeEcrecoverMem3 (baseMem : ByteArray)
     (digest v : UInt256) : ByteArray :=
   writeCascade (permitRuntimeEcrecoverMem2 baseMem digest) [(514, v)]
 
-noncomputable def permitRuntimeEcrecoverMem4 (baseMem : ByteArray)
+def permitRuntimeEcrecoverMem4 (baseMem : ByteArray)
     (digest v r : UInt256) : ByteArray :=
   writeCascade (permitRuntimeEcrecoverMem3 baseMem digest v) [(546, r)]
 
-noncomputable def permitRuntimeEcrecoverInputMem (baseMem : ByteArray)
+def permitRuntimeEcrecoverInputMem (baseMem : ByteArray)
     (digest v r s : UInt256) : ByteArray :=
   writeCascade (permitRuntimeEcrecoverMem4 baseMem digest v r) [(578, s)]
 
@@ -1086,7 +1086,7 @@ theorem permitRuntimeEcrecoverInputMem_read482_128 {baseMem : ByteArray}
     permitRuntimeEcrecoverInputMem_read578 digest v r s hbaseSize]
   simp only [ByteArray.append_assoc]
 
-noncomputable def permitRuntimeEcrecoverStaticcallMem (baseMem : ByteArray)
+def permitRuntimeEcrecoverStaticcallMem (baseMem : ByteArray)
     (digest v r s : UInt256) (o : ByteArray) : ByteArray :=
   o.write 0 (permitRuntimeEcrecoverInputMem baseMem digest v r s) 450
     (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat

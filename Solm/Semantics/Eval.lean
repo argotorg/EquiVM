@@ -395,8 +395,8 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | .keccak256 e => do
       let value <- evalExpr? cfg solm evm e
       match value with
-      -- Keccak-256 of the dynamic bytes, as a `bytes32` value; same `ffi.KEC` as the EVM opcode.
-      | .bytes ba => pure (.fixedBytes ⟨31, by decide⟩ (ffi.KEC ba).toList)
+      -- Keccak-256 of the dynamic bytes, as a `bytes32` value; same `Ethereum.KEC` as the EVM opcode.
+      | .bytes ba => pure (.fixedBytes ⟨31, by decide⟩ (Ethereum.KEC ba).toList)
       | _ => .error .typeError
   | .abiEncodePacked args => do
       let bytes <- evalPackedArgs? cfg solm evm args

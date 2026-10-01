@@ -25,16 +25,16 @@ abbrev potMoveOutPtr : UInt256 := ⟨128⟩
 abbrev potMoveInSize : UInt256 := ⟨100⟩
 abbrev potMoveEndPtr : UInt256 := ⟨228⟩
 
-noncomputable def potMoveSelectorMem (mem : ByteArray) : ByteArray :=
+def potMoveSelectorMem (mem : ByteArray) : ByteArray :=
   potMoveSelectorShifted.toByteArray.write 0 mem potMoveOutPtr.toNat 32
 
-noncomputable def potMoveFromMem (fromW : UInt256) (mem : ByteArray) : ByteArray :=
+def potMoveFromMem (fromW : UInt256) (mem : ByteArray) : ByteArray :=
   fromW.toByteArray.write 0 (potMoveSelectorMem mem) (potMoveOutPtr + ⟨4⟩).toNat 32
 
-noncomputable def potMoveToMem (fromW toW : UInt256) (mem : ByteArray) : ByteArray :=
+def potMoveToMem (fromW toW : UInt256) (mem : ByteArray) : ByteArray :=
   toW.toByteArray.write 0 (potMoveFromMem fromW mem) (potMoveOutPtr + ⟨36⟩).toNat 32
 
-noncomputable def potMoveCalldataMem (fromW toW rad : UInt256) (mem : ByteArray) : ByteArray :=
+def potMoveCalldataMem (fromW toW rad : UInt256) (mem : ByteArray) : ByteArray :=
   rad.toByteArray.write 0 (potMoveToMem fromW toW mem) (potMoveOutPtr + ⟨68⟩).toNat 32
 
 /-! ### Sizes -/
@@ -261,7 +261,7 @@ abbrev joinRhoWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 := solcSlotWor
 abbrev joinNowWord (I : ExecutionEnv) : UInt256 := UInt256.ofNat I.header.timestamp
 
 /-- Scratch memory holding `keccak(caller ++ 1)` for the `pie[caller]` slot. -/
-noncomputable abbrev joinPieHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev joinPieHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (joinCallerWord I) ⟨1⟩ solcFreePtrMem
 
 theorem joinPieHashMem_size (I : ExecutionEnv) : (joinPieHashMem I).size = 96 :=
@@ -273,7 +273,7 @@ theorem joinPieHashMem_read64 (I : ExecutionEnv) :
 
 theorem joinPieSlot_keccak (I : ExecutionEnv) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((joinPieHashMem I).readWithPadding 0 64))) = joinPieSlot I :=
+        (KEC ((joinPieHashMem I).readWithPadding 0 64))) = joinPieSlot I :=
   twoWordHashMem_solcMappingSlot ⟨1⟩ (joinCallerWord I) solcFreePtrMem_size
 
 theorem joinCallerWord_canonical (I : ExecutionEnv) :
@@ -624,7 +624,7 @@ theorem potJoinX_rhoReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel
 /-! ## `join(uint256)` — `pie[caller] += wad`, `Pie += wad` -/
 
 /-- Scratch memory after the second `keccak(caller ++ 1)` (the `pie[caller]` store). -/
-noncomputable abbrev joinPieStoreHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev joinPieStoreHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (joinCallerWord I) ⟨1⟩ (joinPieHashMem I)
 
 /-- Logic `@757 → @800`: load `pie[caller]`, `_add wad`, store back. -/
@@ -1933,16 +1933,16 @@ theorem potJoinSolmRevertPie2 {cA gh bl σ_solm σ₀ A I} {g : Sat256}
 /-! ### `join(uint256)` — post-store state abbreviations + `evm2` read bridges -/
 
 /-- EVM post-`pie`-store account map. -/
-noncomputable abbrev joinSigma' (σ_evm : AccountMap) (I : ExecutionEnv) : AccountMap :=
+abbrev joinSigma' (σ_evm : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner σ_evm (joinPieSlot I) (joinPie0 σ_evm I + joinWadWord I)
 
 /-- EVM post-`Pie`-store account map. -/
-noncomputable abbrev joinSigma'' (σ_evm : AccountMap) (I : ExecutionEnv) : AccountMap :=
+abbrev joinSigma'' (σ_evm : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner (joinSigma' σ_evm I) ⟨2⟩
     (solcSlotWord (joinSigma' σ_evm I) I ⟨2⟩ + joinWadWord I)
 
 /-- Solm post-`pie`-store state. -/
-noncomputable abbrev joinSolmEvm1 (cA : Batteries.RBSet AccountAddress compare)
+abbrev joinSolmEvm1 (cA : Batteries.RBSet AccountAddress compare)
     (gh : BlockHeader) (bl : ProcessedBlocks) (σ_solm σ₀ : AccountMap) (g : Sat256) (A : Substate)
     (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner (pieSlot (.address I.source))
@@ -1950,7 +1950,7 @@ noncomputable abbrev joinSolmEvm1 (cA : Batteries.RBSet AccountAddress compare)
       (pieSlot (.address I.source)) + joinWadWord I)
 
 /-- Solm post-`Pie`-store state. -/
-noncomputable abbrev joinSolmEvm2 (cA : Batteries.RBSet AccountAddress compare)
+abbrev joinSolmEvm2 (cA : Batteries.RBSet AccountAddress compare)
     (gh : BlockHeader) (bl : ProcessedBlocks) (σ_solm σ₀ : AccountMap) (g : Sat256) (A : Substate)
     (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore (joinSolmEvm1 cA gh bl σ_solm σ₀ g A I) I.codeOwner ⟨2⟩

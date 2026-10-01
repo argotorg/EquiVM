@@ -108,7 +108,7 @@ theorem jugDripX_loadRho {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (dripIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((dripIlkHashMem I).readWithPadding 0 64))) =
+          (KEC ((dripIlkHashMem I).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) := by
     simpa [dripIlkHashMem] using
       twoWordHashMem_solcMappingSlot (⟨1⟩ : UInt256) (fileDutyIlkWord I)

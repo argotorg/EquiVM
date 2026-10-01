@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Clipper.Trusted
+import Benchmarks.Dss.Clipper.Selectors
 
 /-!
 # MakerDAO/Sky DSS Clipper dispatcher facts

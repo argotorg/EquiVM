@@ -110,14 +110,14 @@ theorem clipperM_return_copy_mstore (n k : Nat) :
   simp only []
   omega
 
-noncomputable abbrev clipperListReturnBaseMem (σ : AccountMap) (ee : ExecutionEnv) :
+abbrev clipperListReturnBaseMem (σ : AccountMap) (ee : ExecutionEnv) :
     ByteArray :=
   clipperListReturnLengthMem (solcSlotWord σ ee ⟨11⟩)
     (clipperListArrayFreePtr (solcSlotWord σ ee ⟨11⟩))
     (clipperListArrayCopiedMem σ ee (solcSlotWord σ ee ⟨11⟩)
       (solcSlotWord σ ee ⟨11⟩).toNat)
 
-noncomputable def clipperListReturnCopiedMem
+def clipperListReturnCopiedMem
     (σ : AccountMap) (ee : ExecutionEnv) : Nat → ByteArray
   | 0 => clipperListReturnBaseMem σ ee
   | n + 1 =>

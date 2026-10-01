@@ -69,9 +69,7 @@ Each benchmark directory contains:
 - `SpecSyntax.lean` — the same spec in Solidity-like surface syntax, proved equal to `Spec.lean`.
 - `Bytecode.lean` — the compiled creation/runtime bytecode as Lean byte arrays with the verified
   jump-destination table.
-- `Trusted.lean` — the per-contract trusted base: the contract's 4-byte function selectors as
-  axioms (concrete keccak values cannot be computed inside Lean; `ffi.keccak256` is an opaque
-  extern function), plus occasional data-slot constants of the same kind.
+- `Selectors.lean` — proofs of concrete 4-byte function selectors.
 - `Constructor.lean` / `Correct.lean` — constructor and runtime equivalence; `…ContractCorrect`
   bundles both. In `Scaffolds/` these are `sorry` stubs.
 - Artifacts: `runtime.hex`, `creation.hex`, `*.abi.json`, `*.storage.json`, `sources.sha256`

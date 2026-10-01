@@ -111,18 +111,18 @@ abbrev endFreeAfterUrnsStmts : List Stmt :=
     [.var "ilk", sender, sender, vowAddr, asInt256 (.unary .neg (asInt256 (.var "ink"))),
       .intLit 0] "_grab"
 
-noncomputable def endFreeUrnsSelectorMem (mem : ByteArray) : ByteArray :=
+def endFreeUrnsSelectorMem (mem : ByteArray) : ByteArray :=
   endFreeUrnsSelectorShifted.toByteArray.write 0 mem endFreeUrnsOutPtr.toNat 32
 
-noncomputable def endFreeUrnsArg0Mem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def endFreeUrnsArg0Mem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (endFreeIlkWord I).toByteArray.write 0 (endFreeUrnsSelectorMem mem)
     (endFreeUrnsOutPtr + ⟨4⟩).toNat 32
 
-noncomputable def endFreeUrnsCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def endFreeUrnsCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (solcSourceWord I).toByteArray.write 0 (endFreeUrnsArg0Mem I mem)
     (endFreeUrnsOutPtr + ⟨36⟩).toNat 32
 
-noncomputable def endFreeUrnsPostCallMem (I : ExecutionEnv) (out : ByteArray) : ByteArray :=
+def endFreeUrnsPostCallMem (I : ExecutionEnv) (out : ByteArray) : ByteArray :=
   out.write 0 (endFreeUrnsCalldataMem I solcFreePtrMem) endFreeUrnsOutPtr.toNat
     (min 64 out.size)
 
@@ -136,40 +136,40 @@ def endFreeGrabWrites (σ : AccountMap) (I : ExecutionEnv) (out : ByteArray) :
     (260, endFreeGrabDinkWord out),
     (292, ⟨0⟩) ]
 
-noncomputable def endFreeGrabCalldataMem (σ : AccountMap) (I : ExecutionEnv)
+def endFreeGrabCalldataMem (σ : AccountMap) (I : ExecutionEnv)
     (out : ByteArray) : ByteArray :=
   writeCascade (endFreeUrnsPostCallMem I out) (endFreeGrabWrites σ I out)
 
-noncomputable def endFreeGrabMem1 (I : ExecutionEnv) (out : ByteArray) : ByteArray :=
+def endFreeGrabMem1 (I : ExecutionEnv) (out : ByteArray) : ByteArray :=
   writeWord (endFreeUrnsPostCallMem I out) 128 endFreeGrabSelectorShifted
 
-noncomputable def endFreeGrabMem2 (I : ExecutionEnv) (out : ByteArray) : ByteArray :=
+def endFreeGrabMem2 (I : ExecutionEnv) (out : ByteArray) : ByteArray :=
   writeWord (endFreeGrabMem1 I out) 132 (endFreeIlkWord I)
 
-noncomputable def endFreeGrabMem3 (I : ExecutionEnv) (out : ByteArray) : ByteArray :=
+def endFreeGrabMem3 (I : ExecutionEnv) (out : ByteArray) : ByteArray :=
   writeWord (endFreeGrabMem2 I out) 164 (solcSourceWord I)
 
-noncomputable def endFreeGrabMem4 (I : ExecutionEnv) (out : ByteArray) : ByteArray :=
+def endFreeGrabMem4 (I : ExecutionEnv) (out : ByteArray) : ByteArray :=
   writeWord (endFreeGrabMem3 I out) 196 (solcSourceWord I)
 
-noncomputable def endFreeGrabMem5 (σ : AccountMap) (I : ExecutionEnv)
+def endFreeGrabMem5 (σ : AccountMap) (I : ExecutionEnv)
     (out : ByteArray) : ByteArray :=
   writeWord (endFreeGrabMem4 I out) 228 (endPackVowWord σ I)
 
-noncomputable def endFreeGrabMem6 (σ : AccountMap) (I : ExecutionEnv)
+def endFreeGrabMem6 (σ : AccountMap) (I : ExecutionEnv)
     (out : ByteArray) : ByteArray :=
   writeWord (endFreeGrabMem5 σ I out) 260 (endFreeGrabDinkWord out)
 
-noncomputable def endFreeGrabMem7 (σ : AccountMap) (I : ExecutionEnv)
+def endFreeGrabMem7 (σ : AccountMap) (I : ExecutionEnv)
     (out : ByteArray) : ByteArray :=
   writeWord (endFreeGrabMem6 σ I out) 292 ⟨0⟩
 
-noncomputable def endFreeGrabPostCallMem (σ : AccountMap) (I : ExecutionEnv)
+def endFreeGrabPostCallMem (σ : AccountMap) (I : ExecutionEnv)
     (out ret : ByteArray) : ByteArray :=
   ret.write 0 (endFreeGrabCalldataMem σ I out) endFreeGrabOutPtr.toNat
     (min endFreeGrabOutSize (UInt256.ofNat ret.size)).toNat
 
-noncomputable def endFreeLogDataMem (σ : AccountMap) (I : ExecutionEnv)
+def endFreeLogDataMem (σ : AccountMap) (I : ExecutionEnv)
     (out ret : ByteArray) : ByteArray :=
   (endFreeUrnInkWord out).toByteArray.write 0 (endFreeGrabPostCallMem σ I out ret) 128 32
 

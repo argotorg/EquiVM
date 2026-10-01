@@ -155,14 +155,14 @@ theorem vatNopeX_storeOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       ByteArray.empty := by
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((hopeInnerMem I).readWithPadding 0 64))) =
+          (KEC ((hopeInnerMem I).readWithPadding 0 64))) =
         hopeInnerSlot I := by
     simpa [hopeInnerMem, hopeInnerSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨1⟩ : UInt256) (hopeSourceWord I)
         solcFreePtrMem_size
   have houterSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((hopeHashMem I).readWithPadding 0 64))) =
+          (KEC ((hopeHashMem I).readWithPadding 0 64))) =
         mapSlot (hopeUsrMaskedWord I) (hopeInnerSlot I) := by
     simpa [hopeHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (hopeInnerSlot I) (hopeUsrMaskedWord I)

@@ -93,8 +93,8 @@ machinery drivers for dispatching (e.g., `solcDispatchReachBody`).
    dispatcher (`by_cases` on `callvalue`/`size`/each selector, routing
    each selector to its per-function `…BodyCore`, plus the shared
    revert paths). This skeleton should type-check and route correctly
-   before the leaves are done. Add the necessary ABI selector axiom 
-   as needed.
+   before the leaves are done. Add the necessary ABI selector theorem
+   to `Selectors.lean` using `decide +kernel`.
 
 2. For each ABI function `<Fn>`, route to a `…BodyCore` whose proof is
    a `sorry`. That `…BodyCore` should be defined in that function's
@@ -134,7 +134,9 @@ The proof of each function follows, roughly, four phases:
    `…_none_short`, `…_none_huge`, `…_none_noncanon`). One `simpa …
    using <lib lemma>` per branch (see `BalanceOf.lean`).
 
-2. Add trusted selector facts for the public selectors in `Trusted.lean`.
+2. Add selector theorems for the public selectors in `Selectors.lean`.
+   Keep any canonical-signature normalization lemma private or inline; expose only the selector
+   theorem unless another proof genuinely reuses the signature equality.
 
 3. Solm source body. Prove the `ExecTransitionBody` result (return
    value / storage update / revert) using `Reasoning.SolmBody`
@@ -173,17 +175,19 @@ that the top-level theorem complies with no added axioms and no
 
 The only acceptable trusted facts are:
 
-- The selector / jump-dest facts in `Bytecode.lean` (the selector
-  bytes of each function).
+- Concrete facts proved with `native_decide`, whose evaluation axiom trusts the
+  compiled evaluator. Prefer `decide +kernel` when practical; selector facts
+  must use kernel evaluation.
 
-- The pre-existing library axiom `keccak_size` in
-  `Reasoning/Memory.lean` (Keccak output is 32 bytes), used by
-  contracts that hash at run time.
+- Standard Lean axioms such as `propext`, `Classical.choice`, and `Quot.sound` when
+  introduced by the proof infrastructure.
 
-- For contracts with external calls: EVMLean's precompile output-size
-  axioms (declared in `Ethereum/Theory/ReturnDataBound.lean`). These
-  enter the footprint through the return-data size bound of the
-  external-call machinery; you never invoke them directly.
+Selector identities, `keccak_size`, and EVMLean's precompile return-data bounds are proved
+theorems.
+
+If the user explicitly authorizes a contract-specific assumption that cannot be derived from
+EVMLean, the concrete artifact, or kernel evaluation, create `Trusted.lean` to isolate it. Record
+the assumption and its justification there, and import it only in modules that use it.
 
 Do not introduce new axioms about EVM semantics, Solm semantics, or
 mapping-slot noncollision. If you think you need one, stop, report the
@@ -202,8 +206,10 @@ The proof of a contract `<Name>` goes in a directory `<Name>/`:
 |---|---|
 | `<Name>.sol` | the Solidity source + the exact compiler invocation used. |
 | `Spec.lean` | the Solm `ContractDecl`, storage layout, `Config`. |
-| `Bytecode.lean` | runtime bytecode + selector/jump-dest trusted facts. |
-| `Common.lean` | contract-wide ABI / memory / selector / return / other helpers shared by ≥2 functions. |
+| `Bytecode.lean` | runtime bytecode + verified jump destinations. |
+| `Selectors.lean` | selector table, `selIs`/`selWord`, and ABI selector theorems. |
+| `Trusted.lean` (when required) | explicitly authorized contract-specific assumptions. |
+| `Common.lean` | single proof import point plus contract-specific helpers shared by ≥2 proof files. |
 | `Storage.lean` | contract-wide storage load/store + RBMap preservation + bool-return facts (only if it has storage). |
 | `<Fn>.lean` | one file per interface (public/external) function — its decode, source body, EVM trace, and `…BodyCore` refinement. |
 | `Constructor.lean` | the equivalence proof of the contract's constructor. |
@@ -520,9 +526,8 @@ When a step fails, re-check it against the disassembly first.
 
 - No `sorry` in the finished proof.
 
-- Do not introduce new `axiom`, unless explicitly told to do so. If
-  you think you need one, stop, report the situation, and ask for
-  guidance.
+- Treat a suspected need for a new `axiom` as a blocker. Report it and ask for guidance;
+  follow the authorized-assumption policy in Section 2 only after explicit approval.
 
 ---
 
@@ -533,6 +538,7 @@ Run, and report results verbatim:
 ```
 lake build <Module>.Correct
 rg -n '\b(sorry|admit)\b' <WorkDir>
+rg -n '^axiom ' <WorkDir>
 printf '%s\n' 'import <Module>.Correct' '#print axioms <Namespace>.<name>Correct' | lake env lean --stdin
 ```
 
@@ -543,15 +549,13 @@ path, and `<Namespace>` the contract's namespace — e.g. for
 
 The build must succeed with no `sorry`.
 
+Any project-authored `axiom` reported by the search must satisfy the authorized-assumption policy
+in Section 2 and be visible in the capstone audit when used.
+
 The axiom footprint should contain only
-`propext`/`Classical.choice`/`Quot.sound`, the `native_decide`
-evaluation axioms (`….native_decide.ax_*`), your contract's
-selector/jump-dest facts, and — where applicable — the library axiom
-`keccak_size` (contracts that hash at run time) and EVMLean's
-precompile output-size axioms (`Ethereum.EVM.ffi_sha256_output_size`,
-`Ethereum.EVM.blob*_output_chunks`, …), which enter through the
-external-call return-data bound.
-(`ByteArray_zeroes_size`, `Theta_returnData_size_lt_2pow138`, and
-`typedCallViaEVM_accountMapEquiv` are proved theorems, not axioms —
-they do not appear in the footprint.) Flag only anything beyond this
-set — a new axiom your work introduced.
+`propext`/`Classical.choice`/`Quot.sound` and documented `native_decide`
+evaluation axioms (`….native_decide.ax_*`) used for concrete proof obligations.
+Selector identities, `keccak_size`, `ByteArray_zeroes_size`,
+`Theta_returnData_size_lt_2pow138`, and `typedCallViaEVM_accountMapEquiv`
+are proved theorems and do not appear as custom axioms. Flag anything
+beyond this set as a new axiom introduced by the proof.

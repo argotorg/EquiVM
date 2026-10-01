@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Cat.Trusted
+import Benchmarks.Dss.Cat.Selectors
 import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.ExternalCall

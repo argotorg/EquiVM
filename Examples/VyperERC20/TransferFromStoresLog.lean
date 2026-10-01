@@ -8,10 +8,10 @@ set_option linter.unusedSimpArgs false
 
 namespace VyperERC20
 
-noncomputable def transferFromLogActualMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def transferFromLogActualMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (transferFromValueWord I)).write 0 (transferFromAfterToLoadMemI σ I) 160 32
 
-noncomputable def transferFromReturnActualMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+def transferFromReturnActualMemI (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0 (transferFromLogActualMemI σ I) 160 32
 
 theorem transferFromLogActualMemI_size (σ : AccountMap) (I : ExecutionEnv) :

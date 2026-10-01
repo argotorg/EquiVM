@@ -1,4 +1,4 @@
-import Benchmarks.Dss.End.Trusted
+import Benchmarks.Dss.End.Selectors
 
 /-!
 # MakerDAO/Sky DSS End dispatcher proof boundary

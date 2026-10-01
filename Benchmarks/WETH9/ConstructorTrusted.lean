@@ -3,9 +3,9 @@ import Reasoning.Storage
 import Reasoning.EVMWord
 
 /-!
-# WETH9 constructor — trusted keccak values + foundational storage/arithmetic lemmas
+# WETH9 constructor — Keccak values and foundational storage/arithmetic lemmas
 
-Two trusted keccak-value axioms (the compact-string data base slots `keccak(0)` / `keccak(1)`),
+The compact-string data base slots `keccak(0)` / `keccak(1)`,
 the `clearDataWordsForwardFrom` last-store peel lemma used by the symbolic clear loop, the
 `∀S` identity between the creation bytecode's mask arithmetic and the total 0.5.16 length decode,
 and the no-overflow bound that keeps the clear-loop cursor `keccak(slot) + i` from wrapping.
@@ -17,17 +17,19 @@ namespace Benchmarks.WETH9
 
 set_option maxRecDepth 4000000
 
-/-! ## Trusted keccak data base slots (the ONLY new axioms) -/
+/-! ## Keccak data base slots -/
 
 /-- `keccak256(bytes32(0))` — the compact-string data words base slot for storage slot 0 (`name`). -/
-axiom weth9DataBaseSlot0 :
+theorem weth9DataBaseSlot0 :
     Solm.solidityBytesDataBaseSlot ⟨0⟩ =
-      (⟨0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563⟩ : UInt256)
+      (⟨0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563⟩ : UInt256) := by
+  decide +kernel
 
 /-- `keccak256(bytes32(1))` — the compact-string data words base slot for storage slot 1 (`symbol`). -/
-axiom weth9DataBaseSlot1 :
+theorem weth9DataBaseSlot1 :
     Solm.solidityBytesDataBaseSlot ⟨1⟩ =
-      (⟨0xb10e2d527612073b26eecdfd717e6a320cf44b4afac2b0732d9fcbe2b7fa0cf6⟩ : UInt256)
+      (⟨0xb10e2d527612073b26eecdfd717e6a320cf44b4afac2b0732d9fcbe2b7fa0cf6⟩ : UInt256) := by
+  decide +kernel
 
 /-! ## Small `UInt256` additive helpers (no `AddCommMagma UInt256` instance is available) -/
 

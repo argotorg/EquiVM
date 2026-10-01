@@ -69,10 +69,10 @@ abbrev dentFluxArgValsMap (σ : AccountMap) (I : ExecutionEnv) : List Value :=
 abbrev dentVatFluxSelectorWord : UInt256 :=
   UInt256.shiftLeft (⟨814276375⟩ : UInt256) ⟨225⟩
 
-noncomputable abbrev dentVatHashMem (mem : ByteArray) (I : ExecutionEnv) : ByteArray :=
+abbrev dentVatHashMem (mem : ByteArray) (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (dentId I) ⟨1⟩ mem
 
-noncomputable abbrev dentVatFluxCallMem (mem : ByteArray) (σ : AccountMap)
+abbrev dentVatFluxCallMem (mem : ByteArray) (σ : AccountMap)
     (I : ExecutionEnv) : ByteArray :=
   writeCascade (dentVatHashMem mem I)
     [(128, dentVatFluxSelectorWord),
@@ -97,7 +97,7 @@ theorem dentVatHashMem_read64 {mem : ByteArray} {I : ExecutionEnv}
 theorem dentVatHashMem_solcMappingSlot {mem : ByteArray} {I : ExecutionEnv}
     (hmemSize : mem.size = 96) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((dentVatHashMem mem I).readWithPadding 0 64))) =
+        (KEC ((dentVatHashMem mem I).readWithPadding 0 64))) =
       solcMappingSlot ⟨1⟩ (dentId I) := by
   unfold dentVatHashMem
   simpa [bidBaseOfWord] using twoWordHashMem_solcMappingSlot ⟨1⟩ (dentId I) hmemSize

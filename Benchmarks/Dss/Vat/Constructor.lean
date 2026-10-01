@@ -18,7 +18,7 @@ set_option maxRecDepth 2000000
 
 abbrev vatCtorSourceWord (I : ExecutionEnv) : UInt256 := UInt256.ofNat I.source.val
 
-noncomputable def vatCtorReturnMem (mem : ByteArray) : ByteArray :=
+def vatCtorReturnMem (mem : ByteArray) : ByteArray :=
   vatCreationBytecode.write 56 mem 0 6965
 
 theorem vatCreationBytecode_size : vatCreationBytecode.size = 7021 := by
@@ -210,7 +210,7 @@ theorem vatCtorInitcodeSuccess
   let memHash := twoWordHashMem (vatCtorSourceWord I) ⟨0⟩ solcFreePtrMem
   let σWards := sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨0⟩ (vatCtorSourceWord I)) ⟨1⟩
   have hslot :
-      UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (memHash.readWithPadding 0 64))) =
+      UInt256.ofNat (fromByteArrayBigEndian (KEC (memHash.readWithPadding 0 64))) =
         solcMappingSlot ⟨0⟩ (vatCtorSourceWord I) := by
     simpa [memHash] using
       twoWordHashMem_solcMappingSlot ⟨0⟩ (vatCtorSourceWord I) solcFreePtrMem_size

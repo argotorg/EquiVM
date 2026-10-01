@@ -722,38 +722,38 @@ abbrev clipperTakeCallbackSelectorSeed : UInt256 := ⟨2220015886⟩
 abbrev clipperTakeCallbackSelectorShifted : UInt256 :=
   UInt256.shiftLeft clipperTakeCallbackSelectorSeed ⟨224⟩
 
-noncomputable def clipperTakeCallbackSelectorMem (mem : ByteArray) : ByteArray :=
+def clipperTakeCallbackSelectorMem (mem : ByteArray) : ByteArray :=
   clipperTakeCallbackSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def clipperTakeCallbackSenderMem (ee : ExecutionEnv) (mem : ByteArray) :
+def clipperTakeCallbackSenderMem (ee : ExecutionEnv) (mem : ByteArray) :
     ByteArray :=
   (solcSourceWord ee).toByteArray.write 0 (clipperTakeCallbackSelectorMem mem) 132 32
 
-noncomputable def clipperTakeCallbackOweMem (ee : ExecutionEnv) (owe : UInt256)
+def clipperTakeCallbackOweMem (ee : ExecutionEnv) (owe : UInt256)
     (mem : ByteArray) : ByteArray :=
   owe.toByteArray.write 0 (clipperTakeCallbackSenderMem ee mem) 164 32
 
-noncomputable def clipperTakeCallbackSliceMem (ee : ExecutionEnv) (owe slice : UInt256)
+def clipperTakeCallbackSliceMem (ee : ExecutionEnv) (owe slice : UInt256)
     (mem : ByteArray) : ByteArray :=
   slice.toByteArray.write 0 (clipperTakeCallbackOweMem ee owe mem) 196 32
 
-noncomputable def clipperTakeCallbackOffsetMem (ee : ExecutionEnv) (owe slice : UInt256)
+def clipperTakeCallbackOffsetMem (ee : ExecutionEnv) (owe slice : UInt256)
     (mem : ByteArray) : ByteArray :=
   (⟨128⟩ : UInt256).toByteArray.write 0
     (clipperTakeCallbackSliceMem ee owe slice mem) 228 32
 
-noncomputable def clipperTakeCallbackLengthMem (ee : ExecutionEnv)
+def clipperTakeCallbackLengthMem (ee : ExecutionEnv)
     (owe slice dataLen : UInt256) (mem : ByteArray) : ByteArray :=
   dataLen.toByteArray.write 0 (clipperTakeCallbackOffsetMem ee owe slice mem) 260 32
 
-noncomputable def clipperTakeCallbackPayloadMem (ee : ExecutionEnv)
+def clipperTakeCallbackPayloadMem (ee : ExecutionEnv)
     (owe slice dataLen dataStart : UInt256) (mem : ByteArray) : ByteArray :=
   ee.calldata.write dataStart.toNat
     (clipperTakeCallbackLengthMem ee owe slice dataLen mem) 292 dataLen.toNat
 
 /-- The compiler writes one zero word immediately after the dynamic payload.  The call input ends
 inside this word at the next 32-byte boundary, so the write supplies exactly the ABI right-padding. -/
-noncomputable def clipperTakeCallbackCalldataMem (ee : ExecutionEnv)
+def clipperTakeCallbackCalldataMem (ee : ExecutionEnv)
     (owe slice dataLen dataStart : UInt256) (mem : ByteArray) : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0
     (clipperTakeCallbackPayloadMem ee owe slice dataLen dataStart mem)

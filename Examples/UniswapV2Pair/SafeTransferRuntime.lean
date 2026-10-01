@@ -10,31 +10,31 @@ namespace UniswapV2Pair
 
 /-! Shared runtime helpers for the `_safeTransfer` routine. -/
 
-noncomputable def safeTransferRuntimeMem0 (base : ByteArray) : ByteArray :=
+def safeTransferRuntimeMem0 (base : ByteArray) : ByteArray :=
   (UInt256.toByteArray (⟨192⟩ : UInt256)).write 0 base 64 32
 
-noncomputable def safeTransferRuntimeMem1 (base : ByteArray) : ByteArray :=
+def safeTransferRuntimeMem1 (base : ByteArray) : ByteArray :=
   (UInt256.toByteArray (⟨25⟩ : UInt256)).write 0 (safeTransferRuntimeMem0 base) 128 32
 
-noncomputable def safeTransferRuntimeMem2 (base : ByteArray) : ByteArray :=
+def safeTransferRuntimeMem2 (base : ByteArray) : ByteArray :=
   (UInt256.toByteArray skimSafeTransferSignatureWord).write 0
     (safeTransferRuntimeMem1 base) 160 32
 
-noncomputable def safeTransferRuntimeMem3
+def safeTransferRuntimeMem3
     (base : ByteArray) (toWord : UInt256) : ByteArray :=
   (UInt256.toByteArray (UInt256.land solcAddrMask toWord)).write 0
     (safeTransferRuntimeMem2 base) 228 32
 
-noncomputable def safeTransferRuntimeMem4
+def safeTransferRuntimeMem4
     (base : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray value).write 0 (safeTransferRuntimeMem3 base toWord) 260 32
 
-noncomputable def safeTransferRuntimeMem5
+def safeTransferRuntimeMem5
     (base : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨68⟩ : UInt256)).write 0
     (safeTransferRuntimeMem4 base toWord value) 192 32
 
-noncomputable def safeTransferRuntimeMem5WritesAfter64
+def safeTransferRuntimeMem5WritesAfter64
     (toWord value : UInt256) : List (Nat × UInt256) :=
   [(128, (⟨25⟩ : UInt256)),
    (160, skimSafeTransferSignatureWord),
@@ -42,7 +42,7 @@ noncomputable def safeTransferRuntimeMem5WritesAfter64
    (260, value),
    (192, (⟨68⟩ : UInt256))]
 
-noncomputable def safeTransferRuntimeMem5Writes
+def safeTransferRuntimeMem5Writes
     (toWord value : UInt256) : List (Nat × UInt256) :=
   (64, (⟨192⟩ : UInt256)) :: safeTransferRuntimeMem5WritesAfter64 toWord value
 
@@ -68,23 +68,23 @@ theorem safeTransferRuntimeMem5WritesAfter64_disjoint64 (toWord value : UInt256)
   simp [WindowDisjointFromWrites, safeTransferRuntimeMem5WritesAfter64]
   exact lt_usize 36 (by norm_num)
 
-noncomputable def safeTransferRuntimeMem6
+def safeTransferRuntimeMem6
     (base : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨292⟩ : UInt256)).write 0
     (safeTransferRuntimeMem5 base toWord value) 64 32
 
-noncomputable def safeTransferRuntimeWord224
+def safeTransferRuntimeWord224
     (base : ByteArray) (toWord value : UInt256) : UInt256 :=
   UInt256.ofNat
     (fromByteArrayBigEndian ((safeTransferRuntimeMem6 base toWord value).readWithPadding 224 32))
 
-noncomputable def safeTransferRuntimePatchedSelectorWord
+def safeTransferRuntimePatchedSelectorWord
     (base : ByteArray) (toWord value : UInt256) : UInt256 :=
   UInt256.lor (UInt256.shiftLeft transferSelectorWord ⟨224⟩)
     (UInt256.land skimSafeTransferSelectorPatchMask
       (safeTransferRuntimeWord224 base toWord value))
 
-noncomputable def safeTransferRuntimeMem7
+def safeTransferRuntimeMem7
     (base : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray (safeTransferRuntimePatchedSelectorWord base toWord value)).write 0
     (safeTransferRuntimeMem6 base toWord value) 224 32
@@ -392,36 +392,36 @@ theorem safeTransferRuntimeMem7_mload224
     (by rw [safeTransferRuntimeMem7_size toWord value hbase]; decide)
     (by native_decide) (safeTransferRuntimeMem7_read224 toWord value hbase)
 
-noncomputable def safeTransferRuntimeCallMem0
+def safeTransferRuntimeCallMem0
     (base : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray (safeTransferRuntimePatchedSelectorWord base toWord value)).write 0
     (safeTransferRuntimeMem7 base toWord value) 292 32
 
-noncomputable def safeTransferRuntimeCopyWord1
+def safeTransferRuntimeCopyWord1
     (base : ByteArray) (toWord value : UInt256) : UInt256 :=
   UInt256.ofNat
     (fromByteArrayBigEndian
       ((safeTransferRuntimeCallMem0 base toWord value).readWithPadding 256 32))
 
-noncomputable def safeTransferRuntimeCallMem1
+def safeTransferRuntimeCallMem1
     (base : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray (safeTransferRuntimeCopyWord1 base toWord value)).write 0
     (safeTransferRuntimeCallMem0 base toWord value) 324 32
 
-noncomputable def safeTransferRuntimeTailSourceWord
+def safeTransferRuntimeTailSourceWord
     (base : ByteArray) (toWord value : UInt256) : UInt256 :=
   UInt256.ofNat
     (fromByteArrayBigEndian
       ((safeTransferRuntimeCallMem1 base toWord value).readWithPadding 288 32))
 
-noncomputable def safeTransferRuntimeTailWord
+def safeTransferRuntimeTailWord
     (base : ByteArray) (toWord value : UInt256) : UInt256 :=
   UInt256.lor
     (UInt256.land (safeTransferRuntimeTailSourceWord base toWord value)
       (UInt256.lnot skimSafeTransferTailMask))
     (UInt256.land ⟨0⟩ skimSafeTransferTailMask)
 
-noncomputable def safeTransferRuntimeCallMem2
+def safeTransferRuntimeCallMem2
     (base : ByteArray) (toWord value : UInt256) : ByteArray :=
   (UInt256.toByteArray (safeTransferRuntimeTailWord base toWord value)).write 0
     (safeTransferRuntimeCallMem1 base toWord value) 356 32
@@ -910,21 +910,21 @@ def safeTransferRuntimeReturnDataRounded (out : ByteArray) : UInt256 :=
 def safeTransferRuntimeReturnDataPtr (out : ByteArray) : UInt256 :=
   (⟨292⟩ : UInt256) + safeTransferRuntimeReturnDataRounded out
 
-noncomputable def safeTransferRuntimeReturnDataPtrMem
+def safeTransferRuntimeReturnDataPtrMem
     (base : ByteArray) (toWord value : UInt256) (out : ByteArray) : ByteArray :=
   (UInt256.toByteArray (safeTransferRuntimeReturnDataPtr out)).write 0
     (safeTransferRuntimeCallMem2 base toWord value) 64 32
 
-noncomputable def safeTransferRuntimeReturnDataSizeMem
+def safeTransferRuntimeReturnDataSizeMem
     (base : ByteArray) (toWord value : UInt256) (out : ByteArray) : ByteArray :=
   (UInt256.toByteArray (UInt256.ofNat out.size)).write 0
     (safeTransferRuntimeReturnDataPtrMem base toWord value out) 292 32
 
-noncomputable def safeTransferRuntimeReturnDataMem
+def safeTransferRuntimeReturnDataMem
     (base : ByteArray) (toWord value : UInt256) (out : ByteArray) : ByteArray :=
   out.write 0 (safeTransferRuntimeReturnDataSizeMem base toWord value out) 324 out.size
 
-noncomputable def safeTransferRuntimeReturnDataActiveWords (out : ByteArray) : UInt256 :=
+def safeTransferRuntimeReturnDataActiveWords (out : ByteArray) : UInt256 :=
   UInt256.ofNat (MachineState.M (UInt256.ofNat 13).toNat 324 out.size)
 
 theorem safeTransferRuntimeReturnDataPtrMem_size

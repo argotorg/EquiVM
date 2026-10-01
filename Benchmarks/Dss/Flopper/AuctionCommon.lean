@@ -952,7 +952,7 @@ theorem twoWordHashMem_read0_64_any (key slot : UInt256) (mem : ByteArray) :
 
 theorem twoWordHashMem_solcMappingSlot_any (baseSlot key : UInt256) (mem : ByteArray) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   rw [twoWordHashMem_read0_64_any]
   unfold solcMappingSlot
@@ -1460,7 +1460,7 @@ theorem RD.flopperAuctionDeleteTail
     raw dup3 (by native_decide) (by evm_ov)]
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC (mem2.readWithPadding 0 64))) = base := by
+          (KEC (mem2.readWithPadding 0 64))) = base := by
     simpa [base, mem2] using twoWordHashMem_solcMappingSlot_any ⟨1⟩ id mem
   have rd1201raw := rd1200pre.keccak256 0 base aw
     (by native_decide)

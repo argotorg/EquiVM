@@ -40,10 +40,10 @@ abbrev kickKicksWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 abbrev kickIdWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   kickKicksWord σ I + ⟨1⟩
 
-noncomputable abbrev kickAuthMem (I : ExecutionEnv) : ByteArray :=
+abbrev kickAuthMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem
 
-noncomputable abbrev kickBidHashMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev kickBidHashMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (kickIdWord σ I) ⟨1⟩ (kickAuthMem I)
 
 abbrev kickAfterKicksMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
@@ -112,29 +112,29 @@ abbrev kickAfterTabMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
 abbrev kickVatFluxSelectorWord : UInt256 :=
   UInt256.shiftLeft (⟨814276375⟩ : UInt256) ⟨225⟩
 
-noncomputable abbrev kickFieldHashMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
+abbrev kickFieldHashMem (σ : AccountMap) (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (kickIdWord σ I) ⟨1⟩ (kickBidHashMem σ I)
 
-noncomputable abbrev kickVatFluxSelectorMem (σmem : AccountMap) (I : ExecutionEnv) :
+abbrev kickVatFluxSelectorMem (σmem : AccountMap) (I : ExecutionEnv) :
     ByteArray :=
   (UInt256.toByteArray kickVatFluxSelectorWord).write 0 (kickFieldHashMem σmem I) 128 32
 
-noncomputable abbrev kickVatFluxIlkMem (σmem σ : AccountMap) (I : ExecutionEnv) :
+abbrev kickVatFluxIlkMem (σmem σ : AccountMap) (I : ExecutionEnv) :
     ByteArray :=
   (UInt256.toByteArray (flipperSlotWord ⟨3⟩ σ I)).write 0
     (kickVatFluxSelectorMem σmem I) 132 32
 
-noncomputable abbrev kickVatFluxSenderMem (σmem σ : AccountMap) (I : ExecutionEnv) :
+abbrev kickVatFluxSenderMem (σmem σ : AccountMap) (I : ExecutionEnv) :
     ByteArray :=
   (UInt256.toByteArray (solcSourceWord I)).write 0
     (kickVatFluxIlkMem σmem σ I) 164 32
 
-noncomputable abbrev kickVatFluxThisMem (σmem σ : AccountMap) (I : ExecutionEnv) :
+abbrev kickVatFluxThisMem (σmem σ : AccountMap) (I : ExecutionEnv) :
     ByteArray :=
   (UInt256.toByteArray (EVM.word I.codeOwner.val)).write 0
     (kickVatFluxSenderMem σmem σ I) 196 32
 
-noncomputable abbrev kickVatFluxCallMem (σmem σ : AccountMap) (I : ExecutionEnv) :
+abbrev kickVatFluxCallMem (σmem σ : AccountMap) (I : ExecutionEnv) :
     ByteArray :=
   (UInt256.toByteArray (kickLot I)).write 0 (kickVatFluxThisMem σmem σ I) 228 32
 

@@ -926,7 +926,7 @@ theorem flapperTickX_toEndLtGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using
       Benchmarks.Dss.Flopper.twoWordHashMem_solcMappingSlot_any ⟨1⟩ id solcFreePtrMem
   have rd4601 := rd4600pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1082,7 +1082,7 @@ theorem flapperTickX_toTicZeroGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memTic.readWithPadding 0 64))) = base := by
+        (KEC (memTic.readWithPadding 0 64))) = base := by
     simpa [base, memTic, memEnd, id] using
       Benchmarks.Dss.Flopper.twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memEnd
   have rd4709 := rd4708pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1416,7 +1416,7 @@ theorem flapperTickX_success
     raw swap2 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memEndStore.readWithPadding 0 64))) = base := by
+        (KEC (memEndStore.readWithPadding 0 64))) = base := by
     simpa [base, memEndStore, memTic, id] using
       Benchmarks.Dss.Flopper.twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd4854 := rd4853pre.keccak256 0 base (UInt256.ofNat 3)

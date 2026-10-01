@@ -217,7 +217,7 @@ abbrev exitSlipUsrWord (I : ExecutionEnv) : UInt256 :=
 abbrev exitSlipNegWord (I : ExecutionEnv) : UInt256 :=
   UInt256.sub ⟨0⟩ (joinWadWord I)
 
-noncomputable def exitSlipCalldataMem (I : ExecutionEnv) (σ : AccountMap)
+def exitSlipCalldataMem (I : ExecutionEnv) (σ : AccountMap)
     (mem : ByteArray) : ByteArray :=
   (exitSlipNegWord I).toByteArray.write 0
     (joinSlipUsrMem (exitSlipUsrWord I) (gemJoinSlotWord ⟨2⟩ σ I) mem) 196 32
@@ -858,13 +858,13 @@ abbrev exitTransferInSize : UInt256 := ⟨68⟩
 abbrev exitTransferOutSize : UInt256 := ⟨32⟩
 abbrev exitTransferEndPtr : UInt256 := ⟨196⟩
 
-noncomputable def exitTransferSelectorMem (mem : ByteArray) : ByteArray :=
+def exitTransferSelectorMem (mem : ByteArray) : ByteArray :=
   exitTransferSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def exitTransferUsrMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def exitTransferUsrMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (joinUsrMaskedWord I).toByteArray.write 0 (exitTransferSelectorMem mem) 132 32
 
-noncomputable def exitTransferCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
+def exitTransferCalldataMem (I : ExecutionEnv) (mem : ByteArray) : ByteArray :=
   (joinWadWord I).toByteArray.write 0 (exitTransferUsrMem I mem) 164 32
 
 theorem exitTransferSelectorMem_size {mem : ByteArray} (hmem : mem.size = 228) :

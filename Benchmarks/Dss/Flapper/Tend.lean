@@ -3286,7 +3286,7 @@ theorem flapperTendX_toGuyGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ (tendIdWord I) solcFreePtrMem
   have rd1719 := rd1718pre.keccak256 0 base (UInt256.ofNat 3)
@@ -3434,7 +3434,7 @@ theorem flapperTendX_toTicGtGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memTic.readWithPadding 0 64))) = base := by
+        (KEC (memTic.readWithPadding 0 64))) = base := by
     simpa [base, memTic, memGuy, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memGuy
   have rd1817 := rd1816pre.keccak256 0 base (UInt256.ofNat 3)
@@ -3544,7 +3544,7 @@ theorem flapperTendX_ticFinished {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memTicZero.readWithPadding 0 64))) = base := by
+        (KEC (memTicZero.readWithPadding 0 64))) = base := by
     simpa [base, memTicZero, memTic, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd1859 := rd1858pre.keccak256 0 base (UInt256.ofNat 3)
@@ -3750,7 +3750,7 @@ theorem flapperTendX_ticZeroOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memTicZero.readWithPadding 0 64))) = base := by
+        (KEC (memTicZero.readWithPadding 0 64))) = base := by
     simpa [base, memTicZero, memTic, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd1859 := rd1858pre.keccak256 0 base (UInt256.ofNat 3)
@@ -3870,7 +3870,7 @@ theorem flapperTendX_toEndGtGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memEnd.readWithPadding 0 64))) = base := by
+        (KEC (memEnd.readWithPadding 0 64))) = base := by
     simpa [base, memEnd, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd1975 := rd1974pre.keccak256 0 base (UInt256.ofNat 3)
@@ -4027,7 +4027,7 @@ theorem flapperTendX_toLotEqGuard
     raw swap2 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memLot.readWithPadding 0 64))) = base := by
+        (KEC (memLot.readWithPadding 0 64))) = base := by
     simpa [base, memLot, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2095pre := rd2094pre.keccak256 0 base (UInt256.ofNat 3)
@@ -4151,7 +4151,7 @@ theorem flapperTendX_toBidGtGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memBid.readWithPadding 0 64))) = base := by
+        (KEC (memBid.readWithPadding 0 64))) = base := by
     simpa [base, memBid, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2194pre := rd2193pre.keccak256 0 base (UInt256.ofNat 3)
@@ -4429,7 +4429,7 @@ theorem flapperTendX_toBegBidMulStart
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memBegBid.readWithPadding 0 64))) = base := by
+        (KEC (memBegBid.readWithPadding 0 64))) = base := by
     simpa [base, memBegBid, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2288pre := rd2287pre.keccak256 0 base (UInt256.ofNat 3)
@@ -4686,7 +4686,7 @@ theorem flapperTendX_toCallerEqGuard
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memCaller.readWithPadding 0 64))) = base := by
+        (KEC (memCaller.readWithPadding 0 64))) = base := by
     simpa [base, memCaller, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2414 := rd2413pre.keccak256 0 base (UInt256.ofNat 3)
@@ -4867,7 +4867,7 @@ theorem flapperTendX_toRefundExtcodesizeGuard
     raw dup3 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memCaller
   have rd2451 := rd2450pre.keccak256 0 base (UInt256.ofNat 3)
@@ -5237,7 +5237,7 @@ theorem flapperTendX_refundCallSuccessToPayStart
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memGuy.readWithPadding 0 64))) = base := by
+        (KEC (memGuy.readWithPadding 0 64))) = base := by
     simpa [base, memGuy, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id mem
   have rd2578pre := rd2577pre.keccak256 0 base (UInt256.ofNat 8)
@@ -5356,7 +5356,7 @@ theorem flapperTendX_toCheckedAddStartFromTailAw8
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memBidStore.readWithPadding 0 64))) = base := by
+        (KEC (memBidStore.readWithPadding 0 64))) = base := by
     simpa [base, memBidStore, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2737pre := rd2736pre.keccak256 0 base (UInt256.ofNat 8)
@@ -5577,7 +5577,7 @@ theorem flapperTendX_successFromAddOkAw8
     raw swap4 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memStore.readWithPadding 0 64))) = base := by
+        (KEC (memStore.readWithPadding 0 64))) = base := by
     simpa [base, memStore, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2778pre := rd2777pre.keccak256 0 base (UInt256.ofNat 8)
@@ -6013,7 +6013,7 @@ theorem flapperTendX_toPayExtcodesizeGuardAw8Mem228
     raw dup3 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memCaller
   have rd2617pre := rd2616pre.keccak256 0 base (UInt256.ofNat 8)
@@ -6357,7 +6357,7 @@ theorem flapperTendX_toPayExtcodesizeGuard
     raw dup3 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
+        (KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memCaller
   have rd2617pre := rd2616pre.keccak256 0 base (UInt256.ofNat 3)
@@ -8655,7 +8655,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
           exact (flapperTendX_refundCallFailure rd2544False houtRefundSize)
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
-noncomputable def flapperTendTicGtCallerMem (I : ExecutionEnv) : ByteArray :=
+def flapperTendTicGtCallerMem (I : ExecutionEnv) : ByteArray :=
   let id := tendIdWord I
   let memGuy := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   let memTic := twoWordHashMem id ⟨1⟩ memGuy
@@ -8665,7 +8665,7 @@ noncomputable def flapperTendTicGtCallerMem (I : ExecutionEnv) : ByteArray :=
   let memBegBid := twoWordHashMem id ⟨1⟩ memBid
   twoWordHashMem id ⟨1⟩ memBegBid
 
-noncomputable def flapperTendTicZeroCallerMem (I : ExecutionEnv) : ByteArray :=
+def flapperTendTicZeroCallerMem (I : ExecutionEnv) : ByteArray :=
   let id := tendIdWord I
   let memGuy := twoWordHashMem id ⟨1⟩ solcFreePtrMem
   let memTic := twoWordHashMem id ⟨1⟩ memGuy

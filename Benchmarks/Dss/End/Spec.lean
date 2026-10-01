@@ -15,7 +15,7 @@ Two modelling notes, both behaviour-preserving:
   guard `int256(x) >= 0` (snip/skip) is written as the equivalent `x < 2^255`.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace Benchmarks.Dss.End
 
@@ -200,7 +200,7 @@ def storageDecls : List StorageDecl :=
     { name := "out", ty := .mapping (.bytes bytes32Width) (.mapping .address uint256St) } ]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def wardsSlot (usr : KeyValue) : Ethereum.UInt256 := mapSlot (keyValueToWord usr) ⟨0⟩
 def tagSlot (ilk : KeyValue) : Ethereum.UInt256 := mapSlot (keyValueToWord ilk) ⟨12⟩

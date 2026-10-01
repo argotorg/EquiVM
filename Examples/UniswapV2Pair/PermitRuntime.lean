@@ -527,7 +527,7 @@ theorem RD.uniswapPermitApproveInnerHash20 {g : Sat256} {s0 : State} {ee : Execu
     exact solcAddrMask_clean_left hcanonOwner
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem owner (⟨2⟩ : UInt256) mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem owner (⟨2⟩ : UInt256) mem).readWithPadding 0 64))) =
         mapSlot owner ⟨2⟩ :=
     twoWordHashMem_mapSlot_of_ge64 owner ⟨2⟩ (by omega)
   have rdMasked := evm_run h with [
@@ -594,7 +594,7 @@ theorem RD.uniswapPermitApproveStore20 {g : Sat256} {s0 : State} {ee : Execution
     solcAddrMask_clean hcanonSpender
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((twoWordHashMem spender (mapSlot owner ⟨2⟩) mem).readWithPadding 0 64))) =
+          (KEC ((twoWordHashMem spender (mapSlot owner ⟨2⟩) mem).readWithPadding 0 64))) =
         mapSlot spender (mapSlot owner ⟨2⟩) :=
     twoWordHashMem_mapSlot_of_ge64 spender (mapSlot owner ⟨2⟩) (by omega)
   have rdMasked := evm_run h with [

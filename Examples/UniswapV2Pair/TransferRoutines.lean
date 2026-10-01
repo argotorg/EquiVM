@@ -12,16 +12,16 @@ namespace UniswapV2Pair
 def uniswapErrorStringSelector : UInt256 :=
   solcErrorStringSelector
 
-noncomputable abbrev uniswapErrorStringMem0 (mem : ByteArray) : ByteArray :=
+abbrev uniswapErrorStringMem0 (mem : ByteArray) : ByteArray :=
   solcErrorStringMem0 mem
 
-noncomputable abbrev uniswapErrorStringMem1 (mem : ByteArray) : ByteArray :=
+abbrev uniswapErrorStringMem1 (mem : ByteArray) : ByteArray :=
   solcErrorStringMem1 mem
 
-noncomputable abbrev uniswapErrorStringMem2 (len : UInt256) (mem : ByteArray) : ByteArray :=
+abbrev uniswapErrorStringMem2 (len : UInt256) (mem : ByteArray) : ByteArray :=
   solcErrorStringMem2 len mem
 
-noncomputable abbrev uniswapErrorStringMem3 (len word : UInt256) (mem : ByteArray) : ByteArray :=
+abbrev uniswapErrorStringMem3 (len word : UInt256) (mem : ByteArray) : ByteArray :=
   solcErrorStringMem3 len word mem
 
 theorem uniswapErrorStringMem0_size {mem : ByteArray} (hmem : mem.size = 96) :
@@ -236,7 +236,7 @@ This file continues the shared `_transfer` routine lemmas once `Routines.lean` i
 2k-line iteration limit.
 -/
 
-noncomputable abbrev uniswapTransferCreditHashMemOf
+abbrev uniswapTransferCreditHashMemOf
     (src toWord : UInt256) (mem : ByteArray) : ByteArray :=
   twoWordHashMem toWord ⟨1⟩ (uniswapTransferToHashMemOf src toWord mem)
 
@@ -250,7 +250,7 @@ theorem uniswapTransferCreditHashMemOf_slot (src toWord : UInt256) {mem : ByteAr
     (hmem : mem.size = 96) :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC ((uniswapTransferCreditHashMemOf src toWord mem).readWithPadding 0 64))) =
+          (KEC ((uniswapTransferCreditHashMemOf src toWord mem).readWithPadding 0 64))) =
       mapSlot toWord ⟨1⟩ := by
   unfold uniswapTransferCreditHashMemOf
   rw [twoWordHashMem_read0_64 toWord ⟨1⟩ (uniswapTransferToHashMemOf_size src toWord hmem)]
@@ -330,7 +330,7 @@ theorem uniswapTransferCreditHashMemOf_mload64 (src toWord : UInt256) {mem : Byt
   mloadFreePtrValue (by rw [uniswapTransferCreditHashMemOf_size src toWord hmem]; decide)
     (by decide) (uniswapTransferCreditHashMemOf_read64 src toWord hmem hmem64)
 
-noncomputable def uniswapTransferLogMemOf
+def uniswapTransferLogMemOf
     (src toWord value : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray value).write 0 (uniswapTransferCreditHashMemOf src toWord mem) 128 32
 
@@ -377,7 +377,7 @@ theorem uniswapTransferLogMemOf_mload64 (src toWord value : UInt256) {mem : Byte
   mloadFreePtrValue (by rw [uniswapTransferLogMemOf_size src toWord value hmem]; decide)
     (by decide) (uniswapTransferLogMemOf_read64 src toWord value hmem hmem64)
 
-noncomputable def uniswapTransferReturnMemOf
+def uniswapTransferReturnMemOf
     (src toWord logValue retValue : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray retValue).write 0
     (uniswapTransferLogMemOf src toWord logValue mem) 128 32
@@ -481,11 +481,11 @@ theorem RD.uniswapTransferFromContinuationReturnTrue {g : Sat256} {s0 : State}
       repeat' first | apply And.intro | native_decide)
     hret hov
 
-noncomputable abbrev uniswapTransferFromAllowanceStoreMemOf
+abbrev uniswapTransferFromAllowanceStoreMemOf
     (src spender : UInt256) (mem : ByteArray) : ByteArray :=
   twoWordHashMem spender (mapSlot src ⟨2⟩) (twoWordHashMem src ⟨2⟩ mem)
 
-noncomputable abbrev uniswapTransferFromAllowanceStoreMem (src spender : UInt256) : ByteArray :=
+abbrev uniswapTransferFromAllowanceStoreMem (src spender : UInt256) : ByteArray :=
   uniswapTransferFromAllowanceStoreMemOf src spender (uniswapApproveHashMem src spender)
 
 theorem uniswapTransferFromAllowanceStoreMemOf_size
@@ -520,7 +520,7 @@ theorem uniswapTransferFromAllowanceStoreMemOf_slot
     (src spender : UInt256) {mem : ByteArray} (hmem : mem.size = 96) :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC ((uniswapTransferFromAllowanceStoreMemOf src spender mem).readWithPadding
+          (KEC ((uniswapTransferFromAllowanceStoreMemOf src spender mem).readWithPadding
             0 64))) =
       mapSlot spender (mapSlot src ⟨2⟩) := by
   unfold uniswapTransferFromAllowanceStoreMemOf
@@ -532,7 +532,7 @@ theorem uniswapTransferFromAllowanceStoreMemOf_slot
 theorem uniswapTransferFromAllowanceStoreMem_slot (src spender : UInt256) :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC ((uniswapTransferFromAllowanceStoreMem src spender).readWithPadding 0 64))) =
+          (KEC ((uniswapTransferFromAllowanceStoreMem src spender).readWithPadding 0 64))) =
       mapSlot spender (mapSlot src ⟨2⟩) :=
   uniswapTransferFromAllowanceStoreMemOf_slot src spender
     (uniswapApproveHashMem_size src spender)

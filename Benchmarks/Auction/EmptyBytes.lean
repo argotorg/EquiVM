@@ -24,7 +24,7 @@ theorem encodeEmptyBytes {I g s0 dest src ret R mem aw rdata acc k C}
 
 def nextEmptyPtr (ptr : UInt256) : UInt256 := UInt256.add ptr ⟨32⟩
 
-noncomputable def emptyHeaderMem (mem : ByteArray) (ptr : UInt256) : ByteArray :=
+def emptyHeaderMem (mem : ByteArray) (ptr : UInt256) : ByteArray :=
   writeWord (writeWord mem ptr.toNat ⟨0⟩) 64 (nextEmptyPtr ptr)
 
 def emptyHeaderWords (aw ptr : UInt256) : UInt256 := expandedWords aw ptr ⟨32⟩
@@ -80,7 +80,7 @@ theorem emptyHeader_prefix {mem aw ptr} (h : HeapMemory mem aw ptr) :
       (by have hu := lt_usize 0 (by decide); have hp := h.lower; omega)
       (Or.inr (by decide)))
 
-noncomputable def emptyEncodedMem (mem : ByteArray) (ptr : UInt256) : ByteArray :=
+def emptyEncodedMem (mem : ByteArray) (ptr : UInt256) : ByteArray :=
   writeWord (emptyHeaderMem mem ptr) (nextEmptyPtr ptr).toNat ⟨0⟩
 
 def emptyEncodedWords (aw ptr : UInt256) : UInt256 :=

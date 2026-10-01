@@ -866,12 +866,12 @@ theorem uniswapMintRuntimeAfterUpdateFeeOn
 abbrev uniswapMintTopic : UInt256 :=
   ⟨0x4c209b5fc8ad50758f13e2e1088ba56a560dff690a1c6fef26394f4c03821c4f⟩
 
-noncomputable abbrev uniswapMintLogMem
+abbrev uniswapMintLogMem
     (amount0 amount1 : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray amount1).write 0
     ((UInt256.toByteArray amount0).write 0 mem 128 32) 160 32
 
-noncomputable abbrev uniswapMintReturnMem
+abbrev uniswapMintReturnMem
     (liquidity amount0 amount1 : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray liquidity).write 0 (uniswapMintLogMem amount0 amount1 mem) 128 32
 

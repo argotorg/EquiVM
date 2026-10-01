@@ -50,22 +50,22 @@ theorem RD.clipperDup16 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
       mem aw rdata acc (k + 1) (C + 3) :=
   h.stepSwap (fun _ hc hp hs => clipperDup16_xstep hc hp hdec hs hov)
 
-noncomputable abbrev clipperTakeEventMem0 (mem : ByteArray) (max : UInt256) : ByteArray :=
+abbrev clipperTakeEventMem0 (mem : ByteArray) (max : UInt256) : ByteArray :=
   (UInt256.toByteArray max).write 0 mem 128 32
 
-noncomputable abbrev clipperTakeEventMem1 (mem : ByteArray) (max price : UInt256) :
+abbrev clipperTakeEventMem1 (mem : ByteArray) (max price : UInt256) :
     ByteArray :=
   (UInt256.toByteArray price).write 0 (clipperTakeEventMem0 mem max) 160 32
 
-noncomputable abbrev clipperTakeEventMem2 (mem : ByteArray) (max price owe : UInt256) :
+abbrev clipperTakeEventMem2 (mem : ByteArray) (max price owe : UInt256) :
     ByteArray :=
   (UInt256.toByteArray owe).write 0 (clipperTakeEventMem1 mem max price) 192 32
 
-noncomputable abbrev clipperTakeEventMem3 (mem : ByteArray)
+abbrev clipperTakeEventMem3 (mem : ByteArray)
     (max price owe tabNew : UInt256) : ByteArray :=
   (UInt256.toByteArray tabNew).write 0 (clipperTakeEventMem2 mem max price owe) 224 32
 
-noncomputable abbrev clipperTakeEventMem (mem : ByteArray)
+abbrev clipperTakeEventMem (mem : ByteArray)
     (max price owe tabNew lotNew : UInt256) : ByteArray :=
   (UInt256.toByteArray lotNew).write 0
     (clipperTakeEventMem3 mem max price owe tabNew) 256 32

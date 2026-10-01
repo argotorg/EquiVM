@@ -7,7 +7,7 @@ namespace UniswapV2Pair
 
 set_option maxRecDepth 2000
 
-noncomputable def constructorDomainState (evm : EVM.State) : EVM.State :=
+def constructorDomainState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨3⟩
     (constructorDomainHashWord (UInt256.ofNat evm.executionEnv.codeOwner.val))
 

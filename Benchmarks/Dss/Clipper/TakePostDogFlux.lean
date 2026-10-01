@@ -305,7 +305,7 @@ theorem clipperTakeVatFluxEncode_eq_260 (v : ClipperImmutables) (I : ExecutionEn
         .int (Int.ofNat slice.toNat)] =
       some ((clipperTakeVatFluxCalldataMem v I who slice mem).readWithPadding 128 132) := by
   rw [clipperTakeVatFluxCalldataMem_read128_132_260 v I who slice hmem]
-  let base : ByteArray := ByteArray.empty ++ ffi.ByteArray.zeroes 196
+  let base : ByteArray := ByteArray.empty ++ ByteArray.zeroes 196
   have hbase : base.size = 196 := by
     simp [base, ByteArray_zeroes_size]
   have h := clipperTakeVatFluxEncode_eq v I who slice (mem := base) hbase

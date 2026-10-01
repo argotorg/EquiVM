@@ -6,7 +6,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-noncomputable def Snapshot.mem (s : Snapshot) (mem : ByteArray) (ptr : UInt256) : ByteArray :=
+def Snapshot.mem (s : Snapshot) (mem : ByteArray) (ptr : UInt256) : ByteArray :=
   writeCascade (writeWord mem 64 (ptr + ⟨192⟩))
     [(ptr.toNat, s.nounId), (ptr.toNat + 32, s.amount), (ptr.toNat + 64, s.startTime),
       (ptr.toNat + 96, s.endTime), (ptr.toNat + 128, s.bidderWord), (ptr.toNat + 160,

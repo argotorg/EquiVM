@@ -74,8 +74,8 @@ theorem scratch_revealLoopBody_fromLoopStart {I : ExecutionEnv} {g : Sat256}
       ((UInt256.toByteArray (revealScratchSenderWord I)).write 0
         a.mem 0 32) 32 32).readWithPadding 0 64)
   have hbaseRoundtrip :
-      UInt256.toByteArray (uInt256OfByteArray (ffi.KEC baseHashInput)) =
-        ffi.KEC baseHashInput := by
+      UInt256.toByteArray (uInt256OfByteArray (KEC baseHashInput)) =
+        KEC baseHashInput := by
     rw [← word_toBytesBE_toByteArray_eq_toByteArray]
     apply ByteArray.ext
     apply Array.toList_inj.mp
@@ -83,7 +83,7 @@ theorem scratch_revealLoopBody_fromLoopStart {I : ExecutionEnv} {g : Sat256}
     rw [← byteArray_toList_eq]
     simp [toBytesBE_keccak_uInt256OfByteArray]
   have hbaseHash :
-      ffi.KEC
+      KEC
         (((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
           ((UInt256.toByteArray (revealScratchSenderWord I)).write 0
             a.mem 0 32) 32 32).readWithPadding 0 64) =
@@ -94,13 +94,13 @@ theorem scratch_revealLoopBody_fromLoopStart {I : ExecutionEnv} {g : Sat256}
     rw [hbaseHashWord]
   have hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC
+        (KEC
           (((UInt256.toByteArray (revealScratchBidsLengthSlot I)).write 0
             ((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0
               ((UInt256.toByteArray (revealScratchSenderWord I)).write 0
                 a.mem 0 32) 32 32) 0 32).readWithPadding 0 32))) =
         uInt256OfByteArray
-          (ffi.KEC
+          (KEC
             (UInt256.toByteArray (revealScratchBidsLengthSlot I))) := by
     exact BlindAuction.scratch_revealBidsArrayDataKeccak_any I
       ((UInt256.toByteArray (⟨4⟩ : UInt256)).write 0

@@ -28,7 +28,7 @@ theorem erc20X_transferFromAllowanceStoreAfterOuterFinish {cA gh bl σ σ₀ A I
   have hslotScratch :
       UInt256.ofNat
           (fromByteArrayBigEndian
-            (ffi.KEC ((transferFromAllowanceScratchMemI σ I).readWithPadding 0 64))) =
+            (KEC ((transferFromAllowanceScratchMemI σ I).readWithPadding 0 64))) =
         transferFromAllowanceSlotI I := by
     unfold transferFromAllowanceScratchMemI
     rw [transferFromAllowanceScratchMem_read0_64]

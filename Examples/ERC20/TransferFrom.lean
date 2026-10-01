@@ -999,7 +999,7 @@ theorem transferFromSender_ofNat (I : ExecutionEnv) :
 theorem transferFromAllowanceKeccakSlot (I : ExecutionEnv)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((allowanceOuterHashMem (transferFromFromWord I)
+        (Ethereum.KEC ((allowanceOuterHashMem (transferFromFromWord I)
           (transferFromSenderWord I)).readWithPadding 0 64)))
       = transferFromAllowanceSlotI I := by
   rw [allowanceOuterKeccakSlot_word (transferFromFromWord I) (transferFromSenderWord I)
@@ -1010,7 +1010,7 @@ theorem transferFromAllowanceKeccakSlot (I : ExecutionEnv)
 theorem transferFromFromKeccakSlot (I : ExecutionEnv)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((balanceOfHashMem (transferFromFromWord I)).readWithPadding 0 64)))
+        (Ethereum.KEC ((balanceOfHashMem (transferFromFromWord I)).readWithPadding 0 64)))
       = transferFromFromSlot I := by
   rw [balanceOfKeccakSlot_word (transferFromFromWord I) hcanonFrom]
   rfl
@@ -1018,7 +1018,7 @@ theorem transferFromFromKeccakSlot (I : ExecutionEnv)
 theorem transferFromToKeccakSlot (I : ExecutionEnv)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((balanceOfHashMem (transferFromToWord I)).readWithPadding 0 64)))
+        (Ethereum.KEC ((balanceOfHashMem (transferFromToWord I)).readWithPadding 0 64)))
       = transferFromToSlot I := by
   rw [balanceOfKeccakSlot_word (transferFromToWord I) hcanonTo]
   rfl
@@ -1212,21 +1212,21 @@ theorem balanceOfHashMem_writeAllowanceSlot (owner : UInt256) :
 def transferFromInsufficientAllowanceWord : UInt256 :=
   ⟨31354931781638678538084197150757782427756587561754988975511141185730285404160⟩
 
-noncomputable def transferFromInsufficientAllowanceSelectorMem
+def transferFromInsufficientAllowanceSelectorMem
     (owner spender : UInt256) : ByteArray :=
   (UInt256.toByteArray transferErrorSelector).write 0 (allowanceOuterHashMem owner spender) 128 32
 
-noncomputable def transferFromInsufficientAllowanceOffsetMem
+def transferFromInsufficientAllowanceOffsetMem
     (owner spender : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0
     (transferFromInsufficientAllowanceSelectorMem owner spender) 132 32
 
-noncomputable def transferFromInsufficientAllowanceLengthMem
+def transferFromInsufficientAllowanceLengthMem
     (owner spender : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨29⟩ : UInt256)).write 0
     (transferFromInsufficientAllowanceOffsetMem owner spender) 164 32
 
-noncomputable def transferFromInsufficientAllowanceStringMem
+def transferFromInsufficientAllowanceStringMem
     (owner spender : UInt256) : ByteArray :=
   (UInt256.toByteArray transferFromInsufficientAllowanceWord).write 0
     (transferFromInsufficientAllowanceLengthMem owner spender) 196 32

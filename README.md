@@ -160,8 +160,7 @@ bytecode before attempting a proof.
   (optimizer off).
 - [`Bytecode.lean`](Examples/ERC20/Bytecode.lean) — the exact compiled bytecode
   as a Lean byte array, the verified jump-destination table, and the six
-  function selectors (per-contract trusted facts, since Keccak is an opaque
-  foreign constant).
+  function-selector theorems.
 - [`Spec.lean`](Examples/ERC20/Spec.lean) /
   [`SpecSyntax.lean`](Examples/ERC20/SpecSyntax.lean) — the Sol⁻ specification,
   and the same spec in surface syntax, proved definitionally equal.
@@ -238,16 +237,6 @@ trusted base is small and explicit. Accepting a certificate means trusting:
 - **The refinement relation.** [`Solm/Equiv.lean`](Solm/Equiv.lean) defines
   what equivalence means. It deliberately does not compare gas consumption,
   logs and substate, or revert payloads.
-- **Keccak facts.** Keccak-256 is an opaque foreign function in the model.
-  Each contract therefore trusts a few axioms giving the concrete selector
-  hashes of its ABI signatures (checkable against any Keccak implementation),
-  and contracts that hash at run time additionally trust the library axiom
-  `keccak_size` (Keccak output is 32 bytes).
-- **Precompile output bounds** (only for contracts with external calls). The
-  precompiles are opaque foreign functions as well; EVMLean states size bounds
-  on their outputs as axioms (`Ethereum/Theory/ReturnDataBound.lean`), which
-  enter the footprint through the return-data size bound used by the
-  external-call rules.
 
 Everything else is untrusted: the proof-producing LLM agent, the tactics, the
 macros, and the elaborator can all be arbitrarily wrong without compromising a
@@ -263,11 +252,10 @@ lake build <Module>.Correct
 #print axioms <Namespace>.<name>ContractCorrect
 ```
 
-The footprint must contain nothing beyond the axioms above: the three standard
-Lean axioms, the `native_decide` evaluation facts, the contract's Keccak
-selector facts, and — where applicable — `keccak_size` and the EVMLean
-precompile bounds. Any other axiom, or any `sorry`, means the certificate does
-not hold.
+The footprint must contain nothing beyond the three standard Lean axioms and
+documented `native_decide` evaluation facts used for concrete proof obligations,
+including jump-destination tables. Any unexpected custom axiom, or any `sorry`,
+means the certificate does not hold.
 
 ## Note on AI use
 

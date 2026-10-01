@@ -1088,7 +1088,7 @@ theorem flopperKickX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -1138,7 +1138,7 @@ theorem flopperKickX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     RDrev flopperBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
+          (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
         mapSlot (relySourceWord I) ⟨0⟩ := by
     simpa [relyAuthHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
@@ -1426,7 +1426,7 @@ theorem flopperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State} {k C 
     raw swap1 (by native_decide) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (memStore.readWithPadding 0 64))) = base := by
+        (KEC (memStore.readWithPadding 0 64))) = base := by
     simpa [base, memStore, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id (relyAuthHashMem I)
   have rd3672 := rd3671pre.keccak256 0 base (UInt256.ofNat 3)
@@ -1652,7 +1652,7 @@ theorem RD.log2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       · simp only [stLog2]
         exact hworld
 
-noncomputable abbrev kickEventMem (mem : ByteArray) (id lot bid : UInt256) : ByteArray :=
+abbrev kickEventMem (mem : ByteArray) (id lot bid : UInt256) : ByteArray :=
   writeCascade mem [(128, id), (160, lot), (192, bid)]
 
 theorem kickEventMem_size {mem : ByteArray} (id lot bid : UInt256) (hmem : mem.size = 96) :

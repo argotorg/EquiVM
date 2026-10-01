@@ -260,7 +260,7 @@ theorem RD.cureDropSwapLoadMovePrefix {g : Sat256} {s0 : State}
     native_decide
   have hsrcsSlot :
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC ((wordAt0Mem (⟨2⟩ : UInt256) mem).readWithPadding 0 32))) =
+          (fromByteArrayBigEndian (KEC ((wordAt0Mem (⟨2⟩ : UInt256) mem).readWithPadding 0 32))) =
         srcsDataSlot := by
     simpa [srcsDataSlot, uInt256OfByteArray_eq] using
       wordAt0Mem_keccak_word (⟨2⟩ : UInt256) mem
@@ -382,7 +382,7 @@ theorem RD.cureDropSwapStoreMoveElemPrefix {g : Sat256} {s0 : State}
     native_decide
   have hsrcsSlot :
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC ((wordAt0Mem (⟨2⟩ : UInt256) mem).readWithPadding 0 32))) =
+          (fromByteArrayBigEndian (KEC ((wordAt0Mem (⟨2⟩ : UInt256) mem).readWithPadding 0 32))) =
         srcsDataSlot := by
     simpa [srcsDataSlot, uInt256OfByteArray_eq] using
       wordAt0Mem_keccak_word (⟨2⟩ : UInt256) mem
@@ -522,7 +522,7 @@ theorem RD.cureDropSwapStoreMovePosPrefix {g : Sat256} {s0 : State}
   have hslot :
       UInt256.ofNat
           (fromByteArrayBigEndian
-            (ffi.KEC
+            (KEC
               ((twoWordHashMem (dropMoveWordFor σ ee len) ⟨5⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨5⟩ (dropMoveWordFor σ ee len) := by
     simpa [solcMappingSlot, uInt256OfByteArray_eq] using
@@ -570,7 +570,7 @@ theorem RD.cureDropNoSwapPopTail {g : Sat256} {s0 : State}
       (cA, dropPopAccountMap σ ee popLen) k' C' := by
   have hsrcsSlot :
       UInt256.ofNat
-          (fromByteArrayBigEndian (ffi.KEC ((wordAt0Mem (⟨2⟩ : UInt256) mem).readWithPadding 0 32))) =
+          (fromByteArrayBigEndian (KEC ((wordAt0Mem (⟨2⟩ : UInt256) mem).readWithPadding 0 32))) =
         srcsDataSlot := by
     simpa [srcsDataSlot, uInt256OfByteArray_eq] using
       wordAt0Mem_keccak_word (⟨2⟩ : UInt256) mem

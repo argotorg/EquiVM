@@ -167,19 +167,19 @@ theorem weth9ApproveBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ## EVM trace : scratch-memory abbreviations -/
 
-noncomputable abbrev approveInnerMem (I : ExecutionEnv) : ByteArray :=
+abbrev approveInnerMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (solcSourceWord I) ⟨4⟩ solcFreePtrMem
 
-noncomputable abbrev approveInnerSlot (I : ExecutionEnv) : UInt256 :=
+abbrev approveInnerSlot (I : ExecutionEnv) : UInt256 :=
   mapSlot (solcSourceWord I) ⟨4⟩
 
-noncomputable abbrev approveHashMem (I : ExecutionEnv) : ByteArray :=
+abbrev approveHashMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (approveGuyMaskedWord I) (approveInnerSlot I) (approveInnerMem I)
 
-noncomputable abbrev approveLogMem (I : ExecutionEnv) : ByteArray :=
+abbrev approveLogMem (I : ExecutionEnv) : ByteArray :=
   solcScratchReturnMem (approveHashMem I) (approveWadWord I)
 
-noncomputable abbrev approveBoolReturnMem (I : ExecutionEnv) : ByteArray :=
+abbrev approveBoolReturnMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)))).write 0
     (approveLogMem I) 128 32
 
@@ -318,13 +318,13 @@ theorem weth9ApproveStoreLog {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (cA, sstoreAccountMap I.codeOwner σ (approveStorageSlot I) (approveWadWord I)) k' C' := by
   have hinnerSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((approveInnerMem I).readWithPadding 0 64))) =
+          (KEC ((approveInnerMem I).readWithPadding 0 64))) =
         approveInnerSlot I := by
     simpa [approveInnerMem, approveInnerSlot, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (⟨4⟩ : UInt256) (solcSourceWord I) solcFreePtrMem_size
   have houterSlot :
       UInt256.ofNat (fromByteArrayBigEndian
-          (ffi.KEC ((approveHashMem I).readWithPadding 0 64))) =
+          (KEC ((approveHashMem I).readWithPadding 0 64))) =
         mapSlot (approveGuyMaskedWord I) (approveInnerSlot I) := by
     simpa [approveHashMem, mapSlot, solcMappingSlot] using
       twoWordHashMem_solcMappingSlot (approveInnerSlot I) (approveGuyMaskedWord I)

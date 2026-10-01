@@ -26,7 +26,7 @@ This is spec-level data only; bytecode/jump facts live in `Bytecode.lean`, proof
 files / `Correct.lean`.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace ERC721
 
@@ -69,7 +69,7 @@ def erc721StorageDecls : List StorageDecl :=
 
 /-- Solidity mapping slot: `keccak256(key ‖ baseSlot)`. -/
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def ownerOfSlot (id : KeyValue) : Ethereum.UInt256 := mapSlot (keyValueToWord id) ⟨0⟩
 def balanceOfSlot (a : KeyValue) : Ethereum.UInt256 := mapSlot (keyValueToWord a) ⟨1⟩

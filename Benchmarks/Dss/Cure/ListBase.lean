@@ -249,10 +249,10 @@ theorem listReturnSize_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
   · rw [listReturnEnd_toNat_of_wf hwf, listArrayFreePtr_toNat_of_wf hwf]
     omega
 
-noncomputable def listArrayHashMem (len : UInt256) : ByteArray :=
+def listArrayHashMem (len : UInt256) : ByteArray :=
   wordAt0Mem (⟨2⟩ : UInt256) (listRoutineMem len)
 
-noncomputable def listArrayCopyStepMem
+def listArrayCopyStepMem
     (σ : AccountMap) (ee : ExecutionEnv) (slot dest : UInt256) (mem : ByteArray) :
     ByteArray :=
   (UInt256.toByteArray (UInt256.land (solcSlotWord σ ee slot) solcAddrMask)).write 0
@@ -373,7 +373,7 @@ theorem listArrayLoopGuard_false_of_wf {σ : AccountMap} {I : ExecutionEnv}
   rw [listArrayEndPtr_toNat_of_wf hwf, listArrayNextDest_toNat_of_wf hwf (by omega)]
   omega
 
-noncomputable def listArrayCopiedMem
+def listArrayCopiedMem
     (σ : AccountMap) (ee : ExecutionEnv) (len : UInt256) : Nat → ByteArray
   | 0 => listArrayHashMem len
   | n + 1 =>
@@ -476,7 +476,7 @@ theorem listArrayCopiedMem_read_elem
 theorem listArrayHashMem_keccak_slot (len : UInt256) :
     UInt256.ofNat
         (fromByteArrayBigEndian
-          (ffi.KEC ((listArrayHashMem len).readWithPadding (⟨0⟩ : UInt256).toNat
+          (KEC ((listArrayHashMem len).readWithPadding (⟨0⟩ : UInt256).toNat
             (⟨32⟩ : UInt256).toNat))) =
       srcsDataSlot := by
   simpa [listArrayHashMem, srcsDataSlot, uInt256OfByteArray_eq,
@@ -661,7 +661,7 @@ theorem listSrcsReturnEncoding {σ : AccountMap} {I : ExecutionEnv} :
   rw [encodeABIStaticArrayElems_listSrcsValuesFrom]
   rfl
 
-noncomputable def wordConcat (f : Nat → UInt256) (idx : Nat) : Nat → ByteArray
+def wordConcat (f : Nat → UInt256) (idx : Nat) : Nat → ByteArray
   | 0 => ByteArray.empty
   | n + 1 => (f idx).toByteArray ++ wordConcat f (idx + 1) n
 

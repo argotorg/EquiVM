@@ -22,13 +22,13 @@ abbrev flapKickOutSize : UInt256 := ⟨32⟩
 
 abbrev flapKickEndPtr : UInt256 := ⟨196⟩
 
-noncomputable def flapKickSelectorMem (mem : ByteArray) : ByteArray :=
+def flapKickSelectorMem (mem : ByteArray) : ByteArray :=
   flapKickSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def flapKickBumpMem (bump : UInt256) (mem : ByteArray) : ByteArray :=
+def flapKickBumpMem (bump : UInt256) (mem : ByteArray) : ByteArray :=
   bump.toByteArray.write 0 (flapKickSelectorMem mem) 132 32
 
-noncomputable def flapKickCalldataMem (bump : UInt256) (mem : ByteArray) : ByteArray :=
+def flapKickCalldataMem (bump : UInt256) (mem : ByteArray) : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0 (flapKickBumpMem bump mem) 164 32
 
 theorem flapKickSelectorMem_size {mem : ByteArray} (hmem : mem.size = 164) :

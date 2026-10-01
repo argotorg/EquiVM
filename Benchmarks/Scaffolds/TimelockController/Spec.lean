@@ -17,7 +17,7 @@ The event-only loop in `scheduleBatch` is therefore intentionally absent. Operat
 standard Solidity `abi.encode(...)` tuple encoding through the benchmark-local ABI hooks below.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace OpenZeppelinBench.TimelockController
 
@@ -124,7 +124,7 @@ def roleDataStruct : StructDecl :=
         { name := "adminRole", ty := bytes32St } ] }
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def addSlot (slot : Ethereum.UInt256) (offset : Nat) : Ethereum.UInt256 :=
   EVM.word (slot.toNat + offset)

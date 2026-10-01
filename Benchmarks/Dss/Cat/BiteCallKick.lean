@@ -37,11 +37,11 @@ abbrev kickSelectorShifted : UInt256 :=
   UInt256.shiftLeft ⟨891151872⟩ ⟨224⟩
 
 /-- Word `0x351de600` written at scratch offset `128`. -/
-noncomputable def kickSelectorMem (mem : ByteArray) : ByteArray :=
+def kickSelectorMem (mem : ByteArray) : ByteArray :=
   kickSelectorShifted.toByteArray.write 0 mem 128 32
 
 /-- The full 164-byte `kick` calldata written over `mem` (selector + five argument words). -/
-noncomputable def kickCalldataMem (urn vow tab dink : UInt256) (mem : ByteArray) : ByteArray :=
+def kickCalldataMem (urn vow tab dink : UInt256) (mem : ByteArray) : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0
     (dink.toByteArray.write 0
       (tab.toByteArray.write 0

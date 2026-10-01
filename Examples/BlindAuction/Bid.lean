@@ -41,37 +41,37 @@ def bidDepositSlot (I : ExecutionEnv) (len : UInt256) : UInt256 :=
 def bidLengthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (bidLengthSlot I) ⟨0⟩)
 
-noncomputable def bidBaseSlotMem (I : ExecutionEnv) : ByteArray :=
+def bidBaseSlotMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨4⟩ : UInt256)).write 0 solcFreePtrMem 32 32
 
-noncomputable def bidHashMem (I : ExecutionEnv) : ByteArray :=
+def bidHashMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (bidSourceWord I)).write 0 (bidBaseSlotMem I) 0 32
 
-noncomputable def bidElemBaseMem (I : ExecutionEnv) (lenSlot : UInt256) : ByteArray :=
+def bidElemBaseMem (I : ExecutionEnv) (lenSlot : UInt256) : ByteArray :=
   (UInt256.toByteArray lenSlot).write 0 (bidHashMem I) 0 32
 
-noncomputable def bidSourceMem (I : ExecutionEnv) : ByteArray :=
+def bidSourceMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (bidSourceWord I)).write 0 solcFreePtrMem 0 32
 
-noncomputable def bidHashMemExec (I : ExecutionEnv) : ByteArray :=
+def bidHashMemExec (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨4⟩ : UInt256)).write 0 (bidSourceMem I) 32 32
 
-noncomputable def bidAllocMem (I : ExecutionEnv) : ByteArray :=
+def bidAllocMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨192⟩ : UInt256)).write 0 (bidHashMemExec I) 64 32
 
-noncomputable def bidBlindedMem (I : ExecutionEnv) : ByteArray :=
+def bidBlindedMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (bidBlindedWord I)).write 0 (bidAllocMem I) 128 32
 
-noncomputable def bidStructMem (I : ExecutionEnv) : ByteArray :=
+def bidStructMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray I.weiValue).write 0 (bidBlindedMem I) 160 32
 
-noncomputable def bidElemBaseMemExec (I : ExecutionEnv) (lenSlot : UInt256) : ByteArray :=
+def bidElemBaseMemExec (I : ExecutionEnv) (lenSlot : UInt256) : ByteArray :=
   (UInt256.toByteArray lenSlot).write 0 (bidStructMem I) 0 32
 
 def bidTooLateSelector : UInt256 :=
   UInt256.shiftLeft (⟨0x348f2b41⟩ : UInt256) ⟨225⟩
 
-noncomputable def bidTooLateMem (deadline : UInt256) : ByteArray :=
+def bidTooLateMem (deadline : UInt256) : ByteArray :=
   (UInt256.toByteArray deadline).write 0 (solcReturnMem bidTooLateSelector) 132 32
 
 abbrev bidCallValue (I : ExecutionEnv) : Value :=
@@ -103,7 +103,7 @@ theorem bidLengthSlot_spec (I : ExecutionEnv) :
 
 theorem bidElementSlot_spec (I : ExecutionEnv) (len : UInt256) :
     bidElementSlot I len =
-      uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (bidLengthSlot I))) +
+      uInt256OfByteArray (KEC (UInt256.toByteArray (bidLengthSlot I))) +
         UInt256.mul len ⟨2⟩ := by
   unfold bidElementSlot bidsElemSlot
   rw [keyValueToWord_uint256]
@@ -232,7 +232,7 @@ theorem bid_toByteArray_write_read_back_of_gap (b : UInt256) (mem : ByteArray) (
       rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size]
       omega)]
     rw [extract_append_right_window
-      (mem ++ ffi.ByteArray.zeroes (off - mem.size))
+      (mem ++ ByteArray.zeroes (off - mem.size))
       (UInt256.toByteArray b) off (off + 32) (by
         rw [ByteArray.size_append, ByteArray_zeroes_size]
         omega)]
@@ -438,15 +438,15 @@ theorem bidElemBaseMemExec_deposit_mload (I : ExecutionEnv) (lenSlot : UInt256) 
 
 theorem bidMappingBaseKeccakExec (I : ExecutionEnv) :
     UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC ((bidHashMemExec I).readWithPadding 0 64)))
+        (fromByteArrayBigEndian (KEC ((bidHashMemExec I).readWithPadding 0 64)))
       = bidLengthSlot I := by
   rw [bidHashMemExec_read0_64, bidLengthSlot_spec]
   exact mappingSlot_single (bidSourceWord I) ⟨4⟩
 
 theorem bidArrayDataKeccakExec (I : ExecutionEnv) (lenSlot : UInt256) :
     UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC ((bidElemBaseMemExec I lenSlot).readWithPadding 0 32)))
-      = uInt256OfByteArray (ffi.KEC (UInt256.toByteArray lenSlot)) := by
+        (fromByteArrayBigEndian (KEC ((bidElemBaseMemExec I lenSlot).readWithPadding 0 32)))
+      = uInt256OfByteArray (KEC (UInt256.toByteArray lenSlot)) := by
   rw [bidElemBaseMemExec_read0]
   exact keccakSlot_eq (UInt256.toByteArray lenSlot)
 
@@ -476,15 +476,15 @@ theorem bidTooLateMem_mload64 (deadline : UInt256) :
 set_option maxHeartbeats 800000 in
 theorem bidMappingBaseKeccak (I : ExecutionEnv) :
     UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC ((bidHashMem I).readWithPadding 0 64)))
+        (fromByteArrayBigEndian (KEC ((bidHashMem I).readWithPadding 0 64)))
       = bidLengthSlot I := by
   rw [bidHashMem_read0_64, bidLengthSlot_spec]
   exact mappingSlot_single (bidSourceWord I) ⟨4⟩
 
 theorem bidArrayDataKeccak (I : ExecutionEnv) (lenSlot : UInt256) :
     UInt256.ofNat
-        (fromByteArrayBigEndian (ffi.KEC ((bidElemBaseMem I lenSlot).readWithPadding 0 32)))
-      = uInt256OfByteArray (ffi.KEC (UInt256.toByteArray lenSlot)) := by
+        (fromByteArrayBigEndian (KEC ((bidElemBaseMem I lenSlot).readWithPadding 0 32)))
+      = uInt256OfByteArray (KEC (UInt256.toByteArray lenSlot)) := by
   rw [bidElemBaseMem_read0]
   exact keccakSlot_eq (UInt256.toByteArray lenSlot)
 
@@ -874,7 +874,7 @@ theorem blindAuctionBidX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
     raw mstore 0 (bidElemBaseMemExec I (bidLengthSlot I)) (UInt256.ofNat 6) (by decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
     swap3, swap1, swap4,
-    raw keccak256 0 (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (bidLengthSlot I))))
+    raw keccak256 0 (uInt256OfByteArray (KEC (UInt256.toByteArray (bidLengthSlot I))))
       (UInt256.ofNat 6) (by decide)
       mem_cost (bidArrayDataKeccakExec I (bidLengthSlot I)) (by decide) (by evm_ov),
     swap1,
@@ -883,7 +883,7 @@ theorem blindAuctionBidX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨2⟩, swap1, swap3, mul, add]
   have hElemSlotR :
       UInt256.mul (bidLengthWord σ I) ⟨2⟩ +
-          uInt256OfByteArray (ffi.KEC (UInt256.toByteArray (bidLengthSlot I))) =
+          uInt256OfByteArray (KEC (UInt256.toByteArray (bidLengthSlot I))) =
         bidElementSlot I (bidLengthWord σ I) := by
     rw [u256_add_comm, ← bidElementSlot_spec I (bidLengthWord σ I)]
   have rd1516' := rd1516

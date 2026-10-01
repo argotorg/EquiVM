@@ -270,10 +270,10 @@ abbrev clipperUpchostIlkWord (v : ClipperImmutables) : UInt256 :=
     | .fixedBytes _ bs => bs
     | _ => []))
 
-noncomputable def clipperVatIlksSelectorMem (mem : ByteArray) : ByteArray :=
+def clipperVatIlksSelectorMem (mem : ByteArray) : ByteArray :=
   clipperVatIlksSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def clipperVatIlksCalldataMem (ilk : UInt256) (mem : ByteArray) : ByteArray :=
+def clipperVatIlksCalldataMem (ilk : UInt256) (mem : ByteArray) : ByteArray :=
   ilk.toByteArray.write 0 (clipperVatIlksSelectorMem mem) 132 32
 
 abbrev clipperDogChopSelectorSeed : UInt256 :=
@@ -285,7 +285,7 @@ abbrev clipperDogChopSelectorShifted : UInt256 :=
 abbrev clipperDogChopSelectorWord : UInt256 :=
   ⟨3616695608⟩
 
-noncomputable def clipperDogChopSelectorMem (mem : ByteArray) : ByteArray :=
+def clipperDogChopSelectorMem (mem : ByteArray) : ByteArray :=
   clipperDogChopSelectorShifted.toByteArray.write 0 mem 128 32
 
 theorem clipperVatIlksSelectorMem_size {mem : ByteArray} (hmem : mem.size = 96) :
@@ -334,7 +334,7 @@ theorem clipperVatIlksSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 
     native_decide
   rw [toByteArray_write_eq clipperVatIlksSelectorShifted mem 128 (by omega) hgap]
   have hprefix :
-      (mem ++ ffi.ByteArray.zeroes (128 - mem.size)).size = 128 := by
+      (mem ++ ByteArray.zeroes (128 - mem.size)).size = 128 := by
     rw [ByteArray.size_append, ByteArray_zeroes_size, hmem]
   rw [extract_append_right_window _ _ 128 132 (by rw [hprefix]), hprefix,
     show 128 - 128 = 0 from rfl, show 132 - 128 = 4 from rfl,
@@ -405,17 +405,17 @@ theorem clipperVatIlksEncode_eq (v : ClipperImmutables) :
     ABI.staticABIEncodedSize?, ABI.isDynamicABIType, bytes32, bytes32Width, vatIlksSelector,
     selectorBytes, hlen, ABI.zeroBytes, hwordBytes, hbsByteArray]
 
-noncomputable def clipperVatIlksPostCallMem (v : ClipperImmutables) (out : ByteArray) :
+def clipperVatIlksPostCallMem (v : ClipperImmutables) (out : ByteArray) :
     ByteArray :=
   out.write 0 (clipperVatIlksCalldataMem (clipperUpchostIlkWord v) solcFreePtrMem) 128
     (min (⟨160⟩ : UInt256) (UInt256.ofNat out.size)).toNat
 
-noncomputable def clipperDogChopCalldataMem (v : ClipperImmutables)
+def clipperDogChopCalldataMem (v : ClipperImmutables)
     (out : ByteArray) : ByteArray :=
   (clipperUpchostIlkWord v).toByteArray.write 0
     (clipperDogChopSelectorMem (clipperVatIlksPostCallMem v out)) 132 32
 
-noncomputable def clipperDogChopPostCallMem (v : ClipperImmutables)
+def clipperDogChopPostCallMem (v : ClipperImmutables)
     (out outDog : ByteArray) : ByteArray :=
   outDog.write 0 (clipperDogChopCalldataMem v out) 128
     (min (⟨32⟩ : UInt256) (UInt256.ofNat outDog.size)).toNat

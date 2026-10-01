@@ -38,7 +38,7 @@ mapping→array→struct shapes, and compact strings need the per-contract cases
 (cf. `Examples/Ballot/Spec.lean`, `Benchmarks/WETH9/Spec.lean`). -/
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (Ethereum.KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def wordLoc (slot : Ethereum.UInt256) : StorageLoc :=
   { slot := slot, offset := 0, size := 32, hbound := by decide, type := .int uint256Int }

@@ -337,16 +337,16 @@ active-words `aw = ⟨10⟩`.  The `Error(string)` ABI-encode `MSTORE`s therefor
 billed at `3`), and the final `revert(320, 100)` stays in bounds.  This is the fp=320 / grown-`aw`
 analogue of `Reasoning.Solc.RD.solcErrorStringRevertTail` (fp=128, `aw = ⟨3⟩`, `mem.size = 96`). -/
 
-noncomputable def catBiteMilkErrMem0 (mem : ByteArray) : ByteArray :=
+def catBiteMilkErrMem0 (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray solcErrorStringSelector).write 0 mem 320 32
 
-noncomputable def catBiteMilkErrMem1 (mem : ByteArray) : ByteArray :=
+def catBiteMilkErrMem1 (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 (catBiteMilkErrMem0 mem) 324 32
 
-noncomputable def catBiteMilkErrMem2 (len : UInt256) (mem : ByteArray) : ByteArray :=
+def catBiteMilkErrMem2 (len : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray len).write 0 (catBiteMilkErrMem1 mem) 356 32
 
-noncomputable def catBiteMilkErrMem3 (len word : UInt256) (mem : ByteArray) : ByteArray :=
+def catBiteMilkErrMem3 (len word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 (catBiteMilkErrMem2 len mem) 388 32
 
 theorem catBiteMilkErrMem0_size {mem : ByteArray} (hmem : mem.size = 320) :

@@ -446,7 +446,7 @@ theorem catBiteMCollapseL (a : UInt256) (o1 o2 : ℕ) (hle : o1 ≤ o2)
   congr 1
   exact Nat.max_eq_right (by omega)
 
-@[irreducible] noncomputable def catBiteAwStepL (aw : UInt256) (off : ℕ) : UInt256 :=
+@[irreducible] def catBiteAwStepL (aw : UInt256) (off : ℕ) : UInt256 :=
   UInt256.ofNat (MachineState.M aw.toNat off 32)
 
 theorem catBiteAwStepL_collapse (aw : UInt256) (o1 o2 : ℕ) (hle : o1 ≤ o2)

@@ -15,10 +15,10 @@ abbrev fileAddressHopeSelectorShifted : UInt256 :=
 abbrev fileAddressHopeSelector : UInt256 :=
   ⟨2746363844⟩
 
-noncomputable def fileAddressHopeSelectorMem (mem : ByteArray) : ByteArray :=
+def fileAddressHopeSelectorMem (mem : ByteArray) : ByteArray :=
   fileAddressHopeSelectorShifted.toByteArray.write 0 mem 128 32
 
-noncomputable def fileAddressHopeCalldataMem (arg : UInt256) (mem : ByteArray) : ByteArray :=
+def fileAddressHopeCalldataMem (arg : UInt256) (mem : ByteArray) : ByteArray :=
   arg.toByteArray.write 0 (fileAddressHopeSelectorMem mem) 132 32
 
 theorem fileAddressHopeSelectorMem_size {mem : ByteArray} (hmem : mem.size = 164) :

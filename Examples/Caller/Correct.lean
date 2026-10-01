@@ -493,7 +493,7 @@ theorem callerX_body117 {cA gh bl σ σ₀ A I} {g : Sat256}
     dup3, push4 ⟨4294967295⟩, and, push1 ⟨224⟩, shl, dup2 ]⟩
 
 /-- Memory after writing the (left-shifted) `pow2` selector to `mem[128]`. -/
-noncomputable def callerSelMem : ByteArray :=
+def callerSelMem : ByteArray :=
   (UInt256.shiftLeft (UInt256.land ⟨4294967295⟩ ⟨1143701499⟩) ⟨224⟩).toByteArray.write 0
     solcFreePtrMem 128 32
 
@@ -517,11 +517,11 @@ theorem callerX_body425 {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨4⟩, add, push2 ⟨130⟩, swap2, swap1, push2 ⟨425⟩, jump caller_jd ]⟩
 
 /-- Memory after the encoder writes `n` at mem[132] (the full `pow2(n)` calldata at mem[128..164]). -/
-noncomputable def callerCalldataMem (I : ExecutionEnv) : ByteArray :=
+def callerCalldataMem (I : ExecutionEnv) : ByteArray :=
   (callerArg1 I).toByteArray.write 0 callerSelMem 132 32
 
 /-- The free-memory pointer the body MLOADs at offset 64 (carried symbolically; provably `⟨128⟩`). -/
-noncomputable def callerOutPtr (I : ExecutionEnv) : UInt256 :=
+def callerOutPtr (I : ExecutionEnv) : UInt256 :=
   if (⟨64⟩ : UInt256).toNat ≥ (callerCalldataMem I).size ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩
   then ⟨0⟩
   else UInt256.ofNat (fromByteArrayBigEndian ((callerCalldataMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))
@@ -792,7 +792,7 @@ theorem callerContains470 : (D_J callerBytecode 0).contains ⟨470⟩ = true := 
 
 /-- The memory after the success decoder's free-pointer `MSTORE` at offset 64.  The result word at
     `[128, 160)` (where the CALL wrote `o`) is untouched, so `readWithPadding 128` is preserved. -/
-noncomputable def callerMem2 (o mem : ByteArray) : ByteArray :=
+def callerMem2 (o mem : ByteArray) : ByteArray :=
   (UInt256.add ⟨128⟩ (UInt256.land (UInt256.add (UInt256.ofNat o.size) ⟨31⟩)
     (UInt256.lnot ⟨31⟩))).toByteArray.write 0 mem 64 32
 
@@ -1333,7 +1333,7 @@ theorem callerCorrect :
 
 /-! ## Constructor and full-contract equivalence -/
 
-noncomputable def callerInitReturnMem : ByteArray :=
+def callerInitReturnMem : ByteArray :=
   (callerInitcode).write 12 ByteArray.empty 0 567
 
 theorem callerBytecode_size : callerBytecode.size = 567 := by

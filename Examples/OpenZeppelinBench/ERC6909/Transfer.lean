@@ -871,27 +871,27 @@ theorem erc6909TransferX_noncanon_receiver {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-! ## EVM body trace for `transfer(address,uint256,uint256)` -/
 
-noncomputable def transferInnerHashMem (owner : UInt256) : ByteArray :=
+def transferInnerHashMem (owner : UInt256) : ByteArray :=
   approveTwoWordHashMem owner ⟨0⟩ solcFreePtrMem
 
-noncomputable def transferInnerSlot (owner : UInt256) : UInt256 :=
+def transferInnerSlot (owner : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((transferInnerHashMem owner).readWithPadding 0 64)))
+    (KEC ((transferInnerHashMem owner).readWithPadding 0 64)))
 
-noncomputable def transferOuterHashMem (owner id : UInt256) : ByteArray :=
+def transferOuterHashMem (owner id : UInt256) : ByteArray :=
   approveTwoWordHashMem id (transferInnerSlot owner) (transferInnerHashMem owner)
 
-noncomputable def transferOuterSlot (owner id : UInt256) : UInt256 :=
+def transferOuterSlot (owner id : UInt256) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian
-    (ffi.KEC ((transferOuterHashMem owner id).readWithPadding 0 64)))
+    (KEC ((transferOuterHashMem owner id).readWithPadding 0 64)))
 
-noncomputable def transferEventFromMem (from_ to_ id : UInt256) : ByteArray :=
+def transferEventFromMem (from_ to_ id : UInt256) : ByteArray :=
   (UInt256.toByteArray from_).write 0 (transferOuterHashMem to_ id) 128 32
 
-noncomputable def transferEventMem (from_ to_ id amount : UInt256) : ByteArray :=
+def transferEventMem (from_ to_ id amount : UInt256) : ByteArray :=
   (UInt256.toByteArray amount).write 0 (transferEventFromMem from_ to_ id) 160 32
 
-noncomputable def transferReturnMem (from_ to_ id amount : UInt256) : ByteArray :=
+def transferReturnMem (from_ to_ id amount : UInt256) : ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0
     (transferEventMem from_ to_ id amount) 128 32
 
@@ -937,7 +937,7 @@ theorem transferOuterHashMem_mload64 (owner id : UInt256) :
   mloadFreePtrValue (by rw [transferOuterHashMem_size]; decide) (by decide)
     (transferOuterHashMem_read64 owner id)
 
-noncomputable def transferMapScratchMem (base : ByteArray) (owner id : UInt256) : ByteArray :=
+def transferMapScratchMem (base : ByteArray) (owner id : UInt256) : ByteArray :=
   approveTwoWordHashMem id (transferInnerSlot owner) (approveTwoWordHashMem owner ⟨0⟩ base)
 
 theorem transferMapScratchMem_size {base : ByteArray} (owner id : UInt256)
@@ -1084,15 +1084,15 @@ theorem transferReturnMem_read128 (from_ to_ id amount : UInt256) :
     change (UInt256.toByteArray (⟨1⟩ : UInt256)).size ≤ 32
     rw [toByteArray_size])
 
-noncomputable def transferEventFromBaseMem (base : ByteArray) (from_ : UInt256) :
+def transferEventFromBaseMem (base : ByteArray) (from_ : UInt256) :
     ByteArray :=
   (UInt256.toByteArray from_).write 0 base 128 32
 
-noncomputable def transferEventBaseMem (base : ByteArray) (from_ amount : UInt256) :
+def transferEventBaseMem (base : ByteArray) (from_ amount : UInt256) :
     ByteArray :=
   (UInt256.toByteArray amount).write 0 (transferEventFromBaseMem base from_) 160 32
 
-noncomputable def transferReturnBaseMem (base : ByteArray) (from_ amount : UInt256) :
+def transferReturnBaseMem (base : ByteArray) (from_ amount : UInt256) :
     ByteArray :=
   (UInt256.toByteArray (⟨1⟩ : UInt256)).write 0 (transferEventBaseMem base from_ amount) 128 32
 
@@ -1225,7 +1225,7 @@ theorem transferOuterKeccakSlot (owner id : UInt256)
   rw [keyValueToWord_address_of_canonical owner hcanon,
     keyValueToWord_uint256 id]
   exact mappingSlot_single id
-    (uInt256OfByteArray (ffi.KEC (UInt256.toByteArray owner ++
+    (uInt256OfByteArray (KEC (UInt256.toByteArray owner ++
       UInt256.toByteArray (⟨0⟩ : UInt256))))
 
 theorem transferFromKeccakSlot (I : ExecutionEnv) :
@@ -1254,25 +1254,25 @@ def transferPanicSelectorWord : UInt256 :=
 def transferInsufficientBalanceSelectorWord : UInt256 :=
   UInt256.shiftLeft ⟨0x02c6d3fb⟩ ⟨230⟩
 
-noncomputable def transferInsufficientBalanceSelectorMem (owner id : UInt256) : ByteArray :=
+def transferInsufficientBalanceSelectorMem (owner id : UInt256) : ByteArray :=
   (UInt256.toByteArray transferInsufficientBalanceSelectorWord).write 0
     (transferOuterHashMem owner id) 128 32
 
-noncomputable def transferInsufficientBalanceSenderMem (owner id : UInt256) : ByteArray :=
+def transferInsufficientBalanceSenderMem (owner id : UInt256) : ByteArray :=
   (UInt256.toByteArray owner).write 0
     (transferInsufficientBalanceSelectorMem owner id) 132 32
 
-noncomputable def transferInsufficientBalanceBalanceMem
+def transferInsufficientBalanceBalanceMem
     (owner id balance : UInt256) : ByteArray :=
   (UInt256.toByteArray balance).write 0
     (transferInsufficientBalanceSenderMem owner id) 164 32
 
-noncomputable def transferInsufficientBalanceAmountMem
+def transferInsufficientBalanceAmountMem
     (owner id balance amount : UInt256) : ByteArray :=
   (UInt256.toByteArray amount).write 0
     (transferInsufficientBalanceBalanceMem owner id balance) 196 32
 
-noncomputable def transferInsufficientBalanceIdMem
+def transferInsufficientBalanceIdMem
     (owner id balance amount : UInt256) : ByteArray :=
   (UInt256.toByteArray id).write 0
     (transferInsufficientBalanceAmountMem owner id balance amount) 228 32
@@ -1398,10 +1398,10 @@ theorem transferInsufficientBalanceIdMem_mload64
   mloadFreePtrValue (by rw [transferInsufficientBalanceIdMem_size]; decide)
     (by decide) (transferInsufficientBalanceIdMem_read64 owner id balance amount)
 
-noncomputable def transferPanicMem0 (mem : ByteArray) : ByteArray :=
+def transferPanicMem0 (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray transferPanicSelectorWord).write 0 mem 0 32
 
-noncomputable def transferPanicMem (mem : ByteArray) : ByteArray :=
+def transferPanicMem (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray (⟨17⟩ : UInt256)).write 0 (transferPanicMem0 mem) 4 32
 
 theorem RD.erc6909PanicOverflowRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -1939,13 +1939,13 @@ theorem erc6909TransferX_afterDebit {cA gh bl σ σ₀ A I} {g : Sat256}
         unfold transferInnerSlot
         change UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((approveTwoWordHashMem (transferSenderWord I) ⟨0⟩
                     (transferOuterHashMem (transferSenderWord I) (transferIdWord I))
                   ).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC ((transferInnerHashMem (transferSenderWord I)).readWithPadding 0 64)))
+              (KEC ((transferInnerHashMem (transferSenderWord I)).readWithPadding 0 64)))
         rw [approveTwoWordHashMem_read0_64 (transferSenderWord I) ⟨0⟩
           (transferOuterHashMem_size (transferSenderWord I) (transferIdWord I)),
           transferInnerHashMem_read0_64])
@@ -1970,13 +1970,13 @@ theorem erc6909TransferX_afterDebit {cA gh bl σ σ₀ A I} {g : Sat256}
         unfold transferOuterSlot
         change UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferMapScratchMem
                     (transferOuterHashMem (transferSenderWord I) (transferIdWord I))
                     (transferSenderWord I) (transferIdWord I)).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferOuterHashMem (transferSenderWord I) (transferIdWord I)
                   ).readWithPadding 0 64)))
         rw [transferMapScratchMem_read0_64 (transferSenderWord I) (transferIdWord I)
@@ -2080,12 +2080,12 @@ theorem erc6909TransferX_toCheckedAdd {cA gh bl σ σ₀ A I} {g : Sat256}
         unfold transferInnerSlot
         change UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((approveTwoWordHashMem (transferReceiverWord I) ⟨0⟩ debitMem
                   ).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC ((transferInnerHashMem (transferReceiverWord I)).readWithPadding 0 64)))
+              (KEC ((transferInnerHashMem (transferReceiverWord I)).readWithPadding 0 64)))
         rw [approveTwoWordHashMem_read0_64 (transferReceiverWord I) ⟨0⟩ hdebitMemSize,
           transferInnerHashMem_read0_64])
       (by decide) (by evm_ov) ]
@@ -2105,12 +2105,12 @@ theorem erc6909TransferX_toCheckedAdd {cA gh bl σ σ₀ A I} {g : Sat256}
         unfold transferOuterSlot
         change UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferMapScratchMem debitMem (transferReceiverWord I) (transferIdWord I)
                   ).readWithPadding 0 64))) =
           UInt256.ofNat
             (fromByteArrayBigEndian
-              (ffi.KEC
+              (KEC
                 ((transferOuterHashMem (transferReceiverWord I) (transferIdWord I)
                   ).readWithPadding 0 64)))
         rw [transferMapScratchMem_read0_64 (transferReceiverWord I) (transferIdWord I)

@@ -8,7 +8,7 @@ Faithful Solm benchmark spec for upstream `dss/src/cure.sol`.
 Events are omitted, matching the existing event-bearing DSS benchmarks.
 -/
 
-open Solm ABI
+open Solm ABI Ethereum
 
 namespace Benchmarks.Dss.Cure
 
@@ -101,13 +101,13 @@ def storageDecls : List StorageDecl :=
     { name := "say", ty := uint256St } ]
 
 def mapSlot (key baseSlot : Ethereum.UInt256) : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray))
+  Ethereum.uInt256OfByteArray (KEC (key.toByteArray ++ baseSlot.toByteArray))
 
 def wardsSlot (usr : KeyValue) : Ethereum.UInt256 :=
   mapSlot (keyValueToWord usr) ⟨0⟩
 
 def srcsDataSlot : Ethereum.UInt256 :=
-  Ethereum.uInt256OfByteArray (ffi.KEC (Ethereum.UInt256.toByteArray ⟨2⟩))
+  Ethereum.uInt256OfByteArray (KEC (Ethereum.UInt256.toByteArray ⟨2⟩))
 
 def srcElemSlot (idx : KeyValue) : Ethereum.UInt256 :=
   srcsDataSlot + keyValueToWord idx

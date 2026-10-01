@@ -10,11 +10,11 @@ namespace Benchmarks.Dss.Flipper
 
 /-! ## Tail helpers for `tend(uint256,uint256,uint256)` -/
 
-noncomputable abbrev tendPayHashMem (mem : ByteArray) (I : ExecutionEnv) :
+abbrev tendPayHashMem (mem : ByteArray) (I : ExecutionEnv) :
     ByteArray :=
   twoWordHashMem (tendId I) ⟨1⟩ mem
 
-noncomputable abbrev tendVatPayCallMem (mem : ByteArray) (σ : AccountMap)
+abbrev tendVatPayCallMem (mem : ByteArray) (σ : AccountMap)
     (I : ExecutionEnv) : ByteArray :=
   writeCascade (tendPayHashMem mem I)
     [(128, yankVatMoveSelectorWord),
@@ -22,7 +22,7 @@ noncomputable abbrev tendVatPayCallMem (mem : ByteArray) (σ : AccountMap)
      (164, bidGalWord (tendId I) σ I),
      (196, UInt256.sub (tendBid I) (bidBidWord (tendId I) σ I))]
 
-noncomputable abbrev tendVatRefundCallMem (mem : ByteArray) (σ : AccountMap)
+abbrev tendVatRefundCallMem (mem : ByteArray) (σ : AccountMap)
     (I : ExecutionEnv) : ByteArray :=
   writeCascade (tendPayHashMem mem I)
     [(128, yankVatMoveSelectorWord),
@@ -289,7 +289,7 @@ theorem tendTwoWordHashMem_read0_64_of_size_ge {mem : ByteArray} (key slot : UIn
 theorem tendTwoWordHashMem_solcMappingSlot_of_size_ge
     (baseSlot key : UInt256) {mem : ByteArray} (hmem : 64 ≤ mem.size) :
     UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
+        (KEC ((twoWordHashMem key baseSlot mem).readWithPadding 0 64))) =
       solcMappingSlot baseSlot key := by
   rw [tendTwoWordHashMem_read0_64_of_size_ge key baseSlot hmem]
   unfold solcMappingSlot

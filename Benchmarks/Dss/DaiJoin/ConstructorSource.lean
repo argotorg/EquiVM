@@ -17,7 +17,7 @@ abbrev daiJoinCtorArgsTail (vat dai : AccountAddress) : ByteArray :=
   (EVM.Word.toBytesBE (EVM.word vat.val)).toByteArray ++
     (EVM.Word.toBytesBE (EVM.word dai.val)).toByteArray
 
-noncomputable def daiJoinCtorCode (vat dai : AccountAddress) : ByteArray :=
+def daiJoinCtorCode (vat dai : AccountAddress) : ByteArray :=
   daiJoinCreationBytecode ++ daiJoinCtorArgsTail vat dai
 
 theorem daiJoinCtorDeployment_shape {args : List Value} {deployedInitcode : ByteArray}
