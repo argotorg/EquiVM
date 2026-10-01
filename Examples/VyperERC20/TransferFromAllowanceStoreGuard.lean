@@ -69,10 +69,8 @@ theorem erc20X_transferFromAllowanceStoreGuard {cA gh bl σ σ₀ A I} {g : Sat2
         exact mloadWordValue_of_readWithPadding
           (mem := transferFromFromBalanceHashMem
             (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
-            (transferFromCurrentAllowanceRaw σ I))
-          (aw := UInt256.ofNat 5) (off := ⟨128⟩) (v := transferFromCurrentAllowanceRaw σ I)
+            (transferFromCurrentAllowanceRaw σ I)) (off := ⟨128⟩) (v := transferFromCurrentAllowanceRaw σ I)
           (by rw [transferFromFromBalanceHashMem_size]; decide)
-          (by decide)
           (transferFromFromBalanceHashMem_read128
             (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
             (transferFromCurrentAllowanceRaw σ I)))

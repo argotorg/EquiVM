@@ -813,8 +813,7 @@ theorem transferReturnMem_read96 (dst owner val : UInt256) :
     rw [toByteArray_size])
 
 theorem transferDispatchMem_mload0 :
-    (if (⟨0⟩ : UInt256).toNat ≥ transferDispatchMem.size ∨
-        (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 1) * ⟨32⟩
+    (if (⟨0⟩ : UInt256).toNat ≥ transferDispatchMem.size
       then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (transferDispatchMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))
@@ -1106,10 +1105,8 @@ theorem erc20X_transferBeforeToLoad {cA gh bl σ σ₀ A I} {g : Sat256}
       (by vyper_erc20_transfer_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
-          (mem := transferSenderHashMemAgain (transferToWord I) (approveOwnerWord I))
-          (aw := UInt256.ofNat 3) (off := ⟨64⟩) (v := transferToWord I)
+          (mem := transferSenderHashMemAgain (transferToWord I) (approveOwnerWord I)) (off := ⟨64⟩) (v := transferToWord I)
           (by rw [transferSenderHashMemAgain_size]; decide)
-          (by decide)
           (transferSenderHashMemAgain_read64 (transferToWord I) (approveOwnerWord I)))
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
@@ -1261,10 +1258,8 @@ theorem erc20X_transferBeforeLog {cA gh bl σ σ₀ A I} {g : Sat256}
       (by vyper_erc20_transfer_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
-          (mem := transferToHashMem (transferToWord I) (approveOwnerWord I))
-          (aw := UInt256.ofNat 3) (off := ⟨64⟩) (v := transferToWord I)
+          (mem := transferToHashMem (transferToWord I) (approveOwnerWord I)) (off := ⟨64⟩) (v := transferToWord I)
           (by rw [transferToHashMem_size]; decide)
-          (by decide)
           (transferToHashMem_read64 (transferToWord I) (approveOwnerWord I)))
       (by decide) (by evm_ov),
     caller]).pushConst transferEventTopic (width := 32) (op := .PUSH32)

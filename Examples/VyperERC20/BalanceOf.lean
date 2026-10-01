@@ -272,10 +272,9 @@ theorem erc20X_balanceOfFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
       mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
-          (mem := balanceOfOwnerArgMem (balanceOfOwnerWord I)) (aw := UInt256.ofNat 3)
+          (mem := balanceOfOwnerArgMem (balanceOfOwnerWord I))
           (off := ⟨64⟩) (v := balanceOfOwnerWord I)
           (by rw [balanceOfOwnerArgMem_size]; decide)
-          (by decide)
           (by
             unfold balanceOfOwnerArgMem
             exact toByteArray_write_read_back_of_gap (balanceOfOwnerWord I) balanceOfDispatchMem 64
@@ -342,8 +341,7 @@ theorem balanceOfSelectorWord_of_calldata {I : ExecutionEnv}
     exact False.elim (hne h)
 
 theorem balanceOfDispatchMem_mload0 :
-    (if (⟨0⟩ : UInt256).toNat ≥ balanceOfDispatchMem.size ∨
-        (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 1) * ⟨32⟩
+    (if (⟨0⟩ : UInt256).toNat ≥ balanceOfDispatchMem.size
       then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (balanceOfDispatchMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))

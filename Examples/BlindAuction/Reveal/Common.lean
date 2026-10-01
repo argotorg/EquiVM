@@ -312,12 +312,11 @@ theorem revealScratchBidsHashMem_read64 (I : ExecutionEnv) :
   exact solcFreePtrMem_read64
 
 theorem revealScratchBidsHashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (revealScratchBidsHashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (revealScratchBidsHashMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((revealScratchBidsHashMem I).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [revealScratchBidsHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [revealScratchBidsHashMem_size]; decide)
     (revealScratchBidsHashMem_read64 I)
 
 theorem revealScratchBidsHashMem_read0_64 (I : ExecutionEnv) :
@@ -392,12 +391,11 @@ theorem revealTimeRevertMem_size (arg errSel : UInt256) :
   omega
 
 theorem revealTimeRevertMem_mload64 (arg errSel : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (revealTimeRevertMem arg errSel).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (revealTimeRevertMem arg errSel).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((revealTimeRevertMem arg errSel).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [revealTimeRevertMem_size]; decide) (by decide) (by
+  mloadFreePtrValue (by rw [revealTimeRevertMem_size]; decide) (by
     unfold revealTimeRevertMem
     rw [write32_read_below _ _ 132 64 (by rw [toByteArray_size])
       (by rw [solcReturnMem_size]; omega) (by omega)]
@@ -2611,7 +2609,7 @@ theorem scratch_blindAuctionRevealX_postCallNonempty_toRequire_freePtr {I} {g : 
       mem aw o acc k C)
     (ho0 : o.size ≠ 0) (hosz : o.size < UInt256.size)
     (hfree :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (mem.readWithPadding (⟨64⟩ : UInt256).toNat (⟨32⟩ : UInt256).toNat))) =
@@ -2688,7 +2686,7 @@ theorem scratch_blindAuctionRevealX_loopExit_toCall {I} {g : Sat256} {s0 : State
         valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata acc k C)
     (hfree :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (mem.readWithPadding (⟨64⟩ : UInt256).toNat (⟨32⟩ : UInt256).toNat))) =
@@ -2762,13 +2760,12 @@ theorem scratch_revealBidsArrayDataMem_read64 (I : ExecutionEnv) :
     revealScratchBidsHashMem_read64]
 
 theorem scratch_revealBidsArrayDataMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (scratch_revealBidsArrayDataMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (scratch_revealBidsArrayDataMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((scratch_revealBidsArrayDataMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [scratch_revealBidsArrayDataMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [scratch_revealBidsArrayDataMem_size]; decide)
     (scratch_revealBidsArrayDataMem_read64 I)
 
 theorem scratch_revealBidsArrayDataKeccak (I : ExecutionEnv) :
@@ -3216,7 +3213,7 @@ theorem scratch_blindAuctionRevealX_loopBody_packed_prefix {I} {g : Sat256}
         secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata acc k C)
     (hfp :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp) :
@@ -3288,7 +3285,7 @@ theorem scratch_blindAuctionRevealX_loopBody_packed_suffix {I} {g : Sat256}
         fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata (cA, σ) k C)
     (hfp :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -3297,11 +3294,8 @@ theorem scratch_blindAuctionRevealX_loopBody_packed_suffix {I} {g : Sat256}
       let newFree := (⟨65⟩ : UInt256) + base
       let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
       let mem4 := scratch_revealPackedLenMem mem fp packedLen
-      let aw1 := UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32)
-      let aw2 := UInt256.ofNat (MachineState.M aw1.toNat fp.toNat 32)
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
-      let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨64⟩ : UInt256).toNat 32)
-      (if fp.toNat ≥ mem5.size ∨ fp ≥ aw3 * ⟨32⟩
+      (if fp.toNat ≥ mem5.size
        then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem5.readWithPadding fp.toNat 32))) =
         packedLen)

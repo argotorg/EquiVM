@@ -928,13 +928,12 @@ theorem transferOuterHashMem_read64 (owner id : UInt256) :
   · exact approveTwoWordHashMem_read64 owner ⟨0⟩ solcFreePtrMem_size solcFreePtrMem_read64
 
 theorem transferOuterHashMem_mload64 (owner id : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (transferOuterHashMem owner id).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (transferOuterHashMem owner id).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((transferOuterHashMem owner id).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [transferOuterHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [transferOuterHashMem_size]; decide)
     (transferOuterHashMem_read64 owner id)
 
 def transferMapScratchMem (base : ByteArray) (owner id : UInt256) : ByteArray :=
@@ -968,14 +967,12 @@ theorem transferMapScratchMem_read64 {base : ByteArray} (owner id : UInt256)
 theorem transferMapScratchMem_mload64 {base : ByteArray} (owner id : UInt256)
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (transferMapScratchMem base owner id).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (transferMapScratchMem base owner id).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((transferMapScratchMem base owner id).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [transferMapScratchMem_size owner id hbase]; decide)
-    (by decide) (transferMapScratchMem_read64 owner id hbase hread64)
+  mloadFreePtrValue (by rw [transferMapScratchMem_size owner id hbase]; decide) (transferMapScratchMem_read64 owner id hbase hread64)
 
 theorem transferEventFromMem_size (from_ to_ id : UInt256) :
     (transferEventFromMem from_ to_ id).size = 160 := by
@@ -1018,13 +1015,12 @@ theorem transferEventFromMem_read64 (from_ to_ id : UInt256) :
     transferOuterHashMem_read64]
 
 theorem transferEventFromMem_mload64 (from_ to_ id : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (transferEventFromMem from_ to_ id).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (transferEventFromMem from_ to_ id).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((transferEventFromMem from_ to_ id).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [transferEventFromMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [transferEventFromMem_size]; decide)
     (transferEventFromMem_read64 from_ to_ id)
 
 theorem transferEventMem_read64 (from_ to_ id amount : UInt256) :
@@ -1036,13 +1032,12 @@ theorem transferEventMem_read64 (from_ to_ id amount : UInt256) :
     transferEventFromMem_read64]
 
 theorem transferEventMem_mload64 (from_ to_ id amount : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (transferEventMem from_ to_ id amount).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (transferEventMem from_ to_ id amount).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((transferEventMem from_ to_ id amount).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [transferEventMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [transferEventMem_size]; decide)
     (transferEventMem_read64 from_ to_ id amount)
 
 theorem transferReturnMem_size (from_ to_ id amount : UInt256) :
@@ -1063,13 +1058,12 @@ theorem transferReturnMem_read64 (from_ to_ id amount : UInt256) :
     transferEventMem_read64]
 
 theorem transferReturnMem_mload64 (from_ to_ id amount : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (transferReturnMem from_ to_ id amount).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (transferReturnMem from_ to_ id amount).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((transferReturnMem from_ to_ id amount).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [transferReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [transferReturnMem_size]; decide)
     (transferReturnMem_read64 from_ to_ id amount)
 
 theorem transferReturnMem_read128 (from_ to_ id amount : UInt256) :
@@ -1151,14 +1145,12 @@ theorem transferEventBaseMem_read64 {base : ByteArray} (from_ amount : UInt256)
 theorem transferEventBaseMem_mload64 {base : ByteArray} (from_ amount : UInt256)
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (transferEventBaseMem base from_ amount).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (transferEventBaseMem base from_ amount).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((transferEventBaseMem base from_ amount).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [transferEventBaseMem_size from_ amount hbase]; decide)
-    (by decide) (transferEventBaseMem_read64 from_ amount hbase hread64)
+  mloadFreePtrValue (by rw [transferEventBaseMem_size from_ amount hbase]; decide) (transferEventBaseMem_read64 from_ amount hbase hread64)
 
 theorem transferReturnBaseMem_size {base : ByteArray} (from_ amount : UInt256)
     (hbase : base.size = 96) :
@@ -1184,14 +1176,12 @@ theorem transferReturnBaseMem_read64 {base : ByteArray} (from_ amount : UInt256)
 theorem transferReturnBaseMem_mload64 {base : ByteArray} (from_ amount : UInt256)
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (transferReturnBaseMem base from_ amount).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (transferReturnBaseMem base from_ amount).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((transferReturnBaseMem base from_ amount).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [transferReturnBaseMem_size from_ amount hbase]; decide)
-    (by decide) (transferReturnBaseMem_read64 from_ amount hbase hread64)
+  mloadFreePtrValue (by rw [transferReturnBaseMem_size from_ amount hbase]; decide) (transferReturnBaseMem_read64 from_ amount hbase hread64)
 
 theorem transferReturnBaseMem_read128 {base : ByteArray} (from_ amount : UInt256)
     (hbase : base.size = 96) :
@@ -1388,15 +1378,13 @@ theorem transferInsufficientBalanceIdMem_read64
 theorem transferInsufficientBalanceIdMem_mload64
     (owner id balance amount : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (transferInsufficientBalanceIdMem owner id balance amount).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+          (transferInsufficientBalanceIdMem owner id balance amount).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((transferInsufficientBalanceIdMem owner id balance amount).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [transferInsufficientBalanceIdMem_size]; decide)
-    (by decide) (transferInsufficientBalanceIdMem_read64 owner id balance amount)
+  mloadFreePtrValue (by rw [transferInsufficientBalanceIdMem_size]; decide) (transferInsufficientBalanceIdMem_read64 owner id balance amount)
 
 def transferPanicMem0 (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray transferPanicSelectorWord).write 0 mem 0 32

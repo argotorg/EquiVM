@@ -522,7 +522,7 @@ def callerCalldataMem (I : ExecutionEnv) : ByteArray :=
 
 /-- The free-memory pointer the body MLOADs at offset 64 (carried symbolically; provably `⟨128⟩`). -/
 def callerOutPtr (I : ExecutionEnv) : UInt256 :=
-  if (⟨64⟩ : UInt256).toNat ≥ (callerCalldataMem I).size ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩
+  if (⟨64⟩ : UInt256).toNat ≥ (callerCalldataMem I).size
   then ⟨0⟩
   else UInt256.ofNat (fromByteArrayBigEndian ((callerCalldataMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))
 
@@ -552,7 +552,7 @@ theorem callerCalldataMem_read64 (I : ExecutionEnv) :
     read region to the `CALL` out-region. -/
 theorem callerOutPtr_eq (I : ExecutionEnv) : callerOutPtr I = ⟨128⟩ := by
   unfold callerOutPtr
-  exact mloadFreePtrValue (by rw [callerCalldataMem_size]; decide) (by decide)
+  exact mloadFreePtrValue (by rw [callerCalldataMem_size]; decide)
     (callerCalldataMem_read64 I)
 
 /-- `callerSelMem`'s bytes `[128:132]` are exactly the `pow2` selector — the high 4 bytes of the
@@ -805,7 +805,7 @@ theorem callerX_succ_to470 {cA gh bl σ σ₀ A I} {g : Sat256}
     {mem : ByteArray} {o : ByteArray} {k C : ℕ} {arg1 arg0 sel : UInt256}
     (rd : RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨165⟩
             [⟨64⟩, arg1, arg0, ⟨71⟩, sel] mem ⟨6⟩ o acc k C)
-    (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ ⟨6⟩ * ⟨32⟩ then ⟨0⟩
+    (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
            else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
           = ⟨128⟩) :
     ∃ k' C', RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨470⟩
@@ -898,9 +898,7 @@ theorem callerX_succ_tail {cA gh bl σ σ₀ A I} {g : Sat256}
       (by
         have h128 : ((⟨128⟩ : UInt256) + ⟨0⟩).toNat = 128 := by decide
         split_ifs with h
-        · exfalso; rcases h with h | h
-          · rw [h128] at h; omega
-          · exact absurd h (by decide)
+        · exfalso; rw [h128] at h; omega
         · rw [h128, hword])
       (by decide) (by evm_ov),
     swap1, pop, push2 ⟨464⟩, dup2, push2 ⟨306⟩, jump callerContains306,
@@ -924,7 +922,7 @@ theorem callerX_successChain {cA gh bl σ σ₀ A I} {g : Sat256}
     (rd144 : RD callerBytecode I g (initState cA gh bl σ σ₀ g A I) (⟨142⟩ + ⟨1⟩ + ⟨1⟩)
             (⟨1⟩ :: d0 :: d1 :: d2 :: arg1 :: arg0 :: ⟨71⟩ :: sel :: []) mem ⟨6⟩ o (cAx, σx) k C)
     (hperm : I.perm = true) (ho32 : 32 ≤ o.size) (ho : o.size < 2 ^ 255)
-    (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ ⟨6⟩ * ⟨32⟩ then ⟨0⟩
+    (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
            else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
           = ⟨128⟩)
     (hword : mem.readWithPadding 128 32 = o.extract 0 32) (hmsz : 160 ≤ mem.size) :
@@ -1183,12 +1181,10 @@ theorem callerExec_canonical {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
             callerL_succ o.size ho32 hosize] at rd144
         have hmsz : 160 ≤ (o.write 0 (callerCalldataMem I) 128 32).size := by
           have := callerWrite_size I o 32 (by omega) ho32; omega
-        have hfp : (if (⟨64⟩:UInt256).toNat ≥ (o.write 0 (callerCalldataMem I) 128 32).size
-                ∨ (⟨64⟩:UInt256) ≥ ⟨6⟩ * ⟨32⟩ then ⟨0⟩
+        have hfp : (if (⟨64⟩:UInt256).toNat ≥ (o.write 0 (callerCalldataMem I) 128 32).size then ⟨0⟩
               else UInt256.ofNat (fromByteArrayBigEndian
                 ((o.write 0 (callerCalldataMem I) 128 32).readWithPadding (⟨64⟩:UInt256).toNat 32))) = ⟨128⟩ := by
-          exact mloadFreePtrValue (by rw [callerWrite_size I o 32 (by omega) ho32]; decide)
-            (by decide) (callerWrite_read64 I o 32 (by omega) ho32)
+          exact mloadFreePtrValue (by rw [callerWrite_size I o 32 (by omega) ho32]; decide) (callerWrite_read64 I o 32 (by omega) ho32)
         have hword : (o.write 0 (callerCalldataMem I) 128 32).readWithPadding 128 32 = o.extract 0 32 :=
           write32_read_back o (callerCalldataMem I) 128 ho32 (by rw [callerCalldataMem_size]; omega)
         have hrd := callerX_successChain rd144 hperm ho32 ho255 hfp hword hmsz
@@ -1214,13 +1210,11 @@ theorem callerExec_canonical {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
         rw [not_le] at ho32
         rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by decide,
             callerL_rev o.size ho32] at rd144
-        have hfp2 : (if (⟨64⟩:UInt256).toNat ≥ (o.write 0 (callerCalldataMem I) 128 o.size).size
-                ∨ (⟨64⟩:UInt256) ≥ ⟨6⟩ * ⟨32⟩ then ⟨0⟩
+        have hfp2 : (if (⟨64⟩:UInt256).toNat ≥ (o.write 0 (callerCalldataMem I) 128 o.size).size then ⟨0⟩
               else UInt256.ofNat (fromByteArrayBigEndian
                 ((o.write 0 (callerCalldataMem I) 128 o.size).readWithPadding (⟨64⟩:UInt256).toNat 32))) = ⟨128⟩ := by
           exact mloadFreePtrValue
-            (by rw [callerWrite_size I o o.size (by omega) (by omega)]; decide)
-            (by decide) (callerWrite_read64 I o o.size (by omega) (by omega))
+            (by rw [callerWrite_size I o o.size (by omega) (by omega)]; decide) (callerWrite_read64 I o o.size (by omega) (by omega))
         obtain ⟨k1, C1, rd165⟩ := callerX_succ_to165 rd144 (by simp)
         obtain ⟨k2, C2, rd470⟩ := callerX_succ_to470 rd165 hfp2
         refine (callerX_succ_revert rd470 ho32).reEquivExecutionRevert hcode hd hdec ?_
@@ -1235,12 +1229,10 @@ theorem callerExec_canonical {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
       have ho32 : 32 ≤ o.size := by omega
       rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by decide,
           callerL_succ o.size ho32 hosize] at rd144
-      have hfp : (if (⟨64⟩:UInt256).toNat ≥ (o.write 0 (callerCalldataMem I) 128 32).size
-              ∨ (⟨64⟩:UInt256) ≥ ⟨6⟩ * ⟨32⟩ then ⟨0⟩
+      have hfp : (if (⟨64⟩:UInt256).toNat ≥ (o.write 0 (callerCalldataMem I) 128 32).size then ⟨0⟩
             else UInt256.ofNat (fromByteArrayBigEndian
               ((o.write 0 (callerCalldataMem I) 128 32).readWithPadding (⟨64⟩:UInt256).toNat 32))) = ⟨128⟩ := by
-        exact mloadFreePtrValue (by rw [callerWrite_size I o 32 (by omega) ho32]; decide)
-          (by decide) (callerWrite_read64 I o 32 (by omega) ho32)
+        exact mloadFreePtrValue (by rw [callerWrite_size I o 32 (by omega) ho32]; decide) (callerWrite_read64 I o 32 (by omega) ho32)
       obtain ⟨k1, C1, rd165⟩ := callerX_succ_to165 rd144 (by simp)
       obtain ⟨k2, C2, rd470⟩ := callerX_succ_to470 rd165 hfp
       refine (callerX_succ_revert_huge rd470 hhi hosize).reEquivExecutionRevert hcode hd hdec ?_

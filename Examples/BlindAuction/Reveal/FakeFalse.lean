@@ -138,8 +138,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
           (data := revealScratchBidsLengthSlot I)
           a.hfpRead a.hmem96
     have hfpSlot :
-        (if (⟨64⟩ : UInt256).toNat ≥ memSlot3.size ∨
-            (⟨64⟩ : UInt256) ≥ (awOf a) * ⟨32⟩
+        (if (⟨64⟩ : UInt256).toNat ≥ memSlot3.size
          then ⟨0⟩
          else UInt256.ofNat
           (fromByteArrayBigEndian
@@ -148,17 +147,13 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
       rcases hslotMemFacts with ⟨hreadSlot, hsizeSlot⟩
       exact scratch_mload_of_read
         (mem := memSlot3) (fp := (⟨64⟩ : UInt256))
-        (packedLen := a.fp) (aw := awOf a)
+        (packedLen := a.fp)
         (by
           rw [hsizeSlot]
           change 64 < (memOf a).size
           have hm : 96 ≤ (memOf a).size := by
             simpa [memOf] using a.hmem96
           omega)
-        (by
-          simpa [awOf] using
-            scratch_not_mload64_oob_of_aw_ge3_small
-              a.haw a.hawSmall)
         (by
           simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide]
             using hreadSlot)

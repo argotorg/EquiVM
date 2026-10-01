@@ -491,10 +491,8 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
       mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
-          (mem := allowanceSpenderArgMem (allowanceOwnerWord I) (allowanceSpenderWord I))
-          (aw := UInt256.ofNat 4) (off := ⟨64⟩) (v := allowanceOwnerWord I)
+          (mem := allowanceSpenderArgMem (allowanceOwnerWord I) (allowanceSpenderWord I)) (off := ⟨64⟩) (v := allowanceOwnerWord I)
           (by rw [allowanceSpenderArgMem_size]; decide)
-          (by decide)
           (allowanceSpenderArgMem_read64 (allowanceOwnerWord I) (allowanceSpenderWord I)))
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
@@ -526,10 +524,8 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
       mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
-          (mem := allowanceInnerHashMem (allowanceOwnerWord I) (allowanceSpenderWord I))
-          (aw := UInt256.ofNat 4) (off := ⟨96⟩) (v := allowanceSpenderWord I)
+          (mem := allowanceInnerHashMem (allowanceOwnerWord I) (allowanceSpenderWord I)) (off := ⟨96⟩) (v := allowanceSpenderWord I)
           (by rw [allowanceInnerHashMem_size]; decide)
-          (by decide)
           (allowanceInnerHashMem_read96 (allowanceOwnerWord I) (allowanceSpenderWord I)))
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
@@ -721,8 +717,7 @@ theorem allowanceSelectorWord_of_calldata {I : ExecutionEnv}
     exact False.elim (hne h)
 
 theorem allowanceDispatchMem_mload0 :
-    (if (⟨0⟩ : UInt256).toNat ≥ allowanceDispatchMem.size ∨
-        (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 1) * ⟨32⟩
+    (if (⟨0⟩ : UInt256).toNat ≥ allowanceDispatchMem.size
       then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (allowanceDispatchMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))

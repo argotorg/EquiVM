@@ -518,7 +518,7 @@ theorem RD.uniswapSafeMathSubUnderflow_aw6_size164_shared {g : Sat256} {s0 : Sta
     push1 ⟨64⟩, dup1,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rd6899 := rd6895.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
     (by decide) (by decide) (by evm_ov)
@@ -1074,14 +1074,13 @@ theorem uniswapTransferCreditHashMem_read64 (src toWord : UInt256) :
     (uniswapTransferToHashMem_read64 src toWord)
 
 theorem uniswapTransferCreditHashMem_mload64 (src toWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapTransferCreditHashMem src toWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapTransferCreditHashMem src toWord).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapTransferCreditHashMem src toWord).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [uniswapTransferCreditHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [uniswapTransferCreditHashMem_size]; decide)
     (uniswapTransferCreditHashMem_read64 src toWord)
 
 def uniswapTransferLogMem (src toWord value : UInt256) : ByteArray :=
@@ -1114,14 +1113,13 @@ theorem uniswapTransferLogMem_read64 (src toWord value : UInt256) :
     uniswapTransferCreditHashMem_read64]
 
 theorem uniswapTransferLogMem_mload64 (src toWord value : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapTransferLogMem src toWord value).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapTransferLogMem src toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapTransferLogMem src toWord value).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [uniswapTransferLogMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [uniswapTransferLogMem_size]; decide)
     (uniswapTransferLogMem_read64 src toWord value)
 
 theorem uniswapTransferLogMem_read128 (src toWord value : UInt256) :
@@ -1172,14 +1170,13 @@ theorem uniswapTransferReturnMem_read64 (src toWord logValue retValue : UInt256)
 
 theorem uniswapTransferReturnMem_mload64 (src toWord logValue retValue : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (uniswapTransferReturnMem src toWord logValue retValue).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          (uniswapTransferReturnMem src toWord logValue retValue).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapTransferReturnMem src toWord logValue retValue).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [uniswapTransferReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [uniswapTransferReturnMem_size]; decide)
     (uniswapTransferReturnMem_read64 src toWord logValue retValue)
 
 theorem uniswapTransferReturnMem_read128 (src toWord logValue retValue : UInt256) :
@@ -1269,14 +1266,13 @@ theorem uniswapApproveHashMem_read64 (owner spender : UInt256) :
     (twoWordHashMem_read64 owner ⟨2⟩ solcFreePtrMem_size solcFreePtrMem_read64)
 
 theorem uniswapApproveHashMem_mload64 (owner spender : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapApproveHashMem owner spender).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapApproveHashMem owner spender).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapApproveHashMem owner spender).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [uniswapApproveHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [uniswapApproveHashMem_size]; decide)
     (uniswapApproveHashMem_read64 owner spender)
 
 set_option maxHeartbeats 1000000 in
@@ -1373,14 +1369,13 @@ theorem uniswapApproveLogMem_read64 (owner spender value : UInt256) :
     uniswapApproveHashMem_read64]
 
 theorem uniswapApproveLogMem_mload64 (owner spender value : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapApproveLogMem owner spender value).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapApproveLogMem owner spender value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapApproveLogMem owner spender value).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [uniswapApproveLogMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [uniswapApproveLogMem_size]; decide)
     (uniswapApproveLogMem_read64 owner spender value)
 
 theorem uniswapApproveLogMem_read128 (owner spender value : UInt256) :
@@ -1426,14 +1421,13 @@ theorem uniswapApproveReturnMem_read64 (owner spender logValue retValue : UInt25
 
 theorem uniswapApproveReturnMem_mload64 (owner spender logValue retValue : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (uniswapApproveReturnMem owner spender logValue retValue).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          (uniswapApproveReturnMem owner spender logValue retValue).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapApproveReturnMem owner spender logValue retValue).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [uniswapApproveReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [uniswapApproveReturnMem_size]; decide)
     (uniswapApproveReturnMem_read64 owner spender logValue retValue)
 
 theorem uniswapApproveReturnMem_read128 (owner spender logValue retValue : UInt256) :
@@ -1534,8 +1528,7 @@ theorem RD.uniswapReturnBool797FromMem {g : Sat256} {s0 : State} {ee : Execution
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨797⟩ (val :: R)
       mem (UInt256.ofNat 5) rdata acc k C)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -1543,8 +1536,7 @@ theorem RD.uniswapReturnBool797FromMem {g : Sat256} {s0 : State} {ee : Execution
       (UInt256.toByteArray (UInt256.isZero (UInt256.isZero val))).write 0 mem 128 32 =
         memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)

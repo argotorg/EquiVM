@@ -24,9 +24,8 @@ theorem uniswapSwapCallbackPrepared
         toWord :: amount1Out :: amount0Out :: R)
       (swapCallbackMem I mem ptr amount0Out amount1Out dataPtr dataLen) (swapCallbackWords aw ptr dataLen) rdata acc k' C' := by
   have hcover : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := hready.wordsLo
-  have hload : memoryWordLoad mem aw ⟨64⟩ = ptr :=
-    mloadWordValue_of_readWithPadding (by change 64 < _; have := hready.sizeLo; omega)
-      (UInt256_mload_haw_of_cover _ _ hready.wordsHi hcover) hready.read64
+  have hload : memoryWordLoad mem ⟨64⟩ = ptr :=
+    mloadWordValue_of_readWithPadding (by change 64 < _; have := hready.sizeLo; omega) hready.read64
   have hw64 : memoryWordActiveWords aw ⟨64⟩ = aw := UInt256_M_same_of_cover _ _ hready.wordsHi hcover
   obtain ⟨_, _, rd2001⟩ := uniswapSwapCallbackHeadStored rd1911 hload hw64 (by omega)
   have hclean : UInt256.land solcAddrMask (UInt256.ofNat I.source.val) = UInt256.ofNat I.source.val := by

@@ -84,7 +84,7 @@ theorem RD.uniswapUpdateEmitSyncAndJump_aw6
     (mcostLog := 0) rd
     (by intro s haw hstk; simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk];
         native_decide)
-    (mloadFreePtrValue (by rw [hmem]; omega) (by native_decide) hmem64)
+    (mloadFreePtrValue (by rw [hmem]; omega) hmem64)
     (by native_decide)
     (by intro s haw hstk; simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk];
         native_decide)

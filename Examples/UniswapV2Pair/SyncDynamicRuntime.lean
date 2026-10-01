@@ -21,8 +21,8 @@ theorem RD.uniswapUpdateEmitSyncAndJump_dynamic {g : Sat256} {s0 : State}
       (pairDynamicWords aw ptr) rdata acc k' C' := by
   have h64 : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := hawLo
   have hw64 := UInt256_M_same_of_cover aw ⟨64⟩ haw h64
-  have hm64 : memoryWordLoad mem aw ⟨64⟩ = ptr := mloadWordValue_of_readWithPadding
-    (by change 64 < _; omega) (UInt256_mload_haw_of_cover aw ⟨64⟩ haw h64) hread
+  have hm64 : memoryWordLoad mem ⟨64⟩ = ptr := mloadWordValue_of_readWithPadding
+    (by change 64 < _; omega) hread
   obtain ⟨hmLog, hwLog⟩ := pairDynamicMem_mload64 aw ptr
     (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed) hin hlo hgap hfit haw hread
   have hcLog := (pairDynamicWords_bounds aw ptr haw hfit).2

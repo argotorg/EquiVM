@@ -23,9 +23,8 @@ theorem RD.uniswapPairBalanceHeaderStored
       (balanceDynamicCalldataMem mem ptr (UInt256.ofNat I.codeOwner.val))
       (balanceDynamicCalldataWords aw ptr) rdata acc k' C' := by
   have h64c : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := hawLo
-  have hload : memoryWordLoad mem aw ⟨64⟩ = ptr :=
-    mloadWordValue_of_readWithPadding (by change 64 < mem.size; omega)
-      (UInt256_mload_haw_of_cover aw ⟨64⟩ haw h64c) hread
+  have hload : memoryWordLoad mem ⟨64⟩ = ptr :=
+    mloadWordValue_of_readWithPadding (by change 64 < mem.size; omega) hread
   have haw64 : memoryWordActiveWords aw ⟨64⟩ = aw := UInt256_M_same_of_cover aw ⟨64⟩ haw h64c
   obtain ⟨hm64, hw64⟩ := balanceDynamicCalldataMem_mload64 aw ptr (UInt256.ofNat I.codeOwner.val)
     hin hlo hgap hfit haw hread

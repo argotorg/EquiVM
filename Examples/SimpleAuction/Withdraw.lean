@@ -220,12 +220,11 @@ theorem withdrawPendingHashMem_read64 (I : ExecutionEnv) :
   exact solcFreePtrMem_read64
 
 theorem withdrawPendingHashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawPendingHashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawPendingHashMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((withdrawPendingHashMem I).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [withdrawPendingHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [withdrawPendingHashMem_size]; decide)
     (withdrawPendingHashMem_read64 I)
 
 theorem withdrawBoolReturnMem_size (I : ExecutionEnv) (b : UInt256) :
@@ -259,13 +258,12 @@ theorem withdrawBoolReturnMem_read64 (I : ExecutionEnv) (b : UInt256) :
 
 theorem withdrawBoolReturnMem_mload64 (I : ExecutionEnv) (b : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          ((UInt256.toByteArray b).write 0 (withdrawPendingHashMem I) 128 32).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          ((UInt256.toByteArray b).write 0 (withdrawPendingHashMem I) 128 32).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         (((UInt256.toByteArray b).write 0 (withdrawPendingHashMem I) 128 32).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [withdrawBoolReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [withdrawBoolReturnMem_size]; decide)
     (withdrawBoolReturnMem_read64 I b)
 
 theorem withdrawBoolReturnMem_read128 (I : ExecutionEnv) (b : UInt256) :
@@ -694,27 +692,24 @@ theorem withdrawRehashMem_read64 (I : ExecutionEnv) :
     norm_num
 
 theorem withdrawRehashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawRehashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawRehashMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((withdrawRehashMem I).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [withdrawRehashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [withdrawRehashMem_size]; decide)
     (withdrawRehashMem_read64 I)
 
 theorem withdrawReturnDataMem_mload64 (I : ExecutionEnv) (o : ByteArray)
     (ho0 : o.size ≠ 0) (hosz : o.size < 2 ^ 255) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawReturnDataMem I o).size
-        ∨ (⟨64⟩ : UInt256) ≥ withdrawReturnDataActiveWords o * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawReturnDataMem I o).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((withdrawReturnDataMem I o).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = withdrawReturnDataPtr o := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := withdrawReturnDataActiveWords o)
+    (off := (⟨64⟩ : UInt256))
     (v := withdrawReturnDataPtr o)
     (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
       withdrawReturnDataMem_size I o ho0]; omega)
-    (withdrawReturnDataActiveWords_mload64_haw o hosz)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       withdrawReturnDataMem_read64 I o ho0)
 
@@ -766,16 +761,14 @@ theorem withdrawReturnDataBoolMem_size_gt64 (I : ExecutionEnv) (o : ByteArray)
 
 theorem withdrawReturnDataBoolMem_mload64 (I : ExecutionEnv) (o : ByteArray) (b : UInt256)
     (ho0 : o.size ≠ 0) (hosz : o.size < 2 ^ 255) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawReturnDataBoolMem I o b).size
-        ∨ (⟨64⟩ : UInt256) ≥ withdrawReturnDataBoolActiveWords o * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawReturnDataBoolMem I o b).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((withdrawReturnDataBoolMem I o b).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = withdrawReturnDataPtr o := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := withdrawReturnDataBoolActiveWords o)
+    (off := (⟨64⟩ : UInt256))
     (v := withdrawReturnDataPtr o)
     (withdrawReturnDataBoolMem_size_gt64 I o b ho0 hosz)
-    (withdrawReturnDataBoolActiveWords_mload64_haw o hosz)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       withdrawReturnDataBoolMem_read64 I o b ho0 hosz)
 
@@ -997,17 +990,15 @@ theorem withdrawReturnDataRestoreHashKeccak (I : ExecutionEnv) (o : ByteArray)
 
 theorem withdrawReturnDataRestoreHashMem_mload64 (I : ExecutionEnv) (o : ByteArray)
     (ho0 : o.size ≠ 0) (hosz : o.size < 2 ^ 255) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawReturnDataRestoreHashMem I o).size
-        ∨ (⟨64⟩ : UInt256) ≥ withdrawReturnDataActiveWords o * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawReturnDataRestoreHashMem I o).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((withdrawReturnDataRestoreHashMem I o).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = withdrawReturnDataPtr o := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := withdrawReturnDataActiveWords o)
+    (off := (⟨64⟩ : UInt256))
     (v := withdrawReturnDataPtr o)
     (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
       withdrawReturnDataRestoreHashMem_size I o ho0]; omega)
-    (withdrawReturnDataActiveWords_mload64_haw o hosz)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       withdrawReturnDataRestoreHashMem_read64 I o ho0)
 
@@ -1074,16 +1065,14 @@ theorem withdrawReturnDataRestoreBoolMem_size_gt64 (I : ExecutionEnv) (o : ByteA
 
 theorem withdrawReturnDataRestoreBoolMem_mload64 (I : ExecutionEnv) (o : ByteArray)
     (b : UInt256) (ho0 : o.size ≠ 0) (hosz : o.size < 2 ^ 255) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawReturnDataRestoreBoolMem I o b).size
-        ∨ (⟨64⟩ : UInt256) ≥ withdrawReturnDataBoolActiveWords o * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawReturnDataRestoreBoolMem I o b).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((withdrawReturnDataRestoreBoolMem I o b).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = withdrawReturnDataPtr o := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := withdrawReturnDataBoolActiveWords o)
+    (off := (⟨64⟩ : UInt256))
     (v := withdrawReturnDataPtr o)
     (withdrawReturnDataRestoreBoolMem_size_gt64 I o b ho0 hosz)
-    (withdrawReturnDataBoolActiveWords_mload64_haw o hosz)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       withdrawReturnDataRestoreBoolMem_read64 I o b ho0 hosz)
 
@@ -1126,13 +1115,12 @@ theorem withdrawRehashBoolReturnMem_read64 (I : ExecutionEnv) (b : UInt256) :
 
 theorem withdrawRehashBoolReturnMem_mload64 (I : ExecutionEnv) (b : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          ((UInt256.toByteArray b).write 0 (withdrawRehashMem I) 128 32).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          ((UInt256.toByteArray b).write 0 (withdrawRehashMem I) 128 32).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         (((UInt256.toByteArray b).write 0 (withdrawRehashMem I) 128 32).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [withdrawRehashBoolReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [withdrawRehashBoolReturnMem_size]; decide)
     (withdrawRehashBoolReturnMem_read64 I b)
 
 theorem withdrawRehashBoolReturnMem_read128 (I : ExecutionEnv) (b : UInt256) :
@@ -1235,12 +1223,11 @@ theorem withdrawRestoreHashMem_read64 (I : ExecutionEnv) :
     norm_num
 
 theorem withdrawRestoreHashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawRestoreHashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawRestoreHashMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((withdrawRestoreHashMem I).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [withdrawRestoreHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [withdrawRestoreHashMem_size]; decide)
     (withdrawRestoreHashMem_read64 I)
 
 theorem withdrawRestoreHashKeccak (I : ExecutionEnv) :
@@ -1282,13 +1269,12 @@ theorem withdrawRestoreBoolReturnMem_read64 (I : ExecutionEnv) (b : UInt256) :
 
 theorem withdrawRestoreBoolReturnMem_mload64 (I : ExecutionEnv) (b : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          ((UInt256.toByteArray b).write 0 (withdrawRestoreHashMem I) 128 32).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          ((UInt256.toByteArray b).write 0 (withdrawRestoreHashMem I) 128 32).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         (((UInt256.toByteArray b).write 0 (withdrawRestoreHashMem I) 128 32).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [withdrawRestoreBoolReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [withdrawRestoreBoolReturnMem_size]; decide)
     (withdrawRestoreBoolReturnMem_read64 I b)
 
 theorem withdrawRestoreBoolReturnMem_read128 (I : ExecutionEnv) (b : UInt256) :

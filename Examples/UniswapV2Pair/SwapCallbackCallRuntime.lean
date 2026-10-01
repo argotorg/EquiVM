@@ -10,7 +10,7 @@ theorem uniswapSwapCallbackCallPrepared
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     {mem rdata : ByteArray} {aw ptr endPtr selector target : UInt256} {R : List UInt256} {k C : Nat}
     (rd2041 : RD uniswapV2PairBytecode I g s0 ⟨2041⟩ (endPtr :: selector :: target :: R) mem aw rdata acc k C)
-    (hload : memoryWordLoad mem aw ⟨64⟩ = ptr) (hw64 : memoryWordActiveWords aw ⟨64⟩ = aw)
+    (hload : memoryWordLoad mem ⟨64⟩ = ptr) (hw64 : memoryWordActiveWords aw ⟨64⟩ = aw)
     (hov : R.length + 11 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2054⟩
       (target :: target :: ⟨0⟩ :: ptr :: UInt256.sub endPtr ptr :: ptr :: ⟨0⟩ :: endPtr :: selector :: target :: R)

@@ -89,8 +89,7 @@ theorem swapCallbackMem_mload64 {I : ExecutionEnv} {mem : ByteArray} (ptr amount
     (hready : SafeTransferMemoryReady mem aw ptr)
     (hdata : dataPtr.toNat + dataLen.toNat ≤ I.calldata.size) (hlen : dataLen.toNat ≠ 0)
     (hfit : ptr.toNat + dataLen.toNat + 227 < UInt256.size) :
-    memoryWordLoad (swapCallbackMem I mem ptr amount0Out amount1Out dataPtr dataLen)
-        (swapCallbackWords aw ptr dataLen) ⟨64⟩ = ptr ∧
+    memoryWordLoad (swapCallbackMem I mem ptr amount0Out amount1Out dataPtr dataLen) ⟨64⟩ = ptr ∧
       memoryWordActiveWords (swapCallbackWords aw ptr dataLen) ⟨64⟩ = swapCallbackWords aw ptr dataLen := by
   obtain ⟨hb, hc⟩ := swapCallbackWords_bounds aw ptr dataLen hready.wordsHi hfit
   have hc64 : (⟨64⟩ : UInt256).toNat + 32 ≤ (swapCallbackWords aw ptr dataLen).toNat * 32 := by
@@ -99,7 +98,6 @@ theorem swapCallbackMem_mload64 {I : ExecutionEnv} {mem : ByteArray} (ptr amount
   apply mloadWordValue_of_readWithPadding
   · change 64 < _
     rw [swapCallbackMem_size _ _ _ _ _ hready hdata hlen hfit]; omega
-  · exact UInt256_mload_haw_of_cover _ _ hb hc64
   · exact swapCallbackMem_read64 _ _ _ _ _ hready hdata hlen hfit
 
 end UniswapV2Pair

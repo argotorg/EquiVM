@@ -500,14 +500,13 @@ theorem clearCurrentBaseMemFrom_setPaddedMem_mload128_short_nonzero_payloadAw
     (hshort : len.toNat < 32)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
     (if (⟨128⟩ : UInt256).toNat ≥
-          (clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)).size
-        ∨ (⟨128⟩ : UInt256) ≥ setHelperPayloadAw len * ⟨32⟩ then ⟨0⟩
+          (clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)).readWithPadding
             (⟨128⟩ : UInt256).toNat 32))) = len := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨128⟩ : UInt256)) (aw := setHelperPayloadAw len) (v := len)
+    (off := (⟨128⟩ : UInt256)) (v := len)
     (by
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
       rw [clearCurrentBaseMemFrom_size_of_ge32]
@@ -519,9 +518,6 @@ theorem clearCurrentBaseMemFrom_setPaddedMem_mload128_short_nonzero_payloadAw
           (setDataEnd_toNat_of_short hshort)
         rw [hsize]
         omega)
-    (by
-      rw [setHelperPayloadAw_eq_7_of_short_nonzero hnz hshort]
-      decide)
     (by
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
       rw [clearCurrentBaseMemFrom_setPaddedMem_read128_short_nonzero
@@ -535,14 +531,13 @@ theorem clearCurrentBaseMemFrom_setPaddedMem_mload64_short_nonzero
     (hshort : len.toNat < 32)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)).size
-        ∨ (⟨64⟩ : UInt256) ≥ setHelperPayloadAw len * ⟨32⟩ then ⟨0⟩
+          (clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = currentLengthFreePtr len := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := setHelperPayloadAw len)
+    (off := (⟨64⟩ : UInt256))
     (v := currentLengthFreePtr len)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
@@ -555,9 +550,6 @@ theorem clearCurrentBaseMemFrom_setPaddedMem_mload64_short_nonzero
           (setDataEnd_toNat_of_short hshort)
         rw [hsize]
         omega)
-    (by
-      rw [setHelperPayloadAw_eq_7_of_short_nonzero hnz hshort]
-      decide)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
       rw [clearCurrentBaseMemFrom_setPaddedMem_read64_short_nonzero
@@ -571,20 +563,14 @@ theorem clearCurrentBaseMemFrom_setPaddedMem_mload128_nonzero_u64
     (hlenMax : len.toNat ≤ ABI.solcMaxU64)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
     (if (⟨128⟩ : UInt256).toNat ≥
-          (clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)).size
-        ∨ (⟨128⟩ : UInt256) ≥ clearCurrentHashAw (setHelperEntryAw len) * ⟨32⟩ then
+          (clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)).size then
         ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)).readWithPadding
             (⟨128⟩ : UInt256).toNat 32))) = len := by
-  have hentryGe : 1 ≤ (setHelperEntryAw len).toNat := by
-    have hge := setHelperEntryAw_ge5_of_u64 (len := len) hlenMax
-    omega
-  have hawEq : clearCurrentHashAw (setHelperEntryAw len) = setHelperEntryAw len :=
-    clearCurrentHashAw_eq_self_of_ge1 hentryGe
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨128⟩ : UInt256)) (aw := clearCurrentHashAw (setHelperEntryAw len))
+    (off := (⟨128⟩ : UInt256))
     (v := len)
     (by
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
@@ -598,9 +584,6 @@ theorem clearCurrentBaseMemFrom_setPaddedMem_mload128_nonzero_u64
         rw [hsize]
         omega)
     (by
-      rw [hawEq]
-      exact setHelperEntryAw_mload128_of_u64 hlenMax)
-    (by
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
       rw [clearCurrentBaseMemFrom_setPaddedMem_read128_u64
         cd len payloadStart hnz hlenMax hsrc]
@@ -613,20 +596,14 @@ theorem clearCurrentBaseMemFrom_setPaddedMem_mload64_nonzero_u64
     (hlenMax : len.toNat ≤ ABI.solcMaxU64)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)).size
-        ∨ (⟨64⟩ : UInt256) ≥ clearCurrentHashAw (setHelperEntryAw len) * ⟨32⟩ then
+          (clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)).size then
         ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = currentLengthFreePtr len := by
-  have hentryGe : 1 ≤ (setHelperEntryAw len).toNat := by
-    have hge := setHelperEntryAw_ge5_of_u64 (len := len) hlenMax
-    omega
-  have hawEq : clearCurrentHashAw (setHelperEntryAw len) = setHelperEntryAw len :=
-    clearCurrentHashAw_eq_self_of_ge1 hentryGe
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := clearCurrentHashAw (setHelperEntryAw len))
+    (off := (⟨64⟩ : UInt256))
     (v := currentLengthFreePtr len)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
@@ -639,9 +616,6 @@ theorem clearCurrentBaseMemFrom_setPaddedMem_mload64_nonzero_u64
           (setDataEnd_toNat_of_u64 hlenMax)
         rw [hsize]
         omega)
-    (by
-      rw [hawEq]
-      exact setHelperEntryAw_mload64_of_u64 hlenMax)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
       rw [clearCurrentBaseMemFrom_setPaddedMem_read64_u64
@@ -850,17 +824,15 @@ theorem stringStoreLiteX_setLongReturnFromWrite
     simpa [awStore, currentLength_add_zero_toNat] using
       setHelperEntryAw_mstoreFreePtr_ge3_u64 (len := len) hnz hlenMax
   have hfinalFreePtr :
-      (if (⟨64⟩ : UInt256).toNat ≥ returnMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ awStore * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ returnMem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             (returnMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         currentLengthFreePtr len := by
     exact mloadWordValue_of_readWithPadding
-      (mem := returnMem) (aw := awStore) (off := (⟨64⟩ : UInt256))
+      (mem := returnMem) (off := (⟨64⟩ : UInt256))
       (v := currentLengthFreePtr len)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hreturnSize64)
-      (wordMul32_not_le64_of_ge3 hawStoreGe3 hawStoreNoWrap)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hreturnRead64)
   let awFinal := UInt256.ofNat (MachineState.M awStore.toNat (⟨64⟩ : UInt256).toNat 32)
   have hawFinal :
@@ -1042,17 +1014,15 @@ theorem stringStoreLiteX_setLongReturnFromWriteAfterClearBase
     simpa [awStore, hawEq, currentLength_add_zero_toNat] using
       setHelperEntryAw_mstoreFreePtr_ge3_u64 (len := len) hnz hlenMax
   have hfinalFreePtr :
-      (if (⟨64⟩ : UInt256).toNat ≥ returnMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ awStore * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ returnMem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             (returnMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         currentLengthFreePtr len := by
     exact mloadWordValue_of_readWithPadding
-      (mem := returnMem) (aw := awStore) (off := (⟨64⟩ : UInt256))
+      (mem := returnMem) (off := (⟨64⟩ : UInt256))
       (v := currentLengthFreePtr len)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hreturnSize64)
-      (wordMul32_not_le64_of_ge3 hawStoreGe3 hawStoreNoWrap)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hreturnRead64)
   let awFinal := UInt256.ofNat (MachineState.M awStore.toNat (⟨64⟩ : UInt256).toNat 32)
   have hawFinal :
@@ -1110,14 +1080,13 @@ theorem setShortReturnMemAfterClearBase_mload64
     (hshort : len.toNat < 32)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (setShortReturnMemAfterClearBase cd len payloadStart).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+          (setShortReturnMemAfterClearBase cd len payloadStart).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((setShortReturnMemAfterClearBase cd len payloadStart).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = currentLengthFreePtr len := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 7)
+    (off := (⟨64⟩ : UInt256))
     (v := currentLengthFreePtr len)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
@@ -1145,7 +1114,6 @@ theorem setShortReturnMemAfterClearBase_mload64
               (setDataEnd_toNat_of_short hshort)
             rw [hsize]
             omega))
-    (by decide)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
       rw [setShortReturnMemAfterClearBase]
@@ -1192,36 +1160,32 @@ theorem setShortReturnMemAfterClearBase_read192
   rw [toByteArray_extract_all]
 
 theorem clearCurrentBaseMemFrom_currentLengthZeroReturnMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clearCurrentBaseMemFrom currentLengthZeroReturnMem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clearCurrentBaseMemFrom currentLengthZeroReturnMem).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((clearCurrentBaseMemFrom currentLengthZeroReturnMem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = ⟨160⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 6) (v := (⟨160⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨160⟩ : UInt256))
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
         clearCurrentBaseMemFrom_currentLengthZeroReturnMem_size]
       decide)
-    (by decide)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       clearCurrentBaseMemFrom_currentLengthZeroReturnMem_read64)
 
 theorem clearCurrentBaseMemFrom_currentLengthZeroReturnMem_mload128 :
-    (if (⟨128⟩ : UInt256).toNat ≥ (clearCurrentBaseMemFrom currentLengthZeroReturnMem).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (clearCurrentBaseMemFrom currentLengthZeroReturnMem).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((clearCurrentBaseMemFrom currentLengthZeroReturnMem).readWithPadding
             (⟨128⟩ : UInt256).toNat 32))) = ⟨0⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨128⟩ : UInt256)) (aw := UInt256.ofNat 6) (v := (⟨0⟩ : UInt256))
+    (off := (⟨128⟩ : UInt256)) (v := (⟨0⟩ : UInt256))
     (by
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
         clearCurrentBaseMemFrom_currentLengthZeroReturnMem_size]
       decide)
-    (by decide)
     (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
       clearCurrentBaseMemFrom_currentLengthZeroReturnMem_read128)
 
@@ -1260,15 +1224,13 @@ theorem setEmptyReturnMemLong_read160 :
   rw [toByteArray_extract_all]
 
 theorem setEmptyReturnMemLong_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ setEmptyReturnMemLong.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ setEmptyReturnMemLong.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           (setEmptyReturnMemLong.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨160⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 6) (v := (⟨160⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨160⟩ : UInt256))
     (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, setEmptyReturnMemLong_size]; decide)
-    (by decide)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       setEmptyReturnMemLong_read64)
 
@@ -1791,7 +1753,7 @@ theorem stringStoreLiteX_setLongDataWordsLoopStep
           ⟨0⟩, ⟨128⟩, ⟨0⟩, len, payloadStart, ⟨93⟩, stringStoreLiteSelWord I] →
       memoryExpansionCost s .MLOAD = mloadCost)
     (hmload :
-      (if (ptr + stride).toNat ≥ mem.size ∨ (ptr + stride) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (ptr + stride).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian
         (mem.readWithPadding (ptr + stride).toNat 32))) = word)
     (hawLoad : UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32) = awLoad) :
@@ -1853,11 +1815,9 @@ def longDataWordsLoopAw (aw ptr stride : UInt256) : Nat → UInt256
           (longDataWordsLoopAw aw ptr stride n).toNat
           (ptr + longDataWordsLoopStride stride n).toNat 32)
 
-def longDataWordsLoopWord (mem : ByteArray) (aw ptr stride : UInt256) (n : Nat) :
+def longDataWordsLoopWord (mem : ByteArray) (ptr stride : UInt256) (n : Nat) :
     UInt256 :=
-  if (ptr + longDataWordsLoopStride stride n).toNat ≥ mem.size ∨
-      (ptr + longDataWordsLoopStride stride n) ≥
-        longDataWordsLoopAw aw ptr stride n * ⟨32⟩ then
+  if (ptr + longDataWordsLoopStride stride n).toNat ≥ mem.size then
     ⟨0⟩
   else
     UInt256.ofNat (fromByteArrayBigEndian
@@ -1868,7 +1828,7 @@ def longDataWordsForwardFrom (owner : AccountAddress) (τ : AccountMap)
   | 0 => τ
   | n + 1 =>
       longDataWordsForwardFrom owner
-        (sstoreAccountMap owner τ slot (longDataWordsLoopWord mem aw ptr stride 0))
+        (sstoreAccountMap owner τ slot (longDataWordsLoopWord mem ptr stride 0))
         ((⟨1⟩ : UInt256) + slot) ((⟨32⟩ : UInt256) + stride) ptr
         (UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32)) mem n
 
@@ -1896,7 +1856,7 @@ theorem accountMapEquiv_longDataWordsForwardFrom
       simp [longDataWordsForwardFrom]
       exact accountMapEquiv_longDataWordsForwardFrom fuel
         (accountMapEquiv_sstoreAccountMap owner slot
-          (longDataWordsLoopWord mem aw ptr stride 0) hAccounts)
+          (longDataWordsLoopWord mem ptr stride 0) hAccounts)
 
 theorem u256_add_assoc (a b c : UInt256) : (a + b) + c = a + (b + c) := by
   apply u256_inj
@@ -2139,15 +2099,12 @@ theorem longDataWordsLoopWord_setHelper_payload_word
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size)
     (hi : i < len.toNat / 32) :
     longDataWordsLoopWord
-      (clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart))
-      (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩ ⟨32⟩ i =
+      (clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)) ⟨128⟩ ⟨32⟩ i =
         UInt256.ofNat (fromByteArrayBigEndian
           ((cd.extract payloadStart.toNat (payloadStart.toNat + len.toNat)).extract
             (32 * i) (32 * i + 32))) := by
   unfold longDataWordsLoopWord
   have haddr := longDataWordsLoopReadAddr_toNat (len := len) (i := i) hlenMax hi
-  have haw := longDataWordsLoopAw_setHelper_eq (len := len) hlenMax i (Nat.le_of_lt hi)
-  have hcover := setHelperEntryAw_covers_payload_u64 (len := len) hlenMax
   have hsizeMem :
       (clearCurrentBaseMemFrom (setPaddedMem cd len payloadStart)).size =
         (setPaddedMem cd len payloadStart).size := by
@@ -2169,40 +2126,11 @@ theorem longDataWordsLoopWord_setHelper_payload_word
         simpa [Nat.mul_comm] using Nat.div_mul_le_self len.toNat 32
       exact le_trans hmul hdiv
     omega
-  have hnotAw : ¬((⟨128⟩ : UInt256) + longDataWordsLoopStride ⟨32⟩ i) ≥
-      longDataWordsLoopAw (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩ ⟨32⟩ i *
-        ⟨32⟩ := by
-    intro hge
-    have haddrLt : ((⟨128⟩ : UInt256) + longDataWordsLoopStride ⟨32⟩ i).toNat <
-        (longDataWordsLoopAw (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩ ⟨32⟩ i *
-          ⟨32⟩).toNat := by
-      rw [haddr, haw]
-      have hentryGe : 1 ≤ (setHelperEntryAw len).toNat := by
-        have hge := setHelperEntryAw_ge5_of_u64 (len := len) hlenMax
-        omega
-      have hawEq : clearCurrentHashAw (setHelperEntryAw len) = setHelperEntryAw len :=
-        clearCurrentHashAw_eq_self_of_ge1 hentryGe
-      rw [hawEq]
-      rw [umul_toNat (a := setHelperEntryAw len) (b := (⟨32⟩ : UInt256))
-        (setHelperEntryAw_mul32_lt_of_u64 hlenMax)]
-      rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-      have hleLen : 32 * i ≤ len.toNat := by
-        have hlt : i ≤ len.toNat / 32 := Nat.le_of_lt hi
-        have hmul : 32 * i ≤ 32 * (len.toNat / 32) := Nat.mul_le_mul_left 32 hlt
-        have hdiv : 32 * (len.toNat / 32) ≤ len.toNat := by
-          simpa [Nat.mul_comm] using Nat.div_mul_le_self len.toNat 32
-        exact le_trans hmul hdiv
-      omega
-    have hgeNat :
-        ((⟨128⟩ : UInt256) + longDataWordsLoopStride ⟨32⟩ i).toNat ≥
-          (longDataWordsLoopAw (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩ ⟨32⟩ i *
-            ⟨32⟩).toNat := hge
-    exact not_lt_of_ge hgeNat haddrLt
   rw [if_neg]
   · rw [haddr]
     rw [clearCurrentBaseMemFrom_setPaddedMem_read_payload_word
       cd len payloadStart i hnz hlenMax hsrc hi]
-  · exact not_or.mpr ⟨hnotSize, hnotAw⟩
+  · exact hnotSize
 
 theorem longDataWordsLoopWord_setHelper_decoded_word {I : ExecutionEnv}
     {len payloadStart : UInt256} {i : Nat}
@@ -2214,8 +2142,7 @@ theorem longDataWordsLoopWord_setHelper_decoded_word {I : ExecutionEnv}
     (hpayloadStart : payloadStart = (((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩))
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat) :
     longDataWordsLoopWord
-      (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-      (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩ ⟨32⟩ i =
+      (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)) ⟨128⟩ ⟨32⟩ i =
         UInt256.ofNat (fromByteArrayBigEndian
           ((setDecodedValueBytes I).extract (32 * i) (32 * i + 32))) := by
   rw [longDataWordsLoopWord_setHelper_payload_word I.calldata len payloadStart i
@@ -2233,8 +2160,7 @@ theorem longDataWordsLoopWord_setHelper_decoded_list_word {I : ExecutionEnv}
     (hpayloadStart : payloadStart = (((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩))
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat) :
     longDataWordsLoopWord
-      (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-      (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩ ⟨32⟩ i =
+      (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)) ⟨128⟩ ⟨32⟩ i =
         UInt256.ofNat (fromBytesBigEndian
           (((setDecodedValueBytes I).toList.drop (32 * i)).take 32)) := by
   rw [longDataWordsLoopWord_setHelper_decoded_word
@@ -2254,8 +2180,7 @@ theorem longDataWordsLoopWord_setHelper_decoded_list_word_at {I : ExecutionEnv}
     (hpayloadStart : payloadStart = (((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩))
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat) :
     longDataWordsLoopWord
-      (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-      (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
+      (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)) ⟨128⟩
       (UInt256.ofNat (32 * (i + 1))) 0 =
         UInt256.ofNat (fromBytesBigEndian
           (((setDecodedValueBytes I).toList.drop (32 * i)).take 32)) := by
@@ -2296,8 +2221,7 @@ theorem accountMapEquiv_solidityDataWordsForwardFrom_longDataWordsForwardFrom_fu
             (I := I) (len := len) (i := i) hsize hi
       have hwordLoop :
           longDataWordsLoopWord
-            (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-            (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
+            (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)) ⟨128⟩
             (UInt256.ofNat (32 * (i + 1))) 0 =
               UInt256.ofNat
                 (fromBytesBigEndian (((setDecodedValueBytes I).toList.drop (32 * i)).take 32)) := by
@@ -2307,8 +2231,7 @@ theorem accountMapEquiv_solidityDataWordsForwardFrom_longDataWordsForwardFrom_fu
       have hword :
           uInt256OfByteArray ((setDecodedValueBytes I).readWithPadding (i * 32) 32) =
             longDataWordsLoopWord
-              (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-              (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
+              (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)) ⟨128⟩
               (UInt256.ofNat (32 * (i + 1))) 0 := by
         rw [hwordDirect, hwordLoop]
       have hawStep :
@@ -2326,8 +2249,7 @@ theorem accountMapEquiv_solidityDataWordsForwardFrom_longDataWordsForwardFrom_fu
         (τ := sstoreAccountMap owner τ
           (clearCurrentBaseWord + UInt256.ofNat i)
           (longDataWordsLoopWord
-            (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-            (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
+            (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)) ⟨128⟩
             (UInt256.ofNat (32 * (i + 1))) 0))
         (i := i + 1) (fuel := fuel) htailFuel
       simpa [solidityDataWordsForwardFrom, longDataWordsForwardFrom, hword,
@@ -2443,8 +2365,7 @@ theorem longDataWordsLoopWord_setHelper_decoded_tail_word {I : ExecutionEnv}
     (hpayloadStart : payloadStart = (((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩))
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat) :
     longDataWordsLoopWord
-      (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-      (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
+      (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)) ⟨128⟩
       (UInt256.ofNat (32 * (len.toNat / 32 + 1))) 0 =
         UInt256.ofNat (fromBytesBigEndian
           (((setDecodedValueBytes I).toList.drop (32 * (len.toNat / 32))) ++
@@ -2453,9 +2374,6 @@ theorem longDataWordsLoopWord_setHelper_decoded_tail_word {I : ExecutionEnv}
                 (32 * (len.toNat / 32))).length) 0)) := by
   unfold longDataWordsLoopWord
   have haddr := longDataWordsLoopReadAddr_tail_toNat (len := len) hlenMax hmod
-  have haw := longDataWordsLoopAw_setHelper_eq (len := len) hlenMax
-    (len.toNat / 32) (by omega)
-  have hcover := setHelperEntryAw_covers_payload_u64 (len := len) hlenMax
   have hsizeMem :
       (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)).size =
         (setPaddedMem I.calldata len payloadStart).size := by
@@ -2473,38 +2391,8 @@ theorem longDataWordsLoopWord_setHelper_decoded_tail_word {I : ExecutionEnv}
     rw [haddr, hsizeMem, hsizePadded]
     have hdiv := Nat.div_add_mod len.toNat 32
     omega
-  have hnotAw :
-      ¬((⟨128⟩ : UInt256) + UInt256.ofNat (32 * (len.toNat / 32 + 1))) ≥
-        longDataWordsLoopAw (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
-          (UInt256.ofNat (32 * (len.toNat / 32 + 1))) 0 * ⟨32⟩ := by
-    intro hge
-    have haddrLt :
-        ((⟨128⟩ : UInt256) + UInt256.ofNat (32 * (len.toNat / 32 + 1))).toNat <
-          (longDataWordsLoopAw (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
-            (UInt256.ofNat (32 * (len.toNat / 32 + 1))) 0 * ⟨32⟩).toNat := by
-      rw [haddr]
-      simp [longDataWordsLoopAw]
-      have hentryGe : 1 ≤ (setHelperEntryAw len).toNat := by
-        have hge := setHelperEntryAw_ge5_of_u64 (len := len) hlenMax
-        omega
-      have hawEq : clearCurrentHashAw (setHelperEntryAw len) = setHelperEntryAw len :=
-        clearCurrentHashAw_eq_self_of_ge1 hentryGe
-      rw [hawEq]
-      rw [umul_toNat (a := setHelperEntryAw len) (b := (⟨32⟩ : UInt256))
-        (setHelperEntryAw_mul32_lt_of_u64 hlenMax)]
-      rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-      have htailCover : 160 + 32 * (len.toNat / 32) <
-          (setHelperEntryAw len).toNat * 32 := by
-        have hdiv := Nat.div_add_mod len.toNat 32
-        omega
-      exact htailCover
-    have hgeNat :
-        ((⟨128⟩ : UInt256) + UInt256.ofNat (32 * (len.toNat / 32 + 1))).toNat ≥
-          (longDataWordsLoopAw (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
-            (UInt256.ofNat (32 * (len.toNat / 32 + 1))) 0 * ⟨32⟩).toNat := hge
-    exact not_lt_of_ge hgeNat haddrLt
-  simp [longDataWordsLoopStride] at hnotSize hnotAw ⊢
-  rw [if_neg (not_or.mpr ⟨not_le_of_gt hnotSize, hnotAw⟩)]
+  simp [longDataWordsLoopStride] at hnotSize ⊢
+  rw [if_neg (not_le_of_gt hnotSize)]
   rw [haddr]
   unfold fromByteArrayBigEndian
   apply congrArg UInt256.ofNat
@@ -2524,10 +2412,7 @@ theorem longDataWordsLoopMload_setHelper_decoded_tail_word {I : ExecutionEnv}
     (hpayloadStart : payloadStart = (((⟨4⟩ : UInt256) + calldataWord I.calldata 4) + ⟨32⟩))
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat) :
     (if (⟨128⟩ + longDataWordsLoopStride ⟨32⟩ (len.toNat / 32)).toNat ≥
-          (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)).size ∨
-        (⟨128⟩ + longDataWordsLoopStride ⟨32⟩ (len.toNat / 32)) ≥
-          longDataWordsLoopAw (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩ ⟨32⟩
-            (len.toNat / 32) * ⟨32⟩ then
+          (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)).size then
         ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
       ((clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)).readWithPadding
@@ -2537,12 +2422,8 @@ theorem longDataWordsLoopMload_setHelper_decoded_tail_word {I : ExecutionEnv}
           List.replicate
             (32 - ((setDecodedValueBytes I).toList.drop
               (32 * (len.toNat / 32))).length) 0)) := by
-  have hcur := longDataWordsLoopAw_setHelper_eq (len := len) hlenMax
-    (len.toNat / 32) (by omega)
-  rw [hcur]
   change longDataWordsLoopWord
-      (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-      (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
+      (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)) ⟨128⟩
       (longDataWordsLoopStride ⟨32⟩ (len.toNat / 32)) 0 =
       UInt256.ofNat (fromBytesBigEndian
         (((setDecodedValueBytes I).toList.drop (32 * (len.toNat / 32))) ++
@@ -2842,15 +2723,14 @@ theorem longDataWordsLoopAw_succ_base (aw ptr stride : UInt256) :
       simp [longDataWordsLoopAw, longDataWordsLoopAw_succ_base aw ptr stride i,
         longDataWordsLoopStride, longDataWordsLoopStride_succ_base]
 
-theorem longDataWordsLoopWord_succ_base (mem : ByteArray) (aw ptr stride : UInt256) :
+theorem longDataWordsLoopWord_succ_base (mem : ByteArray) (ptr stride : UInt256) :
     ∀ i, longDataWordsLoopWord mem
-        (UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32))
         ptr ((⟨32⟩ : UInt256) + stride) i =
-      longDataWordsLoopWord mem aw ptr stride (i + 1)
+      longDataWordsLoopWord mem ptr stride (i + 1)
   | 0 => by
-      simp [longDataWordsLoopWord, longDataWordsLoopAw, longDataWordsLoopStride]
+      simp [longDataWordsLoopWord, longDataWordsLoopStride]
   | i + 1 => by
-      simp [longDataWordsLoopWord, longDataWordsLoopAw_succ_base,
+      simp [longDataWordsLoopWord,
         longDataWordsLoopStride, longDataWordsLoopStride_succ_base]
 
 theorem stringStoreLiteX_setLongDataWordsLoopGenerated
@@ -2891,7 +2771,7 @@ theorem stringStoreLiteX_setLongDataWordsLoopGenerated
         (σinit := σinit) (τ := τ) (idx := idx) (slot := slot) (cutoff := cutoff)
         (gtFlag := gtFlag) (stride := stride) (oldLen := oldLen) (len := len)
         (ptr := ptr) (ret := ret) (payloadStart := payloadStart)
-        (word := longDataWordsLoopWord mem aw ptr stride 0)
+        (word := longDataWordsLoopWord mem ptr stride 0)
         (aw := aw)
         (awLoad := UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32))
         (mem := mem) (rdata := rdata) (mloadCost := mloadCost)
@@ -2902,7 +2782,7 @@ theorem stringStoreLiteX_setLongDataWordsLoopGenerated
           simpa [longDataWordsLoopIndex, longDataWordsLoopSlot,
             longDataWordsLoopStride, longDataWordsLoopAw] using
             hmloadCost 0 (Nat.zero_lt_succ n) s haw hstk)
-        (by simp [longDataWordsLoopWord, longDataWordsLoopStride, longDataWordsLoopAw])
+        (by simp [longDataWordsLoopWord, longDataWordsLoopStride])
         rfl
       have hcontinueTail : ∀ i, i < n →
           UInt256.isZero
@@ -2945,7 +2825,7 @@ theorem stringStoreLiteX_setLongDataWordsLoopGenerated
         (slot := (⟨1⟩ : UInt256) + slot)
         (stride := (⟨32⟩ : UInt256) + stride)
         (aw := UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32))
-        (τ := sstoreAccountMap I.codeOwner τ slot (longDataWordsLoopWord mem aw ptr stride 0))
+        (τ := sstoreAccountMap I.codeOwner τ slot (longDataWordsLoopWord mem ptr stride 0))
         hstep hcontinueTail hmloadCostTail
       simpa [longDataWordsForwardFrom, longDataWordsLoopIndex, longDataWordsLoopSlot,
         longDataWordsLoopStride, longDataWordsLoopAw, longDataWordsLoopIndex_succ_base,
@@ -3161,7 +3041,7 @@ theorem stringStoreLiteX_setLongDataWordsLoopDoneTail
           stringStoreLiteSelWord I] →
       memoryExpansionCost s .MLOAD = mloadCost)
     (hmload :
-      (if (ptr + stride).toNat ≥ mem.size ∨ (ptr + stride) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (ptr + stride).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian
         (mem.readWithPadding (ptr + stride).toNat 32))) = word)
     (hawLoad : UInt256.ofNat (MachineState.M aw.toNat (ptr + stride).toNat 32) = awLoad)
@@ -3309,9 +3189,7 @@ theorem stringStoreLiteX_setLongDataWordsGeneratedTail
           ⟨93⟩, stringStoreLiteSelWord I] →
       memoryExpansionCost s .MLOAD = mloadCost)
     (hmload :
-      (if (ptr + longDataWordsLoopStride stride fuel).toNat ≥ mem.size ∨
-          (ptr + longDataWordsLoopStride stride fuel) ≥
-            longDataWordsLoopAw aw ptr stride fuel * ⟨32⟩ then ⟨0⟩
+      (if (ptr + longDataWordsLoopStride stride fuel).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian
         (mem.readWithPadding (ptr + longDataWordsLoopStride stride fuel).toNat 32))) =
         wordTail)
@@ -3437,9 +3315,7 @@ theorem stringStoreLiteX_setWriteLongFrom1405TailWithLoopSchedule
       memoryExpansionCost s .MLOAD = mloadCost)
     (hmload :
       (if (⟨128⟩ + longDataWordsLoopStride ⟨32⟩ fuel).toNat ≥
-            (clearCurrentBaseMemFrom mem).size ∨
-          (⟨128⟩ + longDataWordsLoopStride ⟨32⟩ fuel) ≥
-            longDataWordsLoopAw (clearCurrentHashAw aw) ⟨128⟩ ⟨32⟩ fuel * ⟨32⟩ then
+            (clearCurrentBaseMemFrom mem).size then
           ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian
         ((clearCurrentBaseMemFrom mem).readWithPadding
@@ -3550,9 +3426,7 @@ theorem stringStoreLiteX_setWriteLongFrom1405Tail
       memoryExpansionCost s .MLOAD = mloadCost)
     (hmload :
       (if (⟨128⟩ + longDataWordsLoopStride ⟨32⟩ (len.toNat / 32)).toNat ≥
-            (clearCurrentBaseMemFrom mem).size ∨
-          (⟨128⟩ + longDataWordsLoopStride ⟨32⟩ (len.toNat / 32)) ≥
-            longDataWordsLoopAw (clearCurrentHashAw aw) ⟨128⟩ ⟨32⟩ (len.toNat / 32) * ⟨32⟩ then
+            (clearCurrentBaseMemFrom mem).size then
           ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian
         ((clearCurrentBaseMemFrom mem).readWithPadding
@@ -3712,11 +3586,7 @@ theorem stringStoreLiteX_setWriteLongFrom1405TailAfterClearBase
   have hmloadTail :
       (if (⟨128⟩ + longDataWordsLoopStride ⟨32⟩ (len.toNat / 32)).toNat ≥
             (clearCurrentBaseMemFrom
-              (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))).size ∨
-          (⟨128⟩ + longDataWordsLoopStride ⟨32⟩ (len.toNat / 32)) ≥
-            longDataWordsLoopAw
-              (clearCurrentHashAw (clearCurrentHashAw (setHelperEntryAw len)))
-              ⟨128⟩ ⟨32⟩ (len.toNat / 32) * ⟨32⟩ then
+              (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))).size then
           ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian
         ((clearCurrentBaseMemFrom
@@ -4736,7 +4606,7 @@ theorem stringStoreLiteX_setWriteShortNonemptyFrom1405AfterClearBase
   have hmload :
       (if (⟨160⟩ : UInt256).toNat ≥
             (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)).size
-          ∨ (⟨160⟩ : UInt256) ≥ clearCurrentHashAw (setHelperEntryAw len) * ⟨32⟩ then
+ then
           ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
@@ -4747,15 +4617,11 @@ theorem stringStoreLiteX_setWriteShortNonemptyFrom1405AfterClearBase
     · rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide, hread160]
       exact (setHelperPayloadWord_eq_mload160_short_nonzero
         I.calldata len payloadStart hnz hshort hsrc).symm
-    · apply not_or.mpr
-      constructor
-      · rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide, hclearSize]
-        have hsize := setPaddedMem_size I.calldata len payloadStart hnz hsrc
-          (setDataEnd_toNat_of_short hshort)
-        rw [hsize]
-        omega
-      · rw [hawHash]
-        decide
+    · rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide, hclearSize]
+      have hsize := setPaddedMem_size I.calldata len payloadStart hnz hsrc
+        (setDataEnd_toNat_of_short hshort)
+      rw [hsize]
+      omega
   have rd1434 := RD.mload
     (Cₘ (setHelperPayloadAw len) - Cₘ (clearCurrentHashAw (setHelperEntryAw len)))
     (setHelperPayloadWord I.calldata len payloadStart)
@@ -5297,7 +5163,7 @@ theorem accountMapEquiv_longDataWordsForwardFrom_tail_zero_comm
       let slot := bytesLikeDataBase ⟨0⟩ + UInt256.ofNat i
       let tailSlot := bytesLikeDataBase ⟨0⟩ + UInt256.ofNat (i + fuel + 1)
       let stride := UInt256.ofNat (32 * (i + 1))
-      let word := longDataWordsLoopWord mem aw ⟨128⟩ stride 0
+      let word := longDataWordsLoopWord mem ⟨128⟩ stride 0
       let awNext := UInt256.ofNat (MachineState.M aw.toNat (⟨128⟩ + stride).toNat 32)
       have hslot_ne_tail : slot ≠ tailSlot := by
         dsimp [slot, tailSlot]

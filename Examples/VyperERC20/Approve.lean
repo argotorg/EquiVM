@@ -396,8 +396,7 @@ theorem approveReturnMem_read96 (owner spender val : UInt256) :
     rw [toByteArray_size])
 
 theorem approveDispatchMem_mload0 :
-    (if (⟨0⟩ : UInt256).toNat ≥ approveDispatchMem.size ∨
-        (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 1) * ⟨32⟩
+    (if (⟨0⟩ : UInt256).toNat ≥ approveDispatchMem.size
       then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (approveDispatchMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))
@@ -452,10 +451,8 @@ theorem erc20X_approveFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
       (by vyper_erc20_approve_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
-          (mem := approveInnerHashMem (approveOwnerWord I) (approveSpenderWord I))
-          (aw := UInt256.ofNat 3) (off := ⟨64⟩) (v := approveSpenderWord I)
+          (mem := approveInnerHashMem (approveOwnerWord I) (approveSpenderWord I)) (off := ⟨64⟩) (v := approveSpenderWord I)
           (by rw [approveInnerHashMem_size]; decide)
-          (by decide)
           (approveInnerHashMem_read64 (approveOwnerWord I) (approveSpenderWord I)))
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
@@ -478,10 +475,8 @@ theorem erc20X_approveFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
       (by vyper_erc20_approve_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
-          (mem := approveOuterHashMem (approveOwnerWord I) (approveSpenderWord I))
-          (aw := UInt256.ofNat 3) (off := ⟨64⟩) (v := approveSpenderWord I)
+          (mem := approveOuterHashMem (approveOwnerWord I) (approveSpenderWord I)) (off := ⟨64⟩) (v := approveSpenderWord I)
           (by rw [approveOuterHashMem_size]; decide)
-          (by decide)
           (approveOuterHashMem_read64 (approveOwnerWord I) (approveSpenderWord I)))
       (by decide) (by evm_ov),
     caller]).pushConst ERC20.approveApprovalTopic (width := 32) (op := .PUSH32)

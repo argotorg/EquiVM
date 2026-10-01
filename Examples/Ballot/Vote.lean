@@ -825,12 +825,11 @@ theorem voteHashMem_read64 (I : ExecutionEnv) :
     voteKeyMem_read64]
 
 theorem voteHashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (voteHashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (voteHashMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((voteHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [voteHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [voteHashMem_size]; decide)
     (voteHashMem_read64 I)
 
 theorem voteProposalBaseMem_read0 (I : ExecutionEnv) :
@@ -1040,23 +1039,21 @@ theorem voteVotedErrorMem3_read64 (I : ExecutionEnv) :
     voteVotedErrorMem2_read64]
 
 theorem voteWeightErrorMem3_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (voteWeightErrorMem3 I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (voteWeightErrorMem3 I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((voteWeightErrorMem3 I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [voteWeightErrorMem3_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [voteWeightErrorMem3_size]; decide)
     (voteWeightErrorMem3_read64 I)
 
 theorem voteVotedErrorMem3_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (voteVotedErrorMem3 I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (voteVotedErrorMem3 I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((voteVotedErrorMem3 I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [voteVotedErrorMem3_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [voteVotedErrorMem3_size]; decide)
     (voteVotedErrorMem3_read64 I)
 
 theorem voteProposalCountSlot_evm (I : ExecutionEnv) :

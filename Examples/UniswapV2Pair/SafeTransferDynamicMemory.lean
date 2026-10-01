@@ -97,7 +97,7 @@ theorem safeTransferDynamicWords2_bounds (aw ptr : UInt256)
 theorem safeTransferDynamicMem2_mload64 {base : ByteArray} (aw ptr : UInt256)
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size) (hptrLo : 96 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hptr : ptr.toNat + 95 < UInt256.size) :
-    memoryWordLoad (safeTransferDynamicMem2 base ptr) (safeTransferDynamicWords2 aw ptr) ⟨64⟩ = ptr + ⟨64⟩ ∧
+    memoryWordLoad (safeTransferDynamicMem2 base ptr) ⟨64⟩ = ptr + ⟨64⟩ ∧
     memoryWordActiveWords (safeTransferDynamicWords2 aw ptr) ⟨64⟩ = safeTransferDynamicWords2 aw ptr := by
   obtain ⟨hbound, hcover⟩ := safeTransferDynamicWords2_bounds aw ptr haw hptr
   have hsize := safeTransferDynamicMem2_size ptr hin hgap (by omega)
@@ -107,7 +107,6 @@ theorem safeTransferDynamicMem2_mload64 {base : ByteArray} (aw ptr : UInt256)
   constructor
   · exact mloadWordValue_of_readWithPadding
       (by change 64 < _; rw [hsize]; omega)
-      (UInt256_mload_haw_of_cover _ _ hbound h96)
       (safeTransferDynamicMem2_read64 ptr hin hgap hptrLo (by omega))
   · exact UInt256_M_same_of_cover _ _ hbound h96
 
@@ -179,7 +178,7 @@ theorem safeTransferDynamicWords4_bounds (aw ptr : UInt256)
 theorem safeTransferDynamicMem4_mload64 {base : ByteArray} (aw ptr toWord value : UInt256)
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size) (hptrLo : 96 ≤ ptr.toNat)
     (haw : aw.toNat * 32 < UInt256.size) (hptr : ptr.toNat + 195 < UInt256.size) :
-    memoryWordLoad (safeTransferDynamicMem4 base ptr toWord value) (safeTransferDynamicWords4 aw ptr) ⟨64⟩ = ptr + ⟨64⟩ ∧
+    memoryWordLoad (safeTransferDynamicMem4 base ptr toWord value) ⟨64⟩ = ptr + ⟨64⟩ ∧
     memoryWordActiveWords (safeTransferDynamicWords4 aw ptr) ⟨64⟩ = safeTransferDynamicWords4 aw ptr := by
   obtain ⟨hbound, hcover⟩ := safeTransferDynamicWords4_bounds aw ptr haw hptr
   have hsize := safeTransferDynamicMem4_size ptr toWord value hin hgap (by omega)
@@ -189,7 +188,6 @@ theorem safeTransferDynamicMem4_mload64 {base : ByteArray} (aw ptr toWord value 
   constructor
   · exact mloadWordValue_of_readWithPadding
       (by change 64 < _; rw [hsize]; omega)
-      (UInt256_mload_haw_of_cover _ _ hbound h96)
       (safeTransferDynamicMem4_read64 ptr toWord value hin hgap hptrLo (by omega))
   · exact UInt256_M_same_of_cover _ _ hbound h96
 
@@ -234,16 +232,16 @@ def safeTransferDynamicMem7 (base : ByteArray) (ptr toWord value : UInt256) : By
 theorem safeTransferDynamicMem6_mload96 {base : ByteArray} (aw ptr toWord value : UInt256)
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size)
     (haw : aw.toNat * 32 < UInt256.size) (hptr : ptr.toNat + 195 < UInt256.size) :
-    memoryWordLoad (safeTransferDynamicMem6 base ptr toWord value) (safeTransferDynamicWords4 aw ptr)
+    memoryWordLoad (safeTransferDynamicMem6 base ptr toWord value)
       (ptr + ⟨96⟩) = safeTransferDynamicWord96 base ptr toWord value ∧
     memoryWordActiveWords (safeTransferDynamicWords4 aw ptr) (ptr + ⟨96⟩) = safeTransferDynamicWords4 aw ptr := by
   obtain ⟨hb4, hc4⟩ := safeTransferDynamicWords4_bounds aw ptr haw hptr
   have h96 : (ptr + ⟨96⟩).toNat = ptr.toNat + 96 := uadd_word_ofNat_toNat ptr 96 (by omega)
   have hc : (ptr + ⟨96⟩).toNat + 32 ≤ (safeTransferDynamicWords4 aw ptr).toNat * 32 := by rw [h96]; omega
   constructor
-  · exact mloadValue_eq_readWithPadding_of_lt_size _ _ _ _
+  · exact mloadValue_eq_readWithPadding_of_lt_size _ _ _
       (safeTransferDynamicMem6_size ptr toWord value hin hgap (by omega))
-      (by rw [h96]; omega) (UInt256_mload_haw_of_cover _ _ hb4 hc)
+      (by rw [h96]; omega)
   · exact UInt256_M_same_of_cover _ _ hb4 hc
 
 theorem safeTransferDynamicMem7_size {base : ByteArray} (ptr toWord value : UInt256)

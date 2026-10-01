@@ -148,8 +148,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveWithLiquidityReturn
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
             (uniswapInternalMintBalanceHashMem feeTo
-              (uniswapInternalMintBalanceHashMem feeTo mem)).size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+              (uniswapInternalMintBalanceHashMem feeTo mem)).size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           ((uniswapInternalMintBalanceHashMem feeTo
@@ -160,8 +159,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveWithLiquidityReturn
       (if (⟨64⟩ : UInt256).toNat ≥
             (uniswapInternalMintLogMem (mintFeeLiquidityWord evmFeeS rootK rootKLast)
               (uniswapInternalMintBalanceHashMem feeTo
-                (uniswapInternalMintBalanceHashMem feeTo mem))).size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+                (uniswapInternalMintBalanceHashMem feeTo mem))).size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           ((uniswapInternalMintLogMem (mintFeeLiquidityWord evmFeeS rootK rootKLast)
@@ -265,8 +263,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveWithLiquidityReturn
                 (UInt256.mul (UInt256.ofNat rootK.toNat) (⟨5⟩ : UInt256) +
                   UInt256.ofNat rootKLast.toNat))
               (uniswapInternalMintBalanceHashMem feeTo
-                (uniswapInternalMintBalanceHashMem feeTo mem))).size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+                (uniswapInternalMintBalanceHashMem feeTo mem))).size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           ((uniswapInternalMintLogMem

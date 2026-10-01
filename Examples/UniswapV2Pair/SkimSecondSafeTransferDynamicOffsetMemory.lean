@@ -735,7 +735,7 @@ theorem skimSecondSafeTransferDynamicMem2_mload64
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
           (skimSecondSafeTransferDynamicMem2 self o toWord prevValue out1 out2).size
-        ∨ (⟨64⟩ : UInt256) ≥ skimSecondSafeTransferDynamicWordsMem2 out1 * ⟨32⟩ then
+ then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -743,7 +743,7 @@ theorem skimSecondSafeTransferDynamicMem2_mload64
           (⟨64⟩ : UInt256).toNat 32))) =
       skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := skimSecondSafeTransferDynamicWordsMem2 out1)
+    (off := (⟨64⟩ : UInt256))
     (v := skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩)
     (by
       have hsize :=
@@ -752,9 +752,6 @@ theorem skimSecondSafeTransferDynamicMem2_mload64
       have hptr := skimSecondSafeTransferDynamicBasePtr_toNat_ge out1 hout1Size
       change 64 < (skimSecondSafeTransferDynamicMem2 self o toWord prevValue out1 out2).size
       omega)
-    (UInt256_mload64_haw_of_toNat_ge13 _
-      (skimSecondSafeTransferDynamicWordsMem2_toNat_ge13 out1 hout1Size)
-      (skimSecondSafeTransferDynamicWordsMem2_mul32_lt out1 hout1Size))
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 from rfl] using
         skimSecondSafeTransferDynamicMem2_read64 self toWord prevValue
@@ -901,7 +898,7 @@ theorem skimSecondSafeTransferDynamicMem4_mload64
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
           (skimSecondSafeTransferDynamicMem4 self o toWord prevValue out1 out2 value).size
-        ∨ (⟨64⟩ : UInt256) ≥ skimSecondSafeTransferDynamicWordsMem4 out1 * ⟨32⟩ then
+ then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -909,7 +906,7 @@ theorem skimSecondSafeTransferDynamicMem4_mload64
           (⟨64⟩ : UInt256).toNat 32))) =
       skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := skimSecondSafeTransferDynamicWordsMem4 out1)
+    (off := (⟨64⟩ : UInt256))
     (v := skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩)
     (by
       have hsize :=
@@ -918,9 +915,6 @@ theorem skimSecondSafeTransferDynamicMem4_mload64
       have hptr := skimSecondSafeTransferDynamicBasePtr_toNat_ge out1 hout1Size
       change 64 < (skimSecondSafeTransferDynamicMem4 self o toWord prevValue out1 out2 value).size
       omega)
-    (UInt256_mload64_haw_of_toNat_ge13 _
-      (skimSecondSafeTransferDynamicWordsMem4_toNat_ge13 out1 hout1Size)
-      (skimSecondSafeTransferDynamicWordsMem4_mul32_lt out1 hout1Size))
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 from rfl] using
         skimSecondSafeTransferDynamicMem4_read64 self toWord prevValue value
@@ -1046,8 +1040,7 @@ theorem skimSecondSafeTransferDynamicMem6_mload_base96
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩).toNat ≥
           (skimSecondSafeTransferDynamicMem6 self o toWord prevValue out1 out2 value).size
-        ∨ (skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩) ≥
-          skimSecondSafeTransferDynamicWordsMem4 out1 * ⟨32⟩ then
+ then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -1056,21 +1049,16 @@ theorem skimSecondSafeTransferDynamicMem6_mload_base96
       skimSecondSafeTransferDynamicWord96 self o toWord prevValue out1 out2 value := by
   rw [if_neg]
   · rfl
-  · rw [not_or]
-    constructor
-    · have h96 :
-          (skimSecondSafeTransferDynamicBasePtr out1 + (⟨96⟩ : UInt256)).toNat =
-            (skimSecondSafeTransferDynamicBasePtr out1).toNat + 96 := by
-        simpa using
-          skimSecondSafeTransferDynamicBasePtr_add_toNat out1 96 hout1Size (by norm_num)
-      rw [h96]
-      have hsize :=
-        skimSecondSafeTransferDynamicMem6_size_ge_base_add164 self toWord prevValue value
-          ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size
-      omega
-    · exact UInt256_mload_haw_of_cover _ _
-        (skimSecondSafeTransferDynamicWordsMem4_mul32_lt out1 hout1Size)
-        (skimSecondSafeTransferDynamicWordsMem4_cover_base96 out1 hout1Size)
+  · have h96 :
+        (skimSecondSafeTransferDynamicBasePtr out1 + (⟨96⟩ : UInt256)).toNat =
+          (skimSecondSafeTransferDynamicBasePtr out1).toNat + 96 := by
+      simpa using
+        skimSecondSafeTransferDynamicBasePtr_add_toNat out1 96 hout1Size (by norm_num)
+    rw [h96]
+    have hsize :=
+      skimSecondSafeTransferDynamicMem6_size_ge_base_add164 self toWord prevValue value
+        ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size
+    omega
 
 theorem skimSecondSafeTransferDynamicMem6_read64
     (self : UInt256) {o : ByteArray} (toWord prevValue : UInt256) {out1 out2 : ByteArray}
@@ -1218,7 +1206,7 @@ theorem skimSecondSafeTransferDynamicMem7_mload64
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
           (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value).size
-        ∨ (⟨64⟩ : UInt256) ≥ skimSecondSafeTransferDynamicWordsMem4 out1 * ⟨32⟩ then
+ then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -1226,7 +1214,7 @@ theorem skimSecondSafeTransferDynamicMem7_mload64
           (⟨64⟩ : UInt256).toNat 32))) =
       skimSecondSafeTransferDynamicCallPtr out1 := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := skimSecondSafeTransferDynamicWordsMem4 out1)
+    (off := (⟨64⟩ : UInt256))
     (v := skimSecondSafeTransferDynamicCallPtr out1)
     (by
       have hsize :=
@@ -1235,9 +1223,6 @@ theorem skimSecondSafeTransferDynamicMem7_mload64
       have hptr := skimSecondSafeTransferDynamicBasePtr_toNat_ge out1 hout1Size
       change 64 < (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value).size
       omega)
-    (UInt256_mload64_haw_of_toNat_ge13 _
-      (skimSecondSafeTransferDynamicWordsMem4_toNat_ge13 out1 hout1Size)
-      (skimSecondSafeTransferDynamicWordsMem4_mul32_lt out1 hout1Size))
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 from rfl] using
         skimSecondSafeTransferDynamicMem7_read64 self toWord prevValue value
@@ -1333,8 +1318,7 @@ theorem skimSecondSafeTransferDynamicMem7_mload_base64
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩).toNat ≥
           (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value).size
-        ∨ (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩) ≥
-          skimSecondSafeTransferDynamicWordsMem4 out1 * ⟨32⟩ then
+ then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -1342,8 +1326,7 @@ theorem skimSecondSafeTransferDynamicMem7_mload_base64
           (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩).toNat 32))) =
       ⟨68⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩))
-    (aw := skimSecondSafeTransferDynamicWordsMem4 out1) (v := (⟨68⟩ : UInt256))
+    (off := (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩)) (v := (⟨68⟩ : UInt256))
     (by
       have h64 :
           (skimSecondSafeTransferDynamicBasePtr out1 + (⟨64⟩ : UInt256)).toNat =
@@ -1357,9 +1340,6 @@ theorem skimSecondSafeTransferDynamicMem7_mload_base64
       change (skimSecondSafeTransferDynamicBasePtr out1).toNat + 64 <
         (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value).size
       omega)
-    (UInt256_mload_haw_of_cover _ _
-      (skimSecondSafeTransferDynamicWordsMem4_mul32_lt out1 hout1Size)
-      (skimSecondSafeTransferDynamicWordsMem4_cover_base64 out1 hout1Size))
     (by
       exact skimSecondSafeTransferDynamicMem7_read_base64
         (self := self) (o := o) (toWord := toWord) (prevValue := prevValue)
@@ -1409,8 +1389,7 @@ theorem skimSecondSafeTransferDynamicMem7_mload_base96
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩).toNat ≥
           (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value).size
-        ∨ (skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩) ≥
-          skimSecondSafeTransferDynamicWordsMem4 out1 * ⟨32⟩ then
+ then
       ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
@@ -1419,7 +1398,6 @@ theorem skimSecondSafeTransferDynamicMem7_mload_base96
       skimSecondSafeTransferDynamicPatchedSelectorWord self o toWord prevValue out1 out2 value := by
   exact mloadWordValue_of_readWithPadding
     (off := (skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩))
-    (aw := skimSecondSafeTransferDynamicWordsMem4 out1)
     (v := skimSecondSafeTransferDynamicPatchedSelectorWord self o toWord prevValue out1 out2 value)
     (by
       have h96 :
@@ -1434,9 +1412,6 @@ theorem skimSecondSafeTransferDynamicMem7_mload_base96
       change (skimSecondSafeTransferDynamicBasePtr out1).toNat + 96 <
         (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value).size
       omega)
-    (UInt256_mload_haw_of_cover _ _
-      (skimSecondSafeTransferDynamicWordsMem4_mul32_lt out1 hout1Size)
-      (skimSecondSafeTransferDynamicWordsMem4_cover_base96 out1 hout1Size))
     (by
       exact skimSecondSafeTransferDynamicMem7_read_base96
         (self := self) (o := o) (toWord := toWord) (prevValue := prevValue)

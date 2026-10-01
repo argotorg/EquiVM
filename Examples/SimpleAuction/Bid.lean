@@ -271,12 +271,11 @@ theorem bidPendingHashMem_read64 (key : UInt256) :
   exact solcFreePtrMem_read64
 
 theorem bidPendingHashMem_mload64 (key : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (bidPendingHashMem key).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (bidPendingHashMem key).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((bidPendingHashMem key).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [bidPendingHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [bidPendingHashMem_size]; decide)
     (bidPendingHashMem_read64 key)
 
 theorem bidNotHighEnoughMem_size (high : UInt256) : (bidNotHighEnoughMem high).size = 164 := by
@@ -294,12 +293,11 @@ theorem bidNotHighEnoughMem_read64 (high : UInt256) :
   exact solcReturnMem_read64 bidNotHighEnoughSelector
 
 theorem bidNotHighEnoughMem_mload64 (high : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (bidNotHighEnoughMem high).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (bidNotHighEnoughMem high).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((bidNotHighEnoughMem high).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [bidNotHighEnoughMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [bidNotHighEnoughMem_size]; decide)
     (bidNotHighEnoughMem_read64 high)
 
 theorem bidEventMemCaller_size (I : ExecutionEnv) : (bidEventMemCaller I).size = 160 := by
@@ -320,12 +318,11 @@ theorem bidEventMem_read64 (I : ExecutionEnv) :
   simpa [bidEventMemCaller, solcReturnMem] using solcReturnMem_read64 (bidSenderWord I)
 
 theorem bidEventMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (bidEventMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (bidEventMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((bidEventMem I).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [bidEventMem_size]; decide) (by decide) (bidEventMem_read64 I)
+  mloadFreePtrValue (by rw [bidEventMem_size]; decide) (bidEventMem_read64 I)
 
 theorem bidPendingEventMemCaller_size (σ : AccountMap) (I : ExecutionEnv) :
     (bidPendingEventMemCaller σ I).size = 160 := by
@@ -370,12 +367,11 @@ theorem bidPendingEventMem_read64 (σ : AccountMap) (I : ExecutionEnv) :
   exact bidPendingHashMem_read64 (bidHighestBidderWord σ I)
 
 theorem bidPendingEventMem_mload64 (σ : AccountMap) (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (bidPendingEventMem σ I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (bidPendingEventMem σ I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((bidPendingEventMem σ I).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [bidPendingEventMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [bidPendingEventMem_size]; decide)
     (bidPendingEventMem_read64 σ I)
 
 theorem bidPendingKeccak (σ : AccountMap) (I : ExecutionEnv) :

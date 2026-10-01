@@ -33,15 +33,13 @@ theorem uniswapMintSyncLogMem_mload64_of_160
     (packed : UInt256) {mem : ByteArray}
     (hmem : mem.size = 160)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapSyncLogMem packed mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapSyncLogMem packed mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapSyncLogMem packed mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [uniswapMintSyncLogMem_size_192_of_160 packed hmem]; decide)
-    (by native_decide)
     (uniswapMintSyncLogMem_read64_of_160 packed hmem hmem64)
 
 theorem uniswapMintSyncLogMem_size_192_of_size_le
@@ -71,15 +69,13 @@ theorem uniswapMintSyncLogMem_mload64_of_size_le
     (packed : UInt256) {mem : ByteArray}
     (hlo : 128 ≤ mem.size) (hhi : mem.size ≤ 192)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapSyncLogMem packed mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapSyncLogMem packed mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapSyncLogMem packed mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [uniswapMintSyncLogMem_size_192_of_size_le packed hlo hhi]; decide)
-    (by native_decide)
     (uniswapMintSyncLogMem_read64_of_size_le packed hlo hmem64)
 
 set_option maxHeartbeats 1000000 in
@@ -120,12 +116,11 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateElapsedZeroFeeOffReturns
   obtain ⟨_, _, rd7339⟩ :=
     uniswapMintRuntimeUpdateElapsedZeroStore rd6959 hfit0 hfit1 helapsed0 hperm
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by omega) (by native_decide) hmem64
+    mloadFreePtrValue (by omega) hmem64
   obtain ⟨_, _, rd3926⟩ :=
     uniswapMintRuntimeUpdateEmitSyncReturn
       (packed := packed)
@@ -219,12 +214,11 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateElapsedZeroFeeOnReturns
   obtain ⟨_, _, rd7339⟩ :=
     uniswapMintRuntimeUpdateElapsedZeroStore rd6959 hfit0 hfit1 helapsed0 hperm
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by omega) (by native_decide) hmem64
+    mloadFreePtrValue (by omega) hmem64
   obtain ⟨_, _, rd3926⟩ :=
     uniswapMintRuntimeUpdateEmitSyncReturn
       (packed := packed)
@@ -325,12 +319,11 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOffReturns
       hperm
       (by simp only [List.length_cons, List.length_nil]; omega)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by omega) (by native_decide) hmem64
+    mloadFreePtrValue (by omega) hmem64
   obtain ⟨_, _, rd3926⟩ :=
     uniswapMintRuntimeUpdateEmitSyncReturn
       (packed :=
@@ -470,12 +463,11 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOnReturns
       hperm
       (by simp only [List.length_cons, List.length_nil]; omega)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by omega) (by native_decide) hmem64
+    mloadFreePtrValue (by omega) hmem64
   obtain ⟨_, _, rd3926⟩ :=
     uniswapMintRuntimeUpdateEmitSyncReturn
       (packed :=

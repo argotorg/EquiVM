@@ -149,8 +149,7 @@ structure CurrentLengthLoopFinal (σ : AccountMap) (I : ExecutionEnv) (endp len 
   hmloadCost : ∀ st : State, st.machineState.activeWords = awStore →
     st.machineState.stack = [⟨128⟩, ⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
     memoryExpansionCost st .MLOAD = mloadCost
-  hloadVal : (if (⟨128⟩ : UInt256).toNat ≥ memout.size
-      ∨ (⟨128⟩ : UInt256) ≥ awStore * ⟨32⟩ then ⟨0⟩
+  hloadVal : (if (⟨128⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
     else UInt256.ofNat
       (fromByteArrayBigEndian (memout.readWithPadding (⟨128⟩ : UInt256).toNat 32))) = len
   hawLoad : UInt256.ofNat (MachineState.M awStore.toNat (⟨128⟩ : UInt256).toNat 32) = awLoad
@@ -210,10 +209,7 @@ def currentLengthGeneratedLoopFinal {σ : AccountMap} {I : ExecutionEnv}
             (currentLengthGeneratedLoopState σ I len fuel).ptr
             (currentLengthStorageWord σ I
               (currentLengthGeneratedLoopState σ I len fuel).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥
-            UInt256.ofNat
-              (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-                (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((currentLengthCopyMem
@@ -398,17 +394,15 @@ theorem currentLengthLongScratchMem_size (len : UInt256) :
   rw [hEq, ByteArray.size_append, ByteArray.size_append, hhead, htail, toByteArray_size]
 
 theorem currentLengthLongScratchMem_mload128 (len : UInt256) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (currentLengthLongScratchMem len).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (currentLengthLongScratchMem len).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((currentLengthLongScratchMem len).readWithPadding (⟨128⟩ : UInt256).toNat 32))) = len := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨128⟩ : UInt256)) (aw := UInt256.ofNat 5) (v := len)
+    (off := (⟨128⟩ : UInt256)) (v := len)
     (by
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, currentLengthLongScratchMem_size]
       decide)
-    (by decide)
     (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
       currentLengthLongScratchMem_read128 len)
 
@@ -471,19 +465,16 @@ theorem currentLengthReturnWrite_retBytes {mem : ByteArray} {len freePtr : UInt2
   simpa [currentLength_add_zero_toNat] using
     currentLengthReturnWrite_readBack (mem := mem) (len := len) (freePtr := freePtr) hin
 
-theorem currentLength_mload64_of_read64 {mem : ByteArray} {aw freePtr : UInt256}
+theorem currentLength_mload64_of_read64 {mem : ByteArray} {freePtr : UInt256}
     (hmem : 64 < mem.size)
-    (haw : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩)
     (hread : mem.readWithPadding 64 32 = UInt256.toByteArray freePtr) :
-    (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-        ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       freePtr := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := aw) (v := freePtr)
+    (off := (⟨64⟩ : UInt256)) (v := freePtr)
     (by simpa using hmem)
-    haw
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hread)
 
 theorem currentLengthLoopState_preserves_read64 {σ : AccountMap} {I : ExecutionEnv}
@@ -630,10 +621,7 @@ theorem currentLengthGeneratedLoopFinal_read64 {σ : AccountMap} {I : ExecutionE
             (currentLengthGeneratedLoopState σ I len fuel).ptr
             (currentLengthStorageWord σ I
               (currentLengthGeneratedLoopState σ I len fuel).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥
-            UInt256.ofNat
-              (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-                (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((currentLengthCopyMem
@@ -1215,10 +1203,7 @@ theorem currentLengthGeneratedLoopFinal_read64_of_add32 {σ : AccountMap} {I : E
             (currentLengthGeneratedLoopState σ I len fuel).ptr
             (currentLengthStorageWord σ I
               (currentLengthGeneratedLoopState σ I len fuel).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥
-            UInt256.ofNat
-              (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-                (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((currentLengthCopyMem
@@ -1284,10 +1269,7 @@ theorem currentLengthGeneratedLoopFinal_read128 {σ : AccountMap} {I : Execution
             (currentLengthGeneratedLoopState σ I len fuel).ptr
             (currentLengthStorageWord σ I
               (currentLengthGeneratedLoopState σ I len fuel).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥
-            UInt256.ofNat
-              (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-                (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((currentLengthCopyMem
@@ -1349,10 +1331,7 @@ theorem currentLengthGeneratedLoopFinal_read128_of_add32 {σ : AccountMap} {I : 
             (currentLengthGeneratedLoopState σ I len fuel).ptr
             (currentLengthStorageWord σ I
               (currentLengthGeneratedLoopState σ I len fuel).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥
-            UInt256.ofNat
-              (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-                (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((currentLengthCopyMem
@@ -1419,10 +1398,7 @@ theorem currentLengthGeneratedLoopFinal_mload128_of_add32
             (currentLengthGeneratedLoopState σ I len fuel).ptr
             (currentLengthStorageWord σ I
               (currentLengthGeneratedLoopState σ I len fuel).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥
-            UInt256.ofNat
-              (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-                (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((currentLengthCopyMem
@@ -1447,22 +1423,14 @@ theorem currentLengthGeneratedLoopFinal_mload128_of_add32
           (currentLengthGeneratedLoopState σ I len fuel).mem
           (currentLengthGeneratedLoopState σ I len fuel).ptr
           (currentLengthStorageWord σ I
-            (currentLengthGeneratedLoopState σ I len fuel).slot)).size)
-    (haw128 :
-      ¬ (⟨128⟩ : UInt256) ≥
-        UInt256.ofNat
-          (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩) :
+            (currentLengthGeneratedLoopState σ I len fuel).slot)).size) :
     (if (⟨128⟩ : UInt256).toNat ≥
           (currentLengthCopyMem
             (currentLengthGeneratedLoopState σ I len fuel).mem
             (currentLengthGeneratedLoopState σ I len fuel).ptr
             (currentLengthStorageWord σ I
               (currentLengthGeneratedLoopState σ I len fuel).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥
-            UInt256.ofNat
-              (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-                (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((currentLengthCopyMem
@@ -1477,12 +1445,8 @@ theorem currentLengthGeneratedLoopFinal_mload128_of_add32
       (currentLengthGeneratedLoopState σ I len fuel).ptr
       (currentLengthStorageWord σ I
         (currentLengthGeneratedLoopState σ I len fuel).slot))
-    (aw := UInt256.ofNat
-      (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-        (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32))
     (off := (⟨128⟩ : UInt256)) (v := len)
     (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using hsize128)
-    haw128
     (by
       simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
         currentLengthGeneratedLoopFinal_read128_of_add32
@@ -1501,22 +1465,14 @@ theorem currentLengthGeneratedFinalCopy_mload128_of_add32
           (currentLengthGeneratedLoopState σ I len fuel).mem
           (currentLengthGeneratedLoopState σ I len fuel).ptr
           (currentLengthStorageWord σ I
-            (currentLengthGeneratedLoopState σ I len fuel).slot)).size)
-    (haw128 :
-      ¬ (⟨128⟩ : UInt256) ≥
-        UInt256.ofNat
-          (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩) :
+            (currentLengthGeneratedLoopState σ I len fuel).slot)).size) :
     (if (⟨128⟩ : UInt256).toNat ≥
           (currentLengthCopyMem
             (currentLengthGeneratedLoopState σ I len fuel).mem
             (currentLengthGeneratedLoopState σ I len fuel).ptr
             (currentLengthStorageWord σ I
               (currentLengthGeneratedLoopState σ I len fuel).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥
-            UInt256.ofNat
-              (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-                (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((currentLengthCopyMem
@@ -1531,51 +1487,12 @@ theorem currentLengthGeneratedFinalCopy_mload128_of_add32
       (currentLengthGeneratedLoopState σ I len fuel).ptr
       (currentLengthStorageWord σ I
         (currentLengthGeneratedLoopState σ I len fuel).slot))
-    (aw := UInt256.ofNat
-      (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-        (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32))
     (off := (⟨128⟩ : UInt256)) (v := len)
     (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using hsize128)
-    haw128
     (by
       simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
         currentLengthGeneratedFinalCopy_read128_of_add32
           (σ := σ) (I := I) (len := len) (fuel := fuel) hadd32)
-
-theorem currentLengthGeneratedFinalCopy_mload128_of_add32_aw
-    {σ : AccountMap} {I : ExecutionEnv} {len : UInt256} {fuel : Nat}
-    (hadd32 : ∀ i, i ≤ fuel →
-      (((⟨32⟩ : UInt256) + (currentLengthGeneratedLoopState σ I len i).ptr).toNat =
-        (currentLengthGeneratedLoopState σ I len i).ptr.toNat + 32))
-    (haw128 :
-      ¬ (⟨128⟩ : UInt256) ≥
-        UInt256.ofNat
-          (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-            (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩) :
-    (if (⟨128⟩ : UInt256).toNat ≥
-          (currentLengthCopyMem
-            (currentLengthGeneratedLoopState σ I len fuel).mem
-            (currentLengthGeneratedLoopState σ I len fuel).ptr
-            (currentLengthStorageWord σ I
-              (currentLengthGeneratedLoopState σ I len fuel).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥
-            UInt256.ofNat
-              (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-                (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩ then ⟨0⟩
-        else UInt256.ofNat
-          (fromByteArrayBigEndian
-            ((currentLengthCopyMem
-              (currentLengthGeneratedLoopState σ I len fuel).mem
-              (currentLengthGeneratedLoopState σ I len fuel).ptr
-              (currentLengthStorageWord σ I
-                (currentLengthGeneratedLoopState σ I len fuel).slot)).readWithPadding
-                (⟨128⟩ : UInt256).toNat 32))) = len := by
-  exact currentLengthGeneratedFinalCopy_mload128_of_add32
-    (σ := σ) (I := I) (len := len) (fuel := fuel)
-    hadd32
-    (currentLengthGeneratedFinalCopy_size_gt128_of_add32
-      (σ := σ) (I := I) (len := len) (fuel := fuel) hadd32)
-    haw128
 
 theorem currentLengthGeneratedFinalCopy_aw128_of_mNoWrap
     {σ : AccountMap} {I : ExecutionEnv} {len : UInt256} {fuel : Nat}
@@ -1672,96 +1589,6 @@ theorem currentLengthGeneratedFinalCopy_aw64_of_mNoWrap
     (aw := UInt256.ofNat m)
     (by simpa [hmToNat] using hmGe)
     (by simpa [hmToNat] using hMNoWrap)
-
-theorem currentLengthGeneratedFinalCopy_mload128_of_add32_mNoWrap
-    {σ : AccountMap} {I : ExecutionEnv} {len : UInt256} {fuel : Nat}
-    (hadd32 : ∀ i, i ≤ fuel →
-      (((⟨32⟩ : UInt256) + (currentLengthGeneratedLoopState σ I len i).ptr).toNat =
-        (currentLengthGeneratedLoopState σ I len i).ptr.toNat + 32))
-    (hMNoWrap :
-      MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-          (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32 * 32 <
-        UInt256.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥
-          (currentLengthCopyMem
-            (currentLengthGeneratedLoopState σ I len fuel).mem
-            (currentLengthGeneratedLoopState σ I len fuel).ptr
-            (currentLengthStorageWord σ I
-              (currentLengthGeneratedLoopState σ I len fuel).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥
-            UInt256.ofNat
-              (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-                (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩ then ⟨0⟩
-        else UInt256.ofNat
-          (fromByteArrayBigEndian
-            ((currentLengthCopyMem
-              (currentLengthGeneratedLoopState σ I len fuel).mem
-              (currentLengthGeneratedLoopState σ I len fuel).ptr
-              (currentLengthStorageWord σ I
-                (currentLengthGeneratedLoopState σ I len fuel).slot)).readWithPadding
-                (⟨128⟩ : UInt256).toNat 32))) = len := by
-  exact currentLengthGeneratedFinalCopy_mload128_of_add32_aw
-    (σ := σ) (I := I) (len := len) (fuel := fuel) hadd32
-    (currentLengthGeneratedFinalCopy_aw128_of_mNoWrap
-      (σ := σ) (I := I) (len := len) (fuel := fuel) hMNoWrap)
-
-theorem currentLengthGeneratedFinalCopy_mload128_of_add32_ptrBound
-    {σ : AccountMap} {I : ExecutionEnv} {len : UInt256} {fuel : Nat}
-    (hadd32 : ∀ i, i ≤ fuel →
-      (((⟨32⟩ : UInt256) + (currentLengthGeneratedLoopState σ I len i).ptr).toNat =
-        (currentLengthGeneratedLoopState σ I len i).ptr.toNat + 32))
-    (hptrBound : (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat + 32 < UInt256.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥
-          (currentLengthCopyMem
-            (currentLengthGeneratedLoopState σ I len fuel).mem
-            (currentLengthGeneratedLoopState σ I len fuel).ptr
-            (currentLengthStorageWord σ I
-              (currentLengthGeneratedLoopState σ I len fuel).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥
-            UInt256.ofNat
-              (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-                (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩ then ⟨0⟩
-        else UInt256.ofNat
-          (fromByteArrayBigEndian
-            ((currentLengthCopyMem
-              (currentLengthGeneratedLoopState σ I len fuel).mem
-              (currentLengthGeneratedLoopState σ I len fuel).ptr
-              (currentLengthStorageWord σ I
-                (currentLengthGeneratedLoopState σ I len fuel).slot)).readWithPadding
-                (⟨128⟩ : UInt256).toNat 32))) = len := by
-  exact currentLengthGeneratedFinalCopy_mload128_of_add32_mNoWrap
-    (σ := σ) (I := I) (len := len) (fuel := fuel) hadd32
-    (currentLengthGeneratedFinalCopy_mNoWrap_of_ptr_add32
-      (σ := σ) (I := I) (len := len) (fuel := fuel) hadd32 hptrBound)
-
-theorem currentLengthGeneratedFinalCopy_mload128_of_add32_fuelBound
-    {σ : AccountMap} {I : ExecutionEnv} {len : UInt256} {fuel : Nat}
-    (hadd32 : ∀ i, i ≤ fuel →
-      (((⟨32⟩ : UInt256) + (currentLengthGeneratedLoopState σ I len i).ptr).toNat =
-        (currentLengthGeneratedLoopState σ I len i).ptr.toNat + 32))
-    (hfuelBound : 160 + 32 * fuel + 32 < UInt256.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥
-          (currentLengthCopyMem
-            (currentLengthGeneratedLoopState σ I len fuel).mem
-            (currentLengthGeneratedLoopState σ I len fuel).ptr
-            (currentLengthStorageWord σ I
-              (currentLengthGeneratedLoopState σ I len fuel).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥
-            UInt256.ofNat
-              (MachineState.M (currentLengthGeneratedLoopState σ I len fuel).aw.toNat
-                (currentLengthGeneratedLoopState σ I len fuel).ptr.toNat 32) * ⟨32⟩ then ⟨0⟩
-        else UInt256.ofNat
-          (fromByteArrayBigEndian
-            ((currentLengthCopyMem
-              (currentLengthGeneratedLoopState σ I len fuel).mem
-              (currentLengthGeneratedLoopState σ I len fuel).ptr
-              (currentLengthStorageWord σ I
-                (currentLengthGeneratedLoopState σ I len fuel).slot)).readWithPadding
-                (⟨128⟩ : UInt256).toNat 32))) = len := by
-  exact currentLengthGeneratedFinalCopy_mload128_of_add32_ptrBound
-    (σ := σ) (I := I) (len := len) (fuel := fuel) hadd32
-    (currentLengthGeneratedFinalCopy_ptrBound_of_fuelBound
-      (σ := σ) (I := I) (len := len) (fuel := fuel) hadd32 hfuelBound)
 
 theorem currentLengthGeneratedLoopContinue_of_nat
     {σ : AccountMap} {I : ExecutionEnv} {len : UInt256} {i : Nat}
@@ -2027,12 +1854,7 @@ theorem currentLengthConcreteFuel_finalMload128
             (currentLengthGeneratedLoopState σ I len ((len.toNat - 1) / 32)).ptr
             (currentLengthStorageWord σ I
               (currentLengthGeneratedLoopState σ I len ((len.toNat - 1) / 32)).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥
-            UInt256.ofNat
-              (MachineState.M
-                (currentLengthGeneratedLoopState σ I len ((len.toNat - 1) / 32)).aw.toNat
-                (currentLengthGeneratedLoopState σ I len ((len.toNat - 1) / 32)).ptr.toNat
-                32) * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             (ByteArray.readWithPadding
@@ -2042,10 +1864,12 @@ theorem currentLengthConcreteFuel_finalMload128
               (currentLengthStorageWord σ I
                 (currentLengthGeneratedLoopState σ I len ((len.toNat - 1) / 32)).slot))
               (⟨128⟩ : UInt256).toNat 32))) = len := by
-  exact currentLengthGeneratedFinalCopy_mload128_of_add32_fuelBound
+  have hadd32 := currentLengthConcreteFuel_add32 (σ := σ) (I := I) (len := len) hlenLt
+  exact currentLengthGeneratedFinalCopy_mload128_of_add32
     (σ := σ) (I := I) (len := len) (fuel := (len.toNat - 1) / 32)
-    (currentLengthConcreteFuel_add32 (σ := σ) (I := I) (len := len) hlenLt)
-    (currentLengthFuel_bound hlenLt)
+    hadd32
+    (currentLengthGeneratedFinalCopy_size_gt128_of_add32
+      (σ := σ) (I := I) (len := len) (fuel := (len.toNat - 1) / 32) hadd32)
 
 theorem currentLengthCeilWords_eq {n : Nat} (hn : 0 < n) :
     (31 + n) / 32 = (n - 1) / 32 + 1 := by
@@ -2453,8 +2277,7 @@ theorem stringStoreLiteX_clearCurrentLongFinalCopyToDelete {cA gh bl σ σ₀ A 
     (hmloadCost : ∀ s : State, s.machineState.activeWords = awStore →
       s.machineState.stack = [⟨128⟩, ⟨128⟩, ⟨0⟩, ⟨153⟩, stringStoreLiteSelWord I] →
       memoryExpansionCost s .MLOAD = mloadCost)
-    (hloadVal : (if (⟨128⟩ : UInt256).toNat ≥ memout.size
-        ∨ (⟨128⟩ : UInt256) ≥ awStore * ⟨32⟩ then ⟨0⟩
+    (hloadVal : (if (⟨128⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (memout.readWithPadding (⟨128⟩ : UInt256).toNat 32))) = len)
     (hawLoad : UInt256.ofNat (MachineState.M awStore.toNat (⟨128⟩ : UInt256).toNat 32) =
@@ -2765,8 +2588,7 @@ theorem stringStoreLiteX_clearCurrentLongReachDeleteGenerated
             (currentLengthGeneratedLoopState σ I len fuel).mem
             (currentLengthGeneratedLoopState σ I len fuel).ptr
             (currentLengthStorageWord σ I
-              (currentLengthGeneratedLoopState σ I len fuel).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥ awStore * ⟨32⟩ then ⟨0⟩
+              (currentLengthGeneratedLoopState σ I len fuel).slot)).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((currentLengthCopyMem
@@ -2805,8 +2627,7 @@ theorem stringStoreLiteX_clearCurrentReturnFromWrapperGeneric
     (hmloadCost : ∀ s : State, s.machineState.activeWords = aw →
       s.machineState.stack = [⟨64⟩, len, stringStoreLiteSelWord I] →
       memoryExpansionCost s .MLOAD = mloadCost)
-    (hfreePtr : (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-        ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+    (hfreePtr : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = freePtr)
     (hawLoad : UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32) =
@@ -2822,8 +2643,7 @@ theorem stringStoreLiteX_clearCurrentReturnFromWrapperGeneric
     (hfinalMloadCost : ∀ s : State, s.machineState.activeWords = awStore →
       s.machineState.stack = [⟨64⟩, freePtr + ⟨32⟩, stringStoreLiteSelWord I] →
       memoryExpansionCost s .MLOAD = finalMloadCost)
-    (hfinalFreePtr : (if (⟨64⟩ : UInt256).toNat ≥ memret.size
-        ∨ (⟨64⟩ : UInt256) ≥ awStore * ⟨32⟩ then ⟨0⟩
+    (hfinalFreePtr : (if (⟨64⟩ : UInt256).toNat ≥ memret.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (memret.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         freePtr)
@@ -2965,8 +2785,7 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {cA gh bl σ σ₀ A I}
             (currentLengthGeneratedLoopState σ I len fuel).mem
             (currentLengthGeneratedLoopState σ I len fuel).ptr
             (currentLengthStorageWord σ I
-              (currentLengthGeneratedLoopState σ I len fuel).slot)).size
-          ∨ (⟨128⟩ : UInt256) ≥ copyAwStore * ⟨32⟩ then ⟨0⟩
+              (currentLengthGeneratedLoopState σ I len fuel).slot)).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((currentLengthCopyMem
@@ -3062,15 +2881,13 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {cA gh bl σ σ₀ A I}
       (by simpa [deleteAw, hdeleteAwEq] using (show 3 ≤ copyFinal.awLoad.toNat from by omega))
       hdeleteAwNoWrap
   have hfreePtrVal :
-      (if (⟨64⟩ : UInt256).toNat ≥ deleteMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ deleteAw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ deleteMem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian (deleteMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         freePtr := by
     exact mloadWordValue_of_readWithPadding
-      (mem := deleteMem) (aw := deleteAw) (off := (⟨64⟩ : UInt256)) (v := freePtr)
+      (mem := deleteMem) (off := (⟨64⟩ : UInt256)) (v := freePtr)
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hdeleteSize, hcopySize]; omega)
-      hdeleteAw64
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hdeleteRead64)
   have hwrapperAwLoad :
       UInt256.ofNat (MachineState.M deleteAw.toNat (⟨64⟩ : UInt256).toNat 32) =
@@ -3126,15 +2943,13 @@ theorem stringStoreLiteX_clearCurrentLongValidGenerated {cA gh bl σ σ₀ A I}
             (σ := σ) (I := I) (len := len) hlenLt hgt31)
       hwrapperAwStoreNoWrap
   have hfinalFreePtrVal :
-      (if (⟨64⟩ : UInt256).toNat ≥ returnMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ wrapperAwStore * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ returnMem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian (returnMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         freePtr := by
     exact mloadWordValue_of_readWithPadding
-      (mem := returnMem) (aw := wrapperAwStore) (off := (⟨64⟩ : UInt256)) (v := freePtr)
+      (mem := returnMem) (off := (⟨64⟩ : UInt256)) (v := freePtr)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hreturnSizeGe64)
-      hwrapperAw64
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hreturnRead64)
   let wrapperAwFinal := UInt256.ofNat (MachineState.M wrapperAwStore.toNat (⟨64⟩ : UInt256).toNat 32)
   let wrapperFinalMloadCost := Cₘ wrapperAwFinal - Cₘ wrapperAwStore

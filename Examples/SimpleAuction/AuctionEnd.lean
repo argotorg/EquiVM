@@ -75,12 +75,11 @@ theorem auctionEndEventMem_read64 (σ : AccountMap) (I : ExecutionEnv) :
     solcReturnMem_read64 (auctionEndWinnerWord σ I)
 
 theorem auctionEndEventMem_mload64 (σ : AccountMap) (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (auctionEndEventMem σ I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (auctionEndEventMem σ I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((auctionEndEventMem σ I).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [auctionEndEventMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [auctionEndEventMem_size]; decide)
     (auctionEndEventMem_read64 σ I)
 
 theorem simpleAuctionAuctionEndSelector_size {I : ExecutionEnv}
@@ -453,8 +452,7 @@ theorem simpleAuctionX_auctionEnd_postCallNonempty_toRequire {cA gh bl σ σ₀ 
     (rd : RD simpleAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨743⟩
       [z, ⟨128⟩, high, benef, ⟨0⟩, ⟨122⟩, simpleAuctionSelWord I]
       mem (UInt256.ofNat 6) o acc k C)
-    (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)

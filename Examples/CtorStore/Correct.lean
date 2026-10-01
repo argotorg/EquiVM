@@ -193,8 +193,7 @@ theorem ctorStoreArgMem_read (w : UInt256) :
   rw [ctorStoreArgTail_extract, word_toBytesBE_toByteArray_eq_toByteArray]
 
 theorem ctorStoreArgMem_mload (w : UInt256) :
-    (if (⟨0⟩ : UInt256).toNat ≥ (ctorStoreArgMem w).size
-        ∨ (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 1) * ⟨32⟩ then ⟨0⟩
+    (if (⟨0⟩ : UInt256).toNat ≥ (ctorStoreArgMem w).size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian ((ctorStoreArgMem w).readWithPadding 0 32)))
       = w := by
   rw [if_neg]
@@ -204,9 +203,8 @@ theorem ctorStoreArgMem_mload (w : UInt256) :
       rw [UInt256.toNat_ofNat_of_lt w.val.isLt]
       rfl)
   · intro hbad
-    rcases hbad with hbad | hbad
-    · unfold ctorStoreArgMem at hbad
-      have hsz : ((ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray).write 28 ByteArray.empty 0 32).size ≥ 32 := by
+    unfold ctorStoreArgMem at hbad
+    have hsz : ((ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray).write 28 ByteArray.empty 0 32).size ≥ 32 := by
         show ((ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray).write 28 ByteArray.empty 0 32).data.size ≥ 32
         rw [write0_data_from (ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray) ByteArray.empty 28 32
           (by decide)
@@ -219,10 +217,9 @@ theorem ctorStoreArgMem_mload (w : UInt256) :
           rw [ByteArray.size_append, ctorStoreInitcode_size, word_toBytesBE_toByteArray_size] at this
           omega
         omega
-      have hz : (⟨0⟩ : UInt256).toNat = 0 := by decide
-      rw [hz] at hbad
-      omega
-    · exact absurd hbad (by decide)
+    have hz : (⟨0⟩ : UInt256).toNat = 0 := by decide
+    rw [hz] at hbad
+    omega
 
 theorem ctorStoreRuntime_codecopy_mem (w : UInt256) :
     (ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray).write 20 (ctorStoreArgMem w) 0 8

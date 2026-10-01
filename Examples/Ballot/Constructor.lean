@@ -632,7 +632,6 @@ theorem ballotDecoderValidations {cA : Batteries.RBSet AccountAddress compare} {
           Nat.sub_self])
       (mloadWordValue_of_readWithPadding
         (by rw [ballotDecoderMem_size argBytes hszH hpos]; show 128 < 128 + argBytes.size; omega)
-        (ballotDecoderAW_mloadBound argBytes hszH h64 ⟨128⟩ (by decide))
         (ballotDecoderOffsetRead argBytes (ABI.natBytes n ++ elemBytes) hstruct hszH hpos))
       (by rw [show (⟨128⟩:UInt256).toNat = 128 from by decide,
           ballotDecoderAW_mloadStable argBytes hszH h64 128 (by omega), u256_ofNat_toNat])
@@ -650,7 +649,6 @@ theorem ballotDecoderValidations {cA : Batteries.RBSet AccountAddress compare} {
           Nat.sub_self])
       (mloadWordValue_of_readWithPadding
         (by rw [ballotDecoderMem_size argBytes hszH hpos, arrayHead_toNat]; omega)
-        (ballotDecoderAW_mloadBound argBytes hszH h64 (⟨128⟩ + UInt256.ofNat 32) (by rw [arrayHead_toNat]))
         (by rw [arrayHead_toNat]; exact ballotDecoderLengthRead argBytes n elemBytes hstruct hszH hpos))
       (by rw [arrayHead_toNat, ballotDecoderAW_mloadStable argBytes hszH h64 160 (by omega), u256_ofNat_toNat])
       (by evm_ov),
@@ -833,7 +831,6 @@ theorem ballotDecoderAlloc {cA : Batteries.RBSet AccountAddress compare} {gh : B
           Nat.sub_self])
       (mloadWordValue_of_readWithPadding
         (by rw [ballotDecoderMem_size argBytes hszH hpos]; show 64 < 128 + argBytes.size; omega)
-        (ballotDecoderAW_mloadBound argBytes hszH h64 ⟨64⟩ (by decide))
         (show (ballotDecoderMem argBytes).readWithPadding (⟨64⟩ : UInt256).toNat 32
             = UInt256.toByteArray fp by
           rw [hfp, show (⟨64⟩ : UInt256).toNat = 64 from by decide]
@@ -1088,7 +1085,7 @@ theorem ballotDecoderCopyLoop {cA : Batteries.RBSet AccountAddress compare} {gh 
         (fun s haws hstks => by
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
             List.getElem!_cons_zero, hsrc, hawN, M_copy_stable, Nat.sub_self])
-        (mloadWordValue_of_readWithPadding hsrcLt hsrcAw hread)
+        (mloadWordValue_of_readWithPadding hsrcLt hread)
         (by rw [hawN, hsrc, M_copy_stable])
         (by evm_ov),
       dup1, dup3,

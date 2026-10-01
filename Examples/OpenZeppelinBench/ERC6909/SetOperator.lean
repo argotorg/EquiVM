@@ -445,14 +445,13 @@ theorem setOperatorSpenderHashMem_read64 (owner spender : UInt256) :
   · exact approveTwoWordHashMem_read64 owner ⟨1⟩ solcFreePtrMem_size solcFreePtrMem_read64
 
 theorem setOperatorSpenderHashMem_mload64 (owner spender : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (setOperatorSpenderHashMem owner spender).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (setOperatorSpenderHashMem owner spender).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((setOperatorSpenderHashMem owner spender).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [setOperatorSpenderHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [setOperatorSpenderHashMem_size]; decide)
     (setOperatorSpenderHashMem_read64 owner spender)
 
 theorem setOperatorEventMem_size (owner spender approved : UInt256) :
@@ -486,14 +485,13 @@ theorem setOperatorEventMem_read64 (owner spender approved : UInt256) :
     setOperatorSpenderHashMem_read64]
 
 theorem setOperatorEventMem_mload64 (owner spender approved : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (setOperatorEventMem owner spender approved).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (setOperatorEventMem owner spender approved).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((setOperatorEventMem owner spender approved).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [setOperatorEventMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [setOperatorEventMem_size]; decide)
     (setOperatorEventMem_read64 owner spender approved)
 
 theorem setOperatorReturnMem_size (owner spender approved : UInt256) :
@@ -514,14 +512,13 @@ theorem setOperatorReturnMem_read64 (owner spender approved : UInt256) :
     setOperatorEventMem_read64]
 
 theorem setOperatorReturnMem_mload64 (owner spender approved : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (setOperatorReturnMem owner spender approved).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (setOperatorReturnMem owner spender approved).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((setOperatorReturnMem owner spender approved).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [setOperatorReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [setOperatorReturnMem_size]; decide)
     (setOperatorReturnMem_read64 owner spender approved)
 
 theorem setOperatorReturnMem_read128 (owner spender approved : UInt256) :

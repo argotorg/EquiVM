@@ -348,14 +348,12 @@ theorem simpleAuctionBiddingMem_read (biddingTime : UInt256)
 
 theorem simpleAuctionBeneficiaryMem_mload (biddingTime : UInt256)
     (beneficiaryAddress : AccountAddress) :
-    (if (⟨0⟩ : UInt256).toNat ≥ (simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress).size
-        ∨ (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 1) * ⟨32⟩ then ⟨0⟩
+    (if (⟨0⟩ : UInt256).toNat ≥ (simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress).size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian
         ((simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress).readWithPadding 0 32)))
       = EVM.word beneficiaryAddress := by
   exact mloadWordValue_of_readWithPadding
-    (mem := simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress)
-    (aw := UInt256.ofNat 1) (off := ⟨0⟩) (v := EVM.word beneficiaryAddress)
+    (mem := simpleAuctionBeneficiaryMem biddingTime beneficiaryAddress) (off := ⟨0⟩) (v := EVM.word beneficiaryAddress)
     (by
       unfold simpleAuctionBeneficiaryMem
       have hsz := simpleAuction_write0_size_ge_32
@@ -364,19 +362,16 @@ theorem simpleAuctionBeneficiaryMem_mload (biddingTime : UInt256)
       have hz : (⟨0⟩ : UInt256).toNat = 0 := by decide
       rw [hz]
       omega)
-    (by decide)
     (simpleAuctionBeneficiaryMem_read biddingTime beneficiaryAddress)
 
 theorem simpleAuctionBiddingMem_mload (biddingTime : UInt256)
     (beneficiaryAddress : AccountAddress) :
-    (if (⟨0⟩ : UInt256).toNat ≥ (simpleAuctionBiddingMem biddingTime beneficiaryAddress).size
-        ∨ (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 1) * ⟨32⟩ then ⟨0⟩
+    (if (⟨0⟩ : UInt256).toNat ≥ (simpleAuctionBiddingMem biddingTime beneficiaryAddress).size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian
         ((simpleAuctionBiddingMem biddingTime beneficiaryAddress).readWithPadding 0 32)))
       = biddingTime := by
   exact mloadWordValue_of_readWithPadding
-    (mem := simpleAuctionBiddingMem biddingTime beneficiaryAddress)
-    (aw := UInt256.ofNat 1) (off := ⟨0⟩) (v := biddingTime)
+    (mem := simpleAuctionBiddingMem biddingTime beneficiaryAddress) (off := ⟨0⟩) (v := biddingTime)
     (by
       unfold simpleAuctionBiddingMem
       have hsz := simpleAuction_write0_size_ge_32
@@ -386,7 +381,6 @@ theorem simpleAuctionBiddingMem_mload (biddingTime : UInt256)
       have hz : (⟨0⟩ : UInt256).toNat = 0 := by decide
       rw [hz]
       omega)
-    (by decide)
     (simpleAuctionBiddingMem_read biddingTime beneficiaryAddress)
 
 theorem simpleAuctionCtorCheckedAddOverflowLt (timestamp biddingTime : UInt256)

@@ -652,7 +652,7 @@ theorem skimSecondBalanceDynamicStaticcallMem_mload64_of_size_ge
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
           (skimSecondBalanceDynamicStaticcallMem self o toWord value out1 out2).size
-        ∨ (⟨64⟩ : UInt256) ≥ skimSecondBalanceDynamicStaticcallWords out1 * ⟨32⟩ then
+ then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -660,7 +660,7 @@ theorem skimSecondBalanceDynamicStaticcallMem_mload64_of_size_ge
           (⟨64⟩ : UInt256).toNat 32))) =
       skimSafeTransferReturnDataPtr out1 := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := skimSecondBalanceDynamicStaticcallWords out1)
+    (off := (⟨64⟩ : UInt256))
     (v := skimSafeTransferReturnDataPtr out1)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
@@ -677,9 +677,6 @@ theorem skimSecondBalanceDynamicStaticcallMem_mload64_of_size_ge
         Nat.min_eq_left hout2_32]
       have hptr := skimSafeTransferReturnDataPtr_toNat_ge out1 hout1Size
       omega)
-    (UInt256_mload64_haw_of_toNat_ge13 _
-      (skimSecondBalanceDynamicStaticcallWords_toNat_ge out1 hout1Size)
-      (skimSecondBalanceDynamicStaticcallWords_mul32_lt out1 hout1Size))
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
         skimSecondBalanceDynamicStaticcallMem_read64_of_size_ge self toWord value
@@ -720,7 +717,7 @@ theorem skimSecondBalanceDynamicStaticcallMem_mload64_of_size_lt
     (hshort : out2.size < 32) (hout2Size : out2.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
           (skimSecondBalanceDynamicStaticcallMem self o toWord value out1 out2).size
-        ∨ (⟨64⟩ : UInt256) ≥ skimSecondBalanceDynamicStaticcallWords out1 * ⟨32⟩ then
+ then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -728,7 +725,7 @@ theorem skimSecondBalanceDynamicStaticcallMem_mload64_of_size_lt
           (⟨64⟩ : UInt256).toNat 32))) =
       skimSafeTransferReturnDataPtr out1 := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := skimSecondBalanceDynamicStaticcallWords out1)
+    (off := (⟨64⟩ : UInt256))
     (v := skimSafeTransferReturnDataPtr out1)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
@@ -754,9 +751,6 @@ theorem skimSecondBalanceDynamicStaticcallMem_mload64_of_size_lt
           Nat.min_eq_left le_rfl]
         have hptr := skimSafeTransferReturnDataPtr_toNat_ge out1 hout1Size
         omega)
-    (UInt256_mload64_haw_of_toNat_ge13 _
-      (skimSecondBalanceDynamicStaticcallWords_toNat_ge out1 hout1Size)
-      (skimSecondBalanceDynamicStaticcallWords_mul32_lt out1 hout1Size))
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
         skimSecondBalanceDynamicStaticcallMem_read64_of_size_lt self toWord value
@@ -859,9 +853,7 @@ theorem skimSecondBalanceDynamicStaticcallMem_mload_ptr_of_size_ge
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size) :
     (if (skimSafeTransferReturnDataPtr out1).toNat ≥
-          (skimSecondBalanceDynamicStaticcallMem self o toWord value out1 out2).size
-        ∨ skimSafeTransferReturnDataPtr out1 ≥
-            skimSecondBalanceDynamicStaticcallWords out1 * ⟨32⟩ then
+          (skimSecondBalanceDynamicStaticcallMem self o toWord value out1 out2).size then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -871,13 +863,10 @@ theorem skimSecondBalanceDynamicStaticcallMem_mload_ptr_of_size_ge
   rw [if_neg]
   · rw [skimSecondBalanceDynamicStaticcallMem_read_ptr_of_size_ge self toWord value
       ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size]
-  · rw [not_or]
-    constructor
-    · have hsize :=
-        skimSecondBalanceDynamicStaticcallMem_size_ge_ptr_add32_of_size_ge
-          self toWord value ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size
-      omega
-    · exact skimSecondBalanceDynamicStaticcallWords_ptr_haw out1 hout1Size
+  · have hsize :=
+      skimSecondBalanceDynamicStaticcallMem_size_ge_ptr_add32_of_size_ge
+        self toWord value ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size
+    omega
 
 theorem skimSecondBalanceDynamicCalldataMem_mload64
     (self : UInt256) {o : ByteArray} (toWord value : UInt256) {out : ByteArray}
@@ -885,7 +874,7 @@ theorem skimSecondBalanceDynamicCalldataMem_mload64
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255) :
     (if (⟨64⟩ : UInt256).toNat ≥
           (skimSecondBalanceDynamicCalldataMem self o toWord value out).size
-        ∨ (⟨64⟩ : UInt256) ≥ skimSecondBalanceDynamicCalldataWords out * ⟨32⟩ then
+ then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -893,7 +882,7 @@ theorem skimSecondBalanceDynamicCalldataMem_mload64
           (⟨64⟩ : UInt256).toNat 32))) =
       skimSafeTransferReturnDataPtr out := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := skimSecondBalanceDynamicCalldataWords out)
+    (off := (⟨64⟩ : UInt256))
     (v := skimSafeTransferReturnDataPtr out)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
@@ -901,9 +890,6 @@ theorem skimSecondBalanceDynamicCalldataMem_mload64
         skimSecondBalanceDynamicCalldataMem_size_ge96 self toWord value
           ho32 hoSize houtNe houtSize
       omega)
-    (UInt256_mload64_haw_of_toNat_ge13 _
-      (skimSecondBalanceDynamicCalldataWords_toNat_ge out houtSize)
-      (skimSecondBalanceDynamicCalldataWords_mul32_lt out houtSize))
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
         skimSecondBalanceDynamicCalldataMem_read64 self toWord value
@@ -1382,7 +1368,7 @@ theorem RD.uniswapSafeMathSubUnderflow_dynamic {g : Sat256} {s0 : State}
   have rd6891 := evm_run rd6888 with [
     push2 ⟨2911⟩, jumpiNT (by decide)]
   let fp0 : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then
+    if (⟨64⟩ : UInt256).toNat ≥ mem.size then
       ⟨0⟩
     else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 64 32))
   let aw1 : UInt256 := UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32)
@@ -1450,7 +1436,7 @@ theorem RD.uniswapSafeMathSubUnderflow_dynamic {g : Sat256} {s0 : State}
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6945 := evm_run rd6944' with [swap1]
   let fp1 : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ mem3.size ∨ (⟨64⟩ : UInt256) ≥ aw5 * ⟨32⟩ then
+    if (⟨64⟩ : UInt256).toNat ≥ mem3.size then
       ⟨0⟩
     else UInt256.ofNat (fromByteArrayBigEndian (mem3.readWithPadding 64 32))
   let aw6 : UInt256 := UInt256.ofNat (MachineState.M aw5.toNat (⟨64⟩ : UInt256).toNat 32)

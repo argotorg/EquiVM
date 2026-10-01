@@ -399,15 +399,13 @@ theorem RD.uniswapReturnWord861FromMem {g : Sat256} {s0 : State} {ee : Execution
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨861⟩ (val :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hmemout : (UInt256.toByteArray val).write 0 mem 128 32 = memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)

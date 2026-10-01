@@ -89,7 +89,7 @@ theorem balanceDynamicCalldataMem_mload64 {base : ByteArray} (aw ptr self : UInt
     (hin : 96 ≤ base.size) (hlo : 96 ≤ ptr.toNat)
     (hgap : ptr.toNat - base.size < USize.size) (hfit : ptr.toNat + 67 < UInt256.size)
     (haw : aw.toNat * 32 < UInt256.size) (hread : base.readWithPadding 64 32 = ptr.toByteArray) :
-    memoryWordLoad (balanceDynamicCalldataMem base ptr self) (balanceDynamicCalldataWords aw ptr) ⟨64⟩ = ptr ∧
+    memoryWordLoad (balanceDynamicCalldataMem base ptr self) ⟨64⟩ = ptr ∧
     memoryWordActiveWords (balanceDynamicCalldataWords aw ptr) ⟨64⟩ = balanceDynamicCalldataWords aw ptr := by
   obtain ⟨_, hb, hc⟩ := balanceDynamicWords_bounds aw ptr haw hfit
   have hc64 : (⟨64⟩ : UInt256).toNat + 32 ≤ (balanceDynamicCalldataWords aw ptr).toNat * 32 := by change 64 + 32 ≤ _; omega
@@ -97,7 +97,6 @@ theorem balanceDynamicCalldataMem_mload64 {base : ByteArray} (aw ptr self : UInt
   apply mloadWordValue_of_readWithPadding
   · change 64 < _
     rw [balanceDynamicCalldataMem_size ptr self hgap (by omega)]; omega
-  · exact UInt256_mload_haw_of_cover _ _ hb hc64
   · exact (balanceDynamicCalldataMem_read_below ptr self 64 hin hlo hgap (by omega)).trans hread
 
 end UniswapV2Pair

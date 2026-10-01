@@ -793,28 +793,25 @@ theorem revokeRoleHasRoleSlotHashMemFrom_read64 {mem : ByteArray}
     exact revokeRoleTwoWordHashMem_read64 role ⟨0⟩ hmem hread64
 
 theorem revokeRoleHasRoleSlotHashMem_mload64 (role account : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (revokeRoleHasRoleSlotHashMem role account).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (revokeRoleHasRoleSlotHashMem role account).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((revokeRoleHasRoleSlotHashMem role account).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [revokeRoleHasRoleSlotHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [revokeRoleHasRoleSlotHashMem_size]; decide)
     (revokeRoleHasRoleSlotHashMem_read64 role account)
 
 theorem revokeRoleHasRoleSlotHashMemFrom_mload64 {mem : ByteArray}
     (role account : UInt256) (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (revokeRoleHasRoleSlotHashMemFrom role account mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+          (revokeRoleHasRoleSlotHashMemFrom role account mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((revokeRoleHasRoleSlotHashMemFrom role account mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [revokeRoleHasRoleSlotHashMemFrom_size _ _ hmem]; decide)
-    (by decide) (revokeRoleHasRoleSlotHashMemFrom_read64 role account hmem hread64)
+  mloadFreePtrValue (by rw [revokeRoleHasRoleSlotHashMemFrom_size _ _ hmem]; decide) (revokeRoleHasRoleSlotHashMemFrom_read64 role account hmem hread64)
 
 theorem revokeRoleBaseKeccakSlot (I : ExecutionEnv) (hsz68 : 68 ≤ I.calldata.size) :
     revokeRoleBaseSlot (revokeRoleRoleWord I) =
@@ -1164,24 +1161,21 @@ theorem revokeRoleUnauthorizedMemFrom_read64 {mem : ByteArray}
   exact revokeRoleUnauthorizedAccountMemFrom_read64 account hmem hread64
 
 theorem revokeRoleUnauthorizedMem_mload64 (account role : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (revokeRoleUnauthorizedMem account role).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (revokeRoleUnauthorizedMem account role).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((revokeRoleUnauthorizedMem account role).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [revokeRoleUnauthorizedMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [revokeRoleUnauthorizedMem_size]; decide)
     (revokeRoleUnauthorizedMem_read64 account role)
 
 theorem revokeRoleUnauthorizedMemFrom_mload64 {mem : ByteArray}
     (account role : UInt256) (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (revokeRoleUnauthorizedMemFrom account role mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (revokeRoleUnauthorizedMemFrom account role mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((revokeRoleUnauthorizedMemFrom account role mem).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [revokeRoleUnauthorizedMemFrom_size _ _ hmem]; decide)
-    (by decide) (revokeRoleUnauthorizedMemFrom_read64 account role hmem hread64)
+  mloadFreePtrValue (by rw [revokeRoleUnauthorizedMemFrom_size _ _ hmem]; decide) (revokeRoleUnauthorizedMemFrom_read64 account role hmem hread64)
 
 theorem accessControlRevokeRoleX_adminLoaded {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -1356,12 +1350,11 @@ theorem accessControlRevokeRoleX_onlyRole_revert {cA gh bl σ σ₀ A I} {g : Sa
     exact revokeRoleHasRoleSlotHashMemFrom_read64 _ _
       (revokeRoleBaseHashMem_size _) (revokeRoleBaseHashMem_read64 _)
   have hloadAdmin64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memAdmin.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memAdmin.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memAdmin.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemAdmin]; decide) (by decide) hreadAdmin
+    mloadFreePtrValue (by rw [hmemAdmin]; decide) hreadAdmin
   have rd803 := evm_run rd798 with [
     jumpdest, push2 ⟨849⟩, jumpiNT (by rw [hadmin]) ]
   have rd815 := evm_run rd803 with [

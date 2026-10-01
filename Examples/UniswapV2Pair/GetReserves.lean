@@ -240,13 +240,12 @@ theorem getReservesReturnMem_read64 (r0 r1 ts : UInt256) :
   exact getReservesReturn0Mem_read64 r0
 
 theorem getReservesReturnMem_mload64 (r0 r1 ts : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (getReservesReturnMem r0 r1 ts).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (getReservesReturnMem r0 r1 ts).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((getReservesReturnMem r0 r1 ts).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [getReservesReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [getReservesReturnMem_size]; decide)
     (getReservesReturnMem_read64 r0 r1 ts)
 
 set_option maxHeartbeats 800000 in

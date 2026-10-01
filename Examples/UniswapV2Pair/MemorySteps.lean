@@ -6,8 +6,8 @@ namespace UniswapV2Pair
 abbrev memoryWordActiveWords (aw offset : UInt256) : UInt256 :=
   UInt256.ofNat (MachineState.M aw.toNat offset.toNat 32)
 
-abbrev memoryWordLoad (mem : ByteArray) (aw offset : UInt256) : UInt256 :=
-  if offset.toNat ≥ mem.size ∨ offset ≥ aw * ⟨32⟩ then ⟨0⟩
+abbrev memoryWordLoad (mem : ByteArray) (offset : UInt256) : UInt256 :=
+  if offset.toNat ≥ mem.size then ⟨0⟩
   else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding offset.toNat 32))
 
 -- GENERALIZES Reasoning.Reach.RD.mstore: derive memory, active words, and gas cost.
@@ -30,7 +30,7 @@ theorem RD.mloadWord
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {R : List UInt256} {k C : Nat}
     (rd : RD code I g s0 pc (offset :: R) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MLOAD, .none))
-    (hvalue : memoryWordLoad mem aw offset = value) (hov : R.length + 1 ≤ 1024) :
+    (hvalue : memoryWordLoad mem offset = value) (hov : R.length + 1 ≤ 1024) :
     RD code I g s0 (pc + ⟨1⟩) (value :: R) mem (memoryWordActiveWords aw offset) rdata acc
       (k + 1) (C + (Cₘ (memoryWordActiveWords aw offset) - Cₘ aw + 3)) := by
   exact RD.mload _ _ _ rd hdec

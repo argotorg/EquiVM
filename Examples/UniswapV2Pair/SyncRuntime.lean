@@ -1752,14 +1752,12 @@ theorem uniswapSyncLogMem_size_ge96 (packed : UInt256) (mem : ByteArray)
 theorem uniswapSyncLogMem_mload64 (packed : UInt256) (mem : ByteArray)
     (hsize : 128 ≤ mem.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapSyncLogMem packed mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapSyncLogMem packed mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapSyncLogMem packed mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ :=
-  mloadFreePtrValue (by have := uniswapSyncLogMem_size_ge96 packed mem hsize; omega)
-    (by decide) (uniswapSyncLogMem_read64 packed mem hsize hread64)
+  mloadFreePtrValue (by have := uniswapSyncLogMem_size_ge96 packed mem hsize; omega) (uniswapSyncLogMem_read64 packed mem hsize hread64)
 
 theorem RD.uniswapSyncAfterUpdateToReturn {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {sel : UInt256} {mem rdata : ByteArray}

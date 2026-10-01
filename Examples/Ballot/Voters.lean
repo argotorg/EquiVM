@@ -253,12 +253,11 @@ theorem votersHashMem_read64 (a : UInt256) :
     votersBaseSlotMem_read64]
 
 theorem votersHashMem_mload64 (a : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (votersHashMem a).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (votersHashMem a).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((votersHashMem a).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [votersHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [votersHashMem_size]; decide)
     (votersHashMem_read64 a)
 
 theorem votersKeccakSlot' (I : ExecutionEnv)
@@ -387,14 +386,13 @@ theorem votersReturnMem_read64 (scratch weight voted delegate vote : UInt256) :
   exact votersReturnWeightMem_read64 scratch weight
 
 theorem votersReturnMem_mload64 (scratch weight voted delegate vote : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (votersReturnMem scratch weight voted delegate vote).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (votersReturnMem scratch weight voted delegate vote).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((votersReturnMem scratch weight voted delegate vote).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [votersReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [votersReturnMem_size]; decide)
     (votersReturnMem_read64 scratch weight voted delegate vote)
 
 theorem votersReturnMem_read128_128 (scratch weight voted delegate vote : UInt256) :

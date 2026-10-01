@@ -50,13 +50,11 @@ theorem uniswapSafeTransferDynamicReturnCases_of_zeroSlot
   · have hp164 : (ptr + ⟨164⟩).toNat = ptr.toNat + 164 := uadd_word_ofNat_toNat ptr 164 (by omega)
     obtain ⟨_, _, ⟨hb2, hc2⟩⟩ := safeTransferDynamicCallWords_bounds aw ptr haw (by omega)
     have h96 : (⟨64⟩ : UInt256).toNat + 32 ≤ (safeTransferDynamicCallWords2 aw ptr).toNat * 32 := by change 64 + 32 ≤ _; omega
-    have hload : memoryWordLoad (safeTransferDynamicCallMem2 base ptr toWord value)
-        (safeTransferDynamicCallWords2 aw ptr) ⟨64⟩ = ptr + ⟨164⟩ := by
+    have hload : memoryWordLoad (safeTransferDynamicCallMem2 base ptr toWord value) ⟨64⟩ = ptr + ⟨164⟩ := by
       apply mloadWordValue_of_readWithPadding
       · change 64 < _
         rw [safeTransferDynamicCallMem2_size ptr toWord value (by omega) hgap (by omega)]
         omega
-      · exact UInt256_mload_haw_of_cover _ _ hb2 h96
       · exact safeTransferDynamicCallMem2_read64 ptr toWord value (by omega) hgap (by omega) (by omega)
     have hsize := safeTransferDynamicCallMem2_size ptr toWord value (by omega) hgap (by omega)
     rcases uniswapSafeTransferNonemptyReturnRuntimeCases rd6595 he hout hload

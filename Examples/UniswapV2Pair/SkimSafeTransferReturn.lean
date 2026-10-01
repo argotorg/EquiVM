@@ -25,8 +25,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyHugeReverts {g : Sat256} {s0 : State
       callMem gasMarker out acc k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < UInt256.size)
     (hcallMem64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ callMem.size ∨
-          (⟨64⟩ : UInt256) ≥ gasMarker * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ callMem.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (callMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -101,7 +100,7 @@ theorem RD.uniswapSafeTransferReturnFailureMessageFrom6697Reverts {g : Sat256} {
     (hR : R.length + 16 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   let fp0 : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ mem0.size ∨ (⟨64⟩ : UInt256) ≥ aw0 * ⟨32⟩ then
+    if (⟨64⟩ : UInt256).toNat ≥ mem0.size then
       ⟨0⟩
     else UInt256.ofNat (fromByteArrayBigEndian (mem0.readWithPadding 64 32))
   let aw1 : UInt256 := UInt256.ofNat (MachineState.M aw0.toNat (⟨64⟩ : UInt256).toNat 32)
@@ -168,7 +167,7 @@ theorem RD.uniswapSafeTransferReturnFailureMessageFrom6697Reverts {g : Sat256} {
     (by simp only [List.length_cons]; omega)
   have rd6763 := evm_run rd6762 with [swap1]
   let fp1 : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ err3.size ∨ (⟨64⟩ : UInt256) ≥ aw5 * ⟨32⟩ then
+    if (⟨64⟩ : UInt256).toNat ≥ err3.size then
       ⟨0⟩
     else UInt256.ofNat (fromByteArrayBigEndian (err3.readWithPadding 64 32))
   let aw6 : UInt256 := UInt256.ofNat (MachineState.M aw5.toNat (⟨64⟩ : UInt256).toNat 32)
@@ -217,7 +216,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueStatusToLengthLoaded {g : Sat256
       (base :: ⟨1⟩ :: value :: toWord :: token :: ret :: R) mem0 aw0 out acc k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (hloadBase :
-      (if base.toNat ≥ mem0.size ∨ base ≥ aw0 * ⟨32⟩ then ⟨0⟩
+      (if base.toNat ≥ mem0.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem0.readWithPadding base.toNat 32))) =
       UInt256.ofNat out.size)
     (hawBase : UInt256.ofNat (MachineState.M aw0.toNat base.toNat 32) = aw0)
@@ -285,7 +284,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyFalseReverts {g : Sat256} {s0 : Stat
     (hout32 : 32 ≤ out.size) (houtSize : out.size < 2 ^ 255)
     (hword : UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) = ⟨0⟩)
     (hloadRet :
-      (if retPtr.toNat ≥ mem0.size ∨ retPtr ≥ aw0 * ⟨32⟩ then ⟨0⟩
+      (if retPtr.toNat ≥ mem0.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem0.readWithPadding retPtr.toNat 32))) =
       UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))
     (hawRet : UInt256.ofNat (MachineState.M aw0.toNat retPtr.toNat 32) = aw0)
@@ -326,7 +325,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueToRet {g : Sat256} {s0 : State}
     (hout32 : 32 ≤ out.size) (houtSize : out.size < 2 ^ 255)
     (hword : UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) ≠ ⟨0⟩)
     (hloadRet :
-      (if retPtr.toNat ≥ mem0.size ∨ retPtr ≥ aw0 * ⟨32⟩ then ⟨0⟩
+      (if retPtr.toNat ≥ mem0.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem0.readWithPadding retPtr.toNat 32))) =
       UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))
     (hawRet : UInt256.ofNat (MachineState.M aw0.toNat retPtr.toNat 32) = aw0)
@@ -365,7 +364,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyReturnToCheck {g : Sat256} {s0 : Sta
         value :: toWord :: token :: ret :: R) mem0 aw0 out acc k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (hloadPtr :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem0.size ∨ (⟨64⟩ : UInt256) ≥ aw0 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem0.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem0.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -531,7 +530,7 @@ theorem RD.uniswapSafeTransferEmptyReturnToRet {g : Sat256} {s0 : State}
       mem aw out acc k C)
     (hout : out.size = 0)
     (hload96 :
-      (if (⟨96⟩ : UInt256).toNat ≥ mem.size ∨ (⟨96⟩ : UInt256) ≥ aw * ⟨32⟩ then
+      (if (⟨96⟩ : UInt256).toNat ≥ mem.size then
           ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨96⟩ : UInt256).toNat 32))) =

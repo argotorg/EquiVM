@@ -11,7 +11,7 @@ theorem RD.uniswapSafeTransferCopyWord
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     {mem rdata : ByteArray} {src dst len aw word : UInt256} {R : List UInt256} {k C : Nat}
     (rd6512 : RD uniswapV2PairBytecode I g s0 ⟨6512⟩ (src :: dst :: len :: R) mem aw rdata acc k C)
-    (hlen : UInt256.lt len ⟨32⟩ = ⟨0⟩) (hload : memoryWordLoad mem aw src = word)
+    (hlen : UInt256.lt len ⟨32⟩ = ⟨0⟩) (hload : memoryWordLoad mem src = word)
     (haw : memoryWordActiveWords aw src = aw) (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6512⟩
       ((⟨32⟩ + src) :: (⟨32⟩ + dst) :: (len + UInt256.lnot ⟨31⟩) :: R)
@@ -33,9 +33,9 @@ theorem RD.uniswapSafeTransferCopyTail4
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     {mem rdata : ByteArray} {src dst aw sourceWord : UInt256} {R : List UInt256} {k C : Nat}
     (rd6512 : RD uniswapV2PairBytecode I g s0 ⟨6512⟩ (src :: dst :: ⟨4⟩ :: R) mem aw rdata acc k C)
-    (hloadSrc : memoryWordLoad mem aw src = sourceWord)
+    (hloadSrc : memoryWordLoad mem src = sourceWord)
     (hawSrc : memoryWordActiveWords aw src = aw)
-    (hloadDst : memoryWordLoad mem aw dst = ⟨0⟩)
+    (hloadDst : memoryWordLoad mem dst = ⟨0⟩)
     (hawDst : memoryWordActiveWords (memoryWordActiveWords aw dst) dst = memoryWordActiveWords aw dst)
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6575⟩ R

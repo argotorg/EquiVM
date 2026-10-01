@@ -24,8 +24,7 @@ theorem runtimeDispatchMem_size : runtimeDispatchMem.size = 32 := by
   native_decide
 
 theorem runtimeDispatchMem_mload0 :
-    (if (⟨0⟩ : UInt256).toNat ≥ runtimeDispatchMem.size ∨
-        (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 1) * ⟨32⟩
+    (if (⟨0⟩ : UInt256).toNat ≥ runtimeDispatchMem.size
       then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (runtimeDispatchMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))

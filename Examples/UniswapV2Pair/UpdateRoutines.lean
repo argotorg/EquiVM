@@ -394,7 +394,7 @@ theorem RD.uniswapUpdateEmitSyncAndJump {g : Sat256} {s0 : State}
         elapsed :: timestamp :: reserve1 :: reserve0 :: balance1 :: balance0 :: ret :: R →
       memoryExpansionCost s .MLOAD = mcostLoad)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩)
     (hawLoad : UInt256.ofNat (MachineState.M aw.toNat 64 32) = awLoad)
@@ -417,8 +417,7 @@ theorem RD.uniswapUpdateEmitSyncAndJump {g : Sat256} {s0 : State}
         reserve1 :: reserve0 :: balance1 :: balance0 :: ret :: R →
       memoryExpansionCost s .MLOAD = mcostLoadLog)
     (hmload64Log :
-      (if (⟨64⟩ : UInt256).toNat ≥ (uniswapSyncLogMem packed mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ awLog * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (uniswapSyncLogMem packed mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((uniswapSyncLogMem packed mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =

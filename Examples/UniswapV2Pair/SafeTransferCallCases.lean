@@ -38,8 +38,8 @@ theorem uniswapSafeTransferCallRuntimeCases
       RD uniswapV2PairBytecode I g s0 ret R
         (safeTransferRuntimeFinalMem mem toWord value out) (safeTransferRuntimeFinalActiveWords out)
         out (cA', σ') k' C') := by
-  have hmload := mloadFreePtrValue (aw := balanceOfThisStaticcallActiveWords)
-    (by rw [hmem]; decide) (by native_decide) h64
+  have hmload := mloadFreePtrValue
+    (by rw [hmem]; decide) h64
   obtain ⟨cA', σ', z, out, A_in, callGas, _, _, _, hΘ, rd6595, houtSize⟩ :=
     RD.uniswapSafeTransferEntryToCallMade rd6370 hmem hmload hdepth hov
   obtain ⟨evm', hcallRaw, ha, hc, hs, hg, hb, he⟩ := rawZeroCall_source_of_theta

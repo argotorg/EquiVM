@@ -421,16 +421,14 @@ theorem erc20CtorArgMem_size (initialSupply : UInt256) :
       word_toBytesBE_toByteArray_size])
 
 theorem erc20CtorArgMem_mload0 (initialSupply : UInt256) :
-    (if (⟨0⟩ : UInt256).toNat ≥ (erc20CtorArgMem initialSupply).size
-        ∨ (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 1) * ⟨32⟩ then ⟨0⟩
+    (if (⟨0⟩ : UInt256).toNat ≥ (erc20CtorArgMem initialSupply).size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian
         ((erc20CtorArgMem initialSupply).readWithPadding 0 32)))
       = initialSupply := by
   exact mloadWordValue_of_readWithPadding
-    (mem := erc20CtorArgMem initialSupply) (aw := UInt256.ofNat 1) (off := ⟨0⟩)
+    (mem := erc20CtorArgMem initialSupply) (off := ⟨0⟩)
     (v := initialSupply)
     (by rw [erc20CtorArgMem_size]; decide)
-    (by decide)
     (erc20CtorArgMem_read0 initialSupply)
 
 theorem erc20CtorOwnerMem_size (caller : AccountAddress) (initialSupply : UInt256) :
@@ -539,16 +537,14 @@ theorem erc20CtorArgAgainMem_size (caller : AccountAddress) (initialSupply : UIn
   omega
 
 theorem erc20CtorArgAgainMem_mload0 (caller : AccountAddress) (initialSupply : UInt256) :
-    (if (⟨0⟩ : UInt256).toNat ≥ (erc20CtorArgAgainMem caller initialSupply).size
-        ∨ (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 2) * ⟨32⟩ then ⟨0⟩
+    (if (⟨0⟩ : UInt256).toNat ≥ (erc20CtorArgAgainMem caller initialSupply).size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian
         ((erc20CtorArgAgainMem caller initialSupply).readWithPadding 0 32)))
       = initialSupply := by
   apply mloadWordValue_of_readWithPadding
-    (mem := erc20CtorArgAgainMem caller initialSupply) (aw := UInt256.ofNat 2) (off := ⟨0⟩)
+    (mem := erc20CtorArgAgainMem caller initialSupply) (off := ⟨0⟩)
     (v := initialSupply)
   · rw [erc20CtorArgAgainMem_size]; decide
-  · decide
   · exact erc20CtorArgAgainMem_read0 caller initialSupply
 
 theorem erc20CtorReturnMem_read (caller : AccountAddress) (initialSupply : UInt256) :
@@ -718,8 +714,7 @@ def selectorMissDispatchMem : ByteArray :=
   vyperERC20Bytecode.write 813 ByteArray.empty 30 2
 
 theorem selectorMissDispatchMem_mload0 :
-    (if (⟨0⟩ : UInt256).toNat ≥ selectorMissDispatchMem.size ∨
-        (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 1) * ⟨32⟩
+    (if (⟨0⟩ : UInt256).toNat ≥ selectorMissDispatchMem.size
       then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (selectorMissDispatchMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))

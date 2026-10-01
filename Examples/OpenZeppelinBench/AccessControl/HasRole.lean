@@ -370,13 +370,12 @@ theorem hasRoleSlotHashMem_read64 (role account : UInt256) :
       solcFreePtrMem_read64
 
 theorem hasRoleSlotHashMem_mload64 (role account : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (hasRoleSlotHashMem role account).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (hasRoleSlotHashMem role account).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((hasRoleSlotHashMem role account).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [hasRoleSlotHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [hasRoleSlotHashMem_size]; decide)
     (hasRoleSlotHashMem_read64 role account)
 
 theorem hasRoleReturnMem_size (role account val : UInt256) :
@@ -409,13 +408,12 @@ theorem hasRoleReturnMem_read64 (role account val : UInt256) :
     hasRoleSlotHashMem_read64]
 
 theorem hasRoleReturnMem_mload64 (role account val : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (hasRoleReturnMem role account val).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (hasRoleReturnMem role account val).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((hasRoleReturnMem role account val).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [hasRoleReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [hasRoleReturnMem_size]; decide)
     (hasRoleReturnMem_read64 role account val)
 
 theorem hasRoleReturnMem_read128 (role account val : UInt256) :

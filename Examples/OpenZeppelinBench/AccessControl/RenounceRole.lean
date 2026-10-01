@@ -334,13 +334,12 @@ theorem renounceRoleSlotHashMem_read64 (role account : UInt256) :
       solcFreePtrMem_read64
 
 theorem renounceRoleSlotHashMem_mload64 (role account : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (renounceRoleSlotHashMem role account).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (renounceRoleSlotHashMem role account).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((renounceRoleSlotHashMem role account).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [renounceRoleSlotHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [renounceRoleSlotHashMem_size]; decide)
     (renounceRoleSlotHashMem_read64 role account)
 
 theorem renounceRoleRoleKeyValueToWord {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :

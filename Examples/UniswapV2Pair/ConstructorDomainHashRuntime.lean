@@ -25,11 +25,9 @@ theorem RD.uniswapConstructorDomainHash {g : Sat256} {s0 : State} {I : Execution
       ⟨14⟩ ByteArray.empty acc k' C' := by
   have rd201 := evm_run rd200 with [dup2]
   have hm64 : memoryWordLoad
-      (constructorDomainDataMem constructorTypeHashWord (UInt256.ofNat I.codeOwner.val))
-      ⟨14⟩ ⟨64⟩ = ⟨256⟩ := by
+      (constructorDomainDataMem constructorTypeHashWord (UInt256.ofNat I.codeOwner.val)) ⟨64⟩ = ⟨256⟩ := by
     apply mloadWordValue_of_readWithPadding
     · rw [constructorDomainDataMem_size]; decide
-    · native_decide
     · exact constructorDomainDataMem_read64 _ _
   have rd202 := RD.mloadWord rd201 (by native_decide) hm64 (by evm_ov)
   have rd209 := evm_run rd202 with [dup1, dup7, sub, swap1, swap2, add, dup2]
@@ -38,11 +36,9 @@ theorem RD.uniswapConstructorDomainHash {g : Sat256} {s0 : State} {I : Execution
   have rd217 := RD.mstoreWord rd216 (by native_decide) (by evm_ov)
   have rd218 := evm_run rd217 with [dup3]
   have hm256 : memoryWordLoad
-      (constructorDomainMem constructorTypeHashWord (UInt256.ofNat I.codeOwner.val))
-      ⟨14⟩ ⟨256⟩ = ⟨160⟩ := by
+      (constructorDomainMem constructorTypeHashWord (UInt256.ofNat I.codeOwner.val)) ⟨256⟩ = ⟨160⟩ := by
     apply mloadWordValue_of_readWithPadding
     · rw [constructorDomainMem_size]; decide
-    · native_decide
     · exact constructorDomainMem_read256 _ _
   have rd219 := RD.mloadWord rd218 (by native_decide) hm256 (by evm_ov)
   have rd224 := evm_run rd219 with [swap3, add, swap2, swap1, swap2]

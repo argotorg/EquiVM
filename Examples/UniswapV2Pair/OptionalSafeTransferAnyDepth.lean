@@ -48,9 +48,8 @@ theorem uniswapOptionalSafeTransferAnyDepthCases
       have hcallee := safeTransferInternalCallReverts_depthLimit (retVar := retVar) caller evm token recipient value
         hcaller hargs (by rw [henv]; exact hd)
       have hcover : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := hready.wordsLo
-      have hload : memoryWordLoad mem aw ⟨64⟩ = ptr :=
-        mloadWordValue_of_readWithPadding (by change 64 < _; have := hready.sizeLo; omega)
-          (UInt256_mload_haw_of_cover _ _ hready.wordsHi hcover) hready.read64
+      have hload : memoryWordLoad mem ⟨64⟩ = ptr :=
+        mloadWordValue_of_readWithPadding (by change 64 < _; have := hready.sizeLo; omega) hready.read64
       have hw64 : memoryWordActiveWords aw ⟨64⟩ = aw := UInt256_M_same_of_cover _ _ hready.wordsHi hcover
       have hnum : 2 ^ 255 + 1024 + 291 < UInt256.size := by native_decide
       have rdRev := RD.uniswapSafeTransferDynamicDepthReverts rd6370 hload hw64

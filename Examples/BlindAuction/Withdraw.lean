@@ -251,21 +251,19 @@ theorem withdrawRehashMem_read64 (I : ExecutionEnv) :
   exact withdrawLoadHashMem_read64 I
 
 theorem withdrawLoadHashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawLoadHashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawLoadHashMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((withdrawLoadHashMem I).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [withdrawLoadHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [withdrawLoadHashMem_size]; decide)
     (withdrawLoadHashMem_read64 I)
 
 theorem withdrawRehashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawRehashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawRehashMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((withdrawRehashMem I).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [withdrawRehashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [withdrawRehashMem_size]; decide)
     (withdrawRehashMem_read64 I)
 
 set_option maxHeartbeats 2000000 in
@@ -919,8 +917,7 @@ theorem blindAuctionX_withdraw_postCallNonempty_toBranch {cA gh bl σ σ₀ A I}
     (rd : RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨767⟩
       [z, ⟨128⟩, amount, sender, ⟨0⟩, amount, ⟨276⟩, blindAuctionSelWord I]
       mem (UInt256.ofNat 3) o acc k C)
-    (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)

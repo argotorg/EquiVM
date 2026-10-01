@@ -24,12 +24,10 @@ theorem RD.uniswapSafeTransferDynamicWordsCopied
   obtain ⟨hb4, hc4⟩ := safeTransferDynamicWords4_bounds aw ptr haw (by omega)
   obtain ⟨⟨hb0, hc0⟩, _⟩ := safeTransferDynamicCallWords_bounds aw ptr haw hptr
   have hc96 : (ptr + ⟨96⟩).toNat + 32 ≤ (safeTransferDynamicWords4 aw ptr).toNat * 32 := by rw [hp96]; omega
-  have hload0 : memoryWordLoad (safeTransferDynamicMem7 base ptr toWord value)
-      (safeTransferDynamicWords4 aw ptr) (ptr + ⟨96⟩) = safeTransferDynamicPatchedSelectorWord base ptr toWord value := by
+  have hload0 : memoryWordLoad (safeTransferDynamicMem7 base ptr toWord value) (ptr + ⟨96⟩) = safeTransferDynamicPatchedSelectorWord base ptr toWord value := by
     apply mloadWordValue_of_readWithPadding
     · rw [hp96, safeTransferDynamicMem7_size ptr toWord value hin hgap (by omega)]
       omega
-    · exact UInt256_mload_haw_of_cover _ _ hb4 hc96
     · exact (safeTransferDynamicMem7_reads ptr toWord value hin hgap hptrLo (by omega)).2.2
   have haw96 : memoryWordActiveWords (safeTransferDynamicWords4 aw ptr) (ptr + ⟨96⟩) =
       safeTransferDynamicWords4 aw ptr := UInt256_M_same_of_cover _ _ hb4 hc96
@@ -42,11 +40,10 @@ theorem RD.uniswapSafeTransferDynamicWordsCopied
   change RD _ _ _ _ ⟨6512⟩ ((ptr + ⟨128⟩) :: (ptr + ⟨196⟩) :: ⟨36⟩ :: R)
     (safeTransferDynamicCallMem0 base ptr toWord value) (safeTransferDynamicCallWords0 aw ptr) rdata acc k0 C0 at rd0
   have hc128 : (ptr + ⟨128⟩).toNat + 32 ≤ (safeTransferDynamicCallWords0 aw ptr).toNat * 32 := by rw [hp128]; omega
-  have hload1 : memoryWordLoad (safeTransferDynamicCallMem0 base ptr toWord value)
-      (safeTransferDynamicCallWords0 aw ptr) (ptr + ⟨128⟩) = safeTransferDynamicCopyWord1 base ptr toWord value := by
-    exact mloadValue_eq_readWithPadding_of_lt_size _ _ _ _
+  have hload1 : memoryWordLoad (safeTransferDynamicCallMem0 base ptr toWord value) (ptr + ⟨128⟩) = safeTransferDynamicCopyWord1 base ptr toWord value := by
+    exact mloadValue_eq_readWithPadding_of_lt_size _ _ _
       (safeTransferDynamicCallMem0_size ptr toWord value hin hgap (by omega))
-      (by rw [hp128]; omega) (UInt256_mload_haw_of_cover _ _ hb0 hc128)
+      (by rw [hp128]; omega)
   have haw128 : memoryWordActiveWords (safeTransferDynamicCallWords0 aw ptr) (ptr + ⟨128⟩) =
       safeTransferDynamicCallWords0 aw ptr := UInt256_M_same_of_cover _ _ hb0 hc128
   obtain ⟨k1, C1, rd1⟩ := RD.uniswapSafeTransferCopyWord rd0 (by native_decide) hload1 haw128 hov
@@ -75,19 +72,17 @@ theorem RD.uniswapSafeTransferDynamicTailCopied
   have hp228 : (ptr + ⟨228⟩).toNat = ptr.toNat + 228 := uadd_word_ofNat_toNat ptr 228 (by omega)
   obtain ⟨_, ⟨hb1, hc1⟩, ⟨hb2, hc2⟩⟩ := safeTransferDynamicCallWords_bounds aw ptr haw hptr
   have hc160 : (ptr + ⟨160⟩).toNat + 32 ≤ (safeTransferDynamicCallWords1 aw ptr).toNat * 32 := by rw [hp160]; omega
-  have hloadSrc : memoryWordLoad (safeTransferDynamicCallMem1 base ptr toWord value)
-      (safeTransferDynamicCallWords1 aw ptr) (ptr + ⟨160⟩) = safeTransferDynamicTailSourceWord base ptr toWord value := by
-    exact mloadValue_eq_readWithPadding_of_lt_size _ _ _ _
+  have hloadSrc : memoryWordLoad (safeTransferDynamicCallMem1 base ptr toWord value) (ptr + ⟨160⟩) = safeTransferDynamicTailSourceWord base ptr toWord value := by
+    exact mloadValue_eq_readWithPadding_of_lt_size _ _ _
       (safeTransferDynamicCallMem1_size ptr toWord value hin hgap (by omega))
-      (by rw [hp160]; omega) (UInt256_mload_haw_of_cover _ _ hb1 hc160)
+      (by rw [hp160]; omega)
   have hawSrc : memoryWordActiveWords (safeTransferDynamicCallWords1 aw ptr) (ptr + ⟨160⟩) =
       safeTransferDynamicCallWords1 aw ptr := UInt256_M_same_of_cover _ _ hb1 hc160
-  have hloadDst : memoryWordLoad (safeTransferDynamicCallMem1 base ptr toWord value)
-      (safeTransferDynamicCallWords1 aw ptr) (ptr + ⟨228⟩) = ⟨0⟩ := by
+  have hloadDst : memoryWordLoad (safeTransferDynamicCallMem1 base ptr toWord value) (ptr + ⟨228⟩) = ⟨0⟩ := by
     have hge : (ptr + ⟨228⟩).toNat ≥ (safeTransferDynamicCallMem1 base ptr toWord value).size := by
       rw [hp228, safeTransferDynamicCallMem1_size ptr toWord value hin hgap (by omega)]
       omega
-    exact if_pos (Or.inl hge)
+    exact if_pos hge
   have hawDst : memoryWordActiveWords (safeTransferDynamicCallWords2 aw ptr) (ptr + ⟨228⟩) =
       safeTransferDynamicCallWords2 aw ptr := UInt256_M_same_of_cover _ _ hb2 (by rw [hp228]; omega)
   exact RD.uniswapSafeTransferCopyTail4 rd6512 hloadSrc hawSrc hloadDst hawDst hov

@@ -290,8 +290,7 @@ theorem ballotX_winnerName_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
   obtain ⟨_, _, rd272⟩ := hrd272
   let retMem := winningProposalReturnFromMem nameBaseMem (winnerNameNameWord σ I)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ retMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ retMem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (retMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ := by
@@ -307,7 +306,7 @@ theorem ballotX_winnerName_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hnameBaseMemSize]; decide) (by decide) hnameBaseMemRead64)
+      (mloadFreePtrValue (by rw [hnameBaseMemSize]; decide) hnameBaseMemRead64)
       (by decide) (by evm_ov),
     swap1, dup2,
     raw mstore 6 retMem (UInt256.ofNat 5) (by decide) mem_cost

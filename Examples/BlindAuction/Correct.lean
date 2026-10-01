@@ -475,14 +475,12 @@ theorem blindAuctionRevealMem_read (biddingTime revealTime : UInt256)
 theorem blindAuctionBeneficiaryMem_mload (biddingTime revealTime : UInt256)
     (beneficiaryAddress : AccountAddress) :
     (if (⟨0⟩ : UInt256).toNat ≥
-          (blindAuctionBeneficiaryMem biddingTime revealTime beneficiaryAddress).size
-        ∨ (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 1) * ⟨32⟩ then ⟨0⟩
+          (blindAuctionBeneficiaryMem biddingTime revealTime beneficiaryAddress).size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian
         ((blindAuctionBeneficiaryMem biddingTime revealTime beneficiaryAddress).readWithPadding 0 32)))
       = EVM.word beneficiaryAddress := by
   exact mloadWordValue_of_readWithPadding
-    (mem := blindAuctionBeneficiaryMem biddingTime revealTime beneficiaryAddress)
-    (aw := UInt256.ofNat 1) (off := ⟨0⟩) (v := EVM.word beneficiaryAddress)
+    (mem := blindAuctionBeneficiaryMem biddingTime revealTime beneficiaryAddress) (off := ⟨0⟩) (v := EVM.word beneficiaryAddress)
     (by
       unfold blindAuctionBeneficiaryMem
       have hsz := blindAuction_write0_size_ge_32
@@ -491,20 +489,17 @@ theorem blindAuctionBeneficiaryMem_mload (biddingTime revealTime : UInt256)
       have hz : (⟨0⟩ : UInt256).toNat = 0 := by decide
       rw [hz]
       omega)
-    (by decide)
     (blindAuctionBeneficiaryMem_read biddingTime revealTime beneficiaryAddress)
 
 theorem blindAuctionBiddingMem_mload (biddingTime revealTime : UInt256)
     (beneficiaryAddress : AccountAddress) :
     (if (⟨0⟩ : UInt256).toNat ≥
-          (blindAuctionBiddingMem biddingTime revealTime beneficiaryAddress).size
-        ∨ (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 1) * ⟨32⟩ then ⟨0⟩
+          (blindAuctionBiddingMem biddingTime revealTime beneficiaryAddress).size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian
         ((blindAuctionBiddingMem biddingTime revealTime beneficiaryAddress).readWithPadding 0 32)))
       = biddingTime := by
   exact mloadWordValue_of_readWithPadding
-    (mem := blindAuctionBiddingMem biddingTime revealTime beneficiaryAddress)
-    (aw := UInt256.ofNat 1) (off := ⟨0⟩) (v := biddingTime)
+    (mem := blindAuctionBiddingMem biddingTime revealTime beneficiaryAddress) (off := ⟨0⟩) (v := biddingTime)
     (by
       unfold blindAuctionBiddingMem
       have hsz := blindAuction_write0_size_ge_32
@@ -514,20 +509,17 @@ theorem blindAuctionBiddingMem_mload (biddingTime revealTime : UInt256)
       have hz : (⟨0⟩ : UInt256).toNat = 0 := by decide
       rw [hz]
       omega)
-    (by decide)
     (blindAuctionBiddingMem_read biddingTime revealTime beneficiaryAddress)
 
 theorem blindAuctionRevealMem_mload (biddingTime revealTime : UInt256)
     (beneficiaryAddress : AccountAddress) :
     (if (⟨0⟩ : UInt256).toNat ≥
-          (blindAuctionRevealMem biddingTime revealTime beneficiaryAddress).size
-        ∨ (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 1) * ⟨32⟩ then ⟨0⟩
+          (blindAuctionRevealMem biddingTime revealTime beneficiaryAddress).size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian
         ((blindAuctionRevealMem biddingTime revealTime beneficiaryAddress).readWithPadding 0 32)))
       = revealTime := by
   exact mloadWordValue_of_readWithPadding
-    (mem := blindAuctionRevealMem biddingTime revealTime beneficiaryAddress)
-    (aw := UInt256.ofNat 1) (off := ⟨0⟩) (v := revealTime)
+    (mem := blindAuctionRevealMem biddingTime revealTime beneficiaryAddress) (off := ⟨0⟩) (v := revealTime)
     (by
       unfold blindAuctionRevealMem
       have hsz := blindAuction_write0_size_ge_32
@@ -537,7 +529,6 @@ theorem blindAuctionRevealMem_mload (biddingTime revealTime : UInt256)
       have hz : (⟨0⟩ : UInt256).toNat = 0 := by decide
       rw [hz]
       omega)
-    (by decide)
     (blindAuctionRevealMem_read biddingTime revealTime beneficiaryAddress)
 
 theorem blindAuctionCtorCheckedAddOverflowLt (base addend : UInt256)

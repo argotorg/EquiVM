@@ -22,9 +22,8 @@ theorem RD.solcErrorStringRevertTail_dynamic
       hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
       hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
   have h64cover : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := hawLo
-  have hload : memoryWordLoad mem aw ⟨64⟩ = ptr :=
-    mloadWordValue_of_readWithPadding (by change 64 < mem.size; omega)
-      (UInt256_mload_haw_of_cover aw ⟨64⟩ haw h64cover) hread
+  have hload : memoryWordLoad mem ⟨64⟩ = ptr :=
+    mloadWordValue_of_readWithPadding (by change 64 < mem.size; omega) hread
   have hw64 : memoryWordActiveWords aw ⟨64⟩ = aw := UInt256_M_same_of_cover aw ⟨64⟩ haw h64cover
   have rdLoad := evm_run rd with [raw push1 ⟨64⟩ hd0 (by evm_ov), raw dup1 hd2 (by evm_ov)]
   have rdSelector := RD.mloadWord rdLoad hd3 hload (by simp only [List.length_cons]; omega)

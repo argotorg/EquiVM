@@ -792,13 +792,12 @@ theorem transferReturnMem_read64 (toWord value : UInt256) :
     balanceOfReturnMem_read64]
 
 theorem transferReturnMem_mload64 (toWord value : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (transferReturnMem toWord value).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (transferReturnMem toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((transferReturnMem toWord value).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [transferReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [transferReturnMem_size]; decide)
     (transferReturnMem_read64 toWord value)
 
 theorem transferReturnMem_read128 (toWord value : UInt256) :
@@ -930,13 +929,12 @@ theorem transferInsufficientStringMem_read64 (owner : UInt256) :
     transferInsufficientLengthMem_read64]
 
 theorem transferInsufficientStringMem_mload64 (owner : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (transferInsufficientStringMem owner).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (transferInsufficientStringMem owner).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((transferInsufficientStringMem owner).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [transferInsufficientStringMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [transferInsufficientStringMem_size]; decide)
     (transferInsufficientStringMem_read64 owner)
 
 end ERC20

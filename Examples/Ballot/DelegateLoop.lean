@@ -388,14 +388,13 @@ theorem delegateLoopFoundErrorMem3_read64 (toWord senderWord : UInt256) :
     delegateLoopFoundErrorMem2_read64]
 
 theorem delegateLoopFoundErrorMem3_mload64 (toWord senderWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (delegateLoopFoundErrorMem3 toWord senderWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (delegateLoopFoundErrorMem3 toWord senderWord).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((delegateLoopFoundErrorMem3 toWord senderWord).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [delegateLoopFoundErrorMem3_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [delegateLoopFoundErrorMem3_size]; decide)
     (delegateLoopFoundErrorMem3_read64 toWord senderWord)
 
 set_option maxHeartbeats 4000000 in

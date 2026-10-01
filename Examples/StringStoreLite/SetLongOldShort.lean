@@ -261,7 +261,7 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
     have hwordTail :
         longDataWordsLoopWord
           (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-          (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩
+          ⟨128⟩
           (UInt256.ofNat (32 * (len.toNat / 32 + 1))) 0 = wordTail := by
       dsimp [wordTail]
       exact longDataWordsLoopWord_setHelper_decoded_tail_word
@@ -269,10 +269,7 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
         hnz hlenMaxLen hsrc hmod hlenAbi rfl hoffMax
     have hmloadTail :
         (if (⟨128⟩ + longDataWordsLoopStride ⟨32⟩ (len.toNat / 32)).toNat ≥
-              (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)).size ∨
-            (⟨128⟩ + longDataWordsLoopStride ⟨32⟩ (len.toNat / 32)) ≥
-              longDataWordsLoopAw (clearCurrentHashAw (setHelperEntryAw len)) ⟨128⟩ ⟨32⟩
-                (len.toNat / 32) * ⟨32⟩ then
+              (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)).size then
             ⟨0⟩
          else UInt256.ofNat (fromByteArrayBigEndian
           ((clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart)).readWithPadding

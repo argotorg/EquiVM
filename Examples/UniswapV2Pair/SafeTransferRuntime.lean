@@ -149,15 +149,13 @@ theorem safeTransferRuntimeMem2_read64 {base : ByteArray}
 
 theorem safeTransferRuntimeMem2_mload64 {base : ByteArray}
     (hbase : base.size = 164) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (safeTransferRuntimeMem2 base).size
-        ∨ (⟨64⟩ : UInt256) ≥ balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (safeTransferRuntimeMem2 base).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((safeTransferRuntimeMem2 base).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨192⟩ :=
   mloadWordValue_of_readWithPadding
-    (by rw [safeTransferRuntimeMem2_size hbase]; decide)
-    (by native_decide) (safeTransferRuntimeMem2_read64 hbase)
+    (by rw [safeTransferRuntimeMem2_size hbase]; decide) (safeTransferRuntimeMem2_read64 hbase)
 
 theorem safeTransferRuntimeMem3_size
     {base : ByteArray} (toWord : UInt256)
@@ -208,16 +206,14 @@ theorem safeTransferRuntimeMem4_read64
 theorem safeTransferRuntimeMem4_mload64
     {base : ByteArray} (toWord value : UInt256)
     (hbase : base.size = 164) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (safeTransferRuntimeMem4 base toWord value).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (safeTransferRuntimeMem4 base toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((safeTransferRuntimeMem4 base toWord value).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨192⟩ :=
   mloadWordValue_of_readWithPadding
-    (by rw [safeTransferRuntimeMem4_size toWord value hbase]; decide)
-    (by native_decide) (safeTransferRuntimeMem4_read64 toWord value hbase)
+    (by rw [safeTransferRuntimeMem4_size toWord value hbase]; decide) (safeTransferRuntimeMem4_read64 toWord value hbase)
 
 theorem safeTransferRuntimeMem5_size
     {base : ByteArray} (toWord value : UInt256)
@@ -288,16 +284,14 @@ theorem safeTransferRuntimeMem7_read64
 theorem safeTransferRuntimeMem7_mload64
     {base : ByteArray} (toWord value : UInt256)
     (hbase : base.size = 164) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (safeTransferRuntimeMem7 base toWord value).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (safeTransferRuntimeMem7 base toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((safeTransferRuntimeMem7 base toWord value).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨292⟩ :=
   mloadWordValue_of_readWithPadding
-    (by rw [safeTransferRuntimeMem7_size toWord value hbase]; decide)
-    (by native_decide) (safeTransferRuntimeMem7_read64 toWord value hbase)
+    (by rw [safeTransferRuntimeMem7_size toWord value hbase]; decide) (safeTransferRuntimeMem7_read64 toWord value hbase)
 
 theorem safeTransferRuntimeMem5_read192
     {base : ByteArray} (toWord value : UInt256)
@@ -337,31 +331,28 @@ theorem safeTransferRuntimeMem7_read192
 theorem safeTransferRuntimeMem7_mload192
     {base : ByteArray} (toWord value : UInt256)
     (hbase : base.size = 164) :
-    (if (⟨192⟩ : UInt256).toNat ≥ (safeTransferRuntimeMem7 base toWord value).size
-        ∨ (⟨192⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨192⟩ : UInt256).toNat ≥ (safeTransferRuntimeMem7 base toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((safeTransferRuntimeMem7 base toWord value).readWithPadding
           (⟨192⟩ : UInt256).toNat 32)))
       = ⟨68⟩ :=
   mloadWordValue_of_readWithPadding
-    (by rw [safeTransferRuntimeMem7_size toWord value hbase]; decide)
-    (by native_decide) (safeTransferRuntimeMem7_read192 toWord value hbase)
+    (by rw [safeTransferRuntimeMem7_size toWord value hbase]; decide) (safeTransferRuntimeMem7_read192 toWord value hbase)
 
 theorem safeTransferRuntimeMem6_mload224
     {base : ByteArray} (toWord value : UInt256)
     (hbase : base.size = 164) :
-    (if (⟨224⟩ : UInt256).toNat ≥ (safeTransferRuntimeMem6 base toWord value).size
-        ∨ (⟨224⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨224⟩ : UInt256).toNat ≥ (safeTransferRuntimeMem6 base toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((safeTransferRuntimeMem6 base toWord value).readWithPadding
           (⟨224⟩ : UInt256).toNat 32)))
       = safeTransferRuntimeWord224 base toWord value := by
   unfold safeTransferRuntimeWord224
-  exact mloadValue_eq_readWithPadding_of_lt_size _ (UInt256.ofNat 10) ⟨224⟩ 292
+  exact mloadValue_eq_readWithPadding_of_lt_size _ ⟨224⟩ 292
     (safeTransferRuntimeMem6_size toWord value hbase)
-    (by native_decide) (by native_decide)
+    (by native_decide)
 
 theorem safeTransferRuntimeMem7_read224
     {base : ByteArray} (toWord value : UInt256)
@@ -381,16 +372,14 @@ theorem safeTransferRuntimeMem7_read224
 theorem safeTransferRuntimeMem7_mload224
     {base : ByteArray} (toWord value : UInt256)
     (hbase : base.size = 164) :
-    (if (⟨224⟩ : UInt256).toNat ≥ (safeTransferRuntimeMem7 base toWord value).size
-        ∨ (⟨224⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨224⟩ : UInt256).toNat ≥ (safeTransferRuntimeMem7 base toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((safeTransferRuntimeMem7 base toWord value).readWithPadding
           (⟨224⟩ : UInt256).toNat 32)))
       = safeTransferRuntimePatchedSelectorWord base toWord value :=
   mloadWordValue_of_readWithPadding
-    (by rw [safeTransferRuntimeMem7_size toWord value hbase]; decide)
-    (by native_decide) (safeTransferRuntimeMem7_read224 toWord value hbase)
+    (by rw [safeTransferRuntimeMem7_size toWord value hbase]; decide) (safeTransferRuntimeMem7_read224 toWord value hbase)
 
 def safeTransferRuntimeCallMem0
     (base : ByteArray) (toWord value : UInt256) : ByteArray :=
@@ -474,55 +463,46 @@ theorem safeTransferRuntimeCallMem2_size
 theorem safeTransferRuntimeCallMem0_mload256
     {base : ByteArray} (toWord value : UInt256)
     (hbase : base.size = 164) :
-    (if (⟨256⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem0 base toWord value).size
-        ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+    (if (⟨256⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem0 base toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((safeTransferRuntimeCallMem0 base toWord value).readWithPadding
           (⟨256⟩ : UInt256).toNat 32)))
       = safeTransferRuntimeCopyWord1 base toWord value := by
   have hguard :
-      ¬((⟨256⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem0 base toWord value).size
-        ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩) := by
-    exact not_or.mpr ⟨by
+      ¬((⟨256⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem0 base toWord value).size) := by
       rw [safeTransferRuntimeCallMem0_size toWord value hbase]
-      native_decide, by native_decide⟩
+      native_decide
   rw [if_neg hguard]
   rfl
 
 theorem safeTransferRuntimeCallMem1_mload288
     {base : ByteArray} (toWord value : UInt256)
     (hbase : base.size = 164) :
-    (if (⟨288⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem1 base toWord value).size
-        ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+    (if (⟨288⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem1 base toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((safeTransferRuntimeCallMem1 base toWord value).readWithPadding
           (⟨288⟩ : UInt256).toNat 32)))
       = safeTransferRuntimeTailSourceWord base toWord value := by
   have hguard :
-      ¬((⟨288⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem1 base toWord value).size
-        ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩) := by
-    exact not_or.mpr ⟨by
+      ¬((⟨288⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem1 base toWord value).size) := by
       rw [safeTransferRuntimeCallMem1_size toWord value hbase]
-      native_decide, by native_decide⟩
+      native_decide
   rw [if_neg hguard]
   rfl
 
 theorem safeTransferRuntimeCallMem1_mload356
     {base : ByteArray} (toWord value : UInt256)
     (hbase : base.size = 164) :
-    (if (⟨356⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem1 base toWord value).size
-        ∨ (⟨356⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+    (if (⟨356⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem1 base toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((safeTransferRuntimeCallMem1 base toWord value).readWithPadding
           (⟨356⟩ : UInt256).toNat 32)))
       = ⟨0⟩ := by
   have hguard :
-      (⟨356⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem1 base toWord value).size
-        ∨ (⟨356⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ := by
-    left
+      (⟨356⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem1 base toWord value).size := by
     rw [safeTransferRuntimeCallMem1_size toWord value hbase]
     native_decide
   rw [if_pos hguard]
@@ -598,8 +578,7 @@ theorem safeTransferRuntimeCallMem2_mload96_zero
     {base : ByteArray} (toWord value : UInt256)
     (hbase : base.size = 164)
     (hbaseRead96 : base.readWithPadding 96 32 = UInt256.toByteArray (⟨0⟩ : UInt256)) :
-    (if (⟨96⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem2 base toWord value).size
-        ∨ (⟨96⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
+    (if (⟨96⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem2 base toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((safeTransferRuntimeCallMem2 base toWord value).readWithPadding
@@ -607,7 +586,6 @@ theorem safeTransferRuntimeCallMem2_mload96_zero
       = ⟨0⟩ :=
   mloadWordValue_of_readWithPadding
     (by rw [safeTransferRuntimeCallMem2_size toWord value hbase]; decide)
-    (by native_decide)
     (safeTransferRuntimeCallMem2_read96_zero toWord value hbase hbaseRead96)
 
 theorem safeTransferRuntimeMem6_read228_28
@@ -849,16 +827,14 @@ theorem safeTransferRuntimeCallMem2_read292_68
 theorem safeTransferRuntimeCallMem2_mload64
     {base : ByteArray} (toWord value : UInt256)
     (hbase : base.size = 164) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem2 base toWord value).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (safeTransferRuntimeCallMem2 base toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((safeTransferRuntimeCallMem2 base toWord value).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨292⟩ :=
   mloadWordValue_of_readWithPadding
-    (by rw [safeTransferRuntimeCallMem2_size toWord value hbase]; decide)
-    (by native_decide) (safeTransferRuntimeCallMem2_read64 toWord value hbase)
+    (by rw [safeTransferRuntimeCallMem2_size toWord value hbase]; decide) (safeTransferRuntimeCallMem2_read64 toWord value hbase)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferEntryToCallMade {g : Sat256} {s0 : State}
@@ -870,8 +846,7 @@ theorem RD.uniswapSafeTransferEntryToCallMade {g : Sat256} {s0 : State}
       base balanceOfThisStaticcallActiveWords rdata (cA, σ) k C)
     (hbase : base.size = 164)
     (hbaseMload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ base.size
-          ∨ (⟨64⟩ : UInt256) ≥ balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ base.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (base.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
@@ -1075,7 +1050,7 @@ theorem safeTransferRuntimeReturnDataMem_mload292
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255) :
     (if (⟨292⟩ : UInt256).toNat ≥
           (safeTransferRuntimeReturnDataMem base toWord value out).size
-        ∨ (⟨292⟩ : UInt256) ≥ safeTransferRuntimeReturnDataActiveWords out * ⟨32⟩ then
+ then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -1083,7 +1058,7 @@ theorem safeTransferRuntimeReturnDataMem_mload292
           (⟨292⟩ : UInt256).toNat 32))) =
       UInt256.ofNat out.size := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨292⟩ : UInt256)) (aw := safeTransferRuntimeReturnDataActiveWords out)
+    (off := (⟨292⟩ : UInt256))
     (v := UInt256.ofNat out.size)
     (by
       rw [show (⟨292⟩ : UInt256).toNat = 292 from by decide]
@@ -1108,7 +1083,6 @@ theorem safeTransferRuntimeReturnDataMem_mload292
           324 out.size houtNe le_rfl (by rw [hbaseSize]; omega) hext]
         rw [ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract]
         omega)
-    (safeTransferRuntimeReturnDataActiveWords_mload292_haw out houtSize)
     (by
       simpa [show (⟨292⟩ : UInt256).toNat = 292 from by decide] using
         safeTransferRuntimeReturnDataMem_read292 toWord value out hbase houtNe
@@ -1120,7 +1094,7 @@ theorem safeTransferRuntimeReturnDataMem_mload324
     (hout32 : 32 ≤ out.size) (houtSize : out.size < 2 ^ 255) :
     (if (⟨324⟩ : UInt256).toNat ≥
           (safeTransferRuntimeReturnDataMem base toWord value out).size
-        ∨ (⟨324⟩ : UInt256) ≥ safeTransferRuntimeReturnDataActiveWords out * ⟨32⟩ then
+ then
       ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
@@ -1168,53 +1142,27 @@ theorem safeTransferRuntimeReturnDataMem_mload324
         omega]
       rw [Nat.sub_self, show 356 - 324 = 32 by omega]
       rw [extract_prefix _ out.size 0 32 (by omega)]
-  · rw [not_or]
-    constructor
-    · rw [show (⟨324⟩ : UInt256).toNat = 324 from by decide]
-      unfold safeTransferRuntimeReturnDataMem
-      by_cases hin :
-          324 + out.size ≤
-            (safeTransferRuntimeReturnDataSizeMem base toWord value out).size
-      · rw [write_eq_gen out (safeTransferRuntimeReturnDataSizeMem base toWord value out)
-          324 out.size (by omega) le_rfl hin]
-        rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-          ByteArray.size_extract, ByteArray.size_extract]
-        omega
-      · have hbaseSize :
-            (safeTransferRuntimeReturnDataSizeMem base toWord value out).size = 388 :=
-          safeTransferRuntimeReturnDataSizeMem_size toWord value out hbase
-        have hext :
-            (safeTransferRuntimeReturnDataSizeMem base toWord value out).size <
-              324 + out.size := by omega
-        rw [write_eq_gen_extend out
-          (safeTransferRuntimeReturnDataSizeMem base toWord value out)
-          324 out.size (by omega) le_rfl (by rw [hbaseSize]; omega) hext]
-        rw [ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract]
-        omega
-    · intro h
-      have hle :
-          (safeTransferRuntimeReturnDataActiveWords out * ⟨32⟩).toNat ≤
-            (⟨324⟩ : UInt256).toNat := h
-      rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-        Nat.mod_eq_of_lt (safeTransferRuntimeReturnDataActiveWords_mul32_lt out houtSize),
-        show (⟨324⟩ : UInt256).toNat = 324 from by decide] at hle
-      unfold safeTransferRuntimeReturnDataActiveWords at hle
-      have hMlt : MachineState.M (UInt256.ofNat 13).toNat 324 out.size < UInt256.size := by
-        have hmul := safeTransferRuntimeReturnDataActiveWords_M_mul32_lt out houtSize
-        omega
-      rw [UInt256.toNat_ofNat_of_lt hMlt] at hle
-      rw [show (UInt256.ofNat 13).toNat = 13 from by decide] at hle
-      unfold MachineState.M at hle
-      split at hle
-      · norm_num at hle
-      · have hge : 13 ≤ max 13 ((324 + out.size + 31) / 32) := Nat.le_max_left _ _
-        have hcontra : 416 ≤ 324 := by
-          calc
-            416 = 13 * 32 := by norm_num
-            _ ≤ max 13 ((324 + out.size + 31) / 32) * 32 :=
-              Nat.mul_le_mul_right 32 hge
-            _ ≤ 324 := hle
-        norm_num at hcontra
+  · rw [show (⟨324⟩ : UInt256).toNat = 324 from by decide]
+    unfold safeTransferRuntimeReturnDataMem
+    by_cases hin :
+        324 + out.size ≤
+          (safeTransferRuntimeReturnDataSizeMem base toWord value out).size
+    · rw [write_eq_gen out (safeTransferRuntimeReturnDataSizeMem base toWord value out)
+        324 out.size (by omega) le_rfl hin]
+      rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+        ByteArray.size_extract, ByteArray.size_extract]
+      omega
+    · have hbaseSize :
+          (safeTransferRuntimeReturnDataSizeMem base toWord value out).size = 388 :=
+        safeTransferRuntimeReturnDataSizeMem_size toWord value out hbase
+      have hext :
+          (safeTransferRuntimeReturnDataSizeMem base toWord value out).size <
+            324 + out.size := by omega
+      rw [write_eq_gen_extend out
+        (safeTransferRuntimeReturnDataSizeMem base toWord value out)
+        324 out.size (by omega) le_rfl (by rw [hbaseSize]; omega) hext]
+      rw [ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract]
+      omega
 
 theorem safeTransferRuntimeReturnDataActiveWords_mload324_same (out : ByteArray)
     (houtSize : out.size < 2 ^ 255) :

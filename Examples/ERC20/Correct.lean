@@ -586,16 +586,14 @@ theorem erc20CtorArgMem_read64 (initialSupply : UInt256) :
     (by simp [solcFreePtrMem_size])
 
 theorem erc20CtorArgMem_mload64 (initialSupply : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (erc20CtorArgMem initialSupply).size
-        ∨ (⟨64⟩ : UInt256) ≥ (UInt256.ofNat 3) * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (erc20CtorArgMem initialSupply).size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian
         ((erc20CtorArgMem initialSupply).readWithPadding 64 32)))
       = initialSupply := by
   exact mloadWordValue_of_readWithPadding
-    (mem := erc20CtorArgMem initialSupply) (aw := UInt256.ofNat 3) (off := ⟨64⟩)
+    (mem := erc20CtorArgMem initialSupply) (off := ⟨64⟩)
     (v := initialSupply)
     (by rw [erc20CtorArgMem_size]; decide)
-    (by decide)
     (erc20CtorArgMem_read64 initialSupply)
 
 theorem erc20CtorHashMem_size (caller : AccountAddress) (initialSupply : UInt256) :

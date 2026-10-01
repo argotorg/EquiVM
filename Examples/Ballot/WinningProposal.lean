@@ -737,13 +737,12 @@ theorem winningProposalBaseSlotMem_read64 :
     solcFreePtrMem_read64]
 
 theorem winningProposalBaseSlotMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ winningProposalBaseSlotMem.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ winningProposalBaseSlotMem.size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         (winningProposalBaseSlotMem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [winningProposalBaseSlotMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [winningProposalBaseSlotMem_size]; decide)
     winningProposalBaseSlotMem_read64
 
 theorem winningProposalDataBaseKeccak :
@@ -785,13 +784,12 @@ theorem winningProposalReturnMem_read64 (val : UInt256) :
   exact winningProposalBaseSlotMem_read64
 
 theorem winningProposalReturnMem_mload64 (val : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (winningProposalReturnMem val).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (winningProposalReturnMem val).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((winningProposalReturnMem val).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [winningProposalReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [winningProposalReturnMem_size]; decide)
     (winningProposalReturnMem_read64 val)
 
 theorem winningProposalReturnMem_read128 (val : UInt256) :
@@ -885,8 +883,7 @@ theorem winningProposalReturnFromMem_read64 (mem : ByteArray) (val : UInt256)
 theorem winningProposalReturnFromMem_mload64 (mem : ByteArray) (val : UInt256)
     (hsize : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (winningProposalReturnFromMem mem val).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (winningProposalReturnFromMem mem val).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((winningProposalReturnFromMem mem val).readWithPadding
@@ -894,7 +891,6 @@ theorem winningProposalReturnFromMem_mload64 (mem : ByteArray) (val : UInt256)
       = ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [winningProposalReturnFromMem_size mem val hsize]; decide)
-    (by decide)
     (winningProposalReturnFromMem_read64 mem val hsize hread64)
 
 theorem winningProposalReturnFromMem_read128 (mem : ByteArray) (val : UInt256)
@@ -1205,8 +1201,7 @@ theorem ballotX_winningProposal_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
       (by simp only [List.length_cons, List.length_nil]; omega) rd1315
   let retMem := winningProposalReturnFromMem mem' (winningProposalResultWord σ I)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ retMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ retMem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (retMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ := by
@@ -1222,7 +1217,7 @@ theorem ballotX_winningProposal_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem']; decide) (by decide) hread64')
+      (mloadFreePtrValue (by rw [hmem']; decide) hread64')
       (by decide) (by evm_ov),
     swap1, dup2,
     raw mstore 6 retMem (UInt256.ofNat 5) (by decide) mem_cost

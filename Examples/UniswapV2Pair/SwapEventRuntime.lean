@@ -27,8 +27,8 @@ theorem RD.uniswapSwapEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
   have h64 : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := by change 64 + 32 ≤ _; omega
   have hw64 := UInt256_M_same_of_cover aw ⟨64⟩ haw h64
   change memoryWordActiveWords aw ⟨64⟩ = aw at hw64
-  have hm64 : memoryWordLoad mem aw ⟨64⟩ = ptr := mloadWordValue_of_readWithPadding
-    (by change 64 < _; omega) (UInt256_mload_haw_of_cover aw ⟨64⟩ haw h64) hread
+  have hm64 : memoryWordLoad mem ⟨64⟩ = ptr := mloadWordValue_of_readWithPadding
+    (by change 64 < _; omega) hread
   have hw0 := UInt256_M_same_of_cover aw ptr haw (by omega)
   change memoryWordActiveWords aw ptr = aw at hw0
   have h32 : (ptr + ⟨32⟩).toNat = ptr.toNat + 32 := uadd_word_ofNat_toNat ptr 32 (by omega)

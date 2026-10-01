@@ -11,7 +11,7 @@ theorem RD.uniswapSafeTransferDynamicDepthReverts
     {base rdata : ByteArray} {ptr aw value toWord token ret : UInt256} {R : List UInt256} {k C : Nat}
     (rd6370 : RD uniswapV2PairBytecode I g s0 ⟨6370⟩ (value :: toWord :: token :: ret :: R)
       base aw rdata (cA, σ) k C)
-    (hload : memoryWordLoad base aw ⟨64⟩ = ptr) (haw64 : memoryWordActiveWords aw ⟨64⟩ = aw)
+    (hload : memoryWordLoad base ⟨64⟩ = ptr) (haw64 : memoryWordActiveWords aw ⟨64⟩ = aw)
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size) (hptrLo : 96 ≤ ptr.toNat)
     (hbase : base.size ≤ ptr.toNat + 228)
     (haw : aw.toNat * 32 < UInt256.size) (hptr : ptr.toNat + 291 < UInt256.size)

@@ -50,7 +50,7 @@ theorem balanceDynamicReturnMem_mload64 {base : ByteArray} (aw ptr self : UInt25
     (hgap : ptr.toNat - base.size < USize.size) (hfit : ptr.toNat + 67 < UInt256.size)
     (haw : aw.toNat * 32 < UInt256.size) (hread : base.readWithPadding 64 32 = ptr.toByteArray)
     (hout : out.size < UInt256.size) :
-    memoryWordLoad (balanceDynamicReturnMem base ptr self out) (balanceDynamicCalldataWords aw ptr) ⟨64⟩ = ptr ∧
+    memoryWordLoad (balanceDynamicReturnMem base ptr self out) ⟨64⟩ = ptr ∧
     memoryWordActiveWords (balanceDynamicCalldataWords aw ptr) ⟨64⟩ = balanceDynamicCalldataWords aw ptr := by
   obtain ⟨_, hb, hc⟩ := balanceDynamicWords_bounds aw ptr haw hfit
   have hc64 : (⟨64⟩ : UInt256).toNat + 32 ≤ (balanceDynamicCalldataWords aw ptr).toNat * 32 := by change 64 + 32 ≤ _; omega
@@ -58,21 +58,20 @@ theorem balanceDynamicReturnMem_mload64 {base : ByteArray} (aw ptr self : UInt25
   apply mloadWordValue_of_readWithPadding
   · change 64 < _
     rw [balanceDynamicReturnMem_size ptr self out hgap (by omega) hout]; omega
-  · exact UInt256_mload_haw_of_cover _ _ hb hc64
   · exact (balanceDynamicReturnMem_read_below ptr self out 64 hin hlo hgap (by omega) hout).trans hread
 
 theorem balanceDynamicReturnMem_mload_ptr {base : ByteArray} (aw ptr self : UInt256) (out : ByteArray)
     (hgap : ptr.toNat - base.size < USize.size) (hfit : ptr.toNat + 67 < UInt256.size)
     (haw : aw.toNat * 32 < UInt256.size) (hout : out.size < UInt256.size) (hlo : 32 ≤ out.size) :
-    memoryWordLoad (balanceDynamicReturnMem base ptr self out) (balanceDynamicCalldataWords aw ptr) ptr =
+    memoryWordLoad (balanceDynamicReturnMem base ptr self out) ptr =
       UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) ∧
     memoryWordActiveWords (balanceDynamicCalldataWords aw ptr) ptr = balanceDynamicCalldataWords aw ptr := by
   obtain ⟨_, hb, hc⟩ := balanceDynamicWords_bounds aw ptr haw hfit
   have hcover : ptr.toNat + 32 ≤ (balanceDynamicCalldataWords aw ptr).toNat * 32 := by omega
   refine ⟨?_, UInt256_M_same_of_cover _ _ hb hcover⟩
   have h := mloadValue_eq_readWithPadding_of_lt_size (balanceDynamicReturnMem base ptr self out)
-    (balanceDynamicCalldataWords aw ptr) ptr _ (balanceDynamicReturnMem_size ptr self out hgap (by omega) hout)
-    (by omega) (UInt256_mload_haw_of_cover _ _ hb hcover)
+    ptr _ (balanceDynamicReturnMem_size ptr self out hgap (by omega) hout)
+    (by omega)
   exact h.trans (congrArg (fun bytes => UInt256.ofNat (fromByteArrayBigEndian bytes))
     (balanceDynamicReturnMem_read_ptr ptr self out hgap (by omega) hout hlo))
 

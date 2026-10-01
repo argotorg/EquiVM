@@ -2049,23 +2049,21 @@ theorem delegateProposalBaseMem_read0 (toWord senderWord : UInt256) :
     rw [toByteArray_size])
 
 theorem delegateHashMem_mload64 (senderWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (delegateHashMem senderWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (delegateHashMem senderWord).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((delegateHashMem senderWord).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [delegateHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [delegateHashMem_size]; decide)
     (delegateHashMem_read64 senderWord)
 
 theorem delegateLoopHashMem_mload64 (toWord senderWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (delegateLoopHashMem toWord senderWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (delegateLoopHashMem toWord senderWord).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((delegateLoopHashMem toWord senderWord).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [delegateLoopHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [delegateLoopHashMem_size]; decide)
     (delegateLoopHashMem_read64 toWord senderWord)
 
 def delegateErrorSelector : UInt256 :=
@@ -2171,13 +2169,12 @@ theorem delegateWeightErrorMem3_read64 (senderWord : UInt256) :
     delegateWeightErrorMem2_read64]
 
 theorem delegateWeightErrorMem3_mload64 (senderWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (delegateWeightErrorMem3 senderWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (delegateWeightErrorMem3 senderWord).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((delegateWeightErrorMem3 senderWord).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [delegateWeightErrorMem3_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [delegateWeightErrorMem3_size]; decide)
     (delegateWeightErrorMem3_read64 senderWord)
 
 def delegateVotedStringRaw : UInt256 :=
@@ -2230,13 +2227,12 @@ theorem delegateVotedErrorMem3_read64 (senderWord : UInt256) :
     delegateVotedErrorMem2_read64]
 
 theorem delegateVotedErrorMem3_mload64 (senderWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (delegateVotedErrorMem3 senderWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (delegateVotedErrorMem3 senderWord).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((delegateVotedErrorMem3 senderWord).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [delegateVotedErrorMem3_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [delegateVotedErrorMem3_size]; decide)
     (delegateVotedErrorMem3_read64 senderWord)
 
 def delegateSelfStringWord : UInt256 :=
@@ -2286,13 +2282,12 @@ theorem delegateSelfErrorMem3_read64 (senderWord : UInt256) :
     delegateSelfErrorMem2_read64]
 
 theorem delegateSelfErrorMem3_mload64 (senderWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (delegateSelfErrorMem3 senderWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (delegateSelfErrorMem3 senderWord).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((delegateSelfErrorMem3 senderWord).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [delegateSelfErrorMem3_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [delegateSelfErrorMem3_size]; decide)
     (delegateSelfErrorMem3_read64 senderWord)
 
 theorem delegateHashMem_read0_64 (senderWord : UInt256) :
