@@ -1318,25 +1318,22 @@ theorem selector_toNat (cd : ByteArray) (h : 4 ≤ cd.size) :
 
 /-! ## 7. Generic `MLOAD` word-value helper -/
 
-/-- Simplify the value pushed by `MLOAD` when the offset is in bounds and below the active-word
-    limit, leaving the byte read uninterpreted. -/
+/-- Simplify the value pushed by `MLOAD` when the offset is in bounds. -/
 theorem mloadValue_eq_readWithPadding_of_lt_size
-    (mem : ByteArray) (aw off : UInt256) (memSize : Nat)
-    (hsize : mem.size = memSize) (hmem : off.toNat < memSize)
-    (haw : ¬ off ≥ aw * ⟨32⟩) :
-    (if off.toNat ≥ mem.size ∨ off ≥ aw * ⟨32⟩ then ⟨0⟩
+    (mem : ByteArray) (off : UInt256) (memSize : Nat)
+    (hsize : mem.size = memSize) (hmem : off.toNat < memSize) :
+    (if off.toNat ≥ mem.size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding off.toNat 32))) =
       UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding off.toNat 32)) := by
-  rw [if_neg (not_or.mpr ⟨by rw [hsize]; omega, haw⟩)]
+  rw [if_neg (by rw [hsize]; omega)]
 
 /-- Simplify the value pushed by `MLOAD` when the 32-byte memory read is known. -/
-theorem mloadWordValue_of_readWithPadding {mem : ByteArray} {aw off v : UInt256}
+theorem mloadWordValue_of_readWithPadding {mem : ByteArray} {off v : UInt256}
     (hmem : off.toNat < mem.size)
-    (haw : ¬ off ≥ aw * ⟨32⟩)
     (hread : mem.readWithPadding off.toNat 32 = UInt256.toByteArray v) :
-    (if off.toNat ≥ mem.size ∨ off ≥ aw * ⟨32⟩ then ⟨0⟩
+    (if off.toNat ≥ mem.size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding off.toNat 32))) = v := by
-  rw [if_neg (not_or.mpr ⟨by omega, haw⟩), hread, fromByteArrayBigEndian_toByteArray,
+  rw [if_neg (by omega), hread, fromByteArrayBigEndian_toByteArray,
     u256_ofNat_toNat]
 
 /-! ## 8. ABI calldata decode coupling (shared by every contract with arguments) -/

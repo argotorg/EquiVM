@@ -1415,7 +1415,7 @@ theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hdec : decode code pc = some (.MLOAD, .none))
     (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: t →
         memoryExpansionCost s .MLOAD = mcost)
-    (hval : (if a.toNat ≥ mem.size ∨ a ≥ aw * ⟨32⟩ then ⟨0⟩
+    (hval : (if a.toNat ≥ mem.size then ⟨0⟩
              else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding a.toNat 32))) = loadval)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat 32) = awout)
     (hov : t.length + 1 ≤ 1024) :
@@ -1432,7 +1432,7 @@ theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
         hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stMLoad]; exact hcode
       · simp only [stMLoad]; rw [hpc]
-      · simp only [stMLoad]; rw [hmem, haw, hval]
+      · simp only [stMLoad]; rw [hmem, hval]
       · simp only [stMLoad, hmcS]
         rw [hgas, Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
       · simp only [stMLoad]; rw [hmem]

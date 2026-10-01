@@ -552,7 +552,7 @@ def stMLoad (s : State) (a : UInt256) (t : List UInt256) : State :=
   { s with machineState := { s.machineState with
       pc := s.machineState.pc + ⟨1⟩,
       stack :=
-        (if a.toNat ≥ s.machineState.memory.size ∨ a ≥ s.machineState.activeWords * ⟨32⟩ then ⟨0⟩
+        (if a.toNat ≥ s.machineState.memory.size then ⟨0⟩
          else UInt256.ofNat
                 (fromByteArrayBigEndian (s.machineState.memory.readWithPadding a.toNat 32))) :: t,
       activeWords :=
