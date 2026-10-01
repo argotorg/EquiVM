@@ -78,11 +78,10 @@ theorem RD.catBiteIlksReturnDecodeShortReverts
     (hstatus : status ≠ ⟨0⟩)
     (hshort : o.size < 160) (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
-    (hMload64Cost : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = (⟨64⟩ : UInt256) :: R → memoryExpansionCost s .MLOAD = 0)
+    (hMload64Cost : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = 0)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hov : R.length + 6 ≤ 1024) :
     RDrev catBytecode (Sat256.ofUInt256 g)
@@ -174,11 +173,10 @@ theorem catBiteUrnsDecodeShortLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
       R mem aw o acc k C)
     (hshort : o.size < 64) (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
-    (hMload64Cost : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = (⟨64⟩ : UInt256) :: R → memoryExpansionCost s .MLOAD = 0)
+    (hMload64Cost : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = 0)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hov : R.length + 4 ≤ 1024)
     (hbody :
@@ -320,11 +318,10 @@ theorem catBiteIlksDecodeShortLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
     (hstatus : status ≠ ⟨0⟩)
     (hshort : o.size < 160) (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
-    (hMload64Cost : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = (⟨64⟩ : UInt256) :: R → memoryExpansionCost s .MLOAD = 0)
+    (hMload64Cost : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = 0)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hov : R.length + 6 ≤ 1024)
     (hbody :
@@ -592,11 +589,10 @@ theorem RD.catBiteKickReturnDecodeShortReverts
     (hstatus : status ≠ ⟨0⟩)
     (hshort : o.size < 32) (hhi : o.size < UInt256.size)
     (hMloadFreeValue :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = fp)
-    (hMloadFreeCost : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = (⟨64⟩ : UInt256) :: R → memoryExpansionCost s .MLOAD = 0)
+    (hMloadFreeCost : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = 0)
     (hMloadFreeAw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hov : R.length + 6 ≤ 1024) :
     RDrev catBytecode (Sat256.ofUInt256 g)
@@ -645,11 +641,10 @@ theorem catBiteKickReturnDecodeShortLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g 
     (hstatus : status ≠ ⟨0⟩)
     (hshort : o.size < 32) (hhi : o.size < UInt256.size)
     (hMloadFreeValue :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = fp)
-    (hMloadFreeCost : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = (⟨64⟩ : UInt256) :: R → memoryExpansionCost s .MLOAD = 0)
+    (hMloadFreeCost : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = 0)
     (hMloadFreeAw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hov : R.length + 6 ≤ 1024)
     (hbody :

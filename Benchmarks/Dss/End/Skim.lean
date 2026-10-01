@@ -406,28 +406,24 @@ theorem endSkimVatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray) :
     exact endSkimVatIlksCalldataMem_read64 I
 
 theorem endSkimVatIlksPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endSkimVatIlksPostCallMem I out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endSkimVatIlksPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSkimVatIlksPostCallMem I out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by exact endSkimVatIlksPostCallMem_size_gt64 I out)
-    (by decide)
     (endSkimVatIlksPostCallMem_read64 I out)
 
 theorem endSkimVatIlksPostCallMem_mload64_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 160 ≤ out.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endSkimVatIlksPostCallMem I out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endSkimVatIlksPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSkimVatIlksPostCallMem I out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [endSkimVatIlksPostCallMem_size_long I out hlo]; decide)
-    (by decide)
     (endSkimVatIlksPostCallMem_read64_long I out hlo)
 
 theorem endSkimVatIlksPostCallMem_read160_long (I : ExecutionEnv) (out : ByteArray)
@@ -465,20 +461,17 @@ theorem endSkimVatIlksPostCallMem_read160_long (I : ExecutionEnv) (out : ByteArr
 
 theorem endSkimVatIlksPostCallMem_mload160_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 160 ≤ out.size) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (endSkimVatIlksPostCallMem I out).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (endSkimVatIlksPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSkimVatIlksPostCallMem I out).readWithPadding (⟨160⟩ : UInt256).toNat 32))) =
       endFlowVatIlkRateWord out := by
   unfold endFlowVatIlkRateWord
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by rw [endSkimVatIlksPostCallMem_size_long I out hlo]; decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian ((endSkimVatIlksPostCallMem I out).readWithPadding 160 32)) =
         UInt256.ofNat (fromByteArrayBigEndian (out.extract 32 64))
-    rw [endSkimVatIlksPostCallMem_read160_long I out hlo]
-  · exact not_or.mpr
-      ⟨by rw [endSkimVatIlksPostCallMem_size_long I out hlo]; decide, by native_decide⟩
+  rw [endSkimVatIlksPostCallMem_read160_long I out hlo]
 
 theorem endSkimUrnAddr_word (I : ExecutionEnv) :
     EVM.word ↑(endSkimUrnAddr I) = endSkimUrnKey I := by
@@ -786,8 +779,7 @@ theorem endSkimUrnsPostCallMem_read160_32 (I : ExecutionEnv) (vatOut urnOut : By
 
 theorem endSkimUrnsPostCallMem_mload64 (I : ExecutionEnv) (vatOut urnOut : ByteArray)
     (hlo : 160 ≤ vatOut.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endSkimUrnsPostCallMem I vatOut urnOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endSkimUrnsPostCallMem I vatOut urnOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSkimUrnsPostCallMem I vatOut urnOut).readWithPadding
@@ -795,48 +787,39 @@ theorem endSkimUrnsPostCallMem_mload64 (I : ExecutionEnv) (vatOut urnOut : ByteA
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [endSkimUrnsPostCallMem_size I vatOut urnOut hlo]; decide)
-    (by decide)
     (endSkimUrnsPostCallMem_read64 I vatOut urnOut hlo)
 
 theorem endSkimUrnsPostCallMem_mload128 (I : ExecutionEnv) (vatOut urnOut : ByteArray)
     (hloVat : 160 ≤ vatOut.size) (hloUrn : 64 ≤ urnOut.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (endSkimUrnsPostCallMem I vatOut urnOut).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (endSkimUrnsPostCallMem I vatOut urnOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSkimUrnsPostCallMem I vatOut urnOut).readWithPadding
           (⟨128⟩ : UInt256).toNat 32))) =
       endFreeUrnInkWord urnOut := by
   unfold endFreeUrnInkWord
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by rw [endSkimUrnsPostCallMem_size I vatOut urnOut hloVat]; decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian
         ((endSkimUrnsPostCallMem I vatOut urnOut).readWithPadding 128 32)) =
         UInt256.ofNat (fromByteArrayBigEndian (urnOut.extract 0 32))
-    rw [endSkimUrnsPostCallMem_read128_32 I vatOut urnOut hloVat hloUrn]
-  · exact not_or.mpr
-      ⟨by rw [endSkimUrnsPostCallMem_size I vatOut urnOut hloVat]; decide,
-        by native_decide⟩
+  rw [endSkimUrnsPostCallMem_read128_32 I vatOut urnOut hloVat hloUrn]
 
 theorem endSkimUrnsPostCallMem_mload160 (I : ExecutionEnv) (vatOut urnOut : ByteArray)
     (hloVat : 160 ≤ vatOut.size) (hloUrn : 64 ≤ urnOut.size) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (endSkimUrnsPostCallMem I vatOut urnOut).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (endSkimUrnsPostCallMem I vatOut urnOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSkimUrnsPostCallMem I vatOut urnOut).readWithPadding
           (⟨160⟩ : UInt256).toNat 32))) =
       endFreeUrnArtWord urnOut := by
   unfold endFreeUrnArtWord
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by rw [endSkimUrnsPostCallMem_size I vatOut urnOut hloVat]; decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian
         ((endSkimUrnsPostCallMem I vatOut urnOut).readWithPadding 160 32)) =
         UInt256.ofNat (fromByteArrayBigEndian (urnOut.extract 32 64))
-    rw [endSkimUrnsPostCallMem_read160_32 I vatOut urnOut hloVat hloUrn]
-  · exact not_or.mpr
-      ⟨by rw [endSkimUrnsPostCallMem_size I vatOut urnOut hloVat]; decide,
-        by native_decide⟩
+  rw [endSkimUrnsPostCallMem_read160_32 I vatOut urnOut hloVat hloUrn]
 
 theorem endDecode_skim_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (skimTransition.params.map Param.name)
@@ -1110,25 +1093,21 @@ theorem endSkimX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
       (endSkimVatIlksCalldataMem I) (UInt256.ofNat 6)
       ByteArray.empty (cA, σ) k' C' := by
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endSkimVatIlksBaseMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endSkimVatIlksBaseMem I).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkimVatIlksBaseMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
     mloadFreePtrValue
       (by rw [endSkimVatIlksBaseMem_size I]; decide)
-      (by decide)
       (endSkimVatIlksBaseMem_read64 I)
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endSkimVatIlksCalldataMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endSkimVatIlksCalldataMem I).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkimVatIlksCalldataMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endSkimVatIlksCalldataMem_size I]; decide)
-      (by decide) (endSkimVatIlksCalldataMem_read64 I)
+    mloadFreePtrValue (by rw [endSkimVatIlksCalldataMem_size I]; decide) (endSkimVatIlksCalldataMem_read64 I)
   have hselectorShift :
       UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
         endFlowVatIlksSelectorShifted := by
@@ -1472,14 +1451,13 @@ theorem endSkimX_urnsExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I} {g : Sat25
         UInt256.toByteArray ⟨128⟩ :=
     endSkimUrnsCalldataMem_read64 I vatOut hloVat
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endSkimUrnsCalldataMem I vatOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endSkimUrnsCalldataMem I vatOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkimUrnsCalldataMem I vatOut).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have hselectorShift :
       UInt256.shiftLeft (⟨0x09092f97⟩ : UInt256) ⟨226⟩ =
         endFreeUrnsSelectorShifted := by
@@ -3362,16 +3340,14 @@ theorem endSkim_solcErrorStringMem3_read64_of_size288 (len word : UInt256)
 theorem endSkim_solcErrorStringMem3_mload64_of_size288 (len word : UInt256)
     {mem : ByteArray} (hmem : mem.size = 288)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcErrorStringMem3 len word mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
   mloadFreePtrValue
-    (by rw [endSkim_solcErrorStringMem3_size_of_size288 len word hmem]; decide)
-    (by decide) (endSkim_solcErrorStringMem3_read64_of_size288 len word hmem hread64)
+    (by rw [endSkim_solcErrorStringMem3_size_of_size288 len word hmem]; decide) (endSkim_solcErrorStringMem3_read64_of_size288 len word hmem hread64)
 
 set_option maxHeartbeats 1000000 in
 theorem endSkim_solcErrorStringRevertTail_aw9 {code : ByteArray} {g : Sat256}
@@ -3396,7 +3372,7 @@ theorem endSkim_solcErrorStringRevertTail_aw9 {code : ByteArray} {g : Sat256}
     raw dup1 hd2 (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 9) hd3
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4
@@ -3817,19 +3793,16 @@ theorem endSkimX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
       (endSkimGrabCalldataMemFor σCall σLoc I vatOut urnOut) (UInt256.ofNat 11)
       rdata (cA', σCall) k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endSkimGapStoreHashMem I vatOut urnOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endSkimGapStoreHashMem I vatOut urnOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkimGapStoreHashMem I vatOut urnOut).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endSkimGapStoreHashMem_size I vatOut urnOut hloVat]; decide)
-      (by decide) (endSkimGapStoreHashMem_read64 I vatOut urnOut hloVat)
+    mloadFreePtrValue (by rw [endSkimGapStoreHashMem_size I vatOut urnOut hloVat]; decide) (endSkimGapStoreHashMem_read64 I vatOut urnOut hloVat)
   have hmload64Grab :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSkimGrabMem7For σCall σLoc I vatOut urnOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+            (endSkimGrabMem7For σCall σLoc I vatOut urnOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkimGrabMem7For σCall σLoc I vatOut urnOut).readWithPadding
@@ -3837,8 +3810,7 @@ theorem endSkimX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
         ⟨128⟩ := by
     simpa [endSkimGrabMem7For_eq] using
       (mloadFreePtrValue
-        (by rw [endSkimGrabCalldataMemFor_size σCall σLoc I vatOut urnOut hloVat]; decide)
-        (by decide) (endSkimGrabCalldataMemFor_read64 σCall σLoc I vatOut urnOut hloVat))
+        (by rw [endSkimGrabCalldataMemFor_size σCall σLoc I vatOut urnOut hloVat]; decide) (endSkimGrabCalldataMemFor_read64 σCall σLoc I vatOut urnOut hloVat))
   have hselectorShift :
       UInt256.shiftLeft (⟨0x01eeacfd⟩ : UInt256) ⟨230⟩ =
         endFreeGrabSelectorShifted := by
@@ -4239,28 +4211,24 @@ theorem endSkimX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     RDret endBytecode g s0 acc ByteArray.empty := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSkimGrabPostCallMemFor σCall σLoc I vatOut urnOut ret).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+            (endSkimGrabPostCallMemFor σCall σLoc I vatOut urnOut ret).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkimGrabPostCallMemFor σCall σLoc I vatOut urnOut ret).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ := by
     exact mloadFreePtrValue
-      (by rw [endSkimGrabPostCallMemFor_size σCall σLoc I vatOut urnOut ret hloVat]; decide)
-      (by decide) (endSkimGrabPostCallMemFor_read64 σCall σLoc I vatOut urnOut ret hloVat)
+      (by rw [endSkimGrabPostCallMemFor_size σCall σLoc I vatOut urnOut ret hloVat]; decide) (endSkimGrabPostCallMemFor_read64 σCall σLoc I vatOut urnOut ret hloVat)
   have hmload64Log :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSkimLogDataMem2For σCall σLoc I vatOut urnOut ret).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+            (endSkimLogDataMem2For σCall σLoc I vatOut urnOut ret).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkimLogDataMem2For σCall σLoc I vatOut urnOut ret).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ := by
     exact mloadFreePtrValue
-      (by rw [endSkimLogDataMem2For_size σCall σLoc I vatOut urnOut ret hloVat]; decide)
-      (by decide) (endSkimLogDataMem2For_read64 σCall σLoc I vatOut urnOut ret hloVat)
+      (by rw [endSkimLogDataMem2For_size σCall σLoc I vatOut urnOut ret hloVat]; decide) (endSkimLogDataMem2For_read64 σCall σLoc I vatOut urnOut ret hloVat)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide

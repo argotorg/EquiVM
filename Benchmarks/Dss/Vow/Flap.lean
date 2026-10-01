@@ -96,12 +96,11 @@ theorem RD.vowFlapToSin0ExtcodesizeGuard
       ByteArray.empty (cA, σ) k851 C851 := by
     simpa [rawTarget, vowSlotWord, solcSlotWord] using rd852₀
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (solcFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide)
       solcFreePtrMem_read64
   have hSinMem : (healSinCalldataMem I solcFreePtrMem).size = 164 :=
     initialHealSinCalldataMem_size I
@@ -110,14 +109,13 @@ theorem RD.vowFlapToSin0ExtcodesizeGuard
         UInt256.toByteArray ⟨128⟩ :=
     initialHealSinCalldataMem_read64 I
   have hmload64Sin :
-      (if (⟨64⟩ : UInt256).toNat ≥ (healSinCalldataMem I solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (healSinCalldataMem I solcFreePtrMem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((healSinCalldataMem I solcFreePtrMem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hSinMem]; decide) (by decide) hSinRead64
+    mloadFreePtrValue (by rw [hSinMem]; decide) hSinRead64
   have rd921 := evm_run rd852 with [
     push1 ⟨64⟩,
     dup1,
@@ -353,8 +351,7 @@ theorem RD.vowFlapSin0ReturnDecodeShortReverts
     (hshort : o.size < 32)
     (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
@@ -362,7 +359,7 @@ theorem RD.vowFlapSin0ReturnDecodeShortReverts
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨955⟩) (okPc := ⟨975⟩) rd
     hshort hhi
-    mem_cost (by decide) hMload64Value
+    (by native_decide) hMload64Value
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -379,14 +376,12 @@ theorem RD.vowFlapSin0ReturnDecodeOk
     (hlo : 32 ≤ o.size)
     (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hMload128Value :
-      (if (⟨128⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨128⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord) :
@@ -396,7 +391,7 @@ theorem RD.vowFlapSin0ReturnDecodeOk
       mem (UInt256.ofNat 6) o acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨955⟩) (okPc := ⟨975⟩) rd
     hlo hhi
-    mem_cost (by decide) hMload64Value hMload128Value mem_cost (by decide)
+    (by native_decide) hMload64Value hMload128Value (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -641,14 +636,13 @@ theorem vowFlapSin0DecodeShortBodyCore
     initialHealSinWrite_read64 I outSin outSin.size (by omega) (by omega)
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 outSin.size).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 outSin.size).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 outSin.size).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hrev := RD.vowFlapSin0ReturnDecodeShortReverts rd955 hshort hosz hmload64
   have hdecSin : config.externalABI.decode? "sin" outSin = none :=
     vatSinDecode_none_short hshort

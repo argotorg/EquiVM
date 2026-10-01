@@ -477,14 +477,13 @@ theorem vowFlapSin1DecodeShortBodyCore
     healSinWrite_read64 I mem outSin1 outSin1.size hmem hread64 (by omega) (by omega)
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (outSin1.write 0 (healSinCalldataMem I mem) 128 outSin1.size).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (outSin1.write 0 (healSinCalldataMem I mem) 128 outSin1.size).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outSin1.write 0 (healSinCalldataMem I mem) 128 outSin1.size).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemWrite]; decide) (by decide) hread64Write
+    mloadFreePtrValue (by rw [hmemWrite]; decide) hread64Write
   have hrev := RD.vowFlapSin1ReturnDecodeShortReverts rd1295 hshort hosz hmload64
   have hdecSin1 : config.externalABI.decode? "sin" outSin1 = none :=
     vatSinDecode_none_short hshort

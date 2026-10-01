@@ -1059,16 +1059,14 @@ theorem RD.flipperReturnUint48FromMem {g : Sat256} {s0 : State}
     (h : RD flipperBytecode ee g s0 ⟨643⟩ (val :: ret :: R) mem (UInt256.ofNat 3)
         rdata acc k C)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hmemout :
       (UInt256.toByteArray (UInt256.land val uint48Mask)).write 0 mem 128 32 = memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -1469,14 +1467,12 @@ theorem flipperAuthCodecopyErrorMem_read64 {mem : ByteArray}
 theorem flipperAuthCodecopyErrorMem_mload64 {mem : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (flipperAuthCodecopyErrorMem mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (flipperAuthCodecopyErrorMem mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((flipperAuthCodecopyErrorMem mem).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [flipperAuthCodecopyErrorMem_size hmem]; decide)
-    (by decide) (flipperAuthCodecopyErrorMem_read64 hmem hread64)
+  mloadFreePtrValue (by rw [flipperAuthCodecopyErrorMem_size hmem]; decide) (flipperAuthCodecopyErrorMem_read64 hmem hread64)
 
 @[reducible] def flipperAuthCodecopyRevertTailWf (pc : UInt256) : Prop :=
   let p2 := pc + UInt256.ofNat 2
@@ -1585,7 +1581,7 @@ theorem RD.flipperAuthCodecopyRevertTail {g : Sat256} {s0 : State}
     raw push1 ⟨64⟩ hd0 (by evm_ov),
     raw dup1 hd2 (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd3 mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4
@@ -1629,10 +1625,7 @@ theorem RD.flipperAuthCodecopyRevertTail {g : Sat256} {s0 : State}
     rfl
   have rdCopy := rdPrefix.codecopy 0 (flipperAuthScratchMem mem) (UInt256.ofNat 7)
     hd37
-    (fun s haws hstks => by
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     hcopy
     (by native_decide)
     (by evm_ov)

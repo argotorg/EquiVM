@@ -3263,8 +3263,7 @@ theorem flapperTendX_toGuyGuard
   have rd1710 := rd1709pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -3274,8 +3273,7 @@ theorem flapperTendX_toGuyGuard
   have rd1715 := rd1714pre.mstore 0 memMap (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memMap, id, twoWordHashMem, wordAt32Mem])
@@ -3291,11 +3289,7 @@ theorem flapperTendX_toGuyGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ (tendIdWord I) solcFreePtrMem
   have rd1719 := rd1718pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -3411,8 +3405,7 @@ theorem flapperTendX_toTicGtGuard
   have rd1808 := rd1807pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, memGuy, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -3422,8 +3415,7 @@ theorem flapperTendX_toTicGtGuard
   have rd1813 := rd1812pre.mstore 0 memTic (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memTic, memGuy, id, twoWordHashMem, wordAt32Mem])
@@ -3439,11 +3431,7 @@ theorem flapperTendX_toTicGtGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memGuy
   have rd1817 := rd1816pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -3521,8 +3509,7 @@ theorem flapperTendX_ticFinished {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
   have rd1850 := rd1849pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, memTic, memGuy, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -3532,8 +3519,7 @@ theorem flapperTendX_ticFinished {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
   have rd1855 := rd1854pre.mstore 0 memTicZero (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memTicZero, memTic, id, twoWordHashMem, wordAt32Mem])
@@ -3549,11 +3535,7 @@ theorem flapperTendX_ticFinished {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd1859 := rd1858pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -3727,8 +3709,7 @@ theorem flapperTendX_ticZeroOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
   have rd1850 := rd1849pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, memTic, memGuy, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -3738,8 +3719,7 @@ theorem flapperTendX_ticZeroOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
   have rd1855 := rd1854pre.mstore 0 memTicZero (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memTicZero, memTic, id, twoWordHashMem, wordAt32Mem])
@@ -3755,11 +3735,7 @@ theorem flapperTendX_ticZeroOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd1859 := rd1858pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -3847,8 +3823,7 @@ theorem flapperTendX_toEndGtGuard
   have rd1966 := rd1965pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -3858,8 +3833,7 @@ theorem flapperTendX_toEndGtGuard
   have rd1971 := rd1970pre.mstore 0 memEnd (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memEnd, id, twoWordHashMem, wordAt32Mem])
@@ -3875,11 +3849,7 @@ theorem flapperTendX_toEndGtGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd1975 := rd1974pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -4001,8 +3971,7 @@ theorem flapperTendX_toLotEqGuard
   have rd2083 := rd2082pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -4014,8 +3983,7 @@ theorem flapperTendX_toLotEqGuard
   have rd2090 := rd2089pre.mstore 0 memLot (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memLot, id, twoWordHashMem, wordAt32Mem])
@@ -4032,11 +4000,7 @@ theorem flapperTendX_toLotEqGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2095pre := rd2094pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -4128,8 +4092,7 @@ theorem flapperTendX_toBidGtGuard
   have rd2185 := rd2184pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -4139,8 +4102,7 @@ theorem flapperTendX_toBidGtGuard
   have rd2190 := rd2189pre.mstore 0 memBid (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memBid, id, twoWordHashMem, wordAt32Mem])
@@ -4156,11 +4118,7 @@ theorem flapperTendX_toBidGtGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2194pre := rd2193pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -4406,8 +4364,7 @@ theorem flapperTendX_toBegBidMulStart
   have rd2279 := rd2278pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -4417,8 +4374,7 @@ theorem flapperTendX_toBegBidMulStart
   have rd2284 := rd2283pre.mstore 0 memBegBid (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memBegBid, id, twoWordHashMem, wordAt32Mem])
@@ -4434,11 +4390,7 @@ theorem flapperTendX_toBegBidMulStart
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2288pre := rd2287pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -4663,8 +4615,7 @@ theorem flapperTendX_toCallerEqGuard
   have rd2404 := rd2403pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -4674,8 +4625,7 @@ theorem flapperTendX_toCallerEqGuard
   have rd2410 := rd2409pre.mstore 0 memCaller (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memCaller, id, twoWordHashMem, wordAt32Mem])
@@ -4691,11 +4641,7 @@ theorem flapperTendX_toCallerEqGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2414 := rd2413pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -4808,12 +4754,11 @@ theorem flapperTendX_toRefundExtcodesizeGuard
   have hread64Map : memMap.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     simpa [memMap, id] using twoWordHashMem_read64 id ⟨1⟩ hmemCaller hread64Caller
   have hmload64Map :
-      (if (⟨64⟩ : UInt256).toNat ≥ memMap.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memMap.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memMap.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemMap]; decide) (by decide) hread64Map
+    mloadFreePtrValue (by rw [hmemMap]; decide) hread64Map
   have hcallMem : (yankMoveCalldataMem src oldGuy oldBid memMap).size = 228 :=
     yankMoveCalldataMem_size src oldGuy oldBid hmemMap
   have hcallRead64 :
@@ -4822,14 +4767,13 @@ theorem flapperTendX_toRefundExtcodesizeGuard
     yankMoveCalldataMem_read64 src oldGuy oldBid hmemMap hread64Map
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (yankMoveCalldataMem src oldGuy oldBid memMap).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+            (yankMoveCalldataMem src oldGuy oldBid memMap).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((yankMoveCalldataMem src oldGuy oldBid memMap).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have rd2435 := rd2433.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨k2436, C2436, rd2436raw⟩ := rd2435.sload (by native_decide) (by evm_ov)
   have rd2436 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2436⟩
@@ -4843,8 +4787,7 @@ theorem flapperTendX_toRefundExtcodesizeGuard
   have rd2441 := rd2440pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -4854,8 +4797,7 @@ theorem flapperTendX_toRefundExtcodesizeGuard
   have rd2446 := rd2445pre.mstore 0 memMap (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memMap, id, twoWordHashMem, wordAt32Mem])
@@ -4872,11 +4814,7 @@ theorem flapperTendX_toRefundExtcodesizeGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memCaller
   have rd2451 := rd2450pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -5214,8 +5152,7 @@ theorem flapperTendX_refundCallSuccessToPayStart
   have rd2569 := rd2568pre.mstore 0 memKey (UInt256.ofNat 8)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -5225,8 +5162,7 @@ theorem flapperTendX_refundCallSuccessToPayStart
   have rd2574 := rd2573pre.mstore 0 memGuy (UInt256.ofNat 8)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memGuy, id, twoWordHashMem, wordAt32Mem])
@@ -5242,11 +5178,7 @@ theorem flapperTendX_refundCallSuccessToPayStart
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id mem
   have rd2578pre := rd2577pre.keccak256 0 base (UInt256.ofNat 8)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -5333,8 +5265,7 @@ theorem flapperTendX_toCheckedAddStartFromTailAw8
   have rd2727 := rd2726pre.mstore 0 memKey (UInt256.ofNat 8)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -5344,8 +5275,7 @@ theorem flapperTendX_toCheckedAddStartFromTailAw8
   have rd2733 := rd2732pre.mstore 0 memBidStore (UInt256.ofNat 8)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memBidStore, id, twoWordHashMem, wordAt32Mem])
@@ -5361,11 +5291,7 @@ theorem flapperTendX_toCheckedAddStartFromTailAw8
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2737pre := rd2736pre.keccak256 0 base (UInt256.ofNat 8)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -5553,8 +5479,7 @@ theorem flapperTendX_successFromAddOkAw8
   have rd2768 := rd2767pre.mstore 0 memKey (UInt256.ofNat 8)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -5564,8 +5489,7 @@ theorem flapperTendX_successFromAddOkAw8
   have rd2773 := rd2772pre.mstore 0 memStore (UInt256.ofNat 8)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memStore, id, twoWordHashMem, wordAt32Mem])
@@ -5582,11 +5506,7 @@ theorem flapperTendX_successFromAddOkAw8
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2778pre := rd2777pre.keccak256 0 base (UInt256.ofNat 8)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -5950,12 +5870,11 @@ theorem flapperTendX_toPayExtcodesizeGuardAw8Mem228
     simpa [memMap, id] using tend_twoWordHashMem_read64_of_ge96 id ⟨1⟩
       (by rw [hmemCaller]; omega) hread64Caller
   have hmload64Map :
-      (if (⟨64⟩ : UInt256).toNat ≥ memMap.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memMap.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memMap.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemMap]; decide) (by decide) hread64Map
+    mloadFreePtrValue (by rw [hmemMap]; decide) hread64Map
   have hcallMem : (yankMoveCalldataMem src this amt memMap).size = 228 :=
     yankMoveCalldataMem_size_228 src this amt hmemMap
   have hcallRead64 :
@@ -5964,14 +5883,13 @@ theorem flapperTendX_toPayExtcodesizeGuardAw8Mem228
     yankMoveCalldataMem_read64_228 src this amt hmemMap hread64Map
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (yankMoveCalldataMem src this amt memMap).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+            (yankMoveCalldataMem src this amt memMap).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((yankMoveCalldataMem src this amt memMap).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have rd2601pre := evm_run rd2598 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨3⟩ (by native_decide) (by evm_ov)]
@@ -5989,8 +5907,7 @@ theorem flapperTendX_toPayExtcodesizeGuardAw8Mem228
   have rd2606 := rd2605pre.mstore 0 memKey (UInt256.ofNat 8)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -6000,8 +5917,7 @@ theorem flapperTendX_toPayExtcodesizeGuardAw8Mem228
   have rd2612 := rd2611pre.mstore 0 memMap (UInt256.ofNat 8)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memMap, id, twoWordHashMem, wordAt32Mem])
@@ -6018,11 +5934,7 @@ theorem flapperTendX_toPayExtcodesizeGuardAw8Mem228
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memCaller
   have rd2617pre := rd2616pre.keccak256 0 base (UInt256.ofNat 8)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -6294,12 +6206,11 @@ theorem flapperTendX_toPayExtcodesizeGuard
       memMap.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     simpa [memMap, id] using twoWordHashMem_read64 id ⟨1⟩ hmemCaller hread64Caller
   have hmload64Map :
-      (if (⟨64⟩ : UInt256).toNat ≥ memMap.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memMap.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memMap.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemMap]; decide) (by decide) hread64Map
+    mloadFreePtrValue (by rw [hmemMap]; decide) hread64Map
   have hcallMem : (yankMoveCalldataMem src this amt memMap).size = 228 :=
     yankMoveCalldataMem_size src this amt hmemMap
   have hcallRead64 :
@@ -6308,14 +6219,13 @@ theorem flapperTendX_toPayExtcodesizeGuard
     yankMoveCalldataMem_read64 src this amt hmemMap hread64Map
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (yankMoveCalldataMem src this amt memMap).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+            (yankMoveCalldataMem src this amt memMap).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((yankMoveCalldataMem src this amt memMap).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have rd2601pre := evm_run rd2598 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨3⟩ (by native_decide) (by evm_ov)]
@@ -6333,8 +6243,7 @@ theorem flapperTendX_toPayExtcodesizeGuard
   have rd2606 := rd2605pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -6344,8 +6253,7 @@ theorem flapperTendX_toPayExtcodesizeGuard
   have rd2612 := rd2611pre.mstore 0 memMap (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memMap, id, twoWordHashMem, wordAt32Mem])
@@ -6362,11 +6270,7 @@ theorem flapperTendX_toPayExtcodesizeGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memCaller
   have rd2617pre := rd2616pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)

@@ -649,13 +649,12 @@ theorem bidsReturnMem_read64 (σ : AccountMap) (I : ExecutionEnv) :
   exact solcMappingHashMem_read64 ⟨1⟩ (bidsId I)
 
 theorem bidsReturnMem_mload64 (σ : AccountMap) (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (bidsReturnMem σ I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (bidsReturnMem σ I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((bidsReturnMem σ I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [bidsReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [bidsReturnMem_size]; decide)
     (bidsReturnMem_read64 σ I)
 
 theorem bidsReturnMem_read128_256 (σ : AccountMap) (I : ExecutionEnv) :

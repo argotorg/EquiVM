@@ -171,24 +171,20 @@ theorem potSuckReturnMem_read128 {mem : ByteArray} (tmp : UInt256) (hmem : mem.s
 theorem potSuckCalldataMem_mload64 (σ : AccountMap) (I : ExecutionEnv) (rad : UInt256)
     {mem : ByteArray} (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (potSuckCalldataMem σ I rad mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (potSuckCalldataMem σ I rad mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((potSuckCalldataMem σ I rad mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ :=
-  mloadFreePtrValue (by rw [potSuckCalldataMem_size σ I rad hmem]; decide)
-    (by decide) (potSuckCalldataMem_read64 σ I rad hmem hread64)
+  mloadFreePtrValue (by rw [potSuckCalldataMem_size σ I rad hmem]; decide) (potSuckCalldataMem_read64 σ I rad hmem hread64)
 
 theorem potSuckReturnMem_mload64 {mem : ByteArray} (tmp : UInt256) (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (potSuckReturnMem mem tmp).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (potSuckReturnMem mem tmp).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((potSuckReturnMem mem tmp).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ :=
-  mloadFreePtrValue (by rw [potSuckReturnMem_size tmp hmem]; decide)
-    (by decide) (potSuckReturnMem_read64 tmp hmem hread64)
+  mloadFreePtrValue (by rw [potSuckReturnMem_size tmp hmem]; decide) (potSuckReturnMem_read64 tmp hmem hread64)
 
 end Benchmarks.Dss.Pot

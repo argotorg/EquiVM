@@ -789,8 +789,7 @@ theorem RD.cureDropNoSwapDeleteLogTail {g : Sat256} {s0 : State}
     exact ⟨_, _, by simpa [dropDeleteAmtAccountMapFor] using rdAmtStored'⟩
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (wordAt32Mem ⟨6⟩ (twoWordHashMem key ⟨5⟩ mem)).size ∨
-          (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩
+            (wordAt32Mem ⟨6⟩ (twoWordHashMem key ⟨5⟩ mem)).size
         then ⟨0⟩ else UInt256.ofNat (fromByteArrayBigEndian
           ((wordAt32Mem ⟨6⟩ (twoWordHashMem key ⟨5⟩ mem)).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by

@@ -55,7 +55,7 @@ theorem settlePaymentPrefix {I g s0 s snap ret R mem aw rdata cA σ k C}
   rw [hmask] at rd4678
   have rd4684 := evm_run rd4678 with [jumpdest, dup3, push1 ⟨32⟩, add,
     raw mloadSymbolic (by native_decide) (by evm_ov)]
-  have hl : loadedWord mem aw (snap + ⟨32⟩) = s.amount := hm.load ⟨1, by decide⟩
+  have hl : loadedWord mem (snap + ⟨32⟩) = s.amount := hm.load ⟨1, by decide⟩
   have ha : expandedWords aw (snap + ⟨32⟩) ⟨32⟩ = aw := hm.expand_eq ⟨1, by decide⟩
   rw [u256_add_comm ⟨32⟩ snap, hl, ha] at rd4684
   exact ⟨_, _, evm_run rd4684 with [push2 ⟨3337⟩, jump (by jump_dest)]⟩
@@ -77,7 +77,7 @@ theorem settlePaymentRoutine {I g s0 s snap ret R mem aw ptr rdata cA σ k C evm
       ptr'.toNat ≤ ptr.toNat + 2 ^ 140 ∧ aw.toNat ≤ aw'.toNat) ∨
     (ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
       settlePaymentStmt .reverted ∧ RDrev auctionBytecode g s0) := by
-  have hl : loadedWord mem aw (snap + ⟨32⟩) = s.amount := hsm.load ⟨1, by decide⟩
+  have hl : loadedWord mem (snap + ⟨32⟩) = s.amount := hsm.load ⟨1, by decide⟩
   have ha : expandedWords aw (snap + ⟨32⟩) ⟨32⟩ = aw := hsm.expand_eq ⟨1, by decide⟩
   have rd4653 := evm_run h with [jumpdest, push1 ⟨32⟩, dup2, add,
     raw mloadSymbolic (by native_decide) (by evm_ov)]

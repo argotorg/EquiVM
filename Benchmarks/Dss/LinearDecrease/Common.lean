@@ -414,7 +414,7 @@ theorem RD.stairstepInlineErrorStringRevertTail {g : Sat256} {s0 : State}
     raw dup1 hd2 (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd3
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4
@@ -496,8 +496,7 @@ theorem stairstepCodecopyErrorMem_mload64 {mem : ByteArray} (offset len : UInt25
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hlen : len.toNat ≠ 0)
     (hsrc : offset.toNat + len.toNat ≤ linearDecreaseBytecode.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (stairstepCodecopyErrorMem offset len mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (stairstepCodecopyErrorMem offset len mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((stairstepCodecopyErrorMem offset len mem).readWithPadding
@@ -507,7 +506,6 @@ theorem stairstepCodecopyErrorMem_mload64 {mem : ByteArray} (offset len : UInt25
     (by
       rw [stairstepCodecopyErrorMem_size offset len hmem hlen hsrc]
       omega)
-    (by decide)
     (stairstepCodecopyErrorMem_read64 offset len hmem hread64 hlen hsrc)
 
 @[reducible] def stairstepCodecopyRevertTailWf
@@ -633,7 +631,7 @@ theorem RD.stairstepCodecopyRevertTail {g : Sat256} {s0 : State}
     raw push1 ⟨64⟩ hd0 (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd2
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd3
@@ -674,10 +672,8 @@ theorem RD.stairstepCodecopyRevertTail {g : Sat256} {s0 : State}
     raw swap2 hd38 (by simp only [List.length_cons]; omega),
     raw codecopy 3 (stairstepCodecopyErrorMem offset len mem) (UInt256.ofNat 8)
       hd39
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, List.getElem!_cons_succ]
-        simpa [show
+      (by
+        simpa [M, show
           ({ val := 32 } + ({ val := 32 } + ({ val := 4 } + { val := 128 })) : UInt256).toNat =
             196 by native_decide] using hmcost)
       hcopy

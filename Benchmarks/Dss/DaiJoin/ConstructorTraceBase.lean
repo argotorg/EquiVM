@@ -220,29 +220,25 @@ theorem daiJoinCtorArgFreeMem_read160 (vat dai : AccountAddress) :
   exact daiJoinCtorArgMem_read160 vat dai
 
 theorem daiJoinCtorArgFreeMem_mload128 (vat dai : AccountAddress) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (daiJoinCtorArgFreeMem vat dai).size ∨
-        (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (daiJoinCtorArgFreeMem vat dai).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((daiJoinCtorArgFreeMem vat dai).readWithPadding 128 32))) =
       EVM.word vat.val := by
   exact mloadWordValue_of_readWithPadding
-    (mem := daiJoinCtorArgFreeMem vat dai) (aw := UInt256.ofNat 6) (off := ⟨128⟩)
+    (mem := daiJoinCtorArgFreeMem vat dai) (off := ⟨128⟩)
     (v := EVM.word vat.val)
     (by rw [daiJoinCtorArgFreeMem_size]; decide)
-    (by decide)
     (daiJoinCtorArgFreeMem_read128 vat dai)
 
 theorem daiJoinCtorArgFreeMem_mload160 (vat dai : AccountAddress) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (daiJoinCtorArgFreeMem vat dai).size ∨
-        (⟨160⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (daiJoinCtorArgFreeMem vat dai).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((daiJoinCtorArgFreeMem vat dai).readWithPadding 160 32))) =
       EVM.word dai.val := by
   exact mloadWordValue_of_readWithPadding
-    (mem := daiJoinCtorArgFreeMem vat dai) (aw := UInt256.ofNat 6) (off := ⟨160⟩)
+    (mem := daiJoinCtorArgFreeMem vat dai) (off := ⟨160⟩)
     (v := EVM.word dai.val)
     (by rw [daiJoinCtorArgFreeMem_size]; decide)
-    (by decide)
     (daiJoinCtorArgFreeMem_read160 vat dai)
 
 abbrev daiJoinCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=

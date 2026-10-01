@@ -1031,12 +1031,11 @@ theorem RD.vowFileAddressFlapperToNopeExtcodesizeGuard
   have rd4222 := by
     simpa [vowSlotWord, solcSlotWord] using rd4222₀
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hNopeMem : (fileAddressNopeCalldataMem (fileAddressFlapperTargetWord σ ee) mem).size =
       164 :=
     fileAddressNopeCalldataMem_size _ hmem
@@ -1047,14 +1046,13 @@ theorem RD.vowFileAddressFlapperToNopeExtcodesizeGuard
     fileAddressNopeCalldataMem_read64 _ hmem hread64
   have hmload64Nope :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (fileAddressNopeCalldataMem (fileAddressFlapperTargetWord σ ee) mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (fileAddressNopeCalldataMem (fileAddressFlapperTargetWord σ ee) mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((fileAddressNopeCalldataMem (fileAddressFlapperTargetWord σ ee) mem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hNopeMem]; decide) (by decide) hNopeRead64
+    mloadFreePtrValue (by rw [hNopeMem]; decide) hNopeRead64
   have rd4284 := evm_run rd4222 with [
     push1 ⟨64⟩,
     dup1,

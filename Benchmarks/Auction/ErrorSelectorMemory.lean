@@ -13,14 +13,14 @@ def errorSelectorMem (mem out : ByteArray) : ByteArray :=
 def errorSelectorWords (aw : UInt256) (out : ByteArray) : UInt256 :=
   if 4 ≤ out.size then expandedWords (expandedWords aw ⟨0⟩ ⟨4⟩) ⟨0⟩ ⟨32⟩ else aw
 
-theorem copiedSelector {mem aw out} (hm : 96 ≤ mem.size) (ha : ActiveWords aw)
+theorem copiedSelector {mem out} (hm : 96 ≤ mem.size)
     (hl : 4 ≤ out.size) :
-    UInt256.shiftRight (loadedWord (out.write 0 mem 0 4) aw ⟨0⟩) ⟨224⟩ =
+    UInt256.shiftRight (loadedWord (out.write 0 mem 0 4) ⟨0⟩) ⟨224⟩ =
       UInt256.shiftRight (calldataWord out 0) ⟨224⟩ := by
   have hsz : 96 ≤ (out.write 0 mem 0 4).size := by
     rw [copyWindow_size out mem 0 0 4 (by decide) hl (by omega)]
     omega
-  rw [loadedWord_zero ha (by omega)]
+  rw [loadedWord_zero (by omega)]
   apply u256_inj
   rw [selector_toNat _ (by omega), selector_toNat out hl]
   have hx := copyWindow_extract out mem 0 0 4 0 4 (by decide) hl (by omega) (by decide)

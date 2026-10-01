@@ -216,23 +216,20 @@ theorem clipperFileUintHigh64Mask_eq_lnot64 :
   native_decide
 
 theorem clipperFileUintAuthHashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperRelyAuthHashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ (UInt256.ofNat 3) * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperRelyAuthHashMem I).size then ⟨0⟩
       else
         UInt256.ofNat (fromByteArrayBigEndian
           ((clipperRelyAuthHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [clipperRelyAuthHashMem_size]; decide)
-    (by decide)
     (clipperRelyAuthHashMem_read64 I)
 
 abbrev clipperFileUintEventMem (I : ExecutionEnv) : ByteArray :=
   solcScratchReturnMem (clipperRelyAuthHashMem I) (clipperFileUintData I)
 
 theorem clipperFileUintEventMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperFileUintEventMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ (UInt256.ofNat 5) * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperFileUintEventMem I).size then ⟨0⟩
       else
         UInt256.ofNat (fromByteArrayBigEndian
           ((clipperFileUintEventMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -855,13 +852,7 @@ theorem clipperFileUintX_successEpilogue {cA σ I} {g : Sat256} {s0 : State} {k 
     raw dup2 (by clipper_file_uint_decode) (by evm_ov)]
   have rd3072 := rd3071pre.mstore 6 (clipperFileUintEventMem I) (UInt256.ofNat 5)
     (by clipper_file_uint_decode)
-    (by
-      intro s haw hstk
-      exact mstoreCost_of_stack (aw := UInt256.ofNat 3) (off := (⟨128⟩ : UInt256))
-        (val := clipperFileUintData I)
-        (t := (⟨128⟩ : UInt256) :: (⟨64⟩ : UInt256) :: clipperFileUintData I ::
-          calldataWord I.calldata 4 :: (⟨502⟩ : UInt256) :: [sel])
-        haw hstk (by native_decide))
+    (by native_decide)
     (by rfl)
     (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1341,8 +1332,7 @@ theorem clipperFileUintX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C :
     raw push1 ⟨64⟩ (by clipper_file_uint_decode) (by evm_ov),
     raw dup1 (by clipper_file_uint_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by clipper_file_uint_decode) mem_cost
-      (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide)
-        (by decide) (clipperRelyAuthHashMem_read64 I))
+      (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide) (clipperRelyAuthHashMem_read64 I))
       (by native_decide) (by evm_ov)]
   have rd2652 := rd2648.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_file_uint_decode)
@@ -1442,8 +1432,7 @@ theorem clipperFileUintX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C :
     raw push1 ⟨64⟩ (by clipper_file_uint_decode) (by evm_ov),
     raw dup1 (by clipper_file_uint_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by clipper_file_uint_decode) mem_cost
-      (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide)
-        (by decide) (clipperRelyAuthHashMem_read64 I))
+      (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide) (clipperRelyAuthHashMem_read64 I))
       (by native_decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_file_uint_decode)

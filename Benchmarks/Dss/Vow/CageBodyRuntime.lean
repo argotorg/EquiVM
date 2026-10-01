@@ -1478,23 +1478,20 @@ theorem vowCageBodyToVatSin
         simpa [memDai2] using returnWrite_read64 outDai2 32 hbaseDai2
           hbaseDai2Read64 (by omega) ho32Dai2
       have hmload64 :
-          (if (⟨64⟩ : UInt256).toNat ≥ memDai2.size
-              ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+          (if (⟨64⟩ : UInt256).toNat ≥ memDai2.size then ⟨0⟩
            else UInt256.ofNat
              (fromByteArrayBigEndian
               (memDai2.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
             ⟨128⟩ :=
-        mloadFreePtrValue (by rw [hmemDai2]; decide) (by decide) hread64Dai2
+        mloadFreePtrValue (by rw [hmemDai2]; decide) hread64Dai2
       have hmload128 :
-          (if (⟨128⟩ : UInt256).toNat ≥ memDai2.size
-              ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+          (if (⟨128⟩ : UInt256).toNat ≥ memDai2.size then ⟨0⟩
            else UInt256.ofNat
              (fromByteArrayBigEndian
               (memDai2.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
             UInt256.ofNat (fromByteArrayBigEndian (outDai2.extract 0 32)) := by
         have hnot :
-            ¬ ((⟨128⟩ : UInt256).toNat ≥ memDai2.size
-                ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
+            ¬ ((⟨128⟩ : UInt256).toNat ≥ memDai2.size) := by
           rw [hmemDai2]
           native_decide
         rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide]

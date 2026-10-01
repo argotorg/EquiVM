@@ -343,7 +343,7 @@ theorem daiJoinCageX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
     simpa using rd1037raw
   have rd1039 := rd1037.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rd1040 := rd1039.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
-    (mloadFreePtrValue (by rw [relyAuthHashMem_size I]; decide) (by decide)
+    (mloadFreePtrValue (by rw [relyAuthHashMem_size I]; decide)
       (relyAuthHashMem_read64 I))
     (by native_decide) (by evm_ov)
   have rd1073 := rd1040.pushConst

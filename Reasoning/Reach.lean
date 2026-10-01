@@ -1450,6 +1450,13 @@ theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
       · exact hee
       · exact hworld
 
+/-- A memory access that preserves active words has zero expansion cost. -/
+theorem memoryExpansionCost_zero_of_aw_stable {aw off len : UInt256}
+    (haw : M aw off len = aw) :
+    Cₘ (M aw off len) - Cₘ aw = 0 := by
+  rw [haw]
+  simp
+
 /-- `JUMPI` **taken** (condition `b ≠ 0`) to a statically-valid destination `a`. -/
 theorem RD.jumpiT {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}

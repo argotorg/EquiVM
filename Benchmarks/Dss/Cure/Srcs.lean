@@ -446,7 +446,7 @@ theorem RD.cureSrcsInBounds {cA σ I} {g : Sat256} {s0 : State}
     (by unfold solcReturnAddressFromMemWf; repeat' first | apply And.intro | native_decide)
     (by
       exact mloadFreePtrValue
-        (by rw [srcsBaseSlotMem_size]; decide) (by decide) srcsBaseSlotMem_read64)
+        (by rw [srcsBaseSlotMem_size]; decide) srcsBaseSlotMem_read64)
     (by
       unfold solcScratchReturnMem
       rw [hclean])

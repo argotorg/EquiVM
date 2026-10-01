@@ -204,13 +204,12 @@ theorem approveHashMem_read64 (I : ExecutionEnv) :
     (approveInnerMem_size I) (approveInnerMem_read64 I)
 
 theorem approveHashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (approveHashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (approveHashMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((approveHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ := by
-  exact mloadFreePtrValue (by rw [approveHashMem_size]; decide) (by decide)
+  exact mloadFreePtrValue (by rw [approveHashMem_size]; decide)
     (approveHashMem_read64 I)
 
 theorem approveLogMem_size (I : ExecutionEnv) :
@@ -223,8 +222,7 @@ theorem approveLogMem_read64 (I : ExecutionEnv) :
     (approveHashMem_read64 I)
 
 theorem approveLogMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (approveLogMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (approveLogMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((approveLogMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -247,13 +245,12 @@ theorem approveBoolReturnMem_read64 (I : ExecutionEnv) :
   exact approveLogMem_read64 I
 
 theorem approveBoolReturnMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (approveBoolReturnMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (approveBoolReturnMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((approveBoolReturnMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ := by
-  exact mloadFreePtrValue (by rw [approveBoolReturnMem_size]; decide) (by decide)
+  exact mloadFreePtrValue (by rw [approveBoolReturnMem_size]; decide)
     (approveBoolReturnMem_read64 I)
 
 theorem approveBoolReturnMem_read128 (I : ExecutionEnv) :

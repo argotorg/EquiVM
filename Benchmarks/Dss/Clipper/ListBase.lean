@@ -705,21 +705,18 @@ theorem clipperListReturnFromMemToCopyLoop {code : ByteArray} {g : Sat256} {s0 :
     (h : RD code ee g s0 (⟨512⟩ : UInt256) (arrPtr :: R) mem aw rdata acc k C)
     (hwf : clipperListReturnFromMemWf code)
     (hload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = fmp)
     (hloadArr :
-      (if arrPtr.toNat ≥ (clipperListReturnOffsetMem fmp mem).size
-          ∨ arrPtr ≥ clipperListReturnOffsetAw aw fmp * ⟨32⟩ then ⟨0⟩
+      (if arrPtr.toNat ≥ (clipperListReturnOffsetMem fmp mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
            ((clipperListReturnOffsetMem fmp mem).readWithPadding arrPtr.toNat 32)))
         = len)
     (hloadArrTail :
-      (if arrPtr.toNat ≥ (clipperListReturnLengthMem len fmp mem).size
-          ∨ arrPtr ≥ clipperListReturnLengthAw aw fmp arrPtr * ⟨32⟩ then ⟨0⟩
+      (if arrPtr.toNat ≥ (clipperListReturnLengthMem len fmp mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
            ((clipperListReturnLengthMem len fmp mem).readWithPadding arrPtr.toNat 32)))
@@ -742,10 +739,7 @@ theorem clipperListReturnFromMemToCopyLoop {code : ByteArray} {g : Sat256} {s0 :
   have rd516 := rd515.dup1 hd515 (by evm_ov)
   have rd517 := rd516.mload (Cₘ (clipperListReturnMload64Aw aw) - Cₘ aw) fmp
     (clipperListReturnMload64Aw aw) hd516
-    (by
-      intro s haw hstk
-      exact mloadCost_of_stack (aw := aw) (off := (⟨64⟩ : UInt256))
-        (t := (⟨64⟩ : UInt256) :: arrPtr :: R) haw hstk (by rfl))
+    (by rfl)
     hload64 (by rfl) (by evm_ov)
   have rd519 := rd517.push1 ⟨32⟩ hd517 (by evm_ov)
   have rd520 := rd519.dup1 hd519 (by evm_ov)
@@ -753,23 +747,14 @@ theorem clipperListReturnFromMemToCopyLoop {code : ByteArray} {g : Sat256} {s0 :
   have rd522 := rd521.mstore
     (Cₘ (clipperListReturnOffsetAw aw fmp) - Cₘ (clipperListReturnMload64Aw aw))
     (clipperListReturnOffsetMem fmp mem) (clipperListReturnOffsetAw aw fmp) hd521
-    (by
-      intro s haw hstk
-      exact mstoreCost_of_stack (aw := clipperListReturnMload64Aw aw) (off := fmp)
-        (val := (⟨32⟩ : UInt256))
-        (t := (⟨32⟩ : UInt256) :: fmp :: (⟨64⟩ : UInt256) :: arrPtr :: R)
-        haw hstk (by rfl))
+    (by rfl)
     (by rfl) (by rfl) (by evm_ov)
   have rd523 := rd522.dup4 hd522 (by evm_ov)
   have rd524 := rd523.mload
     (Cₘ (clipperListReturnArrayMloadAw aw fmp arrPtr) -
       Cₘ (clipperListReturnOffsetAw aw fmp))
     len (clipperListReturnArrayMloadAw aw fmp arrPtr) hd523
-    (by
-      intro s haw hstk
-      exact mloadCost_of_stack (aw := clipperListReturnOffsetAw aw fmp) (off := arrPtr)
-        (t := (⟨32⟩ : UInt256) :: fmp :: (⟨64⟩ : UInt256) :: arrPtr :: R)
-        haw hstk (by rfl))
+    (by rfl)
     hloadArr (by rfl) (by evm_ov)
   have rd525 := rd524.dup2 hd524 (by evm_ov)
   have rd526 := rd525.dup4 hd525 (by evm_ov)
@@ -779,24 +764,14 @@ theorem clipperListReturnFromMemToCopyLoop {code : ByteArray} {g : Sat256} {s0 :
       Cₘ (clipperListReturnArrayMloadAw aw fmp arrPtr))
     (clipperListReturnLengthMem len fmp mem) (clipperListReturnLengthAw aw fmp arrPtr)
     hd527
-    (by
-      intro s haw hstk
-      exact mstoreCost_of_stack (aw := clipperListReturnArrayMloadAw aw fmp arrPtr)
-        (off := fmp + (⟨32⟩ : UInt256)) (val := len)
-        (t := (⟨32⟩ : UInt256) :: fmp :: (⟨64⟩ : UInt256) :: arrPtr :: R)
-        haw hstk (by rfl))
+    (by rfl)
     (by rfl) (by rfl) (by evm_ov)
   have rd529 := rd528.dup4 hd528 (by evm_ov)
   have rd530 := rd529.mload
     (Cₘ (clipperListReturnFinalAw aw fmp arrPtr) -
       Cₘ (clipperListReturnLengthAw aw fmp arrPtr))
     len (clipperListReturnFinalAw aw fmp arrPtr) hd529
-    (by
-      intro s haw hstk
-      exact mloadCost_of_stack (aw := clipperListReturnLengthAw aw fmp arrPtr)
-        (off := arrPtr)
-        (t := (⟨32⟩ : UInt256) :: fmp :: (⟨64⟩ : UInt256) :: arrPtr :: R)
-        haw hstk (by rfl))
+    (by rfl)
     hloadArrTail (by rfl) (by evm_ov)
   have rd531 := rd530.swap2 hd530 (by evm_ov)
   have rd532 := rd531.swap3 hd531 (by evm_ov)
@@ -829,7 +804,7 @@ theorem clipperListReturnCopyLoopStep {code : ByteArray} {g : Sat256} {s0 : Stat
     (h548 : (D_J code 0).contains (⟨548⟩ : UInt256) = true)
     (hcont : UInt256.isZero (UInt256.lt i bound) = ⟨0⟩)
     (hload :
-      (if (i + src).toNat ≥ mem.size ∨ (i + src) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (i + src).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (i + src).toNat 32))) = word)
     (hov : R.length + 8 ≤ 1024) :
@@ -855,10 +830,7 @@ theorem clipperListReturnCopyLoopStep {code : ByteArray} {g : Sat256} {s0 : Stat
   have rd560 := rd559.add hd559 (by evm_ov)
   have rd561 := rd560.mload (Cₘ (clipperListReturnCopyMloadAw aw src i) - Cₘ aw)
     word (clipperListReturnCopyMloadAw aw src i) hd560
-    (by
-      intro s haw hstk
-      exact mloadCost_of_stack (aw := aw) (off := i + src)
-        (t := i :: src :: dst :: bound :: R) haw hstk (by rfl))
+    (by rfl)
     hload (by rfl) (by evm_ov)
   have rd562 := rd561.dup4 hd561 (by evm_ov)
   have rd563 := rd562.dup3 hd562 (by evm_ov)
@@ -868,11 +840,7 @@ theorem clipperListReturnCopyLoopStep {code : ByteArray} {g : Sat256} {s0 : Stat
       Cₘ (clipperListReturnCopyMloadAw aw src i))
     (clipperListReturnCopyStepMem word dst i mem)
     (clipperListReturnCopyStepAw aw src dst i) hd564
-    (by
-      intro s haw hstk
-      exact mstoreCost_of_stack (aw := clipperListReturnCopyMloadAw aw src i)
-        (off := i + dst) (val := word) (t := i :: src :: dst :: bound :: R)
-        haw hstk (by rfl))
+    (by rfl)
     (by rfl) (by rfl) (by evm_ov)
   have rd567 := rd565.push1 ⟨32⟩ hd565 (by evm_ov)
   have rd568 := rd567.add hd567 (by evm_ov)
@@ -893,8 +861,7 @@ theorem clipperListReturnCopyLoopExit {code : ByteArray} {g : Sat256} {s0 : Stat
     (h572 : (D_J code 0).contains (⟨572⟩ : UInt256) = true)
     (hdone : UInt256.isZero (UInt256.lt i bound) ≠ ⟨0⟩)
     (hload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = fmp)
@@ -930,10 +897,7 @@ theorem clipperListReturnCopyLoopExit {code : ByteArray} {g : Sat256} {s0 : Stat
   have rd586 := rd584.push1 ⟨64⟩ hd584 (by evm_ov)
   have rd587 := rd586.mload (Cₘ (clipperListReturnMload64Aw aw) - Cₘ aw) fmp
     (clipperListReturnMload64Aw aw) hd586
-    (by
-      intro s haw hstk
-      exact mloadCost_of_stack (aw := aw) (off := (⟨64⟩ : UInt256))
-        (t := (bound + dst) :: R) haw hstk (by rfl))
+    (by rfl)
     hload64 (by rfl) (by evm_ov)
   have rd588 := rd587.dup1 hd587 (by evm_ov)
   have rd589 := rd588.swap2 hd588 (by evm_ov)
@@ -945,10 +909,7 @@ theorem clipperListReturnCopyLoopExit {code : ByteArray} {g : Sat256} {s0 : Stat
             (UInt256.sub (bound + dst) fmp).toNat)) -
         Cₘ (clipperListReturnMload64Aw aw))
     oval hd591
-    (by
-      intro s haw hstk
-      exact returnCost_of_stack (aw := clipperListReturnMload64Aw aw) (off := fmp)
-        (len := UInt256.sub (bound + dst) fmp) (t := R) haw hstk (by rfl))
+    (by rfl)
     hreturn (by omega)
 
 theorem clipperListPatchesWindowDisjoint32 (v : ClipperImmutables) {lo hi : Nat}
@@ -1127,8 +1088,7 @@ theorem clipperListArrayLengthMem_read128 (len : UInt256) :
     (by rw [clipperListArrayAllocMem_size]; native_decide)]
 
 theorem clipperListArrayLengthMem_mload64 (len : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperListArrayLengthMem len).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperListArrayLengthMem len).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
          ((clipperListArrayLengthMem len).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -1136,13 +1096,11 @@ theorem clipperListArrayLengthMem_mload64 (len : UInt256) :
   exact mloadWordValue_of_readWithPadding
     (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
       clipperListArrayLengthMem_size]; omega)
-    (by native_decide)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       clipperListArrayLengthMem_read64 len)
 
 theorem clipperListArrayLengthMem_mload128 (len : UInt256) :
-    (if clipperListArrayBasePtr.toNat ≥ (clipperListArrayLengthMem len).size
-        ∨ clipperListArrayBasePtr ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if clipperListArrayBasePtr.toNat ≥ (clipperListArrayLengthMem len).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
          ((clipperListArrayLengthMem len).readWithPadding clipperListArrayBasePtr.toNat 32)))
@@ -1150,7 +1108,6 @@ theorem clipperListArrayLengthMem_mload128 (len : UInt256) :
   exact mloadWordValue_of_readWithPadding
     (by rw [show clipperListArrayBasePtr.toNat = 128 from by decide,
       clipperListArrayLengthMem_size]; omega)
-    (by native_decide)
     (by simpa [show clipperListArrayBasePtr.toNat = 128 from by decide] using
       clipperListArrayLengthMem_read128 len)
 

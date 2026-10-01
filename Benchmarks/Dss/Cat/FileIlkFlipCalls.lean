@@ -550,8 +550,8 @@ theorem RD.catFileIlkFlipNopeEncode {cA gh bl σ σ₀ A I} {g : Sat256} {flip r
           (solcSlotWord σ I (solcMappingSlot ⟨1⟩ (fileIlkFlipIlkWord I)))))
       (UInt256.ofNat 6) ByteArray.empty (cA, σ) k' C' := by
   have hkeccak := fifKeccakMem_keccak I
-  have hmload := mloadFreePtrValue (mem := fifKeccakMem I) (aw := ⟨3⟩)
-    (by rw [fifKeccakMem_size I]; decide) (by decide) (fifKeccakMem_read64 I)
+  have hmload := mloadFreePtrValue (mem := fifKeccakMem I)
+    (by rw [fifKeccakMem_size I]; decide) (fifKeccakMem_read64 I)
   -- 3471..3488: build ilks[ilk] keccak preimage, keccak, sload old flip
   have rd3473 := h.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3474⟩ := rd3473.sload (by native_decide) (by evm_ov)
@@ -606,8 +606,8 @@ theorem RD.catFileIlkFlipNopeEncode {cA gh bl σ σ₀ A I} {g : Sat256} {flip r
   -- 3518..3546: shuffle the CALL words (gas/target/value/args/ret) into place
   have rd3519 := rd3518.swap2 (by native_decide) (by evm_ov)
   have rd3520 := rd3519.mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide) mem_cost
-    (mloadFreePtrValue (mem := fifNopeCdMem I _) (aw := ⟨6⟩)
-      (by rw [fifNopeCdMem_size]; decide) (by decide) (fifNopeCdMem_read64 I _))
+    (mloadFreePtrValue (mem := fifNopeCdMem I _)
+      (by rw [fifNopeCdMem_size]; decide) (fifNopeCdMem_read64 I _))
     (by native_decide) (by evm_ov)
   have rd3521 := rd3520.swap4 (by native_decide) (by evm_ov)
   have rd3522 := rd3521.and (by native_decide) (by evm_ov)

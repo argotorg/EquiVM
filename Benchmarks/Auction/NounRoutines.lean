@@ -16,7 +16,7 @@ theorem burnRoutine {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C evm loc
     (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
     (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
-    (hn : loadedWord mem aw snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
+    (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hbase : locals.get? "nouns" = none)
     (hargs : evalExprs? auctionConfig { contract := auctionContract, locals := locals } evm
       [auctionMemField "nounId"] = .ok [.int (Int.ofNat nounId.toNat)])
@@ -52,8 +52,8 @@ theorem nounTransferRoutine {I g s0 snap nounId bidder ret R mem aw ptr rdata cA
     (h : RD auctionBytecode I g s0 ⟨4536⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
     (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 100 ≤ 2 ^ 200)
-    (hn : loadedWord mem aw snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
-    (hbid : loadedWord mem aw (snap + ⟨128⟩) = bidder)
+    (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
+    (hbid : loadedWord mem (snap + ⟨128⟩) = bidder)
     (hab : expandedWords aw (snap + ⟨128⟩) ⟨32⟩ = aw)
     (hbase : locals.get? "nouns" = none)
     (hargs : evalExprs? auctionConfig { contract := auctionContract, locals := locals } evm

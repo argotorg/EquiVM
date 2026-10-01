@@ -210,8 +210,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                     obtain ⟨_, _, rd8549⟩ :=
                       Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperStatusPriceExtcodesizeGuard
                         (v := v) hpatch (by simpa [calcAddr] using rd8502)
-                        (mloadFreePtrValue (by rw [clipperTakeSalesTopHashMem_size I]; decide)
-                          (by decide) (clipperTakeSalesTopHashMem_read64 I))
+                        (mloadFreePtrValue (by rw [clipperTakeSalesTopHashMem_size I]; decide) (clipperTakeSalesTopHashMem_read64 I))
                         (clipperTakeSalesTopHashMem_size I)
                         (clipperTakeSalesTopHashMem_read64 I)
                         (by simp only [List.length_cons, List.length_nil]; omega)

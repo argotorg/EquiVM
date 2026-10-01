@@ -156,8 +156,7 @@ theorem RD.vowFlopToSin0ExtcodesizeGuard
       ByteArray.empty (cA, σ) k3592 C3592 := by
     simpa [rawTarget, vowSlotWord, solcSlotWord] using rd3593₀
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (solcFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
@@ -169,14 +168,13 @@ theorem RD.vowFlopToSin0ExtcodesizeGuard
         UInt256.toByteArray ⟨128⟩ :=
     initialHealSinCalldataMem_read64 I
   have hmload64Sin :
-      (if (⟨64⟩ : UInt256).toNat ≥ (healSinCalldataMem I solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (healSinCalldataMem I solcFreePtrMem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((healSinCalldataMem I solcFreePtrMem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hSinMem]; decide) (by decide) hSinRead64
+    mloadFreePtrValue (by rw [hSinMem]; decide) hSinRead64
   have rd3663 := evm_run rd3593 with [
     push1 ⟨64⟩,
     dup1,
@@ -412,8 +410,7 @@ theorem RD.vowFlopSin0ReturnDecodeShortReverts
     (hshort : o.size < 32)
     (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
@@ -421,7 +418,7 @@ theorem RD.vowFlopSin0ReturnDecodeShortReverts
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨1295⟩) (okPc := ⟨1315⟩) rd
     hshort hhi
-    mem_cost (by decide) hMload64Value
+    (by native_decide) hMload64Value
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -438,14 +435,12 @@ theorem RD.vowFlopSin0ReturnDecodeOk
     (hlo : 32 ≤ o.size)
     (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hMload128Value :
-      (if (⟨128⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨128⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord) :
@@ -455,7 +450,7 @@ theorem RD.vowFlopSin0ReturnDecodeOk
       mem (UInt256.ofNat 6) o acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨1295⟩) (okPc := ⟨1315⟩) rd
     hlo hhi
-    mem_cost (by decide) hMload64Value hMload128Value mem_cost (by decide)
+    (by native_decide) hMload64Value hMload128Value (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -635,7 +630,7 @@ theorem RD.vowFlopInsufficientDebt
     dup1,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rd3693 := rd3689.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
@@ -749,25 +744,23 @@ theorem RD.vowFlopToDai1ExtcodesizeGuard
       mem (UInt256.ofNat 6) o acc k3757 C3757 := by
     simpa [rawTarget, vowSlotWord, solcSlotWord] using rd3757Raw
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hDaiMem : (vatDaiCalldataMem I mem).size = 164 :=
     vatDaiCalldataMem_size I hmem
   have hDaiRead64 :
       (vatDaiCalldataMem I mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ :=
     vatDaiCalldataMem_read64 I hmem hread64
   have hmload64Dai :
-      (if (⟨64⟩ : UInt256).toNat ≥ (vatDaiCalldataMem I mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (vatDaiCalldataMem I mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((vatDaiCalldataMem I mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hDaiMem]; decide) (by decide) hDaiRead64
+    mloadFreePtrValue (by rw [hDaiMem]; decide) hDaiRead64
   have rd3816 := evm_run rd3757 with [
     push1 ⟨64⟩,
     dup1,
@@ -1420,14 +1413,13 @@ theorem vowFlopSin0DecodeShortBodyCore
     initialHealSinWrite_read64 I outSin outSin.size (by omega) (by omega)
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 outSin.size).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 outSin.size).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 outSin.size).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hrev := RD.vowFlopSin0ReturnDecodeShortReverts rd1295 hshort hosz hmload64
   have hdecSin : config.externalABI.decode? "sin" outSin = none :=
     vatSinDecode_none_short hshort
@@ -1489,18 +1481,16 @@ theorem vowFlopFreeSinUnderflowBodyCore
     initialHealSinWrite_read64 I outSin 32 (by omega) ho32
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hmload128 :
       (if (⟨128⟩ : UInt256).toNat ≥
-            (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).readWithPadding
@@ -1508,8 +1498,7 @@ theorem vowFlopFreeSinUnderflowBodyCore
         UInt256.ofNat (fromByteArrayBigEndian (outSin.extract 0 32)) := by
     have hnot :
         ¬ ((⟨128⟩ : UInt256).toNat ≥
-              (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size
-            ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
+              (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size) := by
       rw [hmem]
       native_decide
     rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,

@@ -1546,12 +1546,11 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k641 C641 := by
     simpa [ilk, gemJoinSlotWord, solcSlotWord] using rd641Raw
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (solcFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide) solcFreePtrMem_read64
+    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) solcFreePtrMem_read64
   have hSlipMem : (joinSlipCalldataMem I σ solcFreePtrMem).size = 228 :=
     joinSlipCalldataMem_size_of_size96 I σ solcFreePtrMem_size
   have hSlipRead64 :
@@ -1559,14 +1558,13 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
         UInt256.toByteArray ⟨128⟩ :=
     joinSlipCalldataMem_read64_of_size96 I σ solcFreePtrMem_size solcFreePtrMem_read64
   have hmload64Slip :
-      (if (⟨64⟩ : UInt256).toNat ≥ (joinSlipCalldataMem I σ solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (joinSlipCalldataMem I σ solcFreePtrMem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((joinSlipCalldataMem I σ solcFreePtrMem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hSlipMem]; decide) (by decide) hSlipRead64
+    mloadFreePtrValue (by rw [hSlipMem]; decide) hSlipRead64
   have hUsrMaskedCanon : (joinUsrMaskedWord I).toNat < EVM.addressModulus := by
     simpa [joinUsrMaskedWord, u256_land_comm] using
       solcAddrMask_result_canonical (joinUsrWord I)
@@ -1955,14 +1953,13 @@ theorem RD.gemJoinToTransferFromExtcodesizeGuard
         UInt256.toByteArray ⟨128⟩ :=
     joinSlipCalldataMem_read64_of_size96 I σ solcFreePtrMem_size solcFreePtrMem_read64
   have hmload64Slip :
-      (if (⟨64⟩ : UInt256).toNat ≥ (joinSlipCalldataMem I σ solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (joinSlipCalldataMem I σ solcFreePtrMem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((joinSlipCalldataMem I σ solcFreePtrMem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hSlipMem]; decide) (by decide) hSlipRead64
+    mloadFreePtrValue (by rw [hSlipMem]; decide) hSlipRead64
   have hTransferMem :
       (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem)).size = 228 :=
     joinTransferFromCalldataMem_size I hSlipMem
@@ -1973,14 +1970,13 @@ theorem RD.gemJoinToTransferFromExtcodesizeGuard
     joinTransferFromCalldataMem_read64 I hSlipMem hSlipRead64
   have hmload64Transfer :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+            (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem)).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem)).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hTransferMem]; decide) (by decide) hTransferRead64
+    mloadFreePtrValue (by rw [hTransferMem]; decide) hTransferRead64
   have hSelectorShift :
       UInt256.shiftLeft (⟨599290589⟩ : UInt256) ⟨224⟩ =
         joinTransferFromSelectorShifted := by
@@ -2349,8 +2345,7 @@ theorem RD.gemJoinTransferFromReturnDecodeShortReverts
     (hshort : outTransfer.size < 32)
     (hhi : outTransfer.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
@@ -2358,7 +2353,7 @@ theorem RD.gemJoinTransferFromReturnDecodeShortReverts
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨865⟩) (okPc := ⟨885⟩) rd
     hshort hhi
-    mem_cost (by decide) hMload64Value
+    (by native_decide) hMload64Value
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2377,14 +2372,12 @@ theorem RD.gemJoinTransferFromReturnDecodeOk
     (hlo : 32 ≤ outTransfer.size)
     (hhi : outTransfer.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hMload128Value :
-      (if (⟨128⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨128⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord) :
@@ -2394,7 +2387,7 @@ theorem RD.gemJoinTransferFromReturnDecodeOk
       mem (UInt256.ofNat 8) outTransfer acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨865⟩) (okPc := ⟨885⟩) rd
     hlo hhi
-    mem_cost (by decide) hMload64Value hMload128Value mem_cost (by decide)
+    (by native_decide) hMload64Value hMload128Value (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2457,15 +2450,13 @@ theorem solcErrorStringMem3_read64_of_size228 (len word : UInt256) {mem : ByteAr
 theorem solcErrorStringMem3_mload64_of_size228 (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcErrorStringMem3 len word mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size228 len word hmem]; decide)
-    (by decide) (solcErrorStringMem3_read64_of_size228 len word hmem hread64)
+  mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size228 len word hmem]; decide) (solcErrorStringMem3_read64_of_size228 len word hmem hread64)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.gemJoinTransferFromReturnFalseReverts
@@ -2482,12 +2473,11 @@ theorem RD.gemJoinTransferFromReturnFalseReverts
     RDrev gemJoinBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have rd891 := rd.pushConst (⟨962⟩ : UInt256)
     (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
   have rd892 := rd891.jumpiNT (by native_decide) hret (by evm_ov)
@@ -2569,12 +2559,11 @@ theorem RD.gemJoinTransferFromReturnTrueToStop
     RDret gemJoinBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have rd891 := rd.pushConst (⟨962⟩ : UInt256)
     (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
   have rd962 := rd891.jumpiT (by native_decide) hret (by jump_dest) (by evm_ov)
@@ -2598,14 +2587,13 @@ theorem RD.gemJoinTransferFromReturnTrueToStop
     rw [write32_read_below _ _ 128 64 (by rw [toByteArray_size])
       (by rw [hmem]; omega) (by omega), hread64]
   have hmload64Write :
-      (if (⟨64⟩ : UInt256).toNat ≥ ((joinWadWord I).toByteArray.write 0 mem 128 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ ((joinWadWord I).toByteArray.write 0 mem 128 32).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (((joinWadWord I).toByteArray.write 0 mem 128 32).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemWrite]; decide) (by decide) hread64Write
+    mloadFreePtrValue (by rw [hmemWrite]; decide) hread64Write
   have rd982pre := evm_run rd970 with [
     raw swap1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
@@ -3960,8 +3948,7 @@ theorem gemJoinJoinBodyCoreTransferDecodeShort
       (if (⟨64⟩ : UInt256).toNat ≥
             (outTransfer.write 0
               (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ_evm solcFreePtrMem))
-              joinTransferFromOutPtr.toNat outTransfer.size).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+              joinTransferFromOutPtr.toNat outTransfer.size).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outTransfer.write 0
@@ -3969,7 +3956,7 @@ theorem gemJoinJoinBodyCoreTransferDecodeShort
             joinTransferFromOutPtr.toNat outTransfer.size).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hrev := RD.gemJoinTransferFromReturnDecodeShortReverts
     (by simpa [hmin] using rd865) hshort houtTransferSize hmload64
   have hLiveSlot :
@@ -5073,7 +5060,7 @@ theorem gemJoinJoinBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       joinTransferFromReturnWrite_read128_32 hBaseMem hlo
                     have hmload64 :
                         (if (⟨64⟩ : UInt256).toNat ≥ transferReturnMem.size
-                            ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then
+ then
                             ⟨0⟩
                        else
                           UInt256.ofNat
@@ -5081,18 +5068,14 @@ theorem gemJoinJoinBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               (transferReturnMem.readWithPadding
                                 (⟨64⟩ : UInt256).toNat 32))) =
                       ⟨128⟩ := by
-                      exact mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+                      exact mloadFreePtrValue (by rw [hmem]; decide) hread64
                     have hnot128 :
-                        ¬ ((⟨128⟩ : UInt256).toNat ≥ transferReturnMem.size
-                            ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩) := by
-                      exact not_or.mpr
-                        ⟨by
-                          rw [hmem]
-                          native_decide,
-                        by native_decide⟩
+                        ¬ ((⟨128⟩ : UInt256).toNat ≥ transferReturnMem.size) := by
+                      rw [hmem]
+                      native_decide
                     have hmload128 :
                         (if (⟨128⟩ : UInt256).toNat ≥ transferReturnMem.size
-                            ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then
+ then
                             ⟨0⟩
                          else
                             UInt256.ofNat

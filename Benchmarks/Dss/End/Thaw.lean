@@ -306,8 +306,7 @@ theorem endThawDaiPostCallMem_read64 (σ : AccountMap) (I : ExecutionEnv)
 
 theorem endThawDaiPostCallMem_mload64 (σ : AccountMap) (I : ExecutionEnv)
     (out : ByteArray) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endThawDaiPostCallMem σ I out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endThawDaiPostCallMem σ I out).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endThawDaiPostCallMem σ I out).readWithPadding
@@ -315,13 +314,11 @@ theorem endThawDaiPostCallMem_mload64 (σ : AccountMap) (I : ExecutionEnv)
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [endThawDaiPostCallMem_size σ I out hout]; decide)
-    (by decide)
     (endThawDaiPostCallMem_read64 σ I out hout)
 
 theorem endThawDaiPostCallMem_mload128 (σ : AccountMap) (I : ExecutionEnv)
     (out : ByteArray) (hout : out.size < UInt256.size) (hlo : 32 ≤ out.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (endThawDaiPostCallMem σ I out).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (endThawDaiPostCallMem σ I out).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endThawDaiPostCallMem σ I out).readWithPadding
@@ -471,8 +468,7 @@ theorem endThawNoArgPostCallMem_mload64 {selector : UInt256} {mem out : ByteArra
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endThawNoArgPostCallMem selector mem out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endThawNoArgPostCallMem selector mem out).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endThawNoArgPostCallMem selector mem out).readWithPadding
@@ -480,13 +476,11 @@ theorem endThawNoArgPostCallMem_mload64 {selector : UInt256} {mem out : ByteArra
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [endThawNoArgPostCallMem_size hmem hout]; decide)
-    (by decide)
     (endThawNoArgPostCallMem_read64 hmem hread64 hout)
 
 theorem endThawNoArgPostCallMem_mload128 {selector : UInt256} {mem out : ByteArray}
     (hmem : mem.size = 164) (hout : out.size < UInt256.size) (hlo : 32 ≤ out.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (endThawNoArgPostCallMem selector mem out).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (endThawNoArgPostCallMem selector mem out).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endThawNoArgPostCallMem selector mem out).readWithPadding
@@ -1044,16 +1038,14 @@ theorem endThawX_daiExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4675raw⟩
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             (solcFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide) solcFreePtrMem_read64
+    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) solcFreePtrMem_read64
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endThawDaiCalldataMem σ I solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endThawDaiCalldataMem σ I solcFreePtrMem).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endThawDaiCalldataMem σ I solcFreePtrMem).readWithPadding
@@ -1061,7 +1053,6 @@ theorem endThawX_daiExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
         ⟨128⟩ := by
     exact mloadFreePtrValue
       (by rw [endThawDaiCalldataMem_size σ I solcFreePtrMem_size]; decide)
-      (by decide)
       (endThawDaiCalldataMem_read64 σ I solcFreePtrMem_size solcFreePtrMem_read64)
   have hvatMask :
       UInt256.land
@@ -1527,7 +1518,7 @@ theorem endThaw_solcErrorStringRevertTail_aw6_size164 {code : ByteArray} {g : Sa
     raw dup1 hd2 (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 6) hd3
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4
@@ -1679,17 +1670,15 @@ theorem endThawX_debtCallReady {cA cA' gh bl σ σ' σ₀ A I}
       (endThawNoArgCalldataMem endThawDebtSelectorWord mem) (UInt256.ofNat 6)
       out (cA', σ') k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endThawNoArgCalldataMem endThawDebtSelectorWord mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (endThawNoArgCalldataMem endThawDebtSelectorWord mem).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endThawNoArgCalldataMem endThawDebtSelectorWord mem).readWithPadding
@@ -1697,7 +1686,6 @@ theorem endThawX_debtCallReady {cA cA' gh bl σ σ' σ₀ A I}
         ⟨128⟩ := by
     exact mloadFreePtrValue
       (by rw [endThawNoArgCalldataMem_size hmem]; decide)
-      (by decide)
       (endThawNoArgCalldataMem_read64 hmem hread64)
   have hvatMask :
       UInt256.land
@@ -1795,17 +1783,15 @@ theorem endThawX_debtNoCode {cA cA' gh bl σ σ' σ₀ A I}
       [endThawReturnPc, sel] mem (UInt256.ofNat 6) out (cA', σ') k C) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endThawNoArgCalldataMem endThawDebtSelectorWord mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (endThawNoArgCalldataMem endThawDebtSelectorWord mem).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endThawNoArgCalldataMem endThawDebtSelectorWord mem).readWithPadding
@@ -1813,7 +1799,6 @@ theorem endThawX_debtNoCode {cA cA' gh bl σ σ' σ₀ A I}
         ⟨128⟩ := by
     exact mloadFreePtrValue
       (by rw [endThawNoArgCalldataMem_size hmem]; decide)
-      (by decide)
       (endThawNoArgCalldataMem_read64 hmem hread64)
   have hvatMask :
       UInt256.land
@@ -1982,11 +1967,9 @@ theorem endThawX_debtReturnDecodeOk {cA cA' gh bl σ σTarget σ' σ₀ A I}
       debtOut (cA', σ') k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨5050⟩) (okPc := ⟨5070⟩)
     (retWord := endThawReturnWord debtOut) h hlo hout
-    mem_cost
     (by native_decide)
-    (endThawNoArgPostCallMem_mload64 hmem hread64 hout)
-    (endThawNoArgPostCallMem_mload128 hmem hout hlo)
-    mem_cost
+    (endThawNoArgPostCallMem_mload64 (selector := endThawDebtSelectorWord) hmem hread64 hout)
+    (endThawNoArgPostCallMem_mload128 (selector := endThawDebtSelectorWord) hmem hout hlo)
     (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2008,9 +1991,8 @@ theorem endThawX_debtReturnDecodeShort {cA cA' gh bl σ σTarget σ' σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨5050⟩) (okPc := ⟨5070⟩)
     h hshort hout
-    mem_cost
     (by native_decide)
-    (endThawNoArgPostCallMem_mload64 hmem hread64 hout)
+    (endThawNoArgPostCallMem_mload64 (selector := endThawDebtSelectorWord) hmem hread64 hout)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2046,8 +2028,7 @@ theorem endThawX_tellCallReady {cA cA' gh bl σ σ' σ₀ A I}
     endThawNoArgPostCallMem_read64 hmem hread64 hdebtOut
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut).readWithPadding
@@ -2057,8 +2038,7 @@ theorem endThawX_tellCallReady {cA cA' gh bl σ σ' σ₀ A I}
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
             (endThawNoArgCalldataMem endThawTellSelectorWord
-              (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+              (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut)).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endThawNoArgCalldataMem endThawTellSelectorWord
@@ -2067,7 +2047,6 @@ theorem endThawX_tellCallReady {cA cA' gh bl σ σ' σ₀ A I}
         ⟨128⟩ := by
     exact mloadFreePtrValue
       (by rw [endThawNoArgCalldataMem_size hpostSize]; decide)
-      (by decide)
       (endThawNoArgCalldataMem_read64 hpostSize hpostRead64)
   have hcureMask :
       UInt256.land (endSlotWord ⟨7⟩ σ' I)
@@ -2181,8 +2160,7 @@ theorem endThawX_tellNoCode {cA cA' gh bl σ σ' σ₀ A I}
     endThawNoArgPostCallMem_read64 hmem hread64 hdebtOut
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut).readWithPadding
@@ -2192,8 +2170,7 @@ theorem endThawX_tellNoCode {cA cA' gh bl σ σ' σ₀ A I}
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
             (endThawNoArgCalldataMem endThawTellSelectorWord
-              (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+              (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut)).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endThawNoArgCalldataMem endThawTellSelectorWord
@@ -2202,7 +2179,6 @@ theorem endThawX_tellNoCode {cA cA' gh bl σ σ' σ₀ A I}
         ⟨128⟩ := by
     exact mloadFreePtrValue
       (by rw [endThawNoArgCalldataMem_size hpostSize]; decide)
-      (by decide)
       (endThawNoArgCalldataMem_read64 hpostSize hpostRead64)
   have hcureMask :
       UInt256.land (endSlotWord ⟨7⟩ σ' I)
@@ -2376,11 +2352,9 @@ theorem endThawX_tellReturnDecodeOk {cA cA' gh bl σ σTarget σ' σ₀ A I}
       tellOut (cA', σ') k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨5163⟩) (okPc := ⟨5183⟩)
     (retWord := endThawReturnWord tellOut) h hlo hout
-    mem_cost
     (by native_decide)
-    (endThawNoArgPostCallMem_mload64 hmem hread64 hout)
-    (endThawNoArgPostCallMem_mload128 hmem hout hlo)
-    mem_cost
+    (endThawNoArgPostCallMem_mload64 (selector := endThawTellSelectorWord) hmem hread64 hout)
+    (endThawNoArgPostCallMem_mload128 (selector := endThawTellSelectorWord) hmem hout hlo)
     (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2402,9 +2376,8 @@ theorem endThawX_tellReturnDecodeShort {cA cA' gh bl σ σTarget σ' σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨5163⟩) (okPc := ⟨5183⟩)
     h hshort hout
-    mem_cost
     (by native_decide)
-    (endThawNoArgPostCallMem_mload64 hmem hread64 hout)
+    (endThawNoArgPostCallMem_mload64 (selector := endThawTellSelectorWord) hmem hread64 hout)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2493,13 +2466,12 @@ theorem endThawX_debtStoreLogReturn {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨_, _, rdStored⟩ := rd5193.sstore hperm (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have rd5196 := rdStored.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rdMload := rd5196.mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
     mem_cost hmload64 (by native_decide) (by evm_ov)
@@ -2592,16 +2564,14 @@ theorem endThawX_daiNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4675raw⟩
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             (solcFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide) solcFreePtrMem_read64
+    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) solcFreePtrMem_read64
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endThawDaiCalldataMem σ I solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endThawDaiCalldataMem σ I solcFreePtrMem).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endThawDaiCalldataMem σ I solcFreePtrMem).readWithPadding
@@ -2609,7 +2579,6 @@ theorem endThawX_daiNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         ⟨128⟩ := by
     exact mloadFreePtrValue
       (by rw [endThawDaiCalldataMem_size σ I solcFreePtrMem_size]; decide)
-      (by decide)
       (endThawDaiCalldataMem_read64 σ I solcFreePtrMem_size solcFreePtrMem_read64)
   have hvatMask :
       UInt256.land

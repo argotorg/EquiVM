@@ -96,8 +96,7 @@ theorem clipperStatusPriceCalldataMem_read64 (top age : UInt256) {mem : ByteArra
 theorem clipperStatusPriceCalldataMem_mload64 (top age : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperStatusPriceCalldataMem top age mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperStatusPriceCalldataMem top age mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperStatusPriceCalldataMem top age mem).readWithPadding
@@ -105,7 +104,6 @@ theorem clipperStatusPriceCalldataMem_mload64 (top age : UInt256) {mem : ByteArr
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [clipperStatusPriceCalldataMem_size top age hmem]; native_decide)
-    (by native_decide)
     (clipperStatusPriceCalldataMem_read64 top age hmem hread64)
 
 theorem clipperStatusPriceSelectorMem_read128_4 {mem : ByteArray}
@@ -408,8 +406,7 @@ theorem clipperGetStatusReturnMem_read64 {scratch : ByteArray}
 theorem clipperGetStatusReturnMem_mload64 {scratch : ByteArray}
     (needs price lot tab : UInt256) (hscratch : scratch.size = 196)
     (hread64 : scratch.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperGetStatusReturnMem scratch needs price lot tab).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperGetStatusReturnMem scratch needs price lot tab).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperGetStatusReturnMem scratch needs price lot tab).readWithPadding
@@ -417,7 +414,6 @@ theorem clipperGetStatusReturnMem_mload64 {scratch : ByteArray}
       ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [clipperGetStatusReturnMem_size needs price lot tab hscratch]; decide)
-    (by decide)
     (clipperGetStatusReturnMem_read64 needs price lot tab hscratch hread64)
 
 theorem clipperGetStatusReturnMem_readWord128 {scratch : ByteArray}
@@ -592,8 +588,7 @@ theorem clipperStatusPricePostCallMem_mload64 (top age : UInt256) {mem out : Byt
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperStatusPricePostCallMem top age mem out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperStatusPricePostCallMem top age mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperStatusPricePostCallMem top age mem out).readWithPadding
@@ -601,7 +596,6 @@ theorem clipperStatusPricePostCallMem_mload64 (top age : UInt256) {mem out : Byt
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [clipperStatusPricePostCallMem_size top age hmem hout]; decide)
-    (by decide)
     (clipperStatusPricePostCallMem_read64 top age hmem hread64 hout)
 
 theorem clipperStatusPricePostCallMem_read128 (top age : UInt256) {mem out : ByteArray}
@@ -618,8 +612,7 @@ theorem clipperStatusPricePostCallMem_read128 (top age : UInt256) {mem out : Byt
 
 theorem clipperStatusPricePostCallMem_mload128 (top age : UInt256) {mem out : ByteArray}
     (hmem : mem.size = 96) (hlo : 32 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (clipperStatusPricePostCallMem top age mem out).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (clipperStatusPricePostCallMem top age mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperStatusPricePostCallMem top age mem out).readWithPadding
@@ -628,8 +621,7 @@ theorem clipperStatusPricePostCallMem_mload128 (top age : UInt256) {mem out : By
   have hsize := clipperStatusPricePostCallMem_size top age hmem hout
   have hread := clipperStatusPricePostCallMem_read128 top age hmem hlo hout
   have hcond :
-      ¬ ((⟨128⟩ : UInt256).toNat ≥ (clipperStatusPricePostCallMem top age mem out).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩) := by
+      ¬ ((⟨128⟩ : UInt256).toNat ≥ (clipperStatusPricePostCallMem top age mem out).size) := by
     rw [hsize]
     decide
   rw [if_neg hcond]
@@ -1012,8 +1004,7 @@ theorem RD.clipperStatusPriceExtcodesizeGuard {code : ByteArray} (v : ClipperImm
         ⟨0⟩ :: ⟨0⟩ :: top :: tic :: ret :: R)
       mem (UInt256.ofNat 3) rdata (cA, σ) k C)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
@@ -1206,7 +1197,7 @@ theorem RD.clipperStatusPriceReturnDecodeShortReverts
     RDrev code g s0 := by
   exact RD.solcUint256ReturnWordDecodeShortReverts
     (pc := ⟨8583⟩) (okPc := ⟨8603⟩) rd8583 hshort hout
-    mem_cost (by native_decide)
+    (by native_decide)
     (clipperStatusPricePostCallMem_mload64 top age hmem hread64 hout)
     (by clipper_runtime_decode) (by clipper_runtime_decode)
     (by clipper_runtime_decode) (by clipper_runtime_decode)
@@ -1236,10 +1227,10 @@ theorem RD.clipperStatusPriceReturnDecodeOk
       (clipperStatusPricePostCallMem top age baseMem out) (UInt256.ofNat 7) out acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk
     (pc := ⟨8583⟩) (okPc := ⟨8603⟩) rd8583 hlo hout
-    mem_cost (by native_decide)
+    (by native_decide)
     (clipperStatusPricePostCallMem_mload64 top age hmem hread64 hout)
     (clipperStatusPricePostCallMem_mload128 top age hmem hlo hout)
-    mem_cost (by native_decide)
+    (by native_decide)
     (by clipper_runtime_decode) (by clipper_runtime_decode)
     (by clipper_runtime_decode) (by clipper_runtime_decode)
     (by clipper_runtime_decode) (by clipper_runtime_decode)
@@ -1559,8 +1550,7 @@ theorem RD.clipperGetStatusReturnEncode
     (rd789 : RD code ee g s0 ⟨789⟩ (tab :: lot :: price :: needs :: R)
       mem (UInt256.ofNat 7) rdata acc k C)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
@@ -1577,8 +1567,7 @@ theorem RD.clipperGetStatusReturnEncode
       (UInt256.toByteArray tab).write 0 memLot
         ((⟨96⟩ : UInt256) + ⟨128⟩).toNat 32 = memTab)
     (hmload64Final :
-      (if (⟨64⟩ : UInt256).toNat ≥ memTab.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memTab.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memTab.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
@@ -1656,7 +1645,6 @@ theorem RD.clipperGetStatusReturnEncodeConcrete
     (by
       exact mloadFreePtrValue
         (by rw [hmem]; decide)
-        (by decide)
         hread64)
     (by rfl)
     (by

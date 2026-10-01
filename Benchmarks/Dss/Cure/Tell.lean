@@ -890,15 +890,13 @@ theorem cureTellRevertLiteralMem_read64 :
   exact solcErrorStringMem2_read64 ⟨37⟩ solcFreePtrMem_size solcFreePtrMem_read64
 
 theorem cureTellRevertLiteralMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ cureTellRevertLiteralMem.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ cureTellRevertLiteralMem.size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         (cureTellRevertLiteralMem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [cureTellRevertLiteralMem_size]; decide)
-    (by decide)
     cureTellRevertLiteralMem_read64
 
 theorem RD.cureTellRevertTail {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}

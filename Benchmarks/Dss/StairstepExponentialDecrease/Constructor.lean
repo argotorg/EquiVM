@@ -254,7 +254,7 @@ theorem stairstepCtorInitcodeSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd38 := by
     simpa using rd38raw
   have rd39 := rd38.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
-    (mloadFreePtrValue (by rw [stairstepCtorWardsHashMem_size I]; decide) (by decide)
+    (mloadFreePtrValue (by rw [stairstepCtorWardsHashMem_size I]; decide)
       (stairstepCtorWardsHashMem_read64 I))
     (by native_decide) (by evm_ov)
   have rd72 := rd39.pushConst

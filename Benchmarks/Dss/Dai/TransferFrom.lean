@@ -515,8 +515,7 @@ abbrev transferFromBoolReturnMem (I : ExecutionEnv) : ByteArray :=
     (transferFromLogMem (transferFromWadWord I) I) 128 32
 
 theorem transferFromLogMem_mload64 (value : UInt256) (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (transferFromLogMem value I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (transferFromLogMem value I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((transferFromLogMem value I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -525,8 +524,7 @@ theorem transferFromLogMem_mload64 (value : UInt256) (I : ExecutionEnv) :
     (transferFromDstHashMem_read64 I)
 
 theorem transferFromBoolReturnMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (transferFromBoolReturnMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (transferFromBoolReturnMem I).size then ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
         ((transferFromBoolReturnMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -543,7 +541,6 @@ theorem transferFromBoolReturnMem_mload64 (I : ExecutionEnv) :
           decide)
         (by decide)]
       decide)
-    (by decide)
     (by
       unfold transferFromBoolReturnMem transferFromLogMem
       rw [write32_read_below _ _ 128 64 (by rw [toByteArray_size])
@@ -667,8 +664,7 @@ theorem transferFromTailDstStoreMem_read64 {mem : ByteArray} (I : ExecutionEnv)
 theorem transferFromTailBoolReturnMem_mload64 {scratch : ByteArray} (I : ExecutionEnv)
     (hscratch : scratch.size = 96)
     (hread64 : scratch.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (transferFromTailBoolReturnMem scratch I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (transferFromTailBoolReturnMem scratch I).size then ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
         ((transferFromTailBoolReturnMem scratch I).readWithPadding
@@ -685,7 +681,6 @@ theorem transferFromTailBoolReturnMem_mload64 {scratch : ByteArray} (I : Executi
           decide)
         (by decide)]
       decide)
-    (by decide)
     (by
       unfold transferFromTailBoolReturnMem
       rw [write32_read_below _ _ 128 64 (by rw [toByteArray_size])
@@ -772,12 +767,11 @@ theorem daiTransferFromX_logAndJump {cA σ I} {g : Sat256} {s0 : State} {k C : �
       transferFromSrcMaskedWord I :=
     solcAddrMask_clean (transferFromSrcMaskedWord_canonical I)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ scratch.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ scratch.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (scratch.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hscratch]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hscratch]; decide) hread64
   have rd2 := evm_run h with [
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
@@ -3757,7 +3751,7 @@ theorem daiTransferFromX_insufficientAllowanceTail {cA σ I} {g : Sat256} {s0 : 
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide)

@@ -602,8 +602,7 @@ theorem endSnipDogIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray) :
     exact endSnipDogIlksCalldataMem_read64 I
 
 theorem endSnipDogIlksPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endSnipDogIlksPostCallMem I out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endSnipDogIlksPostCallMem I out).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSnipDogIlksPostCallMem I out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -630,7 +629,6 @@ theorem endSnipDogIlksPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray) :
           have hle128 : min 128 out.size ≤ 128 := Nat.min_le_left _ _
           have hpos : 0 < min 128 out.size := Nat.pos_of_ne_zero hlen0
           omega)
-    (by decide)
     (endSnipDogIlksPostCallMem_read64 I out)
 
 theorem endSnipDogIlksPostCallMem_read128_long (I : ExecutionEnv) (out : ByteArray)
@@ -661,8 +659,7 @@ theorem endSnipDogIlksPostCallMem_read128_long (I : ExecutionEnv) (out : ByteArr
 
 theorem endSnipDogIlksPostCallMem_mload128_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 128 ≤ out.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (endSnipDogIlksPostCallMem I out).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (endSnipDogIlksPostCallMem I out).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSnipDogIlksPostCallMem I out).readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
@@ -1042,8 +1039,7 @@ theorem endSnipVatIlksPostCallMem_size_gt64 (I : ExecutionEnv) (dogOut vatOut : 
 
 theorem endSnipVatIlksPostCallMem_mload64 (I : ExecutionEnv) (dogOut vatOut : ByteArray)
     (hloDog : 128 ≤ dogOut.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endSnipVatIlksPostCallMem I dogOut vatOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endSnipVatIlksPostCallMem I dogOut vatOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSnipVatIlksPostCallMem I dogOut vatOut).readWithPadding
@@ -1051,7 +1047,6 @@ theorem endSnipVatIlksPostCallMem_mload64 (I : ExecutionEnv) (dogOut vatOut : By
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (endSnipVatIlksPostCallMem_size_gt64 I dogOut vatOut hloDog)
-    (by decide)
     (endSnipVatIlksPostCallMem_read64 I dogOut vatOut hloDog)
 
 theorem endSnipVatIlksPostCallMem_read160_long (I : ExecutionEnv)
@@ -1092,24 +1087,19 @@ theorem endSnipVatIlksPostCallMem_read160_long (I : ExecutionEnv)
 theorem endSnipVatIlksPostCallMem_mload160_long (I : ExecutionEnv)
     (dogOut vatOut : ByteArray) (hloDog : 128 ≤ dogOut.size)
     (hloVat : 160 ≤ vatOut.size) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (endSnipVatIlksPostCallMem I dogOut vatOut).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (endSnipVatIlksPostCallMem I dogOut vatOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSnipVatIlksPostCallMem I dogOut vatOut).readWithPadding
           (⟨160⟩ : UInt256).toNat 32))) =
       endFlowVatIlkRateWord vatOut := by
   unfold endFlowVatIlkRateWord
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by rw [endSnipVatIlksPostCallMem_size_long I dogOut vatOut hloDog hloVat]; decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian
         ((endSnipVatIlksPostCallMem I dogOut vatOut).readWithPadding 160 32)) =
         UInt256.ofNat (fromByteArrayBigEndian (vatOut.extract 32 64))
-    rw [endSnipVatIlksPostCallMem_read160_long I dogOut vatOut hloDog hloVat]
-  · exact not_or.mpr
-      ⟨by rw [endSnipVatIlksPostCallMem_size_long I dogOut vatOut hloDog hloVat];
-          decide,
-        by native_decide⟩
+  rw [endSnipVatIlksPostCallMem_read160_long I dogOut vatOut hloDog hloVat]
 
 theorem endSnipSalesClipAddr_eq_ofUInt256 (dogOut : ByteArray) :
     endSnipDogIlkClipAddr dogOut =
@@ -1333,8 +1323,7 @@ theorem endSnipSalesPostCallMem_size_gt64 (I : ExecutionEnv)
 theorem endSnipSalesCalldataMem_mload64_long (I : ExecutionEnv)
     (dogOut vatOut : ByteArray) (hloDog : 128 ≤ dogOut.size)
     (hloVat : 160 ≤ vatOut.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endSnipSalesCalldataMem I dogOut vatOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endSnipSalesCalldataMem I dogOut vatOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSnipSalesCalldataMem I dogOut vatOut).readWithPadding
@@ -1342,14 +1331,12 @@ theorem endSnipSalesCalldataMem_mload64_long (I : ExecutionEnv)
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [endSnipSalesCalldataMem_size_long I dogOut vatOut hloDog hloVat]; decide)
-    (by decide)
     (endSnipSalesCalldataMem_read64_long I dogOut vatOut hloDog hloVat)
 
 theorem endSnipSalesPostCallMem_mload64 (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) (hloDog : 128 ≤ dogOut.size)
     (hloVat : 160 ≤ vatOut.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endSnipSalesPostCallMem I dogOut vatOut saleOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endSnipSalesPostCallMem I dogOut vatOut saleOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSnipSalesPostCallMem I dogOut vatOut saleOut).readWithPadding
@@ -1357,7 +1344,6 @@ theorem endSnipSalesPostCallMem_mload64 (I : ExecutionEnv)
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (endSnipSalesPostCallMem_size_gt64 I dogOut vatOut saleOut hloDog hloVat)
-    (by decide)
     (endSnipSalesPostCallMem_read64 I dogOut vatOut saleOut hloDog hloVat)
 
 theorem endSnipSalesPostCallMem_read160_long (I : ExecutionEnv)
@@ -1453,68 +1439,53 @@ theorem endSnipSalesPostCallMem_read224_long (I : ExecutionEnv)
 theorem endSnipSalesPostCallMem_mload160_long (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) (hloDog : 128 ≤ dogOut.size)
     (hloVat : 160 ≤ vatOut.size) (hloSale : 192 ≤ saleOut.size) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (endSnipSalesPostCallMem I dogOut vatOut saleOut).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (endSnipSalesPostCallMem I dogOut vatOut saleOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSnipSalesPostCallMem I dogOut vatOut saleOut).readWithPadding
           (⟨160⟩ : UInt256).toNat 32))) =
       endSnipSaleTabWord saleOut := by
   unfold endSnipSaleTabWord
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by rw [endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut hloDog hloVat hloSale]; decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian
         ((endSnipSalesPostCallMem I dogOut vatOut saleOut).readWithPadding 160 32)) =
         UInt256.ofNat (fromByteArrayBigEndian (saleOut.extract 32 64))
-    rw [endSnipSalesPostCallMem_read160_long I dogOut vatOut saleOut hloDog hloVat hloSale]
-  · exact not_or.mpr
-      ⟨by rw [endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut hloDog hloVat hloSale];
-          decide,
-        by native_decide⟩
+  rw [endSnipSalesPostCallMem_read160_long I dogOut vatOut saleOut hloDog hloVat hloSale]
 
 theorem endSnipSalesPostCallMem_mload192_long (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) (hloDog : 128 ≤ dogOut.size)
     (hloVat : 160 ≤ vatOut.size) (hloSale : 192 ≤ saleOut.size) :
-    (if (⟨192⟩ : UInt256).toNat ≥ (endSnipSalesPostCallMem I dogOut vatOut saleOut).size
-        ∨ (⟨192⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨192⟩ : UInt256).toNat ≥ (endSnipSalesPostCallMem I dogOut vatOut saleOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSnipSalesPostCallMem I dogOut vatOut saleOut).readWithPadding
           (⟨192⟩ : UInt256).toNat 32))) =
       endSnipSaleLotWord saleOut := by
   unfold endSnipSaleLotWord
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by rw [endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut hloDog hloVat hloSale]; decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian
         ((endSnipSalesPostCallMem I dogOut vatOut saleOut).readWithPadding 192 32)) =
         UInt256.ofNat (fromByteArrayBigEndian (saleOut.extract 64 96))
-    rw [endSnipSalesPostCallMem_read192_long I dogOut vatOut saleOut hloDog hloVat hloSale]
-  · exact not_or.mpr
-      ⟨by rw [endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut hloDog hloVat hloSale];
-          decide,
-        by native_decide⟩
+  rw [endSnipSalesPostCallMem_read192_long I dogOut vatOut saleOut hloDog hloVat hloSale]
 
 theorem endSnipSalesPostCallMem_mload224_long (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) (hloDog : 128 ≤ dogOut.size)
     (hloVat : 160 ≤ vatOut.size) (hloSale : 192 ≤ saleOut.size) :
-    (if (⟨224⟩ : UInt256).toNat ≥ (endSnipSalesPostCallMem I dogOut vatOut saleOut).size
-        ∨ (⟨224⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨224⟩ : UInt256).toNat ≥ (endSnipSalesPostCallMem I dogOut vatOut saleOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSnipSalesPostCallMem I dogOut vatOut saleOut).readWithPadding
           (⟨224⟩ : UInt256).toNat 32))) =
       endSnipSaleUsrWord saleOut := by
   unfold endSnipSaleUsrWord
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by rw [endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut hloDog hloVat hloSale]; decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian
         ((endSnipSalesPostCallMem I dogOut vatOut saleOut).readWithPadding 224 32)) =
         UInt256.ofNat (fromByteArrayBigEndian (saleOut.extract 96 128))
-    rw [endSnipSalesPostCallMem_read224_long I dogOut vatOut saleOut hloDog hloVat hloSale]
-  · exact not_or.mpr
-      ⟨by rw [endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut hloDog hloVat hloSale];
-          decide,
-        by native_decide⟩
+  rw [endSnipSalesPostCallMem_read224_long I dogOut vatOut saleOut hloDog hloVat hloSale]
 
 theorem decodeScalarWordWithMode_legacy_uint96_ok {bytes : List UInt8} {start : Nat}
     (hlen : ((bytes.drop start).take 32).length = 32) :
@@ -2816,25 +2787,21 @@ theorem endSnipX_dogIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
       (endSnipDogIlksCalldataMem I) (UInt256.ofNat 6)
       ByteArray.empty (cA, σ) k' C' := by
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endSnipDogIlksBaseMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endSnipDogIlksBaseMem I).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSnipDogIlksBaseMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
     mloadFreePtrValue
       (by rw [endSnipDogIlksBaseMem_size I]; decide)
-      (by decide)
       (endSnipDogIlksBaseMem_read64 I)
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endSnipDogIlksCalldataMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endSnipDogIlksCalldataMem I).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSnipDogIlksCalldataMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endSnipDogIlksCalldataMem_size I]; decide)
-      (by decide) (endSnipDogIlksCalldataMem_read64 I)
+    mloadFreePtrValue (by rw [endSnipDogIlksCalldataMem_size I]; decide) (endSnipDogIlksCalldataMem_read64 I)
   have hselectorShift :
       UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
         endFlowVatIlksSelectorShifted := by
@@ -3165,8 +3132,7 @@ theorem endSnipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I} {g : Sa
       dogOut (cA', σ') k' C' := by
   have hmload64Base := endSnipDogIlksPostCallMem_mload64 I dogOut
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endSnipVatIlksCalldataMem I dogOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endSnipVatIlksCalldataMem I dogOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSnipVatIlksCalldataMem I dogOut).readWithPadding
@@ -3174,7 +3140,6 @@ theorem endSnipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I} {g : Sa
         ⟨128⟩ := by
     exact mloadFreePtrValue
       (by rw [endSnipVatIlksCalldataMem_size_long I dogOut hloDog]; decide)
-      (by decide)
       (endSnipVatIlksCalldataMem_read64_long I dogOut hloDog)
   have hselectorShift :
       UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
@@ -3544,8 +3509,7 @@ theorem endSnipX_salesExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
       (cA', σ') k' C' := by
   have hmload64Base := endSnipVatIlksPostCallMem_mload64 I dogOut vatOut hloDog
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endSnipSalesCalldataMem I dogOut vatOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endSnipSalesCalldataMem I dogOut vatOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSnipSalesCalldataMem I dogOut vatOut).readWithPadding
@@ -3553,7 +3517,6 @@ theorem endSnipX_salesExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         ⟨128⟩ := by
     exact mloadFreePtrValue
       (by rw [endSnipSalesCalldataMem_size_long I dogOut vatOut hloDog hloVat]; decide)
-      (by decide)
       (endSnipSalesCalldataMem_read64_long I dogOut vatOut hloDog hloVat)
   have hselectorShift :
       UInt256.shiftLeft endSnipSalesSelectorWord ⟨224⟩ =
@@ -4068,16 +4031,14 @@ theorem endSnip_solcErrorStringMem3_read64_of_size320 (len word : UInt256)
 theorem endSnip_solcErrorStringMem3_mload64_of_size320 (len word : UInt256)
     {mem : ByteArray} (hmem : mem.size = 320)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcErrorStringMem3 len word mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
   mloadFreePtrValue
-    (by rw [endSnip_solcErrorStringMem3_size_of_size320 len word hmem]; decide)
-    (by decide) (endSnip_solcErrorStringMem3_read64_of_size320 len word hmem hread64)
+    (by rw [endSnip_solcErrorStringMem3_size_of_size320 len word hmem]; decide) (endSnip_solcErrorStringMem3_read64_of_size320 len word hmem hread64)
 
 set_option maxHeartbeats 1000000 in
 theorem endSnip_solcErrorStringRevertTail_aw10 {code : ByteArray} {g : Sat256}
@@ -4102,7 +4063,7 @@ theorem endSnip_solcErrorStringRevertTail_aw10 {code : ByteArray} {g : Sat256}
     raw dup1 hd2 (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 10) hd3
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4
@@ -4176,8 +4137,7 @@ theorem endSnipX_suckExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
       saleOut (cA', σ') k' C' := by
   have hmload64Base :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSnipSalesPostCallMem I dogOut vatOut saleOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+            (endSnipSalesPostCallMem I dogOut vatOut saleOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSnipSalesPostCallMem I dogOut vatOut saleOut).readWithPadding
@@ -4185,12 +4145,10 @@ theorem endSnipX_suckExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         ⟨128⟩ :=
     mloadFreePtrValue
       (by rw [endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut
-        hloDog hloVat hloSale]; decide)
-      (by decide) (endSnipSalesPostCallMem_read64 I dogOut vatOut saleOut hloDog hloVat)
+        hloDog hloVat hloSale]; decide) (endSnipSalesPostCallMem_read64 I dogOut vatOut saleOut hloDog hloVat)
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSnipSuckCalldataMem σ' I dogOut vatOut saleOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+            (endSnipSuckCalldataMem σ' I dogOut vatOut saleOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSnipSuckCalldataMem σ' I dogOut vatOut saleOut).readWithPadding
@@ -4198,8 +4156,7 @@ theorem endSnipX_suckExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         ⟨128⟩ :=
     mloadFreePtrValue
       (by rw [endSnipSuckCalldataMem_size σ' I dogOut vatOut saleOut
-        hloDog hloVat hloSale]; decide)
-      (by decide) (endSnipSuckCalldataMem_read64 σ' I dogOut vatOut saleOut
+        hloDog hloVat hloSale]; decide) (endSnipSuckCalldataMem_read64 σ' I dogOut vatOut saleOut
         hloDog hloVat hloSale)
   have hselectorShift :
       UInt256.shiftLeft endSnipSuckSelectorWord ⟨224⟩ =
@@ -4567,8 +4524,7 @@ theorem endSnipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
       rdata (cA', σpost) k' C' := by
   have hmload64Base :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSnipSuckCalldataMem σmem I dogOut vatOut saleOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+            (endSnipSuckCalldataMem σmem I dogOut vatOut saleOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSnipSuckCalldataMem σmem I dogOut vatOut saleOut).readWithPadding
@@ -4576,13 +4532,11 @@ theorem endSnipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
         ⟨128⟩ :=
     mloadFreePtrValue
       (by rw [endSnipSuckCalldataMem_size σmem I dogOut vatOut saleOut
-        hloDog hloVat hloSale]; decide)
-      (by decide) (endSnipSuckCalldataMem_read64 σmem I dogOut vatOut saleOut
+        hloDog hloVat hloSale]; decide) (endSnipSuckCalldataMem_read64 σmem I dogOut vatOut saleOut
         hloDog hloVat hloSale)
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSnipYankCalldataMem σmem I dogOut vatOut saleOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+            (endSnipYankCalldataMem σmem I dogOut vatOut saleOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSnipYankCalldataMem σmem I dogOut vatOut saleOut).readWithPadding
@@ -4590,8 +4544,7 @@ theorem endSnipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
         ⟨128⟩ :=
     mloadFreePtrValue
       (by rw [endSnipYankCalldataMem_size σmem I dogOut vatOut saleOut
-        hloDog hloVat hloSale]; decide)
-      (by decide) (endSnipYankCalldataMem_read64 σmem I dogOut vatOut saleOut
+        hloDog hloVat hloSale]; decide) (endSnipYankCalldataMem_read64 σmem I dogOut vatOut saleOut
         hloDog hloVat hloSale)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
@@ -5374,8 +5327,7 @@ theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
       (UInt256.ofNat 11) rdata (cA', σCall) k' C' := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSnipArtStoreHashMem σLoc I dogOut vatOut saleOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+            (endSnipArtStoreHashMem σLoc I dogOut vatOut saleOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSnipArtStoreHashMem σLoc I dogOut vatOut saleOut).readWithPadding
@@ -5383,13 +5335,11 @@ theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
         ⟨128⟩ :=
     mloadFreePtrValue
       (by rw [endSnipArtStoreHashMem_size σLoc I dogOut vatOut saleOut
-        hloDog hloVat hloSale]; decide)
-      (by decide) (endSnipArtStoreHashMem_read64 σLoc I dogOut vatOut saleOut
+        hloDog hloVat hloSale]; decide) (endSnipArtStoreHashMem_read64 σLoc I dogOut vatOut saleOut
         hloDog hloVat hloSale)
   have hmload64Grab :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSnipGrabMem7For σCall σLoc I dogOut vatOut saleOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+            (endSnipGrabMem7For σCall σLoc I dogOut vatOut saleOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSnipGrabMem7For σCall σLoc I dogOut vatOut saleOut).readWithPadding
@@ -5398,8 +5348,7 @@ theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
     simpa [endSnipGrabMem7For_eq] using
       (mloadFreePtrValue
         (by rw [endSnipGrabCalldataMemFor_size σCall σLoc I dogOut vatOut saleOut
-          hloDog hloVat hloSale]; decide)
-        (by decide) (endSnipGrabCalldataMemFor_read64 σCall σLoc I dogOut vatOut saleOut
+          hloDog hloVat hloSale]; decide) (endSnipGrabCalldataMemFor_read64 σCall σLoc I dogOut vatOut saleOut
           hloDog hloVat hloSale))
   have hselectorShift :
       UInt256.shiftLeft (⟨0x01eeacfd⟩ : UInt256) ⟨230⟩ =
@@ -5806,8 +5755,7 @@ theorem endSnipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     RDret endBytecode g s0 acc ByteArray.empty := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSnipGrabPostCallMemFor σCall σLoc I dogOut vatOut saleOut ret).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+            (endSnipGrabPostCallMemFor σCall σLoc I dogOut vatOut saleOut ret).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSnipGrabPostCallMemFor σCall σLoc I dogOut vatOut saleOut ret).readWithPadding
@@ -5815,13 +5763,11 @@ theorem endSnipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
         ⟨128⟩ := by
     exact mloadFreePtrValue
       (by rw [endSnipGrabPostCallMemFor_size σCall σLoc I dogOut vatOut saleOut ret
-        hloDog hloVat hloSale]; decide)
-      (by decide) (endSnipGrabPostCallMemFor_read64 σCall σLoc I dogOut vatOut saleOut
+        hloDog hloVat hloSale]; decide) (endSnipGrabPostCallMemFor_read64 σCall σLoc I dogOut vatOut saleOut
         ret hloDog hloVat hloSale)
   have hmload64Log :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSnipLogDataMem3For σCall σLoc I dogOut vatOut saleOut ret).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+            (endSnipLogDataMem3For σCall σLoc I dogOut vatOut saleOut ret).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSnipLogDataMem3For σCall σLoc I dogOut vatOut saleOut ret).readWithPadding
@@ -5829,8 +5775,7 @@ theorem endSnipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
         ⟨128⟩ := by
     exact mloadFreePtrValue
       (by rw [endSnipLogDataMem3For_size σCall σLoc I dogOut vatOut saleOut ret
-        hloDog hloVat hloSale]; decide)
-      (by decide) (endSnipLogDataMem3For_read64 σCall σLoc I dogOut vatOut saleOut ret
+        hloDog hloVat hloSale]; decide) (endSnipLogDataMem3For_read64 σCall σLoc I dogOut vatOut saleOut ret
         hloDog hloVat hloSale)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by

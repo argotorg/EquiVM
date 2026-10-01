@@ -65,9 +65,7 @@ theorem gemJoinCtorArgCopyTrace
       12
       (gemJoinCtorArgMem vat ilk gem) (UInt256.ofNat 7)
       (by gem_ctor_decode)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, List.getElem!_cons_succ]
+      (by
         rw [gemJoinCtorArgLen_eq]
         decide)
       (by
@@ -108,16 +106,14 @@ theorem gemJoinCtorArgDecodeTrace
   have rd51 := rdBeforeJump.jumpiT (by gem_ctor_decode)
     (by rw [gemJoinCtorArgLen_eq]; decide) (by gem_ctor_jd) (by evm_ov)
   have h160 :
-      (if ((⟨32⟩ : UInt256) + ⟨128⟩).toNat ≥ (gemJoinCtorArgFreeMem vat ilk gem).size ∨
-          ((⟨32⟩ : UInt256) + ⟨128⟩) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨32⟩ : UInt256) + ⟨128⟩).toNat ≥ (gemJoinCtorArgFreeMem vat ilk gem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian ((gemJoinCtorArgFreeMem vat ilk gem).readWithPadding
            (((⟨32⟩ : UInt256) + ⟨128⟩).toNat) 32))) = ilk := by
     simpa [show ((⟨32⟩ : UInt256) + ⟨128⟩) = ⟨160⟩ from by native_decide]
       using gemJoinCtorArgFreeMem_mload160 vat ilk gem
   have h192 :
-      (if ((⟨64⟩ : UInt256) + ⟨128⟩).toNat ≥ (gemJoinCtorArgFreeMem vat ilk gem).size ∨
-          ((⟨64⟩ : UInt256) + ⟨128⟩) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨64⟩ : UInt256) + ⟨128⟩).toNat ≥ (gemJoinCtorArgFreeMem vat ilk gem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian ((gemJoinCtorArgFreeMem vat ilk gem).readWithPadding
            (((⟨64⟩ : UInt256) + ⟨128⟩).toNat) 32))) = EVM.word gem.val := by

@@ -100,12 +100,9 @@ theorem dogCtorArgsReach
     push2 ⟨4927⟩, codesize, sub, dup1, push2 ⟨4927⟩, dup4,
     raw codecopy 9 (dogCtorArgMem vat) (UInt256.ofNat 6)
       (by dog_ctor_decode)
-      (fun s haws hstks => by
-        set_option linter.unusedSimpArgs false in
-          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-            List.getElem!_cons_zero, List.getElem!_cons_succ]
+      (by
         rw [dogCtorCode_size]
-        decide)
+        native_decide)
       (by
         rw [show ((UInt256.ofNat (dogCtorCode vat).size).sub (⟨4927⟩ : UInt256)).toNat = 32 by
           rw [dogCtorCode_size]
@@ -261,7 +258,6 @@ theorem dogCtorReturnTrace
         apply mloadWordValue_of_readWithPadding
         · rw [dogCtorWardsHashMem_size]
           decide
-        · decide
         · simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
             dogCtorWardsHashMem_read128 I vat)
       (by decide) (by evm_ov),

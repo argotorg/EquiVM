@@ -209,15 +209,13 @@ theorem catScratchReturn3Mem_read64 {scratch : ByteArray} (first second third : 
 theorem catScratchReturn3Mem_mload64 {scratch : ByteArray} (first second third : UInt256)
     (hscratch : scratch.size = 96)
     (hread64 : scratch.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (catScratchReturn3Mem scratch first second third).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (catScratchReturn3Mem scratch first second third).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((catScratchReturn3Mem scratch first second third).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [catScratchReturn3Mem_size first second third hscratch]; decide)
-    (by decide) (catScratchReturn3Mem_read64 first second third hscratch hread64)
+  mloadFreePtrValue (by rw [catScratchReturn3Mem_size first second third hscratch]; decide) (catScratchReturn3Mem_read64 first second third hscratch hread64)
 
 theorem catScratchReturn2Mem_read128_64 {scratch : ByteArray} (first second : UInt256)
     (hscratch : scratch.size = 96) :
@@ -492,8 +490,7 @@ theorem RD.catIlksReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : catIlksReturnFromMemWf code pc)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)

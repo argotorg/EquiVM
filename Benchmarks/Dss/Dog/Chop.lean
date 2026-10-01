@@ -256,7 +256,6 @@ theorem dogChopBodyCoreOk
       (by
         exact mloadFreePtrValue
           (by rw [twoWordHashMem_size_96 key ⟨1⟩ solcFreePtrMem_size]; decide)
-          (by decide)
           (twoWordHashMem_read64 key ⟨1⟩ solcFreePtrMem_size solcFreePtrMem_read64))
       (by rfl)
       (by

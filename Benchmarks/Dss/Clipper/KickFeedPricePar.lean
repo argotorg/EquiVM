@@ -25,12 +25,10 @@ theorem clipperKickSpotterParSelectorMem_read64 {mem : ByteArray}
 theorem clipperKickSpotterParSelectorMem_mload64 {mem : ByteArray}
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperSpotterParSelectorMem mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperSpotterParSelectorMem mem).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
         ((clipperSpotterParSelectorMem mem).readWithPadding 64 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [clipperKickSpotterParSelectorMem_size hmem]; omega)
-    (by decide) (clipperKickSpotterParSelectorMem_read64 hmem hread64)
+  mloadFreePtrValue (by rw [clipperKickSpotterParSelectorMem_size hmem]; omega) (clipperKickSpotterParSelectorMem_read64 hmem hread64)
 
 theorem clipperKickSpotterParSelectorMem_read128_4 {mem : ByteArray}
     (hmem : mem.size = 192) :
@@ -83,8 +81,7 @@ theorem RD.clipperKickGetFeedPriceValBlnToParExtcodesizeGuard
       v hpatch rd8686 (by simpa [Nat.mul_comm] using hmul)
       (clipperGetFeedPriceJumpDest9096 v hpatch) (by evm_ov)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian
           (mem.readWithPadding 64 32))) = ⟨128⟩ := by
     rw [hmem, hread64]
@@ -369,8 +366,7 @@ theorem RD.clipperKickGetFeedPriceParDecodeShortReverts
     (hov : R.length + 30 ≤ 1024) :
     RDrev code g s0 := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 64 32))) =
         ⟨128⟩ := by
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hmem, hread64]
@@ -421,15 +417,13 @@ theorem RD.clipperKickGetFeedPriceParDecodeOkToRdiv
         ret :: scratch :: lot :: tab :: R)
       mem (UInt256.ofNat 6) o acc k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 64 32))) =
         ⟨128⟩ := by
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hmem, hread64]
     native_decide
   have hmload128 :
-      (if (⟨128⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨128⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 128 32))) =
         clipperSpotterParWord o := by
     rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, hmem]

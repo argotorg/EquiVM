@@ -216,10 +216,7 @@ theorem clipperListStorageArrayLoopStepToBranch {code : ByteArray} {g : Sat256}
   have rd1875 := rd1874.mstore (Cₘ (clipperListArrayCopyStepAw aw dest) - Cₘ aw)
     (clipperListArrayCopyStepMem σ ee slot dest mem) (clipperListArrayCopyStepAw aw dest)
     hd1874
-    (by
-      intro s haw hstk
-      exact mstoreCost_of_stack (aw := aw) (off := dest) (val := solcSlotWord σ ee slot)
-        (t := dest :: slot :: endp :: R) haw hstk (by rfl))
+    (by rfl)
     (by rfl) (by rfl) (by evm_ov)
   have rd1877 := rd1875.push1 ⟨32⟩ hd1875 (by evm_ov)
   have rd1878 := rd1877.add hd1877 (by evm_ov)

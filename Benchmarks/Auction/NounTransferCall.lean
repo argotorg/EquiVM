@@ -55,8 +55,8 @@ theorem nounTransferCall {I g s0 snap nounId bidder ret R mem aw ptr rdata cA σ
     (h : RD auctionBytecode I g s0 ⟨4536⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
     (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 100 ≤ 2 ^ 200)
-    (hn : loadedWord mem aw snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
-    (hbid : loadedWord mem aw (snap + ⟨128⟩) = bidder)
+    (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
+    (hbid : loadedWord mem (snap + ⟨128⟩) = bidder)
     (hab : expandedWords aw (snap + ⟨128⟩) ⟨32⟩ = aw)
     (hyes : extCodeSizeWord σ (nounsWord σ I) ≠ ⟨0⟩) (hov : R.length + 17 ≤ 1024) :
     ∃ (evm' : EVM.State) (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)

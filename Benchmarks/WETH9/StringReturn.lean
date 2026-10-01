@@ -523,22 +523,21 @@ theorem weth9NameShortEncoder {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} (
   have h196 := evm_run h with [
     jumpdest, push1 ⟨64⟩, dup1,
     raw mload 0 ⟨192⟩ (UInt256.ofNat 6) (by native_decide) mem_cost
-      (mloadWordValue_of_readWithPadding (by rw [weth9ShortObjMem_size]; decide)
-        (by decide) (weth9ShortObjMem_read64 H)) (by native_decide) (by evm_ov),
+      (mloadWordValue_of_readWithPadding (by rw [weth9ShortObjMem_size]; decide) (weth9ShortObjMem_read64 H)) (by native_decide) (by evm_ov),
     push1 ⟨32⟩, dup1, dup3,
     raw mstore 3 (weth9ShortMemA H) (UInt256.ofNat 7)
       (by native_decide) mem_cost rfl (by native_decide) (by evm_ov)]
   have h221 := evm_run h196 with [
     dup4,
     raw mload 0 (weth9StringLen H) (UInt256.ofNat 7) (by native_decide) mem_cost
-      (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemA_size]; decide) (by decide)
+      (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemA_size]; decide)
         (weth9ShortMemA_read128 H)) (by native_decide) (by evm_ov),
     dup2, dup4, add,
     raw mstore 3 (weth9ShortMemB H) (UInt256.ofNat 8)
       (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
     dup4,
     raw mload 0 (weth9StringLen H) (UInt256.ofNat 8) (by native_decide) mem_cost
-      (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemB_size]; decide) (by decide)
+      (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemB_size]; decide)
         (weth9ShortMemB_read128 H)) (by native_decide) (by evm_ov),
     swap2, swap3, dup4, swap3, swap1, dup4, add, swap2, dup6, add, swap1,
     dup1, dup4, dup4, push1 ⟨0⟩]
@@ -546,7 +545,7 @@ theorem weth9NameShortEncoder {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} (
     jumpdest, dup4, dup2, lt, iszero, push2 ⟨245⟩, jumpiNT (weth9ShortLtEnter hne),
     dup2, dup2, add,
     raw mload 0 (weth9StringShortDataWord H) (UInt256.ofNat 8) (by native_decide) mem_cost
-      (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemB_size]; decide) (by decide)
+      (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemB_size]; decide)
         (weth9ShortMemB_read160 H)) (by native_decide) (by evm_ov),
     dup4, dup3, add,
     raw mstore 3 (weth9ShortMemC H) (UInt256.ofNat 9) (by native_decide) mem_cost rfl
@@ -561,7 +560,7 @@ theorem weth9NameShortEncoder {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} (
   have h295 := evm_run h267 with [
     dup1,
     raw mload 0 (weth9StringShortDataWord H) (UInt256.ofNat 9) (by native_decide) mem_cost
-      (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemC_size]; decide) (by decide)
+      (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemC_size]; decide)
         (weth9ShortMemC_read256 H)) (by native_decide) (by evm_ov),
     push1 ⟨1⟩, dup4, push1 ⟨32⟩, sub, push2 ⟨256⟩, exp, sub, not, and, dup2,
     raw mstore 0 (weth9ShortMemD H) (UInt256.ofNat 9) (by native_decide) mem_cost rfl
@@ -571,7 +570,7 @@ theorem weth9NameShortEncoder {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} (
   exact evm_run h295 with [
     push1 ⟨64⟩,
     raw mload 0 ⟨192⟩ (UInt256.ofNat 9) (by native_decide) mem_cost
-      (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemD_size]; decide) (by decide)
+      (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemD_size]; decide)
         (weth9ShortMemD_read64 H)) (by native_decide) (by evm_ov),
     dup1, swap2, sub, swap1,
     raw ret 0 (weth9ShortStringAbi H) (by native_decide) mem_cost

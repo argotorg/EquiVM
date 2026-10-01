@@ -15,8 +15,7 @@ abbrev daiMappingHashMem (baseSlot key : UInt256) : ByteArray :=
   solcMappingHashMem baseSlot key
 
 theorem daiMappingHashMem_mload64 (baseSlot key : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (daiMappingHashMem baseSlot key).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (daiMappingHashMem baseSlot key).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((daiMappingHashMem baseSlot key).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -29,8 +28,7 @@ abbrev daiMappingReturnMem (baseSlot key val : UInt256) : ByteArray :=
   solcScratchReturnMem (daiMappingHashMem baseSlot key) val
 
 theorem daiMappingReturnMem_mload64 (baseSlot key val : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (daiMappingReturnMem baseSlot key val).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (daiMappingReturnMem baseSlot key val).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((daiMappingReturnMem baseSlot key val).readWithPadding
@@ -51,8 +49,7 @@ abbrev daiNestedMappingHashMem
   solcNestedMappingHashMem baseSlot owner spender
 
 theorem daiNestedMappingHashMem_mload64 (baseSlot owner spender : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (daiNestedMappingHashMem baseSlot owner spender).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (daiNestedMappingHashMem baseSlot owner spender).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((daiNestedMappingHashMem baseSlot owner spender).readWithPadding
@@ -69,8 +66,7 @@ abbrev daiNestedMappingReturnMem
 theorem daiNestedMappingReturnMem_mload64
     (baseSlot owner spender val : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (daiNestedMappingReturnMem baseSlot owner spender val).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          (daiNestedMappingReturnMem baseSlot owner spender val).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((daiNestedMappingReturnMem baseSlot owner spender val).readWithPadding
@@ -1000,15 +996,13 @@ theorem RD.daiReturnWordFromMem {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k
       (UInt256.ofNat 3) rdata acc k C)
     (hwf : daiReturnWordFromMemWf pc)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hmemout : (UInt256.toByteArray val).write 0 mem 128 32 = memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)

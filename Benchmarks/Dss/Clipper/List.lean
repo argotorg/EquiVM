@@ -137,7 +137,7 @@ theorem clipperX_list_nonempty (v : ClipperImmutables) {code : ByteArray}
     (fmp := clipperListArrayFreePtr (solcSlotWord σ I ⟨11⟩))
     (len := solcSlotWord σ I ⟨11⟩) (R := [sel]) rd512
     (clipperListReturnFromMemWfPatched v hpatch)
-    (clipperListArrayCopiedMem_mload64_of_wf hwfStorage)
+    clipperListArrayCopiedMem_mload64
     (clipperListReturnOffsetMem_mload128_of_wf hwfStorage)
     (clipperListReturnBaseMem_mload128_of_wf hwfStorage)
     (by simp only [List.length_singleton]; omega)

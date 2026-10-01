@@ -105,13 +105,12 @@ theorem flipperDentX_refundCalldataReady {cA σ I} {g : Sat256} {s0 : State}
     simpa [rawPacked, bidGuyWord, flipperAddressReturnWord] using
       (u256_land_comm solcAddrMask rawPacked)
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ memHash.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memHash.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (memHash.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [dentVatHashMem_size hmemSize]; decide) (by decide)
+    mloadFreePtrValue (by rw [dentVatHashMem_size hmemSize]; decide)
       (dentVatHashMem_read64 hmemSize hmemRead64)
   have rd4770 := evm_run h with [
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
@@ -227,14 +226,13 @@ theorem flipperDentX_toRefundExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State
       UInt256.land (flipperSlotWord ⟨2⟩ σ I) solcAddrMask = flipperVatTargetWord σ I := by
     simp [flipperVatTargetWord, flipperAddressReturnWord]
   have hmload64Refund :
-      (if (⟨64⟩ : UInt256).toNat ≥ (dentVatRefundCallMem memHash σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (dentVatRefundCallMem memHash σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((dentVatRefundCallMem memHash σ I).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [dentVatRefundCallMem_size hhashSize]; decide) (by decide)
+    mloadFreePtrValue (by rw [dentVatRefundCallMem_size hhashSize]; decide)
       (dentVatRefundCallMem_read64 hhashSize hhashRead64)
   obtain ⟨_, _, rd4767⟩ := flipperDentX_takeRefundBranch hmemSize hcaller h
   obtain ⟨_, _, rd4831⟩ := flipperDentX_refundCalldataReady hhashSize hhashRead64 rd4767
@@ -834,23 +832,20 @@ theorem flipperDentX_toFluxExtcodesizeGuardAw8 {cA σ I} {g : Sat256} {s0 : Stat
     simpa [rawUsr, bidUsrWord, flipperAddressReturnWord] using
       (u256_land_comm solcAddrMask rawUsr)
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ (dentVatHashMem mem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (dentVatHashMem mem I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((dentVatHashMem mem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [dentVatHashMem_size_228 I hmemSize]; decide) (by decide)
+    mloadFreePtrValue (by rw [dentVatHashMem_size_228 I hmemSize]; decide)
       (dentVatHashMem_read64_228 I hmemSize hmemRead64)
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (dentVatFluxCallMem mem σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (dentVatFluxCallMem mem σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((dentVatFluxCallMem mem σ I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [dentVatFluxCallMem_size_228 σ I hmemSize]; decide)
-      (by decide) (dentVatFluxCallMem_read64_228 σ I hmemSize hmemRead64)
+    mloadFreePtrValue (by rw [dentVatFluxCallMem_size_228 σ I hmemSize]; decide) (dentVatFluxCallMem_read64_228 σ I hmemSize hmemRead64)
   have rd4930pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]

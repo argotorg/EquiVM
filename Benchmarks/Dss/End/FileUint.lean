@@ -864,7 +864,7 @@ theorem endFileUintX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [endRelyAuthHashMem_size I]; decide) (by decide)
+      (mloadFreePtrValue (by rw [endRelyAuthHashMem_size I]; decide)
         (endRelyAuthHashMem_read64 I))
       (by native_decide) (by evm_ov),
     raw dup3 (by native_decide) (by evm_ov),
@@ -876,7 +876,7 @@ theorem endFileUintX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw swap1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [endFileUintLogDataMem_size I]; decide) (by decide)
+      (mloadFreePtrValue (by rw [endFileUintLogDataMem_size I]; decide)
         (endFileUintLogDataMem_read64 I))
       (by native_decide) (by evm_ov),
     raw dup4 (by native_decide) (by evm_ov),
@@ -973,7 +973,7 @@ theorem RD.endFileUintUnrecognizedRevert {g : Sat256} {s0 : State} {ee : Executi
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide)

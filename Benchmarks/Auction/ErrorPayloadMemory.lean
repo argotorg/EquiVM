@@ -65,14 +65,14 @@ theorem errorPayload_load {mem aw ptr out} (hm : HeapMemory mem aw ptr)
     (hin : ptr.toNat ≤ mem.size) (hl : 68 ≤ out.size)
     (hb : ptr.toNat + out.size ≤ 2 ^ 200) (off : UInt256)
     (hoff : off.toNat + 36 ≤ out.size) :
-    loadedWord (errorPayloadMem mem out ptr) (errorPayloadWords aw ptr out) (ptr + off) =
+    loadedWord (errorPayloadMem mem out ptr) (ptr + off) =
       calldataWord out (4 + off.toNat) := by
   have hp : (ptr + off).toNat = ptr.toNat + off.toNat :=
     addWord_toNat ptr off (by change ptr.toNat + off.toNat < 2 ^ 256; omega)
   have hsz := errorPayload_size hm hin hl
   have hc := errorPayloadCover hm.active hl hb
   have hh := errorPayloadHeap hm hin hl hb
-  apply loadedWord_of_read hh.active (by omega) (by omega)
+  apply loadedWord_of_read (by omega)
   rw [hp, errorPayloadMem, copyWindow_read_word out mem 4 ptr.toNat (out.size - 4) off.toNat
       (by omega) (by omega) hin (by omega),
     readWithPadding_eq_extract _ _ (by omega), calldataWord_bytes_at (by omega)]

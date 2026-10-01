@@ -10,15 +10,13 @@ theorem RD.flopperKickReturnWordFromMem7 {cA σ I} {g : Sat256} {s0 : State}
     (h : RD flopperBytecode I g s0 ⟨644⟩ [id, sel] mem (UInt256.ofNat 7) rdata
       (cA, σ) k C)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hmemout : (UInt256.toByteArray id).write 0 mem 128 32 = memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
@@ -195,8 +193,7 @@ theorem flopperKickX_toEventStart {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have rd3743 := rd3742pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, memStore, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -208,8 +205,7 @@ theorem flopperKickX_toEventStart {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have rd3750 := rd3749pre.mstore 0 memEndStore (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memEndStore, memStore, id, twoWordHashMem, wordAt32Mem])
@@ -227,11 +223,7 @@ theorem flopperKickX_toEventStart {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStore
   have rd3756 := rd3755pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by norm_num [M, MachineState.M, Cₘ] <;> native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -336,12 +328,11 @@ theorem flopperKickX_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have hreadEnd : memEndStore.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     simpa [memEndStore, memStore, id] using twoWordHashMem_read64 id ⟨1⟩ hmemStore hreadStore
   have hmload64End :
-      (if (⟨64⟩ : UInt256).toNat ≥ memEndStore.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memEndStore.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memEndStore.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemEnd]; decide) (by decide) hreadEnd
+    mloadFreePtrValue (by rw [hmemEnd]; decide) hreadEnd
   have rd3799pre := evm_run rd3796 with [
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
@@ -351,8 +342,7 @@ theorem flopperKickX_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd3800 := rd3799pre.mstore 6 memEvent0 (UInt256.ofNat 5)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by rfl)
     (by native_decide)
     (by evm_ov)
@@ -365,8 +355,7 @@ theorem flopperKickX_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd3806 := rd3805pre.mstore 3 memEvent1 (UInt256.ofNat 6)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by rfl)
     (by native_decide)
     (by evm_ov)
@@ -379,14 +368,12 @@ theorem flopperKickX_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd3812 := rd3811pre.mstore 3 memEvent (UInt256.ofNat 7)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by rfl)
     (by native_decide)
     (by evm_ov)
   have hmload64Event :
-      (if (⟨64⟩ : UInt256).toNat ≥ memEvent.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memEvent.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memEvent.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩ := by

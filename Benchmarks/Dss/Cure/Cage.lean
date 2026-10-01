@@ -785,12 +785,11 @@ theorem RD.cureCageSuccessTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     simpa [mem] using twoWordHashMem_read64 (solcSourceWord I) ⟨0⟩
       solcFreePtrMem_size solcFreePtrMem_read64
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have rd2761 := evm_run rd2759 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov)]
   have rd2762 := rd2761.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)

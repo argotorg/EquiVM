@@ -454,10 +454,10 @@ theorem RD.catFileIlkFlipHopeEncode {g : Sat256} {s0 : State} {ee : ExecutionEnv
         ⟨2746363844⟩ :: fifVat2M σ' ee :: flip :: fileIlkFlipWhatWord ee ::
         fileIlkFlipIlkWord ee :: ret :: sel :: [])
       (fifHopeCdMem mem (UInt256.land flip solcAddrMask)) (UInt256.ofNat 6) rdata (cA', σ') k' C' := by
-  have hmload : (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩
+  have hmload : (if (⟨64⟩ : UInt256).toNat ≥ mem.size
       then ⟨0⟩ else UInt256.ofNat (fromByteArrayBigEndian
         (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have rd3628 := rd.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3628b⟩ := rd3628.sload (by native_decide) (by evm_ov)
   have rd3629 := rd3628b.dup4 (by native_decide) (by evm_ov)
@@ -482,11 +482,10 @@ theorem RD.catFileIlkFlipHopeEncode {g : Sat256} {s0 : State} {ee : ExecutionEnv
     (by native_decide) mem_cost
     (by unfold fifHopeCdMem; rw [show (⟨132⟩ : UInt256).toNat = 132 from rfl])
     (by native_decide) (by evm_ov)
-  have hmload2 : (if (⟨64⟩ : UInt256).toNat ≥ (fifHopeCdMem mem (UInt256.land flip solcAddrMask)).size
-      ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩ else UInt256.ofNat (fromByteArrayBigEndian
+  have hmload2 : (if (⟨64⟩ : UInt256).toNat ≥ (fifHopeCdMem mem (UInt256.land flip solcAddrMask)).size then ⟨0⟩ else UInt256.ofNat (fromByteArrayBigEndian
         ((fifHopeCdMem mem (UInt256.land flip solcAddrMask)).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-    mloadFreePtrValue (by rw [fifHopeCdMem_size hmem]; decide) (by decide)
+    mloadFreePtrValue (by rw [fifHopeCdMem_size hmem]; decide)
       (fifHopeCdMem_read64 hmem hread64 _)
   have rd3649 := rd3648.swap3 (by native_decide) (by evm_ov)
   have rd3650 := rd3649.mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide) mem_cost hmload2

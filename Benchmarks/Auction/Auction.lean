@@ -88,7 +88,7 @@ theorem auctionEncode {ee g s0 R rdata acc k C} (s : Snapshot)
   exact evm_run rd318 with [
     jumpdest, push1 ⟨64⟩,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by native_decide) mem_cost
-      (mloadFreePtrValue (by rw [returnMem_size]; omega) (by decide) (returnMem_read64 s.words))
+      (mloadFreePtrValue (by rw [returnMem_size]; omega) (returnMem_read64 s.words))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
     raw ret 0 (wordBytes s.words) (by native_decide) mem_cost

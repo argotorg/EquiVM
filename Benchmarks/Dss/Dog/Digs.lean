@@ -1161,7 +1161,7 @@ theorem RD.solcCheckedSubEmptyRevertAnyWords {code : ByteArray} {g : Sat256} {s0
   have rdRev := evm_run rdTail with [
     raw push1 ⟨0⟩ hdRev0 (by evm_ov),
     raw dup1 hdRev2 (by evm_ov)]
-  exact RD.rev 0 rdRev hdRev3 (fun s _ hstk => memExpRevert0 s hstk) (by evm_ov)
+  exact RD.rev 0 rdRev hdRev3 (by simp [M, MachineState.M, u256_ofNat_toNat]) (by evm_ov)
 
 theorem RD.dogDigsFirstSubUnderflow {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -1632,7 +1632,7 @@ theorem RD.dogDigsSecondSubSuccessStoreLog {v : DogImmutables} {code : ByteArray
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
       native_decide)
     mem_cost
-    (mloadFreePtrValue (by rw [hhashSize]; decide) (by decide) hhashRead64)
+    (mloadFreePtrValue (by rw [hhashSize]; decide) hhashRead64)
     (by native_decide) (by evm_ov)
   have rdMstorePrefix := evm_run rdMload with [
     raw dup4
@@ -1673,8 +1673,7 @@ theorem RD.dogDigsSecondSubSuccessStoreLog {v : DogImmutables} {code : ByteArray
         have hsz := writeWord_size (twoWordHashMem ilk ⟨1⟩ mem) 128 rad
           (by rw [hhashSize]; native_decide)
         rw [hsz, hhashSize]
-        decide)
-      (by decide) hread64')
+        decide) hread64')
     (by native_decide) (by evm_ov)
   have rdTopicStack := evm_run rdMload2 with [
     raw dup5

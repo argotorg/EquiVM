@@ -33,13 +33,12 @@ theorem RD.jugDripToVatIlksExtcodesizeGuard
         (solcSlotWord σ I ⟨2⟩) = dripVatTargetWord σ I := by
     simpa [target, rawTarget, jugSlotWord] using htargetMask
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (dripIlkHashMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (dripIlkHashMem I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((dripIlkHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [dripIlkHashMem_size I]; decide) (by decide)
+    mloadFreePtrValue (by rw [dripIlkHashMem_size I]; decide)
       (dripIlkHashMem_read64 I)
   have hcallMem : (dripVatIlksCalldataMem I (dripIlkHashMem I)).size = 164 :=
     dripVatIlksCalldataMem_size I (dripIlkHashMem_size I)
@@ -48,14 +47,13 @@ theorem RD.jugDripToVatIlksExtcodesizeGuard
         UInt256.toByteArray ⟨128⟩ :=
     dripVatIlksCalldataMem_read64 I (dripIlkHashMem_size I) (dripIlkHashMem_read64 I)
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (dripVatIlksCalldataMem I (dripIlkHashMem I)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (dripVatIlksCalldataMem I (dripIlkHashMem I)).size then ⟨0⟩
        else UInt256.ofNat
       (fromByteArrayBigEndian
           ((dripVatIlksCalldataMem I (dripIlkHashMem I)).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have rd1324 := rd1323.jumpdest (by native_decide) (by evm_ov)
   have rd1326 := rd1324.push1 ⟨2⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1327, C1327, rd1327raw⟩ := rd1326.sload (by native_decide) (by evm_ov)

@@ -36,21 +36,14 @@ theorem RD.clipperTakeVatMoveExtcodesizeGuardWF {code : ByteArray}
   have haw132 := clipperTakeMemoryWF_mstore_aw mem aw (⟨132⟩ : UInt256) hmem (by decide)
   have haw164 := clipperTakeMemoryWF_mstore_aw mem aw (⟨164⟩ : UInt256) hmem (by decide)
   have haw196 := clipperTakeMemoryWF_mstore_aw mem aw (⟨196⟩ : UInt256) hmem (by decide)
-  have hmcost (off val : UInt256) (t : List UInt256)
+  have hmcost (off : UInt256)
       (hawOff : UInt256.ofNat (MachineState.M aw.toNat off.toNat 32) = aw) :
-      ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = off :: val :: t → memoryExpansionCost s .MSTORE = 0 := by
-    intro s haws hstks
-    exact mstoreCost_of_stack haws hstks (by rw [hawOff]; simp)
-  have hloadCost (off : UInt256) (t : List UInt256)
+      Cₘ (M aw off ⟨32⟩) - Cₘ aw = 0 := by
+    exact memoryExpansionCost_zero_of_aw_stable hawOff
+  have hloadCost (off : UInt256)
       (hawOff : UInt256.ofNat (MachineState.M aw.toNat off.toNat 32) = aw) :
-      ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = off :: t → memoryExpansionCost s .MLOAD = 0 := by
-    intro s haws hstks
-    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-      List.getElem!_cons_zero]
-    rw [hawOff]
-    simp
+      Cₘ (M aw off ⟨32⟩) - Cₘ aw = 0 := by
+    exact memoryExpansionCost_zero_of_aw_stable hawOff
   have rd4708pre := evm_run rd4701 with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨2⟩ (by clipper_runtime_decode) (by evm_ov)]
@@ -61,7 +54,7 @@ theorem RD.clipperTakeVatMoveExtcodesizeGuardWF {code : ByteArray}
     raw dup1 (by clipper_runtime_decode) (by evm_ov)]
   have haw64 := clipperTakeMemoryWF_mstore_aw mem aw (⟨64⟩ : UInt256) hmem (by decide)
   have rd4709 := rd4708pre.mload 0 ⟨128⟩ aw
-    (by clipper_runtime_decode) (hloadCost ⟨64⟩ _ haw64) hbaseMload64 haw64 (by evm_ov)
+    (by clipper_runtime_decode) (hloadCost ⟨64⟩ haw64) hbaseMload64 haw64 (by evm_ov)
   have rd4717pre := evm_run rd4709 with [
     raw push4 clipperTakeVatMoveSelectorSeed (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨224⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -71,7 +64,7 @@ theorem RD.clipperTakeVatMoveExtcodesizeGuardWF {code : ByteArray}
     clipperTakeVatMoveSelectorShifted from rfl] at rd4717pre
   have rd4719 := rd4717pre.mstore 0
     (clipperTakeVatMoveSelectorMem mem) aw (by clipper_runtime_decode)
-    (hmcost ⟨128⟩ _ _ haw128) (by rfl) haw128 (by evm_ov)
+    (hmcost ⟨128⟩ haw128) (by rfl) haw128 (by evm_ov)
   have rd4724pre := evm_run rd4719 with [
     raw caller (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨4⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -80,7 +73,7 @@ theorem RD.clipperTakeVatMoveExtcodesizeGuardWF {code : ByteArray}
   rw [show (⟨128⟩ : UInt256) + ⟨4⟩ = ⟨132⟩ from by native_decide] at rd4724pre
   have rd4725 := rd4724pre.mstore 0
     (clipperTakeVatMoveSenderMem ee mem) aw (by clipper_runtime_decode)
-    (hmcost ⟨132⟩ _ _ haw132) (by rfl) haw132 (by evm_ov)
+    (hmcost ⟨132⟩ haw132) (by rfl) haw132 (by evm_ov)
   have rd4740pre := evm_run rd4725 with [
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -98,7 +91,7 @@ theorem RD.clipperTakeVatMoveExtcodesizeGuardWF {code : ByteArray}
   rw [show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by native_decide] at rd4740pre
   have rd4741 := rd4740pre.mstore 0
     (clipperTakeVatMoveVowMem σ ee mem) aw (by clipper_runtime_decode)
-    (hmcost ⟨164⟩ _ _ haw164)
+    (hmcost ⟨164⟩ haw164)
     (by
       rw [show (⟨164⟩ : UInt256).toNat = 164 from by decide]
       simp [clipperTakeVatMoveVowMem, clipperTakeVowTarget, solcSlotWord,
@@ -112,11 +105,11 @@ theorem RD.clipperTakeVatMoveExtcodesizeGuardWF {code : ByteArray}
   rw [show (⟨128⟩ : UInt256) + ⟨68⟩ = ⟨196⟩ from by native_decide] at rd4747pre
   have rd4748 := rd4747pre.mstore 0
     (clipperTakeVatMoveCalldataMem σ ee owe mem) aw (by clipper_runtime_decode)
-    (hmcost ⟨196⟩ _ _ haw196) (by rfl) haw196 (by evm_ov)
+    (hmcost ⟨196⟩ haw196) (by rfl) haw196 (by evm_ov)
   have rd4749pre := evm_run rd4748 with [
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
   have rd4750 := rd4749pre.mload 0 ⟨128⟩ aw
-    (by clipper_runtime_decode) (hloadCost ⟨64⟩ _ haw64) hcallMload64 haw64 (by evm_ov)
+    (by clipper_runtime_decode) (hloadCost ⟨64⟩ haw64) hcallMload64 haw64 (by evm_ov)
   have rd4783 := rd4750.pushConst vatWord (width := 32) (op := .PUSH32)
     (by decide) (by simpa [vatWord] using clipperTakeVatPush32Decode4750 v hpatch)
     (by evm_ov)

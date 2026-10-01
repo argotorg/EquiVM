@@ -1061,8 +1061,7 @@ theorem flopperDealX_toTicGuard
   have rd3972 := rd3971pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -1072,8 +1071,7 @@ theorem flopperDealX_toTicGuard
   have rd3977 := rd3976pre.mstore 0 memMap (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memMap, id, twoWordHashMem, wordAt32Mem])
@@ -1089,11 +1087,7 @@ theorem flopperDealX_toTicGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id solcFreePtrMem
   have rd3981 := rd3980pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -1237,8 +1231,7 @@ theorem flopperDealX_toTicLtGuard
   have rd4014 := rd4013pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, mem0, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -1248,8 +1241,7 @@ theorem flopperDealX_toTicLtGuard
   have rd4019 := rd4018pre.mstore 0 memTic (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memTic, mem0, id, twoWordHashMem, wordAt32Mem])
@@ -1268,11 +1260,7 @@ theorem flopperDealX_toTicLtGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id mem0
   have rd4023 := rd4022pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -1335,8 +1323,7 @@ theorem flopperDealX_toEndLtGuard
   have rd4056 := rd4055pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, memTic, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -1346,8 +1333,7 @@ theorem flopperDealX_toEndLtGuard
   have rd4061 := rd4060pre.mstore 0 memEnd (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memEnd, memTic, id, twoWordHashMem, wordAt32Mem])
@@ -1363,11 +1349,7 @@ theorem flopperDealX_toEndLtGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd4065 := rd4064pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)

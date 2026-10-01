@@ -63,9 +63,7 @@ theorem daiJoinCtorArgCopyTrace
       9
       (daiJoinCtorArgMem vat dai) (UInt256.ofNat 6)
       (by daiJoin_ctor_decode)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, List.getElem!_cons_succ]
+      (by
         rw [daiJoinCtorArgLen_eq]
         decide)
       (by

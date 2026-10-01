@@ -52,16 +52,14 @@ theorem gemJoinCtorDecimalsSetupReach
       (by rw [gemJoinCtorWardsHashMem_size]; native_decide)]
     exact gemJoinCtorWardsHashMem_read64 I vat ilk gem
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (gemJoinCtorDecimalsCalldataMem I vat ilk gem).size ∨
-          (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (gemJoinCtorDecimalsCalldataMem I vat ilk gem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((gemJoinCtorDecimalsCalldataMem I vat ilk gem).readWithPadding 64 32))) = ⟨224⟩ := by
     exact mloadWordValue_of_readWithPadding
-      (mem := gemJoinCtorDecimalsCalldataMem I vat ilk gem) (aw := UInt256.ofNat 8)
+      (mem := gemJoinCtorDecimalsCalldataMem I vat ilk gem)
       (off := ⟨64⟩) (v := ⟨224⟩)
       (by rw [gemJoinCtorDecimalsCalldataMem_size]; decide)
-      (by decide)
       hread64
   have rd184 := gem_ctor_run rd153 with [
     swap7,
@@ -327,29 +325,19 @@ theorem gemJoinCtorDecimalsReturnDecodeOkReach
     (gemTarget retWord : UInt256) {mem out : ByteArray} {aw : UInt256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     (hlo : 32 ≤ out.size) (hhi : out.size < UInt256.size)
-    (hMload64Cost :
-      ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack =
-          (⟨64⟩ : UInt256) :: [EVM.word gem.val, ilk, EVM.word vat.val] →
-        memoryExpansionCost s .MLOAD = 0)
+    (hMload64Cost : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = 0)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨224⟩)
     (hMload224Value :
-      (if (⟨224⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨224⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨224⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨224⟩ : UInt256).toNat 32))) =
         retWord)
-    (hMload224Cost :
-      ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack =
-          (⟨224⟩ : UInt256) :: [EVM.word gem.val, ilk, EVM.word vat.val] →
-        memoryExpansionCost s .MLOAD = 0)
+    (hMload224Cost : Cₘ (M aw ⟨224⟩ ⟨32⟩) - Cₘ aw = 0)
     (hMload224Aw : UInt256.ofNat (MachineState.M aw.toNat 224 32) = aw)
     (rd218 :
       RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨218⟩
@@ -409,15 +397,10 @@ theorem gemJoinCtorDecimalsReturnDecodeShortReverts
     (gemTarget : UInt256) {mem out : ByteArray} {aw : UInt256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
     (hshort : out.size < 32) (hhi : out.size < UInt256.size)
-    (hMload64Cost :
-      ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack =
-          (⟨64⟩ : UInt256) :: [EVM.word gem.val, ilk, EVM.word vat.val] →
-        memoryExpansionCost s .MLOAD = 0)
+    (hMload64Cost : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = 0)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨224⟩)

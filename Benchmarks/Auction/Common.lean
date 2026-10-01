@@ -275,6 +275,6 @@ theorem RD.auctionRevert0 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     (hov : stk.length + 2 ≤ 1024) : RDrev code g s0 :=
   h.push0 hd0 (by omega)
     |>.dup1 hd1 (by omega)
-    |>.rev 0 hd2 (fun s _ hstks => memExpRevert0 s hstks) (by omega)
+    |>.rev 0 hd2 (by simp [M, MachineState.M, u256_ofNat_toNat]) (by omega)
 
 end Reasoning.Reach

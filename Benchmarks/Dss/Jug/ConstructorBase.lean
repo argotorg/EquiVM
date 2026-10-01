@@ -238,16 +238,14 @@ theorem jugCtorArgFreeMem_read128 (vat : AccountAddress) :
   exact jugCtorArgMem_read128 vat
 
 theorem jugCtorArgFreeMem_mload128 (vat : AccountAddress) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (jugCtorArgFreeMem vat).size ∨
-        (⟨128⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (jugCtorArgFreeMem vat).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((jugCtorArgFreeMem vat).readWithPadding 128 32))) =
       EVM.word vat.val := by
   exact mloadWordValue_of_readWithPadding
-    (mem := jugCtorArgFreeMem vat) (aw := UInt256.ofNat 5) (off := ⟨128⟩)
+    (mem := jugCtorArgFreeMem vat) (off := ⟨128⟩)
     (v := EVM.word vat.val)
     (by rw [jugCtorArgFreeMem_size]; decide)
-    (by decide)
     (jugCtorArgFreeMem_read128 vat)
 
 abbrev jugCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=

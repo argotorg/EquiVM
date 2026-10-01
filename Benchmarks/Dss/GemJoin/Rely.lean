@@ -390,7 +390,7 @@ theorem gemJoinRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
   have rd1152pre := evm_run rd1152raw with [
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [relyStoreHashMem_size I]; decide) (by decide)
+      (mloadFreePtrValue (by rw [relyStoreHashMem_size I]; decide)
         (relyStoreHashMem_read64 I))
       (by native_decide) (by evm_ov)]
   have rd1185 := rd1152pre.pushConst

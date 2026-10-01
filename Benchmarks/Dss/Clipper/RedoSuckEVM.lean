@@ -156,14 +156,12 @@ theorem clipperRedoSuckCalldataMem_read64 (σ : AccountMap) (ee : ExecutionEnv)
 theorem clipperRedoSuckCalldataMem_mload64 (σ : AccountMap) (ee : ExecutionEnv)
     (kpr coin : UInt256) {mem : ByteArray} (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperRedoSuckCalldataMem σ ee kpr coin mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperRedoSuckCalldataMem σ ee kpr coin mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperRedoSuckCalldataMem σ ee kpr coin mem).readWithPadding 64 32))) = ⟨128⟩ :=
   mloadFreePtrValue
-    (by rw [clipperRedoSuckCalldataMem_size σ ee kpr coin hmem]; decide)
-    (by decide) (clipperRedoSuckCalldataMem_read64 σ ee kpr coin hmem hread64)
+    (by rw [clipperRedoSuckCalldataMem_size σ ee kpr coin hmem]; decide) (clipperRedoSuckCalldataMem_read64 σ ee kpr coin hmem hread64)
 
 theorem clipperRedoSuckCalldataMem_read128_100 (σ : AccountMap) (ee : ExecutionEnv)
     (kpr coin : UInt256) {mem : ByteArray} (hmem : mem.size = 196) :
@@ -383,10 +381,9 @@ theorem RD.clipperRedoPayoutToSuckGuard {code : ByteArray}
       (clipperRedoSuckCalldataMem σ ee kpr coin mem) (UInt256.ofNat 8) o (cA, σ) k' C' := by
   let vatWord : UInt256 := EVM.Word.ofNat (↑v.vat : Nat)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 64 32))) = ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hcallMload64 :=
     clipperRedoSuckCalldataMem_mload64 σ ee kpr coin hmem hread64
   have rdVatPre := evm_run rd with [

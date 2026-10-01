@@ -28,7 +28,7 @@ theorem mintReturnPrefix {I g s0 ret R mem aw ptr out acc k C}
 theorem mintReturnOk {I g s0 ret R mem aw ptr out acc k C word}
     (h : RD auctionBytecode I g s0 ⟨3071⟩ (⟨1⟩ :: ret :: R) mem aw out acc k C)
     (hm : MemoryCursor mem aw ptr) (hlen : 32 ≤ out.size) (hhi : out.size < 2 ^ 255)
-    (hin : ptr.toNat + 32 ≤ mem.size) (hcover : ptr.toNat < aw.toNat * 32)
+    (hin : ptr.toNat + 32 ≤ mem.size)
     (hread : mem.readWithPadding ptr.toNat 32 = word.toByteArray)
     (hov : R.length + 11 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨3172⟩ (word :: ret :: R)
@@ -38,7 +38,7 @@ theorem mintReturnOk {I g s0 ret R mem aw ptr out acc k C word}
     rw [word_add_sub_left]
     exact slt_ofNat_lit_zero (by decide) hlen hhi
   obtain ⟨_, _, rd3108⟩ := uintReturnDecodeOk rd5820 hcheck
-    (returnReserve_load hm out.size hin hcover hread) (by jump_dest) (by evm_ov)
+    (returnReserve_load hm out.size hin hread) (by jump_dest) (by evm_ov)
   exact ⟨_, _, evm_run rd3108 with [jumpdest, push1 ⟨1⟩, jumpdest, push2 ⟨3172⟩,
     jumpiT (by decide) (by jump_dest)]⟩
 

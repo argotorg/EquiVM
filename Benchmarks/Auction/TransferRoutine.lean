@@ -65,10 +65,8 @@ theorem transferRoutine {I g s0 amount recipient ret oldTarget R mem aw ptr rdat
           (calldataWord out 0).toByteArray :=
         callOutput32_read_word _ out ptr hou hlen (by omega)
       have hmem := callMem2_heap hm transferWord (UInt256.land recipient solcAddrMask) amount hb68
-      have hcover : ptr.toNat < (transferCallWords aw ptr).toNat * 32 :=
-        callActiveWords_cover32 hmem.active hb68 (by omega)
       by_cases hcanon : calldataWord out 0 = ⟨0⟩ ∨ calldataWord out 0 = ⟨1⟩
-      · have hrd := transferReturnOk rd3537 hcall.cursor hlen hohi hin hcover hread hcanon hret
+      · have hrd := transferReturnOk rd3537 hcall.cursor hlen hohi hin hread hcanon hret
           (by omega)
         have hb' : ptr.toNat + out.size + 31 ≤ 2 ^ 200 := by omega
         have hcursor := (returnReserve_cursor hcall.cursor out.size hb').expand32 ptr (by omega)
@@ -77,7 +75,7 @@ theorem transferRoutine {I g s0 amount recipient ret oldTarget R mem aw ptr rdat
         have hp := returnReservePtr_toNat hb'
         exact Or.inl ⟨rfl, ⟨hlen, hcanon⟩, hrd, hcursor, hprefix, by omega, by omega⟩
       · exact Or.inr ⟨Or.inr (fun hv => hcanon hv.2),
-          transferReturnNoncanonical rd3537 hcall.cursor hlen hohi hin hcover hread hcanon (by
+          transferReturnNoncanonical rd3537 hcall.cursor hlen hohi hin hread hcanon (by
             omega)⟩
     · exact Or.inr ⟨Or.inr (fun hv => hlen hv.1),
         transferReturnShort rd3537 hcall.cursor (by omega) (by omega)⟩

@@ -432,7 +432,7 @@ theorem RD.clipperRedoStatusFalseReverts {code : ByteArray} (v : ClipperImmutabl
     raw dup1 (by clipper_runtime_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by clipper_runtime_decode)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_runtime_decode)
@@ -729,8 +729,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
             obtain ⟨_, _, rd8549⟩ :=
               Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperStatusPriceExtcodesizeGuard
                 (v := v) hpatch (by simpa [calcAddr] using rd8502)
-                (mloadFreePtrValue (by rw [clipperRedoSalesHashMem_size I]; decide)
-                  (by decide) (clipperRedoSalesHashMem_read64 I))
+                (mloadFreePtrValue (by rw [clipperRedoSalesHashMem_size I]; decide) (clipperRedoSalesHashMem_read64 I))
                 (clipperRedoSalesHashMem_size I)
                 (clipperRedoSalesHashMem_read64 I)
                 (by simp only [List.length_cons, List.length_nil]; omega)

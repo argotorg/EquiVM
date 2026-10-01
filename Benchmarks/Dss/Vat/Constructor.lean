@@ -272,10 +272,7 @@ theorem vatCtorInitcodeSuccess
           (MachineState.M (UInt256.ofNat 3).toNat (⟨0⟩ : UInt256).toNat (⟨6965⟩ : UInt256).toNat)) -
         Cₘ (UInt256.ofNat 3))
       (vatCtorReturnMem memHash) (UInt256.ofNat 218) vatCtorDecode51
-      (fun s haws hstks => by
-        set_option linter.unusedSimpArgs false in
-          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-            List.getElem!_cons_zero, List.getElem!_cons_succ])
+      (by rfl)
       (by rfl)
       (by decide) (by evm_ov),
     raw push1 ⟨0⟩ vatCtorDecode52 (by evm_ov),

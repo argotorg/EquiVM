@@ -1730,8 +1730,7 @@ theorem barkVatUrnsPostCallMem_mload64 {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hshort : out.size < 64) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkVatUrnsPostCallMem I mem out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkVatUrnsPostCallMem I mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatUrnsPostCallMem I mem out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -1740,7 +1739,6 @@ theorem barkVatUrnsPostCallMem_mload64 {I : ExecutionEnv} {mem out : ByteArray}
     (by
       have hgt := barkVatUrnsPostCallMem_size_gt64 (I := I) hmem hshort hout
       omega)
-    (by decide)
     (barkVatUrnsPostCallMem_read64 hmem hread64 hshort hout)
 
 theorem barkVatUrnsPostCallMem_size_long {I : ExecutionEnv} {mem out : ByteArray}
@@ -1780,15 +1778,13 @@ theorem barkVatUrnsPostCallMem_mload64_long {I : ExecutionEnv} {mem out : ByteAr
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkVatUrnsPostCallMem I mem out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkVatUrnsPostCallMem I mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatUrnsPostCallMem I mem out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [barkVatUrnsPostCallMem_size_long hmem hlong hout]; decide)
-    (by decide)
     (barkVatUrnsPostCallMem_read64_long hmem hread64 hlong hout)
 
 theorem barkVatUrnsPostCallMem_read128_long {I : ExecutionEnv} {mem out : ByteArray}
@@ -1828,21 +1824,19 @@ theorem barkVatUrnsPostCallMem_read128_long {I : ExecutionEnv} {mem out : ByteAr
 
 theorem barkVatUrnsPostCallMem_mload128_long {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (barkVatUrnsPostCallMem I mem out).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (barkVatUrnsPostCallMem I mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatUrnsPostCallMem I mem out).readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
       barkVatUrnsInkWord out := by
   unfold barkVatUrnsInkWord
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by
+    rw [barkVatUrnsPostCallMem_size_long hmem hlong hout]
+    decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian ((barkVatUrnsPostCallMem I mem out).readWithPadding 128 32)) =
         UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))
-    rw [barkVatUrnsPostCallMem_read128_long hmem hlong hout]
-  · exact not_or.mpr
-      ⟨by rw [barkVatUrnsPostCallMem_size_long hmem hlong hout]; decide,
-        by native_decide⟩
+  rw [barkVatUrnsPostCallMem_read128_long hmem hlong hout]
 
 theorem barkVatUrnsPostCallMem_read160_long {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -1881,21 +1875,19 @@ theorem barkVatUrnsPostCallMem_read160_long {I : ExecutionEnv} {mem out : ByteAr
 
 theorem barkVatUrnsPostCallMem_mload160_long {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (barkVatUrnsPostCallMem I mem out).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (barkVatUrnsPostCallMem I mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatUrnsPostCallMem I mem out).readWithPadding (⟨160⟩ : UInt256).toNat 32))) =
       barkVatUrnsArtWord out := by
   unfold barkVatUrnsArtWord
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by
+    rw [barkVatUrnsPostCallMem_size_long hmem hlong hout]
+    decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian ((barkVatUrnsPostCallMem I mem out).readWithPadding 160 32)) =
         UInt256.ofNat (fromByteArrayBigEndian (out.extract 32 64))
-    rw [barkVatUrnsPostCallMem_read160_long hmem hlong hout]
-  · exact not_or.mpr
-      ⟨by rw [barkVatUrnsPostCallMem_size_long hmem hlong hout]; decide,
-        by native_decide⟩
+  rw [barkVatUrnsPostCallMem_read160_long hmem hlong hout]
 
 theorem barkVatUrnsTupleFreeMem_size {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -1978,16 +1970,14 @@ theorem barkVatUrnsTupleMem_read64 {I : ExecutionEnv} {mem out : ByteArray}
 
 theorem barkVatUrnsTupleMem_mload64 {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkVatUrnsTupleMem I mem out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkVatUrnsTupleMem I mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatUrnsTupleMem I mem out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨256⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 8) (v := (⟨256⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨256⟩ : UInt256))
     (by rw [barkVatUrnsTupleMem_size hmem hlong hout]; decide)
-    (by native_decide)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
       barkVatUrnsTupleMem_read64 hmem hlong hout)
 
@@ -2470,16 +2460,14 @@ theorem twoWordHashMem_read256_580 {mem : ByteArray} (key slot word : UInt256)
 theorem twoWordHashMem_mload256_580 {mem : ByteArray} (key slot word : UInt256)
     (hmem : mem.size = 580)
     (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray word) :
-    (if (⟨256⟩ : UInt256).toNat ≥ (twoWordHashMem key slot mem).size
-        ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨256⟩ : UInt256).toNat ≥ (twoWordHashMem key slot mem).size then ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
         ((twoWordHashMem key slot mem).readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
       word := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨256⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := word)
+    (off := (⟨256⟩ : UInt256)) (v := word)
     (by rw [twoWordHashMem_size_580 key slot hmem]; decide)
-    (by native_decide)
     (by
       simpa [show (⟨256⟩ : UInt256).toNat = 256 by native_decide] using
         twoWordHashMem_read256_580 key slot word hmem hread256)
@@ -2502,16 +2490,14 @@ theorem barkIlksHashMem_read64 {I : ExecutionEnv} {mem out : ByteArray}
 
 theorem barkIlksHashMem_mload64 {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkIlksHashMem I mem out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkIlksHashMem I mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkIlksHashMem I mem out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨256⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 8) (v := (⟨256⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨256⟩ : UInt256))
     (by rw [barkIlksHashMem_size hmem hlong hout]; decide)
-    (by native_decide)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
       barkIlksHashMem_read64 hmem hlong hout)
 
@@ -2609,16 +2595,14 @@ theorem barkIlksMem_read64 {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteA
 
 theorem barkIlksMem_mload64 {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkIlksMem σ I mem out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkIlksMem σ I mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkIlksMem σ I mem out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨384⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 12) (v := (⟨384⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
     (by rw [barkIlksMem_size hmem hlong hout]; decide)
-    (by native_decide)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
       barkIlksMem_read64 hmem hlong hout)
 
@@ -2830,16 +2814,14 @@ theorem barkVatIlksCallMem_read352 {σ : AccountMap} {I : ExecutionEnv}
 theorem barkVatIlksCallMem_mload64 {σ : AccountMap} {I : ExecutionEnv}
     {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkVatIlksCallMem σ I mem out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 14 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkVatIlksCallMem σ I mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatIlksCallMem σ I mem out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨384⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 14) (v := (⟨384⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
     (by rw [barkVatIlksCallMem_size hmem hlong hout]; decide)
-    (by native_decide)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
       barkVatIlksCallMem_read64 hmem hlong hout)
 
@@ -2899,20 +2881,18 @@ theorem barkVatIlksPostCallMem_mload64 {σ : AccountMap} {I : ExecutionEnv}
     {mem out outIlks : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hshort : outIlks.size < 160) (houtIlks : outIlks.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatIlksPostCallMem σ I mem out outIlks).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨384⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17) (v := (⟨384⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
     (by
       have hgt := barkVatIlksPostCallMem_size_gt64 (σ := σ) (I := I) hmem hlong
         hout hshort houtIlks
       simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hgt)
-    (by native_decide)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
       barkVatIlksPostCallMem_read64 hmem hlong hout hshort houtIlks)
 
@@ -2959,17 +2939,15 @@ theorem barkVatIlksPostCallMem_mload64_long {σ : AccountMap} {I : ExecutionEnv}
     {mem out outIlks : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hlongIlks : 160 ≤ outIlks.size) (houtIlks : outIlks.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatIlksPostCallMem σ I mem out outIlks).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨384⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17) (v := (⟨384⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
     (by rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks]; decide)
-    (by native_decide)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
       barkVatIlksPostCallMem_read64_long hmem hlong hout hlongIlks houtIlks)
 
@@ -2996,20 +2974,18 @@ theorem barkVatIlksPostCallMem_mload256_long {σ : AccountMap} {I : ExecutionEnv
     {mem out outIlks : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hlongIlks : 160 ≤ outIlks.size) (houtIlks : outIlks.size < UInt256.size) :
-    (if (⟨256⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size
-        ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+    (if (⟨256⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatIlksPostCallMem σ I mem out outIlks).readWithPadding
           (⟨256⟩ : UInt256).toNat 32))) =
       barkIlksClipWord σ I := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨256⟩ : UInt256)) (aw := UInt256.ofNat 17)
+    (off := (⟨256⟩ : UInt256))
     (v := barkIlksClipWord σ I)
     (by
       rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks]
       native_decide)
-    (by native_decide)
     (by simpa [show (⟨256⟩ : UInt256).toNat = 256 by native_decide] using
       barkVatIlksPostCallMem_read256_long hmem hlong hout hlongIlks houtIlks)
 
@@ -3036,18 +3012,16 @@ theorem barkVatIlksPostCallMem_mload288_long {σ : AccountMap} {I : ExecutionEnv
     {mem out outIlks : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hlongIlks : 160 ≤ outIlks.size) (houtIlks : outIlks.size < UInt256.size) :
-    (if (⟨288⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size
-        ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+    (if (⟨288⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatIlksPostCallMem σ I mem out outIlks).readWithPadding
           (⟨288⟩ : UInt256).toNat 32))) =
       barkIlksChopWord σ I := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨288⟩ : UInt256)) (aw := UInt256.ofNat 17)
+    (off := (⟨288⟩ : UInt256))
     (v := barkIlksChopWord σ I)
     (by rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks]; decide)
-    (by native_decide)
     (by simpa [show (⟨288⟩ : UInt256).toNat = 288 by native_decide] using
       barkVatIlksPostCallMem_read288_long hmem hlong hout hlongIlks houtIlks)
 
@@ -3074,18 +3048,16 @@ theorem barkVatIlksPostCallMem_mload320_long {σ : AccountMap} {I : ExecutionEnv
     {mem out outIlks : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hlongIlks : 160 ≤ outIlks.size) (houtIlks : outIlks.size < UInt256.size) :
-    (if (⟨320⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size
-        ∨ (⟨320⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+    (if (⟨320⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatIlksPostCallMem σ I mem out outIlks).readWithPadding
           (⟨320⟩ : UInt256).toNat 32))) =
       barkIlksHoleWord σ I := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨320⟩ : UInt256)) (aw := UInt256.ofNat 17)
+    (off := (⟨320⟩ : UInt256))
     (v := barkIlksHoleWord σ I)
     (by rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks]; decide)
-    (by native_decide)
     (by simpa [show (⟨320⟩ : UInt256).toNat = 320 by native_decide] using
       barkVatIlksPostCallMem_read320_long hmem hlong hout hlongIlks houtIlks)
 
@@ -3112,18 +3084,16 @@ theorem barkVatIlksPostCallMem_mload352_long {σ : AccountMap} {I : ExecutionEnv
     {mem out outIlks : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hlongIlks : 160 ≤ outIlks.size) (houtIlks : outIlks.size < UInt256.size) :
-    (if (⟨352⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size
-        ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+    (if (⟨352⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatIlksPostCallMem σ I mem out outIlks).readWithPadding
           (⟨352⟩ : UInt256).toNat 32))) =
       barkIlksDirtWord σ I := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨352⟩ : UInt256)) (aw := UInt256.ofNat 17)
+    (off := (⟨352⟩ : UInt256))
     (v := barkIlksDirtWord σ I)
     (by rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks]; decide)
-    (by native_decide)
     (by simpa [show (⟨352⟩ : UInt256).toNat = 352 by native_decide] using
       barkVatIlksPostCallMem_read352_long hmem hlong hout hlongIlks houtIlks)
 
@@ -3171,24 +3141,21 @@ theorem barkVatIlksPostCallMem_mload416_long {σ : AccountMap} {I : ExecutionEnv
     {mem out outIlks : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hlongIlks : 160 ≤ outIlks.size) (houtIlks : outIlks.size < UInt256.size) :
-    (if (⟨416⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size
-        ∨ (⟨416⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+    (if (⟨416⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatIlksPostCallMem σ I mem out outIlks).readWithPadding
           (⟨416⟩ : UInt256).toNat 32))) =
       barkVatIlksRateWord outIlks := by
   unfold barkVatIlksRateWord
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by
+    rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks]
+    decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian
         ((barkVatIlksPostCallMem σ I mem out outIlks).readWithPadding 416 32)) =
         UInt256.ofNat (fromByteArrayBigEndian (outIlks.extract 32 64))
-    rw [barkVatIlksPostCallMem_read416_long hmem hlong hout hlongIlks houtIlks]
-  · exact not_or.mpr
-      ⟨by rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks];
-          decide,
-        by native_decide⟩
+  rw [barkVatIlksPostCallMem_read416_long hmem hlong hout hlongIlks houtIlks]
 
 theorem barkVatIlksPostCallMem_read448_long {σ : AccountMap} {I : ExecutionEnv}
     {mem out outIlks : ByteArray}
@@ -3234,24 +3201,24 @@ theorem barkVatIlksPostCallMem_mload448_long {σ : AccountMap} {I : ExecutionEnv
     {mem out outIlks : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hlongIlks : 160 ≤ outIlks.size) (houtIlks : outIlks.size < UInt256.size) :
-    (if (⟨448⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size
-        ∨ (⟨448⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+    (if (⟨448⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatIlksPostCallMem σ I mem out outIlks).readWithPadding
           (⟨448⟩ : UInt256).toNat 32))) =
       barkVatIlksSpotWord outIlks := by
   unfold barkVatIlksSpotWord
-  rw [if_neg]
-  · change UInt256.ofNat
-      (fromByteArrayBigEndian
-        ((barkVatIlksPostCallMem σ I mem out outIlks).readWithPadding 448 32)) =
-        UInt256.ofNat (fromByteArrayBigEndian (outIlks.extract 64 96))
-    rw [barkVatIlksPostCallMem_read448_long hmem hlong hout hlongIlks houtIlks]
-  · exact not_or.mpr
-      ⟨by rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks];
-          decide,
-        by native_decide⟩
+  have hnot :
+      ¬ ((⟨448⟩ : UInt256).toNat ≥
+        (barkVatIlksPostCallMem σ I mem out outIlks).size) := by
+    rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks]
+    decide
+  rw [if_neg hnot]
+  change UInt256.ofNat
+    (fromByteArrayBigEndian
+      ((barkVatIlksPostCallMem σ I mem out outIlks).readWithPadding 448 32)) =
+      UInt256.ofNat (fromByteArrayBigEndian (outIlks.extract 64 96))
+  rw [barkVatIlksPostCallMem_read448_long hmem hlong hout hlongIlks houtIlks]
 
 theorem barkVatIlksPostCallMem_read512_long {σ : AccountMap} {I : ExecutionEnv}
     {mem out outIlks : ByteArray}
@@ -3296,24 +3263,24 @@ theorem barkVatIlksPostCallMem_mload512_long {σ : AccountMap} {I : ExecutionEnv
     {mem out outIlks : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hlongIlks : 160 ≤ outIlks.size) (houtIlks : outIlks.size < UInt256.size) :
-    (if (⟨512⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size
-        ∨ (⟨512⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+    (if (⟨512⟩ : UInt256).toNat ≥ (barkVatIlksPostCallMem σ I mem out outIlks).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatIlksPostCallMem σ I mem out outIlks).readWithPadding
           (⟨512⟩ : UInt256).toNat 32))) =
       barkVatIlksDustWord outIlks := by
   unfold barkVatIlksDustWord
-  rw [if_neg]
-  · change UInt256.ofNat
-      (fromByteArrayBigEndian
-        ((barkVatIlksPostCallMem σ I mem out outIlks).readWithPadding 512 32)) =
-        UInt256.ofNat (fromByteArrayBigEndian (outIlks.extract 128 160))
-    rw [barkVatIlksPostCallMem_read512_long hmem hlong hout hlongIlks houtIlks]
-  · exact not_or.mpr
-      ⟨by rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks];
-          decide,
-        by native_decide⟩
+  have hnot :
+      ¬ ((⟨512⟩ : UInt256).toNat ≥
+        (barkVatIlksPostCallMem σ I mem out outIlks).size) := by
+    rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks]
+    decide
+  rw [if_neg hnot]
+  change UInt256.ofNat
+    (fromByteArrayBigEndian
+      ((barkVatIlksPostCallMem σ I mem out outIlks).readWithPadding 512 32)) =
+      UInt256.ofNat (fromByteArrayBigEndian (outIlks.extract 128 160))
+  rw [barkVatIlksPostCallMem_read512_long hmem hlong hout hlongIlks houtIlks]
 
 theorem barkVatGrabSelectorMem_size {mem : ByteArray} (hmem : mem.size = 544) :
     (barkVatGrabSelectorMem mem).size = 544 := by
@@ -3426,17 +3393,15 @@ theorem barkVatGrabCallMem_mload64 {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem : ByteArray} {dink dart : UInt256}
     (hmem : mem.size = 544)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkVatGrabCallMem σ σMem I mem dink dart).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkVatGrabCallMem σ σMem I mem dink dart).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨384⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
     (by rw [barkVatGrabCallMem_size hmem]; decide)
-    (by native_decide)
     (by
       have hread := barkVatGrabCallMem_read64 (σ := σ) (σMem := σMem) (I := I)
         (mem := mem) (dink := dink) (dart := dart) hmem hread64
@@ -3488,14 +3453,12 @@ theorem barkVatGrabCallMem_mload288 {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem : ByteArray} {dink dart milkChop : UInt256}
     (hmem : mem.size = 544)
     (hmload288 :
-      (if (⟨288⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨288⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (mem.readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
         milkChop) :
-    (if (⟨288⟩ : UInt256).toNat ≥ (barkVatGrabCallMem σ σMem I mem dink dart).size
-        ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨288⟩ : UInt256).toNat ≥ (barkVatGrabCallMem σ σMem I mem dink dart).size then ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
         ((barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding
@@ -3577,15 +3540,13 @@ theorem barkVatGrabPostCallMem_mload288 {σ σMem : AccountMap} {I : ExecutionEn
     {mem out : ByteArray} {dink dart milkChop : UInt256}
     (hmem : mem.size = 544)
     (hmload288 :
-      (if (⟨288⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨288⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (mem.readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
         milkChop) :
     (if (⟨288⟩ : UInt256).toNat ≥
-          (barkVatGrabPostCallMem σ σMem I mem out dink dart).size
-        ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+          (barkVatGrabPostCallMem σ σMem I mem out dink dart).size then ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
         ((barkVatGrabPostCallMem σ σMem I mem out dink dart).readWithPadding
@@ -3599,14 +3560,12 @@ theorem barkVatGrabCallMem_mload352 {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem : ByteArray} {dink dart word : UInt256}
     (hmem : mem.size = 544)
     (hmload352 :
-      (if (⟨352⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨352⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (mem.readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
         word) :
-    (if (⟨352⟩ : UInt256).toNat ≥ (barkVatGrabCallMem σ σMem I mem dink dart).size
-        ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨352⟩ : UInt256).toNat ≥ (barkVatGrabCallMem σ σMem I mem dink dart).size then ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
         ((barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding
@@ -3656,15 +3615,13 @@ theorem barkVatGrabPostCallMem_mload352 {σ σMem : AccountMap} {I : ExecutionEn
     {mem out : ByteArray} {dink dart word : UInt256}
     (hmem : mem.size = 544)
     (hmload352 :
-      (if (⟨352⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨352⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (mem.readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
         word) :
     (if (⟨352⟩ : UInt256).toNat ≥
-          (barkVatGrabPostCallMem σ σMem I mem out dink dart).size
-        ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+          (barkVatGrabPostCallMem σ σMem I mem out dink dart).size then ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
         ((barkVatGrabPostCallMem σ σMem I mem out dink dart).readWithPadding
@@ -3994,17 +3951,15 @@ theorem barkVowFessDueMem_read64 {mem : ByteArray} {due : UInt256}
 theorem barkVowFessDueMem_mload64 {mem : ByteArray} {due : UInt256}
     (hmem : mem.size = 580)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkVowFessDueMem mem due).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨384⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
     (by rw [barkVowFessDueMem_size hmem]; decide)
-    (by native_decide)
     (by
       have hread := barkVowFessDueMem_read64 (mem := mem) (due := due) hmem hread64
       simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread)
@@ -4027,14 +3982,12 @@ theorem barkVowFessDueMem_read256 {mem : ByteArray} {due word : UInt256}
 theorem barkVowFessDueMem_mload288 {mem : ByteArray} {due milkChop : UInt256}
     (hmem : mem.size = 580)
     (hmload288 :
-      (if (⟨288⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨288⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (mem.readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
         milkChop) :
-    (if (⟨288⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size
-        ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨288⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size then ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
         ((barkVowFessDueMem mem due).readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
@@ -4083,14 +4036,12 @@ theorem barkVowFessPostCallMem_read256 {mem out : ByteArray} {due word : UInt256
 
 theorem barkVowFessPostCallMem_mload288 {mem out : ByteArray} {due milkChop : UInt256}
     (hmload288 :
-      (if (⟨288⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size
-          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨288⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           ((barkVowFessDueMem mem due).readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
         milkChop) :
-    (if (⟨288⟩ : UInt256).toNat ≥ (barkVowFessPostCallMem mem out due).size
-        ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨288⟩ : UInt256).toNat ≥ (barkVowFessPostCallMem mem out due).size then ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
         ((barkVowFessPostCallMem mem out due).readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
@@ -4100,14 +4051,12 @@ theorem barkVowFessPostCallMem_mload288 {mem out : ByteArray} {due milkChop : UI
 theorem barkVowFessDueMem_mload352 {mem : ByteArray} {due word : UInt256}
     (hmem : mem.size = 580)
     (hmload352 :
-      (if (⟨352⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨352⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (mem.readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
         word) :
-    (if (⟨352⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size
-        ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨352⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size then ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
         ((barkVowFessDueMem mem due).readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
@@ -4128,14 +4077,12 @@ theorem barkVowFessDueMem_mload352 {mem : ByteArray} {due word : UInt256}
 
 theorem barkVowFessPostCallMem_mload352 {mem out : ByteArray} {due word : UInt256}
     (hmload352 :
-      (if (⟨352⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size
-          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨352⟩ : UInt256).toNat ≥ (barkVowFessDueMem mem due).size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           ((barkVowFessDueMem mem due).readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
         word) :
-    (if (⟨352⟩ : UInt256).toNat ≥ (barkVowFessPostCallMem mem out due).size
-        ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨352⟩ : UInt256).toNat ≥ (barkVowFessPostCallMem mem out due).size then ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
         ((barkVowFessPostCallMem mem out due).readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
@@ -4284,17 +4231,15 @@ theorem barkKickCalldataMem_read64 {I : ExecutionEnv} {mem : ByteArray}
 theorem barkKickCalldataMem_mload64 {I : ExecutionEnv} {mem : ByteArray}
     {tab dink : UInt256} (hmem : mem.size = 580)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkKickCalldataMem I mem tab dink).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkKickCalldataMem I mem tab dink).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkKickCalldataMem I mem tab dink).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨384⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
     (by rw [barkKickCalldataMem_size hmem]; decide)
-    (by native_decide)
     (by
       have hread := barkKickCalldataMem_read64 (I := I) (mem := mem)
         (tab := tab) (dink := dink) hmem hread64
@@ -4598,18 +4543,16 @@ theorem barkKickPostCallWrite_mload64 {I : ExecutionEnv} {tab dink : UInt256}
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
     (hL : L ≤ 32) (hLo : L ≤ out.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (out.write 0 (barkKickCalldataMem I mem tab dink) 384 L).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+          (out.write 0 (barkKickCalldataMem I mem tab dink) 384 L).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((out.write 0 (barkKickCalldataMem I mem tab dink) 384 L).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨384⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
     (by rw [barkKickPostCallWrite_size (I := I) (tab := tab) (dink := dink)
       (out := out) (L := L) hmem hL hLo]; decide)
-    (by native_decide)
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
         barkKickPostCallWrite_read64 (I := I) (tab := tab) (dink := dink)
@@ -4621,18 +4564,16 @@ theorem barkKickPostCallWrite_mload256 {I : ExecutionEnv} {tab dink clip : UInt2
     (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray clip)
     (hL : L ≤ 32) (hLo : L ≤ out.size) :
     (if (⟨256⟩ : UInt256).toNat ≥
-          (out.write 0 (barkKickCalldataMem I mem tab dink) 384 L).size
-        ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+          (out.write 0 (barkKickCalldataMem I mem tab dink) 384 L).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((out.write 0 (barkKickCalldataMem I mem tab dink) 384 L).readWithPadding
           (⟨256⟩ : UInt256).toNat 32))) =
       clip := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨256⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := clip)
+    (off := (⟨256⟩ : UInt256)) (v := clip)
     (by rw [barkKickPostCallWrite_size (I := I) (tab := tab) (dink := dink)
       (out := out) (L := L) hmem hL hLo]; decide)
-    (by native_decide)
     (by
       simpa [show (⟨256⟩ : UInt256).toNat = 256 by native_decide] using
         barkKickPostCallWrite_read256 (I := I) (tab := tab) (dink := dink)
@@ -4672,17 +4613,15 @@ theorem barkKickPostCallMem_mload64_long {I : ExecutionEnv} {tab dink : UInt256}
     (hmem : mem.size = 580)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
     (hlong : 32 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkKickPostCallMem I mem out tab dink).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkKickPostCallMem I mem out tab dink).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkKickPostCallMem I mem out tab dink).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨384⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
     (by rw [barkKickPostCallMem_size_long hmem hlong hout]; decide)
-    (by native_decide)
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
         barkKickPostCallMem_read64_long (I := I) (tab := tab) (dink := dink)
@@ -4709,17 +4648,15 @@ theorem barkKickPostCallMem_mload256_long {I : ExecutionEnv} {tab dink clip : UI
     (hmem : mem.size = 580)
     (hread256 : mem.readWithPadding 256 32 = UInt256.toByteArray clip)
     (hlong : 32 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨256⟩ : UInt256).toNat ≥ (barkKickPostCallMem I mem out tab dink).size
-        ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨256⟩ : UInt256).toNat ≥ (barkKickPostCallMem I mem out tab dink).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkKickPostCallMem I mem out tab dink).readWithPadding
           (⟨256⟩ : UInt256).toNat 32))) =
       clip := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨256⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := clip)
+    (off := (⟨256⟩ : UInt256)) (v := clip)
     (by rw [barkKickPostCallMem_size_long hmem hlong hout]; decide)
-    (by native_decide)
     (by
       simpa [show (⟨256⟩ : UInt256).toNat = 256 by native_decide] using
         barkKickPostCallMem_read256_long (I := I) (tab := tab) (dink := dink)
@@ -4742,22 +4679,20 @@ theorem barkKickPostCallMem_read384_long {I : ExecutionEnv} {tab dink : UInt256}
 theorem barkKickPostCallMem_mload384_long {I : ExecutionEnv} {tab dink : UInt256}
     {mem out : ByteArray}
     (hmem : mem.size = 580) (hlong : 32 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨384⟩ : UInt256).toNat ≥ (barkKickPostCallMem I mem out tab dink).size
-        ∨ (⟨384⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨384⟩ : UInt256).toNat ≥ (barkKickPostCallMem I mem out tab dink).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkKickPostCallMem I mem out tab dink).readWithPadding
           (⟨384⟩ : UInt256).toNat 32))) =
       UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) := by
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by
+    rw [barkKickPostCallMem_size_long hmem hlong hout]
+    decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian
         ((barkKickPostCallMem I mem out tab dink).readWithPadding 384 32)) =
         UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))
-    rw [barkKickPostCallMem_read384_long hmem hlong hout]
-  · exact not_or.mpr
-      ⟨by rw [barkKickPostCallMem_size_long hmem hlong hout]; decide,
-        by native_decide⟩
+  rw [barkKickPostCallMem_read384_long hmem hlong hout]
 
 abbrev barkBarkLogDinkMem (mem : ByteArray) (dink : UInt256) :
     ByteArray :=
@@ -4842,17 +4777,15 @@ theorem barkBarkLogMem_read64 {mem : ByteArray} {dink dart due clip : UInt256}
 theorem barkBarkLogMem_mload64 {mem : ByteArray} {dink dart due clip : UInt256}
     (hmem : mem.size = 580)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkBarkLogMem mem dink dart due clip).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkBarkLogMem mem dink dart due clip).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkBarkLogMem mem dink dart due clip).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨384⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
     (by rw [barkBarkLogMem_size hmem]; decide)
-    (by native_decide)
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
         barkBarkLogMem_read64 hmem hread64)
@@ -4878,16 +4811,14 @@ theorem barkReturnIdMem_read64 {mem : ByteArray} {id : UInt256}
 theorem barkReturnIdMem_mload64 {mem : ByteArray} {id : UInt256}
     (hmem : mem.size = 580)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkReturnIdMem mem id).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkReturnIdMem mem id).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkReturnIdMem mem id).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨384⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
     (by rw [barkReturnIdMem_size hmem]; decide)
-    (by native_decide)
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
         barkReturnIdMem_read64 hmem hread64)
@@ -4995,17 +4926,15 @@ theorem barkPostIlksErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray
 theorem barkPostIlksErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 544)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkPostIlksErrorStringMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkPostIlksErrorStringMem3 len word mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkPostIlksErrorStringMem3 len word mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨384⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17) (v := (⟨384⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
     (by rw [barkPostIlksErrorStringMem3_size len word hmem]; decide)
-    (by native_decide)
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
         barkPostIlksErrorStringMem3_read64 len word hmem hread64)
@@ -5058,17 +4987,15 @@ theorem barkPostIlksCodecopyErrorMem_mload64 {code mem : ByteArray}
     (hmem : mem.size = 544)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
     (hsrc : 4691 + 42 ≤ code.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (barkPostIlksCodecopyErrorMem code mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (barkPostIlksCodecopyErrorMem code mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((barkPostIlksCodecopyErrorMem code mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨384⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17) (v := (⟨384⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
     (by rw [barkPostIlksCodecopyErrorMem_size hmem hsrc]; decide)
-    (by native_decide)
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
         barkPostIlksCodecopyErrorMem_read64 hmem hread64 hsrc)
@@ -14323,7 +14250,7 @@ theorem RD.dogBarkVatUrnsToCallMload {v : DogImmutables} {code : ByteArray}
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
       native_decide)
     mem_cost
-    (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+    (mloadFreePtrValue (by rw [hmem]; decide) hread64)
     (by native_decide) (by evm_ov)
   exact ⟨_, _, by
     simpa [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -14556,7 +14483,7 @@ theorem RD.dogBarkVatUrnsToExtcodesize {v : DogImmutables} {code : ByteArray}
       native_decide)
     mem_cost
     (mloadFreePtrValue
-      (by rw [barkVatUrnsCallMem_size hmem]; decide) (by decide)
+      (by rw [barkVatUrnsCallMem_size hmem]; decide)
       (barkVatUrnsCallMem_read64 hmem hread64))
     (by native_decide) (by evm_ov)
   exact ⟨_, _, by
@@ -16770,16 +16697,14 @@ theorem RD.dogBarkPostIlksErrorStringRevertTail {code : ByteArray} {g : Sat256}
       hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
       hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨384⟩ :=
     mloadWordValue_of_readWithPadding
-      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17)
+      (off := (⟨64⟩ : UInt256))
       (v := (⟨384⟩ : UInt256))
       (by rw [hmem]; decide)
-      (by native_decide)
       (by
         simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
   have rdMload := evm_run h with [
@@ -16916,16 +16841,14 @@ theorem RD.dogBarkPostIlksErrorStringRevertTailFullWord {code : ByteArray}
       hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3, hdSub, hd100,
       hdAdd2, hdSwap4, hdRev⟩
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨384⟩ :=
     mloadWordValue_of_readWithPadding
-      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17)
+      (off := (⟨64⟩ : UInt256))
       (v := (⟨384⟩ : UInt256))
       (by rw [hmem]; decide)
-      (by native_decide)
       (by
         simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
   have rdMload := evm_run h with [
@@ -17641,14 +17564,12 @@ theorem RD.dogBarkLimitGuardOk {v : DogImmutables} {code : ByteArray}
       (dogSlotWord ⟨5⟩ σ I).toNat < (dogSlotWord ⟨4⟩ σ I).toNat ∧
         (barkIlksDirtWord σMem I).toNat < (barkIlksHoleWord σMem I).toNat)
     (hmload320 :
-      (if (⟨320⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨320⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨320⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨320⟩ : UInt256).toNat 32))) =
         barkIlksHoleWord σMem I)
     (hmload352 :
-      (if (⟨352⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨352⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
         barkIlksDirtWord σMem I)
@@ -17828,14 +17749,12 @@ theorem RD.dogBarkComputeRoom {v : DogImmutables} {code : ByteArray}
     {spot dust rate art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hmload320 :
-      (if (⟨320⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨320⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨320⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨320⟩ : UInt256).toNat 32))) =
         barkIlksHoleWord σMem I)
     (hmload352 :
-      (if (⟨352⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨352⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
         barkIlksDirtWord σMem I)
@@ -18007,8 +17926,7 @@ theorem RD.dogBarkComputeDart {v : DogImmutables} {code : ByteArray}
     (hrateNe : rate ≠ ⟨0⟩)
     (hchopNe : barkIlksChopWord σMem I ≠ ⟨0⟩)
     (hmload288 :
-      (if (⟨288⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨288⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
         barkIlksChopWord σMem I)
@@ -18212,8 +18130,7 @@ theorem RD.dogBarkDartCandidateDivZeroInvalid {v : DogImmutables} {code : ByteAr
     (hrateNe : rate ≠ ⟨0⟩)
     (hchopZero : barkIlksChopWord σMem I = ⟨0⟩)
     (hmload288 :
-      (if (⟨288⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨288⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
         barkIlksChopWord σMem I)
@@ -18367,8 +18284,7 @@ theorem RD.dogBarkRoomWadOverflowReverts {v : DogImmutables} {code : ByteArray}
     (hoverRoom :
       UInt256.size ≤ (barkRoomWord σ σMem I).toNat * dogWadWord.toNat)
     (hmload288 :
-      (if (⟨288⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨288⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
         barkIlksChopWord σMem I)
@@ -19114,16 +19030,14 @@ theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteAr
   have rd3646 := rdFallthrough
   rw [hpc3646] at rd3646
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨384⟩ :=
     mloadWordValue_of_readWithPadding
-      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17)
+      (off := (⟨64⟩ : UInt256))
       (v := (⟨384⟩ : UInt256))
       (by rw [hmem]; decide)
-      (by native_decide)
       (by
         simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
   have rdMload := evm_run rd3646 with [
@@ -19277,10 +19191,7 @@ theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteAr
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
         native_decide)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, List.getElem!_cons_succ]
-        native_decide)
+      (by native_decide)
       hcopy
       (by native_decide)
       (by evm_ov)]
@@ -20065,8 +19976,7 @@ theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     (hmem : mem.size = 544)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
     (hmload256 :
-      (if (⟨256⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨256⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
         barkIlksClipWord σMem I)
@@ -20084,15 +19994,13 @@ theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
       (barkVatGrabCallMem σ σMem I mem dink dart) (UInt256.ofNat 19) rdata
       (cA, σ) k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨384⟩ := by
     exact mloadWordValue_of_readWithPadding
-      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17) (v := (⟨384⟩ : UInt256))
+      (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
       (by rw [hmem]; decide)
-      (by native_decide)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
   have hmload64Call :=
     barkVatGrabCallMem_mload64 (σ := σ) (σMem := σMem) (I := I)
@@ -20913,8 +20821,7 @@ theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
     (hmem : mem.size = 544)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
     (hmload256 :
-      (if (⟨256⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨256⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
         barkIlksClipWord σMem I)
@@ -21199,15 +21106,13 @@ theorem RD.dogBarkFessExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
         kpr :: urn :: ilk :: ret :: sel :: R)
       (barkVowFessDueMem mem due) (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨384⟩ := by
     exact mloadWordValue_of_readWithPadding
-      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+      (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
       (by rw [hmem]; decide)
-      (by native_decide)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
   have hmload64Call :=
     barkVowFessDueMem_mload64 (mem := mem) (due := due) hmem hread64
@@ -21896,8 +21801,7 @@ theorem RD.dogBarkTabBaseCheckedMulOk {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hfit : due.toNat * milkChop.toNat < UInt256.size)
     (hmload288 :
-      (if (⟨288⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨288⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
         milkChop)
@@ -21995,8 +21899,7 @@ theorem RD.dogBarkTabBaseCheckedMulOverflowReverts {v : DogImmutables} {code : B
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hover : UInt256.size ≤ due.toNat * milkChop.toNat)
     (hmload288 :
-      (if (⟨288⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨288⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨288⟩ : UInt256).toNat 32))) =
         milkChop)
@@ -22327,8 +22230,7 @@ theorem RD.dogBarkIlkDirtAddOk {v : DogImmutables} {code : ByteArray}
     {tab due dink dust rate dart art ink kpr urn ilk ret sel milkDirt : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hmload352 :
-      (if (⟨352⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨352⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
         milkDirt)
@@ -22420,8 +22322,7 @@ theorem RD.dogBarkIlkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArra
     {tab due dink dust rate dart art ink kpr urn ilk ret sel milkDirt : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hmload352 :
-      (if (⟨352⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨352⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
         milkDirt)
@@ -22689,8 +22590,7 @@ theorem RD.dogBarkKickExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     (hmem : mem.size = 580)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
     (hmload256 :
-      (if (⟨256⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨256⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
         barkIlksClipWord σMem I)
@@ -22707,15 +22607,13 @@ theorem RD.dogBarkKickExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
         ⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
       (barkKickCalldataMem I mem tab dink) (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨384⟩ := by
     exact mloadWordValue_of_readWithPadding
-      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+      (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
       (by rw [hmem]; decide)
-      (by native_decide)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
   have hmload64Call :=
     barkKickCalldataMem_mload64 (I := I) (mem := mem) (tab := tab) (dink := dink)
@@ -23359,8 +23257,7 @@ theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
     (hmem : mem.size = 580)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
     (hmload256 :
-      (if (⟨256⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨256⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
         barkIlksClipWord σMem I)
@@ -23576,8 +23473,7 @@ theorem RD.dogBarkKickReturnDecodeShortReverts {v : DogImmutables} {code : ByteA
       mem (UInt256.ofNat 19) out acc k C)
     (hshort : out.size < 32) (hout : out.size < UInt256.size)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨384⟩)
@@ -23688,14 +23584,12 @@ theorem RD.dogBarkKickReturnDecodeOk {v : DogImmutables} {code : ByteArray}
       mem (UInt256.ofNat 19) out acc k C)
     (hlong : 32 ≤ out.size) (hout : out.size < UInt256.size)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨384⟩)
     (hmload384 :
-      (if (⟨384⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨384⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨384⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨384⟩ : UInt256).toNat 32))) =
         retWord)
@@ -23818,8 +23712,7 @@ theorem RD.dogBarkKickDecodedToPublicReturn {v : DogImmutables} {code : ByteArra
     (hmem : mem.size = 580)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
     (hmload256 :
-      (if (⟨256⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨256⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
         barkIlksClipWord σMem I) :
@@ -23827,15 +23720,13 @@ theorem RD.dogBarkKickDecodedToPublicReturn {v : DogImmutables} {code : ByteArra
       (barkBarkLogMem mem dink dart due (barkIlksClipWord σMem I))
       (UInt256.ofNat 19) out acc k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨384⟩ := by
     exact mloadWordValue_of_readWithPadding
-      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
+      (off := (⟨64⟩ : UInt256)) (v := (⟨384⟩ : UInt256))
       (by rw [hmem]; decide)
-      (by native_decide)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
   have hmload64Log :=
     barkBarkLogMem_mload64 (mem := mem) (dink := dink) (dart := dart)
@@ -24312,15 +24203,13 @@ theorem RD.dogBarkPublicReturnId {v : DogImmutables} {code : ByteArray}
     (rd448 : RD code I g s0 ⟨448⟩ (id :: sel :: [])
       mem (UInt256.ofNat 19) out acc k C)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨384⟩)
     (hmemout : (UInt256.toByteArray id).write 0 mem 384 32 = memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨384⟩)
@@ -24431,14 +24320,12 @@ theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArr
       ¬ ((dogSlotWord ⟨5⟩ σ I).toNat < (dogSlotWord ⟨4⟩ σ I).toNat ∧
         (barkIlksDirtWord σMem I).toNat < (barkIlksHoleWord σMem I).toNat))
     (hmload320 :
-      (if (⟨320⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨320⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨320⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨320⟩ : UInt256).toNat 32))) =
         barkIlksHoleWord σMem I)
     (hmload352 :
-      (if (⟨352⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+      (if (⟨352⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨352⟩ : UInt256).toNat 32))) =
         barkIlksDirtWord σMem I)
@@ -26171,9 +26058,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                 "id" ++
                                               [ .return [.var "id"] ]
                                             have hmload256Grab :
-                                                (if (⟨256⟩ : UInt256).toNat ≥ mem0.size ∨
-                                                    (⟨256⟩ : UInt256) ≥
-                                                      UInt256.ofNat 17 * ⟨32⟩ then ⟨0⟩
+                                                (if (⟨256⟩ : UInt256).toNat ≥ mem0.size then ⟨0⟩
                                                  else UInt256.ofNat
                                                   (fromByteArrayBigEndian
                                                     (mem0.readWithPadding
@@ -26937,8 +26822,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                         (if (⟨288⟩ : UInt256).toNat ≥
                                                               (barkVatGrabPostCallMem σ'' σ' I
                                                                 mem0 outGrab dink dart).size
-                                                            ∨ (⟨288⟩ : UInt256) ≥
-                                                              UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
                                                          else UInt256.ofNat
                                                           (fromByteArrayBigEndian
                                                             ((barkVatGrabPostCallMem σ'' σ' I
@@ -26958,8 +26842,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 (barkVatGrabPostCallMem σ'' σ' I
                                                                   mem0 outGrab dink dart)
                                                                 due).size
-                                                            ∨ (⟨288⟩ : UInt256) ≥
-                                                              UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
                                                          else UInt256.ofNat
                                                           (fromByteArrayBigEndian
                                                             ((barkVowFessDueMem
@@ -26976,8 +26859,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 (barkVatGrabPostCallMem σ'' σ' I
                                                                   mem0 outGrab dink dart)
                                                                 outFess due).size
-                                                            ∨ (⟨288⟩ : UInt256) ≥
-                                                              UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
                                                          else UInt256.ofNat
                                                           (fromByteArrayBigEndian
                                                             ((barkVowFessPostCallMem
@@ -27337,8 +27219,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                             (if (⟨352⟩ : UInt256).toNat ≥
                                                                   (barkVatGrabPostCallMem σ'' σ' I
                                                                     mem0 outGrab dink dart).size
-                                                                ∨ (⟨352⟩ : UInt256) ≥
-                                                                  UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
                                                              else UInt256.ofNat
                                                               (fromByteArrayBigEndian
                                                                 ((barkVatGrabPostCallMem σ'' σ' I
@@ -27357,8 +27238,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                     (barkVatGrabPostCallMem σ'' σ' I
                                                                       mem0 outGrab dink dart)
                                                                     due).size
-                                                                ∨ (⟨352⟩ : UInt256) ≥
-                                                                  UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
                                                              else UInt256.ofNat
                                                               (fromByteArrayBigEndian
                                                                 ((barkVowFessDueMem
@@ -27375,8 +27255,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                     (barkVatGrabPostCallMem σ'' σ' I
                                                                       mem0 outGrab dink dart)
                                                                     outFess due).size
-                                                                ∨ (⟨352⟩ : UInt256) ≥
-                                                                  UInt256.ofNat 19 * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
                                                              else UInt256.ofNat
                                                               (fromByteArrayBigEndian
                                                                 ((barkVowFessPostCallMem
@@ -27622,8 +27501,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                           have hmload256KickPre :
                                                               (if (⟨256⟩ : UInt256).toNat ≥
                                                                     memKickPre.size
-                                                                  ∨ (⟨256⟩ : UInt256) ≥
-                                                                    UInt256.ofNat 19 * ⟨32⟩
+
                                                                then ⟨0⟩
                                                                else UInt256.ofNat
                                                                 (fromByteArrayBigEndian
@@ -28210,9 +28088,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 have hmload64KickPost :
                                                                     (if (⟨64⟩ : UInt256).toNat ≥
                                                                           memKickPost.size
-                                                                        ∨ (⟨64⟩ : UInt256) ≥
-                                                                          UInt256.ofNat 19 *
-                                                                            ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
                                                                      else UInt256.ofNat
                                                                       (fromByteArrayBigEndian
                                                                         (memKickPost.readWithPadding
@@ -28227,9 +28103,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 have hmload256KickPost :
                                                                     (if (⟨256⟩ : UInt256).toNat ≥
                                                                           memKickPost.size
-                                                                        ∨ (⟨256⟩ : UInt256) ≥
-                                                                          UInt256.ofNat 19 *
-                                                                            ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
                                                                      else UInt256.ofNat
                                                                       (fromByteArrayBigEndian
                                                                         (memKickPost.readWithPadding
@@ -28244,9 +28118,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 have hmload384KickPost :
                                                                     (if (⟨384⟩ : UInt256).toNat ≥
                                                                           memKickPost.size
-                                                                        ∨ (⟨384⟩ : UInt256) ≥
-                                                                          UInt256.ofNat 19 *
-                                                                            ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
                                                                      else UInt256.ofNat
                                                                       (fromByteArrayBigEndian
                                                                         (memKickPost.readWithPadding
@@ -28291,9 +28163,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 have hmload64Log :
                                                                     (if (⟨64⟩ : UInt256).toNat ≥
                                                                           memLog.size
-                                                                        ∨ (⟨64⟩ : UInt256) ≥
-                                                                          UInt256.ofNat 19 *
-                                                                            ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
                                                                      else UInt256.ofNat
                                                                       (fromByteArrayBigEndian
                                                                         (memLog.readWithPadding
@@ -28307,9 +28177,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 have hmload64Return :
                                                                     (if (⟨64⟩ : UInt256).toNat ≥
                                                                           memReturn.size
-                                                                        ∨ (⟨64⟩ : UInt256) ≥
-                                                                          UInt256.ofNat 19 *
-                                                                            ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
                                                                      else UInt256.ofNat
                                                                       (fromByteArrayBigEndian
                                                                         (memReturn.readWithPadding
@@ -28476,9 +28344,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 have hmload64KickPost :
                                                                     (if (⟨64⟩ : UInt256).toNat ≥
                                                                           memKickPost.size
-                                                                        ∨ (⟨64⟩ : UInt256) ≥
-                                                                          UInt256.ofNat 19 *
-                                                                            ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
                                                                      else UInt256.ofNat
                                                                       (fromByteArrayBigEndian
                                                                         (memKickPost.readWithPadding

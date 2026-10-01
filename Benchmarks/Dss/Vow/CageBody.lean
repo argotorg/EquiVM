@@ -843,25 +843,23 @@ theorem RD.vowCageSecondDaiExtcodesizeGuard {g : Sat256} {s0 : State}
       (rawTarget :: d1 :: d2 :: R) mem (UInt256.ofNat 6) rdata acc k2986 C2986 := by
     simpa [rawTarget, vowSlotWord, solcSlotWord] using rd2986Raw
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hDaiMem : (vatDaiCalldataMem ee mem).size = 164 :=
     vatDaiCalldataMem_size ee hmem
   have hDaiRead64 :
       (vatDaiCalldataMem ee mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ :=
     vatDaiCalldataMem_read64 ee hmem hread64
   have hmload64Dai :
-      (if (⟨64⟩ : UInt256).toNat ≥ (vatDaiCalldataMem ee mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (vatDaiCalldataMem ee mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((vatDaiCalldataMem ee mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hDaiMem]; decide) (by decide) hDaiRead64
+    mloadFreePtrValue (by rw [hDaiMem]; decide) hDaiRead64
   have rd3058 := evm_run rd2986 with [
     push1 ⟨64⟩,
     dup1,
@@ -1083,8 +1081,7 @@ theorem RD.vowCageSecondDaiReturnDecodeShortReverts {g : Sat256} {s0 : State}
     (hshort : o.size < 32)
     (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
@@ -1092,7 +1089,7 @@ theorem RD.vowCageSecondDaiReturnDecodeShortReverts {g : Sat256} {s0 : State}
     RDrev vowBytecode g s0 := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨3092⟩) (okPc := ⟨3112⟩) rd
     hshort hhi
-    mem_cost (by decide) hMload64Value
+    (by native_decide) hMload64Value
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1106,14 +1103,12 @@ theorem RD.vowCageSecondDaiReturnDecodeOk {g : Sat256} {s0 : State}
     (hlo : 32 ≤ o.size)
     (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hMload128Value :
-      (if (⟨128⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨128⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord)
@@ -1122,7 +1117,7 @@ theorem RD.vowCageSecondDaiReturnDecodeOk {g : Sat256} {s0 : State}
       (retWord :: R) mem (UInt256.ofNat 6) o acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨3092⟩) (okPc := ⟨3112⟩) rd
     hlo hhi
-    mem_cost (by decide) hMload64Value hMload128Value mem_cost (by decide)
+    (by native_decide) hMload64Value hMload128Value (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1153,25 +1148,23 @@ theorem RD.vowCageVatSinExtcodesizeGuard {g : Sat256} {s0 : State}
       mem (UInt256.ofNat 6) rdata acc k3118 C3118 := by
     simpa [target, rawTarget, vowSlotWord, solcSlotWord] using rd3118Raw
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hSinMem : (healSinCalldataMem ee mem).size = 164 :=
     healSinCalldataMem_size ee hmem
   have hSinRead64 :
       (healSinCalldataMem ee mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ :=
     healSinCalldataMem_read64 ee hmem hread64
   have hmload64Sin :
-      (if (⟨64⟩ : UInt256).toNat ≥ (healSinCalldataMem ee mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (healSinCalldataMem ee mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((healSinCalldataMem ee mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hSinMem]; decide) (by decide) hSinRead64
+    mloadFreePtrValue (by rw [hSinMem]; decide) hSinRead64
   have rd3177 := evm_run rd3118 with [
     push1 ⟨64⟩,
     dup1,
@@ -1387,8 +1380,7 @@ theorem RD.vowCageVatSinReturnDecodeShortReverts {g : Sat256} {s0 : State}
     (hshort : o.size < 32)
     (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
@@ -1396,7 +1388,7 @@ theorem RD.vowCageVatSinReturnDecodeShortReverts {g : Sat256} {s0 : State}
     RDrev vowBytecode g s0 := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨3211⟩) (okPc := ⟨3231⟩) rd
     hshort hhi
-    mem_cost (by decide) hMload64Value
+    (by native_decide) hMload64Value
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1410,14 +1402,12 @@ theorem RD.vowCageVatSinReturnDecodeOk {g : Sat256} {s0 : State}
     (hlo : 32 ≤ o.size)
     (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hMload128Value :
-      (if (⟨128⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨128⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord)
@@ -1426,7 +1416,7 @@ theorem RD.vowCageVatSinReturnDecodeOk {g : Sat256} {s0 : State}
       (retWord :: R) mem (UInt256.ofNat 6) o acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨3211⟩) (okPc := ⟨3231⟩) rd
     hlo hhi
-    mem_cost (by decide) hMload64Value hMload128Value mem_cost (by decide)
+    (by native_decide) hMload64Value hMload128Value (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1520,12 +1510,11 @@ theorem RD.vowCageHealExtcodesizeGuard {g : Sat256} {s0 : State}
       (cageHealCalldataMem healRad mem) (UInt256.ofNat 6) rdata acc k' C' := by
   let target := kissDaiTargetWord acc.2 ee
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hHealMem : (cageHealCalldataMem healRad mem).size = 164 :=
     cageHealCalldataMem_size healRad hmem
   have hHealRead64 :
@@ -1533,14 +1522,13 @@ theorem RD.vowCageHealExtcodesizeGuard {g : Sat256} {s0 : State}
         UInt256.toByteArray ⟨128⟩ :=
     cageHealCalldataMem_read64 healRad hmem hread64
   have hmload64Heal :
-      (if (⟨64⟩ : UInt256).toNat ≥ (cageHealCalldataMem healRad mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (cageHealCalldataMem healRad mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((cageHealCalldataMem healRad mem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hHealMem]; decide) (by decide) hHealRead64
+    mloadFreePtrValue (by rw [hHealMem]; decide) hHealRead64
   have rd3280 := evm_run rd with [
     jumpdest,
     push1 ⟨64⟩,

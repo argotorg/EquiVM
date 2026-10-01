@@ -840,12 +840,11 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuard
       mem (UInt256.ofNat 6) rdata (cA, σ) k4353 C4353 := by
     simpa [fileAddressVatTargetWord, vowSlotWord, solcSlotWord] using rd4353₀
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hHopeMem :
       (fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem).size = 164 :=
     fileAddressHopeCalldataMem_size _ hmem
@@ -856,14 +855,13 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuard
     fileAddressHopeCalldataMem_read64 _ hmem hread64
   have hmload64Hope :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hHopeMem]; decide) (by decide) hHopeRead64
+    mloadFreePtrValue (by rw [hHopeMem]; decide) hHopeRead64
   have rd4407 := evm_run rd4353 with [
     push1 ⟨64⟩,
     dup1,
@@ -955,12 +953,11 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuardWithTarget
       mem (UInt256.ofNat 6) rdata (cA, σ) k4353 C4353 := by
     simpa [fileAddressVatTargetWord, vowSlotWord, solcSlotWord] using rd4353₀
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hHopeMem :
       (fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem).size = 164 :=
     fileAddressHopeCalldataMem_size _ hmem
@@ -971,14 +968,13 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuardWithTarget
     fileAddressHopeCalldataMem_read64 _ hmem hread64
   have hmload64Hope :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hHopeMem]; decide) (by decide) hHopeRead64
+    mloadFreePtrValue (by rw [hHopeMem]; decide) hHopeRead64
   have rd4407 := evm_run rd4353 with [
     push1 ⟨64⟩,
     dup1,

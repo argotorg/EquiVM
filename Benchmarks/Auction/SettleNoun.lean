@@ -48,8 +48,8 @@ theorem settleNounRoutine {I g s0 s snap ret R mem aw ptr rdata cA σ k C evm lo
       MemoryPrefix mem mem' ptr.toNat ∧ aw.toNat ≤ aw'.toNat) ∨
     (ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
       settleNounStmt .reverted ∧ RDrev auctionBytecode g s0) := by
-  have hn : loadedWord mem aw snap = s.nounId := by
-    have hl : loadedWord mem aw (snap + ⟨0⟩) = s.nounId := hsm.load ⟨0, by decide⟩
+  have hn : loadedWord mem snap = s.nounId := by
+    have hl : loadedWord mem (snap + ⟨0⟩) = s.nounId := hsm.load ⟨0, by decide⟩
     rwa [u256_add_comm snap ⟨0⟩, u256_zero_add] at hl
   have ha : expandedWords aw snap ⟨32⟩ = aw := by
     have hl : expandedWords aw (snap + ⟨0⟩) ⟨32⟩ = aw := hsm.expand_eq ⟨0, by decide⟩
@@ -71,7 +71,7 @@ theorem settleNounRoutine {I g s0 s snap ret R mem aw ptr rdata cA σ k C evm lo
   · have he := settleBidderGuardSource (evm := evm) hv.snapshot
     rw [decide_eq_false hz] at he
     have rd4536 := evm_run h with [jumpiT hz (by jump_dest)]
-    have hbid : loadedWord mem aw (snap + ⟨128⟩) = s.bidderWord := hsm.load ⟨4, by decide⟩
+    have hbid : loadedWord mem (snap + ⟨128⟩) = s.bidderWord := hsm.load ⟨4, by decide⟩
     have hab : expandedWords aw (snap + ⟨128⟩) ⟨32⟩ = aw := hsm.expand_eq ⟨4, by decide⟩
     have hargs : evalExprs? auctionConfig { contract := auctionContract, locals := locals } evm
         [.env .this, auctionMemField "bidder", auctionMemField "nounId"] =

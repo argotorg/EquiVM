@@ -36,11 +36,10 @@ theorem catBiteUrnsDecode_none {o : ByteArray} (hoLt : o.size < 64) :
 `< 64`-byte return copy (which lands at `0x80`, entirely above `0x40`). Urns analogue of
 `catBiteIlksPostCallMem_mload64_short`. -/
 private theorem catBiteUrnsPostCallMem_mload64_short (I : ExecutionEnv) {mem : ByteArray}
-    (o : ByteArray) {aw : UInt256} (hmem : 196 ≤ mem.size)
+    (o : ByteArray) (hmem : 196 ≤ mem.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hoLt : o.size < 64) (hout : o.size < UInt256.size)
-    (haw : 96 ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (catBiteUrnsPostCallMem I mem o).size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+    (hoLt : o.size < 64) (hout : o.size < UInt256.size) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (catBiteUrnsPostCallMem I mem o).size
         then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((catBiteUrnsPostCallMem I mem o).readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
@@ -49,10 +48,10 @@ private theorem catBiteUrnsPostCallMem_mload64_short (I : ExecutionEnv) {mem : B
   have hbaseRead : (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := biteUrnsCalldataMem_read64 hmem hread64
   have hlen : (min (⟨64⟩ : UInt256) (UInt256.ofNat o.size)).toNat = o.size :=
-    umin_ofNat_right_toNat_of_lt (c := 64) (n := o.size) (by decide) hoLt hout
+    umin_ofNat_right_toNat_of_lt (c := 64) (n := o.size) (by norm_num [UInt256.size]) hoLt hout
   have hread : (catBiteUrnsPostCallMem I mem o).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     unfold catBiteUrnsPostCallMem
-    rw [hlen, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide]
+    rw [hlen, show (⟨128⟩ : UInt256).toNat = 128 from by u256_toNat]
     rcases Nat.eq_zero_or_pos o.size with h0 | h0
     · rw [h0, byteArray_write_len_zero]; exact hbaseRead
     · rw [write_read_below_gen_extend o (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem)
@@ -60,7 +59,7 @@ private theorem catBiteUrnsPostCallMem_mload64_short (I : ExecutionEnv) {mem : B
       exact hbaseRead
   have hsz : 64 < (catBiteUrnsPostCallMem I mem o).size := by
     unfold catBiteUrnsPostCallMem
-    rw [hlen, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide]
+    rw [hlen, show (⟨128⟩ : UInt256).toNat = 128 from by u256_toNat]
     rcases Nat.eq_zero_or_pos o.size with h0 | h0
     · rw [h0, byteArray_write_len_zero, hbaseSz]; omega
     · rw [write_eq_gen o (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem)
@@ -68,14 +67,9 @@ private theorem catBiteUrnsPostCallMem_mload64_short (I : ExecutionEnv) {mem : B
         ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
         ByteArray.size_extract, ByteArray.size_extract, hbaseSz]
       omega
-  refine mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨128⟩) ?_ ?_ ?_
-  · rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; exact hsz
-  · intro hh
-    have hle : (aw * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
-    rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-      Nat.mod_eq_of_lt hawsz, show (⟨64⟩ : UInt256).toNat = 64 from by decide] at hle
-    omega
-  · rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; exact hread
+  refine mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨128⟩) ?_ ?_
+  · rw [show (⟨64⟩ : UInt256).toNat = 64 from by u256_toNat]; exact hsz
+  · rw [show (⟨64⟩ : UInt256).toNat = 64 from by u256_toNat]; exact hread
 
 set_option maxHeartbeats 800000 in
 /-- **urns return-decode-short branch (extracted).** `ilks` succeeds and decodes; the `urns`
@@ -128,9 +122,8 @@ theorem catBiteRevertUrnsDecode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     catBiteIlksPostCallMem_read64 I o' hilkslen hosz
   exact catBiteUrnsDecodeShortLeaf hcode hdispatch hdecode rd1420 hurnsShort hoszu
     (catBiteUrnsPostCallMem_mload64_short (mem := catBiteIlksPostCallMem I o')
-      (aw := (⟨9⟩ : UInt256)) I ou hmemI hread64
-      hurnsShort hoszu (by native_decide) (by native_decide))
-    (catBiteMloadCost0 (catBiteAwMInv32 (⟨9⟩ : UInt256) (by native_decide)))
+      I ou hmemI hread64 hurnsShort hoszu)
+    (memoryExpansionCost_zero_of_aw_stable (catBiteAwMInv32 (⟨9⟩ : UInt256) (by native_decide)))
     (catBiteAwMInv32 (⟨9⟩ : UInt256) (by native_decide))
     (by simp only [List.length_cons, List.length_nil]; omega)
     (catBiteSourceUrnsDecodeRevert hwv (catBiteVatCodePos_of_uniswap hAccounts hvatCode)
@@ -363,7 +356,7 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 · obtain ⟨_, _, rd1708⟩ := catBiteReachSeg6Aw (fp := ⟨128⟩) rd1620
                                     (by native_decide)
                                     (mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨128⟩)
-                                      (by rw [h64]; have := hmemUsz; omega) (by native_decide)
+                                      (by rw [h64]; have := hmemUsz; omega)
                                       (catBiteUrnsPostCallMem_read64 I ou hmemI
                                         (catBiteIlksPostCallMem_read64 I o' hilkslen hosz)
                                         hurnslen hoszu))
@@ -371,7 +364,7 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou)
                                       ⟨128⟩ (biteIlkWord I)
                                       (by rw [h128]; have := hmemUsz; omega) (by native_decide)
-                                      (by native_decide) (by native_decide) (by native_decide))
+                                      (by native_decide))
                                     (catBiteScratchMem_read0_64
                                       (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou)
                                       ⟨128⟩ (biteIlkWord I)
@@ -386,9 +379,7 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I))))
                                     (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨1⟩))
                                     (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨2⟩))
-                                    (aw := ⟨10⟩)
                                     (by rw [h128]; have := hmemUsz; omega) rfl
-                                    (by native_decide) (by native_decide)
                                     (by native_decide) (by native_decide)
                                   have hDunk := catBiteMilkMem_mload_dunk
                                     (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou)
@@ -397,9 +388,7 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I))))
                                     (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨1⟩))
                                     (solcSlotWord σu I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨2⟩))
-                                    (aw := ⟨10⟩)
                                     (by rw [h128]; have := hmemUsz; omega) rfl
-                                    (by native_decide) (by native_decide)
                                     (by native_decide) (by native_decide)
                                   -- name the DSMath chain so the guards are stateable.
                                   set room := (solcSlotWord σu I ⟨5⟩).sub (solcSlotWord σu I ⟨6⟩)
@@ -750,13 +739,11 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                             hFessCall rd2300 (by decide)
                                             (by
                                               rw [if_neg (by
-                                                    refine not_or.mpr ⟨?_, ?_⟩
-                                                    · have e : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
-                                                        by native_decide
-                                                      have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
-                                                        by native_decide
-                                                      have := hpmem_kick; omega
-                                                    · native_decide),
+                                                    have e : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
+                                                      by native_decide
+                                                    have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
+                                                      by native_decide
+                                                    have := hpmem_kick; omega),
                                                 catBiteFessCalldataMemP_readBelow (⟨96⟩ + ⟨128⟩ + ⟨96⟩) dartRate
                                                   (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat (by native_decide)
                                                   hgrab_le (by native_decide),
@@ -766,13 +753,11 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                   (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat (by native_decide)
                                                   hpmemMilk (by native_decide)]
                                               rw [if_neg (by
-                                                    refine not_or.mpr ⟨?_, ?_⟩
-                                                    · have e1 : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
-                                                        by native_decide
-                                                      have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
-                                                        by native_decide
-                                                      have := hpmemMilk; omega
-                                                    · native_decide)] at hChop
+                                                    have e1 : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
+                                                      by native_decide
+                                                    have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
+                                                      by native_decide
+                                                    have := hpmemMilk; omega)] at hChop
                                               exact hChop)
                                             (by native_decide) (by native_decide) hRateFit
                                             hart hink hiSpot hiRate hiDustDef hroomDef hmilkDunkDef
@@ -790,13 +775,11 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                             hUrnsCall hGrabCall hFessCall rd2300 (by decide)
                                             (by
                                               rw [if_neg (by
-                                                    refine not_or.mpr ⟨?_, ?_⟩
-                                                    · have e : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
-                                                        by native_decide
-                                                      have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
-                                                        by native_decide
-                                                      have := hpmem_kick; omega
-                                                    · native_decide),
+                                                    have e : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
+                                                      by native_decide
+                                                    have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
+                                                      by native_decide
+                                                    have := hpmem_kick; omega),
                                                 catBiteFessCalldataMemP_readBelow (⟨96⟩ + ⟨128⟩ + ⟨96⟩) dartRate
                                                   (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat (by native_decide)
                                                   hgrab_le (by native_decide),
@@ -806,13 +789,11 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                   (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat (by native_decide)
                                                   hpmemMilk (by native_decide)]
                                               rw [if_neg (by
-                                                    refine not_or.mpr ⟨?_, ?_⟩
-                                                    · have e1 : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
-                                                        by native_decide
-                                                      have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
-                                                        by native_decide
-                                                      have := hpmemMilk; omega
-                                                    · native_decide)] at hChop
+                                                    have e1 : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
+                                                      by native_decide
+                                                    have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
+                                                      by native_decide
+                                                    have := hpmemMilk; omega)] at hChop
                                               exact hChop)
                                             (by native_decide) (by native_decide) hRateFit hChopFit hLitFit
                                             hdartRateDef htabBaseDef htabDef
@@ -825,13 +806,11 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                           catBiteReach2300to2383 (milkChop := milkChop) rd2300 (by decide)
                                             (by
                                               rw [if_neg (by
-                                                    refine not_or.mpr ⟨?_, ?_⟩
-                                                    · have e : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
-                                                        by native_decide
-                                                      have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
-                                                        by native_decide
-                                                      have := hpmem_kick; omega
-                                                    · native_decide),
+                                                    have e : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
+                                                      by native_decide
+                                                    have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
+                                                      by native_decide
+                                                    have := hpmem_kick; omega),
                                                 catBiteFessCalldataMemP_readBelow (⟨96⟩ + ⟨128⟩ + ⟨96⟩) dartRate
                                                   (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat (by native_decide)
                                                   hgrab_le (by native_decide),
@@ -841,13 +820,11 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                   (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat (by native_decide)
                                                   hpmemMilk (by native_decide)]
                                               rw [if_neg (by
-                                                    refine not_or.mpr ⟨?_, ?_⟩
-                                                    · have e1 : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
-                                                        by native_decide
-                                                      have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
-                                                        by native_decide
-                                                      have := hpmemMilk; omega
-                                                    · native_decide)] at hChop
+                                                    have e1 : (⟨32⟩ + (⟨96⟩ + ⟨128⟩) : UInt256).toNat = 256 :=
+                                                      by native_decide
+                                                    have e2 : (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat = 320 :=
+                                                      by native_decide
+                                                    have := hpmemMilk; omega)] at hChop
                                               exact hChop)
                                             (by native_decide) (by native_decide) hperm hRateFit hChopFit hLitFit
                                             hdartRateDef.symm htabBaseDef.symm htabDef.symm hlitterNewDef.symm
@@ -897,13 +874,11 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                               (mloadWordValue_of_readWithPadding
                                                 (lt_of_lt_of_le (show (⟨96⟩ + ⟨128⟩ : UInt256).toNat
                                                   < (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat + 164 from by
-                                                    native_decide) hpmem_kick)
-                                                (by native_decide) hFlipRead)
+                                                    native_decide) hpmem_kick) hFlipRead)
                                               (mloadWordValue_of_readWithPadding
                                                 (lt_of_lt_of_le (show (⟨64⟩ : UInt256).toNat
                                                   < (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat + 164 from by
                                                     native_decide) hpmem_kick)
-                                                (by native_decide)
                                                 (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by native_decide]
                                                     exact hread64F))
                                               (by native_decide) (by native_decide) (by native_decide) hpmem_kick
@@ -959,17 +934,15 @@ theorem catBiteBodyImpl {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                               (mloadWordValue_of_readWithPadding
                                                 (lt_of_lt_of_le (show (⟨96⟩ + ⟨128⟩ : UInt256).toNat
                                                   < (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat + 164 from by
-                                                    native_decide) hpmem_kick)
-                                                (by native_decide) hFlipRead)
+                                                    native_decide) hpmem_kick) hFlipRead)
                                               (mloadWordValue_of_readWithPadding
                                                 (lt_of_lt_of_le (show (⟨64⟩ : UInt256).toNat
                                                   < (⟨96⟩ + ⟨128⟩ + ⟨96⟩ : UInt256).toNat + 164 from by
                                                     native_decide) hpmem_kick)
-                                                (by native_decide)
                                                 (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by native_decide]
                                                     exact hread64F))
                                               hread64F (by native_decide) (by native_decide) (by native_decide)
-                                              (by native_decide) (by native_decide) hpmem_kick (by native_decide)
+                                              (by native_decide) hpmem_kick (by native_decide)
                                               hperm hRateFit hKickCode hdepth
                                           -- STEP D: take the kick-success / long-enough-return branch.
                                           by_cases hzk : zk = true

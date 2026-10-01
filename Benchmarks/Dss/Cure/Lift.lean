@@ -479,7 +479,7 @@ theorem RD.cureLiftPosNonzeroRevert {g : Sat256} {s0 : State}
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [htailMem]; decide) (by decide) htailRead64)
+      (mloadFreePtrValue (by rw [htailMem]; decide) htailRead64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide)
@@ -693,8 +693,7 @@ theorem RD.cureLiftStoreAndLog {g : Sat256} {s0 : State}
         UInt256.toByteArray ⟨128⟩ :=
     twoWordHashMem_read64 key ⟨5⟩ hmem hread64
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (twoWordHashMem key ⟨5⟩ mem).size ∨
-          (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (twoWordHashMem key ⟨5⟩ mem).size
         then ⟨0⟩ else UInt256.ofNat (fromByteArrayBigEndian
           ((twoWordHashMem key ⟨5⟩ mem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by

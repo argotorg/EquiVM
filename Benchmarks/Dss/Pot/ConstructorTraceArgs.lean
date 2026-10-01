@@ -62,9 +62,7 @@ theorem potCtorArgCopyTrace
       6
       (potCtorArgMem vat) (UInt256.ofNat 5)
       (by pot_ctor_decode)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, List.getElem!_cons_succ]
+      (by
         rw [potCtorArgLen_eq]
         decide)
       (by

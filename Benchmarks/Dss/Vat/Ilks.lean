@@ -350,15 +350,13 @@ theorem solcScratchReturn5Mem_read64 {scratch : ByteArray} (art rate spot line d
 theorem solcScratchReturn5Mem_mload64 {scratch : ByteArray} (art rate spot line dust : UInt256)
     (hscratch : scratch.size = 96)
     (hread64 : scratch.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcScratchReturn5Mem scratch art rate spot line dust).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcScratchReturn5Mem scratch art rate spot line dust).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcScratchReturn5Mem scratch art rate spot line dust).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [solcScratchReturn5Mem_size art rate spot line dust hscratch]; decide)
-    (by decide) (solcScratchReturn5Mem_read64 art rate spot line dust hscratch hread64)
+  mloadFreePtrValue (by rw [solcScratchReturn5Mem_size art rate spot line dust hscratch]; decide) (solcScratchReturn5Mem_read64 art rate spot line dust hscratch hread64)
 
 private theorem solcScratchReturn5Mem_read128_word {scratch : ByteArray}
     (art rate spot line dust : UInt256) (hscratch : scratch.size = 96) :
@@ -620,8 +618,7 @@ theorem RD.solcFiveWordReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcFiveWordReturnFromMemWf code pc)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)

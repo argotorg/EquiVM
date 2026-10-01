@@ -4,6 +4,9 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Cure
 
+private theorem listReturnU256_32_toNat : (⟨32⟩ : UInt256).toNat = 32 := by u256_toNat
+private theorem listReturnU256_64_toNat : (⟨64⟩ : UInt256).toNat = 64 := by u256_toNat
+
 def listReturnOffsetMem (fmp : UInt256) (mem : ByteArray) :
     ByteArray :=
   (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 mem fmp.toNat 32
@@ -539,8 +542,7 @@ theorem listReturnCopiedMem_mload_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hn : n < (cureSlotWord ⟨2⟩ σ I).toNat) :
     (if ((listReturnCopyOffset n) + listArrayDataPtr).toNat ≥
           (listReturnCopiedMem σ I n).size
-        ∨ ((listReturnCopyOffset n) + listArrayDataPtr) ≥
-          listReturnCopiedAw σ I n * ⟨32⟩
+
       then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
@@ -552,12 +554,6 @@ theorem listReturnCopiedMem_mload_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
       rw [listReturnCopySrc_toNat_of_wf hwf (n := n) (by omega),
         listReturnCopiedMem_size_of_wf hwf (n := n) (by omega)]
       omega)
-    (wordMul32_not_ge_of_lt
-      (by
-        rw [listReturnCopySrc_toNat_of_wf hwf (n := n) (by omega),
-          listReturnCopiedAw_toNat_of_wf hwf (n := n) (by omega)]
-        omega)
-      (listReturnCopiedAw_mul32_lt_of_wf hwf (n := n) (by omega)))
     (by
       rw [listReturnCopySrc_toNat_of_wf hwf (n := n) (by omega)]
       exact listReturnCopiedMem_read_src_of_wf hwf (n := n) (k := n) (by omega) hn)
@@ -957,39 +953,13 @@ theorem listReturnCopyStepAw_eq_of_wf {σ : AccountMap} {I : ExecutionEnv}
     have hret := cureStorageWF_returnEnd_lt hwf
     omega
 
-theorem listArrayCopiedMem_mload64_of_wf
-    {σ : AccountMap} {I : ExecutionEnv} (hwf : cureStorageWF σ I) :
-    (if (⟨64⟩ : UInt256).toNat ≥
-          (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-            (cureSlotWord ⟨2⟩ σ I).toNat).size
-        ∨ (⟨64⟩ : UInt256) ≥
-          listArrayCopiedAw (cureSlotWord ⟨2⟩ σ I).toNat * ⟨32⟩
-      then ⟨0⟩
-      else UInt256.ofNat
-        (fromByteArrayBigEndian
-          ((listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
-            (cureSlotWord ⟨2⟩ σ I).toNat).readWithPadding
-              (⟨64⟩ : UInt256).toNat 32)))
-      = listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) := by
-  exact listArrayCopiedMem_mload64 σ I (cureSlotWord ⟨2⟩ σ I)
-    (listArrayCopiedAw (cureSlotWord ⟨2⟩ σ I).toNat)
-    (cureSlotWord ⟨2⟩ σ I).toNat
-    (wordMul32_not_ge_of_lt
-      (by
-        rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
-          listArrayCopiedAw_toNat_of_wf hwf (n := (cureSlotWord ⟨2⟩ σ I).toNat) (by omega)]
-        omega)
-      (listArrayCopiedAw_mul32_lt_of_wf hwf (n := (cureSlotWord ⟨2⟩ σ I).toNat) (by omega)))
-
 theorem listReturnOffsetMem_mload128_of_copied_wf
     {σ : AccountMap} {I : ExecutionEnv} (hwf : cureStorageWF σ I) :
     (if listArrayBasePtr.toNat ≥
           (listReturnOffsetMem (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
             (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
               (cureSlotWord ⟨2⟩ σ I).toNat)).size
-        ∨ listArrayBasePtr ≥
-          listReturnOffsetAw (listArrayCopiedAw (cureSlotWord ⟨2⟩ σ I).toNat)
-            (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)) * ⟨32⟩
+
       then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
@@ -1003,15 +973,6 @@ theorem listReturnOffsetMem_mload128_of_copied_wf
       rw [show listArrayBasePtr.toNat = 128 from by decide,
         listReturnOffsetMem_size_of_copied_wf hwf]
       omega)
-    (wordMul32_not_ge_of_lt
-      (by
-        rw [show listArrayBasePtr.toNat = 128 from by decide,
-          listReturnOffsetAw_toNat_of_wf hwf]
-        omega)
-      (by
-        rw [listReturnOffsetAw_toNat_of_wf hwf]
-        have hret := cureStorageWF_returnEnd_lt hwf
-        omega))
     (by
       exact listReturnOffsetMem_read128_of_copied σ I
         (cureSlotWord ⟨2⟩ σ I) (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
@@ -1032,9 +993,7 @@ theorem listReturnLengthMem_mload128_of_copied_wf
             (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
             (listArrayCopiedMem σ I (cureSlotWord ⟨2⟩ σ I)
               (cureSlotWord ⟨2⟩ σ I).toNat)).size
-        ∨ listArrayBasePtr ≥
-          listReturnLengthAw (listArrayCopiedAw (cureSlotWord ⟨2⟩ σ I).toNat)
-            (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)) listArrayBasePtr * ⟨32⟩
+
       then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
@@ -1049,15 +1008,6 @@ theorem listReturnLengthMem_mload128_of_copied_wf
       rw [show listArrayBasePtr.toNat = 128 from by decide,
         listReturnLengthMem_size_of_copied_wf hwf]
       omega)
-    (wordMul32_not_ge_of_lt
-      (by
-        rw [show listArrayBasePtr.toNat = 128 from by decide,
-          listReturnLengthAw_toNat_of_wf hwf]
-        omega)
-      (by
-        rw [listReturnLengthAw_toNat_of_wf hwf]
-        have hret := cureStorageWF_returnEnd_lt hwf
-        omega))
     (by
       exact listReturnLengthMem_read128_of_copied σ I
         (cureSlotWord ⟨2⟩ σ I) (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
@@ -1107,21 +1057,18 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     (h : RD cureBytecode ee g s0 (⟨369⟩ : UInt256) (arrPtr :: R) mem aw rdata acc k C)
     (hload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = fmp)
     (hloadArr :
-      (if arrPtr.toNat ≥ (listReturnOffsetMem fmp mem).size
-          ∨ arrPtr ≥ listReturnOffsetAw aw fmp * ⟨32⟩ then ⟨0⟩
+      (if arrPtr.toNat ≥ (listReturnOffsetMem fmp mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
            ((listReturnOffsetMem fmp mem).readWithPadding arrPtr.toNat 32)))
         = len)
     (hloadArrTail :
-      (if arrPtr.toNat ≥ (listReturnLengthMem len fmp mem).size
-          ∨ arrPtr ≥ listReturnLengthAw aw fmp arrPtr * ⟨32⟩ then ⟨0⟩
+      (if arrPtr.toNat ≥ (listReturnLengthMem len fmp mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
            ((listReturnLengthMem len fmp mem).readWithPadding arrPtr.toNat 32)))
@@ -1139,10 +1086,8 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
   have rd373 := rd372.dup1 (by native_decide) (by evm_ov)
   have rd374 := rd373.mload (Cₘ (listReturnMload64Aw aw) - Cₘ aw) fmp
     (listReturnMload64Aw aw) (by native_decide)
-    (by
-      intro s haw hstk
-      exact listMloadCost_of_stack (aw := aw) (off := (⟨64⟩ : UInt256))
-        (t := (⟨64⟩ : UInt256) :: arrPtr :: R) haw hstk (by rfl))
+    (by simp [M, MachineState.M, listReturnMload64Aw,
+      listReturnU256_32_toNat, listReturnU256_64_toNat])
     hload64 (by rfl) (by evm_ov)
   have rd376 := rd374.push1 ⟨32⟩ (by native_decide) (by evm_ov)
   have rd377 := rd376.dup1 (by native_decide) (by evm_ov)
@@ -1150,23 +1095,16 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
   have rd379 := rd378.mstore
     (Cₘ (listReturnOffsetAw aw fmp) - Cₘ (listReturnMload64Aw aw))
     (listReturnOffsetMem fmp mem) (listReturnOffsetAw aw fmp) (by native_decide)
-    (by
-      intro s haw hstk
-      exact mstoreCost_of_stack (aw := listReturnMload64Aw aw) (off := fmp)
-        (val := (⟨32⟩ : UInt256))
-        (t := (⟨32⟩ : UInt256) :: fmp :: (⟨64⟩ : UInt256) :: arrPtr :: R)
-        haw hstk (by rfl))
+    (by simp [M, MachineState.M, listReturnMload64Aw, listReturnOffsetAw,
+      listReturnU256_32_toNat, listReturnU256_64_toNat])
     (by rfl) (by rfl) (by evm_ov)
   have rd380 := rd379.dup4 (by native_decide) (by evm_ov)
   have rd381 := rd380.mload
     (Cₘ (listReturnArrayMloadAw aw fmp arrPtr) -
       Cₘ (listReturnOffsetAw aw fmp))
     len (listReturnArrayMloadAw aw fmp arrPtr) (by native_decide)
-    (by
-      intro s haw hstk
-      exact listMloadCost_of_stack (aw := listReturnOffsetAw aw fmp) (off := arrPtr)
-        (t := (⟨32⟩ : UInt256) :: fmp :: (⟨64⟩ : UInt256) :: arrPtr :: R)
-        haw hstk (by rfl))
+    (by simp [M, MachineState.M, listReturnMload64Aw, listReturnOffsetAw,
+      listReturnArrayMloadAw, listReturnU256_32_toNat, listReturnU256_64_toNat])
     hloadArr (by rfl) (by evm_ov)
   have rd382 := rd381.dup2 (by native_decide) (by evm_ov)
   have rd383 := rd382.dup4 (by native_decide) (by evm_ov)
@@ -1176,24 +1114,18 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
       Cₘ (listReturnArrayMloadAw aw fmp arrPtr))
     (listReturnLengthMem len fmp mem) (listReturnLengthAw aw fmp arrPtr)
     (by native_decide)
-    (by
-      intro s haw hstk
-      exact mstoreCost_of_stack (aw := listReturnArrayMloadAw aw fmp arrPtr)
-        (off := fmp + (⟨32⟩ : UInt256)) (val := len)
-        (t := (⟨32⟩ : UInt256) :: fmp :: (⟨64⟩ : UInt256) :: arrPtr :: R)
-        haw hstk (by rfl))
+    (by simp [M, MachineState.M, listReturnMload64Aw, listReturnOffsetAw,
+      listReturnArrayMloadAw, listReturnLengthAw, listReturnU256_32_toNat,
+      listReturnU256_64_toNat])
     (by rfl) (by rfl) (by evm_ov)
   have rd386 := rd385.dup4 (by native_decide) (by evm_ov)
   have rd387 := rd386.mload
     (Cₘ (listReturnFinalAw aw fmp arrPtr) -
       Cₘ (listReturnLengthAw aw fmp arrPtr))
     len (listReturnFinalAw aw fmp arrPtr) (by native_decide)
-    (by
-      intro s haw hstk
-      exact listMloadCost_of_stack (aw := listReturnLengthAw aw fmp arrPtr)
-        (off := arrPtr)
-        (t := (⟨32⟩ : UInt256) :: fmp :: (⟨64⟩ : UInt256) :: arrPtr :: R)
-        haw hstk (by rfl))
+    (by simp [M, MachineState.M, listReturnMload64Aw, listReturnOffsetAw,
+      listReturnArrayMloadAw, listReturnLengthAw, listReturnFinalAw,
+      listReturnU256_32_toNat, listReturnU256_64_toNat])
     hloadArrTail (by rfl) (by evm_ov)
   have rd405 := evm_run rd387 with [
     swap2, swap3, dup4, swap3, swap1, dup4, add, swap2, dup6, dup2, add, swap2,
@@ -1210,7 +1142,7 @@ theorem cureListReturnCopyLoopStep {g : Sat256} {s0 : State}
       mem aw rdata acc k C)
     (hcont : UInt256.isZero (UInt256.lt i bound) = ⟨0⟩)
     (hload :
-      (if (i + src).toNat ≥ mem.size ∨ (i + src) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (i + src).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (i + src).toNat 32))) = word)
     (hov : R.length + 8 ≤ 1024) :
@@ -1232,10 +1164,8 @@ theorem cureListReturnCopyLoopStep {g : Sat256} {s0 : State}
   have rd417 := rd416.add (by native_decide) (by evm_ov)
   have rd418 := rd417.mload (Cₘ (listReturnCopyMloadAw aw src i) - Cₘ aw)
     word (listReturnCopyMloadAw aw src i) (by native_decide)
-    (by
-      intro s haw hstk
-      exact listMloadCost_of_stack (aw := aw) (off := i + src)
-        (t := i :: src :: dst :: bound :: R) haw hstk (by rfl))
+    (by simp [M, MachineState.M, listReturnCopyMloadAw,
+      listReturnU256_32_toNat, listReturnU256_64_toNat])
     hload (by rfl) (by evm_ov)
   have rd419 := rd418.dup4 (by native_decide) (by evm_ov)
   have rd420 := rd419.dup3 (by native_decide) (by evm_ov)
@@ -1245,11 +1175,8 @@ theorem cureListReturnCopyLoopStep {g : Sat256} {s0 : State}
       Cₘ (listReturnCopyMloadAw aw src i))
     (listReturnCopyStepMem word dst i mem)
     (listReturnCopyStepAw aw src dst i) (by native_decide)
-    (by
-      intro s haw hstk
-      exact mstoreCost_of_stack (aw := listReturnCopyMloadAw aw src i)
-        (off := i + dst) (val := word) (t := i :: src :: dst :: bound :: R)
-        haw hstk (by rfl))
+    (by simp [M, MachineState.M, listReturnCopyMloadAw, listReturnCopyStepAw,
+      listReturnU256_32_toNat, listReturnU256_64_toNat])
     (by rfl) (by rfl) (by evm_ov)
   have rd424 := rd422.push1 ⟨32⟩ (by native_decide) (by evm_ov)
   have rd425 := rd424.add (by native_decide) (by evm_ov)
@@ -1360,8 +1287,7 @@ theorem cureListReturnCopyLoopExit {g : Sat256} {s0 : State}
       mem aw rdata acc k C)
     (hdone : UInt256.isZero (UInt256.lt i bound) ≠ ⟨0⟩)
     (hload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = fmp)
@@ -1391,10 +1317,8 @@ theorem cureListReturnCopyLoopExit {g : Sat256} {s0 : State}
   have rd443 := rd441.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rd444 := rd443.mload (Cₘ (listReturnMload64Aw aw) - Cₘ aw) fmp
     (listReturnMload64Aw aw) (by native_decide)
-    (by
-      intro s haw hstk
-      exact listMloadCost_of_stack (aw := aw) (off := (⟨64⟩ : UInt256))
-        (t := (bound + dst) :: R) haw hstk (by rfl))
+    (by simp [M, MachineState.M, listReturnMload64Aw,
+      listReturnU256_32_toNat, listReturnU256_64_toNat])
     hload64 (by rfl) (by evm_ov)
   have rd445 := rd444.dup1 (by native_decide) (by evm_ov)
   have rd446 := rd445.swap2 (by native_decide) (by evm_ov)
@@ -1406,10 +1330,7 @@ theorem cureListReturnCopyLoopExit {g : Sat256} {s0 : State}
             (UInt256.sub (bound + dst) fmp).toNat)) -
         Cₘ (listReturnMload64Aw aw))
     oval (by native_decide)
-    (by
-      intro s haw hstk
-      exact listReturnCost_of_stack (aw := listReturnMload64Aw aw) (off := fmp)
-        (len := UInt256.sub (bound + dst) fmp) (t := R) haw hstk (by rfl))
+    (by rfl)
     hreturn (by omega)
 
 theorem storageLocLoad_addrLoc (evm : EVM.State) (slot : UInt256) :
@@ -1683,7 +1604,8 @@ theorem cureListBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (len := cureSlotWord ⟨2⟩ σ_evm I)
         (R := [cureSelWord I])
         h369
-        (listArrayCopiedMem_mload64_of_wf _hStorageWF)
+        (listArrayCopiedMem_mload64 σ_evm I (cureSlotWord ⟨2⟩ σ_evm I)
+          (cureSlotWord ⟨2⟩ σ_evm I).toNat)
         (listReturnOffsetMem_mload128_of_copied_wf _hStorageWF)
         (listReturnLengthMem_mload128_of_copied_wf _hStorageWF)
         (by simp)
@@ -1725,8 +1647,7 @@ theorem cureListBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     have hload64 :
         (if (⟨64⟩ : UInt256).toNat ≥
               (listReturnCopiedMem σ_evm I (cureSlotWord ⟨2⟩ σ_evm I).toNat).size
-            ∨ (⟨64⟩ : UInt256) ≥
-              listReturnCopiedAw σ_evm I (cureSlotWord ⟨2⟩ σ_evm I).toNat * ⟨32⟩
+
           then ⟨0⟩
           else UInt256.ofNat
             (fromByteArrayBigEndian
@@ -1740,14 +1661,6 @@ theorem cureListBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             listReturnCopiedMem_size_of_wf _hStorageWF
               (n := (cureSlotWord ⟨2⟩ σ_evm I).toNat) (by omega)]
           omega)
-        (wordMul32_not_ge_of_lt
-          (by
-            rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
-              listReturnCopiedAw_toNat_of_wf _hStorageWF
-                (n := (cureSlotWord ⟨2⟩ σ_evm I).toNat) (by omega)]
-            omega)
-          (listReturnCopiedAw_mul32_lt_of_wf _hStorageWF
-            (n := (cureSlotWord ⟨2⟩ σ_evm I).toNat) (by omega)))
         (listReturnCopiedMem_read64_of_wf _hStorageWF
           (n := (cureSlotWord ⟨2⟩ σ_evm I).toNat) (by omega))
     have hreturn :

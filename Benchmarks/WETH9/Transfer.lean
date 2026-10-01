@@ -482,8 +482,7 @@ theorem weth9TransferReturnTrue {ee g s0 rdata cA σ k C} {src dst wad sel : UIn
     repeat' first | apply And.intro | native_decide
   have hbool : UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ := by native_decide
   have hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (wtfBoolReturnMem src dst wad mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (wtfBoolReturnMem src dst wad mem).size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian
         ((wtfBoolReturnMem src dst wad mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
     refine mloadFreePtrValue (by
@@ -493,8 +492,7 @@ theorem weth9TransferReturnTrue {ee g s0 rdata cA σ k C} {src dst wad sel : UIn
           (UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256))) 128 160 160
           (solcScratchReturnMem_size wad hM1size)
           (by rw [solcScratchReturnMem_size wad hM1size]; decide) (by decide)]
-        decide)
-      (by decide) ?_
+        decide) ?_
     unfold wtfBoolReturnMem
     rw [write32_read_below _ _ 128 64 (by rw [toByteArray_size])
       (by rw [solcScratchReturnMem_size wad hM1size]; omega) (by omega)]

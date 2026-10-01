@@ -418,23 +418,14 @@ theorem gemJoinConstructorCorrect :
                   (by decide) hlo
             have hmload64 :
                 (if (⟨64⟩ : UInt256).toNat ≥ memRet.size
-                    ∨ (⟨64⟩ : UInt256) ≥
-                      UInt256.ofNat
-                        (MachineState.M
-                          (MachineState.M (UInt256.ofNat 8).toNat 224 4)
-                          224 32) * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
                  else UInt256.ofNat
                    (fromByteArrayBigEndian (memRet.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
                   ⟨224⟩ := by
               exact mloadWordValue_of_readWithPadding
                 (mem := memRet)
-                (aw := UInt256.ofNat
-                  (MachineState.M
-                    (MachineState.M (UInt256.ofNat 8).toNat 224 4)
-                    224 32))
                 (off := ⟨64⟩) (v := ⟨224⟩)
-                (by rw [hmemRetSize]; decide)
-                (by native_decide) hread64
+                (by rw [hmemRetSize]; decide) hread64
             have hread224 :
                 memRet.readWithPadding 224 32 = out.extract 0 32 := by
               simpa [memRet] using
@@ -447,35 +438,20 @@ theorem gemJoinConstructorCorrect :
                 (by rw [ByteArray.size_extract]; omega)
             have hmload224 :
                 (if (⟨224⟩ : UInt256).toNat ≥ memRet.size
-                    ∨ (⟨224⟩ : UInt256) ≥
-                      UInt256.ofNat
-                        (MachineState.M
-                          (MachineState.M (UInt256.ofNat 8).toNat 224 4)
-                          224 32) * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
                  else UInt256.ofNat
                    (fromByteArrayBigEndian (memRet.readWithPadding (⟨224⟩ : UInt256).toNat 32))) =
                   retWord := by
               exact mloadWordValue_of_readWithPadding
                 (mem := memRet)
-                (aw := UInt256.ofNat
-                  (MachineState.M
-                    (MachineState.M (UInt256.ofNat 8).toNat 224 4)
-                    224 32))
                 (off := ⟨224⟩) (v := retWord)
                 (by rw [hmemRetSize]; decide)
-                (by native_decide)
                 (by rw [hretWordBytes]; exact hread224)
-            obtain ⟨_, _, rd241⟩ := gemJoinCtorDecimalsReturnDecodeOkReach
+            obtain ⟨_, _, rd241⟩ := gemJoinCtorDecimalsReturnDecodeOkReach (aw := ⟨8⟩)
               vat ilk gem gemTarget retWord hlo hhi
-              (by
-                intro s hs hstk
-                simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hs, hstk]
-                native_decide)
+              (by native_decide)
               (by native_decide) hmload64 hmload224
-              (by
-                intro s hs hstk
-                simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hs, hstk]
-                native_decide)
+              (by native_decide)
               (by native_decide)
               (by simpa [memRet, hL] using rd218)
             have hret := gemJoinCtorReturnTrace vat ilk retWord gem hperm hmload64
@@ -520,10 +496,7 @@ theorem gemJoinConstructorCorrect :
           ·
             have hshort : out.size < 32 := by omega
             have hrev := gemJoinCtorDecimalsReturnDecodeShortReverts vat ilk gem gemTarget hshort hout
-              (by
-                intro s hs hstk
-                simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hs, hstk]
-                native_decide)
+              (by native_decide)
               (by native_decide)
               (by
                 have hLle : (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat ≤ 32 := by
@@ -547,13 +520,8 @@ theorem gemJoinConstructorCorrect :
                       hLle (by rw [gemJoinCtorMin32_toNat_of_lt hshort])
                 exact mloadWordValue_of_readWithPadding
                   (mem := memRet)
-                  (aw := UInt256.ofNat
-                    (MachineState.M
-                      (MachineState.M (UInt256.ofNat 8).toNat 224 4)
-                      224 32))
                   (off := ⟨64⟩) (v := ⟨224⟩)
-                  (by rw [hmemRetSize]; decide)
-                  (by native_decide) hread64)
+                  (by rw [hmemRetSize]; decide) hread64)
               rd218
             rcases hrev.xiResult hcodeCtor with hOOG | ⟨g', outRev, hRev⟩
             · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)

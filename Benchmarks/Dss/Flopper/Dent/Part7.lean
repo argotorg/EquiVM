@@ -37,8 +37,7 @@ theorem flopperDentX_successFromAddOkAw8
   have rd2938 := rd2937pre.mstore 0 memKey (UInt256.ofNat 8)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -48,8 +47,7 @@ theorem flopperDentX_successFromAddOkAw8
   have rd2943 := rd2942pre.mstore 0 memStore (UInt256.ofNat 8)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memStore, id, twoWordHashMem, wordAt32Mem])
@@ -66,11 +64,7 @@ theorem flopperDentX_successFromAddOkAw8
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd2948pre := rd2947pre.keccak256 0 base (UInt256.ofNat 8)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)

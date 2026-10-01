@@ -157,15 +157,13 @@ theorem dogCtorVatMem_size (vat : AccountAddress) :
     exact lt_usize _ (by norm_num)
 
 theorem dogCtorFreePtrMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ dogCtorFreePtrMem.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ dogCtorFreePtrMem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (dogCtorFreePtrMem.readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) = ⟨160⟩ := by
   apply mloadWordValue_of_readWithPadding
   · rw [dogCtorFreePtrMem_size]
     decide
-  · decide
   · change dogCtorFreePtrMem.readWithPadding 64 32 =
       UInt256.toByteArray (⟨160⟩ : UInt256)
     unfold dogCtorFreePtrMem
@@ -261,8 +259,7 @@ theorem dogCtorArgFreeMem_read160 (vat : AccountAddress) :
     · rw [dogCtorArgMem_size]
 
 theorem dogCtorArgFreeMem_mload64 (vat : AccountAddress) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (dogCtorArgFreeMem vat).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (dogCtorArgFreeMem vat).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((dogCtorArgFreeMem vat).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -270,7 +267,6 @@ theorem dogCtorArgFreeMem_mload64 (vat : AccountAddress) :
   apply mloadWordValue_of_readWithPadding
   · rw [dogCtorArgFreeMem_size]
     decide
-  · decide
   · change (dogCtorArgFreeMem vat).readWithPadding 64 32 =
       UInt256.toByteArray (⟨192⟩ : UInt256)
     unfold dogCtorArgFreeMem
@@ -279,8 +275,7 @@ theorem dogCtorArgFreeMem_mload64 (vat : AccountAddress) :
     exact lt_usize _ (by norm_num)
 
 theorem dogCtorArgFreeMem_mload160 (vat : AccountAddress) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (dogCtorArgFreeMem vat).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (dogCtorArgFreeMem vat).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((dogCtorArgFreeMem vat).readWithPadding (⟨160⟩ : UInt256).toNat 32)))
@@ -288,7 +283,6 @@ theorem dogCtorArgFreeMem_mload160 (vat : AccountAddress) :
   apply mloadWordValue_of_readWithPadding
   · rw [dogCtorArgFreeMem_size]
     decide
-  · decide
   · simpa [show (⟨160⟩ : UInt256).toNat = 160 from by decide] using
       dogCtorArgFreeMem_read160 vat
 
@@ -369,16 +363,15 @@ theorem dogCtorVatMem_read128 (vat : AccountAddress) :
 
 theorem dogCtorVatMem_mload128_shr96 (vat : AccountAddress) :
     UInt256.shiftRight
-      (if (⟨128⟩ : UInt256).toNat ≥ (dogCtorVatMem vat).size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨128⟩ : UInt256).toNat ≥ (dogCtorVatMem vat).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((dogCtorVatMem vat).readWithPadding (⟨128⟩ : UInt256).toNat 32)))
       ⟨96⟩ = EVM.word vat.val := by
   rw [mloadWordValue_of_readWithPadding
-      (mem := dogCtorVatMem vat) (aw := UInt256.ofNat 6) (off := ⟨128⟩)
+      (mem := dogCtorVatMem vat) (off := ⟨128⟩)
       (v := UInt256.shiftLeft (EVM.word vat.val) ⟨96⟩)
-      (by rw [dogCtorVatMem_size]; decide) (by decide)
+      (by rw [dogCtorVatMem_size]; decide)
       (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
         dogCtorVatMem_read128 vat)]
   exact dogVatWord_high_shift_decode vat
@@ -487,16 +480,15 @@ theorem dogCtorWardsHashMem_read128 (I : ExecutionEnv) (vat : AccountAddress) :
 
 theorem dogCtorWardsHashMem_mload128_shr96 (I : ExecutionEnv) (vat : AccountAddress) :
     UInt256.shiftRight
-      (if (⟨128⟩ : UInt256).toNat ≥ (dogCtorWardsHashMem I vat).size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨128⟩ : UInt256).toNat ≥ (dogCtorWardsHashMem I vat).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((dogCtorWardsHashMem I vat).readWithPadding (⟨128⟩ : UInt256).toNat 32)))
       ⟨96⟩ = EVM.word vat.val := by
   rw [mloadWordValue_of_readWithPadding
-      (mem := dogCtorWardsHashMem I vat) (aw := UInt256.ofNat 6) (off := ⟨128⟩)
+      (mem := dogCtorWardsHashMem I vat) (off := ⟨128⟩)
       (v := UInt256.shiftLeft (EVM.word vat.val) ⟨96⟩)
-      (by rw [dogCtorWardsHashMem_size]; decide) (by decide)
+      (by rw [dogCtorWardsHashMem_size]; decide)
       (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
         dogCtorWardsHashMem_read128 I vat)]
   exact dogVatWord_high_shift_decode vat
@@ -539,8 +531,7 @@ theorem dogCtorWardsHashMem_read64 (I : ExecutionEnv) (vat : AccountAddress) :
   exact dogCtorVatMem_read64 vat
 
 theorem dogCtorWardsHashMem_mload64 (I : ExecutionEnv) (vat : AccountAddress) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (dogCtorWardsHashMem I vat).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (dogCtorWardsHashMem I vat).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((dogCtorWardsHashMem I vat).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -548,7 +539,6 @@ theorem dogCtorWardsHashMem_mload64 (I : ExecutionEnv) (vat : AccountAddress) :
   apply mloadWordValue_of_readWithPadding
   · rw [dogCtorWardsHashMem_size]
     decide
-  · decide
   · simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       dogCtorWardsHashMem_read64 I vat
 

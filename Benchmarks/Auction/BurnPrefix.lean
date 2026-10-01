@@ -11,7 +11,7 @@ def nounsWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 theorem burnPrefix {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
     (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
-    (hn : loadedWord mem aw snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
+    (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hov : R.length + 15 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨4498⟩
       (nounsWord σ I :: nounsWord σ I :: ⟨0⟩ :: ptr :: ⟨36⟩ :: ptr :: ⟨0⟩ ::
@@ -55,7 +55,7 @@ theorem burnPrefix {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
 theorem burnCodeGuard {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
     (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
-    (hn : loadedWord mem aw snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
+    (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hov : R.length + 15 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨4505⟩
       (⟨4509⟩ :: UInt256.isZero (UInt256.isZero (extCodeSizeWord σ (nounsWord σ I))) ::
@@ -70,7 +70,7 @@ theorem burnCodeGuard {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
 theorem burnNoCode {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
     (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
-    (hn : loadedWord mem aw snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
+    (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hno : extCodeSizeWord σ (nounsWord σ I) = ⟨0⟩) (hov : R.length + 16 ≤ 1024) :
     RDrev auctionBytecode g s0 := by
   obtain ⟨_, _, rd4505⟩ := burnCodeGuard h hm hb hn ha (by omega)
@@ -80,7 +80,7 @@ theorem burnNoCode {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
 theorem burnCallPrefix {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
     (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
-    (hn : loadedWord mem aw snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
+    (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hyes : extCodeSizeWord σ (nounsWord σ I) ≠ ⟨0⟩) (hov : R.length + 16 ≤ 1024) :
     ∃ gasArg k' C', RD auctionBytecode I g s0 ⟨4512⟩
       (gasArg :: nounsWord σ I :: ⟨0⟩ :: ptr :: ⟨36⟩ :: ptr :: ⟨0⟩ ::

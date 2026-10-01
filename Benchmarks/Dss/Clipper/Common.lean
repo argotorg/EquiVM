@@ -1088,16 +1088,14 @@ theorem clipperActiveHashMem_read64 :
     wordAt0Mem_read64 (⟨11⟩ : UInt256) solcFreePtrMem_size solcFreePtrMem_read64
 
 theorem clipperActiveHashMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ clipperActiveHashMem.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ clipperActiveHashMem.size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         (clipperActiveHashMem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ := by
   exact mloadFreePtrValue
-    (mem := clipperActiveHashMem) (aw := UInt256.ofNat 3)
+    (mem := clipperActiveHashMem)
     (by rw [clipperActiveHashMem_size]; norm_num)
-    (by decide)
     clipperActiveHashMem_read64
 
 theorem clipperActiveHashMem_keccak_slot :
@@ -1241,16 +1239,14 @@ theorem clipperReturnMaskedFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     (h : RD code ee g s0 pc (val :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : clipperReturnMaskedFromMemWf code pc mask width op)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hmemout :
       (UInt256.toByteArray (UInt256.land val mask)).write 0 mem 128 32 = memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -1465,8 +1461,7 @@ theorem clipperReturnComputedMaskFromMem {code : ByteArray} {g : Sat256} {s0 : S
     (h : RD code ee g s0 pc (val :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : clipperReturnComputedMaskFromMemWf code pc bits)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -1475,8 +1470,7 @@ theorem clipperReturnComputedMaskFromMem {code : ByteArray} {g : Sat256} {s0 : S
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) bits) ⟨1⟩))).write
           0 mem 128 32 = memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)

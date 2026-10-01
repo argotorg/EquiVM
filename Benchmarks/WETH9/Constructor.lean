@@ -204,30 +204,27 @@ theorem weth9CtorReachGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode
   obtain ⟨_, _, rd46⟩ := weth9StringStoreSubroutine ⟨13⟩ ⟨160⟩ ⟨0⟩ ⟨46⟩ weth9NameWord
     (Or.inl rfl) (by decide) hperm (by native_decide) (by decide)
-    (by rw [weth9CtorMemName_size]; decide) (by decide) (by decide) (by decide)
+    (by rw [weth9CtorMemName_size]; decide) (by decide) (by decide)
     (by rw [show (⟨160⟩ : UInt256).toNat = 160 from rfl]; exact weth9CtorMemName_read160) rdName
   -- Segment 2: POP; symbol setup; reach pc 122.
   have rd51 := evm_run rd46 with [
     jumpdest, pop, push1 ⟨64⟩, dup1]
   have rd52 := rd51.mload 0 ⟨192⟩ (UInt256.ofNat 6) (by native_decide)
-    (fun s h1 h2 => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', h1, h2,
-      List.getElem!_cons_zero]; native_decide)
-    (mloadWordValue_of_readWithPadding (mem := weth9CtorMemNameSub) (aw := UInt256.ofNat 6)
+    (by native_decide)
+    (mloadWordValue_of_readWithPadding (mem := weth9CtorMemNameSub)
       (off := ⟨64⟩) (v := ⟨192⟩)
-      (by rw [weth9CtorMemNameSub_size]; decide) (by decide)
+      (by rw [weth9CtorMemNameSub_size]; decide)
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from rfl]; exact weth9CtorMemNameSub_read64))
     (by native_decide) (by evm_ov)
   have rd57 := evm_run rd52 with [
     dup1, dup3, add, swap1, swap2,
     raw mstore 0 weth9CtorMemFreeBump (UInt256.ofNat 6) (by native_decide)
-      (fun s h1 h2 => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', h1, h2,
-        List.getElem!_cons_zero]; native_decide)
+      (by native_decide)
       rfl (by native_decide) (by evm_ov)]
   have rd62 := evm_run rd57 with [
     push1 ⟨4⟩, dup1, dup3,
     raw mstore 3 weth9CtorMemSymLen (UInt256.ofNat 7) (by native_decide)
-      (fun s h1 h2 => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', h1, h2,
-        List.getElem!_cons_zero]; native_decide)
+      (by native_decide)
       rfl (by native_decide) (by evm_ov)]
   have rd70 := rd62.pushConst (⟨183020169⟩ : UInt256) (width := 4) (op := .PUSH4)
     (by native_decide) (by native_decide) (by evm_ov)
@@ -236,15 +233,14 @@ theorem weth9CtorReachGuard {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd78 := evm_run rd70 with [
     push1 ⟨32⟩, swap1, swap3, add, swap2, dup3,
     raw mstore 3 weth9CtorMemSym (UInt256.ofNat 8) (by native_decide)
-      (fun s h1 h2 => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', h1, h2,
-        List.getElem!_cons_zero]; native_decide)
-      rfl (by native_decide) (by evm_ov)]
+      (by native_decide)
+      (by native_decide) (by native_decide) (by evm_ov)]
   have rd122 := evm_run rd78 with [
     push2 ⟨90⟩, swap2, push1 ⟨1⟩, swap2, push2 ⟨122⟩, jump (by native_decide)]
   -- Run the symbol subroutine, reach pc 90.
   obtain ⟨_, _, rd90⟩ := weth9StringStoreSubroutine ⟨4⟩ ⟨224⟩ ⟨1⟩ ⟨90⟩ weth9SymWord
     (Or.inr rfl) (by decide) hperm (by native_decide) (by decide)
-    (by rw [weth9CtorMemSym_size]; decide) (by decide) (by decide) (by decide)
+    (by rw [weth9CtorMemSym_size]; decide) (by decide) (by decide)
     (by rw [show (⟨224⟩ : UInt256).toNat = 224 from rfl]; exact weth9CtorMemSym_read224) rd122
   -- Segment 3a: POP; decimals RMW; reach pc 105.
   have rd91 := evm_run rd90 with [jumpdest, pop, push1 ⟨2⟩, dup1]

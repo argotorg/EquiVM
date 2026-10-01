@@ -238,16 +238,14 @@ theorem spotCtorArgFreeMem_read128 (vat : AccountAddress) :
   exact spotCtorArgMem_read128 vat
 
 theorem spotCtorArgFreeMem_mload128 (vat : AccountAddress) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (spotCtorArgFreeMem vat).size ∨
-        (⟨128⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (spotCtorArgFreeMem vat).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((spotCtorArgFreeMem vat).readWithPadding 128 32))) =
       EVM.word vat.val := by
   exact mloadWordValue_of_readWithPadding
-    (mem := spotCtorArgFreeMem vat) (aw := UInt256.ofNat 5) (off := ⟨128⟩)
+    (mem := spotCtorArgFreeMem vat) (off := ⟨128⟩)
     (v := EVM.word vat.val)
     (by rw [spotCtorArgFreeMem_size]; decide)
-    (by decide)
     (spotCtorArgFreeMem_read128 vat)
 
 abbrev spotCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=

@@ -358,13 +358,11 @@ theorem clipperListReturnBaseMem_read128_of_wf {σ : AccountMap} {I : ExecutionE
       omega)]
   exact clipperListReturnOffsetMem_read128_of_wf hwf
 
-theorem clipperListArrayCopiedMem_mload64_of_wf {σ : AccountMap} {I : ExecutionEnv}
-    (hwf : clipperStorageWF σ I) :
+theorem clipperListArrayCopiedMem_mload64 {σ : AccountMap} {I : ExecutionEnv} :
     (if (⟨64⟩ : UInt256).toNat ≥
           (clipperListArrayCopiedMem σ I (solcSlotWord σ I ⟨11⟩)
             (solcSlotWord σ I ⟨11⟩).toNat).size
-        ∨ (⟨64⟩ : UInt256) ≥
-          clipperListArrayCopiedAw (solcSlotWord σ I ⟨11⟩).toNat * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
          ((clipperListArrayCopiedMem σ I (solcSlotWord σ I ⟨11⟩)
@@ -375,13 +373,6 @@ theorem clipperListArrayCopiedMem_mload64_of_wf {σ : AccountMap} {I : Execution
   · rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
       clipperListArrayCopiedMem_size]
     omega
-  · apply not_u256_ge_of_toNat_lt
-    rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
-      u256_mul32_toNat_of_toNat
-        (clipperListArrayCopiedAw_toNat (clipperStorageWF_freePtr_lt hwf))]
-    · omega
-    · unfold clipperStorageWF at hwf
-      omega
   · simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       clipperListArrayCopiedMem_read64 σ I (solcSlotWord σ I ⟨11⟩)
         (solcSlotWord σ I ⟨11⟩).toNat
@@ -392,10 +383,7 @@ theorem clipperListReturnOffsetMem_mload128_of_wf {σ : AccountMap} {I : Executi
           (clipperListReturnOffsetMem (clipperListArrayFreePtr (solcSlotWord σ I ⟨11⟩))
             (clipperListArrayCopiedMem σ I (solcSlotWord σ I ⟨11⟩)
               (solcSlotWord σ I ⟨11⟩).toNat)).size
-        ∨ clipperListArrayBasePtr ≥
-          clipperListReturnOffsetAw
-            (clipperListArrayCopiedAw (solcSlotWord σ I ⟨11⟩).toNat)
-            (clipperListArrayFreePtr (solcSlotWord σ I ⟨11⟩)) * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
          ((clipperListReturnOffsetMem (clipperListArrayFreePtr (solcSlotWord σ I ⟨11⟩))
@@ -424,43 +412,13 @@ theorem clipperListReturnOffsetMem_mload128_of_wf {σ : AccountMap} {I : Executi
         rw [clipperListArrayFreePtr_toNat_of_wf hwf]
         omega)]
     omega
-  · apply not_u256_ge_of_toNat_lt
-    rw [show clipperListArrayBasePtr.toNat = 128 from by decide]
-    have haw : (clipperListReturnOffsetAw
-        (clipperListArrayCopiedAw (solcSlotWord σ I ⟨11⟩).toNat)
-        (clipperListArrayFreePtr (solcSlotWord σ I ⟨11⟩))).toNat =
-        6 + (solcSlotWord σ I ⟨11⟩).toNat := by
-      unfold clipperListReturnOffsetAw clipperListReturnMload64Aw
-      rw [clipperListArrayCopiedAw_toNat (clipperStorageWF_freePtr_lt hwf)]
-      have h5 :
-          (UInt256.ofNat
-              (MachineState.M (5 + (solcSlotWord σ I ⟨11⟩).toNat)
-                (⟨64⟩ : UInt256).toNat 32)).toNat =
-            5 + (solcSlotWord σ I ⟨11⟩).toNat := by
-        rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
-          clipperM_return_mload64]
-        exact ulit_toNat' _ (by
-          unfold clipperStorageWF at hwf
-          omega)
-      rw [h5, clipperListArrayFreePtr_toNat_of_wf hwf, clipperM_return_storeOffset]
-      exact ulit_toNat' _ (by
-        unfold clipperStorageWF at hwf
-        omega)
-    rw [u256_mul32_toNat_of_toNat haw (by
-      unfold clipperStorageWF at hwf
-      omega)]
-    omega
   · simpa [show clipperListArrayBasePtr.toNat = 128 from by decide] using
       clipperListReturnOffsetMem_read128_of_wf hwf
 
 theorem clipperListReturnBaseMem_mload128_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : clipperStorageWF σ I) :
     (if clipperListArrayBasePtr.toNat ≥ (clipperListReturnBaseMem σ I).size
-        ∨ clipperListArrayBasePtr ≥
-          clipperListReturnLengthAw
-            (clipperListArrayCopiedAw (solcSlotWord σ I ⟨11⟩).toNat)
-            (clipperListArrayFreePtr (solcSlotWord σ I ⟨11⟩))
-            clipperListArrayBasePtr * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
          ((clipperListReturnBaseMem σ I).readWithPadding clipperListArrayBasePtr.toNat 32)))
@@ -469,38 +427,6 @@ theorem clipperListReturnBaseMem_mload128_of_wf {σ : AccountMap} {I : Execution
   · rw [show clipperListArrayBasePtr.toNat = 128 from by decide,
       clipperListReturnBaseMem_size hwf]
     omega
-  · apply not_u256_ge_of_toNat_lt
-    rw [show clipperListArrayBasePtr.toNat = 128 from by decide]
-    have haw : (clipperListReturnLengthAw
-        (clipperListArrayCopiedAw (solcSlotWord σ I ⟨11⟩).toNat)
-        (clipperListArrayFreePtr (solcSlotWord σ I ⟨11⟩))
-        clipperListArrayBasePtr).toNat =
-        7 + (solcSlotWord σ I ⟨11⟩).toNat := by
-      unfold clipperListReturnLengthAw clipperListReturnArrayMloadAw
-      unfold clipperListReturnOffsetAw clipperListReturnMload64Aw
-      rw [clipperListArrayCopiedAw_toNat (clipperStorageWF_freePtr_lt hwf),
-        clipperListArrayFreePtr_toNat_of_wf hwf,
-        show clipperListArrayBasePtr.toNat = 128 from by decide,
-        clipperListArrayFreePtrAdd32_toNat_of_wf hwf,
-        show (⟨64⟩ : UInt256).toNat = 64 from by decide]
-      rw [clipperM_return_mload64]
-      have h5 : (UInt256.ofNat (5 + (solcSlotWord σ I ⟨11⟩).toNat)).toNat =
-          5 + (solcSlotWord σ I ⟨11⟩).toNat := ulit_toNat' _ (by
-        unfold clipperStorageWF at hwf
-        omega)
-      rw [h5, clipperM_return_storeOffset]
-      have h6 : (UInt256.ofNat (6 + (solcSlotWord σ I ⟨11⟩).toNat)).toNat =
-          6 + (solcSlotWord σ I ⟨11⟩).toNat := ulit_toNat' _ (by
-        unfold clipperStorageWF at hwf
-        omega)
-      rw [h6, clipperM_return_mload128_from6, h6, clipperM_return_storeLength]
-      exact ulit_toNat' _ (by
-        unfold clipperStorageWF at hwf
-        omega)
-    rw [u256_mul32_toNat_of_toNat haw]
-    · omega
-    · unfold clipperStorageWF at hwf
-      omega
   · simpa [show clipperListArrayBasePtr.toNat = 128 from by decide] using
       clipperListReturnBaseMem_read128_of_wf hwf
 
@@ -560,8 +486,7 @@ theorem clipperListReturnBaseAw_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
 
 theorem clipperListReturnBaseMem_mload64_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : clipperStorageWF σ I) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperListReturnBaseMem σ I).size
-        ∨ (⟨64⟩ : UInt256) ≥ clipperListReturnBaseAw σ I * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperListReturnBaseMem σ I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
          ((clipperListReturnBaseMem σ I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -569,12 +494,6 @@ theorem clipperListReturnBaseMem_mload64_of_wf {σ : AccountMap} {I : ExecutionE
   apply mloadWordValue_of_readWithPadding
   · rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
       clipperListReturnBaseMem_size hwf]
-    omega
-  · apply not_u256_ge_of_toNat_lt
-    rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
-      u256_mul32_toNat_of_toNat (clipperListReturnBaseAw_toNat_of_wf hwf) (by
-        unfold clipperStorageWF at hwf
-        omega)]
     omega
   · simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       clipperListReturnBaseMem_read64_of_wf hwf

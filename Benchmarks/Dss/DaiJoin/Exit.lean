@@ -857,13 +857,12 @@ theorem daiJoinExitToVatMoveExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
         UInt256.ofNat I.codeOwner.val :=
     solcAddrMask_clean_left hownerCanon
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (solcFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide)
       solcFreePtrMem_read64
   have hcallMem : (exitMoveCalldataMem I rad solcFreePtrMem).size = 228 :=
     exitMoveCalldataMem_size I rad solcFreePtrMem_size
@@ -872,14 +871,13 @@ theorem daiJoinExitToVatMoveExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
         UInt256.toByteArray ⟨128⟩ :=
     exitMoveCalldataMem_read64 I rad solcFreePtrMem_size solcFreePtrMem_read64
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (exitMoveCalldataMem I rad solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (exitMoveCalldataMem I rad solcFreePtrMem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((exitMoveCalldataMem I rad solcFreePtrMem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have rd1451 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -1159,14 +1157,13 @@ theorem daiJoinExitVatMoveToDaiMintExtcodesizeGuard
         UInt256.toByteArray ⟨128⟩ :=
     exitMoveCalldataMem_read64 I rad solcFreePtrMem_size solcFreePtrMem_read64
   have hmload64Move :
-      (if (⟨64⟩ : UInt256).toNat ≥ (exitMoveCalldataMem I rad solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (exitMoveCalldataMem I rad solcFreePtrMem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((exitMoveCalldataMem I rad solcFreePtrMem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmoveMem]; decide) (by decide) hmoveRead64
+    mloadFreePtrValue (by rw [hmoveMem]; decide) hmoveRead64
   have hmintMem :
       (exitMintCalldataMem I (exitMoveCalldataMem I rad solcFreePtrMem)).size = 228 :=
     exitMintCalldataMem_size I hmoveMem
@@ -1177,14 +1174,13 @@ theorem daiJoinExitVatMoveToDaiMintExtcodesizeGuard
     exitMintCalldataMem_read64 I hmoveMem hmoveRead64
   have hmload64Mint :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (exitMintCalldataMem I (exitMoveCalldataMem I rad solcFreePtrMem)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+            (exitMintCalldataMem I (exitMoveCalldataMem I rad solcFreePtrMem)).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((exitMintCalldataMem I (exitMoveCalldataMem I rad solcFreePtrMem)).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmintMem]; decide) (by decide) hmintRead64
+    mloadFreePtrValue (by rw [hmintMem]; decide) hmintRead64
   have rd1486 := RD.pop rd1485 (by native_decide) (by evm_ov)
   have rd1488p := evm_run rd1486 with [
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
@@ -1443,25 +1439,23 @@ theorem daiJoinExitDaiMintSuccessTail
       UInt256.land solcAddrMask (exitUsrMaskedWord I) = exitUsrMaskedWord I :=
     solcAddrMask_clean_left husrCanon
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have heventMem : (exitExitEventMem I mem).size = 228 :=
     exitExitEventMem_size I hmem
   have heventRead64 :
       (exitExitEventMem I mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ :=
     exitExitEventMem_read64 I hmem hread64
   have hmload64Event :
-      (if (⟨64⟩ : UInt256).toNat ≥ (exitExitEventMem I mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (exitExitEventMem I mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((exitExitEventMem I mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [heventMem]; decide) (by decide) heventRead64
+    mloadFreePtrValue (by rw [heventMem]; decide) heventRead64
   have rd1616 := evm_run rd1594 with [
     raw pop (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),

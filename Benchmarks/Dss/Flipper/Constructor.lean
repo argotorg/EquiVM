@@ -377,43 +377,37 @@ private theorem flipperCtorArgsMem_read_word (vat cat : AccountAddress) (ilk : L
 
 theorem flipperCtorArgsMem_mload_vat (vat cat : AccountAddress) (ilk : List UInt8)
     (hilk : ilk.length = 32) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (flipperCtorArgsMem vat cat ilk).size ∨
-        (⟨128⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (flipperCtorArgsMem vat cat ilk).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((flipperCtorArgsMem vat cat ilk).readWithPadding 128 32))) =
       EVM.word vat.val := by
   apply mloadWordValue_of_readWithPadding
   · rw [flipperCtorArgsMem_size vat cat ilk hilk]
     decide
-  · decide
   · simpa using
       flipperCtorArgsMem_read_word vat cat ilk hilk 0 (by norm_num)
         (by simpa using flipperCtorArgsTail_extract_first vat cat ilk)
 
 theorem flipperCtorArgsMem_mload_cat (vat cat : AccountAddress) (ilk : List UInt8)
     (hilk : ilk.length = 32) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (flipperCtorArgsMem vat cat ilk).size ∨
-        (⟨160⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (flipperCtorArgsMem vat cat ilk).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((flipperCtorArgsMem vat cat ilk).readWithPadding 160 32))) =
       EVM.word cat.val := by
   apply mloadWordValue_of_readWithPadding
   · rw [flipperCtorArgsMem_size vat cat ilk hilk]
     decide
-  · decide
   · simpa using
       flipperCtorArgsMem_read_word vat cat ilk hilk 32 (by norm_num)
         (by simpa using flipperCtorArgsTail_extract_second vat cat ilk)
 
 theorem flipperCtorArgsMem_mload_ilk (vat cat : AccountAddress) (ilk : List UInt8)
     (hilk : ilk.length = 32) :
-    (if (⟨192⟩ : UInt256).toNat ≥ (flipperCtorArgsMem vat cat ilk).size ∨
-        (⟨192⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨192⟩ : UInt256).toNat ≥ (flipperCtorArgsMem vat cat ilk).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((flipperCtorArgsMem vat cat ilk).readWithPadding 192 32))) =
       flipperIlkWord ilk := by
-  rw [if_neg (not_or.mpr ⟨by rw [flipperCtorArgsMem_size vat cat ilk hilk]; decide,
-    by decide⟩)]
+  rw [if_neg (by rw [flipperCtorArgsMem_size vat cat ilk hilk]; decide)]
   rw [flipperCtorArgsMem_read_word vat cat ilk hilk 64 (by norm_num)]
   · simp [flipperIlkWord, fromByteArrayBigEndian, list_toByteArray_toList]
   · simpa using flipperCtorArgsTail_extract_third vat cat ilk hilk

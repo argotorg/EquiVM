@@ -375,12 +375,11 @@ theorem RD.cureFileEventTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (hov : R.length + 8 ≤ 1024) :
     RDret cureBytecode g s0 (cA, σ) ByteArray.empty := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hmemoutRead64 :
       ((UInt256.toByteArray data).write 0 mem 128 32).readWithPadding 64 32 =
         UInt256.toByteArray ⟨128⟩ :=
@@ -390,14 +389,13 @@ theorem RD.cureFileEventTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     fileEventMem_size data hmem
   have hlogMload :
       (if (⟨64⟩ : UInt256).toNat ≥
-            ((UInt256.toByteArray data).write 0 mem 128 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+            ((UInt256.toByteArray data).write 0 mem 128 32).size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (((UInt256.toByteArray data).write 0 mem 128 32).readWithPadding
             (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemoutSize]; decide) (by decide) hmemoutRead64
+    mloadFreePtrValue (by rw [hmemoutSize]; decide) hmemoutRead64
   have rd1291 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1293 := rd1291.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rd1294 := rd1293.dup1 (by native_decide) (by evm_ov)
@@ -476,7 +474,7 @@ theorem RD.cureFileUnrecognizedRevert {g : Sat256} {s0 : State} {ee : ExecutionE
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide)

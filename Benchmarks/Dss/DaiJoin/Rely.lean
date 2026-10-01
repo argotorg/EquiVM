@@ -531,7 +531,7 @@ theorem daiJoinRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
   have rd897 := by
     simpa [relyUsrStorageSlot_eq_mapSlot_masked I] using rd897raw
   have rd898 := rd897.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
-    (mloadFreePtrValue (by rw [relyStoreHashMem_size I]; decide) (by decide)
+    (mloadFreePtrValue (by rw [relyStoreHashMem_size I]; decide)
       (relyStoreHashMem_read64 I))
     (by native_decide) (by evm_ov)
   have rd931 := rd898.pushConst

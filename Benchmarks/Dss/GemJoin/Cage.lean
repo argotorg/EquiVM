@@ -251,7 +251,7 @@ theorem gemJoinCageX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [relyAuthHashMem_size I]; decide) (by decide)
+      (mloadFreePtrValue (by rw [relyAuthHashMem_size I]; decide)
         (relyAuthHashMem_read64 I))
       (by native_decide) (by evm_ov)]
   have rd1328 := rd1295pre.pushConst

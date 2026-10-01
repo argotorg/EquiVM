@@ -17,7 +17,7 @@ theorem bidMinimumPrefix {I g s0 s noun ptr ret R mem aw rdata cA σ k C}
   obtain ⟨_, _, rd1515⟩ := rd1514.sload (by native_decide) (by evm_ov)
   have rd1520 := evm_run rd1515 with [push1 ⟨32⟩, dup3, add,
     raw mloadSymbolic (by native_decide) (by evm_ov)]
-  have hl : loadedWord mem aw (ptr + ⟨32⟩) = s.amount := hm.load ⟨1, by decide⟩
+  have hl : loadedWord mem (ptr + ⟨32⟩) = s.amount := hm.load ⟨1, by decide⟩
   have ha : expandedWords aw (ptr + ⟨32⟩) ⟨32⟩ = aw := hm.expand_eq ⟨1, by decide⟩
   rw [hl, ha] at rd1520
   exact ⟨_, _, evm_run rd1520 with [push1 ⟨100⟩, swap2, push2 ⟨1537⟩, swap2,
@@ -49,7 +49,7 @@ theorem bidMinimumCheck {I g s0 s noun ptr ret R mem aw rdata cA σ k C evm loca
       mem aw rdata (cA, σ) _ _ at rd1547
     have rd1553 := evm_run rd1547 with [jumpdest, dup2, push1 ⟨32⟩, add,
       raw mloadSymbolic (by native_decide) (by evm_ov)]
-    have hl : loadedWord mem aw (ptr + ⟨32⟩) = s.amount := hm.load ⟨1, by decide⟩
+    have hl : loadedWord mem (ptr + ⟨32⟩) = s.amount := hm.load ⟨1, by decide⟩
     have ha : expandedWords aw (ptr + ⟨32⟩) ⟨32⟩ = aw := hm.expand_eq ⟨1, by decide⟩
     rw [u256_add_comm ⟨32⟩ ptr, hl, ha] at rd1553
     have rd5704 := evm_run rd1553 with [push2 ⟨1562⟩, swap2, swap1,

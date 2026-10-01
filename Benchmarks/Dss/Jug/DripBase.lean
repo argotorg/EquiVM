@@ -206,8 +206,7 @@ theorem dripVatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray)
 
 theorem dripVatIlksPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray)
     (hshort : out.size < 64) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (dripVatIlksPostCallMem I out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (dripVatIlksPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((dripVatIlksPostCallMem I out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -216,7 +215,6 @@ theorem dripVatIlksPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray)
     (by
       have hgt := dripVatIlksPostCallMem_size_gt64 I out hshort hout
       omega)
-    (by decide)
     (dripVatIlksPostCallMem_read64 I out hshort hout)
 
 theorem dripVatIlksPostCallMem_size_long (I : ExecutionEnv) (out : ByteArray)
@@ -253,15 +251,13 @@ theorem dripVatIlksPostCallMem_read64_long (I : ExecutionEnv) (out : ByteArray)
 
 theorem dripVatIlksPostCallMem_mload64_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (dripVatIlksPostCallMem I out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (dripVatIlksPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((dripVatIlksPostCallMem I out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [dripVatIlksPostCallMem_size_long I out hlo hout]; decide)
-    (by decide)
     (dripVatIlksPostCallMem_read64_long I out hlo hout)
 
 theorem dripVatIlksPostCallMem_read160_long (I : ExecutionEnv) (out : ByteArray)
@@ -302,8 +298,7 @@ theorem dripVatIlksPostCallMem_read160_long (I : ExecutionEnv) (out : ByteArray)
 
 theorem dripVatIlksPostCallMem_mload160_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (dripVatIlksPostCallMem I out).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (dripVatIlksPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((dripVatIlksPostCallMem I out).readWithPadding (⟨160⟩ : UInt256).toNat 32))) =
@@ -314,8 +309,8 @@ theorem dripVatIlksPostCallMem_mload160_long (I : ExecutionEnv) (out : ByteArray
       (fromByteArrayBigEndian ((dripVatIlksPostCallMem I out).readWithPadding 160 32)) =
         UInt256.ofNat (fromByteArrayBigEndian (out.extract 32 64))
     rw [dripVatIlksPostCallMem_read160_long I out hlo hout]
-  · exact not_or.mpr
-      ⟨by rw [dripVatIlksPostCallMem_size_long I out hlo hout]; decide, by native_decide⟩
+  · rw [dripVatIlksPostCallMem_size_long I out hlo hout]
+    decide
 
 theorem dripVatFoldSelectorMem_size {mem : ByteArray} (hmem : mem.size = 192) :
     (dripVatFoldSelectorMem mem).size = 192 := by
@@ -400,15 +395,13 @@ theorem dripVatFoldCalldataMem_mload64 (σ : AccountMap) (I : ExecutionEnv)
     (delta : UInt256) {mem : ByteArray}
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (dripVatFoldCalldataMem σ I delta mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (dripVatFoldCalldataMem σ I delta mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((dripVatFoldCalldataMem σ I delta mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
-  exact mloadFreePtrValue (by rw [dripVatFoldCalldataMem_size σ I delta hmem]; decide)
-    (by decide) (dripVatFoldCalldataMem_read64 σ I delta hmem hread64)
+  exact mloadFreePtrValue (by rw [dripVatFoldCalldataMem_size σ I delta hmem]; decide) (dripVatFoldCalldataMem_read64 σ I delta hmem hread64)
 
 def dripVatFoldReturnMem (mem : ByteArray) (rate : UInt256) : ByteArray :=
   (UInt256.toByteArray rate).write 0 mem 128 32

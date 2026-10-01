@@ -481,8 +481,7 @@ theorem spotCodecopyErrorFinalMem_mload64 {mem : ByteArray}
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hsrc : offset.toNat + 32 ≤ spotBytecode.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (spotCodecopyErrorFinalMem offset len scratchWord copiedWord mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+          (spotCodecopyErrorFinalMem offset len scratchWord copiedWord mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((spotCodecopyErrorFinalMem offset len scratchWord copiedWord mem).readWithPadding
@@ -492,7 +491,6 @@ theorem spotCodecopyErrorFinalMem_mload64 {mem : ByteArray}
     (by
       rw [spotCodecopyErrorFinalMem_size offset len scratchWord copiedWord hmem hsrc]
       omega)
-    (by decide)
     (spotCodecopyErrorFinalMem_read64 offset len scratchWord copiedWord hmem hread64 hsrc)
 
 @[reducible] def spotCodecopyAuthRevertTailWf (pc offset len : UInt256) : Prop :=
@@ -605,7 +603,7 @@ theorem RD.spotCodecopyAuthRevertTail {g : Sat256} {s0 : State}
     raw dup1 hd2 (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd3
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4
@@ -636,8 +634,8 @@ theorem RD.spotCodecopyAuthRevertTail {g : Sat256} {s0 : State}
     (by
       dsimp [scratchWord]
       exact mloadValue_eq_readWithPadding_of_lt_size
-        (solcErrorStringMem2 len mem) (UInt256.ofNat 7) (⟨0⟩ : UInt256) 196
-        (solcErrorStringMem2_size len hmem) (by decide) (by decide))
+        (solcErrorStringMem2 len mem) (⟨0⟩ : UInt256) 196
+        (solcErrorStringMem2_size len hmem) (by decide))
     (by decide) (by evm_ov)
   have rdCopyPre := evm_run rdScratch with [
     raw push1 ⟨32⟩ hd31 (by evm_ov),
@@ -651,10 +649,7 @@ theorem RD.spotCodecopyAuthRevertTail {g : Sat256} {s0 : State}
     rfl
   have rdCopy := rdCopyPre.codecopy 0 (spotCodecopyErrorScratchMem offset len mem)
     (UInt256.ofNat 7) hd37
-    (fun s haws hstk => by
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     hcopy
     (by native_decide)
     (by simp only [List.length_cons]; omega)
@@ -667,10 +662,9 @@ theorem RD.spotCodecopyAuthRevertTail {g : Sat256} {s0 : State}
       (by
         dsimp [copiedWord]
         exact mloadValue_eq_readWithPadding_of_lt_size
-          (spotCodecopyErrorScratchMem offset len mem) (UInt256.ofNat 7)
+          (spotCodecopyErrorScratchMem offset len mem)
           (⟨0⟩ : UInt256) 196
           (spotCodecopyErrorScratchMem_size offset len hmem hsrc)
-          (by decide)
           (by decide))
       (by decide) (by evm_ov)
     |>.swap2 hd40 (by evm_ov)

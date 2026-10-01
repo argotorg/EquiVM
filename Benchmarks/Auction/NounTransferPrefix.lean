@@ -9,8 +9,8 @@ def contractAddressWord (I : ExecutionEnv) : UInt256 := UInt256.ofNat I.codeOwne
 theorem nounTransferPrefix {I g s0 snap nounId bidder ret R mem aw ptr rdata cA σ k C}
     (h : RD auctionBytecode I g s0 ⟨4536⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 100 ≤ 2 ^ 200)
-    (hn : loadedWord mem aw snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
-    (hbid : loadedWord mem aw (snap + ⟨128⟩) = bidder)
+    (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
+    (hbid : loadedWord mem (snap + ⟨128⟩) = bidder)
     (hab : expandedWords aw (snap + ⟨128⟩) ⟨32⟩ = aw)
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨4613⟩
@@ -71,8 +71,8 @@ theorem nounTransferPrefix {I g s0 snap nounId bidder ret R mem aw ptr rdata cA 
 theorem nounTransferCodeGuard {I g s0 snap nounId bidder ret R mem aw ptr rdata cA σ k C}
     (h : RD auctionBytecode I g s0 ⟨4536⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 100 ≤ 2 ^ 200)
-    (hn : loadedWord mem aw snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
-    (hbid : loadedWord mem aw (snap + ⟨128⟩) = bidder)
+    (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
+    (hbid : loadedWord mem (snap + ⟨128⟩) = bidder)
     (hab : expandedWords aw (snap + ⟨128⟩) ⟨32⟩ = aw)
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨4620⟩
@@ -89,8 +89,8 @@ theorem nounTransferCodeGuard {I g s0 snap nounId bidder ret R mem aw ptr rdata 
 theorem nounTransferNoCode {I g s0 snap nounId bidder ret R mem aw ptr rdata cA σ k C}
     (h : RD auctionBytecode I g s0 ⟨4536⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 100 ≤ 2 ^ 200)
-    (hn : loadedWord mem aw snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
-    (hbid : loadedWord mem aw (snap + ⟨128⟩) = bidder)
+    (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
+    (hbid : loadedWord mem (snap + ⟨128⟩) = bidder)
     (hab : expandedWords aw (snap + ⟨128⟩) ⟨32⟩ = aw)
     (hno : extCodeSizeWord σ (nounsWord σ I) = ⟨0⟩) (hov : R.length + 17 ≤ 1024) :
     RDrev auctionBytecode g s0 := by
@@ -101,8 +101,8 @@ theorem nounTransferNoCode {I g s0 snap nounId bidder ret R mem aw ptr rdata cA 
 theorem nounTransferCallPrefix {I g s0 snap nounId bidder ret R mem aw ptr rdata cA σ k C}
     (h : RD auctionBytecode I g s0 ⟨4536⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 100 ≤ 2 ^ 200)
-    (hn : loadedWord mem aw snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
-    (hbid : loadedWord mem aw (snap + ⟨128⟩) = bidder)
+    (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
+    (hbid : loadedWord mem (snap + ⟨128⟩) = bidder)
     (hab : expandedWords aw (snap + ⟨128⟩) ⟨32⟩ = aw)
     (hyes : extCodeSizeWord σ (nounsWord σ I) ≠ ⟨0⟩) (hov : R.length + 17 ≤ 1024) :
     ∃ gasArg k' C', RD auctionBytecode I g s0 ⟨4627⟩

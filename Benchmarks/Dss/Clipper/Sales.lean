@@ -423,8 +423,7 @@ theorem clipperSalesReturnMem_read64 {scratch : ByteArray}
 theorem clipperSalesReturnMem_mload64 {scratch : ByteArray}
     (pos tab lot usr tic top : UInt256) (hscratch : scratch.size = 96)
     (hread64 : scratch.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperSalesReturnMem scratch pos tab lot usr tic top).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperSalesReturnMem scratch pos tab lot usr tic top).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperSalesReturnMem scratch pos tab lot usr tic top).readWithPadding
@@ -432,7 +431,6 @@ theorem clipperSalesReturnMem_mload64 {scratch : ByteArray}
       = ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [clipperSalesReturnMem_size pos tab lot usr tic top hscratch]; decide)
-    (by decide)
     (clipperSalesReturnMem_read64 pos tab lot usr tic top hscratch hread64)
 
 theorem clipperSalesReturnMem_readWord128 {scratch : ByteArray}
@@ -1130,8 +1128,7 @@ theorem RD.clipperSalesReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : clipperSalesReturnFromMemWf code)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)

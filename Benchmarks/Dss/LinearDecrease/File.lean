@@ -678,7 +678,7 @@ theorem stairstepFileX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [relyAuthHashMem_size I]; decide) (by decide)
+      (mloadFreePtrValue (by rw [relyAuthHashMem_size I]; decide)
         (relyAuthHashMem_read64 I))
       (by native_decide) (by evm_ov),
     raw dup3 (by native_decide) (by evm_ov),
@@ -690,7 +690,7 @@ theorem stairstepFileX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw swap1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [fileLogDataMem_size I]; decide) (by decide)
+      (mloadFreePtrValue (by rw [fileLogDataMem_size I]; decide)
         (fileLogDataMem_read64 I))
       (by native_decide) (by evm_ov),
     raw dup4 (by native_decide) (by evm_ov),

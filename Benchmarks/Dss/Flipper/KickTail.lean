@@ -421,13 +421,12 @@ theorem test_flipperKickX_toVatCallMem {cA σ I} {g : Sat256} {s0 : State}
   let rawVat := flipperSlotWord ⟨2⟩ σcall I
   let rawIlk := flipperSlotWord ⟨3⟩ σcall I
   have hmload64Field :
-      (if (⟨64⟩ : UInt256).toNat ≥ (kickFieldHashMem σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (kickFieldHashMem σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((kickFieldHashMem σ I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [kickFieldHashMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [kickFieldHashMem_size]; decide)
       (kickFieldHashMem_read64 σ I)
   have rd2355 := evm_run h with [
     raw swap5 (by native_decide) (by evm_ov)]
@@ -510,13 +509,12 @@ theorem test_flipperKickX_fromVatCallMemToVatMload {cA σ I}
   let σcall := kickAfterTabMap σ I
   let rawVat := flipperSlotWord ⟨2⟩ σcall I
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (kickVatFluxCallMem σ σcall I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (kickVatFluxCallMem σ σcall I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((kickVatFluxCallMem σ σcall I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [kickVatFluxCallMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [kickVatFluxCallMem_size]; decide)
       (kickVatFluxCallMem_read64 σ σcall I)
   have h' : RD flipperBytecode I g s0 ⟨2393⟩
       [rawVat, ⟨128⟩, ⟨64⟩, ⟨0⟩, solcAddrMask, kickIdWord σ I, kickBid I,
@@ -954,15 +952,13 @@ theorem test_flipperReturnWordFromMem9 {I} {g : Sat256} {s0 : State}
     (h : RD flipperBytecode I g s0 ⟨426⟩ (val :: ret :: R) mem (UInt256.ofNat 9)
       rdata acc k C)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hmemout : (UInt256.toByteArray val).write 0 mem 128 32 = memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -1013,23 +1009,21 @@ theorem test_flipperKickX_toKickLog {cA σmem σcall σacc σ I} {g : Sat256} {s
   let mem2 := Reasoning.Theory.writeWord mem1 160 (kickLot I)
   let mem3 := Reasoning.Theory.writeWord mem2 192 (kickBid I)
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem0.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem0.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem0.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ := by
     dsimp [mem0]
-    exact mloadFreePtrValue (by rw [kickVatFluxCallMem_size]; decide) (by decide)
+    exact mloadFreePtrValue (by rw [kickVatFluxCallMem_size]; decide)
       (kickVatFluxCallMem_read64 σmem σcall I)
   have hmload64Log :
-      (if (⟨64⟩ : UInt256).toNat ≥ (test_kickKickLogMem σmem σcall σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (test_kickKickLogMem σmem σcall σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((test_kickKickLogMem σmem σcall σ I).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [test_kickKickLogMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [test_kickKickLogMem_size]; decide)
       (test_kickKickLogMem_read64 σmem σcall σ I)
   have hmask160 :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
@@ -1139,24 +1133,22 @@ theorem test_flipperKickX_logAndReturn {cA σmem σcall σacc σ I}
   obtain ⟨_, _, rd2544⟩ := test_flipperKickX_toKickLog h
   obtain ⟨_, _, rd426⟩ := test_flipperKickX_fromKickLogToReturnPc hperm rd2544
   have hmload64Log :
-      (if (⟨64⟩ : UInt256).toNat ≥ (test_kickKickLogMem σmem σcall σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (test_kickKickLogMem σmem σcall σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((test_kickKickLogMem σmem σcall σ I).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [test_kickKickLogMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [test_kickKickLogMem_size]; decide)
       (test_kickKickLogMem_read64 σmem σcall σ I)
   have hmload64Return :
-      (if (⟨64⟩ : UInt256).toNat ≥ (test_kickReturnMem σmem σcall σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (test_kickReturnMem σmem σcall σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((test_kickReturnMem σmem σcall σ I).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [test_kickReturnMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [test_kickReturnMem_size]; decide)
       (test_kickReturnMem_read64 σmem σcall σ I)
   exact test_flipperReturnWordFromMem9 rd426 hmload64Log
     (by

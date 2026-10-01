@@ -202,8 +202,7 @@ theorem clipperListReturnCopiedMem_read64_of_wf {σ : AccountMap} {I : Execution
 theorem clipperListReturnCopiedMem_mload64_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : clipperStorageWF σ I) :
     ∀ k, k ≤ (solcSlotWord σ I ⟨11⟩).toNat →
-      (if (⟨64⟩ : UInt256).toNat ≥ (clipperListReturnCopiedMem σ I k).size
-          ∨ (⟨64⟩ : UInt256) ≥ clipperListReturnCopiedAw σ I k * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (clipperListReturnCopiedMem σ I k).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
            ((clipperListReturnCopiedMem σ I k).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -213,12 +212,6 @@ theorem clipperListReturnCopiedMem_mload64_of_wf {σ : AccountMap} {I : Executio
       · rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
           clipperListReturnCopiedMem_size hwf k hk]
         omega
-      · apply not_u256_ge_of_toNat_lt
-        rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
-          u256_mul32_toNat_of_toNat (clipperListReturnCopiedAw_toNat_of_wf hwf k hk) (by
-            unfold clipperStorageWF at hwf
-            omega)]
-        omega
       · simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
           clipperListReturnCopiedMem_read64_of_wf hwf k hk
 
@@ -227,8 +220,7 @@ theorem clipperListReturnCopiedMem_mload_src_of_wf {σ : AccountMap} {I : Execut
     ∀ k, k < (solcSlotWord σ I ⟨11⟩).toNat →
       (if (clipperListReturnCopyIndex k + ((⟨32⟩ : UInt256) + clipperListArrayBasePtr)).toNat
             ≥ (clipperListReturnCopiedMem σ I k).size
-          ∨ (clipperListReturnCopyIndex k + ((⟨32⟩ : UInt256) + clipperListArrayBasePtr))
-            ≥ clipperListReturnCopiedAw σ I k * ⟨32⟩ then ⟨0⟩
+          then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
            ((clipperListReturnCopiedMem σ I k).readWithPadding
@@ -239,12 +231,6 @@ theorem clipperListReturnCopiedMem_mload_src_of_wf {σ : AccountMap} {I : Execut
       apply mloadWordValue_of_readWithPadding
       · rw [clipperListReturnCopySrc_toNat hwf (by omega),
           clipperListReturnCopiedMem_size hwf k (by omega)]
-        omega
-      · apply not_u256_ge_of_toNat_lt
-        rw [clipperListReturnCopySrc_toNat hwf (by omega),
-          u256_mul32_toNat_of_toNat (clipperListReturnCopiedAw_toNat_of_wf hwf k (by omega)) (by
-            unfold clipperStorageWF at hwf
-            omega)]
         omega
       · rw [clipperListReturnCopySrc_toNat hwf (n := k) (by omega)]
         exact clipperListReturnCopiedMem_read_src_of_wf hwf k k (by omega) hk
@@ -586,9 +572,7 @@ theorem clipperListReturnLengthMem_empty_mload128 :
     (if clipperListArrayBasePtr.toNat ≥
           (clipperListReturnLengthMem (⟨0⟩ : UInt256) (clipperListArrayFreePtr ⟨0⟩)
             (clipperListArrayLengthMem ⟨0⟩)).size
-        ∨ clipperListArrayBasePtr ≥
-          clipperListReturnLengthAw (UInt256.ofNat 5) (clipperListArrayFreePtr ⟨0⟩)
-            clipperListArrayBasePtr * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
          ((clipperListReturnLengthMem (⟨0⟩ : UInt256) (clipperListArrayFreePtr ⟨0⟩)
@@ -596,8 +580,7 @@ theorem clipperListReturnLengthMem_empty_mload128 :
       = (⟨0⟩ : UInt256) := by
   unfold clipperListReturnLengthMem clipperListReturnOffsetMem
   unfold clipperListArrayLengthMem clipperListArrayAllocMem
-  unfold clipperListReturnLengthAw clipperListReturnArrayMloadAw clipperListReturnOffsetAw
-  unfold clipperListReturnMload64Aw clipperListArrayFreePtr clipperListArrayAllocSize
+  unfold clipperListArrayFreePtr clipperListArrayAllocSize
   unfold clipperListArrayBasePtr
   native_decide
 
@@ -605,26 +588,21 @@ theorem clipperListReturnOffsetMem_empty_mload128 :
     (if clipperListArrayBasePtr.toNat ≥
           (clipperListReturnOffsetMem (clipperListArrayFreePtr ⟨0⟩)
             (clipperListArrayLengthMem ⟨0⟩)).size
-        ∨ clipperListArrayBasePtr ≥
-          clipperListReturnOffsetAw (UInt256.ofNat 5) (clipperListArrayFreePtr ⟨0⟩) *
-            ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
          ((clipperListReturnOffsetMem (clipperListArrayFreePtr ⟨0⟩)
           (clipperListArrayLengthMem ⟨0⟩)).readWithPadding clipperListArrayBasePtr.toNat 32)))
       = (⟨0⟩ : UInt256) := by
   unfold clipperListReturnOffsetMem clipperListArrayLengthMem clipperListArrayAllocMem
-  unfold clipperListReturnOffsetAw clipperListReturnMload64Aw clipperListArrayFreePtr
-  unfold clipperListArrayAllocSize clipperListArrayBasePtr
+  unfold clipperListArrayFreePtr clipperListArrayAllocSize clipperListArrayBasePtr
   native_decide
 
 theorem clipperListReturnLengthMem_empty_mload64 :
     (if (⟨64⟩ : UInt256).toNat ≥
           (clipperListReturnLengthMem (⟨0⟩ : UInt256) (clipperListArrayFreePtr ⟨0⟩)
             (clipperListArrayLengthMem ⟨0⟩)).size
-        ∨ (⟨64⟩ : UInt256) ≥
-          clipperListReturnFinalAw (UInt256.ofNat 5) (clipperListArrayFreePtr ⟨0⟩)
-            clipperListArrayBasePtr * ⟨32⟩ then ⟨0⟩
+ then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
          ((clipperListReturnLengthMem (⟨0⟩ : UInt256) (clipperListArrayFreePtr ⟨0⟩)
@@ -632,8 +610,7 @@ theorem clipperListReturnLengthMem_empty_mload64 :
       = clipperListArrayFreePtr ⟨0⟩ := by
   unfold clipperListReturnLengthMem clipperListReturnOffsetMem
   unfold clipperListArrayLengthMem clipperListArrayAllocMem
-  unfold clipperListReturnFinalAw clipperListReturnLengthAw clipperListReturnArrayMloadAw
-  unfold clipperListReturnOffsetAw clipperListReturnMload64Aw clipperListArrayFreePtr
+  unfold clipperListArrayFreePtr
   unfold clipperListArrayAllocSize clipperListArrayBasePtr
   native_decide
 

@@ -331,10 +331,10 @@ theorem potExitX_callGuard {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {se
       (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) (joinThisWord I) =
       joinThisWord I := by rw [hmask]; exact solcAddrMask_clean_left (joinThisWord_canonical I)
   have hmload0 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemSize]; decide) (by decide) hmemRead64
+    mloadFreePtrValue (by rw [hmemSize]; decide) hmemRead64
   have rd854 := h.jumpdest (by native_decide) (by evm_ov)
   have rd856 := rd854.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rd857 := rd856.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
@@ -386,8 +386,7 @@ theorem potExitX_callGuard {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {se
     (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
   have hmload1 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (potMoveCalldataMem (joinThisWord I) (joinCallerWord I) rad mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+            (potMoveCalldataMem (joinThisWord I) (joinCallerWord I) rad mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((potMoveCalldataMem (joinThisWord I) (joinCallerWord I) rad mem).readWithPadding

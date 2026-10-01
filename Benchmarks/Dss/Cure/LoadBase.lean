@@ -861,15 +861,13 @@ theorem solcErrorStringMem3_read64_of_size160 (len word : UInt256) {mem : ByteAr
 theorem solcErrorStringMem3_mload64_of_size160 (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 160)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcErrorStringMem3 len word mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size160 len word hmem]; decide)
-    (by decide) (solcErrorStringMem3_read64_of_size160 len word hmem hread64)
+  mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size160 len word hmem]; decide) (solcErrorStringMem3_read64_of_size160 len word hmem hread64)
 
 
 end Benchmarks.Dss.Cure

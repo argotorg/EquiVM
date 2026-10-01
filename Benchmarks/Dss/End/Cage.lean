@@ -756,24 +756,22 @@ theorem endCageX_vatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State} {k C : 
       (endCageCallCalldataMem (endRelyAuthHashMem I)) (UInt256.ofNat 5)
       ByteArray.empty (cA, σ) k' C' := by
   have hmload64Auth :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endRelyAuthHashMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endRelyAuthHashMem I).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endRelyAuthHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endRelyAuthHashMem_size I]; decide) (by decide)
+    mloadFreePtrValue (by rw [endRelyAuthHashMem_size I]; decide)
       (endRelyAuthHashMem_read64 I)
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endCageCallCalldataMem (endRelyAuthHashMem I)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+            (endCageCallCalldataMem (endRelyAuthHashMem I)).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide) (by decide)
+    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide)
       (endCageCallCalldataMem_read64_auth I)
   have hselectorShift :
       UInt256.shiftLeft endCageCallSelectorWord ⟨224⟩ =
@@ -1033,14 +1031,13 @@ theorem endCageX_catExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
       rdata acc k' C' := by
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endCageCallCalldataMem (endRelyAuthHashMem I)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+            (endCageCallCalldataMem (endRelyAuthHashMem I)).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide) (by decide)
+    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide)
       (endCageCallCalldataMem_read64_auth I)
   have hselectorMask :
       UInt256.land endCageCallSelectorWord ⟨0xffffffff⟩ = endCageCallSelectorWord := by
@@ -1343,14 +1340,13 @@ theorem endCageX_dogExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
       rdata acc k' C' := by
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endCageCallCalldataMem (endRelyAuthHashMem I)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+            (endCageCallCalldataMem (endRelyAuthHashMem I)).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide) (by decide)
+    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide)
       (endCageCallCalldataMem_read64_auth I)
   have hselectorMaskLeft :
       UInt256.land ⟨0xffffffff⟩ endCageCallSelectorWord = endCageCallSelectorWord := by
@@ -1650,14 +1646,13 @@ theorem endCageX_vowExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
       rdata acc k' C' := by
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endCageCallCalldataMem (endRelyAuthHashMem I)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+            (endCageCallCalldataMem (endRelyAuthHashMem I)).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide) (by decide)
+    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide)
       (endCageCallCalldataMem_read64_auth I)
   have hselectorShift :
       UInt256.shiftLeft endCageCallSelectorWord ⟨224⟩ =
@@ -1950,14 +1945,13 @@ theorem endCageX_spotExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
       rdata acc k' C' := by
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endCageCallCalldataMem (endRelyAuthHashMem I)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+            (endCageCallCalldataMem (endRelyAuthHashMem I)).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide) (by decide)
+    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide)
       (endCageCallCalldataMem_read64_auth I)
   have hselectorMaskLeft :
       UInt256.land ⟨0xffffffff⟩ endCageCallSelectorWord = endCageCallSelectorWord := by
@@ -2257,14 +2251,13 @@ theorem endCageX_potExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
       rdata acc k' C' := by
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endCageCallCalldataMem (endRelyAuthHashMem I)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+            (endCageCallCalldataMem (endRelyAuthHashMem I)).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide) (by decide)
+    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide)
       (endCageCallCalldataMem_read64_auth I)
   have hselectorMaskLeft :
       UInt256.land ⟨0xffffffff⟩ endCageCallSelectorWord = endCageCallSelectorWord := by
@@ -2564,14 +2557,13 @@ theorem endCageX_cureExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : UInt256}
       rdata acc k' C' := by
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endCageCallCalldataMem (endRelyAuthHashMem I)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+            (endCageCallCalldataMem (endRelyAuthHashMem I)).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide) (by decide)
+    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide)
       (endCageCallCalldataMem_read64_auth I)
   have hselectorMaskLeft :
       UInt256.land ⟨0xffffffff⟩ endCageCallSelectorWord = endCageCallSelectorWord := by
@@ -2850,14 +2842,13 @@ theorem endCageX_finish {cA cA' gh bl σ σCall σ' σ₀ A I} {g : UInt256}
       ByteArray.empty := by
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endCageCallCalldataMem (endRelyAuthHashMem I)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+            (endCageCallCalldataMem (endRelyAuthHashMem I)).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endCageCallCalldataMem (endRelyAuthHashMem I)).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide) (by decide)
+    mloadFreePtrValue (by rw [endCageCallCalldataMem_size_auth I]; decide)
       (endCageCallCalldataMem_read64_auth I)
   have rd6304pre := evm_run h with [
     raw pop (by native_decide) (by evm_ov),

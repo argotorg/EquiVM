@@ -156,8 +156,7 @@ theorem fileIlkClipPostCallMem_mload64_short {mem out : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hshort : out.size < 32) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (fileIlkClipPostCallMem mem out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (fileIlkClipPostCallMem mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((fileIlkClipPostCallMem mem out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -166,7 +165,6 @@ theorem fileIlkClipPostCallMem_mload64_short {mem out : ByteArray}
     (by
       have hgt := fileIlkClipPostCallMem_size_gt64 hmem hshort hout
       omega)
-    (by decide)
     (fileIlkClipPostCallMem_read64_short hmem hread64 hshort hout)
 
 theorem fileIlkClipPostCallMem_size_long {mem out : ByteArray}
@@ -205,15 +203,13 @@ theorem fileIlkClipPostCallMem_mload64_long {mem out : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hlo : 32 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (fileIlkClipPostCallMem mem out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (fileIlkClipPostCallMem mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((fileIlkClipPostCallMem mem out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [fileIlkClipPostCallMem_size_long hmem hlo hout]; decide)
-    (by decide)
     (fileIlkClipPostCallMem_read64_long hmem hread64 hlo hout)
 
 theorem fileIlkClipPostCallMem_read128_long {mem out : ByteArray}
@@ -258,8 +254,7 @@ theorem fileIlkClipPostCallMem_read128_long {mem out : ByteArray}
 
 theorem fileIlkClipPostCallMem_mload128_long {mem out : ByteArray}
     (hmem : mem.size = 96) (hlo : 32 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (fileIlkClipPostCallMem mem out).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (fileIlkClipPostCallMem mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((fileIlkClipPostCallMem mem out).readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
@@ -269,8 +264,8 @@ theorem fileIlkClipPostCallMem_mload128_long {mem out : ByteArray}
       (fromByteArrayBigEndian ((fileIlkClipPostCallMem mem out).readWithPadding 128 32)) =
         uInt256OfByteArray (out.extract 0 32)
     rw [fileIlkClipPostCallMem_read128_long hmem hlo hout, uInt256OfByteArray_eq]
-  · exact not_or.mpr
-      ⟨by rw [fileIlkClipPostCallMem_size_long hmem hlo hout]; decide, by native_decide⟩
+  · rw [fileIlkClipPostCallMem_size_long hmem hlo hout]
+    decide
 
 theorem fileIlkClipIlkBytes_len32 {I : ExecutionEnv} (hsz100 : 100 ≤ I.calldata.size) :
     (fileIlkClipIlkBytes I).length = 32 := by
@@ -1882,12 +1877,11 @@ theorem RD.dogFileIlkClipToCallMload {v : DogImmutables} {code : ByteArray}
       simpa [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide, hclipCleanR, hclipCleanL] using rd2539raw⟩
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   exact ⟨_, _, rd2539.mload 0 ⟨128⟩ (UInt256.ofNat 3)
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -2006,7 +2000,7 @@ theorem RD.dogFileIlkClipCallArgsToExtcodesize {v : DogImmutables} {code : ByteA
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
       native_decide)
     mem_cost
-    (mloadFreePtrValue (by rw [hcallSize]; decide) (by decide) hcallRead64)
+    (mloadFreePtrValue (by rw [hcallSize]; decide) hcallRead64)
     (by native_decide) (by evm_ov)
   exact ⟨_, _, by
     simpa [
@@ -2408,7 +2402,7 @@ theorem RD.dogFileIlkClipReturnDecodeShortReverts {v : DogImmutables} {code : By
     (hov : R.length + 11 ≤ 1024) :
     RDrev code g s0 := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨2600⟩) (okPc := ⟨2620⟩)
-    rd hshort hout mem_cost (by decide)
+    rd hshort hout (by decide)
     (fileIlkClipPostCallMem_mload64_short hmem hread64 hshort hout)
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -2474,10 +2468,10 @@ theorem RD.dogFileIlkClipReturnDecodeOk {v : DogImmutables} {code : ByteArray}
       (uInt256OfByteArray (out.extract 0 32) :: clipKey :: what :: ilk :: ret :: sel :: R)
       (fileIlkClipPostCallMem mem out) (UInt256.ofNat 5) out acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨2600⟩) (okPc := ⟨2620⟩)
-    rd hlo hout mem_cost (by decide)
+    rd hlo hout (by decide)
     (fileIlkClipPostCallMem_mload64_long hmem hread64 hlo hout)
     (fileIlkClipPostCallMem_mload128_long hmem hlo hout)
-    mem_cost (by decide)
+    (by decide)
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
       native_decide)
@@ -2586,15 +2580,13 @@ theorem solcErrorStringMem3_read64_of_size160 (len word : UInt256) {mem : ByteAr
 theorem solcErrorStringMem3_mload64_of_size160 (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 160)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcErrorStringMem3 len word mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size160 len word hmem]; decide)
-    (by decide) (solcErrorStringMem3_read64_of_size160 len word hmem hread64)
+  mloadFreePtrValue (by rw [solcErrorStringMem3_size_of_size160 len word hmem]; decide) (solcErrorStringMem3_read64_of_size160 len word hmem hread64)
 
 theorem wordAt0Mem_size_160 {mem : ByteArray} (word : UInt256) (hmem : mem.size = 160) :
     (wordAt0Mem word mem).size = 160 := by
@@ -2713,7 +2705,7 @@ theorem RD.dogErrorStringRevertTailDirectAw5Size160 {code : ByteArray} {g : Sat2
     raw dup1 hd2 (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5) hd3
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4 (by simp only [List.length_cons]; omega)
@@ -2830,7 +2822,7 @@ theorem RD.dogFileIlkClipLogTail {v : DogImmutables} {code : ByteArray}
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5)
       (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩
       (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
@@ -2878,8 +2870,7 @@ theorem RD.dogFileIlkClipLogTail {v : DogImmutables} {code : ByteArray}
         have hsz := writeWord_size mem 128 (UInt256.land clipKey solcAddrMask)
           (by rw [hmem]; native_decide)
         rw [hsz, hmem]
-        decide)
-      (by decide) hread64')
+        decide) hread64')
     (by native_decide) (by evm_ov)
   have rdTopicStack := evm_run rdMload2 with [
     raw dup4

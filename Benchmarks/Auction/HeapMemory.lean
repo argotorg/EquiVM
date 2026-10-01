@@ -57,15 +57,11 @@ theorem activeWords_mul32 {aw : UInt256} (h : ActiveWords aw) :
   change aw.toNat * 32 < 2 ^ 256
   omega
 
-theorem loadedWord_of_read {mem : ByteArray} {aw off word : UInt256}
-    (hactive : ActiveWords aw) (hmem : off.toNat + 32 ≤ mem.size)
-    (hcover : off.toNat < aw.toNat * 32)
+theorem loadedWord_of_read {mem : ByteArray} {off word : UInt256}
+    (hmem : off.toNat + 32 ≤ mem.size)
     (hread : mem.readWithPadding off.toNat 32 = word.toByteArray) :
-    loadedWord mem aw off = word := by
-  apply mloadWordValue_of_readWithPadding (by omega) _ hread
-  change ¬ (aw * ⟨32⟩).toNat ≤ off.toNat
-  rw [activeWords_mul32 hactive]
-  omega
+    loadedWord mem off = word := by
+  apply mloadWordValue_of_readWithPadding (by omega) hread
 
 theorem expandedWords32_toNat {aw off : UInt256} (ha : ActiveWords aw)
     (hoff : off.toNat + 32 ≤ 2 ^ 200) :
@@ -99,9 +95,12 @@ theorem expandedWords64_eq {aw : UInt256} (ha : ActiveWords aw) :
   exact max_eq_left hlo
 
 theorem HeapMemory.load64 {mem aw ptr} (h : HeapMemory mem aw ptr) :
-    loadedWord mem aw ⟨64⟩ = ptr := by
-  exact loadedWord_of_read h.active h.size (by have hlo := h.active.1; change 64 < _; omega)
-    h.free
+    loadedWord mem ⟨64⟩ = ptr := by
+  apply loadedWord_of_read
+  · have h64 : (⟨64⟩ : UInt256).toNat = 64 := by u256_toNat
+    rw [h64]
+    exact le_trans (by norm_num) h.size
+  · exact h.free
 
 theorem HeapMemory.writeAbove {mem aw ptr} (h : HeapMemory mem aw ptr)
     (off word : UInt256) (hlo : ptr.toNat ≤ off.toNat)

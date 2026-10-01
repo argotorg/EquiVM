@@ -224,25 +224,23 @@ theorem RD.vowKissToHealExtcodesizeGuard
       mem (UInt256.ofNat 6) o (cA', σ') k1842 C1842 := by
     simpa [vowSlotWord, solcSlotWord] using rd1842₀
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hHealMem : (kissHealCalldataMem I mem).size = 164 :=
     kissHealCalldataMem_size I hmem
   have hHealRead64 :
       (kissHealCalldataMem I mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ :=
     kissHealCalldataMem_read64 I hmem hread64
   have hmload64Heal :
-      (if (⟨64⟩ : UInt256).toNat ≥ (kissHealCalldataMem I mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (kissHealCalldataMem I mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((kissHealCalldataMem I mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hHealMem]; decide) (by decide) hHealRead64
+    mloadFreePtrValue (by rw [hHealMem]; decide) hHealRead64
   have rd1903 := evm_run rd1842 with [
     push1 ⟨64⟩,
     dup1,
@@ -1269,18 +1267,16 @@ theorem vowKissBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           kissDaiWrite_read64 I oDai 32 (by omega) ho32
         have hmload64 :
             (if (⟨64⟩ : UInt256).toNat ≥
-                  (oDai.write 0 (kissDaiCalldataMem I) 128 32).size
-                ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+                  (oDai.write 0 (kissDaiCalldataMem I) 128 32).size then ⟨0⟩
              else UInt256.ofNat
                (fromByteArrayBigEndian
                 ((oDai.write 0 (kissDaiCalldataMem I) 128 32).readWithPadding
                   (⟨64⟩ : UInt256).toNat 32))) =
               ⟨128⟩ :=
-          mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+          mloadFreePtrValue (by rw [hmem]; decide) hread64
         have hmload128 :
             (if (⟨128⟩ : UInt256).toNat ≥
-                  (oDai.write 0 (kissDaiCalldataMem I) 128 32).size
-                ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+                  (oDai.write 0 (kissDaiCalldataMem I) 128 32).size then ⟨0⟩
              else UInt256.ofNat
                (fromByteArrayBigEndian
                 ((oDai.write 0 (kissDaiCalldataMem I) 128 32).readWithPadding
@@ -1288,8 +1284,7 @@ theorem vowKissBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               vatDai := by
           have hnot :
               ¬ ((⟨128⟩ : UInt256).toNat ≥
-                    (oDai.write 0 (kissDaiCalldataMem I) 128 32).size
-                  ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
+                    (oDai.write 0 (kissDaiCalldataMem I) 128 32).size) := by
             rw [hmem]
             native_decide
           rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,

@@ -103,31 +103,25 @@ theorem solcErrorStringMem3_read64_grown (len word : UInt256) {mem : ByteArray}
 /-- **Grown analogue of `solcErrorStringMem3_mload64`.** After the error-string is written into the
     grown memory, `MLOAD 0x40` still reads the free pointer `0x80` (the writes are all above `0x60`
     and the offset `0x40` is well within the grown active-words). -/
-theorem solcErrorStringMem3_mload64_grown (len word aw : UInt256) {mem : ByteArray}
-    (hmem : 228 ≤ mem.size) (haw : 8 ≤ aw.toNat) (hawsz : aw.toNat * 32 < UInt256.size)
+theorem solcErrorStringMem3_mload64_grown (len word : UInt256) {mem : ByteArray}
+    (hmem : 228 ≤ mem.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcErrorStringMem3 len word mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (aw := aw)
+  mloadFreePtrValue
     (by rw [solcErrorStringMem3_size_grown len word hmem]; omega)
-    (awNotGe hawsz haw ⟨64⟩ (by decide))
     (solcErrorStringMem3_read64_grown len word hmem hread64)
 
 /-- `REVERT` memory-expansion cost is `0` when the reverted region `[off, off+len)` is already within
     active-words (`M aw off len = aw`). Mirrors `mstoreCost0`/`log3Cost0`. -/
-theorem revCost0 {aw off len : UInt256} {t : List UInt256}
+theorem revCost0 {aw off len : UInt256}
     (hM : UInt256.ofNat (MachineState.M aw.toNat off.toNat len.toNat) = aw) :
-    ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = off :: len :: t →
-      memoryExpansionCost s .REVERT = 0 := by
-  intro s haw hstk
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw,
-    List.getElem!_cons_zero, List.getElem!_cons_succ]
-  rw [hM]; simp
+    Cₘ (M aw off len) - Cₘ aw = 0 := by
+  simp [M, hM]
 
 /-! ## The grown revert tail -/
 
@@ -173,7 +167,7 @@ theorem RD.solcErrorStringRevertTailGrown {code : ByteArray} {g : Sat256} {s0 : 
     raw dup1 hd2 (by evm_ov),
     raw mload 0 ⟨128⟩ aw hd3
       (mloadCost0 hM64)
-      (mloadFreePtrValue (by omega) hnot64 hread64)
+      (mloadFreePtrValue (by omega) hread64)
       hM64 (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4 (by simp only [List.length_cons]; omega)
@@ -210,7 +204,7 @@ theorem RD.solcErrorStringRevertTailGrown {code : ByteArray} {g : Sat256} {s0 : 
     raw swap1 hdSwap (by evm_ov),
     raw mload 0 ⟨128⟩ aw hdMload
       (mloadCost0 hM64)
-      (solcErrorStringMem3_mload64_grown len word aw hmemsz haw hawsz hread64)
+      (solcErrorStringMem3_mload64_grown len word hmemsz hread64)
       hM64 (by evm_ov),
     raw swap1 hdSwap2 (by evm_ov),
     raw dup2 hdDup2 (by evm_ov),
@@ -397,17 +391,16 @@ theorem catBiteMilkErrMem3_read64 (len word : UInt256) {mem : ByteArray}
   exact hread64
 
 /-- `MLOAD 0x40` over the fully-written error-string memory pushes the free pointer `320`. -/
-theorem catBiteMilkErrMem3_mload64 (len word aw : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 320) (haw : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩)
+theorem catBiteMilkErrMem3_mload64 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 320)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨320⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (catBiteMilkErrMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (catBiteMilkErrMem3 len word mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((catBiteMilkErrMem3 len word mem).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨320⟩ :=
   mloadWordValue_of_readWithPadding
-    (by rw [catBiteMilkErrMem3_size len word hmem]; decide) haw
+    (by rw [catBiteMilkErrMem3_size len word hmem]; decide)
     (catBiteMilkErrMem3_read64 len word hmem hread64)
 
 set_option maxHeartbeats 2000000 in
@@ -438,8 +431,8 @@ theorem RD.catBiteMilkErrorStringRevertTail {code : ByteArray} {g : Sat256} {s0 
     raw dup1 hd2 (by evm_ov),
     raw mload 0 ⟨320⟩ (UInt256.ofNat 10) hd3
       mem_cost
-      (mloadWordValue_of_readWithPadding (off := ⟨64⟩) (aw := ⟨10⟩) (v := ⟨320⟩)
-        (by rw [hmem]; decide) (by decide) hread64)
+      (mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨320⟩)
+        (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4 (by simp only [List.length_cons]; omega)
@@ -476,7 +469,7 @@ theorem RD.catBiteMilkErrorStringRevertTail {code : ByteArray} {g : Sat256} {s0 
     raw swap1 hdSwap (by evm_ov),
     raw mload 0 ⟨320⟩ (UInt256.ofNat 14) hdMload
       mem_cost
-      (catBiteMilkErrMem3_mload64 len word (UInt256.ofNat 14) hmem (by decide) hread64)
+      (catBiteMilkErrMem3_mload64 len word hmem hread64)
       (by decide) (by evm_ov),
     raw swap1 hdSwap2 (by evm_ov),
     raw dup2 hdDup2 (by evm_ov),

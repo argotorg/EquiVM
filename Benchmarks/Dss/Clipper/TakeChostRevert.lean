@@ -32,7 +32,7 @@ theorem RD.clipperTakeNoPartialPurchaseRevertTail {code : ByteArray}
     raw dup1 (by clipper_runtime_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by clipper_runtime_decode)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_runtime_decode)
