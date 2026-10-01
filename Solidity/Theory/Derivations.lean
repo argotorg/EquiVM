@@ -812,8 +812,1028 @@ theorem EvalExpr.memLengthPlain {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {ob
     EvalExpr cfg o fc fr m (.member e "length") (.ok (wordNat n) fr1 m1) :=
   EvalExpr.memberMemLength hdirect he hlen
 
-theorem wordNat_eq (n : ℕ) (hn : n < UInt256.size) : wordNat n = u256Val n := by
-  show Value.uint ⟨256, by decide⟩ (UInt256.ofNat n).toNat = _
-  rw [ulit_toNat' n hn]
+/-! ## Increments and `for` loops -/
+
+theorem EvalExpr.postIncLocalU256 {fr : Frame} {m : Machine} {x : Ident} {n : ℕ} (l : Local)
+    (hx : fr.get? x = some l) (hty : l.ty = u256Ty) (hval : l.val = u256Val n) (hunch : fr.unchecked = false)
+    (hfit : n + 1 < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.unary .postInc (.ident x)) (.ok (u256Val n) (fr.setVal x (u256Val (n + 1))) m) := by
+  have h := EvalExpr.incDec (cfg := cfg) (o := o) (fc := fc) (op := .postInc) (cur := u256Val n)
+    (nv := u256Val (n + 1)) rfl (EvalLValue.local (m := m) hx) (by rw [readLValue_local hx, hval])
+    (by rw [hunch]; exact binop_add_u256_lit1 n hfit) (assign_local_u256 l hx hty (n + 1))
+  simpa [isPrefix] using h
+
+theorem EvalExpr.preIncLocalU256 {fr : Frame} {m : Machine} {x : Ident} {n : ℕ} (l : Local)
+    (hx : fr.get? x = some l) (hty : l.ty = u256Ty) (hval : l.val = u256Val n) (hunch : fr.unchecked = false)
+    (hfit : n + 1 < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.unary .preInc (.ident x)) (.ok (u256Val (n + 1)) (fr.setVal x (u256Val (n + 1))) m) := by
+  have h := EvalExpr.incDec (cfg := cfg) (o := o) (fc := fc) (op := .preInc) (cur := u256Val n)
+    (nv := u256Val (n + 1)) rfl (EvalLValue.local (m := m) hx) (by rw [readLValue_local hx, hval])
+    (by rw [hunch]; exact binop_add_u256_lit1 n hfit) (assign_local_u256 l hx hty (n + 1))
+  simpa [isPrefix] using h
+
+theorem EvalExpr.postDecLocalU256 {fr : Frame} {m : Machine} {x : Ident} {n : ℕ} (l : Local)
+    (hx : fr.get? x = some l) (hty : l.ty = u256Ty) (hval : l.val = u256Val n) (hunch : fr.unchecked = false)
+    (hpos : 0 < n) (hn : n < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.unary .postDec (.ident x)) (.ok (u256Val n) (fr.setVal x (u256Val (n - 1))) m) := by
+  have h := EvalExpr.incDec (cfg := cfg) (o := o) (fc := fc) (op := .postDec) (cur := u256Val n)
+    (nv := u256Val (n - 1)) rfl (EvalLValue.local (m := m) hx) (by rw [readLValue_local hx, hval])
+    (by rw [hunch]; exact binop_sub_u256_lit1 n hpos hn) (assign_local_u256 l hx hty (n - 1))
+  simpa [isPrefix] using h
+
+/-- The `i++` of a `for` loop. -/
+theorem ExecPost.postIncLocalU256 {fr : Frame} {m : Machine} {x : Ident} {n : ℕ} (l : Local)
+    (hx : fr.get? x = Option.some l) (hty : l.ty = u256Ty) (hval : l.val = u256Val n) (hunch : fr.unchecked = false)
+    (hfit : n + 1 < 2 ^ 256) :
+    ExecPost cfg o fc fr m (Option.some (.unary .postInc (.ident x))) (.ok () (fr.setVal x (u256Val (n + 1))) m) :=
+  ExecPost.some (EvalExpr.postIncLocalU256 l hx hty hval hunch hfit)
+
+/-- `for (init; c; post) body` that runs to completion: the loop variable's scope is left. -/
+theorem ExecStmt.forFinished {fr fr1 fr' : Frame} {m m1 m' : Machine} {init : Stmt} {c post : Option Expr}
+    {body : Stmt}
+    (hinit : ExecStmt cfg o fc fr m init (.normal fr1 m1))
+    (hloop : ExecLoop cfg o fc fr1 m1 c post body (.normal fr' m')) :
+    ExecStmt cfg o fc fr m (.for (some init) c post body) (.normal (fr.exitScope fr') m') :=
+  ExecStmt.forInit hinit hloop
+
+/-! ## Struct literals, storage arrays of structs, memory arrays -/
+
+/-- `S({f₁: e₁, …})` or `S(e₁, …)`. -/
+theorem EvalExpr.structLitPlain {fr fr1 : Frame} {m m1 m2 : Machine} {s : Ident} {sd : StructInfo} {args : Args}
+    {es : List Expr} {vs : List Value} {v : Value}
+    (hbuiltin : isBuiltinFn s = false) (hx : fr.get? s = none) (hfns : fc.fnsNamed s = [])
+    (hsd : fc.types.struct? none s = some sd)
+    (hargs : argExprs (sd.fields.map fun f => some f.2) args = some es)
+    (hes : EvalExprs cfg o fc fr m es (.ok vs fr1 m1))
+    (hobj : structObj cfg fc.types m1 sd vs = some (.ok (v, m2))) :
+    EvalExpr cfg o fc fr m (.call (.ident s) [] args) (.ok v fr1 m2) :=
+  EvalExpr.structLit hbuiltin hx hfns hsd hargs hes hobj
+
+/-- A state variable of reference type, as a storage reference. -/
+theorem EvalExpr.stateRef {fr : Frame} {m : Machine} {x : Ident} {v : FlatVar}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .mutable)
+    (hnv : isValueType fc.types v.ty = false) :
+    EvalExpr cfg o fc fr m (.ident x) (.ok (.storageRef ⟨v.key, []⟩ v.ty) fr m) :=
+  EvalExpr.stateVar hx hv hmut (loadIfScalar_ref hnv)
+
+/-- `a.push(x)` on a storage array. -/
+theorem EvalExpr.pushValue {fr fr1 fr2 : Frame} {m m1 m2 m3 : Machine} {recv x : Expr} {er : Solm.EvaledStorageRef}
+    {e : Ty} {v : Value}
+    (hdirect : memberCallDirect fc fr recv = false)
+    (hrecv : EvalExpr cfg o fc fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1))
+    (hx : EvalExpr cfg o fc fr1 m1 x (.ok v fr2 m2))
+    (hpush : storagePush cfg fc.types m2 er e (some v) = some (.ok m3)) :
+    EvalExpr cfg o fc fr m (.call (.member recv "push") [] (.positional [x])) (.ok .unit fr2 m3) :=
+  EvalExpr.push1 hdirect hrecv hx hpush
+
+theorem ExecStmt.pushValue {fr fr1 fr2 : Frame} {m m1 m2 m3 : Machine} {recv x : Expr} {er : Solm.EvaledStorageRef}
+    {e : Ty} {v : Value}
+    (hdirect : memberCallDirect fc fr recv = false)
+    (hrecv : EvalExpr cfg o fc fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1))
+    (hx : EvalExpr cfg o fc fr1 m1 x (.ok v fr2 m2))
+    (hpush : storagePush cfg fc.types m2 er e (some v) = some (.ok m3)) :
+    ExecStmt cfg o fc fr m (.exprStmt (.call (.member recv "push") [] (.positional [x]))) (.normal fr2 m3) :=
+  ExecStmt.exprStmt (EvalExpr.pushValue hdirect hrecv hx hpush)
+
+/-- `a[i]` on a memory array. -/
+theorem EvalExpr.indexMemPlain {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {e i : Expr} {obj k : ℕ} {ety : Ty}
+    {elems : List Value}
+    (he : EvalExpr cfg o fc fr m e (.ok (.memRef obj) fr1 m1))
+    (hi : EvalExpr cfg o fc fr1 m1 i (.ok (u256Val k) fr2 m2))
+    (hget : m2.heap.get? obj = some (.array ety elems)) (hk : k < elems.length) (hraw : isRaw elems[k] = false) :
+    EvalExpr cfg o fc fr m (.index e i) (.ok elems[k] fr2 m2) :=
+  EvalExpr.indexMem he hi (memIndex_array_ok hget hk) hraw
+
+/-! ## `abi.encode*` and `keccak256` -/
+
+/-- `abi.encodePacked(es)`: the packed bytes land in a fresh memory `bytes` object. -/
+theorem EvalExpr.abiEncodePackedPlain {fr fr1 : Frame} {m m1 : Machine} {es : List Expr} {vs : List Value}
+    {tys : List ABI.ABIType} {svs : List ABI.ABIValue} {parts : List (List UInt8)}
+    (hes : EvalExprs cfg o fc fr m es (.ok vs fr1 m1)) (htys : vs.mapM (abiTyOfValue fc.types m1.heap) = some tys)
+    (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs)
+    (hparts : (tys.zip svs).mapM (fun (t, sv) => ABI.encodePackedValue? t sv) = some parts) :
+    EvalExpr cfg o fc fr m (.call (.member (.ident "abi") "encodePacked") [] (.positional es))
+      (.ok (allocBytes m1 false parts.flatten.toByteArray).1 fr1 (allocBytes m1 false parts.flatten.toByteArray).2) :=
+  EvalExpr.abiEncodePacked hes htys (abiArgsAbi_of_mapM hsvs) hparts rfl
+
+/-- `abi.encode(es)`. -/
+theorem EvalExpr.abiEncodePlain {fr fr1 : Frame} {m m1 : Machine} {es : List Expr} {vs : List Value}
+    {tys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8}
+    (hes : EvalExprs cfg o fc fr m es (.ok vs fr1 m1)) (htys : vs.mapM (abiTyOfValue fc.types m1.heap) = some tys)
+    (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs) (henc : ABI.encodeABIValues? tys svs = some bs) :
+    EvalExpr cfg o fc fr m (.call (.member (.ident "abi") "encode") [] (.positional es))
+      (.ok (allocBytes m1 false bs.toByteArray).1 fr1 (allocBytes m1 false bs.toByteArray).2) :=
+  EvalExpr.abiEncode hes htys (abiArgsAbi_of_mapM hsvs) henc rfl
+
+/-- `abi.encodeWithSelector(sel, es)`. -/
+theorem EvalExpr.abiEncodeWithSelectorPlain {fr fr1 : Frame} {m m1 : Machine} {sel : Expr} {es : List Expr}
+    {sb : List UInt8} {vs : List Value} {tys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8}
+    (hes : EvalExprs cfg o fc fr m (sel :: es) (.ok (.fixedBytes ⟨3, by decide⟩ sb :: vs) fr1 m1))
+    (htys : vs.mapM (abiTyOfValue fc.types m1.heap) = some tys)
+    (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs) (henc : ABI.encodeABIValues? tys svs = some bs) :
+    EvalExpr cfg o fc fr m (.call (.member (.ident "abi") "encodeWithSelector") [] (.positional (sel :: es)))
+      (.ok (allocBytes m1 false (ByteArray.mk sb.toArray ++ bs.toByteArray)).1 fr1
+        (allocBytes m1 false (ByteArray.mk sb.toArray ++ bs.toByteArray)).2) :=
+  EvalExpr.abiEncodeWithSelector hes rfl htys (abiArgsAbi_of_mapM hsvs) henc rfl
+
+/-- `keccak256(b)` of a memory `bytes`/`string` object. -/
+theorem EvalExpr.keccakMemBytes {fr fr1 : Frame} {m m1 : Machine} {b : Expr} {id : ℕ} {s : Bool} {d : ByteArray}
+    (hb : EvalExpr cfg o fc fr m b (.ok (.memRef id) fr1 m1)) (hget : m1.heap.get? id = some (.bytes s d)) :
+    EvalExpr cfg o fc fr m (.call (.ident "keccak256") [] (.positional [b]))
+      (.ok (.fixedBytes ⟨31, by decide⟩ (ffi.KEC d).toList) fr1 m1) :=
+  EvalExpr.keccak hb (by simp [bytesArg, hget])
+
+/-- `keccak256(abi.encodePacked(es))`. -/
+theorem EvalExpr.keccakPacked {fr fr1 : Frame} {m m1 : Machine} {es : List Expr} {vs : List Value}
+    {tys : List ABI.ABIType} {svs : List ABI.ABIValue} {parts : List (List UInt8)}
+    (hes : EvalExprs cfg o fc fr m es (.ok vs fr1 m1)) (htys : vs.mapM (abiTyOfValue fc.types m1.heap) = some tys)
+    (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs)
+    (hparts : (tys.zip svs).mapM (fun (t, sv) => ABI.encodePackedValue? t sv) = some parts) :
+    EvalExpr cfg o fc fr m
+      (.call (.ident "keccak256") [] (.positional [.call (.member (.ident "abi") "encodePacked") [] (.positional es)]))
+      (.ok (.fixedBytes ⟨31, by decide⟩ (ffi.KEC parts.flatten.toByteArray).toList) fr1
+        (allocBytes m1 false parts.flatten.toByteArray).2) :=
+  EvalExpr.keccakMemBytes (s := false) (d := parts.flatten.toByteArray)
+    (EvalExpr.abiEncodePackedPlain hes htys hsvs hparts) (Heap.get?_alloc_self _ _)
+
+/-- `keccak256(abi.encode(es))`. -/
+theorem EvalExpr.keccakEncode {fr fr1 : Frame} {m m1 : Machine} {es : List Expr} {vs : List Value}
+    {tys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8}
+    (hes : EvalExprs cfg o fc fr m es (.ok vs fr1 m1)) (htys : vs.mapM (abiTyOfValue fc.types m1.heap) = some tys)
+    (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs) (henc : ABI.encodeABIValues? tys svs = some bs) :
+    EvalExpr cfg o fc fr m
+      (.call (.ident "keccak256") [] (.positional [.call (.member (.ident "abi") "encode") [] (.positional es)]))
+      (.ok (.fixedBytes ⟨31, by decide⟩ (ffi.KEC bs.toByteArray).toList) fr1 (allocBytes m1 false bs.toByteArray).2) :=
+  EvalExpr.keccakMemBytes (s := false) (d := bs.toByteArray) (EvalExpr.abiEncodePlain hes htys hsvs henc)
+    (Heap.get?_alloc_self _ _)
+
+theorem EvalExprs.two {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {e1 e2 : Expr} {v1 v2 : Value}
+    (h1 : EvalExpr cfg o fc fr m e1 (.ok v1 fr1 m1)) (h2 : EvalExpr cfg o fc fr1 m1 e2 (.ok v2 fr2 m2)) :
+    EvalExprs cfg o fc fr m [e1, e2] (.ok [v1, v2] fr2 m2) :=
+  EvalExprs.cons h1 (EvalExprs.cons h2 EvalExprs.nil)
+
+theorem EvalExprs.three {fr fr1 fr2 fr3 : Frame} {m m1 m2 m3 : Machine} {e1 e2 e3 : Expr} {v1 v2 v3 : Value}
+    (h1 : EvalExpr cfg o fc fr m e1 (.ok v1 fr1 m1)) (h2 : EvalExpr cfg o fc fr1 m1 e2 (.ok v2 fr2 m2))
+    (h3 : EvalExpr cfg o fc fr2 m2 e3 (.ok v3 fr3 m3)) :
+    EvalExprs cfg o fc fr m [e1, e2, e3] (.ok [v1, v2, v3] fr3 m3) :=
+  EvalExprs.cons h1 (EvalExprs.cons h2 (EvalExprs.cons h3 EvalExprs.nil))
+
+/-! ## Conversions and `type(T)` members -/
+
+/-- `T(a)` whose conversion leaves the heap unchanged. -/
+theorem EvalExpr.convertPlain {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {ty : Ty} {v v' : Value}
+    (ha : EvalExpr cfg o fc fr m a (.ok v fr1 m1)) (hc : explicitConv fc.types m1.heap v ty = some (.ok (v', m1.heap))) :
+    EvalExpr cfg o fc fr m (.call (.typeExpr ty) [] (.positional [a])) (.ok v' fr1 m1) :=
+  EvalExpr.convert ha hc
+
+theorem EvalExpr.typeMaxU256 {fr : Frame} {m : Machine} :
+    EvalExpr cfg o fc fr m (.member (.call (.ident "type") [] (.positional [.typeExpr u256Ty])) "max")
+      (.ok (u256Val (2 ^ 256 - 1)) fr m) :=
+  EvalExpr.typeMember rfl
+
+theorem EvalExpr.typeMaxUint {fr : Frame} {m : Machine} (w : ABI.BitWidth) :
+    EvalExpr cfg o fc fr m (.member (.call (.ident "type") [] (.positional [.typeExpr (.uint w)])) "max")
+      (.ok (.uint w (2 ^ w.val - 1)) fr m) :=
+  EvalExpr.typeMember rfl
+
+/-! ## Blocks, `unchecked`, loops -/
+
+theorem ExecStmt.blockNormal {fr fr' : Frame} {m m' : Machine} {ss : List Stmt}
+    (hb : ExecBlock cfg o fc fr m ss (.normal fr' m')) :
+    ExecStmt cfg o fc fr m (.block ss) (.normal (fr.exitScope fr') m') :=
+  ExecStmt.block hb
+
+theorem ExecStmt.blockRevert {fr : Frame} {m : Machine} {ss : List Stmt} {d : ByteArray}
+    (hb : ExecBlock cfg o fc fr m ss (.reverted d)) : ExecStmt cfg o fc fr m (.block ss) (.reverted d) :=
+  ExecStmt.block hb
+
+theorem ExecStmt.uncheckedNormal {fr fr' : Frame} {m m' : Machine} {ss : List Stmt}
+    (hb : ExecBlock cfg o fc { fr with unchecked := true } m ss (.normal fr' m')) :
+    ExecStmt cfg o fc fr m (.unchecked ss) (.normal (fr.exitScope { fr' with unchecked := fr.unchecked }) m') :=
+  ExecStmt.unchecked hb
+
+theorem ExecStmt.uncheckedRevert {fr : Frame} {m : Machine} {ss : List Stmt} {d : ByteArray}
+    (hb : ExecBlock cfg o fc { fr with unchecked := true } m ss (.reverted d)) :
+    ExecStmt cfg o fc fr m (.unchecked ss) (.reverted d) :=
+  ExecStmt.unchecked hb
+
+theorem ExecBlock.one {fr fr1 : Frame} {m m1 : Machine} {s : Stmt}
+    (h : ExecStmt cfg o fc fr m s (.normal fr1 m1)) : ExecBlock cfg o fc fr m [s] (.normal fr1 m1) :=
+  ExecBlock.cons h ExecBlock.nil
+
+theorem ExecBlock.oneRevert {fr : Frame} {m : Machine} {s : Stmt} {d : ByteArray}
+    (h : ExecStmt cfg o fc fr m s (.reverted d)) : ExecBlock cfg o fc fr m [s] (.reverted d) :=
+  ExecBlock.consRevert h
+
+theorem ExecLoop.step {fr fr1 fr2 fr3 : Frame} {m m1 m2 m3 : Machine} {c : Expr} {post : Option Expr} {body : Stmt}
+    {r : ExecResult} (hc : EvalExpr cfg o fc fr m c (.ok (.bool true) fr1 m1))
+    (hb : ExecStmt cfg o fc fr1 m1 body (.normal fr2 m2)) (hp : ExecPost cfg o fc fr2 m2 post (.ok () fr3 m3))
+    (hrest : ExecLoop cfg o fc fr3 m3 (some c) post body r) : ExecLoop cfg o fc fr m (some c) post body r :=
+  ExecLoop.iterate (EvalCond.some hc) hb hp hrest
+
+theorem ExecLoop.stepWhile {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {c : Expr} {body : Stmt} {r : ExecResult}
+    (hc : EvalExpr cfg o fc fr m c (.ok (.bool true) fr1 m1)) (hb : ExecStmt cfg o fc fr1 m1 body (.normal fr2 m2))
+    (hrest : ExecLoop cfg o fc fr2 m2 (some c) none body r) : ExecLoop cfg o fc fr m (some c) none body r :=
+  ExecLoop.iterate (EvalCond.some hc) hb ExecPost.none hrest
+
+theorem ExecLoop.exit {fr fr1 : Frame} {m m1 : Machine} {c : Expr} {post : Option Expr} {body : Stmt}
+    (hc : EvalExpr cfg o fc fr m c (.ok (.bool false) fr1 m1)) :
+    ExecLoop cfg o fc fr m (some c) post body (.normal fr1 m1) :=
+  ExecLoop.condFalse hc
+
+theorem ExecLoop.breakStep {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {c : Expr} {post : Option Expr} {body : Stmt}
+    (hc : EvalExpr cfg o fc fr m c (.ok (.bool true) fr1 m1)) (hb : ExecStmt cfg o fc fr1 m1 body (.break fr2 m2)) :
+    ExecLoop cfg o fc fr m (some c) post body (.normal fr2 m2) :=
+  ExecLoop.breakOut (EvalCond.some hc) hb
+
+theorem ExecLoop.returnStep {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {c : Expr} {post : Option Expr} {body : Stmt}
+    (hc : EvalExpr cfg o fc fr m c (.ok (.bool true) fr1 m1)) (hb : ExecStmt cfg o fc fr1 m1 body (.returned fr2 m2)) :
+    ExecLoop cfg o fc fr m (some c) post body (.returned fr2 m2) :=
+  ExecLoop.returnOut (EvalCond.some hc) hb
+
+theorem ExecLoop.revertStep {fr fr1 : Frame} {m m1 : Machine} {c : Expr} {post : Option Expr} {body : Stmt}
+    {d : ByteArray} (hc : EvalExpr cfg o fc fr m c (.ok (.bool true) fr1 m1))
+    (hb : ExecStmt cfg o fc fr1 m1 body (.reverted d)) : ExecLoop cfg o fc fr m (some c) post body (.reverted d) :=
+  ExecLoop.bodyRevert (EvalCond.some hc) hb
+
+theorem ExecStmt.whileNormal {fr fr' : Frame} {m m' : Machine} {c : Expr} {body : Stmt}
+    (h : ExecLoop cfg o fc fr m (some c) none body (.normal fr' m')) :
+    ExecStmt cfg o fc fr m (.while c body) (.normal fr' m') :=
+  ExecStmt.while h
+
+theorem ExecStmt.iteTrue {fr fr1 : Frame} {m m1 : Machine} {c : Expr} {t : Stmt} {e : Option Stmt} {r : ExecResult}
+    (hc : EvalExpr cfg o fc fr m c (.ok (.bool true) fr1 m1)) (ht : ExecStmt cfg o fc fr1 m1 t r) :
+    ExecStmt cfg o fc fr m (.ite c t e) r :=
+  ExecStmt.iteT hc ht
+
+theorem ExecStmt.iteFalseNone {fr fr1 : Frame} {m m1 : Machine} {c : Expr} {t : Stmt}
+    (hc : EvalExpr cfg o fc fr m c (.ok (.bool false) fr1 m1)) :
+    ExecStmt cfg o fc fr m (.ite c t none) (.normal fr1 m1) :=
+  ExecStmt.iteFNone hc
+
+theorem ExecStmt.iteFalse {fr fr1 : Frame} {m m1 : Machine} {c : Expr} {t s : Stmt} {r : ExecResult}
+    (hc : EvalExpr cfg o fc fr m c (.ok (.bool false) fr1 m1)) (hs : ExecStmt cfg o fc fr1 m1 s r) :
+    ExecStmt cfg o fc fr m (.ite c t (some s)) r :=
+  ExecStmt.iteF hc hs
+
+theorem EvalExpr.andTrue {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {y : Bool}
+    (ha : EvalExpr cfg o fc fr m a (.ok (.bool true) fr1 m1)) (hb : EvalExpr cfg o fc fr1 m1 b (.ok (.bool y) fr2 m2)) :
+    EvalExpr cfg o fc fr m (.binary .and a b) (.ok (.bool y) fr2 m2) :=
+  EvalExpr.andFull ha hb
+
+theorem EvalExpr.andFalse {fr fr1 : Frame} {m m1 : Machine} {a b : Expr}
+    (ha : EvalExpr cfg o fc fr m a (.ok (.bool false) fr1 m1)) :
+    EvalExpr cfg o fc fr m (.binary .and a b) (.ok (.bool false) fr1 m1) :=
+  EvalExpr.andShort ha
+
+theorem EvalExpr.orFalse {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {y : Bool}
+    (ha : EvalExpr cfg o fc fr m a (.ok (.bool false) fr1 m1)) (hb : EvalExpr cfg o fc fr1 m1 b (.ok (.bool y) fr2 m2)) :
+    EvalExpr cfg o fc fr m (.binary .or a b) (.ok (.bool y) fr2 m2) :=
+  EvalExpr.orFull ha hb
+
+theorem EvalExpr.orTrue {fr fr1 : Frame} {m m1 : Machine} {a b : Expr}
+    (ha : EvalExpr cfg o fc fr m a (.ok (.bool true) fr1 m1)) :
+    EvalExpr cfg o fc fr m (.binary .or a b) (.ok (.bool true) fr1 m1) :=
+  EvalExpr.orShort ha
+
+theorem EvalExpr.condTrue {fr fr1 : Frame} {m m1 : Machine} {c t e : Expr} {r : Res Value}
+    (hc : EvalExpr cfg o fc fr m c (.ok (.bool true) fr1 m1)) (ht : EvalExpr cfg o fc fr1 m1 t r) :
+    EvalExpr cfg o fc fr m (.cond c t e) r :=
+  EvalExpr.condT hc ht
+
+theorem EvalExpr.condFalse {fr fr1 : Frame} {m m1 : Machine} {c t e : Expr} {r : Res Value}
+    (hc : EvalExpr cfg o fc fr m c (.ok (.bool false) fr1 m1)) (he : EvalExpr cfg o fc fr1 m1 e r) :
+    EvalExpr cfg o fc fr m (.cond c t e) r :=
+  EvalExpr.condF hc he
+
+/-! ## Number literals as operands, shifts, bitwise operators, exponentiation -/
+
+/-- A number literal without unit. -/
+theorem EvalExpr.numLit {fr : Frame} {m : Machine} (k : ℕ) (hd : Option Nat) :
+    EvalExpr cfg o fc fr m (.lit (.number k none hd)) (.ok (.literal k hd) fr m) :=
+  EvalExpr.lit (by simp [literalValue, unitMul])
+
+/-! ### `uint256 op literal` -/
+
+theorem EvalExpr.addU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hunch : fr1.unchecked = false)
+    (hk : k < 2 ^ 256) (hfit : x + k < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .add a (.lit (.number k none hd))) (.ok (u256Val (x + k)) fr1 m1) :=
+  EvalExpr.binary (by decide) (by decide) (EvalExpr.numLit k hd) ha
+    (by rw [hunch, Bool.not_false, binop_add_u256_lit x k hd (Int.natCast_nonneg k) (by exact_mod_cast hk) (by exact_mod_cast hfit),
+      toNat_natCast_add])
+
+theorem EvalExpr.addU256LitOverflow {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hunch : fr1.unchecked = false)
+    (hk : k < 2 ^ 256) (hbig : 2 ^ 256 ≤ x + k) :
+    EvalExpr cfg o fc fr m (.binary .add a (.lit (.number k none hd))) (.reverted (panicData 0x11)) :=
+  EvalExpr.binaryPanic (p := .overflow) (by decide) (by decide) (EvalExpr.numLit k hd) ha
+    (by rw [hunch]
+        exact binop_add_u256_lit_overflow x k hd (Int.natCast_nonneg k) (by exact_mod_cast hk) (by exact_mod_cast hbig))
+
+theorem EvalExpr.subU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hunch : fr1.unchecked = false)
+    (hx : x < 2 ^ 256) (hle : k ≤ x) :
+    EvalExpr cfg o fc fr m (.binary .sub a (.lit (.number k none hd))) (.ok (u256Val (x - k)) fr1 m1) :=
+  EvalExpr.binary (by decide) (by decide) (EvalExpr.numLit k hd) ha
+    (by rw [hunch, Bool.not_false, binop_sub_u256_lit x k hd (Int.natCast_nonneg k) (by exact_mod_cast (lt_of_le_of_lt hle hx)) hx
+      (by exact_mod_cast hle), toNat_natCast_sub x k hle])
+
+theorem EvalExpr.subU256LitUnderflow {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hunch : fr1.unchecked = false)
+    (hk : k < 2 ^ 256) (hlt : x < k) :
+    EvalExpr cfg o fc fr m (.binary .sub a (.lit (.number k none hd))) (.reverted (panicData 0x11)) :=
+  EvalExpr.binaryPanic (p := .overflow) (by decide) (by decide) (EvalExpr.numLit k hd) ha
+    (by rw [hunch]
+        exact binop_sub_u256_lit_underflow x k hd (Int.natCast_nonneg k) (by exact_mod_cast hk) (by exact_mod_cast hlt))
+
+theorem EvalExpr.mulU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hunch : fr1.unchecked = false)
+    (hk : k < 2 ^ 256) (hfit : x * k < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .mul a (.lit (.number k none hd))) (.ok (u256Val (x * k)) fr1 m1) :=
+  EvalExpr.binary (by decide) (by decide) (EvalExpr.numLit k hd) ha
+    (by rw [hunch, Bool.not_false, binop_mul_u256_lit x k hd (Int.natCast_nonneg k) (by exact_mod_cast hk) (by exact_mod_cast hfit),
+      toNat_natCast_mul])
+
+theorem EvalExpr.divU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (h0 : 0 < k) (hk : k < 2 ^ 256) (hx : x < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .div a (.lit (.number k none hd))) (.ok (u256Val (x / k)) fr1 m1) :=
+  EvalExpr.binary (by decide) (by decide) (EvalExpr.numLit k hd) ha
+    (by rw [binop_div_u256_lit _ x k hd (by exact_mod_cast h0) (by exact_mod_cast hk) hx, Int.toNat_natCast])
+
+theorem EvalExpr.modU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (h0 : 0 < k) (hk : k < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .mod a (.lit (.number k none hd))) (.ok (u256Val (x % k)) fr1 m1) :=
+  EvalExpr.binary (by decide) (by decide) (EvalExpr.numLit k hd) ha
+    (by rw [binop_mod_u256_lit _ x k hd (by exact_mod_cast h0) (by exact_mod_cast hk), Int.toNat_natCast])
+
+theorem EvalExpr.cmpU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} {op : BinOp} {v : Value}
+    (hop : isCmp op = true) (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hk : k < 2 ^ 256)
+    (hv : cmpInt op x k = some v) :
+    EvalExpr cfg o fc fr m (.binary op a (.lit (.number k none hd))) (.ok v fr1 m1) :=
+  EvalExpr.binary (by rintro rfl; simp [isCmp] at hop) (by rintro rfl; simp [isCmp] at hop) (EvalExpr.numLit k hd) ha
+    (by rw [binop_cmp_u256_lit _ op hop x k hd (Int.natCast_nonneg k) (by exact_mod_cast hk), hv]; rfl)
+
+theorem EvalExpr.ltU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hk : k < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .lt a (.lit (.number k none hd))) (.ok (.bool (decide (x < k))) fr1 m1) :=
+  EvalExpr.cmpU256Lit rfl k hd ha hk (by simp [cmpInt])
+
+theorem EvalExpr.leU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hk : k < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .le a (.lit (.number k none hd))) (.ok (.bool (decide (x ≤ k))) fr1 m1) :=
+  EvalExpr.cmpU256Lit rfl k hd ha hk (by simp [cmpInt])
+
+theorem EvalExpr.gtU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hk : k < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .gt a (.lit (.number k none hd))) (.ok (.bool (decide (x > k))) fr1 m1) :=
+  EvalExpr.cmpU256Lit rfl k hd ha hk (by simp [cmpInt])
+
+theorem EvalExpr.geU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hk : k < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .ge a (.lit (.number k none hd))) (.ok (.bool (decide (x ≥ k))) fr1 m1) :=
+  EvalExpr.cmpU256Lit rfl k hd ha hk (by simp [cmpInt])
+
+theorem EvalExpr.eqU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hk : k < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .eq a (.lit (.number k none hd))) (.ok (.bool (decide (x = k))) fr1 m1) :=
+  EvalExpr.cmpU256Lit rfl k hd ha hk (by simp [cmpInt])
+
+theorem EvalExpr.neU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hk : k < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .ne a (.lit (.number k none hd))) (.ok (.bool (decide (x ≠ k))) fr1 m1) :=
+  EvalExpr.cmpU256Lit rfl k hd ha hk (by simp [cmpInt])
+
+/-! ### Shifts, bitwise operators, exponentiation -/
+
+theorem EvalExpr.shlU256 {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {x s : ℕ}
+    (hb : EvalExpr cfg o fc fr m b (.ok (u256Val s) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (u256Val x) fr2 m2))
+    (hs : s < 256) :
+    EvalExpr cfg o fc fr m (.binary .shl a b) (.ok (u256Val (x * 2 ^ s % 2 ^ 256)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (binop_shl_u256 _ x s hs)
+
+theorem EvalExpr.shlU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hk : k < 256) :
+    EvalExpr cfg o fc fr m (.binary .shl a (.lit (.number k none hd))) (.ok (u256Val (x * 2 ^ k % 2 ^ 256)) fr1 m1) :=
+  EvalExpr.binary (by decide) (by decide) (EvalExpr.numLit k hd) ha
+    (by rw [binop_shl_u256_lit _ x k hd (Int.natCast_nonneg k) (by exact_mod_cast hk), Int.toNat_natCast])
+
+theorem EvalExpr.shrU256 {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {x s : ℕ}
+    (hb : EvalExpr cfg o fc fr m b (.ok (u256Val s) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (u256Val x) fr2 m2))
+    (hs : s < 256) :
+    EvalExpr cfg o fc fr m (.binary .shr a b) (.ok (u256Val (x / 2 ^ s)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (binop_shr_u256 _ x s hs)
+
+theorem EvalExpr.shrU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hk : k < 256) :
+    EvalExpr cfg o fc fr m (.binary .shr a (.lit (.number k none hd))) (.ok (u256Val (x / 2 ^ k)) fr1 m1) :=
+  EvalExpr.binary (by decide) (by decide) (EvalExpr.numLit k hd) ha
+    (by rw [binop_shr_u256_lit _ x k hd (Int.natCast_nonneg k) (by exact_mod_cast hk), Int.toNat_natCast])
+
+theorem EvalExpr.bitAndU256 {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {x y : ℕ}
+    (hb : EvalExpr cfg o fc fr m b (.ok (u256Val y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (u256Val x) fr2 m2))
+    (hx : x < 2 ^ 256) (hy : y < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .bitAnd a b) (.ok (u256Val (x &&& y)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (binop_bitAnd_u256 _ x y hx hy)
+
+theorem EvalExpr.bitAndU256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : ℕ} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val x) fr1 m1)) (hk : k < 2 ^ 256) (hx : x < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .bitAnd a (.lit (.number k none hd))) (.ok (u256Val (x &&& k)) fr1 m1) :=
+  EvalExpr.binary (by decide) (by decide) (EvalExpr.numLit k hd) ha
+    (by rw [binop_bitAnd_u256_lit _ x k hd (Int.natCast_nonneg k) (by exact_mod_cast hk) hx, Int.toNat_natCast])
+
+theorem EvalExpr.bitOrU256 {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {x y : ℕ}
+    (hb : EvalExpr cfg o fc fr m b (.ok (u256Val y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (u256Val x) fr2 m2))
+    (hx : x < 2 ^ 256) (hy : y < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .bitOr a b) (.ok (u256Val (x ||| y)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (binop_bitOr_u256 _ x y hx hy)
+
+theorem EvalExpr.bitXorU256 {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {x y : ℕ}
+    (hb : EvalExpr cfg o fc fr m b (.ok (u256Val y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (u256Val x) fr2 m2))
+    (hx : x < 2 ^ 256) (hy : y < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .bitXor a b) (.ok (u256Val (x ^^^ y)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (binop_bitXor_u256 _ x y hx hy)
+
+theorem EvalExpr.bitNotU256 {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {x : ℕ}
+    (he : EvalExpr cfg o fc fr m e (.ok (u256Val x) fr1 m1)) (hx : x < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.unary .bitNot e) (.ok (u256Val (2 ^ 256 - 1 - x)) fr1 m1) :=
+  EvalExpr.unary he (unop_bitNot_u256 _ x hx) (by decide) (by decide)
+
+theorem EvalExpr.expU256 {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {x y : ℕ}
+    (hb : EvalExpr cfg o fc fr m b (.ok (u256Val y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (u256Val x) fr2 m2))
+    (hunch : fr2.unchecked = false) (hy : y < 256) (hfit : x ^ y < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .exp a b) (.ok (u256Val (x ^ y)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (by rw [hunch]; exact binop_exp_u256 x y hy hfit)
+
+theorem EvalExpr.expU256Overflow {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {x y : ℕ}
+    (hb : EvalExpr cfg o fc fr m b (.ok (u256Val y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (u256Val x) fr2 m2))
+    (hunch : fr2.unchecked = false) (h2 : 2 ≤ x) (hbig : 2 ^ 256 ≤ x ^ y) :
+    EvalExpr cfg o fc fr m (.binary .exp a b) (.reverted (panicData 0x11)) :=
+  EvalExpr.binaryPanic (p := .overflow) (by decide) (by decide) hb ha
+    (by rw [hunch]; exact binop_exp_u256_overflow x y h2 hbig)
+
+/-- `k ** b` with a number-literal base and a typed exponent (`10 ** decimals`). -/
+theorem EvalExpr.expLitUint {fr fr1 : Frame} {m m1 : Machine} {b : Expr} {w : ABI.BitWidth} {y : ℕ} (k : ℕ)
+    (hd : Option Nat) (hb : EvalExpr cfg o fc fr m b (.ok (.uint w y) fr1 m1)) (hunch : fr1.unchecked = false)
+    (hy : y < 256) (hfit : k ^ y < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.binary .exp (.lit (.number k none hd)) b) (.ok (u256Val (k ^ y)) fr1 m1) :=
+  EvalExpr.binary (by decide) (by decide) hb (EvalExpr.numLit k hd)
+    (by rw [hunch, Bool.not_false, binop_exp_lit_u256 k hd y w (Int.natCast_nonneg k) hy (by exact_mod_cast hfit), toNat_natCast_pow])
+
+/-- `k ** j` on two number literals is exact. -/
+theorem EvalExpr.expLitLit {fr : Frame} {m : Machine} (x y : ℕ) (hx hy : Option Nat) :
+    EvalExpr cfg o fc fr m (.binary .exp (.lit (.number x none hx)) (.lit (.number y none hy)))
+      (.ok (.literal ((x : Int) ^ y)) fr m) :=
+  EvalExpr.binary (by decide) (by decide) (EvalExpr.numLit y hy) (EvalExpr.numLit x hx)
+    (by rw [binop_exp_lit_lit _ x y hx hy (Int.natCast_nonneg y), Int.toNat_natCast])
+
+/-! ## Mappings with other key types, storage struct fields, `delete` -/
+
+/-- `x[k]` for a state variable `x : mapping(K => V)` with a value-type `V`: generic in the key and
+    the loaded value. -/
+theorem EvalExpr.mappingIndexScalar {fr fr1 : Frame} {m m1 : Machine} {x : Ident} {v : FlatVar} {k : Expr} {kv val : Value}
+    {kt vt : Ty} {er' : Solm.EvaledStorageRef}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .mutable) (hty : v.ty = .mapping kt vt)
+    (hk : EvalExpr cfg o fc fr m k (.ok kv fr1 m1))
+    (hidx : storageIndex cfg fc.types m1.evm m1.heap ⟨v.key, []⟩ (.mapping kt vt) kv = some (.ok (er', vt)))
+    (hload : loadIfScalar cfg fc.types m1.evm er' vt = some val) :
+    EvalExpr cfg o fc fr m (.index (.ident x) k) (.ok val fr1 m1) := by
+  have hload0 : loadIfScalar cfg fc.types m.evm ⟨v.key, []⟩ v.ty =
+      some (.storageRef ⟨v.key, []⟩ (.mapping kt vt)) := by
+    rw [hty]; exact loadIfScalar_mapping ..
+  exact EvalExpr.indexStorage (EvalExpr.stateVar hx hv hmut hload0) hk hidx hload
+
+theorem EvalLValue.mappingIndex {fr fr1 : Frame} {m m1 : Machine} {x : Ident} {v : FlatVar} {k : Expr} {kv : Value}
+    {kt vt : Ty} {er' : Solm.EvaledStorageRef}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .mutable) (hty : v.ty = .mapping kt vt)
+    (hk : EvalExpr cfg o fc fr m k (.ok kv fr1 m1))
+    (hidx : storageIndex cfg fc.types m1.evm m1.heap ⟨v.key, []⟩ (.mapping kt vt) kv = some (.ok (er', vt))) :
+    EvalLValue cfg o fc fr m (.index (.ident x) k) (.ok (.storage er' vt) fr1 m1) := by
+  have hload0 : loadIfScalar cfg fc.types m.evm ⟨v.key, []⟩ v.ty =
+      some (.storageRef ⟨v.key, []⟩ (.mapping kt vt)) := by
+    rw [hty]; exact loadIfScalar_mapping ..
+  exact EvalLValue.indexStorage (EvalExpr.stateVar hx hv hmut hload0) hk hidx
+
+theorem EvalExpr.mappingU256U256 {fr fr1 : Frame} {m m1 : Machine} {x : Ident} {v : FlatVar} {k : Expr} {n : ℕ}
+    {slot : UInt256}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .mutable)
+    (hty : v.ty = .mapping u256Ty u256Ty) (hk : EvalExpr cfg o fc fr m k (.ok (u256Val n) fr1 m1))
+    (hl : cfg.storage.layout (keyRef ⟨v.key, []⟩ (.int n)) m1.evm = some (uint256Loc slot)) :
+    EvalExpr cfg o fc fr m (.index (.ident x) k) (.ok (u256Val (loadU256 m1 slot).toNat) fr1 m1) :=
+  EvalExpr.mappingIndexScalar hx hv hmut hty hk (storageIndex_mapping_uint ..) (loadIfScalar_u256 hl)
+
+theorem EvalLValue.mappingU256 {fr fr1 : Frame} {m m1 : Machine} {x : Ident} {v : FlatVar} {k : Expr} {n : ℕ} {vt : Ty}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .mutable)
+    (hty : v.ty = .mapping u256Ty vt) (hk : EvalExpr cfg o fc fr m k (.ok (u256Val n) fr1 m1)) :
+    EvalLValue cfg o fc fr m (.index (.ident x) k) (.ok (.storage (keyRef ⟨v.key, []⟩ (.int n)) vt) fr1 m1) :=
+  EvalLValue.mappingIndex hx hv hmut hty hk (storageIndex_mapping_uint ..)
+
+theorem EvalExpr.mappingBytes32U256 {fr fr1 : Frame} {m m1 : Machine} {x : Ident} {v : FlatVar} {k : Expr}
+    {bs : List UInt8} {slot : UInt256}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .mutable)
+    (hty : v.ty = .mapping (.fixedBytes ⟨31, by decide⟩) u256Ty)
+    (hk : EvalExpr cfg o fc fr m k (.ok (.fixedBytes ⟨31, by decide⟩ bs) fr1 m1))
+    (hl : cfg.storage.layout (keyRef ⟨v.key, []⟩ (.fixedBytes ⟨31, by decide⟩ bs)) m1.evm = some (uint256Loc slot)) :
+    EvalExpr cfg o fc fr m (.index (.ident x) k) (.ok (u256Val (loadU256 m1 slot).toNat) fr1 m1) :=
+  EvalExpr.mappingIndexScalar hx hv hmut hty hk (storageIndex_mapping_bytes32 ..) (loadIfScalar_u256 hl)
+
+theorem EvalLValue.mappingBytes32 {fr fr1 : Frame} {m m1 : Machine} {x : Ident} {v : FlatVar} {k : Expr}
+    {bs : List UInt8} {vt : Ty}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .mutable)
+    (hty : v.ty = .mapping (.fixedBytes ⟨31, by decide⟩) vt)
+    (hk : EvalExpr cfg o fc fr m k (.ok (.fixedBytes ⟨31, by decide⟩ bs) fr1 m1)) :
+    EvalLValue cfg o fc fr m (.index (.ident x) k)
+      (.ok (.storage (keyRef ⟨v.key, []⟩ (.fixedBytes ⟨31, by decide⟩ bs)) vt) fr1 m1) :=
+  EvalLValue.mappingIndex hx hv hmut hty hk (storageIndex_mapping_bytes32 ..)
+
+/-- `x[k]` for `x : mapping(address => S)` with a struct `S`: a storage reference to the struct. -/
+theorem EvalExpr.mappingAddrStruct {fr fr1 : Frame} {m m1 : Machine} {x : Ident} {v : FlatVar} {k : Expr}
+    {a : EVM.Address} {q : Option Ident} {n : Ident}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .mutable)
+    (hty : v.ty = .mapping (.address false) (.user q n)) (hk : EvalExpr cfg o fc fr m k (.ok (.address a) fr1 m1))
+    (hnv : isValueType fc.types (.user q n) = false) :
+    EvalExpr cfg o fc fr m (.index (.ident x) k)
+      (.ok (.storageRef (keyRef ⟨v.key, []⟩ (.address a)) (.user q n)) fr1 m1) :=
+  EvalExpr.mappingIndexScalar hx hv hmut hty hk (storageIndex_mapping_address ..) (loadIfScalar_ref hnv)
+
+/-- Any storage reference indexed again (`x[k1][k2]`, `arr[i].f[k]`): generic step. -/
+theorem EvalExpr.indexStorageScalar {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {e i : Expr} {er er' : Solm.EvaledStorageRef}
+    {ty ty' : Ty} {iv val : Value}
+    (he : EvalExpr cfg o fc fr m e (.ok (.storageRef er ty) fr1 m1)) (hi : EvalExpr cfg o fc fr1 m1 i (.ok iv fr2 m2))
+    (hidx : storageIndex cfg fc.types m2.evm m2.heap er ty iv = some (.ok (er', ty')))
+    (hload : loadIfScalar cfg fc.types m2.evm er' ty' = some val) :
+    EvalExpr cfg o fc fr m (.index e i) (.ok val fr2 m2) :=
+  EvalExpr.indexStorage he hi hidx hload
+
+/-! ## Struct fields in storage -/
+
+/-- `e.f` for a storage struct reference `e`. -/
+theorem EvalExpr.storageFieldRead {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {f f' : Ident} {er : Solm.EvaledStorageRef}
+    {q : Option Ident} {n : Ident} {s : StructInfo} {fty : Ty} {val : Value}
+    (hdm : directMember fc fr e = false) (hf : f ≠ "length")
+    (he : EvalExpr cfg o fc fr m e (.ok (.storageRef er (.user q n)) fr1 m1))
+    (hs : fc.types.struct? q n = some s) (hfind : s.fields.find? (·.2 == f) = some (fty, f'))
+    (hload : loadIfScalar cfg fc.types m1.evm (fieldRef er f) fty = some val) :
+    EvalExpr cfg o fc fr m (.member e f) (.ok val fr1 m1) :=
+  EvalExpr.memberField hdm hf he (storageField_of hs hfind) hload
+
+theorem EvalExpr.storageFieldU256 {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {f f' : Ident} {er : Solm.EvaledStorageRef}
+    {q : Option Ident} {n : Ident} {s : StructInfo} {slot : UInt256}
+    (hdm : directMember fc fr e = false) (hf : f ≠ "length")
+    (he : EvalExpr cfg o fc fr m e (.ok (.storageRef er (.user q n)) fr1 m1))
+    (hs : fc.types.struct? q n = some s) (hfind : s.fields.find? (·.2 == f) = some (u256Ty, f'))
+    (hl : cfg.storage.layout (fieldRef er f) m1.evm = some (uint256Loc slot)) :
+    EvalExpr cfg o fc fr m (.member e f) (.ok (u256Val (loadU256 m1 slot).toNat) fr1 m1) :=
+  EvalExpr.storageFieldRead hdm hf he hs hfind (loadIfScalar_u256 hl)
+
+/-- `e.f` as an lvalue. -/
+theorem EvalLValue.storageField {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {f f' : Ident} {er : Solm.EvaledStorageRef}
+    {q : Option Ident} {n : Ident} {s : StructInfo} {fty : Ty}
+    (he : EvalExpr cfg o fc fr m e (.ok (.storageRef er (.user q n)) fr1 m1))
+    (hs : fc.types.struct? q n = some s) (hfind : s.fields.find? (·.2 == f) = some (fty, f')) :
+    EvalLValue cfg o fc fr m (.member e f) (.ok (.storage (fieldRef er f) fty) fr1 m1) :=
+  EvalLValue.memberStorage he (storageField_of hs hfind)
+
+theorem ExecStmt.deleteStorageU256 {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} (hlv : EvalLValue cfg o fc fr m e (.ok (.storage er u256Ty) fr1 m1))
+    (hl : cfg.storage.layout er m1.evm = some (uint256Loc slot)) :
+    ExecStmt cfg o fc fr m (.exprStmt (.unary .delete e)) (.normal fr1 (storeU256 m1 slot ⟨0⟩)) :=
+  ExecStmt.exprStmt (EvalExpr.deleteStorage hlv (clearStorage_u256 1023 hl))
+
+theorem ExecStmt.deleteStorageAddress {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} {p : Bool} (hlv : EvalLValue cfg o fc fr m e (.ok (.storage er (.address p)) fr1 m1))
+    (hl : cfg.storage.layout er m1.evm = some (addressOffset0Loc slot)) :
+    ExecStmt cfg o fc fr m (.exprStmt (.unary .delete e))
+      (.normal fr1 (storeU256 m1 slot (setAddressOffset0Word (loadU256 m1 slot) ⟨0⟩))) :=
+  ExecStmt.exprStmt (EvalExpr.deleteStorage hlv (clearStorage_address 1023 p hl))
+
+theorem ExecStmt.deleteStorageBool {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} (hlv : EvalLValue cfg o fc fr m e (.ok (.storage er .bool) fr1 m1))
+    (hl : cfg.storage.layout er m1.evm = some (boolOffset0Loc slot)) :
+    ExecStmt cfg o fc fr m (.exprStmt (.unary .delete e))
+      (.normal fr1 (storeU256 m1 slot (UInt256.land (loadU256 m1 slot) (UInt256.lnot ⟨255⟩)))) :=
+  ExecStmt.exprStmt (EvalExpr.deleteStorage hlv (clearStorage_bool 1023 hl))
+
+/-! ## Literal right-hand sides, unchecked increments, `emit` of value-type events -/
+
+/-- `x = k` into a `uint256` storage slot, `k` a number literal. -/
+theorem EvalExpr.assignStorageU256Lit {fr fr1 : Frame} {m m1 : Machine} {lhs : Expr} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} (k : ℕ) (hd : Option Nat) (hk : k < 2 ^ 256)
+    (hlv : EvalLValue cfg o fc fr m lhs (.ok (.storage er u256Ty) fr1 m1))
+    (hl : cfg.storage.layout er m1.evm = some (uint256Loc slot)) :
+    EvalExpr cfg o fc fr m (.assign .assign lhs (.lit (.number k none hd)))
+      (.ok (.literal k hd) fr1 (storeU256 m1 slot (UInt256.ofNat k))) :=
+  EvalExpr.assignPlain hlv.not_tuple (EvalExpr.numLit k hd) hlv (assign_storage_u256_lit hl k hd hk)
+
+theorem ExecStmt.assignStorageU256Lit {fr fr1 : Frame} {m m1 : Machine} {lhs : Expr} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} (k : ℕ) (hd : Option Nat) (hk : k < 2 ^ 256)
+    (hlv : EvalLValue cfg o fc fr m lhs (.ok (.storage er u256Ty) fr1 m1))
+    (hl : cfg.storage.layout er m1.evm = some (uint256Loc slot)) :
+    ExecStmt cfg o fc fr m (.exprStmt (.assign .assign lhs (.lit (.number k none hd))))
+      (.normal fr1 (storeU256 m1 slot (UInt256.ofNat k))) :=
+  ExecStmt.exprStmt (EvalExpr.assignStorageU256Lit k hd hk hlv hl)
+
+/-- `x = k` for a `uint256` local `x`, `k` a number literal. -/
+theorem ExecStmt.assignLocalU256Lit {fr : Frame} {m : Machine} {x : Ident} (l : Local) (k : ℕ) (hd : Option Nat)
+    (hx : fr.get? x = some l) (hty : l.ty = u256Ty) (hk : k < 2 ^ 256) :
+    ExecStmt cfg o fc fr m (.exprStmt (.assign .assign (.ident x) (.lit (.number k none hd))))
+      (.normal (fr.setVal x (u256Val k)) m) :=
+  ExecStmt.exprStmt (EvalExpr.assignPlain rfl (EvalExpr.numLit k hd) (EvalLValue.local (m := m) hx)
+    (assign_local_u256_lit l hx hty k hd hk))
+
+/-- `uint256 x = k;` -/
+theorem ExecStmt.varDeclU256Lit {fr : Frame} {m : Machine} {x : Ident} {loc : Option DataLoc} (k : ℕ) (hd : Option Nat)
+    (hk : k < 2 ^ 256) :
+    ExecStmt cfg o fc fr m (.varDecl u256Ty loc x (some (.lit (.number k none hd))))
+      (.normal (fr.bind x u256Ty loc (u256Val k)) m) := by
+  refine ExecStmt.varDecl (EvalExpr.numLit k hd) ?_
+  simp [declare, coerce_literal_u256 cfg fc.types m k hd loc (Int.natCast_nonneg k) (by exact_mod_cast hk)]
+
+theorem EvalExpr.postIncLocalU256Unchecked {fr : Frame} {m : Machine} {x : Ident} {n : ℕ} (l : Local)
+    (hx : fr.get? x = some l) (hty : l.ty = u256Ty) (hval : l.val = u256Val n) (hunch : fr.unchecked = true) :
+    EvalExpr cfg o fc fr m (.unary .postInc (.ident x)) (.ok (u256Val n) (fr.setVal x (u256Val ((n + 1) % 2 ^ 256))) m) := by
+  have h := EvalExpr.incDec (cfg := cfg) (o := o) (fc := fc) (op := .postInc) (cur := u256Val n)
+    (nv := u256Val ((n + 1) % 2 ^ 256)) rfl (EvalLValue.local (m := m) hx) (by rw [readLValue_local hx, hval])
+    (by rw [hunch]; exact binop_add_u256_lit1_unchecked n) (assign_local_u256 l hx hty _)
+  simpa [isPrefix] using h
+
+theorem ExecPost.postIncLocalU256Unchecked {fr : Frame} {m : Machine} {x : Ident} {n : ℕ} (l : Local)
+    (hx : fr.get? x = Option.some l) (hty : l.ty = u256Ty) (hval : l.val = u256Val n) (hunch : fr.unchecked = true) :
+    ExecPost cfg o fc fr m (Option.some (.unary .postInc (.ident x)))
+      (.ok () (fr.setVal x (u256Val ((n + 1) % 2 ^ 256))) m) :=
+  ExecPost.some (EvalExpr.postIncLocalU256Unchecked l hx hty hval hunch)
+
+/-- `emit E(args)` for an event whose parameters are all value types (see `mkLogEntry_static`). -/
+theorem ExecStmt.emitStatic {fr fr1 : Frame} {m m1 : Machine} {ev : Ident} {ei : EventInfo} {es : List Expr}
+    (xs : List LogArg) (hev : fc.event? ev = some ei) (hparams : ei.decl.params = xs.map LogArg.param)
+    (htys : ei.sig.paramTypes = xs.map (·.val.abiTy)) (hanon : ei.decl.anonymous = false) (hwf : ∀ x ∈ xs, x.val.wf)
+    (hargs : EvalExprs cfg o fc fr m es (.ok (xs.map (·.val.solValue)) fr1 m1)) :
+    ExecStmt cfg o fc fr m (.emit (.ident ev) (.positional es))
+      (.normal fr1 (m1.pushLog
+        { address := m1.this
+          topics := (hashWord ei.sigStr.toUTF8 :: (xs.filter (·.indexed)).map (·.val.word)).toArray
+          data := ((xs.filter (!·.indexed)).flatMap (·.val.bytes)).toByteArray })) := by
+  have habi : abiArgs cfg fc.types m1 (ei.decl.params.map (·.ty)) (xs.map (·.val.solValue)) =
+      some (.ok (xs.map (·.val.value), m1)) := by
+    rw [hparams, List.map_map]
+    exact abiArgs_static ..
+  exact ExecStmt.emit hev rfl hargs habi (mkLogEntry_static m1.this ei xs hparams htys hanon hwf)
+
+/-! ## Environment reads, `assert`, `revert("msg")`, tuples, multiple returns, `bool` mappings -/
+
+theorem EvalExpr.msgValue {fr : Frame} {m : Machine} :
+    EvalExpr cfg o fc fr m (.member (.ident "msg") "value") (.ok (u256Val m.evm.executionEnv.weiValue.toNat) fr m) :=
+  EvalExpr.envMember rfl (envMember_value m)
+
+theorem EvalExpr.blockTimestamp {fr : Frame} {m : Machine} :
+    EvalExpr cfg o fc fr m (.member (.ident "block") "timestamp") (.ok (wordNat m.evm.executionEnv.header.timestamp) fr m) :=
+  EvalExpr.envMember rfl rfl
+
+theorem EvalExpr.blockNumber {fr : Frame} {m : Machine} :
+    EvalExpr cfg o fc fr m (.member (.ident "block") "number") (.ok (wordNat m.evm.executionEnv.header.number) fr m) :=
+  EvalExpr.envMember rfl rfl
+
+theorem EvalExpr.chainId {fr : Frame} {m : Machine} :
+    EvalExpr cfg o fc fr m (.member (.ident "block") "chainid") (.ok (wordNat Ethereum.chainId) fr m) :=
+  EvalExpr.envMember rfl rfl
+
+theorem EvalExpr.txOrigin {fr : Frame} {m : Machine} :
+    EvalExpr cfg o fc fr m (.member (.ident "tx") "origin") (.ok (.address m.evm.executionEnv.sender) fr m) :=
+  EvalExpr.envMember rfl rfl
+
+/-- `address(this)`. -/
+theorem EvalExpr.thisAddress {fr : Frame} {m : Machine} (p : Bool) :
+    EvalExpr cfg o fc fr m (.call (.typeExpr (.address p)) [] (.positional [.this])) (.ok (.address m.this) fr m) :=
+  EvalExpr.convertPlain EvalExpr.thisRef (explicitConv_contract_address _ _ _ _ _)
+
+/-! ## `assert`, `revert("msg")`, `require(c, CustomError())` -/
+
+theorem ExecStmt.assertTrue {fr fr1 : Frame} {m m1 : Machine} {c : Expr}
+    (hc : EvalExpr cfg o fc fr m c (.ok (.bool true) fr1 m1)) :
+    ExecStmt cfg o fc fr m (.exprStmt (.call (.ident "assert") [] (.positional [c]))) (.normal fr1 m1) :=
+  ExecStmt.exprStmt (EvalExpr.assertTrue hc)
+
+theorem ExecStmt.assertFalse {fr fr1 : Frame} {m m1 : Machine} {c : Expr}
+    (hc : EvalExpr cfg o fc fr m c (.ok (.bool false) fr1 m1)) :
+    ExecStmt cfg o fc fr m (.exprStmt (.call (.ident "assert") [] (.positional [c]))) (.reverted (panicData 0x01)) :=
+  ExecStmt.exprStmtRevert (EvalExpr.assertFalse hc)
+
+theorem ExecStmt.revertMsg {fr : Frame} {m : Machine} (s : String) :
+    ExecStmt cfg o fc fr m (.exprStmt (.call (.ident "revert") [] (.positional [.lit (.str s)])))
+      (.reverted (errorStringData s.toUTF8)) :=
+  ExecStmt.exprStmtRevert (EvalExpr.revertMsg (EvalExpr.lit rfl) rfl)
+
+/-! ## Tuples and multiple return values -/
+
+theorem EvalExpr.tupleTwo {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {e1 e2 : Expr} {v1 v2 : Value}
+    (h1 : EvalExpr cfg o fc fr m e1 (.ok v1 fr1 m1)) (h2 : EvalExpr cfg o fc fr1 m1 e2 (.ok v2 fr2 m2)) :
+    EvalExpr cfg o fc fr m (.tuple [some e1, some e2]) (.ok (.tuple [v1, v2]) fr2 m2) :=
+  EvalExpr.tuple rfl (EvalExprs.two h1 h2)
+
+/-- `return (e1, e2)` into two `uint256` return slots. -/
+theorem ExecStmt.returnTwoU256 {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {r1 r2 : Ident} {n1 n2 : ℕ} (l1 l2 : Local)
+    (hret : fr.retVars = [r1, r2]) (he : EvalExpr cfg o fc fr m e (.ok (.tuple [u256Val n1, u256Val n2]) fr1 m1))
+    (hr1 : fr1.get? r1 = some l1) (ht1 : l1.ty = u256Ty)
+    (hr2 : (fr1.setVal r1 (u256Val n1)).get? r2 = some l2) (ht2 : l2.ty = u256Ty) :
+    ExecStmt cfg o fc fr m (.return (some e))
+      (.returned ((fr1.setVal r1 (u256Val n1)).setVal r2 (u256Val n2)) m1) := by
+  refine ExecStmt.returnMulti (by simp [hret]) he ?_
+  rw [hret]
+  exact AssignTuple.cons (EvalLValue.local (m := m1) hr1) (assign_local_u256 l1 hr1 ht1 n1)
+    (AssignTuple.cons (EvalLValue.local (m := m1) hr2) (assign_local_u256 l2 hr2 ht2 n2) AssignTuple.nil)
+
+/-- `x[k]` for `x : mapping(address => bool)`. -/
+theorem EvalExpr.mappingAddrBool {fr fr1 : Frame} {m m1 : Machine} {x : Ident} {v : FlatVar} {k : Expr} {a : EVM.Address}
+    {slot : UInt256}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .mutable)
+    (hty : v.ty = .mapping (.address false) .bool) (hk : EvalExpr cfg o fc fr m k (.ok (.address a) fr1 m1))
+    (hl : cfg.storage.layout (keyRef ⟨v.key, []⟩ (.address a)) m1.evm = some (boolOffset0Loc slot)) :
+    EvalExpr cfg o fc fr m (.index (.ident x) k)
+      (.ok (.bool (!((UInt256.land (loadU256 m1 slot) ⟨255⟩).val == 0))) fr1 m1) :=
+  EvalExpr.mappingIndexScalar hx hv hmut hty hk (storageIndex_mapping_address ..) (loadIfScalar_bool hl)
+
+/-! ## `int256` -/
+
+/-! ### Builders -/
+
+theorem EvalExpr.addS256 {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {x y : Int}
+    (hb : EvalExpr cfg o fc fr m b (.ok (s256Val y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (s256Val x) fr2 m2))
+    (hunch : fr2.unchecked = false) (hlo : -2 ^ 255 ≤ x + y) (hhi : x + y < 2 ^ 255) :
+    EvalExpr cfg o fc fr m (.binary .add a b) (.ok (s256Val (x + y)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (by rw [hunch]; exact binop_add_s256 x y hlo hhi)
+
+theorem EvalExpr.addS256Overflow {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {x y : Int}
+    (hb : EvalExpr cfg o fc fr m b (.ok (s256Val y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (s256Val x) fr2 m2))
+    (hunch : fr2.unchecked = false) (h : ¬ (-2 ^ 255 ≤ x + y ∧ x + y < 2 ^ 255)) :
+    EvalExpr cfg o fc fr m (.binary .add a b) (.reverted (panicData 0x11)) :=
+  EvalExpr.binaryPanic (p := .overflow) (by decide) (by decide) hb ha
+    (by rw [hunch]; exact binop_add_s256_overflow x y h)
+
+theorem EvalExpr.subS256 {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {x y : Int}
+    (hb : EvalExpr cfg o fc fr m b (.ok (s256Val y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (s256Val x) fr2 m2))
+    (hunch : fr2.unchecked = false) (hlo : -2 ^ 255 ≤ x - y) (hhi : x - y < 2 ^ 255) :
+    EvalExpr cfg o fc fr m (.binary .sub a b) (.ok (s256Val (x - y)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (by rw [hunch]; exact binop_sub_s256 x y hlo hhi)
+
+theorem EvalExpr.mulS256 {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {x y : Int}
+    (hb : EvalExpr cfg o fc fr m b (.ok (s256Val y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (s256Val x) fr2 m2))
+    (hunch : fr2.unchecked = false) (hlo : -2 ^ 255 ≤ x * y) (hhi : x * y < 2 ^ 255) :
+    EvalExpr cfg o fc fr m (.binary .mul a b) (.ok (s256Val (x * y)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (by rw [hunch]; exact binop_mul_s256 x y hlo hhi)
+
+theorem EvalExpr.divS256 {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {x y : Int}
+    (hb : EvalExpr cfg o fc fr m b (.ok (s256Val y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (s256Val x) fr2 m2))
+    (hunch : fr2.unchecked = false) (hy : y ≠ 0) (hlo : -2 ^ 255 ≤ Int.tdiv x y) (hhi : Int.tdiv x y < 2 ^ 255) :
+    EvalExpr cfg o fc fr m (.binary .div a b) (.ok (s256Val (Int.tdiv x y)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (by rw [hunch]; exact binop_div_s256 x y hy hlo hhi)
+
+theorem EvalExpr.ltS256 {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {x y : Int}
+    (hb : EvalExpr cfg o fc fr m b (.ok (s256Val y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (s256Val x) fr2 m2)) :
+    EvalExpr cfg o fc fr m (.binary .lt a b) (.ok (.bool (decide (x < y))) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (binop_lt_s256 _ x y)
+
+theorem EvalExpr.geS256 {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {x y : Int}
+    (hb : EvalExpr cfg o fc fr m b (.ok (s256Val y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (s256Val x) fr2 m2)) :
+    EvalExpr cfg o fc fr m (.binary .ge a b) (.ok (.bool (decide (x ≥ y))) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (binop_ge_s256 _ x y)
+
+theorem EvalExpr.geS256Lit {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {x : Int} (k : ℕ) (hd : Option Nat)
+    (ha : EvalExpr cfg o fc fr m a (.ok (s256Val x) fr1 m1)) (hk : k < 2 ^ 255) :
+    EvalExpr cfg o fc fr m (.binary .ge a (.lit (.number k none hd))) (.ok (.bool (decide (x ≥ k))) fr1 m1) :=
+  EvalExpr.binary (by decide) (by decide) (EvalExpr.numLit k hd) ha
+    (by rw [binop_cmp_s256_lit _ .ge rfl x k hd (by omega) (by exact_mod_cast hk)]; rfl)
+
+theorem EvalExpr.negS256 {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {x : Int}
+    (he : EvalExpr cfg o fc fr m e (.ok (s256Val x) fr1 m1)) (hunch : fr1.unchecked = false)
+    (hlo : -2 ^ 255 ≤ -x) (hhi : -x < 2 ^ 255) :
+    EvalExpr cfg o fc fr m (.unary .neg e) (.ok (s256Val (-x)) fr1 m1) :=
+  EvalExpr.unary he (by rw [hunch]; exact unop_neg_s256 x hlo hhi) (by decide) (by decide)
+
+/-- `-k` on a number literal. -/
+theorem EvalExpr.negLit {fr : Frame} {m : Machine} (k : ℕ) (hd : Option Nat) :
+    EvalExpr cfg o fc fr m (.unary .neg (.lit (.number k none hd))) (.ok (.literal (-(k : Int))) fr m) :=
+  EvalExpr.unary (EvalExpr.numLit k hd) (unop_neg_lit _ k hd) (by decide) (by decide)
+
+/-- `int256(x)`. -/
+theorem EvalExpr.convertU256S256 {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {n : ℕ}
+    (ha : EvalExpr cfg o fc fr m a (.ok (u256Val n) fr1 m1)) :
+    EvalExpr cfg o fc fr m (.call (.typeExpr s256Ty) [] (.positional [a])) (.ok (s256Val (IntTy.wrap s256IntTy n)) fr1 m1) :=
+  EvalExpr.convertPlain ha (explicitConv_u256_s256 _ _ n)
+
+/-- `uint256(y)`. -/
+theorem EvalExpr.convertS256U256 {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {i : Int}
+    (ha : EvalExpr cfg o fc fr m a (.ok (s256Val i) fr1 m1)) :
+    EvalExpr cfg o fc fr m (.call (.typeExpr u256Ty) [] (.positional [a])) (.ok (u256Val (IntTy.toWord u256IntTy i)) fr1 m1) :=
+  EvalExpr.convertPlain ha (explicitConv_s256_u256 _ _ i)
+
+/-- A state variable `x : int256`. -/
+theorem EvalExpr.stateS256 {fr : Frame} {m : Machine} {x : Ident} {v : FlatVar} {slot : UInt256}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .mutable) (hty : v.ty = s256Ty)
+    (hl : cfg.storage.layout ⟨v.key, []⟩ m.evm = some (int256Loc slot)) :
+    EvalExpr cfg o fc fr m (.ident x) (.ok (s256Val (s256OfWord (loadU256 m slot))) fr m) :=
+  EvalExpr.stateVar hx hv hmut (by rw [hty]; exact loadIfScalar_s256 hl)
+
+theorem EvalExpr.assignStorageS256 {fr fr1 : Frame} {m m1 : Machine} {lhs rhs : Expr} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} {i : Int}
+    (hrhs : EvalExpr cfg o fc fr m rhs (.ok (s256Val i) fr1 m1))
+    (hlv : EvalLValue cfg o fc fr1 m1 lhs (.ok (.storage er s256Ty) fr1 m1))
+    (hl : cfg.storage.layout er m1.evm = some (int256Loc slot)) :
+    EvalExpr cfg o fc fr m (.assign .assign lhs rhs) (.ok (s256Val i) fr1 (storeU256 m1 slot (EVM.wordOfInt i))) :=
+  EvalExpr.assignPlain hlv.not_tuple hrhs hlv (assign_storage_s256 hl i)
+
+theorem ExecStmt.assignStorageS256 {fr fr1 : Frame} {m m1 : Machine} {lhs rhs : Expr} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} {i : Int}
+    (hrhs : EvalExpr cfg o fc fr m rhs (.ok (s256Val i) fr1 m1))
+    (hlv : EvalLValue cfg o fc fr1 m1 lhs (.ok (.storage er s256Ty) fr1 m1))
+    (hl : cfg.storage.layout er m1.evm = some (int256Loc slot)) :
+    ExecStmt cfg o fc fr m (.exprStmt (.assign .assign lhs rhs)) (.normal fr1 (storeU256 m1 slot (EVM.wordOfInt i))) :=
+  ExecStmt.exprStmt (EvalExpr.assignStorageS256 hrhs hlv hl)
+
+theorem ExecStmt.varDeclS256 {fr fr1 : Frame} {m m1 : Machine} {x : Ident} {e : Expr} {i : Int} {loc : Option DataLoc}
+    (he : EvalExpr cfg o fc fr m e (.ok (s256Val i) fr1 m1)) :
+    ExecStmt cfg o fc fr m (.varDecl s256Ty loc x (some e)) (.normal (fr1.bind x s256Ty loc (s256Val i)) m1) := by
+  refine ExecStmt.varDecl he ?_
+  simp [declare, coerce, implicitConv]
+  try rfl
+
+/-! ## `ecrecover`, `try`/`catch`, `new` -/
+
+/-- `ecrecover(h, v, r, s)` with the precompile call made (its `Θ` result is `hcall`). -/
+theorem EvalExpr.ecrecoverPlain {fr fr1 : Frame} {m m1 m3 : Machine} {eh ev er es : Expr} {hb rb sb : List UInt8} {n : ℕ}
+    {out : ByteArray}
+    (hargs : EvalExprs cfg o fc fr m [eh, ev, er, es]
+      (.ok [.fixedBytes ⟨31, by decide⟩ hb, .uint ⟨8, by decide⟩ n, .fixedBytes ⟨31, by decide⟩ rb,
+        .fixedBytes ⟨31, by decide⟩ sb] fr1 m1))
+    (hh : hb.length = 32) (hr : rb.length = 32) (hs : sb.length = 32) (hn : n < 256)
+    (hcall : callViaEVM o m1 (EVM.address 1) 0 (hb ++ EVM.Word.toBytesBE (EVM.word n) ++ rb ++ sb).toByteArray false
+      (calleeGas o m1 none 0) (true, m3, out)) :
+    EvalExpr cfg o fc fr m (.call (.ident "ecrecover") [] (.positional [eh, ev, er, es])) (.ok (ecrecoverResult out) fr1 m3) :=
+  EvalExpr.ecrecover hargs (abiArgs_ecrecover ..) (encodeABIValues_ecrecover hb rb sb n hh hr hs hn) hcall
+
+theorem bindTryParams_nil (fr : Frame) (m : Machine) : bindTryParams cfg fc.types fr m [] [] = some (.ok (fr, m)) := by
+  simp [bindTryParams]
+
+/-- The tried call succeeds; no `returns` clause, no call options. -/
+theorem ExecStmt.tryCallOkNoRets {fr fr1 fr4 : Frame} {m m1 m4 m5 m6 : Machine} {recv : Expr} {f : Ident}
+    {es : List Expr} {c : Ident} {a : EVM.Address} {vs : List Value} {d : FnDecl} {sigStr : String}
+    {ptys rtys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8} {out : ByteArray} {body : List Stmt}
+    {cs : List CatchClause} {r : ExecResult}
+    (hdirect : memberCallDirect fc fr recv = false)
+    (hrecv : EvalExpr cfg o fc fr m recv (.ok (.contract c a) fr1 m1))
+    (hargs : EvalExprs cfg o fc fr1 m1 es (.ok vs fr4 m4))
+    (hres : resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d)
+    (hsig : externalSig fc.types d = some (sigStr, ptys, rtys))
+    (habi : abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.ok (svs, m5)))
+    (henc : ABI.encodeABIValues? ptys svs = some bs)
+    (hcode : d.returns = [] → codeSize m4.evm a ≠ 0)
+    (hcall : callViaEVM o m5 a 0 (selectorOf sigStr ++ bs.toByteArray)
+      (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 none 0)
+      (true, m6, out))
+    (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out ≠ none)
+    (hbody : ExecBlock cfg o fc fr4 m6 body r) :
+    ExecStmt cfg o fc fr m (.tryCatch (.call (.member recv f) [] (.positional es)) [] body cs) (exitBlock fr r) := by
+  have hrets : tryRets cfg fc.types m6 [] rtys out = some ([], m6) := by
+    simp only [tryRets, List.isEmpty_nil, if_true]
+    cases h : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out
+    · exact absurd h hdec
+    · rfl
+  exact ExecStmt.tryCallOk hdirect hrecv EvalValueOpt.none EvalGasOpt.none rfl hargs hres hsig habi henc hcode hcall
+    hrets (bindTryParams_nil _ _) hbody
+
+/-- The tried call reverts and a parameterless generic `catch { … }` handles it. -/
+theorem ExecStmt.tryCallCaughtGeneric {fr fr1 fr4 : Frame} {m m1 m4 m5 m6 : Machine} {recv : Expr} {f : Ident}
+    {es : List Expr} {c : Ident} {a : EVM.Address} {vs : List Value} {d : FnDecl} {sigStr : String}
+    {ptys rtys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8} {out : ByteArray} {ps : List Param}
+    {body cbody : List Stmt} {r : ExecResult}
+    (hdirect : memberCallDirect fc fr recv = false)
+    (hrecv : EvalExpr cfg o fc fr m recv (.ok (.contract c a) fr1 m1))
+    (hargs : EvalExprs cfg o fc fr1 m1 es (.ok vs fr4 m4))
+    (hres : resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d)
+    (hsig : externalSig fc.types d = some (sigStr, ptys, rtys))
+    (habi : abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.ok (svs, m5)))
+    (henc : ABI.encodeABIValues? ptys svs = some bs)
+    (hcode : d.returns = [] → codeSize m4.evm a ≠ 0)
+    (hcall : callViaEVM o m5 a 0 (selectorOf sigStr ++ bs.toByteArray)
+      (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 none 0)
+      (false, m6, out))
+    (hcatch : ExecBlock cfg o fc fr4 m6 cbody r) :
+    ExecStmt cfg o fc fr m (.tryCatch (.call (.member recv f) [] (.positional es)) ps body [.mk none [] cbody])
+      (exitBlock fr r) :=
+  ExecStmt.tryCallCaught hdirect hrecv EvalValueOpt.none EvalGasOpt.none rfl hargs hres hsig habi henc hcode hcall
+    (selectCatch_generic_noParams cfg m6 cbody out) (bindTryParams_nil _ _) hcatch
+
+/-! ## `new C(args)` -/
+
+theorem EvalExpr.newContractPlain {fr fr3 : Frame} {m m3 m4 m5 : Machine} {ty : Ty} {es : List Expr} {c : Ident}
+    {tys : List Ty} {vs : List Value} {svs : List ABI.ABIValue} {a : EVM.Address} {out : EVM.Bytes}
+    (hnew : newContract? fc ty = some (c, tys)) (hargs : EvalExprs cfg o fc fr m es (.ok vs fr3 m3))
+    (habi : abiArgs cfg fc.types m3 tys vs = some (.ok (svs, m4)))
+    (hcreate : newViaEVM cfg o m4 c 0 svs none (a, m5, true, out)) :
+    EvalExpr cfg o fc fr m (.call (.new ty) [] (.positional es)) (.ok (.contract c a) fr3 m5) :=
+  EvalExpr.newContract hnew EvalValueOpt.none EvalSaltOpt.none rfl hargs habi hcreate
+
+theorem EvalExpr.newContractPlainFailed {fr fr3 : Frame} {m m3 m4 m5 : Machine} {ty : Ty} {es : List Expr} {c : Ident}
+    {tys : List Ty} {vs : List Value} {svs : List ABI.ABIValue} {a : EVM.Address} {out : EVM.Bytes}
+    (hnew : newContract? fc ty = some (c, tys)) (hargs : EvalExprs cfg o fc fr m es (.ok vs fr3 m3))
+    (habi : abiArgs cfg fc.types m3 tys vs = some (.ok (svs, m4)))
+    (hcreate : newViaEVM cfg o m4 c 0 svs none (a, m5, false, out)) :
+    EvalExpr cfg o fc fr m (.call (.new ty) [] (.positional es)) (.reverted out) :=
+  EvalExpr.newContractFailed hnew EvalValueOpt.none EvalSaltOpt.none rfl hargs habi hcreate
+
+/-! ## State variables of value types, `address`/`bool` slot assignments -/
+
+theorem assign_storage_address {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machine} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} (hl : cfg.storage.layout er m.evm = some (addressOffset0Loc slot)) (a : EVM.Address) :
+    assign cfg env fr m (.storage er (.address false)) (.address a) =
+      some (.ok (fr, storeU256 m slot (setAddressOffset0Word (loadU256 m slot) (UInt256.ofNat a.toNat)))) := by
+  simp [assign, fuelDefault, writeStorageDeep_address 1023 (writeScalar_address' hl a)]
+
+theorem assign_storage_bool_true {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machine} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} (hl : cfg.storage.layout er m.evm = some (boolOffset0Loc slot)) :
+    assign cfg env fr m (.storage er .bool) (.bool true) =
+      some (.ok (fr, storeU256 m slot (UInt256.lor (UInt256.land (loadU256 m slot) (UInt256.lnot ⟨255⟩)) ⟨1⟩))) := by
+  simp [assign, fuelDefault, writeStorageDeep_bool 1023 (writeScalar_bool_true hl)]
+
+theorem assign_storage_bool_false {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machine} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} (hl : cfg.storage.layout er m.evm = some (boolOffset0Loc slot)) :
+    assign cfg env fr m (.storage er .bool) (.bool false) =
+      some (.ok (fr, storeU256 m slot (UInt256.land (loadU256 m slot) (UInt256.lnot ⟨255⟩)))) := by
+  simp [assign, fuelDefault, writeStorageDeep_bool 1023 (writeScalar_bool_false hl)]
+
+/-! ### Builders -/
+
+theorem EvalExpr.stateU256 {fr : Frame} {m : Machine} {x : Ident} {v : FlatVar} {slot : UInt256}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .mutable) (hty : v.ty = u256Ty)
+    (hl : cfg.storage.layout ⟨v.key, []⟩ m.evm = some (uint256Loc slot)) :
+    EvalExpr cfg o fc fr m (.ident x) (.ok (u256Val (loadU256 m slot).toNat) fr m) :=
+  EvalExpr.stateVar hx hv hmut (by rw [hty]; exact loadIfScalar_u256 hl)
+
+theorem EvalExpr.stateAddress {fr : Frame} {m : Machine} {x : Ident} {v : FlatVar} {slot : UInt256}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .mutable) (hty : v.ty = .address false)
+    (hl : cfg.storage.layout ⟨v.key, []⟩ m.evm = some (addressOffset0Loc slot)) :
+    EvalExpr cfg o fc fr m (.ident x)
+      (.ok (.address (AccountAddress.ofNat (UInt256.land (loadU256 m slot) solcAddrMask).toNat)) fr m) :=
+  EvalExpr.stateVar hx hv hmut (by rw [hty]; exact loadIfScalar_address hl)
+
+theorem EvalExpr.stateBool {fr : Frame} {m : Machine} {x : Ident} {v : FlatVar} {slot : UInt256}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .mutable) (hty : v.ty = .bool)
+    (hl : cfg.storage.layout ⟨v.key, []⟩ m.evm = some (boolOffset0Loc slot)) :
+    EvalExpr cfg o fc fr m (.ident x) (.ok (.bool (!((UInt256.land (loadU256 m slot) ⟨255⟩).val == 0))) fr m) :=
+  EvalExpr.stateVar hx hv hmut (by rw [hty]; exact loadIfScalar_bool hl)
+
+/-- A mutable state variable of type `ty` as an lvalue. -/
+theorem EvalLValue.stateVarTy {fr : Frame} {m : Machine} {x : Ident} {v : FlatVar} {ty : Ty}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .mutable) (hty : v.ty = ty) :
+    EvalLValue cfg o fc fr m (.ident x) (.ok (.storage ⟨v.key, []⟩ ty) fr m) :=
+  hty ▸ EvalLValue.stateVar hx hv hmut
+
+theorem EvalExpr.assignStorageAddress {fr fr1 : Frame} {m m1 : Machine} {lhs rhs : Expr} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} {a : EVM.Address}
+    (hrhs : EvalExpr cfg o fc fr m rhs (.ok (.address a) fr1 m1))
+    (hlv : EvalLValue cfg o fc fr1 m1 lhs (.ok (.storage er (.address false)) fr1 m1))
+    (hl : cfg.storage.layout er m1.evm = some (addressOffset0Loc slot)) :
+    EvalExpr cfg o fc fr m (.assign .assign lhs rhs)
+      (.ok (.address a) fr1 (storeU256 m1 slot (setAddressOffset0Word (loadU256 m1 slot) (UInt256.ofNat a.toNat)))) :=
+  EvalExpr.assignPlain hlv.not_tuple hrhs hlv (assign_storage_address hl a)
+
+theorem ExecStmt.assignStorageAddress {fr fr1 : Frame} {m m1 : Machine} {lhs rhs : Expr} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} {a : EVM.Address}
+    (hrhs : EvalExpr cfg o fc fr m rhs (.ok (.address a) fr1 m1))
+    (hlv : EvalLValue cfg o fc fr1 m1 lhs (.ok (.storage er (.address false)) fr1 m1))
+    (hl : cfg.storage.layout er m1.evm = some (addressOffset0Loc slot)) :
+    ExecStmt cfg o fc fr m (.exprStmt (.assign .assign lhs rhs))
+      (.normal fr1 (storeU256 m1 slot (setAddressOffset0Word (loadU256 m1 slot) (UInt256.ofNat a.toNat)))) :=
+  ExecStmt.exprStmt (EvalExpr.assignStorageAddress hrhs hlv hl)
+
+theorem ExecStmt.assignStorageBoolTrue {fr fr1 : Frame} {m m1 : Machine} {lhs : Expr} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} (hlv : EvalLValue cfg o fc fr m lhs (.ok (.storage er .bool) fr1 m1))
+    (hl : cfg.storage.layout er m1.evm = some (boolOffset0Loc slot)) :
+    ExecStmt cfg o fc fr m (.exprStmt (.assign .assign lhs (.lit (.bool true))))
+      (.normal fr1 (storeU256 m1 slot (UInt256.lor (UInt256.land (loadU256 m1 slot) (UInt256.lnot ⟨255⟩)) ⟨1⟩))) :=
+  ExecStmt.exprStmt (EvalExpr.assignPlain hlv.not_tuple (EvalExpr.boolLit true) hlv (assign_storage_bool_true hl))
+
+theorem ExecStmt.assignStorageBoolFalse {fr fr1 : Frame} {m m1 : Machine} {lhs : Expr} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} (hlv : EvalLValue cfg o fc fr m lhs (.ok (.storage er .bool) fr1 m1))
+    (hl : cfg.storage.layout er m1.evm = some (boolOffset0Loc slot)) :
+    ExecStmt cfg o fc fr m (.exprStmt (.assign .assign lhs (.lit (.bool false))))
+      (.normal fr1 (storeU256 m1 slot (UInt256.land (loadU256 m1 slot) (UInt256.lnot ⟨255⟩)))) :=
+  ExecStmt.exprStmt (EvalExpr.assignPlain hlv.not_tuple (EvalExpr.boolLit false) hlv (assign_storage_bool_false hl))
+
+/-! ## Environment reads through a rewritten machine -/
+
+/-- `msg.sender` with the source spelled as the caller likes (e.g. through a chain of stores). -/
+theorem EvalExpr.msgSenderEq {fr : Frame} {m : Machine} {a : EVM.Address} (h : m.evm.executionEnv.source = a) :
+    EvalExpr cfg o fc fr m (.member (.ident "msg") "sender") (.ok (.address a) fr m) :=
+  h ▸ EvalExpr.msgSender
+
+theorem EvalExpr.msgValueEq {fr : Frame} {m : Machine} {n : ℕ} (h : m.evm.executionEnv.weiValue.toNat = n) :
+    EvalExpr cfg o fc fr m (.member (.ident "msg") "value") (.ok (u256Val n) fr m) :=
+  h ▸ EvalExpr.msgValue
+
+theorem EvalExpr.blockTimestampEq {fr : Frame} {m : Machine} {n : ℕ}
+    (h : (EVM.Word.ofNat m.evm.executionEnv.header.timestamp).toNat = n) :
+    EvalExpr cfg o fc fr m (.member (.ident "block") "timestamp") (.ok (u256Val n) fr m) :=
+  h ▸ EvalExpr.blockTimestamp
 
 end Solidity

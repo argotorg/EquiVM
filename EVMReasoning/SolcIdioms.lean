@@ -951,4 +951,71 @@ theorem Run.solcCustomErrorRevert {rawSel shift selWord : UInt256}
     errorSelectorMem_read4 selWord mem (by omega)] at hrev
   exact hrev
 
+/-- `PUSH2 ret; SWAP2; DUP2; MSTORE; PUSH1 32; ADD; SWAP1; JUMP`: the inline encoder of a one-word
+    custom-error argument (the argument sits below the end pointer), continuing at `ret`. -/
+@[reducible] def solcErrorArgWordInlineWf (code : ByteArray) (pc ret : UInt256) : Prop :=
+  decode code pc = some (.Push .PUSH2, some (ret, 2))
+  ∧ decode code (pc + UInt256.ofNat 3) = some (.SWAP2, .none)
+  ∧ decode code (pc + UInt256.ofNat 3 + ⟨1⟩) = some (.DUP2, .none)
+  ∧ decode code (pc + UInt256.ofNat 3 + ⟨1⟩ + ⟨1⟩) = some (.MSTORE, .none)
+  ∧ decode code (pc + UInt256.ofNat 3 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = some (.Push .PUSH1, some (⟨32⟩, 1))
+  ∧ decode code (pc + UInt256.ofNat 3 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2) = some (.ADD, .none)
+  ∧ decode code (pc + UInt256.ofNat 3 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) = some (.SWAP1, .none)
+  ∧ decode code (pc + UInt256.ofNat 3 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) = some (.JUMP, .none)
+  ∧ (D_J code 0).contains ret = true
+
+theorem Run.solcErrorArgWordInline {ret arg selWord : UInt256}
+    (h : Run code s0 ⟨pc, (⟨4⟩ + ⟨128⟩) :: arg :: R, (UInt256.toByteArray selWord).write 0 mem 128 32,
+      UInt256.ofNat 5, rdata, w⟩ k C)
+    (hwf : solcErrorArgWordInlineWf code pc ret) (hov : R.length + 4 ≤ 1024) :
+    ∃ k' C', Run code s0 ⟨ret, (⟨32⟩ + (⟨4⟩ + ⟨128⟩)) :: R,
+      (UInt256.toByteArray arg).write 0 ((UInt256.toByteArray selWord).write 0 mem 128 32) 132 32,
+      UInt256.ofNat 6, rdata, w⟩ k' C' := by
+  rcases hwf with ⟨hd0, hd3, hd4, hd5, hd6, hd8, hd9, hd10, hjd⟩
+  exact ⟨_, _, evm_run h with [
+    raw push2 ret hd0 (by evm_ov),
+    raw swap2 hd3 (by evm_ov),
+    raw dup2 hd4 (by evm_ov),
+    raw mstore 3 ((UInt256.toByteArray arg).write 0 ((UInt256.toByteArray selWord).write 0 mem 128 32) 132 32)
+      (UInt256.ofNat 6) hd5 mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ hd6 (by evm_ov),
+    raw add hd8 (by evm_ov),
+    raw swap1 hd9 (by evm_ov),
+    raw jump hd10 hjd (by evm_ov)]⟩
+
+/-- `revert E(x)` with one word argument from the prologue memory: selector store, inline argument
+    encoder, then the shared revert block at `ret`. -/
+theorem Run.solcCustomErrorRevertU256 {rawSel shift selWord ret arg : UInt256}
+    (h : Run code s0 ⟨pc, arg :: R, mem, UInt256.ofNat 3, rdata, w⟩ k C)
+    (hwf : solcErrorSelectorStoreWf code pc rawSel shift)
+    (henc : solcErrorArgWordInlineWf code (solcErrorSelectorStoreOutPc pc) ret)
+    (hblk : solcRevertBlockWf code ret)
+    (hword : UInt256.shiftLeft rawSel shift = selWord)
+    (hmem : mem.size = 96) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : R.length + 4 ≤ 1024) :
+    Reverted code s0 ((UInt256.toByteArray selWord).extract 0 4 ++ UInt256.toByteArray arg) := by
+  obtain ⟨_, _, h1⟩ := Run.solcErrorSelectorStore h hwf hword hmem hread64 (by simpa using hov)
+  obtain ⟨_, _, h2⟩ := Run.solcErrorArgWordInline h1 henc hov
+  have hsz1 : ((UInt256.toByteArray selWord).write 0 mem 128 32).size = 160 := by
+    rw [toByteArray_write_eq _ _ _ (by omega) (lt_usize _ (by omega)), ByteArray.size_append,
+      ByteArray.size_append, hmem, ByteArray_zeroes_size, toByteArray_size]
+  have hsz2 : ((UInt256.toByteArray arg).write 0 ((UInt256.toByteArray selWord).write 0 mem 128 32) 132 32).size
+      = 164 := by
+    rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [hsz1]; omega), ByteArray.size_append,
+      ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract, ByteArray.size_extract, hsz1,
+      toByteArray_size]
+    decide
+  have hread64' : ByteArray.readWithPadding
+      ((UInt256.toByteArray arg).write 0 ((UInt256.toByteArray selWord).write 0 mem 128 32) 132 32) 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+    rw [toByteArray_write_read_below_of_gap arg ((UInt256.toByteArray selWord).write 0 mem 128 32) 132 64
+        (by rw [hsz1]; omega) (by omega) (by rw [hsz1]; exact lt_usize _ (by omega)),
+      toByteArray_write_read_below_of_gap selWord mem 128 64 (by omega) (by omega) (lt_usize _ (by omega))]
+    exact hread64
+  have hrev := Run.solcRevertBlock h2 hblk
+    (mloadFreePtrValue (by rw [hsz2]; decide) (by decide) hread64') (by evm_ov)
+  rw [show (UInt256.sub (⟨32⟩ + (⟨4⟩ + ⟨128⟩)) ⟨128⟩).toNat = 36 from by decide,
+    errorSelectorArgMem_read36 selWord arg mem (by omega)] at hrev
+  exact hrev
+
 end Reasoning.Trace

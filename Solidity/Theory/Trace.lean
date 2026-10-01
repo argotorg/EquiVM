@@ -49,6 +49,8 @@ abbrev loadU256 (m : Machine) (slot : UInt256) : UInt256 :=
 abbrev storeU256 (m : Machine) (slot w : UInt256) : Machine :=
   { m with evm := Storage.EVM.storageStore m.evm m.evm.executionEnv.codeOwner slot w }
 
+attribute [simp] storageStore_executionEnv
+
 @[simp] theorem storeU256_executionEnv (m : Machine) (slot w : UInt256) :
     (storeU256 m slot w).evm.executionEnv = m.evm.executionEnv :=
   storageStore_executionEnv ..
@@ -583,6 +585,193 @@ theorem mkLogEntry_bytes32_addr_addr_indexed (this : EVM.Address) (ev : EventInf
              data := ByteArray.empty } := by
   simp [mkLogEntry, hparams, htys, hanon, topicOf, topicWordOf, ABI.valueToWord, EVM.Word.ofNat, hlen,
     ABI.encodeABIValues?, ABI.abiTupleHeadSize?, ABI.encodeABIValuesFrom?]
+
+/-! ## Events with value-type arguments -/
+
+/-- A value-type event argument. -/
+inductive LogVal
+  | addr (a : EVM.Address)
+  | u256 (n : ℕ)
+  | bool (b : Bool)
+  | bytes32 (bs : List UInt8)
+
+structure LogArg where
+  val : LogVal
+  indexed : Bool
+  name : Option Ident := none
+
+namespace LogVal
+
+def ty : LogVal → Ty
+  | .addr _ => .address false
+  | .u256 _ => u256Ty
+  | .bool _ => .bool
+  | .bytes32 _ => .fixedBytes ⟨31, by decide⟩
+
+def abiTy : LogVal → ABI.ABIType
+  | .addr _ => .elem .address
+  | .u256 _ => .elem (.int (.uint ⟨256, by decide⟩))
+  | .bool _ => .elem .bool
+  | .bytes32 _ => .elem (.bytes ⟨31, by decide⟩)
+
+def value : LogVal → ABI.ABIValue
+  | .addr a => .address a
+  | .u256 n => .int n
+  | .bool b => .bool b
+  | .bytes32 bs => .fixedBytes ⟨31, by decide⟩ bs
+
+/-- The 32-byte word of the argument (its topic when indexed). -/
+def word : LogVal → EVM.Word
+  | .addr a => UInt256.ofNat a.toNat
+  | .u256 n => UInt256.ofNat n
+  | .bool b => b.toUInt256
+  | .bytes32 bs => UInt256.ofNat (fromBytesBigEndian bs)
+
+/-- The data bytes of the argument when not indexed. -/
+def bytes : LogVal → List UInt8
+  | .bytes32 bs => bs
+  | v => v.word.toBytesBE
+
+def wf : LogVal → Prop
+  | .u256 n => n < 2 ^ 256
+  | .bytes32 bs => bs.length = 32
+  | _ => True
+
+@[simp] theorem wf_addr (a : EVM.Address) : (LogVal.addr a).wf = True := rfl
+@[simp] theorem wf_bool (b : Bool) : (LogVal.bool b).wf = True := rfl
+@[simp] theorem wf_u256 (n : ℕ) : (LogVal.u256 n).wf = (n < 2 ^ 256) := rfl
+@[simp] theorem wf_bytes32 (bs : List UInt8) : (LogVal.bytes32 bs).wf = (bs.length = 32) := rfl
+
+theorem isDynamic_abiTy (v : LogVal) : ABI.isDynamicABIType v.abiTy = false := by
+  cases v <;> rfl
+
+theorem topicOf_eq (v : LogVal) (h : v.wf) : topicOf v.abiTy v.value = some v.word := by
+  cases v with
+  | addr a => simp [abiTy, value, word, topicOf, topicWordOf, ABI.valueToWord, EVM.Word.ofNat]
+  | u256 n =>
+    simp [abiTy, value, word, topicOf, topicWordOf, ABI.valueToWord, wordOfInt_nonneg]
+    rfl
+  | bool b => simp [abiTy, value, word, topicOf, topicWordOf, ABI.valueToWord]
+  | bytes32 bs =>
+    have hl : bs.length = 32 := h
+    simp [abiTy, value, word, topicOf, topicWordOf, hl, EVM.Word.ofNat]
+
+theorem encode_eq (v : LogVal) (h : v.wf) : ABI.encodeABIValue? v.abiTy v.value = some v.bytes := by
+  cases v with
+  | addr a =>
+    simp [abiTy, value, bytes, word, ABI.encodeABIValue?, ABI.encodeABIWord?]
+    rfl
+  | u256 n =>
+    have hn' : n < EVM.twoPow 256 := h
+    simp [abiTy, value, bytes, word, ABI.encodeABIValue?, ABI.encodeABIWord?, hn']
+    rfl
+  | bool b => simp [abiTy, value, bytes, word, ABI.encodeABIValue?, ABI.encodeABIWord?]
+  | bytes32 bs =>
+    have hl : bs.length = 32 := h
+    simp [abiTy, value, bytes, ABI.encodeABIValue?, hl, ABI.zeroBytes]
+
+theorem staticSize_abiTy (v : LogVal) : ABI.staticABIEncodedSize? v.abiTy = some 32 := by
+  cases v <;> simp [LogVal.abiTy, ABI.staticABIEncodedSize?]
+
+end LogVal
+
+def LogArg.param (x : LogArg) : EventParam := { ty := x.val.ty, indexed := x.indexed, name := x.name }
+
+@[simp] theorem LogArg.param_indexed (x : LogArg) : x.param.indexed = x.indexed := rfl
+
+theorem abiTupleHeadSize?_static : ∀ (xs : List LogArg),
+    ABI.abiTupleHeadSize? (xs.map (·.val.abiTy)) = some (32 * xs.length)
+  | [] => by simp [ABI.abiTupleHeadSize?]
+  | x :: xs => by
+    rw [List.map_cons, ABI.abiTupleHeadSize?, abiTupleHeadSize?_static xs, LogVal.isDynamic_abiTy,
+      LogVal.staticSize_abiTy]
+    simp [List.length_cons]
+    ring
+
+theorem encodeABIValuesFrom?_static : ∀ (xs : List LogArg) (hs : ℕ) (head tail : List UInt8),
+    (∀ x ∈ xs, x.val.wf) →
+    ABI.encodeABIValuesFrom? (xs.map (·.val.abiTy)) (xs.map (·.val.value)) hs head tail =
+      some (head ++ xs.flatMap (·.val.bytes) ++ tail)
+  | [], hs, head, tail, _ => by simp [ABI.encodeABIValuesFrom?]
+  | x :: xs, hs, head, tail, hwf => by
+    rw [List.map_cons, List.map_cons, ABI.encodeABIValuesFrom?, LogVal.encode_eq x.val (hwf x (by simp)),
+      LogVal.isDynamic_abiTy]
+    simp only [Opt.some_bind, Bool.false_eq_true, if_false]
+    rw [encodeABIValuesFrom?_static xs hs _ tail (fun y hy => hwf y (by simp [hy]))]
+    simp [List.append_assoc]
+
+theorem encodeABIValues?_static (xs : List LogArg) (hwf : ∀ x ∈ xs, x.val.wf) :
+    ABI.encodeABIValues? (xs.map (·.val.abiTy)) (xs.map (·.val.value)) = some (xs.flatMap (·.val.bytes)) := by
+  rw [ABI.encodeABIValues?, abiTupleHeadSize?_static]
+  simp [encodeABIValuesFrom?_static xs _ [] [] hwf]
+
+theorem mapM_topicOf_static : ∀ (ys : List LogArg), (∀ x ∈ ys, x.val.wf) →
+    List.mapM (fun x => topicOf x.1.2 x.2) (ys.map fun x => ((x.param, x.val.abiTy), x.val.value)) =
+      some (ys.map (·.val.word))
+  | [], _ => rfl
+  | y :: ys, h => by
+    simp only [List.map_cons, List.mapM_cons, LogVal.topicOf_eq y.val (h y (by simp)),
+      mapM_topicOf_static ys (fun x hx => h x (by simp [hx]))]
+    rfl
+
+/-- The log entry of an event whose arguments are all value types (`address`, `uint256`, `bool`,
+    `bytes32`), in any indexed pattern: `topics[0]` is the signature hash, then the indexed words;
+    the data is the concatenation of the non-indexed words. -/
+theorem mkLogEntry_static (this : EVM.Address) (ev : EventInfo) (xs : List LogArg)
+    (hparams : ev.decl.params = xs.map LogArg.param) (htys : ev.sig.paramTypes = xs.map (·.val.abiTy))
+    (hanon : ev.decl.anonymous = false) (hwf : ∀ x ∈ xs, x.val.wf) :
+    mkLogEntry this ev (xs.map (·.val.value)) =
+      some { address := this,
+             topics := (hashWord ev.sigStr.toUTF8 :: (xs.filter (·.indexed)).map (·.val.word)).toArray,
+             data := ((xs.filter (!·.indexed)).flatMap (·.val.bytes)).toByteArray } := by
+  have hzip : ((xs.map LogArg.param).zip (xs.map (·.val.abiTy))).zip (xs.map (·.val.value)) =
+      xs.map fun x => ((x.param, x.val.abiTy), x.val.value) := by
+    rw [List.zip_map', List.zip_map']
+  have hidx := mapM_topicOf_static (xs.filter (·.indexed)) (fun x hx => hwf x (List.mem_of_mem_filter hx))
+  have hdata := encodeABIValues?_static (xs.filter (!·.indexed)) (fun x hx => hwf x (List.mem_of_mem_filter hx))
+  simp only [mkLogEntry, hparams, htys, hanon, List.length_map, ne_eq, not_true_eq_false, or_self, if_false,
+    hzip, List.filter_map, Function.comp_def, LogArg.param_indexed, List.map_map, Bool.false_eq_true]
+  rw [hidx, hdata]
+  simp
+
+/-! ### The Solidity values of static event arguments and their `abiArgs` encoding -/
+namespace LogVal
+def solValue : LogVal → Value
+  | .addr a => .address a
+  | .u256 n => u256Val n
+  | .bool b => .bool b
+  | .bytes32 bs => .fixedBytes ⟨31, by decide⟩ bs
+end LogVal
+
+/-- One step of `abiArgs`: coerce to the parameter type, then `toAbi`. -/
+def abiArgStep (cfg : Config) (env : TypeEnv) (accm : List ABI.ABIValue × Machine) (tv : Ty × Value) :
+    Op (List ABI.ABIValue × Machine) := do
+  let r ← coerce cfg env accm.2 tv.2 tv.1 (some .memory)
+  match toAbi r.2.heap fuelDefault r.1 with
+  | some sv => pure (accm.1 ++ [sv], r.2)
+  | _ => Op.stuck
+
+theorem abiArgs_eq_foldlM (cfg : Config) (env : TypeEnv) (m : Machine) (tys : List Ty) (vs : List Value)
+    (hlen : tys.length = vs.length) :
+    abiArgs cfg env m tys vs = (tys.zip vs).foldlM (abiArgStep cfg env) ([], m) := by
+  simp only [abiArgs, hlen, ne_eq, not_true_eq_false, if_false]
+  rfl
+
+theorem abiArgStep_static (cfg : Config) (env : TypeEnv) (acc : List ABI.ABIValue) (m : Machine) (v : LogVal) :
+    abiArgStep cfg env (acc, m) (v.ty, v.solValue) = some (.ok (acc ++ [v.value], m)) := by
+  cases v <;> simp [abiArgStep, LogVal.ty, LogVal.solValue, LogVal.value, coerce, fuelDefault]
+
+theorem abiArgs_static_fold (cfg : Config) (env : TypeEnv) : ∀ (xs : List LogArg) (acc : List ABI.ABIValue) (m : Machine),
+    ((xs.map (·.val.ty)).zip (xs.map (·.val.solValue))).foldlM (abiArgStep cfg env) (acc, m) =
+      some (.ok (acc ++ xs.map (·.val.value), m))
+  | [], acc, m => by simp
+  | x :: xs, acc, m => by
+    rw [List.map_cons, List.map_cons, List.zip_cons_cons, List.foldlM_cons, abiArgStep_static, Op.bind_ok,
+      abiArgs_static_fold cfg env xs (acc ++ [x.val.value]) m, List.map_cons, List.append_assoc, List.singleton_append]
+
+theorem abiArgs_static (cfg : Config) (env : TypeEnv) (m : Machine) (xs : List LogArg) :
+    abiArgs cfg env m (xs.map (·.val.ty)) (xs.map (·.val.solValue)) = some (.ok (xs.map (·.val.value), m)) := by
+  rw [abiArgs_eq_foldlM _ _ _ _ _ (by simp), abiArgs_static_fold, List.nil_append]
 
 /-! ## Dispatch -/
 
