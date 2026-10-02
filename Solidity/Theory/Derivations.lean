@@ -1836,4 +1836,114 @@ theorem EvalExpr.blockTimestampEq {fr : Frame} {m : Machine} {n : ℕ}
     EvalExpr cfg o fc fr m (.member (.ident "block") "timestamp") (.ok (u256Val n) fr m) :=
   h ▸ EvalExpr.blockTimestamp
 
+/-! ## `try`/`catch` with returns and typed clauses, call options, `abi.decode` -/
+
+/-- `try recv.f(args) returns (T x) { … }`, the call succeeding with one value-type return. -/
+theorem ExecStmt.tryCallOkOneRet {fr fr1 fr4 fr5 : Frame} {m m1 m4 m5 m6 m8 : Machine} {recv : Expr} {f : Ident}
+    {es : List Expr} {c : Ident} {a : EVM.Address} {vs : List Value} {d : FnDecl} {sigStr : String}
+    {ptys rtys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8} {out : ByteArray} {body : List Stmt}
+    {cs : List CatchClause} {r : ExecResult} {p : Param} {x : Ident} {sv : ABI.ABIValue} {v : Value}
+    (hdirect : memberCallDirect fc fr recv = false)
+    (hrecv : EvalExpr cfg o fc fr m recv (.ok (.contract c a) fr1 m1))
+    (hargs : EvalExprs cfg o fc fr1 m1 es (.ok vs fr4 m4))
+    (hres : resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d)
+    (hsig : externalSig fc.types d = some (sigStr, ptys, rtys))
+    (habi : abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.ok (svs, m5)))
+    (henc : ABI.encodeABIValues? ptys svs = some bs)
+    (hcode : d.returns = [] → codeSize m4.evm a ≠ 0)
+    (hcall : callViaEVM o m5 a 0 (selectorOf sigStr ++ bs.toByteArray)
+      (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 none 0)
+      (true, m6, out))
+    (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some [sv])
+    (hof : ofAbi fc.types fuelDefault p.ty sv m6.heap = some (v, m6.heap))
+    (hname : p.name = some x)
+    (hdecl : declare cfg fc.types fr4 m6 p.ty (some (p.loc.getD .memory)) x (some v) = some (.ok (fr5, m8)))
+    (hbody : ExecBlock cfg o fc fr5 m8 body r) :
+    ExecStmt cfg o fc fr m (.tryCatch (.call (.member recv f) [] (.positional es)) [p] body cs) (exitBlock fr r) :=
+  ExecStmt.tryCallOk hdirect hrecv EvalValueOpt.none EvalGasOpt.none rfl hargs hres hsig habi henc hcode hcall
+    (tryRets_single hdec hof) (bindTryParams_single hname hdecl) hbody
+
+/-- The tried call reverts and a typed or parameterised clause is selected (`hsel`). -/
+theorem ExecStmt.tryCallCaughtSelected {fr fr1 fr4 fr5 : Frame} {m m1 m4 m5 m6 m7 m8 : Machine} {recv : Expr}
+    {f : Ident} {es : List Expr} {c : Ident} {a : EVM.Address} {vs : List Value} {d : FnDecl} {sigStr : String}
+    {ptys rtys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8} {out : ByteArray} {ps : List Param}
+    {body : List Stmt} {cs : List CatchClause} {cc : CatchClause} {cvs : List Value} {r : ExecResult}
+    (hdirect : memberCallDirect fc fr recv = false)
+    (hrecv : EvalExpr cfg o fc fr m recv (.ok (.contract c a) fr1 m1))
+    (hargs : EvalExprs cfg o fc fr1 m1 es (.ok vs fr4 m4))
+    (hres : resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d)
+    (hsig : externalSig fc.types d = some (sigStr, ptys, rtys))
+    (habi : abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.ok (svs, m5)))
+    (henc : ABI.encodeABIValues? ptys svs = some bs)
+    (hcode : d.returns = [] → codeSize m4.evm a ≠ 0)
+    (hcall : callViaEVM o m5 a 0 (selectorOf sigStr ++ bs.toByteArray)
+      (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 none 0)
+      (false, m6, out))
+    (hsel : selectCatch cfg m6 cs out = some (cc, cvs, m7))
+    (hbind : bindTryParams cfg fc.types fr4 m7 (catchParams cc) cvs = some (.ok (fr5, m8)))
+    (hcatch : ExecBlock cfg o fc fr5 m8 (catchBody cc) r) :
+    ExecStmt cfg o fc fr m (.tryCatch (.call (.member recv f) [] (.positional es)) ps body cs) (exitBlock fr r) :=
+  ExecStmt.tryCallCaught hdirect hrecv EvalValueOpt.none EvalGasOpt.none rfl hargs hres hsig habi henc hcode hcall
+    hsel hbind hcatch
+
+theorem EvalValueOpt.u256 {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {n : ℕ}
+    (he : EvalExpr cfg o fc fr m e (.ok (u256Val n) fr1 m1)) : EvalValueOpt cfg o fc fr m (Option.some e) (.ok n fr1 m1) :=
+  EvalValueOpt.some he rfl
+
+theorem EvalSaltOpt.bytes32 {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {bs : List UInt8}
+    (he : EvalExpr cfg o fc fr m e (.ok (.fixedBytes ⟨31, by decide⟩ bs) fr1 m1)) :
+    EvalSaltOpt cfg o fc fr m (Option.some e) (.ok (Option.some ⟨bs.toArray⟩) fr1 m1) :=
+  EvalSaltOpt.some he (saltBytes_bytes32 bs)
+
+/-- `new C{value: v}(args)`. -/
+theorem EvalExpr.newContractValue {fr fr1 fr3 : Frame} {m m1 m3 m4 m5 : Machine} {ty : Ty} {ve : Expr} {es : List Expr}
+    {c : Ident} {tys : List Ty} {n : ℕ} {vs : List Value} {svs : List ABI.ABIValue} {a : EVM.Address} {out : EVM.Bytes}
+    (hnew : newContract? fc ty = some (c, tys)) (hv : EvalExpr cfg o fc fr m ve (.ok (u256Val n) fr1 m1))
+    (hargs : EvalExprs cfg o fc fr1 m1 es (.ok vs fr3 m3)) (habi : abiArgs cfg fc.types m3 tys vs = some (.ok (svs, m4)))
+    (hcreate : newViaEVM cfg o m4 c n svs none (a, m5, true, out)) :
+    EvalExpr cfg o fc fr m (.call (.new ty) [.value ve] (.positional es)) (.ok (.contract c a) fr3 m5) :=
+  EvalExpr.newContract hnew (EvalValueOpt.u256 hv) EvalSaltOpt.none rfl hargs habi hcreate
+
+/-- `new C{salt: s}(args)`. -/
+theorem EvalExpr.newContractSalt {fr fr2 fr3 : Frame} {m m2 m3 m4 m5 : Machine} {ty : Ty} {se : Expr} {es : List Expr}
+    {c : Ident} {tys : List Ty} {bs : List UInt8} {vs : List Value} {svs : List ABI.ABIValue} {a : EVM.Address}
+    {out : EVM.Bytes}
+    (hnew : newContract? fc ty = some (c, tys)) (hs : EvalExpr cfg o fc fr m se (.ok (.fixedBytes ⟨31, by decide⟩ bs) fr2 m2))
+    (hargs : EvalExprs cfg o fc fr2 m2 es (.ok vs fr3 m3)) (habi : abiArgs cfg fc.types m3 tys vs = some (.ok (svs, m4)))
+    (hcreate : newViaEVM cfg o m4 c 0 svs (some ⟨bs.toArray⟩) (a, m5, true, out)) :
+    EvalExpr cfg o fc fr m (.call (.new ty) [.salt se] (.positional es)) (.ok (.contract c a) fr3 m5) :=
+  EvalExpr.newContract hnew EvalValueOpt.none (EvalSaltOpt.bytes32 hs) rfl hargs habi hcreate
+
+/-- `recv.f{value: v}(args)`, call made and returned. -/
+theorem EvalExpr.externalCallValue {fr fr1 fr2 fr4 : Frame} {m m1 m2 m4 m5 m6 m7 : Machine} {recv ve : Expr} {f : Ident}
+    {es : List Expr} {c : Ident} {a : EVM.Address} {n : ℕ} {vs : List Value} {d : FnDecl} {sigStr : String}
+    {ptys rtys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8} {out : ByteArray} {rets : List Value}
+    (hdirect : memberCallDirect fc fr recv = false)
+    (hrecv : EvalExpr cfg o fc fr m recv (.ok (.contract c a) fr1 m1))
+    (hv : EvalExpr cfg o fc fr1 m1 ve (.ok (u256Val n) fr2 m2))
+    (hargs : EvalExprs cfg o fc fr2 m2 es (.ok vs fr4 m4))
+    (hres : resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d)
+    (hsig : externalSig fc.types d = some (sigStr, ptys, rtys))
+    (habi : abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.ok (svs, m5)))
+    (henc : ABI.encodeABIValues? ptys svs = some bs)
+    (hcode : d.returns = [] → codeSize m4.evm a ≠ 0)
+    (hcall : callViaEVM o m5 a n (selectorOf sigStr ++ bs.toByteArray)
+      (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 none n)
+      (true, m6, out))
+    (hdec : decodeRets cfg fc.types m6 d.returns rtys out = some (rets, m7)) :
+    EvalExpr cfg o fc fr m (.call (.member recv f) [.value ve] (.positional es)) (.ok (retValue rets) fr4 m7) :=
+  EvalExpr.externalCall hdirect hrecv (EvalValueOpt.u256 hv) EvalGasOpt.none rfl hargs hres hsig habi henc hcode hcall
+    hdec
+
+/-- `abi.decode(data, (T₁, …))` of a memory `bytes` object. -/
+theorem EvalExpr.abiDecodeMemBytes {fr fr1 : Frame} {m m1 : Machine} {d tyArg : Expr} {id : ℕ} {s : Bool} {bs : ByteArray}
+    {tys : List Ty} {atys : List ABI.ABIType} {svs : List ABI.ABIValue} {vs : List Value} {h' : Heap}
+    (hd : EvalExpr cfg o fc fr m d (.ok (.memRef id) fr1 m1)) (hget : m1.heap.get? id = some (.bytes s bs))
+    (htys : typeArgs tyArg = some tys) (hatys : tys.mapM (abiTypeOf fc.types) = some atys)
+    (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode atys bs = some svs)
+    (hof : ofAbiList fc.types tys svs m1.heap = some (vs, h')) :
+    EvalExpr cfg o fc fr m (.call (.member (.ident "abi") "decode") [] (.positional [d, tyArg]))
+      (.ok (retValue vs) fr1 { m1 with heap := h' }) :=
+  EvalExpr.abiDecode hd (by simp [bytesArg, hget]) htys hatys hdec hof
+
 end Solidity

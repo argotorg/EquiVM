@@ -2209,4 +2209,100 @@ theorem s256OfWord_wordOfInt (i : Int) (hlo : -2 ^ 255 ≤ i) (hhi : i < 2 ^ 255
     rw [show EVM.word i.toNat = UInt256.ofNat i.toNat from rfl, ulit_toNat' _ h1, if_pos (by omega)]
     omega
 
+/-! ## Packed fields of any element type, packed signed fields -/
+
+/-- The field word of a packed location (`bitOffset = none`): the slot word shifted down and masked. -/
+theorem storageLocLoad_offset_word (evm : EVM.State) (slot : UInt256) (offset : Fin 32) (size : Fin 33)
+    (t : ABI.ElemType) {hbound : offset.val + size.val - 1 < 32} (hoff : 8 * offset.val < 256)
+    (hsize : 8 * size.val ≤ 256) :
+    storageLocLoad evm { slot := slot, offset := offset, size := size, hbound := hbound, type := t } =
+      ABI.wordToElem t (UInt256.land
+        (UInt256.div (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.ofNat (256 ^ offset.val)))
+        (UInt256.ofNat (256 ^ size.val - 1))) := by
+  unfold storageLocLoad
+  dsimp only
+  congr 1
+  apply u256_inj
+  show fromBytes' _ = _
+  rw [List.extract_eq_take_drop]
+  simpa [Nat.add_sub_cancel_left] using
+    fromBytes'_drop_take_wordLE_land_div_mask
+      (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) offset.val size.val hoff hsize
+
+/-- Sign extension of `x` at `bits` bits (`int<bits>` reading of a field word). -/
+def sextAt (bits x : ℕ) : Int :=
+  if x % 2 ^ bits < 2 ^ (bits - 1) then ((x % 2 ^ bits : ℕ) : Int) else ((x % 2 ^ bits : ℕ) : Int) - 2 ^ bits
+
+theorem sextAt_bounds (bits x : ℕ) (hb : 0 < bits) : -2 ^ (bits - 1) ≤ sextAt bits x ∧ sextAt bits x < 2 ^ (bits - 1) := by
+  unfold sextAt
+  have hlt : x % 2 ^ bits < 2 ^ bits := Nat.mod_lt _ (Nat.two_pow_pos bits)
+  have hsplit : 2 ^ bits = 2 * 2 ^ (bits - 1) := by
+    rw [← Nat.pow_succ']; congr 1; omega
+  have hk : ((2 : ℤ) ^ (bits - 1)) = ((2 ^ (bits - 1) : ℕ) : ℤ) := by push_cast; rfl
+  have hk2 : ((2 : ℤ) ^ bits) = ((2 ^ bits : ℕ) : ℤ) := by push_cast; rfl
+  rw [hk, hk2]
+  split <;> omega
+
+/-- A packed `int<8·size>` field at byte `offset`. -/
+theorem storageLocLoad_sint_offset (evm : EVM.State) (slot : UInt256) (offset : Fin 32) (size : Fin 33)
+    (w : ABI.BitWidth) {hbound : offset.val + size.val - 1 < 32} (hoff : 8 * offset.val < 256)
+    (hsize : 8 * size.val ≤ 256) :
+    storageLocLoad evm { slot := slot, offset := offset, size := size, hbound := hbound, type := .int (.sint w) } =
+      .int (sextAt w.val (UInt256.land
+        (UInt256.div (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.ofNat (256 ^ offset.val)))
+        (UInt256.ofNat (256 ^ size.val - 1))).toNat) := by
+  rw [storageLocLoad_offset_word evm slot offset size _ hoff hsize]
+  simp only [ABI.wordToElem, sextAt]
+  rfl
+
+/-- A packed store of any `.int` value: the two's-complement word's low `size` bytes. -/
+theorem storageLocStore_int_packed (evm : EVM.State) (slot : UInt256) (offset : Fin 32) (size : Fin 33)
+    (t : ABI.ElemType) {hbound : offset.val + size.val - 1 < 32} (i : Int) :
+    storageLocStore evm { slot := slot, offset := offset, size := size, hbound := hbound, type := t } (.int i) =
+      some (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (UInt256.ofNat (setPackedWordNat (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat
+          offset.val size.val (EVM.wordOfInt i).toNat))) := by
+  unfold storageLocStore storageLocWriteWord
+  simp only [ABI.valueToWord, bind, Option.bind, pure]
+  congr 2
+  apply u256_inj
+  have hsbl := (EVM.Word.toBytesLEWithSizeProof (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
+  have hvbl := (EVM.Word.toBytesLEWithSizeProof (EVM.wordOfInt i)).2
+  have hoff : offset.val ≤ 32 := by have := offset.isLt; omega
+  have hsz : size.val ≤ 32 := by have := size.isLt; omega
+  have hos : offset.val + size.val ≤ 32 := by have := offset.isLt; have := size.isLt; omega
+  have hres : fromBytes'
+      ((EVM.Word.toBytesLEWithSizeProof (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.take offset.val
+        ++ (EVM.Word.toBytesLEWithSizeProof (EVM.wordOfInt i)).1.take size.val
+        ++ (EVM.Word.toBytesLEWithSizeProof (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.drop
+          (offset.val + size.val)) =
+      setPackedWordNat (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat offset.val size.val
+        (EVM.wordOfInt i).toNat := by
+    rw [fromBytes'_append, fromBytes'_append, List.length_append, List.length_take, List.length_take, hsbl, hvbl,
+      Nat.min_eq_left hoff, Nat.min_eq_left hsz, fromBytes'_take_wordLE, fromBytes'_take_wordLE,
+      fromBytes'_drop_wordLE]
+    unfold setPackedWordNat
+    rw [Nat.pow_mul, Nat.pow_mul, show (2 : ℕ) ^ 8 = 256 from rfl, Nat.pow_add]
+    ring
+  have hlen : ((EVM.Word.toBytesLEWithSizeProof (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.take
+        offset.val
+        ++ (EVM.Word.toBytesLEWithSizeProof (EVM.wordOfInt i)).1.take size.val
+        ++ (EVM.Word.toBytesLEWithSizeProof (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.drop
+          (offset.val + size.val)).length = 32 := by
+    rw [List.length_append, List.length_append, List.length_take, List.length_take, List.length_drop, hsbl, hvbl,
+      Nat.min_eq_left hoff, Nat.min_eq_left hsz]
+    omega
+  have hlt : setPackedWordNat (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat offset.val size.val
+      (EVM.wordOfInt i).toNat < UInt256.size := by
+    rw [← hres]
+    have := EVM.fromBytes'_le (bs := (EVM.Word.toBytesLEWithSizeProof
+      (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.take offset.val
+        ++ (EVM.Word.toBytesLEWithSizeProof (EVM.wordOfInt i)).1.take size.val
+        ++ (EVM.Word.toBytesLEWithSizeProof (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.drop
+          (offset.val + size.val))
+    rw [hlen] at this
+    exact this
+  rw [ulit_toNat' _ hlt]
+  exact hres
+
 end Reasoning.Theory

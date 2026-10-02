@@ -773,6 +773,82 @@ theorem abiArgs_static (cfg : Config) (env : TypeEnv) (m : Machine) (xs : List L
     abiArgs cfg env m (xs.map (·.val.ty)) (xs.map (·.val.solValue)) = some (.ok (xs.map (·.val.value), m)) := by
   rw [abiArgs_eq_foldlM _ _ _ _ _ (by simp), abiArgs_static_fold, List.nil_append]
 
+/-! ## ABI tuple encoding from the per-element encodings (static and dynamic) -/
+
+/-- Head and tail of an ABI tuple encoding: a dynamic element puts its offset in the head and its
+    encoding in the tail, a static one its encoding in the head. -/
+def abiHeadTail (hs : ℕ) : List (Bool × List UInt8) → List UInt8 → List UInt8 → List UInt8 × List UInt8
+  | [], head, tail => (head, tail)
+  | (true, enc) :: rest, head, tail => abiHeadTail hs rest (head ++ ABI.natBytes (hs + tail.length)) (tail ++ enc)
+  | (false, enc) :: rest, head, tail => abiHeadTail hs rest (head ++ enc) tail
+
+theorem encodeABIValuesFrom?_of_encs :
+    ∀ (xs : List (ABI.ABIType × ABI.ABIValue × List UInt8)) (hs : ℕ) (head tail : List UInt8),
+    (∀ x ∈ xs, ABI.encodeABIValue? x.1 x.2.1 = some x.2.2) →
+    ABI.encodeABIValuesFrom? (xs.map (·.1)) (xs.map (·.2.1)) hs head tail =
+      some ((abiHeadTail hs (xs.map fun x => (ABI.isDynamicABIType x.1, x.2.2)) head tail).1 ++
+        (abiHeadTail hs (xs.map fun x => (ABI.isDynamicABIType x.1, x.2.2)) head tail).2)
+  | [], hs, head, tail, _ => by simp [ABI.encodeABIValuesFrom?, abiHeadTail]
+  | x :: xs, hs, head, tail, h => by
+    rw [List.map_cons, List.map_cons, ABI.encodeABIValuesFrom?, h x (by simp)]
+    simp only [Opt.some_bind, List.map_cons]
+    cases hd : ABI.isDynamicABIType x.1
+    · simp only [Bool.false_eq_true, if_false, abiHeadTail]
+      exact encodeABIValuesFrom?_of_encs xs hs _ tail (fun y hy => h y (by simp [hy]))
+    · simp only [if_true, abiHeadTail]
+      exact encodeABIValuesFrom?_of_encs xs hs _ _ (fun y hy => h y (by simp [hy]))
+
+/-- `encodeABIValues?` from the per-element encodings and the tuple head size. -/
+theorem encodeABIValues?_of_encs (xs : List (ABI.ABIType × ABI.ABIValue × List UInt8)) (hs : ℕ)
+    (hhs : ABI.abiTupleHeadSize? (xs.map (·.1)) = some hs)
+    (h : ∀ x ∈ xs, ABI.encodeABIValue? x.1 x.2.1 = some x.2.2) :
+    ABI.encodeABIValues? (xs.map (·.1)) (xs.map (·.2.1)) =
+      some ((abiHeadTail hs (xs.map fun x => (ABI.isDynamicABIType x.1, x.2.2)) [] []).1 ++
+        (abiHeadTail hs (xs.map fun x => (ABI.isDynamicABIType x.1, x.2.2)) [] []).2) := by
+  rw [ABI.encodeABIValues?, hhs]
+  simp only [Opt.some_bind]
+  exact encodeABIValuesFrom?_of_encs xs hs [] [] h
+
+@[simp] theorem encodeABIValue?_string (b : ByteArray) :
+    ABI.encodeABIValue? .string (.bytes b) = some (ABI.natBytes b.size ++ ABI.padRightToWord b.toList) := by
+  simp [ABI.encodeABIValue?]
+@[simp] theorem encodeABIValue?_bytes (b : ByteArray) :
+    ABI.encodeABIValue? .bytes (.bytes b) = some (ABI.natBytes b.size ++ ABI.padRightToWord b.toList) := by
+  simp [ABI.encodeABIValue?]
+@[simp] theorem topicOf_string (b : ByteArray) : topicOf .string (.bytes b) = some (hashWord b) := rfl
+@[simp] theorem topicOf_bytes (b : ByteArray) : topicOf .bytes (.bytes b) = some (hashWord b) := rfl
+
+/-- `string memory s` as an event or call argument. -/
+theorem abiArgs_memString {cfg : Config} {env : TypeEnv} {m : Machine} {id : ℕ} {b : ByteArray}
+    (hget : m.heap.get? id = some (.bytes true b)) :
+    abiArgs cfg env m [.string] [.memRef id] = some (.ok ([.bytes b], m)) := by
+  simp [abiArgs, coerce, implicitConv, fuelDefault, toAbi_memBytes 1023 hget]
+
+theorem abiArgs_memBytes {cfg : Config} {env : TypeEnv} {m : Machine} {id : ℕ} {b : ByteArray}
+    (hget : m.heap.get? id = some (.bytes false b)) :
+    abiArgs cfg env m [.bytes] [.memRef id] = some (.ok ([.bytes b], m)) := by
+  simp [abiArgs, coerce, implicitConv, fuelDefault, toAbi_memBytes 1023 hget]
+
+/-- The log entry of an event with one non-indexed `string` argument. -/
+theorem mkLogEntry_string (this : EVM.Address) (ev : EventInfo) (b : ByteArray) {n1 : Option Ident}
+    (hparams : ev.decl.params = [{ ty := .string, indexed := false, name := n1 }])
+    (htys : ev.sig.paramTypes = [.string]) (hanon : ev.decl.anonymous = false) :
+    mkLogEntry this ev [.bytes b] =
+      some { address := this, topics := #[hashWord ev.sigStr.toUTF8],
+             data := (ABI.natBytes 32 ++ (ABI.natBytes b.size ++ ABI.padRightToWord b.toList)).toByteArray } := by
+  simp [mkLogEntry, hparams, htys, hanon, encodeABIValues_string]
+
+/-- The log entry of an `(address indexed, string)` event. -/
+theorem mkLogEntry_addr_indexed_string (this : EVM.Address) (ev : EventInfo) (a : EVM.Address) (b : ByteArray)
+    {n1 n2 : Option Ident}
+    (hparams : ev.decl.params = [{ ty := .address false, indexed := true, name := n1 },
+      { ty := .string, indexed := false, name := n2 }])
+    (htys : ev.sig.paramTypes = [.elem .address, .string]) (hanon : ev.decl.anonymous = false) :
+    mkLogEntry this ev [.address a, .bytes b] =
+      some { address := this, topics := #[hashWord ev.sigStr.toUTF8, UInt256.ofNat a.toNat],
+             data := (ABI.natBytes 32 ++ (ABI.natBytes b.size ++ ABI.padRightToWord b.toList)).toByteArray } := by
+  simp [mkLogEntry, hparams, htys, hanon, topicOf, topicWordOf, ABI.valueToWord, EVM.Word.ofNat, encodeABIValues_string]
+
 /-! ## Dispatch -/
 
 theorem selectorDispatch_short {fc : FlatContract} {cd : ByteArray} (h : cd.size < 4) :

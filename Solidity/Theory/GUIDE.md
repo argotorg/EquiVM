@@ -4,8 +4,8 @@ This is the workflow an agent follows to prove `runtimeEquivalenceFor` (and
 `constructorEquivalenceFor`) for a contract on the trace stack (`EVMReasoning/Trace.lean`,
 `SolcTrace.lean`, `SolcIdioms.lean`) and the Solidity coupling layer (`Solidity/Theory/`).
 `STRUCTURE.md` in this directory lists every lemma by file; this file says in which order to use
-them.  The scratch validations referenced below (`l3_validate.lean`, `l4_validate.lean`) show the
-builders applied to real bodies.
+them.  The usage examples in `Usage.lean` (compiled with the library) show the builders applied to
+real statements and to a whole body.
 
 ## 0. Inputs of a contract proof
 
@@ -61,9 +61,9 @@ Build `solidityExec … (.returned m vs) conv` (or `(.reverted d)`) with `solidi
   (`errorStringData`, `panicData 0x11`, `selectorOf sig ++ …`), and `ExecBlock.consRevert`
   propagates it.
 
-`l3_validate.lean` (ERC20 `transfer`) and `l4_validate.lean` (arithmetic with literals, keccak of
-`abi.encodePacked`, mapping writes, custom errors, `unchecked`, `delete`, `emit`) are complete
-bodies built this way.
+`Usage.lean` builds single statements this way (arithmetic with literals, keccak of
+`abi.encodePacked`, mapping writes, custom errors, `unchecked`, `delete`, `emit`) and the whole
+SimpleAuction `bid()` body.
 
 ### 1c. Coupling and the bridge
 

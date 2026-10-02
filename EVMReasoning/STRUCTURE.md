@@ -75,4 +75,4 @@ Initcode ← EVMWord     JumpDest ← (Ethereum only)
 
 `lake build EVMReasoning` builds all thirteen files; on a small machine build them one at a time
 (`Stepping`, `Memory`, `Reach`, `ABI`, `Solc`, `Storage`). A bare `lake build` builds only `Solm`
-(the default target) — use explicit targets. `Storage.lean` also gained `int256Loc`, `s256OfWord`, `storageLocLoad_full_word` (any full-slot element type decodes the word), `storageLocLoad_int256`/`storageLocStore_int256` (two's-complement word ↔ `Int`), `s256OfWord_wordOfInt`, `s256OfWord_bounds`.
+(the default target) — use explicit targets. `Storage.lean` also gained `int256Loc`, `s256OfWord`, `storageLocLoad_full_word` (any full-slot element type decodes the word), `storageLocLoad_int256`/`storageLocStore_int256` (two's-complement word ↔ `Int`), `s256OfWord_wordOfInt`, `s256OfWord_bounds`. Packed fields: `storageLocLoad_offset_word` (any element type), `storageLocLoad_sint_offset`/`sextAt` (sign-extended packed signed read), `storageLocStore_int_packed` (packed store of any `.int` value).

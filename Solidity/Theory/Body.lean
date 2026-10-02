@@ -1608,4 +1608,207 @@ theorem exitScope_get?_of_none {fr fr' : Frame} {k : Ident} (h : fr.get? k = non
   have h' : fr.locals[k]? = none := by simpa [Frame.get?, Std.HashMap.get?_eq_getElem?] using h
   simp [Std.HashMap.contains_eq_isSome_getElem?, h']
 
+/-! ## `try`/`catch` facts -/
+
+theorem decodeRets_single {cfg : Config} {env : TypeEnv} {m : Machine} {p : Param} {rtys : List ABI.ABIType}
+    {out : ByteArray} {sv : ABI.ABIValue} {v : Value}
+    (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some [sv])
+    (hof : ofAbi env fuelDefault p.ty sv m.heap = some (v, m.heap)) :
+    decodeRets cfg env m [p] rtys out = some ([v], m) := by
+  simp [decodeRets, hdec, hof]
+
+theorem tryRets_single {cfg : Config} {env : TypeEnv} {m : Machine} {p : Param} {rtys : List ABI.ABIType}
+    {out : ByteArray} {sv : ABI.ABIValue} {v : Value}
+    (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some [sv])
+    (hof : ofAbi env fuelDefault p.ty sv m.heap = some (v, m.heap)) :
+    tryRets cfg env m [p] rtys out = some ([v], m) := by
+  simp [tryRets, decodeRets_single hdec hof]
+
+theorem bindTryParams_single {cfg : Config} {env : TypeEnv} {fr fr' : Frame} {m m' : Machine} {p : Param} {x : Ident}
+    {v : Value} (hname : p.name = some x)
+    (hdecl : declare cfg env fr m p.ty (some (p.loc.getD .memory)) x (some v) = some (.ok (fr', m'))) :
+    bindTryParams cfg env fr m [p] [v] = some (.ok (fr', m')) := by
+  simp [bindTryParams, hname, hdecl]
+
+theorem ofAbi_scalar_u256 (env : TypeEnv) (h : Heap) (n : ℕ) (hn : n < 2 ^ 256) :
+    ofAbi env fuelDefault u256Ty (.int n) h = some (u256Val n, h) := by
+  simp [ofAbi, fuelDefault, scalarOfAbi]; exact hn
+
+theorem ofAbi_scalar_bool (env : TypeEnv) (h : Heap) (b : Bool) : ofAbi env fuelDefault .bool (.bool b) h = some (.bool b, h) := by
+  simp [ofAbi, fuelDefault, scalarOfAbi]
+
+theorem ofAbi_scalar_address (env : TypeEnv) (h : Heap) (a : EVM.Address) :
+    ofAbi env fuelDefault (.address false) (.address a) h = some (.address a, h) := by
+  simp [ofAbi, fuelDefault, scalarOfAbi]
+
+/-- `catch Error(string memory reason) { … }` handles `Error(string)` data. -/
+theorem selectCatch_error (cfg : Config) (m : Machine) {cs : List CatchClause} {d s : ByteArray} {c : CatchClause}
+    (hErr : errorStringArg? cfg d = some s) (hfind : cs.find? (catchKind · == some "Error") = some c) :
+    selectCatch cfg m cs d = some (c, [(allocBytes m true s).1], (allocBytes m true s).2) := by
+  simp [selectCatch, hErr, hfind, allocBytes]
+
+/-- `catch Panic(uint256 code) { … }` handles `Panic(uint256)` data. -/
+theorem selectCatch_panic (cfg : Config) (m : Machine) {cs : List CatchClause} {d : ByteArray} {code : ℕ}
+    {c : CatchClause} (hErr : errorStringArg? cfg d = none ∨ cs.find? (catchKind · == some "Error") = none)
+    (hPanic : panicArg? cfg d = some code) (hfind : cs.find? (catchKind · == some "Panic") = some c) :
+    selectCatch cfg m cs d = some (c, [u256Val code], m) := by
+  rcases hErr with h | h
+  · simp [selectCatch, h, hPanic, hfind, mkInt, uint256Ty]
+  · cases errorStringArg? cfg d <;> simp [selectCatch, h, hPanic, hfind, mkInt, uint256Ty]
+
+/-- `catch (bytes memory data) { … }` handles anything the typed clauses do not. -/
+theorem selectCatch_generic_bytes (cfg : Config) (m : Machine) {cs : List CatchClause} {d : ByteArray} {c : CatchClause}
+    (hErr : errorStringArg? cfg d = none ∨ cs.find? (catchKind · == some "Error") = none)
+    (hPanic : panicArg? cfg d = none ∨ cs.find? (catchKind · == some "Panic") = none)
+    (hfind : cs.find? (catchKind · == none) = some c) (hps : (catchParams c).isEmpty = false) :
+    selectCatch cfg m cs d = some (c, [(allocBytes m false d).1], (allocBytes m false d).2) := by
+  rcases hErr with h | h <;> rcases hPanic with h' | h' <;>
+    cases hE : errorStringArg? cfg d <;> cases hP : panicArg? cfg d <;>
+    simp [selectCatch, allocBytes, h, h', hE, hP, hfind, hps] <;> simp_all
+
+/-! ## Call options -/
+
+@[simp] theorem valueOpt_value (e : Expr) (rest : List CallOpt) : valueOpt (.value e :: rest) = some e := rfl
+@[simp] theorem gasOpt_value (e : Expr) (rest : List CallOpt) : gasOpt (.value e :: rest) = gasOpt rest := rfl
+@[simp] theorem saltOpt_value (e : Expr) (rest : List CallOpt) : saltOpt (.value e :: rest) = saltOpt rest := rfl
+@[simp] theorem saltOpt_salt (e : Expr) (rest : List CallOpt) : saltOpt (.salt e :: rest) = some e := rfl
+@[simp] theorem valueOpt_salt (e : Expr) (rest : List CallOpt) : valueOpt (.salt e :: rest) = valueOpt rest := rfl
+@[simp] theorem gasOpt_salt (e : Expr) (rest : List CallOpt) : gasOpt (.salt e :: rest) = gasOpt rest := rfl
+@[simp] theorem saltBytes_bytes32 (bs : List UInt8) : saltBytes (.fixedBytes ⟨31, by decide⟩ bs) = some ⟨bs.toArray⟩ := by
+  simp [saltBytes]
+
+/-! ## Memory arrays into storage, `delete` of arrays -/
+
+theorem writeElems_eq (cfg : Config) (env : TypeEnv) (fuel : ℕ) (evm : EVM.State) (h : Heap) (er : Solm.EvaledStorageRef)
+    (e : Ty) (elems : List Value) :
+    writeStorageDeep.writeElems cfg env fuel evm h er e elems =
+      (elems.zipIdx).foldlM (fun evm (v, i) => writeStorageDeep cfg env fuel evm h (elemRef er i) e v) evm := by
+  rw [writeStorageDeep.writeElems]
+
+/-- `arr = memArr` for a storage dynamic array: new length, the elements in order, the removed tail cleared. -/
+theorem writeStorageDeep_dynArray {cfg : Config} {env : TypeEnv} {fuel : ℕ} {evm evm₁ : EVM.State} {h : Heap}
+    {er : Solm.EvaledStorageRef} {e ety : Ty} {id old : ℕ} {elems : List Value}
+    (hget : h.get? id = some (.array ety elems)) (hold : dynArrayLength cfg evm er = some old)
+    (hlen : writeDynArrayLength cfg evm er elems.length = some evm₁) :
+    writeStorageDeep cfg env (fuel + 1) evm h er (.dynArray e) (.memRef id) = (do
+      let evm₂ ← writeStorageDeep.writeElems cfg env fuel evm₁ h er e elems
+      (List.range (old - elems.length)).foldlM
+        (fun evm k => clearStorage cfg env fuel evm (elemRef er (elems.length + k)) e) evm₂) := by
+  rw [writeStorageDeep.eq_def]
+  simp [hget, hold, hlen]
+
+/-- `arr = memArr` for a storage static array of the right length. -/
+theorem writeStorageDeep_array {cfg : Config} {env : TypeEnv} {fuel : ℕ} {evm : EVM.State} {h : Heap}
+    {er : Solm.EvaledStorageRef} {e ety : Ty} {id n : ℕ} {elems : List Value}
+    (hget : h.get? id = some (.array ety elems)) (hn : elems.length = n) :
+    writeStorageDeep cfg env (fuel + 1) evm h er (.array e n) (.memRef id) =
+      writeStorageDeep.writeElems cfg env fuel evm h er e elems := by
+  rw [writeStorageDeep.eq_def]
+  simp [hget, hn]
+
+theorem clearRange_eq (cfg : Config) (env : TypeEnv) (fuel : ℕ) (evm : EVM.State) (er : Solm.EvaledStorageRef) (e : Ty)
+    (lo hi : ℕ) :
+    clearStorage.clearRange cfg env fuel evm er e lo hi =
+      (List.range (hi - lo)).foldlM (fun evm k => clearStorage cfg env fuel evm (elemRef er (lo + k)) e) evm := by
+  rw [clearStorage.clearRange]
+
+/-- `delete arr` for a storage dynamic array: every element cleared, then the length. -/
+theorem clearStorage_dynArray {cfg : Config} {env : TypeEnv} {fuel : ℕ} {evm : EVM.State} {er : Solm.EvaledStorageRef}
+    {e : Ty} {n : ℕ} (hn : dynArrayLength cfg evm er = some n) :
+    clearStorage cfg env (fuel + 1) evm er (.dynArray e) = (do
+      let evm' ← clearStorage.clearRange cfg env fuel evm er e 0 n
+      Op.ofOpt (writeDynArrayLength cfg evm' er 0)) := by
+  rw [clearStorage]
+  all_goals first
+    | (simp [storageTyOf, zeroValue, hn]
+       try rfl)
+    | (intros; simp_all)
+
+/-- `delete arr` for a storage static array. -/
+theorem clearStorage_array {cfg : Config} {env : TypeEnv} {fuel : ℕ} {evm : EVM.State} {er : Solm.EvaledStorageRef}
+    {e : Ty} {n : ℕ} :
+    clearStorage cfg env (fuel + 1) evm er (.array e n) = clearStorage.clearRange cfg env fuel evm er e 0 n := by
+  rw [clearStorage]
+  all_goals first
+    | (simp [storageTyOf, zeroValue]
+       try rfl)
+    | (intros; simp_all)
+
+/-! ## `abi.decode` facts -/
+
+theorem ofAbiList_nil (env : TypeEnv) (h : Heap) : ofAbiList env [] [] h = some ([], h) := by simp [ofAbiList]
+
+/-- One step of `ofAbiList` (the fold with a generalised accumulator). -/
+def ofAbiStep (env : TypeEnv) (acch : List Value × Heap) (tsv : Ty × ABI.ABIValue) : Option (List Value × Heap) := do
+  let r ← ofAbi env fuelDefault tsv.1 tsv.2 acch.2
+  pure (acch.1 ++ [r.1], r.2)
+
+theorem ofAbiList_eq_foldlM (env : TypeEnv) (tys : List Ty) (svs : List ABI.ABIValue) (h : Heap)
+    (hlen : tys.length = svs.length) :
+    ofAbiList env tys svs h = (tys.zip svs).foldlM (ofAbiStep env) ([], h) := by
+  simp only [ofAbiList, hlen, ne_eq, not_true_eq_false, if_false]
+  rfl
+
+/-- The fold behind `ofAbiList` only appends to its accumulator. -/
+theorem ofAbi_fold_shift (env : TypeEnv) : ∀ (xs : List (Ty × ABI.ABIValue)) (acc : List Value) (h : Heap),
+    xs.foldlM (ofAbiStep env) (acc, h) = (xs.foldlM (ofAbiStep env) ([], h)).map (fun r => (acc ++ r.1, r.2))
+  | [], acc, h => by simp
+  | (t, sv) :: xs, acc, h => by
+    simp only [List.foldlM_cons, ofAbiStep]
+    cases hr : ofAbi env fuelDefault t sv h with
+    | none => simp
+    | some r =>
+      simp only [Opt.some_bind, Option.pure_def, List.nil_append]
+      rw [ofAbi_fold_shift env xs (acc ++ [r.1]) r.2, ofAbi_fold_shift env xs [r.1] r.2, Option.map_map]
+      congr 1
+      funext p
+      simp [List.append_assoc]
+
+theorem ofAbiList_cons (env : TypeEnv) (t : Ty) (ts : List Ty) (sv : ABI.ABIValue) (svs : List ABI.ABIValue) (h h' h'' : Heap)
+    (v : Value) (vs : List Value) (hlen : ts.length = svs.length)
+    (hv : ofAbi env fuelDefault t sv h = some (v, h')) (hrest : ofAbiList env ts svs h' = some (vs, h'')) :
+    ofAbiList env (t :: ts) (sv :: svs) h = some (v :: vs, h'') := by
+  rw [ofAbiList_eq_foldlM env _ _ h (by simp [hlen]), List.zip_cons_cons, List.foldlM_cons]
+  simp only [ofAbiStep, hv, Opt.some_bind, Option.pure_def, List.nil_append]
+  rw [ofAbi_fold_shift env _ [v] h', ← ofAbiList_eq_foldlM env ts svs h' hlen, hrest]
+  rfl
+
+@[simp] theorem abiTypeOf_uint (env : TypeEnv) (w : ABI.BitWidth) : abiTypeOf env (.uint w) = some (.elem (.int (.uint w))) := rfl
+@[simp] theorem abiTypeOf_address (env : TypeEnv) (p : Bool) : abiTypeOf env (.address p) = some (.elem .address) := rfl
+@[simp] theorem abiTypeOf_bool (env : TypeEnv) : abiTypeOf env .bool = some (.elem .bool) := rfl
+@[simp] theorem abiTypeOf_fixedBytes (env : TypeEnv) (n : Fin 32) : abiTypeOf env (.fixedBytes n) = some (.elem (.bytes n)) := rfl
+@[simp] theorem abiTypeOf_bytes (env : TypeEnv) : abiTypeOf env .bytes = some .bytes := rfl
+@[simp] theorem abiTypeOf_string (env : TypeEnv) : abiTypeOf env .string = some .string := rfl
+
+/-! ## Packed signed fields -/
+
+/-- A packed `int<8·size>` field at byte `offset`, read as a two's-complement value. -/
+theorem readScalar_sint_offset {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
+    {slot : UInt256} {offset : Fin 32} {size : Fin 33} {w : ABI.BitWidth} {hbound : offset.val + size.val - 1 < 32}
+    (hl : cfg.storage.layout er evm =
+      some { slot := slot, offset := offset, size := size, hbound := hbound, type := .int (.sint w) })
+    (hoff : 8 * offset.val < 256) :
+    readScalar cfg env evm er (.int w) =
+      some (.sint w (sextAt w.val (UInt256.land
+        (UInt256.div (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.ofNat (256 ^ offset.val)))
+        (UInt256.ofNat (256 ^ size.val - 1))).toNat)) := by
+  have hsize : 8 * size.val ≤ 256 := by have := size.isLt; omega
+  refine readScalar_of_loc hl ?_
+  rw [storageLocLoad_sint_offset evm slot offset size w hoff hsize]
+  have hb := sextAt_bounds w.val (UInt256.land
+    (UInt256.div (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot) (UInt256.ofNat (256 ^ offset.val)))
+    (UInt256.ofNat (256 ^ size.val - 1))).toNat w.property.1
+  simp [scalarOfAbi, hb.1, hb.2]
+
+/-- A packed `int<8·size>` field written in place. -/
+theorem writeScalar_sint_packed {cfg : Config} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
+    {offset : Fin 32} {size : Fin 33} {w : ABI.BitWidth} {hbound : offset.val + size.val - 1 < 32}
+    (hl : cfg.storage.layout er evm =
+      some { slot := slot, offset := offset, size := size, hbound := hbound, type := .int (.sint w) }) (i : Int) :
+    writeScalar cfg evm er (.sint w i) =
+      some (Storage.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (UInt256.ofNat (setPackedWordNat (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat
+          offset.val size.val (EVM.wordOfInt i).toNat))) :=
+  writeScalar_of_loc hl rfl (storageLocStore_int_packed evm slot offset size _ i)
+
 end Solidity

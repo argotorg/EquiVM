@@ -15,4 +15,5 @@ import Solidity.Interp
 import Solidity.Theory.InterpEquiv
 import Solidity.Theory.Trace
 import Solidity.Theory.Derivations
+import Solidity.Theory.Usage
 import Solidity.Theory.Strings
