@@ -269,7 +269,7 @@ inductive constructorEquivalenceFor (cfg : Config)
     /- Execute EVM transaction-/
     Ethereum.EVM.Ξ σ σ₀ g A I = Ξ_res →
     /- Solm constructor + execution -/
-    solmCtorExec cfg contract args σ_solm σ₀ g A I solmRes →
+    solmCtorExec cfg contract args σ σ₀ g A I solmRes →
     /- Resulting states must be equivalent, and the EVM return bytes should equal the runtime code -/
     ctorResultEquiv Ξ_res solmRes runtimeCode →
     constructorEquivalenceFor cfg contract args σ σ₀ g A I runtimeCode
@@ -380,29 +380,28 @@ theorem ctorResultEquiv_const {evmRes solmRes} {rc : ByteArray} :
 
 inductive constructorEquivalenceForWith (cfg : Config)
     (contract : ContractDecl) (args : List Value)
-    (σ_evm σ_solm σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
+    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256)
     (A : Ethereum.Substate) (I : Ethereum.ExecutionEnv)
     (runtimeCodeOf : Store → Option ByteArray) : Prop where
   | execution {Ξ_res solmRes} :
-    Ethereum.EVM.Ξ σ_evm σ₀ g A I = Ξ_res →
-    solmCtorExec cfg contract args σ_solm σ₀ g A I solmRes →
+    Ethereum.EVM.Ξ σ σ₀ g A I = Ξ_res →
+    solmCtorExec cfg contract args σ σ₀ g A I solmRes →
     ctorResultEquivWith Ξ_res solmRes runtimeCodeOf →
-    constructorEquivalenceForWith cfg contract args σ_evm σ_solm σ₀ g A I runtimeCodeOf
+    constructorEquivalenceForWith cfg contract args σ σ₀ g A I runtimeCodeOf
   | outOfGas :
-    Ethereum.EVM.Ξ σ_evm σ₀ g A I = .error .OutOfGass →
-    constructorEquivalenceForWith cfg contract args σ_evm σ_solm σ₀ g A I runtimeCodeOf
+    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass →
+    constructorEquivalenceForWith cfg contract args σ σ₀ g A I runtimeCodeOf
 
 inductive constructorEquivalenceWith (cfg : Config) (initcode : ByteArray) (contract : ContractDecl)
     (runtimeCodeOf : Store → Option ByteArray) : Prop where
   | intro :
-    (∀ (σ_evm σ_solm σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
+    (∀ (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
       (I : Ethereum.ExecutionEnv) (args : List Value) (deployedInitcode : ByteArray),
     cfg.selfDeployment initcode args = .some deployedInitcode →
     I.code = deployedInitcode →
     I.calldata = .empty →
     I.perm = true →
-    σ_evm = σ_solm →
-    constructorEquivalenceForWith cfg contract args σ_evm σ_solm σ₀ g A I runtimeCodeOf
+    constructorEquivalenceForWith cfg contract args σ σ₀ g A I runtimeCodeOf
     ) →
     constructorEquivalenceWith cfg initcode contract runtimeCodeOf
 

@@ -21,8 +21,7 @@ open ABI
 abbrev EVMResult :=
   Except Ethereum.EVM.ExecutionException
     (Ethereum.ExecutionResult
-      (Ethereum.AccountMap ×
-        Ethereum.UInt256 × Ethereum.Substate))
+      (Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate))
 
 /-- The specification rejects the calldata: no transition (nor `receive`/`fallback`) accepts it,
     or the selected transition's calldata does not decode. -/
