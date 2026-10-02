@@ -6,18 +6,18 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem uniswapSwapRuntimeTokensLoaded
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw reserve1 reserve0 dataLen dataPtr toWord amount1Out amount0Out : UInt256}
     {R : List UInt256} {k C : Nat}
     (rd1735 : RD uniswapV2PairBytecode I g s0 ⟨1735⟩
       (reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hov : R.length + 15 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨1765⟩
       (UInt256.land toWord solcAddrMask :: UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I) ::
         UInt256.land solcAddrMask (uniswapSlotWord ⟨6⟩ σ I) :: ⟨0⟩ :: ⟨0⟩ ::
         reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   have rd1738 := evm_run rd1735 with [jumpdest, push1 ⟨6⟩]
   obtain ⟨_, _, rd1739⟩ := RD.sload rd1738 (by native_decide) (by evm_ov)
   have rd1741 := evm_run rd1739 with [push1 ⟨7⟩]
@@ -31,13 +31,13 @@ theorem uniswapSwapRuntimeTokensLoaded
 set_option maxHeartbeats 1000000 in
 theorem uniswapSwapRecipientGuardRuntimeCases
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {token1 token0 reserve1 reserve0 dataLen dataPtr toWord amount1Out amount0Out : UInt256}
     {R : List UInt256} {k C : Nat}
     (rd1765 : RD uniswapV2PairBytecode I g s0 ⟨1765⟩
       (UInt256.land toWord solcAddrMask :: token1 :: token0 :: ⟨0⟩ :: ⟨0⟩ ::
         reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R)
-      mem (UInt256.ofNat 3) rdata acc k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hclean1 : UInt256.land token1 solcAddrMask = token1)
     (hmem : mem.size = 96) (hread : mem.readWithPadding 64 32 = (⟨128⟩ : UInt256).toByteArray)
     (hov : R.length + 17 ≤ 1024) :
@@ -46,13 +46,13 @@ theorem uniswapSwapRecipientGuardRuntimeCases
     (UInt256.land toWord solcAddrMask ≠ token0 ∧ UInt256.land toWord solcAddrMask ≠ token1) ∧ ∃ k' C',
       RD uniswapV2PairBytecode I g s0 ⟨1870⟩
         (token1 :: token0 :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
-          toWord :: amount1Out :: amount0Out :: R) mem (UInt256.ofNat 3) rdata acc k' C' := by
+          toWord :: amount1Out :: amount0Out :: R) mem (UInt256.ofNat 3) rdata σ k' C' := by
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by native_decide
   have hto1797 : ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨1797⟩
       ((if UInt256.land toWord solcAddrMask ≠ token0 ∧ UInt256.land toWord solcAddrMask ≠ token1
           then ⟨1⟩ else ⟨0⟩) :: token1 :: token0 :: ⟨0⟩ :: ⟨0⟩ ::
         reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R)
-      mem (UInt256.ofNat 3) rdata acc k' C' := by
+      mem (UInt256.ofNat 3) rdata σ k' C' := by
     have rd1773 := evm_run rd1765 with [dup3, eq, dup1, iszero, swap1, push2 ⟨1797⟩]
     by_cases heq0 : UInt256.land toWord solcAddrMask = token0
     · rw [heq0, u256_eq_refl] at rd1773

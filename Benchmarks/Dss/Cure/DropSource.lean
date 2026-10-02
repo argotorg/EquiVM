@@ -101,8 +101,8 @@ abbrev dropSwapPopLenAccountMapFor
   solcSlotWord (dropMovePosAccountMapFor σ I pos len) I ⟨2⟩
 
 theorem dropSwapPopLenState_initState_eq
-    {cA gh bl σ σ₀ A I} {g pos len : UInt256} :
-    dropSwapPopLenState (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) pos len =
+    {σ σ₀ A I} {g pos len : UInt256} :
+    dropSwapPopLenState (initState σ σ₀ (Sat256.ofUInt256 g) A I) pos len =
       dropSwapPopLenAccountMapFor σ I pos len := by
   simp [dropSwapPopLenState, dropSwapPopLenAccountMapFor, dropAfterMovePosState,
     dropAfterMoveElemState, dropMovePosAccountMapFor, dropMoveElemAccountMapFor,
@@ -786,19 +786,19 @@ theorem dropDeleteAmt_ok (evm : EVM.State) (locals : Store) (I : ExecutionEnv)
       storageLocStore_uint256 evm (amtSlot (.address (dropSrc I))) ⟨0⟩
   rw [hstore]
 
-theorem cureDropSourceBodyPosZeroRevert {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureDropSourceBodyPosZeroRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
     (hpos : cureSlotWord (dropPosSlotFor I) σ I = ⟨0⟩) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (dropLocals I)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) (dropLocals I)
       dropTransition.body .reverted := by
-  let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
-  have hguardAuth := cureAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hguardAuth := cureAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := dropLocals I) (by simp [dropLocals]) hauth
-  have hguardLive := cureLiveGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  have hguardLive := cureLiveGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := dropLocals I) (by simp [dropLocals]) hlive
   have hposLoad :
@@ -841,7 +841,7 @@ theorem cureDropSourceBodyPosZeroRevert {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, dropTransition, nonpayable, auth, live, evm0] using
     ExecFuncBody.execBlockRevert hblock
 
-theorem cureDropSourceBodyOkNoSwap {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureDropSourceBodyOkNoSwap {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
@@ -850,7 +850,7 @@ theorem cureDropSourceBodyOkNoSwap {cA gh bl σ σ₀ A I} {g : UInt256}
     (hnoSwap :
       (cureSlotWord ⟨2⟩ σ I).toNat ≤
         (cureSlotWord (dropPosSlotFor I) σ I).toNat) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let posWord := cureSlotWord (dropPosSlotFor I) σ I
     let lenWord := cureSlotWord ⟨2⟩ σ I
     let localsPos : Store := (dropLocals I).insert "pos_" (.int (Int.ofNat posWord.toNat))
@@ -861,10 +861,10 @@ theorem cureDropSourceBodyOkNoSwap {cA gh bl σ σ₀ A I} {g : UInt256}
     ExecTransitionBody config contract evm0 (dropLocals I) dropTransition.body
       (.returned { contract := contract, locals := localsLast } evmAmt none) := by
   intro evm0 posWord lenWord localsPos localsLast evmPop evmPos evmAmt
-  have hguardAuth := cureAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  have hguardAuth := cureAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := dropLocals I) (by simp [dropLocals]) hauth
-  have hguardLive := cureLiveGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  have hguardLive := cureLiveGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := dropLocals I) (by simp [dropLocals]) hlive
   have hposLoad :
@@ -972,7 +972,7 @@ theorem cureDropSourceBodyOkNoSwap {cA gh bl σ σ₀ A I} {g : UInt256}
     localsPos, localsLast, evmPop, evmPos, evmAmt] using
     ExecFuncBody.execBlockOK hblock
 
-theorem cureDropSourceBodyNoSwapPopZeroRevert {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureDropSourceBodyNoSwapPopZeroRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
@@ -981,17 +981,17 @@ theorem cureDropSourceBodyNoSwapPopZeroRevert {cA gh bl σ σ₀ A I} {g : UInt2
     (hnoSwap :
       (cureSlotWord ⟨2⟩ σ I).toNat ≤
         (cureSlotWord (dropPosSlotFor I) σ I).toNat) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let posWord := cureSlotWord (dropPosSlotFor I) σ I
     let lenWord := cureSlotWord ⟨2⟩ σ I
     let localsPos : Store := (dropLocals I).insert "pos_" (.int (Int.ofNat posWord.toNat))
     let localsLast : Store := localsPos.insert "last" (.int (Int.ofNat lenWord.toNat))
     ExecTransitionBody config contract evm0 (dropLocals I) dropTransition.body .reverted := by
   intro evm0 posWord lenWord localsPos localsLast
-  have hguardAuth := cureAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  have hguardAuth := cureAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := dropLocals I) (by simp [dropLocals]) hauth
-  have hguardLive := cureLiveGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  have hguardLive := cureLiveGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := dropLocals I) (by simp [dropLocals]) hlive
   have hposLoad :
@@ -1072,7 +1072,7 @@ theorem cureDropSourceBodyNoSwapPopZeroRevert {cA gh bl σ σ₀ A I} {g : UInt2
     localsPos, localsLast] using
     ExecFuncBody.execBlockRevert hblock
 
-theorem cureDropSourceBodyOkSwap {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureDropSourceBodyOkSwap {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
@@ -1084,10 +1084,10 @@ theorem cureDropSourceBodyOkSwap {cA gh bl σ σ₀ A I} {g : UInt256}
     (hpopLenPos :
       0 <
         (dropSwapPopLenState
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (cureSlotWord (dropPosSlotFor I) σ I)
           (cureSlotWord ⟨2⟩ σ I)).toNat) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let posWord := cureSlotWord (dropPosSlotFor I) σ I
     let lenWord := cureSlotWord ⟨2⟩ σ I
     let lastIndex := dropLastIndex lenWord
@@ -1121,10 +1121,10 @@ theorem cureDropSourceBodyOkSwap {cA gh bl σ σ₀ A I} {g : UInt256}
     simpa [lenWord] using hlenPos
   have hswap' : posWord.toNat < lenWord.toNat := by
     simpa [posWord, lenWord] using hswap
-  have hguardAuth := cureAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  have hguardAuth := cureAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := dropLocals I) (by simp [dropLocals]) hauth
-  have hguardLive := cureLiveGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  have hguardLive := cureLiveGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := dropLocals I) (by simp [dropLocals]) hlive
   have hposLoad :
@@ -1356,7 +1356,7 @@ theorem cureDropSourceBodyOkSwap {cA gh bl σ σ₀ A I} {g : UInt256}
     evmMoveElem, evmMovePos, evmPop, evmPos, evmAmt] using
     ExecFuncBody.execBlockOK hblock
 
-theorem cureDropSourceBodySwapPopZeroRevert {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureDropSourceBodySwapPopZeroRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
@@ -1367,10 +1367,10 @@ theorem cureDropSourceBodySwapPopZeroRevert {cA gh bl σ σ₀ A I} {g : UInt256
         (cureSlotWord ⟨2⟩ σ I).toNat)
     (hpopLenZero :
       dropSwapPopLenState
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (cureSlotWord (dropPosSlotFor I) σ I)
         (cureSlotWord ⟨2⟩ σ I) = ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let posWord := cureSlotWord (dropPosSlotFor I) σ I
     let lenWord := cureSlotWord ⟨2⟩ σ I
     let lastIndex := dropLastIndex lenWord
@@ -1399,10 +1399,10 @@ theorem cureDropSourceBodySwapPopZeroRevert {cA gh bl σ σ₀ A I} {g : UInt256
     simpa [lenWord] using hlenPos
   have hswap' : posWord.toNat < lenWord.toNat := by
     simpa [posWord, lenWord] using hswap
-  have hguardAuth := cureAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  have hguardAuth := cureAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := dropLocals I) (by simp [dropLocals]) hauth
-  have hguardLive := cureLiveGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  have hguardLive := cureLiveGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (locals := dropLocals I) (by simp [dropLocals]) hlive
   have hposLoad :

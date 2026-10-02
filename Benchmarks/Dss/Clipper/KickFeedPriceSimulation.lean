@@ -22,7 +22,7 @@ inductive ClipperKickIlksOutcome (v : ClipperImmutables) (code : ByteArray)
         sourceEvm (.internalCall "getFeedPrice" [] "feedPrice") .reverted)
       (hevm : RDrev code (Sat256.ofUInt256 g) s0)
   | ready
-      (cA : Batteries.RBSet AccountAddress compare) (σ : AccountMap)
+      (σ : AccountMap)
       (outIlks : ByteArray) (evmIlks : EVM.State) (mem : ByteArray) (k C : ℕ)
       (hcode : 0 < (UInt256.ofNat ((sourceEvm.lookupAccount
         (clipperGetFeedPriceSpotterAddress sourceEvm)).option 0
@@ -32,7 +32,7 @@ inductive ClipperKickIlksOutcome (v : ClipperImmutables) (code : ByteArray)
         "spotterIlks" 0 [v.ilk] (true, evmIlks, outIlks))
       (hdec : (config v).externalABI.decode? "spotterIlks" outIlks =
         some (clipperSpotterIlksValues outIlks))
-      (halign : ClipperKickCallAligned s0 cA σ I evmIlks)
+      (halign : ClipperKickCallAligned s0 σ I evmIlks)
       (hout : outIlks.size < UInt256.size)
       (hlo : 64 ≤ outIlks.size)
       (hrd : RD code I (Sat256.ofUInt256 g) s0 ⟨8937⟩
@@ -42,7 +42,7 @@ inductive ClipperKickIlksOutcome (v : ClipperImmutables) (code : ByteArray)
           clipperSpotterIlksPipTarget outIlks :: ⟨0⟩ :: ⟨0⟩ ::
           clipperSpotterIlksPipWord outIlks :: ⟨0⟩ :: ret :: scratch :: lot ::
           tab :: R)
-        mem (UInt256.ofNat 6) outIlks (cA, σ) k C)
+        mem (UInt256.ofNat 6) outIlks σ k C)
       (hmem : mem.size = 192)
       (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
       (hcalldata : (config v).externalABI.encode? "peek" [] =
@@ -52,14 +52,14 @@ theorem clipperKickSimulateSpotterIlks
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {g : UInt256} {s0 sourceEvm : EVM.State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {I : ExecutionEnv} {callerLocals : Store}
     {ret scratch lot tab : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (hrd : RD code I (Sat256.ofUInt256 g) s0 ⟨8728⟩
       (ret :: scratch :: lot :: tab :: R) mem (UInt256.ofNat 3) rdata
-      (cA, σ) k C)
-    (halign : ClipperKickCallAligned s0 cA σ I sourceEvm)
+      σ k C)
+    (halign : ClipperKickCallAligned s0 σ I sourceEvm)
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -75,7 +75,7 @@ theorem clipperKickSimulateSpotterIlks
       (clipperGetFeedPriceCallRevertsSpotterIlksNoCode
         v sourceEvm callerLocals "feedPrice" hnoCode)
       hevm
-  · obtain ⟨cAIlks, σIlks, zIlks, outIlks, AIlks, k8840, C8840,
+  · obtain ⟨σIlks, zIlks, outIlks, AIlks, k8840, C8840,
         rd8840, hcallIlks, houtIlks⟩ :=
       RD.clipperKickGetFeedPriceSpotterIlksPostCall
         v hpatch hrd hspotter hdepth hperm hmem hread64 (by omega)
@@ -127,7 +127,7 @@ theorem clipperKickSimulateSpotterIlks
             some (memPeek.readWithPadding 128 4) := by
           simpa [memPeek] using clipperPipPeekEncode_eq v (by omega : 132 ≤
             (clipperSpotterIlksPostCallMem v mem outIlks).size)
-        exact .ready cAIlks σIlks outIlks evmIlks memPeek k8937 C8937
+        exact .ready σIlks outIlks evmIlks memPeek k8937 C8937
           hcodeSolm (by simpa [haddr] using hcallIlksSolm)
           (clipperSpotterIlksDecode_ok hlo)
           (by simpa [hevmeq] using halignIlks) houtIlks hlo
@@ -142,20 +142,20 @@ inductive ClipperKickPeekOutcome (v : ClipperImmutables) (code : ByteArray)
         sourceEvm (.internalCall "getFeedPrice" [] "feedPrice") .reverted)
       (hevm : RDrev code (Sat256.ofUInt256 g) s0)
   | ready
-      (cA : Batteries.RBSet AccountAddress compare) (σ : AccountMap)
+      (σ : AccountMap)
       (outIlks outPeek : ByteArray) (evmPeek : EVM.State)
       (mem : ByteArray) (k C : ℕ)
       (hprefix : ExecBlock (config v) { contract := contract v, locals := ∅ }
         sourceEvm (clipperGetFeedPriceSuccessPrefixStmts v)
         (.ok (Frame.mk (contract v)
           (clipperGetFeedPriceHasLocals outIlks outPeek)) evmPeek))
-      (halign : ClipperKickCallAligned s0 cA σ I evmPeek)
+      (halign : ClipperKickCallAligned s0 σ I evmPeek)
       (hout : outPeek.size < UInt256.size)
       (hlo : 64 ≤ outPeek.size)
       (hrd : RD code I (Sat256.ofUInt256 g) s0 ⟨9079⟩
         (clipperPipPeekHasWord outPeek :: clipperPipPeekValueWord outPeek ::
           clipperSpotterIlksPipWord outIlks :: ⟨0⟩ :: ret :: scratch :: lot :: tab :: R)
-        mem (UInt256.ofNat 6) outPeek (cA, σ) k C)
+        mem (UInt256.ofNat 6) outPeek σ k C)
       (hmem : mem.size = 192)
       (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
 
@@ -172,7 +172,7 @@ theorem clipperKickSimulatePipPeek
       ret scratch lot tab R := by
   cases hilks with
   | reverted hsource hevm => exact .reverted hsource hevm
-  | ready cA σ outIlks evmIlks mem k C hcodeIlks hcallIlks hdecIlks
+  | ready σ outIlks evmIlks mem k C hcodeIlks hcallIlks hdecIlks
       halign houtIlks hloIlks hrd hmem hread64 hcalldata =>
     by_cases hpip : extCodeSizeWord σ (clipperSpotterIlksPipTarget outIlks) = ⟨0⟩
     · have hevm := RD.clipperGetFeedPricePipPeekNoCode
@@ -182,7 +182,7 @@ theorem clipperKickSimulatePipPeek
       have hsource := clipperGetFeedPriceCallRevertsPipPeekNoCode
         v callerLocals "feedPrice" hcodeIlks hcallIlks hdecIlks hnoCode
       exact .reverted hsource hevm
-    · obtain ⟨cAPeek, σPeek, zPeek, outPeek, APeek, k8953, C8953,
+    · obtain ⟨σPeek, zPeek, outPeek, APeek, k8953, C8953,
           rd8953, hcallPeek, houtPeek⟩ :=
         RD.clipperKickGetFeedPricePipPeekPostCall
           v hpatch hrd hpip hdepth hperm hcalldata
@@ -260,7 +260,7 @@ theorem clipperKickSimulatePipPeek
             have hprefix := clipperGetFeedPricePrefixToHas
               v hcodeIlks hcallIlks hdecIlks hcodePip
                 (by simpa using hcallPeekSolm) hdecPeek hhas
-            exact .ready cAPeek σPeek outIlks outPeek evmPeek memPost k9079 C9079
+            exact .ready σPeek outIlks outPeek evmPeek memPost k9079 C9079
               (by simpa [hevmeq] using hprefix)
               (by simpa [hevmeq] using halignPeek) houtPeek hlo
               (by simpa [memPost] using rd9079) hmemPost hreadPost
@@ -279,16 +279,16 @@ inductive ClipperKickFeedPriceOutcome (v : ClipperImmutables) (code : ByteArray)
       (hevm : RDinvalid code (Sat256.ofUInt256 g) s0)
   | returned
       (feedPrice : UInt256)
-      (cA : Batteries.RBSet AccountAddress compare) (σ : AccountMap)
+      (σ : AccountMap)
       (sourceAfter : EVM.State) (mem : ByteArray) (out : ByteArray) (k C : ℕ)
       (hsource : ExecStmt (config v) (Frame.mk (contract v) callerLocals)
         sourceEvm (.internalCall "getFeedPrice" [] "feedPrice")
         (.ok (Frame.mk (contract v) (callerLocals.insert "feedPrice"
           (.int (Int.ofNat feedPrice.toNat)))) sourceAfter))
-      (halign : ClipperKickCallAligned s0 cA σ I sourceAfter)
+      (halign : ClipperKickCallAligned s0 σ I sourceAfter)
       (hrd : RD code I (Sat256.ofUInt256 g) s0 ret
         (feedPrice :: scratch :: lot :: tab :: R)
-        mem (UInt256.ofNat 6) out (cA, σ) k C)
+        mem (UInt256.ofNat 6) out σ k C)
       (hmem : mem.size = 192)
       (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
 
@@ -306,7 +306,7 @@ theorem clipperKickFinishFeedPrice
       ret scratch lot tab R := by
   cases hpeek with
   | reverted hsource hevm => exact .reverted hsource hevm
-  | ready cA σ outIlks outPeek evmPeek mem k C hprefix halign houtPeek
+  | ready σ outIlks outPeek evmPeek mem k C hprefix halign houtPeek
       hloPeek hrd hmem hread64 =>
     by_cases hoverVal : UInt256.size ≤
         (clipperPipPeekValueWord outPeek).toNat * (⟨1000000000⟩ : UInt256).toNat
@@ -345,7 +345,7 @@ theorem clipperKickFinishFeedPrice
         have hcalldata : (config v).externalABI.encode? "par" [] =
             some (memPar.readWithPadding 128 4) := by
           simpa [memPar] using clipperKickSpotterParEncode_eq v hmem
-        obtain ⟨cAPar, σPar, zPar, outPar, APar, k9180, C9180,
+        obtain ⟨σPar, zPar, outPar, APar, k9180, C9180,
             rd9180, hcallPar, houtPar⟩ :=
           RD.clipperKickGetFeedPriceParPostCall
             v hpatch rd9164 hspotter hdepth hperm hcalldata rfl
@@ -454,7 +454,7 @@ theorem clipperKickFinishFeedPrice
                     (.ok (Frame.mk (contract v) (callerLocals.insert "feedPrice"
                       (.int (Int.ofNat feedPrice.toNat)))) evmPar) := by
                   simpa [feedPrice, valBln, collapseReturns] using hsourceRaw
-                exact .returned feedPrice cAPar σPar evmPar memPost outPar kret Cret
+                exact .returned feedPrice σPar evmPar memPost outPar kret Cret
                   hsource (by simpa [hevmeq] using halignPar)
                   (by simpa [feedPrice, valBln, memPost] using rdret)
                   hmemPost hreadPost
@@ -463,14 +463,14 @@ theorem clipperKickSimulateGetFeedPrice
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {g : UInt256} {s0 sourceEvm : EVM.State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {I : ExecutionEnv} {callerLocals : Store}
     {ret scratch lot tab : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (hrd : RD code I (Sat256.ofUInt256 g) s0 ⟨8728⟩
       (ret :: scratch :: lot :: tab :: R) mem (UInt256.ofNat 3) rdata
-      (cA, σ) k C)
-    (halign : ClipperKickCallAligned s0 cA σ I sourceEvm)
+      σ k C)
+    (halign : ClipperKickCallAligned s0 σ I sourceEvm)
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)

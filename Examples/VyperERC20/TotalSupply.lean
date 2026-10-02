@@ -62,13 +62,13 @@ macro "vyper_erc20_runtime_decode" : tactic =>
 macro "vyper_erc20_runtime_jd" : term =>
   `(by native_decide)
 
-theorem vyperRuntimeRevert801 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vyperRuntimeRevert801 {σ σ₀ A I} {g : Sat256}
     {pc stk mem aw rdata acc k C}
-    (hreach : RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) pc
+    (hreach : RD vyperERC20Bytecode I g (initState σ σ₀ g A I) pc
       stk mem aw rdata acc k C)
     (hpc : pc = ⟨801⟩)
     (hov : stk.length + 2 ≤ 1024) :
-    RDrev vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   subst pc
   have rd804 := evm_run hreach with [
     jumpdest,
@@ -77,13 +77,13 @@ theorem vyperRuntimeRevert801 {cA gh bl σ σ₀ A I} {g : Sat256}
   exact rd804.rev 0 (by vyper_erc20_runtime_decode)
     (by simp [M, MachineState.M, u256_ofNat_toNat]) (by omega)
 
-theorem vyperRuntimeRevert797 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vyperRuntimeRevert797 {σ σ₀ A I} {g : Sat256}
     {pc stk mem aw rdata acc k C}
-    (hreach : RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) pc
+    (hreach : RD vyperERC20Bytecode I g (initState σ σ₀ g A I) pc
       stk mem aw rdata acc k C)
     (hpc : pc = ⟨797⟩)
     (hov : stk.length + 2 ≤ 1024) :
-    RDrev vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   subst pc
   have rd800 := evm_run hreach with [
     jumpdest,
@@ -155,19 +155,19 @@ theorem totalSupplySelectorWord_of_calldata {I : ExecutionEnv}
     have hne : UInt256.ofNat 0 ≠ (⟨1⟩ : UInt256) := by decide
     exact False.elim (hne h)
 
-theorem erc20X_totalSupplyReach {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_totalSupplyReach {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
     (hsel : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨769⟩
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨769⟩
       [totalSupplySelectorWord] runtimeDispatchMem (UInt256.ofNat 1) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   have hsz : 4 ≤ I.calldata.size := by
     have hs := byteArray_size_eq_of_beq hsel
     have hleft : (⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray).size = 4 := rfl
     rw [hleft, ByteArray.size_extract] at hs
     omega
   have hword := totalSupplySelectorWord_of_calldata (I := I) hsz hsel
-  have rd0 := RD.initState (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
   have rdBeforeCopy0 := evm_run rd0 with [
     push0,
@@ -200,11 +200,11 @@ theorem erc20X_totalSupplyReach {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov)]
   exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_runtime_decode) (by native_decide) (by evm_ov)⟩
 
-theorem erc20X_totalSupplyFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_totalSupplyFromEntry {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨769⟩
-      [totalSupplySelectorWord] runtimeDispatchMem (UInt256.ofNat 1) ByteArray.empty (cA, σ) k C) :
-    RDret vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨769⟩
+      [totalSupplySelectorWord] runtimeDispatchMem (UInt256.ofNat 1) ByteArray.empty σ k C) :
+    RDret vyperERC20Bytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (totalSupplyWord σ I)) := by
   obtain ⟨k, C, rd769⟩ := hreach
   have rdBeforeLoad := evm_run rd769 with [
@@ -264,16 +264,15 @@ theorem erc20Decode_totalSupply {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
   exact decodeCalldata_empty_ok hsz
 
 theorem erc20TotalSupplyBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD vyperERC20Bytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨769⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨769⟩
       [totalSupplySelectorWord] runtimeDispatchMem (UInt256.ofNat 1) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor vyperERC20Config erc20Contract
+      σ σ₀ g A I := by
   have hsz := erc20TotalSupplySelector_size hsel
   have hd := erc20Dispatch_totalSupply (cd := I.calldata) hsel
   have hdec :
@@ -284,32 +283,28 @@ theorem erc20TotalSupplyBodyCore
     simpa [vyperERC20Config, erc20Contract, ERC20.erc20Contract, ERC20.totalSupplyTransition]
       using
       (decodeCalldataWithMode_empty_ok (mode := DecodeMode.vyper) (cd := I.calldata) hsz)
-  have hword : totalSupplyWord σ_evm I = totalSupplyWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
   have hbody :
       ExecTransitionBody vyperERC20Config erc20Contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ ERC20.totalSupplyTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ ERC20.totalSupplyTransition.body
         (.returned { contract := erc20Contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (totalSupplyWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (totalSupplyWord σ I).toNat))])) := by
     simpa [totalSupplyWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       erc20TotalSupplyBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv) (by simp)
   exact (erc20X_totalSupplyFromEntry (g := Sat256.ofUInt256 g) hwv hreach)
-    |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword]) hAccounts
-      (returnEquiv_of_encode (ERC20.erc20Uint256ReturnEncoding (totalSupplyWord σ_evm I)))
+    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody (by rfl)
+      (returnEquiv_of_encode (ERC20.erc20Uint256ReturnEncoding (totalSupplyWord σ I)))
 
 theorem erc20TotalSupplyRuntime
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    (hsel : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
+    runtimeEquivalenceFor vyperERC20Config erc20Contract
+      σ σ₀ g A I := by
   exact erc20TotalSupplyBodyCore hcode hwv hsel
-    (erc20X_totalSupplyReach (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    (erc20X_totalSupplyReach (σ := σ)
       (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsel)
-    hAccounts
 
 end VyperERC20

@@ -178,14 +178,14 @@ theorem clipperWardsBodyReturns (v : ClipperImmutables) (evm : EVM.State)
 /-! ## EVM trace -/
 
 set_option maxHeartbeats 1000000 in
-theorem clipperReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
+theorem clipperReachWardsBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 27)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1303⟩ : UInt256)
-      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1303⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperWardsSelectorWord hsz hsel
   have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
@@ -395,16 +395,16 @@ theorem clipperJumpDest6765 (v : ClipperImmutables) {code : ByteArray}
       simp [hIlk]
       native_decide
 
-theorem clipperWardsX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperWardsX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨1303⟩ : UInt256) [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨6765⟩ : UInt256)
+      (initState σ σ₀ g A I) (⟨1303⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨6765⟩ : UInt256)
         [clipperWardsArgMaskedWord I, ⟨476⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1325⟩ := solcOneAddressExternalLenOk
     (entry := (⟨1303⟩ : UInt256)) (ret := (⟨476⟩ : UInt256))
     (routine := (⟨6765⟩ : UInt256)) hreach
@@ -420,28 +420,28 @@ theorem clipperWardsX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     (by simp only [List.length_singleton]; omega)
   exact ⟨_, _, by simpa [clipperWardsArgMaskedWord, clipperWardsArgWord] using rd6765⟩
 
-theorem clipperWardsX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperWardsX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨1303⟩ : UInt256) [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) (⟨1303⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev code g (initState σ σ₀ g A I) := by
   exact solcOneAddressExternalShort
     (entry := (⟨1303⟩ : UInt256)) (ret := (⟨476⟩ : UInt256))
     (routine := (⟨6765⟩ : UInt256)) hreach
     (clipperWardsExternalEntryWf v hpatch) hsz4 hsize hshort
 
-theorem clipperX_wards_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperX_wards_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨1303⟩ : UInt256) [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) (⟨1303⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret code g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (clipperWardsWord σ I)) := by
   obtain ⟨_, _, rd6765⟩ := clipperWardsX_decoded (v := v) hpatch hsz36 hsize hreach
   obtain ⟨k476, C476, rd476raw⟩ := solcZeroSlotSingleMappingGetter (pc := ⟨6765⟩)
@@ -454,10 +454,10 @@ theorem clipperX_wards_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         clipperWardsWord σ I := by
     simp [clipperWardsWord, solcSlotWord, clipperWardsStorageSlot_eq_mapSlot_masked,
       mapSlot, solcMappingSlot]
-  have rd476 : RD code I g (initState cA gh bl σ σ₀ g A I) (⟨476⟩ : UInt256)
+  have rd476 : RD code I g (initState σ σ₀ g A I) (⟨476⟩ : UInt256)
       (clipperWardsWord σ I :: ⟨476⟩ :: [sel])
       (solcMappingHashMem ⟨0⟩ (clipperWardsArgMaskedWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k476 C476 := by
+      (UInt256.ofNat 3) ByteArray.empty σ k476 C476 := by
     simpa [hword] using rd476raw
   exact RD.solcReturnWordFromMem
     (val := clipperWardsWord σ I) (ret := ⟨476⟩) (R := [sel])
@@ -476,7 +476,7 @@ theorem clipperX_wards_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_singleton]; omega)
 
 theorem clipperWardsBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
@@ -488,41 +488,37 @@ theorem clipperWardsBodyCoreOk
         (transitionSignature wardsTransition).paramTypes I.calldata =
           some (clipperWardsStore I))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (⟨1303⟩ : UInt256)
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : clipperWardsWord σ_evm I = clipperWardsWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (clipperWardsStorageSlot I) ⟨0⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨1303⟩ : UInt256)
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperWardsStore I)
         wardsTransition.body
         (.returned { contract := contract v, locals := clipperWardsStore I }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (clipperWardsWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (clipperWardsWord σ I).toNat))])) := by
     simpa [clipperWardsWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       clipperWardsBodyReturns v
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
         (by simp only [initState]; exact hwv)
   exact (clipperX_wards_ok (v := v) (g := Sat256.ofUInt256 g) hpatch hsz36 hsize hreach)
-    |>.reEquivExecutionTransport hcode hdispatch hdecode hbody (by rw [← hword])
-      hAccounts
+    |>.reEquivExecution hcode hdispatch hdecode hbody
       (returnEquiv_of_encode
-        (by simpa [uint256] using uint256ReturnEncoding (clipperWardsWord σ_evm I)))
+        (by simpa [uint256] using uint256ReturnEncoding (clipperWardsWord σ I)))
 
 theorem clipperWardsBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg (contract v) I.calldata = some wardsTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (⟨1303⟩ : UInt256)
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨1303⟩ : UInt256)
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hdec := clipperDecode_wards_none_short v (I := I) hsz4 hshort
   exact (clipperWardsX_shortarg (v := v) (g := Sat256.ofUInt256 g) hpatch hsz4
     hsize hshort hreach)
@@ -531,22 +527,21 @@ theorem clipperWardsBodyCoreDecodeFailed_short
 /-- `wards(address)` body refines its Solm transition. -/
 theorem clipperWardsBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (clipperSelBytes 27))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (clipperSelBytes 27)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 27) (by native_decide) hsel
   have hdispatch : dispatchMsg (contract v) I.calldata = some wardsTransition :=
     clipperDispatch_wards v hsel
-  have hreach := clipperReachWardsBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := clipperReachWardsBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact clipperWardsBodyCoreOk (v := v) hpatch hcode hsize hwv hsz36 hdispatch
-      (clipperDecode_wards_ok v hsz36) hreach hAccounts
+      (clipperDecode_wards_ok v hsz36) hreach
   · exact clipperWardsBodyCoreDecodeFailed_short (v := v) hpatch hcode hsize hsz4
       (by omega) hdispatch hreach
 

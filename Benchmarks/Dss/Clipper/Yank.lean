@@ -10,40 +10,39 @@ namespace Benchmarks.Dss.Clipper
 set_option maxHeartbeats 8000000 in
 theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (clipperSelBytes 28))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (clipperSelBytes 28)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 28) (by native_decide) hsel
   have hdispatch : dispatchMsg (contract v) I.calldata = some (yankTransition v) :=
     clipperDispatch_yank v hsel
-  have hreachEntry := clipperReachYankBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreachEntry := clipperReachYankBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hdecode := clipperDecode_yank_ok v (I := I) hsz36
-    have hreachBody := clipperYankX_decoded (cA := cA) (gh := gh) (bl := bl)
-      (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    have hreachBody := clipperYankX_decoded
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (v := v) hpatch hsz36 hsize hreachEntry
     let locals := clipperYankStore I
-    have hauthWord : clipperRelyAuthWord σ_evm I = clipperRelyAuthWord σ_solm I :=
+    have hauthWord : clipperRelyAuthWord σ I = clipperRelyAuthWord σ I :=
       accountMapEquiv_storage_findD hAccounts I.codeOwner (clipperRelyAuthStorageSlot I) ⟨0⟩
-    have hlockWord : solcSlotWord σ_evm I ⟨13⟩ = solcSlotWord σ_solm I ⟨13⟩ :=
+    have hlockWord : solcSlotWord σ I ⟨13⟩ = solcSlotWord σ I ⟨13⟩ :=
       accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨13⟩ ⟨0⟩
-    by_cases hauthEvm : clipperRelyAuthWord σ_evm I = ⟨1⟩
-    · have hauthSolm : clipperRelyAuthWord σ_solm I = ⟨1⟩ := by
+    by_cases hauthEvm : clipperRelyAuthWord σ I = ⟨1⟩
+    · have hauthSolm : clipperRelyAuthWord σ I = ⟨1⟩ := by
         rw [← hauthWord]
         exact hauthEvm
-      by_cases hlockedEvm : solcSlotWord σ_evm I ⟨13⟩ = ⟨0⟩
-      · have hlockedSolm : solcSlotWord σ_solm I ⟨13⟩ = ⟨0⟩ := by
+      by_cases hlockedEvm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩
+      · have hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩ := by
           rw [← hlockWord]
           exact hlockedEvm
-        let σEvmLock := sstoreAccountMap I.codeOwner σ_evm ⟨13⟩ ⟨1⟩
-        let σSolmLock := sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩
-        have hAccountsLock : accountMapEquiv σEvmLock σSolmLock := by
+        let σEvmLock := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
+        let σSolmLock := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
+        have hAccountsLock : Eq σEvmLock σSolmLock := by
           simpa [σEvmLock, σSolmLock] using
             accountMapEquiv_sstoreAccountMap I.codeOwner ⟨13⟩ ⟨1⟩ hAccounts
         have hUsrWord :
@@ -59,13 +58,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
         · have husrSolm : clipperYankSalesUsrWord σSolmLock I = ⟨0⟩ := by
             rw [← hUsrWord]
             exact husrEvm
-          let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+          let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
           have hbody :
               ExecTransitionBody (config v) (contract v) evmSolm locals
                 (yankTransition v).body .reverted := by
             simpa [evmSolm, locals] using
-              (clipperYankInactiveSourceReverts (cA := cA) (gh := gh) (bl := bl)
-                (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
+              (clipperYankInactiveSourceReverts
+                (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
                 hauthSolm hlockedSolm (by simpa [σSolmLock] using husrSolm))
           have hrev := clipperYankX_usrZero (v := v) hpatch
             (by simpa [σEvmLock] using husrEvm) (by simpa [σEvmLock] using rd2077)
@@ -95,14 +94,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
               rw [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccountsLock
                 (clipperYankDogTarget σEvmLock I)]
               exact hcodeSizeDog
-            let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+            let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
             have hbody :
                 ExecTransitionBody (config v) (contract v) evmSolm locals
                   (yankTransition v).body .reverted := by
               simpa [evmSolm, locals, σSolmLock] using
                 (clipperYankDogDigsNoCodeSourceReverts
-                  (cA := cA) (gh := gh) (bl := bl)
-                  (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                  (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                   v hwv hauthSolm hlockedSolm (by simpa [σSolmLock] using husrSolm)
                   (by simpa [σSolmLock] using hcodeSizeDogSolm))
             have hrev := clipperYankX_dogDigsNoCode
@@ -133,8 +131,8 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
             have hdogCodeSolm :
                 0 < (UInt256.ofNat
                   (((Solm.EVM.storageStore
-                    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+                    (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                    (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
                     ⟨13⟩ ⟨1⟩).lookupAccount
                       (AccountAddress.ofUInt256
                         (clipperYankDogTarget σSolmLock I))).option
@@ -167,11 +165,11 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         · simp [UInt256.toNat, hword] at hzeroNat
                   simpa [σLock, hacc] using Nat.pos_of_ne_zero htoNatNe
             by_cases hdepthLt : I.depth.val < 1024
-            · obtain ⟨cA_dog, σ_dog, zDog, outDog, A_dog, k2317, C2317,
+            · obtain ⟨σ_dog, zDog, outDog, A_dog, k2317, C2317,
                   rd2317, hcallDogEvmRaw, houtDogSize⟩ :=
                 clipperYankX_dogDigsPostCall
-                  (code := code) (cA := cA) (gh := gh) (bl := bl)
-                  (σStart := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+                  (code := code)
+                  (σStart := σ) (σ₀ := σ₀) (A := A) (I := I)
                   (g := Sat256.ofUInt256 g) (σ := σEvmLock)
                   (sel := clipperSelWord I)
                   (target := clipperYankDogTarget σEvmLock I)
@@ -184,7 +182,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
               cases zDog
               · have hcallDogEvm :
                     typedCallViaEVM (config v)
-                      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                         accountMap := σEvmLock }
                       (EVM.address (AccountAddress.ofUInt256
                         (clipperYankDogTarget σEvmLock I)))
@@ -193,19 +191,19 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         .int (Int.ofNat
                           (clipperYankSalesTabWord σEvmLock I).toNat)]
                       (false,
-                        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                           accountMap := σ_dog
                           substate := A_dog
-                          createdAccounts := cA_dog },
+                           },
                         outDog) true := by
                   simpa using hcallDogEvmRaw
                 have hrev := RD.clipperYankDogDigsCallFailure v hpatch
                   (by simpa using rd2317) houtDogSize (by simp)
                 let evmDogEvm : EVM.State :=
-                  { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                     accountMap := σEvmLock }
                 let evmDogSolmStart : EVM.State :=
-                  { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
+                  { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                     accountMap := σSolmLock }
                 obtain ⟨σ_dog_solm, A_dog_solm, hcallDogSolmRaw, _hAccountsDog⟩ :=
                   typedCallViaEVM_accountMapEquiv_noSubstate
@@ -219,22 +217,22 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                   { evmDogSolmStart with
                     accountMap := σ_dog_solm
                     substate := A_dog_solm
-                    createdAccounts := cA_dog }
+                     }
                 have hlockStateEq :
                     Solm.EVM.storageStore
-                        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+                        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                        (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
                         ⟨13⟩ ⟨1⟩ =
-                      { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
+                      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                         accountMap := σSolmLock } := by
                   simp [σSolmLock, initState, Solm.EVM.storageStore, sstoreAccountMap,
                     State.lookupAccount, State.setAccount, Account.updateStorage]
-                  cases σ_solm.find? I.codeOwner <;> rfl
+                  cases σ.find? I.codeOwner <;> rfl
                 have hcallDogSolm :
                     typedCallViaEVM (config v)
                       (Solm.EVM.storageStore
-                        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+                        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                        (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
                         ⟨13⟩ ⟨1⟩)
                       (EVM.address (AccountAddress.ofUInt256
                         (clipperYankDogTarget σSolmLock I)))
@@ -246,14 +244,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                   simpa [evmDogSolm, evmDogSolmStart, evmDogEvm, hlockStateEq, σSolmLock,
                     storageStore_accountMap, storageStore_executionEnv, hDogTarget,
                     hTabWord] using hcallDogSolmRaw
-                let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+                let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                 have hbody :
                     ExecTransitionBody (config v) (contract v) evmSolm locals
                       (yankTransition v).body .reverted := by
                   simpa [evmSolm, locals, σSolmLock] using
                     (clipperYankDogDigsCallFailureSourceReverts
-                      (cA := cA) (gh := gh) (bl := bl)
-                      (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                       (evmDog := evmDogSolm) (outDog := outDog)
                       v hwv hauthSolm hlockedSolm
                       (by simpa [σSolmLock] using husrSolm)
@@ -263,13 +260,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                   RD.clipperYankDogDigsCallSuccessToFluxSetup v hpatch
                     (by simpa using rd2317)
                 have rd2335 : RD code I (Sat256.ofUInt256 g)
-                    (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2335⟩
+                    (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2335⟩
                     (⟨196⟩ :: clipperDogDigsSelectorWord ::
                       clipperYankDogTarget σEvmLock I :: clipperYankArgWord I ::
                       ⟨502⟩ :: [clipperSelWord I])
                     (clipperDogDigsCalldataMem v (clipperYankSalesTabWord σEvmLock I)
                       (clipperYankSalesHashMemRefresh I))
-                    (UInt256.ofNat 7) outDog (cA_dog, σ_dog) k2335 C2335 := by
+                    (UInt256.ofNat 7) outDog σ_dog k2335 C2335 := by
                   have hmin :
                       (min (⟨0⟩ : UInt256) (UInt256.ofNat outDog.size)).toNat = 0 := by
                     rfl
@@ -283,16 +280,16 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                   simpa [hmin, byteArray_write_len_zero, haw] using rd2335raw
                 obtain ⟨k2495, C2495, rd2495⟩ :=
                   RD.clipperYankVatFluxExtcodesizeGuard
-                    (code := code) (cA := cA_dog) (σ := σ_dog)
+                    (code := code)  (σ := σ_dog)
                     (ee := I) (g := Sat256.ofUInt256 g)
-                    (s0 := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+                    (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
                     (sel := clipperSelWord I)
                     (dogTarget := clipperYankDogTarget σEvmLock I)
                     (tab := clipperYankSalesTabWord σEvmLock I)
                     (rdata := outDog) v hpatch rd2335
                 have hcallDogEvm :
                     typedCallViaEVM (config v)
-                      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                         accountMap := σEvmLock }
                       (EVM.address (AccountAddress.ofUInt256
                         (clipperYankDogTarget σEvmLock I)))
@@ -301,17 +298,17 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         .int (Int.ofNat
                           (clipperYankSalesTabWord σEvmLock I).toNat)]
                       (true,
-                        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                           accountMap := σ_dog
                           substate := A_dog
-                          createdAccounts := cA_dog },
+                           },
                         outDog) true := by
                   simpa using hcallDogEvmRaw
                 let evmDogEvm : EVM.State :=
-                  { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                  { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                     accountMap := σEvmLock }
                 let evmDogSolmStart : EVM.State :=
-                  { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
+                  { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                     accountMap := σSolmLock }
                 obtain ⟨σ_dog_solm, A_dog_solm, hcallDogSolmRaw, hAccountsDog⟩ :=
                   typedCallViaEVM_accountMapEquiv_noSubstate
@@ -325,22 +322,22 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                   { evmDogSolmStart with
                     accountMap := σ_dog_solm
                     substate := A_dog_solm
-                    createdAccounts := cA_dog }
+                     }
                 have hlockStateEq :
                     Solm.EVM.storageStore
-                        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+                        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                        (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
                         ⟨13⟩ ⟨1⟩ =
-                      { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
+                      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                         accountMap := σSolmLock } := by
                   simp [σSolmLock, initState, Solm.EVM.storageStore, sstoreAccountMap,
                     State.lookupAccount, State.setAccount, Account.updateStorage]
-                  cases σ_solm.find? I.codeOwner <;> rfl
+                  cases σ.find? I.codeOwner <;> rfl
                 have hcallDogSolm :
                     typedCallViaEVM (config v)
                       (Solm.EVM.storageStore
-                        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+                        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                        (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
                         ⟨13⟩ ⟨1⟩)
                       (EVM.address (AccountAddress.ofUInt256
                         (clipperYankDogTarget σSolmLock I)))
@@ -384,14 +381,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                   have hrev := clipperYankX_vatFluxNoCode
                     (v := v) (tab := clipperYankSalesTabWord σEvmLock I)
                     hpatch rd2495 hcodeSizeVat
-                  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+                  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                   have hbody :
                       ExecTransitionBody (config v) (contract v) evmSolm locals
                         (yankTransition v).body .reverted := by
                     simpa [evmSolm, locals, σSolmLock] using
                       (clipperYankVatFluxNoCodeSourceReverts
-                        (cA := cA) (gh := gh) (bl := bl)
-                        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                         (evmDog := evmDogSolm) (outDog := outDog)
                         v hwv hauthSolm hlockedSolm
                         (by simpa [σSolmLock] using husrSolm)
@@ -432,11 +428,11 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                     have hpos :=
                       Nat.pos_of_ne_zero htoNatNe
                     simpa [evmDogSolm, evmDogSolmStart, State.lookupAccount] using hpos
-                  obtain ⟨cA_vat, σ_vat, zVat, outVat, A_vat, k2511, C2511,
+                  obtain ⟨σ_vat, zVat, outVat, A_vat, k2511, C2511,
                       rd2511, hcallVatEvmRaw, houtVatSize⟩ :=
                     RD.clipperYankVatFluxPostCall
-                      (code := code) (cA0 := cA) (cA := cA_dog)
-                      (gh := gh) (bl := bl) (σStart := σ_evm) (σ₀ := σ₀)
+                      (code := code)
+                      (σStart := σ) (σ₀ := σ₀)
                       (σ := σ_dog) (I := I) (g := Sat256.ofUInt256 g) (A := A)
                       (sel := clipperSelWord I)
                       (tab := clipperYankSalesTabWord σEvmLock I)
@@ -444,25 +440,25 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                   cases zVat
                   · have hcallVatEvm :
                         typedCallViaEVM (config v)
-                          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                             accountMap := σ_dog
-                            createdAccounts := cA_dog }
+                             }
                           (EVM.address v.vat) "flux" 0
                           [v.ilk, .address I.codeOwner, .address I.source,
                             .int (Int.ofNat (clipperYankSalesLotWord σ_dog I).toNat)]
                           (false,
-                            { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                            { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                               accountMap := σ_vat
                               substate := A_vat
-                              createdAccounts := cA_vat },
+                               },
                             outVat) true := by
                       simpa using hcallVatEvmRaw
                     have hrev := RD.clipperYankVatFluxCallFailure v hpatch
                       (by simpa using rd2511) houtVatSize (by simp)
                     let evmVatEvmStart : EVM.State :=
-                      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                         accountMap := σ_dog
-                        createdAccounts := cA_dog }
+                         }
                     obtain ⟨σ_vat_solm, A_vat_solm, hcallVatSolmRaw, _hAccountsVat⟩ :=
                       typedCallViaEVM_accountMapEquiv_noSubstate
                         (evm_solm := evmDogSolm) hcallVatEvm hAccountsDog
@@ -475,7 +471,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                       { evmDogSolm with
                         accountMap := σ_vat_solm
                         substate := A_vat_solm
-                        createdAccounts := cA_vat }
+                         }
                     have hlotLoadSolm :
                         Solm.EVM.storageLoad evmDogSolm evmDogSolm.executionEnv.codeOwner
                             (clipperYankSalesLotSlot I) =
@@ -494,14 +490,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                           (false, evmVatSolm, outVat) true := by
                       simpa [evmVatSolm, evmVatEvmStart, evmDogSolm, evmDogSolmStart,
                         initState, hLotWord, hlotLoadSolm] using hcallVatSolmRaw
-                    let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+                    let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                     have hbody :
                         ExecTransitionBody (config v) (contract v) evmSolm locals
                           (yankTransition v).body .reverted := by
                       simpa [evmSolm, locals, σSolmLock] using
                         (clipperYankVatFluxCallFailureSourceReverts
-                          (cA := cA) (gh := gh) (bl := bl)
-                          (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                           (evmDog := evmDogSolm) (evmVat := evmVatSolm)
                           (outDog := outDog) (outVat := outVat)
                           v hwv hauthSolm hlockedSolm
@@ -510,23 +505,23 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
                   · have hcallVatEvm :
                         typedCallViaEVM (config v)
-                          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                             accountMap := σ_dog
-                            createdAccounts := cA_dog }
+                             }
                           (EVM.address v.vat) "flux" 0
                           [v.ilk, .address I.codeOwner, .address I.source,
                             .int (Int.ofNat (clipperYankSalesLotWord σ_dog I).toNat)]
                           (true,
-                            { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                            { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                               accountMap := σ_vat
                               substate := A_vat
-                              createdAccounts := cA_vat },
+                               },
                             outVat) true := by
                       simpa using hcallVatEvmRaw
                     let evmVatEvmStart : EVM.State :=
-                      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                         accountMap := σ_dog
-                        createdAccounts := cA_dog }
+                         }
                     obtain ⟨σ_vat_solm, A_vat_solm, hcallVatSolmRaw, hAccountsVatRaw⟩ :=
                       typedCallViaEVM_accountMapEquiv_noSubstate
                         (evm_solm := evmDogSolm) hcallVatEvm hAccountsDog
@@ -539,8 +534,8 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                       { evmDogSolm with
                         accountMap := σ_vat_solm
                         substate := A_vat_solm
-                        createdAccounts := cA_vat }
-                    have hAccountsVat : accountMapEquiv σ_vat σ_vat_solm := by
+                         }
+                    have hAccountsVat : Eq σ_vat σ_vat_solm := by
                       simpa [evmVatEvmStart, evmDogSolm, evmDogSolmStart, initState] using
                         hAccountsVatRaw
                     have hlotLoadSolm :
@@ -578,14 +573,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         simpa [evmVatSolm, evmDogSolm, evmDogSolmStart, initState,
                           solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount] using
                           hactiveLenSolmWord
-                      let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+                      let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                       have hbody :
                           ExecTransitionBody (config v) (contract v) evmSolm locals
                             (yankTransition v).body .reverted := by
                         simpa [evmSolm, locals, σSolmLock] using
                           (clipperYankRemoveEmptyAfterVatSourceReverts
-                            (cA := cA) (gh := gh) (bl := bl)
-                            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                             (evmDog := evmDogSolm) (evmVat := evmVatSolm)
                             (outDog := outDog) (outVat := outVat)
                             v hwv hauthSolm hlockedSolm
@@ -712,8 +706,8 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                           exact le_trans hremoveMemSize (Nat.le_max_left _ _)
                         have hret :
                             RDret code (Sat256.ofUInt256 g)
-                              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-                              (cA_vat, clipperYankSuccessAccountMap σ_vat I lastIndexEvm)
+                              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                              (clipperYankSuccessAccountMap σ_vat I lastIndexEvm)
                               ByteArray.empty := by
                           simpa [lastIndexEvm] using
                             (Benchmarks.Dss.Clipper.RD.clipperYankRemoveJoinSuccess
@@ -746,7 +740,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         have hafter :=
                           clipperYankAfterVatRemoveIdEqMoveSourceOk v evmVatSolm I
                             haccVatSolm hactiveLenSolm hidEqSolm
-                        let evmSolm := initState cA gh bl σ_solm σ₀
+                        let evmSolm := initState σ σ₀
                           (Sat256.ofUInt256 g) A I
                         have hbody :
                             ExecTransitionBody (config v) (contract v) evmSolm locals
@@ -770,8 +764,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                 none) := by
                           simpa [evmSolm, locals, σSolmLock] using
                             (clipperYankAfterVatSourceOk
-                              (cA := cA) (gh := gh) (bl := bl)
-                              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                               (evmDog := evmDogSolm) (evmVat := evmVatSolm)
                               (outDog := outDog) (outVat := outVat)
                               v hwv hauthSolm hlockedSolm
@@ -779,7 +772,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                               hdogCodeSolm hcallDogSolm hvatCodeSolm hcallVatSolm
                               hafter)
                         have hAccountsFinal :
-                            accountMapEquiv
+                            Eq
                               (clipperYankSuccessAccountMap σ_vat I lastIndexEvm)
                               (Solm.EVM.storageStore
                                 (clipperYankDeleteSaleState
@@ -802,7 +795,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
                           (by
                             simp [evmVatSolm, clipperYankDeleteSaleState,
-                              clipperYankRemovePopState, storageStore_createdAccounts])
+                              clipperYankRemovePopState])
                           hAccountsFinal
                           (by
                             simpa [yankTransition] using
@@ -875,7 +868,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                               evmIndexSolm.executionEnv.codeOwner
                               (clipperYankSalesMovePosSlot moveEvm) idxEvm
                           have hmoveAccounts :
-                              accountMapEquiv
+                              Eq
                                 (clipperYankMoveAccountMap σ_vat I idxEvm moveEvm)
                                 evmMovePosSolm.accountMap := by
                             simpa [evmIndexSolm, evmMovePosSolm] using
@@ -954,15 +947,14 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                   (clipperYankRemoveLookup v)
                                   (clipperYankRemoveBind I)
                                   hremoveRevert)
-                            let evmSolm := initState cA gh bl σ_solm σ₀
+                            let evmSolm := initState σ σ₀
                               (Sat256.ofUInt256 g) A I
                             have hbody :
                                 ExecTransitionBody (config v) (contract v) evmSolm locals
                                   (yankTransition v).body .reverted := by
                               simpa [evmSolm, locals, σSolmLock] using
                                 (clipperYankAfterVatSourceReverts
-                                  (cA := cA) (gh := gh) (bl := bl)
-                                  (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                                  (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                   (evmDog := evmDogSolm) (evmVat := evmVatSolm)
                                   (outDog := outDog) (outVat := outVat)
                                   v hwv hauthSolm hlockedSolm
@@ -976,9 +968,8 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                   I ⟨11⟩ + UInt256.lnot ⟨0⟩
                             have hret :
                                 RDret code (Sat256.ofUInt256 g)
-                                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-                                  (cA_vat,
-                                    clipperYankSuccessAccountMap
+                                  (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                                  (clipperYankSuccessAccountMap
                                       (clipperYankMoveAccountMap σ_vat I idxEvm moveEvm)
                                       I lastIndexAfterEvm)
                                   ByteArray.empty := by
@@ -1035,7 +1026,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                     simpa [evmIndexSolm, evmMovePosSolm, ← hlastIndexEq,
                                       hloadMoveSolm, ← hmoveEq, hloadIdxSolm, ← hidxEq] using
                                       hlenAfterSolm))
-                            let evmSolm := initState cA gh bl σ_solm σ₀
+                            let evmSolm := initState σ σ₀
                               (Sat256.ofUInt256 g) A I
                             have hbody :
                                 ExecTransitionBody (config v) (contract v) evmSolm locals
@@ -1060,8 +1051,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                     none) := by
                               simpa [evmSolm, locals, σSolmLock] using
                                 (clipperYankAfterVatSourceOk
-                                  (cA := cA) (gh := gh) (bl := bl)
-                                  (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                                  (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                   (evmDog := evmDogSolm) (evmVat := evmVatSolm)
                                   (outDog := outDog) (outVat := outVat)
                                   v hwv hauthSolm hlockedSolm
@@ -1069,7 +1059,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                   hdogCodeSolm hcallDogSolm hvatCodeSolm hcallVatSolm
                                   hafter)
                             have hAccountsFinal :
-                                accountMapEquiv
+                                Eq
                                   (clipperYankSuccessAccountMap
                                     (clipperYankMoveAccountMap σ_vat I idxEvm moveEvm)
                                     I lastIndexAfterEvm)
@@ -1100,7 +1090,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                               (by
                                 simp [evmVatSolm, evmMovePosSolm, evmIndexSolm,
                                   clipperYankDeleteSaleState, clipperYankRemovePopState,
-                                  storageStore_createdAccounts])
+                                  ])
                               hAccountsFinal
                               (by
                                 simpa [yankTransition] using
@@ -1153,15 +1143,14 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                 (clipperYankRemoveLookup v)
                                 (clipperYankRemoveBind I)
                                 hremoveRevert)
-                          let evmSolm := initState cA gh bl σ_solm σ₀
+                          let evmSolm := initState σ σ₀
                             (Sat256.ofUInt256 g) A I
                           have hbody :
                               ExecTransitionBody (config v) (contract v) evmSolm locals
                                 (yankTransition v).body .reverted := by
                             simpa [evmSolm, locals, σSolmLock] using
                               (clipperYankAfterVatSourceReverts
-                                (cA := cA) (gh := gh) (bl := bl)
-                                (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                                (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                 (evmDog := evmDogSolm) (evmVat := evmVatSolm)
                                 (outDog := outDog) (outVat := outVat)
                                 v hwv hauthSolm hlockedSolm
@@ -1177,8 +1166,8 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                 simpa using hval
               obtain ⟨k2317, C2317, rd2317⟩ :=
                 RD.clipperYankDogDigsCallDepthLimit
-                  (code := code) (cA := cA) (gh := gh) (bl := bl)
-                  (σStart := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+                  (code := code)
+                  (σStart := σ) (σ₀ := σ₀) (A := A) (I := I)
                   (g := Sat256.ofUInt256 g) (σ := σEvmLock)
                   (sel := clipperSelWord I)
                   (target := clipperYankDogTarget σEvmLock I)
@@ -1190,7 +1179,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                   hcodeSizeDogNE hdepthEq
               have hrev := RD.clipperYankDogDigsCallFailure v hpatch
                 (by simpa using rd2317) (by native_decide) (by simp)
-              let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+              let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
               let evmSolmLock :=
                 Solm.EVM.storageStore evmSolm evmSolm.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
               let A_dog :=
@@ -1204,8 +1193,8 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
               have hcallDogSolm :
                   typedCallViaEVM (config v)
                     (Solm.EVM.storageStore
-                      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+                      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                      (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
                       ⟨13⟩ ⟨1⟩)
                     (EVM.address (AccountAddress.ofUInt256
                       (clipperYankDogTarget σSolmLock I)))
@@ -1239,38 +1228,37 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                     (yankTransition v).body .reverted := by
                 simpa [evmSolm, locals, σSolmLock] using
                   (clipperYankDogDigsCallFailureSourceReverts
-                    (cA := cA) (gh := gh) (bl := bl)
-                    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                     (evmDog := evmDogSolm) (outDog := ByteArray.empty)
                     v hwv hauthSolm hlockedSolm
                     (by simpa [σSolmLock] using husrSolm)
                     hdogCodeSolm hcallDogSolm)
               exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-      · have hlockedSolm : solcSlotWord σ_solm I ⟨13⟩ ≠ ⟨0⟩ := by
+      · have hlockedSolm : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩ := by
           intro hsolm
           exact hlockedEvm (by rw [hlockWord, hsolm])
-        let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
             ExecTransitionBody (config v) (contract v) evmSolm locals
               (yankTransition v).body .reverted := by
           simpa [evmSolm, locals] using
-            (clipperYankLockedSourceReverts (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
+            (clipperYankLockedSourceReverts
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
               hauthSolm hlockedSolm)
         obtain ⟨_, _, rd1912⟩ := hreachBody
         obtain ⟨_, _, rd1994⟩ := clipperYankX_authorized (v := v) hpatch hauthEvm rd1912
         have hrev := clipperYankX_locked (v := v) hpatch hlockedEvm rd1994
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hauthSolm : clipperRelyAuthWord σ_solm I ≠ ⟨1⟩ := by
+    · have hauthSolm : clipperRelyAuthWord σ I ≠ ⟨1⟩ := by
         intro hsolm
         exact hauthEvm (by rw [hauthWord, hsolm])
-      let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
           ExecTransitionBody (config v) (contract v) evmSolm locals
             (yankTransition v).body .reverted := by
         simpa [evmSolm, locals] using
-          (clipperYankAuthSourceReverts (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv hauthSolm)
+          (clipperYankAuthSourceReverts
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv hauthSolm)
       obtain ⟨_, _, rd1912⟩ := hreachBody
       have hrev := clipperYankX_unauthorized (v := v) hpatch hauthEvm rd1912
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody

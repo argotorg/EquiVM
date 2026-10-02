@@ -19,15 +19,6 @@ namespace Benchmarks.WETH9
 def totalSupplyWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   σ.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)
 
-theorem totalSupplyWord_congr {σ_evm σ_solm : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    totalSupplyWord σ_evm I = totalSupplyWord σ_solm I := by
-  have h := hAccounts I.codeOwner
-  unfold totalSupplyWord
-  revert h
-  cases hσ : σ_evm.find? I.codeOwner <;> cases hτ : σ_solm.find? I.codeOwner <;>
-    simp_all [accountMapEquiv, accountEquiv]
-
 theorem weth9SelectorDispatchTotalSupply {I : ExecutionEnv} (hsel : selIs I (weth9SelBytes 2)) :
     selectorDispatchMsg contract I.calldata = some totalSupplyTransition := by
   have hcd : I.calldata.extract 0 4 = weth9SelBytes 2 := (byteArray_eq_of_beq hsel).symm
@@ -43,14 +34,14 @@ theorem weth9Decode_totalSupply_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.s
   exact decodeCalldataWithMode_empty_ok hsz4
 
 /-- The Solm `totalSupply()` body returns `address(this).balance`. -/
-theorem weth9TotalSupplyBodyReturns {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9TotalSupplyBodyReturns {σ σ₀ A I} {g : Sat256}
     (h : I.weiValue = ⟨0⟩) :
-    ExecTransitionBody config contract (initState cA gh bl σ σ₀ g A I) ∅
+    ExecTransitionBody config contract (initState σ σ₀ g A I) ∅
       totalSupplyTransition.body
-      (.returned { contract := contract, locals := ∅ } (initState cA gh bl σ σ₀ g A I)
+      (.returned { contract := contract, locals := ∅ } (initState σ σ₀ g A I)
         (some [(.int (Int.ofNat (totalSupplyWord σ I).toNat))])) := by
   refine nonpayableReturnExprBodyReturns (by simp only [initState]; exact h) ?_
-  show evalExpr? config { contract := contract, locals := ∅ } (initState cA gh bl σ σ₀ g A I)
+  show evalExpr? config { contract := contract, locals := ∅ } (initState σ σ₀ g A I)
     (.env .selfbalance) = EvalResult.ok (.int (Int.ofNat (totalSupplyWord σ I).toNat))
   simp only [evalExpr?, envValue, totalSupplyWord, initState, State.lookupAccount,
     Option.option, pure]
@@ -58,13 +49,13 @@ theorem weth9TotalSupplyBodyReturns {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-! ## EVM trace -/
 
-theorem weth9TotalSupplyX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9TotalSupplyX_ok {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 2)) :
-    RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    RDret weth9Bytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (totalSupplyWord σ I)) := by
-  obtain ⟨_, _, h381⟩ := weth9ReachTotalSupply (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  obtain ⟨_, _, h381⟩ := weth9ReachTotalSupply (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h395⟩ := weth9GuardPeelOk (gt := ⟨393⟩) h381 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -84,33 +75,29 @@ theorem weth9TotalSupplyX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-! ## Refinement -/
 
-theorem weth9TotalSupplyBodyCoreOk {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem weth9TotalSupplyBodyCoreOk {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (weth9SelBytes 2))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (weth9SelBytes 2)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 2) (by native_decide) hsel
-  have hbal : totalSupplyWord σ_evm I = totalSupplyWord σ_solm I := totalSupplyWord_congr hAccounts
-  exact weth9ReEquivExecTransport hcode
+  exact weth9ReEquivExecGen hcode
     (weth9TotalSupplyX_ok (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
     (weth9SelectorDispatchTotalSupply hsel) (weth9Decode_totalSupply_ok hsz4)
-    (weth9TotalSupplyBodyReturns hwv) (by rw [← hbal])
-    hAccounts
-    (returnEquiv_of_encode (by simpa [uint256] using uint256ReturnEncoding (totalSupplyWord σ_evm I)))
+    (weth9TotalSupplyBodyReturns hwv) rfl
+    (returnEquiv_of_encode (by simpa [uint256] using uint256ReturnEncoding (totalSupplyWord σ I)))
 
-theorem weth9TotalSupplyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem weth9TotalSupplyBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
-    (hsel : selIs I (weth9SelBytes 2))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (weth9SelBytes 2)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
-  · exact weth9TotalSupplyBodyCoreOk hcode hsize hwv hsel hAccounts
+  · exact weth9TotalSupplyBodyCoreOk hcode hsize hwv hsel
   · have hsz4 : 4 ≤ I.calldata.size :=
       calldata_size_ge_of_selIs I (weth9SelBytes 2) (by native_decide) hsel
-    obtain ⟨_, _, h381⟩ := weth9ReachTotalSupply (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    obtain ⟨_, _, h381⟩ := weth9ReachTotalSupply (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := weth9GuardPeelRev (gt := ⟨393⟩) h381 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)

@@ -8,30 +8,30 @@ set_option linter.unusedSimpArgs false
 
 namespace VyperERC20
 
-theorem erc20X_transferFromAfterToLoad {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_transferFromAfterToLoad {σ σ₀ A I} {g : Sat256}
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨528⟩
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨528⟩
       [transferFromSelectorWord]
       (transferFromAfterFromLoadMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, transferFromAccountMapAfterBalanceI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+      (transferFromAccountMapAfterBalanceI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨543⟩
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)) k C) :
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨543⟩
       [transferFromToBalanceRawAfterBalance σ I
-          (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+          (transferFromAllowanceDebitI σ σ₀ A I g)
           (transferFromBalanceDebitWord
-            (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I),
+            (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I),
         transferFromToSlot I, transferFromSelectorWord]
       (transferFromAfterToLoadMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, transferFromAccountMapAfterBalanceI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+      (transferFromAccountMapAfterBalanceI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)) k C := by
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)) k C := by
   obtain ⟨k, C, rd528⟩ := hreach
-  let evm0 := initState cA gh bl σ σ₀ g A I
+  let evm0 := initState σ σ₀ g A I
   have hread0_64 :
       (transferFromAfterToLoadMemI σ I).readWithPadding 0 64 =
         UInt256.toByteArray (⟨0⟩ : UInt256) ++ UInt256.toByteArray (transferFromToWord I) := by
@@ -49,11 +49,11 @@ theorem erc20X_transferFromAfterToLoad {cA gh bl σ σ₀ A I} {g : Sat256}
     exact keccakSlot_eq _
   have htoLoadRaw :
       transferFromToBalanceRawAfterBalance σ I
-          (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+          (transferFromAllowanceDebitI σ σ₀ A I g)
           (transferFromBalanceDebitWord (transferFromAfterAllowanceState evm0 I) I) =
         transferFromToBalanceWord evm0 I := by
     simpa [evm0] using
-      (transferFromToBalanceRawAfterBalance_initState (cA := cA) (gh := gh) (bl := bl)
+      (transferFromToBalanceRawAfterBalance_initState
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g))
   have hafterSize :
       (transferFromAfterFromLoadMemI σ I).size = 160 := by
@@ -104,43 +104,43 @@ theorem erc20X_transferFromAfterToLoad {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [evm0, htoLoadRaw, hpc543, transferFromAfterToLoadMemI,
       transferFromToBalanceRawAfterBalance] using rdAfterLoad⟩
 
-theorem erc20X_transferFromBeforeToStore {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hfit : transferFromNewToNat (initState cA gh bl σ σ₀ g A I) I < UInt256.size)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨543⟩
+theorem erc20X_transferFromBeforeToStore {σ σ₀ A I} {g : Sat256}
+    (hfit : transferFromNewToNat (initState σ σ₀ g A I) I < UInt256.size)
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨543⟩
       [transferFromToBalanceRawAfterBalance σ I
-          (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+          (transferFromAllowanceDebitI σ σ₀ A I g)
           (transferFromBalanceDebitWord
-            (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I),
+            (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I),
         transferFromToSlot I, transferFromSelectorWord]
       (transferFromAfterToLoadMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, transferFromAccountMapAfterBalanceI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+      (transferFromAccountMapAfterBalanceI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨561⟩
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)) k C) :
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨561⟩
       [transferFromToSlot I,
-        transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I,
+        transferFromNewToWord (initState σ σ₀ g A I) I,
         transferFromToSlot I, transferFromSelectorWord]
       (transferFromAfterToLoadMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, transferFromAccountMapAfterBalanceI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+      (transferFromAccountMapAfterBalanceI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)) k C := by
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)) k C := by
   obtain ⟨k, C, rdAfterLoad⟩ := hreach
-  let evm0 := initState cA gh bl σ σ₀ g A I
+  let evm0 := initState σ σ₀ g A I
   have htoLoadRaw :
       transferFromToBalanceRawAfterBalance σ I
-          (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+          (transferFromAllowanceDebitI σ σ₀ A I g)
           (transferFromBalanceDebitWord (transferFromAfterAllowanceState evm0 I) I) =
         transferFromToBalanceWord evm0 I := by
     simpa [evm0] using
-      (transferFromToBalanceRawAfterBalance_initState (cA := cA) (gh := gh) (bl := bl)
+      (transferFromToBalanceRawAfterBalance_initState
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g))
   have hnewRaw :
       transferFromToBalanceRawAfterBalance σ I
-          (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+          (transferFromAllowanceDebitI σ σ₀ A I g)
           (transferFromBalanceDebitWord (transferFromAfterAllowanceState evm0 I) I) +
           transferFromValueWord I =
         transferFromNewToWord evm0 I := by
@@ -152,11 +152,11 @@ theorem erc20X_transferFromBeforeToStore {cA gh bl σ σ₀ A I} {g : Sat256}
   have hcreditGuardRaw :
       UInt256.lt
           (transferFromToBalanceRawAfterBalance σ I
-            (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+            (transferFromAllowanceDebitI σ σ₀ A I g)
             (transferFromBalanceDebitWord (transferFromAfterAllowanceState evm0 I) I) +
             transferFromValueWord I)
           (transferFromToBalanceRawAfterBalance σ I
-            (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+            (transferFromAllowanceDebitI σ σ₀ A I g)
             (transferFromBalanceDebitWord (transferFromAfterAllowanceState evm0 I) I)) = ⟨0⟩ := by
     exact ult_zero (by
       rw [uadd_toNat, Nat.mod_eq_of_lt (by
@@ -171,7 +171,7 @@ theorem erc20X_transferFromBeforeToStore {cA gh bl σ σ₀ A I} {g : Sat256}
     swap1, pop, swap1, pop, dup2]
   have hnewRaw' :
       transferFromToBalanceRawAfterBalance σ I
-          (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+          (transferFromAllowanceDebitI σ σ₀ A I g)
           (transferFromBalanceDebitWord (transferFromAfterAllowanceState evm0 I) I) +
           uInt256OfByteArray (I.calldata.readBytes (⟨68⟩ : UInt256).toNat 32) =
         transferFromNewToWord evm0 I := by
@@ -184,27 +184,27 @@ theorem erc20X_transferFromBeforeToStore {cA gh bl σ σ₀ A I} {g : Sat256}
     native_decide
   exact ⟨_, _, by simpa [evm0, hnewRaw', hpc561] using rdBeforeStore⟩
 
-theorem erc20X_transferFromAfterToStore {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_transferFromAfterToStore {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨561⟩
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨561⟩
       [transferFromToSlot I,
-        transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I,
+        transferFromNewToWord (initState σ σ₀ g A I) I,
         transferFromToSlot I, transferFromSelectorWord]
       (transferFromAfterToLoadMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, transferFromAccountMapAfterBalanceI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+      (transferFromAccountMapAfterBalanceI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨563⟩
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)) k C) :
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨563⟩
       [transferFromSelectorWord]
       (transferFromAfterToLoadMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, transferFromAccountMapAfterToI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+      (transferFromAccountMapAfterToI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)
-        (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)
+        (transferFromNewToWord (initState σ σ₀ g A I) I)) k C := by
   obtain ⟨k, C, rd561⟩ := hreach
   obtain ⟨k1, C1, rdAfterStore⟩ := rd561.sstore hperm
     (by vyper_erc20_transferFrom_decode) (by evm_ov)

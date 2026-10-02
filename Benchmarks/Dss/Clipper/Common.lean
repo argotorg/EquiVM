@@ -67,16 +67,6 @@ def clipperStorageWF (σ : AccountMap) (I : ExecutionEnv) : Prop :=
   224 + 64 * (solcSlotWord σ I ⟨11⟩).toNat < UInt256.size ∧
     64 + 32 * (solcSlotWord σ I ⟨11⟩).toNat < 2 ^ 64 ∧
       I.calldata.size < 2 ^ 255
-theorem clipperStorageWF_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
-    clipperStorageWF σ I ↔ clipperStorageWF τ I := by
-  have hword : solcSlotWord σ I ⟨11⟩ = solcSlotWord τ I ⟨11⟩ :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨11⟩ ⟨0⟩
-  constructor <;> intro h <;> simpa [clipperStorageWF, hword] using h
-theorem clipperStorageWF_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) (hwf : clipperStorageWF σ I) :
-    clipperStorageWF τ I :=
-  (clipperStorageWF_accountMapEquiv hAccounts).mp hwf
 theorem clipperStorageWF_calldata_lt_sign {σ : AccountMap} {I : ExecutionEnv}
     (hwf : clipperStorageWF σ I) :
     I.calldata.size < 2 ^ 255 := by
@@ -96,10 +86,11 @@ theorem clipperExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target :
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [hacc] using hword
+-- TODO: Replace these equality wrappers with direct rewriting at call sites as their modules migrate.
 -- LIBRARY CANDIDATE: account-map transport for zero-code-size lookup facts.
 theorem clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
     {σ τ : AccountMap} {target : UInt256} {addr : AccountAddress}
-    (hAccounts : accountMapEquiv σ τ)
+    (hAccounts : σ = τ)
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat ((τ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
@@ -109,7 +100,7 @@ theorem clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
 -- LIBRARY CANDIDATE: account-map transport for nonzero-code-size lookup facts.
 theorem clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
     {σ τ : AccountMap} {target : UInt256} {addr : AccountAddress}
-    (hAccounts : accountMapEquiv σ τ)
+    (hAccounts : σ = τ)
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat ((τ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
@@ -1169,13 +1160,13 @@ theorem clipperReturnAddress716Wf (v : ClipperImmutables) {code : ByteArray}
 theorem clipperPackedUintSlotGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc slot mask ret : UInt256} {width : Nat}
     {op : Operation.POp} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem aw rdata (cA, σ) k C)
+    {rdata : ByteArray} {σ : AccountMap}
+    (h : RD code ee g s0 pc (ret :: R) mem aw rdata σ k C)
     (hwf : clipperPackedUintSlotGetterWf code pc slot mask width op)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 4 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
-      (UInt256.land (solcSlotWord σ ee slot) mask :: ret :: R) mem aw rdata (cA, σ) k' C' := by
+      (UInt256.land (solcSlotWord σ ee slot) mask :: ret :: R) mem aw rdata σ k' C' := by
   rcases hwf with ⟨hd0, hd1, hd3, hop, hd4, hdMaskOut, hdAndOut, hdJump⟩
   have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
   have rd3 := rd1.push1 slot hd1 (by simp only [List.length_cons]; omega)
@@ -1235,7 +1226,7 @@ theorem clipperPackedUintSlotGetter {code : ByteArray} {g : Sat256} {s0 : State}
 theorem clipperReturnMaskedFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc val ret mask : UInt256} {width : Nat}
     {op : Operation.POp} {R : List UInt256} {mem memout rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc (val :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : clipperReturnMaskedFromMemWf code pc mask width op)
     (hmload64 :
@@ -1291,18 +1282,18 @@ theorem clipperReturnMaskedFromMem {code : ByteArray} {g : Sat256} {s0 : State}
         exact hread128)
       (by evm_ov)]
 
-theorem clipperPackedUintGetterExternal {code : ByteArray} {cA gh bl σ σ₀ A I}
+theorem clipperPackedUintGetterExternal {code : ByteArray} {σ σ₀ A I}
     {g : Sat256} {sel entry routine slot returnPc mask : UInt256} {bits width : Nat}
     {op : Operation.POp}
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : clipperPackedUintSlotGetterWf code routine slot mask width op)
     (hmask : mask.toNat = 2 ^ bits - 1)
     (hroutine : (D_J code 0).contains routine = true)
     (hret : (D_J code 0).contains returnPc = true)
     (hreturn : clipperReturnMaskedFromMemWf code returnPc mask width op) :
-    RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    RDret code g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.land (solcSlotWord σ I slot) mask)) := by
   obtain ⟨_, _, rdRoutine⟩ := RD.solcGetterThunk hreach hentry hroutine
   obtain ⟨_, _, rdReturn⟩ := clipperPackedUintSlotGetter (slot := slot) (mask := mask)
@@ -1364,8 +1355,8 @@ set_option maxHeartbeats 1000000 in
 theorem clipperPackedUintOffsetSlotGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc slot shiftBits bits ret : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem aw rdata (cA, σ) k C)
+    {σ : AccountMap}
+    (h : RD code ee g s0 pc (ret :: R) mem aw rdata σ k C)
     (hwf : clipperPackedUintOffsetSlotGetterWf code pc slot shiftBits bits)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
@@ -1374,7 +1365,7 @@ theorem clipperPackedUintOffsetSlotGetter {code : ByteArray} {g : Sat256} {s0 : 
         (UInt256.div (solcSlotWord σ ee slot)
           (UInt256.shiftLeft (⟨1⟩ : UInt256) shiftBits))
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) bits) ⟨1⟩) ::
-        ret :: R) mem aw rdata (cA, σ) k' C' := by
+        ret :: R) mem aw rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd6, hd8, hd9, hd10, hd11, hd13, hd15, hd17, hd18,
       hd19, hd20, hd21⟩
@@ -1457,7 +1448,7 @@ set_option maxHeartbeats 1000000 in
 theorem clipperReturnComputedMaskFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc val ret bits : UInt256}
     {R : List UInt256} {mem memout rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc (val :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : clipperReturnComputedMaskFromMemWf code pc bits)
     (hmload64 :
@@ -1520,10 +1511,10 @@ theorem clipperReturnComputedMaskFromMem {code : ByteArray} {g : Sat256} {s0 : S
         exact hread128)
       (by evm_ov)]
 
-theorem clipperPackedUintOffsetGetterExternal {code : ByteArray} {cA gh bl σ σ₀ A I}
+theorem clipperPackedUintOffsetGetterExternal {code : ByteArray} {σ σ₀ A I}
     {g : Sat256} {sel entry routine slot returnPc shiftBits bits : UInt256} {bitNat : Nat}
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : clipperPackedUintOffsetSlotGetterWf code routine slot shiftBits bits)
     (hmask :
@@ -1532,7 +1523,7 @@ theorem clipperPackedUintOffsetGetterExternal {code : ByteArray} {cA gh bl σ σ
     (hroutine : (D_J code 0).contains routine = true)
     (hret : (D_J code 0).contains returnPc = true)
     (hreturn : clipperReturnComputedMaskFromMemWf code returnPc bits) :
-    RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    RDret code g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.land
         (UInt256.div (solcSlotWord σ I slot)
           (UInt256.shiftLeft (⟨1⟩ : UInt256) shiftBits))
@@ -1621,15 +1612,15 @@ theorem clipperPackedUintOffsetGetterExternal {code : ByteArray} {cA gh bl σ σ
 set_option maxHeartbeats 1000000 in
 theorem solcZeroSlotSingleMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcZeroSlotSingleMappingGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot ⟨0⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
       hd16, hd17⟩
@@ -1732,17 +1723,17 @@ theorem solcZeroSlotSingleMappingGetter {code : ByteArray} {g : Sat256} {s0 : St
 
 -- GENERALIZES Benchmarks.Dss.Dai.Storage.RD.daiOneAddressExternalLenOk.
 set_option maxHeartbeats 1000000 in
-theorem solcOneAddressExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem solcOneAddressExternalLenOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {code : ByteArray} {entry ret routine : UInt256}
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : solcOneAddressExternalEntryWf code entry ret routine)
     (hdecoded : (D_J code 0).contains (solcOneAddressExternalDecodedPc entry) = true)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD code I g (initState σ σ₀ g A I)
       (solcOneAddressExternalDecodedPc entry)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   rcases hwf with
     ⟨hd0, hd1, hd4, hd6, hd7, hd8, hd9, hd11, hd12, hd13, hd14, hd17, _hd18,
       _hd20, _hd21, _hd22, _hd23, _hd24, _hd25, _hd27, _hd29, _hd31, _hd32,
@@ -1755,15 +1746,15 @@ set_option maxHeartbeats 1000000 in
 theorem solcOneAddressExternalMaskAndJumpMasked {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256}
     {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD code ee g s0 (solcOneAddressExternalDecodedPc entry)
-      (de :: ⟨4⟩ :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (de :: ⟨4⟩ :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcOneAddressExternalEntryWf code entry ret routine)
     (hroutine : (D_J code 0).contains routine = true)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD code ee g s0 routine
       (UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨_hd0, _hd1, _hd4, _hd6, _hd7, _hd8, _hd9, _hd11, _hd12, _hd13, _hd14,
       _hd17, _hd18, _hd20, _hd21, hd22, hd23, hd24, hd25, hd27, hd29, hd31,
@@ -1773,14 +1764,14 @@ theorem solcOneAddressExternalMaskAndJumpMasked {code : ByteArray} {g : Sat256}
 
 -- GENERALIZES Benchmarks.Dss.Dai.Storage.RD.daiOneAddressExternalShort.
 set_option maxHeartbeats 1000000 in
-theorem solcOneAddressExternalShort {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem solcOneAddressExternalShort {σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256} {code : ByteArray}
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : solcOneAddressExternalEntryWf code entry ret routine)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev code g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1796,17 +1787,17 @@ theorem solcOneAddressExternalShort {cA gh bl σ σ₀ A I} {g : Sat256}
     hd11 hd12 hd13 hd14 hd17 hd18 hd20 hd21 hlt
 
 -- LIBRARY CANDIDATE: constant getter returning via solc's address ABI return block.
-theorem solcAddressConstGetterExternal {code : ByteArray} {cA gh bl σ σ₀ A I}
+theorem solcAddressConstGetterExternal {code : ByteArray} {σ σ₀ A I}
     {g : Sat256} {sel entry routine returnPc val : UInt256} {width : Nat}
     {op : Operation.POp}
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : solcConstGetterWf code routine val width op)
     (hroutine : (D_J code 0).contains routine = true)
     (hret : (D_J code 0).contains returnPc = true)
     (hreturn : solcReturnAddressFromMemWf code returnPc) :
-    RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    RDret code g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.land val solcAddrMask)) := by
   obtain ⟨_, _, rdRoutine⟩ := RD.solcGetterThunk hreach hentry hroutine
   obtain ⟨_, _, rdReturn⟩ := RD.solcConstGetter (val := val) (width := width)
@@ -1820,7 +1811,7 @@ theorem solcAddressConstGetterExternal {code : ByteArray} {cA gh bl σ σ₀ A I
     (by simp only [List.length_singleton]; omega)
 
 theorem clipperUint256GetterBodyCore (v : ClipperImmutables) {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry routine slot returnPc : UInt256}
     (hcode : I.code = code)
     (hdispatch : dispatchMsg (contract v) I.calldata = some transition)
@@ -1828,9 +1819,8 @@ theorem clipperUint256GetterBodyCore (v : ClipperImmutables) {code : ByteArray}
       decodeCalldataWithMode (config v).abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : solcWordSlotGetterWf code routine slot)
     (hroutine : (D_J code 0).contains routine = true)
@@ -1839,31 +1829,30 @@ theorem clipperUint256GetterBodyCore (v : ClipperImmutables) {code : ByteArray}
     (hreturn : transition.returnType = [uint256])
     (hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract v, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (solcSlotWord σ_solm I slot).toNat))]))) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : solcSlotWord σ_evm I slot = solcSlotWord σ_solm I slot :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (solcSlotWord σ I slot).toNat))]))) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+  have hword : solcSlotWord σ I slot = solcSlotWord σ I slot := rfl
   have hval :
-      some [Value.int (Int.ofNat (solcSlotWord σ_solm I slot).toNat)] =
-        some [Value.int (Int.ofNat (solcSlotWord σ_evm I slot).toNat)] := by
+      some [Value.int (Int.ofNat (solcSlotWord σ I slot).toNat)] =
+        some [Value.int (Int.ofNat (solcSlotWord σ I slot).toNat)] := by
     rw [hword]
   have henc :
-      returnEquiv (UInt256.toByteArray (solcSlotWord σ_evm I slot))
-        (some [(.int (Int.ofNat (solcSlotWord σ_evm I slot).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWord σ I slot))
+        (some [(.int (Int.ofNat (solcSlotWord σ I slot).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWord σ_evm I slot))
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWord σ I slot))
   have hrd := RD.solcWordGetterExternal (code := code) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hret hreturnWf
-  exact hrd.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hrd.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem clipperAddressGetterBodyCore (v : ClipperImmutables) {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry routine slot returnPc : UInt256}
     (hcode : I.code = code)
     (hdispatch : dispatchMsg (contract v) I.calldata = some transition)
@@ -1871,9 +1860,8 @@ theorem clipperAddressGetterBodyCore (v : ClipperImmutables) {code : ByteArray}
       decodeCalldataWithMode (config v).abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : solcAddressSlotGetterWf code routine slot)
     (hroutine : (D_J code 0).contains routine = true)
@@ -1882,36 +1870,35 @@ theorem clipperAddressGetterBodyCore (v : ClipperImmutables) {code : ByteArray}
     (hreturn : transition.returnType = [addr])
     (hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract v, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (UInt256.land (solcSlotWord σ_solm I slot) solcAddrMask).toNat))]))) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : solcSlotWord σ_evm I slot = solcSlotWord σ_solm I slot :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
+            (UInt256.land (solcSlotWord σ I slot) solcAddrMask).toNat))]))) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+  have hword : solcSlotWord σ I slot = solcSlotWord σ I slot := rfl
   have hval :
       some [Value.address (AccountAddress.ofNat
-          (UInt256.land (solcSlotWord σ_solm I slot) solcAddrMask).toNat)] =
+          (UInt256.land (solcSlotWord σ I slot) solcAddrMask).toNat)] =
         some [Value.address (AccountAddress.ofNat
-          (UInt256.land (solcSlotWord σ_evm I slot) solcAddrMask).toNat)] := by
+          (UInt256.land (solcSlotWord σ I slot) solcAddrMask).toNat)] := by
     rw [hword]
   have henc :
       returnEquiv (UInt256.toByteArray
-          (UInt256.land (solcSlotWord σ_evm I slot) solcAddrMask))
+          (UInt256.land (solcSlotWord σ I slot) solcAddrMask))
         (some [(.address (AccountAddress.ofNat
-          (UInt256.land (solcSlotWord σ_evm I slot) solcAddrMask).toNat))])
+          (UInt256.land (solcSlotWord σ I slot) solcAddrMask).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [addr] using solcAddressReturnEncoding rfl (solcSlotWord σ_evm I slot))
+      (by simpa [addr] using solcAddressReturnEncoding rfl (solcSlotWord σ I slot))
   have hrd := RD.solcAddressGetterExternal (code := code) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hret hreturnWf
-  exact hrd.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hrd.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem clipperAddressConstGetterBodyCore (v : ClipperImmutables) {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry routine returnPc val : UInt256} {width : Nat}
     {op : Operation.POp}
     (hcode : I.code = code)
@@ -1920,9 +1907,8 @@ theorem clipperAddressConstGetterBodyCore (v : ClipperImmutables) {code : ByteAr
       decodeCalldataWithMode (config v).abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : solcConstGetterWf code routine val width op)
     (hroutine : (D_J code 0).contains routine = true)
@@ -1931,11 +1917,11 @@ theorem clipperAddressConstGetterBodyCore (v : ClipperImmutables) {code : ByteAr
     (hreturn : transition.returnType = [addr])
     (hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract v, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat val.toNat))]))) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray (UInt256.land val solcAddrMask))
         (some [(.address (AccountAddress.ofNat val.toNat))]) transition.returnType := by
@@ -1950,10 +1936,10 @@ theorem clipperAddressConstGetterBodyCore (v : ClipperImmutables) {code : ByteAr
   have hrd := solcAddressConstGetterExternal (code := code) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (val := val)
     (width := width) (op := op) hreach hentry hgetter hroutine hret hreturnWf
-  exact hrd.reEquivExecutionTransport hcode hdispatch hdecode hbody rfl hAccounts henc
+  exact hrd.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem clipperBytes32ConstGetterBodyCore (v : ClipperImmutables) {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry routine returnPc val : UInt256} {width : Nat}
     {op : Operation.POp}
     (hcode : I.code = code)
@@ -1962,9 +1948,8 @@ theorem clipperBytes32ConstGetterBodyCore (v : ClipperImmutables) {code : ByteAr
       decodeCalldataWithMode (config v).abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : solcConstGetterWf code routine val width op)
     (hroutine : (D_J code 0).contains routine = true)
@@ -1973,11 +1958,11 @@ theorem clipperBytes32ConstGetterBodyCore (v : ClipperImmutables) {code : ByteAr
     (hreturn : transition.returnType = [bytes32])
     (hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract v, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE val))]))) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have henc :
       returnEquiv (UInt256.toByteArray val)
         (some [(.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE val))])
@@ -1988,6 +1973,6 @@ theorem clipperBytes32ConstGetterBodyCore (v : ClipperImmutables) {code : ByteAr
   have hrd := RD.solcWordConstGetterExternal (code := code) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (val := val)
     (width := width) (op := op) hreach hentry hgetter hroutine hret hreturnWf
-  exact hrd.reEquivExecutionTransport hcode hdispatch hdecode hbody rfl hAccounts henc
+  exact hrd.reEquivExecution hcode hdispatch hdecode hbody henc
 
 end Benchmarks.Dss.Clipper

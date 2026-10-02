@@ -8,7 +8,7 @@ namespace UniswapV2Pair
 
 theorem mintFunctionTotalSupplyNewNat_eq_runtime
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv} {liquidity : UInt256}
-    (hPost : accountMapEquiv σ evm.accountMap)
+    (hPost : σ = evm.accountMap)
     (henv : evm.executionEnv = I) :
     mintFunctionTotalSupplyNewNat evm liquidity =
       (uniswapSlotWord ⟨0⟩ σ I).toNat + liquidity.toNat := by
@@ -19,7 +19,7 @@ theorem mintFunctionTotalSupplyNewNat_eq_runtime
 theorem mintFunctionToBalanceNewNat_eq_runtimeMintRecipient
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv} {mem : ByteArray}
     {liquidity recipientWord : UInt256} {recipient : AccountAddress}
-    (hPost : accountMapEquiv σ evm.accountMap)
+    (hPost : σ = evm.accountMap)
     (henv : evm.executionEnv = I)
     (hrecipient : recipient = AccountAddress.ofNat recipientWord.toNat)
     (hmem : 64 ≤ mem.size)
@@ -37,7 +37,7 @@ theorem mintFunctionToBalanceNewNat_eq_runtimeMintRecipient
       using u256_ofNat_toNat_add_eq_add_of_lt (uniswapSlotWord ⟨0⟩ σ I) liquidity
         (by simpa [mintFunctionTotalSupplyNewNat, htotalEq] using hfitSupply)
   have hafterTotal :
-      accountMapEquiv
+      Eq
         (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + liquidity))
         (mintFunctionAfterTotalSupplyState evm liquidity).accountMap := by
     have hstore := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩

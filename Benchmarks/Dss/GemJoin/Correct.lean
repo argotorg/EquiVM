@@ -25,34 +25,33 @@ namespace Benchmarks.Dss.GemJoin
 theorem gemJoinCorrect :
     runtimeEquivalence config gemJoinBytecode contract := by
   refine runtimeEquivalence.intro ?_
-  intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
+  intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcage : selIs I (gemJoinSelBytes 0)
-    · exact gemJoinCageBodyCore hcode hsize hperm hwv hcage hAccounts
+    · exact gemJoinCageBodyCore hcode hsize hperm hwv hcage
     · by_cases hdec : selIs I (gemJoinSelBytes 1)
-      · exact gemJoinDecBodyCore hcode hsize hperm hwv hdec hAccounts
+      · exact gemJoinDecBodyCore hcode hsize hperm hwv hdec
       · by_cases hdeny : selIs I (gemJoinSelBytes 2)
-        · exact gemJoinDenyBodyCore hcode hsize hperm hwv hdeny hAccounts
+        · exact gemJoinDenyBodyCore hcode hsize hperm hwv hdeny
         · by_cases hexit : selIs I (gemJoinSelBytes 3)
-          · exact gemJoinExitBodyCore hcode hsize hperm hwv hexit hAccounts
+          · exact gemJoinExitBodyCore hcode hsize hperm hwv hexit
           · by_cases hgem : selIs I (gemJoinSelBytes 4)
-            · exact gemJoinGemBodyCore hcode hsize hperm hwv hgem hAccounts
+            · exact gemJoinGemBodyCore hcode hsize hperm hwv hgem
             · by_cases hilk : selIs I (gemJoinSelBytes 5)
-              · exact gemJoinIlkBodyCore hcode hsize hperm hwv hilk hAccounts
+              · exact gemJoinIlkBodyCore hcode hsize hperm hwv hilk
               · by_cases hjoin : selIs I (gemJoinSelBytes 6)
-                · exact gemJoinJoinBodyCore hcode hsize hperm hwv hjoin hAccounts
+                · exact gemJoinJoinBodyCore hcode hsize hperm hwv hjoin
                 · by_cases hlive : selIs I (gemJoinSelBytes 7)
-                  · exact gemJoinLiveBodyCore hcode hsize hperm hwv hlive hAccounts
+                  · exact gemJoinLiveBodyCore hcode hsize hperm hwv hlive
                   · by_cases hrely : selIs I (gemJoinSelBytes 8)
-                    · exact gemJoinRelyBodyCore hcode hsize hperm hwv hrely hAccounts
+                    · exact gemJoinRelyBodyCore hcode hsize hperm hwv hrely
                     · by_cases hvat : selIs I (gemJoinSelBytes 9)
-                      · exact gemJoinVatBodyCore hcode hsize hperm hwv hvat hAccounts
+                      · exact gemJoinVatBodyCore hcode hsize hperm hwv hvat
                       · by_cases hwards : selIs I (gemJoinSelBytes 10)
-                        · exact gemJoinWardsBodyCore hcode hsize hperm hwv hwards hAccounts
+                        · exact gemJoinWardsBodyCore hcode hsize hperm hwv hwards
                         · exact gemJoinNoDispatch hcode hsize hperm hwv
                             (gemJoinNoSelectorMatches hcage hdec hdeny hexit hgem hilk hjoin hlive
                               hrely hvat hwards)
-                            hAccounts
   · exact gemJoinNonPayable hcode hwv
 
 theorem gemJoinContractCorrect :

@@ -29,13 +29,10 @@ private theorem flopperCtorDefaultsSlot6Word_eq_source (old : UInt256) :
   rw [u256_lor_comm]
 
 private theorem flopperCtorStateEquiv
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
-    {σ_evm σ_solm σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
-    (vat gem : AccountAddress)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    let evm0e := initState createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I
-    let evm0s := initState createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    (vat gem : AccountAddress) :
+    let evm0e := initState σ σ₀ g A I
+    let evm0s := initState σ σ₀ g A I
     let evm1e := flopperCtorAfterBegState evm0e
     let evm1s := flopperCtorAfterBegState evm0s
     let evm2e := flopperCtorAfterPadState evm1e
@@ -59,7 +56,7 @@ private theorem flopperCtorStateEquiv
   intro evm0e evm0s evm1e evm1s evm2e evm2s evm4e evm3s evm4s evm5e evm5s
     evm6e evm6s evm7e evm7s evm8e evm8s evm9e evm9s
   have h0 : EVMStateEquiv evm0e evm0s := by
-    simpa [evm0e, evm0s] using EVMStateEquiv.initState (g := g) hAccounts
+    simpa [evm0e, evm0s] using EVMStateEquiv.initState (g := g) rfl
   have h1 : EVMStateEquiv evm1e evm1s := by
     simpa [evm1e, evm1s, evm0e, evm0s, flopperCtorAfterBegState, initState]
       using h0.storageStore_codeOwner ⟨4⟩ (show flopperCtorBegWord = flopperCtorBegWord by rfl)
@@ -79,7 +76,7 @@ private theorem flopperCtorStateEquiv
       simpa [packedS] using
         congrArg flopperCtorDefaultsSlot6Word (h2.storageLoad_codeOwner ⟨6⟩)
     simpa [evm4e, evm4sPacked] using h2.storageStore_codeOwner ⟨6⟩ hval
-  have hPackedActual : accountMapEquiv evm4sPacked.accountMap evm4s.accountMap := by
+  have hPackedActual : evm4sPacked.accountMap = evm4s.accountMap := by
     cases hacc : evm2s.accountMap.find? evm2s.executionEnv.codeOwner with
     | none =>
         have hPackedNoop : evm4sPacked = evm2s := by
@@ -97,7 +94,7 @@ private theorem flopperCtorStateEquiv
               (fileSetUint48Offset6Word
                 (Solm.EVM.storageLoad evm2s evm2s.executionEnv.codeOwner ⟨6⟩)
                 flopperCtorTauWord)
-        simpa [hPackedNoop, hTauNoop] using accountMapEquiv_refl evm2s.accountMap
+        simpa [hPackedNoop, hTauNoop] using (rfl : evm2s.accountMap = evm2s.accountMap)
     | some acc =>
         have hTtlLoad :
             Solm.EVM.storageLoad evm3s evm3s.executionEnv.codeOwner ⟨6⟩ =
@@ -130,7 +127,7 @@ private theorem flopperCtorStateEquiv
               packedS := by
           simpa [evm3s, flopperCtorAfterTtlState, storageStore_executionEnv] using hTauVal
         have hbase :=
-          accountMapEquiv_sstoreAccountMap_self_update evm2s.accountMap
+          sstoreAccountMap_self_update evm2s.accountMap
             evm2s.executionEnv.codeOwner ⟨6⟩
             (fileSetUint48Offset0Word
               (Solm.EVM.storageLoad evm2s evm2s.executionEnv.codeOwner ⟨6⟩)
@@ -140,11 +137,9 @@ private theorem flopperCtorStateEquiv
           flopperCtorAfterTauState, storageStore_accountMap, storageStore_executionEnv,
           hTauVal'] using hbase
   have h3 : EVMStateEquiv evm4e evm4s := by
-    refine ⟨?_, ?_, accountMapEquiv.trans hPacked.accountMap hPackedActual⟩
-    · simpa [evm4sPacked, evm4s, evm3s, flopperCtorAfterTtlState,
+    refine ⟨?_, hPacked.accountMap.trans hPackedActual⟩
+    simpa [evm4sPacked, evm4s, evm3s, flopperCtorAfterTtlState,
         flopperCtorAfterTauState, storageStore_executionEnv] using hPacked.executionEnv
-    · simpa [evm4sPacked, evm4s, evm3s, flopperCtorAfterTtlState,
-        flopperCtorAfterTauState, storageStore_createdAccounts] using hPacked.createdAccounts
   have h4 : EVMStateEquiv evm5e evm5s := by
     simpa [evm5e, evm5s, evm4e, evm4s, flopperCtorAfterKicksState]
       using h3.storageStore_codeOwner ⟨7⟩ (show (⟨0⟩ : UInt256) = ⟨0⟩ by rfl)
@@ -192,16 +187,15 @@ set_option maxHeartbeats 2000000 in
 theorem flopperConstructorCorrect :
     constructorEquivalence config flopperCreationBytecode contract flopperBytecode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I args deployedInitcode
-    hdeploy hcode _hcalldata hperm hAccounts
+  intro σ σ₀ g A I args deployedInitcode
+    hdeploy hcode _hcalldata hperm
   rcases flopperCtorDeployment_shape hdeploy with ⟨vat, gem, hargs, hdeployed⟩
   subst args
   have hcodeCtor : I.code = flopperCtorCode vat gem := by
     rw [hcode, hdeployed]
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hrd := flopperInitcodeSuccess
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat gem hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
     · exact constructorEquivalenceFor.outOfGas
@@ -211,13 +205,9 @@ theorem flopperConstructorCorrect :
     · have hsuccess := Xi_success_of_X (g := g) (by
         rw [← hcodeCtor] at hX
         simpa [Sat256.ofUInt256] using hX)
-      have hcA : s.createdAccounts = createdAccounts := congrArg Prod.fst hacc
-      have hσ' : s.accountMap =
-          flopperCtorFinalMap (flopperCtorAfterKicksMap σ_evm I) I vat gem := by
-        simpa using congrArg Prod.snd hacc
-      rw [hcA, hσ'] at hsuccess
+      rw [hacc] at hsuccess
       let evm0s :=
-        initState createdAccounts genesisBlockHeader blocks σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm1s := flopperCtorAfterBegState evm0s
       let evm2s := flopperCtorAfterPadState evm1s
       let evm3s := flopperCtorAfterTtlState evm2s
@@ -228,7 +218,7 @@ theorem flopperConstructorCorrect :
       let evm8s := flopperCtorAfterGemState evm7s gem
       let evm9s := flopperCtorAfterLiveState evm8s
       let evm0e :=
-        initState createdAccounts genesisBlockHeader blocks σ_evm σ₀ (Sat256.ofUInt256 g) A I
+        initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm1e := flopperCtorAfterBegState evm0e
       let evm2e := flopperCtorAfterPadState evm1e
       let evm4e := Solm.EVM.storageStore evm2e evm2e.executionEnv.codeOwner ⟨6⟩
@@ -244,13 +234,12 @@ theorem flopperConstructorCorrect :
           evm5e, evm5s, evm6e, evm6s, evm7e, evm7s, evm8e, evm8s, evm9e, evm9s]
           using
             flopperCtorStateEquiv
-              (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-              (blocks := blocks) (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀)
-              (A := A) (I := I) (g := Sat256.ofUInt256 g) vat gem hAccounts
+              (σ := σ)  (σ₀ := σ₀)
+              (A := A) (I := I) (g := Sat256.ofUInt256 g) vat gem
       have hslot : wardsSlot (.address I.source) = flopperCtorCallerWardsSlot I :=
         flopperCtorCallerWardsSlot_eq I
       have hAccountsFinal :
-          accountMapEquiv (flopperCtorFinalMap (flopperCtorAfterKicksMap σ_evm I) I vat gem)
+          flopperCtorFinalMap (flopperCtorAfterKicksMap σ I) I vat gem =
             evm9s.accountMap := by
         simpa [evm9e, evm8e, evm7e, evm6e, evm5e, evm4e, evm2e, evm1e, evm0e,
           evm9s, evm8s, evm7s, evm6s, evm5s, evm4s, evm3s, evm2s, evm1s, evm0s,
@@ -268,27 +257,19 @@ theorem flopperConstructorCorrect :
           simpa [evm0s, evm1s, evm2s, evm3s, evm4s, evm5s, evm6s, evm7s, evm8s,
             evm9s] using
             flopperSolmCtorExecSuccess
-              (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-              (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
               (g := g) vat gem hwv)
         ?_
-      refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
-      · simp [evm9s, evm8s, evm7s, evm6s, evm5s, evm4s, evm3s, evm2s, evm1s,
-          evm0s, flopperCtorAfterLiveState, flopperCtorAfterGemState,
-          flopperCtorAfterVatState, flopperCtorAfterWardsState, flopperCtorAfterKicksState,
-          flopperCtorAfterTauState, flopperCtorAfterTtlState, flopperCtorAfterPadState,
-          flopperCtorAfterBegState, storageStore_createdAccounts, initState]
-      · exact hAccountsFinal
+      refine ctorResultEquiv.success rfl rfl ?_ rfl
+      exact hAccountsFinal
   · have hrd := flopperInitcodeNonpayableRevert
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat gem hcodeCtor hperm hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩
     · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
     · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
         (flopperSolmCtorExecReverts_nonpayable
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := g) vat gem hwv)
         ?_
       exact ctorResultEquiv.revert rfl rfl

@@ -11,8 +11,7 @@ namespace Benchmarks.WETH9
     Mirrors `CHAINID`/`CALLER`: a 0-pop / 1-push opcode.  The pushed word is the balance of
     `codeOwner` in the current account map (`accountMap.find? codeOwner |>.elim ⟨0⟩ (·.balance)`).
     `RD` hides the cursor `s`, so the combinator states the pushed value through the tracked
-    `acc = (createdAccounts, accountMap)` and `ee` (`acc.2` is the account map, `ee.codeOwner`
-    the owner). -/
+    account map `acc` and `ee.codeOwner`. -/
 
 def stSelfbalance (s : State) : State :=
   { s with machineState := { s.machineState with
@@ -35,16 +34,16 @@ theorem selfbalance_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest :
   rw [← hcode, step_selfbalance s hd, if_neg hov']
   simp only [GasConstants.Glow, stSelfbalance]
 
-/-- **SELFBALANCE**: push the code owner's balance (`acc.2.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)`)
+/-- **SELFBALANCE**: push the code owner's balance (`acc.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)`)
     onto the stack (cost `Glow = 5`, pc += 1). -/
 theorem RD.selfbalance {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.SELFBALANCE, .none))
     (hov : stk.length + 1 ≤ 1024) :
     RD code ee g s0 (pc + ⟨1⟩)
-      ((acc.2.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)) :: stk) mem aw rdata acc
+      ((acc.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)) :: stk) mem aw rdata acc
       (k + 1) (C + GasConstants.Glow) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
@@ -57,8 +56,7 @@ theorem RD.selfbalance {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 :
         (by have : 1 ≤ GasConstants.Glow := (by decide); omega), by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stSelfbalance]; exact hcode
       · simp only [stSelfbalance]; rw [hpc]
-      · have haccm : s.accountMap = acc.2 := by rw [← hacc]
-        simp only [stSelfbalance]; rw [hstk, hee, haccm]
+      · simp only [stSelfbalance]; rw [hstk, hee, hacc]
       · simp only [stSelfbalance]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
       · simp only [stSelfbalance]; exact hmem
       · simp only [stSelfbalance]; exact haw
@@ -109,7 +107,7 @@ theorem log2_xstep {s : State} {code : ByteArray} {pcv a b c d : UInt256} {t : L
     (aborts in static mode).  The `substate.logSeries` append is invisible to `RD`. -/
 theorem RD.log2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
     (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG2, .none)) (hperm : ee.perm = true)

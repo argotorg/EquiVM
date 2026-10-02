@@ -8,17 +8,17 @@ namespace UniswapV2Pair
 set_option maxRecDepth 2000000 in
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintProportionalRuntimeCases
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {totalSupply feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel :
       UInt256} {locals : Store} (evm : EVM.State) (recipient : AccountAddress) (fee : Bool)
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0,
         ⟨0⟩, toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
-    (hAccounts : accountMapEquiv σFee evm.accountMap)
+      mem feeToStaticcallActiveWords rdata σFee k C)
+    (hAccounts : Eq σFee evm.accountMap)
     (henv : evm.executionEnv = I)
     (hrecipient : recipient = AccountAddress.ofNat toWord.toNat)
     (hto : locals.get? "to" = some (.address recipient))
@@ -45,17 +45,17 @@ theorem uniswapMintProportionalRuntimeCases
     (ExecBlock config { contract := contract, locals := locals } evm
         ([mintLiquidityBranchStmt] ++ mintAfterLiquidityTailStmts) .reverted ∧
       (RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∨
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∨
         RDinvalid uniswapV2PairBytecode (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))) ∨
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))) ∨
     (∃ liquidity frame' evm' σ',
       ExecBlock config { contract := contract, locals := locals } evm
         ([mintLiquidityBranchStmt] ++ mintAfterLiquidityTailStmts) (.returned frame' evm'
           (some [uniswapUint256Value liquidity])) ∧
-      accountMapEquiv σ' evm'.accountMap ∧ evm'.createdAccounts = evm.createdAccounts ∧
+      σ' = evm'.accountMap ∧
       RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-        (cAFee, σ') (UInt256.toByteArray liquidity)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        σ' (UInt256.toByteArray liquidity)) := by
   obtain ⟨_, _, rd3762⟩ := uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero rd3701
     htotalSlot htotalNonzero
   rcases uniswapMintProportionalArithmeticCases evm rd3762 hclean0 hclean1 hmem hmem64
@@ -75,10 +75,10 @@ theorem uniswapMintProportionalRuntimeCases
     obtain ⟨k3841, C3841, rd3841Raw⟩ := uniswapMintRuntimeProportionalLiquidityEntry rd3762
       hclean0 hclean1 hfit0 hfit1 hr0 hr1
     have rd3841 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3841⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3841⟩
         [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0,
           liquidity, toWord, ⟨861⟩, sel]
-        mem feeToStaticcallActiveWords rdata (cAFee, σFee) k3841 C3841 := by
+        mem feeToStaticcallActiveWords rdata σFee k3841 C3841 := by
       simpa only [liquidity, liquidity0, liquidity1, mintProportionalLiquidityWord,
         mintAmountProductWord_eq_mul _ _ hfit0, mintAmountProductWord_eq_mul _ _ hfit1]
         using rd3841Raw
@@ -107,10 +107,10 @@ theorem uniswapMintProportionalRuntimeCases
         store_get_ne _ _ (by decide), hunlocked])
       hclean0 hclean1 hperm hmem hmem64
     rcases htail with ⟨hrev, rdRev⟩ | ⟨frameRet, evmRet, σRet, hreturn, hRetAccounts,
-      hcreatedRet, rdRet⟩
+      rdRet⟩
     · exact Or.inl ⟨ExecBlock.consNormal hbranch hrev, Or.inl rdRev⟩
     · exact Or.inr ⟨liquidity, frameRet, evmRet, σRet, ExecBlock.consNormal hbranch hreturn,
-        hRetAccounts, hcreatedRet, rdRet⟩
+        hRetAccounts, rdRet⟩
   · exact Or.inl ⟨ExecBlock.consRevert hrev, hfailed⟩
 
 end UniswapV2Pair

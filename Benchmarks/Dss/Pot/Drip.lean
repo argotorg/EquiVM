@@ -1435,23 +1435,31 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
                 (dripTmpVal σ I pow) (dripNowWord I)).executionEnv.blocks true := by
             simpa only [dripEvmRho_executionEnv, dripEvmRho_σ₀,
               dripEvmRho_accountMap, hperm] using hΘ
-          obtain ⟨σ'_solm, A'_solm, hcallSolm, hAccounts'⟩ :=
-            typedCallViaEVM_callMade_accountMapEquiv (cfg := config)
-              (evm_evm := dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          let σ'_solm := σ'
+          let A'_solm := A'
+          have hcallSolm : typedCallViaEVM config
+              (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (dripTmpVal σ I pow) (dripNowWord I))
-              (evm_solm := dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-                (dripTmpVal σ I pow) (dripNowWord I))
-              (tgt := EVM.address (dripVatAddress σ I))
-              (targetWord := dripVatTargetWord σ2 I) (name := "suck")
-              (args := [.address (AccountAddress.ofNat (dripVowTargetWord σ I).toNat),
-                .address I.codeOwner, .int (Int.ofNat (dripRadVal σ I pow).toNat)])
-              (σ' := σ') (A' := A') (A_in := A_in) (z := z) (out := o)
-              (g'' := g'') (callGas := callGas)
-              (mem := potSuckCalldataMem σ2 I (dripPieWord σ2 I * dripChiDeltaVal σ I pow)
-                solcFreePtrMem)
-              (inOff := ⟨128⟩) (inSize := ⟨100⟩) (callPerm := true)
-              hdepthNe htgt (by rw [hradEq2] at hcd ⊢; exact hcd) hΘE
-              (by rfl) (by rfl) (by rfl)
+              (EVM.address (dripVatAddress σ I)) "suck" 0
+              [.address (AccountAddress.ofNat (dripVowTargetWord σ I).toNat),
+                .address I.codeOwner, .int (Int.ofNat (dripRadVal σ I pow).toNat)]
+              (z, { dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                (dripTmpVal σ I pow) (dripNowWord I) with
+                accountMap := σ'_solm, substate := A'_solm }, o) true := by
+            simpa [σ'_solm, A'_solm] using
+              (callCoincides (cfg := config)
+                (evm := dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                  (dripTmpVal σ I pow) (dripNowWord I)) (name := "suck")
+                (args := [.address (AccountAddress.ofNat (dripVowTargetWord σ I).toNat),
+                  .address I.codeOwner, .int (Int.ofNat (dripRadVal σ I pow).toNat)])
+                (tgt := EVM.address (dripVatAddress σ I))
+                (targetWord := dripVatTargetWord σ2 I) (σ' := σ') (A' := A')
+                (A_in := A_in) (z := z) (o := o) (g'' := g'') (callGas := callGas)
+                (mem := potSuckCalldataMem σ2 I
+                  (dripPieWord σ2 I * dripChiDeltaVal σ I pow) solcFreePtrMem)
+                (inOff := ⟨128⟩) (inSize := ⟨100⟩) (callPerm := true)
+                hdepthNe htgt hcd hΘE)
+          have hAccounts' : σ' = σ'_solm := rfl
           have hcallSolm' : typedCallViaEVM config
               (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (dripTmpVal σ I pow) (dripNowWord I))

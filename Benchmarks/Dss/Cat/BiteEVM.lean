@@ -39,12 +39,12 @@ theorem catDispatch_bite {I : ExecutionEnv} (hsel : selIs I ⟨#[0x45, 0xcf, 0x2
     simp at ht
   · rw [selectorOf, biteSelectorBytes]; exact hsel
 
-theorem catReachBiteEntry {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachBiteEntry {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
-        ⟨375⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+        ⟨375⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : catSelWord I = ⟨1171202608⟩ :=
     catSelWord_eq_of_beq I hsz 0x45 0xcf 0x22 0x30 ⟨1171202608⟩ (by native_decide) hsel
   have hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) ≠ ⟨0⟩ := by

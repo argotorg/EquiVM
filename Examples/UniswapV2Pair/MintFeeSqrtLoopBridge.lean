@@ -241,7 +241,7 @@ set_option maxHeartbeats 1000000 in
 theorem execStmt_sqrtLoopTerminates_runtime
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (evm : EVM.State) (y : Int)
     (hyPos : 0 < y)
     (hySize : y.toNat < UInt256.size)
@@ -346,7 +346,7 @@ set_option maxHeartbeats 1000000 in
 theorem uniswapSqrtFunctionBodyRuntime_gt3
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {y ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (evm : EVM.State)
     (rd8046 : RD uniswapV2PairBytecode ee g s0 ⟨8046⟩ (y :: ret :: R)
       mem aw rdata acc k C)
@@ -445,7 +445,7 @@ set_option maxHeartbeats 1000000 in
 theorem uniswapSqrtFunctionCallRuntimeSuccessIntBounded
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {y ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     {caller : Frame} {evm : EVM.State} {args : List Expr} {retVar : Ident}
     (hcontract : caller.contract = contract)
     (hargs : evalExprs? config caller evm args = .ok [sqrtFunctionYValue y])
@@ -512,7 +512,7 @@ set_option maxHeartbeats 1000000 in
 theorem uniswapSqrtFunctionCallRuntimeSuccessIntBoundedInput
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {y ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     {caller : Frame} {evm : EVM.State} {args : List Expr} {retVar : Ident}
     (hcontract : caller.contract = contract)
     (hargs : evalExprs? config caller evm args = .ok [sqrtFunctionYValue y])
@@ -581,7 +581,7 @@ theorem uniswapSqrtFunctionCallRuntimeSuccessIntBoundedInput
 set_option maxHeartbeats 1000000 in
 theorem mintFeeSqrtPrefixRuntimeBoundedInputOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeToWord reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (evm : EVM.State) (feeTo : AccountAddress)
@@ -589,7 +589,7 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInputOfTail
       s0 ⟨8046⟩
       (UInt256.mul reserve0 reserve1 :: ⟨7886⟩ :: ⟨0⟩ :: kLast :: feeToWord :: ⟨1⟩ :: reserve1 ::
         reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hfit : mintFeeReserveProductNat reserve0 reserve1 < UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
     ∃ rootK rootKLast k' C',
@@ -606,7 +606,7 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInputOfTail
         s0 ⟨7899⟩
         (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeToWord ::
         ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-        mem aw rdata (cAFee, σFee) k' C' := by
+        mem aw rdata σFee k' C' := by
   have hprodWord :
       mintFeeReserveProductWord reserve0 reserve1 = UInt256.mul reserve0 reserve1 :=
     mintFeeReserveProductWord_eq_mul reserve0 reserve1 hfit
@@ -615,7 +615,7 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInputOfTail
         s0 ⟨8046⟩
         (mintFeeReserveProductWord reserve0 reserve1 :: ⟨7886⟩ :: ⟨0⟩ :: kLast :: feeToWord :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
-        mem aw rdata (cAFee, σFee) k C := by
+        mem aw rdata σFee k C := by
     simpa [hprodWord] using rd8046
   obtain ⟨rootK, k1, C1, hrootK, hrootKNonneg, hrootKSize, hrootKInput,
       rd7886⟩ :=
@@ -643,7 +643,7 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInputOfTail
         s0 ⟨8046⟩
         (kLast :: ⟨7899⟩ :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeToWord :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
-        mem aw rdata (cAFee, σFee) kEntry CEntry := by
+        mem aw rdata σFee kEntry CEntry := by
     exact ⟨_, _, evm_run rd7886 with [
       jumpdest, swap1, pop, push1 ⟨0⟩, push2 ⟨7899⟩, dup4, push2 ⟨8046⟩,
       jump (by jump_dest)]⟩
@@ -672,18 +672,18 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInputOfTail
 
 set_option maxHeartbeats 1000000 in
 theorem mintFeeSqrtPrefixRuntimeBounded
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {s0 : State} {I : ExecutionEnv} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeToWord amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel :
       UInt256}
     (evm : EVM.State) (feeTo : AccountAddress)
     (rd8046 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8046⟩
+      s0 ⟨8046⟩
       [UInt256.mul reserve0 reserve1, ⟨7886⟩, ⟨0⟩, kLast, feeToWord, ⟨1⟩,
         reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
         reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hfit : mintFeeReserveProductNat reserve0 reserve1 < UInt256.size) :
     ∃ rootK rootKLast k' C',
       ExecBlock config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
@@ -695,11 +695,11 @@ theorem mintFeeSqrtPrefixRuntimeBounded
       0 ≤ rootK ∧ rootK.toNat < UInt256.size ∧
       0 ≤ rootKLast ∧ rootKLast.toNat < UInt256.size ∧
       RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
+        s0 ⟨7899⟩
         [UInt256.ofNat rootKLast.toNat, ⟨0⟩, UInt256.ofNat rootK.toNat, kLast,
           feeToWord, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0,
           balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
-        mem aw rdata (cAFee, σFee) k' C' := by
+        mem aw rdata σFee k' C' := by
   obtain ⟨rootK, rootKLast, k', C', hsource, hrootK, hrootKSize, _, hrootKLast,
     hrootKLastSize, rd7899⟩ := mintFeeSqrtPrefixRuntimeBoundedInputOfTail evm feeTo rd8046 hfit
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -708,18 +708,18 @@ theorem mintFeeSqrtPrefixRuntimeBounded
 
 set_option maxHeartbeats 1000000 in
 theorem mintFeeSqrtPrefixRuntimeBoundedInput
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {s0 : State} {I : ExecutionEnv} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeToWord amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel :
       UInt256}
     (evm : EVM.State) (feeTo : AccountAddress)
     (rd8046 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8046⟩
+      s0 ⟨8046⟩
       [UInt256.mul reserve0 reserve1, ⟨7886⟩, ⟨0⟩, kLast, feeToWord, ⟨1⟩,
         reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
         reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hfit : mintFeeReserveProductNat reserve0 reserve1 < UInt256.size) :
     ∃ rootK rootKLast k' C',
       ExecBlock config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
@@ -732,28 +732,28 @@ theorem mintFeeSqrtPrefixRuntimeBoundedInput
       rootK.toNat ≤ (UInt256.mul reserve0 reserve1).toNat ∧
       0 ≤ rootKLast ∧ rootKLast.toNat < UInt256.size ∧
       RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
+        s0 ⟨7899⟩
         [UInt256.ofNat rootKLast.toNat, ⟨0⟩, UInt256.ofNat rootK.toNat, kLast,
           feeToWord, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0,
           balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
-        mem aw rdata (cAFee, σFee) k' C' := by
+        mem aw rdata σFee k' C' := by
   exact mintFeeSqrtPrefixRuntimeBoundedInputOfTail evm feeTo rd8046 hfit
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
 theorem mintFeeSqrtPrefixRuntimeProductZero
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {s0 : State} {I : ExecutionEnv} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeToWord amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel :
       UInt256}
     (evm : EVM.State) (feeTo : AccountAddress)
     (rd8046 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8046⟩
+      s0 ⟨8046⟩
       [UInt256.mul reserve0 reserve1, ⟨7886⟩, ⟨0⟩, kLast, feeToWord, ⟨1⟩,
         reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
         reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hfit : mintFeeReserveProductNat reserve0 reserve1 < UInt256.size)
     (hprodZero : UInt256.mul reserve0 reserve1 = ⟨0⟩) :
     ∃ rootKLast k' C',
@@ -765,11 +765,11 @@ theorem mintFeeSqrtPrefixRuntimeProductZero
           rootKLast) evm) ∧
       0 ≤ rootKLast ∧ rootKLast.toNat < UInt256.size ∧
       RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
+        s0 ⟨7899⟩
         [UInt256.ofNat rootKLast.toNat, ⟨0⟩, ⟨0⟩, kLast, feeToWord, ⟨1⟩,
           reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
           reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
-        mem aw rdata (cAFee, σFee) k' C' := by
+        mem aw rdata σFee k' C' := by
   have hprodWord :
       mintFeeReserveProductWord reserve0 reserve1 = UInt256.mul reserve0 reserve1 :=
     mintFeeReserveProductWord_eq_mul reserve0 reserve1 hfit
@@ -780,11 +780,11 @@ theorem mintFeeSqrtPrefixRuntimeProductZero
     native_decide
   have rdFirst :
       RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8046⟩
+        s0 ⟨8046⟩
         [mintFeeReserveProductWord reserve0 reserve1, ⟨7886⟩, ⟨0⟩, kLast,
           feeToWord, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0,
           balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
-        mem aw rdata (cAFee, σFee) k C := by
+        mem aw rdata σFee k C := by
     simpa [hprodWord] using rd8046
   have hrootK :
       ExecStmt config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
@@ -803,20 +803,20 @@ theorem mintFeeSqrtPrefixRuntimeProductZero
   obtain ⟨k7886, C7886, rd7886Raw⟩ := uniswapSqrtRuntimeSmallReturns rdFirst
     hprodSmall (by jump_dest) (by simp only [List.length_cons, List.length_nil]; omega)
   have rd7886 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7886⟩
+      s0 ⟨7886⟩
       [⟨0⟩, ⟨0⟩, kLast, feeToWord, ⟨1⟩, reserve1, reserve0, ⟨3701⟩, ⟨0⟩,
         amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
         ⟨861⟩, sel]
-      mem aw rdata (cAFee, σFee) k7886 C7886 := by
+      mem aw rdata σFee k7886 C7886 := by
     simpa [hyZero] using rd7886Raw
   obtain ⟨kEntry, CEntry, rdSecondEntry⟩ :
       ∃ kEntry CEntry,
       RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8046⟩
+        s0 ⟨8046⟩
         [kLast, ⟨7899⟩, ⟨0⟩, ⟨0⟩, kLast, feeToWord, ⟨1⟩, reserve1,
           reserve0, ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
           reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
-        mem aw rdata (cAFee, σFee) kEntry CEntry := by
+        mem aw rdata σFee kEntry CEntry := by
     exact ⟨_, _, evm_run rd7886 with [
       jumpdest, swap1, pop, push1 ⟨0⟩, push2 ⟨7899⟩, dup4, push2 ⟨8046⟩,
       jump (by jump_dest)]⟩

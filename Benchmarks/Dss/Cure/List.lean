@@ -1054,7 +1054,7 @@ set_option maxHeartbeats 1000000 in
 theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {arrPtr fmp len : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD cureBytecode ee g s0 (⟨369⟩ : UInt256) (arrPtr :: R) mem aw rdata acc k C)
     (hload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -1137,7 +1137,7 @@ set_option maxHeartbeats 1000000 in
 theorem cureListReturnCopyLoopStep {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {i src dst bound word : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD cureBytecode ee g s0 (⟨405⟩ : UInt256) (i :: src :: dst :: bound :: R)
       mem aw rdata acc k C)
     (hcont : UInt256.isZero (UInt256.lt i bound) = ⟨0⟩)
@@ -1200,11 +1200,11 @@ theorem listReturnCopyLoopContinueCond_of_wf {σ : AccountMap} {I : ExecutionEnv
   rw [hlt]
   decide
 
-theorem cureListReturnCopyLoopStepWf {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureListReturnCopyLoopStepWf {σ σ₀ A I} {g : Sat256}
     {k C : ℕ} {n : Nat}
     (hwf : cureStorageWF σ I)
     (hn : n < (cureSlotWord ⟨2⟩ σ I).toNat)
-    (h : RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) (⟨405⟩ : UInt256)
+    (h : RD cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
       (listReturnCopyOffset n :: listArrayDataPtr ::
         listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
         ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
@@ -1214,8 +1214,8 @@ theorem cureListReturnCopyLoopStepWf {cA gh bl σ σ₀ A I} {g : Sat256}
         listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) :: listArrayBasePtr ::
         cureSelWord I :: [])
       (listReturnCopiedMem σ I n) (listReturnCopiedAw σ I n) ByteArray.empty
-      (cA, σ) k C) :
-    ∃ k' C', RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) (⟨405⟩ : UInt256)
+      σ k C) :
+    ∃ k' C', RD cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
       (listReturnCopyOffset (n + 1) :: listArrayDataPtr ::
         listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
         ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
@@ -1225,7 +1225,7 @@ theorem cureListReturnCopyLoopStepWf {cA gh bl σ σ₀ A I} {g : Sat256}
         listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) :: listArrayBasePtr ::
         cureSelWord I :: [])
       (listReturnCopiedMem σ I (n + 1)) (listReturnCopiedAw σ I (n + 1))
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   obtain ⟨_, _, hstep⟩ :=
     cureListReturnCopyLoopStep
       (word := listReturnDataWord σ I n)
@@ -1238,11 +1238,11 @@ theorem cureListReturnCopyLoopStepWf {cA gh bl σ σ₀ A I} {g : Sat256}
       listReturnCopyStepMem, listReturnCopyStepAw_eq_of_wf hwf (n := n) (by omega)]
       using hstep⟩
 
-theorem cureListReturnCopyLoopRunAux {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureListReturnCopyLoopRunAux {σ σ₀ A I} {g : Sat256}
     (hwf : cureStorageWF σ I) :
     ∀ rem n k C,
       n + rem = (cureSlotWord ⟨2⟩ σ I).toNat →
-      RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) (⟨405⟩ : UInt256)
+      RD cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
         (listReturnCopyOffset n :: listArrayDataPtr ::
           listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
           ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
@@ -1252,8 +1252,8 @@ theorem cureListReturnCopyLoopRunAux {cA gh bl σ σ₀ A I} {g : Sat256}
           listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) :: listArrayBasePtr ::
           cureSelWord I :: [])
         (listReturnCopiedMem σ I n) (listReturnCopiedAw σ I n) ByteArray.empty
-        (cA, σ) k C →
-      ∃ k' C', RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) (⟨405⟩ : UInt256)
+        σ k C →
+      ∃ k' C', RD cureBytecode I g (initState σ σ₀ g A I) (⟨405⟩ : UInt256)
         (listReturnCopyOffset (cureSlotWord ⟨2⟩ σ I).toNat :: listArrayDataPtr ::
           listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
           ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
@@ -1264,7 +1264,7 @@ theorem cureListReturnCopyLoopRunAux {cA gh bl σ σ₀ A I} {g : Sat256}
           cureSelWord I :: [])
         (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat)
         (listReturnCopiedAw σ I (cureSlotWord ⟨2⟩ σ I).toNat) ByteArray.empty
-        (cA, σ) k' C'
+        σ k' C'
   | 0, n, k, C, hsum, h => by
       have hn : n = (cureSlotWord ⟨2⟩ σ I).toNat := by omega
       subst hn
@@ -1272,7 +1272,7 @@ theorem cureListReturnCopyLoopRunAux {cA gh bl σ σ₀ A I} {g : Sat256}
   | rem + 1, n, k, C, hsum, h => by
       have hn : n < (cureSlotWord ⟨2⟩ σ I).toNat := by omega
       obtain ⟨k1, C1, hnext⟩ :=
-        cureListReturnCopyLoopStepWf (cA := cA) (gh := gh) (bl := bl)
+        cureListReturnCopyLoopStepWf
           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           (n := n) hwf hn h
       exact cureListReturnCopyLoopRunAux hwf rem (n + 1) k1 C1 (by omega) hnext
@@ -1281,7 +1281,7 @@ set_option maxHeartbeats 1000000 in
 theorem cureListReturnCopyLoopExit {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {i src dst bound fmp arrPtr : UInt256}
     {R : List UInt256} {mem rdata oval : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD cureBytecode ee g s0 (⟨405⟩ : UInt256)
       (i :: src :: dst :: bound :: bound :: src :: dst :: fmp :: fmp :: arrPtr :: R)
       mem aw rdata acc k C)
@@ -1347,8 +1347,8 @@ theorem storageLocLoad_addrLoc (evm : EVM.State) (slot : UInt256) :
   rw [fromBytes'_take20_wordLE_solcAddrMask]
 
 theorem readStorage_srcsElem_address_ok
-    {cA gh bl σ σ₀ A I} {g : Sat256} (idx : Nat) :
-    readStorage? config (initState cA gh bl σ σ₀ g A I)
+    {σ σ₀ A I} {g : Sat256} (idx : Nat) :
+    readStorage? config (initState σ σ₀ g A I)
       ({ base := "srcs", steps := [.aindex (.int (Int.ofNat idx))] } : EvaledStorageRef)
       (.elem .address) =
         .ok (.address (AccountAddress.ofNat
@@ -1359,8 +1359,8 @@ theorem readStorage_srcsElem_address_ok
     State.lookupAccount, Account.lookupStorage]
 
 theorem readArrayElems_srcs_address_ok
-    {cA gh bl σ σ₀ A I} {g : Sat256} (idx n : Nat) :
-    readArrayElems? config (initState cA gh bl σ σ₀ g A I)
+    {σ σ₀ A I} {g : Sat256} (idx n : Nat) :
+    readArrayElems? config (initState σ σ₀ g A I)
       ({ base := "srcs", steps := [] } : EvaledStorageRef) (.elem .address) idx n =
         .ok (listSrcsValuesFrom σ I idx n) := by
   induction n generalizing idx with
@@ -1370,19 +1370,19 @@ theorem readArrayElems_srcs_address_ok
       rw [readArrayElems?]
       change
         (do
-          let v ← readStorage? config (initState cA gh bl σ σ₀ g A I)
+          let v ← readStorage? config (initState σ σ₀ g A I)
             ({ base := "srcs", steps := [.aindex (.int (Int.ofNat idx))] } : EvaledStorageRef)
             (.elem .address)
-          let vrest ← readArrayElems? config (initState cA gh bl σ σ₀ g A I)
+          let vrest ← readArrayElems? config (initState σ σ₀ g A I)
             ({ base := "srcs", steps := [] } : EvaledStorageRef) (.elem .address) (idx + 1) n
           pure (v :: vrest)) = .ok (listSrcsValuesFrom σ I idx (n + 1))
-      rw [readStorage_srcsElem_address_ok (cA := cA) (gh := gh) (bl := bl)
+      rw [readStorage_srcsElem_address_ok
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) idx]
       rw [ih (idx + 1)]
       rfl
 
-theorem readStorage_srcs_ok {cA gh bl σ σ₀ A I} {g : Sat256} :
-    readStorage? config (initState cA gh bl σ σ₀ g A I)
+theorem readStorage_srcs_ok {σ σ₀ A I} {g : Sat256} :
+    readStorage? config (initState σ σ₀ g A I)
       ({ base := "srcs", steps := [] } : EvaledStorageRef) (.dynamicArray (.elem .address)) =
         .ok (.array (listSrcsValues σ I)) := by
   rw [readStorage?]
@@ -1390,60 +1390,37 @@ theorem readStorage_srcs_ok {cA gh bl σ σ₀ A I} {g : Sat256} :
     cureStorageLocLoad_uint256, initState]
   change
     (do
-      let vs ← readArrayElems? config (initState cA gh bl σ σ₀ g A I)
+      let vs ← readArrayElems? config (initState σ σ₀ g A I)
         ({ base := "srcs", steps := [] } : EvaledStorageRef) (.elem .address) 0
         (cureSlotWord ⟨2⟩ σ I).toNat
       pure (Value.array vs)) = .ok (Value.array (listSrcsValues σ I))
   rw [readArrayElems_srcs_address_ok]
   rfl
 
-theorem evalExpr_listSrcs_ok {cA gh bl σ σ₀ A I} {g : Sat256} :
+theorem evalExpr_listSrcs_ok {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := ∅ }
-      (initState cA gh bl σ σ₀ g A I) (.storage srcsRef) =
+      (initState σ σ₀ g A I) (.storage srcsRef) =
         .ok (.array (listSrcsValues σ I)) := by
   simp [evalExpr?, resolveStorageRef?, evalStorageRef, evalStorageRefSteps,
     srcsRef, config, contract, storageDecls, storageTypeAt?, EvalResult.ofOption,
     EvalResult.bind, bind]
-  exact readStorage_srcs_ok (cA := cA) (gh := gh) (bl := bl)
+  exact readStorage_srcs_ok
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
 
-theorem cureListSourceBodyOk {cA gh bl σ σ₀ A I} {g : UInt256} :
+theorem cureListSourceBodyOk {σ σ₀ A I} {g : UInt256} :
     I.weiValue = ⟨0⟩ →
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅ listTransition.body
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ listTransition.body
       (.returned { contract := contract, locals := ∅ }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (some [.array (listSrcsValues σ I)])) := by
   intro hwv
   apply nonpayableReturnExprBodyReturns
   · simp only [initState]
     exact hwv
   · simpa [listTransition] using
-      (evalExpr_listSrcs_ok (cA := cA) (gh := gh) (bl := bl)
+      (evalExpr_listSrcs_ok
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g))
-
-theorem listSrcsValuesFrom_eq_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) (idx n : Nat) :
-    listSrcsValuesFrom σ I idx n = listSrcsValuesFrom τ I idx n := by
-  induction n generalizing idx with
-  | zero =>
-      simp [listSrcsValuesFrom]
-  | succ n ih =>
-      have hword :
-          solcSlotWord σ I (srcElemSlot (.int (Int.ofNat idx))) =
-            solcSlotWord τ I (srcElemSlot (.int (Int.ofNat idx))) :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner
-          (srcElemSlot (.int (Int.ofNat idx))) ⟨0⟩
-      simp [listSrcsValuesFrom, ih (idx + 1)]
-      exact congrArg
-        (fun w => AccountAddress.ofNat ((UInt256.land w solcAddrMask).toNat)) hword
-
-theorem listSrcsValues_eq_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
-    listSrcsValues σ I = listSrcsValues τ I := by
-  have hlen : cureSlotWord ⟨2⟩ σ I = cureSlotWord ⟨2⟩ τ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  simp [listSrcsValues, hlen, listSrcsValuesFrom_eq_of_accountMapEquiv hAccounts]
 
 theorem cureDispatchList {I : ExecutionEnv}
     (hsel : selIs I (cureSelBytes 7)) :
@@ -1465,20 +1442,20 @@ theorem cureDecode_list {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   exact decodeCalldata_empty_ok hsz
 
 set_option maxHeartbeats 8000000 in
-theorem cureListEmptyReturns {cA gh bl σ σ₀ A I} {g : Sat256}
-    (h929 : ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨929⟩
+theorem cureListEmptyReturns {σ σ₀ A I} {g : Sat256}
+    (h929 : ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨929⟩
       [⟨369⟩, cureSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) k C)
+      ByteArray.empty σ k C)
     (hlen0 : cureSlotWord ⟨2⟩ σ I = ⟨0⟩) :
-    RDret cureBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ) listEmptyArrayAbi := by
+    RDret cureBytecode g (initState σ σ₀ g A I) σ listEmptyArrayAbi := by
   obtain ⟨_, _, h929⟩ := h929
   obtain ⟨_, _, h936raw⟩ :=
     (evm_run h929 with [jumpdest, push1 ⟨96⟩, push1 ⟨2⟩, dup1]).sload
       (by native_decide) (by evm_ov)
   obtain ⟨_, _, h936⟩ : ∃ k C, RD cureBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨936⟩
+      (initState σ σ₀ g A I) ⟨936⟩
       [cureSlotWord ⟨2⟩ σ I, ⟨2⟩, ⟨96⟩, ⟨369⟩, cureSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C :=
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C :=
     ⟨_, _, by simpa [cureSlotWord, initState] using h936raw⟩
   rw [hlen0] at h936
   have h963 := evm_run h936 with [
@@ -1531,15 +1508,14 @@ theorem cureListEmptyReturns {cA gh bl σ σ₀ A I} {g : Sat256}
   exact evm_run hret with [
     raw ret 0 listEmptyArrayAbi (by native_decide) mem_cost (by native_decide) (by evm_ov)]
 
-theorem cureListBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem cureListBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (cureSelBytes 7))
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (_hStorageWF : cureStorageWF σ_evm I) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (_hStorageWF : cureStorageWF σ I) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 7) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some listTransition :=
@@ -1548,7 +1524,7 @@ theorem cureListBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       decodeCalldataWithMode config.abiDecodeMode (listTransition.params.map Param.name)
         (transitionSignature listTransition).paramTypes I.calldata = some ∅ :=
     cureDecode_list hsz
-  have hreach := cureReachListBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := cureReachListBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨361⟩ ⟨369⟩ ⟨929⟩ := by
@@ -1557,134 +1533,133 @@ theorem cureListBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   obtain ⟨_, _, hroutine⟩ := RD.solcGetterThunk hreach hentry (by jump_dest)
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ listTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ listTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [.array (listSrcsValues σ_solm I)])) :=
-    cureListSourceBodyOk (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [.array (listSrcsValues σ I)])) :=
+    cureListSourceBodyOk (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
-  have hvalues : listSrcsValues σ_evm I = listSrcsValues σ_solm I :=
-    listSrcsValues_eq_of_accountMapEquiv hAccounts
-  by_cases hlen0 : cureSlotWord ⟨2⟩ σ_evm I = ⟨0⟩
+  have hvalues : listSrcsValues σ I = listSrcsValues σ I := rfl
+  by_cases hlen0 : cureSlotWord ⟨2⟩ σ I = ⟨0⟩
   · have hret := cureListEmptyReturns
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+      (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g)
       ⟨_, _, hroutine⟩ hlen0
     have hval :
-        some [Value.array (listSrcsValues σ_solm I)] =
-          some [Value.array (listSrcsValues σ_evm I)] := by
+        some [Value.array (listSrcsValues σ I)] =
+          some [Value.array (listSrcsValues σ I)] := by
       rw [hvalues]
     have henc :
-        returnEquiv listEmptyArrayAbi (some [Value.array (listSrcsValues σ_evm I)])
+        returnEquiv listEmptyArrayAbi (some [Value.array (listSrcsValues σ I)])
           listTransition.returnType := by
       rw [show listTransition.returnType = [addrArray] by rfl]
       rw [listSrcsValues_nil_of_len_zero hlen0]
       exact returnEquiv_of_encode listEmptyArrayReturnEncoding
-    exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
-  · have hlenpos : 0 < (cureSlotWord ⟨2⟩ σ_evm I).toNat := by
+    exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
+  · have hlenpos : 0 < (cureSlotWord ⟨2⟩ σ I).toNat := by
       by_contra hnot
-      have hnat : (cureSlotWord ⟨2⟩ σ_evm I).toNat = 0 := by omega
+      have hnat : (cureSlotWord ⟨2⟩ σ I).toNat = 0 := by omega
       apply hlen0
-      rw [← u256_ofNat_toNat (cureSlotWord ⟨2⟩ σ_evm I), hnat]
+      rw [← u256_ofNat_toNat (cureSlotWord ⟨2⟩ σ I), hnat]
       rfl
     obtain ⟨_, _, h987⟩ := cureListNonemptyToLoop
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+      (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g)
       ⟨_, _, hroutine⟩ hlen0
     obtain ⟨_, _, h369⟩ :=
       cureListArrayLoopRunAux
-        (s0 := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-        (cA := cA) (σ := σ_evm) (_hStorageWF)
-        ((cureSlotWord ⟨2⟩ σ_evm I).toNat - 1) 0
+        (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (σ := σ) (_hStorageWF)
+        ((cureSlotWord ⟨2⟩ σ I).toNat - 1) 0
         (by omega) h987
     obtain ⟨_, _, h405raw⟩ :=
       cureListReturnFromMemToCopyLoop
         (arrPtr := listArrayBasePtr)
-        (fmp := listArrayFreePtr (cureSlotWord ⟨2⟩ σ_evm I))
-        (len := cureSlotWord ⟨2⟩ σ_evm I)
+        (fmp := listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))
+        (len := cureSlotWord ⟨2⟩ σ I)
         (R := [cureSelWord I])
         h369
-        (listArrayCopiedMem_mload64 σ_evm I (cureSlotWord ⟨2⟩ σ_evm I)
-          (cureSlotWord ⟨2⟩ σ_evm I).toNat)
+        (listArrayCopiedMem_mload64 σ I (cureSlotWord ⟨2⟩ σ I)
+          (cureSlotWord ⟨2⟩ σ I).toNat)
         (listReturnOffsetMem_mload128_of_copied_wf _hStorageWF)
         (listReturnLengthMem_mload128_of_copied_wf _hStorageWF)
         (by simp)
     have h405 : ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (⟨405⟩ : UInt256)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨405⟩ : UInt256)
         (listReturnCopyOffset 0 :: listArrayDataPtr ::
-          listReturnDataDst (cureSlotWord ⟨2⟩ σ_evm I) ::
-          ((cureSlotWord ⟨2⟩ σ_evm I) * (⟨32⟩ : UInt256)) ::
-          ((cureSlotWord ⟨2⟩ σ_evm I) * (⟨32⟩ : UInt256)) ::
-          listArrayDataPtr :: listReturnDataDst (cureSlotWord ⟨2⟩ σ_evm I) ::
-          listArrayFreePtr (cureSlotWord ⟨2⟩ σ_evm I) ::
-          listArrayFreePtr (cureSlotWord ⟨2⟩ σ_evm I) :: listArrayBasePtr ::
+          listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
+          ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
+          ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) ::
+          listArrayDataPtr :: listReturnDataDst (cureSlotWord ⟨2⟩ σ I) ::
+          listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) ::
+          listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) :: listArrayBasePtr ::
           cureSelWord I :: [])
-        (listReturnCopiedMem σ_evm I 0) (listReturnCopiedAw σ_evm I 0)
-        ByteArray.empty (cA, σ_evm) k C := by
+        (listReturnCopiedMem σ I 0) (listReturnCopiedAw σ I 0)
+        ByteArray.empty σ k C := by
       exact ⟨_, _, by
         simpa [listReturnCopyOffset, listArrayDataPtr, listReturnDataDst,
           listReturnBaseMem, listReturnCopiedMem,
           listReturnFinalAw_eq_copied_zero_of_wf _hStorageWF] using h405raw⟩
     obtain ⟨k405, C405, h405rd⟩ := h405
     obtain ⟨_, _, h405done⟩ := cureListReturnCopyLoopRunAux
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+      (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g)
-      _hStorageWF (cureSlotWord ⟨2⟩ σ_evm I).toNat 0 k405 C405
+      _hStorageWF (cureSlotWord ⟨2⟩ σ I).toNat 0 k405 C405
       (by omega) h405rd
     have hdone :
         UInt256.isZero
-          (UInt256.lt (listReturnCopyOffset (cureSlotWord ⟨2⟩ σ_evm I).toNat)
-            ((cureSlotWord ⟨2⟩ σ_evm I) * (⟨32⟩ : UInt256))) ≠ ⟨0⟩ := by
+          (UInt256.lt (listReturnCopyOffset (cureSlotWord ⟨2⟩ σ I).toNat)
+            ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256))) ≠ ⟨0⟩ := by
       have hlt :
-          UInt256.lt (listReturnCopyOffset (cureSlotWord ⟨2⟩ σ_evm I).toNat)
-            ((cureSlotWord ⟨2⟩ σ_evm I) * (⟨32⟩ : UInt256)) = ⟨0⟩ := by
+          UInt256.lt (listReturnCopyOffset (cureSlotWord ⟨2⟩ σ I).toNat)
+            ((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) = ⟨0⟩ := by
         apply ult_zero
         rw [listReturnCopyOffset_toNat_of_wf _hStorageWF
-            (n := (cureSlotWord ⟨2⟩ σ_evm I).toNat) (by omega),
+            (n := (cureSlotWord ⟨2⟩ σ I).toNat) (by omega),
           listReturnBound_toNat_of_wf _hStorageWF]
       rw [hlt]
       decide
     have hload64 :
         (if (⟨64⟩ : UInt256).toNat ≥
-              (listReturnCopiedMem σ_evm I (cureSlotWord ⟨2⟩ σ_evm I).toNat).size
+              (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat).size
 
           then ⟨0⟩
           else UInt256.ofNat
             (fromByteArrayBigEndian
-              ((listReturnCopiedMem σ_evm I
-                (cureSlotWord ⟨2⟩ σ_evm I).toNat).readWithPadding
+              ((listReturnCopiedMem σ I
+                (cureSlotWord ⟨2⟩ σ I).toNat).readWithPadding
                   (⟨64⟩ : UInt256).toNat 32))) =
-          listArrayFreePtr (cureSlotWord ⟨2⟩ σ_evm I) := by
+          listArrayFreePtr (cureSlotWord ⟨2⟩ σ I) := by
       exact mloadWordValue_of_readWithPadding
         (by
           rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
             listReturnCopiedMem_size_of_wf _hStorageWF
-              (n := (cureSlotWord ⟨2⟩ σ_evm I).toNat) (by omega)]
+              (n := (cureSlotWord ⟨2⟩ σ I).toNat) (by omega)]
           omega)
         (listReturnCopiedMem_read64_of_wf _hStorageWF
-          (n := (cureSlotWord ⟨2⟩ σ_evm I).toNat) (by omega))
+          (n := (cureSlotWord ⟨2⟩ σ I).toNat) (by omega))
     have hreturn :
-        (listReturnCopiedMem σ_evm I (cureSlotWord ⟨2⟩ σ_evm I).toNat).readWithPadding
-          (listArrayFreePtr (cureSlotWord ⟨2⟩ σ_evm I)).toNat
+        (listReturnCopiedMem σ I (cureSlotWord ⟨2⟩ σ I).toNat).readWithPadding
+          (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat
           (UInt256.sub
-            (((cureSlotWord ⟨2⟩ σ_evm I) * (⟨32⟩ : UInt256)) +
-              listReturnDataDst (cureSlotWord ⟨2⟩ σ_evm I))
-            (listArrayFreePtr (cureSlotWord ⟨2⟩ σ_evm I))).toNat =
-          listSrcsReturnBytes σ_evm I :=
+            (((cureSlotWord ⟨2⟩ σ I) * (⟨32⟩ : UInt256)) +
+              listReturnDataDst (cureSlotWord ⟨2⟩ σ I))
+            (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I))).toNat =
+          listSrcsReturnBytes σ I :=
       listReturnCopiedMem_read_return_of_wf _hStorageWF hlenpos
     have hret := cureListReturnCopyLoopExit
-      (oval := listSrcsReturnBytes σ_evm I)
+      (oval := listSrcsReturnBytes σ I)
       h405done hdone hload64 hreturn (by simp)
     have hval :
-        some [Value.array (listSrcsValues σ_solm I)] =
-          some [Value.array (listSrcsValues σ_evm I)] := by
+        some [Value.array (listSrcsValues σ I)] =
+          some [Value.array (listSrcsValues σ I)] := by
       rw [hvalues]
     have henc :
-        returnEquiv (listSrcsReturnBytes σ_evm I)
-          (some [Value.array (listSrcsValues σ_evm I)])
+        returnEquiv (listSrcsReturnBytes σ I)
+          (some [Value.array (listSrcsValues σ I)])
           listTransition.returnType := by
       rw [show listTransition.returnType = [addrArray] by rfl]
       exact returnEquiv_of_encode listSrcsReturnEncoding
-    exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+    exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 end Benchmarks.Dss.Cure

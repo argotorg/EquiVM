@@ -59,21 +59,6 @@ def bidsEvaledRef (I : ExecutionEnv) (field : Ident) : EvaledStorageRef :=
   { base := "bids",
     steps := [.mindex (bidsAddressKey I), .aindex (bidsIndexKey I), .field field] }
 
-theorem bidsLengthWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : accountMapEquiv σ τ) :
-    bidsLengthWord σ I = bidsLengthWord τ I := by
-  exact accountMapEquiv_storage_findD hστ I.codeOwner (bidsLengthSlot I) ⟨0⟩
-
-theorem bidsBlindedWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : accountMapEquiv σ τ) :
-    bidsBlindedWord σ I = bidsBlindedWord τ I := by
-  exact accountMapEquiv_storage_findD hστ I.codeOwner (bidsElementSlot I) ⟨0⟩
-
-theorem bidsDepositWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : accountMapEquiv σ τ) :
-    bidsDepositWord σ I = bidsDepositWord τ I := by
-  exact accountMapEquiv_storage_findD hστ I.codeOwner (bidsDepositSlot I) ⟨0⟩
-
 theorem blindAuctionStorageLocLoad_bytes32 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (blindAuctionBytes32Loc slot)
       = .fixedBytes ⟨31, by decide⟩
@@ -667,26 +652,26 @@ theorem blindAuctionDecode_bids_none_huge {I : ExecutionEnv}
   simpa [addr, uint256, abiUInt256] using
     decodeCalldata_addr_uint256_none_huge (cd := I.calldata) (x := "a") (y := "i") hbig
 
-theorem blindAuctionBidsX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionBidsX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (initState σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd158⟩ := hreach
   exact evm_run rd158 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨169⟩,
     jumpiNT (isZero_eq_zero_of_ne hwv),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem blindAuctionBidsX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionBidsX_toDecoder {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1660⟩
+      (initState σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD blindAuctionBytecode I g (initState σ σ₀ g A I) ⟨1660⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨184⟩, ⟨189⟩, blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd158⟩ := hreach
   exact ⟨_, _, evm_run rd158 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨169⟩,
@@ -694,16 +679,16 @@ theorem blindAuctionBidsX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, pop, push2 ⟨189⟩, push2 ⟨184⟩, calldatasize, push1 ⟨4⟩,
     push2 ⟨1660⟩, jump (by jump_dest) ]⟩
 
-theorem blindAuctionBidsX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionBidsX_decoded {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (bidsAddressWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨510⟩
+      (initState σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD blindAuctionBytecode I g (initState σ σ₀ g A I) ⟨510⟩
       [bidsIndexWord I, bidsAddressWord I, ⟨189⟩, blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOk_4_64 hsz68 hszhi hsize
   have hclean : UInt256.eq (bidsAddressWord I) (UInt256.land (bidsAddressWord I) solcAddrMask) =
@@ -715,7 +700,7 @@ theorem blindAuctionBidsX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
           (uInt256OfByteArray (I.calldata.readBytes (⟨4⟩ : UInt256).toNat 32))
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)) = ⟨1⟩ := by
     simpa [bidsAddressWord, calldataWord, solcAddrMask] using hclean
-  obtain ⟨_, _, rd1660⟩ := blindAuctionBidsX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd1660⟩ := blindAuctionBidsX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hwv hreach
   have rd1700 := evm_run rd1660 with [
       jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
@@ -730,46 +715,46 @@ theorem blindAuctionBidsX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
       swap4, pop, pop, pop, jump (by jump_dest),
       jumpdest, push2 ⟨510⟩, jump (by jump_dest) ]⟩
 
-theorem blindAuctionBidsX_decodeRevert_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionBidsX_decodeRevert_short {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩) (hsz4 : 4 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     solcDecodeLenCheckShort_4_64 hsz4 hshort hsize
-  obtain ⟨_, _, rd1660⟩ := blindAuctionBidsX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd1660⟩ := blindAuctionBidsX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hwv hreach
   exact evm_run rd1660 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨1677⟩, jumpiNT (by rw [hslt]; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem blindAuctionBidsX_decodeRevert_huge {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionBidsX_decodeRevert_huge {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_64 hbig hsize
-  obtain ⟨_, _, rd1660⟩ := blindAuctionBidsX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd1660⟩ := blindAuctionBidsX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hwv hreach
   exact evm_run rd1660 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨1677⟩, jumpiNT (by rw [hslt]; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem blindAuctionBidsX_decodeRevert_noncanon {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionBidsX_decodeRevert_noncanon {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (bidsAddressWord I) (UInt256.land (bidsAddressWord I) solcAddrMask) = ⟨0⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOk_4_64 hsz68 hszhi hsize
   have hnc' : UInt256.eq
@@ -778,7 +763,7 @@ theorem blindAuctionBidsX_decodeRevert_noncanon {cA gh bl σ σ₀ A I} {g : Sat
           (uInt256OfByteArray (I.calldata.readBytes (⟨4⟩ : UInt256).toNat 32))
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)) = ⟨0⟩ := by
     simpa [bidsAddressWord, calldataWord, solcAddrMask] using hnc
-  obtain ⟨_, _, rd1660⟩ := blindAuctionBidsX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd1660⟩ := blindAuctionBidsX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hwv hreach
   exact evm_run rd1660 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
@@ -788,17 +773,17 @@ theorem blindAuctionBidsX_decodeRevert_noncanon {cA gh bl σ σ₀ A I} {g : Sat
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 set_option maxHeartbeats 700000 in
-theorem blindAuctionBidsX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionBidsX_ok {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (bidsAddressWord I).toNat < EVM.addressModulus)
     (hbound : (bidsIndexWord I).toNat < (bidsLengthWord σ I).toNat)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret blindAuctionBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (bidsBlindedWord σ I) ++ UInt256.toByteArray (bidsDepositWord σ I)) := by
-  obtain ⟨_, _, rd510⟩ := blindAuctionBidsX_decoded (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd510⟩ := blindAuctionBidsX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hwv hsz68 hsize hszhi hcanon hreach
   have hmapping := bidsMappingBaseKeccak I hcanon
   have hdata := bidsArrayDataKeccak I
@@ -884,16 +869,16 @@ theorem blindAuctionBidsX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
           (bidsBlindedWord σ I) (bidsDepositWord σ I))
       (by evm_ov) ]
 
-theorem blindAuctionBidsX_oob {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionBidsX_oob {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (bidsAddressWord I).toNat < EVM.addressModulus)
     (hbound : ¬ (bidsIndexWord I).toNat < (bidsLengthWord σ I).toNat)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨_, _, rd510⟩ := blindAuctionBidsX_decoded (cA := cA) (gh := gh) (bl := bl)
+      (initState σ σ₀ g A I) ⟨158⟩ [blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd510⟩ := blindAuctionBidsX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) hwv hsz68 hsize hszhi hcanon hreach
   have hmapping := bidsMappingBaseKeccak I hcanon
   have rd523 := evm_run rd510 with [
@@ -922,17 +907,16 @@ theorem blindAuctionBidsX_oob {cA gh bl σ σ₀ A I} {g : Sat256}
     push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov) ]
 
 /-- `bids(address,uint256)` getter body (pc 158) refines its transition. -/
-theorem blindAuctionBidsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem blindAuctionBidsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = blindAuctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I ⟨#[0x01, 0x49, 0x5c, 0x1c]⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨158⟩
-      [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨158⟩
+      [blindAuctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ
       k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
  :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+      σ σ₀ g A I := by
   have _hperm : I.perm = true := hperm
 
   have hsz4 := blindAuctionBidsSelector_size hsel
@@ -944,36 +928,23 @@ theorem blindAuctionBidsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
         by_cases hwv : I.weiValue = ⟨0⟩
         · have hlen :
               bidsLengthCurrent
-                  (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I =
-                bidsLengthWord σ_evm I := by
-            simpa [bidsLengthCurrent, bidsLengthWord, initState] using
-              (bidsLengthWord_accountMapEquiv (I := I) hAccounts).symm
-          by_cases hbound : (bidsIndexWord I).toNat < (bidsLengthWord σ_evm I).toNat
-          · have hblinded :
-                bidsBlindedCurrent
-                    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I =
-                  bidsBlindedWord σ_evm I := by
-              simpa [bidsBlindedCurrent, bidsBlindedWord, initState] using
-                (bidsBlindedWord_accountMapEquiv (I := I) hAccounts).symm
-            have hdeposit :
-                bidsDepositCurrent
-                    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I =
-                  bidsDepositWord σ_evm I := by
-              simpa [bidsDepositCurrent, bidsDepositWord, initState] using
-                (bidsDepositWord_accountMapEquiv (I := I) hAccounts).symm
-            have hbody := blindAuctionBidsBodyReturns
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+                  (initState σ σ₀ (Sat256.ofUInt256 g) A I) I =
+                bidsLengthWord σ I := by
+            simp [bidsLengthCurrent, bidsLengthWord, initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
+          by_cases hbound : (bidsIndexWord I).toNat < (bidsLengthWord σ I).toNat
+          · have hbody := blindAuctionBidsBodyReturns
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)
               (by rw [hlen]; exact hbound)
             exact (blindAuctionBidsX_ok (g := Sat256.ofUInt256 g) hwv hsz68 hsize hbig
                 hcanon hbound hreach)
-              |>.reEquivExecutionTransport hcode hd hdec hbody
-                (by simp [hblinded, hdeposit]) hAccounts
+              |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                (by rfl)
                 (returnEquiv.returned rfl
-                  (blindAuctionBidsReturnEncoding (bidsBlindedWord σ_evm I)
-                    (bidsDepositWord σ_evm I)))
+                  (blindAuctionBidsReturnEncoding (bidsBlindedWord σ I)
+                    (bidsDepositWord σ I)))
           · have hbody := blindAuctionBidsBodyReverts_oob
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)
               (by rw [hlen]; exact hbound)
             exact (blindAuctionBidsX_oob (g := Sat256.ofUInt256 g) hwv hsz68 hsize hbig
@@ -981,11 +952,11 @@ theorem blindAuctionBidsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
               |>.reEquivExecutionRevert hcode hd hdec hbody
         · have hbody :
               ExecTransitionBody blindAuctionConfig blindAuctionContract
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (bidsStore I)
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I) (bidsStore I)
                 bidsGetter.body .reverted := by
             simpa [bidsGetter, initState] using
               (bodyReverts_nonPayable (cfg := blindAuctionConfig) (contract := blindAuctionContract)
-                (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+                (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (locals := bidsStore I)
                 (rest := [.return  [
                   .storage (bidF (.var "a") (.var "i") "blindedBid"),

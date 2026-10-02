@@ -968,27 +968,45 @@ theorem potExitCallBridge {σ₀ I} {A : Substate} {g : Sat256}
     rw [joinStorageLoad_eq, hAccountsPre]
   have hVat : joinVatRaw σ'' I = Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨5⟩ := by
     rw [joinStorageLoad_eq, hAccountsPre]
-  refine typedCallViaEVM_callMade_accountMapEquiv
-    (cfg := config) (evm_evm := initState σ'' σ₀ g A I) (evm_solm := evm2_solm)
-    (tgt := EVM.address (AccountAddress.ofNat
-      (UInt256.land (Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨5⟩) solcAddrMask).toNat))
-    (targetWord := joinVatMasked σ'' I) (name := "move")
+  have htgt : EVM.address (AccountAddress.ofNat
+      (UInt256.land (Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨5⟩) solcAddrMask).toNat) =
+      AccountAddress.ofUInt256 (joinVatMasked σ'' I) := by
+    exact joinVatTarget_eq σ'' I _ hVat
+  have hcd : config.externalABI.encode? "move"
+      [.address I.codeOwner, .address I.source,
+        .int (Int.ofNat (UInt256.mul (Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨4⟩)
+          (joinWadWord I)).toNat)] =
+      some ((potMoveCalldataMem (joinThisWord I) (joinCallerWord I)
+        (UInt256.mul (joinChi σ'' I) (joinWadWord I)) mem).readWithPadding 128 100) := by
+    rw [← hChi]
+    exact potMoveEncode_eq I.codeOwner I.source (joinThisWord I) (joinCallerWord I)
+      (UInt256.mul (joinChi σ'' I) (joinWadWord I)) hmem rfl rfl
+  have hΘ' : (σ_final, g'', A', z, o) =
+      Ethereum.EVM.Θ evm2_solm.accountMap evm2_solm.σ₀ A_in
+        (AccountAddress.ofUInt256 (UInt256.ofNat evm2_solm.executionEnv.codeOwner))
+        evm2_solm.executionEnv.sender
+        (AccountAddress.ofUInt256 (joinVatMasked σ'' I))
+        (toExecute evm2_solm.accountMap (AccountAddress.ofUInt256 (joinVatMasked σ'' I)))
+        callGas (UInt256.ofNat evm2_solm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
+        ((potMoveCalldataMem (joinThisWord I) (joinCallerWord I)
+          (UInt256.mul (joinChi σ'' I) (joinWadWord I)) mem).readWithPadding 128 100)
+        (evm2_solm.executionEnv.depth + 1) evm2_solm.executionEnv.header
+        evm2_solm.executionEnv.blobVersionedHashes evm2_solm.executionEnv.blocks I.perm := by
+    simpa [hAccountsPre, hσ0, hEnv] using hΘ
+  refine ⟨σ_final, A', ?_, rfl⟩
+  have hdepth' : evm2_solm.executionEnv.depth ≠ 1024 := by rw [hEnv]; exact hdepth
+  exact callCoincides (cfg := config) (evm := evm2_solm) (name := "move")
     (args := [.address I.codeOwner, .address I.source,
       .int (Int.ofNat (UInt256.mul (Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨4⟩)
         (joinWadWord I)).toNat)])
+    (tgt := EVM.address (AccountAddress.ofNat
+      (UInt256.land (Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨5⟩) solcAddrMask).toNat))
+    (targetWord := joinVatMasked σ'' I) (σ' := σ_final) (A' := A')
+    (A_in := A_in) (z := z) (o := o) (g'' := g'') (callGas := callGas)
     (mem := potMoveCalldataMem (joinThisWord I) (joinCallerWord I)
       (UInt256.mul (joinChi σ'' I) (joinWadWord I)) mem)
-    (inOff := ⟨128⟩) (inSize := ⟨100⟩) (callPerm := I.perm) (callGas := callGas)
-    (hdepth := hdepth)
-    (htgt := by rw [← hVat]; exact joinVatTarget_eq σ'' I (joinVatRaw σ'' I) rfl)
-    (hcd := by
-      rw [← hChi]
-      exact potMoveEncode_eq I.codeOwner I.source (joinThisWord I) (joinCallerWord I)
-        (UInt256.mul (joinChi σ'' I) (joinWadWord I)) hmem rfl rfl)
-    (hΘ := by simpa [initState] using hΘ)
-    (hAccounts := by simpa [initState] using hAccountsPre)
-    (hOriginalAccounts := by simpa [initState] using hσ0.symm)
-    (hEnv := by simpa [initState] using hEnv.symm)
+    (inOff := ⟨128⟩) (inSize := ⟨100⟩) (callPerm := I.perm)
+    hdepth' htgt hcd hΘ'
 
 /-! ### `exit(uint256)` — early-underflow Solm bodies -/
 

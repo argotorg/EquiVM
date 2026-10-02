@@ -5,7 +5,7 @@ open Benchmarks.Dss.Clipper.Immutables
 
 namespace Benchmarks.Dss.Clipper
 
-theorem clipperTakeOweGtTabVatFluxCallFailureSourceReverts {cA gh bl σ σ₀ A I}
+theorem clipperTakeOweGtTabVatFluxCallFailureSourceReverts {σ σ₀ A I}
     {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
@@ -39,7 +39,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureSourceReverts {cA gh bl σ σ₀ A 
             (UInt256.div (clipperTakeSalesTabEVMWord evmPrice I) price).toNat)]
         (false, evmVat, outVat) true)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
         evmLock
@@ -47,7 +47,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureSourceReverts {cA gh bl σ σ₀ A 
         (.ok { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
           evmPrice)) :
     let locals := clipperTakeStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩

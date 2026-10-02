@@ -354,21 +354,6 @@ def endSnipPostArtAccountMap (σ : AccountMap) (I : ExecutionEnv) (artNew : UInt
     AccountMap :=
   sstoreAccountMap I.codeOwner σ (endSnipArtSlot I) artNew
 
-theorem endSnip_storageStore_blocks (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).blocks = evm.blocks := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount,
-    Account.updateStorage]
-
-theorem endSnip_storageStore_genesisBlockHeader (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).genesisBlockHeader =
-      evm.genesisBlockHeader := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount,
-    Account.updateStorage]
-
 theorem endSnip_storageStore_σ₀ (evm : EVM.State) (addr : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
@@ -2547,19 +2532,19 @@ theorem endDecode_snip_none_short {I : ExecutionEnv}
     (endDecode_legacyBytes32_uint256_none_short (cd := I.calldata) (x := "ilk")
       (y := "id") hsz4 hshort)
 
-theorem endReachSnipBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachSnipBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I endSnipConcreteSelector) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endSnipEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0x38c6de40⟩ :=
     endSelWord_eq_of_beq I hsz 0x38 0xc6 0xde 0x40 ⟨0x38c6de40⟩
       (by native_decide)
       (by simpa [selIs, endSnipConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
-    endReachDebtFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachDebtFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
       (by rw [hword]; native_decide)
       (by rw [hword]; native_decide)
@@ -2581,7 +2566,7 @@ theorem endReachSnipBody {cA gh bl σ σ₀ A I} {g : Sat256}
 theorem RD.endSnipDecodeToBody {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 endSnipDecodedPc (de :: ⟨4⟩ :: ret :: sel :: R)
         mem aw rdata acc k C)
     (hwf : code = endBytecode)
@@ -2606,15 +2591,15 @@ theorem RD.endSnipDecodeToBody {code : ByteArray} {g : Sat256} {s0 : State}
       show (⟨36⟩ : UInt256).toNat = 36 from by decide]
       using rd631.jump (by native_decide) hroutine (by evm_ov)⟩
 
-theorem endSnipX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endSnipX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD endBytecode I g
-      (initState cA gh bl σ σ₀ g A I) endSnipEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ g A I) endSnipEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD endBytecode I g
-        (initState cA gh bl σ σ₀ g A I) endSnipBodyPc
+        (initState σ σ₀ g A I) endSnipBodyPc
         [endSnipIdWord I, endSnipIlkWord I, endSnipReturnPc, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := endBytecode) (sel := sel)
     (entry := endSnipEntryPc) (ret := endSnipReturnPc)
@@ -2628,14 +2613,14 @@ theorem endSnipX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     hdecoded rfl (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [endSnipIdWord, endSnipIlkWord] using hroutine⟩
 
-theorem endSnipX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endSnipX_tagZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSnipTagWord σ I = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endSnipBodyPc
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endSnipBodyPc
       [endSnipIdWord I, endSnipIlkWord I, endSnipReturnPc, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   let key := endSnipIlkWord I
   have hslot : endSnipTagSlot I = solcMappingSlot ⟨12⟩ key := by
     simpa [key] using endSnipTagSlot_eq (I := I) hsz68
@@ -2679,19 +2664,19 @@ theorem endSnipX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd1665zero := rd1665raw
   rw [htagRaw'] at rd1665zero
   obtain ⟨_, _, rd1665⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1665⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨1665⟩
         (⟨0⟩ :: endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
         (twoWordHashMem key ⟨12⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k' C' := by
+        σ k' C' := by
     exact ⟨_, _, by simpa [endSnipBodyPc, key] using rd1665zero⟩
   have rd1668pre := rd1665.push2 ⟨1739⟩ (by native_decide) (by evm_ov)
   have rd1669pre := rd1668pre.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   obtain ⟨_, _, rd1669⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1669⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨1669⟩
         [endSnipIdWord I, endSnipIlkWord I, endSnipReturnPc, sel]
         (twoWordHashMem key ⟨12⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k' C' := by
+        σ k' C' := by
     exact ⟨_, _, by simpa using rd1669pre⟩
   exact RD.solcErrorStringRevertTail
     (pc := ⟨1669⟩) (len := ⟨23⟩)
@@ -2709,17 +2694,17 @@ theorem endSnipX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (twoWordHashMem_read64 key ⟨12⟩ solcFreePtrMem_size solcFreePtrMem_read64)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endSnipX_tagNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSnipTagWord σ I ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endSnipBodyPc
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endSnipBodyPc
       [endSnipIdWord I, endSnipIlkWord I, endSnipReturnPc, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1739⟩
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨1739⟩
       [endSnipIdWord I, endSnipIlkWord I, endSnipReturnPc, sel]
       (twoWordHashMem (endSnipIlkWord I) ⟨12⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   let key := endSnipIlkWord I
   have hslot : endSnipTagSlot I = solcMappingSlot ⟨12⟩ key := by
     simpa [key] using endSnipTagSlot_eq (I := I) hsz68
@@ -2764,28 +2749,28 @@ theorem endSnipX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd1665nzRaw := rd1665raw
   rw [htagRaw'] at rd1665nzRaw
   obtain ⟨_, _, rd1665nz⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1665⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨1665⟩
         (endSnipTagWord σ I :: endSnipIdWord I :: endSnipIlkWord I ::
           endSnipReturnPc :: sel :: [])
         (twoWordHashMem key ⟨12⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k' C' := by
+        σ k' C' := by
     exact ⟨_, _, by simpa [endSnipBodyPc, key] using rd1665nzRaw⟩
   have rd1668pre := rd1665nz.push2 ⟨1739⟩ (by native_decide) (by evm_ov)
   have rd1739pre := rd1668pre.jumpiT (by native_decide) htag (by jump_dest) (by evm_ov)
   exact ⟨_, _, by simpa [key] using rd1739pre⟩
 
-theorem endSnipX_dogIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endSnipX_dogIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1739⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1739⟩
       [endSnipIdWord I, endSnipIlkWord I, endSnipReturnPc, sel]
-      (endSnipDogIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1804⟩
+      (endSnipDogIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨1804⟩
       (endSnipDogWord σ I :: endSnipDogWord σ I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSnipDogIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endSnipDogWord σ I ::
         ⟨0⟩ :: endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipDogIlksCalldataMem I) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   have hmload64Hash :
       (if (⟨64⟩ : UInt256).toNat ≥ (endSnipDogIlksBaseMem I).size then ⟨0⟩
         else UInt256.ofNat
@@ -2828,11 +2813,11 @@ theorem endSnipX_dogIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     raw push1 ⟨3⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd1742raw⟩ := rd1741.sload (by native_decide) (by evm_ov)
   have rd1742 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1743⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨1743⟩
         (endSlotWord ⟨3⟩ σ I :: endSnipIdWord I :: endSnipIlkWord I ::
           endSnipReturnPc :: sel :: [])
         (endSnipDogIlksBaseMem I) (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k' C' := by
+        ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd1742raw⟩
   obtain ⟨_, _, rd1742⟩ := rd1742
   have rd1804 := evm_run rd1742 with [
@@ -2900,14 +2885,14 @@ theorem endSnipX_dogIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
         endSnipDogIlksOutSize, endFlowVatIlksEndPtr, hdogMaskRight, hinSize, hendPtr]
       try native_decide⟩
 
-theorem endSnipX_dogIlksNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endSnipX_dogIlksNoCode {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1739⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1739⟩
       [endSnipIdWord I, endSnipIlkWord I, endSnipReturnPc, sel]
-      (endSnipDogIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (endSnipDogIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1804⟩ := endSnipX_dogIlksExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1804⟩) (okPc := ⟨1816⟩) rd1804
     hcodeSize
@@ -2915,20 +2900,20 @@ theorem endSnipX_dogIlksNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_dogIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endSnipX_dogIlksCallReady {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1739⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1739⟩
       [endSnipIdWord I, endSnipIlkWord I, endSnipReturnPc, sel]
-      (endSnipDogIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (endSnipDogIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1819⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨1819⟩
       (gasWord :: endSnipDogWord σ I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSnipDogIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endSnipDogWord σ I ::
         ⟨0⟩ :: endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipDogIlksCalldataMem I) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd1804⟩ := endSnipX_dogIlksExtcodesizeGuard h
   obtain ⟨gasWord, k', C', rd1819⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1804⟩) (okPc := ⟨1816⟩) rd1804
@@ -2938,36 +2923,36 @@ theorem endSnipX_dogIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd1819⟩
 
-theorem endSnipX_dogIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endSnipX_dogIlksPostCall {σ σ₀ A I} {g : Sat256}
     {sel gasWord : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1819⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1819⟩
       (gasWord :: endSnipDogWord σ I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSnipDogIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endSnipDogWord σ I ::
         ⟨0⟩ :: endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipDogIlksCalldataMem I) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k C)
+      ByteArray.empty σ k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endSnipDogWord σ I))
           (toExecute σ (AccountAddress.ofUInt256 (endSnipDogWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSnipDogIlksCalldataMem I).readWithPadding
             endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1820⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨1820⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endFlowVatIlksEndPtr ::
             endFlowVatIlksSelectorWord :: endSnipDogWord σ I :: ⟨0⟩ ::
             endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-          (endSnipDogIlksPostCallMem I out) (UInt256.ofNat 8) out (cA', σ') k' C'
+          (endSnipDogIlksPostCallMem I out) (UInt256.ofNat 8) out σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd1820raw, hout⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hΘ, rd1820raw, hout⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endSnipDogIlksWriteLen_eq (out := out) hout
     have haw :
@@ -2979,22 +2964,22 @@ theorem endSnipX_dogIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [endSnipDogIlksPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endSnipDogIlksOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd1820raw
 
-theorem endSnipX_dogIlksCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endSnipX_dogIlksCallDepthLimit {σ σ₀ A I} {g : Sat256}
     {sel gasWord : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1819⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1819⟩
       (gasWord :: endSnipDogWord σ I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSnipDogIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endSnipDogWord σ I ::
         ⟨0⟩ :: endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipDogIlksCalldataMem I) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k C)
+      ByteArray.empty σ k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1820⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨1820⟩
       (⟨0⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endSnipDogWord σ I :: ⟨0⟩ :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipDogIlksCalldataMem I) (UInt256.ofNat 8)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   obtain ⟨k', C', rd1820raw⟩ :=
     RD.callDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -3010,15 +2995,15 @@ theorem endSnipX_dogIlksCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endSnipDogIlksOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd1820raw
 
-theorem endSnipX_dogIlksCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endSnipX_dogIlksCallFailed {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1820⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1820⟩
       (⟨0⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endSnipDogWord σ I :: ⟨0⟩ :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 8) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 8) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1820⟩) (okPc := ⟨1836⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3026,16 +3011,16 @@ theorem endSnipX_dogIlksCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_dogIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endSnipX_dogIlksCallSucceeded {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1820⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1820⟩
       (⟨1⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endSnipDogWord σ I :: ⟨0⟩ :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 8) rdata (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1841⟩
+      mem (UInt256.ofNat 8) rdata σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨1841⟩
       (⟨0⟩ :: endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 8) rdata (cA', σ') k' C' := by
+      mem (UInt256.ofNat 8) rdata σ' k' C' := by
   obtain ⟨_, _, rd1838⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨1820⟩) (okPc := ⟨1836⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -3048,16 +3033,16 @@ theorem endSnipX_dogIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sat25
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd1841⟩
 
-theorem endSnipX_dogIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endSnipX_dogIlksReturnDecodeOk {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1841⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1841⟩
       (⟨0⟩ :: endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      (endSnipDogIlksPostCallMem I out) (UInt256.ofNat 8) out (cA', σ') k C)
+      (endSnipDogIlksPostCallMem I out) (UInt256.ofNat 8) out σ' k C)
     (hlo : 128 ≤ out.size) (hout : out.size < UInt256.size) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1861⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨1861⟩
       (endSnipDogIlkClipWord out :: ⟨0⟩ :: endSnipIdWord I ::
         endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      (endSnipDogIlksPostCallMem I out) (UInt256.ofNat 8) out (cA', σ') k' C' := by
+      (endSnipDogIlksPostCallMem I out) (UInt256.ofNat 8) out σ' k' C' := by
   have hmload64 := endSnipDogIlksPostCallMem_mload64 I out
   have hmload128 := endSnipDogIlksPostCallMem_mload128_long I out hlo
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨128⟩ : UInt256) = ⟨0⟩ := by
@@ -3085,13 +3070,13 @@ theorem endSnipX_dogIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I} {g : Sat2
       mem_cost hmload128 (by decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd1861⟩
 
-theorem endSnipX_dogIlksReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endSnipX_dogIlksReturnDecodeShort {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1841⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1841⟩
       (⟨0⟩ :: endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      (endSnipDogIlksPostCallMem I out) (UInt256.ofNat 8) out (cA', σ') k C)
+      (endSnipDogIlksPostCallMem I out) (UInt256.ofNat 8) out σ' k C)
     (hshort : out.size < 128) (hout : out.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hmload64 := endSnipDogIlksPostCallMem_mload64 I out
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨128⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
@@ -3115,21 +3100,21 @@ theorem endSnipX_dogIlksReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I} {g : S
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endSnipX_vatIlksExtcodesizeGuard {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {dogOut : ByteArray} {k C : ℕ}
     (hloDog : 128 ≤ dogOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1861⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1861⟩
       (endSnipDogIlkClipWord dogOut :: ⟨0⟩ :: endSnipIdWord I ::
         endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      (endSnipDogIlksPostCallMem I dogOut) (UInt256.ofNat 8) dogOut (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1930⟩
+      (endSnipDogIlksPostCallMem I dogOut) (UInt256.ofNat 8) dogOut σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨1930⟩
       (endPackVatWord σ' I :: endPackVatWord σ' I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endFlowVatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σ' I ::
         ⟨0⟩ :: endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipVatIlksCalldataMem I dogOut) (UInt256.ofNat 8)
-      dogOut (cA', σ') k' C' := by
+      dogOut σ' k' C' := by
   have hmload64Base := endSnipDogIlksPostCallMem_mload64 I dogOut
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥ (endSnipVatIlksCalldataMem I dogOut).size then ⟨0⟩
@@ -3166,11 +3151,11 @@ theorem endSnipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I} {g : Sa
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd1864raw⟩ := rd1864.sload (by native_decide) (by evm_ov)
   have rd1864 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1864⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨1864⟩
         (endSlotWord ⟨1⟩ σ' I :: endSnipDogIlkClipWord dogOut :: ⟨0⟩ ::
           endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
         (endSnipDogIlksPostCallMem I dogOut) (UInt256.ofNat 8)
-        dogOut (cA', σ') k' C' := by
+        dogOut σ' k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd1864raw⟩
   obtain ⟨_, _, rd1864⟩ := rd1864
   have rd1929 := evm_run rd1864 with [
@@ -3243,16 +3228,16 @@ theorem endSnipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I} {g : Sa
         endFlowVatIlksEndPtr, hvatMaskRight, hinSize, hendPtr]
       try native_decide⟩
 
-theorem endSnipX_vatIlksNoCode {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endSnipX_vatIlksNoCode {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {dogOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1861⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1861⟩
       (endSnipDogIlkClipWord dogOut :: ⟨0⟩ :: endSnipIdWord I ::
         endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      (endSnipDogIlksPostCallMem I dogOut) (UInt256.ofNat 8) dogOut (cA', σ') k C)
+      (endSnipDogIlksPostCallMem I dogOut) (UInt256.ofNat 8) dogOut σ' k C)
     (hloDog : 128 ≤ dogOut.size)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endPackVatWord σ' I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1930⟩ := endSnipX_vatIlksExtcodesizeGuard hloDog h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1930⟩) (okPc := ⟨1942⟩) rd1930
     hcodeSize
@@ -3260,23 +3245,23 @@ theorem endSnipX_vatIlksNoCode {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_vatIlksCallReady {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endSnipX_vatIlksCallReady {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {dogOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1861⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1861⟩
       (endSnipDogIlkClipWord dogOut :: ⟨0⟩ :: endSnipIdWord I ::
         endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      (endSnipDogIlksPostCallMem I dogOut) (UInt256.ofNat 8) dogOut (cA', σ') k C)
+      (endSnipDogIlksPostCallMem I dogOut) (UInt256.ofNat 8) dogOut σ' k C)
     (hloDog : 128 ≤ dogOut.size)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endPackVatWord σ' I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1945⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨1945⟩
       (gasWord :: endPackVatWord σ' I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endFlowVatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σ' I ::
         ⟨0⟩ :: endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipVatIlksCalldataMem I dogOut) (UInt256.ofNat 8)
-      dogOut (cA', σ') k' C' := by
+      dogOut σ' k' C' := by
   obtain ⟨_, _, rd1930⟩ := endSnipX_vatIlksExtcodesizeGuard hloDog h
   obtain ⟨gasWord, k', C', rd1945⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1930⟩) (okPc := ⟨1942⟩) rd1930
@@ -3286,39 +3271,38 @@ theorem endSnipX_vatIlksCallReady {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd1945⟩
 
-theorem endSnipX_vatIlksPostCall {cA cAcur gh bl σ σcur σ₀ A I} {g : Sat256}
+theorem endSnipX_vatIlksPostCall {σ σcur σ₀ A I} {g : Sat256}
     {sel gasWord : UInt256} {dogOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1945⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1945⟩
       (gasWord :: endPackVatWord σcur I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endFlowVatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σcur I ::
         ⟨0⟩ :: endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipVatIlksCalldataMem I dogOut) (UInt256.ofNat 8)
-      dogOut (cAcur, σcur) k C)
+      dogOut σcur k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) = Ethereum.EVM.Θ I.blobVersionedHashes cAcur gh bl
-          σcur σ₀ Ain (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ σcur σ₀ Ain (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σcur I))
           (toExecute σcur (AccountAddress.ofUInt256 (endPackVatWord σcur I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSnipVatIlksCalldataMem I dogOut).readWithPadding
             endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1946⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨1946⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endFlowVatIlksEndPtr ::
             endFlowVatIlksSelectorWord :: endPackVatWord σcur I :: ⟨0⟩ ::
             endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
             endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
           (endSnipVatIlksPostCallMem I dogOut out) (UInt256.ofNat 9) out
-          (cA', σ') k' C'
+          σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd1946raw, hout⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hΘ, rd1946raw, hout⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endSnipVatIlksWriteLen_eq (out := out) hout
     have haw :
@@ -3330,24 +3314,24 @@ theorem endSnipX_vatIlksPostCall {cA cAcur gh bl σ σcur σ₀ A I} {g : Sat256
     simpa [endSnipVatIlksPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endFlowVatIlksOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd1946raw
 
-theorem endSnipX_vatIlksCallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
+theorem endSnipX_vatIlksCallDepthLimit {σ σcur σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {dogOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1945⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1945⟩
       (gasWord :: endPackVatWord σcur I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endFlowVatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σcur I ::
         ⟨0⟩ :: endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipVatIlksCalldataMem I dogOut) (UInt256.ofNat 8)
-      dogOut (cAcur, σcur) k C)
+      dogOut σcur k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1946⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨1946⟩
       (⟨0⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endPackVatWord σcur I :: ⟨0⟩ :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipVatIlksCalldataMem I dogOut) (UInt256.ofNat 9) ByteArray.empty
-      (cAcur, σcur) k' C' := by
+      σcur k' C' := by
   obtain ⟨k', C', rd1946raw⟩ :=
     RD.callDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -3363,16 +3347,16 @@ theorem endSnipX_vatIlksCallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endFlowVatIlksOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd1946raw
 
-theorem endSnipX_vatIlksCallFailed {cA cA' gh bl σ σcur σ' σ₀ A I}
+theorem endSnipX_vatIlksCallFailed {σ σcur σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut : ByteArray} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1946⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1946⟩
       (⟨0⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endPackVatWord σcur I :: ⟨0⟩ :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 9) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 9) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1946⟩) (okPc := ⟨1962⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3380,41 +3364,41 @@ theorem endSnipX_vatIlksCallFailed {cA cA' gh bl σ σcur σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_vatIlksCallSucceeded {cA cA' gh bl σ σcur σ' σ₀ A I}
+theorem endSnipX_vatIlksCallSucceeded {σ σcur σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut : ByteArray} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1946⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1946⟩
       (⟨1⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endPackVatWord σcur I :: ⟨0⟩ :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 9) rdata (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1964⟩
+      mem (UInt256.ofNat 9) rdata σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨1964⟩
       (endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σcur I ::
         ⟨0⟩ :: endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 9) rdata (cA', σ') k' C' := by
+      mem (UInt256.ofNat 9) rdata σ' k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨1946⟩) (okPc := ⟨1962⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp)
 
-theorem endSnipX_vatIlksReturnDecodeOk {cA cA' gh bl σ σcur σ' σ₀ A I}
+theorem endSnipX_vatIlksReturnDecodeOk {σ σcur σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1964⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1964⟩
       (endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σcur I ::
         ⟨0⟩ :: endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipVatIlksPostCallMem I dogOut vatOut) (UInt256.ofNat 9) vatOut
-      (cA', σ') k C)
+      σ' k C)
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hout : vatOut.size < UInt256.size) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1990⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨1990⟩
       (endFlowVatIlkRateWord vatOut :: ⟨0⟩ :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipVatIlksPostCallMem I dogOut vatOut) (UInt256.ofNat 9) vatOut
-      (cA', σ') k' C' := by
+      σ' k' C' := by
   have hmload64 := endSnipVatIlksPostCallMem_mload64 I dogOut vatOut hloDog
   have hmload160 := endSnipVatIlksPostCallMem_mload160_long I dogOut vatOut hloDog hloVat
   have hlt : UInt256.lt (UInt256.ofNat vatOut.size) (⟨160⟩ : UInt256) = ⟨0⟩ := by
@@ -3450,17 +3434,17 @@ theorem endSnipX_vatIlksReturnDecodeOk {cA cA' gh bl σ σcur σ' σ₀ A I}
     simpa [endFlowVatIlksEndPtr, endFlowVatIlksSelectorWord, endFlowVatIlksOutPtr,
       endFlowVatIlksInSize, endFlowVatIlksOutSize] using rd1990⟩
 
-theorem endSnipX_vatIlksReturnDecodeShort {cA cA' gh bl σ σcur σ' σ₀ A I}
+theorem endSnipX_vatIlksReturnDecodeShort {σ σcur σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1964⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1964⟩
       (endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σcur I ::
         ⟨0⟩ :: endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipVatIlksPostCallMem I dogOut vatOut) (UInt256.ofNat 9) vatOut
-      (cA', σ') k C)
+      σ' k C)
     (hloDog : 128 ≤ dogOut.size) (hshort : vatOut.size < 160)
     (hout : vatOut.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hmload64 := endSnipVatIlksPostCallMem_mload64 I dogOut vatOut hloDog
   have hlt : UInt256.lt (UInt256.ofNat vatOut.size) (⟨160⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
@@ -3488,16 +3472,16 @@ theorem endSnipX_vatIlksReturnDecodeShort {cA cA' gh bl σ σcur σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_salesExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSnipX_salesExtcodesizeGuard {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut : ByteArray} {k C : ℕ}
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1990⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1990⟩
       (endFlowVatIlkRateWord vatOut :: ⟨0⟩ :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipVatIlksPostCallMem I dogOut vatOut) (UInt256.ofNat 9) vatOut
-      (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2058⟩
+      σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2058⟩
       (endSnipSalesClipWord dogOut :: endSnipSalesClipWord dogOut ::
         endFlowVatIlksOutPtr :: endFlowVatIlksInSize :: endFlowVatIlksOutPtr ::
         endSnipSalesOutSize :: endFlowVatIlksEndPtr :: endSnipSalesSelectorWord ::
@@ -3506,7 +3490,7 @@ theorem endSnipX_salesExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipSalesCalldataMem I dogOut vatOut) (UInt256.ofNat 9) vatOut
-      (cA', σ') k' C' := by
+      σ' k' C' := by
   have hmload64Base := endSnipVatIlksPostCallMem_mload64 I dogOut vatOut hloDog
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥ (endSnipSalesCalldataMem I dogOut vatOut).size then ⟨0⟩
@@ -3606,18 +3590,18 @@ theorem endSnipX_salesExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         endFlowVatIlksEndPtr, hclipMaskRight, hinSize, hendPtr]
       try native_decide⟩
 
-theorem endSnipX_salesNoCode {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSnipX_salesNoCode {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1990⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1990⟩
       (endFlowVatIlkRateWord vatOut :: ⟨0⟩ :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipVatIlksPostCallMem I dogOut vatOut) (UInt256.ofNat 9) vatOut
-      (cA', σ') k C)
+      σ' k C)
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endSnipSalesClipWord dogOut) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2058⟩ := endSnipX_salesExtcodesizeGuard hloDog hloVat h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2058⟩) (okPc := ⟨2070⟩) rd2058
     hcodeSize
@@ -3625,18 +3609,18 @@ theorem endSnipX_salesNoCode {cA cA' gh bl σ σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_salesCallReady {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSnipX_salesCallReady {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1990⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨1990⟩
       (endFlowVatIlkRateWord vatOut :: ⟨0⟩ :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipVatIlksPostCallMem I dogOut vatOut) (UInt256.ofNat 9) vatOut
-      (cA', σ') k C)
+      σ' k C)
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endSnipSalesClipWord dogOut) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2073⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2073⟩
       (gasWord :: endSnipSalesClipWord dogOut :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSnipSalesOutSize ::
         endFlowVatIlksEndPtr :: endSnipSalesSelectorWord ::
@@ -3645,7 +3629,7 @@ theorem endSnipX_salesCallReady {cA cA' gh bl σ σ' σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipSalesCalldataMem I dogOut vatOut) (UInt256.ofNat 9) vatOut
-      (cA', σ') k' C' := by
+      σ' k' C' := by
   obtain ⟨_, _, rd2058⟩ := endSnipX_salesExtcodesizeGuard hloDog hloVat h
   obtain ⟨gasWord, k', C', rd2073⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2058⟩) (okPc := ⟨2070⟩) rd2058
@@ -3655,9 +3639,9 @@ theorem endSnipX_salesCallReady {cA cA' gh bl σ σ' σ₀ A I}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd2073⟩
 
-theorem endSnipX_salesPostStaticcall {cA cAcur gh bl σ σcur σ₀ A I}
+theorem endSnipX_salesPostStaticcall {σ σcur σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {dogOut vatOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2073⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2073⟩
       (gasWord :: endSnipSalesClipWord dogOut :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSnipSalesOutSize ::
         endFlowVatIlksEndPtr :: endSnipSalesSelectorWord ::
@@ -3666,34 +3650,34 @@ theorem endSnipX_salesPostStaticcall {cA cAcur gh bl σ σcur σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipSalesCalldataMem I dogOut vatOut) (UInt256.ofNat 9) vatOut
-      (cAcur, σcur) k C)
+      σcur k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (saleOut : ByteArray) (Ain : Substate) (callGas : UInt256)
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, saleOut) =
-          Ethereum.EVM.Θ I.blobVersionedHashes cAcur gh bl σcur σ₀ Ain
+        (σ', g'', A', z, saleOut) =
+          Ethereum.EVM.Θ σcur σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (endSnipSalesClipWord dogOut))
             (toExecute σcur (AccountAddress.ofUInt256 (endSnipSalesClipWord dogOut)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((endSnipSalesCalldataMem I dogOut vatOut).readWithPadding
               endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
-            (I.depth + 1) I.header false)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2074⟩
+            (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨2074⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endFlowVatIlksEndPtr ::
             endSnipSalesSelectorWord :: endSnipSalesClipWord dogOut ::
             ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: endFlowVatIlkRateWord vatOut ::
             endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
             endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
           (endSnipSalesPostCallMem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-          saleOut (cA', σ') k' C'
+          saleOut σ' k' C'
       ∧ saleOut.size < UInt256.size := by
-  obtain ⟨cA', σ', z, saleOut, Ain, callGas, k', C', hΘ, rd2074raw, hout⟩ :=
+  obtain ⟨σ', z, saleOut, Ain, callGas, k', C', hΘ, rd2074raw, hout⟩ :=
     RD.solcStaticcall h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
-  refine ⟨cA', σ', z, saleOut, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ', z, saleOut, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endSnipSalesWriteLen_eq (out := saleOut) hout
     have haw :
@@ -3705,9 +3689,9 @@ theorem endSnipX_salesPostStaticcall {cA cAcur gh bl σ σcur σ₀ A I}
     simpa [endSnipSalesPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endSnipSalesOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd2074raw
 
-theorem endSnipX_salesStaticcallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
+theorem endSnipX_salesStaticcallDepthLimit {σ σcur σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {dogOut vatOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2073⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2073⟩
       (gasWord :: endSnipSalesClipWord dogOut :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSnipSalesOutSize ::
         endFlowVatIlksEndPtr :: endSnipSalesSelectorWord ::
@@ -3716,16 +3700,16 @@ theorem endSnipX_salesStaticcallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipSalesCalldataMem I dogOut vatOut) (UInt256.ofNat 9) vatOut
-      (cAcur, σcur) k C)
+      σcur k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2074⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2074⟩
       (⟨0⟩ :: endFlowVatIlksEndPtr :: endSnipSalesSelectorWord ::
         endSnipSalesClipWord dogOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipSalesCalldataMem I dogOut vatOut) (UInt256.ofNat 10) ByteArray.empty
-      (cAcur, σcur) k' C' := by
+      σcur k' C' := by
   obtain ⟨k', C', rd2074raw⟩ :=
     RD.solcStaticcallDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -3741,18 +3725,18 @@ theorem endSnipX_salesStaticcallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endSnipSalesOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd2074raw
 
-theorem endSnipX_salesCallFailed {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSnipX_salesCallFailed {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut : ByteArray} {mem rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2074⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2074⟩
       (⟨0⟩ :: endFlowVatIlksEndPtr :: endSnipSalesSelectorWord ::
         endSnipSalesClipWord dogOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 10) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 10) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2074⟩) (okPc := ⟨2090⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3760,21 +3744,21 @@ theorem endSnipX_salesCallFailed {cA cA' gh bl σ σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_salesCallSucceeded {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSnipX_salesCallSucceeded {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut : ByteArray} {mem rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2074⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2074⟩
       (⟨1⟩ :: endFlowVatIlksEndPtr :: endSnipSalesSelectorWord ::
         endSnipSalesClipWord dogOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 10) rdata (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2095⟩
+      mem (UInt256.ofNat 10) rdata σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2095⟩
       (⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 10) rdata (cA', σ') k' C' := by
+      mem (UInt256.ofNat 10) rdata σ' k' C' := by
   obtain ⟨_, _, rd2092⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨2074⟩) (okPc := ⟨2090⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -3787,24 +3771,24 @@ theorem endSnipX_salesCallSucceeded {cA cA' gh bl σ σ' σ₀ A I}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd2095⟩
 
-theorem endSnipX_salesReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSnipX_salesReturnDecodeOk {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2095⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2095⟩
       (⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipSalesPostCallMem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      saleOut (cA', σ') k C)
+      saleOut σ' k C)
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloSale : 192 ≤ saleOut.size) (hout : saleOut.size < UInt256.size) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2131⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2131⟩
       (endSnipSaleUsrWord saleOut :: ⟨64⟩ :: endSnipSaleTabWord saleOut ::
         endSnipSaleLotWord saleOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipSalesPostCallMem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      saleOut (cA', σ') k' C' := by
+      saleOut σ' k' C' := by
   have hmload64 := endSnipSalesPostCallMem_mload64 I dogOut vatOut saleOut hloDog hloVat
   have hmload160 :=
     endSnipSalesPostCallMem_mload160_long I dogOut vatOut saleOut hloDog hloVat hloSale
@@ -3853,17 +3837,17 @@ theorem endSnipX_salesReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
       mem_cost hmload224 (by decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd2131⟩
 
-theorem endSnipX_salesReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSnipX_salesReturnDecodeShort {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2095⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2095⟩
       (⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipSalesPostCallMem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      saleOut (cA', σ') k C)
+      saleOut σ' k C)
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hshort : saleOut.size < 192) (hout : saleOut.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hmload64 := endSnipSalesPostCallMem_mload64 I dogOut vatOut saleOut hloDog hloVat
   have hlt : UInt256.lt (UInt256.ofNat saleOut.size) (⟨192⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
@@ -3939,7 +3923,7 @@ namespace Reasoning.Reach
 
 theorem RD.swap9 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj : UInt256} {t : List UInt256}
     (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
       mem aw rdata acc k C)
@@ -3951,7 +3935,7 @@ theorem RD.swap9 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
 
 theorem RD.dup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
     (h : RD code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
@@ -4044,7 +4028,7 @@ set_option maxHeartbeats 1000000 in
 theorem endSnip_solcErrorStringRevertTail_aw10 {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc len rawWord shift word : UInt256}
     {op : Operation.POp} {width : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc stk mem (UInt256.ofNat 10) rdata acc k C)
     (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
     (hpush : op ≠ .PUSH0)
@@ -4112,19 +4096,19 @@ theorem endSnip_solcErrorStringRevertTail_aw10 {code : ByteArray} {g : Sat256}
     raw swap1 hdSwap4 (by evm_ov),
     raw rev 0 hdRev mem_cost (by evm_ov)]
 
-theorem endSnipX_suckExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSnipX_suckExtcodesizeGuard {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut : ByteArray} {k C : ℕ}
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloSale : 192 ≤ saleOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2131⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2131⟩
       (endSnipSaleUsrWord saleOut :: ⟨64⟩ :: endSnipSaleTabWord saleOut ::
         endSnipSaleLotWord saleOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipSalesPostCallMem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      saleOut (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2220⟩
+      saleOut σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2220⟩
       (endPackVatWord σ' I :: endPackVatWord σ' I :: ⟨0⟩ ::
         endSnipSuckOutPtr :: endSnipSuckInSize :: endSnipSuckOutPtr ::
         endSnipSuckOutSize :: endSnipSuckEndPtr :: endSnipSuckSelectorWord ::
@@ -4134,7 +4118,7 @@ theorem endSnipX_suckExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipSuckCalldataMem σ' I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      saleOut (cA', σ') k' C' := by
+      saleOut σ' k' C' := by
   have hmload64Base :
       (if (⟨64⟩ : UInt256).toNat ≥
             (endSnipSalesPostCallMem I dogOut vatOut saleOut).size then ⟨0⟩
@@ -4183,14 +4167,14 @@ theorem endSnipX_suckExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd2138raw⟩ := rd2137.sload (by native_decide) (by evm_ov)
   have rd2134 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2134⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨2134⟩
         (endSlotWord ⟨1⟩ σ' I :: endSnipSaleUsrWord saleOut :: ⟨64⟩ ::
           endSnipSaleTabWord saleOut :: endSnipSaleLotWord saleOut :: ⟨0⟩ :: ⟨0⟩ ::
           ⟨0⟩ :: endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
           endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
           endSnipReturnPc :: sel :: [])
         (endSnipSalesPostCallMem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-        saleOut (cA', σ') k' C' := by
+        saleOut σ' k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2138raw⟩
   obtain ⟨_, _, rd2134⟩ := rd2134
   have rd2137 := evm_run rd2134 with [
@@ -4198,7 +4182,7 @@ theorem endSnipX_suckExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd2138raw⟩ := rd2137.sload (by native_decide) (by evm_ov)
   have rd2138 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2138⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨2138⟩
         (endSlotWord ⟨4⟩ σ' I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σ' I ::
           endSnipSaleUsrWord saleOut :: ⟨64⟩ :: endSnipSaleTabWord saleOut ::
           endSnipSaleLotWord saleOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
@@ -4206,7 +4190,7 @@ theorem endSnipX_suckExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
           endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
           endSnipReturnPc :: sel :: [])
         (endSnipSalesPostCallMem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-        saleOut (cA', σ') k' C' := by
+        saleOut σ' k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2138raw⟩
   obtain ⟨_, _, rd2138⟩ := rd2138
   have rd2220raw := evm_run rd2138 with [
@@ -4311,21 +4295,21 @@ theorem endSnipX_suckExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         hvowMask, hvowMaskLeft]
       try native_decide⟩
 
-theorem endSnipX_suckNoCode {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSnipX_suckNoCode {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut : ByteArray} {k C : ℕ}
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloSale : 192 ≤ saleOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2131⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2131⟩
       (endSnipSaleUsrWord saleOut :: ⟨64⟩ :: endSnipSaleTabWord saleOut ::
         endSnipSaleLotWord saleOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipSalesPostCallMem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      saleOut (cA', σ') k C)
+      saleOut σ' k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endPackVatWord σ' I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2220⟩ := endSnipX_suckExtcodesizeGuard hloDog hloVat hloSale h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2220⟩) (okPc := ⟨2232⟩) rd2220
     hcodeSize
@@ -4333,21 +4317,21 @@ theorem endSnipX_suckNoCode {cA cA' gh bl σ σ' σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_suckCallReady {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSnipX_suckCallReady {σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut : ByteArray} {k C : ℕ}
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloSale : 192 ≤ saleOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2131⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2131⟩
       (endSnipSaleUsrWord saleOut :: ⟨64⟩ :: endSnipSaleTabWord saleOut ::
         endSnipSaleLotWord saleOut :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipSalesPostCallMem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      saleOut (cA', σ') k C)
+      saleOut σ' k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (endPackVatWord σ' I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2235⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2235⟩
       (gasWord :: endPackVatWord σ' I :: ⟨0⟩ :: endSnipSuckOutPtr ::
         endSnipSuckInSize :: endSnipSuckOutPtr :: endSnipSuckOutSize ::
         endSnipSuckEndPtr :: endSnipSuckSelectorWord :: endPackVatWord σ' I ::
@@ -4356,7 +4340,7 @@ theorem endSnipX_suckCallReady {cA cA' gh bl σ σ' σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipSuckCalldataMem σ' I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      saleOut (cA', σ') k' C' := by
+      saleOut σ' k' C' := by
   obtain ⟨_, _, rd2220⟩ := endSnipX_suckExtcodesizeGuard hloDog hloVat hloSale h
   obtain ⟨gasWord, k', C', rd2235⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2220⟩) (okPc := ⟨2232⟩) rd2220
@@ -4366,9 +4350,9 @@ theorem endSnipX_suckCallReady {cA cA' gh bl σ σ' σ₀ A I}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd2235⟩
 
-theorem endSnipX_suckPostCall {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSnipX_suckPostCall {σ σ' σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {dogOut vatOut saleOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2235⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2235⟩
       (gasWord :: endPackVatWord σ' I :: ⟨0⟩ :: endSnipSuckOutPtr ::
         endSnipSuckInSize :: endSnipSuckOutPtr :: endSnipSuckOutSize ::
         endSnipSuckEndPtr :: endSnipSuckSelectorWord :: endPackVatWord σ' I ::
@@ -4377,20 +4361,20 @@ theorem endSnipX_suckPostCall {cA cA' gh bl σ σ' σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipSuckCalldataMem σ' I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      saleOut (cA', σ') k C)
+      saleOut σ' k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+    ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA'', σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.blobVersionedHashes cA' gh bl σ' σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σ' σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σ' I))
           (toExecute σ' (AccountAddress.ofUInt256 (endPackVatWord σ' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSnipSuckCalldataMem σ' I dogOut vatOut saleOut).readWithPadding
             endSnipSuckOutPtr.toNat endSnipSuckInSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2236⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨2236⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endSnipSuckEndPtr ::
             endSnipSuckSelectorWord :: endPackVatWord σ' I ::
             endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
@@ -4398,11 +4382,11 @@ theorem endSnipX_suckPostCall {cA cA' gh bl σ σ' σ₀ A I}
             endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
             endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
           (endSnipSuckPostCallMem σ' I dogOut vatOut saleOut ret)
-          (UInt256.ofNat 10) ret (cA'', σ'') k' C'
+          (UInt256.ofNat 10) ret σ'' k' C'
       ∧ ret.size < UInt256.size := by
-  obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd2236raw, hret⟩ :=
+  obtain ⟨σ'', z, ret, Ain, callGas, k', C', hΘ, rd2236raw, hret⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
+  refine ⟨σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endSnipSuckOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
       have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat ret.size := by
@@ -4419,9 +4403,9 @@ theorem endSnipX_suckPostCall {cA cA' gh bl σ σ' σ₀ A I}
       endSnipSuckOutSize, endSnipSuckEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd2236raw
 
-theorem endSnipX_suckCallDepthLimit {cA cA' gh bl σ σ' σ₀ A I}
+theorem endSnipX_suckCallDepthLimit {σ σ' σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {dogOut vatOut saleOut : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2235⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2235⟩
       (gasWord :: endPackVatWord σ' I :: ⟨0⟩ :: endSnipSuckOutPtr ::
         endSnipSuckInSize :: endSnipSuckOutPtr :: endSnipSuckOutSize ::
         endSnipSuckEndPtr :: endSnipSuckSelectorWord :: endPackVatWord σ' I ::
@@ -4430,16 +4414,16 @@ theorem endSnipX_suckCallDepthLimit {cA cA' gh bl σ σ' σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipSuckCalldataMem σ' I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      saleOut (cA', σ') k C)
+      saleOut σ' k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2236⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2236⟩
       (⟨0⟩ :: endSnipSuckEndPtr :: endSnipSuckSelectorWord :: endPackVatWord σ' I ::
         endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipSuckCalldataMem σ' I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      ByteArray.empty (cA', σ') k' C' := by
+      ByteArray.empty σ' k' C' := by
   obtain ⟨k', C', rd2236raw⟩ :=
     RD.callDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -4455,17 +4439,17 @@ theorem endSnipX_suckCallDepthLimit {cA cA' gh bl σ σ' σ₀ A I}
   simpa [endSnipSuckOutPtr, endSnipSuckInSize, endSnipSuckOutSize,
     endSnipSuckEndPtr, hmin, byteArray_write_len_zero, haw] using rd2236raw
 
-theorem endSnipX_suckCallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
+theorem endSnipX_suckCallFailed {σ σpre σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2236⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2236⟩
       (⟨0⟩ :: endSnipSuckEndPtr :: endSnipSuckSelectorWord :: endPackVatWord σpre I ::
         endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 10) rdata (cA', σpost) k C)
+      mem (UInt256.ofNat 10) rdata σpost k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2236⟩) (okPc := ⟨2252⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -4473,21 +4457,21 @@ theorem endSnipX_suckCallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_suckCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
+theorem endSnipX_suckCallSucceeded {σ σpre σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2236⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2236⟩
       (⟨1⟩ :: endSnipSuckEndPtr :: endSnipSuckSelectorWord :: endPackVatWord σpre I ::
         endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 10) rdata (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2257⟩
+      mem (UInt256.ofNat 10) rdata σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2257⟩
       (endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 10) rdata (cA', σpost) k' C' := by
+      mem (UInt256.ofNat 10) rdata σpost k' C' := by
   obtain ⟨_, _, rd2254⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨2236⟩) (okPc := ⟨2252⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -4500,18 +4484,18 @@ theorem endSnipX_suckCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd2257⟩
 
-theorem endSnipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSnipX_yankExtcodesizeGuard {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut rdata : ByteArray} {k C : ℕ}
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloSale : 192 ≤ saleOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2257⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2257⟩
       (endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipSuckCalldataMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      rdata (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2314⟩
+      rdata σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2314⟩
       (endSnipSalesClipWord dogOut :: endSnipSalesClipWord dogOut :: ⟨0⟩ ::
         endSnipYankOutPtr :: endSnipYankInSize :: endSnipYankOutPtr ::
         endSnipYankOutSize :: endSnipYankEndPtr :: endSnipYankSelectorWord ::
@@ -4521,7 +4505,7 @@ theorem endSnipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipYankCalldataMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      rdata (cA', σpost) k' C' := by
+      rdata σpost k' C' := by
   have hmload64Base :
       (if (⟨64⟩ : UInt256).toNat ≥
             (endSnipSuckCalldataMem σmem I dogOut vatOut saleOut).size then ⟨0⟩
@@ -4627,20 +4611,20 @@ theorem endSnipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
       endSnipYankEndPtr, endSnipYankSelectorWord, haddrMask, hclipMaskLeft,
       hclipMaskRight] using rd2314raw⟩
 
-theorem endSnipX_yankNoCode {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSnipX_yankNoCode {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut rdata : ByteArray} {k C : ℕ}
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloSale : 192 ≤ saleOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2257⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2257⟩
       (endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipSuckCalldataMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      rdata (cA', σpost) k C)
+      rdata σpost k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σpost (endSnipSalesClipWord dogOut) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2314⟩ := endSnipX_yankExtcodesizeGuard hloDog hloVat hloSale h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2314⟩) (okPc := ⟨2326⟩) rd2314
     hcodeSize
@@ -4648,20 +4632,20 @@ theorem endSnipX_yankNoCode {cA cA' gh bl σ σmem σpost σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_yankCallReady {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSnipX_yankCallReady {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut rdata : ByteArray} {k C : ℕ}
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloSale : 192 ≤ saleOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2257⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2257⟩
       (endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipSuckCalldataMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      rdata (cA', σpost) k C)
+      rdata σpost k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σpost (endSnipSalesClipWord dogOut) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2329⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2329⟩
       (gasWord :: endSnipSalesClipWord dogOut :: ⟨0⟩ :: endSnipYankOutPtr ::
         endSnipYankInSize :: endSnipYankOutPtr :: endSnipYankOutSize ::
         endSnipYankEndPtr :: endSnipYankSelectorWord :: endSnipSalesClipWord dogOut ::
@@ -4670,7 +4654,7 @@ theorem endSnipX_yankCallReady {cA cA' gh bl σ σmem σpost σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipYankCalldataMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      rdata (cA', σpost) k' C' := by
+      rdata σpost k' C' := by
   obtain ⟨_, _, rd2314⟩ := endSnipX_yankExtcodesizeGuard hloDog hloVat hloSale h
   obtain ⟨gasWord, k', C', rd2329⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2314⟩) (okPc := ⟨2326⟩) rd2314
@@ -4680,9 +4664,9 @@ theorem endSnipX_yankCallReady {cA cA' gh bl σ σmem σpost σ₀ A I}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd2329⟩
 
-theorem endSnipX_yankPostCall {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSnipX_yankPostCall {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {dogOut vatOut saleOut rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2329⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2329⟩
       (gasWord :: endSnipSalesClipWord dogOut :: ⟨0⟩ :: endSnipYankOutPtr ::
         endSnipYankInSize :: endSnipYankOutPtr :: endSnipYankOutSize ::
         endSnipYankEndPtr :: endSnipYankSelectorWord :: endSnipSalesClipWord dogOut ::
@@ -4691,20 +4675,20 @@ theorem endSnipX_yankPostCall {cA cA' gh bl σ σmem σpost σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipYankCalldataMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      rdata (cA', σpost) k C)
+      rdata σpost k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+    ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA'', σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.blobVersionedHashes cA' gh bl σpost σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σpost σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endSnipSalesClipWord dogOut))
           (toExecute σpost (AccountAddress.ofUInt256 (endSnipSalesClipWord dogOut)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSnipYankCalldataMem σmem I dogOut vatOut saleOut).readWithPadding
             endSnipYankOutPtr.toNat endSnipYankInSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2330⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨2330⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endSnipYankEndPtr ::
             endSnipYankSelectorWord :: endSnipSalesClipWord dogOut ::
             endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
@@ -4712,11 +4696,11 @@ theorem endSnipX_yankPostCall {cA cA' gh bl σ σmem σpost σ₀ A I}
             endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
             endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
           (endSnipYankPostCallMem σmem I dogOut vatOut saleOut ret)
-          (UInt256.ofNat 10) ret (cA'', σ'') k' C'
+          (UInt256.ofNat 10) ret σ'' k' C'
       ∧ ret.size < UInt256.size := by
-  obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd2330raw, hret⟩ :=
+  obtain ⟨σ'', z, ret, Ain, callGas, k', C', hΘ, rd2330raw, hret⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
+  refine ⟨σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endSnipYankOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
       have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat ret.size := by
@@ -4733,9 +4717,9 @@ theorem endSnipX_yankPostCall {cA cA' gh bl σ σmem σpost σ₀ A I}
       endSnipYankOutSize, endSnipYankEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd2330raw
 
-theorem endSnipX_yankCallDepthLimit {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSnipX_yankCallDepthLimit {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {dogOut vatOut saleOut rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2329⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2329⟩
       (gasWord :: endSnipSalesClipWord dogOut :: ⟨0⟩ :: endSnipYankOutPtr ::
         endSnipYankInSize :: endSnipYankOutPtr :: endSnipYankOutSize ::
         endSnipYankEndPtr :: endSnipYankSelectorWord :: endSnipSalesClipWord dogOut ::
@@ -4744,16 +4728,16 @@ theorem endSnipX_yankCallDepthLimit {cA cA' gh bl σ σmem σpost σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipYankCalldataMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      rdata (cA', σpost) k C)
+      rdata σpost k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2330⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2330⟩
       (⟨0⟩ :: endSnipYankEndPtr :: endSnipYankSelectorWord :: endSnipSalesClipWord dogOut ::
         endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipYankCalldataMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      ByteArray.empty (cA', σpost) k' C' := by
+      ByteArray.empty σpost k' C' := by
   obtain ⟨k', C', rd2330raw⟩ :=
     RD.callDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -4769,17 +4753,17 @@ theorem endSnipX_yankCallDepthLimit {cA cA' gh bl σ σmem σpost σ₀ A I}
   simpa [endSnipYankOutPtr, endSnipYankInSize, endSnipYankOutSize,
     endSnipYankEndPtr, hmin, byteArray_write_len_zero, haw] using rd2330raw
 
-theorem endSnipX_yankCallFailed {cA cA' gh bl σ σpost σ₀ A I}
+theorem endSnipX_yankCallFailed {σ σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2330⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2330⟩
       (⟨0⟩ :: endSnipYankEndPtr :: endSnipYankSelectorWord :: endSnipSalesClipWord dogOut ::
         endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 10) rdata (cA', σpost) k C)
+      mem (UInt256.ofNat 10) rdata σpost k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2330⟩) (okPc := ⟨2346⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -4787,21 +4771,21 @@ theorem endSnipX_yankCallFailed {cA cA' gh bl σ σpost σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_yankCallSucceeded {cA cA' gh bl σ σpost σ₀ A I}
+theorem endSnipX_yankCallSucceeded {σ σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2330⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2330⟩
       (⟨1⟩ :: endSnipYankEndPtr :: endSnipYankSelectorWord :: endSnipSalesClipWord dogOut ::
         endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 10) rdata (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2351⟩
+      mem (UInt256.ofNat 10) rdata σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2351⟩
       (endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 10) rdata (cA', σpost) k' C' := by
+      mem (UInt256.ofNat 10) rdata σpost k' C' := by
   obtain ⟨_, _, rd2348⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨2330⟩) (okPc := ⟨2346⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -4814,20 +4798,20 @@ theorem endSnipX_yankCallSucceeded {cA cA' gh bl σ σpost σ₀ A I}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd2351⟩
 
-theorem endSnipX_artDivZeroInvalid {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSnipX_artDivZeroInvalid {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut ret : ByteArray} {k C : ℕ}
     (hrate : endFlowVatIlkRateWord vatOut = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2351⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2351⟩
       (endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipYankPostCallMem σmem I dogOut vatOut saleOut ret) (UInt256.ofNat 10)
-      ret (cA', σpost) k C) :
+      ret σpost k C) :
     X (g.toNat + 1) (D_J endBytecode 0)
-        (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass ∨
+        (initState σ σ₀ g A I) = .error .OutOfGass ∨
       X (g.toNat + 1) (D_J endBytecode 0)
-        (initState cA gh bl σ σ₀ g A I) = .error .InvalidInstruction := by
+        (initState σ σ₀ g A I) = .error .InvalidInstruction := by
   have rd2359 := evm_run h with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw dup5 (by native_decide) (by evm_ov),
@@ -4837,20 +4821,20 @@ theorem endSnipX_artDivZeroInvalid {cA cA' gh bl σ σmem σpost σ₀ A I}
   have rd2360 := rd2359.jumpiNT (by native_decide) (by simpa using hrate) (by evm_ov)
   exact endFlowInvalidError rd2360 (by native_decide)
 
-theorem endSnipX_artAddEntry {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSnipX_artAddEntry {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut ret : ByteArray} {k C : ℕ}
     (hsz68 : 68 ≤ I.calldata.size)
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloSale : 192 ≤ saleOut.size)
     (hrate : endFlowVatIlkRateWord vatOut ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2351⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2351⟩
       (endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipYankPostCallMem σmem I dogOut vatOut saleOut ret) (UInt256.ofNat 10)
-      ret (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10092⟩
+      ret σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨10092⟩
       (endSnipArtWord vatOut saleOut :: endSnipArtOldWord σpost I :: ⟨2391⟩ ::
         endSnipArtWord vatOut saleOut :: endSnipSaleUsrWord saleOut ::
         endSnipSaleLotWord saleOut :: endSnipSaleTabWord saleOut ::
@@ -4858,7 +4842,7 @@ theorem endSnipX_artAddEntry {cA cA' gh bl σ σmem σpost σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipArtHashMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      ret (cA', σpost) k' C' := by
+      ret σpost k' C' := by
   let key := endSnipIlkWord I
   let mem0 := endSnipYankPostCallMem σmem I dogOut vatOut saleOut ret
   let mem14 := endSnipArtHashMem σmem I dogOut vatOut saleOut
@@ -4908,14 +4892,14 @@ theorem endSnipX_artAddEntry {cA cA' gh bl σ σmem σpost σ₀ A I}
     (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2377raw⟩ := rd2376.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2377⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2377⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨2377⟩
         (endSnipArtOldWord σpost I :: endSnipSaleTabWord saleOut ::
           endFlowVatIlkRateWord vatOut :: ⟨0⟩ :: endSnipSaleUsrWord saleOut ::
           endSnipSaleLotWord saleOut :: endSnipSaleTabWord saleOut ::
           endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
           endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
           endSnipReturnPc :: sel :: [])
-        mem14 (UInt256.ofNat 10) ret (cA', σpost) k' C' := by
+        mem14 (UInt256.ofNat 10) ret σpost k' C' := by
     exact ⟨_, _, by
       simpa [endSnipArtOldWord, endSlotWord, solcSlotWord, hslot, key, mem14]
         using rd2377raw⟩
@@ -4933,12 +4917,12 @@ theorem endSnipX_artAddEntry {cA cA' gh bl σ σmem σpost σ₀ A I}
     simpa [endSnipArtWord, mem14] using
       rd2390.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem endSnipX_artAddReturns {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSnipX_artAddReturns {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut ret : ByteArray} {k C : ℕ}
     (hfit :
       (endSnipArtOldWord σpost I).toNat + (endSnipArtWord vatOut saleOut).toNat <
         UInt256.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10092⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨10092⟩
       (endSnipArtWord vatOut saleOut :: endSnipArtOldWord σpost I :: ⟨2391⟩ ::
         endSnipArtWord vatOut saleOut :: endSnipSaleUsrWord saleOut ::
         endSnipSaleLotWord saleOut :: endSnipSaleTabWord saleOut ::
@@ -4946,15 +4930,15 @@ theorem endSnipX_artAddReturns {cA cA' gh bl σ σmem σpost σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipArtHashMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      ret (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2391⟩
+      ret σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2391⟩
       (endSnipArtNewWord σpost I vatOut saleOut :: endSnipArtWord vatOut saleOut ::
         endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipArtHashMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      ret (cA', σpost) k' C' := by
+      ret σpost k' C' := by
   let old := endSnipArtOldWord σpost I
   let art := endSnipArtWord vatOut saleOut
   have hfit' : art.toNat + old.toNat < UInt256.size := by
@@ -4992,12 +4976,12 @@ theorem endSnipX_artAddReturns {cA cA' gh bl σ σmem σpost σ₀ A I}
   have hcomm : art + old = old + art := u256_add_comm art old
   exact ⟨_, _, by simpa [endSnipArtNewWord, old, art, hcomm] using rd2391⟩
 
-theorem endSnipX_artAddOverflow {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSnipX_artAddOverflow {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut ret : ByteArray} {k C : ℕ}
     (hover :
       UInt256.size ≤
         (endSnipArtOldWord σpost I).toNat + (endSnipArtWord vatOut saleOut).toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10092⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨10092⟩
       (endSnipArtWord vatOut saleOut :: endSnipArtOldWord σpost I :: ⟨2391⟩ ::
         endSnipArtWord vatOut saleOut :: endSnipSaleUsrWord saleOut ::
         endSnipSaleLotWord saleOut :: endSnipSaleTabWord saleOut ::
@@ -5005,8 +4989,8 @@ theorem endSnipX_artAddOverflow {cA cA' gh bl σ σmem σpost σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipArtHashMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      ret (cA', σpost) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      ret σpost k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   let old := endSnipArtOldWord σpost I
   let art := endSnipArtWord vatOut saleOut
   have hover' : UInt256.size ≤ art.toNat + old.toNat := by
@@ -5049,28 +5033,28 @@ theorem endSnipX_artAddOverflow {cA cA' gh bl σ σmem σpost σ₀ A I}
     (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_artStoreAtHash {cA cA' gh bl σ σmem σpost σ₀ A I} {g : Sat256}
+theorem endSnipX_artStoreAtHash {σ σmem σpost σ₀ A I} {g : Sat256}
     {sel : UInt256} {dogOut vatOut saleOut ret : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloSale : 192 ≤ saleOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2391⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2391⟩
       (endSnipArtNewWord σpost I vatOut saleOut :: endSnipArtWord vatOut saleOut ::
         endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipArtHashMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      ret (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2410⟩
+      ret σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2410⟩
       (⟨0⟩ :: endSnipArtWord vatOut saleOut :: endSnipSaleUsrWord saleOut ::
         endSnipSaleLotWord saleOut :: endSnipSaleTabWord saleOut ::
         endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipArtStoreHashMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      ret (cA', endSnipPostArtAccountMap σpost I
+      ret (endSnipPostArtAccountMap σpost I
         (endSnipArtNewWord σpost I vatOut saleOut)) k' C' := by
   let key := endSnipIlkWord I
   let mem14 := endSnipArtHashMem σmem I dogOut vatOut saleOut
@@ -5127,7 +5111,7 @@ theorem endSnipX_artStoreAtHash {cA cA' gh bl σ σmem σpost σ₀ A I} {g : Sa
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [endSnipPostArtAccountMap, memStore] using rd2410raw⟩
 
-theorem endSnipX_artStoreIntGuardOk {cA cA' gh bl σ σmem σpost σ₀ A I} {g : Sat256}
+theorem endSnipX_artStoreIntGuardOk {σ σmem σpost σ₀ A I} {g : Sat256}
     {sel : UInt256} {dogOut vatOut saleOut ret : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
@@ -5135,22 +5119,22 @@ theorem endSnipX_artStoreIntGuardOk {cA cA' gh bl σ σmem σpost σ₀ A I} {g 
     (hloSale : 192 ≤ saleOut.size)
     (hlot : (endSnipSaleLotWord saleOut).toNat < 2 ^ 255)
     (hart : (endSnipArtWord vatOut saleOut).toNat < 2 ^ 255)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2391⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2391⟩
       (endSnipArtNewWord σpost I vatOut saleOut :: endSnipArtWord vatOut saleOut ::
         endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipArtHashMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      ret (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2489⟩
+      ret σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2489⟩
       (endSnipArtWord vatOut saleOut :: endSnipSaleUsrWord saleOut ::
         endSnipSaleLotWord saleOut :: endSnipSaleTabWord saleOut ::
         endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipArtStoreHashMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      ret (cA', endSnipPostArtAccountMap σpost I
+      ret (endSnipPostArtAccountMap σpost I
         (endSnipArtNewWord σpost I vatOut saleOut)) k' C' := by
   obtain ⟨_, _, rd2410⟩ := endSnipX_artStoreAtHash hperm hsz68 hloDog hloVat hloSale h
   have hsltLot :
@@ -5187,22 +5171,22 @@ theorem endSnipX_artStoreIntGuardOk {cA cA' gh bl σ σmem σpost σ₀ A I} {g 
       (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa using rd2489⟩
 
-theorem endSnipX_artStoreIntGuardLotOverflow {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSnipX_artStoreIntGuardLotOverflow {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut ret : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloSale : 192 ≤ saleOut.size)
     (hlot : 2 ^ 255 ≤ (endSnipSaleLotWord saleOut).toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2391⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2391⟩
       (endSnipArtNewWord σpost I vatOut saleOut :: endSnipArtWord vatOut saleOut ::
         endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipArtHashMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      ret (cA', σpost) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      ret σpost k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2410⟩ := endSnipX_artStoreAtHash hperm hsz68 hloDog hloVat hloSale h
   have hsltLot :
       UInt256.slt (endSnipSaleLotWord saleOut) (⟨0⟩ : UInt256) = ⟨1⟩ := by
@@ -5238,7 +5222,7 @@ theorem endSnipX_artStoreIntGuardLotOverflow {cA cA' gh bl σ σmem σpost σ₀
     (endSnipArtStoreHashMem_read64 σmem I dogOut vatOut saleOut hloDog hloVat hloSale)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_artStoreIntGuardArtOverflow {cA cA' gh bl σ σmem σpost σ₀ A I}
+theorem endSnipX_artStoreIntGuardArtOverflow {σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut ret : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
@@ -5246,15 +5230,15 @@ theorem endSnipX_artStoreIntGuardArtOverflow {cA cA' gh bl σ σmem σpost σ₀
     (hloSale : 192 ≤ saleOut.size)
     (hlot : (endSnipSaleLotWord saleOut).toNat < 2 ^ 255)
     (hart : 2 ^ 255 ≤ (endSnipArtWord vatOut saleOut).toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2391⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2391⟩
       (endSnipArtNewWord σpost I vatOut saleOut :: endSnipArtWord vatOut saleOut ::
         endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipArtHashMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      ret (cA', σpost) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      ret σpost k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2410⟩ := endSnipX_artStoreAtHash hperm hsz68 hloDog hloVat hloSale h
   have hsltLot :
       UInt256.slt (endSnipSaleLotWord saleOut) (⟨0⟩ : UInt256) = ⟨0⟩ := by
@@ -5302,19 +5286,19 @@ theorem endSnipX_artStoreIntGuardArtOverflow {cA cA' gh bl σ σmem σpost σ₀
     (endSnipArtStoreHashMem_read64 σmem I dogOut vatOut saleOut hloDog hloVat hloSale)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
+theorem endSnipX_grabExtcodesizeGuard {σ σCall σLoc σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut rdata : ByteArray} {k C : ℕ}
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloSale : 192 ≤ saleOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2489⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2489⟩
       (endSnipArtWord vatOut saleOut :: endSnipSaleUsrWord saleOut ::
         endSnipSaleLotWord saleOut :: endSnipSaleTabWord saleOut ::
         endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipArtStoreHashMem σLoc I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      rdata (cA', σCall) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2591⟩
+      rdata σCall k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2591⟩
       (endPackVatWord σCall I :: endPackVatWord σCall I :: ⟨0⟩ ::
         endFreeGrabOutPtr :: endFreeGrabInSize :: endFreeGrabOutPtr ::
         endFreeGrabOutSize :: endFreeGrabEndPtr :: endFreeGrabSelectorWord ::
@@ -5324,7 +5308,7 @@ theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipGrabCalldataMemFor σCall σLoc I dogOut vatOut saleOut)
-      (UInt256.ofNat 11) rdata (cA', σCall) k' C' := by
+      (UInt256.ofNat 11) rdata σCall k' C' := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
             (endSnipArtStoreHashMem σLoc I dogOut vatOut saleOut).size then ⟨0⟩
@@ -5387,14 +5371,14 @@ theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd2493raw⟩ := rd2492.sload (by native_decide) (by evm_ov)
   have rd2493 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2493⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨2493⟩
         (endSlotWord ⟨1⟩ σCall I :: endSnipArtWord vatOut saleOut ::
           endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
           endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
           endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
           endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
         (endSnipArtStoreHashMem σLoc I dogOut vatOut saleOut) (UInt256.ofNat 10)
-        rdata (cA', σCall) k' C' := by
+        rdata σCall k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2493raw⟩
   obtain ⟨_, _, rd2493⟩ := rd2493
   have rd2496 := evm_run rd2493 with [
@@ -5402,7 +5386,7 @@ theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
     raw dup1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd2497raw⟩ := rd2496.sload (by native_decide) (by evm_ov)
   have rd2497 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2497⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨2497⟩
         (endSlotWord ⟨4⟩ σCall I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σCall I ::
           endSnipArtWord vatOut saleOut :: endSnipSaleUsrWord saleOut ::
           endSnipSaleLotWord saleOut :: endSnipSaleTabWord saleOut ::
@@ -5410,7 +5394,7 @@ theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
           endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
           endSnipReturnPc :: sel :: [])
         (endSnipArtStoreHashMem σLoc I dogOut vatOut saleOut) (UInt256.ofNat 10)
-        rdata (cA', σCall) k' C' := by
+        rdata σCall k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2497raw⟩
   obtain ⟨_, _, rd2497⟩ := rd2497
   have rd2591raw := evm_run rd2497 with [
@@ -5524,7 +5508,7 @@ theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
     raw dup8 (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
   have rd2591 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2591⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨2591⟩
         (endPackVatWord σCall I :: endPackVatWord σCall I :: ⟨0⟩ ::
           endFreeGrabOutPtr :: endFreeGrabInSize :: endFreeGrabOutPtr ::
           endFreeGrabOutSize :: endFreeGrabEndPtr :: endFreeGrabSelectorWord ::
@@ -5534,7 +5518,7 @@ theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
           endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
           endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
         (endSnipGrabMem7For σCall σLoc I dogOut vatOut saleOut) (UInt256.ofNat 11)
-        rdata (cA', σCall) k' C' := by
+        rdata σCall k' C' := by
     exact ⟨_, _, by
       simpa [endFreeGrabOutPtr, endFreeGrabInSize, endFreeGrabOutSize,
         endFreeGrabEndPtr, endFreeGrabSelectorWord, endPackVatWord, endPackVowWord,
@@ -5543,21 +5527,21 @@ theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
   obtain ⟨k', C', rd2591⟩ := rd2591
   exact ⟨k', C', by simpa [endSnipGrabMem7For_eq] using rd2591⟩
 
-theorem endSnipX_grabNoCode {cA cA' gh bl σ σCall σLoc σ₀ A I}
+theorem endSnipX_grabNoCode {σ σCall σLoc σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut rdata : ByteArray} {k C : ℕ}
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloSale : 192 ≤ saleOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2489⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2489⟩
       (endSnipArtWord vatOut saleOut :: endSnipSaleUsrWord saleOut ::
         endSnipSaleLotWord saleOut :: endSnipSaleTabWord saleOut ::
         endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipArtStoreHashMem σLoc I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      rdata (cA', σCall) k C)
+      rdata σCall k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σCall (endPackVatWord σCall I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2591⟩ := endSnipX_grabExtcodesizeGuard hloDog hloVat hloSale h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2591⟩) (okPc := ⟨2603⟩) rd2591
     hcodeSize
@@ -5565,21 +5549,21 @@ theorem endSnipX_grabNoCode {cA cA' gh bl σ σCall σLoc σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_grabCallReady {cA cA' gh bl σ σCall σLoc σ₀ A I}
+theorem endSnipX_grabCallReady {σ σCall σLoc σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut rdata : ByteArray} {k C : ℕ}
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloSale : 192 ≤ saleOut.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2489⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2489⟩
       (endSnipArtWord vatOut saleOut :: endSnipSaleUsrWord saleOut ::
         endSnipSaleLotWord saleOut :: endSnipSaleTabWord saleOut ::
         endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipArtStoreHashMem σLoc I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      rdata (cA', σCall) k C)
+      rdata σCall k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σCall (endPackVatWord σCall I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2606⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2606⟩
       (gasWord :: endPackVatWord σCall I :: ⟨0⟩ :: endFreeGrabOutPtr ::
         endFreeGrabInSize :: endFreeGrabOutPtr :: endFreeGrabOutSize ::
         endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σCall I ::
@@ -5589,7 +5573,7 @@ theorem endSnipX_grabCallReady {cA cA' gh bl σ σCall σLoc σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipGrabCalldataMemFor σCall σLoc I dogOut vatOut saleOut)
-      (UInt256.ofNat 11) rdata (cA', σCall) k' C' := by
+      (UInt256.ofNat 11) rdata σCall k' C' := by
   obtain ⟨_, _, rd2591⟩ := endSnipX_grabExtcodesizeGuard hloDog hloVat hloSale h
   obtain ⟨gasWord, k', C', rd2606⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2591⟩) (okPc := ⟨2603⟩) rd2591
@@ -5599,10 +5583,10 @@ theorem endSnipX_grabCallReady {cA cA' gh bl σ σCall σLoc σ₀ A I}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd2606⟩
 
-theorem endSnipX_grabPostCall {cA cA' gh bl σ σCall σ₀ A I}
+theorem endSnipX_grabPostCall {σ σCall σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {dogOut vatOut saleOut rdata : ByteArray} {k C : ℕ}
     {σLoc : AccountMap}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2606⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2606⟩
       (gasWord :: endPackVatWord σCall I :: ⟨0⟩ :: endFreeGrabOutPtr ::
         endFreeGrabInSize :: endFreeGrabOutPtr :: endFreeGrabOutSize ::
         endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σCall I ::
@@ -5612,20 +5596,20 @@ theorem endSnipX_grabPostCall {cA cA' gh bl σ σCall σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipGrabCalldataMemFor σCall σLoc I dogOut vatOut saleOut)
-      (UInt256.ofNat 11) rdata (cA', σCall) k C)
+      (UInt256.ofNat 11) rdata σCall k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+    ∃ (σ'' : AccountMap)
       (z : Bool) (ret : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA'', σ'', g'', A', z, ret) = Ethereum.EVM.Θ I.blobVersionedHashes cA' gh bl σCall σ₀ Ain
+        (σ'', g'', A', z, ret) = Ethereum.EVM.Θ σCall σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σCall I))
           (toExecute σCall (AccountAddress.ofUInt256 (endPackVatWord σCall I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endSnipGrabCalldataMemFor σCall σLoc I dogOut vatOut saleOut).readWithPadding
             endFreeGrabOutPtr.toNat endFreeGrabInSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2607⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨2607⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endFreeGrabEndPtr ::
             endFreeGrabSelectorWord :: endPackVatWord σCall I ::
             endSnipArtWord vatOut saleOut :: endSnipSaleUsrWord saleOut ::
@@ -5634,11 +5618,11 @@ theorem endSnipX_grabPostCall {cA cA' gh bl σ σCall σ₀ A I}
             endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
             endSnipReturnPc :: sel :: [])
           (endSnipGrabPostCallMemFor σCall σLoc I dogOut vatOut saleOut ret)
-          (UInt256.ofNat 11) ret (cA'', σ'') k' C'
+          (UInt256.ofNat 11) ret σ'' k' C'
       ∧ ret.size < UInt256.size := by
-  obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd2607raw, hret⟩ :=
+  obtain ⟨σ'', z, ret, Ain, callGas, k', C', hΘ, rd2607raw, hret⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
+  refine ⟨σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endFreeGrabOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
       have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat ret.size := by
@@ -5655,9 +5639,9 @@ theorem endSnipX_grabPostCall {cA cA' gh bl σ σCall σ₀ A I}
       endFreeGrabOutSize, endFreeGrabEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd2607raw
 
-theorem endSnipX_grabCallDepthLimit {cA cA' gh bl σ σCall σLoc σ₀ A I}
+theorem endSnipX_grabCallDepthLimit {σ σCall σLoc σ₀ A I}
     {g : Sat256} {sel gasWord : UInt256} {dogOut vatOut saleOut rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2606⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2606⟩
       (gasWord :: endPackVatWord σCall I :: ⟨0⟩ :: endFreeGrabOutPtr ::
         endFreeGrabInSize :: endFreeGrabOutPtr :: endFreeGrabOutSize ::
         endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σCall I ::
@@ -5667,9 +5651,9 @@ theorem endSnipX_grabCallDepthLimit {cA cA' gh bl σ σCall σLoc σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
       (endSnipGrabCalldataMemFor σCall σLoc I dogOut vatOut saleOut)
-      (UInt256.ofNat 11) rdata (cA', σCall) k C)
+      (UInt256.ofNat 11) rdata σCall k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2607⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2607⟩
       (⟨0⟩ :: endFreeGrabEndPtr :: endFreeGrabSelectorWord ::
         endPackVatWord σCall I :: endSnipArtWord vatOut saleOut ::
         endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
@@ -5677,7 +5661,7 @@ theorem endSnipX_grabCallDepthLimit {cA cA' gh bl σ σCall σLoc σ₀ A I}
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
       (endSnipGrabCalldataMemFor σCall σLoc I dogOut vatOut saleOut)
-      (UInt256.ofNat 11) ByteArray.empty (cA', σCall) k' C' := by
+      (UInt256.ofNat 11) ByteArray.empty σCall k' C' := by
   obtain ⟨k', C', rd2607raw⟩ :=
     RD.callDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -5693,19 +5677,19 @@ theorem endSnipX_grabCallDepthLimit {cA cA' gh bl σ σCall σLoc σ₀ A I}
   simpa [endFreeGrabOutPtr, endFreeGrabInSize, endFreeGrabOutSize,
     endFreeGrabEndPtr, hmin, byteArray_write_len_zero, haw] using rd2607raw
 
-theorem endSnipX_grabCallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
+theorem endSnipX_grabCallFailed {σ σpre σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut mem rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2607⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2607⟩
       (⟨0⟩ :: endFreeGrabEndPtr :: endFreeGrabSelectorWord ::
         endPackVatWord σpre I :: endSnipArtWord vatOut saleOut ::
         endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 11) rdata (cA', σpost) k C)
+      mem (UInt256.ofNat 11) rdata σpost k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2607⟩) (okPc := ⟨2623⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5713,25 +5697,25 @@ theorem endSnipX_grabCallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endSnipX_grabCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
+theorem endSnipX_grabCallSucceeded {σ σpre σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut mem rdata : ByteArray}
     {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2607⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2607⟩
       (⟨1⟩ :: endFreeGrabEndPtr :: endFreeGrabSelectorWord ::
         endPackVatWord σpre I :: endSnipArtWord vatOut saleOut ::
         endSnipSaleUsrWord saleOut :: endSnipSaleLotWord saleOut ::
         endSnipSaleTabWord saleOut :: endFlowVatIlkRateWord vatOut ::
         endSnipDogIlkClipWord dogOut :: endSnipDogIlkClipWord dogOut ::
         endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 11) rdata (cA', σpost) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2625⟩
+      mem (UInt256.ofNat 11) rdata σpost k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2625⟩
       (endFreeGrabEndPtr :: endFreeGrabSelectorWord :: endPackVatWord σpre I ::
         endSnipArtWord vatOut saleOut :: endSnipSaleUsrWord saleOut ::
         endSnipSaleLotWord saleOut :: endSnipSaleTabWord saleOut ::
         endFlowVatIlkRateWord vatOut :: endSnipDogIlkClipWord dogOut ::
         endSnipDogIlkClipWord dogOut :: endSnipIdWord I :: endSnipIlkWord I ::
         endSnipReturnPc :: sel :: [])
-      mem (UInt256.ofNat 11) rdata (cA', σpost) k' C' := by
+      mem (UInt256.ofNat 11) rdata σpost k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨2607⟩) (okPc := ⟨2623⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5740,7 +5724,7 @@ theorem endSnipX_grabCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
 
 theorem endSnipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} {σCall σLoc : AccountMap} {dogOut vatOut saleOut ret : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (hperm : I.perm = true) (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloSale : 192 ≤ saleOut.size)
     (h : RD endBytecode I g s0 ⟨2625⟩
@@ -6024,7 +6008,7 @@ theorem evalExpr_endSnip_tag_ne_true (evm : EVM.State) (I : ExecutionEnv)
   exact htag (uint256_toNat_eq_zero (Int.ofNat.inj hbad))
 
 theorem endSnipDogWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
+    (hAccounts : Eq σ τ) :
     endSnipDogWord σ I = endSnipDogWord τ I := by
   simp [endSnipDogWord, endSlotWord, solcSlotWord,
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨3⟩ ⟨0⟩]
@@ -6035,13 +6019,13 @@ theorem endSnipDogAddr_eq_ofUInt256 (σ : AccountMap) (I : ExecutionEnv) :
     (accountAddress_ofUInt256_eq_ofNat_toNat (endSnipDogWord σ I)).symm
 
 theorem endPackVowWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
+    (hAccounts : Eq σ τ) :
     endPackVowWord σ I = endPackVowWord τ I := by
   simp [endPackVowWord, endSlotWord, solcSlotWord,
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨4⟩ ⟨0⟩]
 
 theorem endSnipDogCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
+    (hAccounts : Eq σ τ)
     (hne : Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) ≠ ⟨0⟩) :
     Reasoning.Theory.extCodeSizeWord τ (endSnipDogWord τ I) ≠ ⟨0⟩ := by
   intro hzero
@@ -6055,7 +6039,7 @@ theorem endSnipDogCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : Executio
   exact hzero
 
 theorem endSnipDogCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
+    (hAccounts : Eq σ τ)
     (hzero : Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) = ⟨0⟩) :
     Reasoning.Theory.extCodeSizeWord τ (endSnipDogWord τ I) = ⟨0⟩ := by
   have hsame :=
@@ -6066,20 +6050,20 @@ theorem endSnipDogCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : Execut
   rw [← htarget, ← hsame]
   exact hzero
 
-theorem endSnipDogCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSnipDogCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
     (hzero : Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) = ⟨0⟩) :
     (UInt256.ofNat
-      (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+      (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (endSnipDogAddr σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
     endUniswapExtCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := endSnipDogWord σ I) (addr := endSnipDogAddr σ I)
       (endSnipDogAddr_eq_ofUInt256 σ I) hzero
 
-theorem endSnipDogCode_pos_of_codeSize_ne {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSnipDogCode_pos_of_codeSize_ne {σ σ₀ A I} {g : UInt256}
     (hne : Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+      (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (endSnipDogAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
   simpa [initState, State.lookupAccount] using
     endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos
@@ -6111,10 +6095,10 @@ theorem evalExpr_endSnip_dog {locals : Store} (evm : EVM.State)
     (hloc := by rfl)
     (hload := endStorageLocLoad_address_offset0 evm ⟨3⟩)
 
-theorem endSnipCheckedDogIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSnipCheckedDogIlksNoCode {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) = ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endSnipStore I } evm0
       (checkedExternalCallStmts (.storage dogRef) "dogIlks" (.intLit 0) [.var "ilk"]
         "dogIlk") .reverted := by
@@ -6133,7 +6117,7 @@ theorem endSnipCheckedDogIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
         0 := by
     simpa [evm0] using
       endSnipDogCode_zero_of_codeSize_zero
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endSnipStore I } evm0
@@ -6146,16 +6130,16 @@ theorem endSnipCheckedDogIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
       (retVar := "dogIlk") (name := "dogIlks") (sendVal := 0)
       (args := [.var "ilk"]) (perm := true) hguard
 
-theorem endSnipCheckedDogIlksFailure {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSnipCheckedDogIlksFailure {σ σ₀ A I} {g : UInt256}
     {evmDog : EVM.State} {out : ByteArray}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSnipDogAddr σ I)) "dogIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (false, evmDog, out) true) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endSnipStore I } evm0
       (checkedExternalCallStmts (.storage dogRef) "dogIlks" (.intLit 0) [.var "ilk"]
         "dogIlk") .reverted := by
@@ -6173,7 +6157,7 @@ theorem endSnipCheckedDogIlksFailure {cA gh bl σ σ₀ A I} {g : UInt256}
         ((evm0.lookupAccount (endSnipDogAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
     simpa [evm0] using
       endSnipDogCode_pos_of_codeSize_ne
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endSnipStore I } evm0
@@ -6193,17 +6177,17 @@ theorem endSnipCheckedDogIlksFailure {cA gh bl σ σ₀ A I} {g : UInt256}
       (argVals := [.fixedBytes bytes32Width (endBytes32ArgBytes I)])
       (out := out) (perm := true) hguard hreceiver hargs (by simpa [evm0] using hcall)
 
-theorem endSnipCheckedDogIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSnipCheckedDogIlksDecodeRevert {σ σ₀ A I} {g : UInt256}
     {evmDog : EVM.State} {out : ByteArray}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSnipDogAddr σ I)) "dogIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmDog, out) true)
     (hshort : out.size < 128) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endSnipStore I } evm0
       (checkedExternalCallStmts (.storage dogRef) "dogIlks" (.intLit 0) [.var "ilk"]
         "dogIlk") .reverted := by
@@ -6221,7 +6205,7 @@ theorem endSnipCheckedDogIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
         ((evm0.lookupAccount (endSnipDogAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
     simpa [evm0] using
       endSnipDogCode_pos_of_codeSize_ne
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endSnipStore I } evm0
@@ -6242,17 +6226,17 @@ theorem endSnipCheckedDogIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
       (out := out) (perm := true) hguard hreceiver hargs
       (by simpa [evm0] using hcall) (endSnipDogIlksDecode_none_short hshort)
 
-theorem endSnipCheckedDogIlksSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSnipCheckedDogIlksSuccess {σ σ₀ A I} {g : UInt256}
     {evmDog : EVM.State} {out : ByteArray}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSnipDogAddr σ I)) "dogIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmDog, out) true)
     (hlo : 128 ≤ out.size) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endSnipStore I } evm0
       (checkedExternalCallStmts (.storage dogRef) "dogIlks" (.intLit 0) [.var "ilk"]
         "dogIlk")
@@ -6271,7 +6255,7 @@ theorem endSnipCheckedDogIlksSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
         ((evm0.lookupAccount (endSnipDogAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
     simpa [evm0] using
       endSnipDogCode_pos_of_codeSize_ne
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endSnipStore I } evm0
@@ -6329,15 +6313,15 @@ theorem endSnipStmtClip (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
   simpa [endSnipStoreClip] using
     ExecStmt.letDecl (evalExpr_endSnip_dogIlk_clip evm I out)
 
-theorem endSnipBodyReverts_dogIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSnipBodyReverts_dogIlksBlock {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSnipTagWord σ I ≠ ⟨0⟩)
     (hdogBlock :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       ExecBlock config { contract := contract, locals := endSnipStore I } evm0
         (checkedExternalCallStmts (.storage dogRef) "dogIlks" (.intLit 0) [.var "ilk"]
           "dogIlk") .reverted) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endSnipStore I) snipTransition.body .reverted := by
   intro evm0
   have htagLoad :
@@ -6417,85 +6401,85 @@ theorem endSnipBodyReverts_dogIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
     simpa [checkedExternalCallStmts, List.append_assoc] using hdogWithTail
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem endSnipBodyReverts_dogIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSnipBodyReverts_dogIlksNoCode {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSnipTagWord σ I ≠ ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) = ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endSnipStore I) snipTransition.body .reverted := by
   intro evm0
   exact endSnipBodyReverts_dogIlksBlock
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) hwv hsz68 htag
     (by
       simpa using
         (endSnipCheckedDogIlksNoCode
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) hcodeSize))
 
-theorem endSnipBodyReverts_dogIlksCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSnipBodyReverts_dogIlksCallFailed {σ σ₀ A I} {g : UInt256}
     {evmDog : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSnipTagWord σ I ≠ ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSnipDogAddr σ I)) "dogIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (false, evmDog, out) true) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endSnipStore I) snipTransition.body .reverted := by
   intro evm0
   exact endSnipBodyReverts_dogIlksBlock
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) hwv hsz68 htag
     (by
       simpa using
         (endSnipCheckedDogIlksFailure
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) (evmDog := evmDog) (out := out)
           hcodeSize hcall))
 
-theorem endSnipBodyReverts_dogIlksDecodeShort {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSnipBodyReverts_dogIlksDecodeShort {σ σ₀ A I} {g : UInt256}
     {evmDog : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSnipTagWord σ I ≠ ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSnipDogAddr σ I)) "dogIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmDog, out) true)
     (hshort : out.size < 128) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endSnipStore I) snipTransition.body .reverted := by
   intro evm0
   exact endSnipBodyReverts_dogIlksBlock
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) hwv hsz68 htag
     (by
       simpa using
         (endSnipCheckedDogIlksDecodeRevert
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) (evmDog := evmDog) (out := out)
           hcodeSize hcall hshort))
 
-theorem endSnipPrefixClipSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSnipPrefixClipSuccess {σ σ₀ A I} {g : UInt256}
     {evmDog : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSnipTagWord σ I ≠ ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSnipDogAddr σ I)) "dogIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmDog, out) true)
     (hlo : 128 ≤ out.size) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endSnipStore I } evm0
       (nonpayable ++
         [ .require (.binary .ne (.storage (tagRef (.var "ilk"))) (.intLit 0)) ] ++
@@ -6521,7 +6505,7 @@ theorem endSnipPrefixClipSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
         (.ok { contract := contract, locals := endSnipStoreDogIlk I out } evmDog) := by
     simpa [evm0] using
       endSnipCheckedDogIlksSuccess
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) (evmDog := evmDog) (out := out)
         hcodeSize hcall hlo
   have hclip :
@@ -6877,7 +6861,7 @@ theorem endSnipSalesCode_pos_afterRate {σ : AccountMap} {dogOut : ByteArray} {e
       (endSnipSalesClipAddr_eq_ofUInt256 dogOut) hne
 
 theorem endSnipSalesCodeSize_zero_accountMapEquiv {σ τ : AccountMap}
-    (hAccounts : accountMapEquiv σ τ) (dogOut : ByteArray)
+    (hAccounts : Eq σ τ) (dogOut : ByteArray)
     (hcode :
       Reasoning.Theory.extCodeSizeWord σ (endSnipSalesClipWord dogOut) = ⟨0⟩) :
     Reasoning.Theory.extCodeSizeWord τ (endSnipSalesClipWord dogOut) = ⟨0⟩ := by
@@ -6886,7 +6870,7 @@ theorem endSnipSalesCodeSize_zero_accountMapEquiv {σ τ : AccountMap}
   exact hcode
 
 theorem endSnipSalesCodeSize_ne_accountMapEquiv {σ τ : AccountMap}
-    (hAccounts : accountMapEquiv σ τ) (dogOut : ByteArray)
+    (hAccounts : Eq σ τ) (dogOut : ByteArray)
     (hcode :
       Reasoning.Theory.extCodeSizeWord σ (endSnipSalesClipWord dogOut) ≠ ⟨0⟩) :
     Reasoning.Theory.extCodeSizeWord τ (endSnipSalesClipWord dogOut) ≠ ⟨0⟩ := by
@@ -8878,10 +8862,10 @@ theorem endSnipBodyReverts_afterRateSalesBlock {I} {dogOut vatOut : ByteArray}
     simpa [snipTransition, afterSales, List.append_assoc] using hseq
   exact ExecFuncBody.execBlockRevert hblock
 
-theorem endSnipBodyReverts_tagZero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endSnipBodyReverts_tagZero {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSnipTagWord σ I = ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endSnipStore I) snipTransition.body .reverted := by
   intro evm0
   have htagLoad :
@@ -8927,13 +8911,13 @@ theorem endSnipBodyReverts_tagZero {cA gh bl σ σ₀ A I} {g : UInt256}
       (by simp only [evm0, initState]; exact hwv)
       hguard
 
-theorem endSnipX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endSnipX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD endBytecode I g
-      (initState cA gh bl σ σ₀ g A I) endSnipEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) endSnipEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -8950,42 +8934,41 @@ theorem endSnipX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 theorem endSnipBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some snipTransition)
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) endSnipEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) endSnipEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (endSnipX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (endDecode_snip_none_short hsz4 hshort)
 
-theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem endSnipBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (selectorOf snipTransition))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (selectorOf snipTransition)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endSnipConcreteSelector := by
     simpa [endSnipSelectorBytes, endSnipConcreteSelector] using hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I endSnipConcreteSelector (by rfl) hsel'
   have hdispatch : dispatchMsg contract I.calldata = some snipTransition :=
     endDispatchSnip hsel
-  have hreach := endReachSnipBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := endReachSnipBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel'
   by_cases hsz68 : 68 ≤ I.calldata.size
   · have hdecode := endDecode_snip_ok (I := I) hsz68
     obtain ⟨_, _, hbodyReach⟩ :=
       endSnipX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
-    let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-    have htagCouple : endSnipTagWord σ_evm I = endSnipTagWord σ_solm I := by
+    let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    have htagCouple : endSnipTagWord σ I = endSnipTagWord σ I := by
       simpa [endSnipTagWord, endSlotWord] using
         accountMapEquiv_storage_findD hAccounts I.codeOwner (endSnipTagSlot I) ⟨0⟩
-    by_cases htag : endSnipTagWord σ_evm I = ⟨0⟩
-    · have htagSolm : endSnipTagWord σ_solm I = ⟨0⟩ := by
+    by_cases htag : endSnipTagWord σ I = ⟨0⟩
+    · have htagSolm : endSnipTagWord σ I = ⟨0⟩ := by
         rw [← htagCouple]
         exact htag
       have hbody :
@@ -8993,22 +8976,22 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             snipTransition.body .reverted := by
         simpa [evmSolm] using
           endSnipBodyReverts_tagZero
-            (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+            (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hwv hsz68 htagSolm
       exact (endSnipX_tagZero (g := Sat256.ofUInt256 g) hsz68 htag hbodyReach)
         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have htagNE : endSnipTagWord σ_evm I ≠ ⟨0⟩ := htag
-      have htagSolmNE : endSnipTagWord σ_solm I ≠ ⟨0⟩ := by
+    · have htagNE : endSnipTagWord σ I ≠ ⟨0⟩ := htag
+      have htagSolmNE : endSnipTagWord σ I ≠ ⟨0⟩ := by
         intro hbad
         exact htagNE (by rw [htagCouple, hbad])
       obtain ⟨kTag, CTag, htagPcRaw⟩ :=
         endSnipX_tagNonzero (g := Sat256.ofUInt256 g) hsz68 htagNE hbodyReach
       have htagPc :
           RD endBytecode I (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1739⟩
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1739⟩
             [endSnipIdWord I, endSnipIlkWord I, endSnipReturnPc, endSelWord I]
             (endSnipDogIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty
-            (cA, σ_evm) kTag CTag := by
+            σ kTag CTag := by
         simpa [endSnipDogIlksBaseMem] using htagPcRaw
       have hAddressId (a : AccountAddress) : EVM.address a = a := by
         apply Fin.ext
@@ -9016,38 +8999,38 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         rw [Nat.mod_eq_of_lt]
         exact a.isLt
       by_cases hdogCode :
-          Reasoning.Theory.extCodeSizeWord σ_evm (endSnipDogWord σ_evm I) =
+          Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) =
             ⟨0⟩
       · have hdogCodeSolm :
-            Reasoning.Theory.extCodeSizeWord σ_solm
-              (endSnipDogWord σ_solm I) = ⟨0⟩ :=
+            Reasoning.Theory.extCodeSizeWord σ
+              (endSnipDogWord σ I) = ⟨0⟩ :=
           endSnipDogCodeSize_zero_accountMapEquiv hAccounts hdogCode
         have hbody :
             ExecTransitionBody config contract evmSolm (endSnipStore I)
               snipTransition.body .reverted := by
           simpa [evmSolm] using
             endSnipBodyReverts_dogIlksNoCode
-              (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+              (σ := σ) (σ₀ := σ₀)
               (A := A) (I := I) (g := g) hwv hsz68 htagSolmNE hdogCodeSolm
         exact (endSnipX_dogIlksNoCode (g := Sat256.ofUInt256 g) htagPc hdogCode)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hdogCodeNE :
-            Reasoning.Theory.extCodeSizeWord σ_evm (endSnipDogWord σ_evm I) ≠
+            Reasoning.Theory.extCodeSizeWord σ (endSnipDogWord σ I) ≠
               ⟨0⟩ := hdogCode
         have hdogCodeSolmNE :
-            Reasoning.Theory.extCodeSizeWord σ_solm
-              (endSnipDogWord σ_solm I) ≠ ⟨0⟩ :=
+            Reasoning.Theory.extCodeSizeWord σ
+              (endSnipDogWord σ I) ≠ ⟨0⟩ :=
           endSnipDogCodeSize_ne_accountMapEquiv hAccounts hdogCodeNE
         obtain ⟨dogGasWord, _, _, hcallReady⟩ :=
           endSnipX_dogIlksCallReady
             (g := Sat256.ofUInt256 g) htagPc hdogCodeNE
         by_cases hdepthLt : I.depth.val < 1024
-        · obtain ⟨cA_dog, σ_dog, zDog, dogOut, AinDog, callGasDog, _, _, hΘDog,
+        · obtain ⟨σ_dog, zDog, dogOut, AinDog, callGasDog, _, _, hΘDog,
               rd1820, hdogOutSize⟩ :=
             endSnipX_dogIlksPostCall hcallReady hdepthLt
           rcases hΘDog with ⟨gDog'', ADog, hΘDogEq⟩
           have hdepthNe :
-              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.depth ≠
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.depth ≠
               1024 := by
             intro hbad
             have hbadI : I.depth = 1024 := by
@@ -9055,26 +9038,25 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             have hbadVal : I.depth.val = 1024 := congrArg Fin.val hbadI
             omega
           have htgtDog :
-              EVM.address (endSnipDogAddr σ_evm I) =
-              AccountAddress.ofUInt256 (endSnipDogWord σ_evm I) := by
+              EVM.address (endSnipDogAddr σ I) =
+              AccountAddress.ofUInt256 (endSnipDogWord σ I) := by
             calc
-              EVM.address (endSnipDogAddr σ_evm I)
+              EVM.address (endSnipDogAddr σ I)
                   = EVM.address
-                      (AccountAddress.ofUInt256 (endSnipDogWord σ_evm I)) := by
+                      (AccountAddress.ofUInt256 (endSnipDogWord σ I)) := by
                     rw [endSnipDogAddr_eq_ofUInt256]
-              _ = AccountAddress.ofUInt256 (endSnipDogWord σ_evm I) :=
-                    hAddressId (AccountAddress.ofUInt256 (endSnipDogWord σ_evm I))
+              _ = AccountAddress.ofUInt256 (endSnipDogWord σ I) :=
+                    hAddressId (AccountAddress.ofUInt256 (endSnipDogWord σ I))
           obtain ⟨σ_dog_solm, A_dog_solm, hcallSolmRaw, hAccountsDog,
               hSubstateDog⟩ :=
-            endCallMade_accountMapEquiv_with_substate
+            endCallMade_accountMapEq_with_substate
               (cfg := config)
-              (evm_evm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+              (evm_evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (evm_solm := evmSolm)
-              (tgt := EVM.address (endSnipDogAddr σ_evm I))
-              (targetWord := endSnipDogWord σ_evm I)
+              (tgt := EVM.address (endSnipDogAddr σ I))
+              (targetWord := endSnipDogWord σ I)
               (name := "dogIlks")
-              (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I)])
-              (cA' := cA_dog) (σ' := σ_dog) (A' := ADog) (A_in := AinDog)
+              (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I)]) (σ' := σ_dog) (A' := ADog) (A_in := AinDog)
               (z := zDog) (out := dogOut) (g'' := gDog'')
               (callGas := callGasDog)
               (mem := endSnipDogIlksCalldataMem I)
@@ -9086,20 +9068,17 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (by simpa [initState] using hAccounts)
               (by simp [evmSolm, initState])
               (by simp [evmSolm, initState])
-              (by simp [evmSolm, initState])
-              (by simp [evmSolm, initState])
-              (by simp [evmSolm, initState])
-          have hDogAddr : endSnipDogAddr σ_evm I = endSnipDogAddr σ_solm I := by
+          have hDogAddr : endSnipDogAddr σ I = endSnipDogAddr σ I := by
             simp [endSnipDogAddr, endSnipDogWord_accountMapEquiv hAccounts]
           have hcallSolm :
               typedCallViaEVM config evmSolm
-              (EVM.address (endSnipDogAddr σ_solm I)) "dogIlks" 0
+              (EVM.address (endSnipDogAddr σ I)) "dogIlks" 0
               [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
               (zDog,
                 { evmSolm with
                   accountMap := σ_dog_solm
                   substate := A_dog_solm
-                  createdAccounts := cA_dog },
+ },
                 dogOut) true := by
             simpa [evmSolm, hDogAddr] using hcallSolmRaw
           cases zDog
@@ -9108,30 +9087,30 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 snipTransition.body .reverted := by
               simpa [evmSolm] using
                 endSnipBodyReverts_dogIlksCallFailed
-                  (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                  (σ := σ) (σ₀ := σ₀)
                   (A := A) (I := I) (g := g)
                   (evmDog :=
                     { evmSolm with
                       accountMap := σ_dog_solm
                       substate := A_dog_solm
-                      createdAccounts := cA_dog })
+ })
                   (out := dogOut)
                   hwv hsz68 htagSolmNE hdogCodeSolmNE
                   (by simpa [evmSolm] using hcallSolm)
             exact (endSnipX_dogIlksCallFailed rd1820 hdogOutSize)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
           · let evmDogEvm :=
-              { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+              { initState σ σ₀ (Sat256.ofUInt256 g) A I with
               accountMap := σ_dog
               substate := ADog
-              createdAccounts := cA_dog }
+ }
             let evmDogSolm :=
               { evmSolm with
               accountMap := σ_dog_solm
               substate := A_dog_solm
-              createdAccounts := cA_dog }
+ }
             have hStateDog : EVMStateEquiv evmDogEvm evmDogSolm := by
-              refine ⟨rfl, rfl, ?_⟩
+              refine ⟨rfl, ?_⟩
               simpa [evmDogEvm, evmDogSolm] using hAccountsDog
             obtain ⟨_, _, rd1841⟩ :=
               endSnipX_dogIlksCallSucceeded (g := Sat256.ofUInt256 g) rd1820
@@ -9141,7 +9120,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   snipTransition.body .reverted := by
                 simpa [evmDogSolm, evmSolm] using
                   endSnipBodyReverts_dogIlksDecodeShort
-                    (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                    (σ := σ) (σ₀ := σ₀)
                     (A := A) (I := I) (g := g)
                     (evmDog := evmDogSolm) (out := dogOut)
                     hwv hsz68 htagSolmNE hdogCodeSolmNE
@@ -9165,7 +9144,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     evmDogSolm) := by
                 simpa [evmDogSolm, evmSolm] using
                   endSnipPrefixClipSuccess
-                    (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                    (σ := σ) (σ₀ := σ₀)
                     (A := A) (I := I) (g := g)
                     (evmDog := evmDogSolm) (out := dogOut)
                     hwv hsz68 htagSolmNE hdogCodeSolmNE
@@ -9204,7 +9183,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   endPackVatCodeSize_ne_accountMapEquiv hAccountsDog hvatCodeNE
                 obtain ⟨gasWordVat, _, _, hvatReady⟩ :=
                   endSnipX_vatIlksCallReady rd1861 hloDog hvatCodeNE
-                obtain ⟨cA_vat, σ_vat, zVat, vatOut, AinVat, callGasVat, _, _,
+                obtain ⟨σ_vat, zVat, vatOut, AinVat, callGasVat, _, _,
                     hΘVat, rd1946, hvatOutSize⟩ :=
                   endSnipX_vatIlksPostCall hvatReady hdepthLt
                 rcases hΘVat with ⟨gVat'', AVat, hΘVatEq⟩
@@ -9220,15 +9199,14 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           hAddressId (AccountAddress.ofUInt256 (endPackVatWord σ_dog I))
                 obtain ⟨σ_vat_solm, A_vat_solm, hcallVatSolmRaw, hAccountsVat,
                     hSubstateVat⟩ :=
-                  endCallMade_accountMapEquiv_with_substate
+                  endCallMade_accountMapEq_with_substate
                     (cfg := config)
                     (evm_evm := evmDogEvm)
                     (evm_solm := evmDogSolm)
                     (tgt := EVM.address (endPackVatAddr σ_dog I))
                     (targetWord := endPackVatWord σ_dog I)
                     (name := "vatIlks")
-                    (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I)])
-                    (cA' := cA_vat) (σ' := σ_vat) (A' := AVat) (A_in := AinVat)
+                    (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I)]) (σ' := σ_vat) (A' := AVat) (A_in := AinVat)
                     (z := zVat) (out := vatOut) (g'' := gVat'')
                     (callGas := callGasVat)
                     (mem := endSnipVatIlksCalldataMem I dogOut)
@@ -9240,7 +9218,6 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (by simpa [evmDogEvm, initState, hperm] using hΘVatEq)
                     (by simpa [evmDogEvm, evmDogSolm] using hAccountsDog)
                     (by rfl)
-                    (by simpa using hStateDog.createdAccounts.symm)
                     (by rfl)
                     (by rfl)
                     (by simpa using hStateDog.executionEnv.symm)
@@ -9254,7 +9231,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       { evmDogSolm with
                         accountMap := σ_vat_solm
                         substate := A_vat_solm
-                        createdAccounts := cA_vat },
+ },
                       vatOut) true := by
                   simpa [evmDogSolm, hVatAddr] using hcallVatSolmRaw
                 cases zVat
@@ -9271,7 +9248,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         { evmDogSolm with
                           accountMap := σ_vat_solm
                           substate := A_vat_solm
-                          createdAccounts := cA_vat })
+ })
                       (by simp [evmDogSolm])
                       (by simp [evmDogSolm, evmSolm, initState])
                       hvatCodeSolmNE
@@ -9286,14 +9263,14 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     { evmDogEvm with
                     accountMap := σ_vat
                     substate := AVat
-                    createdAccounts := cA_vat }
+ }
                   let evmVatSolm :=
                     { evmDogSolm with
                     accountMap := σ_vat_solm
                     substate := A_vat_solm
-                    createdAccounts := cA_vat }
+ }
                   have hStateVat : EVMStateEquiv evmVatEvm evmVatSolm := by
-                    refine ⟨rfl, rfl, ?_⟩
+                    refine ⟨rfl, ?_⟩
                     simpa [evmVatEvm, evmVatSolm] using hAccountsVat
                   obtain ⟨_, _, rd1964⟩ :=
                     endSnipX_vatIlksCallSucceeded (g := Sat256.ofUInt256 g) rd1946
@@ -9394,7 +9371,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           hAccountsVat dogOut hsalesCodeNE
                       obtain ⟨gasWordSales, _, _, hsalesReady⟩ :=
                         endSnipX_salesCallReady rd1990 hloDog hloVat hsalesCodeNE
-                      obtain ⟨cA_sales, σ_sales, zSales, saleOut, AinSales,
+                      obtain ⟨σ_sales, zSales, saleOut, AinSales,
                           callGasSales, _, _, hΘSales, rd2074, hsaleOutSize⟩ :=
                         endSnipX_salesPostStaticcall hsalesReady hdepthLt
                       rcases hΘSales with ⟨gSales'', ASales, hΘSalesEq⟩
@@ -9413,15 +9390,14 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     (endSnipSalesClipWord dogOut))
                       obtain ⟨σ_sales_solm, A_sales_solm, hcallSalesSolmRaw,
                           hAccountsSales, hSubstateSales⟩ :=
-                        endCallMade_accountMapEquiv_with_substate
+                        endCallMade_accountMapEq_with_substate
                           (cfg := config)
                           (evm_evm := evmVatEvm)
                           (evm_solm := evmVatSolm)
                           (tgt := EVM.address (endSnipDogIlkClipAddr dogOut))
                           (targetWord := endSnipSalesClipWord dogOut)
                           (name := "sales")
-                          (args := [.int (Int.ofNat (endSnipIdWord I).toNat)])
-                          (cA' := cA_sales) (σ' := σ_sales) (A' := ASales)
+                          (args := [.int (Int.ofNat (endSnipIdWord I).toNat)]) (σ' := σ_sales) (A' := ASales)
                           (A_in := AinSales) (z := zSales) (out := saleOut)
                           (g'' := gSales'') (callGas := callGasSales)
                           (mem := endSnipSalesCalldataMem I dogOut vatOut)
@@ -9434,7 +9410,6 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           (by simpa [evmVatEvm, evmDogEvm, initState] using hΘSalesEq)
                           (by simpa [evmVatEvm, evmVatSolm] using hAccountsVat)
                           (by rfl)
-                          (by simpa using hStateVat.createdAccounts.symm)
                           (by rfl)
                           (by rfl)
                           (by simpa using hStateVat.executionEnv.symm)
@@ -9442,7 +9417,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         { evmVatSolm with
                           accountMap := σ_sales_solm
                           substate := A_sales_solm
-                          createdAccounts := cA_sales }
+ }
                       have hcallSalesSolm :
                           typedCallViaEVM config evmVatSolm
                           (EVM.address (endSnipDogIlkClipAddr dogOut)) "sales" 0
@@ -9455,7 +9430,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             { evmVatSolm with
                               accountMap := σ_sales_solm
                               substate := A_sales_solm
-                              createdAccounts := cA_sales },
+ },
                             saleOut) false
                         exact hcallSalesSolmRaw
                       cases zSales
@@ -9488,9 +9463,9 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           { evmVatEvm with
                           accountMap := σ_sales
                           substate := ASales
-                          createdAccounts := cA_sales }
+ }
                         have hStateSales : EVMStateEquiv evmSalesEvm evmSalesSolm := by
-                          refine ⟨rfl, rfl, ?_⟩
+                          refine ⟨rfl, ?_⟩
                           simpa [evmSalesEvm, evmSalesSolm] using hAccountsSales
                         have rd2074Success := by
                           simpa only [if_true] using rd2074
@@ -9590,7 +9565,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               endSnipX_suckCallReady
                                 (g := Sat256.ofUInt256 g) hloDog hloVat hloSale
                                 rd2131 hsuckCodeNE
-                            obtain ⟨cA_suck, σ_suck, zSuck, suckOut, AinSuck,
+                            obtain ⟨σ_suck, zSuck, suckOut, AinSuck,
                                 callGasSuck, _, _, hΘSuck, rd2236, hsuckOutSize⟩ :=
                               endSnipX_suckPostCall rdSuckReady hdepthLt
                             rcases hΘSuck with ⟨gSuck'', ASuck, hΘSuckEq⟩
@@ -9616,7 +9591,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         (AccountAddress.ofUInt256 (endPackVatWord σ_sales I))
                             obtain ⟨σ_suck_solm, A_suck_solm, hcallSuckSolmRaw,
                                 hAccountsSuck, hSubstateSuck⟩ :=
-                              endCallMade_accountMapEquiv_with_substate
+                              endCallMade_accountMapEq_with_substate
                                 (cfg := config) (evm_evm := evmSalesEvm)
                                 (evm_solm := evmSalesSolm)
                                 (tgt := EVM.address (endPackVatAddr σ_sales I))
@@ -9625,8 +9600,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 (args :=
                                   [.address (endPackVowAddr σ_sales I),
                                     .address (endPackVowAddr σ_sales I),
-                                    .int (Int.ofNat (endSnipSaleTabWord saleOut).toNat)])
-                                (cA' := cA_suck) (σ' := σ_suck) (A' := ASuck)
+                                    .int (Int.ofNat (endSnipSaleTabWord saleOut).toNat)]) (σ' := σ_suck) (A' := ASuck)
                                 (A_in := AinSuck) (z := zSuck) (out := suckOut)
                                 (g'' := gSuck'') (callGas := callGasSuck)
                                 (mem := endSnipSuckCalldataMem σ_sales I dogOut vatOut
@@ -9640,7 +9614,6 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   hperm] using hΘSuckEq)
                                 (by simpa [evmSalesEvm, evmSalesSolm] using hAccountsSales)
                                 (by rfl)
-                                (by simpa using hStateSales.createdAccounts.symm)
                                 (by rfl)
                                 (by rfl)
                                 (by simpa using hStateSales.executionEnv.symm)
@@ -9664,7 +9637,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               { evmSalesSolm with
                                 accountMap := σ_suck_solm
                                 substate := A_suck_solm
-                                createdAccounts := cA_suck }
+ }
                             have hcallSuckSolm :
                                 typedCallViaEVM config evmSalesSolm
                                   (EVM.address (endPackVatAddr σ_sales_solm I)) "suck" 0
@@ -9681,7 +9654,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   { evmSalesSolm with
                                     accountMap := σ_suck_solm
                                     substate := A_suck_solm
-                                    createdAccounts := cA_suck },
+ },
                                   suckOut) true
                               rw [← hVatAddrSuck, ← hVowAddrSuck]
                               exact hcallSuckSolmRaw
@@ -9708,9 +9681,9 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 { evmSalesEvm with
                                   accountMap := σ_suck
                                   substate := ASuck
-                                  createdAccounts := cA_suck }
+ }
                               have hStateSuck : EVMStateEquiv evmSuckEvm evmSuckSolm := by
-                                refine ⟨rfl, rfl, ?_⟩
+                                refine ⟨rfl, ?_⟩
                                 simpa [evmSuckEvm, evmSuckSolm] using hAccountsSuck
                               have hmapSuckSolm :
                                   evmSuckSolm.accountMap = σ_suck_solm := by
@@ -9768,7 +9741,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     (g := Sat256.ofUInt256 g) (σmem := σ_sales)
                                     (σpost := σ_suck) hloDog hloVat hloSale rd2257
                                     hyankCodeNE
-                                obtain ⟨cA_yank, σ_yank, zYank, yankOut, AinYank,
+                                obtain ⟨σ_yank, zYank, yankOut, AinYank,
                                     callGasYank, _, _, hΘYank, rd2330, hyankOutSize⟩ :=
                                   endSnipX_yankPostCall
                                     (σmem := σ_sales) (σpost := σ_suck)
@@ -9785,14 +9758,13 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   omega
                                 obtain ⟨σ_yank_solm, A_yank_solm, hcallYankSolmRaw,
                                     hAccountsYank, hSubstateYank⟩ :=
-                                  endCallMade_accountMapEquiv_with_substate
+                                  endCallMade_accountMapEq_with_substate
                                     (cfg := config) (evm_evm := evmSuckEvm)
                                     (evm_solm := evmSuckSolm)
                                     (tgt := EVM.address (endSnipDogIlkClipAddr dogOut))
                                     (targetWord := endSnipSalesClipWord dogOut)
                                     (name := "yank")
-                                    (args := [.int (Int.ofNat (endSnipIdWord I).toNat)])
-                                    (cA' := cA_yank) (σ' := σ_yank) (A' := AYank)
+                                    (args := [.int (Int.ofNat (endSnipIdWord I).toNat)]) (σ' := σ_yank) (A' := AYank)
                                     (A_in := AinYank) (z := zYank) (out := yankOut)
                                     (g'' := gYank'') (callGas := callGasYank)
                                     (mem := endSnipYankCalldataMem σ_sales I dogOut
@@ -9807,7 +9779,6 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     (by simpa [evmSuckEvm, evmSuckSolm] using
                                       hAccountsSuck)
                                     (by rfl)
-                                    (by simpa using hStateSuck.createdAccounts.symm)
                                     (by rfl)
                                     (by rfl)
                                     (by simpa using hStateSuck.executionEnv.symm)
@@ -9815,7 +9786,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   { evmSuckSolm with
                                     accountMap := σ_yank_solm
                                     substate := A_yank_solm
-                                    createdAccounts := cA_yank }
+ }
                                 have hcallYankSolm :
                                     typedCallViaEVM config evmSuckSolm
                                       (EVM.address (endSnipDogIlkClipAddr dogOut))
@@ -9829,7 +9800,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       { evmSuckSolm with
                                         accountMap := σ_yank_solm
                                         substate := A_yank_solm
-                                        createdAccounts := cA_yank },
+ },
                                       yankOut) true
                                   exact hcallYankSolmRaw
                                 cases zYank
@@ -9859,7 +9830,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     { evmSuckEvm with
                                       accountMap := σ_yank
                                       substate := AYank
-                                      createdAccounts := cA_yank }
+ }
                                   have hyankBlock :=
                                     endSnipCheckedYankSuccess
                                       (σ := σ_suck_solm) (I := I) (dogOut := dogOut)
@@ -9909,7 +9880,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         rw [← hcode] at hoog
                                         simpa [initState, Sat256.ofUInt256] using hoog))
                                     · have hxi :
-                                          Ξ cA gh bl σ_evm σ₀ g A I =
+                                          Ξ σ σ₀ g A I =
                                             .error .InvalidInstruction :=
                                         Xi_error_of_X (g := g) (by
                                           rw [← hcode] at hinvalid
@@ -10005,7 +9976,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                 saleOut)
                                           have hStateYank :
                                               EVMStateEquiv evmYankEvm evmYankSolm := by
-                                            refine ⟨?_, rfl, ?_⟩
+                                            refine ⟨?_, ?_⟩
                                             · simpa [evmYankEvm, evmYankSolm] using
                                                 hStateSuck.executionEnv
                                             · simpa [evmYankEvm, evmYankSolm] using
@@ -10022,184 +9993,15 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                               hStateYank.storageStore_codeOwner
                                                 (endSnipArtSlot I) hArtNewCouple
                                           have hAccountsPost :
-                                              accountMapEquiv σ_post σ_post_solm := by
+                                              Eq σ_post σ_post_solm := by
                                             simpa [evmPostEvm, evmPostSolm, σ_post,
                                               σ_post_solm, endSnipPostArtState,
                                               endSnipPostArtAccountMap,
                                               storageStore_accountMap] using
                                               hStatePost.accountMap
-                                          have hmapPostSolm :
-                                              evmPostSolm.accountMap = σ_post_solm := by
-                                            simp [evmPostSolm, σ_post_solm,
-                                              endSnipPostArtState,
-                                              endSnipPostArtAccountMap,
-                                              storageStore_accountMap, evmYankSolm,
-                                              evmSuckSolm, evmSalesSolm, evmVatSolm,
-                                              evmDogSolm, evmSolm, initState]
-                                          have hownerPostSolm :
-                                              evmPostSolm.executionEnv.codeOwner =
-                                                I.codeOwner := by
-                                            simp [evmPostSolm, endSnipPostArtState,
-                                              storageStore_executionEnv, evmYankSolm,
-                                              evmSuckSolm, evmSalesSolm, evmVatSolm,
-                                              evmDogSolm, evmSolm, initState]
-                                          by_cases hgrabCode :
-                                              Reasoning.Theory.extCodeSizeWord
-                                                σ_post (endPackVatWord σ_post I) = ⟨0⟩
-                                          · have hgrabCodeSolm :
-                                                Reasoning.Theory.extCodeSizeWord
-                                                  σ_post_solm
-                                                  (endPackVatWord σ_post_solm I) = ⟨0⟩ :=
-                                              endPackVatCodeSize_zero_accountMapEquiv
-                                                hAccountsPost hgrabCode
-                                            have hgrab :=
-                                              endSnipGrabTailReverts_noCodeFor
-                                                (σCall := σ_post_solm)
-                                                (σLoc := σ_yank_solm) (I := I)
-                                                (dogOut := dogOut) (vatOut := vatOut)
-                                                (saleOut := saleOut) (evm := evmPostSolm)
-                                                hmapPostSolm hownerPostSolm
-                                                hgrabCodeSolm
-                                            have hbody :
-                                                ExecTransitionBody config contract evmSolm
-                                                  (endSnipStore I) snipTransition.body
-                                                  .reverted := by
-                                              exact
-                                                endSnipBodyReverts_afterUsrTailGrabReverted
-                                                  hprefixUsr htailOk hgrab
-                                            exact
-                                              (endSnipX_grabNoCode
-                                                (g := Sat256.ofUInt256 g)
-                                                (σCall := σ_post) (σLoc := σ_sales)
-                                                hloDog hloVat hloSale rd2489 hgrabCode)
-                                                |>.reEquivExecutionRevert hcode hdispatch
-                                                  hdecode hbody
-                                          · have hgrabCodeNE :
-                                                Reasoning.Theory.extCodeSizeWord
-                                                  σ_post (endPackVatWord σ_post I) ≠
-                                                    ⟨0⟩ := hgrabCode
-                                            have hgrabCodeSolmNE :
-                                                Reasoning.Theory.extCodeSizeWord
-                                                  σ_post_solm
-                                                  (endPackVatWord σ_post_solm I) ≠
-                                                    ⟨0⟩ :=
-                                              endPackVatCodeSize_ne_accountMapEquiv
-                                                hAccountsPost hgrabCodeNE
-                                            obtain ⟨grabGasWord, _, _, rdGrabReady⟩ :=
-                                              endSnipX_grabCallReady
-                                                (g := Sat256.ofUInt256 g)
-                                                (σCall := σ_post) (σLoc := σ_sales)
-                                                hloDog hloVat hloSale rd2489
-                                                hgrabCodeNE
-                                            obtain ⟨cA_grab, σ_grab, zGrab, ret,
-                                                AinGrab, callGasGrab, _, _, hΘGrab,
-                                                rd2607, hretSize⟩ :=
-                                              endSnipX_grabPostCall
-                                                (g := Sat256.ofUInt256 g)
-                                                (σCall := σ_post) (σLoc := σ_sales)
-                                                rdGrabReady hdepthLt
-                                            rcases hΘGrab with ⟨gGrab'', AGrab,
-                                              hΘGrabEq⟩
-                                            have hdepthNeGrab :
-                                                evmPostEvm.executionEnv.depth ≠ 1024 := by
-                                              intro hbad
-                                              have hbadI : I.depth = 1024 := by
-                                                simpa [evmPostEvm, endSnipPostArtState,
-                                                  storageStore_executionEnv, evmYankEvm,
-                                                  evmSuckEvm, evmSalesEvm, evmVatEvm,
-                                                  evmDogEvm, initState] using hbad
-                                              have hbadVal : I.depth.val = 1024 :=
-                                                congrArg Fin.val hbadI
-                                              omega
-                                            have htgtGrab :
-                                                EVM.address (endPackVatAddr σ_post I) =
-                                                  AccountAddress.ofUInt256
-                                                    (endPackVatWord σ_post I) := by
-                                              calc
-                                                EVM.address (endPackVatAddr σ_post I)
-                                                    = EVM.address
-                                                        (AccountAddress.ofUInt256
-                                                          (endPackVatWord σ_post I)) := by
-                                                      rw [endPackVatAddr_eq_ofUInt256]
-                                                _ = AccountAddress.ofUInt256
-                                                      (endPackVatWord σ_post I) :=
-                                                      hAddressId
-                                                        (AccountAddress.ofUInt256
-                                                          (endPackVatWord σ_post I))
-                                            obtain ⟨σ_grab_solm, A_grab_solm,
-                                                hgrabCallSolmRaw, hAccountsGrab,
-                                                hSubstateGrab⟩ :=
-                                              endCallMade_accountMapEquiv_with_substate
-                                                (cfg := config) (evm_evm := evmPostEvm)
-                                                (evm_solm := evmPostSolm)
-                                                (tgt :=
-                                                  EVM.address (endPackVatAddr σ_post I))
-                                                (targetWord := endPackVatWord σ_post I)
-                                                (name := "grab")
-                                                (args :=
-                                                  [.fixedBytes bytes32Width
-                                                      (endBytes32ArgBytes I),
-                                                    .address (endSnipSaleUsrAddr saleOut),
-                                                    .address I.codeOwner,
-                                                    .address (endPackVowAddr σ_post I),
-                                                    .int (Int.ofNat
-                                                      (endSnipSaleLotWord saleOut).toNat),
-                                                    .int (Int.ofNat
-                                                      (endSnipArtWord vatOut saleOut).toNat)])
-                                                (cA' := cA_grab) (σ' := σ_grab)
-                                                (A' := AGrab) (A_in := AinGrab)
-                                                (z := zGrab) (out := ret)
-                                                (g'' := gGrab'')
-                                                (callGas := callGasGrab)
-                                                (mem :=
-                                                  endSnipGrabCalldataMemFor σ_post
-                                                    σ_sales I dogOut vatOut saleOut)
-                                                (inOff := endFreeGrabOutPtr)
-                                                (inSize := endFreeGrabInSize)
-                                                (callPerm := true)
-                                                hdepthNeGrab htgtGrab
-                                                (endSnipGrabEncodeFor_eq σ_post σ_sales
-                                                  I dogOut vatOut saleOut hsz68 hloDog
-                                                  hloVat hloSale hlot hart)
-                                                (by simpa [evmPostEvm,
-                                                  endSnipPostArtState,
-                                                  storageStore_executionEnv,
-                                                  storageStore_createdAccounts,
-                                                  storageStore_accountMap,
-                                                  endSnip_storageStore_σ₀,
-                                                  endSnip_storageStore_genesisBlockHeader,
-                                                  endSnip_storageStore_blocks, σ_post,
-                                                  endSnipPostArtAccountMap, evmYankEvm,
-                                                  evmSuckEvm, evmSalesEvm, evmVatEvm,
-                                                  evmDogEvm, initState, hperm] using
-                                                  hΘGrabEq)
-                                                hStatePost.accountMap
-                                                (by simp [evmPostEvm, evmPostSolm,
-                                                  endSnipPostArtState,
-                                                  endSnip_storageStore_σ₀, evmYankEvm,
-                                                  evmYankSolm, evmSuckEvm, evmSuckSolm,
-                                                  evmSalesEvm, evmSalesSolm, evmVatEvm,
-                                                  evmVatSolm, evmDogEvm, evmDogSolm,
-                                                  evmSolm, initState])
-                                                (by simpa [evmPostEvm, evmPostSolm]
-                                                  using hStatePost.createdAccounts.symm)
-                                                (by simp [evmPostEvm, evmPostSolm,
-                                                  endSnipPostArtState,
-                                                  endSnip_storageStore_genesisBlockHeader,
-                                                  evmYankEvm, evmYankSolm, evmSuckEvm,
-                                                  evmSuckSolm, evmSalesEvm, evmSalesSolm,
-                                                  evmVatEvm, evmVatSolm, evmDogEvm,
-                                                  evmDogSolm, evmSolm, initState])
-                                                (by simp [evmPostEvm, evmPostSolm,
-                                                  endSnipPostArtState,
-                                                  endSnip_storageStore_blocks,
-                                                  evmYankEvm, evmYankSolm, evmSuckEvm,
-                                                  evmSuckSolm, evmSalesEvm, evmSalesSolm,
-                                                  evmVatEvm, evmVatSolm, evmDogEvm,
-                                                  evmDogSolm, evmSolm, initState])
-                                                (by simpa [evmPostEvm, evmPostSolm]
-                                                  using hStatePost.executionEnv.symm)
-                                            have hVatWordGrab :
+                                      (by simp [evmPostEvm, evmPostSolm, endSnipPostArtState, endSnip_storageStore_σ₀, evmYankEvm, evmYankSolm, evmSuckEvm, evmSuckSolm, evmSalesEvm, evmSalesSolm, evmVatEvm, evmVatSolm, evmDogEvm, evmDogSolm, evmSolm, initState])
+                                      (by simpa [evmPostEvm, evmPostSolm] using hStatePost.executionEnv.symm)
+                                  have hVatWordGrab :
                                                 endPackVatWord σ_post I =
                                                   endPackVatWord σ_post_solm I :=
                                               endPackVatWord_accountMapEquiv hAccountsPost
@@ -10244,7 +10046,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                     { evmPostSolm with
                                                       accountMap := σ_grab_solm
                                                       substate := A_grab_solm
-                                                      createdAccounts := cA_grab },
+ },
                                                     ret) true := by
                                               simpa [hVatAddrGrab, hVowAddrGrab] using
                                                 hgrabCallSolmRaw
@@ -10260,7 +10062,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                     { evmPostSolm with
                                                       accountMap := σ_grab_solm
                                                       substate := A_grab_solm
-                                                      createdAccounts := cA_grab })
+ })
                                                   hmapPostSolm hownerPostSolm
                                                   hgrabCodeSolmNE
                                                   hlot hart
@@ -10283,18 +10085,17 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                 { evmPostEvm with
                                                   accountMap := σ_grab
                                                   substate := AGrab
-                                                  createdAccounts := cA_grab }
+ }
                                               let evmGrabSolm :=
                                                 { evmPostSolm with
                                                   accountMap := σ_grab_solm
                                                   substate := A_grab_solm
-                                                  createdAccounts := cA_grab }
+ }
                                               have hStateGrab :
                                                   EVMStateEquiv evmGrabEvm evmGrabSolm := by
-                                                refine ⟨?_, ?_, ?_⟩
+                                                refine ⟨?_, ?_⟩
                                                 · simpa [evmGrabEvm, evmGrabSolm] using
                                                     hStatePost.executionEnv
-                                                · simp [evmGrabEvm, evmGrabSolm]
                                                 · simpa [evmGrabEvm, evmGrabSolm] using
                                                     hAccountsGrab
                                               have rd2607Succ := by
@@ -10339,7 +10140,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                 (by simp [evmGrabEvm])
                                                 (by
                                                   simpa [evmGrabEvm] using
-                                                    accountMapEquiv.refl σ_grab)
+                                                    Eq.refl σ_grab)
                                                 hStateGrab
                                                 (by
                                                   simpa [snipTransition] using
@@ -10408,15 +10209,15 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (g := Sat256.ofUInt256 g) hcallReady hdepthEq
           let A_dog :=
             (evmSolm.addAccessedAccount
-              (EVM.address (endSnipDogAddr σ_solm I))).substate
+              (EVM.address (endSnipDogAddr σ I))).substate
           have hcallSolm :
               typedCallViaEVM config evmSolm
-                (EVM.address (endSnipDogAddr σ_solm I)) "dogIlks" 0
+                (EVM.address (endSnipDogAddr σ I)) "dogIlks" 0
                 [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
                 (false, { evmSolm with substate := A_dog }, ByteArray.empty) true := by
             simpa [A_dog] using
               (callNotMade_depthLimit (cfg := config) (evm := evmSolm)
-                (tgt := EVM.address (endSnipDogAddr σ_solm I))
+                (tgt := EVM.address (endSnipDogAddr σ I))
                 (name := "dogIlks")
                 (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I)])
                 (callPerm := true)
@@ -10427,7 +10228,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 snipTransition.body .reverted := by
             simpa [evmSolm] using
               endSnipBodyReverts_dogIlksCallFailed
-                (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                (σ := σ) (σ₀ := σ₀)
                 (A := A) (I := I) (g := g)
                 (evmDog := { evmSolm with substate := A_dog })
                 (out := ByteArray.empty)

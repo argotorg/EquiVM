@@ -118,7 +118,7 @@ theorem uniswapSwapRecipientGuardPrefix (evm : EVM.State) (I : ExecutionEnv)
   exact execBlock_append hprefix htail
 
 theorem swapRecipientValid_iff_runtime {evm : EVM.State} {I : ExecutionEnv} {σ : AccountMap}
-    (hAccounts : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I) :
+    (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I) :
     (AccountAddress.ofNat (swapToWord I).toNat ≠ uniswapAddressAtSlot evm ⟨6⟩ ∧
       AccountAddress.ofNat (swapToWord I).toNat ≠ uniswapAddressAtSlot evm ⟨7⟩) ↔
     (UInt256.land (swapToMaskedWord I) solcAddrMask ≠ UInt256.land solcAddrMask (uniswapSlotWord ⟨6⟩ σ I) ∧

@@ -8,7 +8,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.solcErrorStringRevertTail_dynamic
     {code : ByteArray} {g : Sat256} {s0 : State} {I : ExecutionEnv} {k C : Nat}
     {pc len rawWord shift word ptr aw : UInt256} {op : Operation.POp} {width : Nat}
-    {R : List UInt256} {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {R : List UInt256} {mem rdata : ByteArray} {acc : AccountMap}
     (rd : RD code I g s0 pc R mem aw rdata acc k C)
     (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
     (hpush : op ≠ .PUSH0) (hword : UInt256.shiftLeft rawWord shift = word)

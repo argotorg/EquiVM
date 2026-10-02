@@ -166,13 +166,13 @@ theorem vatDispatchGem {I : ExecutionEnv}
     forkSelectorBytes, frobSelectorBytes, gemSelectorBytes]
   native_decide
 
-theorem vatReachGemBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vatReachGemBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 12)) :
-    ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
         ⟨526⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vatSelWord I = ⟨0x214414d5⟩ :=
     vatSelWord_eq_of_beq I hsz 0x21 0x44 0x14 0xd5 ⟨0x214414d5⟩
       (by native_decide) (by simpa [vatSelBytes] using hsel)
@@ -203,7 +203,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.solcBytes32AddressExternalMaskAndJump {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hd0 : decode code decoded = some (.JUMPDEST, .none))
     (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
@@ -281,7 +281,7 @@ theorem RD.solcBytes32AddressExternalMaskAndJump {code : ByteArray} {g : Sat256}
       using rd21.jump hd21 hroutine (by evm_ov)⟩
 
 theorem vatGemBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some gemTransition)
@@ -289,10 +289,9 @@ theorem vatGemBodyCoreOk
       decodeCalldataWithMode config.abiDecodeMode (gemTransition.params.map Param.name)
         (transitionSignature gemTransition).paramTypes I.calldata = some (gemStore I))
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨526⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨526⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let slot := solcMappingSlot (solcMappingSlot ⟨4⟩ (gemIlkWord I)) (gemUsrMaskedWord I)
   have hslot : gemStorageSlot I = slot := by
     simp [slot, gemStorageSlot_eq I hsz68]
@@ -304,15 +303,15 @@ theorem vatGemBodyCoreOk
     omega
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (gemStore I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) (gemStore I)
         gemTransition.body
         (.returned { contract := contract, locals := gemStore I }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (vatSlotWord (gemStorageSlot I) σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (vatSlotWord (gemStorageSlot I) σ I).toNat))])) := by
     simpa [gemTransition, gemStorageSlot, vatSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vatUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (gemStore I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) (gemStore I)
         (ref := gemRef (.var "arg0") (.var "arg1")) (er := gemEvaledRef I)
         (slot := gemStorageSlot I)
         (by simp only [initState]; exact hwv) (by simp [gemStore, gemRef])
@@ -350,13 +349,13 @@ theorem vatGemBodyCoreOk
     (by jump_dest) (by simp)
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (vatSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (vatSlotWord slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨465⟩) (val := vatSlotWord slot σ_evm I) (ret := ⟨465⟩) (R := [sel])
+      (pc := ⟨465⟩) (val := vatSlotWord slot σ I) (ret := ⟨465⟩) (R := [sel])
       (memout := solcScratchReturnMem
         (solcNestedMappingHashMem ⟨4⟩ (gemIlkWord I) (gemUsrMaskedWord I))
-        (vatSlotWord slot σ_evm I))
+        (vatSlotWord slot σ I))
       (by simpa [slot, vatSlotWord] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
@@ -366,38 +365,33 @@ theorem vatGemBodyCoreOk
           solcNestedMappingHashMem_mload64 ⟨4⟩ (gemIlkWord I) (gemUsrMaskedWord I))
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (vatSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_mload64 (vatSlotWord slot σ I)
           (solcNestedMappingHashMem_size ⟨4⟩ (gemIlkWord I) (gemUsrMaskedWord I))
           (solcNestedMappingHashMem_read64 ⟨4⟩ (gemIlkWord I) (gemUsrMaskedWord I)))
       (by
-        exact solcScratchReturnMem_read128 (vatSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_read128 (vatSlotWord slot σ I)
           (solcNestedMappingHashMem_size ⟨4⟩ (gemIlkWord I) (gemUsrMaskedWord I)))
       (by simp)
     simpa [slot, vatSlotWord] using hret'
-  have hword : vatSlotWord slot σ_evm I = vatSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (vatSlotWord (gemStorageSlot I) σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (vatSlotWord slot σ_evm I).toNat)] := by
-    rw [hslot, hword]
+  rw [hslot] at hbody
   have henc :
-      returnEquiv (UInt256.toByteArray (vatSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (vatSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (vatSlotWord slot σ I))
+        (some [(.int (Int.ofNat (vatSlotWord slot σ I).toNat))])
         gemTransition.returnType := by
     rw [show gemTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (vatSlotWord slot σ_evm I))
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+      (by simpa [uint256] using uint256ReturnEncoding (vatSlotWord slot σ I))
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem vatGemBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some gemTransition)
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨526⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨526⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hdec := vatDecode_gem_none_short (I := I) hsz4 hshort
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
@@ -416,17 +410,17 @@ theorem vatGemBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch hdec
 
 theorem vatGemBodyCore : VatBodyTheorem 12 := by
-  intro cA gh bl σ_evm σ_solm σ₀ A I g hcode hsize _hperm hwv hsel hAccounts
+  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 12) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some gemTransition :=
     vatDispatchGem hsel
-  have hreach := vatReachGemBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := vatReachGemBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
   · exact vatGemBodyCoreOk hcode hwv hsz68 hsize hdispatch
-      (vatDecode_gem_ok hsz68) hreach hAccounts
+      (vatDecode_gem_ok hsz68) hreach
   · exact vatGemBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 
 end Benchmarks.Dss.Vat

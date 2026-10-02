@@ -768,7 +768,7 @@ theorem endFlowGapSlot_eq {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
 
 theorem RD.endFlowFixDefinedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD endBytecode ee g s0 ⟨2807⟩ stk mem (UInt256.ofNat 3) rdata acc k C)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -841,19 +841,19 @@ theorem endDecode_flow_none_short {I : ExecutionEnv}
   simpa [config, bytes32, bytes32Width, abiBytes32, abiBytes32Width] using
     endDecode_legacyBytes32_none_short (cd := I.calldata) (x := "ilk") hsz4 hshort
 
-theorem endReachFlowBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachFlowBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I endFlowConcreteSelector) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endFlowEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0x4a10eaa6⟩ :=
     endSelWord_eq_of_beq I hsz 0x4a 0x10 0xea 0xa6 ⟨0x4a10eaa6⟩
       (by native_decide)
       (by simpa [selIs, endFlowConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
-    endReachGroup403FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachGroup403FirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
       (by rw [hword]; native_decide)
       (by rw [hword]; native_decide)
@@ -872,15 +872,15 @@ theorem endReachFlowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => endGroup403ArmsWellFormed j (by omega))
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
-theorem endFlowX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endFlowX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD endBytecode I g
-      (initState cA gh bl σ σ₀ g A I) endFlowEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ g A I) endFlowEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD endBytecode I g
-      (initState cA gh bl σ σ₀ g A I) endFlowBodyPc
+      (initState σ σ₀ g A I) endFlowBodyPc
       [endFlowIlkWord I, endFlowReturnPc, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := endBytecode) (sel := sel) (entry := endFlowEntryPc) (ret := endFlowReturnPc)
     (decoded := endFlowDecodedPc) hreach
@@ -895,13 +895,13 @@ theorem endFlowX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by native_decide) (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [endFlowIlkWord, calldataWord] using hroutine⟩
 
-theorem endFlowX_debtZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endFlowX_debtZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hdebt : endFlowDebtWord σ I = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endFlowBodyPc
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endFlowBodyPc
       [endFlowIlkWord I, endFlowReturnPc, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have rd2721 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
@@ -913,17 +913,17 @@ theorem endFlowX_debtZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd2722zero := rd2722raw
   rw [hdebtRaw] at rd2722zero
   obtain ⟨_, _, rd2722⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2722⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨2722⟩
         (⟨0⟩ :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endFlowBodyPc] using rd2722zero⟩
   have rd2725 := rd2722.push2 ⟨2786⟩ (by native_decide) (by evm_ov)
   have rd2726 := rd2725.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   obtain ⟨_, _, rdTail⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2726⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨2726⟩
         [endFlowIlkWord I, endFlowReturnPc, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa using rd2726⟩
   exact RD.solcErrorStringRevertTail
     (pc := ⟨2726⟩) (len := ⟨13⟩)
@@ -938,15 +938,15 @@ theorem endFlowX_debtZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     solcFreePtrMem_size solcFreePtrMem_read64
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endFlowX_fixNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endFlowX_fixNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
     (hfix : endFlowFixWord σ I ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endFlowBodyPc
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endFlowBodyPc
       [endFlowIlkWord I, endFlowReturnPc, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   let key := endFlowIlkWord I
   have hslot : endFlowFixSlot I = solcMappingSlot ⟨15⟩ key := by
     simpa [key] using endFlowFixSlot_eq (I := I) hsz36
@@ -955,9 +955,9 @@ theorem endFlowX_fixNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd2722raw⟩ := rd2721.sload (by native_decide) (by evm_ov)
   have rd2722 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2722⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨2722⟩
         (endFlowDebtWord σ I :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endFlowDebtWord, endSlotWord, solcSlotWord] using rd2722raw⟩
   obtain ⟨_, _, rd2722⟩ := rd2722
   have rd2725 := rd2722.push2 ⟨2786⟩ (by native_decide) (by evm_ov)
@@ -992,10 +992,10 @@ theorem endFlowX_fixNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2802raw⟩ := rd2801pre.sload (by native_decide) (by evm_ov)
   have rd2802 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2802⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨2802⟩
         (endFlowFixWord σ I :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
         (twoWordHashMem key ⟨15⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k' C' := by
+        σ k' C' := by
     have hfixRaw :
         solcSlotWord σ I (solcMappingSlot ⟨15⟩ key) = endFlowFixWord σ I := by
       rw [← hslot]
@@ -1011,31 +1011,31 @@ theorem endFlowX_fixNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have rd2807 := rd2806.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   obtain ⟨_, _, rdTail⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2807⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨2807⟩
         [endFlowIlkWord I, endFlowReturnPc, sel]
         (twoWordHashMem key ⟨15⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k' C' := by
+        σ k' C' := by
     exact ⟨_, _, by simpa using rd2807⟩
   exact RD.endFlowFixDefinedRevert rdTail
     (twoWordHashMem_size_96 key ⟨15⟩ solcFreePtrMem_size)
     (twoWordHashMem_read64 key ⟨15⟩ solcFreePtrMem_size solcFreePtrMem_read64)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endFlowX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endFlowX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
     (hfix : endFlowFixWord σ I = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endFlowBodyPc
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endFlowBodyPc
       [endFlowIlkWord I, endFlowReturnPc, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2948⟩
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2948⟩
       (endPackVatWord σ I :: endPackVatWord σ I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endFlowVatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   let key := endFlowIlkWord I
   have hslot : endFlowFixSlot I = solcMappingSlot ⟨15⟩ key := by
     simpa [key] using endFlowFixSlot_eq (I := I) hsz36
@@ -1084,9 +1084,9 @@ theorem endFlowX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd2722raw⟩ := rd2721.sload (by native_decide) (by evm_ov)
   have rd2722 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2722⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨2722⟩
         (endFlowDebtWord σ I :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endFlowDebtWord, endSlotWord, solcSlotWord] using rd2722raw⟩
   obtain ⟨_, _, rd2722⟩ := rd2722
   have rd2725 := rd2722.push2 ⟨2786⟩ (by native_decide) (by evm_ov)
@@ -1121,10 +1121,10 @@ theorem endFlowX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2802raw⟩ := rd2801pre.sload (by native_decide) (by evm_ov)
   have rd2802 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2802⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨2802⟩
         (endFlowFixWord σ I :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
         (twoWordHashMem key ⟨15⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k' C' := by
+        σ k' C' := by
     have hfixRaw :
         solcSlotWord σ I (solcMappingSlot ⟨15⟩ key) = endFlowFixWord σ I := by
       rw [← hslot]
@@ -1144,10 +1144,10 @@ theorem endFlowX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd2887raw⟩ := rd2886.sload (by native_decide) (by evm_ov)
   have rd2887 : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2887⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨2887⟩
         (endSlotWord ⟨1⟩ σ I :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
         (twoWordHashMem key ⟨15⟩ solcFreePtrMem) (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k' C' := by
+        ByteArray.empty σ k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2887raw⟩
   obtain ⟨_, _, rd2887⟩ := rd2887
   have hmload64Hash :
@@ -1229,17 +1229,17 @@ theorem endFlowX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
       hinSize, hendPtr, u256_land_comm]
       using rd2948⟩
 
-theorem endFlowX_vatIlksNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endFlowX_vatIlksNoCode {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
     (hfix : endFlowFixWord σ I = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endFlowBodyPc
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endFlowBodyPc
       [endFlowIlkWord I, endFlowReturnPc, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd2948⟩ := endFlowX_vatIlksExtcodesizeGuard hsz36 hdebt hfix h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2948⟩) (okPc := ⟨2960⟩) rd2948
     hcodeSize
@@ -1247,23 +1247,23 @@ theorem endFlowX_vatIlksNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endFlowX_vatIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endFlowX_vatIlksCallReady {σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
     (hfix : endFlowFixWord σ I = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endFlowBodyPc
+    (h : RD endBytecode I g (initState σ σ₀ g A I) endFlowBodyPc
       [endFlowIlkWord I, endFlowReturnPc, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩) :
-    ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2963⟩
+    ∃ gasWord k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2963⟩
       (gasWord :: endPackVatWord σ I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endFlowVatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd2948⟩ := endFlowX_vatIlksExtcodesizeGuard hsz36 hdebt hfix h
   obtain ⟨gasWord, k', C', rd2963⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2948⟩) (okPc := ⟨2960⟩) rd2948
@@ -1273,36 +1273,36 @@ theorem endFlowX_vatIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd2963⟩
 
-theorem endFlowX_vatIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endFlowX_vatIlksPostCall {σ σ₀ A I} {g : Sat256}
     {sel gasWord : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2963⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2963⟩
       (gasWord :: endPackVatWord σ I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endFlowVatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k C)
+      ByteArray.empty σ k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) = Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl σ σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ σ σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (endPackVatWord σ I))
           (toExecute σ (AccountAddress.ofUInt256 (endPackVatWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((endFlowVatIlksCalldataMem I (endFlowFixHashMem I)).readWithPadding
             endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
-          (I.depth + 1) I.header I.perm)
-      ∧ RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2964⟩
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
+      ∧ RD endBytecode I g (initState σ σ₀ g A I) ⟨2964⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: endFlowVatIlksEndPtr ::
             endFlowVatIlksSelectorWord :: endPackVatWord σ I :: ⟨0⟩ ::
             endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
-          (endFlowVatIlksPostCallMem I out) (UInt256.ofNat 9) out (cA', σ') k' C'
+          (endFlowVatIlksPostCallMem I out) (UInt256.ofNat 9) out σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd2964raw, hout⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hΘ, rd2964raw, hout⟩ :=
     RD.call h (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endFlowVatIlksWriteLen_eq (out := out) hout
     have haw :
@@ -1314,21 +1314,21 @@ theorem endFlowX_vatIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [endFlowVatIlksPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endFlowVatIlksOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd2964raw
 
-theorem endFlowX_vatIlksCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endFlowX_vatIlksCallDepthLimit {σ σ₀ A I} {g : Sat256}
     {sel gasWord : UInt256} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2963⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2963⟩
       (gasWord :: endPackVatWord σ I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endFlowVatIlksOutSize ::
         endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k C)
+      ByteArray.empty σ k C)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2964⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2964⟩
       (⟨0⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endPackVatWord σ I :: ⟨0⟩ :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)) (UInt256.ofNat 9)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   obtain ⟨k', C', rd2964raw⟩ :=
     RD.callDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1344,14 +1344,14 @@ theorem endFlowX_vatIlksCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endFlowVatIlksOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd2964raw
 
-theorem endFlowX_vatIlksCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_vatIlksCallFailed {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2964⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2964⟩
       (⟨0⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endPackVatWord σ I :: ⟨0⟩ :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
-      mem (UInt256.ofNat 9) rdata (cA', σ') k C)
+      mem (UInt256.ofNat 9) rdata σ' k C)
     (hrdataSize : rdata.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2964⟩) (okPc := ⟨2980⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1359,33 +1359,33 @@ theorem endFlowX_vatIlksCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endFlowX_vatIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_vatIlksCallSucceeded {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {mem rdata : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2964⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2964⟩
       (⟨1⟩ :: endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord ::
         endPackVatWord σ I :: ⟨0⟩ :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
-      mem (UInt256.ofNat 9) rdata (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2982⟩
+      mem (UInt256.ofNat 9) rdata σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨2982⟩
       (endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
-      mem (UInt256.ofNat 9) rdata (cA', σ') k' C' := by
+      mem (UInt256.ofNat 9) rdata σ' k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨2964⟩) (okPc := ⟨2980⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp)
 
-theorem endFlowX_vatIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_vatIlksReturnDecodeOk {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2982⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2982⟩
       (endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
-      (endFlowVatIlksPostCallMem I out) (UInt256.ofNat 9) out (cA', σ') k C)
+      (endFlowVatIlksPostCallMem I out) (UInt256.ofNat 9) out σ' k C)
     (hlo : 160 ≤ out.size) (hout : out.size < UInt256.size) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3010⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3010⟩
       (endFlowVatIlkRateWord out :: ⟨32⟩ :: ⟨0⟩ :: endFlowIlkWord I ::
         endFlowReturnPc :: sel :: [])
-      (endFlowVatIlksPostCallMem I out) (UInt256.ofNat 9) out (cA', σ') k' C' := by
+      (endFlowVatIlksPostCallMem I out) (UInt256.ofNat 9) out σ' k' C' := by
   have hmload64 := endFlowVatIlksPostCallMem_mload64 I out
   have hmload160Raw := endFlowVatIlksPostCallMem_mload160_long I out hlo
   have hmload160 :
@@ -1432,14 +1432,14 @@ theorem endFlowX_vatIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I} {g : Sat2
     simpa [endFlowVatIlksEndPtr, endFlowVatIlksSelectorWord, endFlowVatIlksOutPtr,
       endFlowVatIlksInSize, endFlowVatIlksOutSize] using rd3010⟩
 
-theorem endFlowX_vatIlksReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_vatIlksReturnDecodeShort {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2982⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨2982⟩
       (endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
-      (endFlowVatIlksPostCallMem I out) (UInt256.ofNat 9) out (cA', σ') k C)
+      (endFlowVatIlksPostCallMem I out) (UInt256.ofNat 9) out σ' k C)
     (hshort : out.size < 160) (hout : out.size < UInt256.size) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hmload64 := endFlowVatIlksPostCallMem_mload64 I out
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨160⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
@@ -1466,20 +1466,20 @@ theorem endFlowX_vatIlksReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I} {g : S
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endFlowX_wad0RmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_wad0RmulEntry {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
     (hlo : 160 ≤ out.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3010⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3010⟩
       (endFlowVatIlkRateWord out :: ⟨32⟩ :: ⟨0⟩ :: endFlowIlkWord I ::
         endFlowReturnPc :: sel :: [])
-      (endFlowVatIlksPostCallMem I out) (UInt256.ofNat 9) out (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10114⟩
+      (endFlowVatIlksPostCallMem I out) (UInt256.ofNat 9) out σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨10114⟩
       (endFlowVatIlkRateWord out :: endFlowArtWord σ' I :: ⟨3041⟩ ::
         ⟨3061⟩ :: ⟨0⟩ :: endFlowVatIlkRateWord out :: endFlowIlkWord I ::
         endFlowReturnPc :: sel :: [])
       (twoWordHashMem (endFlowIlkWord I) ⟨14⟩ (endFlowVatIlksPostCallMem I out))
-      (UInt256.ofNat 9) out (cA', σ') k' C' := by
+      (UInt256.ofNat 9) out σ' k' C' := by
   let key := endFlowIlkWord I
   have hslot : endFlowArtSlot I = solcMappingSlot ⟨14⟩ key := by
     simpa [key] using endFlowArtSlot_eq (I := I) hsz36
@@ -1527,11 +1527,11 @@ theorem endFlowX_wad0RmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3025raw⟩ := rd3024pre.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3025⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3025⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3025⟩
         (endFlowArtWord σ' I :: endFlowVatIlkRateWord out :: ⟨0⟩ :: ⟨0⟩ ::
           endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
         (twoWordHashMem key ⟨14⟩ (endFlowVatIlksPostCallMem I out))
-        (UInt256.ofNat 9) out (cA', σ') k' C' := by
+        (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by
       simpa [endFlowArtWord, endSlotWord, solcSlotWord, key, hslot] using rd3025raw⟩
   have rd10114 := evm_run rd3025 with [
@@ -1547,20 +1547,20 @@ theorem endFlowX_wad0RmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa [key] using rd10114⟩
 
-theorem endFlowX_wadRmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_wadRmulEntry {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3041⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3041⟩
       (endFlowWad0Word σ' I out :: ⟨3061⟩ :: ⟨0⟩ :: endFlowVatIlkRateWord out ::
         endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (twoWordHashMem (endFlowIlkWord I) ⟨14⟩ (endFlowVatIlksPostCallMem I out))
-      (UInt256.ofNat 9) out (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10114⟩
+      (UInt256.ofNat 9) out σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨10114⟩
       (endFlowTagWord σ' I :: endFlowWad0Word σ' I out :: ⟨3061⟩ :: ⟨0⟩ ::
         endFlowVatIlkRateWord out :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (twoWordHashMem (endFlowIlkWord I) ⟨12⟩
         (twoWordHashMem (endFlowIlkWord I) ⟨14⟩ (endFlowVatIlksPostCallMem I out)))
-      (UInt256.ofNat 9) out (cA', σ') k' C' := by
+      (UInt256.ofNat 9) out σ' k' C' := by
   let key := endFlowIlkWord I
   let mem14 := twoWordHashMem key ⟨14⟩ (endFlowVatIlksPostCallMem I out)
   have hslot : endFlowTagSlot I = solcMappingSlot ⟨12⟩ key := by
@@ -1607,10 +1607,10 @@ theorem endFlowX_wadRmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3057raw⟩ := rd3056pre.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3057⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3057⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3057⟩
         (endFlowTagWord σ' I :: endFlowWad0Word σ' I out :: ⟨3061⟩ :: ⟨0⟩ ::
           endFlowVatIlkRateWord out :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
-        (twoWordHashMem key ⟨12⟩ mem14) (UInt256.ofNat 9) out (cA', σ') k' C' := by
+        (twoWordHashMem key ⟨12⟩ mem14) (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by
       simpa [endFlowTagWord, endSlotWord, solcSlotWord, key, hslot, mem14] using rd3057raw⟩
   have rd10114 := evm_run rd3057 with [
@@ -1618,14 +1618,14 @@ theorem endFlowX_wadRmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa [key, mem14] using rd10114⟩
 
-theorem endFlowX_mulHelperOverflow {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endFlowX_mulHelperOverflow {σ σ₀ A I} {g : Sat256}
     {k C : ℕ} {x y ret aw : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (hover : UInt256.size ≤ x.toNat * y.toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10170⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨10170⟩
       (y :: x :: ret :: R) mem aw rdata acc k C)
     (hov : R.length + 16 ≤ 1024) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hdivNe :
       UInt256.div (x * y) y ≠ x := by
     have hbase := endU256_mul_div_overflow_ne x y hover
@@ -1675,16 +1675,16 @@ theorem endFlowX_mulHelperOverflow {cA gh bl σ σ₀ A I} {g : Sat256}
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 
-theorem endFlowX_mulHelperReturns {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endFlowX_mulHelperReturns {σ σ₀ A I} {g : Sat256}
     {k C : ℕ} {x y ret aw : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (hfit : x.toNat * y.toNat < UInt256.size)
     (hy : y ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10170⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨10170⟩
       (y :: x :: ret :: R) mem aw rdata acc k C)
     (hret : (D_J endBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ret
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ret
       (x * y :: R) mem aw rdata acc k' C' := by
   have hdiv :
       UInt256.div (x * y) y = x := by
@@ -1740,15 +1740,15 @@ theorem endFlowX_mulHelperReturns {cA gh bl σ σ₀ A I} {g : Sat256}
     raw jump (by native_decide) hret (by evm_ov)]
   exact ⟨_, _, by simpa using rdRet⟩
 
-theorem endFlowX_mulHelperReturnsZero {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endFlowX_mulHelperReturnsZero {σ σ₀ A I} {g : Sat256}
     {k C : ℕ} {x y ret aw : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (hy : y = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10170⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨10170⟩
       (y :: x :: ret :: R) mem aw rdata acc k C)
     (hret : (D_J endBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ret
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ret
       (x * y :: R) mem aw rdata acc k' C' := by
   have hyZero : UInt256.isZero y ≠ ⟨0⟩ := by
     rw [hy]
@@ -1774,14 +1774,14 @@ theorem endFlowX_mulHelperReturnsZero {cA gh bl σ σ₀ A I} {g : Sat256}
     raw jump (by native_decide) hret (by evm_ov)]
   exact ⟨_, _, by simpa [hy] using rdRet⟩
 
-theorem endFlowX_rmulMulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_rmulMulEntry {σ σ' σ₀ A I} {g : Sat256}
     {x y ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
-      (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10114⟩
-        (y :: x :: ret :: R) mem (UInt256.ofNat 9) rdata (cA', σ') k C)
+      (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨10114⟩
+        (y :: x :: ret :: R) mem (UInt256.ofNat 9) rdata σ' k C)
       (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10170⟩
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨10170⟩
       (y :: x :: ⟨10139⟩ :: endRayWord :: ⟨0⟩ :: y :: x :: ret :: R)
-      mem (UInt256.ofNat 9) rdata (cA', σ') k' C' := by
+      mem (UInt256.ofNat 9) rdata σ' k' C' := by
     have rd10130 := evm_run h with [
       raw jumpdest (by native_decide)
         (by simp; omega),
@@ -1803,13 +1803,13 @@ theorem endFlowX_rmulMulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
         (by simp; omega)]
     exact ⟨_, _, by simpa [endRayWord] using rd10170⟩
 
-theorem endFlowX_rmulOverflow {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_rmulOverflow {σ σ' σ₀ A I} {g : Sat256}
     {x y ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (hover : UInt256.size ≤ x.toNat * y.toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10114⟩
-      (y :: x :: ret :: R) mem (UInt256.ofNat 9) rdata (cA', σ') k C)
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨10114⟩
+      (y :: x :: ret :: R) mem (UInt256.ofNat 9) rdata σ' k C)
     (hov : R.length + 21 ≤ 1024) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, hmul⟩ := endFlowX_rmulMulEntry h (by omega)
   exact endFlowX_mulHelperOverflow
       (x := x) (y := y) (ret := ⟨10139⟩)
@@ -1817,17 +1817,17 @@ theorem endFlowX_rmulOverflow {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       (mem := mem) hover (by simpa using hmul)
       (by simp; omega)
 
-theorem endFlowX_rmulReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_rmulReturns {σ σ' σ₀ A I} {g : Sat256}
     {x y ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (hfit : x.toNat * y.toNat < UInt256.size)
     (hy : y ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10114⟩
-      (y :: x :: ret :: R) mem (UInt256.ofNat 9) rdata (cA', σ') k C)
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨10114⟩
+      (y :: x :: ret :: R) mem (UInt256.ofNat 9) rdata σ' k C)
     (hret : (D_J endBytecode 0).contains ret = true)
     (hov : R.length + 21 ≤ 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ret
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ret
       (UInt256.div (x * y) endRayWord :: R) mem (UInt256.ofNat 9) rdata
-      (cA', σ') k' C' := by
+      σ' k' C' := by
   obtain ⟨_, _, hmul⟩ := endFlowX_rmulMulEntry h (by omega)
   obtain ⟨_, _, hretMul⟩ :=
     endFlowX_mulHelperReturns
@@ -1865,16 +1865,16 @@ theorem endFlowX_rmulReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       (by simp; omega)]
   exact ⟨_, _, by simpa [endRayWord] using rdRet⟩
 
-theorem endFlowX_rmulReturnsZero {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_rmulReturnsZero {σ σ' σ₀ A I} {g : Sat256}
     {x y ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (hy : y = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10114⟩
-      (y :: x :: ret :: R) mem (UInt256.ofNat 9) rdata (cA', σ') k C)
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨10114⟩
+      (y :: x :: ret :: R) mem (UInt256.ofNat 9) rdata σ' k C)
     (hret : (D_J endBytecode 0).contains ret = true)
     (hov : R.length + 21 ≤ 1024) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ret
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ret
       (UInt256.div (x * y) endRayWord :: R) mem (UInt256.ofNat 9) rdata
-      (cA', σ') k' C' := by
+      σ' k' C' := by
   obtain ⟨_, _, hmul⟩ := endFlowX_rmulMulEntry h (by omega)
   obtain ⟨_, _, hretMul⟩ :=
     endFlowX_mulHelperReturnsZero
@@ -1912,32 +1912,32 @@ theorem endFlowX_rmulReturnsZero {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       (by simp; omega)]
   exact ⟨_, _, by simpa [endRayWord, hy] using rdRet⟩
 
-theorem endFlowX_tailSubEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_tailSubEntry {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
     (hlo : 160 ≤ out.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3061⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
       (endFlowWadWord σ' I out :: ⟨0⟩ :: endFlowVatIlkRateWord out ::
         endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (twoWordHashMem (endFlowIlkWord I) ⟨12⟩
         (twoWordHashMem (endFlowIlkWord I) ⟨14⟩ (endFlowVatIlksPostCallMem I out)))
-      (UInt256.ofNat 9) out (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10154⟩
+      (UInt256.ofNat 9) out σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨10154⟩
       (endFlowGapWord σ' I :: endFlowWadWord σ' I out :: ⟨3119⟩ ::
         ⟨3137⟩ :: endFlowDenWord σ' I :: endFlowWadWord σ' I out ::
         endFlowVatIlkRateWord out :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (twoWordHashMem (endFlowIlkWord I) ⟨13⟩
         (twoWordHashMem (endFlowIlkWord I) ⟨12⟩
           (twoWordHashMem (endFlowIlkWord I) ⟨14⟩ (endFlowVatIlksPostCallMem I out))))
-      (UInt256.ofNat 9) out (cA', σ') k' C' := by
+      (UInt256.ofNat 9) out σ' k' C' := by
   let key := endFlowIlkWord I
   let mem14 := twoWordHashMem key ⟨14⟩ (endFlowVatIlksPostCallMem I out)
   let mem12 := twoWordHashMem key ⟨12⟩ mem14
   let mem13 := twoWordHashMem key ⟨13⟩ mem12
-  have h0 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3061⟩
+  have h0 : RD endBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
       (endFlowWadWord σ' I out :: ⟨0⟩ :: endFlowVatIlkRateWord out ::
         key :: endFlowReturnPc :: sel :: [])
-      mem12 (UInt256.ofNat 9) out (cA', σ') k C := by
+      mem12 (UInt256.ofNat 9) out σ' k C := by
     simpa [key, mem14, mem12] using h
   have hgapSlot : endFlowGapSlot I = solcMappingSlot ⟨13⟩ key := by
     simpa [key] using endFlowGapSlot_eq (I := I) hsz36
@@ -1967,10 +1967,10 @@ theorem endFlowX_tailSubEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd3080raw⟩ := rd3079.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3080⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3080⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3080⟩
         (endFlowDebtWord σ' I :: endRayWord :: endFlowWadWord σ' I out ::
           endFlowVatIlkRateWord out :: key :: endFlowReturnPc :: sel :: [])
-        mem12 (UInt256.ofNat 9) out (cA', σ') k' C' := by
+        mem12 (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by simpa [endFlowDebtWord, endSlotWord, solcSlotWord] using rd3080raw⟩
   have rd3084 := evm_run rd3080 with [
     raw dup2 (by native_decide) (by evm_ov),
@@ -1981,10 +1981,10 @@ theorem endFlowX_tailSubEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     raw jumpdest (by native_decide) (by evm_ov),
     raw div (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd3088⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3088⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3088⟩
         (endFlowDenWord σ' I :: endFlowWadWord σ' I out ::
           endFlowVatIlkRateWord out :: key :: endFlowReturnPc :: sel :: [])
-        mem12 (UInt256.ofNat 9) out (cA', σ') k' C' := by
+        mem12 (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by simpa [endFlowDenWord, endRayWord] using rd3088raw⟩
   have rd3094 := evm_run rd3088 with [
     raw push2 ⟨3137⟩ (by native_decide) (by evm_ov),
@@ -2020,11 +2020,11 @@ theorem endFlowX_tailSubEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3115raw⟩ := rd3114pre.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3115⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3115⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3115⟩
         (endFlowGapWord σ' I :: endFlowWadWord σ' I out :: ⟨3119⟩ ::
           ⟨3137⟩ :: endFlowDenWord σ' I :: endFlowWadWord σ' I out ::
           endFlowVatIlkRateWord out :: key :: endFlowReturnPc :: sel :: [])
-        mem13 (UInt256.ofNat 9) out (cA', σ') k' C' := by
+        mem13 (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by
       simpa [endFlowGapWord, endSlotWord, solcSlotWord, key, hgapSlot] using rd3115raw⟩
   have rd10154 := evm_run rd3115 with [
@@ -2032,18 +2032,18 @@ theorem endFlowX_tailSubEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa [key, mem14, mem12, mem13] using rd10154⟩
 
-theorem endFlowX_tailSubUnderflow {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_tailSubUnderflow {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
     (hlo : 160 ≤ out.size)
     (hlt : (endFlowWadWord σ' I out).toNat < (endFlowGapWord σ' I).toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3061⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
       (endFlowWadWord σ' I out :: ⟨0⟩ :: endFlowVatIlkRateWord out ::
         endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (twoWordHashMem (endFlowIlkWord I) ⟨12⟩
         (twoWordHashMem (endFlowIlkWord I) ⟨14⟩ (endFlowVatIlksPostCallMem I out)))
-      (UInt256.ofNat 9) out (cA', σ') k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (UInt256.ofNat 9) out σ' k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd10154⟩ := endFlowX_tailSubEntry hsz36 hlo h
   have hsubNat : (UInt256.sub (endFlowWadWord σ' I out) (endFlowGapWord σ' I)).toNat =
       UInt256.size + (endFlowWadWord σ' I out).toNat - (endFlowGapWord σ' I).toNat :=
@@ -2082,25 +2082,25 @@ theorem endFlowX_tailSubUnderflow {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     raw dup1 (by native_decide) (by evm_ov),
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
-theorem endFlowX_tailMulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_tailMulEntry {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
     (hlo : 160 ≤ out.size)
     (hleSub : (endFlowGapWord σ' I).toNat ≤ (endFlowWadWord σ' I out).toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3061⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
       (endFlowWadWord σ' I out :: ⟨0⟩ :: endFlowVatIlkRateWord out ::
         endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (twoWordHashMem (endFlowIlkWord I) ⟨12⟩
         (twoWordHashMem (endFlowIlkWord I) ⟨14⟩ (endFlowVatIlksPostCallMem I out)))
-      (UInt256.ofNat 9) out (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨10170⟩
+      (UInt256.ofNat 9) out σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨10170⟩
       (endRayWord :: endFlowNum0Word σ' I out :: ⟨3137⟩ ::
         endFlowDenWord σ' I :: endFlowWadWord σ' I out ::
         endFlowVatIlkRateWord out :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (twoWordHashMem (endFlowIlkWord I) ⟨13⟩
         (twoWordHashMem (endFlowIlkWord I) ⟨12⟩
           (twoWordHashMem (endFlowIlkWord I) ⟨14⟩ (endFlowVatIlksPostCallMem I out))))
-      (UInt256.ofNat 9) out (cA', σ') k' C' := by
+      (UInt256.ofNat 9) out σ' k' C' := by
   let key := endFlowIlkWord I
   let mem14 := twoWordHashMem key ⟨14⟩ (endFlowVatIlksPostCallMem I out)
   let mem12 := twoWordHashMem key ⟨12⟩ mem14
@@ -2120,11 +2120,11 @@ theorem endFlowX_tailMulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       hleSub (by jump_dest) (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd3119⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3119⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3119⟩
         (endFlowNum0Word σ' I out :: ⟨3137⟩ :: endFlowDenWord σ' I ::
           endFlowWadWord σ' I out :: endFlowVatIlkRateWord out :: key ::
           endFlowReturnPc :: sel :: [])
-        mem13 (UInt256.ofNat 9) out (cA', σ') k' C' := by
+        mem13 (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by simpa [endFlowNum0Word] using rd3119raw⟩
   have rd3120 := rd3119.jumpdest (by native_decide) (by evm_ov)
   have rd3133 := rd3120.pushConst endRayWord
@@ -2135,19 +2135,19 @@ theorem endFlowX_tailMulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa [key, mem14, mem12, mem13] using rd10170⟩
 
-theorem endFlowX_tailMulOverflow {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_tailMulOverflow {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
     (hlo : 160 ≤ out.size)
     (hleSub : (endFlowGapWord σ' I).toNat ≤ (endFlowWadWord σ' I out).toNat)
     (hover : UInt256.size ≤ (endFlowNum0Word σ' I out).toNat * endRayWord.toNat)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3061⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
       (endFlowWadWord σ' I out :: ⟨0⟩ :: endFlowVatIlkRateWord out ::
         endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (twoWordHashMem (endFlowIlkWord I) ⟨12⟩
         (twoWordHashMem (endFlowIlkWord I) ⟨14⟩ (endFlowVatIlksPostCallMem I out)))
-      (UInt256.ofNat 9) out (cA', σ') k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (UInt256.ofNat 9) out σ' k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   let key := endFlowIlkWord I
   let mem14 := twoWordHashMem key ⟨14⟩ (endFlowVatIlksPostCallMem I out)
   let mem12 := twoWordHashMem key ⟨12⟩ mem14
@@ -2161,26 +2161,26 @@ theorem endFlowX_tailMulOverflow {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (mem := mem13) hover (by simpa [key, mem14, mem12, mem13] using rd10170)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem endFlowX_tailDenGuard {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_tailDenGuard {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
     (hlo : 160 ≤ out.size)
     (hleSub : (endFlowGapWord σ' I).toNat ≤ (endFlowWadWord σ' I out).toNat)
     (hfitMul : (endFlowNum0Word σ' I out).toNat * endRayWord.toNat < UInt256.size)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3061⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
       (endFlowWadWord σ' I out :: ⟨0⟩ :: endFlowVatIlkRateWord out ::
         endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (twoWordHashMem (endFlowIlkWord I) ⟨12⟩
         (twoWordHashMem (endFlowIlkWord I) ⟨14⟩ (endFlowVatIlksPostCallMem I out)))
-      (UInt256.ofNat 9) out (cA', σ') k C) :
-    ∃ k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3137⟩
+      (UInt256.ofNat 9) out σ' k C) :
+    ∃ k' C', RD endBytecode I g (initState σ σ₀ g A I) ⟨3137⟩
       (endFlowNumWord σ' I out :: endFlowDenWord σ' I ::
         endFlowWadWord σ' I out :: endFlowVatIlkRateWord out :: endFlowIlkWord I ::
         endFlowReturnPc :: sel :: [])
       (twoWordHashMem (endFlowIlkWord I) ⟨13⟩
         (twoWordHashMem (endFlowIlkWord I) ⟨12⟩
           (twoWordHashMem (endFlowIlkWord I) ⟨14⟩ (endFlowVatIlksPostCallMem I out))))
-      (UInt256.ofNat 9) out (cA', σ') k' C' := by
+      (UInt256.ofNat 9) out σ' k' C' := by
   let key := endFlowIlkWord I
   let mem14 := twoWordHashMem key ⟨14⟩ (endFlowVatIlksPostCallMem I out)
   let mem12 := twoWordHashMem key ⟨12⟩ mem14
@@ -2202,7 +2202,7 @@ theorem endFlowX_tailDenGuard {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
 theorem endFlowInvalidError {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.INVALID, .none)) :
     X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
@@ -2222,23 +2222,23 @@ theorem endFlowInvalidError {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
       rw [hX, hfuel]
       exact Ethereum.EVM.Xstep_X_X_except _ s' _ _ hstep)
 
-theorem endFlowX_tailDenInvalid {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_tailDenInvalid {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
     (hlo : 160 ≤ out.size)
     (hleSub : (endFlowGapWord σ' I).toNat ≤ (endFlowWadWord σ' I out).toNat)
     (hfitMul : (endFlowNum0Word σ' I out).toNat * endRayWord.toNat < UInt256.size)
     (hden : endFlowDenWord σ' I = ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3061⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
       (endFlowWadWord σ' I out :: ⟨0⟩ :: endFlowVatIlkRateWord out ::
         endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (twoWordHashMem (endFlowIlkWord I) ⟨12⟩
         (twoWordHashMem (endFlowIlkWord I) ⟨14⟩ (endFlowVatIlksPostCallMem I out)))
-      (UInt256.ofNat 9) out (cA', σ') k C) :
+      (UInt256.ofNat 9) out σ' k C) :
     X (g.toNat + 1) (D_J endBytecode 0)
-        (initState cA gh bl σ σ₀ g A I) = .error .OutOfGass ∨
+        (initState σ σ₀ g A I) = .error .OutOfGass ∨
       X (g.toNat + 1) (D_J endBytecode 0)
-        (initState cA gh bl σ σ₀ g A I) = .error .InvalidInstruction := by
+        (initState σ σ₀ g A I) = .error .InvalidInstruction := by
   obtain ⟨_, _, rd3137⟩ := endFlowX_tailDenGuard hsz36 hlo hleSub hfitMul h
   have rd3142 := evm_run rd3137 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -2247,7 +2247,7 @@ theorem endFlowX_tailDenInvalid {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
   have rd3143 := rd3142.jumpiNT (by native_decide) (by simpa using hden) (by evm_ov)
   exact endFlowInvalidError rd3143 (by native_decide)
 
-theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
+theorem endFlowX_tailReturns {σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -2255,24 +2255,24 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (hleSub : (endFlowGapWord σ' I).toNat ≤ (endFlowWadWord σ' I out).toNat)
     (hfitMul : (endFlowNum0Word σ' I out).toNat * endRayWord.toNat < UInt256.size)
     (hden : endFlowDenWord σ' I ≠ ⟨0⟩)
-    (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3061⟩
+    (h : RD endBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
       (endFlowWadWord σ' I out :: ⟨0⟩ :: endFlowVatIlkRateWord out ::
         endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       (twoWordHashMem (endFlowIlkWord I) ⟨12⟩
         (twoWordHashMem (endFlowIlkWord I) ⟨14⟩ (endFlowVatIlksPostCallMem I out)))
-      (UInt256.ofNat 9) out (cA', σ') k C) :
-    RDret endBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA', endFlowPostAccountMap σ' I (endFlowFixVWord σ' I out))
+      (UInt256.ofNat 9) out σ' k C) :
+    RDret endBytecode g (initState σ σ₀ g A I)
+      (endFlowPostAccountMap σ' I (endFlowFixVWord σ' I out))
       ByteArray.empty := by
   let key := endFlowIlkWord I
   let mem14 := twoWordHashMem key ⟨14⟩ (endFlowVatIlksPostCallMem I out)
   let mem12 := twoWordHashMem key ⟨12⟩ mem14
   let mem13 := twoWordHashMem key ⟨13⟩ mem12
   let mem15 := twoWordHashMem key ⟨15⟩ mem13
-  have h0 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3061⟩
+  have h0 : RD endBytecode I g (initState σ σ₀ g A I) ⟨3061⟩
       (endFlowWadWord σ' I out :: ⟨0⟩ :: endFlowVatIlkRateWord out ::
         key :: endFlowReturnPc :: sel :: [])
-      mem12 (UInt256.ofNat 9) out (cA', σ') k C := by
+      mem12 (UInt256.ofNat 9) out σ' k C := by
     simpa [key, mem14, mem12] using h
   have hgapSlot : endFlowGapSlot I = solcMappingSlot ⟨13⟩ key := by
     simpa [key] using endFlowGapSlot_eq (I := I) hsz36
@@ -2331,10 +2331,10 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd3080raw⟩ := rd3079.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3080⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3080⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3080⟩
         (endFlowDebtWord σ' I :: endRayWord :: endFlowWadWord σ' I out ::
           endFlowVatIlkRateWord out :: key :: endFlowReturnPc :: sel :: [])
-        mem12 (UInt256.ofNat 9) out (cA', σ') k' C' := by
+        mem12 (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by simpa [endFlowDebtWord, endSlotWord, solcSlotWord] using rd3080raw⟩
   have rd3084 := evm_run rd3080 with [
     raw dup2 (by native_decide) (by evm_ov),
@@ -2345,10 +2345,10 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     raw jumpdest (by native_decide) (by evm_ov),
     raw div (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd3088⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3088⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3088⟩
         (endFlowDenWord σ' I :: endFlowWadWord σ' I out ::
           endFlowVatIlkRateWord out :: key :: endFlowReturnPc :: sel :: [])
-        mem12 (UInt256.ofNat 9) out (cA', σ') k' C' := by
+        mem12 (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by simpa [endFlowDenWord, endRayWord] using rd3088raw⟩
   have rd3094 := evm_run rd3088 with [
     raw push2 ⟨3137⟩ (by native_decide) (by evm_ov),
@@ -2384,11 +2384,11 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3115raw⟩ := rd3114pre.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3115⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3115⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3115⟩
         (endFlowGapWord σ' I :: endFlowWadWord σ' I out :: ⟨3119⟩ ::
           ⟨3137⟩ :: endFlowDenWord σ' I :: endFlowWadWord σ' I out ::
           endFlowVatIlkRateWord out :: key :: endFlowReturnPc :: sel :: [])
-        mem13 (UInt256.ofNat 9) out (cA', σ') k' C' := by
+        mem13 (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by
       simpa [endFlowGapWord, endSlotWord, solcSlotWord, key, hgapSlot] using rd3115raw⟩
   have rd10154 := evm_run rd3115 with [
@@ -2408,11 +2408,11 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       hleSub (by jump_dest) (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd3119⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3119⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3119⟩
         (endFlowNum0Word σ' I out :: ⟨3137⟩ :: endFlowDenWord σ' I ::
           endFlowWadWord σ' I out :: endFlowVatIlkRateWord out :: key ::
           endFlowReturnPc :: sel :: [])
-        mem13 (UInt256.ofNat 9) out (cA', σ') k' C' := by
+        mem13 (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by simpa [endFlowNum0Word] using rd3119raw⟩
   have rd3120 := rd3119.jumpdest (by native_decide) (by evm_ov)
   have rd3133 := rd3120.pushConst endRayWord
@@ -2430,11 +2430,11 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       (mem := mem13) hfitMul hrayNonzero (by simpa using rd10170)
       (by jump_dest) (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd3137⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3137⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3137⟩
         (endFlowNumWord σ' I out :: endFlowDenWord σ' I ::
           endFlowWadWord σ' I out :: endFlowVatIlkRateWord out :: key ::
           endFlowReturnPc :: sel :: [])
-        mem13 (UInt256.ofNat 9) out (cA', σ') k' C' := by
+        mem13 (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by simpa [endFlowNumWord] using rd3137raw⟩
   have rd3142 := evm_run rd3137 with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -2475,20 +2475,20 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     raw swap1 (by native_decide) (by evm_ov),
     raw swap3 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd3166⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3166⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3166⟩
         (endFlowFixSlot I :: endFlowFixVWord σ' I out :: ⟨64⟩ :: ⟨0⟩ ::
           endFlowWadWord σ' I out :: endFlowVatIlkRateWord out :: key ::
           endFlowReturnPc :: sel :: [])
-        mem15 (UInt256.ofNat 9) out (cA', σ') k' C' := by
+        mem15 (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by simpa [endFlowFixVWord] using rd3166raw⟩
   obtain ⟨_, _, rd3167raw⟩ := rd3166.sstore hperm (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd3167⟩ : ∃ k' C',
-      RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3167⟩
+      RD endBytecode I g (initState σ σ₀ g A I) ⟨3167⟩
         (⟨64⟩ :: ⟨0⟩ :: endFlowWadWord σ' I out :: endFlowVatIlkRateWord out ::
           key :: endFlowReturnPc :: sel :: [])
         mem15 (UInt256.ofNat 9) out
-        (cA', endFlowPostAccountMap σ' I (endFlowFixVWord σ' I out)) k' C' := by
+        (endFlowPostAccountMap σ' I (endFlowFixVWord σ' I out)) k' C' := by
     exact ⟨_, _, by simpa [endFlowPostAccountMap] using rd3167raw⟩
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem15.size then ⟨0⟩
@@ -2525,10 +2525,10 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (by native_decide) (by evm_ov)
   exact RD.stop rdReturn (by native_decide) (by evm_ov)
 
-theorem endFlowCheckedVatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endFlowCheckedVatIlksNoCode {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endFlowStore I } evm0
       (checkedExternalCallStmts (.storage vatRef) "vatIlks" (.intLit 0) [.var "ilk"]
         "vatIlk") .reverted := by
@@ -2547,7 +2547,7 @@ theorem endFlowCheckedVatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
         0 := by
     simpa [evm0] using
       endPackVatCode_zero_of_codeSize_zero
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endFlowStore I } evm0
@@ -2560,16 +2560,16 @@ theorem endFlowCheckedVatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
       (retVar := "vatIlk") (name := "vatIlks") (sendVal := 0)
       (args := [.var "ilk"]) (perm := true) hguard
 
-theorem endFlowCheckedVatIlksFailure {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endFlowCheckedVatIlksFailure {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (false, evmVat, out) true) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endFlowStore I } evm0
       (checkedExternalCallStmts (.storage vatRef) "vatIlks" (.intLit 0) [.var "ilk"]
         "vatIlk") .reverted := by
@@ -2587,7 +2587,7 @@ theorem endFlowCheckedVatIlksFailure {cA gh bl σ σ₀ A I} {g : UInt256}
         ((evm0.lookupAccount (endPackVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
     simpa [evm0] using
       endPackVatCode_pos_of_codeSize_ne
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endFlowStore I } evm0
@@ -2614,17 +2614,17 @@ theorem endFlowCheckedVatIlksFailure {cA gh bl σ σ₀ A I} {g : UInt256}
       (argVals := [.fixedBytes bytes32Width (endBytes32ArgBytes I)])
       (out := out) (perm := true) hguard hreceiver hargs (by simpa [evm0] using hcall)
 
-theorem endFlowCheckedVatIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endFlowCheckedVatIlksDecodeRevert {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmVat, out) true)
     (hshort : out.size < 160) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endFlowStore I } evm0
       (checkedExternalCallStmts (.storage vatRef) "vatIlks" (.intLit 0) [.var "ilk"]
         "vatIlk") .reverted := by
@@ -2642,7 +2642,7 @@ theorem endFlowCheckedVatIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
         ((evm0.lookupAccount (endPackVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
     simpa [evm0] using
       endPackVatCode_pos_of_codeSize_ne
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endFlowStore I } evm0
@@ -2670,17 +2670,17 @@ theorem endFlowCheckedVatIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
       (out := out) (perm := true) hguard hreceiver hargs
       (by simpa [evm0] using hcall) (endFlowVatIlksDecode_none_short hshort)
 
-theorem endFlowCheckedVatIlksSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endFlowCheckedVatIlksSuccess {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmVat, out) true)
     (hlo : 160 ≤ out.size) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endFlowStore I } evm0
       (checkedExternalCallStmts (.storage vatRef) "vatIlks" (.intLit 0) [.var "ilk"]
         "vatIlk")
@@ -2699,7 +2699,7 @@ theorem endFlowCheckedVatIlksSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
         ((evm0.lookupAccount (endPackVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
     simpa [evm0] using
       endPackVatCode_pos_of_codeSize_ne
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcodeSize
   have hguard :
       evalExpr? config { contract := contract, locals := endFlowStore I } evm0
@@ -3883,10 +3883,10 @@ theorem endFlowTailReverts_denZero (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal (endFlowStmtDenLet evm I σ out hDebtLoad) ?_
   exact ExecBlock.consRevert (endFlowStmtFixVLetReverts evm I σ out hden)
 
-theorem endFlowBodyReverts_debtZero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endFlowBodyReverts_debtZero {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hdebt : endFlowDebtWord σ I = ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endFlowStore I) flowTransition.body .reverted := by
   intro evm0
   have hdebtLoad :
@@ -3919,11 +3919,11 @@ theorem endFlowBodyReverts_debtZero {cA gh bl σ σ₀ A I} {g : UInt256}
       (by simp only [evm0, initState]; exact hwv)
       hguard
 
-theorem endFlowBodyReverts_fixNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endFlowBodyReverts_fixNonzero {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
     (hfix : endFlowFixWord σ I ≠ ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endFlowStore I) flowTransition.body .reverted := by
   intro evm0
   have hdebtLoad :
@@ -3956,16 +3956,16 @@ theorem endFlowBodyReverts_fixNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, flowTransition, nonpayable, checkedExternalCallStmts, evm0] using
     ExecFuncBody.execBlockRevert hblock
 
-theorem endFlowBodyReverts_vatIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endFlowBodyReverts_vatIlksBlock {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
     (hfix : endFlowFixWord σ I = ⟨0⟩)
     (hvatBlock :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       ExecBlock config { contract := contract, locals := endFlowStore I } evm0
         (checkedExternalCallStmts (.storage vatRef) "vatIlks" (.intLit 0) [.var "ilk"]
           "vatIlk") .reverted) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endFlowStore I) flowTransition.body .reverted := by
   intro evm0
   have hdebtLoad :
@@ -4026,25 +4026,25 @@ theorem endFlowBodyReverts_vatIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
     simpa using hvatWithTail
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem endFlowBodyReverts_vatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endFlowBodyReverts_vatIlksNoCode {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
     (hfix : endFlowFixWord σ I = ⟨0⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endFlowStore I) flowTransition.body .reverted := by
   intro evm0
   exact endFlowBodyReverts_vatIlksBlock
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) hwv hsz36 hdebt hfix
     (by
       simpa using
         (endFlowCheckedVatIlksNoCode
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) hcodeSize))
 
-theorem endFlowBodyReverts_vatIlksCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endFlowBodyReverts_vatIlksCallFailed {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
@@ -4052,24 +4052,24 @@ theorem endFlowBodyReverts_vatIlksCallFailed {cA gh bl σ σ₀ A I} {g : UInt25
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (false, evmVat, out) true) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endFlowStore I) flowTransition.body .reverted := by
   intro evm0
   exact endFlowBodyReverts_vatIlksBlock
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) hwv hsz36 hdebt hfix
     (by
       simpa using
         (endFlowCheckedVatIlksFailure
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) (evmVat := evmVat) (out := out)
           hcodeSize hcall))
 
-theorem endFlowBodyReverts_vatIlksDecodeShort {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endFlowBodyReverts_vatIlksDecodeShort {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
@@ -4077,25 +4077,25 @@ theorem endFlowBodyReverts_vatIlksDecodeShort {cA gh bl σ σ₀ A I} {g : UInt2
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmVat, out) true)
     (hshort : out.size < 160) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endFlowStore I) flowTransition.body .reverted := by
   intro evm0
   exact endFlowBodyReverts_vatIlksBlock
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) hwv hsz36 hdebt hfix
     (by
       simpa using
         (endFlowCheckedVatIlksDecodeRevert
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := g) (evmVat := evmVat) (out := out)
           hcodeSize hcall hshort))
 
-theorem endFlowPrefixVatIlksSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endFlowPrefixVatIlksSuccess {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
@@ -4103,12 +4103,12 @@ theorem endFlowPrefixVatIlksSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmVat, out) true)
     (hlo : 160 ≤ out.size) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endFlowStore I } evm0
       (nonpayable ++
         [ .require (.binary .ne (.storage debtRef) (.intLit 0)),
@@ -4142,7 +4142,7 @@ theorem endFlowPrefixVatIlksSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
         (.ok { contract := contract, locals := endFlowStoreVatIlk I out } evmVat) := by
     simpa [evm0] using
       endFlowCheckedVatIlksSuccess
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) (evmVat := evmVat) (out := out)
         hcodeSize hcall hlo
   simp only [nonpayable, List.cons_append, List.nil_append]
@@ -4152,7 +4152,7 @@ theorem endFlowPrefixVatIlksSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardFix) ?_
   exact hvat
 
-theorem endFlowBodyReverts_vatIlksOkTailReverted {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endFlowBodyReverts_vatIlksOkTailReverted {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
@@ -4160,7 +4160,7 @@ theorem endFlowBodyReverts_vatIlksOkTailReverted {cA gh bl σ σ₀ A I} {g : UI
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmVat, out) true)
@@ -4176,7 +4176,7 @@ theorem endFlowBodyReverts_vatIlksOkTailReverted {cA gh bl σ σ₀ A I} {g : UI
           .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
           .assign .storage (fixRef (.var "ilk")) (.var "fixV") ]
         .reverted) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endFlowStore I) flowTransition.body .reverted := by
   intro evm0
   have hprefix :
@@ -4189,7 +4189,7 @@ theorem endFlowBodyReverts_vatIlksOkTailReverted {cA gh bl σ σ₀ A I} {g : UI
         (.ok { contract := contract, locals := endFlowStoreVatIlk I out } evmVat) := by
     simpa [evm0] using
       endFlowPrefixVatIlksSuccess
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) (evmVat := evmVat) (out := out)
         hwv hsz36 hdebt hfix hcodeSize hcall hlo
   have hblock :
@@ -4209,7 +4209,7 @@ theorem endFlowBodyReverts_vatIlksOkTailReverted {cA gh bl σ σ₀ A I} {g : UI
     simpa [flowTransition, List.append_assoc] using happ
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem endFlowBodyReturns_vatIlksOkTail {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endFlowBodyReturns_vatIlksOkTail {σ σ₀ A I} {g : UInt256}
     {evmVat evmPost : EVM.State} {out : ByteArray} {fPost : Frame}
     (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
@@ -4217,7 +4217,7 @@ theorem endFlowBodyReturns_vatIlksOkTail {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmVat, out) true)
@@ -4233,7 +4233,7 @@ theorem endFlowBodyReturns_vatIlksOkTail {cA gh bl σ σ₀ A I} {g : UInt256}
           .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
           .assign .storage (fixRef (.var "ilk")) (.var "fixV") ]
         (.ok fPost evmPost)) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endFlowStore I) flowTransition.body
       (.returned fPost evmPost none) := by
   intro evm0
@@ -4247,7 +4247,7 @@ theorem endFlowBodyReturns_vatIlksOkTail {cA gh bl σ σ₀ A I} {g : UInt256}
         (.ok { contract := contract, locals := endFlowStoreVatIlk I out } evmVat) := by
     simpa [evm0] using
       endFlowPrefixVatIlksSuccess
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) (evmVat := evmVat) (out := out)
         hwv hsz36 hdebt hfix hcodeSize hcall hlo
   have hblock :
@@ -4267,7 +4267,7 @@ theorem endFlowBodyReturns_vatIlksOkTail {cA gh bl σ σ₀ A I} {g : UInt256}
     simpa [flowTransition, List.append_assoc] using happ
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockOK hblock
 
-theorem endFlowBodyReturns {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem endFlowBodyReturns {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
@@ -4275,7 +4275,7 @@ theorem endFlowBodyReturns {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
         (true, evmVat, out) true)
@@ -4299,7 +4299,7 @@ theorem endFlowBodyReturns {cA gh bl σ σ₀ A I} {g : UInt256}
     (hleSub : (endFlowGapWord σ I).toNat ≤ (endFlowWadWord σ I out).toNat)
     (hfitMul : (endFlowNum0Word σ I out).toNat * endRayWord.toNat < UInt256.size)
     (hden : endFlowDenWord σ I ≠ ⟨0⟩) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endFlowStore I) flowTransition.body
       (.returned { contract := contract, locals := endFlowStoreFixV σ I out }
         (endFlowPostState evmVat I (endFlowFixVWord σ I out)) none) := by
@@ -4314,7 +4314,7 @@ theorem endFlowBodyReturns {cA gh bl σ σ₀ A I} {g : UInt256}
         (.ok { contract := contract, locals := endFlowStoreVatIlk I out } evmVat) := by
     simpa [evm0] using
       endFlowPrefixVatIlksSuccess
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) (evmVat := evmVat) (out := out)
         hwv hsz36 hdebt hfix hcodeSize hcall hlo
   have htail :=
@@ -4339,13 +4339,13 @@ theorem endFlowBodyReturns {cA gh bl σ σ₀ A I} {g : UInt256}
     simpa [flowTransition, List.append_assoc] using happ
   simpa [ExecTransitionBody, evm0] using ExecFuncBody.execBlockOK hblock
 
-theorem endFlowX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem endFlowX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD endBytecode I g
-      (initState cA gh bl σ σ₀ g A I) endFlowEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) endFlowEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev endBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -4361,42 +4361,41 @@ theorem endFlowX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 theorem endFlowBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some flowTransition)
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) endFlowEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) endFlowEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (endFlowX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (endDecode_flow_none_short hsz4 hshort)
 
-theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem endFlowBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (selectorOf flowTransition))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (selectorOf flowTransition)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endFlowConcreteSelector := by
     simpa [endFlowSelectorBytes, endFlowConcreteSelector] using hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I endFlowConcreteSelector (by rfl) hsel'
   have hdispatch : dispatchMsg contract I.calldata = some flowTransition :=
     endDispatchFlow hsel
-  have hreach := endReachFlowBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := endReachFlowBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel'
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hdecode := endDecode_flow_ok (I := I) hsz36
     obtain ⟨_, _, hbodyReach⟩ :=
       endFlowX_decoded (g := Sat256.ofUInt256 g) hsz36 hsize hreach
-    let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-    have hdebtCouple : endFlowDebtWord σ_evm I = endFlowDebtWord σ_solm I := by
+    let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    have hdebtCouple : endFlowDebtWord σ I = endFlowDebtWord σ I := by
       simpa [endFlowDebtWord, endSlotWord] using
         accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨11⟩ ⟨0⟩
-    by_cases hdebt : endFlowDebtWord σ_evm I = ⟨0⟩
-    · have hdebtSolm : endFlowDebtWord σ_solm I = ⟨0⟩ := by
+    by_cases hdebt : endFlowDebtWord σ I = ⟨0⟩
+    · have hdebtSolm : endFlowDebtWord σ I = ⟨0⟩ := by
         rw [← hdebtCouple]
         exact hdebt
       have hbody :
@@ -4404,54 +4403,54 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             flowTransition.body .reverted := by
         simpa [evmSolm] using
           endFlowBodyReverts_debtZero
-            (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+            (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hwv hdebtSolm
       exact (endFlowX_debtZero (g := Sat256.ofUInt256 g) hdebt hbodyReach)
         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hdebtSolm : endFlowDebtWord σ_solm I ≠ ⟨0⟩ := by
+    · have hdebtSolm : endFlowDebtWord σ I ≠ ⟨0⟩ := by
         intro hbad
         exact hdebt (by rw [hdebtCouple, hbad])
-      have hfixCouple : endFlowFixWord σ_evm I = endFlowFixWord σ_solm I := by
+      have hfixCouple : endFlowFixWord σ I = endFlowFixWord σ I := by
         simpa [endFlowFixWord, endSlotWord] using
           accountMapEquiv_storage_findD hAccounts I.codeOwner (endFlowFixSlot I) ⟨0⟩
-      by_cases hfix : endFlowFixWord σ_evm I = ⟨0⟩
-      · have hfixSolm : endFlowFixWord σ_solm I = ⟨0⟩ := by
+      by_cases hfix : endFlowFixWord σ I = ⟨0⟩
+      · have hfixSolm : endFlowFixWord σ I = ⟨0⟩ := by
           rw [← hfixCouple]
           exact hfix
         by_cases hvatCode :
-            Reasoning.Theory.extCodeSizeWord σ_evm (endPackVatWord σ_evm I) =
+            Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) =
               ⟨0⟩
         · have hvatCodeSolm :
-              Reasoning.Theory.extCodeSizeWord σ_solm
-                (endPackVatWord σ_solm I) = ⟨0⟩ :=
+              Reasoning.Theory.extCodeSizeWord σ
+                (endPackVatWord σ I) = ⟨0⟩ :=
             endPackVatCodeSize_zero_accountMapEquiv hAccounts hvatCode
           have hbody :
               ExecTransitionBody config contract evmSolm (endFlowStore I)
                 flowTransition.body .reverted := by
             simpa [evmSolm] using
               endFlowBodyReverts_vatIlksNoCode
-                (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                (σ := σ) (σ₀ := σ₀)
                 (A := A) (I := I) (g := g) hwv hsz36 hdebtSolm hfixSolm hvatCodeSolm
           exact
             (endFlowX_vatIlksNoCode
               (g := Sat256.ofUInt256 g) hsz36 hdebt hfix hbodyReach hvatCode)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
         · have hvatCodeNE :
-              Reasoning.Theory.extCodeSizeWord σ_evm
-                (endPackVatWord σ_evm I) ≠ ⟨0⟩ := hvatCode
+              Reasoning.Theory.extCodeSizeWord σ
+                (endPackVatWord σ I) ≠ ⟨0⟩ := hvatCode
           have hvatCodeSolmNE :
-              Reasoning.Theory.extCodeSizeWord σ_solm
-                (endPackVatWord σ_solm I) ≠ ⟨0⟩ :=
+              Reasoning.Theory.extCodeSizeWord σ
+                (endPackVatWord σ I) ≠ ⟨0⟩ :=
             endPackVatCodeSize_ne_accountMapEquiv hAccounts hvatCodeNE
           obtain ⟨gasWord, _, _, hcallReady⟩ :=
             endFlowX_vatIlksCallReady
               (g := Sat256.ofUInt256 g) hsz36 hdebt hfix hbodyReach hvatCodeNE
           by_cases hdepthLt : I.depth.val < 1024
-          · obtain ⟨cA', σ', z, out, Ain, callGas, _, _, hΘ, rd2964, hout⟩ :=
+          · obtain ⟨σ', z, out, Ain, callGas, _, _, hΘ, rd2964, hout⟩ :=
               endFlowX_vatIlksPostCall hcallReady hdepthLt
             rcases hΘ with ⟨g'', A', hΘeq⟩
             have hdepthNe :
-                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.depth ≠
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.depth ≠
                   1024 := by
               intro hbad
               have hbadI : I.depth = 1024 := by
@@ -4459,38 +4458,37 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               have hbadVal : I.depth.val = 1024 := congrArg Fin.val hbadI
               omega
             have htgt :
-                EVM.address (endPackVatAddr σ_evm I) =
-                  AccountAddress.ofUInt256 (endPackVatWord σ_evm I) := by
+                EVM.address (endPackVatAddr σ I) =
+                  AccountAddress.ofUInt256 (endPackVatWord σ I) := by
               have hAddressId (a : AccountAddress) : EVM.address a = a := by
                 apply Fin.ext
                 show ↑a % EVM.twoPow 160 = ↑a
                 rw [Nat.mod_eq_of_lt]
                 exact a.isLt
               calc
-                EVM.address (endPackVatAddr σ_evm I)
-                    = EVM.address (AccountAddress.ofUInt256 (endPackVatWord σ_evm I)) := by
+                EVM.address (endPackVatAddr σ I)
+                    = EVM.address (AccountAddress.ofUInt256 (endPackVatWord σ I)) := by
                       rw [endPackVatAddr_eq_ofUInt256]
-                _ = AccountAddress.ofUInt256 (endPackVatWord σ_evm I) :=
-                      hAddressId (AccountAddress.ofUInt256 (endPackVatWord σ_evm I))
+                _ = AccountAddress.ofUInt256 (endPackVatWord σ I) :=
+                      hAddressId (AccountAddress.ofUInt256 (endPackVatWord σ I))
             have hcallEvm :
                 typedCallViaEVM config
-                  (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-                  (EVM.address (endPackVatAddr σ_evm I)) "vatIlks" 0
+                  (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                  (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
                   [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
                   (z,
-                    { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                    { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                       accountMap := σ'
-                      substate := A'
-                      createdAccounts := cA' },
+                      substate := A' },
                     out) true := by
               exact callCoincides
                 (cfg := config)
-                (evm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+                (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (name := "vatIlks")
                 (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I)])
-                (tgt := EVM.address (endPackVatAddr σ_evm I))
-                (targetWord := endPackVatWord σ_evm I)
-                (cA' := cA') (σ' := σ') (A' := A') (A_in := Ain)
+                (tgt := EVM.address (endPackVatAddr σ I))
+                (targetWord := endPackVatWord σ I)
+                (σ' := σ') (A' := A') (A_in := Ain)
                 (z := z) (o := out) (g'' := g'') (callGas := callGas)
                 (mem := endFlowVatIlksCalldataMem I (endFlowFixHashMem I))
                 (inOff := endFlowVatIlksOutPtr) (inSize := endFlowVatIlksInSize)
@@ -4502,17 +4500,16 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hStateCall⟩ :=
               typedCallViaEVM_initState_EVMStateEquiv (hcall := hcallEvm)
                 (by simp [initState]) hAccounts
-            have hVatAddr : endPackVatAddr σ_evm I = endPackVatAddr σ_solm I := by
+            have hVatAddr : endPackVatAddr σ I = endPackVatAddr σ I := by
               simp [endPackVatAddr, endPackVatWord_accountMapEquiv hAccounts]
             have hcallSolm :
                 typedCallViaEVM config evmSolm
-                  (EVM.address (endPackVatAddr σ_solm I)) "vatIlks" 0
+                  (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
                   [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
                   (z,
                     { evmSolm with
                       accountMap := σ'_solm
-                      substate := A'_solm
-                      createdAccounts := cA' },
+                      substate := A'_solm },
                     out) true := by
               simpa [evmSolm, hVatAddr] using hcallSolmRaw
             cases z
@@ -4521,28 +4518,25 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     flowTransition.body .reverted := by
                 simpa [evmSolm] using
                   endFlowBodyReverts_vatIlksCallFailed
-                    (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                    (σ := σ) (σ₀ := σ₀)
                     (A := A) (I := I) (g := g)
                     (evmVat :=
                       { evmSolm with
                         accountMap := σ'_solm
-                        substate := A'_solm
-                        createdAccounts := cA' })
+                        substate := A'_solm })
                     (out := out)
                     hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
                     (by simpa [evmSolm] using hcallSolm)
               exact (endFlowX_vatIlksCallFailed (g := Sat256.ofUInt256 g) rd2964 hout)
                 |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
             · let evmVatEvm :=
-                { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
+                { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                   accountMap := σ'
-                  substate := A'
-                  createdAccounts := cA' }
+                  substate := A' }
               let evmVatSolm :=
                 { evmSolm with
                   accountMap := σ'_solm
-                  substate := A'_solm
-                  createdAccounts := cA' }
+                  substate := A'_solm }
               obtain ⟨_, _, rd2982⟩ :=
                 endFlowX_vatIlksCallSucceeded (g := Sat256.ofUInt256 g) rd2964
               by_cases hshortOut : out.size < 160
@@ -4551,7 +4545,7 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       flowTransition.body .reverted := by
                   simpa [evmVatSolm, evmSolm] using
                     endFlowBodyReverts_vatIlksDecodeShort
-                      (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                      (σ := σ) (σ₀ := σ₀)
                       (A := A) (I := I) (g := g)
                       (evmVat := evmVatSolm) (out := out)
                       hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
@@ -4606,7 +4600,7 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         flowTransition.body .reverted := by
                     simpa [evmVatSolm, evmSolm] using
                       endFlowBodyReverts_vatIlksOkTailReverted
-                        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                        (σ := σ) (σ₀ := σ₀)
                         (A := A) (I := I) (g := g)
                         (evmVat := evmVatSolm) (out := out)
                         hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
@@ -4627,13 +4621,13 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     Nat.lt_of_not_ge hoverWad0
                   obtain ⟨_, _, rd3041⟩ : ∃ k' C',
                       RD endBytecode I (Sat256.ofUInt256 g)
-                        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3041⟩
+                        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3041⟩
                         (endFlowWad0Word σ' I out :: ⟨3061⟩ :: ⟨0⟩ ::
                           endFlowVatIlkRateWord out :: endFlowIlkWord I ::
                           endFlowReturnPc :: endSelWord I :: [])
                         (twoWordHashMem (endFlowIlkWord I) ⟨14⟩
                           (endFlowVatIlksPostCallMem I out))
-                        (UInt256.ofNat 9) out (cA', σ') k' C' := by
+                        (UInt256.ofNat 9) out σ' k' C' := by
                     by_cases hrateZero : endFlowVatIlkRateWord out = ⟨0⟩
                     · obtain ⟨_, _, rd3041raw⟩ :=
                         endFlowX_rmulReturnsZero
@@ -4666,7 +4660,7 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           flowTransition.body .reverted := by
                       simpa [evmVatSolm, evmSolm] using
                         endFlowBodyReverts_vatIlksOkTailReverted
-                          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                          (σ := σ) (σ₀ := σ₀)
                           (A := A) (I := I) (g := g)
                           (evmVat := evmVatSolm) (out := out)
                           hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
@@ -4687,14 +4681,14 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       Nat.lt_of_not_ge hoverWad
                     obtain ⟨_, _, rd3061⟩ : ∃ k' C',
                         RD endBytecode I (Sat256.ofUInt256 g)
-                          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3061⟩
+                          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3061⟩
                           (endFlowWadWord σ' I out :: ⟨0⟩ ::
                             endFlowVatIlkRateWord out :: endFlowIlkWord I ::
                             endFlowReturnPc :: endSelWord I :: [])
                           (twoWordHashMem (endFlowIlkWord I) ⟨12⟩
                             (twoWordHashMem (endFlowIlkWord I) ⟨14⟩
                               (endFlowVatIlksPostCallMem I out)))
-                          (UInt256.ofNat 9) out (cA', σ') k' C' := by
+                          (UInt256.ofNat 9) out σ' k' C' := by
                       by_cases htagZero : endFlowTagWord σ' I = ⟨0⟩
                       · obtain ⟨_, _, rd3061raw⟩ :=
                           endFlowX_rmulReturnsZero
@@ -4726,7 +4720,7 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             flowTransition.body .reverted := by
                         simpa [evmVatSolm, evmSolm] using
                           endFlowBodyReverts_vatIlksOkTailReverted
-                            (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                            (σ := σ) (σ₀ := σ₀)
                             (A := A) (I := I) (g := g)
                             (evmVat := evmVatSolm) (out := out)
                             hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
@@ -4749,7 +4743,7 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               flowTransition.body .reverted := by
                           simpa [evmVatSolm, evmSolm] using
                             endFlowBodyReverts_vatIlksOkTailReverted
-                              (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                              (σ := σ) (σ₀ := σ₀)
                               (A := A) (I := I) (g := g)
                               (evmVat := evmVatSolm) (out := out)
                               hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
@@ -4771,7 +4765,7 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 flowTransition.body .reverted := by
                             simpa [evmVatSolm, evmSolm] using
                               endFlowBodyReverts_vatIlksOkTailReverted
-                                (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+                                (σ := σ)
                                 (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                 (evmVat := evmVatSolm) (out := out)
                                 hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
@@ -4786,7 +4780,7 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               rw [← hcode] at hoog
                               simpa [initState, Sat256.ofUInt256] using hoog))
                           · have hxi :
-                                Ξ cA gh bl σ_evm σ₀ g A I =
+                                Ξ σ σ₀ g A I =
                                   .error .InvalidInstruction :=
                               Xi_error_of_X (g := g) (by
                                 rw [← hcode] at hinvalid
@@ -4807,7 +4801,7 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     (endFlowFixVWord σ' I out)) none) := by
                             simpa [evmVatSolm, evmSolm] using
                               endFlowBodyReturns_vatIlksOkTail
-                                (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+                                (σ := σ)
                                 (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                 (evmVat := evmVatSolm) (out := out)
                                 hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
@@ -4833,11 +4827,11 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             hcode hdispatch hdecode hbody
                             (by
                               simp [evmVatEvm, endFlowPostState, initState,
-                                storageStore_createdAccounts])
+                                ])
                             (by
                               simpa [evmVatEvm, endFlowPostState, initState,
                                 storageStore_accountMap, endFlowPostAccountMap] using
-                                accountMapEquiv.refl
+                                Eq.refl
                                   (endFlowPostAccountMap σ' I (endFlowFixVWord σ' I out)))
                             hStatePost
                             (by
@@ -4852,15 +4846,15 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               endFlowX_vatIlksCallDepthLimit
                 (g := Sat256.ofUInt256 g) hcallReady hdepthEq
             let A_vat :=
-              (evmSolm.addAccessedAccount (EVM.address (endPackVatAddr σ_solm I))).substate
+              (evmSolm.addAccessedAccount (EVM.address (endPackVatAddr σ I))).substate
             have hcallSolm :
                 typedCallViaEVM config evmSolm
-                  (EVM.address (endPackVatAddr σ_solm I)) "vatIlks" 0
+                  (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
                   [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
                   (false, { evmSolm with substate := A_vat }, ByteArray.empty) true := by
               simpa [evmSolm, A_vat] using
                 (callNotMade_depthLimit (cfg := config) (evm := evmSolm)
-                  (tgt := EVM.address (endPackVatAddr σ_solm I)) (name := "vatIlks")
+                  (tgt := EVM.address (endPackVatAddr σ I)) (name := "vatIlks")
                   (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I)])
                   (callPerm := true)
                   (endFlowVatIlksEncode_eq I hsz36
@@ -4871,7 +4865,7 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   flowTransition.body .reverted := by
               simpa [evmSolm] using
                 endFlowBodyReverts_vatIlksCallFailed
-                  (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                  (σ := σ) (σ₀ := σ₀)
                   (A := A) (I := I) (g := g)
                   (evmVat := { evmSolm with substate := A_vat })
                   (out := ByteArray.empty)
@@ -4880,7 +4874,7 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             exact (endFlowX_vatIlksCallFailed (g := Sat256.ofUInt256 g) rd2964
               (by native_decide))
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-      · have hfixSolm : endFlowFixWord σ_solm I ≠ ⟨0⟩ := by
+      · have hfixSolm : endFlowFixWord σ I ≠ ⟨0⟩ := by
           intro hbad
           exact hfix (by rw [hfixCouple, hbad])
         have hbody :
@@ -4888,7 +4882,7 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               flowTransition.body .reverted := by
           simpa [evmSolm] using
             endFlowBodyReverts_fixNonzero
-              (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+              (σ := σ) (σ₀ := σ₀)
               (A := A) (I := I) (g := g) hwv hsz36 hdebtSolm hfixSolm
         exact (endFlowX_fixNonzero (g := Sat256.ofUInt256 g) hsz36 hdebt hfix hbodyReach)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody

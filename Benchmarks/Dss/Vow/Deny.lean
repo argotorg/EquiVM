@@ -32,24 +32,24 @@ abbrev vowCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
 abbrev vowCallerWardsEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "wards", steps := [.mindex (.address I.source)] }
 
-theorem vowCallerWardsEvaledRef_ok {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+theorem vowCallerWardsEvaledRef_ok {σ σ₀ A I} {g : Sat256} {locals : Store}
     (_hbase : locals.get? "wards" = none) :
     evalStorageRef config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (wardsRef sender) =
+      (initState σ σ₀ g A I) (wardsRef sender) =
         .ok (vowCallerWardsEvaledRef I) := by
   simp [vowCallerWardsEvaledRef, wardsRef, sender, evalStorageRef, evalStorageRefSteps,
     evalStorageRefStep, evalExpr?, envValue, valueToKey?, EvalResult.ofOption,
     EvalResult.bind, pure, bind, initState]
 
-theorem vowAuthGuardEval_true {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+theorem vowAuthGuardEval_true {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-  have her := vowCallerWardsEvaledRef_ok (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  have her := vowCallerWardsEvaledRef_ok (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals) hbase
-  have hload : Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner
+  have hload : Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
       (vowCallerWardsSlot I) = ⟨1⟩ := by
     simpa [vowSlotWord] using hauth
   rw [evalExpr?]
@@ -70,15 +70,15 @@ theorem vowAuthGuardEval_true {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Sto
   simp [evalExpr?, evalBinaryOp?]
   all_goals native_decide
 
-theorem vowAuthGuardEval_false {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+theorem vowAuthGuardEval_false {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool false) := by
-  have her := vowCallerWardsEvaledRef_ok (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  have her := vowCallerWardsEvaledRef_ok (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals) hbase
-  let w := Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner
+  let w := Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
       (vowCallerWardsSlot I)
   have hload : w ≠ ⟨1⟩ := by
     intro hw
@@ -168,16 +168,16 @@ abbrev vowNotAuthorizedRawWord : UInt256 :=
 
 theorem RD.vowAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vowAuthCheckWf code pc okPc)
     (hauth : solcSlotWord σ ee (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) = ⟨1⟩)
     (hok : (D_J code 0).contains okPc = true)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD code ee g s0 okPc (key :: ret :: R)
       (twoWordHashMem (solcSourceWord ee) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd4, hd5, hd6, hd7, hd9, hd10, hd11, hd12, hd14, hd15,
       hd16, hd17, hd19, hd20, hd23⟩
@@ -215,9 +215,9 @@ theorem RD.vowAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
 
 theorem RD.vowAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vowAuthCheckWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (vowAuthTailPc pc) ⟨18⟩
       vowNotAuthorizedRawWord ⟨114⟩ .PUSH18 18)
@@ -312,8 +312,8 @@ theorem RD.vowAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
 
 theorem RD.vowDenyStoreZero {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (h : RD code ee g s0 pc (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vowDenyStoreZeroWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hperm : ee.perm = true)
@@ -321,7 +321,7 @@ theorem RD.vowDenyStoreZero {code : ByteArray} {g : Sat256} {s0 : State}
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret R (twoWordHashMem key ⟨0⟩ mem) (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨0⟩ key) ⟨0⟩) k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd7, hd8, hd9, hd10, hd12, hd13, hd14, hd15,
       hd17, hd18, hd19, hd20, hd22, hd23, hd24, hd25⟩
@@ -402,13 +402,13 @@ theorem vowDecode_deny_none_short {I : ExecutionEnv}
   simpa [config, denyTransition] using
     (decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "usr") hsz4 hshort)
 
-theorem vowReachDenyBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vowReachDenyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩) :
-    ∃ k C, RD vowBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
         ⟨608⟩ [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vowSelWord I = ⟨2622662641⟩ :=
     vowSelWord_eq_of_beq I hsz 0x9c 0x52 0xa7 0xf1 ⟨2622662641⟩
       (by native_decide) hsel
@@ -432,7 +432,7 @@ theorem vowReachDenyBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by jump_dest) (by native_decide)
 
 theorem vowDenyBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
@@ -442,18 +442,16 @@ theorem vowDenyBodyCore
         (transitionSignature denyTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "usr" (.address (denyUsr I))))
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨608⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨608⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let key := denyKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let callerSlot := vowCallerWardsSlot I
   let locals : Store := (∅ : Store).insert "usr" (.address (denyUsr I))
   have hslot : denySlotFor I = slot := by
     simp [slot, key, denySlotFor_eq]
-  have hcallerWord : vowSlotWord callerSlot σ_evm I = vowSlotWord callerSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
+  have hcallerWord : vowSlotWord callerSlot σ I = vowSlotWord callerSlot σ I := rfl
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := vowBytecode) (sel := sel) (entry := ⟨608⟩) (ret := ⟨412⟩)
     (decoded := ⟨630⟩) hreach
@@ -467,17 +465,17 @@ theorem vowDenyBodyCore
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
-  by_cases hauthEvm : vowSlotWord callerSlot σ_evm I = ⟨1⟩
-  · have hauthSolm : vowSlotWord callerSlot σ_solm I = ⟨1⟩ := by
+  by_cases hauthEvm : vowSlotWord callerSlot σ I = ⟨1⟩
+  · have hauthSolm : vowSlotWord callerSlot σ I = ⟨1⟩ := by
       rw [← hcallerWord]
       exact hauthEvm
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (denySlotFor I) ⟨0⟩
     have hbody :
         ExecTransitionBody config contract evm0 locals denyTransition.body
           (.returned { contract := contract, locals := locals } evm1 none) := by
-      have hguard := vowAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+      have hguard := vowAuthGuardEval_true
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauthSolm
       have hassign :
@@ -512,7 +510,7 @@ theorem vowDenyBodyCore
         hguard (by simp [evalExpr?, pure]) hassign
       simpa [ExecTransitionBody, denyTransition, nonpayable, auth, evm0, evm1] using
         ExecFuncBody.execBlockOK hblock
-    have hauthSolc : solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
+    have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
       simpa [callerSlot, vowCallerWardsSlot, vowSlotWord] using hauthEvm
     obtain ⟨_, _, hokPc⟩ := RD.vowAuthCheckOk
       (code := vowBytecode) (pc := ⟨3474⟩) (okPc := ⟨3563⟩) (key := key)
@@ -539,29 +537,24 @@ theorem vowDenyBodyCore
     have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
     have hret :
         RDret vowBytecode (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-          (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨0⟩) ByteArray.empty := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (sstoreAccountMap I.codeOwner σ slot ⟨0⟩) ByteArray.empty := by
       simpa [slot] using RD.stop hretPc' (by native_decide) (by simp)
-    have hcreated :
-        (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨0⟩).1 = evm1.createdAccounts := by
-      simp [evm1, evm0, initState, storageStore_createdAccounts]
     have haccounts :
-        accountMapEquiv (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨0⟩).2
-          evm1.accountMap := by
-      simpa [evm1, evm0, initState, storageStore_accountMap, hslot] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner slot ⟨0⟩ hAccounts
+        sstoreAccountMap I.codeOwner σ slot ⟨0⟩ = evm1.accountMap := by
+      simp [evm1, evm0, initState, storageStore_accountMap, hslot]
     have henc : returnEquiv ByteArray.empty none denyTransition.returnType := by
       rw [show denyTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
     exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-      hcreated haccounts henc
-  · have hauthSolm : vowSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
+      haccounts henc
+  · have hauthSolm : vowSlotWord callerSlot σ I ≠ ⟨1⟩ := by
       intro hsolm
       exact hauthEvm (by rw [hcallerWord, hsolm])
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbody : ExecTransitionBody config contract evm0 locals denyTransition.body .reverted := by
-      have hguard := vowAuthGuardEval_false (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+      have hguard := vowAuthGuardEval_false
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauthSolm
       have hblock := nonpayableSecondRequireReverts
@@ -573,7 +566,7 @@ theorem vowDenyBodyCore
         hguard
       simpa [ExecTransitionBody, denyTransition, nonpayable, auth, evm0] using
         ExecFuncBody.execBlockRevert hblock
-    have hauthSolc : solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
+    have hauthSolc : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
       simpa [callerSlot, vowCallerWardsSlot, vowSlotWord] using hauthEvm
     have hrev := RD.vowAuthCheckRevert
       (code := vowBytecode) (pc := ⟨3474⟩) (okPc := ⟨3563⟩) (key := key)
@@ -588,28 +581,25 @@ theorem vowDenyBodyCore
       hauthSolc (by simp)
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
-theorem vowDenyBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem vowDenyBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hsel : selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := by omega
   exact vowDenyBodyCore hcode hwv hperm hsz36 hsize (vowDispatch_deny hsel)
     (vowDecode_deny_ok hsz36)
     (vowReachDenyBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
-    hAccounts
 
-theorem vowDenyShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem vowDenyShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
-    (hsel : selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩)
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hreach :=
-    vowReachDenyBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    vowReachDenyBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :

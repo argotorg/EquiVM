@@ -158,15 +158,15 @@ theorem clipperDispatch_fileAddress (v : ClipperImmutables) {I : ExecutionEnv}
     simpa [clipperSelBytes] using hsel
 
 set_option maxHeartbeats 1000000 in
-theorem clipperReachFileAddressBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem clipperReachFileAddressBody {σ σ₀ A I} {g : Sat256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 10)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1365⟩ : UInt256)
-      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1365⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperFileAddressSelectorWord hsz hsel
   have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))

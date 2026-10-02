@@ -35,13 +35,13 @@ namespace Benchmarks.WETH9
 `PUSH2 187; PUSH2 1571; JUMP` lands at the routine (pc 1571) with `[187, sel]` — the exact analog of
 `weth9ReachName839`. -/
 
-theorem weth9ReachSymbol1571 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9ReachSymbol1571 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 7)) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1571⟩
-      [⟨187⟩, weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h623⟩ := weth9ReachSymbol (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1571⟩
+      [⟨187⟩, weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h623⟩ := weth9ReachSymbol (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h637⟩ := weth9GuardPeelOk (gt := ⟨635⟩) h623 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -60,22 +60,22 @@ The analog of `weth9NameRoutineReach897`.  Decodes the compact header of slot 1,
 convert `land ⟨1⟩ header → land header ⟨1⟩` via `u256_land_comm` to match `name`'s shape. -/
 
 set_option maxHeartbeats 8000000 in
-theorem weth9SymbolRoutineReach1628 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9SymbolRoutineReach1628 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 7)) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1628⟩
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1628⟩
       [weth9StringLen (weth9StringSlotWord σ I ⟨1⟩), ⟨1⟩, ⟨160⟩,
        weth9StringLen (weth9StringSlotWord σ I ⟨1⟩), ⟨1⟩, ⟨128⟩, ⟨187⟩, weth9SelWord I]
       (weth9RoutineMem (weth9StringSlotWord σ I ⟨1⟩)) (UInt256.ofNat 5)
-      ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h1571⟩ := weth9ReachSymbol1571 (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      ByteArray.empty σ k C := by
+  obtain ⟨_, _, h1571⟩ := weth9ReachSymbol1571 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
   obtain ⟨_, _, h1576raw⟩ := (evm_run h1571 with [jumpdest, push1 ⟨1⟩, dup1]).sload
     (by native_decide) (by evm_ov)
-  obtain ⟨_, _, h1576⟩ : ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1576⟩
+  obtain ⟨_, _, h1576⟩ : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1576⟩
       [weth9StringSlotWord σ I ⟨1⟩, ⟨1⟩, ⟨187⟩, weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) k C :=
+      ByteArray.empty σ k C :=
     ⟨_, _, by simpa [weth9StringSlotWord, initState] using h1576raw⟩
   have hAnd := evm_run h1576 with [
     push1 ⟨64⟩, dup1,
@@ -100,13 +100,13 @@ theorem weth9SymbolRoutineReach1628 {cA gh bl σ σ₀ A I} {g : Sat256}
 /-! ## Empty-string case (`len = 0`) — GOAL 1 -/
 
 set_option maxHeartbeats 8000000 in
-theorem weth9SymbolStringEmptyReturns {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9SymbolStringEmptyReturns {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 7))
     (hlen0 : weth9StringLen (weth9StringSlotWord σ I ⟨1⟩) = ⟨0⟩) :
-    RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ) weth9EmptyStringAbi := by
-  obtain ⟨_, _, h1628⟩ := weth9SymbolRoutineReach1628 (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDret weth9Bytecode g (initState σ σ₀ g A I) σ weth9EmptyStringAbi := by
+  obtain ⟨_, _, h1628⟩ := weth9SymbolRoutineReach1628 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
   rw [hlen0, weth9RoutineMem_zero hlen0] at h1628
   have h187 := evm_run h1628 with [
@@ -149,17 +149,17 @@ the inline word (via `DUP4` grabbing slot 1, then `SLOAD`), stores the `[len ; d
 jumps back through the shared `973` bookkeeping to the encoder entry 187. -/
 
 set_option maxHeartbeats 8000000 in
-theorem weth9SymbolShortLoadReach187 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9SymbolShortLoadReach187 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 7))
     (hne : weth9StringLen (weth9StringSlotWord σ I ⟨1⟩) ≠ ⟨0⟩)
     (hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) = ⟨0⟩) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨187⟩
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
       [⟨128⟩, ⟨187⟩, weth9SelWord I]
       (weth9ShortObjMem (weth9StringSlotWord σ I ⟨1⟩)) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h1628⟩ := weth9SymbolRoutineReach1628 (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      ByteArray.empty σ k C := by
+  obtain ⟨_, _, h1628⟩ := weth9SymbolRoutineReach1628 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
   rw [weth9RoutineMem_short hne hlt31] at h1628
   have h915 := evm_run h1628 with [
@@ -180,15 +180,15 @@ theorem weth9SymbolShortLoadReach187 {cA gh bl σ σ₀ A I} {g : Sat256}
 Reuses `name`'s shared short ABI return encoder `weth9NameShortEncoder` (parametric in the header)
 with `H := weth9StringSlotWord σ I ⟨1⟩`. -/
 
-theorem weth9SymbolStringShortReturns {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9SymbolStringShortReturns {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 7))
     (hne : weth9StringLen (weth9StringSlotWord σ I ⟨1⟩) ≠ ⟨0⟩)
     (hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) = ⟨0⟩) :
-    RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    RDret weth9Bytecode g (initState σ σ₀ g A I) σ
       (weth9ShortStringAbi (weth9StringSlotWord σ I ⟨1⟩)) := by
-  obtain ⟨_, _, h187⟩ := weth9SymbolShortLoadReach187 (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  obtain ⟨_, _, h187⟩ := weth9SymbolShortLoadReach187 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel hne hlt31
   exact weth9NameShortEncoder (weth9StringSlotWord σ I ⟨1⟩) hne hlt31 h187
 
@@ -221,17 +221,17 @@ theorem weth9SymLongScratchMem_keccak1 (H : UInt256) :
     uInt256OfByteArray_eq]
 
 set_option maxHeartbeats 8000000 in
-theorem weth9SymNameLongReachLoop {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9SymNameLongReachLoop {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 7))
     (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) ≠ ⟨0⟩) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨944⟩
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
       [⟨160⟩, weth9SymLongDataBase, weth9LongEnd (weth9StringSlotWord σ I ⟨1⟩),
        weth9StringLen (weth9StringSlotWord σ I ⟨1⟩), ⟨1⟩, ⟨128⟩, ⟨187⟩, weth9SelWord I]
       (weth9SymLongScratchMem (weth9StringSlotWord σ I ⟨1⟩)) (UInt256.ofNat 5)
-      ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h1628⟩ := weth9SymbolRoutineReach1628 (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      ByteArray.empty σ k C := by
+  obtain ⟨_, _, h1628⟩ := weth9SymbolRoutineReach1628 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
   have h910 := evm_run h1628 with [
     dup1, iszero, push2 ⟨973⟩, jumpiNT (isZero_eq_zero_of_ne (weth9LongLen_ne hge31)),
@@ -260,26 +260,26 @@ def weth9SymLongLoopStack (s : Weth9LongLoopState) (endp len : UInt256) (I : Exe
   [s.ptr, s.slot, endp, len, ⟨1⟩, ⟨128⟩, ⟨187⟩, weth9SelWord I]
 
 /-- One copy-loop iteration (pc 944 → 944), continuing branch (slot marker `⟨1⟩`). -/
-theorem weth9SymNameLongCopyContinue {cA gh bl σ σ₀ A I}
+theorem weth9SymNameLongCopyContinue {σ σ₀ A I}
     {g : Sat256} {ptr slot endp len aw awStore : UInt256} {m memout : ByteArray}
     {mstoreCost : Nat}
-    (hreach : ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨944⟩
+    (hreach : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
       [ptr, slot, endp, len, ⟨1⟩, ⟨128⟩, ⟨187⟩, weth9SelWord I]
-      m aw ByteArray.empty (cA, σ) k C)
+      m aw ByteArray.empty σ k C)
     (hcontinue : UInt256.gt endp ((⟨32⟩ : UInt256) + ptr) ≠ ⟨0⟩)
     (hmemout : (weth9LongStorageWord σ I slot).toByteArray.write 0 m ptr.toNat 32 = memout)
     (hmstoreCost : Cₘ (M aw ptr ⟨32⟩) - Cₘ aw = mstoreCost)
     (hawStore : UInt256.ofNat (MachineState.M aw.toNat ptr.toNat 32) = awStore) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨944⟩
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
       [(⟨32⟩ : UInt256) + ptr, (⟨1⟩ : UInt256) + slot, endp, len, ⟨1⟩,
         ⟨128⟩, ⟨187⟩, weth9SelWord I]
-      memout awStore ByteArray.empty (cA, σ) k C := by
+      memout awStore ByteArray.empty σ k C := by
   obtain ⟨_, _, rd944⟩ := hreach
   have rd946 := evm_run rd944 with [jumpdest, dup2]
   obtain ⟨_, _, rd947₀⟩ := rd946.sload (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd947⟩ : ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨947⟩
+  obtain ⟨_, _, rd947⟩ : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨947⟩
       [weth9LongStorageWord σ I slot, ptr, slot, endp, len, ⟨1⟩, ⟨128⟩,
-        ⟨187⟩, weth9SelWord I] m aw ByteArray.empty (cA, σ) k C :=
+        ⟨187⟩, weth9SelWord I] m aw ByteArray.empty σ k C :=
     ⟨_, _, by simpa [weth9LongStorageWord, initState] using rd947₀⟩
   have rd948 := evm_run rd947 with [dup2]
   have rd949 := rd948.mstore mstoreCost memout awStore (by native_decide) hmstoreCost hmemout
@@ -289,24 +289,24 @@ theorem weth9SymNameLongCopyContinue {cA gh bl σ σ₀ A I}
   exact ⟨_, _, rd960.jumpiT (by native_decide) hcontinue (by jump_dest) (by evm_ov)⟩
 
 /-- Copy-loop exit (pc 944 → 187), done branch (slot marker `⟨1⟩`). -/
-theorem weth9SymNameLongCopyExit {cA gh bl σ σ₀ A I}
+theorem weth9SymNameLongCopyExit {σ σ₀ A I}
     {g : Sat256} {ptr slot endp len aw awStore : UInt256} {m memout : ByteArray}
     {mstoreCost : Nat}
-    (hreach : ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨944⟩
+    (hreach : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
       [ptr, slot, endp, len, ⟨1⟩, ⟨128⟩, ⟨187⟩, weth9SelWord I]
-      m aw ByteArray.empty (cA, σ) k C)
+      m aw ByteArray.empty σ k C)
     (hdone : UInt256.gt endp ((⟨32⟩ : UInt256) + ptr) = ⟨0⟩)
     (hmemout : (weth9LongStorageWord σ I slot).toByteArray.write 0 m ptr.toNat 32 = memout)
     (hmstoreCost : Cₘ (M aw ptr ⟨32⟩) - Cₘ aw = mstoreCost)
     (hawStore : UInt256.ofNat (MachineState.M aw.toNat ptr.toNat 32) = awStore) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨187⟩
-      [⟨128⟩, ⟨187⟩, weth9SelWord I] memout awStore ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
+      [⟨128⟩, ⟨187⟩, weth9SelWord I] memout awStore ByteArray.empty σ k C := by
   obtain ⟨_, _, rd944⟩ := hreach
   have rd946 := evm_run rd944 with [jumpdest, dup2]
   obtain ⟨_, _, rd947₀⟩ := rd946.sload (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd947⟩ : ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨947⟩
+  obtain ⟨_, _, rd947⟩ : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨947⟩
       [weth9LongStorageWord σ I slot, ptr, slot, endp, len, ⟨1⟩, ⟨128⟩,
-        ⟨187⟩, weth9SelWord I] m aw ByteArray.empty (cA, σ) k C :=
+        ⟨187⟩, weth9SelWord I] m aw ByteArray.empty σ k C :=
     ⟨_, _, by simpa [weth9LongStorageWord, initState] using rd947₀⟩
   have rd948 := evm_run rd947 with [dup2]
   have rd949 := rd948.mstore mstoreCost memout awStore (by native_decide) hmstoreCost hmemout
@@ -342,18 +342,18 @@ structure Weth9SymLongLoopFinal (σ : AccountMap) (I : ExecutionEnv) (endp len :
   hawStore : UInt256.ofNat (MachineState.M s.aw.toNat s.ptr.toNat 32) = awStore
 
 /-- Fuel-induction assembly for the symbol copy loop (reaches encoder entry 187). -/
-theorem weth9SymNameLongCopySchedule {cA gh bl σ σ₀ A I} {g : Sat256} {endp len : UInt256}
+theorem weth9SymNameLongCopySchedule {σ σ₀ A I} {g : Sat256} {endp len : UInt256}
     (fuel : Nat) (st : Nat → Weth9LongLoopState)
     (hsteps : ∀ i, i < fuel → Weth9SymLongLoopStep σ I endp len (st i) (st (i + 1)))
     (hfinal : Weth9SymLongLoopFinal σ I endp len (st fuel))
-    (hreach : ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨944⟩
-      (weth9SymLongLoopStack (st 0) endp len I) (st 0).mem (st 0).aw ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨187⟩
-      [⟨128⟩, ⟨187⟩, weth9SelWord I] hfinal.memout hfinal.awStore ByteArray.empty (cA, σ) k C := by
+    (hreach : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
+      (weth9SymLongLoopStack (st 0) endp len I) (st 0).mem (st 0).aw ByteArray.empty σ k C) :
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
+      [⟨128⟩, ⟨187⟩, weth9SelWord I] hfinal.memout hfinal.awStore ByteArray.empty σ k C := by
   induction fuel generalizing st with
   | zero =>
       simpa [weth9SymLongLoopStack] using
-        weth9SymNameLongCopyExit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+        weth9SymNameLongCopyExit (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := g) (ptr := (st 0).ptr) (slot := (st 0).slot) (endp := endp) (len := len)
           (aw := (st 0).aw) (m := (st 0).mem) (memout := hfinal.memout) (awStore := hfinal.awStore)
           (mstoreCost := hfinal.mstoreCost)
@@ -362,14 +362,14 @@ theorem weth9SymNameLongCopySchedule {cA gh bl σ σ₀ A I} {g : Sat256} {endp 
       have hs : Weth9SymLongLoopStep σ I endp len (st 0) (st 1) := by
         simpa using hsteps 0 (Nat.zero_lt_succ fuel)
       have hnext₀ := weth9SymNameLongCopyContinue
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (ptr := (st 0).ptr) (slot := (st 0).slot) (endp := endp) (len := len) (aw := (st 0).aw)
         (m := (st 0).mem) (memout := (st 1).mem) (awStore := (st 1).aw)
         (mstoreCost := hs.mstoreCost)
         hreach hs.hcontinue hs.hmemout hs.hmstoreCost hs.hawStore
-      have hnext : ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨944⟩
+      have hnext : ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨944⟩
           (weth9SymLongLoopStack ((fun i => st i.succ) 0) endp len I)
-          ((fun i => st i.succ) 0).mem ((fun i => st i.succ) 0).aw ByteArray.empty (cA, σ) k C := by
+          ((fun i => st i.succ) 0).mem ((fun i => st i.succ) 0).aw ByteArray.empty σ k C := by
         obtain ⟨k, C, rd⟩ := hnext₀
         exact ⟨k, C, by simpa [weth9SymLongLoopStack, hs.hptrNext, hs.hslotNext] using rd⟩
       have hsteps' : ∀ i, i < fuel →
@@ -517,15 +517,15 @@ def weth9SymLongFinalAw (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
     (weth9SymLongGeneratedLoopState σ I (weth9SymLongWC σ I)).ptr.toNat 32)
 
 set_option maxHeartbeats 8000000 in
-theorem weth9SymNameLongReach187 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9SymNameLongReach187 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 7))
     (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨1⟩)) ≠ ⟨0⟩) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨187⟩
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
       [⟨128⟩, ⟨187⟩, weth9SelWord I] (weth9SymLongFinalMem σ I) (weth9SymLongFinalAw σ I)
-      ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, hloop⟩ := weth9SymNameLongReachLoop (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      ByteArray.empty σ k C := by
+  obtain ⟨_, _, hloop⟩ := weth9SymNameLongReachLoop (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel hge31
   exact weth9SymNameLongCopySchedule (weth9SymLongWC σ I) (weth9SymLongGeneratedLoopState σ I)
     (fun i hi => weth9SymLongGeneratedLoopStep

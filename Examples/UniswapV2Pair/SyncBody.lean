@@ -333,33 +333,19 @@ theorem uniswapSyncBodyReturns_conditionFalse_packed (evm evm0 evm1 : EVM.State)
         using hbody)
 
 theorem syncToken0GuardTrue_initState_of_code
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    {σ σ₀ A I} {g : Sat256}
     (htoken0Code :
-      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) ≠
+          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
-    syncToken0GuardTrue (initState cA gh bl σ_solm σ₀ g A I) := by
-  let σLockE := sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩
-  let σLockS := sstoreAccountMap I.codeOwner σ_solm ⟨12⟩ ⟨0⟩
-  let token0WordE := uniswapSlotWord ⟨6⟩ σLockE I
+    syncToken0GuardTrue (initState σ σ₀ g A I) := by
+  let σLockS := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
   let token0WordS := uniswapSlotWord ⟨6⟩ σLockS I
-  have hLockAccounts : accountMapEquiv σLockE σLockS := by
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨0⟩ hAccounts
-  have hslot : token0WordE = token0WordS := by
-    simpa [σLockE, σLockS, token0WordE, token0WordS] using
-      accountMapEquiv_storage_findD hLockAccounts I.codeOwner ⟨6⟩ ⟨0⟩
   have hcodeSolm :
       extCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) ≠ ⟨0⟩ := by
-    intro hzero
-    have hsame :=
-      extCodeSizeWord_accountMapEquiv hLockAccounts
-        (UInt256.land solcAddrMask token0WordE)
-    rw [← hslot] at hzero
-    rw [← hsame] at hzero
-    exact htoken0Code (by simpa [σLockE, token0WordE] using hzero)
-  let evmS := initState cA gh bl σ_solm σ₀ g A I
+    simpa [σLockS, token0WordS] using htoken0Code
+  let evmS := initState σ σ₀ g A I
   let evmL := uniswapLockEnteredState evmS
   have hstorage :
       evalExpr? config { contract := contract, locals := ∅ } evmL
@@ -414,18 +400,18 @@ set_option maxHeartbeats 1000000 in
 At depth 1024 the `STATICCALL` is not made, pushes status `0`, and the high-level
 call-success guard reverts. -/
 theorem uniswapSyncRuntimeFirstBalanceOfStaticcallDepthReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256} {k C : ℕ}
+    {σ σ₀ A I} {g : UInt256} {k C : ℕ}
     {gasArg target inOffset inSize outOffset outSize : UInt256}
     {t : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     (rd6175 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6175⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6175⟩
       (gasArg :: target :: inOffset :: inSize :: outOffset :: outSize :: t)
-      mem aw rdata (cA, sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k C)
+      mem aw rdata (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k C)
     (hdepth : I.depth = 1024)
     (hovStatic : t.length + 1 ≤ 1024)
     (hovGuard : t.length + 5 ≤ 1024) :
     RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd6176⟩ :=
     RD.solcStaticcallDepthLimit rd6175 (by native_decide) hdepth hovStatic
   have rdRev :=
@@ -438,16 +424,16 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallDepthReverts
   simpa using rdRev
 
 theorem uniswapSyncBodyCoreRevert_firstCallDepth
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hunlocked :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
+      (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
     (htoken0Code :
-      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) ≠
+          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some syncTransition)
     (hdecode :
@@ -455,19 +441,17 @@ theorem uniswapSyncBodyCoreRevert_firstCallDepth
         (transitionSignature syncTransition).paramTypes I.calldata = some ∅)
     (hRuntime :
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let target := EVM.address (uniswapAddressAtSlot evmL ⟨6⟩)
   have hunlockedSolm :
       Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
-    have hword := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨12⟩ ⟨0⟩
     simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-      using (hword ▸ hunlocked)
+      using hunlocked
   have hguard0 : syncToken0GuardTrue evmS :=
-    syncToken0GuardTrue_initState_of_code hAccounts htoken0Code
+    syncToken0GuardTrue_initState_of_code htoken0Code
   have hdepthSolm : evmL.executionEnv.depth = 1024 := by
     simpa [evmL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
       storageStore_executionEnv] using hdepth
@@ -490,25 +474,24 @@ theorem uniswapSyncBodyCoreRevert_firstCallDepth
   exact hRuntime.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem uniswapSyncBodyRevert_firstCallDepth
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
     (hdepth : I.depth = 1024)
     (hunlocked :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
+      (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
     (htoken0Code :
-      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) ≠
+          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some syncTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hRuntime :
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
     obtain ⟨_, _, _, rd6175⟩ :=
       uniswapSyncRuntimeFirstBalanceOfStaticcallEntry
         (g := g) hcode hsize hwv hsel hperm hunlocked htoken0Code
@@ -519,11 +502,11 @@ theorem uniswapSyncBodyRevert_firstCallDepth
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩ rfl hsel
   exact uniswapSyncBodyCoreRevert_firstCallDepth hcode hwv hdepth hunlocked
-    htoken0Code hdispatch (uniswapDecode_sync hsz4) hRuntime hAccounts
+    htoken0Code hdispatch (uniswapDecode_sync hsz4) hRuntime
 
 theorem syncToken1GuardFalse_of_noCode {σ : AccountMap}
     {evm0 : EVM.State} {I : ExecutionEnv} {balance0 : Value}
-    (hPost : accountMapEquiv σ evm0.accountMap)
+    (hPost : Eq σ evm0.accountMap)
     (henv : evm0.executionEnv = I)
     (htoken1NoCode :
       extCodeSizeWord σ (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) =
@@ -581,7 +564,7 @@ theorem syncToken1GuardFalse_of_noCode {σ : AccountMap}
 
 theorem syncToken1GuardTrue_of_code {σ : AccountMap}
     {evm0 : EVM.State} {I : ExecutionEnv} {balance0 : Value}
-    (hPost : accountMapEquiv σ evm0.accountMap)
+    (hPost : Eq σ evm0.accountMap)
     (henv : evm0.executionEnv = I)
     (htoken1Code :
       extCodeSizeWord σ (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) ≠
@@ -719,40 +702,39 @@ theorem uniswapSyncBodyReverts_secondNoCode (evm evm0 : EVM.State)
 
 set_option maxRecDepth 100000000 in
 theorem uniswapSyncBody
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some syncTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hlocked :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩
-  · exact uniswapSyncBodyRevert_locked hcode hsize hwv hsel hlocked hdispatch hAccounts
+  · exact uniswapSyncBodyRevert_locked hcode hsize hwv hsel hlocked hdispatch
   · have hunlocked :
-        (σ_evm.find? I.codeOwner |>.option ⟨0⟩
+        (σ.find? I.codeOwner |>.option ⟨0⟩
           (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
           ⟨1⟩ := by
       exact not_not.mp hlocked
     by_cases htoken0NoCode :
-      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
+          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩
     · exact uniswapSyncBodyRevert_firstNoCode hcode hsize hperm hwv hsel
-        hunlocked htoken0NoCode hdispatch hAccounts
+        hunlocked htoken0NoCode hdispatch
     · by_cases hdepth : I.depth.val < 1024
-      · obtain ⟨cA', σ', z, o, A_in, callGas, _kExt, _CExt, hΘ, rd6176,
+      · obtain ⟨σ', z, o, A_in, callGas, _kExt, _CExt, hΘ, rd6176,
             hsecondExt, hoSize⟩ :=
           uniswapSyncRuntimeSecondBalanceOfExtcodesize
-            (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+            (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) hcode hsize hwv hsel hperm hdepth
             hunlocked htoken0NoCode
         have hrev :
             z = false →
               RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
           intro hz
           have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
             simp [hz]
@@ -765,7 +747,7 @@ theorem uniswapSyncBody
         have hrevShort :
             z = true → o.size < 32 →
               RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
           intro hz hshort
           have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) ≠ ⟨0⟩ := by
             rw [hz]
@@ -783,24 +765,22 @@ theorem uniswapSyncBody
             (by native_decide) (by native_decide) (by native_decide) (by native_decide)
             (by native_decide) (by native_decide) (by native_decide)
             (by simp only [List.length_cons, List.length_nil]; omega)
-        obtain ⟨evm0S, hcallAll, hPostAccounts0, hcreated0, hσ0, hgenesis0,
-            hblocks0, henv0⟩ :=
+        obtain ⟨evm0S, hcallAll, hPostAccounts0Eq, henv0, hσ0⟩ :=
           uniswapFirstBalanceTypedCall_source
-            (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
-            (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-            (cA' := cA') (σ' := σ') (z := z) (o := o)
-            (A_in := A_in) (callGas := callGas) hAccounts hdepth hΘ
-        let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            (σ' := σ') (z := z) (o := o)
+            (A_in := A_in) (callGas := callGas) hdepth hΘ
+        have hPostAccounts0 : σ' = evm0S.accountMap := hPostAccounts0Eq.symm
+        let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have henv0I : evm0S.executionEnv = I := by
           simpa [evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
             storageStore_executionEnv] using henv0
         have hunlockedSolm :
             Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
-          have hword := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨12⟩ ⟨0⟩
           simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
-            Account.lookupStorage] using (hword ▸ hunlocked)
+            Account.lookupStorage] using hunlocked
         have hguard0 : syncToken0GuardTrue evmS :=
-          syncToken0GuardTrue_initState_of_code hAccounts htoken0NoCode
+          syncToken0GuardTrue_initState_of_code htoken0NoCode
         have hsz4 : 4 ≤ I.calldata.size :=
           calldata_size_ge_of_selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩ rfl hsel
         by_cases hz : z = false
@@ -811,7 +791,8 @@ theorem uniswapSyncBody
                   "balanceOf" 0
                   [.address (uniswapLockEnteredState evmS).executionEnv.codeOwner]
                   (false, evm0S, o) false := by
-                simpa [evmS, hz] using hcallAll
+                simpa [evmS, hz, uniswapLockEnteredState, uniswapUnlockedState,
+                  initState, storageStore_executionEnv] using hcallAll
               exact uniswapSyncBodyReverts_firstCallFailure evmS evm0S
                 (by simp only [evmS, initState]; exact hwv)
                 hunlockedSolm hguard0 hcall0)
@@ -822,7 +803,8 @@ theorem uniswapSyncBody
                 "balanceOf" 0
                 [.address (uniswapLockEnteredState evmS).executionEnv.codeOwner]
                 (true, evm0S, o) false := by
-              simpa [evmS, hzTrue] using hcallAll
+              simpa [evmS, hzTrue, uniswapLockEnteredState, uniswapUnlockedState,
+                initState, storageStore_executionEnv] using hcallAll
             have hdec0 : config.externalABI.decode? "balanceOf" o = none := by
               change uniswapExternalABI.decode? "balanceOf" o = none
               simpa [uniswapExternalABI, uint256, uint256Int, abiUInt256] using
@@ -843,7 +825,8 @@ theorem uniswapSyncBody
                 "balanceOf" 0
                 [.address (uniswapLockEnteredState evmS).executionEnv.codeOwner]
                 (true, evm0S, o) false := by
-              simpa [evmS, hzTrue] using hcallAll
+              simpa [evmS, hzTrue, uniswapLockEnteredState, uniswapUnlockedState,
+                initState, storageStore_executionEnv] using hcallAll
             have hdec0 :
                 config.externalABI.decode? "balanceOf" o =
                   some [uniswapUint256Value balance0] := by
@@ -882,20 +865,20 @@ theorem uniswapSyncBody
                   (by jump_dest) (by native_decide) (by native_decide)
                   (by native_decide)
                   (by simp only [List.length_cons, List.length_nil]; omega)
-              obtain ⟨cA'', σ'', z1, o1, A_in1, callGas1, _, _, hΘ1, rd6295,
+              obtain ⟨σ'', z1, o1, A_in1, callGas1, _, _, hΘ1, rd6295,
                   ho1Size⟩ :=
                 RD.solcStaticcall rd6294 (by native_decide) hdepth
                   (by simp only [List.length_cons, List.length_nil]; omega)
-              obtain ⟨evm1S, hcall1All, hPostAccounts1, hcreated1, hσ01,
-                  hgenesis1, hblocks1, henv1⟩ :=
+              obtain ⟨evm1S, hcall1All, hPostAccounts1Eq, henv1, hσ01⟩ :=
                 uniswapSyncSecondBalanceTypedCall_source
-                  (cA1 := cA') (gh := gh) (bl := bl) (σ1 := σ') (σ₀ := σ₀)
-                  (I := I) (evm0S := evm0S) (cA2 := cA'') (σ2 := σ'')
+                  (σ1 := σ') (σ₀ := σ₀)
+                  (I := I) (evm0S := evm0S) (σ2 := σ'')
                   (z2 := z1) (out2 := o1) (A_in2 := A_in1)
                   (callGas2 := callGas1) (o := o)
-                  hPostAccounts0 hcreated0 hσ0 hgenesis0 hblocks0 henv0I hdepth
+                  hPostAccounts0 hσ0 henv0I hdepth
                   ho32 hoSize
                   (by simpa [balanceOfThisRebuiltStaticcallMem, initState] using hΘ1)
+              have hPostAccounts1 : σ'' = evm1S.accountMap := hPostAccounts1Eq.symm
               have hsecondGuards :=
                 uniswapSyncRuntimeSecondBalanceOfStaticcallFailureGuard
                   (hprevlo := ho32) (hprevhi := hoSize) (rd6295 := rd6295)
@@ -1069,15 +1052,8 @@ theorem uniswapSyncBody
                             (by native_decide) hperm (by jump_dest)
                             (by simp only [List.length_cons, List.length_nil]; omega)
                         have rdRet := RD.uniswapSyncAfterUpdateToReturn rd6363 hperm
-                        have hCreatedRet :
-                            cA'' =
-                              (uniswapLockExitedState
-                                (syncUpdatePackedReserveState evm1S balance0 balance1)).createdAccounts := by
-                          simp [uniswapLockExitedState, uniswapUnlockedState,
-                            syncUpdatePackedReserveState, storageStore_createdAccounts,
-                            hcreated1]
                         have hPackedAccounts :
-                            accountMapEquiv
+                            Eq
                               (sstoreAccountMap I.codeOwner σ'' ⟨8⟩ packed)
                               (syncUpdatePackedReserveState evm1S balance0 balance1).accountMap := by
                           let v0 :=
@@ -1121,13 +1097,13 @@ theorem uniswapSyncBody
                                 (Solm.EVM.storageStore evm1S I.codeOwner ⟨8⟩ v0)
                                 I.codeOwner hacc0 ⟨8⟩ v1
                             have hbase :
-                                accountMapEquiv
+                                Eq
                                   (sstoreAccountMap I.codeOwner σ'' ⟨8⟩ packed)
                                   (sstoreAccountMap I.codeOwner evm1S.accountMap ⟨8⟩ packed) :=
                               accountMapEquiv_sstoreAccountMap I.codeOwner ⟨8⟩ packed
                                 hPostAccounts1
                             have hsingle :
-                                accountMapEquiv
+                                Eq
                                   (sstoreAccountMap I.codeOwner evm1S.accountMap ⟨8⟩ packed)
                                   (sstoreAccountMap I.codeOwner
                                     (sstoreAccountMap I.codeOwner evm1S.accountMap ⟨8⟩ v1)
@@ -1135,7 +1111,7 @@ theorem uniswapSyncBody
                               accountMapEquiv_sstoreAccountMap_self_update evm1S.accountMap
                                 I.codeOwner ⟨8⟩ v1 packed
                             have hupdate01 :
-                                accountMapEquiv
+                                Eq
                                   (sstoreAccountMap I.codeOwner evm1S.accountMap ⟨8⟩ v1)
                                   (sstoreAccountMap I.codeOwner
                                     (sstoreAccountMap I.codeOwner evm1S.accountMap ⟨8⟩ v0)
@@ -1143,7 +1119,7 @@ theorem uniswapSyncBody
                               accountMapEquiv_sstoreAccountMap_self_update evm1S.accountMap
                                 I.codeOwner ⟨8⟩ v0 v1
                             have hdouble :
-                                accountMapEquiv
+                                Eq
                                   (sstoreAccountMap I.codeOwner
                                     (sstoreAccountMap I.codeOwner evm1S.accountMap ⟨8⟩ v1)
                                     ⟨8⟩ packed)
@@ -1164,7 +1140,7 @@ theorem uniswapSyncBody
                               | some acc => exact False.elim (haccExists ⟨acc, hfind⟩)
                             have hmissingSource :
                                 σ''.find? I.codeOwner = none :=
-                              accountMapEquiv_find?_none hPostAccounts1.symm hmissing
+                              by simpa [hPostAccounts1] using hmissing
                             have hleft :
                                 sstoreAccountMap I.codeOwner σ'' ⟨8⟩ packed = σ'' :=
                               sstoreAccountMap_absent_same hmissingSource
@@ -1179,7 +1155,7 @@ theorem uniswapSyncBody
                                   hmissingOwner]
                             simpa [hleft, hright] using hPostAccounts1
                         have hAccountsRet :
-                            accountMapEquiv
+                            Eq
                               (sstoreAccountMap I.codeOwner
                                 (sstoreAccountMap I.codeOwner σ'' ⟨8⟩ packed) ⟨12⟩ ⟨1⟩)
                               (uniswapLockExitedState
@@ -1191,7 +1167,7 @@ theorem uniswapSyncBody
                             storageStore_accountMap, storageStore_executionEnv,
                             syncUpdatePackedReserveState, henv1I] using hs
                         exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
-                          (uniswapDecode_sync hsz4) hbody hCreatedRet hAccountsRet
+                          (uniswapDecode_sync hsz4) hbody hAccountsRet
                           (returnEquiv.fallthrough rfl rfl (by native_decide))
                       · have helapsedNe :
                             UInt256.land
@@ -1216,7 +1192,7 @@ theorem uniswapSyncBody
                             {k7241 C7241 : ℕ} {rdata7241 : ByteArray}
                             (rd7241 :
                               RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-                                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+                                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                                 ⟨7241⟩
                                 (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ'' I) I ::
                                   uniswapUpdateTimestampWord I ::
@@ -1226,14 +1202,14 @@ theorem uniswapSyncBody
                                   UInt256.land (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Mask ::
                                   balance1 :: balance0 :: [⟨6363⟩, ⟨570⟩, uniswapSelWord I])
                                 mem0 balanceOfThisStaticcallActiveWords rdata7241
-                                (cA'', σ'') k7241 C7241)
+                                σ'' k7241 C7241)
                             (hbody :
                               ExecTransitionBody config contract evmS ∅ syncTransition.body
                                 (.returned (syncAfterUpdateFrame balance0 balance1)
                                   (uniswapLockExitedState
                                     (syncUpdatePackedReserveState evm1S balance0 balance1))
                                   none)) :
-                            runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+                            runtimeEquivalenceFor config contract σ σ₀ g A I := by
                           obtain ⟨_, _, rd7339⟩ :=
                             RD.uniswapUpdateStorePackedReserves
                               (by
@@ -1280,21 +1256,14 @@ theorem uniswapSyncBody
                               (by native_decide) hperm (by jump_dest)
                               (by simp only [List.length_cons, List.length_nil]; omega)
                           have rdRet := RD.uniswapSyncAfterUpdateToReturn rd6363 hperm
-                          have hCreatedRet :
-                              cA'' =
-                                (uniswapLockExitedState
-                                  (syncUpdatePackedReserveState evm1S balance0 balance1)).createdAccounts := by
-                            simp [uniswapLockExitedState, uniswapUnlockedState,
-                              syncUpdatePackedReserveState, storageStore_createdAccounts,
-                              hcreated1]
                           have hPackedAccounts :
-                              accountMapEquiv
+                              Eq
                                 (sstoreAccountMap I.codeOwner σ'' ⟨8⟩ packed)
                                 (syncUpdatePackedReserveState evm1S balance0 balance1).accountMap :=
                             accountMapEquiv_syncUpdatePackedReserveState hPostAccounts1 henv1I
                               hslotWordSource (by rfl)
                           have hAccountsRet :
-                              accountMapEquiv
+                              Eq
                                 (sstoreAccountMap I.codeOwner
                                   (sstoreAccountMap I.codeOwner σ'' ⟨8⟩ packed) ⟨12⟩ ⟨1⟩)
                                 (uniswapLockExitedState
@@ -1306,7 +1275,7 @@ theorem uniswapSyncBody
                               storageStore_accountMap, storageStore_executionEnv,
                               syncUpdatePackedReserveState, henv1I] using hs
                           exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
-                            (uniswapDecode_sync hsz4) hbody hCreatedRet hAccountsRet
+                            (uniswapDecode_sync hsz4) hbody hAccountsRet
                             (returnEquiv.fallthrough rfl rfl (by native_decide))
                         let reserve0Word : UInt256 :=
                           UInt256.land (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Mask
@@ -1473,13 +1442,13 @@ theorem uniswapSyncBody
                                 hbound0 hbound1 hsourceElapsedPos hsourceReserve0
                                 hsourceReserve1
                             exact uniswapSyncBodyCumulativeSuccess
-                              (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm)
-                              (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
-                              (g := g) (cA'' := cA'') (σ'' := σ'') (o := o)
+                              (σ := σ)
+                               (σ₀ := σ₀) (A := A) (I := I)
+                              (g := g) (σ'' := σ'') (o := o)
                               (o1 := o1) (evm1S := evm1S) (balance0 := balance0)
                               (balance1 := balance1)
                               hcode hdispatch hsz4 hperm (by simpa [evmS] using hbody)
-                              hPostAccounts1 hcreated1 henv1I hslotWordSource rd7060
+                              hPostAccounts1 henv1I hslotWordSource rd7060
                               hmemSize hmemRead64 ho32 hoSize ho132 ho1Size helapsedNe
                               (by simpa [reserve0Word] using hreserve0Zero)
                               (by simpa [reserve1Word] using hreserve1Zero)
@@ -1597,7 +1566,7 @@ theorem uniswapSyncBody
                                 exact uniswapUint112Masked_lt _
                               · dsimp [reserve0Word]
                                 exact uniswapUint112Masked_lt _
-                            have hP0Accounts : accountMapEquiv σP0 evmP0.accountMap := by
+                            have hP0Accounts : Eq σP0 evmP0.accountMap := by
                               have hs :=
                                 accountMapEquiv_sstoreAccountMap I.codeOwner ⟨9⟩
                                   price0Word hPostAccounts1
@@ -1640,7 +1609,7 @@ theorem uniswapSyncBody
                                 exact uniswapUint112Masked_lt _
                               · dsimp [reserve1Word]
                                 exact uniswapUint112Masked_lt _
-                            have hP1Accounts : accountMapEquiv σP1 evmP1.accountMap := by
+                            have hP1Accounts : Eq σP1 evmP1.accountMap := by
                               have hs :=
                                 accountMapEquiv_sstoreAccountMap I.codeOwner ⟨10⟩
                                   price1Word hP0Accounts
@@ -1658,13 +1627,13 @@ theorem uniswapSyncBody
                                 Account.lookupStorage, uniswapSlotWord, henvP1] at h ⊢
                               exact h.symm
                             have hPackedAccounts :
-                                accountMapEquiv
+                                Eq
                                   (sstoreAccountMap I.codeOwner σP1 ⟨8⟩ packedCumulative)
                                   (syncUpdatePackedReserveState evmP1 balance0 balance1).accountMap :=
                               accountMapEquiv_syncUpdatePackedReserveState hP1Accounts henvP1
                                 hslot8P1 (by rfl)
                             have hPackedAccountsCumulative :
-                                accountMapEquiv
+                                Eq
                                   (sstoreAccountMap I.codeOwner σP1 ⟨8⟩ packedCumulative)
                                   (syncUpdateCumulativePackedReserveState evm1S balance0 balance1).accountMap := by
                               simpa [syncUpdateCumulativePackedReserveState,
@@ -1680,7 +1649,7 @@ theorem uniswapSyncBody
                                 syncUpdateCumulativePackedReserveState,
                                 storageStore_createdAccounts, hcreated1]
                             have hAccountsRet :
-                                accountMapEquiv
+                                Eq
                                   (sstoreAccountMap I.codeOwner
                                     (sstoreAccountMap I.codeOwner σP1 ⟨8⟩ packedCumulative)
                                     ⟨12⟩ ⟨1⟩)
@@ -1740,6 +1709,6 @@ theorem uniswapSyncBody
       · rw [not_lt] at hdepth
         have hdepth1024 : I.depth = 1024 := Fin.ext (by have := I.depth.isLt; omega)
         exact uniswapSyncBodyRevert_firstCallDepth hcode hsize hperm hwv hsel
-          hdepth1024 hunlocked htoken0NoCode hdispatch hAccounts
+          hdepth1024 hunlocked htoken0NoCode hdispatch
 
 end UniswapV2Pair

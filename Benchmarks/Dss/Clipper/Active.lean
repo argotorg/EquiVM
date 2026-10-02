@@ -177,14 +177,14 @@ theorem clipperActiveBodyReverts (v : ClipperImmutables) (evm : EVM.State)
 /-! ## EVM trace -/
 
 set_option maxHeartbeats 1000000 in
-theorem clipperReachActiveBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
+theorem clipperReachActiveBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 0)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨883⟩ : UInt256)
-      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨883⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperActiveSelectorWord hsz hsel
   have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
@@ -408,16 +408,16 @@ theorem clipperActiveArrayGetterWfPatched (v : ClipperImmutables) {code : ByteAr
       (by native_decide)
       (by native_decide)
 
-theorem clipperActiveX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperActiveX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨883⟩ : UInt256) [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨3497⟩ : UInt256)
+      (initState σ σ₀ g A I) (⟨883⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨3497⟩ : UInt256)
       (clipperActiveArgWord I :: ⟨476⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd905⟩ := solcOneUintExternalLenOk
     (entry := (⟨883⟩ : UInt256)) (ret := (⟨476⟩ : UInt256))
     (routine := (⟨3497⟩ : UInt256)) hreach
@@ -433,15 +433,15 @@ theorem clipperActiveX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     (by simp only [List.length_singleton]; omega)
   exact ⟨_, _, by simpa [clipperActiveArgWord] using rd3497⟩
 
-theorem clipperActiveX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperActiveX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨883⟩ : UInt256) [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) (⟨883⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev code g (initState σ σ₀ g A I) := by
   exact solcOneUintExternalShort
     (entry := (⟨883⟩ : UInt256)) (ret := (⟨476⟩ : UInt256))
     (routine := (⟨3497⟩ : UInt256)) hreach
@@ -450,17 +450,17 @@ theorem clipperActiveX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
 set_option maxHeartbeats 1000000 in
 theorem clipperActiveArrayBounds_ok {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 (⟨3497⟩ : UInt256)
       (clipperActiveArgWord ee :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (h3510 : (D_J code 0).contains (⟨3510⟩ : UInt256) = true)
     (hbound : (clipperActiveArgWord ee).toNat < (solcSlotWord σ ee ⟨11⟩).toNat)
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD code ee g s0 (⟨3510⟩ : UInt256)
       (clipperActiveArgWord ee :: ⟨11⟩ :: clipperActiveArgWord ee :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd3497, hd3498, hd3500, hd3501, hd3502, hd3503, hd3504, hd3505, hd3508,
       _hd3509, _hd3510, _hd3511, _hd3513, _hd3514, _hd3515, _hd3516, _hd3518,
@@ -484,15 +484,15 @@ theorem clipperActiveArrayBounds_ok {code : ByteArray} {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem clipperActiveArrayPrepareHash_ok {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 (⟨3510⟩ : UInt256)
       (clipperActiveArgWord ee :: ⟨11⟩ :: clipperActiveArgWord ee :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD code ee g s0 (⟨3520⟩ : UInt256)
       (⟨0⟩ :: ⟨32⟩ :: clipperActiveArgWord ee :: clipperActiveArgWord ee :: ret :: R)
-      clipperActiveHashMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      clipperActiveHashMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨_hd3497, _hd3498, _hd3500, _hd3501, _hd3502, _hd3503, _hd3504, _hd3505,
       _hd3508, _hd3509, hd3510, hd3511, hd3513, hd3514, hd3515, hd3516, hd3518,
@@ -511,15 +511,15 @@ theorem clipperActiveArrayPrepareHash_ok {code : ByteArray} {g : Sat256} {s0 : S
 set_option maxHeartbeats 4000000 in
 theorem clipperActiveArrayHashSlot_ok {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 (⟨3520⟩ : UInt256)
       (⟨0⟩ :: ⟨32⟩ :: clipperActiveArgWord ee :: clipperActiveArgWord ee :: ret :: R)
-      clipperActiveHashMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      clipperActiveHashMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD code ee g s0 (⟨3522⟩ : UInt256)
       (clipperActiveSlot ee :: clipperActiveArgWord ee :: ret :: R)
-      clipperActiveHashMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      clipperActiveHashMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨_hd3497, _hd3498, _hd3500, _hd3501, _hd3502, _hd3503, _hd3504, _hd3505,
       _hd3508, _hd3509, _hd3510, _hd3511, _hd3513, _hd3514, _hd3515, _hd3516,
@@ -535,30 +535,30 @@ theorem clipperActiveArrayHashSlot_ok {code : ByteArray} {g : Sat256} {s0 : Stat
 
 theorem clipperActiveArrayHash_ok {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 (⟨3510⟩ : UInt256)
       (clipperActiveArgWord ee :: ⟨11⟩ :: clipperActiveArgWord ee :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD code ee g s0 (⟨3522⟩ : UInt256)
       (clipperActiveSlot ee :: clipperActiveArgWord ee :: ret :: R)
-      clipperActiveHashMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      clipperActiveHashMem (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨_, _, rd3520⟩ := clipperActiveArrayPrepareHash_ok h hwf hov
   exact clipperActiveArrayHashSlot_ok rd3520 hwf hov
 
 theorem clipperActiveArrayFinish_ok {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 (⟨3522⟩ : UInt256)
       (clipperActiveSlot ee :: clipperActiveArgWord ee :: ret :: R)
-      clipperActiveHashMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      clipperActiveHashMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (clipperActiveWord σ ee :: ret :: R)
-      clipperActiveHashMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      clipperActiveHashMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨_hd3497, _hd3498, _hd3500, _hd3501, _hd3502, _hd3503, _hd3504, _hd3505,
       _hd3508, _hd3509, _hd3510, _hd3511, _hd3513, _hd3514, _hd3515, _hd3516,
@@ -574,25 +574,25 @@ theorem clipperActiveArrayFinish_ok {code : ByteArray} {g : Sat256} {s0 : State}
 
 theorem clipperActiveArrayLoad_ok {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 (⟨3510⟩ : UInt256)
       (clipperActiveArgWord ee :: ⟨11⟩ :: clipperActiveArgWord ee :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (clipperActiveWord σ ee :: ret :: R)
-      clipperActiveHashMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      clipperActiveHashMem (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨_, _, rd3522⟩ := clipperActiveArrayHash_ok h hwf hov
   exact clipperActiveArrayFinish_ok rd3522 hwf hret hov
 
 theorem clipperActiveArrayGetter_ok {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 (⟨3497⟩ : UInt256)
       (clipperActiveArgWord ee :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (hret : (D_J code 0).contains ret = true)
     (h3510 : (D_J code 0).contains (⟨3510⟩ : UInt256) = true)
@@ -600,7 +600,7 @@ theorem clipperActiveArrayGetter_ok {code : ByteArray} {g : Sat256} {s0 : State}
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (clipperActiveWord σ ee :: ret :: R)
-      clipperActiveHashMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      clipperActiveHashMem (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨_, _, rd3510⟩ :=
     clipperActiveArrayBounds_ok h hwf h3510 hbound hov
   exact clipperActiveArrayLoad_ok rd3510 hwf hret hov
@@ -608,10 +608,10 @@ theorem clipperActiveArrayGetter_ok {code : ByteArray} {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem clipperActiveArrayGetter_invalid {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 (⟨3497⟩ : UInt256)
       (clipperActiveArgWord ee :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperActiveArrayGetterWf code)
     (hbound : (solcSlotWord σ ee ⟨11⟩).toNat ≤ (clipperActiveArgWord ee).toNat)
     (hov : R.length + 8 ≤ 1024) :
@@ -636,15 +636,15 @@ theorem clipperActiveArrayGetter_invalid {code : ByteArray} {g : Sat256} {s0 : S
   have rd3509 := rd3508.jumpiNT hd3508 (by decide) (by evm_ov)
   exact RD.invalidHalt rd3509 hd3509
 
-theorem clipperX_active_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperX_active_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbound : (clipperActiveArgWord I).toNat < (solcSlotWord σ I ⟨11⟩).toNat)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨883⟩ : UInt256) [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) (⟨883⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret code g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (clipperActiveWord σ I)) := by
   obtain ⟨_, _, rd3497⟩ := clipperActiveX_decoded (v := v) hpatch hsz36 hsize hreach
   obtain ⟨_, _, rd476⟩ := clipperActiveArrayGetter_ok
@@ -665,15 +665,15 @@ theorem clipperX_active_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (solcScratchReturnMem_read128 (clipperActiveWord σ I) clipperActiveHashMem_size)
     (by simp only [List.length_singleton]; omega)
 
-theorem clipperX_active_invalid {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperX_active_invalid {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbound : (solcSlotWord σ I ⟨11⟩).toNat ≤ (clipperActiveArgWord I).toNat)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨883⟩ : UInt256) [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDinvalid code g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) (⟨883⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDinvalid code g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd3497⟩ := clipperActiveX_decoded (v := v) hpatch hsz36 hsize hreach
   exact clipperActiveArrayGetter_invalid
     (ret := (⟨476⟩ : UInt256)) (R := [sel]) rd3497
@@ -682,64 +682,54 @@ theorem clipperX_active_invalid {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
 
 theorem clipperActiveBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (clipperSelBytes 0))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (clipperSelBytes 0)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 0) (by native_decide) hsel
   have hdispatch : dispatchMsg (contract v) I.calldata = some activeTransition :=
     clipperDispatch_active v hsel
-  have hreach := clipperReachActiveBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := clipperReachActiveBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hdecode := clipperDecode_active_ok v (I := I) hsz36
-    by_cases hbound : (clipperActiveArgWord I).toNat < (solcSlotWord σ_evm I ⟨11⟩).toNat
-    · have hlen :
-          solcSlotWord σ_evm I ⟨11⟩ = solcSlotWord σ_solm I ⟨11⟩ :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨11⟩ ⟨0⟩
-      have hboundSolm :
-          (clipperActiveArgWord I).toNat < (solcSlotWord σ_solm I ⟨11⟩).toNat := by
-        rwa [← hlen]
-      have hword : clipperActiveWord σ_evm I = clipperActiveWord σ_solm I :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (clipperActiveSlot I) ⟨0⟩
+    by_cases hbound : (clipperActiveArgWord I).toNat < (solcSlotWord σ I ⟨11⟩).toNat
+    · have hboundSolm :
+          (clipperActiveArgWord I).toNat < (solcSlotWord σ I ⟨11⟩).toNat := hbound
       have hbody :
           ExecTransitionBody (config v) (contract v)
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (clipperActiveStore I) activeTransition.body
             (.returned { contract := contract v, locals := clipperActiveStore I }
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-              (some [(.int (Int.ofNat (clipperActiveWord σ_solm I).toNat))])) := by
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+              (some [(.int (Int.ofNat (clipperActiveWord σ I).toNat))])) := by
         simpa [clipperActiveWord, solcSlotWord, initState, Solm.EVM.storageLoad,
           State.lookupAccount] using
           clipperActiveBodyReturns v
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
             (by simp only [initState]; exact hwv) hboundSolm
-      exact (clipperX_active_ok (v := v) (g := Sat256.ofUInt256 g) hpatch hsz36
-        hsize hbound hreach)
-        |>.reEquivExecutionTransport hcode hdispatch hdecode hbody (by rw [← hword])
-          hAccounts
-          (returnEquiv_of_encode
-            (by simpa [uint256] using uint256ReturnEncoding (clipperActiveWord σ_evm I)))
+      have hret := clipperX_active_ok (v := v) (g := Sat256.ofUInt256 g) hpatch hsz36
+        hsize hbound hreach
+      exact hret.reEquivExecution hcode hdispatch hdecode hbody
+        (returnEquiv_of_encode
+          (by simpa [uint256] using uint256ReturnEncoding (clipperActiveWord σ I)))
     · have hlen :
-          solcSlotWord σ_evm I ⟨11⟩ = solcSlotWord σ_solm I ⟨11⟩ :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨11⟩ ⟨0⟩
+          solcSlotWord σ I ⟨11⟩ = solcSlotWord σ I ⟨11⟩ := rfl
       have hboundEvm :
-          (solcSlotWord σ_evm I ⟨11⟩).toNat ≤ (clipperActiveArgWord I).toNat := by
+          (solcSlotWord σ I ⟨11⟩).toNat ≤ (clipperActiveArgWord I).toNat := by
         omega
       have hboundSolm :
-          (solcSlotWord σ_solm I ⟨11⟩).toNat ≤ (clipperActiveArgWord I).toNat := by
-        rwa [← hlen]
+          (solcSlotWord σ I ⟨11⟩).toNat ≤ (clipperActiveArgWord I).toNat := hboundEvm
       have hbody :
           ExecTransitionBody (config v) (contract v)
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (clipperActiveStore I) activeTransition.body .reverted := by
         simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
           clipperActiveBodyReverts v
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
             (by simp only [initState]; exact hwv) hboundSolm
       exact RDinvalid.reEquivExecutionInvalid hcode
         (clipperX_active_invalid (v := v) (g := Sat256.ofUInt256 g) hpatch hsz36 hsize

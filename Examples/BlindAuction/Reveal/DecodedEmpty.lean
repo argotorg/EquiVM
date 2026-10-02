@@ -8,7 +8,7 @@ namespace BlindAuction
 
 set_option maxHeartbeats 10000000 in
 theorem scratch_blindAuctionReveal_decoded_empty_bids
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {callargs : Store} {values fakes secrets : List Value}
     {valuesLenWord fakesLenWord secretsLenWord : UInt256}
     (hcode : I.code = blindAuctionBytecode)
@@ -23,54 +23,50 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
     (hvaluesListLen : values.length = valuesLenWord.toNat)
     (hfakesListLen : fakes.length = fakesLenWord.toNat)
     (hsecretsListLen : secrets.length = secretsLenWord.toNat)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hafter :
-      (revealScratchBiddingEndWord σ_evm I).toNat <
+      (revealScratchBiddingEndWord σ I).toNat <
         (revealScratchTimestampWord I).toNat)
     (hbefore :
       (revealScratchTimestampWord I).toNat <
-        (revealScratchRevealEndWord σ_evm I).toNat)
-    (hvaluesEq : revealScratchBidsLengthWord σ_evm I = valuesLenWord)
-    (hfakesEq : revealScratchBidsLengthWord σ_evm I = fakesLenWord)
-    (hsecretsEq : revealScratchBidsLengthWord σ_evm I = secretsLenWord)
-    (hbidsZero : revealScratchBidsLengthWord σ_evm I = ⟨0⟩)
+        (revealScratchRevealEndWord σ I).toNat)
+    (hvaluesEq : revealScratchBidsLengthWord σ I = valuesLenWord)
+    (hfakesEq : revealScratchBidsLengthWord σ I = fakesLenWord)
+    (hsecretsEq : revealScratchBidsLengthWord σ I = secretsLenWord)
+    (hbidsZero : revealScratchBidsLengthWord σ I = ⟨0⟩)
     (h963 : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨963⟩
-      [revealScratchRevealEndWord σ_evm I, revealScratchBiddingEndWord σ_evm I, secretsLenWord,
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨963⟩
+      [revealScratchRevealEndWord σ I, revealScratchBiddingEndWord σ I, secretsLenWord,
         ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
         ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
         ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+      σ σ₀ g A I := by
   obtain ⟨_, _, rd963⟩ := h963
   let evmSolm : EVM.State :=
-    initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hwvSolm : evmSolm.executionEnv.weiValue = ⟨0⟩ := by
     simpa [evmSolm, initState] using hwv
   have hbiddingAbsent : callargs.get? biddingEndRef.base = none :=
     blindAuctionDecode_reveal_callargs_absent hdec (by decide) (by decide) (by decide)
   have hrevealAbsent : callargs.get? revealEndRef.base = none :=
     blindAuctionDecode_reveal_callargs_absent hdec (by decide) (by decide) (by decide)
-  have hbidsEq := revealScratchBidsLengthWord_accountMapEquiv hAccounts I
   have hafterBody :
       (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨1⟩).toNat <
         (UInt256.ofNat evmSolm.executionEnv.header.timestamp).toNat := by
-    change (revealScratchBiddingEndWord σ_solm I).toNat <
+    change (revealScratchBiddingEndWord σ I).toNat <
       (revealScratchTimestampWord I).toNat
-    rw [← revealScratchBiddingEndWord_accountMapEquiv hAccounts I]
     exact hafter
   have hbeforeBody :
       (UInt256.ofNat evmSolm.executionEnv.header.timestamp).toNat <
         (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨2⟩).toNat := by
     change (revealScratchTimestampWord I).toNat <
-      (revealScratchRevealEndWord σ_solm I).toNat
-    rw [← revealScratchRevealEndWord_accountMapEquiv hAccounts I]
+      (revealScratchRevealEndWord σ I).toNat
     exact hbefore
   have hlenBody :
       Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
         (bidsBase (.address evmSolm.executionEnv.source)) =
-          revealScratchBidsLengthWord σ_solm I := by
+          revealScratchBidsLengthWord σ I := by
     rfl
   have hbidsHash := revealScratchBidsMappingBaseKeccak I
   have hvaluesWordZero : valuesLenWord = ⟨0⟩ := by
@@ -109,11 +105,11 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
   have hlenZeroBody :
       Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
         (bidsBase (.address evmSolm.executionEnv.source)) = ⟨0⟩ := by
-    rw [hlenBody, ← hbidsEq, hbidsZero]
+    rw [hlenBody, hbidsZero]
   by_cases hdepthEq : I.depth = 1024
   · obtain ⟨_, _, rd1350⟩ :=
       blindAuctionRevealX_from963_empty_callDepth
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+        (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g)
           hdepthEq
@@ -145,7 +141,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
           hcallS
       simpa [hcallargsEmpty] using hbodyEmpty
     have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀
+        (initState σ σ₀
           (Sat256.ofUInt256 g) A I) :=
       blindAuctionRevealX_postCallEmpty_failure_revert
         (by simpa using rd1350)
@@ -156,10 +152,10 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
         intro hv
         exact hdepthEq (Fin.ext hv)
       omega
-    obtain ⟨cA', σ', z, out, A_in, callGas, _, _, hTheta,
+    obtain ⟨σ', z, out, A_in, callGas, _, _, hTheta,
         houtSize, rd1350⟩ :=
       blindAuctionRevealX_from963_empty_callMade
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+        (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g)
           hdepthLt
@@ -169,24 +165,23 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
           hbidsZero hbidsHash
     rcases hTheta with ⟨g'', A', hThetaEq⟩
     let evmECall : EVM.State :=
-      { initState cA gh bl σ_evm σ₀
+      { initState σ σ₀
           (Sat256.ofUInt256 g) A I with
         accountMap := σ',
-        substate := A',
-        createdAccounts := cA' }
+        substate := A' }
     have hAddressId (a : AccountAddress) : EVM.address a = a := by
       apply Fin.ext
       simp [EVM.address, EVM.uintN]
       exact Nat.mod_eq_of_lt a.isLt
     have hcallE :
         callViaEVM
-          (initState cA gh bl σ_evm σ₀
+          (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
           (EVM.address I.source) 0 ByteArray.empty
           (z, evmECall, out) := by
       refine callViaEVM.callMade
         (valueWord := (⟨0⟩ : UInt256))
-        (cA' := cA') (σ' := σ') (g' := g'') (A' := A')
+        (σ' := σ') (g' := g'') (A' := A')
         wordOfInt_zero.symm ?_ ?_ ?_ ?_
       · refine ⟨callGas, A_in, ?_⟩
         simpa [evmECall, initState, hperm, revealScratchSenderWord,
@@ -197,18 +192,11 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
       · intro hd'
         apply hdepthEq
         simpa [initState] using hd'
-    obtain ⟨σ'_solm, A'_solm, hcallSRaw, hPostAccounts⟩ :=
-      callViaEVM_initState_accountMapEquiv
-        (storage := blindAuctionConfig.storage) hcallE hAccounts
-    let evmSCall : EVM.State :=
-      { evmSolm with
-        accountMap := σ'_solm,
-        substate := A'_solm,
-        createdAccounts := evmECall.createdAccounts }
+    let evmSCall : EVM.State := evmECall
     have hcallS :
         callViaEVM evmSolm (EVM.address evmSolm.executionEnv.source)
           0 ByteArray.empty (z, evmSCall, out) := by
-      simpa [evmSolm, evmSCall, evmECall, initState] using hcallSRaw
+      simpa [evmSolm, evmSCall] using hcallE
     cases z
     · have hbody :
           ExecTransitionBody blindAuctionConfig blindAuctionContract
@@ -227,7 +215,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
             change out.size = 0
             exact hout0)
         have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀
+            (initState σ σ₀
               (Sat256.ofUInt256 g) A I) :=
           blindAuctionRevealX_postCallEmpty_failure_revert
             (by simpa [houtEmpty] using rd1350)
@@ -237,7 +225,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
             (by simpa using rd1350) hout0
             houtSize
         have hrev : RDrev blindAuctionBytecode (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀
+            (initState σ σ₀
               (Sat256.ofUInt256 g) A I) :=
           blindAuctionRevealX_postCallRequire_failure_revert
             (by simpa using rd1405)
@@ -268,34 +256,28 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
             change out.size = 0
             exact hout0)
         have hret : RDret blindAuctionBytecode (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀
+            (initState σ σ₀
               (Sat256.ofUInt256 g) A I)
-            (cA', σ') ByteArray.empty :=
+            σ' ByteArray.empty :=
           blindAuctionRevealX_postCallEmpty_success_stop
             (by simpa [houtEmpty] using rd1350)
         exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec
           hbody
           (by rfl)
-          (by
-            change accountMapEquiv σ' σ'_solm
-            simpa [evmECall] using hPostAccounts)
           (returnEquiv.fallthrough rfl rfl (by native_decide))
       · obtain ⟨_, _, _, _, rd1405⟩ :=
           blindAuctionRevealX_postCallNonempty_toRequire
             (by simpa using rd1350) hout0
             houtSize
         have hret : RDret blindAuctionBytecode (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀
+            (initState σ σ₀
               (Sat256.ofUInt256 g) A I)
-            (cA', σ') ByteArray.empty :=
+            σ' ByteArray.empty :=
           blindAuctionRevealX_postCallRequire_success_stop
             (by simpa using rd1405)
         exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec
           hbody
           (by rfl)
-          (by
-            change accountMapEquiv σ' σ'_solm
-            simpa [evmECall] using hPostAccounts)
           (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 end BlindAuction

@@ -209,14 +209,14 @@ theorem balanceOfReturnMem_read96 (owner val : UInt256) :
 macro "vyper_erc20_balance_decode" : tactic =>
   `(tactic| native_decide)
 
-theorem erc20X_balanceOfFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_balanceOfFromEntry {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨623⟩
-      [balanceOfSelectorWord] balanceOfDispatchMem (UInt256.ofNat 1) ByteArray.empty (cA, σ) k C) :
-    RDret vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
+      [balanceOfSelectorWord] balanceOfDispatchMem (UInt256.ofNat 1) ByteArray.empty σ k C) :
+    RDret vyperERC20Bytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (balanceOfWord σ I)) := by
   obtain ⟨k, C, rd623⟩ := hreach
   have hslot := balanceOfKeccakSlot I hcanon
@@ -348,15 +348,15 @@ theorem balanceOfDispatchMem_mload0 :
       = (⟨623⟩ : UInt256) := by
   native_decide
 
-theorem erc20X_balanceOfReach {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_balanceOfReach {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨623⟩
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
       [balanceOfSelectorWord] balanceOfDispatchMem (UInt256.ofNat 1) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   have hsz := erc20BalanceOfSelector_size hsel
   have hword := balanceOfSelectorWord_of_calldata (I := I) hsz hsel
-  have rd0 := RD.initState (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  have rd0 := RD.initState (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
   have rdBeforeCopy0 := evm_run rd0 with [
     push0,
@@ -389,14 +389,14 @@ theorem erc20X_balanceOfReach {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov)]
   exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_balance_decode) (by native_decide) (by evm_ov)⟩
 
-theorem erc20BalanceOfX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20BalanceOfX_shortarg {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨623⟩
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
       [balanceOfSelectorWord] balanceOfDispatchMem (UInt256.ofNat 1) ByteArray.empty
-      (cA, σ) k C) :
-    RDrev vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+      σ k C) :
+    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd623⟩ := hreach
   have hsizeGuard := calldataSizeGuardShort (n := I.calldata.size) (m := 36)
     hsize (by norm_num [UInt256.size]) hshort
@@ -416,18 +416,18 @@ theorem erc20BalanceOfX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     or,
     push2 ⟨801⟩,
     jumpiT (by rw [hwv, hsizeGuard36]; decide) (by vyper_erc20_balance_decode)]
-  exact vyperRuntimeRevert801 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  exact vyperRuntimeRevert801 (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) rd801 rfl (by norm_num)
 
-theorem erc20BalanceOfX_noncanon_owner {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20BalanceOfX_noncanon_owner {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hnc : ¬ (balanceOfOwnerWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨623⟩
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨623⟩
       [balanceOfSelectorWord] balanceOfDispatchMem (UInt256.ofNat 1) ByteArray.empty
-      (cA, σ) k C) :
-    RDrev vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+      σ k C) :
+    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd623⟩ := hreach
   have hsizeGuard := calldataSizeGuardOk (n := I.calldata.size) (m := 36) hsz36 hsize
   have hsizeGuard36 : UInt256.lt (UInt256.ofNat I.calldata.size) ⟨36⟩ = ⟨0⟩ := by
@@ -458,7 +458,7 @@ theorem erc20BalanceOfX_noncanon_owner {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpiT (by
       simp [balanceOfOwnerWord, calldataWord]
       exact hcanonGuard) (by vyper_erc20_balance_decode)]
-  exact vyperRuntimeRevert801 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  exact vyperRuntimeRevert801 (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) rd801 rfl (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem erc20Dispatch_balanceOf {cd : ByteArray}
@@ -479,31 +479,28 @@ theorem erc20Dispatch_balanceOf {cd : ByteArray}
     · rw [selectorOf, vyperERC20TransferFromSelectorBytes, hcd]; decide
 
 theorem erc20BalanceOfBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD vyperERC20Bytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨623⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨623⟩
       [balanceOfSelectorWord] balanceOfDispatchMem (UInt256.ofNat 1) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor vyperERC20Config erc20Contract
+      σ σ₀ g A I := by
   have hd := erc20Dispatch_balanceOf (cd := I.calldata) hsel
-  have hword : balanceOfWord σ_evm I = balanceOfWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (balanceOfSlot I) ⟨0⟩
   have hbody :
       ExecTransitionBody vyperERC20Config erc20Contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (balanceOfStore I)
         ERC20.balanceOfTransition.body
         (.returned { contract := erc20Contract, locals := balanceOfStore I }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (balanceOfWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (balanceOfWord σ I).toNat))])) := by
     simpa [balanceOfWord, balanceOfSlot, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using erc20BalanceOfBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
         (by simp only [initState]; exact hwv)
   have hsz4 := erc20BalanceOfSelector_size hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
@@ -516,8 +513,8 @@ theorem erc20BalanceOfBodyCore
               some (balanceOfStore I) := by
         simpa [vyperERC20Config] using hdec0
       exact (erc20X_balanceOfFromEntry (g := Sat256.ofUInt256 g) hwv hsz36 hsize hcanon hreach)
-        |>.reEquivExecutionTransport hcode hd hdec hbody (by rw [hword]) hAccounts
-          (returnEquiv_of_encode (ERC20.erc20Uint256ReturnEncoding (balanceOfWord σ_evm I)))
+        |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody (by rfl)
+          (returnEquiv_of_encode (ERC20.erc20Uint256ReturnEncoding (balanceOfWord σ I)))
     · have hdec0 := erc20Decode_balanceOf_none_noncanon (I := I) hsz36 hcanon
       have hdec :
           decodeCalldataWithMode vyperERC20Config.abiDecodeMode
@@ -538,16 +535,14 @@ theorem erc20BalanceOfBodyCore
       |>.reEquivDecodingFailed hcode hd hdec
 
 theorem erc20BalanceOfRuntimeSuccess
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vyperERC20Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size)
-    (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor vyperERC20Config erc20Contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
+    runtimeEquivalenceFor vyperERC20Config erc20Contract
+      σ σ₀ g A I := by
   exact erc20BalanceOfBodyCore hcode hwv hsize hsel
-    (erc20X_balanceOfReach (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    (erc20X_balanceOfReach (σ := σ)
       (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g) hcode hsel)
-    hAccounts
 
 end VyperERC20

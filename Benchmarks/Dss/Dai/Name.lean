@@ -42,11 +42,11 @@ private theorem daiNameReturnRead :
   native_decide
 
 /-- Runtime-only `name()` slice from selector dispatch through dynamic string return. -/
-theorem daiX_name_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiX_name_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨327⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret daiBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨327⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret daiBytecode g (initState σ σ₀ g A I) σ
       daiNameReturnBytes := by
   obtain ⟨_, _, h327⟩ := hreach
   have h1260 := evm_run h327 with [
@@ -129,7 +129,7 @@ theorem daiX_name_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       mem_cost daiNameReturnRead (by evm_ov)]
 
 theorem daiNameBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some nameTransition)
@@ -138,24 +138,22 @@ theorem daiNameBodyCoreOk
         (transitionSignature nameTransition).paramTypes I.calldata =
           some nameStore)
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨327⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨327⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         nameStore
         nameTransition.body
         (.returned { contract := contract, locals := nameStore }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [.bytes daiNameBytes])) := by
     exact daiNameBodyReturns
-      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv)
   exact (daiX_name_ok (g := Sat256.ofUInt256 g) hreach)
-    |>.reEquivExecutionTransport hcode hdispatch hdecode hbody rfl
-      hAccounts
+    |>.reEquivExecution hcode hdispatch hdecode hbody
       (by
         rw [nameTransition]
         exact returnEquiv_of_encode daiNameReturnEncoding)
@@ -169,20 +167,19 @@ theorem daiDecode_name_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
   exact decodeCalldataWithMode_empty_ok hsz4
 
 /-- `name()` body refines its Solm transition. -/
-theorem daiNameBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiNameBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiSelBytes 9))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiSelBytes 9)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 9) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some nameTransition :=
     daiDispatchName hsel
-  have hreach := daiReachNameBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := daiReachNameBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   exact daiNameBodyCoreOk hcode hsize hwv hdispatch
-    (daiDecode_name_ok hsz4) hreach hAccounts
+    (daiDecode_name_ok hsz4) hreach
 
 end Benchmarks.Dss.Dai

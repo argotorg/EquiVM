@@ -13,7 +13,7 @@ abbrev constructorDomainHashWord (thisWord : UInt256) : UInt256 :=
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapConstructorDomainHash {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {R : List UInt256} {k C : Nat}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd200 : RD uniswapV2PairInitcode I g s0 ⟨200⟩
       (⟨160⟩ :: ⟨64⟩ :: ⟨32⟩ :: ⟨128⟩ :: ⟨256⟩ :: R)
       (constructorDomainDataMem constructorTypeHashWord (UInt256.ofNat I.codeOwner.val))

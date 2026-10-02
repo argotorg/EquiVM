@@ -482,14 +482,14 @@ theorem evalExpr_loadPosGtZero_true (evm : EVM.State) (I : ExecutionEnv)
   · native_decide
   · native_decide
 
-theorem evalExpr_loadExtCodeSizeGtZero_false_of_src {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_loadExtCodeSizeGtZero_false_of_src {σ σ₀ A I} {g : Sat256}
     {locals : Store}
     (hsrc : locals.get? "src" = some (.address (loadSrc I)))
     (hnoCode : extCodeSizeWord σ (loadKey I) = ⟨0⟩) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .gt (.extCodeSize (.var "src")) (.intLit 0)) = .ok (.bool false) := by
-  let evm0 := initState cA gh bl σ σ₀ g A I
+  let evm0 := initState σ σ₀ g A I
   have hvar :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.var "src") = .ok (.address (loadSrc I)) := by
@@ -527,23 +527,23 @@ theorem evalExpr_loadExtCodeSizeGtZero_false_of_src {cA gh bl σ σ₀ A I} {g :
   · native_decide
   · native_decide
 
-theorem evalExpr_loadExtCodeSizeGtZero_false {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_loadExtCodeSizeGtZero_false {σ σ₀ A I} {g : Sat256}
     (hnoCode : extCodeSizeWord σ (loadKey I) = ⟨0⟩) :
     evalExpr? config { contract := contract, locals := loadLocals I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .gt (.extCodeSize (.var "src")) (.intLit 0)) = .ok (.bool false) := by
   exact evalExpr_loadExtCodeSizeGtZero_false_of_src
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (locals := loadLocals I) (by simp [loadLocals]) hnoCode
 
-theorem evalExpr_loadExtCodeSizeGtZero_true_of_src {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_loadExtCodeSizeGtZero_true_of_src {σ σ₀ A I} {g : Sat256}
     {locals : Store}
     (hsrc : locals.get? "src" = some (.address (loadSrc I)))
     (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .gt (.extCodeSize (.var "src")) (.intLit 0)) = .ok (.bool true) := by
-  let evm0 := initState cA gh bl σ σ₀ g A I
+  let evm0 := initState σ σ₀ g A I
   have hvar :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.var "src") = .ok (.address (loadSrc I)) := by

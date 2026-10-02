@@ -194,18 +194,17 @@ theorem vatCtorDecode54 :
 
 set_option maxHeartbeats 1000000 in
 theorem vatCtorInitcodeSuccess
-    {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {g : Sat256}
+    {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatCreationBytecode)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
     RDret vatCreationBytecode g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner
+      (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨0⟩ (vatCtorSourceWord I)) ⟨1⟩)
           ⟨10⟩ ⟨1⟩)
       vatBytecode := by
-  set s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I with hs0
+  set s0 := initState σ σ₀ g A I with hs0
   let memKey := wordAt0Mem (vatCtorSourceWord I) solcFreePtrMem
   let memHash := twoWordHashMem (vatCtorSourceWord I) ⟨0⟩ solcFreePtrMem
   let σWards := sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨0⟩ (vatCtorSourceWord I)) ⟨1⟩
@@ -216,7 +215,7 @@ theorem vatCtorInitcodeSuccess
       twoWordHashMem_solcMappingSlot ⟨0⟩ (vatCtorSourceWord I) solcFreePtrMem_size
   have rd0 :
       RD vatCreationBytecode I g s0 ⟨0⟩ [] ByteArray.empty (UInt256.ofNat 0)
-        ByteArray.empty (createdAccounts, σ) 0 0 := by
+        ByteArray.empty σ 0 0 := by
     rw [hs0]
     exact RD.initState hcode
   have rdBeforeWards := evm_run rd0 with [
@@ -282,15 +281,15 @@ theorem vatCtorInitcodeSuccess
       (by evm_ov)]
 
 theorem vatCtorInitcodeRevert_nonpayable
-    {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {g : Sat256}
+    {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatCreationBytecode)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev vatCreationBytecode g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   have rd0 :
       RD vatCreationBytecode I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   have rd12 := evm_run rd0 with [
     raw push1 ⟨128⟩ vatCtorDecode0 (by evm_ov),
@@ -375,13 +374,11 @@ theorem vatCtorCallerWardsSlot_eq (I : ExecutionEnv) :
   rw [keyValueToWord_address]
 
 theorem vatCtorBodySuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) :
     let locals := vatCtorLocals
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := vatCtorAfterWardsState evm0
     let evm2 := vatCtorAfterLiveState evm1
@@ -408,20 +405,17 @@ theorem vatCtorBodySuccess
     ExecBlock.nil
 
 theorem vatSolmCtorExecSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) :
-    solmCtorExec config contract [] createdAccounts genesisBlockHeader blocks
-      σ σ₀ g A I
+    solmCtorExec config contract [] σ σ₀ g A I
       (.returned { contract := contract, locals := vatCtorLocals }
         (vatCtorAfterLiveState
           (vatCtorAfterWardsState
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)))
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
         none) := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := vatCtorLocals)
     ?_ rfl ?_ ?_
@@ -430,19 +424,15 @@ theorem vatSolmCtorExecSuccess
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
         (vatCtorBodySuccess
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv)
 
 theorem vatSolmCtorExecReverts_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    solmCtorExec config contract [] createdAccounts genesisBlockHeader blocks
-      σ σ₀ g A I .reverted := by
+    solmCtorExec config contract [] σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := vatCtorLocals)
     ?_ rfl ?_ ?_
@@ -450,15 +440,15 @@ theorem vatSolmCtorExecReverts_nonpayable
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl, nonpayable] using
       bodyReverts_nonPayable (cfg := config) (contract := contract)
-        (evm := initState createdAccounts genesisBlockHeader blocks σ σ₀
+        (evm := initState σ σ₀
           (Sat256.ofUInt256 g) A I)
         (locals := vatCtorLocals) hwv
 
 theorem vatConstructorBodyCore :
     constructorEquivalence config vatCreationBytecode contract vatBytecode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I args deployedInitcode
-    hdeploy hcode _hcalldata hperm hAccounts
+  intro σ σ₀ g A I args deployedInitcode
+    hdeploy hcode _hcalldata hperm
   have hargsLen :
       args.length = contract.ctor.params.length :=
     emptyCtorDeployment_args_length (cfg := config) (contract := contract)
@@ -474,8 +464,7 @@ theorem vatConstructorBodyCore :
   | nil =>
       by_cases hwv : I.weiValue = ⟨0⟩
       · have hrd := vatCtorInitcodeSuccess
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) hcode hperm hwv
         rcases hrd with hOOG | ⟨s, hX, hacc⟩
         · exact constructorEquivalenceFor.outOfGas
@@ -483,46 +472,35 @@ theorem vatConstructorBodyCore :
               rw [← hcode] at hOOG
               simpa [Sat256.ofUInt256] using hOOG))
         · let σWards :=
-            sstoreAccountMap I.codeOwner σ_evm (solcMappingSlot ⟨0⟩ (vatCtorSourceWord I)) ⟨1⟩
+            sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨0⟩ (vatCtorSourceWord I)) ⟨1⟩
           let σLive := sstoreAccountMap I.codeOwner σWards ⟨10⟩ ⟨1⟩
           have hsuccess := Xi_success_of_X (g := g) (by
             rw [← hcode] at hX
             simpa [Sat256.ofUInt256] using hX)
-          have hcA : s.createdAccounts = createdAccounts := congrArg Prod.fst hacc
           have hσ' : s.accountMap = σLive := by
-            simpa [σLive, σWards] using congrArg Prod.snd hacc
-          rw [hcA, hσ'] at hsuccess
+            simpa [σLive, σWards] using hacc
+          rw [hσ'] at hsuccess
           let evm0s :=
-            initState createdAccounts genesisBlockHeader blocks σ_solm σ₀ (Sat256.ofUInt256 g) A I
+            initState σ σ₀ (Sat256.ofUInt256 g) A I
           let evm1s := vatCtorAfterWardsState evm0s
           let evm2s := vatCtorAfterLiveState evm1s
           have hslot : wardsSlot (.address I.source) = solcMappingSlot ⟨0⟩ (vatCtorSourceWord I) :=
             vatCtorCallerWardsSlot_eq I
-          have hAccountsWards : accountMapEquiv σWards evm1s.accountMap := by
-            simpa [σWards, evm1s, evm0s, vatCtorAfterWardsState, initState,
-              storageStore_accountMap, storageStore_executionEnv, hslot] using
-              accountMapEquiv_sstoreAccountMap I.codeOwner
-                (solcMappingSlot ⟨0⟩ (vatCtorSourceWord I)) ⟨1⟩ hAccounts
-          have hAccountsLive : accountMapEquiv σLive evm2s.accountMap := by
-            have hbase :=
-              accountMapEquiv_sstoreAccountMap I.codeOwner ⟨10⟩ ⟨1⟩ hAccountsWards
-            simpa [σLive, σWards, evm2s, evm1s, vatCtorAfterLiveState,
-              storageStore_accountMap, storageStore_executionEnv] using hbase
+          have hAccountsLive : σLive = evm2s.accountMap := by
+            simp [σLive, σWards, evm2s, evm1s, evm0s, vatCtorAfterLiveState,
+              vatCtorAfterWardsState, initState, storageStore_accountMap,
+              storageStore_executionEnv, hslot]
           refine constructorEquivalenceFor.execution hsuccess
             (by
               simpa [evm0s, evm1s, evm2s] using
                 vatSolmCtorExecSuccess
-                  (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-                  (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                  (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                   (g := g) hwv)
             ?_
-          refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
-          · simp [vatCtorAfterLiveState, vatCtorAfterWardsState, storageStore_createdAccounts,
-              initState]
-          · simpa [σLive, evm2s] using hAccountsLive
+          refine ctorResultEquiv.success rfl rfl ?_ rfl
+          simpa [σLive, evm2s] using hAccountsLive
       · have hrd := vatCtorInitcodeRevert_nonpayable
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) hcode hwv
         rcases hrd.xiResult hcode with hOOG | ⟨g', out, hRev⟩
         · exact constructorEquivalenceFor.outOfGas
@@ -530,8 +508,7 @@ theorem vatConstructorBodyCore :
         · refine constructorEquivalenceFor.execution
             (by simpa [Sat256.ofUInt256] using hRev)
             (vatSolmCtorExecReverts_nonpayable
-              (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-              (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
               (g := g) hwv)
             ?_
           exact ctorResultEquiv.revert rfl rfl

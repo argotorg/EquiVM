@@ -822,7 +822,7 @@ theorem cageVatHealSuccess
 
 set_option maxHeartbeats 0 in
 theorem RD.vowCageSecondDaiExtcodesizeGuard {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {d1 d2 : UInt256} {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨2983⟩
       (d1 :: d2 :: R) mem (UInt256.ofNat 6) rdata acc k C)
@@ -830,13 +830,13 @@ theorem RD.vowCageSecondDaiExtcodesizeGuard {g : Sat256} {s0 : State}
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (_hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD vowBytecode ee g s0 ⟨3058⟩
-      (kissDaiTargetWord acc.2 ee :: kissDaiTargetWord acc.2 ee ::
+      (kissDaiTargetWord acc ee :: kissDaiTargetWord acc ee ::
         ⟨128⟩ :: ⟨36⟩ :: ⟨128⟩ :: ⟨32⟩ :: ⟨164⟩ :: ⟨1814410054⟩ ::
-        kissDaiTargetWord acc.2 ee :: ⟨3238⟩ :: ⟨4084909596⟩ ::
-        kissDaiTargetWord acc.2 ee :: R)
+        kissDaiTargetWord acc ee :: ⟨3238⟩ :: ⟨4084909596⟩ ::
+        kissDaiTargetWord acc ee :: R)
       (vatDaiCalldataMem ee mem) (UInt256.ofNat 6) rdata acc k' C' := by
-  let target := kissDaiTargetWord acc.2 ee
-  let rawTarget := vowSlotWord ⟨1⟩ acc.2 ee
+  let target := kissDaiTargetWord acc ee
+  let rawTarget := vowSlotWord ⟨1⟩ acc ee
   have rd2985 := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k2986, C2986, rd2986Raw⟩ := rd2985.sload (by native_decide) (by evm_ov)
   have rd2986 : RD vowBytecode ee g s0 ⟨2986⟩
@@ -940,14 +940,14 @@ theorem RD.vowCageSecondDaiExtcodesizeGuard {g : Sat256} {s0 : State}
       using rd3058⟩
 
 theorem RD.vowCageSecondDaiNoCode {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {d1 d2 : UInt256} {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨2983⟩
       (d1 :: d2 :: R) mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 ee) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc ee) = ⟨0⟩)
     (hov : R.length + 16 ≤ 1024) :
     RDrev vowBytecode g s0 := by
   obtain ⟨_, _, rd3058⟩ := RD.vowCageSecondDaiExtcodesizeGuard
@@ -959,20 +959,20 @@ theorem RD.vowCageSecondDaiNoCode {g : Sat256} {s0 : State}
     (by native_decide) (by simp; omega)
 
 theorem RD.vowCageSecondDaiStaticcallSetup {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {d1 d2 : UInt256} {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨2983⟩
       (d1 :: d2 :: R) mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2
-        (kissDaiTargetWord acc.2 ee) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord acc
+        (kissDaiTargetWord acc ee) ≠ ⟨0⟩)
     (hov : R.length + 16 ≤ 1024) :
     ∃ gasWord k' C', RD vowBytecode ee g s0 ⟨3073⟩
-      (gasWord :: kissDaiTargetWord acc.2 ee :: ⟨128⟩ :: ⟨36⟩ :: ⟨128⟩ ::
-        ⟨32⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: kissDaiTargetWord acc.2 ee ::
-        ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc.2 ee :: R)
+      (gasWord :: kissDaiTargetWord acc ee :: ⟨128⟩ :: ⟨36⟩ :: ⟨128⟩ ::
+        ⟨32⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: kissDaiTargetWord acc ee ::
+        ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc ee :: R)
       (vatDaiCalldataMem ee mem) (UInt256.ofNat 6) rdata acc k' C' := by
   obtain ⟨_, _, rd3058⟩ := RD.vowCageSecondDaiExtcodesizeGuard
     rd hmem hread64 hov
@@ -985,50 +985,46 @@ theorem RD.vowCageSecondDaiStaticcallSetup {g : Sat256} {s0 : State}
   exact ⟨gasWord, k3073, C3073, rd3073⟩
 
 theorem RD.vowCageSecondDaiStaticcall
-    {cA gh bl σ σCall σ₀ A I} {g : UInt256}
-    {cA_call : Batteries.RBSet AccountAddress compare}
+    {σ σCall σ₀ A I} {g : UInt256}
     {mem rdata : ByteArray} {k C : ℕ} {d1 d2 : UInt256} {R : List UInt256}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2983⟩
-      (d1 :: d2 :: R) mem (UInt256.ofNat 6) rdata (cA_call, σCall) k C)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2983⟩
+      (d1 :: d2 :: R) mem (UInt256.ofNat 6) rdata σCall k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σCall (kissDaiTargetWord σCall I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (outDai : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD vowBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3074⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3074⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨164⟩ :: ⟨1814410054⟩ ::
           kissDaiTargetWord σCall I :: ⟨3238⟩ :: ⟨4084909596⟩ ::
           kissDaiTargetWord σCall I :: R)
         (outDai.write 0 (vatDaiCalldataMem I mem) 128
           (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai.size)).toNat)
-        (UInt256.ofNat 6) outDai (cA', σ') k' C'
+        (UInt256.ofNat 6) outDai σ' k' C'
     ∧ typedCallViaEVM config
-        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σCall
-          createdAccounts := cA_call }
         (EVM.address (kissVatAddress σCall I)) "dai" 0 [.address I.codeOwner]
         (z,
-          { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ'
-            substate := A'
-            createdAccounts := cA' },
+            substate := A' },
           outDai) false
     ∧ outDai.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd3073⟩ := RD.vowCageSecondDaiStaticcallSetup
     rd hmem hread64 hcodeSize hov
-  obtain ⟨cA', σ', z, outDai, A_in, callGas, k3074, C3074, hΘpack, rd3074raw,
+  obtain ⟨σ', z, outDai, A_in, callGas, k3074, C3074, hΘpack, rd3074raw,
       houtsz⟩ :=
     RD.solcStaticcall rd3073 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  let evmDaiIn := { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+  let evmDaiIn := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σCall
-    createdAccounts := cA_call }
-  refine ⟨cA', σ', z, outDai, A', k3074, C3074, ?_, ?_, houtsz⟩
+  refine ⟨σ', z, outDai, A', k3074, C3074, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           (⟨128⟩ : UInt256).toNat (⟨36⟩ : UInt256).toNat)
@@ -1046,7 +1042,7 @@ theorem RD.vowCageSecondDaiStaticcall
     simpa [evmDaiIn, initState] using hΘ
 
 theorem RD.vowCageSecondDaiCallFailure {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3074⟩ (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
@@ -1059,7 +1055,7 @@ theorem RD.vowCageSecondDaiCallFailure {g : Sat256} {s0 : State}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
 
 theorem RD.vowCageSecondDaiCallSuccessToDecode {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {d0 d1 d2 : UInt256}
     {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3074⟩
@@ -1074,7 +1070,7 @@ theorem RD.vowCageSecondDaiCallSuccessToDecode {g : Sat256} {s0 : State}
     (by simpa only [List.length_cons] using hov)
 
 theorem RD.vowCageSecondDaiReturnDecodeShortReverts {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256} {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3092⟩
       (d0 :: d1 :: d2 :: R) mem (UInt256.ofNat 6) o acc k C)
@@ -1096,7 +1092,7 @@ theorem RD.vowCageSecondDaiReturnDecodeShortReverts {g : Sat256} {s0 : State}
     (by native_decide) (by native_decide) (by native_decide) (by simp; omega)
 
 theorem RD.vowCageSecondDaiReturnDecodeOk {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {retWord d0 d1 d2 : UInt256} {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3092⟩
       (d0 :: d1 :: d2 :: R) mem (UInt256.ofNat 6) o acc k C)
@@ -1125,22 +1121,22 @@ theorem RD.vowCageSecondDaiReturnDecodeOk {g : Sat256} {s0 : State}
 
 set_option maxHeartbeats 0 in
 theorem RD.vowCageVatSinExtcodesizeGuard {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {vatDai : UInt256} {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3115⟩
-      (vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc.2 ee :: R)
+      (vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc ee :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (_hov : R.length + 18 ≤ 1024) :
     ∃ k' C', RD vowBytecode ee g s0 ⟨3177⟩
-      (kissDaiTargetWord acc.2 ee :: kissDaiTargetWord acc.2 ee :: healSinOutPtr ::
+      (kissDaiTargetWord acc ee :: kissDaiTargetWord acc ee :: healSinOutPtr ::
         healSinInSize :: healSinOutPtr :: ⟨32⟩ :: healSinEndPtr :: healSinSelector ::
-        kissDaiTargetWord acc.2 ee :: vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ ::
-        kissDaiTargetWord acc.2 ee :: R)
+        kissDaiTargetWord acc ee :: vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ ::
+        kissDaiTargetWord acc ee :: R)
       (healSinCalldataMem ee mem) (UInt256.ofNat 6) rdata acc k' C' := by
-  let target := kissDaiTargetWord acc.2 ee
-  let rawTarget := vowSlotWord ⟨1⟩ acc.2 ee
+  let target := kissDaiTargetWord acc ee
+  let rawTarget := vowSlotWord ⟨1⟩ acc ee
   have rd3117 := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   obtain ⟨k3118, C3118, rd3118Raw⟩ := rd3117.sload (by native_decide) (by evm_ov)
   have rd3118 : RD vowBytecode ee g s0 ⟨3118⟩
@@ -1234,15 +1230,15 @@ theorem RD.vowCageVatSinExtcodesizeGuard {g : Sat256} {s0 : State}
       using rd3177⟩
 
 theorem RD.vowCageVatSinNoCode {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {vatDai : UInt256} {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3115⟩
-      (vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc.2 ee :: R)
+      (vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc ee :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 ee) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc ee) = ⟨0⟩)
     (hov : R.length + 18 ≤ 1024) :
     RDrev vowBytecode g s0 := by
   obtain ⟨_, _, rd3177⟩ := RD.vowCageVatSinExtcodesizeGuard rd hmem hread64 hov
@@ -1253,21 +1249,21 @@ theorem RD.vowCageVatSinNoCode {g : Sat256} {s0 : State}
     (by native_decide) (by simp; omega)
 
 theorem RD.vowCageVatSinStaticcallSetup {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {vatDai : UInt256} {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3115⟩
-      (vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc.2 ee :: R)
+      (vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc ee :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 ee) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc ee) ≠ ⟨0⟩)
     (hov : R.length + 18 ≤ 1024) :
     ∃ gasWord k' C', RD vowBytecode ee g s0 ⟨3192⟩
-      (gasWord :: kissDaiTargetWord acc.2 ee :: healSinOutPtr :: healSinInSize ::
+      (gasWord :: kissDaiTargetWord acc ee :: healSinOutPtr :: healSinInSize ::
         healSinOutPtr :: ⟨32⟩ :: healSinEndPtr :: healSinSelector ::
-        kissDaiTargetWord acc.2 ee :: vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ ::
-        kissDaiTargetWord acc.2 ee :: R)
+        kissDaiTargetWord acc ee :: vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ ::
+        kissDaiTargetWord acc ee :: R)
       (healSinCalldataMem ee mem) (UInt256.ofNat 6) rdata acc k' C' := by
   obtain ⟨_, _, rd3177⟩ := RD.vowCageVatSinExtcodesizeGuard rd hmem hread64 hov
   obtain ⟨gasWord, k3192, C3192, rd3192⟩ :=
@@ -1280,52 +1276,48 @@ theorem RD.vowCageVatSinStaticcallSetup {g : Sat256} {s0 : State}
 
 set_option maxHeartbeats 0 in
 theorem RD.vowCageVatSinStaticcall
-    {cA gh bl σ σCall σ₀ A I} {g : UInt256}
-    {cA_call : Batteries.RBSet AccountAddress compare}
+    {σ σCall σ₀ A I} {g : UInt256}
     {mem rdata : ByteArray} {k C : ℕ} {vatDai : UInt256} {R : List UInt256}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3115⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3115⟩
       (vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord σCall I :: R)
-      mem (UInt256.ofNat 6) rdata (cA_call, σCall) k C)
+      mem (UInt256.ofNat 6) rdata σCall k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σCall (kissDaiTargetWord σCall I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 18 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (outSin : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD vowBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3193⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3193⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: healSinEndPtr :: healSinSelector ::
           kissDaiTargetWord σCall I :: vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ ::
           kissDaiTargetWord σCall I :: R)
         (outSin.write 0 (healSinCalldataMem I mem) healSinOutPtr.toNat
           (min (⟨32⟩ : UInt256) (UInt256.ofNat outSin.size)).toNat)
-        (UInt256.ofNat 6) outSin (cA', σ') k' C'
+        (UInt256.ofNat 6) outSin σ' k' C'
     ∧ typedCallViaEVM config
-        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σCall
-          createdAccounts := cA_call }
         (EVM.address (kissVatAddress σCall I)) "sin" 0 [.address I.codeOwner]
         (z,
-          { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ'
-            substate := A'
-            createdAccounts := cA' },
+            substate := A' },
           outSin) false
     ∧ outSin.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd3192⟩ := RD.vowCageVatSinStaticcallSetup
-    (ee := I) (acc := (cA_call, σCall)) (mem := mem) (rdata := rdata)
+    (ee := I) (acc := σCall) (mem := mem) (rdata := rdata)
     (vatDai := vatDai) (R := R) rd hmem hread64 hcodeSize hov
-  obtain ⟨cA', σ', z, outSin, A_in, callGas, k3193, C3193, hΘpack,
+  obtain ⟨σ', z, outSin, A_in, callGas, k3193, C3193, hΘpack,
       rd3193raw, houtsz⟩ :=
     RD.solcStaticcall rd3192 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  let evmSinIn := { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+  let evmSinIn := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σCall
-    createdAccounts := cA_call }
-  refine ⟨cA', σ', z, outSin, A', k3193, C3193, ?_, ?_, houtsz⟩
+  refine ⟨σ', z, outSin, A', k3193, C3193, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           healSinOutPtr.toNat healSinInSize.toNat)
@@ -1345,7 +1337,7 @@ theorem RD.vowCageVatSinStaticcall
     simpa [evmSinIn, initState] using hΘ
 
 theorem RD.vowCageVatSinCallFailure {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3193⟩ (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
@@ -1358,7 +1350,7 @@ theorem RD.vowCageVatSinCallFailure {g : Sat256} {s0 : State}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
 
 theorem RD.vowCageVatSinCallSuccessToDecode {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {d0 d1 d2 : UInt256}
     {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3193⟩
@@ -1373,7 +1365,7 @@ theorem RD.vowCageVatSinCallSuccessToDecode {g : Sat256} {s0 : State}
     (by simpa only [List.length_cons] using hov)
 
 theorem RD.vowCageVatSinReturnDecodeShortReverts {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256} {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3211⟩
       (d0 :: d1 :: d2 :: R) mem (UInt256.ofNat 6) o acc k C)
@@ -1395,7 +1387,7 @@ theorem RD.vowCageVatSinReturnDecodeShortReverts {g : Sat256} {s0 : State}
     (by native_decide) (by native_decide) (by native_decide) (by simp; omega)
 
 theorem RD.vowCageVatSinReturnDecodeOk {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {retWord d0 d1 d2 : UInt256} {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3211⟩
       (d0 :: d1 :: d2 :: R) mem (UInt256.ofNat 6) o acc k C)
@@ -1423,7 +1415,7 @@ theorem RD.vowCageVatSinReturnDecodeOk {g : Sat256} {s0 : State}
     (by jump_dest) (by native_decide) (by native_decide) (by native_decide) (by simp; omega)
 
 theorem RD.vowCageMinReturnLeft {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {vatDai vatSin : UInt256}
     {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3234⟩ (vatSin :: vatDai :: ⟨3238⟩ :: R)
@@ -1458,7 +1450,7 @@ theorem RD.vowCageMinReturnLeft {g : Sat256} {s0 : State}
   exact ⟨_, _, rd5136.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vowCageMinReturnRight {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {vatDai vatSin : UInt256}
     {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3234⟩ (vatSin :: vatDai :: ⟨3238⟩ :: R)
@@ -1495,20 +1487,20 @@ theorem RD.vowCageMinReturnRight {g : Sat256} {s0 : State}
 
 set_option maxHeartbeats 0 in
 theorem RD.vowCageHealExtcodesizeGuard {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {healRad : UInt256} {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3238⟩
-      (healRad :: kissHealSelector :: kissDaiTargetWord acc.2 ee :: R)
+      (healRad :: kissHealSelector :: kissDaiTargetWord acc ee :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (_hov : R.length + 15 ≤ 1024) :
     ∃ k' C', RD vowBytecode ee g s0 ⟨3280⟩
-      (kissDaiTargetWord acc.2 ee :: kissDaiTargetWord acc.2 ee :: kissHealOutSize ::
+      (kissDaiTargetWord acc ee :: kissDaiTargetWord acc ee :: kissHealOutSize ::
         kissHealOutPtr :: kissHealInSize :: kissHealOutPtr :: kissHealOutSize ::
-        kissHealEndPtr :: kissHealSelector :: kissDaiTargetWord acc.2 ee :: R)
+        kissHealEndPtr :: kissHealSelector :: kissDaiTargetWord acc ee :: R)
       (cageHealCalldataMem healRad mem) (UInt256.ofNat 6) rdata acc k' C' := by
-  let target := kissDaiTargetWord acc.2 ee
+  let target := kissDaiTargetWord acc ee
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -1588,15 +1580,15 @@ theorem RD.vowCageHealExtcodesizeGuard {g : Sat256} {s0 : State}
       using rd3280⟩
 
 theorem RD.vowCageHealNoCode {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {healRad : UInt256} {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3238⟩
-      (healRad :: kissHealSelector :: kissDaiTargetWord acc.2 ee :: R)
+      (healRad :: kissHealSelector :: kissDaiTargetWord acc ee :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 ee) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc ee) = ⟨0⟩)
     (hov : R.length + 15 ≤ 1024) :
     RDrev vowBytecode g s0 := by
   obtain ⟨_, _, rd3280⟩ := RD.vowCageHealExtcodesizeGuard rd hmem hread64 hov
@@ -1608,20 +1600,20 @@ theorem RD.vowCageHealNoCode {g : Sat256} {s0 : State}
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vowCageHealCallSetup {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {healRad : UInt256} {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3238⟩
-      (healRad :: kissHealSelector :: kissDaiTargetWord acc.2 ee :: R)
+      (healRad :: kissHealSelector :: kissDaiTargetWord acc ee :: R)
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 ee) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc ee) ≠ ⟨0⟩)
     (hov : R.length + 15 ≤ 1024) :
     ∃ gasWord k' C', RD vowBytecode ee g s0 ⟨3295⟩
-      (gasWord :: kissDaiTargetWord acc.2 ee :: kissHealOutSize ::
+      (gasWord :: kissDaiTargetWord acc ee :: kissHealOutSize ::
         kissHealOutPtr :: kissHealInSize :: kissHealOutPtr :: kissHealOutSize ::
-        kissHealEndPtr :: kissHealSelector :: kissDaiTargetWord acc.2 ee :: R)
+        kissHealEndPtr :: kissHealSelector :: kissDaiTargetWord acc ee :: R)
       (cageHealCalldataMem healRad mem) (UInt256.ofNat 6) rdata acc k' C' := by
   obtain ⟨_, _, rd3280⟩ := RD.vowCageHealExtcodesizeGuard rd hmem hread64 hov
   obtain ⟨gasWord, k3295, C3295, rd3295⟩ :=
@@ -1634,13 +1626,12 @@ theorem RD.vowCageHealCallSetup {g : Sat256} {s0 : State}
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vowCageHealPostCall
-    {cA gh bl σ σCall σ₀ A I} {g : UInt256}
-    {cA_call : Batteries.RBSet AccountAddress compare}
+    {σ σCall σ₀ A I} {g : UInt256}
     {mem rdata : ByteArray} {k C : ℕ} {healRad : UInt256} {R : List UInt256}
     (rd : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3238⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3238⟩
       (healRad :: kissHealSelector :: kissDaiTargetWord σCall I :: R)
-      mem (UInt256.ofNat 6) rdata (cA_call, σCall) k C)
+      mem (UInt256.ofNat 6) rdata σCall k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
@@ -1648,42 +1639,39 @@ theorem RD.vowCageHealPostCall
     (hdepth : I.depth.val < 1024)
     (hperm : I.perm = true)
     (hov : R.length + 15 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD vowBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3296⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3296⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: kissHealEndPtr :: kissHealSelector ::
           kissDaiTargetWord σCall I :: R)
-        (cageHealCalldataMem healRad mem) (UInt256.ofNat 6) out (cA', σ') k' C'
+        (cageHealCalldataMem healRad mem) (UInt256.ofNat 6) out σ' k' C'
     ∧ typedCallViaEVM config
-        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σCall
-          createdAccounts := cA_call }
         (EVM.address (kissVatAddress σCall I)) "heal" 0
         [.int (Int.ofNat healRad.toNat)]
-        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
               accountMap := σ'
-              substate := A'
-              createdAccounts := cA' },
+              substate := A' },
           out) true
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd3295⟩ :=
     RD.vowCageHealCallSetup
       (g := Sat256.ofUInt256 g)
-      (s0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (ee := I)
-      (acc := (cA_call, σCall))
+      (acc := σCall)
       (healRad := healRad)
       (R := R)
       rd hmem hread64 hcodeSize hov
-  obtain ⟨cA', σ', z, out, A_in, callGas, k3296, C3296, hΘpack, rd3296raw,
+  obtain ⟨σ', z, out, A_in, callGas, k3296, C3296, hΘpack, rd3296raw,
       houtsz⟩ :=
     RD.call rd3295 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  let evmCall := { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+  let evmCall := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σCall
-    createdAccounts := cA_call }
-  refine ⟨cA', σ', z, out, A', k3296, C3296, ?_, ?_, houtsz⟩
+  refine ⟨σ', z, out, A', k3296, C3296, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           kissHealOutPtr.toNat kissHealInSize.toNat)
@@ -1695,12 +1683,12 @@ theorem RD.vowCageHealPostCall
       unfold kissHealOutSize
       rfl
     have rd3296 : RD vowBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3296⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3296⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: kissHealEndPtr :: kissHealSelector ::
           kissDaiTargetWord σCall I :: R)
         (out.write 0 (cageHealCalldataMem healRad mem) kissHealOutPtr.toNat
           (min kissHealOutSize (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 6) out (cA', σ') k3296 C3296 :=
+        (UInt256.ofNat 6) out σ' k3296 C3296 :=
       haw ▸ rd3296raw
     rw [hmin, byteArray_write_len_zero] at rd3296
     exact rd3296
@@ -1717,7 +1705,7 @@ theorem RD.vowCageHealPostCall
     simpa [evmCall, initState, hperm] using hΘ
 
 theorem RD.vowCageHealCallFailure {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3296⟩ (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
@@ -1730,7 +1718,7 @@ theorem RD.vowCageHealCallFailure {g : Sat256} {s0 : State}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
 
 theorem RD.vowCageHealCallSuccessCleanup {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {d0 d1 d2 ret : UInt256}
     {R : List UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3296⟩
@@ -1750,7 +1738,7 @@ theorem RD.vowCageHealCallSuccessCleanup {g : Sat256} {s0 : State}
   exact ⟨_, _, rd3317.jump (by native_decide) hret (by evm_ov)⟩
 
 theorem RD.vowCageHealCallSuccess {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {target sel : UInt256}
     (rd : RD vowBytecode ee g s0 ⟨3296⟩
       (⟨1⟩ :: kissHealEndPtr :: kissHealSelector :: target :: ⟨412⟩ :: sel :: [])

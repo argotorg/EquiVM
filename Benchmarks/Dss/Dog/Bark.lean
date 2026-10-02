@@ -16,19 +16,6 @@ private theorem dogStorageStore_sigma0
   simp only [Solm.EVM.storageStore, State.lookupAccount]
   cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
 
-private theorem dogStorageStore_genesisBlockHeader
-    (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).genesisBlockHeader =
-      evm.genesisBlockHeader := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
-
-private theorem dogStorageStore_blocks
-    (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).blocks = evm.blocks := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
-
 theorem dup12_xstep {s : State} {code : ByteArray}
     {pcv a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
@@ -108,7 +95,7 @@ namespace Reasoning.Reach
 theorem RD.dup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
     (h : RD code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
@@ -121,7 +108,7 @@ theorem RD.dup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
 
 theorem RD.dup16 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
     (h : RD code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn ::
@@ -136,7 +123,7 @@ theorem RD.dup16 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
 
 theorem RD.swap13 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll mm nn : UInt256} {t : List UInt256}
     (h : RD code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn :: t)
@@ -1615,7 +1602,7 @@ theorem barkBinaryLocals_get_y (x y : UInt256) :
   rw [barkBinaryLocals, store_get_ne _ _ (by decide), store_get_self]
 
 theorem dogSlotWord_eq_of_accountMapEquiv {σ τ : AccountMap}
-    (h : accountMapEquiv σ τ) (I : ExecutionEnv) (slot : UInt256) :
+    (h : Eq σ τ) (I : ExecutionEnv) (slot : UInt256) :
     dogSlotWord slot σ I = dogSlotWord slot τ I := by
   have hslot := accountMapEquiv_storage_findD h I.codeOwner slot (⟨0⟩ : UInt256)
   simpa [dogSlotWord, solcSlotWord] using hslot
@@ -5077,18 +5064,18 @@ theorem barkVatIlksEncode_eq {v : DogImmutables} {σ : AccountMap} {I : Executio
   exact barkVatIlksEncodeWords (v := v) (I := I) hsz100
 
 theorem dogLiveGuardEval_false {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+    {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "live" = none)
     (hlive : dogSlotWord ⟨3⟩ σ I ≠ ⟨1⟩) :
     evalExpr? (config v) { contract := contract v, locals := locals }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool false) := by
   have her :
       evalStorageRef (config v) { contract := contract v, locals := locals }
-        (initState cA gh bl σ σ₀ g A I) liveRef =
+        (initState σ σ₀ g A I) liveRef =
           .ok ({ base := "live", steps := [] } : EvaledStorageRef) := by
     simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
-  let w := Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner ⟨3⟩
+  let w := Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner ⟨3⟩
   have hload : w ≠ ⟨1⟩ := by
     intro hw
     exact hlive (by simpa [w, dogSlotWord] using hw)
@@ -5112,18 +5099,18 @@ theorem dogLiveGuardEval_false {v : DogImmutables}
   all_goals native_decide
 
 theorem dogLiveGuardEval_true {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+    {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "live" = none)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩) :
     evalExpr? (config v) { contract := contract v, locals := locals }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
   have her :
       evalStorageRef (config v) { contract := contract v, locals := locals }
-        (initState cA gh bl σ σ₀ g A I) liveRef =
+        (initState σ σ₀ g A I) liveRef =
           .ok ({ base := "live", steps := [] } : EvaledStorageRef) := by
     simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
-  let w := Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner ⟨3⟩
+  let w := Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner ⟨3⟩
   have hload : w = ⟨1⟩ := by
     simpa [w, dogSlotWord] using hlive
   rw [evalExpr?]
@@ -5138,7 +5125,7 @@ theorem dogLiveGuardEval_true {v : DogImmutables}
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
   rw [dogStorageLocLoad_uint256]
   have hload' :
-      Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner ⟨3⟩ = ⟨1⟩ := by
+      Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner ⟨3⟩ = ⟨1⟩ := by
     simpa [w] using hload
   simp only [initState] at hload' ⊢
   rw [hload']
@@ -5146,14 +5133,14 @@ theorem dogLiveGuardEval_true {v : DogImmutables}
   all_goals native_decide
 
 theorem dogAddrLitEval_locals {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store} (a : EVM.Address) :
+    {σ σ₀ A I} {g : Sat256} {locals : Store} (a : EVM.Address) :
     evalExpr? (config v) { contract := contract v, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (addrLit a) =
+      (initState σ σ₀ g A I) (addrLit a) =
       .ok (Value.address (AccountAddress.ofNat a.toNat)) := by
   dsimp [addrLit]
   have hint :
       evalExpr? (config v) { contract := contract v, locals := locals }
-        (initState cA gh bl σ σ₀ g A I) (.intLit (↑↑a)) =
+        (initState σ σ₀ g A I) (.intLit (↑↑a)) =
         .ok (.int (↑↑a)) := by
     simp [evalExpr?, pure]
   unfold evalExpr?
@@ -5166,12 +5153,12 @@ theorem dogAddrLitEval_locals {v : DogImmutables}
   simp
 
 theorem evalExpr_barkVat {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store} :
+    {σ σ₀ A I} {g : Sat256} {locals : Store} :
     evalExpr? (config v) { contract := contract v, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (vatExpr v) =
+      (initState σ σ₀ g A I) (vatExpr v) =
         .ok (.address (AccountAddress.ofNat v.vat.toNat)) := by
   simpa [vatExpr] using
-    (dogAddrLitEval_locals (v := v) (cA := cA) (gh := gh) (bl := bl)
+    (dogAddrLitEval_locals (v := v)
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (locals := locals) v.vat)
 
@@ -6376,7 +6363,7 @@ theorem barkVat_eq_vatKey (v : DogImmutables) :
   rw [hword]
 
 theorem barkVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {v : DogImmutables}
-    (hAccounts : accountMapEquiv σ τ)
+    (hAccounts : Eq σ τ)
     (hzero :
       Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) = ⟨0⟩) :
     Reasoning.Theory.extCodeSizeWord τ (barkVatWord v) = ⟨0⟩ := by
@@ -6386,7 +6373,7 @@ theorem barkVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {v : DogImmuta
   exact hzero
 
 theorem barkVatCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {v : DogImmutables}
-    (hAccounts : accountMapEquiv σ τ)
+    (hAccounts : Eq σ τ)
     (hne :
       Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩) :
     Reasoning.Theory.extCodeSizeWord τ (barkVatWord v) ≠ ⟨0⟩ := by
@@ -6398,11 +6385,11 @@ theorem barkVatCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {v : DogImmutabl
   exact hzero
 
 theorem barkVatCode_zero_of_codeSize_zero {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hzero :
       Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) = ⟨0⟩) :
     (UInt256.ofNat
-      (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+      (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   rw [barkVat_eq_vatKey v]
   unfold Reasoning.Theory.extCodeSizeWord at hzero
@@ -6415,11 +6402,11 @@ theorem barkVatCode_zero_of_codeSize_zero {v : DogImmutables}
       simpa [initState, State.lookupAccount, hacc] using hword
 
 theorem barkVatCode_pos_of_codeSize_ne {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hne :
       Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+      (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat := by
   rw [barkVat_eq_vatKey v]
   unfold Reasoning.Theory.extCodeSizeWord at hne
@@ -6526,7 +6513,7 @@ theorem dogCode_pos_of_state_codeSize_ne {evm : EVM.State} {targetWord : UInt256
       simpa [State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem dogCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {targetWord : UInt256}
-    (hAccounts : accountMapEquiv σ τ)
+    (hAccounts : Eq σ τ)
     (hzero :
       Reasoning.Theory.extCodeSizeWord σ targetWord = ⟨0⟩) :
     Reasoning.Theory.extCodeSizeWord τ targetWord = ⟨0⟩ := by
@@ -6536,7 +6523,7 @@ theorem dogCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {targetWord : UInt
   exact hzero
 
 theorem dogCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {targetWord : UInt256}
-    (hAccounts : accountMapEquiv σ τ)
+    (hAccounts : Eq σ τ)
     (hne :
       Reasoning.Theory.extCodeSizeWord σ targetWord ≠ ⟨0⟩) :
     Reasoning.Theory.extCodeSizeWord τ targetWord ≠ ⟨0⟩ := by
@@ -6547,160 +6534,32 @@ theorem dogCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {targetWord : UInt25
   rw [hsame]
   exact hzero
 
-private theorem dogAccountMapExtensionalEq_of_accountMapEquiv {σ τ : AccountMap}
-    (hστ : accountMapEquiv σ τ) : accountMapExtensionalEq σ τ := by
-  intro addr
-  specialize hστ addr
-  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;>
-    simp [hσ, hτ] at hστ ⊢
-  exact ⟨hστ.1, hστ.2.1, hστ.2.2.1, hστ.2.2.2.1, hστ.2.2.2.2⟩
-
-private theorem dogAccountMapEquiv_of_accountMapExtensionalEq {σ τ : AccountMap}
-    (hστ : accountMapExtensionalEq σ τ) : accountMapEquiv σ τ := by
-  intro addr
-  specialize hστ addr
-  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;>
-    simp [hσ, hτ] at hστ ⊢
-  exact ⟨hστ.1, hστ.2.1, hστ.2.2.1, hστ.2.2.2.1, hστ.2.2.2.2⟩
-
 theorem dogTypedCallViaEVM_accountMapEquiv_noSubstate {cfg : Config}
     {evm_evm evm_solm evm'_evm : EVM.State}
     {tgt : EVM.Address} {name : Ident} {value : ℤ} {args : List Value} {z : Bool}
     {out : ByteArray} {callPerm : Bool}
     (hcall : typedCallViaEVM cfg evm_evm tgt name value args (z, evm'_evm, out) callPerm)
-    (hAccounts : accountMapEquiv evm_evm.accountMap evm_solm.accountMap)
+    (hAccounts : evm_evm.accountMap = evm_solm.accountMap)
     (hOriginalAccounts : evm_evm.σ₀ = evm_solm.σ₀)
-    (hCreated : evm_solm.createdAccounts = evm_evm.createdAccounts)
-    (hGenesis : evm_solm.genesisBlockHeader = evm_evm.genesisBlockHeader)
-    (hBlocks : evm_solm.blocks = evm_evm.blocks)
-    (hEnv : evm_solm.executionEnv = evm_evm.executionEnv) :
+    (hEnv : evm_evm.executionEnv = evm_solm.executionEnv) :
     ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
       typedCallViaEVM cfg evm_solm tgt name value args
-        (z,
-          { evm_solm with
-              accountMap := σ'_solm
-              substate := A'_solm
-              createdAccounts := evm'_evm.createdAccounts },
-          out) callPerm ∧
-      accountMapEquiv evm'_evm.accountMap σ'_solm := by
-  obtain ⟨calldata, hdecode, hcall⟩ := hcall
-  have h_ext_eq : accountMapExtensionalEq evm_evm.accountMap evm_solm.accountMap :=
-    dogAccountMapExtensionalEq_of_accountMapEquiv hAccounts
-  cases hcall with
-  | callMade hvalue hTheta hevm' hvalue' hdepth =>
-      obtain ⟨callGas, A_in, hTheta⟩ := hTheta
-      rename_i valueWord cA' σ' g' A'
-      generalize htheta_solm :
-        Ethereum.EVM.Θ evm_solm.executionEnv.blobVersionedHashes evm_solm.createdAccounts
-          evm_solm.genesisBlockHeader evm_solm.blocks evm_solm.accountMap evm_solm.σ₀ A_in
-          evm_solm.executionEnv.codeOwner evm_solm.executionEnv.sender tgt
-          (toExecute evm_solm.accountMap tgt) callGas
-          (UInt256.ofNat evm_solm.executionEnv.gasPrice) valueWord valueWord calldata
-          (evm_solm.executionEnv.depth + 1) evm_solm.executionEnv.header
-          callPerm = thetaRes
-      have hcode_equiv :
-          toExecute evm_evm.accountMap tgt = toExecute evm_solm.accountMap tgt :=
-        accountMapExtensionalEq_toExecute h_ext_eq tgt
-      have htheta_solm' :
-          Ethereum.EVM.Θ evm_evm.executionEnv.blobVersionedHashes evm_evm.createdAccounts
-            evm_evm.genesisBlockHeader evm_evm.blocks evm_solm.accountMap evm_evm.σ₀ A_in
-            evm_evm.executionEnv.codeOwner evm_evm.executionEnv.sender tgt
-            (toExecute evm_evm.accountMap tgt) callGas
-            (UInt256.ofNat evm_evm.executionEnv.gasPrice) valueWord valueWord calldata
-            (evm_evm.executionEnv.depth + 1) evm_evm.executionEnv.header
-            callPerm =
-            (thetaRes.1, thetaRes.2.1, thetaRes.2.2.1, thetaRes.2.2.2.1,
-              thetaRes.2.2.2.2.1, thetaRes.2.2.2.2.2) := by
-        rw [← htheta_solm]
-        rw [hCreated, ← hOriginalAccounts, hGenesis, hBlocks, hEnv, hcode_equiv]
-      let a1 : AccountAddress := ⟨0, by simp [AccountAddress.size]⟩
-      have hTheta_rel :=
-        (accountMap_extensionality_of_Theta_and_Lambda
-        (blobVersionedHashes := evm_evm.executionEnv.blobVersionedHashes)
-        (createdAccounts := evm_evm.createdAccounts)
-        (genesisBlockHeader := evm_evm.genesisBlockHeader)
-        (blocks := evm_evm.blocks)
-        (σ₁ := evm_evm.accountMap)
-        (σ₂ := evm_solm.accountMap)
-        (σ₀ := evm_evm.σ₀)
-        (A := A_in)
-        (s := evm_evm.executionEnv.codeOwner)
-        (o := evm_evm.executionEnv.sender)
-        (r := tgt)
-        (g := callGas)
-        (p := UInt256.ofNat evm_evm.executionEnv.gasPrice)
-        (v := valueWord)
-        (v' := valueWord)
-        (d := calldata)
-        (i := ByteArray.empty)
-        (ζ := none)
-        (H := evm_evm.executionEnv.header)
-        (w := callPerm)
-        a1 a1
-        (toExecute evm_evm.accountMap tgt)
-        cA' thetaRes.1
-        σ' thetaRes.2.1
-        g' thetaRes.2.2.1
-        A' thetaRes.2.2.2.1
-        z thetaRes.2.2.2.2.1
-        out thetaRes.2.2.2.2.2
-        (evm_evm.executionEnv.depth + 1)
-        h_ext_eq).1 hTheta.symm htheta_solm'
-      have hCreated' : evm'_evm.createdAccounts = thetaRes.1 := by
-        simp [hevm', hTheta_rel.1]
-      have hTheta_s :
-          (evm'_evm.createdAccounts, thetaRes.2.1, thetaRes.2.2.1,
-              thetaRes.2.2.2.1, z, out) =
-            Ethereum.EVM.Θ evm_solm.executionEnv.blobVersionedHashes
-              evm_solm.createdAccounts evm_solm.genesisBlockHeader evm_solm.blocks
-              evm_solm.accountMap evm_solm.σ₀ A_in evm_solm.executionEnv.codeOwner
-              evm_solm.executionEnv.sender tgt (toExecute evm_solm.accountMap tgt) callGas
-              (UInt256.ofNat evm_solm.executionEnv.gasPrice) valueWord valueWord calldata
-              (evm_solm.executionEnv.depth + 1) evm_solm.executionEnv.header
-              callPerm := by
-        rw [hTheta_rel.2.2.2.1, hTheta_rel.2.2.2.2.1]
-        rw [hCreated']
-        exact htheta_solm.symm
-      use thetaRes.2.1
-      use thetaRes.2.2.2.1
-      constructor
-      · refine ⟨calldata, hdecode, ?_⟩
-        exact callViaEVM.callMade (perm := callPerm) hvalue
-          ⟨callGas, A_in, hTheta_s⟩ rfl
-          (by
-            rw [hEnv]
-            rw [← accountMapExtensionalEq_balanceOf h_ext_eq evm_evm.executionEnv.codeOwner]
-            exact hvalue')
-          (by
-            rw [hEnv]
-            exact hdepth)
-      · have hσext : accountMapExtensionalEq σ' thetaRes.2.1 := hTheta_rel.2.2.2.2.2
-        simpa [hevm'] using dogAccountMapEquiv_of_accountMapExtensionalEq hσext
-  | callNotMade _hsubstate hevm' hvalue =>
-      let A' := (State.addAccessedAccount evm_solm tgt).substate
-      use evm_solm.accountMap
-      use A'
-      constructor
-      · refine ⟨calldata, hdecode, ?_⟩
-        apply callViaEVM.callNotMade (perm := callPerm)
-        · rfl
-        · simp [A', hCreated, hevm']
-        · rw [hEnv]
-          rw [← accountMapExtensionalEq_balanceOf h_ext_eq evm_evm.executionEnv.codeOwner]
-          exact hvalue
-      · simpa [hevm'] using hAccounts
+        (z, { evm_solm with accountMap := σ'_solm, substate := A'_solm }, out)
+        callPerm ∧
+      evm'_evm.accountMap = σ'_solm := by
+  exact typedCallViaEVM_accountMapEquiv hcall hAccounts hOriginalAccounts hEnv
 
 theorem dogBarkVatUrnsNoCodeSourceBody {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodeZero :
       (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat =
         0) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (barkTransition v).body
       .reverted := by
   intro locals evm0
@@ -6708,14 +6567,14 @@ theorem dogBarkVatUrnsNoCodeSourceBody {v : DogImmutables}
       evalExpr? (config v) { contract := contract v, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
     simpa [evm0, locals] using
-      dogLiveGuardEval_true (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogLiveGuardEval_true (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := barkLocals I) (barkLocals_get_live I) hlive
   have hvat :
       evalExpr? (config v) { contract := contract v, locals := locals } evm0 (vatExpr v) =
         .ok (.address (AccountAddress.ofNat v.vat.toNat)) := by
     simpa [evm0, locals] using
-      (evalExpr_barkVat (v := v) (cA := cA) (gh := gh) (bl := bl)
+      (evalExpr_barkVat (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := barkLocals I))
   have hcodeGuard :
@@ -6753,20 +6612,20 @@ theorem dogBarkVatUrnsNoCodeSourceBody {v : DogImmutables}
     ExecFuncBody.execBlockRevert hblock
 
 theorem dogBarkVatUrnsCallFailureSourceBody {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
+    {σ σ₀ A I} {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
         (false, evmCall, out) false) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (barkTransition v).body
       .reverted := by
   intro locals evm0
@@ -6774,14 +6633,14 @@ theorem dogBarkVatUrnsCallFailureSourceBody {v : DogImmutables}
       evalExpr? (config v) { contract := contract v, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
     simpa [evm0, locals] using
-      dogLiveGuardEval_true (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogLiveGuardEval_true (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := barkLocals I) (barkLocals_get_live I) hlive
   have hvat :
       evalExpr? (config v) { contract := contract v, locals := locals } evm0 (vatExpr v) =
         .ok (.address (AccountAddress.ofNat v.vat.toNat)) := by
     simpa [evm0, locals] using
-      (evalExpr_barkVat (v := v) (cA := cA) (gh := gh) (bl := bl)
+      (evalExpr_barkVat (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := barkLocals I))
   have hcodeGuard :
@@ -6841,21 +6700,21 @@ theorem dogBarkVatUrnsCallFailureSourceBody {v : DogImmutables}
     ExecFuncBody.execBlockRevert hblock
 
 theorem dogBarkVatUrnsDecodeRevertSourceBody {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
+    {σ σ₀ A I} {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
         (true, evmCall, out) false)
     (hdec : (config v).externalABI.decode? "urns" out = none) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (barkTransition v).body
       .reverted := by
   intro locals evm0
@@ -6863,14 +6722,14 @@ theorem dogBarkVatUrnsDecodeRevertSourceBody {v : DogImmutables}
       evalExpr? (config v) { contract := contract v, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
     simpa [evm0, locals] using
-      dogLiveGuardEval_true (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogLiveGuardEval_true (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := barkLocals I) (barkLocals_get_live I) hlive
   have hvat :
       evalExpr? (config v) { contract := contract v, locals := locals } evm0 (vatExpr v) =
         .ok (.address (AccountAddress.ofNat v.vat.toNat)) := by
     simpa [evm0, locals] using
-      (evalExpr_barkVat (v := v) (cA := cA) (gh := gh) (bl := bl)
+      (evalExpr_barkVat (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := barkLocals I))
   have hcodeGuard :
@@ -6931,15 +6790,15 @@ theorem dogBarkVatUrnsDecodeRevertSourceBody {v : DogImmutables}
     ExecFuncBody.execBlockRevert hblock
 
 theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
+    {σ σ₀ A I} {g : UInt256} {evmCall : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
         (true, evmCall, out) false)
@@ -6948,7 +6807,7 @@ theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
         .int (Int.ofNat (barkVatUrnsArtWord out).toNat)])
     (hsz100 : 100 ≤ I.calldata.size) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock (config v) { contract := contract v, locals := locals } evm0
       ((barkTransition v).body.take 10)
       (.ok { contract := contract v, locals := barkLocalsMilkDirt evmCall I out }
@@ -6958,14 +6817,14 @@ theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
       evalExpr? (config v) { contract := contract v, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
     simpa [evm0, locals] using
-      dogLiveGuardEval_true (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogLiveGuardEval_true (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := barkLocals I) (barkLocals_get_live I) hlive
   have hvat :
       evalExpr? (config v) { contract := contract v, locals := locals } evm0 (vatExpr v) =
         .ok (.address (AccountAddress.ofNat v.vat.toNat)) := by
     simpa [evm0, locals] using
-      (evalExpr_barkVat (v := v) (cA := cA) (gh := gh) (bl := bl)
+      (evalExpr_barkVat (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := barkLocals I))
   have hcodeGuard :
@@ -7121,15 +6980,15 @@ theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
           evmCall))
 
 theorem dogBarkVatIlksNoCodeSourceBody {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256} {evmUrns : EVM.State} {out : ByteArray}
+    {σ σ₀ A I} {g : UInt256} {evmUrns : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallUrns :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
         (true, evmUrns, out) false)
@@ -7142,7 +7001,7 @@ theorem dogBarkVatIlksNoCodeSourceBody {v : DogImmutables}
           (fun acc => acc.code.size))).toNat = 0)
     (hsz100 : 100 ≤ I.calldata.size) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (barkTransition v).body
       .reverted := by
   intro locals evm0
@@ -7152,7 +7011,7 @@ theorem dogBarkVatIlksNoCodeSourceBody {v : DogImmutables}
         (.ok { contract := contract v, locals := barkLocalsMilkDirt evmUrns I out }
           evmUrns) := by
     simpa [locals, evm0] using
-      dogBarkVatUrnsSuccessIlksPrefix (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogBarkVatUrnsSuccessIlksPrefix (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmCall := evmUrns) (out := out) hwv hlive hcodePos hcallUrns hdecUrns hsz100
   have hvat :
@@ -7193,16 +7052,16 @@ theorem dogBarkVatIlksNoCodeSourceBody {v : DogImmutables}
     ExecFuncBody.execBlockRevert hblock
 
 theorem dogBarkVatIlksCallFailureSourceBody {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallUrns :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
         (true, evmUrns, out) false)
@@ -7219,7 +7078,7 @@ theorem dogBarkVatIlksCallFailureSourceBody {v : DogImmutables}
         [.fixedBytes bytes32Width (barkIlkBytes I)] (false, evmIlks, outIlks) false)
     (hsz100 : 100 ≤ I.calldata.size) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (barkTransition v).body
       .reverted := by
   intro locals evm0
@@ -7229,7 +7088,7 @@ theorem dogBarkVatIlksCallFailureSourceBody {v : DogImmutables}
         (.ok { contract := contract v, locals := barkLocalsMilkDirt evmUrns I out }
           evmUrns) := by
     simpa [locals, evm0] using
-      dogBarkVatUrnsSuccessIlksPrefix (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogBarkVatUrnsSuccessIlksPrefix (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmCall := evmUrns) (out := out) hwv hlive hcodePos hcallUrns hdecUrns hsz100
   have hvat :
@@ -7293,16 +7152,16 @@ theorem dogBarkVatIlksCallFailureSourceBody {v : DogImmutables}
     ExecFuncBody.execBlockRevert hblock
 
 theorem dogBarkVatIlksDecodeRevertSourceBody {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallUrns :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
         (true, evmUrns, out) false)
@@ -7320,7 +7179,7 @@ theorem dogBarkVatIlksDecodeRevertSourceBody {v : DogImmutables}
     (hdecIlks : (config v).externalABI.decode? "ilks" outIlks = none)
     (hsz100 : 100 ≤ I.calldata.size) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (barkTransition v).body
       .reverted := by
   intro locals evm0
@@ -7330,7 +7189,7 @@ theorem dogBarkVatIlksDecodeRevertSourceBody {v : DogImmutables}
         (.ok { contract := contract v, locals := barkLocalsMilkDirt evmUrns I out }
           evmUrns) := by
     simpa [locals, evm0] using
-      dogBarkVatUrnsSuccessIlksPrefix (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogBarkVatUrnsSuccessIlksPrefix (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmCall := evmUrns) (out := out) hwv hlive hcodePos hcallUrns hdecUrns hsz100
   have hvat :
@@ -7394,16 +7253,16 @@ theorem dogBarkVatIlksDecodeRevertSourceBody {v : DogImmutables}
     ExecFuncBody.execBlockRevert hblock
 
 theorem dogBarkVatIlksSuccessDustPrefix {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallUrns :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
         (true, evmUrns, out) false)
@@ -7422,7 +7281,7 @@ theorem dogBarkVatIlksSuccessDustPrefix {v : DogImmutables}
       some (barkVatIlksReturnValues outIlks))
     (hsz100 : 100 ≤ I.calldata.size) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock (config v) { contract := contract v, locals := locals } evm0
       ((barkTransition v).body.take 15)
       (.ok { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
@@ -7434,7 +7293,7 @@ theorem dogBarkVatIlksSuccessDustPrefix {v : DogImmutables}
         (.ok { contract := contract v, locals := barkLocalsMilkDirt evmUrns I out }
           evmUrns) := by
     simpa [locals, evm0] using
-      dogBarkVatUrnsSuccessIlksPrefix (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogBarkVatUrnsSuccessIlksPrefix (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmCall := evmUrns) (out := out) hwv hlive hcodePos hcallUrns hdecUrns hsz100
   have hvat :
@@ -7538,16 +7397,16 @@ theorem dogBarkVatIlksSuccessDustPrefix {v : DogImmutables}
   simpa [barkTransition, barkBodyRest, nonpayable, checkedExternalCallStmts] using hcombined
 
 theorem dogBarkVatIlksInkSpotOverflowSourceBody {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallUrns :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
         (true, evmUrns, out) false)
@@ -7568,7 +7427,7 @@ theorem dogBarkVatIlksInkSpotOverflowSourceBody {v : DogImmutables}
       UInt256.size ≤ (barkVatUrnsInkWord out).toNat * (barkVatIlksSpotWord outIlks).toNat)
     (hsz100 : 100 ≤ I.calldata.size) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (barkTransition v).body
       .reverted := by
   intro locals evm0
@@ -7578,7 +7437,7 @@ theorem dogBarkVatIlksInkSpotOverflowSourceBody {v : DogImmutables}
         (.ok { contract := contract v, locals := barkLocalsMilkDirt evmUrns I out }
           evmUrns) := by
     simpa [locals, evm0] using
-      dogBarkVatUrnsSuccessIlksPrefix (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogBarkVatUrnsSuccessIlksPrefix (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmCall := evmUrns) (out := out) hwv hlive hcodePos hcallUrns hdecUrns hsz100
   have hvat :
@@ -8045,16 +7904,16 @@ theorem dogBarkArtRateUnsafeCheckedMulOk {v : DogImmutables}
   exact ExecBlock.consNormal hlet (ExecBlock.consNormal (ExecStmt.requireTrue hreq) ExecBlock.nil)
 
 theorem dogBarkVatIlksArtRateOverflowSourceBody {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallUrns :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
         (true, evmUrns, out) false)
@@ -8078,7 +7937,7 @@ theorem dogBarkVatIlksArtRateOverflowSourceBody {v : DogImmutables}
       UInt256.size ≤ (barkVatUrnsArtWord out).toNat * (barkVatIlksRateWord outIlks).toNat)
     (hsz100 : 100 ≤ I.calldata.size) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (barkTransition v).body
       .reverted := by
   intro locals evm0
@@ -8088,7 +7947,7 @@ theorem dogBarkVatIlksArtRateOverflowSourceBody {v : DogImmutables}
         (.ok { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
           evmIlks) := by
     simpa [locals, evm0] using
-      dogBarkVatIlksSuccessDustPrefix (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogBarkVatIlksSuccessDustPrefix (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmUrns := evmUrns) (evmIlks := evmIlks) (out := out)
         (outIlks := outIlks) hwv hlive hcodePos hcallUrns hdecUrns hcodePosIlks
@@ -8184,16 +8043,16 @@ theorem dogBarkVatIlksArtRateOverflowSourceBody {v : DogImmutables}
     ExecFuncBody.execBlockRevert hblock
 
 theorem dogBarkVatIlksNotUnsafeSourceBody {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallUrns :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
         (true, evmUrns, out) false)
@@ -8222,7 +8081,7 @@ theorem dogBarkVatIlksNotUnsafeSourceBody {v : DogImmutables}
           (barkArtRateUnsafeWord out outIlks).toNat))
     (hsz100 : 100 ≤ I.calldata.size) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (barkTransition v).body
       .reverted := by
   intro locals evm0
@@ -8232,7 +8091,7 @@ theorem dogBarkVatIlksNotUnsafeSourceBody {v : DogImmutables}
         (.ok { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
           evmIlks) := by
     simpa [locals, evm0] using
-      dogBarkVatIlksSuccessDustPrefix (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogBarkVatIlksSuccessDustPrefix (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmUrns := evmUrns) (evmIlks := evmIlks) (out := out)
         (outIlks := outIlks) hwv hlive hcodePos hcallUrns hdecUrns hcodePosIlks
@@ -8400,16 +8259,16 @@ theorem dogBarkVatIlksNotUnsafeSourceBody {v : DogImmutables}
     ExecFuncBody.execBlockRevert hblock
 
 theorem dogBarkVatIlksLiquidationLimitHitSourceBody {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallUrns :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
         (true, evmUrns, out) false)
@@ -8445,7 +8304,7 @@ theorem dogBarkVatIlksLiquidationLimitHitSourceBody {v : DogImmutables}
             evmUrns.executionEnv).toNat))
     (hsz100 : 100 ≤ I.calldata.size) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (barkTransition v).body
       .reverted := by
   intro locals evm0
@@ -8455,7 +8314,7 @@ theorem dogBarkVatIlksLiquidationLimitHitSourceBody {v : DogImmutables}
         (.ok { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
           evmIlks) := by
     simpa [locals, evm0] using
-      dogBarkVatIlksSuccessDustPrefix (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogBarkVatIlksSuccessDustPrefix (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmUrns := evmUrns) (evmIlks := evmIlks) (out := out)
         (outIlks := outIlks) hwv hlive hcodePos hcallUrns hdecUrns hcodePosIlks
@@ -11375,16 +11234,16 @@ theorem dogBarkDartCandidateDivZero {v : DogImmutables}
   exact ExecBlock.consRevert (ExecStmt.letDeclRevert hdiv)
 
 theorem dogBarkVatIlksRoomWadOverflowSourceBody {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallUrns :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
         (true, evmUrns, out) false)
@@ -11422,7 +11281,7 @@ theorem dogBarkVatIlksRoomWadOverflowSourceBody {v : DogImmutables}
       UInt256.size ≤ (barkSourceRoomWord evmUrns evmIlks I).toNat * dogWadWord.toNat)
     (hsz100 : 100 ≤ I.calldata.size) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (barkTransition v).body
       .reverted := by
   intro locals evm0
@@ -11432,7 +11291,7 @@ theorem dogBarkVatIlksRoomWadOverflowSourceBody {v : DogImmutables}
         (.ok { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
           evmIlks) := by
     simpa [locals, evm0] using
-      dogBarkVatIlksSuccessDustPrefix (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogBarkVatIlksSuccessDustPrefix (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmUrns := evmUrns) (evmIlks := evmIlks) (out := out)
         (outIlks := outIlks) hwv hlive hcodePos hcallUrns hdecUrns hcodePosIlks
@@ -11714,16 +11573,16 @@ theorem dogBarkVatIlksRoomWadOverflowSourceBody {v : DogImmutables}
     ExecFuncBody.execBlockRevert hblock
 
 theorem dogBarkVatIlksMilkChopZeroSourceBody {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallUrns :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
         (true, evmUrns, out) false)
@@ -11764,7 +11623,7 @@ theorem dogBarkVatIlksMilkChopZeroSourceBody {v : DogImmutables}
       dogSlotWord (barkIlksChopSlotFor I) evmUrns.accountMap evmUrns.executionEnv = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (barkTransition v).body
       .reverted := by
   intro locals evm0
@@ -11774,7 +11633,7 @@ theorem dogBarkVatIlksMilkChopZeroSourceBody {v : DogImmutables}
         (.ok { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
           evmIlks) := by
     simpa [locals, evm0] using
-      dogBarkVatIlksSuccessDustPrefix (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogBarkVatIlksSuccessDustPrefix (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmUrns := evmUrns) (evmIlks := evmIlks) (out := out)
         (outIlks := outIlks) hwv hlive hcodePos hcallUrns hdecUrns hcodePosIlks
@@ -11943,17 +11802,17 @@ theorem dogBarkVatIlksMilkChopZeroSourceBody {v : DogImmutables}
     ExecFuncBody.execBlockRevert hblock
 
 theorem dogBarkVatIlksDartTailSourceBlock {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmUrns evmIlks : EVM.State} {out outIlks : ByteArray}
     {result : ExecResult}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I = ⟨1⟩)
     (hcodePos :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallUrns :
-      typedCallViaEVM (config v) (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM (config v) (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
         (true, evmUrns, out) false)
@@ -12031,7 +11890,7 @@ theorem dogBarkVatIlksDartTailSourceBlock {v : DogImmutables}
           [ .return [.var "id"] ])
         result) :
     let locals := barkLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock (config v) { contract := contract v, locals := locals } evm0
       (barkTransition v).body result := by
   intro locals evm0
@@ -12041,7 +11900,7 @@ theorem dogBarkVatIlksDartTailSourceBlock {v : DogImmutables}
         (.ok { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
           evmIlks) := by
     simpa [locals, evm0] using
-      dogBarkVatIlksSuccessDustPrefix (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogBarkVatIlksSuccessDustPrefix (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmUrns := evmUrns) (evmIlks := evmIlks) (out := out)
         (outIlks := outIlks) hwv hlive hcodePos hcallUrns hdecUrns hcodePosIlks
@@ -12682,16 +12541,16 @@ theorem barkKickDecode_ok {v : DogImmutables} {out : ByteArray}
     UInt256.toNat_ofNat_of_lt hlt] using congrArg (fun x => Option.map (fun v => [v]) x) hdec
 
 theorem dogNonpayableLivePrefixRevert {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : Sat256}
+    {σ σ₀ A I} {g : Sat256}
     {locals : Store} {rest : List Stmt}
     (hbase : locals.get? "live" = none)
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : dogSlotWord ⟨3⟩ σ I ≠ ⟨1⟩) :
     ExecTransitionBody (config v) (contract v)
-      (initState cA gh bl σ σ₀ g A I) locals
+      (initState σ σ₀ g A I) locals
       (nonpayable ++ [.require (.binary .eq (.storage liveRef) (.intLit 1))] ++ rest)
       .reverted := by
-  let evm0 := initState cA gh bl σ σ₀ g A I
+  let evm0 := initState σ σ₀ g A I
   have hcallvalue :
       evalExpr? (config v) { contract := contract v, locals := locals } evm0
         (.binary .eq (.env .callvalue) (.intLit 0)) = .ok (.bool true) :=
@@ -12700,7 +12559,7 @@ theorem dogNonpayableLivePrefixRevert {v : DogImmutables}
       evalExpr? (config v) { contract := contract v, locals := locals } evm0
         (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool false) := by
     simpa [evm0] using
-      dogLiveGuardEval_false (v := v) (cA := cA) (gh := gh) (bl := bl)
+      dogLiveGuardEval_false (v := v)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (locals := locals) hbase hlive
   have hblock :
@@ -12845,18 +12704,18 @@ theorem dogDecode_bark_none_short {v : DogImmutables} {I : ExecutionEnv}
       (cd := I.calldata) (x := "ilk") (y := "urn") (z := "kpr") hsz4 hshort
 
 theorem dogReachBarkBody {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ σ₀ A I} {g : Sat256}
+    {σ σ₀ A I} {g : Sat256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (dogSelBytes 2)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨785⟩
-      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨785⟩
+      [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : solcSelectorWord I = ⟨0xed998908⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xed 0x99 0x89 0x08 ⟨0xed998908⟩
       (by native_decide) (by simpa [dogSelBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
-    dogReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    dogReachSelector (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hpatch hcode hwv hsz hsize
   have hrootWidth : armTgtWidth code (⟨32⟩ : UInt256) = 2 := by
     dsimp [armTgtWidth]
@@ -12875,9 +12734,9 @@ theorem dogReachBarkBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨32⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h43 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨43⟩
+  have h43 : RD code I g (initState σ σ₀ g A I) ⟨43⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k32 + 5) (C32 + 22) := by
+      σ (k32 + 5) (C32 + 22) := by
     simpa [selArmNextPc, hrootWidth] using
       RD.selectorSplitNotTakenAuto h32 (dogRootSplitWellFormed hpatch) hroot (by simp)
   have hhigh :
@@ -12887,9 +12746,9 @@ theorem dogReachBarkBody {v : DogImmutables} {code : ByteArray}
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨43⟩ : UInt256))
       hpatch (by native_decide)]
     native_decide
-  have h54 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨54⟩
+  have h54 : RD code I g (initState σ σ₀ g A I) ⟨54⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
+      σ (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [selArmNextPc, hhighWidth] using
       RD.selectorSplitNotTakenAuto h43 (dogHighSplitWellFormed hpatch) hhigh (by simp)
   have hchop : UInt256.eq (dogSelectorWord 4) (solcSelectorWord I) = ⟨0⟩ := by
@@ -12998,7 +12857,7 @@ theorem dogReachBarkBody {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkDecodeToRoutine {v : DogImmutables} {code : ByteArray}
     {ee : ExecutionEnv} {g : Sat256} {s0 : EVM.State} {k C : ℕ}
     {decoded ret de : UInt256} {R : List UInt256} {mem rdata : ByteArray}
-    {aw : UInt256} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {aw : UInt256} {acc : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hdecoded : decoded = ⟨807⟩)
@@ -13086,14 +12945,14 @@ theorem RD.dogBarkDecodeToRoutine {v : DogImmutables} {code : ByteArray}
         hroutine (by evm_ov)⟩
 
 theorem RD.dogBarkDecodeToBody {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hsize : I.calldata.size < UInt256.size) (hsz100 : 100 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨785⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2813⟩
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨785⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD code I g (initState σ σ₀ g A I) ⟨2813⟩
       [barkKprKey I, barkUrnKey I, barkIlkWord I, ⟨448⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ := by
     exact solcDecodeLenCheckOkUnsigned (by simpa using hsz100) hsize
@@ -13124,7 +12983,7 @@ theorem RD.dogBarkDecodeToBody {v : DogImmutables} {code : ByteArray}
 theorem RD.invalidError {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (h : RD code ee g s0 pc stk mem aw rdata acc k C)
     (hdec : decode code pc = some (.INVALID, .none)) :
     X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
@@ -13147,7 +13006,7 @@ theorem RD.invalidError {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
 theorem RD.dogCheckedMulReturns {v : DogImmutables} {code : ByteArray}
     {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
     {x y ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {aw : UInt256} {k C : ℕ}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hRlen : R.length ≤ 1010)
@@ -13387,7 +13246,7 @@ theorem RD.dogCheckedMulReturns {v : DogImmutables} {code : ByteArray}
 theorem RD.dogMinReturns {v : DogImmutables} {code : ByteArray}
     {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
     {x y ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {aw : UInt256} {k C : ℕ}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hret : (D_J code 0).contains ret = true)
@@ -13555,7 +13414,7 @@ theorem RD.dogMinReturns {v : DogImmutables} {code : ByteArray}
 theorem RD.dogCheckedMulOverflowReverts {v : DogImmutables} {code : ByteArray}
     {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
     {x y ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {aw : UInt256} {k C : ℕ}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hRlen : R.length ≤ 1010)
@@ -13717,7 +13576,7 @@ theorem RD.dogCheckedMulOverflowReverts {v : DogImmutables} {code : ByteArray}
 theorem RD.dogCheckedAddReturns {v : DogImmutables} {code : ByteArray}
     {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
     {x y ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {aw : UInt256} {k C : ℕ}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hRlen : R.length ≤ 1015)
@@ -13737,7 +13596,7 @@ theorem RD.dogCheckedAddReturns {v : DogImmutables} {code : ByteArray}
 theorem RD.dogCheckedAddOverflowReverts {v : DogImmutables} {code : ByteArray}
     {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
     {x y ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {aw : UInt256} {k C : ℕ}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hRlen : R.length ≤ 1015)
@@ -14152,7 +14011,7 @@ theorem dogBarkVatConstDecode3964 {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkVatUrnsToCallMload {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code I g s0 ⟨2885⟩
       (⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
@@ -14259,7 +14118,7 @@ theorem RD.dogBarkVatUrnsToCallMload {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkVatUrnsToExtcodesize {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code I g s0 ⟨2941⟩
       (⟨128⟩ :: barkUrnKey I :: barkIlkWord I :: ⟨606387804⟩ :: barkVatWord v ::
@@ -14525,11 +14384,11 @@ theorem RD.dogBarkVatUrnsToExtcodesize {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkVatUrnsNoCodeRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code I g s0 ⟨2885⟩
       (⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) = ⟨0⟩)
@@ -14573,11 +14432,11 @@ theorem RD.dogBarkVatUrnsNoCodeRevert {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkVatUrnsToStaticcall {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (h : RD code I g s0 ⟨2885⟩
       (⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
@@ -14587,7 +14446,7 @@ theorem RD.dogBarkVatUrnsToStaticcall {v : DogImmutables} {code : ByteArray}
       (gasWord :: barkVatWord v :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨64⟩ ::
         ⟨196⟩ :: ⟨606387804⟩ :: barkVatWord v :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      (barkVatUrnsCallMem I mem) (UInt256.ofNat 7) rdata (cA, σ) k' C' := by
+      (barkVatUrnsCallMem I mem) (UInt256.ofNat 7) rdata σ k' C' := by
   obtain ⟨_, _, rd2941⟩ :=
     RD.dogBarkVatUrnsToCallMload hpatch h hmem hread64 (by omega)
   obtain ⟨_, _, rd2992⟩ :=
@@ -14627,12 +14486,12 @@ theorem RD.dogBarkVatUrnsToStaticcall {v : DogImmutables} {code : ByteArray}
   exact ⟨gasWord, k', C', by simpa using rd3007⟩
 
 theorem RD.dogBarkVatUrnsPostStaticcall {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {ret sel : UInt256} {R : List UInt256}
+    {σ σ₀ A I} {g : Sat256} {ret sel : UInt256} {R : List UInt256}
     {k C : ℕ} {mem rdata : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2885⟩
+    (h : RD code I g (initState σ σ₀ g A I) ⟨2885⟩
       (⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hsz100 : 100 ≤ I.calldata.size)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -14640,24 +14499,24 @@ theorem RD.dogBarkVatUrnsPostStaticcall {v : DogImmutables} {code : ByteArray}
       Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 24 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD code I g (initState cA gh bl σ σ₀ g A I) ⟨3008⟩
+      RD code I g (initState σ σ₀ g A I) ⟨3008⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: ⟨606387804⟩ :: barkVatWord v ::
           ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I ::
           ret :: sel :: R)
-        (barkVatUrnsPostCallMem I mem out) (UInt256.ofNat 7) out (cA', σ') k' C'
-      ∧ typedCallViaEVM (config v) (initState cA gh bl σ σ₀ g A I)
+        (barkVatUrnsPostCallMem I mem out) (UInt256.ofNat 7) out σ' k' C'
+      ∧ typedCallViaEVM (config v) (initState σ σ₀ g A I)
           (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
           [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
           (z,
-            { initState cA gh bl σ σ₀ g A I with
-                accountMap := σ', substate := A', createdAccounts := cA' },
+            { initState σ σ₀ g A I with
+                accountMap := σ', substate := A' },
             out) false
       ∧ out.size < UInt256.size := by
   obtain ⟨_, _, _, rd3007⟩ :=
     RD.dogBarkVatUrnsToStaticcall hpatch h hmem hread64 hcodeSize hov
-  obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘpack, rd3008raw, hosz⟩ :=
+  obtain ⟨σ', z, out, A_in, callGas, k', C', hΘpack, rd3008raw, hosz⟩ :=
     RD.solcStaticcall rd3007
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -14665,32 +14524,32 @@ theorem RD.dogBarkVatUrnsPostStaticcall {v : DogImmutables} {code : ByteArray}
       hdepth
       (by simp only [List.length_cons]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, out, A', k', C', ?_, ?_, hosz⟩
+  refine ⟨σ', z, out, A', k', C', ?_, ?_, hosz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 7).toNat
           (⟨128⟩ : UInt256).toNat (⟨68⟩ : UInt256).toNat)
           (⟨128⟩ : UInt256).toNat (⟨64⟩ : UInt256).toNat) = UInt256.ofNat 7 := by
       native_decide
-    change RD code I g (initState cA gh bl σ σ₀ g A I) ⟨3008⟩
+    change RD code I g (initState σ σ₀ g A I) ⟨3008⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: ⟨606387804⟩ :: barkVatWord v ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I ::
         ret :: sel :: R)
       (out.write 0 (barkVatUrnsCallMem I mem) 128
         (min (⟨64⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
-      (UInt256.ofNat 7) out (cA', σ') k' C'
+      (UInt256.ofNat 7) out σ' k' C'
     exact haw ▸ rd3008raw
-  · have hdepthNe : (initState cA gh bl σ σ₀ g A I).executionEnv.depth ≠ 1024 := by
+  · have hdepthNe : (initState σ σ₀ g A I).executionEnv.depth ≠ 1024 := by
       intro hdepthEq
       exact absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from hdepthEq]; decide)
     have hΘ' :
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl σ σ₀ A_in
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ σ σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 (barkVatWord v))
             (toExecute σ (AccountAddress.ofUInt256 (barkVatWord v)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((barkVatUrnsCallMem I mem).readWithPadding 128 68)
-            (I.depth + 1) I.header false := by
+            (I.depth + 1) I.header I.blobVersionedHashes I.blocks false := by
       simpa [initState] using hΘ
     have htargetNorm :
         AccountAddress.ofUInt256 (barkVatWord v) =
@@ -14700,13 +14559,13 @@ theorem RD.dogBarkVatUrnsPostStaticcall {v : DogImmutables} {code : ByteArray}
       simp [EVM.address, EVM.uintN]
       exact (Nat.mod_eq_of_lt (AccountAddress.ofNat v.vat.toNat).isLt).symm
     have hΘcall :
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl σ σ₀ A_in
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ σ σ₀ A_in
             I.codeOwner I.sender (EVM.address (AccountAddress.ofNat v.vat.toNat))
             (toExecute σ (EVM.address (AccountAddress.ofNat v.vat.toNat)))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((barkVatUrnsCallMem I mem).readWithPadding 128 68)
-            (I.depth + 1) I.header false := by
+            (I.depth + 1) I.header I.blobVersionedHashes I.blocks false := by
       simpa [accountAddress_roundtrip I.codeOwner, htargetNorm] using hΘ'
     refine ⟨(barkVatUrnsCallMem I mem).readWithPadding 128 68,
       barkVatUrnsEncode_eq (v := v) (I := I) (mem := mem) hsz100 hmem, ?_⟩
@@ -14717,7 +14576,7 @@ theorem RD.dogBarkVatUrnsPostStaticcall {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkVatUrnsCallFailure {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code I g s0 ⟨3008⟩ (⟨0⟩ :: R) mem aw rdata acc k C)
@@ -14766,7 +14625,7 @@ theorem RD.dogBarkVatUrnsCallFailure {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkVatUrnsCallSuccessToDecode {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -14803,7 +14662,7 @@ theorem RD.dogBarkVatUrnsCallSuccessToDecode {v : DogImmutables} {code : ByteArr
 
 theorem RD.dogBarkVatUrnsReturnDecodeShortReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem out : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code I g s0 ⟨3026⟩ (d0 :: d1 :: d2 :: R)
@@ -14899,7 +14758,7 @@ theorem RD.dogBarkVatUrnsReturnDecodeShortReverts {v : DogImmutables} {code : By
 
 theorem RD.dogBarkVatUrnsReturnDecodeOk {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem out : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code I g s0 ⟨3026⟩
@@ -15069,7 +14928,7 @@ theorem RD.dogBarkVatUrnsReturnDecodeOk {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkVatUrnsMaterializeTuple {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem out : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code I g s0 ⟨3061⟩
@@ -15347,20 +15206,20 @@ theorem RD.dogBarkVatUrnsMaterializeTuple {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkLoadIlkFields {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem out : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code I g s0 ⟨3070⟩
       (barkVatUrnsArtWord out :: barkVatUrnsInkWord out :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      (barkVatUrnsTupleMem I mem out) (UInt256.ofNat 8) out (cA, σ) k C)
+      (barkVatUrnsTupleMem I mem out) (UInt256.ofNat 8) out σ k C)
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨3139⟩
       (⟨64⟩ :: ⟨256⟩ :: solcAddrMask :: ⟨0⟩ ::
         barkVatUrnsArtWord out :: barkVatUrnsInkWord out :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      (barkIlksMem σ I mem out) (UInt256.ofNat 12) out (cA, σ) k' C' := by
+      (barkIlksMem σ I mem out) (UInt256.ofNat 12) out σ k' C' := by
   have hslot := barkIlksHashMem_slot (I := I) (mem := mem) (out := out) hmem hlong hout
   have hmload64 := barkIlksHashMem_mload64 (I := I) (mem := mem) (out := out)
     hmem hlong hout
@@ -15698,7 +15557,7 @@ theorem RD.dogBarkLoadIlkFields {v : DogImmutables} {code : ByteArray}
           ⟨64⟩ :: ⟨256⟩ :: solcAddrMask :: ⟨0⟩ ::
           barkVatUrnsArtWord out :: barkVatUrnsInkWord out :: ⟨0⟩ ::
           barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-        (barkIlksHoleMem σ I mem out) (UInt256.ofNat 11) out (cA, σ) kD C_D := by
+        (barkIlksHoleMem σ I mem out) (UInt256.ofNat 11) out σ kD C_D := by
     exact ⟨_, _, by simpa [barkIlksDirtWord, solcSlotWord] using rdDirtStorePrefix⟩
   have rdAfterDirtStore := rdDirtStorePrefix3138.mstore 3 (barkIlksMem σ I mem out)
     (UInt256.ofNat 12)
@@ -15717,21 +15576,21 @@ theorem RD.dogBarkLoadIlkFields {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkVatIlksToCallMload {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem out rdata : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code I g s0 ⟨3139⟩
       (⟨64⟩ :: ⟨256⟩ :: solcAddrMask :: ⟨0⟩ ::
         barkVatUrnsArtWord out :: barkVatUrnsInkWord out :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      (barkIlksMem σ I mem out) (UInt256.ofNat 12) rdata (cA, σ) k C)
+      (barkIlksMem σ I mem out) (UInt256.ofNat 12) rdata σ k C)
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨3160⟩
       (⟨384⟩ :: ⟨384⟩ :: ⟨256⟩ :: solcAddrMask :: ⟨0⟩ ::
         barkVatUrnsArtWord out :: barkVatUrnsInkWord out :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      (barkVatIlksCallMem σ I mem out) (UInt256.ofNat 14) rdata (cA, σ) k' C' := by
+      (barkVatIlksCallMem σ I mem out) (UInt256.ofNat 14) rdata σ k' C' := by
   have hmload64 := barkIlksMem_mload64 (σ := σ) (I := I) (mem := mem) (out := out)
     hmem hlong hout
   have hmloadCall := barkVatIlksCallMem_mload64 (σ := σ) (I := I) (mem := mem)
@@ -15845,20 +15704,20 @@ theorem RD.dogBarkVatIlksToCallMload {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkVatIlksToGasPrep {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem out rdata : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code I g s0 ⟨3160⟩
       (⟨384⟩ :: ⟨384⟩ :: ⟨256⟩ :: solcAddrMask :: ⟨0⟩ ::
         barkVatUrnsArtWord out :: barkVatUrnsInkWord out :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      (barkVatIlksCallMem σ I mem out) (UInt256.ofNat 14) rdata (cA, σ) k C)
+      (barkVatIlksCallMem σ I mem out) (UInt256.ofNat 14) rdata σ k C)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨3204⟩
       (⟨384⟩ :: ⟨384⟩ :: barkVatWord v :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
         ⟨256⟩ :: barkVatUrnsArtWord out :: barkVatUrnsInkWord out :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      (barkVatIlksCallMem σ I mem out) (UInt256.ofNat 14) rdata (cA, σ) k' C' := by
+      (barkVatIlksCallMem σ I mem out) (UInt256.ofNat 14) rdata σ k' C' := by
   have hvatCleanR :
       UInt256.land (barkVatWord v) solcAddrMask = barkVatWord v :=
     solcAddrMask_clean (barkVatWord_canonical v)
@@ -15936,14 +15795,14 @@ theorem RD.dogBarkVatIlksToGasPrep {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkVatIlksToExtcodesize {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem out rdata : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code I g s0 ⟨3139⟩
       (⟨64⟩ :: ⟨256⟩ :: solcAddrMask :: ⟨0⟩ ::
         barkVatUrnsArtWord out :: barkVatUrnsInkWord out :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      (barkIlksMem σ I mem out) (UInt256.ofNat 12) rdata (cA, σ) k C)
+      (barkIlksMem σ I mem out) (UInt256.ofNat 12) rdata σ k C)
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨3229⟩
@@ -15952,7 +15811,7 @@ theorem RD.dogBarkVatIlksToExtcodesize {v : DogImmutables} {code : ByteArray}
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨256⟩ ::
         barkVatUrnsArtWord out :: barkVatUrnsInkWord out :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      (barkVatIlksCallMem σ I mem out) (UInt256.ofNat 14) rdata (cA, σ) k' C' := by
+      (barkVatIlksCallMem σ I mem out) (UInt256.ofNat 14) rdata σ k' C' := by
   obtain ⟨_, _, rd3160⟩ :=
     RD.dogBarkVatIlksToCallMload hpatch rd hmem hlong hout hov
   obtain ⟨_, _, rd3204⟩ :=
@@ -16061,14 +15920,14 @@ theorem RD.dogBarkVatIlksToExtcodesize {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkVatIlksToStaticcall {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem out rdata : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code I g s0 ⟨3139⟩
       (⟨64⟩ :: ⟨256⟩ :: solcAddrMask :: ⟨0⟩ ::
         barkVatUrnsArtWord out :: barkVatUrnsInkWord out :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      (barkIlksMem σ I mem out) (UInt256.ofNat 12) rdata (cA, σ) k C)
+      (barkIlksMem σ I mem out) (UInt256.ofNat 12) rdata σ k C)
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
@@ -16079,7 +15938,7 @@ theorem RD.dogBarkVatIlksToStaticcall {v : DogImmutables} {code : ByteArray}
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨256⟩ ::
         barkVatUrnsArtWord out :: barkVatUrnsInkWord out :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      (barkVatIlksCallMem σ I mem out) (UInt256.ofNat 14) rdata (cA, σ) k' C' := by
+      (barkVatIlksCallMem σ I mem out) (UInt256.ofNat 14) rdata σ k' C' := by
   obtain ⟨_, _, rd3229⟩ :=
     RD.dogBarkVatIlksToExtcodesize hpatch rd hmem hlong hout (by omega)
   obtain ⟨gasWord, k', C', rd3244⟩ :=
@@ -16118,27 +15977,24 @@ theorem RD.dogBarkVatIlksToStaticcall {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkVatIlksPostStaticcall {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 evm : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem out rdata : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code I g s0 ⟨3139⟩
       (⟨64⟩ :: ⟨256⟩ :: solcAddrMask :: ⟨0⟩ ::
         barkVatUrnsArtWord out :: barkVatUrnsInkWord out :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      (barkIlksMem σ I mem out) (UInt256.ofNat 12) rdata (cA, σ) k C)
+      (barkIlksMem σ I mem out) (UInt256.ofNat 12) rdata σ k C)
     (hsz100 : 100 ≤ I.calldata.size)
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
     (hevmEnv : evm.executionEnv = I)
-    (hevmCreated : evm.createdAccounts = cA)
     (hevmMap : evm.accountMap = σ)
-    (hevmGenesis : evm.genesisBlockHeader = s0.genesisBlockHeader)
-    (hevmBlocks : evm.blocks = s0.blocks)
     (hevmOrig : evm.σ₀ = s0.σ₀)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 40 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (outIlks : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD code I g s0 ⟨3245⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨420⟩ :: ⟨3647180086⟩ :: barkVatWord v ::
@@ -16146,17 +16002,17 @@ theorem RD.dogBarkVatIlksPostStaticcall {v : DogImmutables} {code : ByteArray}
           barkVatUrnsArtWord out :: barkVatUrnsInkWord out :: ⟨0⟩ ::
           barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
         (barkVatIlksPostCallMem σ I mem out outIlks) (UInt256.ofNat 17) outIlks
-        (cA', σ') k' C'
+        σ' k' C'
       ∧ typedCallViaEVM (config v) evm
           (EVM.address (AccountAddress.ofNat v.vat.toNat)) "ilks" 0
           [.fixedBytes bytes32Width (barkIlkBytes I)]
           (z,
-            { evm with accountMap := σ', substate := A', createdAccounts := cA' },
+            { evm with accountMap := σ', substate := A' },
             outIlks) false
       ∧ outIlks.size < UInt256.size := by
   obtain ⟨_, _, _, rd3244⟩ :=
     RD.dogBarkVatIlksToStaticcall hpatch rd hmem hlong hout hcodeSize hov
-  obtain ⟨cA', σ', z, outIlks, A_in, callGas, k', C', hΘpack, rd3245raw, hosz⟩ :=
+  obtain ⟨σ', z, outIlks, A_in, callGas, k', C', hΘpack, rd3245raw, hosz⟩ :=
     RD.solcStaticcall rd3244
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -16164,7 +16020,7 @@ theorem RD.dogBarkVatIlksPostStaticcall {v : DogImmutables} {code : ByteArray}
       hdepth
       (by simp only [List.length_cons]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, outIlks, A', k', C', ?_, ?_, hosz⟩
+  refine ⟨σ', z, outIlks, A', k', C', ?_, ?_, hosz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 14).toNat
           (⟨384⟩ : UInt256).toNat (⟨36⟩ : UInt256).toNat)
@@ -16177,7 +16033,7 @@ theorem RD.dogBarkVatIlksPostStaticcall {v : DogImmutables} {code : ByteArray}
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
       (outIlks.write 0 (barkVatIlksCallMem σ I mem out) 384
         (min (⟨160⟩ : UInt256) (UInt256.ofNat outIlks.size)).toNat)
-      (UInt256.ofNat 17) outIlks (cA', σ') k' C'
+      (UInt256.ofNat 17) outIlks σ' k' C'
     exact haw ▸ rd3245raw
   · have hdepthNe : evm.executionEnv.depth ≠ 1024 := by
       intro hdepthEq
@@ -16190,21 +16046,21 @@ theorem RD.dogBarkVatIlksPostStaticcall {v : DogImmutables} {code : ByteArray}
       simp [EVM.address, EVM.uintN]
       exact Nat.mod_eq_of_lt (AccountAddress.ofNat v.vat.toNat).isLt
     have hΘ' :
-        (cA', σ', g'', A', z, outIlks) =
-          Ethereum.EVM.Θ evm.executionEnv.blobVersionedHashes evm.createdAccounts
-            evm.genesisBlockHeader evm.blocks evm.accountMap evm.σ₀ A_in
+        (σ', g'', A', z, outIlks) =
+          Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
             evm.executionEnv.sender (AccountAddress.ofUInt256 (barkVatWord v))
             (toExecute evm.accountMap (AccountAddress.ofUInt256 (barkVatWord v)))
             callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
             ((barkVatIlksCallMem σ I mem out).readWithPadding 384 36)
-            (evm.executionEnv.depth + 1) evm.executionEnv.header false := by
-      simpa [hevmEnv, hevmCreated, hevmMap, hevmGenesis, hevmBlocks, hevmOrig] using hΘ
+            (evm.executionEnv.depth + 1) evm.executionEnv.header
+            evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks false := by
+      simpa [hevmEnv, hevmMap, hevmOrig] using hΘ
     exact Reasoning.Theory.callCoincides
       (cfg := config v) (evm := evm) (name := "ilks")
       (args := [.fixedBytes bytes32Width (barkIlkBytes I)])
       (tgt := EVM.address (AccountAddress.ofNat v.vat.toNat))
-      (targetWord := barkVatWord v) (cA' := cA') (σ' := σ') (A' := A')
+      (targetWord := barkVatWord v) (σ' := σ') (A' := A')
       (A_in := A_in) (z := z) (o := outIlks) (g'' := g'') (callGas := callGas)
       (mem := barkVatIlksCallMem σ I mem out) (inOff := ⟨384⟩) (inSize := ⟨36⟩)
       (callPerm := false) hdepthNe htargetNorm
@@ -16214,14 +16070,14 @@ theorem RD.dogBarkVatIlksPostStaticcall {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkVatIlksNoCodeRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem out rdata : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code I g s0 ⟨3139⟩
       (⟨64⟩ :: ⟨256⟩ :: solcAddrMask :: ⟨0⟩ ::
         barkVatUrnsArtWord out :: barkVatUrnsInkWord out :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      (barkIlksMem σ I mem out) (UInt256.ofNat 12) rdata (cA, σ) k C)
+      (barkIlksMem σ I mem out) (UInt256.ofNat 12) rdata σ k C)
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) = ⟨0⟩)
     (hov : R.length + 40 ≤ 1024) :
@@ -16261,7 +16117,7 @@ theorem RD.dogBarkVatIlksNoCodeRevert {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkVatIlksCallFailure {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd : RD code I g s0 ⟨3245⟩ (⟨0⟩ :: R) mem aw rdata acc k C)
@@ -16310,7 +16166,7 @@ theorem RD.dogBarkVatIlksCallFailure {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkVatIlksCallSuccessToDecode {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
     {d0 d1 d2 d3 d4 d5 d6 d7 d8 d9 d10 d11 d12 d13 ret sel : UInt256}
     {R : List UInt256}
@@ -16352,7 +16208,7 @@ theorem RD.dogBarkVatIlksCallSuccessToDecode {v : DogImmutables} {code : ByteArr
 
 theorem RD.dogBarkVatIlksReturnDecodeShortReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {σ : AccountMap}
+    {acc : AccountMap} {σ : AccountMap}
     {mem out outIlks : ByteArray} {k C : ℕ}
     {d0 d1 d2 d3 d4 d5 d6 d7 d8 d9 d10 d11 d12 d13 ret sel : UInt256}
     {R : List UInt256}
@@ -16453,7 +16309,7 @@ theorem RD.dogBarkVatIlksReturnDecodeShortReverts {v : DogImmutables} {code : By
 
 theorem RD.dogBarkVatIlksReturnDecodeOkToSpotGuard {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {σ : AccountMap}
+    {acc : AccountMap} {σ : AccountMap}
     {mem out outIlks : ByteArray} {k C : ℕ}
     {d0 d1 d2 d3 d4 d5 d6 d7 d8 d9 d10 d11 d12 d13 ret sel : UInt256}
     {R : List UInt256}
@@ -16682,7 +16538,7 @@ theorem RD.dogBarkPostIlksErrorStringRevertTail {code : ByteArray} {g : Sat256}
     {s0 : EVM.State} {I : ExecutionEnv} {k C : ℕ}
     {pc len rawWord shift word : UInt256} {op : Operation.POp} {width : ℕ}
     {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code I g s0 pc stk mem (UInt256.ofNat 17) rdata acc k C)
     (hwf : solcErrorStringRevertTailWf code pc len rawWord shift op width)
     (hpush : op ≠ .PUSH0)
@@ -16828,7 +16684,7 @@ theorem RD.dogBarkPostIlksErrorStringRevertTail {code : ByteArray} {g : Sat256}
 theorem RD.dogBarkPostIlksErrorStringRevertTailFullWord {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv} {k C : ℕ}
     {pc len word : UInt256} {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code I g s0 pc stk mem (UInt256.ofNat 17) rdata acc k C)
     (hwf : dogPostIlksErrorStringFullWordTailWf code pc len word)
     (hmem : mem.size = 544)
@@ -16900,7 +16756,7 @@ theorem RD.dogBarkPostIlksErrorStringRevertTailFullWord {code : ByteArray}
 theorem RD.dogBarkSpotZeroReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {spot dust rate art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hspot : spot = ⟨0⟩)
@@ -16990,7 +16846,7 @@ theorem RD.dogBarkSpotZeroReverts {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkArtRateOverflowReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {spot dust rate art ink kpr urn ilk : UInt256} {aw : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hspot : spot ≠ ⟨0⟩)
@@ -17078,7 +16934,7 @@ theorem RD.dogBarkArtRateOverflowReverts {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkInkSpotOverflowReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {spot dust rate art ink kpr urn ilk : UInt256} {aw : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hspot : spot ≠ ⟨0⟩)
@@ -17205,7 +17061,7 @@ theorem RD.dogBarkInkSpotOverflowReverts {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkNotUnsafeReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {spot dust rate art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hspot : spot ≠ ⟨0⟩)
@@ -17385,7 +17241,7 @@ theorem RD.dogBarkNotUnsafeReverts {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkSafeToLimitGuard {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {spot dust rate art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hspot : spot ≠ ⟨0⟩)
@@ -17552,7 +17408,7 @@ theorem RD.dogBarkSafeToLimitGuard {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkLimitGuardOk {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ σMem : AccountMap}
     {spot dust rate art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -17576,12 +17432,12 @@ theorem RD.dogBarkLimitGuardOk {v : DogImmutables} {code : ByteArray}
     (rd3308 : RD code I g s0 ⟨3308⟩
       (spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 28 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨3512⟩
       (spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 17) rdata σ k' C' := by
   obtain ⟨_, _, rd3405⟩ :=
     RD.dogBarkSafeToLimitGuard (v := v) (code := code) (ret := ret) (sel := sel)
       (R := R) hpatch hspot hfitArt hfitInk hsafe rd3308 hov
@@ -17604,7 +17460,7 @@ theorem RD.dogBarkLimitGuardOk {v : DogImmutables} {code : ByteArray}
   have rd3409 : RD code I g s0 ⟨3409⟩
       (dogSlotWord ⟨5⟩ σ I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
         art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k3409 C3409 := by
+      mem (UInt256.ofNat 17) rdata σ k3409 C3409 := by
     simpa [dogSlotWord, solcSlotWord] using rd3409raw
   have rd3411 := evm_run rd3409 with [
     raw push1 ⟨4⟩
@@ -17620,7 +17476,7 @@ theorem RD.dogBarkLimitGuardOk {v : DogImmutables} {code : ByteArray}
   have rd3412 : RD code I g s0 ⟨3412⟩
       (dogSlotWord ⟨4⟩ σ I :: dogSlotWord ⟨5⟩ σ I :: spot :: dust :: rate ::
         ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k3412 C3412 := by
+      mem (UInt256.ofNat 17) rdata σ k3412 C3412 := by
     simpa [dogSlotWord, solcSlotWord] using rd3412raw
   have hgtGlobal :
       UInt256.gt (dogSlotWord ⟨4⟩ σ I) (dogSlotWord ⟨5⟩ σ I) = ⟨1⟩ :=
@@ -17744,7 +17600,7 @@ theorem RD.dogBarkLimitGuardOk {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkComputeRoom {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ σMem : AccountMap}
     {spot dust rate art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -17761,12 +17617,12 @@ theorem RD.dogBarkComputeRoom {v : DogImmutables} {code : ByteArray}
     (rd3512 : RD code I g s0 ⟨3512⟩
       (spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 20 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨3543⟩
       (barkRoomWord σ σMem I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
         art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 17) rdata σ k' C' := by
   have rd3519 := evm_run rd3512 with [
     raw jumpdest
       (by
@@ -17796,7 +17652,7 @@ theorem RD.dogBarkComputeRoom {v : DogImmutables} {code : ByteArray}
   have rd3521 : RD code I g s0 ⟨3521⟩
       (dogSlotWord ⟨5⟩ σ I :: ⟨3540⟩ :: ⟨0⟩ :: spot :: dust :: rate ::
         ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k3521 C3521 := by
+      mem (UInt256.ofNat 17) rdata σ k3521 C3521 := by
     simpa [dogSlotWord, solcSlotWord] using rd3521raw
   have rd3523prep := evm_run rd3521 with [
     raw push1 ⟨4⟩
@@ -17813,7 +17669,7 @@ theorem RD.dogBarkComputeRoom {v : DogImmutables} {code : ByteArray}
       (dogSlotWord ⟨4⟩ σ I :: dogSlotWord ⟨5⟩ σ I :: ⟨3540⟩ :: ⟨0⟩ ::
         spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k3524 C3524 := by
+      mem (UInt256.ofNat 17) rdata σ k3524 C3524 := by
     simpa [dogSlotWord, solcSlotWord] using rd3524raw
   have rd3525 := evm_run rd3524 with [
     raw sub
@@ -17917,7 +17773,7 @@ theorem RD.dogBarkComputeRoom {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkComputeDart {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ σMem : AccountMap}
     {spot dust rate art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -17933,13 +17789,13 @@ theorem RD.dogBarkComputeDart {v : DogImmutables} {code : ByteArray}
     (rd3543 : RD code I g s0 ⟨3543⟩
       (barkRoomWord σ σMem I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
         art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨3594⟩
       (barkRoomWord σ σMem I :: spot :: dust :: rate ::
         barkDartWord σ σMem I art rate (barkIlksChopWord σMem I) :: ⟨256⟩ ::
         art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 17) rdata σ k' C' := by
   have rd3548 := evm_run rd3543 with [
     raw push2 ⟨3591⟩
       (by
@@ -18121,7 +17977,7 @@ theorem RD.dogBarkComputeDart {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkDartCandidateDivZeroInvalid {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ σMem : AccountMap}
     {spot dust rate art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -18137,7 +17993,7 @@ theorem RD.dogBarkDartCandidateDivZeroInvalid {v : DogImmutables} {code : ByteAr
     (rd3543 : RD code I g s0 ⟨3543⟩
       (barkRoomWord σ σMem I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
         art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 32 ≤ 1024) :
     X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass ∨
       X (g.toNat + 1) (D_J code 0) s0 = .error .InvalidInstruction := by
@@ -18277,7 +18133,7 @@ theorem RD.dogBarkDartCandidateDivZeroInvalid {v : DogImmutables} {code : ByteAr
 theorem RD.dogBarkRoomWadOverflowReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ σMem : AccountMap}
     {spot dust rate art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -18291,7 +18147,7 @@ theorem RD.dogBarkRoomWadOverflowReverts {v : DogImmutables} {code : ByteArray}
     (rd3543 : RD code I g s0 ⟨3543⟩
       (barkRoomWord σ σMem I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
         art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 32 ≤ 1024) :
     RDrev code g s0 := by
   have rd3548 := evm_run rd3543 with [
@@ -18373,7 +18229,7 @@ theorem RD.dogBarkRoomWadOverflowReverts {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkNoLeftoverToDinkEntry {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     {room spot dust rate dart art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -18381,12 +18237,12 @@ theorem RD.dogBarkNoLeftoverToDinkEntry {v : DogImmutables} {code : ByteArray}
     (rd3594 : RD code I g s0 ⟨3594⟩
       (room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 24 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨3700⟩
       (room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 17) rdata σ k' C' := by
   have rd3601 := evm_run rd3594 with [
     raw dup5
       (by
@@ -18428,7 +18284,7 @@ theorem RD.dogBarkNoLeftoverToDinkEntry {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkDustyLeftoverToDinkEntry {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     {room spot dust rate dart art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -18438,12 +18294,12 @@ theorem RD.dogBarkDustyLeftoverToDinkEntry {v : DogImmutables} {code : ByteArray
     (rd3594 : RD code I g s0 ⟨3594⟩
       (room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨3700⟩
       (room :: spot :: dust :: rate :: art :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 17) rdata σ k' C' := by
   have rd3601 := evm_run rd3594 with [
     raw dup5
       (by
@@ -18593,7 +18449,7 @@ theorem RD.dogBarkDustyLeftoverToDinkEntry {v : DogImmutables} {code : ByteArray
 theorem RD.dogBarkPartialLeftoverToDinkEntry {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     {room spot dust rate dart art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -18605,12 +18461,12 @@ theorem RD.dogBarkPartialLeftoverToDinkEntry {v : DogImmutables} {code : ByteArr
     (rd3594 : RD code I g s0 ⟨3594⟩
       (room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 36 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨3700⟩
       (room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 17) rdata σ k' C' := by
   have rd3601 := evm_run rd3594 with [
     raw dup5
       (by
@@ -18811,7 +18667,7 @@ theorem RD.dogBarkPartialLeftoverToDinkEntry {v : DogImmutables} {code : ByteArr
 theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     {room spot dust rate dart art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -18825,7 +18681,7 @@ theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteAr
     (rd3594 : RD code I g s0 ⟨3594⟩
       (room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 36 ≤ 1024) :
     RDrev code g s0 := by
   have rd3601 := evm_run rd3594 with [
@@ -19261,7 +19117,7 @@ theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteAr
 theorem RD.dogBarkComputeDink {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     {room spot dust rate dart art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -19270,12 +19126,12 @@ theorem RD.dogBarkComputeDink {v : DogImmutables} {code : ByteArray}
     (rd3700 : RD code I g s0 ⟨3700⟩
       (room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨3726⟩
       (barkDinkWord ink dart art :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 17) rdata σ k' C' := by
   have rd3714 := evm_run rd3700 with [
     raw jumpdest
       (by
@@ -19383,7 +19239,7 @@ theorem RD.dogBarkComputeDink {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkInkDartOverflowReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     {room spot dust rate dart art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -19391,7 +19247,7 @@ theorem RD.dogBarkInkDartOverflowReverts {v : DogImmutables} {code : ByteArray}
     (rd3700 : RD code I g s0 ⟨3700⟩
       (room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 32 ≤ 1024) :
     RDrev code g s0 := by
   have rd3714 := evm_run rd3700 with [
@@ -19454,7 +19310,7 @@ theorem RD.dogBarkInkDartOverflowReverts {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkDinkGuardOk {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     {dink dust rate dart art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -19462,12 +19318,12 @@ theorem RD.dogBarkDinkGuardOk {v : DogImmutables} {code : ByteArray}
     (rd3726 : RD code I g s0 ⟨3726⟩
       (dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 30 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨3797⟩
       (dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 17) rdata σ k' C' := by
   have rd3730 := evm_run rd3726 with [
     raw push1 ⟨0⟩
       (by
@@ -19504,7 +19360,7 @@ theorem RD.dogBarkDinkGuardOk {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkDinkGuardReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     {dink dust rate dart art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -19514,7 +19370,7 @@ theorem RD.dogBarkDinkGuardReverts {v : DogImmutables} {code : ByteArray}
     (rd3726 : RD code I g s0 ⟨3726⟩
       (dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 30 ≤ 1024) :
     RDrev code g s0 := by
   have rd3730 := evm_run rd3726 with [
@@ -19564,7 +19420,7 @@ theorem RD.dogBarkDinkGuardReverts {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkInt256GuardOk {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     {dink dust rate dart art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -19573,12 +19429,12 @@ theorem RD.dogBarkInt256GuardOk {v : DogImmutables} {code : ByteArray}
     (rd3797 : RD code I g s0 ⟨3797⟩
       (dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 34 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨3885⟩
       (dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 17) rdata σ k' C' := by
   have rd3808 := evm_run rd3797 with [
     raw jumpdest
       (by
@@ -19707,7 +19563,7 @@ theorem RD.dogBarkInt256GuardOk {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkInt256GuardDartOverflowReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     {dink dust rate dart art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -19717,7 +19573,7 @@ theorem RD.dogBarkInt256GuardDartOverflowReverts {v : DogImmutables} {code : Byt
     (rd3797 : RD code I g s0 ⟨3797⟩
       (dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 34 ≤ 1024) :
     RDrev code g s0 := by
   have rd3808 := evm_run rd3797 with [
@@ -19817,7 +19673,7 @@ theorem RD.dogBarkInt256GuardDartOverflowReverts {v : DogImmutables} {code : Byt
 theorem RD.dogBarkInt256GuardDinkOverflowReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     {dink dust rate dart art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -19828,7 +19684,7 @@ theorem RD.dogBarkInt256GuardDinkOverflowReverts {v : DogImmutables} {code : Byt
     (rd3797 : RD code I g s0 ⟨3797⟩
       (dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 34 ≤ 1024) :
     RDrev code g s0 := by
   have rd3808 := evm_run rd3797 with [
@@ -19969,7 +19825,7 @@ theorem RD.dogBarkInt256GuardDinkOverflowReverts {v : DogImmutables} {code : Byt
 theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ σMem : AccountMap}
     {dink dust rate dart art ink : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -19983,7 +19839,7 @@ theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     (rd3885 : RD code I g s0 ⟨3885⟩
       (dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 48 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨4023⟩
       (barkVatWord v :: barkVatWord v :: ⟨0⟩ :: barkVatGrabOutPtr ::
@@ -19992,7 +19848,7 @@ theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
         dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
       (barkVatGrabCallMem σ σMem I mem dink dart) (UInt256.ofNat 19) rdata
-      (cA, σ) k' C' := by
+      σ k' C' := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -20079,7 +19935,7 @@ theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
       (dogSlotWord ⟨2⟩ σ I :: barkIlksClipWord σMem I :: dink :: dust :: rate ::
         dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: barkKprKey I :: barkUrnKey I ::
         barkIlkWord I :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k3891 C3891 := by
+      mem (UInt256.ofNat 17) rdata σ k3891 C3891 := by
     simpa [dogSlotWord] using rd3891raw
   have rd3964 := evm_run rd3891 with [
     raw push1 ⟨64⟩
@@ -20602,11 +20458,11 @@ theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkVatGrabNoCodeRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4023 : RD code I g s0 ⟨4023⟩ (barkVatWord v :: barkVatWord v :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 19) rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) = ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
     RDrev code g s0 := by
@@ -20653,15 +20509,15 @@ theorem RD.dogBarkVatGrabNoCodeRevert {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkVatGrabToCall {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4023 : RD code I g s0 ⟨4023⟩ (barkVatWord v :: barkVatWord v :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 19) rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
     ∃ gasWord k' C', RD code I g s0 ⟨4038⟩ (gasWord :: barkVatWord v :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 19) rdata σ k' C' := by
   obtain ⟨gasWord, k', C', rd4038⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4023⟩) (okPc := ⟨4035⟩)
       rd4023 hcodeSize
@@ -20707,7 +20563,7 @@ theorem RD.dogBarkVatGrabToCall {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkVatGrabCallFailure {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4039 : RD code I g s0 ⟨4039⟩ (⟨0⟩ :: R) mem aw rdata acc k C)
@@ -20768,7 +20624,7 @@ theorem RD.dogBarkVatGrabCallFailure {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkVatGrabCallSuccess {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4039 : RD code I g s0 ⟨4039⟩ (⟨1⟩ :: R) mem aw rdata acc k C)
@@ -20809,14 +20665,14 @@ theorem RD.dogBarkVatGrabCallSuccess {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 evm : EVM.State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ σMem : AccountMap}
+    {σ σMem : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
     {dink dust rate dart art ink : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd3885 : RD code I g s0 ⟨3885⟩
       (dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hsz100 : 100 ≤ I.calldata.size)
     (hmem : mem.size = 544)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
@@ -20828,17 +20684,14 @@ theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
     (hevmEnv : evm.executionEnv = I)
-    (hevmCreated : evm.createdAccounts = cA)
     (hevmMap : evm.accountMap = σ)
-    (hevmGenesis : evm.genesisBlockHeader = s0.genesisBlockHeader)
-    (hevmBlocks : evm.blocks = s0.blocks)
     (hevmOrig : evm.σ₀ = s0.σ₀)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hdinkBound : dink.toNat ≤ dogInt256LimitWord.toNat)
     (hdartBound : dart.toNat ≤ dogInt256LimitWord.toNat)
     (hov : R.length + 48 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (outGrab : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD code I g s0 ⟨4039⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: barkVatGrabEndPtr ::
@@ -20846,25 +20699,25 @@ theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
           dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
           barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
         (barkVatGrabPostCallMem σ σMem I mem outGrab dink dart)
-        (UInt256.ofNat 19) outGrab (cA', σ') k' C'
+        (UInt256.ofNat 19) outGrab σ' k' C'
       ∧ typedCallViaEVM (config v) evm
           (EVM.address (AccountAddress.ofNat v.vat.toNat)) "grab" 0
           [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I),
             .address (AccountAddress.ofNat (barkIlksClipWord σMem I).toNat),
             .address (AccountAddress.ofNat (barkVowWord σ I).toNat),
             .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))]
-          (z, { evm with accountMap := σ', substate := A', createdAccounts := cA' },
+          (z, { evm with accountMap := σ', substate := A' },
             outGrab) true
       ∧ outGrab.size < UInt256.size := by
   obtain ⟨_, _, rd4023⟩ :=
     RD.dogBarkVatGrabExtcodesizeGuard (v := v) (code := code) (g := g)
       (s0 := s0) (I := I) (ret := ret) (sel := sel) (R := R)
-      (cA := cA) (σ := σ) (σMem := σMem) hpatch hmem hread64 hmload256
+      (σ := σ) (σMem := σMem) hpatch hmem hread64 hmload256
       rd3885 hov
   obtain ⟨_, _, _, rd4038⟩ :=
     RD.dogBarkVatGrabToCall hpatch rd4023 hcodeSize
       (by simp only [List.length_cons]; omega)
-  obtain ⟨cA', σ', z, outGrab, A_in, callGas, k', C', hΘpack, rd4039raw, houtsz⟩ :=
+  obtain ⟨σ', z, outGrab, A_in, callGas, k', C', hΘpack, rd4039raw, houtsz⟩ :=
     RD.call rd4038
       (by
         rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
@@ -20873,7 +20726,7 @@ theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
       hdepth
       (by simp only [List.length_cons]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, outGrab, A', k', C', ?_, ?_, houtsz⟩
+  refine ⟨σ', z, outGrab, A', k', C', ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 19).toNat
           barkVatGrabOutPtr.toNat barkVatGrabInSize.toNat)
@@ -20888,7 +20741,7 @@ theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
       (outGrab.write 0 (barkVatGrabCallMem σ σMem I mem dink dart)
         barkVatGrabOutPtr.toNat
         (min barkVatGrabOutSize (UInt256.ofNat outGrab.size)).toNat)
-      (UInt256.ofNat 19) outGrab (cA', σ') k' C'
+      (UInt256.ofNat 19) outGrab σ' k' C'
     exact haw ▸ rd4039raw
   · have hdepthNe : evm.executionEnv.depth ≠ 1024 := by
       intro hdepthEq
@@ -20901,9 +20754,8 @@ theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
       simp [EVM.address, EVM.uintN]
       exact Nat.mod_eq_of_lt (AccountAddress.ofNat v.vat.toNat).isLt
     have hΘ' :
-        (cA', σ', g'', A', z, outGrab) =
-          Ethereum.EVM.Θ evm.executionEnv.blobVersionedHashes evm.createdAccounts
-            evm.genesisBlockHeader evm.blocks evm.accountMap evm.σ₀ A_in
+        (σ', g'', A', z, outGrab) =
+          Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
             evm.executionEnv.sender (AccountAddress.ofUInt256 (barkVatWord v))
             (toExecute evm.accountMap (AccountAddress.ofUInt256 (barkVatWord v)))
@@ -20911,7 +20763,7 @@ theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
             ((barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding
               barkVatGrabOutPtr.toNat barkVatGrabInSize.toNat)
             (evm.executionEnv.depth + 1) evm.executionEnv.header true := by
-      simpa [hevmEnv, hevmCreated, hevmMap, hevmGenesis, hevmBlocks, hevmOrig, hperm] using hΘ
+      simpa [hevmEnv, hevmMap, hevmOrig, hperm] using hΘ
     exact Reasoning.Theory.callCoincides
       (cfg := config v) (evm := evm) (name := "grab")
       (args := [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I),
@@ -20919,7 +20771,7 @@ theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
         .address (AccountAddress.ofNat (barkVowWord σ I).toNat),
         .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))])
       (tgt := EVM.address (AccountAddress.ofNat v.vat.toNat))
-      (targetWord := barkVatWord v) (cA' := cA') (σ' := σ') (A' := A')
+      (targetWord := barkVatWord v) (σ' := σ') (A' := A')
       (A_in := A_in) (z := z) (o := outGrab) (g'' := g'') (callGas := callGas)
       (mem := barkVatGrabCallMem σ σMem I mem dink dart) (inOff := barkVatGrabOutPtr)
       (inSize := barkVatGrabInSize) (callPerm := true) hdepthNe htargetNorm
@@ -20930,7 +20782,7 @@ theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkDueCheckedMulOk {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -21011,7 +20863,7 @@ theorem RD.dogBarkDueCheckedMulOk {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkDueCheckedMulOverflowReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -21087,7 +20939,7 @@ theorem RD.dogBarkDueCheckedMulOverflowReverts {v : DogImmutables} {code : ByteA
 theorem RD.dogBarkFessExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     {due dink dust rate dart art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -21096,7 +20948,7 @@ theorem RD.dogBarkFessExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     (rd4071 : RD code I g s0 ⟨4071⟩
       (due :: ⟨0⟩ :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 19) rdata σ k C)
     (hov : R.length + 43 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨4139⟩
       (barkVowWord σ I :: barkVowWord σ I :: ⟨0⟩ :: barkVowFessOutPtr ::
@@ -21104,7 +20956,7 @@ theorem RD.dogBarkFessExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
         barkVowFessEndPtr :: barkVowFessSelectorWord :: barkVowWord σ I ::
         due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      (barkVowFessDueMem mem due) (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
+      (barkVowFessDueMem mem due) (UInt256.ofNat 19) rdata σ k' C' := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -21154,7 +21006,7 @@ theorem RD.dogBarkFessExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
   have rd4075 : RD code I g s0 ⟨4075⟩
       (dogSlotWord ⟨2⟩ σ I :: due :: ⟨0⟩ :: dink :: dust :: rate ::
         dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k4075 C4075 := by
+      mem (UInt256.ofNat 19) rdata σ k4075 C4075 := by
     simpa [dogSlotWord] using rd4075raw
   have rd4139 := evm_run rd4075 with [
     raw push1 ⟨64⟩
@@ -21464,11 +21316,11 @@ theorem RD.dogBarkFessExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkFessNoCodeRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4139 : RD code I g s0 ⟨4139⟩ (barkVowWord σ I :: barkVowWord σ I :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 19) rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (barkVowWord σ I) = ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
     RDrev code g s0 := by
@@ -21515,15 +21367,15 @@ theorem RD.dogBarkFessNoCodeRevert {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkFessToCall {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4139 : RD code I g s0 ⟨4139⟩ (barkVowWord σ I :: barkVowWord σ I :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 19) rdata σ k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (barkVowWord σ I) ≠ ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
     ∃ gasWord k' C', RD code I g s0 ⟨4154⟩ (gasWord :: barkVowWord σ I :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 19) rdata σ k' C' := by
   obtain ⟨gasWord, k', C', rd4154⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4139⟩) (okPc := ⟨4151⟩)
       rd4139 hcodeSize
@@ -21569,7 +21421,7 @@ theorem RD.dogBarkFessToCall {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkFessCallFailure {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4155 : RD code I g s0 ⟨4155⟩ (⟨0⟩ :: R) mem aw rdata acc k C)
@@ -21630,7 +21482,7 @@ theorem RD.dogBarkFessCallFailure {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkFessCallSuccess {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {a b c : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -21694,48 +21546,45 @@ theorem RD.dogBarkFessCallSuccess {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkFessPostCall {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 evm : EVM.State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
     {due dink dust rate dart art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4071 : RD code I g s0 ⟨4071⟩
       (due :: ⟨0⟩ :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 19) rdata σ k C)
     (hmem : mem.size = 580)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (barkVowWord σ I) ≠ ⟨0⟩)
     (hevmEnv : evm.executionEnv = I)
-    (hevmCreated : evm.createdAccounts = cA)
     (hevmMap : evm.accountMap = σ)
-    (hevmGenesis : evm.genesisBlockHeader = s0.genesisBlockHeader)
-    (hevmBlocks : evm.blocks = s0.blocks)
     (hevmOrig : evm.σ₀ = s0.σ₀)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 43 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (outFess : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD code I g s0 ⟨4155⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: barkVowFessEndPtr ::
           barkVowFessSelectorWord :: barkVowWord σ I :: due :: dink :: dust :: rate ::
           dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
         (barkVowFessPostCallMem mem outFess due)
-        (UInt256.ofNat 19) outFess (cA', σ') k' C'
+        (UInt256.ofNat 19) outFess σ' k' C'
       ∧ typedCallViaEVM (config v) evm
           (EVM.address (AccountAddress.ofNat (barkVowWord σ I).toNat)) "fess" 0
           [.int (Int.ofNat due.toNat)]
-          (z, { evm with accountMap := σ', substate := A', createdAccounts := cA' },
+          (z, { evm with accountMap := σ', substate := A' },
             outFess) true
       ∧ outFess.size < UInt256.size := by
   obtain ⟨_, _, rd4139⟩ :=
     RD.dogBarkFessExtcodesizeGuard (v := v) (code := code) (g := g)
       (s0 := s0) (I := I) (ret := ret) (sel := sel) (R := R)
-      (cA := cA) (σ := σ) hpatch hmem hread64 rd4071 hov
+      (σ := σ) hpatch hmem hread64 rd4071 hov
   obtain ⟨_, _, _, rd4154⟩ :=
     RD.dogBarkFessToCall hpatch rd4139 hcodeSize
       (by simp only [List.length_cons]; omega)
-  obtain ⟨cA', σ', z, outFess, A_in, callGas, k', C', hΘpack, rd4155raw, houtsz⟩ :=
+  obtain ⟨σ', z, outFess, A_in, callGas, k', C', hΘpack, rd4155raw, houtsz⟩ :=
     RD.call rd4154
       (by
         rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
@@ -21744,7 +21593,7 @@ theorem RD.dogBarkFessPostCall {v : DogImmutables} {code : ByteArray}
       hdepth
       (by simp only [List.length_cons]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, outFess, A', k', C', ?_, ?_, houtsz⟩
+  refine ⟨σ', z, outFess, A', k', C', ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 19).toNat
           barkVowFessOutPtr.toNat barkVowFessInSize.toNat)
@@ -21757,7 +21606,7 @@ theorem RD.dogBarkFessPostCall {v : DogImmutables} {code : ByteArray}
         dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (outFess.write 0 (barkVowFessDueMem mem due) barkVowFessOutPtr.toNat
         (min barkVowFessOutSize (UInt256.ofNat outFess.size)).toNat)
-      (UInt256.ofNat 19) outFess (cA', σ') k' C'
+      (UInt256.ofNat 19) outFess σ' k' C'
     exact haw ▸ rd4155raw
   · have hdepthNe : evm.executionEnv.depth ≠ 1024 := by
       intro hdepthEq
@@ -21771,9 +21620,8 @@ theorem RD.dogBarkFessPostCall {v : DogImmutables} {code : ByteArray}
       rw [show AccountAddress.size = EVM.twoPow 160 from by decide]
       rw [Nat.mod_mod]
     have hΘ' :
-        (cA', σ', g'', A', z, outFess) =
-          Ethereum.EVM.Θ evm.executionEnv.blobVersionedHashes evm.createdAccounts
-            evm.genesisBlockHeader evm.blocks evm.accountMap evm.σ₀ A_in
+        (σ', g'', A', z, outFess) =
+          Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
             evm.executionEnv.sender (AccountAddress.ofUInt256 (barkVowWord σ I))
             (toExecute evm.accountMap (AccountAddress.ofUInt256 (barkVowWord σ I)))
@@ -21781,12 +21629,12 @@ theorem RD.dogBarkFessPostCall {v : DogImmutables} {code : ByteArray}
             ((barkVowFessDueMem mem due).readWithPadding
               barkVowFessOutPtr.toNat barkVowFessInSize.toNat)
             (evm.executionEnv.depth + 1) evm.executionEnv.header true := by
-      simpa [hevmEnv, hevmCreated, hevmMap, hevmGenesis, hevmBlocks, hevmOrig, hperm] using hΘ
+      simpa [hevmEnv, hevmMap, hevmOrig, hperm] using hΘ
     exact Reasoning.Theory.callCoincides
       (cfg := config v) (evm := evm) (name := "fess")
       (args := [.int (Int.ofNat due.toNat)])
       (tgt := EVM.address (AccountAddress.ofNat (barkVowWord σ I).toNat))
-      (targetWord := barkVowWord σ I) (cA' := cA') (σ' := σ') (A' := A')
+      (targetWord := barkVowWord σ I) (σ' := σ') (A' := A')
       (A_in := A_in) (z := z) (o := outFess) (g'' := g'') (callGas := callGas)
       (mem := barkVowFessDueMem mem due) (inOff := barkVowFessOutPtr)
       (inSize := barkVowFessInSize) (callPerm := true) hdepthNe htargetNorm
@@ -21795,7 +21643,7 @@ theorem RD.dogBarkFessPostCall {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkTabBaseCheckedMulOk {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
     {due dink dust rate dart art ink kpr urn ilk ret sel milkChop : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -21893,7 +21741,7 @@ theorem RD.dogBarkTabBaseCheckedMulOk {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkTabBaseCheckedMulOverflowReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
     {due dink dust rate dart art ink kpr urn ilk ret sel milkChop : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -21984,7 +21832,7 @@ theorem RD.dogBarkTabBaseCheckedMulOverflowReverts {v : DogImmutables} {code : B
 
 theorem RD.dogBarkTabDivOk {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
     {tabBase due dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -22052,7 +21900,7 @@ theorem RD.dogBarkTabDivOk {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkDirtAddOk {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
     {tab due dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -22061,13 +21909,13 @@ theorem RD.dogBarkDirtAddOk {v : DogImmutables} {code : ByteArray}
     (rd4211 : RD code I g s0 ⟨4211⟩
       (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 19) rdata σ k C)
     (hov : R.length + 31 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨4222⟩
       (barkDirtNewWord (dogSlotWord ⟨5⟩ σ I) tab :: tab :: due :: dink ::
         dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn ::
         ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 19) rdata σ k' C' := by
   have rd4216pre := evm_run rd4211 with [
     raw push2 ⟨4222⟩
       (by
@@ -22090,7 +21938,7 @@ theorem RD.dogBarkDirtAddOk {v : DogImmutables} {code : ByteArray}
   have rd4217 : RD code I g s0 ⟨4217⟩
       (dogSlotWord ⟨5⟩ σ I :: ⟨4222⟩ :: tab :: due :: dink :: dust :: rate ::
         dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k4217 C4217 := by
+      mem (UInt256.ofNat 19) rdata σ k4217 C4217 := by
     simpa [dogSlotWord, solcSlotWord] using rd4217raw
   have rd4221 := evm_run rd4217 with [
     raw dup3
@@ -22122,7 +21970,7 @@ theorem RD.dogBarkDirtAddOk {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
     {tab due dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -22131,7 +21979,7 @@ theorem RD.dogBarkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArray}
     (rd4211 : RD code I g s0 ⟨4211⟩
       (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 19) rdata σ k C)
     (hov : R.length + 31 ≤ 1024) :
     RDrev code g s0 := by
   have rd4216pre := evm_run rd4211 with [
@@ -22156,7 +22004,7 @@ theorem RD.dogBarkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArray}
   have rd4217 : RD code I g s0 ⟨4217⟩
       (dogSlotWord ⟨5⟩ σ I :: ⟨4222⟩ :: tab :: due :: dink :: dust :: rate ::
         dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k4217 C4217 := by
+      mem (UInt256.ofNat 19) rdata σ k4217 C4217 := by
     simpa [dogSlotWord, solcSlotWord] using rd4217raw
   have rd4221 := evm_run rd4217 with [
     raw dup3
@@ -22185,7 +22033,7 @@ theorem RD.dogBarkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkStoreDirt {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
     {tab due dink dust rate dart art ink kpr urn ilk ret sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -22194,13 +22042,13 @@ theorem RD.dogBarkStoreDirt {v : DogImmutables} {code : ByteArray}
       (barkDirtNewWord (dogSlotWord ⟨5⟩ σ I) tab :: tab :: due :: dink ::
         dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn ::
         ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 19) rdata σ k C)
     (hov : R.length + 17 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨4226⟩
       (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       mem (UInt256.ofNat 19) rdata
-      (cA, sstoreAccountMap I.codeOwner σ ⟨5⟩
+      (sstoreAccountMap I.codeOwner σ ⟨5⟩
         (barkDirtNewWord (dogSlotWord ⟨5⟩ σ I) tab)) k' C' := by
   have rd4225 := evm_run rd4222 with [
     raw jumpdest
@@ -22225,7 +22073,7 @@ theorem RD.dogBarkStoreDirt {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkIlkDirtAddOk {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σStore : AccountMap}
+    {σStore : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
     {tab due dink dust rate dart art ink kpr urn ilk ret sel milkDirt : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -22238,13 +22086,13 @@ theorem RD.dogBarkIlkDirtAddOk {v : DogImmutables} {code : ByteArray}
     (rd4226 : RD code I g s0 ⟨4226⟩
       (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σStore) k C)
+      mem (UInt256.ofNat 19) rdata σStore k C)
     (hov : R.length + 31 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨4240⟩
       (barkIlkDirtNewWord milkDirt tab :: tab :: due :: dink :: dust :: rate ::
         dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret ::
         sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σStore) k' C' := by
+      mem (UInt256.ofNat 19) rdata σStore k' C' := by
   have rd4229pre := evm_run rd4226 with [
     raw push1 ⟨96⟩
       (by
@@ -22317,7 +22165,7 @@ theorem RD.dogBarkIlkDirtAddOk {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkIlkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σStore : AccountMap}
+    {σStore : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
     {tab due dink dust rate dart art ink kpr urn ilk ret sel milkDirt : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -22330,7 +22178,7 @@ theorem RD.dogBarkIlkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArra
     (rd4226 : RD code I g s0 ⟨4226⟩
       (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σStore) k C)
+      mem (UInt256.ofNat 19) rdata σStore k C)
     (hov : R.length + 31 ≤ 1024) :
     RDrev code g s0 := by
   have rd4229pre := evm_run rd4226 with [
@@ -22402,7 +22250,7 @@ theorem RD.dogBarkIlkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArra
 
 theorem RD.dogBarkStoreIlkDirt {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σStore : AccountMap}
+    {σStore : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
     {ilkDirtNew tab due dink dust rate dart art ink kpr urn ret sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -22413,13 +22261,13 @@ theorem RD.dogBarkStoreIlkDirt {v : DogImmutables} {code : ByteArray}
       (ilkDirtNew :: tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ ::
         art :: ink :: ⟨0⟩ :: kpr :: urn :: barkIlkWord I :: ret ::
         sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σStore) k C)
+      mem (UInt256.ofNat 19) rdata σStore k C)
     (hov : R.length + 22 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨4267⟩
       (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: barkIlkWord I :: ret :: sel :: R)
       (twoWordHashMem (barkIlkWord I) ⟨1⟩ mem) (UInt256.ofNat 19) rdata
-      (cA, sstoreAccountMap I.codeOwner σStore (barkIlksDirtSlotFor I)
+      (sstoreAccountMap I.codeOwner σStore (barkIlksDirtSlotFor I)
         ilkDirtNew) k' C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -22583,7 +22431,7 @@ theorem RD.dogBarkStoreIlkDirt {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkKickExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ σMem : AccountMap}
+    {σ σMem : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {R : List UInt256}
     {tab due dink dust rate dart art ink ret sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -22597,7 +22445,7 @@ theorem RD.dogBarkKickExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     (rd4267 : RD code I g s0 ⟨4267⟩
       (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 19) rdata σ k C)
     (hov : R.length + 49 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨4370⟩
       (barkIlksClipWord σMem I :: barkIlksClipWord σMem I :: ⟨0⟩ ::
@@ -22605,7 +22453,7 @@ theorem RD.dogBarkKickExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
         barkKickEndPtr :: barkKickSelectorWord :: barkIlksClipWord σMem I ::
         tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      (barkKickCalldataMem I mem tab dink) (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
+      (barkKickCalldataMem I mem tab dink) (UInt256.ofNat 19) rdata σ k' C' := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -23136,12 +22984,12 @@ theorem RD.dogBarkKickExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkKickNoCodeRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ σMem : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4370 : RD code I g s0 ⟨4370⟩
       (barkIlksClipWord σMem I :: barkIlksClipWord σMem I :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 19) rdata σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (barkIlksClipWord σMem I) = ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
@@ -23189,18 +23037,18 @@ theorem RD.dogBarkKickNoCodeRevert {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkKickToCall {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ σMem : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4370 : RD code I g s0 ⟨4370⟩
       (barkIlksClipWord σMem I :: barkIlksClipWord σMem I :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 19) rdata σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (barkIlksClipWord σMem I) ≠ ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
     ∃ gasWord k' C', RD code I g s0 ⟨4385⟩
       (gasWord :: barkIlksClipWord σMem I :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 19) rdata σ k' C' := by
   obtain ⟨gasWord, k', C', rd4385⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4370⟩) (okPc := ⟨4382⟩)
       rd4370 hcodeSize
@@ -23246,14 +23094,14 @@ theorem RD.dogBarkKickToCall {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 evm : EVM.State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ σMem : AccountMap}
+    {σ σMem : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
     {tab due dink dust rate dart art ink : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4267 : RD code I g s0 ⟨4267⟩
       (tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      mem (UInt256.ofNat 19) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 19) rdata σ k C)
     (hmem : mem.size = 580)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
     (hmload256 :
@@ -23264,15 +23112,12 @@ theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (barkIlksClipWord σMem I) ≠ ⟨0⟩)
     (hevmEnv : evm.executionEnv = I)
-    (hevmCreated : evm.createdAccounts = cA)
     (hevmMap : evm.accountMap = σ)
-    (hevmGenesis : evm.genesisBlockHeader = s0.genesisBlockHeader)
-    (hevmBlocks : evm.blocks = s0.blocks)
     (hevmOrig : evm.σ₀ = s0.σ₀)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 49 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (outKick : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD code I g s0 ⟨4386⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: barkKickEndPtr ::
@@ -23280,24 +23125,24 @@ theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
           dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
           barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
         (barkKickPostCallMem I mem outKick tab dink)
-        (UInt256.ofNat 19) outKick (cA', σ') k' C'
+        (UInt256.ofNat 19) outKick σ' k' C'
       ∧ typedCallViaEVM (config v) evm
           (EVM.address (AccountAddress.ofNat (barkIlksClipWord σMem I).toNat))
           "kick" 0
           [.int (Int.ofNat tab.toNat), .int (Int.ofNat dink.toNat),
             .address (barkUrn I), .address (barkKpr I)]
-          (z, { evm with accountMap := σ', substate := A', createdAccounts := cA' },
+          (z, { evm with accountMap := σ', substate := A' },
             outKick) true
       ∧ outKick.size < UInt256.size := by
   obtain ⟨_, _, rd4370⟩ :=
     RD.dogBarkKickExtcodesizeGuard (v := v) (code := code) (g := g)
       (s0 := s0) (I := I) (ret := ret) (sel := sel) (R := R)
-      (cA := cA) (σ := σ) (σMem := σMem) hpatch hmem hread64 hmload256
+      (σ := σ) (σMem := σMem) hpatch hmem hread64 hmload256
       rd4267 hov
   obtain ⟨_, _, _, rd4385⟩ :=
     RD.dogBarkKickToCall hpatch rd4370 hcodeSize
       (by simp only [List.length_cons]; omega)
-  obtain ⟨cA', σ', z, outKick, A_in, callGas, k', C', hΘpack, rd4386raw,
+  obtain ⟨σ', z, outKick, A_in, callGas, k', C', hΘpack, rd4386raw,
     houtsz⟩ :=
     RD.call rd4385
       (by
@@ -23307,7 +23152,7 @@ theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
       hdepth
       (by simp only [List.length_cons]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, outKick, A', k', C', ?_, ?_, houtsz⟩
+  refine ⟨σ', z, outKick, A', k', C', ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 19).toNat
           barkKickOutPtr.toNat barkKickInSize.toNat)
@@ -23321,7 +23166,7 @@ theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
       (outKick.write 0 (barkKickCalldataMem I mem tab dink) barkKickOutPtr.toNat
         (min barkKickOutSize (UInt256.ofNat outKick.size)).toNat)
-      (UInt256.ofNat 19) outKick (cA', σ') k' C'
+      (UInt256.ofNat 19) outKick σ' k' C'
     exact haw ▸ rd4386raw
   · have hdepthNe : evm.executionEnv.depth ≠ 1024 := by
       intro hdepthEq
@@ -23335,9 +23180,8 @@ theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
       rw [show AccountAddress.size = EVM.twoPow 160 from by decide]
       rw [Nat.mod_mod]
     have hΘ' :
-        (cA', σ', g'', A', z, outKick) =
-          Ethereum.EVM.Θ evm.executionEnv.blobVersionedHashes evm.createdAccounts
-            evm.genesisBlockHeader evm.blocks evm.accountMap evm.σ₀ A_in
+        (σ', g'', A', z, outKick) =
+          Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
             evm.executionEnv.sender (AccountAddress.ofUInt256 (barkIlksClipWord σMem I))
             (toExecute evm.accountMap (AccountAddress.ofUInt256 (barkIlksClipWord σMem I)))
@@ -23345,13 +23189,13 @@ theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
             ((barkKickCalldataMem I mem tab dink).readWithPadding
               barkKickOutPtr.toNat barkKickInSize.toNat)
             (evm.executionEnv.depth + 1) evm.executionEnv.header true := by
-      simpa [hevmEnv, hevmCreated, hevmMap, hevmGenesis, hevmBlocks, hevmOrig, hperm] using hΘ
+      simpa [hevmEnv, hevmMap, hevmOrig, hperm] using hΘ
     exact Reasoning.Theory.callCoincides
       (cfg := config v) (evm := evm) (name := "kick")
       (args := [.int (Int.ofNat tab.toNat), .int (Int.ofNat dink.toNat),
         .address (barkUrn I), .address (barkKpr I)])
       (tgt := EVM.address (AccountAddress.ofNat (barkIlksClipWord σMem I).toNat))
-      (targetWord := barkIlksClipWord σMem I) (cA' := cA') (σ' := σ') (A' := A')
+      (targetWord := barkIlksClipWord σMem I) (σ' := σ') (A' := A')
       (A_in := A_in) (z := z) (o := outKick) (g'' := g'') (callGas := callGas)
       (mem := barkKickCalldataMem I mem tab dink) (inOff := barkKickOutPtr)
       (inSize := barkKickInSize) (callPerm := true) hdepthNe htargetNorm
@@ -23361,7 +23205,7 @@ theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkKickCallFailure {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4386 : RD code I g s0 ⟨4386⟩ (⟨0⟩ :: R) mem aw rdata acc k C)
@@ -23422,7 +23266,7 @@ theorem RD.dogBarkKickCallFailure {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkKickCallSuccessToDecode {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {d0 d1 d2 : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -23466,7 +23310,7 @@ theorem RD.dogBarkKickCallSuccessToDecode {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkKickReturnDecodeShortReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem out : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4404 : RD code I g s0 ⟨4404⟩ (d0 :: d1 :: d2 :: R)
@@ -23577,7 +23421,7 @@ theorem RD.dogBarkKickReturnDecodeShortReverts {v : DogImmutables} {code : ByteA
 
 theorem RD.dogBarkKickReturnDecodeOk {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem out : ByteArray} {k C : ℕ} {retWord d0 d1 d2 : UInt256} {R : List UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4404 : RD code I g s0 ⟨4404⟩ (d0 :: d1 :: d2 :: R)
@@ -23699,7 +23543,7 @@ theorem RD.dogBarkKickReturnDecodeOk {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkKickDecodedToPublicReturn {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem out : ByteArray} {k C : ℕ} {σMem : AccountMap}
     {id tab due dink dust rate dart art ink ret sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -24197,7 +24041,7 @@ theorem RD.dogBarkKickDecodedToPublicReturn {v : DogImmutables} {code : ByteArra
 
 theorem RD.dogBarkPublicReturnId {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem memout out : ByteArray} {k C : ℕ} {id sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd448 : RD code I g s0 ⟨448⟩ (id :: sel :: [])
@@ -24308,7 +24152,7 @@ theorem RD.dogBarkPublicReturnId {v : DogImmutables} {code : ByteArray}
 theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
     {k C : ℕ} {ret sel : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare}
+    {mem rdata : ByteArray}
     {σ σMem : AccountMap}
     {spot dust rate art ink kpr urn ilk : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
@@ -24334,7 +24178,7 @@ theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArr
     (rd3308 : RD code I g s0 ⟨3308⟩
       (spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 17) rdata σ k C)
     (hov : R.length + 28 ≤ 1024) :
     RDrev code g s0 := by
   have htail : dogPostIlksErrorStringFullWordTailWf code ⟨3436⟩ ⟨25⟩
@@ -24365,7 +24209,7 @@ theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArr
   have rd3409 : RD code I g s0 ⟨3409⟩
       (dogSlotWord ⟨5⟩ σ I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
         art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k3409 C3409 := by
+      mem (UInt256.ofNat 17) rdata σ k3409 C3409 := by
     simpa [dogSlotWord, solcSlotWord] using rd3409raw
   have rd3411 := evm_run rd3409 with [
     raw push1 ⟨4⟩
@@ -24381,7 +24225,7 @@ theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArr
   have rd3412 : RD code I g s0 ⟨3412⟩
       (dogSlotWord ⟨4⟩ σ I :: dogSlotWord ⟨5⟩ σ I :: spot :: dust :: rate ::
         ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
-      mem (UInt256.ofNat 17) rdata (cA, σ) k3412 C3412 := by
+      mem (UInt256.ofNat 17) rdata σ k3412 C3412 := by
     simpa [dogSlotWord, solcSlotWord] using rd3412raw
   by_cases hglobal :
       (dogSlotWord ⟨5⟩ σ I).toNat < (dogSlotWord ⟨4⟩ σ I).toNat
@@ -24580,19 +24424,19 @@ theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArr
       (by simp only [List.length_cons]; omega)
 
 theorem RD.dogBarkVatUrnsStaticcallDepthLimitRevert {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {ret sel : UInt256} {R : List UInt256}
+    {σ σ₀ A I} {g : Sat256} {ret sel : UInt256} {R : List UInt256}
     {k C : ℕ} {mem rdata : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
-    (h : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨2885⟩
+    (h : RD code I g (initState σ σ₀ g A I) ⟨2885⟩
       (⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hov : R.length + 24 ≤ 1024) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev code g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, _, rd3007⟩ :=
     RD.dogBarkVatUrnsToStaticcall hpatch h hmem hread64 hcodeSize hov
   obtain ⟨_, _, rd3008raw⟩ :=
@@ -24605,11 +24449,11 @@ theorem RD.dogBarkVatUrnsStaticcallDepthLimitRevert {v : DogImmutables} {code : 
   have hmin : (min (⟨64⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     rfl
   obtain ⟨_, _, rd3008⟩ : ∃ k' C',
-      RD code I g (initState cA gh bl σ σ₀ g A I) ⟨3008⟩
+      RD code I g (initState σ σ₀ g A I) ⟨3008⟩
         (⟨0⟩ :: ⟨196⟩ :: ⟨606387804⟩ :: barkVatWord v ::
           ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I ::
           ret :: sel :: R)
-        (barkVatUrnsCallMem I mem) (UInt256.ofNat 7) ByteArray.empty (cA, σ) k' C' := by
+        (barkVatUrnsCallMem I mem) (UInt256.ofNat 7) ByteArray.empty σ k' C' := by
     have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 7).toNat
           (⟨128⟩ : UInt256).toNat (⟨68⟩ : UInt256).toNat)
@@ -24621,14 +24465,14 @@ theorem RD.dogBarkVatUrnsStaticcallDepthLimitRevert {v : DogImmutables} {code : 
 
 theorem RD.dogBarkLiveOk {v : DogImmutables} {code : ByteArray}
     {I : ExecutionEnv} {g : Sat256} {s0 : EVM.State} {stk : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hreach : ∃ k C, RD code I g s0 ⟨2813⟩ stk solcFreePtrMem
-      (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (UInt256.ofNat 3) rdata σ k C)
     (hlive : solcSlotWord σ I ⟨3⟩ = ⟨1⟩)
     (hov : stk.length + 6 ≤ 1024) :
     ∃ k C, RD code I g s0 ⟨2885⟩ (⟨0⟩ :: stk) solcFreePtrMem
-      (UInt256.ofNat 3) rdata (cA, σ) k C := by
+      (UInt256.ofNat 3) rdata σ k C := by
   obtain ⟨_, _, h⟩ := hreach
   have rd1 := h.jumpdest
     (by
@@ -24682,10 +24526,10 @@ theorem RD.dogBarkLiveOk {v : DogImmutables} {code : ByteArray}
 
 theorem RD.dogBarkLiveRevert {v : DogImmutables} {code : ByteArray}
     {I : ExecutionEnv} {g : Sat256} {s0 : EVM.State} {stk : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hreach : ∃ k C, RD code I g s0 ⟨2813⟩ stk solcFreePtrMem
-      (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (UInt256.ofNat 3) rdata σ k C)
     (hlive : solcSlotWord σ I ⟨3⟩ ≠ ⟨1⟩)
     (hov : stk.length + 6 ≤ 1024) :
     RDrev code g s0 := by
@@ -24758,15 +24602,15 @@ theorem RD.dogBarkLiveRevert {v : DogImmutables} {code : ByteArray}
 
 theorem dogBarkBodyCoreDecodeFailed_short
     {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hdispatch : dispatchMsg (contract v) I.calldata = some (barkTransition v))
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨785⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨785⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
     apply ult_one
@@ -24796,20 +24640,19 @@ theorem dogBarkBodyCoreDecodeFailed_short
     (dogDecode_bark_none_short (v := v) hsz4 hshort)
 
 theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (hcode : I.code = code)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (dogSelBytes 2))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (dogSelBytes 2)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (dogSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg (contract v) I.calldata = some (barkTransition v) :=
     dogDispatchBark hsel
-  have hreach := dogReachBarkBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := dogReachBarkBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
@@ -24820,65 +24663,65 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
             some (barkLocals I) :=
       dogDecode_bark_ok (v := v) hsz100
     have hbodyReach := RD.dogBarkDecodeToBody hpatch hsize hsz100 hreach
-    by_cases hliveEvm : dogSlotWord ⟨3⟩ σ_evm I = ⟨1⟩
+    by_cases hliveEvm : dogSlotWord ⟨3⟩ σ I = ⟨1⟩
     · have hslotWord :
-          dogSlotWord ⟨3⟩ σ_evm I = dogSlotWord ⟨3⟩ σ_solm I :=
+          dogSlotWord ⟨3⟩ σ I = dogSlotWord ⟨3⟩ σ I :=
         accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨3⟩ ⟨0⟩
-      have hliveSolm : dogSlotWord ⟨3⟩ σ_solm I = ⟨1⟩ := by
+      have hliveSolm : dogSlotWord ⟨3⟩ σ I = ⟨1⟩ := by
         rw [← hslotWord]
         exact hliveEvm
-      have hliveSolc : solcSlotWord σ_evm I ⟨3⟩ = ⟨1⟩ := by
+      have hliveSolc : solcSlotWord σ I ⟨3⟩ = ⟨1⟩ := by
         simpa [dogSlotWord] using hliveEvm
       obtain ⟨_, _, h2885⟩ := RD.dogBarkLiveOk hpatch hbodyReach hliveSolc
         (by simp only [List.length_cons, List.length_nil]; omega)
       by_cases hvatCodeSize :
-          Reasoning.Theory.extCodeSizeWord σ_evm (barkVatWord v) = ⟨0⟩
+          Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) = ⟨0⟩
       · have hrev := RD.dogBarkVatUrnsNoCodeRevert
           (v := v) (code := code) (ret := ⟨448⟩) (sel := solcSelectorWord I) (R := [])
           hpatch h2885 solcFreePtrMem_size solcFreePtrMem_read64 hvatCodeSize
           (by simp)
         have hvatCodeSizeSolm :
-            Reasoning.Theory.extCodeSizeWord σ_solm (barkVatWord v) = ⟨0⟩ :=
+            Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) = ⟨0⟩ :=
           barkVatCodeSize_zero_accountMapEquiv hAccounts hvatCodeSize
         have hvatNoCode :
             (UInt256.ofNat
-              (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+              (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
                 (AccountAddress.ofNat v.vat.toNat)).option 0
                   (fun acc => acc.code.size))).toNat = 0 :=
-          barkVatCode_zero_of_codeSize_zero (v := v) (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hvatCodeSizeSolm
-        let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+          barkVatCode_zero_of_codeSize_zero (v := v)
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hvatCodeSizeSolm
+        let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
             ExecTransitionBody (config v) (contract v) evm0 (barkLocals I)
               (barkTransition v).body .reverted := by
           simpa [evm0] using
-            (dogBarkVatUrnsNoCodeSourceBody (v := v) (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            (dogBarkVatUrnsNoCodeSourceBody (v := v)
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               hwv hliveSolm hvatNoCode)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hvatCodeSizeNe :
-            Reasoning.Theory.extCodeSizeWord σ_evm (barkVatWord v) ≠ ⟨0⟩ :=
+            Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩ :=
           hvatCodeSize
         have hvatCodeSizeSolmNe :
-            Reasoning.Theory.extCodeSizeWord σ_solm (barkVatWord v) ≠ ⟨0⟩ :=
+            Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩ :=
           barkVatCodeSize_ne_accountMapEquiv hAccounts hvatCodeSizeNe
         have hvatCode :
             0 < (UInt256.ofNat
-              (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+              (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
                 (AccountAddress.ofNat v.vat.toNat)).option 0
                   (fun acc => acc.code.size))).toNat :=
-          barkVatCode_pos_of_codeSize_ne (v := v) (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hvatCodeSizeSolmNe
+          barkVatCode_pos_of_codeSize_ne (v := v)
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hvatCodeSizeSolmNe
         by_cases hdepthLt : I.depth.val < 1024
-        · obtain ⟨cA', σ', z, out, A', _k', _C', rd3008, hcallEvmRaw, hosz⟩ :=
+        · obtain ⟨σ', z, out, A', _k', _C', rd3008, hcallEvmRaw, hosz⟩ :=
             RD.dogBarkVatUrnsPostStaticcall
               (v := v) (code := code) (ret := ⟨448⟩) (sel := solcSelectorWord I)
               (R := []) hpatch h2885 hsz100 solcFreePtrMem_size solcFreePtrMem_read64
               hvatCodeSizeNe hdepthLt (by simp)
-          let evmEvm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-          let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+          let evmEvm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+          let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
           let evmPostEvm :=
-            { evmEvm with accountMap := σ', substate := A', createdAccounts := cA' }
+            { evmEvm with accountMap := σ', substate := A' }
           have hcallEvm :
               typedCallViaEVM (config v) evmEvm
                 (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
@@ -24890,7 +24733,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
               (by simp [evmEvm, evmSolm, evmPostEvm, initState]) hAccounts
           let evmPostSolm :=
             { evmSolm with
-              accountMap := σSolmPost, substate := ASolmPost, createdAccounts := cA' }
+              accountMap := σSolmPost, substate := ASolmPost }
           have hcallSolm :
               typedCallViaEVM (config v) evmSolm
                 (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
@@ -24904,8 +24747,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                 ExecTransitionBody (config v) (contract v) evmSolm (barkLocals I)
                   (barkTransition v).body .reverted := by
               simpa [evmSolm] using
-                (dogBarkVatUrnsCallFailureSourceBody (v := v) (cA := cA) (gh := gh)
-                  (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                (dogBarkVatUrnsCallFailureSourceBody (v := v)
+                  (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                   (g := g) (evmCall := evmPostSolm) (out := out)
                   hwv hliveSolm hvatCode hcallSolm)
             exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -24957,12 +24800,12 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                     ExecTransitionBody (config v) (contract v) evmSolm (barkLocals I)
                       (barkTransition v).body .reverted := by
                   simpa [evmSolm] using
-                    (dogBarkVatIlksNoCodeSourceBody (v := v) (cA := cA) (gh := gh)
-                      (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+                    (dogBarkVatIlksNoCodeSourceBody (v := v)
+                      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                       (g := g) (evmUrns := evmPostSolm) (out := out)
                       hwv hliveSolm hvatCode hcallSolm hdecUrns hvatNoCode hsz100)
                 exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-              · obtain ⟨cA'', σ'', zIlks, outIlks, A'', _k'', _C'', rd3245,
+              · obtain ⟨σ'', zIlks, outIlks, A'', _k'', _C'', rd3245,
                     hcallIlksEvmRaw, hoszIlks⟩ :=
                   RD.dogBarkVatIlksPostStaticcall
                     (v := v) (code := code) (s0 := evmEvm) (evm := evmPostEvm)
@@ -24971,15 +24814,12 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                     hvatIlksCodeSize
                     (by simp [evmPostEvm, evmEvm, initState])
                     (by simp [evmPostEvm, evmEvm])
-                    (by simp [evmPostEvm, evmEvm])
-                    (by simp [evmPostEvm, evmEvm, initState])
-                    (by simp [evmPostEvm, evmEvm, initState])
                     (by simp [evmPostEvm, evmEvm, initState])
                     hdepthLt
                     (by simp only [List.length_nil]; omega)
                 let evmIlksPostEvm :=
                   { evmPostEvm with
-                    accountMap := σ'', substate := A'', createdAccounts := cA'' }
+                    accountMap := σ'', substate := A'' }
                 have hcallIlksEvm :
                     typedCallViaEVM (config v) evmPostEvm
                       (EVM.address (AccountAddress.ofNat v.vat.toNat)) "ilks" 0
@@ -24992,14 +24832,10 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                     (evm_solm := evmPostSolm) hcallIlksEvm
                     hStateCall.accountMap
                     (by simp [evmPostEvm, evmPostSolm, evmEvm, evmSolm, initState])
-                    (by simpa [evmPostEvm, evmPostSolm] using hStateCall.createdAccounts.symm)
-                    (by simp [evmPostEvm, evmPostSolm, evmEvm, evmSolm, initState])
-                    (by simp [evmPostEvm, evmPostSolm, evmEvm, evmSolm, initState])
                     (by simpa [evmPostEvm, evmPostSolm] using hStateCall.executionEnv.symm)
                 let evmIlksPostSolm :=
                   { evmPostSolm with
-                    accountMap := σIlksSolmPost, substate := AIlksSolmPost,
-                    createdAccounts := cA'' }
+                    accountMap := σIlksSolmPost, substate := AIlksSolmPost }
                 have hcallIlksSolm :
                     typedCallViaEVM (config v) evmPostSolm
                       (EVM.address (AccountAddress.ofNat v.vat.toNat)) "ilks" 0
@@ -25031,8 +24867,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                       ExecTransitionBody (config v) (contract v) evmSolm (barkLocals I)
                         (barkTransition v).body .reverted := by
                     simpa [evmSolm] using
-                      (dogBarkVatIlksCallFailureSourceBody (v := v) (cA := cA)
-                        (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A)
+                      (dogBarkVatIlksCallFailureSourceBody (v := v)
+                        (σ := σ) (σ₀ := σ₀) (A := A)
                         (I := I) (g := g) (evmUrns := evmPostSolm)
                         (evmIlks := evmIlksPostSolm) (out := out) (outIlks := outIlks)
                         hwv hliveSolm hvatCode hcallSolm hdecUrns hvatIlksCode
@@ -25085,8 +24921,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                           ExecTransitionBody (config v) (contract v) evmSolm (barkLocals I)
                             (barkTransition v).body .reverted := by
                         simpa [evmSolm] using
-                          (dogBarkVatIlksInkSpotOverflowSourceBody (v := v) (cA := cA)
-                            (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A)
+                          (dogBarkVatIlksInkSpotOverflowSourceBody (v := v)
+                            (σ := σ) (σ₀ := σ₀) (A := A)
                             (I := I) (g := g) (evmUrns := evmPostSolm)
                             (evmIlks := evmIlksPostSolm) (out := out)
                             (outIlks := outIlks) hwv hliveSolm hvatCode hcallSolm
@@ -25121,8 +24957,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                             ExecTransitionBody (config v) (contract v) evmSolm (barkLocals I)
                               (barkTransition v).body .reverted := by
                           simpa [evmSolm] using
-                            (dogBarkVatIlksArtRateOverflowSourceBody (v := v) (cA := cA)
-                              (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A)
+                            (dogBarkVatIlksArtRateOverflowSourceBody (v := v)
+                              (σ := σ) (σ₀ := σ₀) (A := A)
                               (I := I) (g := g) (evmUrns := evmPostSolm)
                               (evmIlks := evmIlksPostSolm) (out := out)
                               (outIlks := outIlks) hwv hliveSolm hvatCode hcallSolm
@@ -25178,8 +25014,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                               ExecTransitionBody (config v) (contract v) evmSolm
                                 (barkLocals I) (barkTransition v).body .reverted := by
                             simpa [evmSolm] using
-                              (dogBarkVatIlksNotUnsafeSourceBody (v := v) (cA := cA)
-                                (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                              (dogBarkVatIlksNotUnsafeSourceBody (v := v)
+                                (σ := σ) (σ₀ := σ₀)
                                 (A := A) (I := I) (g := g) (evmUrns := evmPostSolm)
                                 (evmIlks := evmIlksPostSolm) (out := out)
                                 (outIlks := outIlks) hwv hliveSolm hvatCode hcallSolm
@@ -25494,7 +25330,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                     simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                       using h.symm
                                   have hAccountsUrns :
-                                      accountMapEquiv σ' evmPostSolm.accountMap := by
+                                      Eq σ' evmPostSolm.accountMap := by
                                     simpa [evmPostEvm] using hStateCall.accountMap
                                   have hmilkDirt :
                                       dogSlotWord (barkIlksDirtSlotFor I)
@@ -25662,8 +25498,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                       ExecTransitionBody (config v) (contract v) evmSolm
                                         (barkLocals I) (barkTransition v).body .reverted := by
                                     have hblock :=
-                                      dogBarkVatIlksDartTailSourceBlock (v := v) (cA := cA)
-                                        (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                                      dogBarkVatIlksDartTailSourceBlock (v := v)
+                                        (σ := σ) (σ₀ := σ₀)
                                         (A := A) (I := I) (g := g)
                                         (evmUrns := evmPostSolm)
                                         (evmIlks := evmIlksPostSolm) (out := out)
@@ -25743,8 +25579,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                         (barkLocals I) (barkTransition v).body
                                         (.returned cs evmRet retVal) := by
                                     have hblock :=
-                                      dogBarkVatIlksDartTailSourceBlock (v := v) (cA := cA)
-                                        (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                                      dogBarkVatIlksDartTailSourceBlock (v := v)
+                                        (σ := σ) (σ₀ := σ₀)
                                         (A := A) (I := I) (g := g)
                                         (evmUrns := evmPostSolm)
                                         (evmIlks := evmIlksPostSolm) (out := out)
@@ -25770,7 +25606,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                           art :: ink :: ⟨0⟩ :: barkKprKey I ::
                                           barkUrnKey I :: barkIlkWord I :: ⟨448⟩ ::
                                           solcSelectorWord I :: [])
-                                        mem0 (UInt256.ofNat 17) outIlks (cA'', σ'') k C := by
+                                        mem0 (UInt256.ofNat 17) outIlks σ'' k C := by
                                     refine ⟨k3594Base, C3594Base, ?_⟩
                                     simpa [room, spot, dust, rate, dart0, art, ink, milkChop,
                                       mem0] using rd3594
@@ -25850,10 +25686,10 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                             art :: ink :: ⟨0⟩ :: barkKprKey I ::
                                             barkUrnKey I :: barkIlkWord I :: ⟨448⟩ ::
                                           solcSelectorWord I :: [])
-                                        mem0 (UInt256.ofNat 17) outIlks (cA'', σ'')
+                                        mem0 (UInt256.ofNat 17) outIlks σ''
                                           k3700 C3700) :
-                                      runtimeEquivalenceFor (config v) (contract v) cA gh bl
-                                        σ_evm σ_solm σ₀ g A I := by
+                                      runtimeEquivalenceFor (config v) (contract v)
+                                        σ σ₀ g A I := by
                                     let afterIntGuard : List Stmt :=
                                       checkedExternalCallStmts (vatExpr v) "grab"
                                         (.intLit 0)
@@ -26075,7 +25911,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                 RD.dogBarkVatGrabExtcodesizeGuard
                                                   (v := v) (code := code) (ret := ⟨448⟩)
                                                   (sel := solcSelectorWord I) (R := [])
-                                                  (cA := cA'') (σ := σ'') (σMem := σ')
+                                                  (σ := σ'') (σMem := σ')
                                                   hpatch
                                                   (by simpa [mem0] using hpostMemSize)
                                                   (by simpa [mem0] using hpostMemRead64)
@@ -26137,7 +25973,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                   hvatGrabCodeZero (by simp)
                                               exact hrev.reEquivExecutionRevert hcode
                                                 hdispatch hdecode htailBody
-                                            · obtain ⟨cAGrab, σGrab, zGrab, outGrab, AGrab,
+                                            · obtain ⟨σGrab, zGrab, outGrab, AGrab,
                                                   _, _, rd4039, hcallGrabEvmRaw,
                                                   houtGrabSize⟩ :=
                                                 RD.dogBarkVatGrabPostCall
@@ -26151,18 +25987,13 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                   (by simp [evmIlksPostEvm, evmPostEvm,
                                                     evmEvm, initState])
                                                   (by simp [evmIlksPostEvm])
-                                                  (by simp [evmIlksPostEvm])
-                                                  (by simp [evmIlksPostEvm, evmPostEvm,
-                                                    evmEvm, initState])
-                                                  (by simp [evmIlksPostEvm, evmPostEvm,
-                                                    evmEvm, initState])
                                                   (by simp [evmIlksPostEvm, evmPostEvm,
                                                     evmEvm, initState])
                                                   _hperm hdepthLt
                                                   (by simpa [dink] using hdinkBound)
                                                   hdartBound (by simp)
                                               let evmGrabEvm :=
-                                                { evmIlksPostEvm with accountMap := σGrab, substate := AGrab, createdAccounts := cAGrab }
+                                                { evmIlksPostEvm with accountMap := σGrab, substate := AGrab }
                                               have hcallGrabEvm :
                                                   typedCallViaEVM (config v) evmIlksPostEvm
                                                     (EVM.address
@@ -26201,21 +26032,12 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                     evmIlksPostSolm, evmPostEvm, evmPostSolm,
                                                     evmEvm, evmSolm, initState])
                                                   (by simp [evmIlksPostEvm,
-                                                    evmIlksPostSolm])
-                                                  (by simp [evmIlksPostEvm,
-                                                    evmIlksPostSolm, evmPostEvm, evmPostSolm,
-                                                    evmEvm, evmSolm, initState])
-                                                  (by simp [evmIlksPostEvm,
-                                                    evmIlksPostSolm, evmPostEvm, evmPostSolm,
-                                                    evmEvm, evmSolm, initState])
-                                                  (by simp [evmIlksPostEvm,
                                                     evmIlksPostSolm, evmPostEvm, evmPostSolm,
                                                     evmEvm, evmSolm, initState])
                                               let evmGrabSolm :=
                                                 { evmIlksPostSolm with
                                                   accountMap := σGrabSolm,
-                                                  substate := AGrabSolm,
-                                                  createdAccounts := cAGrab }
+                                                  substate := AGrabSolm }
                                               have hcallGrabSolm :
                                                   typedCallViaEVM (config v) evmIlksPostSolm
                                                     (EVM.address
@@ -26400,7 +26222,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                   dogBarkDueCheckedMulOkSource (v := v)
                                                     evmGrabSolm hdartGrab hrateGrab hfitDue
                                                 have hAccountsGrab :
-                                                    accountMapEquiv σGrab
+                                                    Eq σGrab
                                                       evmGrabSolm.accountMap := by
                                                   simpa [evmGrabEvm, evmGrabSolm] using
                                                     hAccountsGrabRaw
@@ -26465,7 +26287,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                       (g := Sat256.ofUInt256 g) (s0 := evmEvm)
                                                       (I := I) (ret := ⟨448⟩)
                                                       (sel := solcSelectorWord I) (R := [])
-                                                      (cA := cAGrab) (σ := σGrab)
+                                                      (σ := σGrab)
                                                       hpatch hmemGrabSize hmemGrabRead64
                                                       rd4071 (by simp)
                                                   have hvowCodeZeroSolm :
@@ -26527,7 +26349,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                       hvowCodeZero (by simp)
                                                   exact hrev.reEquivExecutionRevert hcode
                                                     hdispatch hdecode htailBody
-                                                · obtain ⟨cAFess, σFess, zFess, outFess,
+                                                · obtain ⟨σFess, zFess, outFess,
                                                     AFess, _, _, rd4155, hcallFessEvmRaw,
                                                     houtFessSize⟩ :=
                                                     RD.dogBarkFessPostCall
@@ -26541,19 +26363,12 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                         evmIlksPostEvm, evmPostEvm, evmEvm,
                                                         initState])
                                                       (by simp [evmGrabEvm])
-                                                      (by simp [evmGrabEvm])
-                                                      (by simp [evmGrabEvm,
-                                                        evmIlksPostEvm, evmPostEvm, evmEvm,
-                                                        initState])
-                                                      (by simp [evmGrabEvm,
-                                                        evmIlksPostEvm, evmPostEvm, evmEvm,
-                                                        initState])
                                                       (by simp [evmGrabEvm,
                                                         evmIlksPostEvm, evmPostEvm, evmEvm,
                                                         initState])
                                                       _hperm hdepthLt (by simp)
                                                   let evmFessEvm :=
-                                                    { evmGrabEvm with accountMap := σFess, substate := AFess, createdAccounts := cAFess }
+                                                    { evmGrabEvm with accountMap := σFess, substate := AFess }
                                                   have hcallFessEvm :
                                                       typedCallViaEVM (config v) evmGrabEvm
                                                         (EVM.address
@@ -26576,15 +26391,6 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                         evmIlksPostEvm, evmIlksPostSolm,
                                                         evmPostEvm, evmPostSolm, evmEvm,
                                                         evmSolm, initState])
-                                                      (by simp [evmGrabEvm, evmGrabSolm])
-                                                      (by simp [evmGrabEvm, evmGrabSolm,
-                                                        evmIlksPostEvm, evmIlksPostSolm,
-                                                        evmPostEvm, evmPostSolm, evmEvm,
-                                                        evmSolm, initState])
-                                                      (by simp [evmGrabEvm, evmGrabSolm,
-                                                        evmIlksPostEvm, evmIlksPostSolm,
-                                                        evmPostEvm, evmPostSolm, evmEvm,
-                                                        evmSolm, initState])
                                                       (by simp [evmGrabEvm, evmGrabSolm,
                                                         evmIlksPostEvm, evmIlksPostSolm,
                                                         evmPostEvm, evmPostSolm, evmEvm,
@@ -26592,8 +26398,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                   let evmFessSolm :=
                                                     { evmGrabSolm with
                                                       accountMap := σFessSolm,
-                                                      substate := AFessSolm,
-                                                      createdAccounts := cAFess }
+                                                      substate := AFessSolm }
                                                   have hcallFessSolm :
                                                       typedCallViaEVM (config v) evmGrabSolm
                                                         (EVM.address
@@ -26608,7 +26413,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                     simpa [evmFessEvm, evmFessSolm,
                                                       hvowWordGrab] using hcallFessSolmRaw
                                                   have hAccountsFess :
-                                                      accountMapEquiv σFess
+                                                      Eq σFess
                                                         evmFessSolm.accountMap := by
                                                     simpa [evmFessEvm, evmFessSolm] using
                                                       hAccountsFessRaw
@@ -27155,7 +26960,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                             evmFessSolm.executionEnv.codeOwner
                                                             ⟨5⟩ dirtNew
                                                         have hAccountsDirt :
-                                                            accountMapEquiv σDirt
+                                                            Eq σDirt
                                                               evmDirtSolm.accountMap := by
                                                           simpa [σDirt, evmDirtSolm,
                                                             hdirtNew_eq,
@@ -27428,7 +27233,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                               evmPostSolm, evmSolm, initState,
                                                               storageStore_executionEnv]
                                                           have hAccountsIlkDirt :
-                                                              accountMapEquiv σIlkDirt
+                                                              Eq σIlkDirt
                                                                 evmIlkDirtSolm.accountMap := by
                                                             simpa [σIlkDirt, evmIlkDirtSolm,
                                                               storageStore_accountMap,
@@ -27642,8 +27447,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 (s0 := evmEvm) (I := I)
                                                                 (ret := ⟨448⟩)
                                                                 (sel := solcSelectorWord I)
-                                                                (R := []) (cA := cAFess)
-                                                                (σ := σIlkDirt) (σMem := σ')
+                                                                (R := []) (σ := σIlkDirt) (σMem := σ')
                                                                 hpatch hmemKickPreSize
                                                                 hmemKickPreRead64
                                                                 hmload256KickPre rd4267
@@ -27745,75 +27549,20 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 evmFessEvm, evmGrabEvm,
                                                                 evmIlksPostEvm, evmPostEvm,
                                                                 evmEvm, initState]
-                                                            have hIlkDirtEvmCreated :
-                                                                evmIlkDirtEvm.createdAccounts =
-                                                                  cAFess := by
-                                                              simp [evmIlkDirtEvm, evmDirtEvm,
-                                                                evmFessEvm, evmGrabEvm]
                                                             have hIlkDirtEvmMap :
-                                                                evmIlkDirtEvm.accountMap =
-                                                                  σIlkDirt := by
+                                                                evmIlkDirtEvm.accountMap = σIlkDirt := by
                                                               simp [evmIlkDirtEvm]
-                                                            have hIlkDirtEvmGenesis :
-                                                                evmIlkDirtEvm.genesisBlockHeader =
-                                                                  evmEvm.genesisBlockHeader := by
-                                                              simp [evmIlkDirtEvm, evmDirtEvm,
-                                                                evmFessEvm, evmGrabEvm,
-                                                                evmIlksPostEvm, evmPostEvm,
-                                                                evmEvm, initState]
-                                                            have hIlkDirtEvmBlocks :
-                                                                evmIlkDirtEvm.blocks =
-                                                                  evmEvm.blocks := by
-                                                              simp [evmIlkDirtEvm, evmDirtEvm,
-                                                                evmFessEvm, evmGrabEvm,
-                                                                evmIlksPostEvm, evmPostEvm,
-                                                                evmEvm, initState]
+                                                            have hIlkDirtAccounts :
+                                                                evmIlkDirtEvm.accountMap =
+                                                                  evmIlkDirtSolm.accountMap := by
+                                                              simpa [evmIlkDirtEvm] using
+                                                                hAccountsIlkDirt.symm
                                                             have hIlkDirtEvmOrig :
                                                                 evmIlkDirtEvm.σ₀ = evmEvm.σ₀ := by
                                                               simp [evmIlkDirtEvm, evmDirtEvm,
                                                                 evmFessEvm, evmGrabEvm,
                                                                 evmIlksPostEvm, evmPostEvm,
                                                                 evmEvm, initState]
-                                                            obtain ⟨cAKick, σKick, zKick,
-                                                                outKick, AKick, _, _, rd4386,
-                                                                hcallKickEvmRaw,
-                                                                houtKickSize⟩ :=
-                                                              RD.dogBarkKickPostCall
-                                                                (v := v) (code := code)
-                                                                (s0 := evmEvm)
-                                                                (evm := evmIlkDirtEvm)
-                                                                (I := I) (ret := ⟨448⟩)
-                                                                (sel := solcSelectorWord I)
-                                                                (R := []) (σMem := σ')
-                                                                hpatch rd4267
-                                                                hmemKickPreSize
-                                                                hmemKickPreRead64
-                                                                hmload256KickPre
-                                                                hclipCodeZero
-                                                                hIlkDirtEvmEnv
-                                                                hIlkDirtEvmCreated
-                                                                hIlkDirtEvmMap
-                                                                hIlkDirtEvmGenesis
-                                                                hIlkDirtEvmBlocks
-                                                                hIlkDirtEvmOrig
-                                                                _hperm hdepthLt (by simp)
-                                                            let evmKickEvm :=
-                                                              { evmIlkDirtEvm with accountMap := σKick, substate := AKick, createdAccounts := cAKick }
-                                                            have hcallKickEvm :
-                                                                typedCallViaEVM (config v)
-                                                                  evmIlkDirtEvm
-                                                                  (EVM.address
-                                                                    (AccountAddress.ofNat
-                                                                      (barkIlksClipWord σ' I).toNat))
-                                                                  "kick" 0
-                                                                  [.int (Int.ofNat tab.toNat),
-                                                                    .int (Int.ofNat dink.toNat),
-                                                                    .address (barkUrn I),
-                                                                    .address (barkKpr I)]
-                                                                  (zKick, evmKickEvm, outKick)
-                                                                  true := by
-                                                              simpa [evmKickEvm] using
-                                                                hcallKickEvmRaw
                                                             have hIlkDirtSolmEnv :
                                                                 evmIlkDirtSolm.executionEnv = I := by
                                                               simp [evmIlkDirtSolm, evmDirtSolm,
@@ -27821,61 +27570,10 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 evmIlksPostSolm, evmPostSolm,
                                                                 evmSolm, initState,
                                                                 storageStore_executionEnv]
-                                                            have hIlkDirtSolmCreated :
-                                                                evmIlkDirtSolm.createdAccounts =
-                                                                  cAFess := by
-                                                              simp [evmIlkDirtSolm, evmDirtSolm,
-                                                                evmFessSolm, evmGrabSolm,
-                                                                storageStore_createdAccounts]
-                                                            have hIlkDirtSolmGenesis :
-                                                                evmIlkDirtSolm.genesisBlockHeader =
-                                                                  evmEvm.genesisBlockHeader := by
-                                                              calc
-                                                                evmIlkDirtSolm.genesisBlockHeader =
-                                                                    evmDirtSolm.genesisBlockHeader := by
-                                                                  simpa [evmIlkDirtSolm] using
-                                                                    dogStorageStore_genesisBlockHeader
-                                                                      evmDirtSolm
-                                                                      evmDirtSolm.executionEnv.codeOwner
-                                                                      (barkIlksDirtSlotFor I)
-                                                                      ilkDirtNew
-                                                                _ = evmFessSolm.genesisBlockHeader := by
-                                                                  simpa [evmDirtSolm] using
-                                                                    dogStorageStore_genesisBlockHeader
-                                                                      evmFessSolm
-                                                                      evmFessSolm.executionEnv.codeOwner
-                                                                      ⟨5⟩ dirtNew
-                                                                _ = evmEvm.genesisBlockHeader := by
-                                                                  simp [evmFessSolm, evmGrabSolm,
-                                                                    evmIlksPostSolm, evmPostSolm,
-                                                                    evmSolm, evmEvm, initState]
-                                                            have hIlkDirtSolmBlocks :
-                                                                evmIlkDirtSolm.blocks =
-                                                                  evmEvm.blocks := by
-                                                              calc
-                                                                evmIlkDirtSolm.blocks =
-                                                                    evmDirtSolm.blocks := by
-                                                                  simpa [evmIlkDirtSolm] using
-                                                                    dogStorageStore_blocks
-                                                                      evmDirtSolm
-                                                                      evmDirtSolm.executionEnv.codeOwner
-                                                                      (barkIlksDirtSlotFor I)
-                                                                      ilkDirtNew
-                                                                _ = evmFessSolm.blocks := by
-                                                                  simpa [evmDirtSolm] using
-                                                                    dogStorageStore_blocks
-                                                                      evmFessSolm
-                                                                      evmFessSolm.executionEnv.codeOwner
-                                                                      ⟨5⟩ dirtNew
-                                                                _ = evmEvm.blocks := by
-                                                                  simp [evmFessSolm, evmGrabSolm,
-                                                                    evmIlksPostSolm, evmPostSolm,
-                                                                    evmSolm, evmEvm, initState]
                                                             have hIlkDirtSolmOrig :
                                                                 evmIlkDirtSolm.σ₀ = evmEvm.σ₀ := by
                                                               calc
-                                                                evmIlkDirtSolm.σ₀ =
-                                                                    evmDirtSolm.σ₀ := by
+                                                                evmIlkDirtSolm.σ₀ = evmDirtSolm.σ₀ := by
                                                                   simpa [evmIlkDirtSolm] using
                                                                     dogStorageStore_sigma0 evmDirtSolm
                                                                       evmDirtSolm.executionEnv.codeOwner
@@ -27891,25 +27589,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                     evmIlksPostSolm, evmPostSolm,
                                                                     evmSolm, evmEvm, initState]
                                                             have hIlkDirtOriginalAccounts :
-                                                                evmIlkDirtEvm.σ₀ =
-                                                                  evmIlkDirtSolm.σ₀ := by
-                                                              rw [hIlkDirtEvmOrig,
-                                                                hIlkDirtSolmOrig]
-                                                            have hIlkDirtCreatedEq :
-                                                                evmIlkDirtSolm.createdAccounts =
-                                                                  evmIlkDirtEvm.createdAccounts := by
-                                                              rw [hIlkDirtSolmCreated,
-                                                                hIlkDirtEvmCreated]
-                                                            have hIlkDirtGenesisEq :
-                                                                evmIlkDirtSolm.genesisBlockHeader =
-                                                                  evmIlkDirtEvm.genesisBlockHeader := by
-                                                              rw [hIlkDirtSolmGenesis,
-                                                                hIlkDirtEvmGenesis]
-                                                            have hIlkDirtBlocksEq :
-                                                                evmIlkDirtSolm.blocks =
-                                                                  evmIlkDirtEvm.blocks := by
-                                                              rw [hIlkDirtSolmBlocks,
-                                                                hIlkDirtEvmBlocks]
+                                                                evmIlkDirtEvm.σ₀ = evmIlkDirtSolm.σ₀ := by
+                                                              rw [hIlkDirtEvmOrig, hIlkDirtSolmOrig]
                                                             have hIlkDirtEnvEq :
                                                                 evmIlkDirtSolm.executionEnv =
                                                                   evmIlkDirtEvm.executionEnv := by
@@ -27920,18 +27601,13 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                               dogTypedCallViaEVM_accountMapEquiv_noSubstate
                                                                 (evm_solm := evmIlkDirtSolm)
                                                                 hcallKickEvm
-                                                                (by simpa [hIlkDirtEvmMap] using
-                                                                  hAccountsIlkDirt)
+                                                                hIlkDirtEvmMap
                                                                 hIlkDirtOriginalAccounts
-                                                                hIlkDirtCreatedEq
-                                                                hIlkDirtGenesisEq
-                                                                hIlkDirtBlocksEq
                                                                 hIlkDirtEnvEq
                                                             let evmKickSolm :=
                                                               { evmIlkDirtSolm with
                                                                 accountMap := σKickSolm,
-                                                                substate := AKickSolm,
-                                                                createdAccounts := cAKick }
+                                                                substate := AKickSolm }
                                                             have hcallKickSolm :
                                                                 typedCallViaEVM (config v)
                                                                   evmIlkDirtSolm
@@ -27948,7 +27624,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                               simpa [evmKickEvm, evmKickSolm]
                                                                 using hcallKickSolmRaw
                                                             have hAccountsKick :
-                                                                accountMapEquiv σKick
+                                                                Eq σKick
                                                                   evmKickSolm.accountMap := by
                                                               simpa [evmKickEvm, evmKickSolm]
                                                                 using hAccountsKickRaw
@@ -28251,13 +27927,9 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                     dirtNew, ilkDirtNew,
                                                                     List.append_assoc] using
                                                                     htailReturn
-                                                                have hcreated :
-                                                                    (cAKick, σKick).1 =
-                                                                      evmKickSolm.createdAccounts := by
-                                                                  simp [evmKickSolm]
                                                                 have haccounts :
-                                                                    accountMapEquiv
-                                                                      (cAKick, σKick).2
+                                                                    Eq
+                                                                      σKick
                                                                       evmKickSolm.accountMap := by
                                                                   simpa [evmKickEvm,
                                                                     evmKickSolm] using
@@ -28275,8 +27947,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 exact
                                                                   hret.reEquivExecutionGenAccountMapEquiv
                                                                     hcode hdispatch hdecode
-                                                                    htailBody hcreated
-                                                                    haccounts henc
+                                                                    htailBody haccounts henc
                                                               · have hshort :
                                                                     outKick.size < 32 := by
                                                                   omega
@@ -29148,7 +28819,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                     simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                       using h.symm
                                   have hAccountsUrns :
-                                      accountMapEquiv σ' evmPostSolm.accountMap := by
+                                      Eq σ' evmPostSolm.accountMap := by
                                     simpa [evmPostEvm] using hStateCall.accountMap
                                   have hmilkDirt :
                                       dogSlotWord (barkIlksDirtSlotFor I)
@@ -29226,7 +28897,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                         (barkLocals I) (barkTransition v).body .reverted := by
                                     simpa [evmSolm] using
                                       (dogBarkVatIlksMilkChopZeroSourceBody (v := v)
-                                        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+                                        (σ := σ)
                                         (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                         (evmUrns := evmPostSolm)
                                         (evmIlks := evmIlksPostSolm) (out := out)
@@ -29246,7 +28917,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                       rw [← hcode] at hoog
                                       simpa [initState, Sat256.ofUInt256] using hoog))
                                   · have hxi :
-                                        Ξ cA gh bl σ_evm σ₀ g A I =
+                                        Ξ σ σ₀ g A I =
                                           .error .InvalidInstruction :=
                                       Xi_error_of_X (g := g) (by
                                         rw [← hcode] at hinvalid
@@ -29270,7 +28941,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                   simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                     using h.symm
                                 have hAccountsUrns :
-                                    accountMapEquiv σ' evmPostSolm.accountMap := by
+                                    Eq σ' evmPostSolm.accountMap := by
                                   simpa [evmPostEvm] using hStateCall.accountMap
                                 have hmilkDirt :
                                     dogSlotWord (barkIlksDirtSlotFor I)
@@ -29330,7 +29001,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                       (barkLocals I) (barkTransition v).body .reverted := by
                                   simpa [evmSolm] using
                                     (dogBarkVatIlksRoomWadOverflowSourceBody (v := v)
-                                      (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+                                      (σ := σ)
                                       (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                       (evmUrns := evmPostSolm) (evmIlks := evmIlksPostSolm)
                                       (out := out) (outIlks := outIlks) hwv hliveSolm
@@ -29370,7 +29041,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                 simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                   using h.symm
                               have hAccountsUrns :
-                                  accountMapEquiv σ' evmPostSolm.accountMap := by
+                                  Eq σ' evmPostSolm.accountMap := by
                                 simpa [evmPostEvm] using hStateCall.accountMap
                               have hmilkDirt :
                                   dogSlotWord (barkIlksDirtSlotFor I)
@@ -29412,7 +29083,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                     (barkLocals I) (barkTransition v).body .reverted := by
                                 simpa [evmSolm] using
                                   (dogBarkVatIlksLiquidationLimitHitSourceBody (v := v)
-                                    (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+                                    (σ := σ)
                                     (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                     (evmUrns := evmPostSolm) (evmIlks := evmIlksPostSolm)
                                     (out := out) (outIlks := outIlks) hwv hliveSolm
@@ -29449,8 +29120,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                 ExecTransitionBody (config v) (contract v) evmSolm
                                   (barkLocals I) (barkTransition v).body .reverted := by
                               simpa [evmSolm] using
-                                (dogBarkVatIlksNotUnsafeSourceBody (v := v) (cA := cA)
-                                  (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                                (dogBarkVatIlksNotUnsafeSourceBody (v := v)
+                                  (σ := σ) (σ₀ := σ₀)
                                   (A := A) (I := I) (g := g) (evmUrns := evmPostSolm)
                                   (evmIlks := evmIlksPostSolm) (out := out)
                                   (outIlks := outIlks) hwv hliveSolm hvatCode hcallSolm
@@ -29481,8 +29152,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                         ExecTransitionBody (config v) (contract v) evmSolm (barkLocals I)
                           (barkTransition v).body .reverted := by
                       simpa [evmSolm] using
-                        (dogBarkVatIlksDecodeRevertSourceBody (v := v) (cA := cA)
-                          (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A)
+                        (dogBarkVatIlksDecodeRevertSourceBody (v := v)
+                          (σ := σ) (σ₀ := σ₀) (A := A)
                           (I := I) (g := g) (evmUrns := evmPostSolm)
                           (evmIlks := evmIlksPostSolm) (out := out)
                           (outIlks := outIlks) hwv hliveSolm hvatCode hcallSolm
@@ -29498,8 +29169,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                   ExecTransitionBody (config v) (contract v) evmSolm (barkLocals I)
                     (barkTransition v).body .reverted := by
                 simpa [evmSolm] using
-                  (dogBarkVatUrnsDecodeRevertSourceBody (v := v) (cA := cA)
-                    (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A)
+                  (dogBarkVatUrnsDecodeRevertSourceBody (v := v)
+                    (σ := σ) (σ₀ := σ₀) (A := A)
                     (I := I) (g := g) (evmCall := evmPostSolm) (out := out)
                     hwv hliveSolm hvatCode hcallSolm hdec)
               exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -29512,7 +29183,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
             (v := v) (code := code) (ret := ⟨448⟩) (sel := solcSelectorWord I)
             (R := []) hpatch h2885 solcFreePtrMem_size solcFreePtrMem_read64
             hvatCodeSizeNe hdepth1024 (by simp)
-          let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+          let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
           let evmCall :=
             { evm0 with
               substate :=
@@ -29535,24 +29206,24 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
               ExecTransitionBody (config v) (contract v) evm0 (barkLocals I)
                 (barkTransition v).body .reverted := by
             simpa [evm0] using
-              (dogBarkVatUrnsCallFailureSourceBody (v := v) (cA := cA) (gh := gh)
-                (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+              (dogBarkVatUrnsCallFailureSourceBody (v := v)
+                (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                 (g := g) (evmCall := evmCall) (out := ByteArray.empty)
                 hwv hliveSolm hvatCode hcallDepth)
           exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hslotWord :
-          dogSlotWord ⟨3⟩ σ_evm I = dogSlotWord ⟨3⟩ σ_solm I :=
+          dogSlotWord ⟨3⟩ σ I = dogSlotWord ⟨3⟩ σ I :=
         accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨3⟩ ⟨0⟩
-      have hliveSolm : dogSlotWord ⟨3⟩ σ_solm I ≠ ⟨1⟩ := by
+      have hliveSolm : dogSlotWord ⟨3⟩ σ I ≠ ⟨1⟩ := by
         intro hsolm
         exact hliveEvm (by rw [hslotWord, hsolm])
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
           ExecTransitionBody (config v) (contract v) evm0 (barkLocals I)
             (barkTransition v).body .reverted := by
         simpa [evm0, barkTransition, barkBodyRest] using
-          dogNonpayableLivePrefixRevert (v := v) (cA := cA) (gh := gh)
-            (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+          dogNonpayableLivePrefixRevert (v := v)
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := barkLocals I)
             (rest := (barkBodyRest v).drop 1)
             (barkLocals_get_live I) hwv hliveSolm

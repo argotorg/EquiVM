@@ -12,7 +12,7 @@ namespace Benchmarks.Dss.Clipper
 set_option maxHeartbeats 4000000 in
 theorem clipperTakeRemoveEquiv
     (v : ClipperImmutables) {code : ByteArray}
-    {cA0 cACont gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {σCont : AccountMap} {evmCont : EVM.State}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
@@ -25,21 +25,20 @@ theorem clipperTakeRemoveEquiv
       (transitionSignature (takeTransition v)).paramTypes I.calldata =
         some (clipperTakeStore I))
     (rd8274 : RD code I (Sat256.ofUInt256 g)
-      (initState cA0 gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨8274⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8274⟩
       (id :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed ::
         stopped :: dataLen :: dataStart :: who :: max :: amt :: id ::
-        [⟨502⟩, sel]) mem aw out (cACont, σCont) k C)
+        [⟨502⟩, sel]) mem aw out σCont k C)
     (hidWord : id = clipperYankArgWord I)
     (hmem : clipperTakeMemoryWF mem aw) (hperm : I.perm = true)
-    (hAccounts : accountMapEquiv σCont evmCont.accountMap)
-    (hevmCreated : evmCont.createdAccounts = cACont)
+    (hAccounts : Eq σCont evmCont.accountMap)
     (hevmEnv : evmCont.executionEnv = I)
     (hsourceReverted :
       ExecFuncBody (config v)
           { contract := contract v, locals := clipperYankRemoveStore I }
           evmCont removeFunction.body .reverted →
         ExecTransitionBody (config v) (contract v)
-          (initState cA0 gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (clipperTakeStore I) (takeTransition v).body .reverted)
     (hsourceReturned : ∀ {callee : Frame} {evmRemove : EVM.State},
       ExecFuncBody (config v)
@@ -47,13 +46,13 @@ theorem clipperTakeRemoveEquiv
           evmCont removeFunction.body (.returned callee evmRemove none) →
         ∃ finalFrame : Frame,
           ExecTransitionBody (config v) (contract v)
-            (initState cA0 gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (clipperTakeStore I) (takeTransition v).body
             (.returned finalFrame
               (Solm.EVM.storageStore evmRemove evmRemove.executionEnv.codeOwner
                 ⟨13⟩ ⟨0⟩) none)) :
     runtimeEquivalenceFor (config v) (contract v)
-      cA0 gh bl σ_evm σ_solm σ₀ g A I := by
+      σ σ₀ g A I := by
   have howner : evmCont.executionEnv.codeOwner = I.codeOwner := by rw [hevmEnv]
   have hstorage (slot : UInt256) :
       solcSlotWord σCont I slot =
@@ -119,7 +118,7 @@ theorem clipperTakeRemoveEquiv
     exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdec hbody
       (by
         simp [evmRemove, sourceLastIndex, clipperYankDeleteSaleState,
-          clipperYankRemovePopState, storageStore_createdAccounts, hevmCreated])
+          clipperYankRemovePopState])
       (by
         simpa [lastIndex, sourceLastIndex, hlastIndexEq, evmRemove,
           clipperYankSuccessAccountMap] using hAccountsFinal)
@@ -167,7 +166,7 @@ theorem clipperTakeRemoveEquiv
     have hidxSolm : Solm.EVM.storageLoad evmCont
         evmCont.executionEnv.codeOwner (clipperYankSalesPosSlot I) = idx := by
       rw [← hstorage]
-    have hmoveAccounts : accountMapEquiv
+    have hmoveAccounts : Eq
         (clipperYankMoveAccountMap σCont I idx move) evmMovePos.accountMap := by
       simpa [evmIndex, evmMovePos] using
         clipperYankMoveAccountMap_state_accountMapEquiv
@@ -233,7 +232,7 @@ theorem clipperTakeRemoveEquiv
           (Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner ⟨11⟩).toNat := by
       rw [hidxSolm, ← hstorage]
       simpa [idx] using hidxBound
-    have hmoveAccounts : accountMapEquiv σMove evmMovePos.accountMap := by
+    have hmoveAccounts : Eq σMove evmMovePos.accountMap := by
       simpa [σMove, evmIndex, evmMovePos] using
         clipperYankMoveAccountMap_state_accountMapEquiv
           (σ := σCont) (τ := evmCont.accountMap) evmCont I idx move
@@ -297,7 +296,7 @@ theorem clipperTakeRemoveEquiv
       (by
         simp [evmRemove, popLastIndex, evmMovePos, evmIndex,
           clipperYankDeleteSaleState, clipperYankRemovePopState,
-          storageStore_createdAccounts, hevmCreated])
+          ])
       (by
         simpa [lastIndex, move, idx, σMove, lastIndexAfter,
           hlastIndexAfterEq, evmRemove, popLastIndex,

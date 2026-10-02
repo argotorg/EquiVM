@@ -36,14 +36,14 @@ private theorem wtf_maskLiteral {src : UInt256} (hsrc : src.toNat < EVM.addressM
 
 /-- The `balanceOf[src] ≥ wad` require prologue (pc 1087 → 1124): mask src, hash `keccak(src‖3)`,
     `SLOAD`, `GT wad; ISZERO; JUMPI` past the revert. -/
-theorem weth9TFReqBalanceOk {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256} {S : List UInt256}
+theorem weth9TFReqBalanceOk {ee g s0 rdata σ k C} {src dst wad ret : UInt256} {S : List UInt256}
     (h : RD weth9Bytecode ee g s0 ⟨1087⟩ (wad :: dst :: src :: ret :: S)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hsrc : src.toNat < EVM.addressModulus)
     (henough : wad.toNat ≤ (solcSlotWord σ ee (wtfBalSlot src)).toNat)
     (hov : S.length + 8 ≤ 1024) :
     ∃ k' C', RD weth9Bytecode ee g s0 ⟨1124⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      (wtfBalHashMem src) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (wtfBalHashMem src) (UInt256.ofNat 3) rdata σ k' C' := by
   have hmaskLiteral : UInt256.land src (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
       = src := by
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask from by decide]
@@ -85,9 +85,9 @@ theorem weth9TFReqBalanceOk {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256
   rw [ugt_zero henough]; decide
 
 /-- The `balanceOf[src] ≥ wad` require, revert case (pc 1087 → `PUSH1 0; DUP1; REVERT`). -/
-theorem weth9TFReqBalanceRev {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256} {S : List UInt256}
+theorem weth9TFReqBalanceRev {ee g s0 rdata σ k C} {src dst wad ret : UInt256} {S : List UInt256}
     (h : RD weth9Bytecode ee g s0 ⟨1087⟩ (wad :: dst :: src :: ret :: S)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hsrc : src.toNat < EVM.addressModulus)
     (hlt : (solcSlotWord σ ee (wtfBalSlot src)).toNat < wad.toNat)
     (hov : S.length + 8 ≤ 1024) :
@@ -130,15 +130,15 @@ theorem weth9TFReqBalanceRev {ee g s0 rdata cA σ k C} {src dst wad ret : UInt25
 
 /-- Branch, case `src == msg.sender` (pc 1124 → 1282): the `EQ msg.sender` short-circuits the
     `&&`, skipping the allowance spend (no store). -/
-theorem weth9TFBranchSkipSender {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256}
+theorem weth9TFBranchSkipSender {ee g s0 rdata σ k C} {src dst wad ret : UInt256}
     {S : List UInt256}
     (h : RD weth9Bytecode ee g s0 ⟨1124⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      (wtfBalHashMem src) (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (wtfBalHashMem src) (UInt256.ofNat 3) rdata σ k C)
     (hsrc : src.toNat < EVM.addressModulus)
     (heq : src = solcSourceWord ee)
     (hov : S.length + 8 ≤ 1024) :
     ∃ k' C', RD weth9Bytecode ee g s0 ⟨1282⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      (wtfBalHashMem src) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (wtfBalHashMem src) (UInt256.ofNat 3) rdata σ k' C' := by
   have rdMasked := h.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
     |>.push1 ⟨1⟩ (by native_decide) (by simp only [List.length_cons]; omega)
     |>.push1 ⟨1⟩ (by native_decide) (by simp only [List.length_cons]; omega)
@@ -171,16 +171,16 @@ abbrev wtfAllowHashMem (ee : ExecutionEnv) (src : UInt256) : ByteArray :=
 /-- Branch, case `src ≠ msg.sender` (pc 1124 → 1186): fall through the `EQ`, `POP`, then load
     `allowance[src][msg.sender]` (nested keccak) and push `allowance ≠ uint(-1)` onto the stack at
     the join `JUMPDEST` (pc 1186). -/
-theorem weth9TFAllowLoaded {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256} {S : List UInt256}
+theorem weth9TFAllowLoaded {ee g s0 rdata σ k C} {src dst wad ret : UInt256} {S : List UInt256}
     (h : RD weth9Bytecode ee g s0 ⟨1124⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      (wtfBalHashMem src) (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (wtfBalHashMem src) (UInt256.ofNat 3) rdata σ k C)
     (hsrc : src.toNat < EVM.addressModulus)
     (hne : solcSourceWord ee ≠ src)
     (hov : S.length + 16 ≤ 1024) :
     ∃ k' C', RD weth9Bytecode ee g s0 ⟨1186⟩
       (UInt256.isZero (UInt256.eq (UInt256.lnot ⟨0⟩)
           (solcSlotWord σ ee (wtfAllowSlot ee src))) :: ⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      (wtfAllowHashMem ee src) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (wtfAllowHashMem ee src) (UInt256.ofNat 3) rdata σ k' C' := by
   have hmem : (wtfBalHashMem src).size = 96 := twoWordHashMem_size_96 src ⟨3⟩ solcFreePtrMem_size
   have hinnerSize : (twoWordHashMem src ⟨4⟩ (wtfBalHashMem src)).size = 96 :=
     twoWordHashMem_size_96 src ⟨4⟩ hmem
@@ -282,16 +282,16 @@ theorem wtf_lnot0_toNat : (UInt256.lnot (⟨0⟩ : UInt256)).toNat = UInt256.siz
   unfold UInt256.lnot; decide
 
 /-- Branch join, case `allowance == uint(-1)` (pc 1186 → 1282): the `&&` is false, skip the spend. -/
-theorem weth9TFBranchSkipMax {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256}
+theorem weth9TFBranchSkipMax {ee g s0 rdata σ k C} {src dst wad ret : UInt256}
     {S : List UInt256} {mem : ByteArray}
     (h : RD weth9Bytecode ee g s0 ⟨1186⟩
       (UInt256.isZero (UInt256.eq (UInt256.lnot ⟨0⟩)
           (solcSlotWord σ ee (wtfAllowSlot ee src))) :: ⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hmax : (solcSlotWord σ ee (wtfAllowSlot ee src)).toNat = UInt256.size - 1)
     (hov : S.length + 8 ≤ 1024) :
     ∃ k' C', RD weth9Bytecode ee g s0 ⟨1282⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 3) rdata σ k' C' := by
   have hallow : solcSlotWord σ ee (wtfAllowSlot ee src) = UInt256.lnot ⟨0⟩ :=
     u256_inj (by rw [hmax, wtf_lnot0_toNat])
   exact ⟨_, _, h.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
@@ -304,15 +304,15 @@ theorem weth9TFBranchSkipMax {ee g s0 rdata cA σ k C} {src dst wad ret : UInt25
 /-- Rebuild the nested `allowance[src][caller]` keccak slot from `[0, wad, dst, src, ret, S]` with a
     size-96 scratch memory `mem`, `SLOAD`ing the current allowance.  Shared by the `require` check
     (pc 1192) and the decrement (pc 1239) — this variant is the `require` entry (pc 1192 → 1228). -/
-theorem weth9TFRequireAllowance {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256}
+theorem weth9TFRequireAllowance {ee g s0 rdata σ k C} {src dst wad ret : UInt256}
     {S : List UInt256} {mem : ByteArray}
     (h : RD weth9Bytecode ee g s0 ⟨1192⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hsrc : src.toNat < EVM.addressModulus) (hmemsize : mem.size = 96)
     (hov : S.length + 16 ≤ 1024) :
     ∃ k' C', RD weth9Bytecode ee g s0 ⟨1228⟩
       (solcSlotWord σ ee (wtfAllowSlot ee src) :: ⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      (solcNestedMappingCallerHashMem ⟨4⟩ src ee mem) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcNestedMappingCallerHashMem ⟨4⟩ src ee mem) (UInt256.ofNat 3) rdata σ k' C' := by
   have hinner : UInt256.ofNat (fromByteArrayBigEndian
       (KEC ((twoWordHashMem src ⟨4⟩ mem).readWithPadding 0 64))) = solcMappingSlot ⟨4⟩ src :=
     twoWordHashMem_solcMappingSlot ⟨4⟩ src hmemsize
@@ -368,15 +368,15 @@ theorem weth9TFRequireAllowance {ee g s0 rdata cA σ k C} {src dst wad ret : UIn
 
 /-- Decrement `allowance[src][caller] -= wad` (pc 1239 → 1282): rebuild the slot, `SLOAD`, `SUB`,
     `SSTORE`. -/
-theorem weth9TFDecrementAllowance {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256}
+theorem weth9TFDecrementAllowance {ee g s0 rdata σ k C} {src dst wad ret : UInt256}
     {S : List UInt256} {mem : ByteArray}
     (h : RD weth9Bytecode ee g s0 ⟨1239⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hperm : ee.perm = true) (hsrc : src.toNat < EVM.addressModulus) (hmemsize : mem.size = 96)
     (hov : S.length + 16 ≤ 1024) :
     ∃ k' C', RD weth9Bytecode ee g s0 ⟨1282⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
       (solcNestedMappingCallerHashMem ⟨4⟩ src ee mem) (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ (wtfAllowSlot ee src)
+      (sstoreAccountMap ee.codeOwner σ (wtfAllowSlot ee src)
         (UInt256.sub (solcSlotWord σ ee (wtfAllowSlot ee src)) wad)) k' C' := by
   have hinner : UInt256.ofNat (fromByteArrayBigEndian
       (KEC ((twoWordHashMem src ⟨4⟩ mem).readWithPadding 0 64))) = solcMappingSlot ⟨4⟩ src :=
@@ -453,12 +453,12 @@ theorem wtf_nestedHashMem_read64 (baseSlot owner : UInt256) (ee : ExecutionEnv) 
 
 /-- Branch join, case `src ≠ caller ∧ allowance ≠ uint(-1) ∧ allowance ≥ wad` (pc 1186 → 1282):
     require the allowance, decrement it. -/
-theorem weth9TFBranchSpendOk {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256}
+theorem weth9TFBranchSpendOk {ee g s0 rdata σ k C} {src dst wad ret : UInt256}
     {S : List UInt256}
     (h : RD weth9Bytecode ee g s0 ⟨1186⟩
       (UInt256.isZero (UInt256.eq (UInt256.lnot ⟨0⟩)
           (solcSlotWord σ ee (wtfAllowSlot ee src))) :: ⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      (wtfAllowHashMem ee src) (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (wtfAllowHashMem ee src) (UInt256.ofNat 3) rdata σ k C)
     (hperm : ee.perm = true) (hsrc : src.toNat < EVM.addressModulus)
     (hnotMax : solcSlotWord σ ee (wtfAllowSlot ee src) ≠ UInt256.lnot ⟨0⟩)
     (hallowEnough : wad.toNat ≤ (solcSlotWord σ ee (wtfAllowSlot ee src)).toNat)
@@ -467,7 +467,7 @@ theorem weth9TFBranchSpendOk {ee g s0 rdata cA σ k C} {src dst wad ret : UInt25
       (solcNestedMappingCallerHashMem ⟨4⟩ src ee
         (solcNestedMappingCallerHashMem ⟨4⟩ src ee (wtfAllowHashMem ee src)))
       (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ (wtfAllowSlot ee src)
+      (sstoreAccountMap ee.codeOwner σ (wtfAllowSlot ee src)
         (UInt256.sub (solcSlotWord σ ee (wtfAllowSlot ee src)) wad)) k' C' := by
   have rd1192 := h.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
     |>.iszero (by native_decide) (by simp only [List.length_cons]; omega)
@@ -489,12 +489,12 @@ theorem weth9TFBranchSpendOk {ee g s0 rdata cA σ k C} {src dst wad ret : UInt25
 
 /-- Branch join, revert case `src ≠ caller ∧ allowance ≠ uint(-1) ∧ allowance < wad` (pc 1186 → the
     `PUSH1 0; DUP1; REVERT` stub). -/
-theorem weth9TFBranchSpendRev {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256}
+theorem weth9TFBranchSpendRev {ee g s0 rdata σ k C} {src dst wad ret : UInt256}
     {S : List UInt256}
     (h : RD weth9Bytecode ee g s0 ⟨1186⟩
       (UInt256.isZero (UInt256.eq (UInt256.lnot ⟨0⟩)
           (solcSlotWord σ ee (wtfAllowSlot ee src))) :: ⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      (wtfAllowHashMem ee src) (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (wtfAllowHashMem ee src) (UInt256.ofNat 3) rdata σ k C)
     (hsrc : src.toNat < EVM.addressModulus)
     (hnotMax : solcSlotWord σ ee (wtfAllowSlot ee src) ≠ UInt256.lnot ⟨0⟩)
     (hlt : (solcSlotWord σ ee (wtfAllowSlot ee src)).toNat < wad.toNat)
@@ -565,10 +565,10 @@ private theorem wtfTail_wordAt0Mem_keccak {m : ByteArray} (key slot : UInt256) (
 /-- The shared tail (pc 1282 → JUMP `ret`): `balanceOf[src] -= wad`, `balanceOf[dst] += wad`,
     emit the `Transfer` LOG3, push the boolean `1`, and JUMP back to the caller's return address,
     leaving `[1, S]` on the stack with the wad written to the scratch return buffer. -/
-theorem weth9TFTail {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256} {S : List UInt256}
+theorem weth9TFTail {ee g s0 rdata σ k C} {src dst wad ret : UInt256} {S : List UInt256}
     {mem : ByteArray}
     (h : RD weth9Bytecode ee g s0 ⟨1282⟩ (⟨0⟩ :: wad :: dst :: src :: ret :: S)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hperm : ee.perm = true) (hsrc : src.toNat < EVM.addressModulus)
     (hdst : dst.toNat < EVM.addressModulus)
     (hmemsize : mem.size = 96) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -576,7 +576,7 @@ theorem weth9TFTail {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256} {S : L
     (hov : S.length + 16 ≤ 1024) :
     ∃ k' C', RD weth9Bytecode ee g s0 ret (⟨1⟩ :: S)
       (solcScratchReturnMem (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)) wad) (UInt256.ofNat 5)
-      rdata (cA, wtfPostMap ee σ src dst wad) k' C' := by
+      rdata (wtfPostMap ee σ src dst wad) k' C' := by
   have hmem0size : (twoWordHashMem src ⟨3⟩ mem).size = 96 :=
     twoWordHashMem_size_96 src ⟨3⟩ hmemsize
   have hM0size : (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)).size = 96 :=

@@ -17,14 +17,14 @@ def safeTransferDynamicFinalWords (aw ptr : UInt256) (out : ByteArray) : UInt256
 set_option maxHeartbeats 1000000 in
 theorem uniswapSafeTransferDynamicReturnCases_of_zeroSlot
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {base out data : ByteArray} {ptr aw value toWord tokenWord ret : UInt256} {R : List UInt256} {k C : Nat}
     {caller : Frame} {tokenExpr toExpr valueExpr : Expr} {retVar : Ident} {z : Bool}
     (evm evm' : EVM.State) (token recipient : AccountAddress)
     (rd6595 : RD uniswapV2PairBytecode I g s0 ⟨6595⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: (ptr + ⟨232⟩) :: UInt256.land tokenWord solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: tokenWord :: ret :: R)
-      (safeTransferDynamicCallMem2 base ptr toWord value) (safeTransferDynamicCallWords2 aw ptr) out acc k C)
+      (safeTransferDynamicCallMem2 base ptr toWord value) (safeTransferDynamicCallWords2 aw ptr) out σ k C)
     (hcaller : caller.contract = contract)
     (hargs : evalExprs? config caller evm [tokenExpr, toExpr, valueExpr] = .ok (safeTransferArgs token recipient value))
     (hdata : transferCalldata? recipient value = some data)
@@ -37,7 +37,7 @@ theorem uniswapSafeTransferDynamicReturnCases_of_zeroSlot
       .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
     (ExecStmt config caller evm (.internalCall "_safeTransfer" [tokenExpr, toExpr, valueExpr] retVar)
       (.ok (resumeAfterInternalCall caller retVar none) evm') ∧ ∃ k' C', RD uniswapV2PairBytecode I g s0 ret R
-        (safeTransferDynamicFinalMem base ptr toWord value out) (safeTransferDynamicFinalWords aw ptr out) out acc k' C') := by
+        (safeTransferDynamicFinalMem base ptr toWord value out) (safeTransferDynamicFinalWords aw ptr out) out σ k' C') := by
   by_cases he : out.size = 0
   · cases z with
     | false => exact Or.inl ⟨safeTransferInternalCallReverts_callFailure caller evm evm' token recipient value

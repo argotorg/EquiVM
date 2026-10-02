@@ -27,7 +27,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
         Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) = ⟨0⟩
     · have hcodeSizeSolm :
           Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) = ⟨0⟩ :=
-        pokePipCodeSize_zero_accountMapEquiv hsz36 rfl hcodeSize
+        pokePipCodeSize_zero_accountMapEq hsz36 rfl hcodeSize
       have hpipNoCodeSolm :
           (UInt256.ofNat
             (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -48,7 +48,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
         RD.spotPokePeekCallReady hsz36 rd598 hcodeSize
       have hcodeSizeSolm :
           Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) ≠ ⟨0⟩ :=
-        pokePipCodeSize_ne_zero_accountMapEquiv hsz36 rfl hcodeSize
+        pokePipCodeSize_ne_zero_accountMapEq hsz36 rfl hcodeSize
       have hpipCodeSolm :
           0 <
             (UInt256.ofNat
@@ -111,7 +111,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                   pokePeekOutPtr.toNat pokePeekInSize.toNat)
                 (evmE.executionEnv.depth + 1) evmE.executionEnv.header evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks true := by
           simpa [evmE, initState, _hperm] using hΘ
-        obtain ⟨σ'_solm, A'_solm, hcallSolm, hAccounts'⟩ :=
+        obtain ⟨σ'_solm, A'_solm, hcallSolm, hMap'⟩ :=
           typedCallViaEVM_callMade_accountMapEquiv
             (cfg := config) (evm_evm := evmE) (evm_solm := evmS)
             (tgt := EVM.address (pokePipAddress σ I))
@@ -121,7 +121,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
             (out := out) (g'' := g'') (callGas := callGas)
             (mem := pokePeekCalldataMem I)
             (inOff := pokePeekOutPtr) (inSize := pokePeekInSize) (callPerm := true)
-            hdepthNe (pokePipEvmAddress_eq_target_of_accountMapEquiv hsz36 rfl)
+            hdepthNe (pokePipEvmAddress_eq_target_of_accountMapEq hsz36 rfl)
             (pokePeekEncode_eq I) hΘE
             (by simp [evmE, evmS, initState])
             (by simp [evmE, evmS, initState])
@@ -193,7 +193,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
               · have hvatCodeSizeSolm :
                     Reasoning.Theory.extCodeSizeWord σ'_solm
                         (pokeVatTargetWord σ'_solm I) = ⟨0⟩ :=
-                  pokeVatCodeSize_zero_accountMapEquiv hAccounts' hvatCodeSize
+                  pokeVatCodeSize_zero_accountMapEq hMap' hvatCodeSize
                 have hvatNoCodeSolm :
                     (UInt256.ofNat
                       ((evmPipS.lookupAccount
@@ -239,7 +239,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                       (evmPipE.executionEnv.depth + 1) evmPipE.executionEnv.header
                       evmPipE.executionEnv.blobVersionedHashes evmPipE.executionEnv.blocks true := by
                   simpa [evmPipE, evmE, initState, _hperm] using hΘFile
-                obtain ⟨σ''_solm, A''_solm, hfileCallSolmAligned, hAccounts''⟩ :=
+                obtain ⟨σ''_solm, A''_solm, hfileCallSolmAligned, hMap''⟩ :=
                   typedCallViaEVM_callMade_accountMapEquiv
                     (cfg := config) (evm_evm := evmPipE) (evm_solm := evmPipSAligned)
                     (tgt := EVM.address (pokeVatAddress σ'_solm I))
@@ -256,10 +256,10 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                     (inOff := pokeVatFileOutPtr) (inSize := pokeVatFileInSize)
                     (callPerm := true)
                     (by simpa [evmPipE, evmE, initState] using hdepthNe)
-                    (pokeVatEvmAddress_eq_target_of_accountMapEquiv hAccounts')
+                    (pokeVatEvmAddress_eq_target_of_accountMapEq hMap')
                     (pokeVatFileEncode_eq I ⟨0⟩ hsz36 hmem192)
                     hΘFileE
-                    (by simpa [evmPipE, evmPipSAligned, evmPipS] using hAccounts')
+                    (by simpa [evmPipE, evmPipSAligned, evmPipS] using hMap')
                     (by simp [evmPipE, evmPipSAligned, evmPipS, evmE, evmS, initState])
                     (by simp [evmPipE, evmPipSAligned, evmPipS, evmE, evmS, initState])
                 have hfileDepth : evmPipS.executionEnv.depth ≠ 1024 := by
@@ -282,7 +282,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                 have hvatCodeSizeSolm :
                     Reasoning.Theory.extCodeSizeWord σ'_solm
                         (pokeVatTargetWord σ'_solm I) ≠ ⟨0⟩ :=
-                  pokeVatCodeSize_ne_zero_accountMapEquiv hAccounts' hvatCodeSize
+                  pokeVatCodeSize_ne_zero_accountMapEq hMap' hvatCodeSize
                 have hvatCodeSolm :
                     0 <
                       (UInt256.ofNat
@@ -367,7 +367,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                       (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
                         (dvs := []) rfl (by native_decide) (by native_decide))
                   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-                    (by simpa using hAccounts'') henc
+                    (by simpa using hMap'') henc
             ·
               have hhasNe : pokePeekHasWord out ≠ ⟨0⟩ := hhasZero
               obtain ⟨_, _, rd2051Val⟩ := RD.spotPokeHasTrueToValScaledMul rd733 hhasNe
@@ -417,7 +417,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                 have hparEq :
                     pokeParWord evmPipS.accountMap evmPipS.executionEnv =
                       pokeParWord σ' I := by
-                  have h := pokeParWord_accountMapEquiv (I := I) hAccounts'
+                  have h := pokeParWord_accountMapEq (I := I) hMap'
                   simpa [evmPipS, evmS, initState] using h.symm
                 by_cases hfitPar : valScaled.toNat * pokeRay.toNat < UInt256.size
                 · by_cases hparZero : pokeParWord σ' I = ⟨0⟩
@@ -484,7 +484,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                       rw [hparEq]
                     have hmatEq :
                         pokeMatWord evmPipS.accountMap I = pokeMatWord σ' I := by
-                      have h := pokeMatWord_accountMapEquiv (I := I) hAccounts'
+                      have h := pokeMatWord_accountMapEq (I := I) hMap'
                       simpa [evmPipS, evmS, initState] using h.symm
                     by_cases hfitMat : spot1.toNat * pokeRay.toNat < UInt256.size
                     · by_cases hmatZero : pokeMatWord σ' I = ⟨0⟩
@@ -543,7 +543,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                         · have hvatCodeSizeSolm :
                               Reasoning.Theory.extCodeSizeWord σ'_solm
                                   (pokeVatTargetWord σ'_solm I) = ⟨0⟩ :=
-                            pokeVatCodeSize_zero_accountMapEquiv hAccounts' hvatCodeSize
+                            pokeVatCodeSize_zero_accountMapEq hMap' hvatCodeSize
                           have hvatNoCodeSolm :
                               (UInt256.ofNat
                                 ((evmPipS.lookupAccount
@@ -606,7 +606,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                                   evmPipE.executionEnv.blocks true := by
                             simpa [evmPipE, evmE, initState, _hperm] using hΘFile
                           obtain ⟨σ''_solm, A''_solm, hfileCallSolmAligned,
-                              hAccounts''⟩ :=
+                              hMap''⟩ :=
                             typedCallViaEVM_callMade_accountMapEquiv
                               (cfg := config) (evm_evm := evmPipE)
                               (evm_solm := evmPipSAligned)
@@ -624,10 +624,10 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                               (inOff := pokeVatFileOutPtr) (inSize := pokeVatFileInSize)
                               (callPerm := true)
                               (by simpa [evmPipE, evmE, initState] using hdepthNe)
-                              (pokeVatEvmAddress_eq_target_of_accountMapEquiv hAccounts')
+                              (pokeVatEvmAddress_eq_target_of_accountMapEq hMap')
                               (pokeVatFileEncode_eq I spot2 hsz36 hmemHash192)
                               hΘFileE
-                              (by simpa [evmPipE, evmPipSAligned, evmPipS] using hAccounts')
+                              (by simpa [evmPipE, evmPipSAligned, evmPipS] using hMap')
                               (by simp [evmPipE, evmPipSAligned, evmPipS,
                                 evmE, evmS, initState])
                               (by simp [evmPipE, evmPipSAligned, evmPipS,
@@ -655,7 +655,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                           have hvatCodeSizeSolm :
                               Reasoning.Theory.extCodeSizeWord σ'_solm
                                   (pokeVatTargetWord σ'_solm I) ≠ ⟨0⟩ :=
-                            pokeVatCodeSize_ne_zero_accountMapEquiv hAccounts' hvatCodeSize
+                            pokeVatCodeSize_ne_zero_accountMapEq hMap' hvatCodeSize
                           have hvatCodeSolm :
                               0 <
                                 (UInt256.ofNat
@@ -780,7 +780,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                                   (by native_decide))
                             exact hret.reEquivExecutionGenAccountMapEquiv
                               hcode hdispatch hdecode hbody
-                              (by simpa using hAccounts'')
+                              (by simpa using hMap'')
                               henc
                     · have hoverMat :
                         UInt256.size ≤ spot1.toNat * pokeRay.toNat :=

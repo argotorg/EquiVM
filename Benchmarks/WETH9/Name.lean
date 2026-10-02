@@ -21,11 +21,11 @@ def nameEvaledRef : EvaledStorageRef := { base := "name", steps := [] }
 
 /-- The Solm `name()` body's `.storage nameRef` evaluates through the WETH9 total-decode string
     hook `weth9ReadBytesValue?`. -/
-theorem weth9NameStorageRead {cA gh bl σ σ₀ A I} {g : Sat256} :
-    evalExpr? config { contract := contract, locals := ∅ } (initState cA gh bl σ σ₀ g A I)
+theorem weth9NameStorageRead {σ σ₀ A I} {g : Sat256} :
+    evalExpr? config { contract := contract, locals := ∅ } (initState σ σ₀ g A I)
       (.storage nameRef)
     = storageValueResultToEval (weth9ReadBytesValue? storageLayoutRaw
-        nameEvaledRef (initState cA gh bl σ σ₀ g A I)) := by
+        nameEvaledRef (initState σ σ₀ g A I)) := by
   rw [evalExpr?, resolveStorageRef?_ok (er := nameEvaledRef) (ty := .string)
     (by simp [nameRef])
     (by simp [evalStorageRef, nameRef, nameEvaledRef, EvalResult.bind, bind, pure])
@@ -33,20 +33,20 @@ theorem weth9NameStorageRead {cA gh bl σ σ₀ A I} {g : Sat256} :
   simp only [bind, EvalResult.bind, readStorage?, config, storageLayout, weth9StorageLayout,
     weth9ReadValue?]
 
-theorem weth9NameBaseSlotLen {cA gh bl σ σ₀ A I} {g : Sat256} :
-    weth9BytesBaseSlotAndLength? storageLayoutRaw nameEvaledRef (initState cA gh bl σ σ₀ g A I) =
+theorem weth9NameBaseSlotLen {σ σ₀ A I} {g : Sat256} :
+    weth9BytesBaseSlotAndLength? storageLayoutRaw nameEvaledRef (initState σ σ₀ g A I) =
       .ok ((⟨0⟩ : UInt256), (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat) := by
   unfold weth9BytesBaseSlotAndLength?
   simp only [nameEvaledRef, List.nil_append, storageLayoutRaw, bytesLikeLengthLoc,
     apply_ite StorageLoc.slot, ite_self, weth9Header, weth9DecodeBytesLengthHeader_stringLen]
 
 /-- The `.bytes` value the Solm `name()` body returns: the decoded compact string. -/
-theorem weth9NameReadValue {cA gh bl σ σ₀ A I} {g : Sat256} :
-    weth9ReadBytesValue? storageLayoutRaw nameEvaledRef (initState cA gh bl σ σ₀ g A I) =
+theorem weth9NameReadValue {σ σ₀ A I} {g : Sat256} :
+    weth9ReadBytesValue? storageLayoutRaw nameEvaledRef (initState σ σ₀ g A I) =
       .ok (.bytes (if (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat < 32
         then (weth9StringSlotWord σ I ⟨0⟩).toByteArray.extract 0
           (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat
-        else (readSolidityBytesDataWordsFrom (initState cA gh bl σ σ₀ g A I) ⟨0⟩ 0
+        else (readSolidityBytesDataWordsFrom (initState σ σ₀ g A I) ⟨0⟩ 0
           (solidityBytesDataWordCount (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat)).extract 0
           (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat)) := by
   unfold weth9ReadBytesValue?
@@ -55,13 +55,13 @@ theorem weth9NameReadValue {cA gh bl σ σ₀ A I} {g : Sat256} :
   split <;> rfl
 
 /-- The full Solm `name()` body `evalExpr?` result. -/
-theorem weth9NameEval {cA gh bl σ σ₀ A I} {g : Sat256} :
-    evalExpr? config { contract := contract, locals := ∅ } (initState cA gh bl σ σ₀ g A I)
+theorem weth9NameEval {σ σ₀ A I} {g : Sat256} :
+    evalExpr? config { contract := contract, locals := ∅ } (initState σ σ₀ g A I)
       (.storage nameRef)
     = .ok (.bytes (if (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat < 32
         then (weth9StringSlotWord σ I ⟨0⟩).toByteArray.extract 0
           (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat
-        else (readSolidityBytesDataWordsFrom (initState cA gh bl σ σ₀ g A I) ⟨0⟩ 0
+        else (readSolidityBytesDataWordsFrom (initState σ σ₀ g A I) ⟨0⟩ 0
           (solidityBytesDataWordCount (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat)).extract 0
           (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat)) := by
   rw [weth9NameStorageRead, weth9NameReadValue]; rfl
@@ -81,8 +81,8 @@ theorem weth9LongSlot_eq (σ : AccountMap) (I : ExecutionEnv) (k : ℕ) :
       solidityBytesDataBaseSlot ⟨0⟩ + UInt256.ofNat (k + 1)
     exact uadd_ofNat_succ _ _
 
-theorem read_eq_wordConcat {cA gh bl σ σ₀ A I} {g : Sat256} (n idx : ℕ) :
-    readSolidityBytesDataWordsFrom (initState cA gh bl σ σ₀ g A I) ⟨0⟩ idx n =
+theorem read_eq_wordConcat {σ σ₀ A I} {g : Sat256} (n idx : ℕ) :
+    readSolidityBytesDataWordsFrom (initState σ σ₀ g A I) ⟨0⟩ idx n =
       wordConcat (weth9LongDataWordAt σ I) idx n := by
   induction n generalizing idx with
   | zero => rfl
@@ -118,11 +118,11 @@ theorem weth9LongLastWord (σ : AccountMap) (I : ExecutionEnv) (s : ℕ)
       hLtoNat, bytearray_append_list_eq]
 
 /-- Long string (`len ≥ 32`): the decoded keccak-data bytes ABI-encode to `weth9LongStringAbi`. -/
-theorem weth9NameEncode_long {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9NameEncode_long {σ σ₀ A I} {g : Sat256}
     (hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩)
     (hfit : 96 + 32 * weth9LongWC σ I < 2 ^ 64) :
     encodeReturnValue? stringTy (.bytes
-      ((readSolidityBytesDataWordsFrom (initState cA gh bl σ σ₀ g A I) ⟨0⟩ 0
+      ((readSolidityBytesDataWordsFrom (initState σ σ₀ g A I) ⟨0⟩ 0
           (solidityBytesDataWordCount (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat)).extract 0
         (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat)) = some (weth9LongStringAbi σ I) := by
   have hlen32 : 32 ≤ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat := by
@@ -217,56 +217,53 @@ theorem weth9Decode_name_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some (∅ : Store)
   exact decodeCalldataWithMode_empty_ok hsz4
 
-theorem weth9NameBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem weth9NameBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 0))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (_hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 0)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 0) (by native_decide) hsel
   by_cases hwv : I.weiValue = ⟨0⟩
   · -- string return: the Solm `.return [.storage nameRef]` body ABI-encodes to the EVM encoder's
     -- output (`StringReturnLong2.lean`); `weth9NameReturnSizeBound` handles the ≥2^64-byte regime.
     have hbody := nonpayableReturnExprBodyReturns (cfg := config) (contract := contract)
-      (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (locals := ∅)
+      (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) (locals := ∅)
       (by simp only [initState]; exact hwv) weth9NameEval
-    have hHbr : weth9StringSlotWord σ_solm I ⟨0⟩ = weth9StringSlotWord σ_evm I ⟨0⟩ :=
-      (weth9StringSlotWord_bridge (I := I) hAccounts ⟨0⟩).symm
-    by_cases hlen0 : weth9StringLen (weth9StringSlotWord σ_evm I ⟨0⟩) = ⟨0⟩
+    by_cases hlen0 : weth9StringLen (weth9StringSlotWord σ I ⟨0⟩) = ⟨0⟩
     · -- EMPTY (len = 0)
-      have hlen0' : (weth9StringLen (weth9StringSlotWord σ_solm I ⟨0⟩)).toNat = 0 := by
-        rw [hHbr, hlen0]; rfl
-      exact weth9ReEquivExecTransport hcode
+      have hlen0' : (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat = 0 := by
+        rw [hlen0]; rfl
+      exact weth9ReEquivExecGen hcode
         (weth9NameStringEmptyReturns (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel hlen0)
         (weth9SelectorDispatchName hsel) (weth9Decode_name_ok hsz4)
-        (by rw [nameTransition]; exact hbody) rfl hAccounts
+        (by rw [nameTransition]; exact hbody) rfl
         (returnEquiv_of_encode (weth9EncodeEmpty _ (by
           simp only [hlen0', show (0 : Nat) < 32 from by norm_num, if_true, ByteArray.size_extract]
           omega)))
-    · by_cases hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ_evm I ⟨0⟩)) = ⟨0⟩
+    · by_cases hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) = ⟨0⟩
       · -- SHORT (0 < len < 32)
-        have hlt32 : (weth9StringLen (weth9StringSlotWord σ_evm I ⟨0⟩)).toNat < 32 := by
+        have hlt32 : (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat < 32 := by
           have := weth9StringLen_toNat_le31 hlt31; omega
-        exact weth9ReEquivExecTransport hcode
+        exact weth9ReEquivExecGen hcode
           (weth9NameStringShortReturns (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel hlen0 hlt31)
           (weth9SelectorDispatchName hsel) (weth9Decode_name_ok hsz4)
-          (by rw [nameTransition]; exact hbody) rfl hAccounts
+          (by rw [nameTransition]; exact hbody) rfl
           (returnEquiv_of_encode (by
-            rw [hHbr, if_pos hlt32]; exact weth9EncodeShort _ hlen0 hlt31))
+            rw [if_pos hlt32]; exact weth9EncodeShort _ hlen0 hlt31))
       · -- LONG (len ≥ 32)
-        have hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ_evm I ⟨0⟩)) ≠ ⟨0⟩ := hlt31
-        have hge32 : ¬ (weth9StringLen (weth9StringSlotWord σ_evm I ⟨0⟩)).toNat < 32 := by
+        have hge31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) ≠ ⟨0⟩ := hlt31
+        have hge32 : ¬ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)).toNat < 32 := by
           have := weth9LongLen_ge32 hge31; omega
-        exact weth9ReEquivExecTransport hcode
+        exact weth9ReEquivExecGen hcode
           (weth9NameStringLongReturns (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel hge31
-            (weth9NameReturnSizeBound σ_evm I))
+            (weth9NameReturnSizeBound σ I))
           (weth9SelectorDispatchName hsel) (weth9Decode_name_ok hsz4)
-          (by rw [nameTransition]; exact hbody) rfl hAccounts
+          (by rw [nameTransition]; exact hbody) rfl
           (returnEquiv_of_encode (by
-            rw [hHbr, if_neg hge32, weth9DataWords_bridge hAccounts ⟨0⟩]
-            exact weth9NameEncode_long hge31 (weth9NameReturnSizeBound σ_evm I)))
+            rw [if_neg hge32]
+            exact weth9NameEncode_long hge31 (weth9NameReturnSizeBound σ I)))
   · -- non-payable revert: EVM reverts at name's callvalue guard (entry 166, gt 178).
-    obtain ⟨_, _, h166⟩ := weth9ReachName (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    obtain ⟨_, _, h166⟩ := weth9ReachName (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := weth9GuardPeelRev (gt := ⟨178⟩) h166 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)

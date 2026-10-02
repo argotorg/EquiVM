@@ -63,11 +63,11 @@ theorem daiDomainSeparatorBodyReturns (evm : EVM.State)
 
 /-! ## EVM trace -/
 
-theorem daiX_domainSeparator_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiX_domainSeparator_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨634⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret daiBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨634⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret daiBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (domainSeparatorWord σ I)) := by
   exact RD.daiWordGetterExternal
     (entry := ⟨634⟩) (returnPc := ⟨524⟩) (routine := ⟨2005⟩)
@@ -80,7 +80,7 @@ theorem daiX_domainSeparator_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     dai_return_word_from_mem_wf
 
 theorem daiDomainSeparatorBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some domainSeparatorTransition)
@@ -90,48 +90,43 @@ theorem daiDomainSeparatorBodyCoreOk
         (transitionSignature domainSeparatorTransition).paramTypes I.calldata =
           some domainSeparatorStore)
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨634⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : domainSeparatorWord σ_evm I = domainSeparatorWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner domainSeparatorStorageSlot ⟨0⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨634⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         domainSeparatorStore
         domainSeparatorTransition.body
         (.returned { contract := contract, locals := domainSeparatorStore }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.fixedBytes bytes32Width
-            (EVM.Word.toBytesBE (domainSeparatorWord σ_solm I)))])) := by
+            (EVM.Word.toBytesBE (domainSeparatorWord σ I)))])) := by
     simpa [domainSeparatorWord, domainSeparatorStorageSlot, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       daiDomainSeparatorBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (by simp only [initState]; exact hwv)
   exact (daiX_domainSeparator_ok (g := Sat256.ofUInt256 g) hreach)
-    |>.reEquivExecutionTransport hcode hdispatch hdecode hbody (by rw [← hword])
-      hAccounts
+    |>.reEquivExecution hcode hdispatch hdecode hbody
       (returnEquiv_of_encode
         (by simpa [bytes32, bytes32Width] using
-          bytes32ReturnEncoding (domainSeparatorWord σ_evm I)))
+          bytes32ReturnEncoding (domainSeparatorWord σ I)))
 
 /-- `DOMAIN_SEPARATOR()` body refines its Solm transition. -/
-theorem daiDomainSeparatorBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiDomainSeparatorBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiSelBytes 6))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiSelBytes 6)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 6) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some domainSeparatorTransition :=
     daiDispatchDomainSeparator hsel
-  have hreach := daiReachDomainSeparatorBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := daiReachDomainSeparatorBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   exact daiDomainSeparatorBodyCoreOk hcode hsize hwv hdispatch
-    (daiDecode_domainSeparator_ok hsz4) hreach hAccounts
+    (daiDecode_domainSeparator_ok hsz4) hreach
 
 end Benchmarks.Dss.Dai

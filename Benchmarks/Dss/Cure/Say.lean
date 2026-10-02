@@ -30,26 +30,25 @@ theorem cureDecode_say {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem cureSayBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem cureSayBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (cureSelBytes 13))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (cureSelBytes 13)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 13) rfl hsel
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ sayTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ sayTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (sayWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (sayWord σ I).toNat))])) := by
     simpa [sayTransition, sayWord, cureSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       cureUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := sayRef) (er := ({ base := "say", steps := [] } : EvaledStorageRef))
         (slot := ⟨9⟩)
         (by simp only [initState]; exact hwv) (by simp [sayRef])
@@ -58,7 +57,7 @@ theorem cureSayBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   exact cureUint256GetterBodyCore (entry := ⟨716⟩) (returnPc := ⟨343⟩)
     (routine := ⟨3344⟩) (slot := ⟨9⟩)
     hcode (cureDispatchSay hsel) (cureDecode_say hsz)
-    (cureReachSayBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
+    (cureReachSayBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)

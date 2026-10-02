@@ -127,14 +127,14 @@ theorem clipperTipBodyReturns (v : ClipperImmutables) (evm : EVM.State) (locals 
       (clipperEvalTip v evm locals hbase)
 
 set_option maxHeartbeats 1000000 in
-theorem clipperReachTipBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
+theorem clipperReachTipBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 23)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨637⟩ : UInt256)
-      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨637⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperTipSelectorWord hsz hsel
   have h260 := clipperSplitTaken (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
@@ -384,39 +384,26 @@ theorem clipperJumpDest2599 (v : ClipperImmutables) {code : ByteArray}
 
 theorem clipperTipBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (clipperSelBytes 23))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (clipperSelBytes 23)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 23) (by native_decide) hsel
   have hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ tipTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tipTransition.body
         (.returned { contract := contract v, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat (UInt256.land
-            (UInt256.div (solcSlotWord σ_solm I ⟨8⟩)
+            (UInt256.div (solcSlotWord σ I ⟨8⟩)
               (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩))
             (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩)).toNat))])) := by
     simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       clipperTipBodyReturns v
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv) (by simp)
-  have hword : solcSlotWord σ_evm I ⟨8⟩ = solcSlotWord σ_solm I ⟨8⟩ :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (UInt256.land
-          (UInt256.div (solcSlotWord σ_solm I ⟨8⟩)
-            (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩))
-          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩)).toNat)] =
-        some [Value.int (Int.ofNat (UInt256.land
-          (UInt256.div (solcSlotWord σ_evm I ⟨8⟩)
-            (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩))
-          (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩)).toNat)] := by
-    rw [hword]
   have hmask192 :
       (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩).toNat =
         2 ^ 192 - 1 := by
@@ -424,11 +411,11 @@ theorem clipperTipBody (v : ClipperImmutables) {code : ByteArray}
   have henc :
       returnEquiv
         (UInt256.toByteArray (UInt256.land
-          (UInt256.div (solcSlotWord σ_evm I ⟨8⟩)
+          (UInt256.div (solcSlotWord σ I ⟨8⟩)
             (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩))
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩)))
         (some [(.int (Int.ofNat (UInt256.land
-          (UInt256.div (solcSlotWord σ_evm I ⟨8⟩)
+          (UInt256.div (solcSlotWord σ I ⟨8⟩)
             (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩))
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩)).toNat))])
         tipTransition.returnType := by
@@ -438,19 +425,19 @@ theorem clipperTipBody (v : ClipperImmutables) {code : ByteArray}
         simpa [uint192] using
           uintReturnEncoding ⟨192, by decide⟩
             (UInt256.land
-              (UInt256.div (solcSlotWord σ_evm I ⟨8⟩)
+            (UInt256.div (solcSlotWord σ I ⟨8⟩)
                 (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩))
               (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩))
             (u256LandMaskToNatLtOfToNat
-              (UInt256.div (solcSlotWord σ_evm I ⟨8⟩)
+              (UInt256.div (solcSlotWord σ I ⟨8⟩)
                 (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩))
               (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩)
               hmask192))
-  have hreach := clipperReachTipBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := clipperReachTipBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz hsize hsel
-  have hret := clipperPackedUintOffsetGetterExternal (code := code) (cA := cA)
-    (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+  have hret := clipperPackedUintOffsetGetterExternal (code := code)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (sel := clipperSelWord I) (entry := (⟨637⟩ : UInt256))
     (routine := (⟨2599⟩ : UInt256)) (slot := (⟨8⟩ : UInt256))
     (returnPc := (⟨645⟩ : UInt256)) (shiftBits := (⟨64⟩ : UInt256))
@@ -459,7 +446,7 @@ theorem clipperTipBody (v : ClipperImmutables) {code : ByteArray}
     hmask192 (clipperJumpDest2599 v hpatch)
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨645⟩ : UInt256) (by native_decide))
     (clipperTipReturnComputedWf v hpatch)
-  exact hret.reEquivExecutionTransport hcode (clipperDispatch_tip v hsel)
-    (clipperDecode_tip v hsz) hbody hval hAccounts henc
+  exact hret.reEquivExecution hcode (clipperDispatch_tip v hsel)
+    (clipperDecode_tip v hsz) hbody henc
 
 end Benchmarks.Dss.Clipper

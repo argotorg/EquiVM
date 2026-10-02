@@ -282,14 +282,14 @@ theorem denyNotAuthorizedWord :
       ⟨0x4461692f6e6f742d617574686f72697a65640000000000000000000000000000⟩ := by
   native_decide
 
-theorem daiDenyX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiDenyX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨908⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3221⟩
+      (initState σ σ₀ g A I) ⟨908⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨3221⟩
         [denyGuyMaskedWord I, ⟨686⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd930⟩ := RD.daiOneAddressExternalLenOk
     (entry := ⟨908⟩) (ret := ⟨686⟩) (routine := ⟨3221⟩) hreach
     dai_one_address_external_entry_wf (by jump_dest) hsz36 hsize
@@ -299,26 +299,26 @@ theorem daiDenyX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_singleton]; omega)
   exact ⟨_, _, by simpa [denyGuyMaskedWord, denyGuyWord, calldataWord] using rd3221⟩
 
-theorem daiDenyX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiDenyX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨908⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨908⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   exact RD.daiOneAddressExternalShort
     (entry := ⟨908⟩) (ret := ⟨686⟩) (routine := ⟨3221⟩)
     hreach dai_one_address_external_entry_wf hsz4 hsize hshort
 
 set_option maxHeartbeats 1000000 in
-theorem daiDenyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiDenyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : denyAuthWord σ I = ⟨1⟩)
     (h : RD daiBytecode I g s0 ⟨3221⟩
       [denyGuyMaskedWord I, ⟨686⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiBytecode I g s0 ⟨3310⟩
       [denyGuyMaskedWord I, ⟨686⟩, sel]
-      (denyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (denyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((denyAuthHashMem I).readWithPadding 0 64))) =
@@ -349,7 +349,7 @@ theorem daiDenyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k3238, C3238, rd3238raw⟩ := rd3237.sload (by native_decide) (by evm_ov)
   have rd3238 : RD daiBytecode I g s0 ⟨3238⟩
       (denyAuthWord σ I :: denyGuyMaskedWord I :: ⟨686⟩ :: [sel])
-      (denyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3238 C3238 := by
+      (denyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3238 C3238 := by
     simpa [denyAuthWord, denyAuthStorageSlot_eq_mapSlot_source I] using rd3238raw
   have rd3241pre := evm_run rd3238 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -361,11 +361,11 @@ theorem daiDenyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiDenyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiDenyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : denyAuthWord σ I ≠ ⟨1⟩)
     (h : RD daiBytecode I g s0 ⟨3221⟩
       [denyGuyMaskedWord I, ⟨686⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -397,7 +397,7 @@ theorem daiDenyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k3238, C3238, rd3238raw⟩ := rd3237.sload (by native_decide) (by evm_ov)
   have rd3238 : RD daiBytecode I g s0 ⟨3238⟩
       (denyAuthWord σ I :: denyGuyMaskedWord I :: ⟨686⟩ :: [sel])
-      (denyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3238 C3238 := by
+      (denyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k3238 C3238 := by
     simpa [denyAuthWord, denyAuthStorageSlot_eq_mapSlot_source I] using rd3238raw
   have rd3241pre := evm_run rd3238 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -427,13 +427,13 @@ theorem daiDenyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem daiDenyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiDenyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (h : RD daiBytecode I g s0 ⟨3310⟩
       [denyGuyMaskedWord I, ⟨686⟩, sel]
-      (denyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (denyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret daiBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner σ (denyGuyStorageSlot I) ⟨0⟩)
+      (sstoreAccountMap I.codeOwner σ (denyGuyStorageSlot I) ⟨0⟩)
       ByteArray.empty := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -488,50 +488,45 @@ theorem daiDenyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   simpa [denyGuyStorageSlot_eq_mapSlot_masked I] using
     RD.stop rd687 (by native_decide) (by evm_ov)
 
-theorem daiX_deny_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiX_deny_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hauth : denyAuthWord σ I = ⟨1⟩)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨908⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret daiBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner σ (denyGuyStorageSlot I) ⟨0⟩)
+      (initState σ σ₀ g A I) ⟨908⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret daiBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ (denyGuyStorageSlot I) ⟨0⟩)
       ByteArray.empty := by
   obtain ⟨_, _, rd3221⟩ := daiDenyX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨_, _, rd3310⟩ := daiDenyX_authorized (I := I) hauth rd3221
   exact daiDenyX_storeAuthorized hperm rd3310
 
-theorem daiX_deny_unauthorized {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiX_deny_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : denyAuthWord σ I ≠ ⟨1⟩)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨908⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨908⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd3221⟩ := daiDenyX_decoded (g := g) hsz36 hsize hreach
   exact daiDenyX_unauthorized (I := I) hauth rd3221
 
 theorem daiDenyBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hauth : denyAuthWord σ_evm I = ⟨1⟩)
+    (hauth : denyAuthWord σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (denyStore I))
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨908⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthWord : denyAuthWord σ_solm I = ⟨1⟩ := by
-    have hword : denyAuthWord σ_evm I = denyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (denyAuthStorageSlot I) ⟨0⟩
-    rw [← hword]
-    exact hauth
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨908⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthWord : denyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
       ExecTransitionBody config contract evmSolm (denyStore I)
         denyTransition.body
@@ -545,38 +540,28 @@ theorem daiDenyBodyCoreOk
         hauthWord
   exact (daiX_deny_ok (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
     |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-      (by
-        simp [denyPostState, evmSolm, initState, storageStore_createdAccounts])
-      (by
-        simpa [denyPostState, evmSolm, initState, storageStore_accountMap] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner (denyGuyStorageSlot I) ⟨0⟩
-            hAccounts)
+      (by simp [denyPostState, evmSolm, initState, storageStore_accountMap])
       (by
         simpa [denyTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
             (dvs := []) rfl (by native_decide) (by native_decide)))
 
 theorem daiDenyBodyCoreUnauthorized
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hauth : denyAuthWord σ_evm I ≠ ⟨1⟩)
+    (hauth : denyAuthWord σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (denyTransition.params.map Param.name)
         (transitionSignature denyTransition).paramTypes I.calldata = some (denyStore I))
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨908⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthWord : denyAuthWord σ_solm I ≠ ⟨1⟩ := by
-    have hword : denyAuthWord σ_evm I = denyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (denyAuthStorageSlot I) ⟨0⟩
-    intro hbad
-    exact hauth (by rw [hword, hbad])
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨908⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthWord : denyAuthWord σ I ≠ ⟨1⟩ := hauth
   have hbody :
       ExecTransitionBody config contract evmSolm (denyStore I)
         denyTransition.body .reverted := by
@@ -590,38 +575,37 @@ theorem daiDenyBodyCoreUnauthorized
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem daiDenyBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some denyTransition)
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨908⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨908⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hdec := daiDecode_deny_none_short (I := I) hsz4 hshort
   exact (daiDenyX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
 
 /-- `deny(address)` body refines its Solm transition. -/
-theorem daiDenyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiDenyBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiSelBytes 5))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiSelBytes 5)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 5) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some denyTransition :=
     daiDispatchDeny hsel
-  have hreach := daiReachDenyBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := daiReachDenyBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
-  · by_cases hauth : denyAuthWord σ_evm I = ⟨1⟩
+  · by_cases hauth : denyAuthWord σ I = ⟨1⟩
     · exact daiDenyBodyCoreOk hcode hsize hperm hwv hsz36 hauth hdispatch
-        (daiDecode_deny_ok hsz36) hreach hAccounts
+        (daiDecode_deny_ok hsz36) hreach
     · exact daiDenyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
-        (daiDecode_deny_ok hsz36) hreach hAccounts
+        (daiDecode_deny_ok hsz36) hreach
   · exact daiDenyBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach
 

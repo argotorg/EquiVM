@@ -12,23 +12,20 @@ set_option maxRecDepth 2000000
 
 set_option maxHeartbeats 1000000 in
 theorem flapperCtorWardsStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σDefaults σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd122 :
       RD (flapperCtorCode vat gem) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨122⟩
+        (initState σ σ₀ g A I) ⟨122⟩
         [EVM.word gem.val, EVM.word vat.val, ⟨32⟩]
         (flapperCtorArgsMem vat gem) (UInt256.ofNat 6) ByteArray.empty
-        (createdAccounts, σDefaults) k C) :
+        σDefaults k C) :
     ∃ k' C', RD (flapperCtorCode vat gem) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨143⟩
+      (initState σ σ₀ g A I) ⟨143⟩
       [⟨1⟩, EVM.word vat.val, EVM.word gem.val]
       (flapperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner σDefaults (flapperCtorCallerWardsSlot I) ⟨1⟩)
+      (sstoreAccountMap I.codeOwner σDefaults (flapperCtorCallerWardsSlot I) ⟨1⟩)
       k' C' := by
   have rdBeforeHash := flapper_ctor_run rd122 with [
     caller, push1 ⟨0⟩, swap1, dup2,
@@ -49,31 +46,29 @@ theorem flapperCtorWardsStoreReach
 
 set_option maxHeartbeats 1000000 in
 theorem flapperCtorVatStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd143 :
       RD (flapperCtorCode vat gem) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨143⟩
+        (initState σ σ₀ g A I) ⟨143⟩
         [⟨1⟩, EVM.word vat.val, EVM.word gem.val]
         (flapperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
-        (createdAccounts, σWards) k C) :
+        σWards k C) :
     ∃ k' C', RD (flapperCtorCode vat gem) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨174⟩
+      (initState σ σ₀ g A I) ⟨174⟩
       [UInt256.lnot solcAddrMask, ⟨1⟩, solcAddrMask, EVM.word gem.val]
       (flapperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
-      (createdAccounts, sstoreAccountMap I.codeOwner σWards ⟨2⟩
+      (sstoreAccountMap I.codeOwner σWards ⟨2⟩
         (flapperCtorVatStored σWards I vat)) k' C' := by
   have rdBeforeSload := flapper_ctor_run rd143 with [push1 ⟨2⟩, dup1]
   obtain ⟨k147, C147, rd147raw⟩ := rdBeforeSload.sload (by flapper_ctor_decode) (by evm_ov)
   have rd147 :
       RD (flapperCtorCode vat gem) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨147⟩
+        (initState σ σ₀ g A I) ⟨147⟩
         [solcSlotWord σWards I ⟨2⟩, ⟨2⟩, ⟨1⟩, EVM.word vat.val, EVM.word gem.val]
         (flapperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
-        (createdAccounts, σWards) k147 C147 := by
+        σWards k147 C147 := by
     have hload :
         (σWards.find? I.codeOwner |>.option ⟨0⟩
           (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) =
@@ -102,32 +97,29 @@ theorem flapperCtorVatStoreReach
 
 set_option maxHeartbeats 1000000 in
 theorem flapperCtorGemStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σVat σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd174 :
       RD (flapperCtorCode vat gem) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨174⟩
+        (initState σ σ₀ g A I) ⟨174⟩
         [UInt256.lnot solcAddrMask, ⟨1⟩, solcAddrMask, EVM.word gem.val]
         (flapperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
-        (createdAccounts, σVat) k C) :
+        σVat k C) :
     ∃ k' C', RD (flapperCtorCode vat gem) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨191⟩
+      (initState σ σ₀ g A I) ⟨191⟩
       [⟨1⟩]
       (flapperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner σVat ⟨3⟩ (flapperCtorGemStored σVat I gem)) k' C' := by
+      (sstoreAccountMap I.codeOwner σVat ⟨3⟩ (flapperCtorGemStored σVat I gem)) k' C' := by
   have rdBeforeSload := flapper_ctor_run rd174 with [push1 ⟨3⟩, dup1]
   obtain ⟨k178, C178, rd178raw⟩ := rdBeforeSload.sload (by flapper_ctor_decode) (by evm_ov)
   have rd178 :
       RD (flapperCtorCode vat gem) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨178⟩
+        (initState σ σ₀ g A I) ⟨178⟩
         [solcSlotWord σVat I ⟨3⟩, ⟨3⟩, UInt256.lnot solcAddrMask, ⟨1⟩, solcAddrMask,
           EVM.word gem.val]
         (flapperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
-        (createdAccounts, σVat) k178 C178 := by
+        σVat k178 C178 := by
     have hload :
         (σVat.find? I.codeOwner |>.option ⟨0⟩
           (fun ac => ac.storage.findD ⟨3⟩ ⟨0⟩)) =
@@ -142,43 +134,39 @@ theorem flapperCtorGemStoreReach
       show (⟨190⟩ : UInt256) + ⟨1⟩ = ⟨191⟩ from by native_decide] using rd191raw⟩
 
 theorem flapperCtorLiveStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σGem σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd191 :
       RD (flapperCtorCode vat gem) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨191⟩
+        (initState σ σ₀ g A I) ⟨191⟩
         [⟨1⟩]
         (flapperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
-        (createdAccounts, σGem) k C) :
+        σGem k C) :
     ∃ k' C', RD (flapperCtorCode vat gem) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨194⟩
+      (initState σ σ₀ g A I) ⟨194⟩
       []
       (flapperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
-      (createdAccounts, sstoreAccountMap I.codeOwner σGem ⟨7⟩ ⟨1⟩) k' C' := by
+      (sstoreAccountMap I.codeOwner σGem ⟨7⟩ ⟨1⟩) k' C' := by
   have rd193 := flapper_ctor_run rd191 with [push1 ⟨7⟩]
   obtain ⟨k', C', rd194⟩ := rd193.sstore hperm (by flapper_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
     simpa [show (⟨193⟩ : UInt256) + ⟨1⟩ = ⟨194⟩ from by native_decide] using rd194⟩
 
 theorem flapperCtorStoresReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σDefaults σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat gem : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd122 :
       RD (flapperCtorCode vat gem) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨122⟩
+        (initState σ σ₀ g A I) ⟨122⟩
         [EVM.word gem.val, EVM.word vat.val, ⟨32⟩]
         (flapperCtorArgsMem vat gem) (UInt256.ofNat 6) ByteArray.empty
-        (createdAccounts, σDefaults) k C) :
+        σDefaults k C) :
     ∃ k' C', RD (flapperCtorCode vat gem) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨194⟩
+      (initState σ σ₀ g A I) ⟨194⟩
       [] (flapperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
-      (createdAccounts, flapperCtorFinalMap σDefaults I vat gem) k' C' := by
+      (flapperCtorFinalMap σDefaults I vat gem) k' C' := by
   obtain ⟨_, _, rd143⟩ := flapperCtorWardsStoreReach vat gem hperm rd122
   obtain ⟨_, _, rd174⟩ := flapperCtorVatStoreReach vat gem hperm rd143
   obtain ⟨_, _, rd191⟩ := flapperCtorGemStoreReach vat gem hperm rd174

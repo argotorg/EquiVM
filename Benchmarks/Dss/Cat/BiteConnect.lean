@@ -20,15 +20,15 @@ namespace Benchmarks.Dss.Cat
 the `(p/a)==b` guard is `0`, the `JUMPI` falls through, and the `PUSH1 0; DUP1; REVERT` stub fires.
 Used by the six `checkedMul` overflow reverts (inkSpot / artRate / dunkRoomWad / inkDart / dartRate /
 tabBase). -/
-theorem RD.catBiteCheckedMulRevert {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.catBiteCheckedMulRevert {σ σ₀ A I} {g : Sat256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {a b ret : UInt256} {R : List UInt256} {k C : ℕ}
-    (rd : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3720⟩
+    (rd : RD catBytecode I g (initState σ σ₀ g A I) ⟨3720⟩
       (a :: b :: ret :: R) mem aw rdata acc k C)
     (hover : UInt256.size ≤ a.toNat * b.toNat)
     (hov : R.length + 9 ≤ 1024) :
-    RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev catBytecode g (initState σ σ₀ g A I) := by
   have ha : a ≠ ⟨0⟩ := by
     intro h; subst h
     rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, Nat.zero_mul] at hover
@@ -77,27 +77,27 @@ theorem RD.catBiteCheckedMulRevert {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-- Entry (`375`) → routine (`1163`) → ilks `STATICCALL` (Seg 1, at pc `1249`): the first view call.
 Pure trace chaining; the ilks `typedCallViaEVM` coupling threads out. -/
-theorem catBiteReachPostIlks {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem catBiteReachPostIlks {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (catBiteVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (o' : ByteArray) (A' : Substate) (awout : UInt256) (k' C' : ℕ),
       RD catBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: catBiteIlksEndPtr :: catBiteIlksSelectorWord ::
           catBiteVatTargetWord σ I :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
           UInt256.land biteAddrMaskWord (calldataWord I.calldata 36) :: biteIlkWord I ::
           ⟨419⟩ :: catSelWord I :: [])
         (o'.write 0 (catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem)
           catBiteIlksOutPtr.toNat (min catBiteIlksOutSize (UInt256.ofNat o'.size)).toNat)
-        awout o' (cA', σ') k' C'
-    ∧ typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        awout o' σ' k' C'
+    ∧ typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I)) "ilks" 0 [biteIlkVal I]
-        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A', createdAccounts := cA' }, o') false
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ', substate := A' }, o') false
     ∧ o'.size < UInt256.size := by
   have hsz36 : 36 ≤ I.calldata.size := by omega
   obtain ⟨k, C, rd1163⟩ := catReachBiteRoutine hcode hwv hsz68 hsize hsel
@@ -108,14 +108,14 @@ theorem catBiteReachPostIlks {cA gh bl σ σ₀ A I} {g : UInt256}
 (`RD.catBiteUrnsStaticcallGen`).  The urns `typedCallViaEVM` coupling threads out.  The post-ilks
 memory facts (`hFree64`/`hRate`/`hSpot`/`hDust`) and `aw`/size bounds are taken as hypotheses
 (discharged by `catBiteBody` from the ilks-return decode). -/
-theorem catBiteReachPostUrns {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReachPostUrns {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {status urn iRate iSpot iDust : UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
       (status :: catBiteIlksEndPtr :: catBiteIlksSelectorWord :: catBiteVatTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: urn :: biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hstatus : status ≠ ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (haw : 288 ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
@@ -129,24 +129,24 @@ theorem catBiteReachPostUrns {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'
       (UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
+    ∃ (σ'' : AccountMap) (z : Bool)
       (o' : ByteArray) (A'' : Substate) (awout : UInt256) (k' C' : ℕ),
       RD catBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: ⟨606387804⟩ ::
           UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord ::
           ⟨0⟩ :: ⟨0⟩ :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: biteIlkWord I ::
           ⟨419⟩ :: catSelWord I :: [])
         (o'.write 0 (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem)
           (⟨128⟩ : UInt256).toNat (min (⟨64⟩ : UInt256) (UInt256.ofNat o'.size)).toNat)
-        awout o' (cA'', σ'') k' C'
+        awout o' σ'' k' C'
     ∧ typedCallViaEVM config
-        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σ', createdAccounts := cA' }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σ' }
         (AccountAddress.ofUInt256 (UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord))
         "urns" 0 [biteIlkVal I, biteUrnVal I]
-        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ'', substate := A'', createdAccounts := cA'' }, o') false
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ'', substate := A'' }, o') false
     ∧ o'.size < UInt256.size := by
   -- active-words invariance + not-≥ bounds for offsets ≤ 256
   have hnotge : ∀ off : UInt256, off.toNat ≤ 256 → ¬ (off ≥ aw * ⟨32⟩) := by
@@ -206,15 +206,15 @@ theorem catBiteReachPostUrns {cA gh bl σ σ₀ A I} {g : UInt256}
 
 /-- Post-urns (`1399`, urns succeeded) → `require(live == 1)` cleared (`1521`): urns 2-word return
 decode (`Seg3`: `ink`@128, `art`@160) then the live check (`Seg4`). -/
-theorem catBiteReach1399to1521 {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReach1399to1521 {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {status urn ink art iRate iSpot iDust : UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
       (status :: ⟨196⟩ :: ⟨606387804⟩ :: UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord ::
         ⟨0⟩ :: ⟨0⟩ :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: biteIlkWord I ::
         ⟨419⟩ :: catSelWord I :: [])
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hstatus : status ≠ ⟨0⟩)
     (haw : 192 ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
     (hmemsize : 192 ≤ mem.size)
@@ -224,10 +224,10 @@ theorem catBiteReach1399to1521 {cA gh bl σ σ₀ A I} {g : UInt256}
     (hArt : mem.readWithPadding 160 32 = UInt256.toByteArray art)
     (hlive : catSlotWord ⟨2⟩ σ' I = ⟨1⟩) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: biteIlkWord I ::
         ⟨419⟩ :: catSelWord I :: [])
-      mem aw o (cA', σ') k' C' := by
+      mem aw o σ' k' C' := by
   have hnotge : ∀ off : UInt256, off.toNat ≤ 160 → ¬ (off ≥ aw * ⟨32⟩) := by
     intro off hoff hh
     have hle : (aw * ⟨32⟩).toNat ≤ off.toNat := hh
@@ -257,14 +257,14 @@ theorem catBiteReach1399to1521 {cA gh bl σ σ₀ A I} {g : UInt256}
 `ilks[ilk]` struct load (keccak allocator) + `room = box - litter` checkedSub (`Seg6`).  The
 free-pointer / keccak-scratch facts (`hFp`/`hQ`/`hKec`) are taken as hypotheses (discharged by
 `catBiteBody` from the concrete post-urns memory, `fp = 128`, `q = 224`). -/
-theorem catBiteReach1521to1708 {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReach1521to1708 {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {art ink iRate iSpot iDust urn fp q : UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: biteIlkWord I ::
         ⟨419⟩ :: catSelWord I :: [])
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hspotPos : 0 < iSpot.toNat)
     (hfitArtRate : art.toNat * iRate.toNat < UInt256.size)
     (hfitInkSpot : ink.toNat * iSpot.toNat < UInt256.size)
@@ -284,7 +284,7 @@ theorem catBiteReach1521to1708 {cA gh bl σ σ₀ A I} {g : UInt256}
     (hqsz : q.toNat + 96 < UInt256.size)
     (hle : (solcSlotWord σ' I ⟨6⟩).toNat ≤ (solcSlotWord σ' I ⟨5⟩).toNat) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1708⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1708⟩
       (UInt256.sub (solcSlotWord σ' I ⟨5⟩) (solcSlotWord σ' I ⟨6⟩) ::
         ⟨0⟩ :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: biteIlkWord I ::
         ⟨419⟩ :: catSelWord I :: [])
@@ -292,24 +292,24 @@ theorem catBiteReach1521to1708 {cA gh bl σ σ₀ A I} {g : UInt256}
         (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ (biteIlkWord I))))
         (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨1⟩))
         (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ (biteIlkWord I) + ⟨2⟩)))
-      aw o (cA', σ') k' C' := by
+      aw o σ' k' C' := by
   obtain ⟨_, _, rd1620⟩ := catBiteTraceSeg5 rd hspotPos hfitArtRate hfitInkSpot hunsafe (by simp)
   exact catBiteTraceSeg6 rd1620 hFp hQ hKec hawFp hawQ hfpsz hqsz hle (by simp)
 
 /-- `1708` → `2073`: the `dart`/`dink` DSMath chain (`Seg7a` room require, `Seg7b` dart, `Seg7c` dink
 + `require(dart>0 && dink>0)`, `Seg7d` int256 bounds).  `milkChop`/`milkDunk` are read from the
 `milk` struct at `mem[32+q]`/`mem[64+q]`; the derived values are pinned by the `h*` equations. -/
-theorem catBiteReach1708to2073 {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReach1708to2073 {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {room q art ink iDust iSpot iRate urn : UInt256}
     {milkChop milkDunk dunkRoom dunkRoomWad dartDenomRate dartCandidate dart : UInt256}
     {inkDart dinkCandidate dink : UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1708⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1708⟩
       (room :: ⟨0⟩ :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
         biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hlitterbox : (solcSlotWord σ' I ⟨6⟩).toNat < (solcSlotWord σ' I ⟨5⟩).toNat)
     (hroomdust : iDust.toNat ≤ room.toNat)
     (hChop : (if (⟨32⟩ + q).toNat ≥ mem.size then ⟨0⟩
@@ -335,10 +335,10 @@ theorem catBiteReach1708to2073 {cA gh bl σ σ₀ A I} {g : UInt256}
     (hDartLim : dart.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat)
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2073⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2073⟩
       (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
         biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
-      mem aw o (cA', σ') k' C' := by
+      mem aw o σ' k' C' := by
   obtain ⟨_, _, rd1810⟩ := catBiteTraceSeg7a rd hlitterbox hroomdust (by simp)
   obtain ⟨_, _, rd1872⟩ := catBiteTraceSeg7b rd1810 hChop hDunk haw hqsz hRatePos hChopPos
     hDunkRoom hFitWad hDunkRoomWad hDartDenom hDartCand hDart (by simp)
@@ -349,16 +349,16 @@ theorem catBiteReach1708to2073 {cA gh bl σ σ₀ A I} {g : UInt256}
 /-- `2300` (fess succeeded) → `2383`: the fess call-success guard + tail POPs (`Seg7h`), then
 `dartRate`/`tabBase`/`tab`/`litterNew` arithmetic and the `SSTORE litter@6` (`Seg7i`).  Ends with
 slot `6` updated to `litterNew` in the account map. -/
-theorem catBiteReach2300to2383 {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReach2300to2383 {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {status f0 f1 f2 dink dart q art ink iDust iSpot iRate urn : UInt256}
     {milkChop dartRate tabBase tab litterNew : UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2300⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2300⟩
       (status :: f0 :: f1 :: f2 :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate ::
         ⟨0⟩ :: urn :: biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hstatus : status ≠ ⟨0⟩)
     (hChop : (if (⟨32⟩ + q).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨32⟩ + q).toNat 32)))
@@ -373,10 +373,10 @@ theorem catBiteReach2300to2383 {cA gh bl σ σ₀ A I} {g : UInt256}
     (hTab : UInt256.div tabBase ⟨1000000000000000000⟩ = tab)
     (hLitterNew : solcSlotWord σ' I ⟨6⟩ + tab = litterNew) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
       (tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
         biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
-      mem aw o (cA', sstoreAccountMap I.codeOwner σ' ⟨6⟩ litterNew) k' C' := by
+      mem aw o (sstoreAccountMap I.codeOwner σ' ⟨6⟩ litterNew) k' C' := by
   obtain ⟨_, _, rd2321⟩ := catBiteTraceSeg7h rd hstatus (by simp)
   exact catBiteTraceSeg7i rd2321 hChop haw hqsz hperm hRateFit hChopFit hLitFit
     hDartRate hTabBase hTab hLitterNew (by simp)
@@ -384,12 +384,12 @@ theorem catBiteReach2300to2383 {cA gh bl σ σ₀ A I} {g : UInt256}
 /-- `2532` (kick succeeded) → `RETURN`: the kick call-success guard + `id` extract + `dtab`
 checkedMul (`Seg8b1`), then the `Bite(...)` `LOG3` event and the shared `@419` uint256 return
 encoder (`Seg8b2`), producing `RDret … (toByteArray id)` — the full success result of `bite`. -/
-theorem catBiteReach2532toRet {cA gh bl σ σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem catBiteReach2532toRet {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap}
     {status target tab dink dart q art ink iDust iSpot iRate id urn milkFlip : UInt256}
     {mem8 o : ByteArray} {aw8 : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
       (status :: ⟨292⟩ :: ⟨891151872⟩ :: target ::
         tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
         biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
@@ -408,7 +408,7 @@ theorem catBiteReach2532toRet {cA gh bl σ σ₀ A I} {g : UInt256}
     (hFlipEv : (if q.toNat ≥ mem8.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem8.readWithPadding q.toNat 32))) = milkFlip) :
     RDret catBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id) := by
   obtain ⟨_, _, rd2631⟩ := catBiteTraceSeg8b1 (R3 := []) rd hstatus ho32 hoszLt hFree8 hId8
     haw8ev hRateFit (by simp)
   exact catBiteTraceSeg8b2 (R3 := []) rd2631 hperm hmem8size haw8q haw8ev hFlipEv hFree8 (by simp)
@@ -433,15 +433,15 @@ theorem catBiteFessEncode_eq (p2 dartRate : UInt256) {mem : ByteArray}
 /-- `2193` (grab succeeded) → `2300`: the grab call-success guard + `dartRate` recompute (`Seg7f`),
 the `fess` calldata build (`catBiteTraceFessBuild`), and the `vow.fess(dartRate)` `CALL`
 (`RD.catBiteFessCallGen`).  The fess `typedCallViaEVM` coupling threads out. -/
-theorem catBiteReachFessRegion {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReachFessRegion {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {status d0 d1 d2 dink dart q art ink iDust iSpot iRate urn dartRate p2 : UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2193⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2193⟩
       (status :: d0 :: d1 :: d2 :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate ::
         ⟨0⟩ :: urn :: biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hstatus : status ≠ ⟨0⟩)
     (hRateFit : iRate.toNat * dart.toNat < UInt256.size)
     (hDartRate : UInt256.mul dart iRate = dartRate)
@@ -452,22 +452,22 @@ theorem catBiteReachFessRegion {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'
       (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
+    ∃ (σ'' : AccountMap) (z : Bool)
       (o' mem' : ByteArray) (A'' aw' : _) (k' C' : ℕ),
       RD catBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2300⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2300⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: (⟨32⟩ + (⟨4⟩ + p2)) :: ⟨1769929592⟩ ::
           UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::
           dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
           biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
-        mem' aw' o' (cA'', σ'') k' C'
+        mem' aw' o' σ'' k' C'
     ∧ typedCallViaEVM config
-        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σ', createdAccounts := cA' }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σ' }
         (AccountAddress.ofUInt256 (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)))
         "fess" 0 [.int (Int.ofNat dartRate.toNat)]
-        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ'', substate := A'', createdAccounts := cA'' }, o') I.perm
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ'', substate := A'' }, o') I.perm
     ∧ o'.size < UInt256.size := by
   obtain ⟨_, _, rd2242⟩ := catBiteTraceSeg7f rd hstatus hRateFit hDartRate (by simp)
   obtain ⟨awF, _, _, rd2284⟩ :=
@@ -480,15 +480,15 @@ theorem catBiteReachFessRegion {cA gh bl σ σ₀ A I} {g : UInt256}
 /-- `2073` → `2193`: the `vat.grab(...)` calldata build (`catBiteTraceGrabBuild`, 7 `MSTORE`s at the
 fresh free pointer `p`) and the void `CALL` (`RD.catBiteGrabCallGen`, via `catBiteGrabEncode_eq`).
 The grab `typedCallViaEVM` coupling threads out. -/
-theorem catBiteReachGrabRegion {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReachGrabRegion {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {dink dart q art ink iDust iSpot iRate urn p : UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2073⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2073⟩
       (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
         biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hFree64 : mem.readWithPadding 64 32 = UInt256.toByteArray p)
     (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat ≤ mem.size)
     (hawcov : p.toNat ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
@@ -498,18 +498,18 @@ theorem catBiteReachGrabRegion {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'
       (UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
+    ∃ (σ'' : AccountMap) (z : Bool)
       (o' mem' : ByteArray) (A'' aw' : _) (k' C' : ℕ),
       RD catBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2193⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2193⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: (p + ⟨196⟩) :: ⟨2074820416⟩ ::
           UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord ::
           dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn ::
           biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
-        mem' aw' o' (cA'', σ'') k' C'
+        mem' aw' o' σ'' k' C'
     ∧ typedCallViaEVM config
-        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σ', createdAccounts := cA' }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σ' }
         (AccountAddress.ofUInt256 (UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord))
         "grab" 0
         [.fixedBytes bytes32Width (EVM.Word.toBytesBE (biteIlkWord I)),
@@ -518,8 +518,8 @@ theorem catBiteReachGrabRegion {cA gh bl σ σ₀ A I} {g : UInt256}
          .address (AccountAddress.ofNat
            (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)).toNat),
          .int (-(Int.ofNat dink.toNat)), .int (-(Int.ofNat dart.toNat))]
-        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ'', substate := A'', createdAccounts := cA'' }, o') I.perm
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ'', substate := A'' }, o') I.perm
     ∧ o'.size < UInt256.size := by
   obtain ⟨awF, _, _, rd2177⟩ :=
     catBiteTraceGrabBuild rd hFree64 hp96 hpmem hawcov hawsz hpsz (by simp)
@@ -538,39 +538,38 @@ theorem catBiteReachGrabRegion {cA gh bl σ σ₀ A I} {g : UInt256}
 
 /-- The `bite` SUCCESS-branch reEquiv: the chained-spine `RDret` (returning `id`) refines the Solm
 success body (`catBiteSourceSuccess`), coupled by the final account-map equivalence. -/
-theorem catBiteSuccessBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {evmKick : EVM.State}
+theorem catBiteSuccessBodyCore {σ σ₀ A I} {g : UInt256}
+    {acc : AccountMap} {evmKick : EVM.State}
     {id : UInt256} {cs : Frame}
     (hcode : I.code = catBytecode)
     (hret : RDret catBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id))
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id))
     (hdispatch : dispatchMsg contract I.calldata = some biteTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hbody :
-      ExecTransitionBody config contract (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      ExecTransitionBody config contract (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (biteLocals I) biteTransition.body (.returned cs evmKick (some [bw id])))
-    (hcreated : acc.1 = evmKick.createdAccounts)
-    (hAccountsFinal : accountMapEquiv acc.2 evmKick.accountMap) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hAccountsFinal : acc = evmKick.accountMap) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc : returnEquiv (UInt256.toByteArray id) (some [bw id]) biteTransition.returnType :=
     returnEquiv_of_encode (uint256ReturnEncoding id)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody hcreated
+  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     hAccountsFinal henc
 
-/-- The full `bite` SUCCESS leaf: the chained-spine `RDret` (returning `id`, on `σ_evm`) refines the
-Solm success body run on `σ_solm` (`catBiteSourceSuccess`), coupled by the final account-map
-equivalence.  The σ_evm→σ_solm mapping of the 5 calls is done by the caller (`catBiteBody`); this
+/-- The full `bite` SUCCESS leaf: the chained-spine `RDret` (returning `id`, on `σ`) refines the
+Solm success body run on `σ` (`catBiteSourceSuccess`), coupled by the final account-map
+equivalence.  The σ→σ mapping of the 5 calls is done by the caller (`catBiteBody`); this
 lemma just runs the source and finishes the reEquiv. -/
-theorem catBiteSuccessLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem catBiteSuccessLeaf {σ σ₀ A I} {g : UInt256}
     {evmIlk evmUrn evmGrab evmFess evmLit evmKick : EVM.State}
     {ilksOut urnsOut grabOut fessOut kickOut : ByteArray}
     {iArt iRate iSpot iLine iDust ink art id : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (hcode : I.code = catBytecode)
     (hret : RDret catBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id))
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc (UInt256.toByteArray id))
     (hdispatch : dispatchMsg contract I.calldata = some biteTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
@@ -578,12 +577,12 @@ theorem catBiteSuccessLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hwv : I.weiValue = ⟨0⟩)
     (hvatCode0 :
       0 < (UInt256.ofNat
-        (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
-          (biteVatAddr (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).option 0
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I))).option 0
           (fun acc => acc.code.size))).toNat)
     (hIlksCall :
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (EVM.address (biteVatAddr (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (EVM.address (biteVatAddr (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
         "ilks" 0 [biteIlkVal I] (true, evmIlk, ilksOut) false)
     (hIlksDec :
       config.externalABI.decode? "ilks" ilksOut =
@@ -640,20 +639,19 @@ theorem catBiteSuccessLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         [biteUrnVal I, .address (biteVowAddrV evmLit), bw (biteTabV I evmUrn iRate art),
           bw (biteDinkV I evmUrn iRate art ink), .int 0] (true, evmKick, kickOut) true)
     (hKickDec : config.externalABI.decode? "kick" kickOut = some [bw id])
-    (hcreated : acc.1 = evmKick.createdAccounts)
-    (hAccountsFinal : accountMapEquiv acc.2 evmKick.accountMap) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hbody := catBiteSourceSuccess (σ := σ_solm) hsz36 hwv hvatCode0 hIlksCall hIlksDec
+    (hAccountsFinal : acc = evmKick.accountMap) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  have hbody := catBiteSourceSuccess (σ := σ) hsz36 hwv hvatCode0 hIlksCall hIlksDec
     hvatCodeIlk hUrnsCall hUrnsDec hlive hfitInkSpot hfitArtRate hfitDunkRoomWad hfitInkDart
     hfitDartRate hfitTabBase hfitLitterNew hspotPos hratePos hartPos hmilkChopPos hunsafe hlitLtBox
     hroomGeDust hdartPos hdinkPos hdartLim hdinkLim hvatCodeMid hGrabCall hGrabDec hvowCode hFessCall
     hFessDec hLitStore hflipCode hKickCall hKickDec
-  exact catBiteSuccessBodyCore hcode hret hdispatch hdecode hbody hcreated hAccountsFinal
+  exact catBiteSuccessBodyCore hcode hret hdispatch hdecode hbody hAccountsFinal
 
-/-! ## σ_evm → σ_solm call-mapping lemmas (thread `EVMStateEquiv` across the 5 external calls) -/
+/-! ## σ → σ call-mapping lemmas -/
 
 /-- Shift the caller substate of a value-`0` typed call (local copy of the Vow lemma, needed to
-reconcile `typedCallViaEVM_accountMapEquiv`'s equal-substate requirement with the σ_solm state). -/
+reconcile `typedCallViaEVM_accountMapEquiv`'s equal-substate requirement with the σ state). -/
 theorem biteTypedCallZeroSetSubstate {cfg : Config} {evm evm' : EVM.State}
     {tgt : EVM.Address} {name : Ident} {args : List Value}
     {z : Bool} {out : ByteArray} {perm : Bool}
@@ -664,17 +662,16 @@ theorem biteTypedCallZeroSetSubstate {cfg : Config} {evm evm' : EVM.State}
         (z,
           { { evm with substate := A0 } with
             accountMap := evm'.accountMap
-            substate := A'
-            createdAccounts := evm'.createdAccounts },
+            substate := A' },
           out) perm := by
   obtain ⟨calldata, henc, hraw⟩ := hcall
   cases hraw with
   | callMade hvalue hTheta hevm' hvalueLe _hdepth =>
-      rename_i valueWord cA' σ' g' A'
+      rename_i valueWord σ' g' A'
       subst evm'
       rcases hTheta with ⟨callGas, A_in, hTheta⟩
       refine ⟨A', ⟨calldata, henc, ?_⟩⟩
-      refine callViaEVM.callMade (valueWord := valueWord) (cA' := cA') (σ' := σ')
+      refine callViaEVM.callMade (valueWord := valueWord) (σ' := σ')
         (g' := g') (A' := A') (perm := perm) hvalue ⟨callGas, A_in, ?_⟩ ?_ ?_ ?_
       · simpa using hTheta
       · rfl
@@ -684,72 +681,53 @@ theorem biteTypedCallZeroSetSubstate {cfg : Config} {evm evm' : EVM.State}
       exfalso
       exact hfail ⟨(by show (⟨0⟩ : UInt256) ≤ _; exact Fin.zero_le _), hdepth⟩
 
-/-- Map the ilks `STATICCALL` (from `initState`) to the σ_solm side, producing the σ_solm-side call
+/-- Map the ilks `STATICCALL` (from `initState`) to the σ side, producing the σ-side call
 and the `EVMStateEquiv` coupling for the next call. -/
-theorem catBiteMapIlksCall {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem catBiteMapIlksCall {σ σ₀ A I} {g : UInt256}
     {tgt : EVM.Address} {args : List Value} {evmIlk : EVM.State} {ilksOut : ByteArray} {name : Ident}
     {z : Bool} {perm : Bool}
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (hcall : typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+    (hcall : typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       tgt name 0 args (z, evmIlk, ilksOut) perm) :
-    ∃ (σ_solm' : AccountMap) (A_solm' : Substate),
-      typedCallViaEVM config (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) tgt name 0 args
-        (z, { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ_solm', substate := A_solm', createdAccounts := evmIlk.createdAccounts },
+    ∃ (σ' : AccountMap) (A_solm' : Substate),
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I) tgt name 0 args
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ', substate := A_solm' },
           ilksOut) perm
-    ∧ EVMStateEquiv evmIlk
-        { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_solm', substate := A_solm', createdAccounts := evmIlk.createdAccounts } :=
-  typedCallViaEVM_initState_EVMStateEquiv hcall
-    (by rw [typedCallViaEVM_executionEnv_eq hcall]; rfl) hAccounts
+    ∧ evmIlk.accountMap = σ' := by
+  obtain ⟨σ', A_solm', hcall', hmap⟩ :=
+    typedCallViaEVM_accountMapEquiv hcall rfl rfl rfl
+  exact ⟨σ', A_solm', by simpa using hcall', hmap⟩
 
-/-- Map an intermediate-state (post-ilks) value-`0` call to the σ_solm side, threading the
-`EVMStateEquiv` coupling.  Serves the urns/grab/fess/kick calls (all from `{initState … with …}`). -/
-theorem catBiteMapCall {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {σ_x_evm σ_x_solm : AccountMap} {A_x_evm A_x_solm : Substate}
-    {cA_x : Batteries.RBSet AccountAddress compare}
+/-- Map an intermediate-state (post-ilks) value-`0` call to the σ side, preserving
+account-map equality. Serves the urns/grab/fess/kick calls (all from `{initState … with …}`). -/
+theorem catBiteMapCall {σ σ₀ A I} {g : UInt256}
+    {σx : AccountMap} {A_x_evm A_x_solm : Substate}
     {tgt : EVM.Address} {name : Ident} {args : List Value} {z perm : Bool}
     {evm'_evm : EVM.State} {out : ByteArray}
-    (hState : EVMStateEquiv
-      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σ_x_evm, substate := A_x_evm, createdAccounts := cA_x }
-      { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σ_x_solm, substate := A_x_solm, createdAccounts := cA_x })
     (hcall : typedCallViaEVM config
-      { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σ_x_evm, substate := A_x_evm, createdAccounts := cA_x }
+      { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σx, substate := A_x_evm }
       tgt name 0 args (z, evm'_evm, out) perm)
     (hdepthNe : I.depth ≠ 1024) :
     ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
       typedCallViaEVM config
-        { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ_x_solm, substate := A_x_solm, createdAccounts := cA_x }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σx, substate := A_x_solm }
         tgt name 0 args
-        (z, { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ'_solm, substate := A'_solm,
-              createdAccounts := evm'_evm.createdAccounts }, out) perm
-    ∧ EVMStateEquiv evm'_evm
-        { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ'_solm, substate := A'_solm,
-            createdAccounts := evm'_evm.createdAccounts } := by
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ'_solm, substate := A'_solm }, out) perm
+    ∧ evm'_evm.accountMap = σ'_solm := by
   have hdepthNeBase :
-      ({ initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σ_x_solm, substate := A_x_evm,
-          createdAccounts := cA_x } : EVM.State).executionEnv.depth ≠ 1024 := by
+      ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σx, substate := A_x_evm } : EVM.State).executionEnv.depth ≠ 1024 := by
     simpa [initState] using hdepthNe
   obtain ⟨σ'_solm, A'_solm0, hcallBase, hAcc'⟩ :=
     typedCallViaEVM_accountMapEquiv
-      (evm_solm := { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σ_x_solm, substate := A_x_evm, createdAccounts := cA_x })
-      hcall (by simpa using hState.accountMap) (by simp [initState]) rfl
-      (by simp [initState]) (by simp [initState]) (by simp) (by simpa using hState.executionEnv.symm)
+      (evm_solm := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σx, substate := A_x_evm })
+      hcall rfl rfl rfl
   obtain ⟨A'_solm, hcallSolm⟩ := biteTypedCallZeroSetSubstate hcallBase hdepthNeBase A_x_solm
-  refine ⟨σ'_solm, A'_solm, ?_, ?_, ?_, ?_⟩
-  · simpa using hcallSolm
-  · rw [typedCallViaEVM_executionEnv_eq hcall]
-    simpa [initState] using hState.executionEnv
-  · rfl
-  · simpa using hAcc'
+  exact ⟨σ'_solm, A'_solm, by simpa using hcallSolm, hAcc'⟩
 
 /-! ## Short-calldata revert (`size < 68`) -/
 
@@ -773,13 +751,12 @@ theorem catBiteDecode_none_short {I : ExecutionEnv}
   rw [if_pos (by rw [List.length_drop, htlen]; omega : (I.calldata.toList.drop 4).length < 64)]
 
 /-- Calldata size `< 68` → the length check reverts, matched to the Solm decode failure. -/
-theorem catBiteShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem catBiteShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
-    (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩)
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hreach := catReachBiteEntry (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  have hreach := catReachBiteEntry (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one

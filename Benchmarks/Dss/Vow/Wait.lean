@@ -45,13 +45,13 @@ theorem vowDecode_wait {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem vowReachWaitBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vowReachWaitBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x64, 0xbd, 0x70, 0x13]⟩) :
-    ∃ k C, RD vowBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
         ⟨509⟩ [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vowSelWord I = ⟨1690136595⟩ :=
     vowSelWord_eq_of_beq I hsz 0x64 0xbd 0x70 0x13 ⟨1690136595⟩
       (by native_decide) hsel
@@ -75,34 +75,33 @@ theorem vowReachWaitBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by jump_dest) (by native_decide)
 
 theorem vowWaitBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some waitTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (waitTransition.params.map Param.name)
         (transitionSignature waitTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨509⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨509⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ waitTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ waitTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (waitWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (waitWord σ I).toNat))])) := by
     simpa [waitTransition, waitWord, vowSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vowUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := waitRef) (er := ({ base := "wait", steps := [] } : EvaledStorageRef))
         (slot := ⟨7⟩)
         (by simp only [initState]; exact hwv) (by simp [waitRef])
         (by simp [evalStorageRef, evalStorageRefSteps, waitRef, EvalResult.bind, pure, bind])
         (by decide) (by rfl)
   exact vowUint256GetterBodyCore (entry := ⟨509⟩) (routine := ⟨2288⟩) (slot := ⟨7⟩)
-    hcode hdispatch hdecode hreach hAccounts
+    hcode hdispatch hdecode hreach
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)
@@ -112,15 +111,14 @@ theorem vowWaitBodyCore
     (by jump_dest) (by rfl)
     (by simpa [waitWord] using hbody)
 
-theorem vowWaitBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem vowWaitBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0x64, 0xbd, 0x70, 0x13]⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I ⟨#[0x64, 0xbd, 0x70, 0x13]⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x64, 0xbd, 0x70, 0x13]⟩ rfl hsel
   exact vowWaitBodyCore hcode hwv (vowDispatch_wait hsel) (vowDecode_wait hsz)
-    (vowReachWaitBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
+    (vowReachWaitBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
 
 end Benchmarks.Dss.Vow

@@ -114,40 +114,40 @@ theorem pokeVatFileDecode_ok (out : ByteArray) :
     config.externalABI.decode? "file" out = some [] := by
   simp [config, spotExternalABI]
 
-theorem pokeParWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : σ = τ) :
+theorem pokeParWord_accountMapEq {σ τ : AccountMap} {I : ExecutionEnv}
+    (hMap : σ = τ) :
     pokeParWord σ I = pokeParWord τ I := by
   subst τ
   rfl
 
-theorem pokeMatWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : σ = τ) :
+theorem pokeMatWord_accountMapEq {σ τ : AccountMap} {I : ExecutionEnv}
+    (hMap : σ = τ) :
     pokeMatWord σ I = pokeMatWord τ I := by
   subst τ
   rfl
 
-theorem pokePipTargetWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hsz36 : 36 ≤ I.calldata.size) (hAccounts : σ = τ) :
+theorem pokePipTargetWord_accountMapEq {σ τ : AccountMap} {I : ExecutionEnv}
+    (hsz36 : 36 ≤ I.calldata.size) (hMap : σ = τ) :
     pokePipTargetWord σ I = pokePipTargetWord τ I := by
   subst τ
   rfl
 
-theorem pokePipAddress_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hsz36 : 36 ≤ I.calldata.size) (hAccounts : σ = τ) :
+theorem pokePipAddress_accountMapEq {σ τ : AccountMap} {I : ExecutionEnv}
+    (hsz36 : 36 ≤ I.calldata.size) (hMap : σ = τ) :
     pokePipAddress σ I = pokePipAddress τ I := by
   subst τ
   rfl
 
-theorem pokePipCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hsz36 : 36 ≤ I.calldata.size) (hAccounts : σ = τ)
+theorem pokePipCodeSize_zero_accountMapEq {σ τ : AccountMap} {I : ExecutionEnv}
+    (hsz36 : 36 ≤ I.calldata.size) (hMap : σ = τ)
     (hzero :
       Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) = ⟨0⟩) :
     Reasoning.Theory.extCodeSizeWord τ (pokePipTargetWord τ I) = ⟨0⟩ := by
   subst τ
   exact hzero
 
-theorem pokePipCodeSize_ne_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hsz36 : 36 ≤ I.calldata.size) (hAccounts : σ = τ)
+theorem pokePipCodeSize_ne_zero_accountMapEq {σ τ : AccountMap} {I : ExecutionEnv}
+    (hsz36 : 36 ≤ I.calldata.size) (hMap : σ = τ)
     (hne :
       Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) ≠ ⟨0⟩) :
     Reasoning.Theory.extCodeSizeWord τ (pokePipTargetWord τ I) ≠ ⟨0⟩ := by
@@ -165,36 +165,36 @@ theorem spotEvmAddress_accountAddress (a : AccountAddress) :
   rw [show EVM.addressModulus = AccountAddress.size from by decide]
   exact Nat.mod_eq_of_lt a.isLt
 
-theorem pokePipEvmAddress_eq_target_of_accountMapEquiv {σ τ : AccountMap}
-    {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) (hAccounts : σ = τ) :
+theorem pokePipEvmAddress_eq_target_of_accountMapEq {σ τ : AccountMap}
+    {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) (hMap : σ = τ) :
     EVM.address (pokePipAddress τ I) =
       AccountAddress.ofUInt256 (pokePipTargetWord σ I) := by
   subst τ
   rw [pokePipAddress_eq_target σ I]
   exact spotEvmAddress_accountAddress _
 
-theorem pokeVatTargetWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : σ = τ) :
+theorem pokeVatTargetWord_accountMapEq {σ τ : AccountMap} {I : ExecutionEnv}
+    (hMap : σ = τ) :
     pokeVatTargetWord σ I = pokeVatTargetWord τ I := by
   subst τ
   rfl
 
-theorem pokeVatAddress_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : σ = τ) :
+theorem pokeVatAddress_accountMapEq {σ τ : AccountMap} {I : ExecutionEnv}
+    (hMap : σ = τ) :
     pokeVatAddress σ I = pokeVatAddress τ I := by
   subst τ
   rfl
 
-theorem pokeVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : σ = τ)
+theorem pokeVatCodeSize_zero_accountMapEq {σ τ : AccountMap} {I : ExecutionEnv}
+    (hMap : σ = τ)
     (hzero :
       Reasoning.Theory.extCodeSizeWord σ (pokeVatTargetWord σ I) = ⟨0⟩) :
     Reasoning.Theory.extCodeSizeWord τ (pokeVatTargetWord τ I) = ⟨0⟩ := by
   subst τ
   exact hzero
 
-theorem pokeVatCodeSize_ne_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : σ = τ)
+theorem pokeVatCodeSize_ne_zero_accountMapEq {σ τ : AccountMap} {I : ExecutionEnv}
+    (hMap : σ = τ)
     (hne :
       Reasoning.Theory.extCodeSizeWord σ (pokeVatTargetWord σ I) ≠ ⟨0⟩) :
     Reasoning.Theory.extCodeSizeWord τ (pokeVatTargetWord τ I) ≠ ⟨0⟩ := by
@@ -205,8 +205,8 @@ theorem pokeVatAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
     pokeVatAddress σ I = AccountAddress.ofUInt256 (pokeVatTargetWord σ I) := by
   rw [accountAddress_ofUInt256_eq_ofNat_toNat]
 
-theorem pokeVatEvmAddress_eq_target_of_accountMapEquiv {σ τ : AccountMap}
-    {I : ExecutionEnv} (hAccounts : σ = τ) :
+theorem pokeVatEvmAddress_eq_target_of_accountMapEq {σ τ : AccountMap}
+    {I : ExecutionEnv} (hMap : σ = τ) :
     EVM.address (pokeVatAddress τ I) =
       AccountAddress.ofUInt256 (pokeVatTargetWord σ I) := by
   subst τ

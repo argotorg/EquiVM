@@ -49,7 +49,7 @@ structure SolcErrorStringCopyWf (code : ByteArray) (pc source len : UInt256) : P
 set_option maxHeartbeats 1000000 in
 theorem RD.solcErrorStringCopyReverts
     {code : ByteArray} {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {pc source len aw : UInt256} {R : List UInt256} {k C : Nat}
     (rd : RD code I g s0 pc R mem aw rdata acc k C)
     (hwf : SolcErrorStringCopyWf code pc source len)

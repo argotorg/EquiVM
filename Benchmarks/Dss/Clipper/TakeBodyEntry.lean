@@ -24,7 +24,7 @@ attribute [local irreducible] Ethereum.KEC
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 2000 in
-theorem clipperTakeX_decode_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperTakeX_decode_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
@@ -34,21 +34,21 @@ theorem clipperTakeX_decode_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
         (((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I) +
           UInt256.mul (clipperTakeDataLenWord I) ⟨1⟩))
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) = ⟨0⟩)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1012⟩ : UInt256)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1012⟩ : UInt256)
       (((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I) ::
         ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) :: (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨3527⟩ : UInt256)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨3527⟩ : UInt256)
       (clipperTakeDataLenWord I ::
         (((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I)) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel]))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1012⟩ := hreach
   have hload := clipperTakeDataLenLoad_eq (I := I) hoffMax
   have hlenGt := clipperTakeDataLenGt_zero (I := I) hlenMax
@@ -158,7 +158,7 @@ theorem clipperTakeX_decode_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
   exact ⟨_, _, rd3527⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperTakeX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperTakeX_locked {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hlocked : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩)
@@ -168,7 +168,7 @@ theorem clipperTakeX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel]))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have rd3530pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
@@ -181,7 +181,7 @@ theorem clipperTakeX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel]))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3531 C3531 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k3531 C3531 := by
     simpa [solcSlotWord] using rd3531raw
   have rd3532pre := rd3531.iszero (by clipper_runtime_decode) (by evm_ov)
   rw [isZero_eq_zero_of_ne hlocked] at rd3532pre
@@ -198,7 +198,7 @@ theorem clipperTakeX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by norm_num [List.length])
 
 set_option maxHeartbeats 1000000 in
-theorem clipperTakeX_lockOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperTakeX_lockOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
@@ -208,14 +208,14 @@ theorem clipperTakeX_lockOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel]))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨3604⟩
       (clipperTakeDataLenWord I ::
         (((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I)) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel]))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd3530pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨13⟩ (by clipper_runtime_decode) (by evm_ov)]
@@ -227,7 +227,7 @@ theorem clipperTakeX_lockOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel]))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3531 C3531 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k3531 C3531 := by
     simpa [solcSlotWord] using rd3531raw
   have rd3532 := rd3531.iszero (by clipper_runtime_decode) (by evm_ov)
   have hcond : UInt256.isZero (solcSlotWord σ I ⟨13⟩) ≠ ⟨0⟩ := by
@@ -239,7 +239,7 @@ theorem clipperTakeX_lockOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (clipperTakeJumpDest3604 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperTakeX_lockStore {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperTakeX_lockStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
@@ -249,7 +249,7 @@ theorem clipperTakeX_lockStore {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel]))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨3610⟩
       (clipperTakeDataLenWord I ::
         (((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I)) ::
@@ -257,7 +257,7 @@ theorem clipperTakeX_lockStore {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel]))
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' := by
   have rd3609pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -267,7 +267,7 @@ theorem clipperTakeX_lockStore {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, by simpa using rd3610raw⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperTakeX_stoppedClosed {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperTakeX_stoppedClosed {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hstopped : 3 ≤ (solcSlotWord σ I ⟨14⟩).toNat)
@@ -277,7 +277,7 @@ theorem clipperTakeX_stoppedClosed {cA σ I} {g : Sat256} {s0 : State} {k C : �
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel]))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have rd3612pre := h.pushConst (⟨14⟩ : UInt256)
     (width := 1) (op := .PUSH1) (by decide) (by clipper_runtime_decode) (by evm_ov)
@@ -289,7 +289,7 @@ theorem clipperTakeX_stoppedClosed {cA σ I} {g : Sat256} {s0 : State} {k C : �
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel]))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3613 C3613 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k3613 C3613 := by
     simpa [solcSlotWord] using rd3613raw
   have rd3615 := rd3613.pushConst (⟨3⟩ : UInt256)
     (width := 1) (op := .PUSH1) (by decide) (by clipper_runtime_decode) (by evm_ov)
@@ -312,7 +312,7 @@ theorem clipperTakeX_stoppedClosed {cA σ I} {g : Sat256} {s0 : State} {k C : �
     (by norm_num [List.length])
 
 set_option maxHeartbeats 1000000 in
-theorem clipperTakeX_stoppedOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperTakeX_stoppedOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hstopped : (solcSlotWord σ I ⟨14⟩).toNat < 3)
@@ -322,14 +322,14 @@ theorem clipperTakeX_stoppedOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel]))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨3694⟩
       ((⟨3⟩ : UInt256) :: clipperTakeDataLenWord I ::
         (((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I)) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel]))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd3612pre := h.pushConst (⟨14⟩ : UInt256)
     (width := 1) (op := .PUSH1) (by decide) (by clipper_runtime_decode) (by evm_ov)
   obtain ⟨k3613, C3613, rd3613raw⟩ := rd3612pre.sload
@@ -340,7 +340,7 @@ theorem clipperTakeX_stoppedOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel]))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3613 C3613 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k3613 C3613 := by
     simpa [solcSlotWord] using rd3613raw
   have rd3615 := rd3613.pushConst (⟨3⟩ : UInt256)
     (width := 1) (op := .PUSH1) (by decide) (by clipper_runtime_decode) (by evm_ov)
@@ -362,12 +362,12 @@ abbrev clipperTakeNotRunningAuctionWord : UInt256 :=
   ⟨0x436c69707065722f6e6f742d72756e6e696e672d61756374696f6e0000000000⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperTakeX_inactiveAuctionTail {cA σ I} {g : Sat256} {s0 : State}
+theorem clipperTakeX_inactiveAuctionTail {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {stk : List UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hstk : stk.length + 8 < 1024)
     (h : RD code I g s0 ⟨3745⟩ stk
-      (clipperTakeSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperTakeSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have rdMload := evm_run h with [
     raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -428,7 +428,7 @@ theorem clipperTakeX_inactiveAuctionTail {cA σ I} {g : Sat256} {s0 : State}
     raw rev 0 (by clipper_runtime_decode) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 2000000 in
-theorem clipperTakeX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperTakeX_usrZero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (husr : clipperTakeSalesUsrWord σ I = ⟨0⟩)
@@ -437,7 +437,7 @@ theorem clipperTakeX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         (⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I),
         (clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩),
         clipperTakeMaxWord I, clipperTakeAmtWord I, clipperTakeIdWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   let base : UInt256 := solcMappingSlot ⟨12⟩ (clipperTakeIdWord I)
   have hslot :
@@ -485,7 +485,7 @@ theorem clipperTakeX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I :: ⟨502⟩ ::
         [sel])
       (clipperTakeSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k3713 C3713 := by
+      σ k3713 C3713 := by
     simpa [clipperTakeSalesPackedSlot, solcSlotWord] using rd3713raw
   have rd3741pre := evm_run rd3713 with [
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -521,7 +521,7 @@ theorem clipperTakeX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by norm_num [List.length]) rd3745
 
 set_option maxHeartbeats 2000000 in
-theorem clipperTakeX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperTakeX_usrNonzero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (husr : clipperTakeSalesUsrWord σ I ≠ ⟨0⟩)
@@ -530,7 +530,7 @@ theorem clipperTakeX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         (⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I),
         (clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩),
         clipperTakeMaxWord I, clipperTakeAmtWord I, clipperTakeIdWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨3821⟩
       [clipperTakeSalesTicStackWord σ I,
         (solcSlotWord σ I (clipperTakeSalesPackedSlot I)).land solcAddrMask, ⟨3⟩,
@@ -538,7 +538,7 @@ theorem clipperTakeX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         (⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I),
         (clipperTakeWhoWord I).land solcAddrMask, clipperTakeMaxWord I, clipperTakeAmtWord I,
         clipperTakeIdWord I, ⟨502⟩, sel]
-      (clipperTakeSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (clipperTakeSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   let base : UInt256 := solcMappingSlot ⟨12⟩ (clipperTakeIdWord I)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -585,7 +585,7 @@ theorem clipperTakeX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I :: ⟨502⟩ ::
         [sel])
       (clipperTakeSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k3713 C3713 := by
+      σ k3713 C3713 := by
     simpa [clipperTakeSalesPackedSlot, solcSlotWord] using rd3713raw
   have rd3741pre := evm_run rd3713 with [
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -621,7 +621,7 @@ theorem clipperTakeX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, rd3821⟩
 
 set_option maxHeartbeats 2000000 in
-theorem clipperTakeX_enterStatus {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperTakeX_enterStatus {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (h : RD code I g s0 ⟨3821⟩
@@ -631,7 +631,7 @@ theorem clipperTakeX_enterStatus {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         (⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I),
         (clipperTakeWhoWord I).land solcAddrMask, clipperTakeMaxWord I, clipperTakeAmtWord I,
         clipperTakeIdWord I, ⟨502⟩, sel]
-      (clipperTakeSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperTakeSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨8460⟩
       [clipperTakeSalesTopWord σ I, clipperTakeSalesTicStackWord σ I, ⟨3852⟩, ⟨0⟩,
         ⟨0⟩, clipperTakeSalesTicStackWord σ I,
@@ -640,7 +640,7 @@ theorem clipperTakeX_enterStatus {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         (⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I),
         (clipperTakeWhoWord I).land solcAddrMask, clipperTakeMaxWord I, clipperTakeAmtWord I,
         clipperTakeIdWord I, ⟨502⟩, sel]
-      (clipperTakeSalesTopHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (clipperTakeSalesTopHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   let base : UInt256 := solcMappingSlot ⟨12⟩ (clipperTakeIdWord I)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -689,7 +689,7 @@ theorem clipperTakeX_enterStatus {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (clipperTakeWhoWord I).land solcAddrMask :: clipperTakeMaxWord I ::
       clipperTakeAmtWord I :: clipperTakeIdWord I :: ⟨502⟩ :: [sel])
       (clipperTakeSalesTopHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k3840 C3840 := by
+      σ k3840 C3840 := by
     simpa [clipperTakeSalesTopWord, solcSlotWord] using rd3840raw
   have rd8460pre := evm_run rd3840 with [
     raw dup2 (by clipper_runtime_decode) (by evm_ov),

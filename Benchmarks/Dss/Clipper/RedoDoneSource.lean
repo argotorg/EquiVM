@@ -525,24 +525,6 @@ theorem clipperStorageStore_σ₀
   simp only [Solm.EVM.storageStore, State.lookupAccount]
   cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
 
-theorem clipperStorageStore_createdAccounts
-    (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).createdAccounts = evm.createdAccounts := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
-
-theorem clipperStorageStore_genesisBlockHeader
-    (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).genesisBlockHeader = evm.genesisBlockHeader := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
-
-theorem clipperStorageStore_blocks
-    (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).blocks = evm.blocks := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
-
 theorem clipperStorageStore_executionEnv
     (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).executionEnv = evm.executionEnv := by
@@ -553,45 +535,27 @@ theorem clipperRedoPostTicAccountMapEquiv
     {σ τ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
     (hevmAcct : evm.accountMap = τ)
     (hevmEnv : evm.executionEnv = I)
-    (hAccounts : accountMapEquiv σ τ) :
-      accountMapEquiv
-        (sstoreAccountMap I.codeOwner σ (clipperRedoSalesPackedSlot I)
-          (UInt256.lor
-            (UInt256.mul
-              (UInt256.land clipperSalesUint96Mask (UInt256.ofNat I.header.timestamp))
-              (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
-            (UInt256.land solcAddrMask (solcSlotWord σ I (clipperRedoSalesPackedSlot I)))))
+    (hAccounts : σ = τ) :
+      sstoreAccountMap I.codeOwner σ (clipperRedoSalesPackedSlot I)
+        (UInt256.lor
+          (UInt256.mul
+            (UInt256.land clipperSalesUint96Mask (UInt256.ofNat I.header.timestamp))
+            (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
+          (UInt256.land solcAddrMask
+            (solcSlotWord σ I (clipperRedoSalesPackedSlot I)))) =
         (clipperRedoPostTicState evm I).accountMap := by
   subst τ
   subst I
-  let slot := clipperRedoSalesPackedSlot evm.executionEnv
-  let updated : UInt256 :=
-    UInt256.lor
-      (UInt256.mul
-        (UInt256.land clipperSalesUint96Mask (UInt256.ofNat evm.executionEnv.header.timestamp))
-        (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
-      (UInt256.land solcAddrMask (solcSlotWord σ evm.executionEnv slot))
-  have hslotWord :
-      solcSlotWord σ evm.executionEnv slot =
-        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot := by
-    simpa [solcSlotWord, State.lookupAccount, Account.lookupStorage] using
-      accountMapEquiv_storage_findD hAccounts evm.executionEnv.codeOwner slot (⟨0⟩ : UInt256)
-  have hupdated : updated = clipperRedoPostTicPackedWord evm evm.executionEnv := by
-    simp [updated, slot, clipperRedoPostTicPackedWord, hslotWord]
-  have hPostMap :
-      (clipperRedoPostTicState evm evm.executionEnv).accountMap =
-        sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap slot
-          (clipperRedoPostTicPackedWord evm evm.executionEnv) := by
-    simp [clipperRedoPostTicState, storageStore_accountMap, slot]
-  rw [hPostMap]
-  simpa [slot, updated, hupdated] using
-    accountMapEquiv_sstoreAccountMap evm.executionEnv.codeOwner slot updated hAccounts
+  subst σ
+  simp [clipperRedoPostTicState, clipperRedoPostTicPackedWord,
+    storageStore_accountMap, solcSlotWord, Solm.EVM.storageLoad,
+    State.lookupAccount, Account.lookupStorage]
 
 theorem clipperRedoPostTicSpotterAddress_eq_of_accountMapEquiv
     {σ τ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
     (hevmAcct : evm.accountMap = τ)
     (hevmEnv : evm.executionEnv = I)
-    (hAccounts : accountMapEquiv σ τ) :
+    (hAccounts : σ = τ) :
       clipperGetFeedPriceSpotterAddress (clipperRedoPostTicState evm I) =
         AccountAddress.ofUInt256
           (clipperSpotterTarget
@@ -600,44 +564,21 @@ theorem clipperRedoPostTicSpotterAddress_eq_of_accountMapEquiv
                 (UInt256.mul
                   (UInt256.land clipperSalesUint96Mask (UInt256.ofNat I.header.timestamp))
                   (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
-                (UInt256.land solcAddrMask (solcSlotWord σ I (clipperRedoSalesPackedSlot I)))))
-            I) := by
+                (UInt256.land solcAddrMask
+                  (solcSlotWord σ I (clipperRedoSalesPackedSlot I))))) I) := by
   subst τ
   subst I
-  let slot := clipperRedoSalesPackedSlot evm.executionEnv
-  let updated : UInt256 :=
-    UInt256.lor
-      (UInt256.mul
-        (UInt256.land clipperSalesUint96Mask (UInt256.ofNat evm.executionEnv.header.timestamp))
-        (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
-      (UInt256.land solcAddrMask (solcSlotWord σ evm.executionEnv slot))
-  have hPostMap :
-      (clipperRedoPostTicState evm evm.executionEnv).accountMap =
-        sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap slot
-          (clipperRedoPostTicPackedWord evm evm.executionEnv) := by
-    simp [clipperRedoPostTicState, storageStore_accountMap, slot]
-  have hPostEnv :
-      (clipperRedoPostTicState evm evm.executionEnv).executionEnv = evm.executionEnv := by
-    simp [clipperRedoPostTicState, storageStore_executionEnv]
-  have hAccountsPost :
-      accountMapEquiv
-        (sstoreAccountMap evm.executionEnv.codeOwner σ slot updated)
-        (clipperRedoPostTicState evm evm.executionEnv).accountMap := by
-    simpa [slot, updated] using
-      clipperRedoPostTicAccountMapEquiv
-        (σ := σ) (τ := evm.accountMap) (I := evm.executionEnv) evm rfl rfl hAccounts
-  have hslot3 := accountMapEquiv_storage_findD hAccountsPost
-    evm.executionEnv.codeOwner (⟨3⟩ : UInt256) (⟨0⟩ : UInt256)
-  rw [hPostMap] at hslot3
-  simp [clipperGetFeedPriceSpotterAddress, clipperSpotterTarget, solcSlotWord,
-    hPostMap, hPostEnv, slot] at hslot3 ⊢
-  rw [← hslot3]
+  subst σ
+  simp [clipperGetFeedPriceSpotterAddress, clipperRedoPostTicState,
+    clipperRedoPostTicPackedWord, clipperSpotterTarget, storageStore_accountMap,
+    solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+    clipperStorageStore_executionEnv]
 
 theorem clipperRedoPostTicNoCode_of_accountMapEquiv
     {σ τ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
     (hevmAcct : evm.accountMap = τ)
     (hevmEnv : evm.executionEnv = I)
-    (hAccounts : accountMapEquiv σ τ)
+    (hAccounts : σ = τ)
     (hzero :
       Reasoning.Theory.extCodeSizeWord
         (sstoreAccountMap I.codeOwner σ (clipperRedoSalesPackedSlot I)
@@ -645,76 +586,48 @@ theorem clipperRedoPostTicNoCode_of_accountMapEquiv
             (UInt256.mul
               (UInt256.land clipperSalesUint96Mask (UInt256.ofNat I.header.timestamp))
               (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
-            (UInt256.land solcAddrMask (solcSlotWord σ I (clipperRedoSalesPackedSlot I)))))
+            (UInt256.land solcAddrMask
+              (solcSlotWord σ I (clipperRedoSalesPackedSlot I)))))
         (clipperSpotterTarget
           (sstoreAccountMap I.codeOwner σ (clipperRedoSalesPackedSlot I)
             (UInt256.lor
               (UInt256.mul
                 (UInt256.land clipperSalesUint96Mask (UInt256.ofNat I.header.timestamp))
                 (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
-              (UInt256.land solcAddrMask (solcSlotWord σ I (clipperRedoSalesPackedSlot I)))))
-          I) = ⟨0⟩) :
+              (UInt256.land solcAddrMask
+                (solcSlotWord σ I (clipperRedoSalesPackedSlot I))))) I) = ⟨0⟩) :
       (UInt256.ofNat
         (((clipperRedoPostTicState evm I).lookupAccount
           (clipperGetFeedPriceSpotterAddress (clipperRedoPostTicState evm I))).option 0
             (fun acc => acc.code.size))).toNat = 0 := by
   subst τ
   subst I
-  let slot := clipperRedoSalesPackedSlot evm.executionEnv
-  let updated : UInt256 :=
-    UInt256.lor
-      (UInt256.mul
-        (UInt256.land clipperSalesUint96Mask (UInt256.ofNat evm.executionEnv.header.timestamp))
-        (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
-      (UInt256.land solcAddrMask (solcSlotWord σ evm.executionEnv slot))
-  have hslotWord :
-      solcSlotWord σ evm.executionEnv slot =
-        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot := by
-    simpa [solcSlotWord, State.lookupAccount, Account.lookupStorage] using
-      accountMapEquiv_storage_findD hAccounts evm.executionEnv.codeOwner slot (⟨0⟩ : UInt256)
-  have hupdated : updated = clipperRedoPostTicPackedWord evm evm.executionEnv := by
-    simp [updated, slot, clipperRedoPostTicPackedWord, hslotWord]
-  have hPostMap :
-      (clipperRedoPostTicState evm evm.executionEnv).accountMap =
-        sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap slot
-          (clipperRedoPostTicPackedWord evm evm.executionEnv) := by
-    simp [clipperRedoPostTicState, storageStore_accountMap, slot]
-  have hPostEnv :
-      (clipperRedoPostTicState evm evm.executionEnv).executionEnv = evm.executionEnv := by
-    simp [clipperRedoPostTicState, storageStore_executionEnv]
-  have hAccountsPost :
-      accountMapEquiv
-        (sstoreAccountMap evm.executionEnv.codeOwner σ slot updated)
-        (clipperRedoPostTicState evm evm.executionEnv).accountMap := by
-    rw [hPostMap]
-    simpa [slot, hupdated] using
-      accountMapEquiv_sstoreAccountMap evm.executionEnv.codeOwner slot updated hAccounts
-  have htarget :
+  subst σ
+  have haddr :
       clipperGetFeedPriceSpotterAddress (clipperRedoPostTicState evm evm.executionEnv) =
         AccountAddress.ofUInt256
-          (clipperSpotterTarget
-            (sstoreAccountMap evm.executionEnv.codeOwner σ slot updated)
+          (clipperSpotterTarget (clipperRedoPostTicState evm evm.executionEnv).accountMap
             evm.executionEnv) := by
-    have hslot3 := accountMapEquiv_storage_findD hAccountsPost
-      evm.executionEnv.codeOwner (⟨3⟩ : UInt256) (⟨0⟩ : UInt256)
-    rw [hPostMap] at hslot3
-    simp [clipperGetFeedPriceSpotterAddress, clipperSpotterTarget, solcSlotWord,
-      hPostMap, hPostEnv, slot] at hslot3 ⊢
-    rw [← hslot3]
-  simpa [hPostMap, hPostEnv, State.lookupAccount, slot, updated] using
-    clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
-      (σ := sstoreAccountMap evm.executionEnv.codeOwner σ slot updated)
-      (τ := (clipperRedoPostTicState evm evm.executionEnv).accountMap)
-      (target := clipperSpotterTarget
-        (sstoreAccountMap evm.executionEnv.codeOwner σ slot updated) evm.executionEnv)
-      (addr := clipperGetFeedPriceSpotterAddress (clipperRedoPostTicState evm evm.executionEnv))
-      hAccountsPost htarget (by simpa [slot, updated] using hzero)
+    simp [clipperGetFeedPriceSpotterAddress, clipperRedoPostTicState,
+      clipperRedoPostTicPackedWord, clipperSpotterTarget, storageStore_accountMap,
+      solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+      clipperStorageStore_executionEnv]
+  have hzero' :
+      Reasoning.Theory.extCodeSizeWord
+        (clipperRedoPostTicState evm evm.executionEnv).accountMap
+        (clipperSpotterTarget (clipperRedoPostTicState evm evm.executionEnv).accountMap
+          evm.executionEnv) = ⟨0⟩ := by
+    simpa [clipperRedoPostTicState, clipperRedoPostTicPackedWord,
+      storageStore_accountMap, solcSlotWord, Solm.EVM.storageLoad,
+      State.lookupAccount, Account.lookupStorage] using hzero
+  simpa [State.lookupAccount, haddr] using
+    clipperExtCodeSizeWord_zero_lookup_code_zero rfl hzero'
 
 theorem clipperRedoPostTicCode_of_accountMapEquiv
     {σ τ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
     (hevmAcct : evm.accountMap = τ)
     (hevmEnv : evm.executionEnv = I)
-    (hAccounts : accountMapEquiv σ τ)
+    (hAccounts : σ = τ)
     (hcode :
       Reasoning.Theory.extCodeSizeWord
         (sstoreAccountMap I.codeOwner σ (clipperRedoSalesPackedSlot I)
@@ -722,70 +635,48 @@ theorem clipperRedoPostTicCode_of_accountMapEquiv
             (UInt256.mul
               (UInt256.land clipperSalesUint96Mask (UInt256.ofNat I.header.timestamp))
               (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
-            (UInt256.land solcAddrMask (solcSlotWord σ I (clipperRedoSalesPackedSlot I)))))
+            (UInt256.land solcAddrMask
+              (solcSlotWord σ I (clipperRedoSalesPackedSlot I)))))
         (clipperSpotterTarget
           (sstoreAccountMap I.codeOwner σ (clipperRedoSalesPackedSlot I)
             (UInt256.lor
               (UInt256.mul
                 (UInt256.land clipperSalesUint96Mask (UInt256.ofNat I.header.timestamp))
                 (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
-              (UInt256.land solcAddrMask (solcSlotWord σ I (clipperRedoSalesPackedSlot I)))))
-          I) ≠ ⟨0⟩) :
+              (UInt256.land solcAddrMask
+                (solcSlotWord σ I (clipperRedoSalesPackedSlot I))))) I) ≠ ⟨0⟩) :
       0 < (UInt256.ofNat
         (((clipperRedoPostTicState evm I).lookupAccount
           (clipperGetFeedPriceSpotterAddress (clipperRedoPostTicState evm I))).option 0
             (fun acc => acc.code.size))).toNat := by
   subst τ
   subst I
-  let slot := clipperRedoSalesPackedSlot evm.executionEnv
-  let updated : UInt256 :=
-    UInt256.lor
-      (UInt256.mul
-        (UInt256.land clipperSalesUint96Mask (UInt256.ofNat evm.executionEnv.header.timestamp))
-        (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
-      (UInt256.land solcAddrMask (solcSlotWord σ evm.executionEnv slot))
-  have hslotWord :
-      solcSlotWord σ evm.executionEnv slot =
-        Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot := by
-    simpa [solcSlotWord, State.lookupAccount, Account.lookupStorage] using
-      accountMapEquiv_storage_findD hAccounts evm.executionEnv.codeOwner slot (⟨0⟩ : UInt256)
-  have hupdated : updated = clipperRedoPostTicPackedWord evm evm.executionEnv := by
-    simp [updated, slot, clipperRedoPostTicPackedWord, hslotWord]
-  have hPostMap :
-      (clipperRedoPostTicState evm evm.executionEnv).accountMap =
-        sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap slot
-          (clipperRedoPostTicPackedWord evm evm.executionEnv) := by
-    simp [clipperRedoPostTicState, storageStore_accountMap, slot]
-  have hPostEnv :
-      (clipperRedoPostTicState evm evm.executionEnv).executionEnv = evm.executionEnv := by
-    simp [clipperRedoPostTicState, storageStore_executionEnv]
-  have hAccountsPost :
-      accountMapEquiv
-        (sstoreAccountMap evm.executionEnv.codeOwner σ slot updated)
-        (clipperRedoPostTicState evm evm.executionEnv).accountMap := by
-    rw [hPostMap]
-    simpa [slot, hupdated] using
-      accountMapEquiv_sstoreAccountMap evm.executionEnv.codeOwner slot updated hAccounts
-  have htarget :
+  subst σ
+  have haddr :
       clipperGetFeedPriceSpotterAddress (clipperRedoPostTicState evm evm.executionEnv) =
         AccountAddress.ofUInt256
-          (clipperSpotterTarget
-            (sstoreAccountMap evm.executionEnv.codeOwner σ slot updated)
+          (clipperSpotterTarget (clipperRedoPostTicState evm evm.executionEnv).accountMap
             evm.executionEnv) := by
-    have hslot3 := accountMapEquiv_storage_findD hAccountsPost
-      evm.executionEnv.codeOwner (⟨3⟩ : UInt256) (⟨0⟩ : UInt256)
-    rw [hPostMap] at hslot3
-    simp [clipperGetFeedPriceSpotterAddress, clipperSpotterTarget, solcSlotWord,
-      hPostMap, hPostEnv, slot] at hslot3 ⊢
-    rw [← hslot3]
-  simpa [hPostMap, hPostEnv, State.lookupAccount, slot, updated] using
+    simp [clipperGetFeedPriceSpotterAddress, clipperRedoPostTicState,
+      clipperRedoPostTicPackedWord, clipperSpotterTarget, storageStore_accountMap,
+      solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+      clipperStorageStore_executionEnv]
+  have hcode' :
+      Reasoning.Theory.extCodeSizeWord
+        (clipperRedoPostTicState evm evm.executionEnv).accountMap
+        (clipperSpotterTarget (clipperRedoPostTicState evm evm.executionEnv).accountMap
+          evm.executionEnv) ≠ ⟨0⟩ := by
+    simpa [clipperRedoPostTicState, clipperRedoPostTicPackedWord,
+      storageStore_accountMap, solcSlotWord, Solm.EVM.storageLoad,
+      State.lookupAccount, Account.lookupStorage] using hcode
+  simpa [State.lookupAccount, haddr] using
     clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-      (σ := sstoreAccountMap evm.executionEnv.codeOwner σ slot updated)
+      (σ := (clipperRedoPostTicState evm evm.executionEnv).accountMap)
       (τ := (clipperRedoPostTicState evm evm.executionEnv).accountMap)
       (target := clipperSpotterTarget
-        (sstoreAccountMap evm.executionEnv.codeOwner σ slot updated) evm.executionEnv)
+        (clipperRedoPostTicState evm evm.executionEnv).accountMap evm.executionEnv)
       (addr := clipperGetFeedPriceSpotterAddress (clipperRedoPostTicState evm evm.executionEnv))
-      hAccountsPost htarget (by simpa [slot, updated] using hcode)
+      rfl haddr hcode'
 
 theorem clipperRedoAssignSalesTicTimestampExact (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv) (price : UInt256) :
@@ -891,7 +782,7 @@ theorem clipperRedoAssignSalesTicTimestamp (v : ClipperImmutables)
   exact ⟨_, clipperRedoAssignSalesTicTimestampExact v evmLoc evmRead I price⟩
 
 theorem clipperRedoDoneTrueSourcePrefix
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -900,7 +791,7 @@ theorem clipperRedoDoneTrueSourcePrefix
       clipperRedoSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     {evmPrice : EVM.State} (price : UInt256)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecStmt (config v) { contract := contract v, locals := clipperRedoLocalsTop evmLock I }
         evmLock (.internalCall "status" [.var "tic", .var "top"] "st")
@@ -908,14 +799,14 @@ theorem clipperRedoDoneTrueSourcePrefix
           evmPrice))
     {tailResult : ExecResult}
     (hafterTic :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecBlock (config v)
         { contract := contract v, locals := clipperRedoLocalsLot evmLock evmPrice I price }
         (clipperRedoPostTicState evmPrice I)
         (clipperRedoAfterTicBody v) tailResult) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock (config v) { contract := contract v, locals := locals }
       evm0 (redoTransition v).body tailResult := by
   intro locals evm0
@@ -1050,7 +941,7 @@ theorem clipperRedoDoneTrueSourcePrefix
   simpa [startFrame, locals, evm0] using hblock
 
 theorem clipperRedoDoneTrueGetFeedPriceSourceReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -1059,21 +950,21 @@ theorem clipperRedoDoneTrueGetFeedPriceSourceReverts
       clipperRedoSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     {evmPrice : EVM.State} (price : UInt256)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecStmt (config v) { contract := contract v, locals := clipperRedoLocalsTop evmLock I }
         evmLock (.internalCall "status" [.var "tic", .var "top"] "st")
         (.ok { contract := contract v, locals := clipperRedoLocalsSt evmLock I true price }
           evmPrice))
     (hgetFeedPrice :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecStmt (config v)
         { contract := contract v, locals := clipperRedoLocalsLot evmLock evmPrice I price }
         (clipperRedoPostTicState evmPrice I)
         (.internalCall "getFeedPrice" [] "feedPrice") .reverted) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (redoTransition v).body .reverted := by
   intro locals evm0
   let evmLock := clipperRedoLockedState evm0
@@ -1090,12 +981,12 @@ theorem clipperRedoDoneTrueGetFeedPriceSourceReverts
         evm0 (redoTransition v).body .reverted := by
     simpa [evmLock, lotFrame, evmTic, evm0] using
       (clipperRedoDoneTrueSourcePrefix
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := g) (evmPrice := evmPrice) v hwv hlocked hstopped husr price hstatus hafter)
   simpa [ExecTransitionBody] using ExecFuncBody.execBlockRevert hblock
 
 theorem clipperRedoDoneTrueGetFeedPriceNoCodeSourceReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -1104,7 +995,7 @@ theorem clipperRedoDoneTrueGetFeedPriceNoCodeSourceReverts
       clipperRedoSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     {evmPrice : EVM.State} (price : UInt256)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecStmt (config v) { contract := contract v, locals := clipperRedoLocalsTop evmLock I }
         evmLock (.internalCall "status" [.var "tic", .var "top"] "st")
@@ -1116,20 +1007,20 @@ theorem clipperRedoDoneTrueGetFeedPriceNoCodeSourceReverts
           (clipperGetFeedPriceSpotterAddress (clipperRedoPostTicState evmPrice I))).option 0
             (fun acc => acc.code.size))).toNat = 0) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (redoTransition v).body .reverted := by
   apply clipperRedoDoneTrueGetFeedPriceSourceReverts
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (evmPrice := evmPrice) v hwv hlocked hstopped husr price hstatus
   · simpa using
       clipperGetFeedPriceCallRevertsSpotterIlksNoCode v (clipperRedoPostTicState evmPrice I)
         (clipperRedoLocalsLot
-          (clipperRedoLockedState (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))
+          (clipperRedoLockedState (initState σ σ₀ (Sat256.ofUInt256 g) A I))
           evmPrice I price)
         "feedPrice" hnoCode
 
 theorem clipperRedoDoneTrueGetFeedPriceCallFailureSourceReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -1138,7 +1029,7 @@ theorem clipperRedoDoneTrueGetFeedPriceCallFailureSourceReverts
       clipperRedoSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     {evmPrice evmIlks : EVM.State} {out : ByteArray} (price : UInt256)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecStmt (config v) { contract := contract v, locals := clipperRedoLocalsTop evmLock I }
         evmLock (.internalCall "status" [.var "tic", .var "top"] "st")
@@ -1154,20 +1045,20 @@ theorem clipperRedoDoneTrueGetFeedPriceCallFailureSourceReverts
         (EVM.address (clipperGetFeedPriceSpotterAddress (clipperRedoPostTicState evmPrice I)))
         "spotterIlks" 0 [v.ilk] (false, evmIlks, out) true) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (redoTransition v).body .reverted := by
   apply clipperRedoDoneTrueGetFeedPriceSourceReverts
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (evmPrice := evmPrice) v hwv hlocked hstopped husr price hstatus
   · simpa using
       clipperGetFeedPriceCallRevertsSpotterIlksCallFailure v
         (clipperRedoLocalsLot
-        (clipperRedoLockedState (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))
+        (clipperRedoLockedState (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         evmPrice I price)
       "feedPrice" hcode hcall
 
 theorem clipperRedoDoneTrueGetFeedPriceDecodeSourceReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -1176,7 +1067,7 @@ theorem clipperRedoDoneTrueGetFeedPriceDecodeSourceReverts
       clipperRedoSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     {evmPrice evmIlks : EVM.State} {out : ByteArray} (price : UInt256)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecStmt (config v) { contract := contract v, locals := clipperRedoLocalsTop evmLock I }
         evmLock (.internalCall "status" [.var "tic", .var "top"] "st")
@@ -1193,20 +1084,20 @@ theorem clipperRedoDoneTrueGetFeedPriceDecodeSourceReverts
         "spotterIlks" 0 [v.ilk] (true, evmIlks, out) true)
     (hdec : (config v).externalABI.decode? "spotterIlks" out = none) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (redoTransition v).body .reverted := by
   apply clipperRedoDoneTrueGetFeedPriceSourceReverts
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (evmPrice := evmPrice) v hwv hlocked hstopped husr price hstatus
   · simpa using
       clipperGetFeedPriceCallRevertsSpotterIlksDecode v
         (clipperRedoLocalsLot
-          (clipperRedoLockedState (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))
+          (clipperRedoLockedState (initState σ σ₀ (Sat256.ofUInt256 g) A I))
           evmPrice I price)
         "feedPrice" hcode hcall hdec
 
 theorem clipperRedoDoneTrueGetFeedPricePipNoCodeSourceReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -1215,7 +1106,7 @@ theorem clipperRedoDoneTrueGetFeedPricePipNoCodeSourceReverts
       clipperRedoSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     {evmPrice evmIlks : EVM.State} {outIlks : ByteArray} (price : UInt256)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecStmt (config v) { contract := contract v, locals := clipperRedoLocalsTop evmLock I }
         evmLock (.internalCall "status" [.var "tic", .var "top"] "st")
@@ -1238,20 +1129,20 @@ theorem clipperRedoDoneTrueGetFeedPricePipNoCodeSourceReverts
         ((evmIlks.lookupAccount (clipperSpotterIlksPipAddress outIlks)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (redoTransition v).body .reverted := by
   apply clipperRedoDoneTrueGetFeedPriceSourceReverts
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (evmPrice := evmPrice) v hwv hlocked hstopped husr price hstatus
   · simpa using
       clipperGetFeedPriceCallRevertsPipPeekNoCode v
         (clipperRedoLocalsLot
-          (clipperRedoLockedState (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))
+          (clipperRedoLockedState (initState σ σ₀ (Sat256.ofUInt256 g) A I))
           evmPrice I price)
         "feedPrice" hcodeIlks hcallIlks hdecIlks hnoCodePip
 
 theorem clipperRedoDoneTrueGetFeedPricePipCallFailureSourceReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -1261,7 +1152,7 @@ theorem clipperRedoDoneTrueGetFeedPricePipCallFailureSourceReverts
     {evmPrice evmIlks evmPeek : EVM.State} {outIlks outPeek : ByteArray}
     (price : UInt256)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecStmt (config v) { contract := contract v, locals := clipperRedoLocalsTop evmLock I }
         evmLock (.internalCall "status" [.var "tic", .var "top"] "st")
@@ -1288,20 +1179,20 @@ theorem clipperRedoDoneTrueGetFeedPricePipCallFailureSourceReverts
         (EVM.address (clipperSpotterIlksPipAddress outIlks)) "peek" 0 []
         (false, evmPeek, outPeek) true) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (redoTransition v).body .reverted := by
   apply clipperRedoDoneTrueGetFeedPriceSourceReverts
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (evmPrice := evmPrice) v hwv hlocked hstopped husr price hstatus
   · simpa using
       clipperGetFeedPriceCallRevertsPipPeekCallFailure v
         (clipperRedoLocalsLot
-          (clipperRedoLockedState (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))
+          (clipperRedoLockedState (initState σ σ₀ (Sat256.ofUInt256 g) A I))
           evmPrice I price)
         "feedPrice" hcodeIlks hcallIlks hdecIlks hcodePip hcallPeek
 
 theorem clipperRedoDoneTrueGetFeedPricePipDecodeSourceReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -1311,7 +1202,7 @@ theorem clipperRedoDoneTrueGetFeedPricePipDecodeSourceReverts
     {evmPrice evmIlks evmPeek : EVM.State} {outIlks outPeek : ByteArray}
     (price : UInt256)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecStmt (config v) { contract := contract v, locals := clipperRedoLocalsTop evmLock I }
         evmLock (.internalCall "status" [.var "tic", .var "top"] "st")
@@ -1339,20 +1230,20 @@ theorem clipperRedoDoneTrueGetFeedPricePipDecodeSourceReverts
         (true, evmPeek, outPeek) true)
     (hdecPeek : (config v).externalABI.decode? "peek" outPeek = none) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (redoTransition v).body .reverted := by
   apply clipperRedoDoneTrueGetFeedPriceSourceReverts
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (evmPrice := evmPrice) v hwv hlocked hstopped husr price hstatus
   · simpa using
       clipperGetFeedPriceCallRevertsPipPeekDecode v
         (clipperRedoLocalsLot
-          (clipperRedoLockedState (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))
+          (clipperRedoLockedState (initState σ σ₀ (Sat256.ofUInt256 g) A I))
           evmPrice I price)
         "feedPrice" hcodeIlks hcallIlks hdecIlks hcodePip hcallPeek hdecPeek
 
 theorem clipperRedoDoneTrueGetFeedPricePipHasFalseSourceReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -1362,7 +1253,7 @@ theorem clipperRedoDoneTrueGetFeedPricePipHasFalseSourceReverts
     {evmPrice evmIlks evmPeek : EVM.State} {outIlks outPeek : ByteArray}
     (price : UInt256)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := clipperRedoLockedState evm0
       ExecStmt (config v) { contract := contract v, locals := clipperRedoLocalsTop evmLock I }
         evmLock (.internalCall "status" [.var "tic", .var "top"] "st")
@@ -1392,15 +1283,15 @@ theorem clipperRedoDoneTrueGetFeedPricePipHasFalseSourceReverts
       some (clipperPipPeekValues outPeek))
     (hhasFalse : clipperPipPeekHasWord outPeek = ⟨0⟩) :
     let locals := clipperRedoStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (redoTransition v).body .reverted := by
   apply clipperRedoDoneTrueGetFeedPriceSourceReverts
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (evmPrice := evmPrice) v hwv hlocked hstopped husr price hstatus
   · simpa using
       clipperGetFeedPriceCallRevertsPipPeekHasFalse v
         (clipperRedoLocalsLot
-          (clipperRedoLockedState (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))
+          (clipperRedoLockedState (initState σ σ₀ (Sat256.ofUInt256 g) A I))
           evmPrice I price)
         "feedPrice" hcodeIlks hcallIlks hdecIlks hcodePip hcallPeek hdecPeek
         hhasFalse

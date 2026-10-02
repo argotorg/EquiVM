@@ -8,17 +8,17 @@ namespace UniswapV2Pair
 set_option maxRecDepth 2000000 in
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintInitialRuntimeCases
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel :
       UInt256} {locals : Store} (evm : EVM.State) (recipient : AccountAddress) (fee : Bool)
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0,
         ⟨0⟩, toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
-    (hAccounts : accountMapEquiv σFee evm.accountMap)
+      mem feeToStaticcallActiveWords rdata σFee k C)
+    (hAccounts : Eq σFee evm.accountMap)
     (henv : evm.executionEnv = I)
     (hrecipient : recipient = AccountAddress.ofNat toWord.toNat)
     (hto : locals.get? "to" = some (.address recipient))
@@ -44,15 +44,15 @@ theorem uniswapMintInitialRuntimeCases
     (ExecBlock config { contract := contract, locals := locals } evm
         ([mintLiquidityBranchStmt] ++ mintAfterLiquidityTailStmts) .reverted ∧
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)) ∨
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ∨
     (∃ liquidity frame' evm' σ',
       ExecBlock config { contract := contract, locals := locals } evm
         ([mintLiquidityBranchStmt] ++ mintAfterLiquidityTailStmts) (.returned frame' evm'
           (some [uniswapUint256Value liquidity])) ∧
-      accountMapEquiv σ' evm'.accountMap ∧ evm'.createdAccounts = evm.createdAccounts ∧
+      σ' = evm'.accountMap ∧
       RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-        (cAFee, σ') (UInt256.toByteArray liquidity)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        σ' (UInt256.toByteArray liquidity)) := by
   rcases uniswapMintInitialBranchRuntimeCases evm rd3701 hAccounts henv htotalZero htotal
       hamount0 hamount1 hperm hmem hmem64 with ⟨hrev, rdRev⟩ |
       ⟨root, liquidity, _, _, hbranch, hMinAccounts, rd3841, hmemMin, hmemMin64⟩
@@ -87,13 +87,9 @@ theorem uniswapMintInitialRuntimeCases
     (by rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
       store_get_ne _ _ (by decide), hunlocked])
     hclean0 hclean1 hperm hmemMin hmemMin64
-  rcases htail with ⟨hrev, rdRev⟩ | ⟨frameRet, evmRet, σRet, hreturn, hRetAccounts,
-    hcreatedRet, rdRet⟩
+  rcases htail with ⟨hrev, rdRev⟩ | ⟨frameRet, evmRet, σRet, hreturn, hRetAccounts, rdRet⟩
   · exact Or.inl ⟨ExecBlock.consNormal hbranch hrev, rdRev⟩
   · refine Or.inr ⟨liquidity, frameRet, evmRet, σRet, ExecBlock.consNormal hbranch hreturn,
-      hRetAccounts, ?_, rdRet⟩
-    rw [hcreatedRet]
-    simp only [mintFunctionPostState, mintFunctionAfterTotalSupplyState,
-      storageStore_createdAccounts]
+      hRetAccounts, rdRet⟩
 
 end UniswapV2Pair

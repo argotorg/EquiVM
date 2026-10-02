@@ -65,14 +65,14 @@ def delegateTailTrueSuccessMap (σ : AccountMap) (I : ExecutionEnv)
     (delegateTailProposalCountSlot σ I w) (delegateTailUpdatedProposalCount σ I w)
 
 theorem delegateTailSenderPackedStoreWord_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : accountMapEquiv σ τ) (w : UInt256) :
+    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : σ = τ) (w : UInt256) :
     delegateTailSenderPackedStoreWord σ I w = delegateTailSenderPackedStoreWord τ I w := by
   unfold delegateTailSenderPackedStoreWord
   rw [delegateSenderPackedWord_accountMapEquiv hστ]
 
 theorem delegateTailAfterSenderMap_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : accountMapEquiv σ τ) (w : UInt256) :
-    accountMapEquiv (delegateTailAfterSenderMap σ I w) (delegateTailAfterSenderMap τ I w) := by
+    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : σ = τ) (w : UInt256) :
+    delegateTailAfterSenderMap σ I w = delegateTailAfterSenderMap τ I w := by
   rw [delegateTailAfterSenderMap, delegateTailAfterSenderMap,
     delegateTailSenderPackedStoreWord_accountMapEquiv hστ w]
   exact accountMapEquiv_sstoreAccountMap I.codeOwner (delegateSenderPackedSlot I)
@@ -82,20 +82,20 @@ theorem delegateTailAfterSenderMap_accountMapEquiv
 -- were retired when the tail false-success connect moved to `delegateTailFalseSuccessState_EVMStateEquiv`.
 
 theorem delegateTailProposalsLengthWord_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : accountMapEquiv σ τ) (w : UInt256) :
+    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : σ = τ) (w : UInt256) :
     delegateTailProposalsLengthWord σ I w = delegateTailProposalsLengthWord τ I w := by
   exact accountMapEquiv_storage_findD (delegateTailAfterSenderMap_accountMapEquiv (I := I) hστ w)
     I.codeOwner ⟨2⟩ ⟨0⟩
 
 theorem delegateTailProposalCountSlot_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : accountMapEquiv σ τ) (w : UInt256) :
+    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : σ = τ) (w : UInt256) :
     delegateTailProposalCountSlot σ I w = delegateTailProposalCountSlot τ I w := by
   unfold delegateTailProposalCountSlot
   rw [delegateVoterVoteWord_accountMapEquiv
     (delegateTailAfterSenderMap_accountMapEquiv (I := I) hστ w) w]
 
 theorem delegateTailProposalCountWord_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : accountMapEquiv σ τ) (w : UInt256) :
+    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : σ = τ) (w : UInt256) :
     delegateTailProposalCountWord σ I w = delegateTailProposalCountWord τ I w := by
   unfold delegateTailProposalCountWord
   rw [delegateTailProposalCountSlot_accountMapEquiv hστ w]
@@ -204,9 +204,9 @@ def delegateTailTrueSuccessState (evm : EVM.State) (I : ExecutionEnv)
       delegateAfterSenderState evm I := by
   rfl
 
-theorem delegateTailVoterWeightCurrent_init {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem delegateTailVoterWeightCurrent_init {σ σ₀ A I} {g : Sat256}
     (w : UInt256) :
-    delegateTailVoterWeightCurrent (initState cA gh bl σ σ₀ g A I) w =
+    delegateTailVoterWeightCurrent (initState σ σ₀ g A I) w =
       delegateVoterWeightWord σ I w := by
   rfl
 
@@ -1160,16 +1160,16 @@ theorem ballotDelegateBodyReverts_tailVotedOverflow (evm : EVM.State)
   exact ExecBlock.consRevert (ExecStmt.assignExprRevert
     (evalExpr_delegate_tail_proposal_count_add_revert evm I w hbound hover))
 
-theorem ballotDelegateX_tailAfterDelegateWeightFrom1134 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailAfterDelegateWeightFrom1134 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hcanon : w.toNat < EVM.addressModulus)
     (hdelegateWeight : delegateVoterWeightWord σ I w ≠ ⟨0⟩)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1134⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1174⟩
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1174⟩
       [delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1134⟩ := hreach
   have hslot := delegateLoopVoterKeccakSlot w (delegateSourceWord I) hcanon
   have rd1160 := evm_run rd1134 with [
@@ -1197,10 +1197,10 @@ theorem ballotDelegateX_tailAfterDelegateWeightFrom1134 {cA gh bl σ σ₀ A I}
   have rd1162 := evm_run rd1160 with [dup1]
   obtain ⟨_, _, rd1163₀⟩ := rd1162.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1163⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1163⟩
+      (initState σ σ₀ g A I) ⟨1163⟩
       [delegateVoterWeightWord σ I w, delegateVoterSlot w, ⟨1⟩, delegateSenderSlot I,
         w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
       unfold delegateCurrentLoopMem
       simpa [delegateVoterWeightWord, delegateVoterSlot, initState] using rd1163₀⟩
@@ -1220,14 +1220,14 @@ theorem ballotDelegateX_tailAfterDelegateWeightFrom1134 {cA gh bl σ σ₀ A I}
   rw [hgt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1167'
   exact ⟨_, _, evm_run rd1167' with [push2 ⟨1174⟩, jumpiT (by decide) (by jump_dest)]⟩
 
-theorem ballotDelegateX_tailDelegateWeightRevertFrom1134 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailDelegateWeightRevertFrom1134 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hcanon : w.toNat < EVM.addressModulus)
     (hdelegateWeight : delegateVoterWeightWord σ I w = ⟨0⟩)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1134⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev ballotBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1134⟩ := hreach
   have hslot := delegateLoopVoterKeccakSlot w (delegateSourceWord I) hcanon
   have rd1160 := evm_run rd1134 with [
@@ -1255,10 +1255,10 @@ theorem ballotDelegateX_tailDelegateWeightRevertFrom1134 {cA gh bl σ σ₀ A I}
   have rd1162 := evm_run rd1160 with [dup1]
   obtain ⟨_, _, rd1163₀⟩ := rd1162.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1163⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1163⟩
+      (initState σ σ₀ g A I) ⟨1163⟩
       [delegateVoterWeightWord σ I w, delegateVoterSlot w, ⟨1⟩, delegateSenderSlot I,
         w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
       unfold delegateCurrentLoopMem
       simpa [delegateVoterWeightWord, delegateVoterSlot, initState] using rd1163₀⟩
@@ -1272,7 +1272,7 @@ theorem ballotDelegateX_tailDelegateWeightRevertFrom1134 {cA gh bl σ σ₀ A I}
   exact rd1171.revertStub (by decide) (by decide) (by decide) (by evm_ov)
 
 theorem ballotDelegateTailWeightRevertEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I}
+    {σ σ₀ A I}
     {g : UInt256} {sel w : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
@@ -1280,35 +1280,34 @@ theorem ballotDelegateTailWeightRevertEquiv
     (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hcanonInit : (delegateToWord I).toNat < EVM.addressModulus)
     (hcanonTail : w.toNat < EVM.addressModulus)
-    (hweight : delegateSenderWeightWord σ_evm I ≠ ⟨0⟩)
-    (hvoted : delegateSenderVotedByte σ_evm I = ⟨0⟩)
+    (hweight : delegateSenderWeightWord σ I ≠ ⟨0⟩)
+    (hvoted : delegateSenderVotedByte σ I = ⟨0⟩)
     (hnotself : delegateToWord I ≠ delegateSourceWord I)
     (hwhile :
       ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
           [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
             .require (.binary .ne (.var "to") sender) ])
         (.ok { contract := ballotContract, locals := delegateCurrentWithSenderStore I w }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
-    (hdelegateWeight : delegateVoterWeightWord σ_evm I w = ⟨0⟩)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
+    (hdelegateWeight : delegateVoterWeightWord σ I w = ⟨0⟩)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor ballotConfig ballotContract
+      σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
-  have hweightSolm : delegateSenderWeightWord σ_solm I ≠ ⟨0⟩ := by
-    simpa [← delegateSenderWeightWord_accountMapEquiv hAccounts] using hweight
-  have hvotedSolm : delegateSenderVotedByte σ_solm I = ⟨0⟩ := by
-    simpa [← delegateSenderVotedByte_accountMapEquiv hAccounts] using hvoted
-  have hdelegateWeightSolm : delegateVoterWeightWord σ_solm I w = ⟨0⟩ := by
-    simpa [← delegateVoterWeightWord_accountMapEquiv hAccounts w] using hdelegateWeight
+  have hweightSolm : delegateSenderWeightWord σ I ≠ ⟨0⟩ := by
+    simpa [← delegateSenderWeightWord_accountMapEquiv rfl] using hweight
+  have hvotedSolm : delegateSenderVotedByte σ I = ⟨0⟩ := by
+    simpa [← delegateSenderVotedByte_accountMapEquiv rfl] using hvoted
+  have hdelegateWeightSolm : delegateVoterWeightWord σ I w = ⟨0⟩ := by
+    simpa [← delegateVoterWeightWord_accountMapEquiv rfl w] using hdelegateWeight
   have hbody := ballotDelegateBodyReverts_tailDelegateWeight
-    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I w
+    (initState σ σ₀ (Sat256.ofUInt256 g) A I) I w
     (by simp only [initState]; exact hwv)
     (by simp [initState])
     hcanonInit
@@ -1317,8 +1316,8 @@ theorem ballotDelegateTailWeightRevertEquiv
     hnotself
     hwhile
     (by rw [delegateTailVoterWeightCurrent_init]; exact hdelegateWeightSolm)
-  exact (ballotDelegateX_tailDelegateWeightRevertFrom1134 (cA := cA) (gh := gh) (bl := bl)
-      (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  exact (ballotDelegateX_tailDelegateWeightRevertFrom1134
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hcanonTail hdelegateWeight hreach)
     |>.reEquivExecutionRevert hcode hd hdec hbody
 
@@ -1481,16 +1480,16 @@ theorem delegateCurrentLoopMem_writeBase_afterKey (I : ExecutionEnv) (old w : UI
   rfl
 
 set_option maxHeartbeats 4000000 in
-theorem ballotDelegateX_loopExitFrom972Current {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem ballotDelegateX_loopExitFrom972Current {σ σ₀ A I} {g : Sat256}
     {sel old w : UInt256}
     (hcanon : w.toNat < EVM.addressModulus)
     (hdelegate : delegateVoterDelegateWord σ I w = ⟨0⟩)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨972⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I old) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1134⟩
+      (delegateCurrentLoopMem I old) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd972⟩ := hreach
   have rd987 := evm_run rd972 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, dup2, and,
@@ -1516,9 +1515,9 @@ theorem ballotDelegateX_loopExitFrom972Current {cA gh bl σ σ₀ A I} {g : Sat2
     add ]
   obtain ⟨_, _, rd1002₀⟩ := rd995.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1002⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1002⟩
+      (initState σ σ₀ g A I) ⟨1002⟩
       [delegateVoterPackedWord σ I w, solcAddrMask, delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
       unfold delegateCurrentLoopMem
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, solcAddrMask, initState,
@@ -1538,17 +1537,17 @@ theorem ballotDelegateX_loopExitFrom972Current {cA gh bl σ σ₀ A I} {g : Sat2
   exact ⟨_, _, evm_run rd1008' with [push2 ⟨1134⟩, jumpiT (by decide) (by jump_dest)]⟩
 
 set_option maxHeartbeats 4000000 in
-theorem ballotDelegateX_loopContinueFrom972Current {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem ballotDelegateX_loopContinueFrom972Current {σ σ₀ A I} {g : Sat256}
     {sel old w : UInt256}
     (hcanon : w.toNat < EVM.addressModulus)
     (hnext : delegateVoterDelegateWord σ I w ≠ ⟨0⟩)
     (hnotSender : delegateVoterDelegateWord σ I w ≠ delegateSourceWord I)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨972⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I old) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨972⟩
+      (delegateCurrentLoopMem I old) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
       [delegateSenderSlot I, delegateVoterDelegateWord σ I w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd972⟩ := hreach
   have rd987 := evm_run rd972 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, dup2, and,
@@ -1574,9 +1573,9 @@ theorem ballotDelegateX_loopContinueFrom972Current {cA gh bl σ σ₀ A I} {g : 
     add ]
   obtain ⟨_, _, rd1002₀⟩ := rd995.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1002⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1002⟩
+      (initState σ σ₀ g A I) ⟨1002⟩
       [delegateVoterPackedWord σ I w, solcAddrMask, delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
       unfold delegateCurrentLoopMem
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, solcAddrMask, initState,
@@ -1621,9 +1620,9 @@ theorem ballotDelegateX_loopContinueFrom972Current {cA gh bl σ σ₀ A I} {g : 
     add ]
   obtain ⟨_, _, rd1042₀⟩ := rd1041.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1042⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1042⟩
+      (initState σ σ₀ g A I) ⟨1042⟩
       [delegateVoterPackedWord σ I w, delegateSenderSlot I, solcAddrMask, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
       unfold delegateCurrentLoopMem
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, initState, u256_add_comm]
@@ -1647,16 +1646,16 @@ theorem ballotDelegateX_loopContinueFrom972Current {cA gh bl σ σ₀ A I} {g : 
       using rd972next⟩
 
 set_option maxHeartbeats 4000000 in
-theorem ballotDelegateX_loopSenderRevertTailFrom972Current {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_loopSenderRevertTailFrom972Current {σ σ₀ A I}
     {g : Sat256} {sel old w : UInt256}
     (hcanon : w.toNat < EVM.addressModulus)
     (hnext : delegateVoterDelegateWord σ I w ≠ ⟨0⟩)
     (hcycle : delegateVoterDelegateWord σ I w = delegateSourceWord I)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨972⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I old) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ R k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1058⟩ R
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C ∧
+      (delegateCurrentLoopMem I old) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ R k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1058⟩ R
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C ∧
       R.length + 4 ≤ 1024 := by
   obtain ⟨_, _, rd972⟩ := hreach
   have rd987 := evm_run rd972 with [
@@ -1683,9 +1682,9 @@ theorem ballotDelegateX_loopSenderRevertTailFrom972Current {cA gh bl σ σ₀ A 
     add ]
   obtain ⟨_, _, rd1002₀⟩ := rd995.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1002⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1002⟩
+      (initState σ σ₀ g A I) ⟨1002⟩
       [delegateVoterPackedWord σ I w, solcAddrMask, delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
       unfold delegateCurrentLoopMem
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, solcAddrMask, initState,
@@ -1730,9 +1729,9 @@ theorem ballotDelegateX_loopSenderRevertTailFrom972Current {cA gh bl σ σ₀ A 
     add ]
   obtain ⟨_, _, rd1042₀⟩ := rd1041.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1042⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1042⟩
+      (initState σ σ₀ g A I) ⟨1042⟩
       [delegateVoterPackedWord σ I w, delegateSenderSlot I, solcAddrMask, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
       unfold delegateCurrentLoopMem
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, initState, u256_add_comm]
@@ -1753,44 +1752,44 @@ theorem ballotDelegateX_loopSenderRevertTailFrom972Current {cA gh bl σ σ₀ A 
   have rd1058 := evm_run rd1054' with [push2 ⟨1129⟩, jumpiNT (by decide)]
   exact ⟨_, _, _, rd1058, by simp⟩
 
-theorem ballotDelegateX_loopSenderRevertFrom972Current {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_loopSenderRevertFrom972Current {σ σ₀ A I}
     {g : Sat256} {sel old w : UInt256}
     (hcanon : w.toNat < EVM.addressModulus)
     (hnext : delegateVoterDelegateWord σ I w ≠ ⟨0⟩)
     (hcycle : delegateVoterDelegateWord σ I w = delegateSourceWord I)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨972⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨972⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I old) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev ballotBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (delegateCurrentLoopMem I old) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨R, k, C, rd1058, hov⟩ :=
-    ballotDelegateX_loopSenderRevertTailFrom972Current (cA := cA) (gh := gh)
-      (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
+    ballotDelegateX_loopSenderRevertTailFrom972Current
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel)
       (old := old) (w := w) hcanon hnext hcycle hreach
   exact ballotDelegateX_loopFoundRevert1058 (sel := sel) (w := w) rd1058 hov
 
-theorem ballotDelegateX_tailAfterSenderPackedStoreFrom1134 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailAfterSenderPackedStoreFrom1134 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hperm : I.perm = true)
     (hcanon : w.toNat < EVM.addressModulus)
     (hdelegateWeight : delegateVoterWeightWord σ I w ≠ ⟨0⟩)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1134⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1211⟩
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C := by
+      (delegateTailAfterSenderMap σ I w) k C := by
   obtain ⟨_, _, rd1174⟩ :=
-    ballotDelegateX_tailAfterDelegateWeightFrom1134 (cA := cA) (gh := gh) (bl := bl)
+    ballotDelegateX_tailAfterDelegateWeightFrom1134
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (sel := sel) (w := w)
       hcanon hdelegateWeight hreach
   have rd1181 := evm_run rd1174 with [jumpdest, push1 ⟨1⟩, dup3, dup2, add, dup1]
   obtain ⟨_, _, rd1182₀⟩ := rd1181.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1182⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1182⟩
+      (initState σ σ₀ g A I) ⟨1182⟩
       [delegateSenderPackedWord σ I, delegateSenderPackedSlot I, ⟨1⟩,
         delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
       simpa [delegateSenderPackedWord, delegateSenderPackedSlot, initState, u256_add_comm]
         using rd1182₀⟩
@@ -1806,27 +1805,27 @@ theorem ballotDelegateX_tailAfterSenderPackedStoreFrom1134 {cA gh bl σ σ₀ A 
     simpa [delegateTailAfterSenderMap, delegateTailSenderPackedStoreWord,
       delegateSenderPackedWord, delegateSenderPackedSlot, initState] using rd1211⟩
 
-theorem ballotDelegateX_tailDelegateNotVotedBranchFrom1211 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailDelegateNotVotedBranchFrom1211 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hdelegateNotVoted :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w = ⟨0⟩)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1211⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C) :
-    ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1285⟩
+      (delegateTailAfterSenderMap σ I w) k C) :
+    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1285⟩
       [delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C := by
+      (delegateTailAfterSenderMap σ I w) k C := by
   obtain ⟨_, _, rd1211⟩ := hreach
   have rd1213 := evm_run rd1211 with [dup2, add]
   obtain ⟨_, _, rd1214₀⟩ := rd1213.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1214⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1214⟩
+      (initState σ σ₀ g A I) ⟨1214⟩
       [delegateVoterPackedWord (delegateTailAfterSenderMap σ I w) I w,
         delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C := by
+      (delegateTailAfterSenderMap σ I w) k C := by
     exact ⟨_, _, by
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot] using rd1214₀⟩
   have rd1218 := evm_run rd1214 with [push1 ⟨255⟩, and, iszero]
@@ -1842,27 +1841,27 @@ theorem ballotDelegateX_tailDelegateNotVotedBranchFrom1211 {cA gh bl σ σ₀ A 
   rw [hzero] at rd1218'
   exact ⟨_, _, evm_run rd1218' with [push2 ⟨1285⟩, jumpiT (by decide) (by jump_dest)]⟩
 
-theorem ballotDelegateX_tailDelegateVotedBranchFrom1211 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailDelegateVotedBranchFrom1211 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hdelegateVoted :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1211⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C) :
-    ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1222⟩
+      (delegateTailAfterSenderMap σ I w) k C) :
+    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1222⟩
       [delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C := by
+      (delegateTailAfterSenderMap σ I w) k C := by
   obtain ⟨_, _, rd1211⟩ := hreach
   have rd1213 := evm_run rd1211 with [dup2, add]
   obtain ⟨_, _, rd1214₀⟩ := rd1213.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1214⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1214⟩
+      (initState σ σ₀ g A I) ⟨1214⟩
       [delegateVoterPackedWord (delegateTailAfterSenderMap σ I w) I w,
         delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C := by
+      (delegateTailAfterSenderMap σ I w) k C := by
     exact ⟨_, _, by
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot] using rd1214₀⟩
   have rd1218 := evm_run rd1214 with [push1 ⟨255⟩, and, iszero]
@@ -1877,48 +1876,48 @@ theorem ballotDelegateX_tailDelegateVotedBranchFrom1211 {cA gh bl σ σ₀ A I}
   rw [hzero] at rd1218'
   exact ⟨_, _, evm_run rd1218' with [push2 ⟨1285⟩, jumpiNT (by decide)]⟩
 
-theorem ballotDelegateX_tailNotVotedToCheckedAddFrom1211 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailNotVotedToCheckedAddFrom1211 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hdelegateNotVoted :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w = ⟨0⟩)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1211⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C) :
-    ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1835⟩
+      (delegateTailAfterSenderMap σ I w) k C) :
+    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1835⟩
       [delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w,
         delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I, ⟨1304⟩, ⟨0⟩,
         delegateVoterSlot w, delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I,
         delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C := by
+      (delegateTailAfterSenderMap σ I w) k C := by
   obtain ⟨_, _, rd1285⟩ := ballotDelegateX_tailDelegateNotVotedBranchFrom1211
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (w := w) hdelegateNotVoted hreach
   have rd1287 := evm_run rd1285 with [jumpdest, dup2]
   obtain ⟨_, _, rd1288₀⟩ := rd1287.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1288⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1288⟩
+      (initState σ σ₀ g A I) ⟨1288⟩
       [delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I,
         delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C := by
+      (delegateTailAfterSenderMap σ I w) k C := by
     exact ⟨_, _, by simpa [delegateSenderWeightWord, initState] using rd1288₀⟩
   have rd1289 := evm_run rd1288 with [dup2]
   obtain ⟨_, _, rd1290₀⟩ := rd1289.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1290⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1290⟩
+      (initState σ σ₀ g A I) ⟨1290⟩
       [delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w,
         delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I,
         delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C := by
+      (delegateTailAfterSenderMap σ I w) k C := by
     exact ⟨_, _, by simpa [delegateVoterWeightWord, initState] using rd1290₀⟩
   exact ⟨_, _, evm_run rd1290 with [
     dup3, swap1, push0, swap1, push2 ⟨1304⟩, swap1, dup5, swap1, push2 ⟨1835⟩,
     jump (by jump_dest) ]⟩
 
-theorem ballotDelegateX_tailNotVotedAfterCheckedAddFrom1211 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailNotVotedAfterCheckedAddFrom1211 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hdelegateNotVoted :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w = ⟨0⟩)
@@ -1926,20 +1925,20 @@ theorem ballotDelegateX_tailNotVotedAfterCheckedAddFrom1211 {cA gh bl σ σ₀ A
       (delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w).toNat +
           (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat <
         UInt256.size)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1211⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C) :
-    ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1304⟩
+      (delegateTailAfterSenderMap σ I w) k C) :
+    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1304⟩
       [delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I +
           delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w,
         ⟨0⟩, delegateVoterSlot w,
         delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I,
         delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C := by
+      (delegateTailAfterSenderMap σ I w) k C := by
   obtain ⟨_, _, rd1835⟩ := ballotDelegateX_tailNotVotedToCheckedAddFrom1211
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (w := w) hdelegateNotVoted hreach
   let target := delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w
   let addend := delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I
@@ -1957,7 +1956,7 @@ theorem ballotDelegateX_tailNotVotedAfterCheckedAddFrom1211 {cA gh bl σ σ₀ A
   have rd1304 := evm_run rd1866 with [jumpdest, swap3, swap2, pop, pop, jump (by jump_dest)]
   exact ⟨_, _, by simpa [target, addend] using rd1304⟩
 
-theorem ballotDelegateX_tailNotVotedSuccessFrom1211 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailNotVotedSuccessFrom1211 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hperm : I.perm = true)
     (hdelegateNotVoted :
@@ -1966,14 +1965,14 @@ theorem ballotDelegateX_tailNotVotedSuccessFrom1211 {cA gh bl σ σ₀ A I}
       (delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w).toNat +
           (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat <
         UInt256.size)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1211⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C) :
-    RDret ballotBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, delegateTailFalseSuccessMap σ I w) ByteArray.empty := by
+      (delegateTailAfterSenderMap σ I w) k C) :
+    RDret ballotBytecode g (initState σ σ₀ g A I)
+      (delegateTailFalseSuccessMap σ I w) ByteArray.empty := by
   obtain ⟨_, _, rd1304⟩ := ballotDelegateX_tailNotVotedAfterCheckedAddFrom1211
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (w := w) hdelegateNotVoted hfit hreach
   have rd1307 := evm_run rd1304 with [jumpdest, swap1, swap2]
   obtain ⟨_, _, rd1308⟩ := rd1307.sstore hperm (by decide) (by evm_ov)
@@ -1989,20 +1988,20 @@ theorem ballotDelegateX_tailNotVotedSuccessFrom1211 {cA gh bl σ σ₀ A I}
     simpa [delegateTailFalseSuccessMap, hsum] using
       rd156.stop (by decide) (by evm_ov)
 
-theorem ballotDelegateX_tailNotVotedOverflowFrom1211 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailNotVotedOverflowFrom1211 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hdelegateNotVoted :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w = ⟨0⟩)
     (hover : UInt256.size ≤
       (delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w).toNat +
         (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1211⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C) :
-    RDrev ballotBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (delegateTailAfterSenderMap σ I w) k C) :
+    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1835⟩ := ballotDelegateX_tailNotVotedToCheckedAddFrom1211
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (w := w) hdelegateNotVoted hreach
   let target := delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w
   let addend := delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I
@@ -2017,73 +2016,73 @@ theorem ballotDelegateX_tailNotVotedOverflowFrom1211 {cA gh bl σ σ₀ A I}
   exact RD.ballotPanic11Revert1847 rd1847
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem ballotDelegateX_tailVotedBoundsCheckFrom1211 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailVotedBoundsCheckFrom1211 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hdelegateVoted :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1211⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C) :
-    ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1234⟩
+      (delegateTailAfterSenderMap σ I w) k C) :
+    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1234⟩
       [UInt256.lt (delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w)
           (delegateTailProposalsLengthWord σ I w),
         delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w, ⟨2⟩,
         delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I,
         delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C := by
+      (delegateTailAfterSenderMap σ I w) k C := by
   obtain ⟨_, _, rd1222⟩ := ballotDelegateX_tailDelegateVotedBranchFrom1211
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (w := w) hdelegateVoted hreach
   have rd1223 := evm_run rd1222 with [dup2]
   obtain ⟨_, _, rd1224₀⟩ := rd1223.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1224⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1224⟩
+      (initState σ σ₀ g A I) ⟨1224⟩
       [delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I,
         delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C := by
+      (delegateTailAfterSenderMap σ I w) k C := by
     exact ⟨_, _, by simpa [delegateSenderWeightWord, initState] using rd1224₀⟩
   have rd1229 := evm_run rd1224 with [push1 ⟨2⟩, dup3, dup2, add]
   obtain ⟨_, _, rd1230₀⟩ := rd1229.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1230⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1230⟩
+      (initState σ σ₀ g A I) ⟨1230⟩
       [delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w, ⟨2⟩,
         delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I,
         delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C := by
+      (delegateTailAfterSenderMap σ I w) k C := by
     exact ⟨_, _, by
       simpa [delegateVoterVoteWord, delegateVoterVoteSlot, initState, u256_add_comm]
         using rd1230₀⟩
   have rd1231 := evm_run rd1230 with [dup2]
   obtain ⟨_, _, rd1232₀⟩ := rd1231.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1232⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1232⟩
+      (initState σ σ₀ g A I) ⟨1232⟩
       [delegateTailProposalsLengthWord σ I w,
         delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w, ⟨2⟩,
         delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I,
         delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C := by
+      (delegateTailAfterSenderMap σ I w) k C := by
     exact ⟨_, _, by simpa [delegateTailProposalsLengthWord, initState] using rd1232₀⟩
   exact ⟨_, _, evm_run rd1232 with [dup2, lt]⟩
 
-theorem ballotDelegateX_tailVotedOobFrom1211 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailVotedOobFrom1211 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hdelegateVoted :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩)
     (hbound : ¬
       (delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w).toNat <
         (delegateTailProposalsLengthWord σ I w).toNat)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1211⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C) :
-    RDrev ballotBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (delegateTailAfterSenderMap σ I w) k C) :
+    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1234⟩ := ballotDelegateX_tailVotedBoundsCheckFrom1211
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (w := w) hdelegateVoted hreach
   have hlt :
       UInt256.lt (delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w)
@@ -2097,27 +2096,27 @@ theorem ballotDelegateX_tailVotedOobFrom1211 {cA gh bl σ σ₀ A I}
   exact RD.ballotPanic32Revert1815 rd1815
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem ballotDelegateX_tailVotedToCheckedAddFrom1211 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailVotedToCheckedAddFrom1211 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hdelegateVoted :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩)
     (hbound :
       (delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w).toNat <
         (delegateTailProposalsLengthWord σ I w).toNat)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1211⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C) :
-    ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1835⟩
+      (delegateTailAfterSenderMap σ I w) k C) :
+    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1835⟩
       [delegateTailProposalCountWord σ I w,
         delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I, ⟨1274⟩, ⟨0⟩,
         delegateTailProposalCountSlot σ I w,
         delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I,
         delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateProposalBaseMem w (delegateSourceWord I)) (UInt256.ofNat 3)
-      ByteArray.empty (cA, delegateTailAfterSenderMap σ I w) k C := by
+      ByteArray.empty (delegateTailAfterSenderMap σ I w) k C := by
   obtain ⟨_, _, rd1234⟩ := ballotDelegateX_tailVotedBoundsCheckFrom1211
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (w := w) hdelegateVoted hreach
   have hlt :
       UInt256.lt (delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w)
@@ -2138,21 +2137,21 @@ theorem ballotDelegateX_tailVotedToCheckedAddFrom1211 {cA gh bl σ σ₀ A I}
   have rd1264 := evm_run rd1261 with [push0, dup3, dup3]
   obtain ⟨_, _, rd1265₀⟩ := rd1264.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd1265⟩ : ∃ k C, RD ballotBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1265⟩
+      (initState σ σ₀ g A I) ⟨1265⟩
       [delegateTailProposalCountWord σ I w,
         delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I, ⟨0⟩,
         delegateTailProposalCountSlot σ I w,
         delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I,
         delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateProposalBaseMem w (delegateSourceWord I)) (UInt256.ofNat 3)
-      ByteArray.empty (cA, delegateTailAfterSenderMap σ I w) k C := by
+      ByteArray.empty (delegateTailAfterSenderMap σ I w) k C := by
     exact ⟨_, _, by
       simpa [delegateTailProposalCountWord, delegateTailProposalCountSlot, initState]
         using rd1265₀⟩
   exact ⟨_, _, evm_run rd1265 with [
     push2 ⟨1274⟩, swap2, swap1, push2 ⟨1835⟩, jump (by jump_dest) ]⟩
 
-theorem ballotDelegateX_tailVotedAfterCheckedAddFrom1211 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailVotedAfterCheckedAddFrom1211 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hdelegateVoted :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩)
@@ -2163,20 +2162,20 @@ theorem ballotDelegateX_tailVotedAfterCheckedAddFrom1211 {cA gh bl σ σ₀ A I}
       (delegateTailProposalCountWord σ I w).toNat +
           (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat <
         UInt256.size)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1211⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C) :
-    ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1274⟩
+      (delegateTailAfterSenderMap σ I w) k C) :
+    ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1274⟩
       [delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I +
           delegateTailProposalCountWord σ I w,
         ⟨0⟩, delegateTailProposalCountSlot σ I w,
         delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I,
         delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateProposalBaseMem w (delegateSourceWord I)) (UInt256.ofNat 3)
-      ByteArray.empty (cA, delegateTailAfterSenderMap σ I w) k C := by
+      ByteArray.empty (delegateTailAfterSenderMap σ I w) k C := by
   obtain ⟨_, _, rd1835⟩ := ballotDelegateX_tailVotedToCheckedAddFrom1211
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (w := w) hdelegateVoted hbound hreach
   let target := delegateTailProposalCountWord σ I w
   let addend := delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I
@@ -2194,7 +2193,7 @@ theorem ballotDelegateX_tailVotedAfterCheckedAddFrom1211 {cA gh bl σ σ₀ A I}
   have rd1274 := evm_run rd1866 with [jumpdest, swap3, swap2, pop, pop, jump (by jump_dest)]
   exact ⟨_, _, by simpa [target, addend] using rd1274⟩
 
-theorem ballotDelegateX_tailVotedSuccessFrom1211 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailVotedSuccessFrom1211 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hperm : I.perm = true)
     (hdelegateVoted :
@@ -2206,14 +2205,14 @@ theorem ballotDelegateX_tailVotedSuccessFrom1211 {cA gh bl σ σ₀ A I}
       (delegateTailProposalCountWord σ I w).toNat +
           (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat <
         UInt256.size)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1211⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C) :
-    RDret ballotBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, delegateTailTrueSuccessMap σ I w) ByteArray.empty := by
+      (delegateTailAfterSenderMap σ I w) k C) :
+    RDret ballotBytecode g (initState σ σ₀ g A I)
+      (delegateTailTrueSuccessMap σ I w) ByteArray.empty := by
   obtain ⟨_, _, rd1274⟩ := ballotDelegateX_tailVotedAfterCheckedAddFrom1211
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (w := w) hdelegateVoted hbound hfit hreach
   have rd1277 := evm_run rd1274 with [jumpdest, swap1, swap2]
   obtain ⟨_, _, rd1278⟩ := rd1277.sstore hperm (by decide) (by evm_ov)
@@ -2229,7 +2228,7 @@ theorem ballotDelegateX_tailVotedSuccessFrom1211 {cA gh bl σ σ₀ A I}
   exact by
     simpa [delegateTailTrueSuccessMap, hsum] using rd156.stop (by decide) (by evm_ov)
 
-theorem ballotDelegateX_tailVotedOverflowFrom1211 {cA gh bl σ σ₀ A I}
+theorem ballotDelegateX_tailVotedOverflowFrom1211 {σ σ₀ A I}
     {g : Sat256} {sel w : UInt256}
     (hdelegateVoted :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩)
@@ -2239,13 +2238,13 @@ theorem ballotDelegateX_tailVotedOverflowFrom1211 {cA gh bl σ σ₀ A I}
     (hover : UInt256.size ≤
       (delegateTailProposalCountWord σ I w).toNat +
         (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat)
-    (hreach : ∃ k C, RD ballotBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1211⟩
+    (hreach : ∃ k C, RD ballotBytecode I g (initState σ σ₀ g A I) ⟨1211⟩
       [⟨1⟩, delegateVoterSlot w, delegateSenderSlot I, w, ⟨156⟩, sel]
       (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty
-      (cA, delegateTailAfterSenderMap σ I w) k C) :
-    RDrev ballotBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (delegateTailAfterSenderMap σ I w) k C) :
+    RDrev ballotBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1835⟩ := ballotDelegateX_tailVotedToCheckedAddFrom1211
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) (w := w) hdelegateVoted hbound hreach
   let target := delegateTailProposalCountWord σ I w
   let addend := delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I
@@ -2266,10 +2265,10 @@ theorem delegateTailSenderPackedStoreWord_ne_zero (σ : AccountMap) (I : Executi
   unfold delegateTailSenderPackedStoreWord
   exact u256_lor_one_ne_zero _
 
-theorem delegateTailAfterSenderState_findD_init {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem delegateTailAfterSenderState_findD_init {σ σ₀ A I} {g : Sat256}
     (w readSlot : UInt256) :
-    (((delegateTailAfterSenderState (initState cA gh bl σ σ₀ g A I) I w).accountMap.find?
-          (delegateTailAfterSenderState (initState cA gh bl σ σ₀ g A I) I w).executionEnv.codeOwner).option
+    (((delegateTailAfterSenderState (initState σ σ₀ g A I) I w).accountMap.find?
+          (delegateTailAfterSenderState (initState σ σ₀ g A I) I w).executionEnv.codeOwner).option
         (default : UInt256)
         (fun acc => acc.storage.findD readSlot default)) =
       (((delegateTailAfterSenderMap σ I w).find? I.codeOwner).option (default : UInt256)
@@ -2278,7 +2277,7 @@ theorem delegateTailAfterSenderState_findD_init {cA gh bl σ σ₀ A I} {g : Sat
     simpa using delegateTailSenderPackedStoreWord_ne_zero σ I w
   have hlookup := sstoreAccountMap_self_storage_findD_update_insert_self
     σ I.codeOwner (delegateSenderPackedSlot I) readSlot
-    (delegateSenderVotedStoreCurrent (initState cA gh bl σ σ₀ g A I) I)
+    (delegateSenderVotedStoreCurrent (initState σ σ₀ g A I) I)
     (delegateTailSenderPackedStoreWord σ I w) hfinal
   simpa [delegateTailAfterSenderState, delegateAfterVotedState, delegateTailAfterSenderMap,
     delegateTailSenderPackedStoreCurrent, delegateTailSenderPackedStoreWord,
@@ -2287,67 +2286,67 @@ theorem delegateTailAfterSenderState_findD_init {cA gh bl σ σ₀ A I} {g : Sat
     storageStore_accountMap, voteStorageStore_executionEnv] using hlookup
 
 theorem delegateTailVoterVotedByteCurrent_afterSenderState_init
-    {cA gh bl σ σ₀ A I} {g : Sat256} (w : UInt256) :
+    {σ σ₀ A I} {g : Sat256} (w : UInt256) :
     delegateTailVoterVotedByteCurrent
-        (delegateTailAfterSenderState (initState cA gh bl σ σ₀ g A I) I w) w =
+        (delegateTailAfterSenderState (initState σ σ₀ g A I) I w) w =
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w := by
   simpa [delegateTailVoterVotedByteCurrent, delegateVoterVotedByte,
     delegateTailVoterPackedCurrent, delegateVoterPackedWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
     using congrArg (fun word => UInt256.land ⟨255⟩ word)
-      (delegateTailAfterSenderState_findD_init (cA := cA) (gh := gh) (bl := bl)
+      (delegateTailAfterSenderState_findD_init
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) w
         (delegateVoterPackedSlot w))
 
 theorem delegateTailVoterWeightCurrent_afterSenderState_init
-    {cA gh bl σ σ₀ A I} {g : Sat256} (w : UInt256) :
+    {σ σ₀ A I} {g : Sat256} (w : UInt256) :
     delegateTailVoterWeightCurrent
-        (delegateTailAfterSenderState (initState cA gh bl σ σ₀ g A I) I w) w =
+        (delegateTailAfterSenderState (initState σ σ₀ g A I) I w) w =
       delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w := by
   simpa [delegateTailVoterWeightCurrent, delegateVoterWeightWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
-    using delegateTailAfterSenderState_findD_init (cA := cA) (gh := gh) (bl := bl)
+    using delegateTailAfterSenderState_findD_init
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) w (delegateVoterSlot w)
 
 theorem delegateTailSenderWeightCurrent_afterSenderState_init
-    {cA gh bl σ σ₀ A I} {g : Sat256} (w : UInt256) :
+    {σ σ₀ A I} {g : Sat256} (w : UInt256) :
     delegateSenderWeightCurrent
-        (delegateTailAfterSenderState (initState cA gh bl σ σ₀ g A I) I w) I =
+        (delegateTailAfterSenderState (initState σ σ₀ g A I) I w) I =
       delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I := by
   simpa [delegateSenderWeightCurrent, delegateSenderWeightWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
-    using delegateTailAfterSenderState_findD_init (cA := cA) (gh := gh) (bl := bl)
+    using delegateTailAfterSenderState_findD_init
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) w (delegateSenderSlot I)
 
 theorem delegateTailVoterVoteCurrent_afterSenderState_init
-    {cA gh bl σ σ₀ A I} {g : Sat256} (w : UInt256) :
+    {σ σ₀ A I} {g : Sat256} (w : UInt256) :
     delegateTailVoterVoteCurrent
-        (delegateTailAfterSenderState (initState cA gh bl σ σ₀ g A I) I w) w =
+        (delegateTailAfterSenderState (initState σ σ₀ g A I) I w) w =
       delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w := by
   simpa [delegateTailVoterVoteCurrent, delegateVoterVoteWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
-    using delegateTailAfterSenderState_findD_init (cA := cA) (gh := gh) (bl := bl)
+    using delegateTailAfterSenderState_findD_init
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) w (delegateVoterVoteSlot w)
 
 theorem delegateTailProposalsLengthCurrent_afterSenderState_init
-    {cA gh bl σ σ₀ A I} {g : Sat256} (w : UInt256) :
+    {σ σ₀ A I} {g : Sat256} (w : UInt256) :
     delegateTailProposalsLengthCurrent
-        (delegateTailAfterSenderState (initState cA gh bl σ σ₀ g A I) I w) =
+        (delegateTailAfterSenderState (initState σ σ₀ g A I) I w) =
       delegateTailProposalsLengthWord σ I w := by
   simpa [delegateTailProposalsLengthCurrent, delegateTailProposalsLengthWord,
     Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-    using delegateTailAfterSenderState_findD_init (cA := cA) (gh := gh) (bl := bl)
+    using delegateTailAfterSenderState_findD_init
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) w ⟨2⟩
 
-theorem delegateTailProposalCountCurrent_init {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem delegateTailProposalCountCurrent_init {σ σ₀ A I} {g : Sat256}
     (w : UInt256) :
-    delegateTailProposalCountCurrent (initState cA gh bl σ σ₀ g A I) I w =
+    delegateTailProposalCountCurrent (initState σ σ₀ g A I) I w =
       delegateTailProposalCountWord σ I w := by
   unfold delegateTailProposalCountCurrent delegateTailProposalCountSlotCurrent
   rw [delegateTailVoterVoteCurrent_afterSenderState_init]
   simpa [delegateTailProposalCountWord, delegateTailProposalCountSlot, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage, initState, voteStorageStore_executionEnv]
-    using delegateTailAfterSenderState_findD_init (cA := cA) (gh := gh) (bl := bl)
+    using delegateTailAfterSenderState_findD_init
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) w
       (delegateTailProposalCountSlot σ I w)
 
@@ -2386,15 +2385,15 @@ theorem delegateTailUpdatedProposalCount_ne_zero (σ : AccountMap) (I : Executio
   · simpa [delegateTailSenderWeightWord_afterSenderMap] using hweight
   · exact hfit
 
-theorem delegateTailAfterSenderState_accountMapEquiv_init {cA gh bl σ σ₀ A I}
+theorem delegateTailAfterSenderState_accountMapEquiv_init {σ σ₀ A I}
     {g : Sat256} (w : UInt256) :
-    accountMapEquiv (delegateTailAfterSenderMap σ I w)
-      (delegateTailAfterSenderState (initState cA gh bl σ σ₀ g A I) I w).accountMap := by
+    delegateTailAfterSenderMap σ I w =
+      (delegateTailAfterSenderState (initState σ σ₀ g A I) I w).accountMap := by
   have hfinal : (delegateTailSenderPackedStoreWord σ I w == (default : UInt256)) = false := by
     simpa using delegateTailSenderPackedStoreWord_ne_zero σ I w
   have h := accountMapEquiv_sstoreAccountMap_self_update_insert
     σ I.codeOwner (delegateSenderPackedSlot I)
-    (delegateSenderVotedStoreCurrent (initState cA gh bl σ σ₀ g A I) I)
+    (delegateSenderVotedStoreCurrent (initState σ σ₀ g A I) I)
     (delegateTailSenderPackedStoreWord σ I w) hfinal
   simpa [delegateTailAfterSenderState, delegateAfterVotedState, delegateTailAfterSenderMap,
     delegateTailSenderPackedStoreCurrent, delegateTailSenderPackedStoreWord,
@@ -2402,25 +2401,19 @@ theorem delegateTailAfterSenderState_accountMapEquiv_init {cA gh bl σ σ₀ A I
     initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
     storageStore_accountMap, voteStorageStore_executionEnv] using h
 
-theorem delegateTailFalseSuccessState_created_init {cA gh bl σ σ₀ A I} {g : Sat256}
-    (w : UInt256) :
-    cA = (delegateTailFalseSuccessState (initState cA gh bl σ σ₀ g A I) I w).createdAccounts := by
-  simp [delegateTailFalseSuccessState, delegateTailAfterSenderState, delegateAfterVotedState,
-    initState, storageStore_createdAccounts]
-
-theorem delegateTailFalseSuccessState_accountMapEquiv_init {cA gh bl σ σ₀ A I}
+theorem delegateTailFalseSuccessState_accountMapEquiv_init {σ σ₀ A I}
     {g : Sat256} (w : UInt256)
     (hweight : delegateSenderWeightWord σ I ≠ ⟨0⟩)
     (hfit :
       (delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w).toNat +
           (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat <
         UInt256.size) :
-    accountMapEquiv (delegateTailFalseSuccessMap σ I w)
-      (delegateTailFalseSuccessState (initState cA gh bl σ σ₀ g A I) I w).accountMap := by
+    delegateTailFalseSuccessMap σ I w =
+      (delegateTailFalseSuccessState (initState σ σ₀ g A I) I w).accountMap := by
   have hfinal : (delegateTailUpdatedVoterWeight σ I w == (default : UInt256)) = false := by
     simpa using delegateTailUpdatedVoterWeight_ne_zero σ I w hweight hfit
   have hbase := delegateTailAfterSenderState_accountMapEquiv_init
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) w
   have h := accountMapEquiv_sstoreAccountMap_insert I.codeOwner
     (delegateVoterSlot w) (delegateTailUpdatedVoterWeight σ I w) hbase hfinal
@@ -2430,25 +2423,19 @@ theorem delegateTailFalseSuccessState_accountMapEquiv_init {cA gh bl σ σ₀ A 
     delegateTailSenderWeightCurrent_afterSenderState_init, storageStore_accountMap,
     voteStorageStore_executionEnv] using h
 
-theorem delegateTailTrueSuccessState_created_init {cA gh bl σ σ₀ A I} {g : Sat256}
-    (w : UInt256) :
-    cA = (delegateTailTrueSuccessState (initState cA gh bl σ σ₀ g A I) I w).createdAccounts := by
-  simp [delegateTailTrueSuccessState, delegateTailAfterSenderState, delegateAfterVotedState,
-    initState, storageStore_createdAccounts]
-
-theorem delegateTailTrueSuccessState_accountMapEquiv_init {cA gh bl σ σ₀ A I}
+theorem delegateTailTrueSuccessState_accountMapEquiv_init {σ σ₀ A I}
     {g : Sat256} (w : UInt256)
     (hweight : delegateSenderWeightWord σ I ≠ ⟨0⟩)
     (hfit :
       (delegateTailProposalCountWord σ I w).toNat +
           (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat <
         UInt256.size) :
-    accountMapEquiv (delegateTailTrueSuccessMap σ I w)
-      (delegateTailTrueSuccessState (initState cA gh bl σ σ₀ g A I) I w).accountMap := by
+    delegateTailTrueSuccessMap σ I w =
+      (delegateTailTrueSuccessState (initState σ σ₀ g A I) I w).accountMap := by
   have hfinal : (delegateTailUpdatedProposalCount σ I w == (default : UInt256)) = false := by
     simpa using delegateTailUpdatedProposalCount_ne_zero σ I w hweight hfit
   have hbase := delegateTailAfterSenderState_accountMapEquiv_init
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) w
   have h := accountMapEquiv_sstoreAccountMap_insert I.codeOwner
     (delegateTailProposalCountSlot σ I w) (delegateTailUpdatedProposalCount σ I w) hbase hfinal
@@ -2462,74 +2449,31 @@ theorem delegateTailTrueSuccessState_accountMapEquiv_init {cA gh bl σ σ₀ A I
 /-! ### `EVMStateEquiv` simulation chains for the tail success states (parametrized by `w`)
 
 The `w`-parametrized analogue of the base delegate chains; see `delegateAfterSenderState_EVMStateEquiv`
-in `Examples.Ballot.Delegate`.  They feed the relaxed `reEquivExecutionGenEVMStateEquiv` connect. -/
+in `Examples.Ballot.Delegate`. Runtime connections use direct account-map equalities. -/
 
 theorem delegateTailAfterSenderState_EVMStateEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) (w : UInt256) :
-    EVMStateEquiv (delegateTailAfterSenderState (initState cA gh bl σ_evm σ₀ g A I) I w)
-      (delegateTailAfterSenderState (initState cA gh bl σ_solm σ₀ g A I) I w) := by
-  have hσ : EVMStateEquiv (initState cA gh bl σ_evm σ₀ g A I)
-      (initState cA gh bl σ_solm σ₀ g A I) := EVMStateEquiv.initState hAccounts
-  have hVoted : delegateSenderVotedStoreCurrent (initState cA gh bl σ_evm σ₀ g A I) I =
-      delegateSenderVotedStoreCurrent (initState cA gh bl σ_solm σ₀ g A I) I := by
-    unfold delegateSenderVotedStoreCurrent delegateSenderPackedCurrent
-    rw [hσ.storageLoad_codeOwner (delegateSenderPackedSlot I)]
-  have hσVoted : EVMStateEquiv (delegateAfterVotedState (initState cA gh bl σ_evm σ₀ g A I) I)
-      (delegateAfterVotedState (initState cA gh bl σ_solm σ₀ g A I) I) := by
-    unfold delegateAfterVotedState
-    exact hσ.storageStore_codeOwner (delegateSenderPackedSlot I) hVoted
-  have hSender : delegateTailSenderPackedStoreCurrent (initState cA gh bl σ_evm σ₀ g A I) I w =
-      delegateTailSenderPackedStoreCurrent (initState cA gh bl σ_solm σ₀ g A I) I w := by
-    unfold delegateTailSenderPackedStoreCurrent delegateSenderPackedCurrent
-    rw [hσ.storageLoad_codeOwner (delegateSenderPackedSlot I)]
-  unfold delegateTailAfterSenderState
-  exact hσVoted.storageStore (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
-    (delegateSenderPackedSlot I) hSender
+    {σ σ₀ A I} {g : Sat256}
+    (w : UInt256) :
+    EVMStateEquiv (delegateTailAfterSenderState (initState σ σ₀ g A I) I w)
+      (delegateTailAfterSenderState (initState σ σ₀ g A I) I w) := by
+  exact ⟨rfl, rfl⟩
 
 theorem delegateTailFalseSuccessState_EVMStateEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) (w : UInt256) :
-    EVMStateEquiv (delegateTailFalseSuccessState (initState cA gh bl σ_evm σ₀ g A I) I w)
-      (delegateTailFalseSuccessState (initState cA gh bl σ_solm σ₀ g A I) I w) := by
-  have hσS := delegateTailAfterSenderState_EVMStateEquiv
-    (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀)
-    (A := A) (I := I) (g := g) hAccounts w
-  have hW : delegateTailUpdatedVoterWeightCurrent (initState cA gh bl σ_evm σ₀ g A I) I w =
-      delegateTailUpdatedVoterWeightCurrent (initState cA gh bl σ_solm σ₀ g A I) I w := by
-    unfold delegateTailUpdatedVoterWeightCurrent delegateTailVoterWeightCurrent
-      delegateSenderWeightCurrent
-    rw [hσS.storageLoad_codeOwner (delegateVoterSlot w),
-      hσS.storageLoad_codeOwner (delegateSenderSlot I)]
-  unfold delegateTailFalseSuccessState
-  exact hσS.storageStore_codeOwner (delegateVoterSlot w) hW
+    {σ σ₀ A I} {g : Sat256}
+    (w : UInt256) :
+    EVMStateEquiv (delegateTailFalseSuccessState (initState σ σ₀ g A I) I w)
+      (delegateTailFalseSuccessState (initState σ σ₀ g A I) I w) := by
+  exact ⟨rfl, rfl⟩
 
 theorem delegateTailTrueSuccessState_EVMStateEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) (w : UInt256) :
-    EVMStateEquiv (delegateTailTrueSuccessState (initState cA gh bl σ_evm σ₀ g A I) I w)
-      (delegateTailTrueSuccessState (initState cA gh bl σ_solm σ₀ g A I) I w) := by
-  have hσS := delegateTailAfterSenderState_EVMStateEquiv
-    (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀)
-    (A := A) (I := I) (g := g) hAccounts w
-  have hSlot : delegateTailProposalCountSlotCurrent (initState cA gh bl σ_evm σ₀ g A I) I w =
-      delegateTailProposalCountSlotCurrent (initState cA gh bl σ_solm σ₀ g A I) I w := by
-    unfold delegateTailProposalCountSlotCurrent delegateTailVoterVoteCurrent
-    rw [hσS.storageLoad_codeOwner (delegateVoterVoteSlot w)]
-  have hCount : delegateTailUpdatedProposalCountCurrent (initState cA gh bl σ_evm σ₀ g A I) I w =
-      delegateTailUpdatedProposalCountCurrent (initState cA gh bl σ_solm σ₀ g A I) I w := by
-    unfold delegateTailUpdatedProposalCountCurrent delegateTailProposalCountCurrent
-      delegateSenderWeightCurrent
-    rw [hSlot, hσS.storageLoad_codeOwner (delegateTailProposalCountSlotCurrent
-        (initState cA gh bl σ_solm σ₀ g A I) I w),
-      hσS.storageLoad_codeOwner (delegateSenderSlot I)]
-  unfold delegateTailTrueSuccessState
-  rw [hSlot]
-  exact hσS.storageStore_codeOwner
-    (delegateTailProposalCountSlotCurrent (initState cA gh bl σ_solm σ₀ g A I) I w) hCount
+    {σ σ₀ A I} {g : Sat256}
+    (w : UInt256) :
+    EVMStateEquiv (delegateTailTrueSuccessState (initState σ σ₀ g A I) I w)
+      (delegateTailTrueSuccessState (initState σ σ₀ g A I) I w) := by
+  exact ⟨rfl, rfl⟩
 
 theorem ballotDelegateTailNotVotedSuccessEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I}
+    {σ σ₀ A I}
     {g : UInt256} {sel w : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true)
@@ -2537,51 +2481,50 @@ theorem ballotDelegateTailNotVotedSuccessEquiv
     (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hcanonInit : (delegateToWord I).toNat < EVM.addressModulus)
     (hcanonTail : w.toNat < EVM.addressModulus)
-    (hweight : delegateSenderWeightWord σ_evm I ≠ ⟨0⟩)
-    (hvoted : delegateSenderVotedByte σ_evm I = ⟨0⟩)
+    (hweight : delegateSenderWeightWord σ I ≠ ⟨0⟩)
+    (hvoted : delegateSenderVotedByte σ I = ⟨0⟩)
     (hnotself : delegateToWord I ≠ delegateSourceWord I)
     (hwhile :
       ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
           [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
             .require (.binary .ne (.var "to") sender) ])
         (.ok { contract := ballotContract, locals := delegateCurrentWithSenderStore I w }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
-    (hdelegateWeight : delegateVoterWeightWord σ_evm I w ≠ ⟨0⟩)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
+    (hdelegateWeight : delegateVoterWeightWord σ I w ≠ ⟨0⟩)
     (hdelegateNotVoted :
-      delegateVoterVotedByte (delegateTailAfterSenderMap σ_evm I w) I w = ⟨0⟩)
+      delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w = ⟨0⟩)
     (hfit :
-      (delegateVoterWeightWord (delegateTailAfterSenderMap σ_evm I w) I w).toNat +
-          (delegateSenderWeightWord (delegateTailAfterSenderMap σ_evm I w) I).toNat <
+      (delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w).toNat +
+          (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat <
         UInt256.size)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor ballotConfig ballotContract
+      σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
-  have htail := delegateTailAfterSenderMap_accountMapEquiv (I := I) hAccounts w
-  have hweightSolm : delegateSenderWeightWord σ_solm I ≠ ⟨0⟩ := by
-    simpa [← delegateSenderWeightWord_accountMapEquiv hAccounts] using hweight
-  have hvotedSolm : delegateSenderVotedByte σ_solm I = ⟨0⟩ := by
-    simpa [← delegateSenderVotedByte_accountMapEquiv hAccounts] using hvoted
-  have hdelegateWeightSolm : delegateVoterWeightWord σ_solm I w ≠ ⟨0⟩ := by
-    simpa [← delegateVoterWeightWord_accountMapEquiv hAccounts w] using hdelegateWeight
+  have htail : delegateTailAfterSenderMap σ I w = delegateTailAfterSenderMap σ I w := rfl
+  have hweightSolm : delegateSenderWeightWord σ I ≠ ⟨0⟩ := by
+    simpa [← delegateSenderWeightWord_accountMapEquiv rfl] using hweight
+  have hvotedSolm : delegateSenderVotedByte σ I = ⟨0⟩ := by
+    simpa [← delegateSenderVotedByte_accountMapEquiv rfl] using hvoted
+  have hdelegateWeightSolm : delegateVoterWeightWord σ I w ≠ ⟨0⟩ := by
+    simpa [← delegateVoterWeightWord_accountMapEquiv rfl w] using hdelegateWeight
   have hdelegateNotVotedSolm :
-      delegateVoterVotedByte (delegateTailAfterSenderMap σ_solm I w) I w = ⟨0⟩ := by
+      delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w = ⟨0⟩ := by
     simpa [← delegateVoterVotedByte_accountMapEquiv htail w] using hdelegateNotVoted
   have hfitSolm :
-      (delegateVoterWeightWord (delegateTailAfterSenderMap σ_solm I w) I w).toNat +
-          (delegateSenderWeightWord (delegateTailAfterSenderMap σ_solm I w) I).toNat <
+      (delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w).toNat +
+          (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat <
         UInt256.size := by
     simpa [← delegateVoterWeightWord_accountMapEquiv htail w,
       ← delegateSenderWeightWord_accountMapEquiv htail] using hfit
   have hbody := ballotDelegateBodyReturns_tailNotVoted
-    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I w
+    (initState σ σ₀ (Sat256.ofUInt256 g) A I) I w
     (by simp only [initState]; exact hwv)
     (by simp [initState])
     hcanonInit
@@ -2597,23 +2540,19 @@ theorem ballotDelegateTailNotVotedSuccessEquiv
         delegateTailSenderWeightCurrent_afterSenderState_init]
       exact hfitSolm)
   have hreach1211 := ballotDelegateX_tailAfterSenderPackedStoreFrom1134
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hperm hcanonTail hdelegateWeight hreach
-  exact (ballotDelegateX_tailNotVotedSuccessFrom1211 (cA := cA) (gh := gh) (bl := bl)
-      (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  exact (ballotDelegateX_tailNotVotedSuccessFrom1211
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hperm hdelegateNotVoted hfit hreach1211)
-    |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-      (delegateTailFalseSuccessState_created_init (g := Sat256.ofUInt256 g) (σ := σ_evm) w)
+    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
       (delegateTailFalseSuccessState_accountMapEquiv_init
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) w hweight hfit)
-      (delegateTailFalseSuccessState_EVMStateEquiv
-        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀)
-        (A := A) (I := I) (g := Sat256.ofUInt256 g) hAccounts w)
       (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 theorem ballotDelegateTailNotVotedOverflowEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I}
+    {σ σ₀ A I}
     {g : UInt256} {sel w : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true)
@@ -2621,49 +2560,48 @@ theorem ballotDelegateTailNotVotedOverflowEquiv
     (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hcanonInit : (delegateToWord I).toNat < EVM.addressModulus)
     (hcanonTail : w.toNat < EVM.addressModulus)
-    (hweight : delegateSenderWeightWord σ_evm I ≠ ⟨0⟩)
-    (hvoted : delegateSenderVotedByte σ_evm I = ⟨0⟩)
+    (hweight : delegateSenderWeightWord σ I ≠ ⟨0⟩)
+    (hvoted : delegateSenderVotedByte σ I = ⟨0⟩)
     (hnotself : delegateToWord I ≠ delegateSourceWord I)
     (hwhile :
       ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
           [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
             .require (.binary .ne (.var "to") sender) ])
         (.ok { contract := ballotContract, locals := delegateCurrentWithSenderStore I w }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
-    (hdelegateWeight : delegateVoterWeightWord σ_evm I w ≠ ⟨0⟩)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
+    (hdelegateWeight : delegateVoterWeightWord σ I w ≠ ⟨0⟩)
     (hdelegateNotVoted :
-      delegateVoterVotedByte (delegateTailAfterSenderMap σ_evm I w) I w = ⟨0⟩)
+      delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w = ⟨0⟩)
     (hover : UInt256.size ≤
-      (delegateVoterWeightWord (delegateTailAfterSenderMap σ_evm I w) I w).toNat +
-        (delegateSenderWeightWord (delegateTailAfterSenderMap σ_evm I w) I).toNat)
+      (delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w).toNat +
+        (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor ballotConfig ballotContract
+      σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
-  have htail := delegateTailAfterSenderMap_accountMapEquiv (I := I) hAccounts w
-  have hweightSolm : delegateSenderWeightWord σ_solm I ≠ ⟨0⟩ := by
-    simpa [← delegateSenderWeightWord_accountMapEquiv hAccounts] using hweight
-  have hvotedSolm : delegateSenderVotedByte σ_solm I = ⟨0⟩ := by
-    simpa [← delegateSenderVotedByte_accountMapEquiv hAccounts] using hvoted
-  have hdelegateWeightSolm : delegateVoterWeightWord σ_solm I w ≠ ⟨0⟩ := by
-    simpa [← delegateVoterWeightWord_accountMapEquiv hAccounts w] using hdelegateWeight
+  have htail : delegateTailAfterSenderMap σ I w = delegateTailAfterSenderMap σ I w := rfl
+  have hweightSolm : delegateSenderWeightWord σ I ≠ ⟨0⟩ := by
+    simpa [← delegateSenderWeightWord_accountMapEquiv rfl] using hweight
+  have hvotedSolm : delegateSenderVotedByte σ I = ⟨0⟩ := by
+    simpa [← delegateSenderVotedByte_accountMapEquiv rfl] using hvoted
+  have hdelegateWeightSolm : delegateVoterWeightWord σ I w ≠ ⟨0⟩ := by
+    simpa [← delegateVoterWeightWord_accountMapEquiv rfl w] using hdelegateWeight
   have hdelegateNotVotedSolm :
-      delegateVoterVotedByte (delegateTailAfterSenderMap σ_solm I w) I w = ⟨0⟩ := by
+      delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w = ⟨0⟩ := by
     simpa [← delegateVoterVotedByte_accountMapEquiv htail w] using hdelegateNotVoted
   have hoverSolm : UInt256.size ≤
-      (delegateVoterWeightWord (delegateTailAfterSenderMap σ_solm I w) I w).toNat +
-        (delegateSenderWeightWord (delegateTailAfterSenderMap σ_solm I w) I).toNat := by
+      (delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w).toNat +
+        (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat := by
     simpa [← delegateVoterWeightWord_accountMapEquiv htail w,
       ← delegateSenderWeightWord_accountMapEquiv htail] using hover
   have hbody := ballotDelegateBodyReverts_tailNotVotedOverflow
-    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I w
+    (initState σ σ₀ (Sat256.ofUInt256 g) A I) I w
     (by simp only [initState]; exact hwv)
     (by simp [initState])
     hcanonInit
@@ -2679,15 +2617,15 @@ theorem ballotDelegateTailNotVotedOverflowEquiv
         delegateTailSenderWeightCurrent_afterSenderState_init]
       exact hoverSolm)
   have hreach1211 := ballotDelegateX_tailAfterSenderPackedStoreFrom1134
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hperm hcanonTail hdelegateWeight hreach
-  exact (ballotDelegateX_tailNotVotedOverflowFrom1211 (cA := cA) (gh := gh) (bl := bl)
-      (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  exact (ballotDelegateX_tailNotVotedOverflowFrom1211
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hdelegateNotVoted hover hreach1211)
     |>.reEquivExecutionRevert hcode hd hdec hbody
 
 theorem ballotDelegateTailVotedSuccessEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I}
+    {σ σ₀ A I}
     {g : UInt256} {sel w : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true)
@@ -2695,59 +2633,58 @@ theorem ballotDelegateTailVotedSuccessEquiv
     (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hcanonInit : (delegateToWord I).toNat < EVM.addressModulus)
     (hcanonTail : w.toNat < EVM.addressModulus)
-    (hweight : delegateSenderWeightWord σ_evm I ≠ ⟨0⟩)
-    (hvoted : delegateSenderVotedByte σ_evm I = ⟨0⟩)
+    (hweight : delegateSenderWeightWord σ I ≠ ⟨0⟩)
+    (hvoted : delegateSenderVotedByte σ I = ⟨0⟩)
     (hnotself : delegateToWord I ≠ delegateSourceWord I)
     (hwhile :
       ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
           [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
             .require (.binary .ne (.var "to") sender) ])
         (.ok { contract := ballotContract, locals := delegateCurrentWithSenderStore I w }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
-    (hdelegateWeight : delegateVoterWeightWord σ_evm I w ≠ ⟨0⟩)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
+    (hdelegateWeight : delegateVoterWeightWord σ I w ≠ ⟨0⟩)
     (hdelegateVoted :
-      delegateVoterVotedByte (delegateTailAfterSenderMap σ_evm I w) I w ≠ ⟨0⟩)
+      delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩)
     (hbound :
-      (delegateVoterVoteWord (delegateTailAfterSenderMap σ_evm I w) I w).toNat <
-        (delegateTailProposalsLengthWord σ_evm I w).toNat)
+      (delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w).toNat <
+        (delegateTailProposalsLengthWord σ I w).toNat)
     (hfit :
-      (delegateTailProposalCountWord σ_evm I w).toNat +
-          (delegateSenderWeightWord (delegateTailAfterSenderMap σ_evm I w) I).toNat <
+      (delegateTailProposalCountWord σ I w).toNat +
+          (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat <
         UInt256.size)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor ballotConfig ballotContract
+      σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
-  have htail := delegateTailAfterSenderMap_accountMapEquiv (I := I) hAccounts w
-  have hweightSolm : delegateSenderWeightWord σ_solm I ≠ ⟨0⟩ := by
-    simpa [← delegateSenderWeightWord_accountMapEquiv hAccounts] using hweight
-  have hvotedSolm : delegateSenderVotedByte σ_solm I = ⟨0⟩ := by
-    simpa [← delegateSenderVotedByte_accountMapEquiv hAccounts] using hvoted
-  have hdelegateWeightSolm : delegateVoterWeightWord σ_solm I w ≠ ⟨0⟩ := by
-    simpa [← delegateVoterWeightWord_accountMapEquiv hAccounts w] using hdelegateWeight
+  have htail : delegateTailAfterSenderMap σ I w = delegateTailAfterSenderMap σ I w := rfl
+  have hweightSolm : delegateSenderWeightWord σ I ≠ ⟨0⟩ := by
+    simpa [← delegateSenderWeightWord_accountMapEquiv rfl] using hweight
+  have hvotedSolm : delegateSenderVotedByte σ I = ⟨0⟩ := by
+    simpa [← delegateSenderVotedByte_accountMapEquiv rfl] using hvoted
+  have hdelegateWeightSolm : delegateVoterWeightWord σ I w ≠ ⟨0⟩ := by
+    simpa [← delegateVoterWeightWord_accountMapEquiv rfl w] using hdelegateWeight
   have hdelegateVotedSolm :
-      delegateVoterVotedByte (delegateTailAfterSenderMap σ_solm I w) I w ≠ ⟨0⟩ := by
+      delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩ := by
     simpa [← delegateVoterVotedByte_accountMapEquiv htail w] using hdelegateVoted
   have hboundSolm :
-      (delegateVoterVoteWord (delegateTailAfterSenderMap σ_solm I w) I w).toNat <
-        (delegateTailProposalsLengthWord σ_solm I w).toNat := by
+      (delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w).toNat <
+        (delegateTailProposalsLengthWord σ I w).toNat := by
     simpa [← delegateVoterVoteWord_accountMapEquiv htail w,
-      ← delegateTailProposalsLengthWord_accountMapEquiv hAccounts w] using hbound
+      ← delegateTailProposalsLengthWord_accountMapEquiv rfl w] using hbound
   have hfitSolm :
-      (delegateTailProposalCountWord σ_solm I w).toNat +
-          (delegateSenderWeightWord (delegateTailAfterSenderMap σ_solm I w) I).toNat <
+      (delegateTailProposalCountWord σ I w).toNat +
+          (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat <
         UInt256.size := by
-    simpa [← delegateTailProposalCountWord_accountMapEquiv hAccounts w,
+    simpa [← delegateTailProposalCountWord_accountMapEquiv rfl w,
       ← delegateSenderWeightWord_accountMapEquiv htail] using hfit
   have hbody := ballotDelegateBodyReturns_tailVoted
-    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I w
+    (initState σ σ₀ (Sat256.ofUInt256 g) A I) I w
     (by simp only [initState]; exact hwv)
     (by simp [initState])
     hcanonInit
@@ -2767,23 +2704,19 @@ theorem ballotDelegateTailVotedSuccessEquiv
         delegateTailSenderWeightCurrent_afterSenderState_init]
       exact hfitSolm)
   have hreach1211 := ballotDelegateX_tailAfterSenderPackedStoreFrom1134
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hperm hcanonTail hdelegateWeight hreach
-  exact (ballotDelegateX_tailVotedSuccessFrom1211 (cA := cA) (gh := gh) (bl := bl)
-      (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  exact (ballotDelegateX_tailVotedSuccessFrom1211
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hperm hdelegateVoted hbound hfit hreach1211)
-    |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-      (delegateTailTrueSuccessState_created_init (g := Sat256.ofUInt256 g) (σ := σ_evm) w)
+    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
       (delegateTailTrueSuccessState_accountMapEquiv_init
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) w hweight hfit)
-      (delegateTailTrueSuccessState_EVMStateEquiv
-        (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀)
-        (A := A) (I := I) (g := Sat256.ofUInt256 g) hAccounts w)
       (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 theorem ballotDelegateTailVotedOobEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I}
+    {σ σ₀ A I}
     {g : UInt256} {sel w : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true)
@@ -2791,49 +2724,48 @@ theorem ballotDelegateTailVotedOobEquiv
     (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hcanonInit : (delegateToWord I).toNat < EVM.addressModulus)
     (hcanonTail : w.toNat < EVM.addressModulus)
-    (hweight : delegateSenderWeightWord σ_evm I ≠ ⟨0⟩)
-    (hvoted : delegateSenderVotedByte σ_evm I = ⟨0⟩)
+    (hweight : delegateSenderWeightWord σ I ≠ ⟨0⟩)
+    (hvoted : delegateSenderVotedByte σ I = ⟨0⟩)
     (hnotself : delegateToWord I ≠ delegateSourceWord I)
     (hwhile :
       ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
           [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
             .require (.binary .ne (.var "to") sender) ])
         (.ok { contract := ballotContract, locals := delegateCurrentWithSenderStore I w }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
-    (hdelegateWeight : delegateVoterWeightWord σ_evm I w ≠ ⟨0⟩)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
+    (hdelegateWeight : delegateVoterWeightWord σ I w ≠ ⟨0⟩)
     (hdelegateVoted :
-      delegateVoterVotedByte (delegateTailAfterSenderMap σ_evm I w) I w ≠ ⟨0⟩)
+      delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩)
     (hbound : ¬
-      (delegateVoterVoteWord (delegateTailAfterSenderMap σ_evm I w) I w).toNat <
-        (delegateTailProposalsLengthWord σ_evm I w).toNat)
+      (delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w).toNat <
+        (delegateTailProposalsLengthWord σ I w).toNat)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor ballotConfig ballotContract
+      σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
-  have htail := delegateTailAfterSenderMap_accountMapEquiv (I := I) hAccounts w
-  have hweightSolm : delegateSenderWeightWord σ_solm I ≠ ⟨0⟩ := by
-    simpa [← delegateSenderWeightWord_accountMapEquiv hAccounts] using hweight
-  have hvotedSolm : delegateSenderVotedByte σ_solm I = ⟨0⟩ := by
-    simpa [← delegateSenderVotedByte_accountMapEquiv hAccounts] using hvoted
-  have hdelegateWeightSolm : delegateVoterWeightWord σ_solm I w ≠ ⟨0⟩ := by
-    simpa [← delegateVoterWeightWord_accountMapEquiv hAccounts w] using hdelegateWeight
+  have htail : delegateTailAfterSenderMap σ I w = delegateTailAfterSenderMap σ I w := rfl
+  have hweightSolm : delegateSenderWeightWord σ I ≠ ⟨0⟩ := by
+    simpa [← delegateSenderWeightWord_accountMapEquiv rfl] using hweight
+  have hvotedSolm : delegateSenderVotedByte σ I = ⟨0⟩ := by
+    simpa [← delegateSenderVotedByte_accountMapEquiv rfl] using hvoted
+  have hdelegateWeightSolm : delegateVoterWeightWord σ I w ≠ ⟨0⟩ := by
+    simpa [← delegateVoterWeightWord_accountMapEquiv rfl w] using hdelegateWeight
   have hdelegateVotedSolm :
-      delegateVoterVotedByte (delegateTailAfterSenderMap σ_solm I w) I w ≠ ⟨0⟩ := by
+      delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩ := by
     simpa [← delegateVoterVotedByte_accountMapEquiv htail w] using hdelegateVoted
   have hboundSolm : ¬
-      (delegateVoterVoteWord (delegateTailAfterSenderMap σ_solm I w) I w).toNat <
-        (delegateTailProposalsLengthWord σ_solm I w).toNat := by
+      (delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w).toNat <
+        (delegateTailProposalsLengthWord σ I w).toNat := by
     simpa [← delegateVoterVoteWord_accountMapEquiv htail w,
-      ← delegateTailProposalsLengthWord_accountMapEquiv hAccounts w] using hbound
+      ← delegateTailProposalsLengthWord_accountMapEquiv rfl w] using hbound
   have hbody := ballotDelegateBodyReverts_tailVotedOob
-    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I w
+    (initState σ σ₀ (Sat256.ofUInt256 g) A I) I w
     (by simp only [initState]; exact hwv)
     (by simp [initState])
     hcanonInit
@@ -2849,15 +2781,15 @@ theorem ballotDelegateTailVotedOobEquiv
         delegateTailProposalsLengthCurrent_afterSenderState_init]
       exact hboundSolm)
   have hreach1211 := ballotDelegateX_tailAfterSenderPackedStoreFrom1134
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hperm hcanonTail hdelegateWeight hreach
-  exact (ballotDelegateX_tailVotedOobFrom1211 (cA := cA) (gh := gh) (bl := bl)
-      (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  exact (ballotDelegateX_tailVotedOobFrom1211
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hdelegateVoted hbound hreach1211)
     |>.reEquivExecutionRevert hcode hd hdec hbody
 
 theorem ballotDelegateTailVotedOverflowEquiv
-    {cA gh bl σ_evm σ_solm σ₀ A I}
+    {σ σ₀ A I}
     {g : UInt256} {sel w : UInt256}
     (hcode : I.code = ballotBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hperm : I.perm = true)
@@ -2865,57 +2797,56 @@ theorem ballotDelegateTailVotedOverflowEquiv
     (hsz36 : 36 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)
     (hcanonInit : (delegateToWord I).toNat < EVM.addressModulus)
     (hcanonTail : w.toNat < EVM.addressModulus)
-    (hweight : delegateSenderWeightWord σ_evm I ≠ ⟨0⟩)
-    (hvoted : delegateSenderVotedByte σ_evm I = ⟨0⟩)
+    (hweight : delegateSenderWeightWord σ I ≠ ⟨0⟩)
+    (hvoted : delegateSenderVotedByte σ I = ⟨0⟩)
     (hnotself : delegateToWord I ≠ delegateSourceWord I)
     (hwhile :
       ExecStmt ballotConfig { contract := ballotContract, locals := delegateWithSenderStore I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.while (.binary .ne (.storage (voterF (.var "to") "delegate")) zeroAddr)
           [ .assign .localVar { base := "to" } (.storage (voterF (.var "to") "delegate")),
             .require (.binary .ne (.var "to") sender) ])
         (.ok { contract := ballotContract, locals := delegateCurrentWithSenderStore I w }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
-    (hdelegateWeight : delegateVoterWeightWord σ_evm I w ≠ ⟨0⟩)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
+    (hdelegateWeight : delegateVoterWeightWord σ I w ≠ ⟨0⟩)
     (hdelegateVoted :
-      delegateVoterVotedByte (delegateTailAfterSenderMap σ_evm I w) I w ≠ ⟨0⟩)
+      delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩)
     (hbound :
-      (delegateVoterVoteWord (delegateTailAfterSenderMap σ_evm I w) I w).toNat <
-        (delegateTailProposalsLengthWord σ_evm I w).toNat)
+      (delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w).toNat <
+        (delegateTailProposalsLengthWord σ I w).toNat)
     (hover : UInt256.size ≤
-      (delegateTailProposalCountWord σ_evm I w).toNat +
-        (delegateSenderWeightWord (delegateTailAfterSenderMap σ_evm I w) I).toNat)
+      (delegateTailProposalCountWord σ I w).toNat +
+        (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat)
     (hreach : ∃ k C, RD ballotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1134⟩
       [delegateSenderSlot I, w, ⟨156⟩, sel]
-      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor ballotConfig ballotContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      (delegateCurrentLoopMem I w) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor ballotConfig ballotContract
+      σ σ₀ g A I := by
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
-  have htail := delegateTailAfterSenderMap_accountMapEquiv (I := I) hAccounts w
-  have hweightSolm : delegateSenderWeightWord σ_solm I ≠ ⟨0⟩ := by
-    simpa [← delegateSenderWeightWord_accountMapEquiv hAccounts] using hweight
-  have hvotedSolm : delegateSenderVotedByte σ_solm I = ⟨0⟩ := by
-    simpa [← delegateSenderVotedByte_accountMapEquiv hAccounts] using hvoted
-  have hdelegateWeightSolm : delegateVoterWeightWord σ_solm I w ≠ ⟨0⟩ := by
-    simpa [← delegateVoterWeightWord_accountMapEquiv hAccounts w] using hdelegateWeight
+  have htail : delegateTailAfterSenderMap σ I w = delegateTailAfterSenderMap σ I w := rfl
+  have hweightSolm : delegateSenderWeightWord σ I ≠ ⟨0⟩ := by
+    simpa [← delegateSenderWeightWord_accountMapEquiv rfl] using hweight
+  have hvotedSolm : delegateSenderVotedByte σ I = ⟨0⟩ := by
+    simpa [← delegateSenderVotedByte_accountMapEquiv rfl] using hvoted
+  have hdelegateWeightSolm : delegateVoterWeightWord σ I w ≠ ⟨0⟩ := by
+    simpa [← delegateVoterWeightWord_accountMapEquiv rfl w] using hdelegateWeight
   have hdelegateVotedSolm :
-      delegateVoterVotedByte (delegateTailAfterSenderMap σ_solm I w) I w ≠ ⟨0⟩ := by
+      delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩ := by
     simpa [← delegateVoterVotedByte_accountMapEquiv htail w] using hdelegateVoted
   have hboundSolm :
-      (delegateVoterVoteWord (delegateTailAfterSenderMap σ_solm I w) I w).toNat <
-        (delegateTailProposalsLengthWord σ_solm I w).toNat := by
+      (delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w).toNat <
+        (delegateTailProposalsLengthWord σ I w).toNat := by
     simpa [← delegateVoterVoteWord_accountMapEquiv htail w,
-      ← delegateTailProposalsLengthWord_accountMapEquiv hAccounts w] using hbound
+      ← delegateTailProposalsLengthWord_accountMapEquiv rfl w] using hbound
   have hoverSolm : UInt256.size ≤
-      (delegateTailProposalCountWord σ_solm I w).toNat +
-        (delegateSenderWeightWord (delegateTailAfterSenderMap σ_solm I w) I).toNat := by
-    simpa [← delegateTailProposalCountWord_accountMapEquiv hAccounts w,
+      (delegateTailProposalCountWord σ I w).toNat +
+        (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat := by
+    simpa [← delegateTailProposalCountWord_accountMapEquiv rfl w,
       ← delegateSenderWeightWord_accountMapEquiv htail] using hover
   have hbody := ballotDelegateBodyReverts_tailVotedOverflow
-    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I w
+    (initState σ σ₀ (Sat256.ofUInt256 g) A I) I w
     (by simp only [initState]; exact hwv)
     (by simp [initState])
     hcanonInit
@@ -2935,10 +2866,10 @@ theorem ballotDelegateTailVotedOverflowEquiv
         delegateTailSenderWeightCurrent_afterSenderState_init]
       exact hoverSolm)
   have hreach1211 := ballotDelegateX_tailAfterSenderPackedStoreFrom1134
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (sel := sel) (w := w) hperm hcanonTail hdelegateWeight hreach
-  exact (ballotDelegateX_tailVotedOverflowFrom1211 (cA := cA) (gh := gh) (bl := bl)
-      (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  exact (ballotDelegateX_tailVotedOverflowFrom1211
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hdelegateVoted hbound hover hreach1211)
     |>.reEquivExecutionRevert hcode hd hdec hbody
 

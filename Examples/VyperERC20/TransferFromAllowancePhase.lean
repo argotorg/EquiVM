@@ -8,21 +8,21 @@ set_option linter.unusedSimpArgs false
 
 namespace VyperERC20
 
-theorem erc20X_transferFromAfterAllowanceSLoad {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_transferFromAfterAllowanceSLoad {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨331⟩
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
       [transferFromSelectorWord] transferFromDispatchMem (UInt256.ofNat 1) ByteArray.empty
-      (cA, σ) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨409⟩
+      σ k C) :
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨409⟩
       [transferFromCurrentAllowanceRaw σ I, transferFromSelectorWord]
       (transferFromAllowanceOuterHashMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I))
       (UInt256.ofNat 4) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   obtain ⟨k, C, rd331⟩ := hreach
   have hslot := transferFromAllowanceOuterKeccakSlot I hcanonFrom
   have hsizeGuard := calldataSizeGuardOk (n := I.calldata.size) (m := 100) hsz100 hsize
@@ -95,24 +95,24 @@ theorem erc20X_transferFromAfterAllowanceSLoad {cA gh bl σ σ₀ A I} {g : Sat2
     (by vyper_erc20_transferFrom_decode) (by evm_ov)
   exact ⟨_, _, by simpa [transferFromCurrentAllowanceRaw] using rdAfterLoad⟩
 
-theorem erc20X_transferFromAfterAllowanceLoad {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_transferFromAfterAllowanceLoad {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨331⟩
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨331⟩
       [transferFromSelectorWord] transferFromDispatchMem (UInt256.ofNat 1) ByteArray.empty
-      (cA, σ) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨412⟩
+      σ k C) :
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨412⟩
       [transferFromSelectorWord]
       (transferFromAllowanceMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
         (transferFromCurrentAllowanceRaw σ I))
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   obtain ⟨k, C, rdAfterLoad⟩ := erc20X_transferFromAfterAllowanceSLoad
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hwv hsz100 hsize hcanonFrom hcanonTo hreach
   have rdAfterStore := evm_run rdAfterLoad with [
     push1 ⟨128⟩,
@@ -124,31 +124,31 @@ theorem erc20X_transferFromAfterAllowanceLoad {cA gh bl σ σ₀ A I} {g : Sat25
       (by vyper_erc20_transferFrom_decode) mem_cost rfl (by decide) (by evm_ov)]
   exact ⟨_, _, by simpa [transferFromCurrentAllowanceRaw] using rdAfterStore⟩
 
-theorem erc20X_transferFromAfterAllowanceGuard {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_transferFromAfterAllowanceGuard {σ σ₀ A I} {g : Sat256}
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨412⟩
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨412⟩
       [transferFromSelectorWord]
       (transferFromAllowanceMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
         (transferFromCurrentAllowanceRaw σ I))
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, σ) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨423⟩
+      σ k C) :
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨423⟩
       [transferFromSelectorWord]
       (transferFromAllowanceMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
         (transferFromCurrentAllowanceRaw σ I))
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   obtain ⟨k, C, rd412⟩ := hreach
-  let evm0 := initState cA gh bl σ σ₀ g A I
+  let evm0 := initState σ σ₀ g A I
   have hallowanceGuard :
       UInt256.lt (transferFromCurrentAllowanceWord evm0 I) (transferFromValueWord I) = ⟨0⟩ := by
     exact ult_zero (by simpa [evm0] using hallowance)
   have hallowanceGuardRaw :
       UInt256.lt (transferFromCurrentAllowanceRaw σ I) (transferFromValueWord I) = ⟨0⟩ := by
-    rw [transferFromCurrentAllowanceRaw_initState (cA := cA) (gh := gh) (bl := bl)
+    rw [transferFromCurrentAllowanceRaw_initState
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)]
     exact hallowanceGuard
   have rd423 := evm_run rd412 with [
@@ -170,25 +170,25 @@ theorem erc20X_transferFromAfterAllowanceGuard {cA gh bl σ σ₀ A I} {g : Sat2
     jumpiNT (by simpa [transferFromValueWord] using hallowanceGuardRaw)]
   exact ⟨_, _, rd423⟩
 
-theorem erc20TransferFromX_insufficientAllowance {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hlt : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat <
+theorem erc20TransferFromX_insufficientAllowance {σ σ₀ A I} {g : Sat256}
+    (hlt : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat <
       (transferFromValueWord I).toNat)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨412⟩
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨412⟩
       [transferFromSelectorWord]
       (transferFromAllowanceMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
         (transferFromCurrentAllowanceRaw σ I))
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, σ) k C) :
-    RDrev vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+      σ k C) :
+    RDrev vyperERC20Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨k, C, rd412⟩ := hreach
-  let evm0 := initState cA gh bl σ σ₀ g A I
+  let evm0 := initState σ σ₀ g A I
   have hallowanceGuard :
       UInt256.lt (transferFromCurrentAllowanceWord evm0 I) (transferFromValueWord I) = ⟨1⟩ := by
     exact ult_one (by simpa [evm0] using hlt)
   have hallowanceGuardRaw :
       UInt256.lt (transferFromCurrentAllowanceRaw σ I) (transferFromValueWord I) = ⟨1⟩ := by
-    rw [transferFromCurrentAllowanceRaw_initState (cA := cA) (gh := gh) (bl := bl)
+    rw [transferFromCurrentAllowanceRaw_initState
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)]
     exact hallowanceGuard
   have rd801 := evm_run rd412 with [
@@ -213,7 +213,7 @@ theorem erc20TransferFromX_insufficientAllowance {cA gh bl σ σ₀ A I} {g : Sa
           (uInt256OfByteArray (I.calldata.readBytes (⟨68⟩ : UInt256).toNat 32)) = ⟨1⟩ by
           simpa [transferFromValueWord] using hallowanceGuardRaw]; decide)
       (by vyper_erc20_transferFrom_decode)]
-  exact vyperRuntimeRevert801 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  exact vyperRuntimeRevert801 (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) rd801 rfl (by
       simp only [List.length_cons, List.length_nil]
       omega)

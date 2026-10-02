@@ -8,7 +8,7 @@ import Benchmarks.WETH9.TransferFrom
 `transfer` dispatch (pc 644) pushes `msg.sender` for `src` and converges on the *same* internal body
 at pc 1087 as public `transferFrom` — so the body always takes the `src == caller` (SkipSender)
 branch: no allowance logic, only the two balance stores.  The EVM body lemmas (`weth9TF*` in
-`TransferFromBody.lean`) and the post-state `accountMapEquiv` bridge (`wtfPostMap_accountMapEquiv`)
+`TransferFromBody.lean`) and a direct post-state account-map equality
 are reused directly; only the internal-call wrapper (`1661 → 1087`), the internal-return tail
 (`1674 → 361`), and the Solm-side `transferFrom` body on the `src = .address msg.sender` bind-store
 are proved here.
@@ -273,31 +273,26 @@ theorem xferDstSt_accountMap (evm : EVM.State) (I : ExecutionEnv)
   exact congrArg (sstoreAccountMap I.codeOwner evm.accountMap (wtfBalSlot (xferDstMasked I)))
     (u256_add_comm _ _)
 
-theorem xferSkip_accountMap {cA gh bl σ σ₀ A I} {g : Sat256} :
-    (xferDstSt (xferSrcSt (initState cA gh bl σ σ₀ g A I) I) I).accountMap =
+theorem xferSkip_accountMap {σ σ₀ A I} {g : Sat256} :
+    (xferDstSt (xferSrcSt (initState σ σ₀ g A I) I) I).accountMap =
       wtfPostMap I σ (solcSourceWord I) (xferDstMasked I) (xferWadWord I) := by
-  have hco0 : (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner := rfl
-  have hcoS : (xferSrcSt (initState cA gh bl σ σ₀ g A I) I).executionEnv.codeOwner = I.codeOwner := by
+  have hco0 : (initState σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner := rfl
+  have hcoS : (xferSrcSt (initState σ σ₀ g A I) I).executionEnv.codeOwner = I.codeOwner := by
     rw [xferSrcSt_co, hco0]
   rw [xferDstSt_accountMap _ I hcoS, xferSrcSt_accountMap _ I hco0]
   rfl
-theorem xferSkip_created {cA gh bl σ σ₀ A I} {g : Sat256} :
-    (xferDstSt (xferSrcSt (initState cA gh bl σ σ₀ g A I) I) I).createdAccounts =
-      (initState cA gh bl σ σ₀ g A I).createdAccounts := by
-  unfold xferDstSt xferSrcSt; rw [storageStore_createdAccounts, storageStore_createdAccounts]
-
 /-! ## Solm-side `transferFrom` callee body (always SkipSender / balance-revert) -/
 
 /-- `transferFrom(msg.sender, dst, wad)` body, success: `src == caller` short-circuits the allowance
     guard, so it just does the two balance stores and returns `true`. -/
-theorem weth9XferCallReturns_skipSender {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9XferCallReturns_skipSender {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hle : (xferWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat) :
-    ExecTransitionBody config contract (initState cA gh bl σ σ₀ g A I) (transferCallStore I)
+    ExecTransitionBody config contract (initState σ σ₀ g A I) (transferCallStore I)
       transferFromTransition.body
       (.returned { contract := contract, locals := transferCallStore I }
-        (xferDstSt (xferSrcSt (initState cA gh bl σ σ₀ g A I) I) I) (some [.bool true])) := by
-  set evm := initState cA gh bl σ σ₀ g A I with hevm
+        (xferDstSt (xferSrcSt (initState σ σ₀ g A I) I) I) (some [.bool true])) := by
+  set evm := initState σ σ₀ g A I with hevm
   have hsrc : evm.executionEnv = I := rfl
   have hcv : evm.executionEnv.weiValue = ⟨0⟩ := by rw [hsrc]; exact hwv
   have hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (callerBalSlot I)
@@ -317,12 +312,12 @@ theorem weth9XferCallReturns_skipSender {cA gh bl σ σ₀ A I} {g : Sat256}
   exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton (by simp [evalExpr?, pure])))
 
 /-- `transferFrom(msg.sender, dst, wad)` body, revert: `balanceOf[msg.sender] < wad`. -/
-theorem weth9XferCallReverts_bal {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9XferCallReverts_bal {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlt : (solcSlotWord σ I (callerBalSlot I)).toNat < (xferWadWord I).toNat) :
-    ExecTransitionBody config contract (initState cA gh bl σ σ₀ g A I) (transferCallStore I)
+    ExecTransitionBody config contract (initState σ σ₀ g A I) (transferCallStore I)
       transferFromTransition.body .reverted := by
-  set evm := initState cA gh bl σ σ₀ g A I with hevm
+  set evm := initState σ σ₀ g A I with hevm
   have hsrc : evm.executionEnv = I := rfl
   have hcv : evm.executionEnv.weiValue = ⟨0⟩ := by rw [hsrc]; exact hwv
   have hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (callerBalSlot I)
@@ -397,16 +392,16 @@ theorem weth9TransferBodyReverts (evm : EVM.State) (I : ExecutionEnv)
 /-- Peel the callvalue guard (pc 644), pass the 2-word length check, decode `(dst, wad)`, and run the
     `1661` wrapper (which pushes `msg.sender` for `src` and `1674` for the internal return) to reach
     the shared body at pc 1087. -/
-theorem weth9TransferReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9TransferReachBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 8)) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1087⟩
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1087⟩
       (xferWadWord I :: xferDstMasked I :: solcSourceWord I :: ⟨1674⟩ ::
         ⟨0⟩ :: xferWadWord I :: xferDstMasked I :: ⟨361⟩ :: [weth9SelWord I])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsz4 : 4 ≤ I.calldata.size := by omega
-  obtain ⟨_, _, h644⟩ := weth9ReachTransfer (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  obtain ⟨_, _, h644⟩ := weth9ReachTransfer (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h658⟩ := weth9GuardPeelOk (gt := ⟨656⟩) h644 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -450,15 +445,15 @@ private theorem xfer_wordAt0Mem_read64 (word : UInt256) {mem : ByteArray} (hmem 
 /-- From the shared tail at pc 1282 (with the internal-return address `1674` as `ret`), run the two
     balance stores, jump back through the internal-return tail (`1674 → 361`), and encode the boolean
     return `1`. -/
-theorem weth9TransferReturnTrue {ee g s0 rdata cA σ k C} {src dst wad sel : UInt256}
+theorem weth9TransferReturnTrue {ee g s0 rdata σ k C} {src dst wad sel : UInt256}
     {mem : ByteArray}
     (h : RD weth9Bytecode ee g s0 ⟨1282⟩
       (⟨0⟩ :: wad :: dst :: src :: ⟨1674⟩ :: ⟨0⟩ :: wad :: dst :: ⟨361⟩ :: [sel])
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hperm : ee.perm = true) (hsrc : src.toNat < EVM.addressModulus)
     (hdst : dst.toNat < EVM.addressModulus)
     (hmemsize : mem.size = 96) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    RDret weth9Bytecode g s0 (cA, wtfPostMap ee σ src dst wad)
+    RDret weth9Bytecode g s0 (wtfPostMap ee σ src dst wad)
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, h1674⟩ := weth9TFTail (S := ⟨0⟩ :: wad :: dst :: ⟨361⟩ :: [sel]) h hperm hsrc hdst
     hmemsize hread64 (by jump_dest) (by simp only [List.length_cons, List.length_nil]; omega)
@@ -510,24 +505,24 @@ theorem weth9TransferReturnTrue {ee g s0 rdata cA σ k C} {src dst wad sel : UIn
   simpa [hbool] using hret
 
 /-- `callvalue ≠ 0`: the payable guard at pc 644 reverts. -/
-theorem weth9TransferGuardRev {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9TransferGuardRev {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 8)) :
-    RDrev weth9Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨_, _, h644⟩ := weth9ReachTransfer (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, h644⟩ := weth9ReachTransfer (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   exact weth9GuardPeelRev (gt := ⟨656⟩) h644 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
 /-- Short calldata (`< 68`, but `callvalue = 0`): the 2-word length check reverts. -/
-theorem weth9TransferDecodeFailRev {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9TransferDecodeFailRev {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 8)) :
-    RDrev weth9Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨_, _, h644⟩ := weth9ReachTransfer (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, h644⟩ := weth9ReachTransfer (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h658⟩ := weth9GuardPeelOk (gt := ⟨656⟩) h644 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -552,22 +547,19 @@ theorem weth9TransferDecodeFailRev {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
 
 /-- `transfer(address,uint256)` body refines its Solm transition. -/
-theorem weth9TransferBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem weth9TransferBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 8))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 8)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 8) (by native_decide) hsel
   have hdisp := weth9SelectorDispatchTransfer hsel
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz68 : 68 ≤ I.calldata.size
     · -- decode succeeds; reach the shared body at pc 1087 (`src = msg.sender`)
-      obtain ⟨_, _, h1087⟩ := weth9TransferReachBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+      obtain ⟨_, _, h1087⟩ := weth9TransferReachBody (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz68 hsize hsel
-      have hbaleq : solcSlotWord σ_evm I (callerBalSlot I) = solcSlotWord σ_solm I (callerBalSlot I) :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (callerBalSlot I) ⟨0⟩
-      by_cases hbal : (xferWadWord I).toNat ≤ (solcSlotWord σ_evm I (callerBalSlot I)).toNat
+      by_cases hbal : (xferWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat
       · -- success (SkipSender): the two balance stores, return `true`
         obtain ⟨_, _, h1124⟩ := weth9TFReqBalanceOk h1087 (solcSourceWord_canonical I)
           (by rw [show wtfBalSlot (solcSourceWord I) = callerBalSlot I from
@@ -580,14 +572,13 @@ theorem weth9TransferBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (twoWordHashMem_size_96 (solcSourceWord I) ⟨3⟩ solcFreePtrMem_size)
           (wtfBalHashMem_read64 (solcSourceWord I))
         obtain ⟨cs, hbody⟩ := weth9TransferBodyReturns
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (xferDstSt (xferSrcSt (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I) I) I
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (xferDstSt (xferSrcSt (initState σ σ₀ (Sat256.ofUInt256 g) A I) I) I) I
           (by simp only [initState]; exact hwv) (by simp [initState])
-          (weth9XferCallReturns_skipSender (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
-            (A := A) (I := I) (g := Sat256.ofUInt256 g) hwv (by rw [← hbaleq]; exact hbal))
+          (weth9XferCallReturns_skipSender (σ := σ) (σ₀ := σ₀)
+            (A := A) (I := I) (g := Sat256.ofUInt256 g) hwv hbal)
         exact weth9ReEquivExecGen (t := transferTransition) hcode hX hdisp (xferDecode_ok hsz68)
-          hbody (by rw [xferSkip_created]; simp [initState])
-          (by rw [xferSkip_accountMap]; exact wtfPostMap_accountMapEquiv I _ _ _ hAccounts)
+          hbody (by rw [xferSkip_accountMap])
           (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
       · -- balance revert: `balanceOf[msg.sender] < wad`
         have hrev := weth9TFReqBalanceRev h1087 (solcSourceWord_canonical I)
@@ -595,10 +586,10 @@ theorem weth9TransferBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (xfer_callerBalSlot_eq I).symm]; omega)
           (by simp only [List.length_cons, List.length_nil]; omega)
         exact weth9ReEquivExecRev hcode hrev hdisp (xferDecode_ok hsz68)
-          (weth9TransferBodyReverts (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+          (weth9TransferBodyReverts (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
             (by simp only [initState]; exact hwv) (by simp [initState])
-            (weth9XferCallReverts_bal (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
-              (A := A) (I := I) (g := Sat256.ofUInt256 g) hwv (by rw [← hbaleq]; omega)))
+            (weth9XferCallReverts_bal (σ := σ) (σ₀ := σ₀)
+              (A := A) (I := I) (g := Sat256.ofUInt256 g) hwv (by omega)))
     · -- calldata < 68: decode failure
       exact weth9ReEquivDecodeFailed hcode
         (weth9TransferDecodeFailRev (g := Sat256.ofUInt256 g) hcode hwv hsz4 (by omega) hsize hsel)

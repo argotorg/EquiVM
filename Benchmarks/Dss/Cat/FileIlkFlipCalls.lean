@@ -265,13 +265,13 @@ theorem fileIlkFlipLocals_get_vat (I : ExecutionEnv) :
 
 /-! ### Reachability (HIGH-HIGH arm 3, entry ⟨733⟩) -/
 
-theorem catReachFileIlkFlipBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachFileIlkFlipBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xeb, 0xec, 0xb3, 0x9d]⟩) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         ⟨733⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : catSelWord I = ⟨3958158237⟩ :=
     catSelWord_eq_of_beq I hsz 0xeb 0xec 0xb3 0x9d ⟨3958158237⟩
       (by native_decide) hsel
@@ -299,7 +299,7 @@ theorem catReachFileIlkFlipBody {cA gh bl σ σ₀ A I} {g : Sat256}
 theorem RD.catFileIlkFlipDecodeToRoutine {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD catBytecode ee g s0 ⟨755⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hroutine : (D_J catBytecode 0).contains ⟨3366⟩ = true)
     (hov : R.length + 8 ≤ 1024) :
@@ -335,16 +335,16 @@ theorem RD.catFileIlkFlipDecodeToRoutine {g : Sat256} {s0 : State}
 
 /-! ### Reach → auth → what-check (⟨733⟩ → ⟨3455⟩ on auth ok) -/
 
-theorem RD.catFileIlkFlipToWhatCheck {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
-      ⟨733⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem RD.catFileIlkFlipToWhatCheck {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+      ⟨733⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3455⟩
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I) ⟨3455⟩
       (fileIlkFlipFlipKey I :: fileIlkFlipWhatWord I :: fileIlkFlipIlkWord I :: ⟨302⟩ :: sel :: [])
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOkUnsigned (by simpa using hsz100) hsize
@@ -368,13 +368,13 @@ theorem RD.catFileIlkFlipToWhatCheck {cA gh bl σ σ₀ A I} {g : Sat256} {sel :
     hauth (by jump_dest) (by simp)
   exact ⟨_, _, hafterAuth⟩
 
-theorem RD.catFileIlkFlipAuthRevert {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
-      ⟨733⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem RD.catFileIlkFlipAuthRevert {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hreach : ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+      ⟨733⟩ [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz100 : 100 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩) :
-    RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev catBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOkUnsigned (by simpa using hsz100) hsize
@@ -408,7 +408,7 @@ theorem fileIlkFlipConst_eq :
 
 theorem RD.catFileIlkFlipWhatFlip {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {flip what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD catBytecode ee g s0 ⟨3455⟩ (flip :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k C)
     (hmatch : what = ABI.bytesToWord fileIlkFlipBytes)
@@ -431,7 +431,7 @@ theorem RD.catFileIlkFlipWhatFlip {g : Sat256} {s0 : State} {ee : ExecutionEnv}
 
 theorem RD.catFileIlkFlipWhatSkip {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {flip what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD catBytecode ee g s0 ⟨3455⟩ (flip :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k C)
     (hneq : what ≠ ABI.bytesToWord fileIlkFlipBytes)
@@ -534,12 +534,12 @@ theorem fifNopeCdMem_read64 (I : ExecutionEnv) (arg : UInt256) :
     (by norm_num) (by norm_num)]
   exact fifNopeSelMem_read64 I
 
-theorem RD.catFileIlkFlipNopeEncode {cA gh bl σ σ₀ A I} {g : Sat256} {flip ret sel : UInt256}
-    (h : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3471⟩
+theorem RD.catFileIlkFlipNopeEncode {σ σ₀ A I} {g : Sat256} {flip ret sel : UInt256}
+    (h : RD catBytecode I g (initState σ σ₀ g A I) ⟨3471⟩
       (flip :: fileIlkFlipWhatWord I :: fileIlkFlipIlkWord I :: ret :: sel :: [])
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3546⟩
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD catBytecode I g (initState σ σ₀ g A I) ⟨3546⟩
       (UInt256.land (solcSlotWord σ I ⟨3⟩) solcAddrMask ::
         UInt256.land (solcSlotWord σ I ⟨3⟩) solcAddrMask :: ⟨0⟩ :: ⟨128⟩ :: ⟨36⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨164⟩ :: ⟨3696042234⟩ ::
@@ -548,7 +548,7 @@ theorem RD.catFileIlkFlipNopeEncode {cA gh bl σ σ₀ A I} {g : Sat256} {flip r
       (fifNopeCdMem I
         (UInt256.land solcAddrMask
           (solcSlotWord σ I (solcMappingSlot ⟨1⟩ (fileIlkFlipIlkWord I)))))
-      (UInt256.ofNat 6) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 6) ByteArray.empty σ k' C' := by
   have hkeccak := fifKeccakMem_keccak I
   have hmload := mloadFreePtrValue (mem := fifKeccakMem I)
     (by rw [fifKeccakMem_size I]; decide) (fifKeccakMem_read64 I)

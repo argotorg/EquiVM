@@ -49,18 +49,18 @@ theorem swapRuntimePayloadGuard_ok {I : ExecutionEnv}
 
 
 set_option maxHeartbeats 1000000 in
-theorem uniswapSwapDecodeRuntimeOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapSwapDecodeRuntimeOk {s0 : State} {I : ExecutionEnv} {σ : AccountMap} {g : Sat256} {sel : UInt256}
     (hsize : I.calldata.size < UInt256.size) (hsz132 : 132 ≤ I.calldata.size)
     (hoffMax : ¬ solcLegacyMaxU32 < swapDataOffset I)
     (hlenWord : 4 + swapDataOffset I + 32 ≤ I.calldata.size)
     (hlenMax : ¬ solcLegacyMaxU32 < swapDataSize I)
     (hpayload : 4 + swapDataOffset I + 32 + swapDataSize I ≤ I.calldata.size)
-    (hreach : ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨430⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1475⟩
+    (hreach : ∃ k C, RD uniswapV2PairBytecode I g s0 ⟨430⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨1475⟩
       [swapDataSizeWord I, swapRuntimePayloadPtr I, swapToMaskedWord I,
         swapAmount1OutWord I, swapAmount0OutWord I, ⟨570⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd541⟩ := uniswapSwapDecodeToPayloadGuard hsize hsz132 hoffMax hlenWord hreach
   obtain ⟨hgtPayload, hgtLen⟩ := swapRuntimePayloadGuard_ok hsize (by omega) hoffMax hlenMax hpayload
   dsimp only [swapPayloadGuardStack] at rd541

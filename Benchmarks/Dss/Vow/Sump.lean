@@ -44,13 +44,13 @@ theorem vowDecode_sump {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem vowReachSumpBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vowReachSumpBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xc3, 0x49, 0xd3, 0x62]⟩) :
-    ∃ k C, RD vowBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
         ⟨692⟩ [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vowSelWord I = ⟨3276395362⟩ :=
     vowSelWord_eq_of_beq I hsz 0xc3 0x49 0xd3 0x62 ⟨3276395362⟩
       (by native_decide) hsel
@@ -74,34 +74,33 @@ theorem vowReachSumpBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by jump_dest) (by native_decide)
 
 theorem vowSumpBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some sumpTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (sumpTransition.params.map Param.name)
         (transitionSignature sumpTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨692⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨692⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ sumpTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ sumpTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (sumpWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (sumpWord σ I).toNat))])) := by
     simpa [sumpTransition, sumpWord, vowSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vowUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := sumpRef) (er := ({ base := "sump", steps := [] } : EvaledStorageRef))
         (slot := ⟨9⟩)
         (by simp only [initState]; exact hwv) (by simp [sumpRef])
         (by simp [evalStorageRef, evalStorageRefSteps, sumpRef, EvalResult.bind, pure, bind])
         (by decide) (by rfl)
   exact vowUint256GetterBodyCore (entry := ⟨692⟩) (routine := ⟨4078⟩) (slot := ⟨9⟩)
-    hcode hdispatch hdecode hreach hAccounts
+    hcode hdispatch hdecode hreach
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)
@@ -111,15 +110,14 @@ theorem vowSumpBodyCore
     (by jump_dest) (by rfl)
     (by simpa [sumpWord] using hbody)
 
-theorem vowSumpBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem vowSumpBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0xc3, 0x49, 0xd3, 0x62]⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I ⟨#[0xc3, 0x49, 0xd3, 0x62]⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xc3, 0x49, 0xd3, 0x62]⟩ rfl hsel
   exact vowSumpBodyCore hcode hwv (vowDispatch_sump hsel) (vowDecode_sump hsz)
-    (vowReachSumpBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
+    (vowReachSumpBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
 
 end Benchmarks.Dss.Vow

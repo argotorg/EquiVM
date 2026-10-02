@@ -30,10 +30,4 @@ theorem vyperERC20StorageStore_accountMap (evm : EVM.State) (a : AccountAddress)
       sstoreAccountMap a evm.accountMap slot val := by
   exact storageStore_accountMap evm a slot val
 
-/-- `EVM.storageStore` does not create accounts. -/
-theorem vyperERC20StorageStore_createdAccounts (evm : EVM.State) (a : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).createdAccounts = evm.createdAccounts := by
-  exact storageStore_createdAccounts evm a slot val
-
 end VyperERC20

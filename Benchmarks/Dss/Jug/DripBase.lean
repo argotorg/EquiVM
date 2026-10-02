@@ -937,38 +937,6 @@ theorem dripVatIlksDecode_ok {out : ByteArray} (hlo : 64 ≤ out.size) :
   have h := dripVatIlksDecode_ok_aux (out := out) hlo
   simpa [config, jugExternalABI, uint256, uint256Int, abiUInt256] using h
 
-theorem dripVatTargetWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : σ = τ) :
-    dripVatTargetWord σ I = dripVatTargetWord τ I := by
-  subst τ
-  rfl
-
-theorem dripVowTargetWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : σ = τ) :
-    dripVowTargetWord σ I = dripVowTargetWord τ I := by
-  subst τ
-  rfl
-
-theorem dripVatAddress_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : σ = τ) :
-    dripVatAddress σ I = dripVatAddress τ I := by
-  subst τ
-  rfl
-
-theorem dripVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : σ = τ)
-    (hzero : Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (dripVatTargetWord τ I) = ⟨0⟩ := by
-  subst τ
-  exact hzero
-
-theorem dripVatCodeSize_ne_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : σ = τ)
-    (hne : Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (dripVatTargetWord τ I) ≠ ⟨0⟩ := by
-  subst τ
-  exact hne
-
 theorem dripVatAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
     dripVatAddress σ I = AccountAddress.ofUInt256 (dripVatTargetWord σ I) := by
   rw [accountAddress_ofUInt256_eq_ofNat_toNat]
@@ -979,18 +947,6 @@ theorem evmAddress_accountAddress (a : AccountAddress) :
   show a.val % EVM.addressModulus = a.val
   rw [show EVM.addressModulus = AccountAddress.size from by decide]
   exact Nat.mod_eq_of_lt a.isLt
-
-theorem dripVatAddress_eq_evm_target_of_accountMapEquiv {σ : AccountMap}
-    {I : ExecutionEnv} (_hAccounts : σ = σ) :
-    dripVatAddress σ I = AccountAddress.ofUInt256 (dripVatTargetWord σ I) :=
-  dripVatAddress_eq_target σ I
-
-theorem dripVatEvmAddress_eq_target_of_accountMapEquiv {σ : AccountMap}
-    {I : ExecutionEnv} (_hAccounts : σ = σ) :
-    EVM.address (dripVatAddress σ I) =
-      AccountAddress.ofUInt256 (dripVatTargetWord σ I) := by
-  rw [dripVatAddress_eq_evm_target_of_accountMapEquiv _hAccounts]
-  exact evmAddress_accountAddress _
 
 theorem drip_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}

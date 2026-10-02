@@ -8,17 +8,17 @@ namespace UniswapV2Pair
 set_option maxRecDepth 2000000 in
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintInitialBranchRuntimeCases
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
     {locals : Store} (evm : EVM.State)
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
-    (hAccounts : accountMapEquiv σFee evm.accountMap)
+      mem feeToStaticcallActiveWords rdata σFee k C)
+    (hAccounts : Eq σFee evm.accountMap)
     (henv : evm.executionEnv = I)
     (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
     (htotal : locals.get? "_totalSupply" = some (uniswapUint256Value (⟨0⟩ : UInt256)))
@@ -30,21 +30,21 @@ theorem uniswapMintInitialBranchRuntimeCases
     (ExecStmt config { contract := contract, locals := locals } evm
         mintLiquidityBranchStmt .reverted ∧
       RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)) ∨
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ∨
     (∃ root liquidity k' C',
       ExecStmt config { contract := contract, locals := locals } evm
         mintLiquidityBranchStmt
         (.ok ⟨contract, ((locals.insert "rootLiquidity" (.int root)).insert
           "liquidity" (uniswapUint256Value liquidity)).insert "_minimumMint" Value.unit⟩
           (mintFunctionPostState evm (AccountAddress.ofNat 0) ⟨1000⟩)) ∧
-      accountMapEquiv (mintRuntimeMintMap σFee I ⟨0⟩ ⟨1000⟩ mem)
+      Eq (mintRuntimeMintMap σFee I ⟨0⟩ ⟨1000⟩ mem)
         (mintFunctionPostState evm (AccountAddress.ofNat 0) ⟨1000⟩).accountMap ∧
       RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3841⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3841⟩
         [⟨0⟩, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0,
           liquidity, toWord, ⟨861⟩, sel]
         (mintRuntimeMintMem ⟨0⟩ ⟨1000⟩ mem) feeToStaticcallActiveWords rdata
-        (cAFee, mintRuntimeMintMap σFee I ⟨0⟩ ⟨1000⟩ mem) k' C' ∧
+        (mintRuntimeMintMap σFee I ⟨0⟩ ⟨1000⟩ mem) k' C' ∧
       (mintRuntimeMintMem ⟨0⟩ ⟨1000⟩ mem).size = 164 ∧
       (mintRuntimeMintMem ⟨0⟩ ⟨1000⟩ mem).readWithPadding 64 32 =
         UInt256.toByteArray ⟨128⟩) := by

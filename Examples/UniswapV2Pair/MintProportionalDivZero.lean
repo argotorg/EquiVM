@@ -66,7 +66,7 @@ theorem uniswapMintProportionalLiquidity1DivZeroReverts
 set_option maxRecDepth 2000000 in
 theorem RD.uniswapMintProportionalDiv0Zero
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {product : UInt256}
     (rd : RD uniswapV2PairBytecode ee g s0 ⟨3791⟩
@@ -79,7 +79,7 @@ theorem RD.uniswapMintProportionalDiv0Zero
 set_option maxRecDepth 2000000 in
 theorem RD.uniswapMintProportionalDiv1Zero
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {product : UInt256}
     (rd : RD uniswapV2PairBytecode ee g s0 ⟨3825⟩

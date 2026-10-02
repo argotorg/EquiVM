@@ -28,87 +28,32 @@ theorem erc6909TransferFromBodyCore
   have hd := erc6909Dispatch_transferFrom (cd := I.calldata) hsel
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hσ : EVMStateEquiv evmE evmS := by
-    simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g)
-      rfl
-  have hOperator : transferFromOperatorWord evmE I = transferFromOperatorWord evmS I := by
-    rfl
+  have hOperator : transferFromOperatorWord evmE I = transferFromOperatorWord evmS I := rfl
   have hAllowance :
-      transferFromCurrentAllowanceWord evmE I =
-        transferFromCurrentAllowanceWord evmS I := rfl
+      transferFromCurrentAllowanceWord evmE I = transferFromCurrentAllowanceWord evmS I := rfl
   have hAllowanceDebit :
-      transferFromAllowanceDebitWord evmE I = transferFromAllowanceDebitWord evmS I := by
-    simp [transferFromAllowanceDebitWord, hAllowance]
-  have hσAfterAllowance :
-      EVMStateEquiv (transferFromAfterAllowanceState evmE I)
-        (transferFromAfterAllowanceState evmS I) := by
-    exact ⟨rfl, rfl⟩
+      transferFromAllowanceDebitWord evmE I = transferFromAllowanceDebitWord evmS I := rfl
   have hAfterAllowanceSenderBalance :
       transferFromSenderBalanceWord (transferFromAfterAllowanceState evmE I) I =
         transferFromSenderBalanceWord (transferFromAfterAllowanceState evmS I) I := rfl
   have hSenderDebit :
-      transferFromSenderDebitWord evmE I = transferFromSenderDebitWord evmS I := by
-    simp [transferFromSenderDebitWord, hAfterAllowanceSenderBalance]
-  have hσAfterSenderBalance :
-      EVMStateEquiv (transferFromAfterSenderBalanceState evmE I)
-        (transferFromAfterSenderBalanceState evmS I) := by
-    unfold transferFromAfterSenderBalanceState
-    rw [hSenderDebit]
-    exact hσAfterAllowance.storageStore
-      (congrArg ExecutionEnv.codeOwner hσ.executionEnv) (transferFromSenderBalanceSlot I) rfl
+      transferFromSenderDebitWord evmE I = transferFromSenderDebitWord evmS I := rfl
   have hReceiverBalance :
-      transferFromReceiverBalanceWord evmE I = transferFromReceiverBalanceWord evmS I := by
-    unfold transferFromReceiverBalanceWord
-    exact hσAfterSenderBalance.storageLoad
-      (congrArg ExecutionEnv.codeOwner hσ.executionEnv) (transferFromReceiverBalanceSlot I)
+      transferFromReceiverBalanceWord evmE I = transferFromReceiverBalanceWord evmS I := rfl
   have hReceiverCreditNat :
-      transferFromReceiverCreditNat evmE I = transferFromReceiverCreditNat evmS I := by
-    simp [transferFromReceiverCreditNat, hReceiverBalance]
+      transferFromReceiverCreditNat evmE I = transferFromReceiverCreditNat evmS I := rfl
   have hReceiverCreditWord :
-      transferFromReceiverCreditWord evmE I = transferFromReceiverCreditWord evmS I := by
-    simp [transferFromReceiverCreditWord, hReceiverCreditNat]
-  have hσPost :
-      EVMStateEquiv (transferFromPostState evmE I) (transferFromPostState evmS I) := by
-    unfold transferFromPostState
-    rw [hReceiverCreditWord]
-    exact hσAfterSenderBalance.storageStore
-      (congrArg ExecutionEnv.codeOwner hσ.executionEnv) (transferFromReceiverBalanceSlot I) rfl
+      transferFromReceiverCreditWord evmE I = transferFromReceiverCreditWord evmS I := rfl
   have hTailSenderBalance :
-      transferFromSenderBalanceWord evmE I = transferFromSenderBalanceWord evmS I := by
-    unfold transferFromSenderBalanceWord
-    exact hσ.storageLoad (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
-      (transferFromSenderBalanceSlot I)
+      transferFromSenderBalanceWord evmE I = transferFromSenderBalanceWord evmS I := rfl
   have hTailSenderDebit :
-      transferFromTailSenderDebitWord evmE I = transferFromTailSenderDebitWord evmS I := by
-    simp [transferFromTailSenderDebitWord, hTailSenderBalance]
-  have hσTailAfterSender :
-      EVMStateEquiv (transferFromTailAfterSenderBalanceState evmE I)
-        (transferFromTailAfterSenderBalanceState evmS I) := by
-    unfold transferFromTailAfterSenderBalanceState
-    rw [hTailSenderDebit]
-    exact hσ.storageStore (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
-      (transferFromSenderBalanceSlot I) rfl
+      transferFromTailSenderDebitWord evmE I = transferFromTailSenderDebitWord evmS I := rfl
   have hTailReceiverBalance :
-      transferFromTailReceiverBalanceWord evmE I =
-        transferFromTailReceiverBalanceWord evmS I := by
-    unfold transferFromTailReceiverBalanceWord
-    exact hσTailAfterSender.storageLoad
-      (congrArg ExecutionEnv.codeOwner hσ.executionEnv) (transferFromReceiverBalanceSlot I)
+      transferFromTailReceiverBalanceWord evmE I = transferFromTailReceiverBalanceWord evmS I := rfl
   have hTailReceiverCreditNat :
-      transferFromTailReceiverCreditNat evmE I =
-        transferFromTailReceiverCreditNat evmS I := by
-    simp [transferFromTailReceiverCreditNat, hTailReceiverBalance]
+      transferFromTailReceiverCreditNat evmE I = transferFromTailReceiverCreditNat evmS I := rfl
   have hTailReceiverCreditWord :
-      transferFromTailReceiverCreditWord evmE I =
-        transferFromTailReceiverCreditWord evmS I := by
-    simp [transferFromTailReceiverCreditWord, hTailReceiverCreditNat]
-  have hσTailPost :
-      EVMStateEquiv (transferFromTailPostState evmE I)
-        (transferFromTailPostState evmS I) := by
-    unfold transferFromTailPostState
-    rw [hTailReceiverCreditWord]
-    exact hσTailAfterSender.storageStore
-      (congrArg ExecutionEnv.codeOwner hσ.executionEnv) (transferFromReceiverBalanceSlot I) rfl
+      transferFromTailReceiverCreditWord evmE I = transferFromTailReceiverCreditWord evmS I := rfl
   by_cases hsz132 : 132 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanonSender : (transferFromSenderWord I).toNat < EVM.addressModulus
@@ -185,10 +130,9 @@ theorem erc6909TransferFromBodyCore
                         (g := Sat256.ofUInt256 g) hsz132 hsize hbig hperm hcanonSender
                         hcanonReceiver hsenderCaller hsenderZero hreceiverZero henough
                         hfit hreach)
-                      |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-                        (by simp [evmE, initState, transferFromTailPostState,
+                      |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                        (by simp [evmS, initState, transferFromTailPostState,
                           transferFromTailAfterSenderBalanceState, storageStore_accountMap])
-                        hσTailPost
                         (returnEquiv_of_encode
                           (by simpa [boolTy] using boolTrueReturnEncoding))
                   · have hover : UInt256.size ≤ transferFromTailReceiverCreditNat evmE I := by
@@ -302,11 +246,10 @@ theorem erc6909TransferFromBodyCore
                             (g := Sat256.ofUInt256 g) hsz132 hsize hbig hperm
                             hcanonSender hcanonReceiver hsenderCaller hopZero hallowanceMax
                             hsenderZero hreceiverZero henough hfit hreach)
-                          |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-                            (by simp [evmE, initState, transferFromTailPostState,
+                          |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                            (by simp [evmS, initState, transferFromTailPostState,
                               transferFromTailAfterSenderBalanceState, storageStore_accountMap])
-                            hσTailPost
-                            (returnEquiv_of_encode
+                              (returnEquiv_of_encode
                               (by simpa [boolTy] using boolTrueReturnEncoding))
                       · have hover :
                             UInt256.size ≤ transferFromTailReceiverCreditNat evmE I := by
@@ -494,13 +437,12 @@ theorem erc6909TransferFromBodyCore
                                   transferFromSenderDebitWord,
                                   transferFromTailSenderDebitWord] using hfit)
                               rd1323)
-                            |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
+                            |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
                               (by
                                 rw [hPostAsTail]
-                                simp [evmE, initState, transferFromTailPostState,
+                                simp [evmS, initState, transferFromTailPostState,
                                   transferFromTailAfterSenderBalanceState,
                                   storageStore_accountMap])
-                              hσPost
                               (returnEquiv_of_encode
                                 (by simpa [boolTy] using boolTrueReturnEncoding))
                         · have hover : UInt256.size ≤ transferFromReceiverCreditNat evmE I := by
@@ -628,10 +570,9 @@ theorem erc6909TransferFromBodyCore
                           (g := Sat256.ofUInt256 g) hsz132 hsize hbig hperm
                           hcanonSender hcanonReceiver hsenderCaller hopZero hsenderZero
                           hreceiverZero henough hfit hreach)
-                        |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-                          (by simp [evmE, initState, transferFromTailPostState,
+                        |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                          (by simp [evmS, initState, transferFromTailPostState,
                             transferFromTailAfterSenderBalanceState, storageStore_accountMap])
-                          hσTailPost
                           (returnEquiv_of_encode
                             (by simpa [boolTy] using boolTrueReturnEncoding))
                     · have hover :

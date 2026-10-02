@@ -19,12 +19,12 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem catCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σVat : AccountMap} {k C : Nat}
+    {σVat : AccountMap} {k C : Nat}
     (vat : AccountAddress) (hperm : I.perm = true)
     (h : RD (catCtorCode vat) I g s0 ⟨109⟩ [⟨1⟩]
-      (catCtorWardsHashMem I vat) (UInt256.ofNat 5) rdata (cA, σVat) k C) :
+      (catCtorWardsHashMem I vat) (UInt256.ofNat 5) rdata σVat k C) :
     RDret (catCtorCode vat) g s0
-      (cA, sstoreAccountMap I.codeOwner σVat ⟨2⟩ ⟨1⟩)
+      (sstoreAccountMap I.codeOwner σVat ⟨2⟩ ⟨1⟩)
       catBytecode := by
   have hcopy : (catCtorCode vat).write 126 (catCtorWardsHashMem I vat) 0 3873 =
       catCtorReturnMem I vat := by rfl
@@ -42,17 +42,14 @@ theorem catCtorReturnTrace
     (by cat_ctor_decode) mem_cost (catCtorReturnMem_read I vat) (by evm_ov)
 
 theorem catInitcodeSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress)
     (hcode : I.code = catCtorCode vat)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
     RDret (catCtorCode vat) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner
+      (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σ (catCtorCallerWardsSlot I) ⟨1⟩)
             ⟨3⟩
@@ -62,8 +59,7 @@ theorem catInitcodeSuccess
       catBytecode := by
   obtain ⟨_, _, rd54⟩ :=
     catCtorArgsReach
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       vat hcode hwv
   obtain ⟨_, _, rd75⟩ := catCtorWardsStoreReach vat hperm rd54
   obtain ⟨_, _, rd109⟩ := catCtorVatStoreReach vat hperm rd75

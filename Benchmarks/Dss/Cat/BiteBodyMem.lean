@@ -169,14 +169,14 @@ pc 2383 (post-litter-`SSTORE`) → 2532 (kick success-guard), assembled from the
 extcodesize guard) and `RD.catBiteKickPostCall` (2531→2532, the `CALL`). Matches the shape of the
 other `catBiteReach*` wrappers so `catBiteBody` chains it uniformly into `catBiteReach2532toRet`;
 exposes the call status `z` for the by_cases (kick-fail → `catBiteKickCallFailed`). -/
-theorem catBiteReach2383to2532 {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAx : Batteries.RBSet AccountAddress compare} {σx : AccountMap}
+theorem catBiteReach2383to2532 {σ σ₀ A I} {g : UInt256}
+    {σx : AccountMap}
     {tab dink dart q art ink iDust iSpot iRate urn ilk milkFlip : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
       (tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o (cAx, σx) k C)
+      mem aw o σx k C)
     (hFlip : (if q.toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding q.toNat 32))) = milkFlip)
     (hFree : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -188,10 +188,10 @@ theorem catBiteReach2383to2532 {cA gh bl σ σ₀ A I} {g : UInt256}
       Reasoning.Theory.extCodeSizeWord σx (UInt256.land biteAddrMaskWord milkFlip) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 40 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool) (o' : ByteArray)
+    ∃ (σ' : AccountMap) (z : Bool) (o' : ByteArray)
       (aw' : UInt256) (k' C' : ℕ),
       RD catBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨292⟩ :: ⟨891151872⟩ ::
           UInt256.land biteAddrMaskWord milkFlip ::
           tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
@@ -199,15 +199,15 @@ theorem catBiteReach2383to2532 {cA gh bl σ σ₀ A I} {g : UInt256}
           (UInt256.land biteAddrMaskWord (UInt256.land biteAddrMaskWord
             (UInt256.div (solcSlotWord σx I ⟨4⟩) (UInt256.exp ⟨256⟩ ⟨0⟩)))) tab dink mem)
           128 (min (⟨32⟩ : UInt256) (UInt256.ofNat o'.size)).toNat)
-        aw' o' (cA', σ') k' C'
+        aw' o' σ' k' C'
       ∧ o'.size < UInt256.size := by
   obtain ⟨_, _, rd2516⟩ :=
     catBiteTraceSeg8aCalldata rd hFlip hFree hawq haw292 hmemsize hread64 (by omega)
   obtain ⟨gasWord, _, _, rd2531⟩ :=
     RD.catBiteKickGuardOk rd2516 hcodeSize (by simp only [List.length_cons]; omega)
-  obtain ⟨cA', σ', z, o', Ain, callGas, k', C', _hΘ, rd2532, hout⟩ :=
+  obtain ⟨σ', z, o', Ain, callGas, k', C', _hΘ, rd2532, hout⟩ :=
     RD.catBiteKickPostCall rd2531 hdepth (by simp only [List.length_cons]; omega)
-  exact ⟨cA', σ', z, o', _, k', C', rd2532, hout⟩
+  exact ⟨σ', z, o', _, k', C', rd2532, hout⟩
 
 /-! ## Seam 3 — `kick` CALL return copy (`catBiteReach2383to2532` output → `catBiteReach2532toRet`)
 

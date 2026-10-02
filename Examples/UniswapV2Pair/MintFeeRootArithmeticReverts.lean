@@ -8,7 +8,7 @@ namespace UniswapV2Pair
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimePositiveNumeratorOverflowRevertsOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {evmFeeS : EVM.State}
     {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int}
@@ -17,7 +17,7 @@ theorem uniswapMintFeeRuntimePositiveNumeratorOverflowRevertsOfTail
       s0 ⟨7899⟩
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
     (hroot : rootK > rootKLast) (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)
@@ -53,7 +53,7 @@ theorem uniswapMintFeeRuntimePositiveNumeratorOverflowRevertsOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimePositiveRootTimesFiveOverflowRevertsOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {evmFeeS : EVM.State}
     {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int}
@@ -62,7 +62,7 @@ theorem uniswapMintFeeRuntimePositiveRootTimesFiveOverflowRevertsOfTail
       s0 ⟨7899⟩
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
     (hroot : rootK > rootKLast) (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)
@@ -101,7 +101,7 @@ theorem uniswapMintFeeRuntimePositiveRootTimesFiveOverflowRevertsOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimePositiveDenominatorOverflowRevertsOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {evmFeeS : EVM.State}
     {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int}
@@ -110,7 +110,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorOverflowRevertsOfTail
       s0 ⟨7899⟩
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeTo :: ⟨1⟩ ::
         reserve1 :: reserve0 :: ret :: R)
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
     (hroot : rootK > rootKLast) (hrootKNonneg : 0 ≤ rootK)
     (hrootKSize : rootK.toNat < UInt256.size) (hrootKLastNonneg : 0 ≤ rootKLast)

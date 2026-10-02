@@ -495,20 +495,20 @@ theorem uniswapMintInitialLiquidityUpdateElapsedZeroFeeOnReturn
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintRuntimeInitialLiquidityAfterRootUnderflowReverts
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {root feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
     (rd2531 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       [root, ⟨1000⟩, ⟨3742⟩, ⟨0⟩, feeOn, amount1, amount0, balance1, balance0,
         reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (hrootLt : root.toNat < (⟨1000⟩ : UInt256).toNat)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   have rd6879pre := evm_run rd2531 with [
     jumpdest, swap1, push4 ⟨0xffffffff⟩, push2 ⟨6879⟩, and]
   rw [show UInt256.land (⟨6879⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6879⟩ from by decide]
@@ -521,8 +521,8 @@ theorem uniswapMintRuntimeInitialLiquidityAfterRootUnderflowReverts
 
 set_option maxHeartbeats 1000000 in
 theorem mintInitialLiquiditySqrtPrefixRuntimeBounded
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {feeOn amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
     (caller : Frame) (evm : EVM.State)
@@ -532,10 +532,10 @@ theorem mintInitialLiquiditySqrtPrefixRuntimeBounded
         [u256 (.binary .mul (.var "amount0") (.var "amount1"))] =
           .ok [sqrtFunctionYValue (mintAmountProductWord amount0 amount1)])
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
       [feeOn, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
         toWord, ⟨861⟩, sel]
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (htotalZero : uniswapSlotWord ⟨0⟩ σFee I = ⟨0⟩)
     (hfit : mintAmountProductNat amount0 amount1 < UInt256.size) :
     ∃ root k' C',
@@ -545,10 +545,10 @@ theorem mintInitialLiquiditySqrtPrefixRuntimeBounded
         (.ok (resumeAfterInternalCall caller "rootLiquidity" (some [.int root])) evm) ∧
       0 ≤ root ∧ root.toNat < UInt256.size ∧
       RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
         [UInt256.ofNat root.toNat, ⟨1000⟩, ⟨3742⟩, ⟨0⟩, feeOn, amount1, amount0,
           balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord, ⟨861⟩, sel]
-        mem aw rdata (cAFee, σFee) k' C' := by
+        mem aw rdata σFee k' C' := by
   obtain ⟨_, _, rd3713⟩ :=
     uniswapMintRuntimeAfterMintFeeTotalSupplyZero rd3701 htotalZero
   obtain ⟨k8046, C8046, rd8046Raw⟩ :=
@@ -558,11 +558,11 @@ theorem mintInitialLiquiditySqrtPrefixRuntimeBounded
       mintAmountProductWord amount0 amount1 = UInt256.mul amount0 amount1 :=
     mintAmountProductWord_eq_mul amount0 amount1 hfit
   have rd8046 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8046⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8046⟩
       [mintAmountProductWord amount0 amount1, ⟨2531⟩, ⟨1000⟩, ⟨3742⟩, ⟨0⟩,
         feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, toWord,
         ⟨861⟩, sel]
-      mem aw rdata (cAFee, σFee) k8046 C8046 := by
+      mem aw rdata σFee k8046 C8046 := by
     simpa [hprodWord] using rd8046Raw
   obtain ⟨root, k', C', hstmt, hrootNonneg, hrootSize, rd2531⟩ :=
     uniswapSqrtFunctionCallRuntimeSuccessIntBounded

@@ -28,7 +28,7 @@ theorem burnFunctionFromSlot_eq_runtime (holder : AccountAddress) (holderWord : 
 theorem burnFunctionFromBalanceWord_eq_runtime
     {σ : AccountMap} {I : ExecutionEnv} {evm : EVM.State}
     {holder : AccountAddress} {holderWord : UInt256}
-    (hAccounts : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I)
+    (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hholder : holder = AccountAddress.ofNat holderWord.toNat) :
     burnFunctionFromBalanceWord evm holder = uniswapCodeOwnerStorageWord I σ
       (mapSlot (UInt256.land holderWord solcAddrMask) ⟨1⟩) := by
@@ -41,10 +41,10 @@ theorem burnFunctionFromBalanceWord_eq_runtime
 theorem accountMapEquiv_burnFunctionAfterBalanceState
     {σ : AccountMap} {I : ExecutionEnv} {evm : EVM.State}
     {holder : AccountAddress} {holderWord value : UInt256}
-    (hAccounts : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I)
+    (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hholder : holder = AccountAddress.ofNat holderWord.toNat)
     (hbalance : value.toNat ≤ (burnFunctionFromBalanceWord evm holder).toNat) :
-    accountMapEquiv (burnRuntimeBalanceMap σ I holderWord value)
+    (burnRuntimeBalanceMap σ I holderWord value) =
       (burnFunctionAfterBalanceState evm holder value).accountMap := by
   have hword := burnFunctionFromBalanceWord_eq_runtime hAccounts henv hholder
   have hdebit : burnFunctionBalanceDebitWord evm holder value =
@@ -61,7 +61,7 @@ theorem accountMapEquiv_burnFunctionAfterBalanceState
 theorem burnFunctionTotalSupplyWord_eq_runtime
     {σ : AccountMap} {I : ExecutionEnv} {evm : EVM.State}
     {holder : AccountAddress} {holderWord value : UInt256}
-    (hAccounts : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I)
+    (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hholder : holder = AccountAddress.ofNat holderWord.toNat)
     (hbalance : value.toNat ≤ (burnFunctionFromBalanceWord evm holder).toNat) :
     burnFunctionTotalSupplyWord evm holder value =
@@ -74,11 +74,11 @@ theorem burnFunctionTotalSupplyWord_eq_runtime
 theorem accountMapEquiv_burnFunctionPostState
     {σ : AccountMap} {I : ExecutionEnv} {evm : EVM.State}
     {holder : AccountAddress} {holderWord value : UInt256}
-    (hAccounts : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I)
+    (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hholder : holder = AccountAddress.ofNat holderWord.toNat)
     (hbalance : value.toNat ≤ (burnFunctionFromBalanceWord evm holder).toNat)
     (hsupply : value.toNat ≤ (burnFunctionTotalSupplyWord evm holder value).toNat) :
-    accountMapEquiv (burnRuntimePostMap σ I holderWord value)
+    (burnRuntimePostMap σ I holderWord value) =
       (burnFunctionPostState evm holder value).accountMap := by
   have hpost := accountMapEquiv_burnFunctionAfterBalanceState hAccounts henv hholder hbalance
   have hword := burnFunctionTotalSupplyWord_eq_runtime hAccounts henv hholder hbalance
@@ -96,13 +96,13 @@ theorem accountMapEquiv_burnFunctionPostState
 set_option maxRecDepth 2000000 in
 theorem uniswapInternalBurnCallRuntimeCasesWithMemory
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {value holderWord ret : UInt256}
     {R : List UInt256} {caller : Frame} {args : List Expr} {retVar : Ident}
     (evm : EVM.State) (holder : AccountAddress)
     (rd8302 : RD uniswapV2PairBytecode I g s0 ⟨8302⟩
-      (value :: holderWord :: ret :: R) mem feeToStaticcallActiveWords rdata (cA, σ) k C)
-    (hAccounts : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I)
+      (value :: holderWord :: ret :: R) mem feeToStaticcallActiveWords rdata σ k C)
+    (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hholder : holder = AccountAddress.ofNat holderWord.toNat)
     (hcontract : caller.contract = contract)
     (hargs : evalExprs? config caller evm args =
@@ -116,10 +116,10 @@ theorem uniswapInternalBurnCallRuntimeCasesWithMemory
     (∃ mem' k' C',
       ExecStmt config caller evm (.internalCall "_burn" args retVar)
         (.ok (resumeAfterInternalCall caller retVar none) (burnFunctionPostState evm holder value)) ∧
-      accountMapEquiv (burnRuntimePostMap σ I holderWord value)
+      (burnRuntimePostMap σ I holderWord value) =
         (burnFunctionPostState evm holder value).accountMap ∧
       RD uniswapV2PairBytecode I g s0 ret R mem' feeToStaticcallActiveWords rdata
-        (cA, burnRuntimePostMap σ I holderWord value) k' C' ∧
+        (burnRuntimePostMap σ I holderWord value) k' C' ∧
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
       mem'.readWithPadding 96 32 = mem.readWithPadding 96 32) := by
   have hhashSize := uniswapInternalMintBalanceHashMem_size_of_ge64 holderWord
@@ -144,7 +144,7 @@ theorem uniswapInternalBurnCallRuntimeCasesWithMemory
           ⟨8388⟩ :: value :: holderWord :: ret :: R)
         (uniswapInternalMintBalanceHashMem holderWord
           (uniswapInternalMintBalanceHashMem holderWord mem))
-        feeToStaticcallActiveWords rdata (cA, burnRuntimeBalanceMap σ I holderWord value)
+        feeToStaticcallActiveWords rdata (burnRuntimeBalanceMap σ I holderWord value)
         kSub1 CSub1 := by
       simpa only [hslot1, hbalanceEq, hsupplyEq, burnRuntimeBalanceMap] using rdSub1'
     have hhash2Size := uniswapInternalMintDoubleBalanceHashMem_size_of_ge64 holderWord
@@ -179,13 +179,13 @@ theorem uniswapInternalBurnCallRuntimeCasesWithMemory
 set_option maxRecDepth 2000000 in
 theorem uniswapInternalBurnCallRuntimeCases
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {value holderWord ret : UInt256}
     {R : List UInt256} {caller : Frame} {args : List Expr} {retVar : Ident}
     (evm : EVM.State) (holder : AccountAddress)
     (rd8302 : RD uniswapV2PairBytecode I g s0 ⟨8302⟩
-      (value :: holderWord :: ret :: R) mem feeToStaticcallActiveWords rdata (cA, σ) k C)
-    (hAccounts : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I)
+      (value :: holderWord :: ret :: R) mem feeToStaticcallActiveWords rdata σ k C)
+    (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hholder : holder = AccountAddress.ofNat holderWord.toNat)
     (hcontract : caller.contract = contract)
     (hargs : evalExprs? config caller evm args =
@@ -199,10 +199,10 @@ theorem uniswapInternalBurnCallRuntimeCases
     (∃ mem' k' C',
       ExecStmt config caller evm (.internalCall "_burn" args retVar)
         (.ok (resumeAfterInternalCall caller retVar none) (burnFunctionPostState evm holder value)) ∧
-      accountMapEquiv (burnRuntimePostMap σ I holderWord value)
+      (burnRuntimePostMap σ I holderWord value) =
         (burnFunctionPostState evm holder value).accountMap ∧
       RD uniswapV2PairBytecode I g s0 ret R mem' feeToStaticcallActiveWords rdata
-        (cA, burnRuntimePostMap σ I holderWord value) k' C' ∧
+        (burnRuntimePostMap σ I holderWord value) k' C' ∧
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) := by
   rcases uniswapInternalBurnCallRuntimeCasesWithMemory evm holder rd8302 hAccounts henv hholder
       hcontract hargs hperm hmem hread64 hret hov with

@@ -9,13 +9,13 @@ namespace Benchmarks.Dss.Vow
 /-! ## `cage()` tail runtime helpers -/
 
 theorem cageSourceSecondDaiNoCode
-    {cA gh bl σ σ₀ A I} {g flapperDai : UInt256}
+    {σ σ₀ A I} {g flapperDai : UInt256}
     {evmDai evmFlap evmFlop : EVM.State} {outDai outFlap outFlop : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -23,7 +23,7 @@ theorem cageSourceSecondDaiNoCode
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -53,10 +53,10 @@ theorem cageSourceSecondDaiNoCode
         ((evmFlop.lookupAccount (cageVatAddressOf evmFlop)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body .reverted := by
   let locals : Store := ∅
-  let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
   let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
   let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -70,7 +70,7 @@ theorem cageSourceSecondDaiNoCode
             .assign .storage AshRef (.intLit 0) ])
         (.ok { contract := contract, locals := locals } evmAsh) := by
     simpa [locals, evm0, evmLive, evmSin, evmAsh] using
-      vowCageSourceClearPrefix (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      vowCageSourceClearPrefix (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hlive
   have hfirst :
       ExecBlock config { contract := contract, locals := locals } evmAsh
@@ -122,14 +122,14 @@ theorem cageSourceSecondDaiNoCode
     List.append_assoc] using hbody
 
 theorem cageSourceSecondDaiCallFailure
-    {cA gh bl σ σ₀ A I} {g flapperDai : UInt256}
+    {σ σ₀ A I} {g flapperDai : UInt256}
     {evmDai evmFlap evmFlop evmDai2 : EVM.State}
     {outDai outFlap outFlop outDai2 : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -137,7 +137,7 @@ theorem cageSourceSecondDaiCallFailure
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -171,10 +171,10 @@ theorem cageSourceSecondDaiCallFailure
         "dai" 0 [.address evmFlop.executionEnv.codeOwner] (false, evmDai2, outDai2)
         false) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body .reverted := by
   let locals : Store := ∅
-  let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
   let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
   let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -188,7 +188,7 @@ theorem cageSourceSecondDaiCallFailure
             .assign .storage AshRef (.intLit 0) ])
         (.ok { contract := contract, locals := locals } evmAsh) := by
     simpa [locals, evm0, evmLive, evmSin, evmAsh] using
-      vowCageSourceClearPrefix (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      vowCageSourceClearPrefix (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hlive
   have hfirst :
       ExecBlock config { contract := contract, locals := locals } evmAsh
@@ -241,14 +241,14 @@ theorem cageSourceSecondDaiCallFailure
     List.append_assoc] using hbody
 
 theorem cageSourceSecondDaiReturnDecodeFailure
-    {cA gh bl σ σ₀ A I} {g flapperDai : UInt256}
+    {σ σ₀ A I} {g flapperDai : UInt256}
     {evmDai evmFlap evmFlop evmDai2 : EVM.State}
     {outDai outFlap outFlop outDai2 : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -256,7 +256,7 @@ theorem cageSourceSecondDaiReturnDecodeFailure
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -291,10 +291,10 @@ theorem cageSourceSecondDaiReturnDecodeFailure
         false)
     (hdecDai2 : config.externalABI.decode? "dai" outDai2 = none) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body .reverted := by
   let locals : Store := ∅
-  let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
   let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
   let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -308,7 +308,7 @@ theorem cageSourceSecondDaiReturnDecodeFailure
             .assign .storage AshRef (.intLit 0) ])
         (.ok { contract := contract, locals := locals } evmAsh) := by
     simpa [locals, evm0, evmLive, evmSin, evmAsh] using
-      vowCageSourceClearPrefix (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      vowCageSourceClearPrefix (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hlive
   have hfirst :
       ExecBlock config { contract := contract, locals := locals } evmAsh
@@ -361,14 +361,14 @@ theorem cageSourceSecondDaiReturnDecodeFailure
     List.append_assoc] using hbody
 
 theorem cageSourceVatSinNoCode
-    {cA gh bl σ σ₀ A I} {g flapperDai vatDai : UInt256}
+    {σ σ₀ A I} {g flapperDai vatDai : UInt256}
     {evmDai evmFlap evmFlop evmDai2 : EVM.State}
     {outDai outFlap outFlop outDai2 : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -376,7 +376,7 @@ theorem cageSourceVatSinNoCode
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -417,10 +417,10 @@ theorem cageSourceVatSinNoCode
         ((evmDai2.lookupAccount (cageVatAddressOf evmDai2)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body .reverted := by
   let locals : Store := ∅
-  let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
   let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
   let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -434,7 +434,7 @@ theorem cageSourceVatSinNoCode
             .assign .storage AshRef (.intLit 0) ])
         (.ok { contract := contract, locals := locals } evmAsh) := by
     simpa [locals, evm0, evmLive, evmSin, evmAsh] using
-      vowCageSourceClearPrefix (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      vowCageSourceClearPrefix (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hlive
   have hfirst :
       ExecBlock config { contract := contract, locals := locals } evmAsh
@@ -497,14 +497,14 @@ theorem cageSourceVatSinNoCode
     List.append_assoc] using hbody
 
 theorem cageSourceVatSinRevertFromBlock
-    {cA gh bl σ σ₀ A I} {g flapperDai vatDai : UInt256}
+    {σ σ₀ A I} {g flapperDai vatDai : UInt256}
     {evmDai evmFlap evmFlop evmDai2 : EVM.State}
     {outDai outFlap outFlop outDai2 : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -512,7 +512,7 @@ theorem cageSourceVatSinRevertFromBlock
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -553,10 +553,10 @@ theorem cageSourceVatSinRevertFromBlock
         { contract := contract, locals := cageLocalsAfterVatDai flapperDai vatDai }
         evmDai2 cageVatSinStmts .reverted) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body .reverted := by
   let locals : Store := ∅
-  let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
   let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
   let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -570,7 +570,7 @@ theorem cageSourceVatSinRevertFromBlock
             .assign .storage AshRef (.intLit 0) ])
         (.ok { contract := contract, locals := locals } evmAsh) := by
     simpa [locals, evm0, evmLive, evmSin, evmAsh] using
-      vowCageSourceClearPrefix (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      vowCageSourceClearPrefix (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hlive
   have hfirst :
       ExecBlock config { contract := contract, locals := locals } evmAsh
@@ -627,14 +627,14 @@ theorem cageSourceVatSinRevertFromBlock
     List.append_assoc] using hbody
 
 theorem cageSourceVatSinCallFailure
-    {cA gh bl σ σ₀ A I} {g flapperDai vatDai : UInt256}
+    {σ σ₀ A I} {g flapperDai vatDai : UInt256}
     {evmDai evmFlap evmFlop evmDai2 evmSin : EVM.State}
     {outDai outFlap outFlop outDai2 outSin : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -642,7 +642,7 @@ theorem cageSourceVatSinCallFailure
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -687,7 +687,7 @@ theorem cageSourceVatSinCallFailure
         "sin" 0 [.address evmDai2.executionEnv.codeOwner] (false, evmSin, outSin)
         false) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body .reverted := by
   have hsin :
       ExecBlock config
@@ -695,7 +695,7 @@ theorem cageSourceVatSinCallFailure
         evmDai2 cageVatSinStmts .reverted :=
     cageVatSinCallFailure (evm := evmDai2) (evmSin := evmSin) (outSin := outSin)
       (flapperDai := flapperDai) (vatDai := vatDai) hvatCodeSin hcallSin
-  exact cageSourceVatSinRevertFromBlock (cA := cA) (gh := gh) (bl := bl)
+  exact cageSourceVatSinRevertFromBlock
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (flapperDai := flapperDai)
     (vatDai := vatDai) (evmDai := evmDai) (evmFlap := evmFlap)
     (evmFlop := evmFlop) (evmDai2 := evmDai2) (outDai := outDai)
@@ -704,14 +704,14 @@ theorem cageSourceVatSinCallFailure
     hcallFlop hvatCode2 hcallDai2 hdecDai2 hsin
 
 theorem cageSourceVatSinReturnDecodeFailure
-    {cA gh bl σ σ₀ A I} {g flapperDai vatDai : UInt256}
+    {σ σ₀ A I} {g flapperDai vatDai : UInt256}
     {evmDai evmFlap evmFlop evmDai2 evmSin : EVM.State}
     {outDai outFlap outFlop outDai2 outSin : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hvatCode :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -719,7 +719,7 @@ theorem cageSourceVatSinReturnDecodeFailure
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -765,7 +765,7 @@ theorem cageSourceVatSinReturnDecodeFailure
         false)
     (hdecSin : config.externalABI.decode? "sin" outSin = none) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       cageTransition.body .reverted := by
   have hsin :
       ExecBlock config
@@ -774,7 +774,7 @@ theorem cageSourceVatSinReturnDecodeFailure
     cageVatSinReturnDecodeFailure (evm := evmDai2) (evmSin := evmSin)
       (outSin := outSin) (flapperDai := flapperDai) (vatDai := vatDai)
       hvatCodeSin hcallSin hdecSin
-  exact cageSourceVatSinRevertFromBlock (cA := cA) (gh := gh) (bl := bl)
+  exact cageSourceVatSinRevertFromBlock
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (flapperDai := flapperDai)
     (vatDai := vatDai) (evmDai := evmDai) (evmFlap := evmFlap)
     (evmFlop := evmFlop) (evmDai2 := evmDai2) (outDai := outDai)
@@ -783,28 +783,28 @@ theorem cageSourceVatSinReturnDecodeFailure
     hcallFlop hvatCode2 hcallDai2 hdecDai2 hsin
 
 theorem vowCageSecondDaiNoCodeBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g flapperDai d1 d2 : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g flapperDai d1 d2 : UInt256}
+    {acc : AccountMap}
     {evmDai evmFlap evmFlop : EVM.State} {mem outDai outFlap outFlop rdata : ByteArray}
     {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ_solm I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ_solm I = ⟨1⟩)
+    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (rd2983 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2983⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2983⟩
       (d1 :: d2 :: R) mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) =
         ⟨0⟩)
     (hov : R.length + 16 ≤ 1024)
     (hvatCode :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -812,7 +812,7 @@ theorem vowCageSecondDaiNoCodeBodyCore
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -841,12 +841,12 @@ theorem vowCageSecondDaiNoCodeBodyCore
       (UInt256.ofNat
         ((evmFlop.lookupAccount (cageVatAddressOf evmFlop)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageSecondDaiNoCode rd2983 hmem hread64 hcodeSize hov
-  have hbody := cageSourceSecondDaiNoCode (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := cageSourceSecondDaiNoCode
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (flapperDai := flapperDai) (evmDai := evmDai) (evmFlap := evmFlap)
     (evmFlop := evmFlop) (outDai := outDai) (outFlap := outFlap)
     (outFlop := outFlop) hwv hauth hlive hvatCode hcallDai hdecDai hflapperCode
@@ -854,27 +854,27 @@ theorem vowCageSecondDaiNoCodeBodyCore
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowCageSecondDaiCallFailureBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g flapperDai target : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g flapperDai target : UInt256}
+    {acc : AccountMap}
     {evmDai evmFlap evmFlop evmDai2 : EVM.State}
     {mem outDai outFlap outFlop outDai2 rdata : ByteArray} {aw : UInt256}
     {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ_solm I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ_solm I = ⟨1⟩)
+    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (rd3074 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3074⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3074⟩
       (⟨0⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: target :: ⟨3238⟩ ::
         ⟨4084909596⟩ :: target :: R)
       mem aw rdata acc k C)
     (hrdataSize : rdata.size < UInt256.size)
     (hov : R.length + 11 ≤ 1024)
     (hvatCode :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -882,7 +882,7 @@ theorem vowCageSecondDaiCallFailureBodyCore
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -915,12 +915,12 @@ theorem vowCageSecondDaiCallFailureBodyCore
       typedCallViaEVM config evmFlop (EVM.address (cageVatAddressOf evmFlop))
         "dai" 0 [.address evmFlop.executionEnv.codeOwner] (false, evmDai2, outDai2)
         false) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageSecondDaiCallFailure rd3074 hrdataSize (by simp; omega)
-  have hbody := cageSourceSecondDaiCallFailure (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := cageSourceSecondDaiCallFailure
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (flapperDai := flapperDai) (evmDai := evmDai) (evmFlap := evmFlap)
     (evmFlop := evmFlop) (evmDai2 := evmDai2) (outDai := outDai)
     (outFlap := outFlap) (outFlop := outFlop) (outDai2 := outDai2)
@@ -929,20 +929,20 @@ theorem vowCageSecondDaiCallFailureBodyCore
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowCageSecondDaiDecodeShortBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g flapperDai target : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g flapperDai target : UInt256}
+    {acc : AccountMap}
     {evmDai evmFlap evmFlop evmDai2 : EVM.State}
     {base outDai outFlap outFlop outDai2 : ByteArray} {k C : ℕ}
     {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ_solm I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ_solm I = ⟨1⟩)
+    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (rd3074 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3074⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3074⟩
       (⟨1⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: target :: ⟨3238⟩ ::
         ⟨4084909596⟩ :: target :: R)
       (outDai2.write 0 base 128
@@ -954,7 +954,7 @@ theorem vowCageSecondDaiDecodeShortBodyCore
     (hshort : outDai2.size < 32)
     (hov : R.length + 12 ≤ 1024)
     (hvatCode :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -962,7 +962,7 @@ theorem vowCageSecondDaiDecodeShortBodyCore
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -995,7 +995,7 @@ theorem vowCageSecondDaiDecodeShortBodyCore
       typedCallViaEVM config evmFlop (EVM.address (cageVatAddressOf evmFlop))
         "dai" 0 [.address evmFlop.executionEnv.codeOwner] (true, evmDai2, outDai2)
         false) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hmin :
       (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai2.size)).toNat = outDai2.size :=
     kissDaiMin32_toNat_of_lt hshort
@@ -1019,13 +1019,13 @@ theorem vowCageSecondDaiDecodeShortBodyCore
         ⟨128⟩ :=
     mloadFreePtrValue (by rw [hmemWrite]; decide) hread64Write
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageSecondDaiReturnDecodeShortReverts rd3092 hshort hosz hmload64
       (by simp; omega)
   have hdecDai2 : config.externalABI.decode? "dai" outDai2 = none :=
     kissDaiDecode_none_short hshort
-  have hbody := cageSourceSecondDaiReturnDecodeFailure (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := cageSourceSecondDaiReturnDecodeFailure
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (flapperDai := flapperDai) (evmDai := evmDai) (evmFlap := evmFlap)
     (evmFlop := evmFlop) (evmDai2 := evmDai2) (outDai := outDai)
     (outFlap := outFlap) (outFlop := outFlop) (outDai2 := outDai2)
@@ -1034,22 +1034,22 @@ theorem vowCageSecondDaiDecodeShortBodyCore
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowCageVatSinNoCodeBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g flapperDai : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g flapperDai : UInt256}
+    {acc : AccountMap}
     {evmDai evmFlap evmFlop evmDai2 : EVM.State}
     {base outDai outFlap outFlop outDai2 : ByteArray} {k C : ℕ}
     {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ_solm I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ_solm I = ⟨1⟩)
+    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (rd3074 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3074⟩
-      (⟨1⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: kissDaiTargetWord acc.2 I ::
-        ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc.2 I :: R)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3074⟩
+      (⟨1⟩ :: ⟨164⟩ :: ⟨1814410054⟩ :: kissDaiTargetWord acc I ::
+        ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc I :: R)
       (outDai2.write 0 base 128
         (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai2.size)).toNat)
       (UInt256.ofNat 6) outDai2 acc k C)
@@ -1058,11 +1058,11 @@ theorem vowCageVatSinNoCodeBodyCore
     (ho32 : 32 ≤ outDai2.size)
     (hosz : outDai2.size < UInt256.size)
     (hcodeSize :
-      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
+      Reasoning.Theory.extCodeSizeWord acc (kissDaiTargetWord acc I) =
         ⟨0⟩)
     (hov : R.length + 18 ≤ 1024)
     (hvatCode :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1070,7 +1070,7 @@ theorem vowCageVatSinNoCodeBodyCore
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1107,7 +1107,7 @@ theorem vowCageVatSinNoCodeBodyCore
       (UInt256.ofNat
         ((evmDai2.lookupAccount (cageVatAddressOf evmDai2)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let vatDai := UInt256.ofNat (fromByteArrayBigEndian (outDai2.extract 0 32))
   have hmin :
       (min (⟨32⟩ : UInt256) (UInt256.ofNat outDai2.size)).toNat = 32 :=
@@ -1149,15 +1149,15 @@ theorem vowCageVatSinNoCodeBodyCore
       (retWord := UInt256.ofNat (fromByteArrayBigEndian (outDai2.extract 0 32)))
       rd3092 ho32 hosz hmload64 hmload128 (by simp; omega)
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageVatSinNoCode (by simpa [vatDai] using rd3115)
       hmemWrite hread64Write hcodeSize (by simp; omega)
   have hdecDai2 :
       config.externalABI.decode? "dai" outDai2 =
         some [.int (Int.ofNat vatDai.toNat)] := by
     simpa [vatDai] using kissDaiDecode_ok (o := outDai2) ho32
-  have hbody := cageSourceVatSinNoCode (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := cageSourceVatSinNoCode
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (flapperDai := flapperDai) (vatDai := vatDai) (evmDai := evmDai)
     (evmFlap := evmFlap) (evmFlop := evmFlop) (evmDai2 := evmDai2)
     (outDai := outDai) (outFlap := outFlap) (outFlop := outFlop)
@@ -1166,27 +1166,27 @@ theorem vowCageVatSinNoCodeBodyCore
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowCageVatSinCallFailureBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g flapperDai vatDai : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g flapperDai vatDai : UInt256}
+    {acc : AccountMap}
     {evmDai evmFlap evmFlop evmDai2 evmSin : EVM.State}
     {mem outDai outFlap outFlop outDai2 outSin : ByteArray} {aw : UInt256}
     {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ_solm I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ_solm I = ⟨1⟩)
+    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (rd3193 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3193⟩
-      (⟨0⟩ :: healSinEndPtr :: healSinSelector :: kissDaiTargetWord acc.2 I ::
-        vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc.2 I :: R)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3193⟩
+      (⟨0⟩ :: healSinEndPtr :: healSinSelector :: kissDaiTargetWord acc I ::
+        vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc I :: R)
       mem aw outSin acc k C)
     (houtSinSize : outSin.size < UInt256.size)
     (hov : R.length + 12 ≤ 1024)
     (hvatCode :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1194,7 +1194,7 @@ theorem vowCageVatSinCallFailureBodyCore
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1238,12 +1238,12 @@ theorem vowCageVatSinCallFailureBodyCore
       typedCallViaEVM config evmDai2 (EVM.address (cageVatAddressOf evmDai2))
         "sin" 0 [.address evmDai2.executionEnv.codeOwner] (false, evmSin, outSin)
         false) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageVatSinCallFailure rd3193 houtSinSize (by simp; omega)
-  have hbody := cageSourceVatSinCallFailure (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := cageSourceVatSinCallFailure
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (flapperDai := flapperDai) (vatDai := vatDai) (evmDai := evmDai)
     (evmFlap := evmFlap) (evmFlop := evmFlop) (evmDai2 := evmDai2)
     (evmSin := evmSin) (outDai := outDai) (outFlap := outFlap)
@@ -1253,22 +1253,22 @@ theorem vowCageVatSinCallFailureBodyCore
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem vowCageVatSinDecodeShortBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g flapperDai vatDai : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g flapperDai vatDai : UInt256}
+    {acc : AccountMap}
     {evmDai evmFlap evmFlop evmDai2 evmSin : EVM.State}
     {base outDai outFlap outFlop outDai2 outSin : ByteArray}
     {k C : ℕ} {R : List UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : vowSlotWord (vowCallerWardsSlot I) σ_solm I = ⟨1⟩)
-    (hlive : vowSlotWord ⟨12⟩ σ_solm I = ⟨1⟩)
+    (hauth : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩)
+    (hlive : vowSlotWord ⟨12⟩ σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (rd3193 : RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3193⟩
-      (⟨1⟩ :: healSinEndPtr :: healSinSelector :: kissDaiTargetWord acc.2 I ::
-        vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc.2 I :: R)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3193⟩
+      (⟨1⟩ :: healSinEndPtr :: healSinSelector :: kissDaiTargetWord acc I ::
+        vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: kissDaiTargetWord acc I :: R)
       (outSin.write 0 base 128
         (min (⟨32⟩ : UInt256) (UInt256.ofNat outSin.size)).toNat)
       (UInt256.ofNat 6) outSin acc k C)
@@ -1278,7 +1278,7 @@ theorem vowCageVatSinDecodeShortBodyCore
     (hshort : outSin.size < 32)
     (hov : R.length + 13 ≤ 1024)
     (hvatCode :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1286,7 +1286,7 @@ theorem vowCageVatSinDecodeShortBodyCore
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat)
     (hcallDai :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
       let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
       let evmAsh := Solm.EVM.storageStore evmSin I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1330,7 +1330,7 @@ theorem vowCageVatSinDecodeShortBodyCore
       typedCallViaEVM config evmDai2 (EVM.address (cageVatAddressOf evmDai2))
         "sin" 0 [.address evmDai2.executionEnv.codeOwner] (true, evmSin, outSin)
         false) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hmin :
       (min (⟨32⟩ : UInt256) (UInt256.ofNat outSin.size)).toNat = outSin.size :=
     kissDaiMin32_toNat_of_lt hshort
@@ -1354,13 +1354,13 @@ theorem vowCageVatSinDecodeShortBodyCore
         ⟨128⟩ :=
     mloadFreePtrValue (by rw [hmemWrite]; decide) hread64Write
   have hrev : RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageVatSinReturnDecodeShortReverts rd3211 hshort hosz hmload64
       (by simp; omega)
   have hdecSin : config.externalABI.decode? "sin" outSin = none :=
     vatSinDecode_none_short hshort
-  have hbody := cageSourceVatSinReturnDecodeFailure (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+  have hbody := cageSourceVatSinReturnDecodeFailure
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (flapperDai := flapperDai) (vatDai := vatDai) (evmDai := evmDai)
     (evmFlap := evmFlap) (evmFlop := evmFlop) (evmDai2 := evmDai2)
     (evmSin := evmSin) (outDai := outDai) (outFlap := outFlap)

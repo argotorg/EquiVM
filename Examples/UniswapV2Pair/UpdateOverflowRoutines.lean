@@ -8,7 +8,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapUpdateOverflowGuardFirstToRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {aw : UInt256} {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6959⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc
       k C)
@@ -37,7 +37,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapUpdateOverflowGuardSecondToRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {aw : UInt256} {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6959⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc
       k C)
@@ -78,7 +78,7 @@ theorem RD.uniswapUpdateOverflowGuardSecondToRevert {g : Sat256} {s0 : State}
 theorem RD.uniswapUpdateOverflowStringRevertTail_dynamic
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {k C : Nat}
     {R : List UInt256} {mem rdata : ByteArray} {aw ptr : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD uniswapV2PairBytecode I g s0 ⟨6994⟩ R mem aw rdata acc k C)
     (hin : 96 ≤ mem.size) (hlo : 96 ≤ ptr.toNat) (hgap : ptr.toNat - mem.size < USize.size)
     (hfit : ptr.toNat + 131 < UInt256.size) (haw : aw.toNat * 32 < UInt256.size)
@@ -96,7 +96,7 @@ theorem RD.uniswapUpdateOverflowStringRevertTail_dynamic
 theorem RD.uniswapUpdateOverflowReverts_dynamic
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {k C : Nat}
     {reserve1 reserve0 balance1 balance0 aw ptr : UInt256} {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD uniswapV2PairBytecode I g s0 ⟨6959⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k C)
     (hbad : reserve112Mask.toNat < balance0.toNat ∨ reserve112Mask.toNat < balance1.toNat)

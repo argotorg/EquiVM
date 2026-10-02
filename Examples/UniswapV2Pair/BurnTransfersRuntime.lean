@@ -7,7 +7,7 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem uniswapBurnRuntimeFirstSafeTransferEntry
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw totalSupply feeOn liquidity balance0 balance1
       token0 token1 reserve0 reserve1 amount0 amount1 toWord : UInt256} {R : List UInt256} {k C : ℕ}
     (rd4617 : RD uniswapV2PairBytecode I g s0 ⟨4617⟩
@@ -24,7 +24,7 @@ theorem uniswapBurnRuntimeFirstSafeTransferEntry
 set_option maxHeartbeats 1000000 in
 theorem uniswapBurnRuntimeSecondSafeTransferEntry
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw totalSupply feeOn liquidity balance0 balance1
       token0 token1 reserve0 reserve1 amount0 amount1 toWord : UInt256} {R : List UInt256} {k C : ℕ}
     (rd4628 : RD uniswapV2PairBytecode I g s0 ⟨4628⟩

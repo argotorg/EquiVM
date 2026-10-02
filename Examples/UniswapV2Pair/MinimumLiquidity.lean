@@ -21,11 +21,11 @@ theorem uniswapMinimumLiquidityBodyReturns (evm : EVM.State) (locals : Store)
     uniswapIntLiteralBodyReturns evm locals minimumLiquidity h
 
 /-- From `MINIMUM_LIQUIDITY()`'s external body entry (pc 1278), bytecode returns `1000`. -/
-theorem uniswapX_minimumLiquidity {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapX_minimumLiquidity {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1278⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨1278⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray minimumLiquidityWord) := by
   exact RD.uniswapWordConstGetterExternal (entry := ⟨1278⟩) (routine := ⟨5074⟩)
     (val := minimumLiquidityWord) (width := 2) (op := .PUSH2) hreach
@@ -43,26 +43,25 @@ theorem uniswapDecode_minimumLiquidity {I : ExecutionEnv} (hsz : 4 ≤ I.calldat
 
 /-- `MINIMUM_LIQUIDITY()` body core, parameterized by dispatcher/decode facts owned by `Correct`. -/
 theorem uniswapMinimumLiquidityBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some minimumLiquidityTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (minimumLiquidityTransition.params.map Param.name)
         (transitionSignature minimumLiquidityTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1278⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1278⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         minimumLiquidityTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int (Int.ofNat minimumLiquidityWord.toNat))])) := by
     exact uniswapMinimumLiquidityBodyReturns
-      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       (by simp only [initState]; exact hwv)
   have henc :
     returnEquiv (UInt256.toByteArray minimumLiquidityWord)
@@ -78,22 +77,20 @@ theorem uniswapMinimumLiquidityBodyCore
         unfold minimumLiquidityWord Reasoning.Reach.uniswapConstGetterWf
         repeat' first | apply And.intro | native_decide)
       (by jump_dest)
-      (by jump_dest)).reEquivExecutionTransport
-    hcode hdispatch hdecode hbody rfl hAccounts henc
+      (by jump_dest)).reEquivExecution
+    hcode hdispatch hdecode hbody henc
 
 /-- `MINIMUM_LIQUIDITY()` body wrapper for top-level routing: selector match supplies decode and reach. -/
 theorem uniswapMinimumLiquidityBody
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xba, 0x9a, 0x7a, 0x56]⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some minimumLiquidityTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hdispatch : dispatchMsg contract I.calldata = some minimumLiquidityTransition) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xba, 0x9a, 0x7a, 0x56]⟩ rfl hsel
   exact uniswapMinimumLiquidityBodyCore hcode hwv hdispatch
     (uniswapDecode_minimumLiquidity hsz)
     (uniswapReachMinimumLiquidityBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
-    hAccounts
 
 end UniswapV2Pair

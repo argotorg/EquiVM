@@ -2335,34 +2335,16 @@ theorem erc6909TransferBodyCore
   have hd := erc6909Dispatch_transfer (cd := I.calldata) hsel
   let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hσ : EVMStateEquiv evmE evmS := by
-    simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g)
-      rfl
-  have hFromBalance : transferFromBalanceWord evmE I = transferFromBalanceWord evmS I := by
-    unfold transferFromBalanceWord transferFromSlot
-    rw [hσ.executionEnv]
+  have hFromBalance : transferFromBalanceWord evmE I = transferFromBalanceWord evmS I := rfl
   have hDebit : transferDebitWord evmE I = transferDebitWord evmS I := by
     simp [transferDebitWord, hFromBalance]
-  have hσDebit : EVMStateEquiv (transferAfterDebitState evmE I)
-      (transferAfterDebitState evmS I) := by
-    unfold transferAfterDebitState transferFromSlot
-    rw [hσ.executionEnv, hDebit]
-    exact hσ.storageStore_codeOwner
-      (balanceSlot (.address evmS.executionEnv.source)
-        (.int (Int.ofNat (transferIdWord I).toNat))) rfl
   have hToBalance : transferToBalanceWord evmE I = transferToBalanceWord evmS I := by
-    unfold transferToBalanceWord
-    exact hσDebit.storageLoad (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
-      (transferToSlot I)
+    simp [transferToBalanceWord, transferAfterDebitState, transferFromSlot, evmE, evmS,
+      initState, transferDebitWord, hDebit]
   have hNewToNat : transferNewToNat evmE I = transferNewToNat evmS I := by
     simp [transferNewToNat, hToBalance]
   have hNewToWord : transferNewToWord evmE I = transferNewToWord evmS I := by
     simp [transferNewToWord, hNewToNat]
-  have hσPost : EVMStateEquiv (transferPostState evmE I) (transferPostState evmS I) := by
-    unfold transferPostState
-    exact hσDebit.storageStore
-      (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
-      (transferToSlot I) hNewToWord
   by_cases hsz100 : 100 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanonReceiver : (transferReceiverWord I).toNat < EVM.addressModulus
@@ -2402,13 +2384,12 @@ theorem erc6909TransferBodyCore
                 exact (erc6909X_transfer (g := Sat256.ofUInt256 g)
                     hsz100 hsize hbig hperm hcanonReceiver hsource hreceiver henough hfit
                     hreach)
-                  |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-                    (by simp [evmE, initState, transferPostState, transferAfterDebitState,
+                  |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                    (by simp [evmS, initState, transferPostState, transferAfterDebitState,
                       transferFromBalanceWord, transferDebitWord, transferNewToWord,
                       transferFromSlot, transferToSlot, transferFromSlotI,
                       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                       storageStore_accountMap])
-                    hσPost
                     (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
               · have hover :
                     UInt256.size ≤

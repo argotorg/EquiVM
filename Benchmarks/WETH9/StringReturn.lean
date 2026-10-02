@@ -184,13 +184,13 @@ theorem weth9ShortObjMem_read64 (header : UInt256) :
 `name()` enters at pc 166; the non-payable guard (gt = 178) peels to pc 180, whose
 `PUSH2 187; PUSH2 839; JUMP` lands at the routine (pc 839) with `[187, sel]`. -/
 
-theorem weth9ReachName839 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9ReachName839 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0)) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨839⟩
-      [⟨187⟩, weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h166⟩ := weth9ReachName (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨839⟩
+      [⟨187⟩, weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h166⟩ := weth9ReachName (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h180⟩ := weth9GuardPeelOk (gt := ⟨178⟩) h166 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -207,16 +207,16 @@ length word at `0x80`, reaching pc 897 (the `DUP1` before the empty/short/long d
 data pointer `0xa0` and the decoded length on the stack.  Config-independent, symbolic header. -/
 
 set_option maxHeartbeats 8000000 in
-theorem weth9NameRoutineReach897 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9NameRoutineReach897 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0)) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨897⟩
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨897⟩
       [weth9StringLen (weth9StringSlotWord σ I ⟨0⟩), ⟨0⟩, ⟨160⟩,
        weth9StringLen (weth9StringSlotWord σ I ⟨0⟩), ⟨0⟩, ⟨128⟩, ⟨187⟩, weth9SelWord I]
       (weth9RoutineMem (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat 5)
-      ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h839⟩ := weth9ReachName839 (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      ByteArray.empty σ k C := by
+  obtain ⟨_, _, h839⟩ := weth9ReachName839 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
   obtain ⟨_, _, h844⟩ := (evm_run h839 with [jumpdest, push1 ⟨0⟩, dup1]).sload
     (by native_decide) (by evm_ov)
@@ -240,13 +240,13 @@ theorem weth9NameRoutineReach897 {cA gh bl σ σ₀ A I} {g : Sat256}
 /-! ## Empty-string case (`len = 0`) -/
 
 set_option maxHeartbeats 8000000 in
-theorem weth9NameStringEmptyReturns {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9NameStringEmptyReturns {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0))
     (hlen0 : weth9StringLen (weth9StringSlotWord σ I ⟨0⟩) = ⟨0⟩) :
-    RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ) weth9EmptyStringAbi := by
-  obtain ⟨_, _, h897⟩ := weth9NameRoutineReach897 (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDret weth9Bytecode g (initState σ σ₀ g A I) σ weth9EmptyStringAbi := by
+  obtain ⟨_, _, h897⟩ := weth9NameRoutineReach897 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
   rw [hlen0, weth9RoutineMem_zero hlen0] at h897
   have h187 := evm_run h897 with [
@@ -285,17 +285,17 @@ theorem weth9NameStringEmptyReturns {cA gh bl σ σ₀ A I} {g : Sat256}
 /-! ## Short-string load routine (pc 897 → encoder entry 187) -/
 
 set_option maxHeartbeats 8000000 in
-theorem weth9NameShortLoadReach187 {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9NameShortLoadReach187 {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0))
     (hne : weth9StringLen (weth9StringSlotWord σ I ⟨0⟩) ≠ ⟨0⟩)
     (hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) = ⟨0⟩) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨187⟩
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
       [⟨128⟩, ⟨187⟩, weth9SelWord I]
       (weth9ShortObjMem (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h897⟩ := weth9NameRoutineReach897 (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      ByteArray.empty σ k C := by
+  obtain ⟨_, _, h897⟩ := weth9NameRoutineReach897 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
   rw [weth9RoutineMem_short hne hlt31] at h897
   have h915 := evm_run h897 with [
@@ -513,13 +513,13 @@ theorem weth9ShortMemD_readAbi (H : UInt256) :
 /-- The short-string ABI return encoder (pc 187 → `RETURN`): from the `[len ; data]` object it
     writes the ABI `(offset, len, data)` triple, copies the data word (loop, once), zeroes the trailing
     garbage (tail mask), and `RETURN`s `weth9ShortStringAbi`.  Config-independent, symbolic `len`. -/
-theorem weth9NameShortEncoder {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} (H : UInt256)
+theorem weth9NameShortEncoder {σ σ₀ A I} {g : Sat256} {k C : ℕ} (H : UInt256)
     (hne : weth9StringLen H ≠ ⟨0⟩)
     (hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen H) = ⟨0⟩)
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨187⟩
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨187⟩
       [⟨128⟩, ⟨187⟩, weth9SelWord I] (weth9ShortObjMem H) (UInt256.ofNat 6)
-      ByteArray.empty (cA, σ) k C) :
-    RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ) (weth9ShortStringAbi H) := by
+      ByteArray.empty σ k C) :
+    RDret weth9Bytecode g (initState σ σ₀ g A I) σ (weth9ShortStringAbi H) := by
   have h196 := evm_run h with [
     jumpdest, push1 ⟨64⟩, dup1,
     raw mload 0 ⟨192⟩ (UInt256.ofNat 6) (by native_decide) mem_cost
@@ -580,15 +580,15 @@ theorem weth9NameShortEncoder {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} (
     decode + copy the compact string, ABI-encode it, and `RETURN` `weth9ShortStringAbi`.  For an
     arbitrary storage header whose decoded length is short — the reachable "Wrapped Ether"/"WETH"
     case.  Config-independent (no wired config). -/
-theorem weth9NameStringShortReturns {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9NameStringShortReturns {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 0))
     (hne : weth9StringLen (weth9StringSlotWord σ I ⟨0⟩) ≠ ⟨0⟩)
     (hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) = ⟨0⟩) :
-    RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    RDret weth9Bytecode g (initState σ σ₀ g A I) σ
       (weth9ShortStringAbi (weth9StringSlotWord σ I ⟨0⟩)) := by
-  obtain ⟨_, _, h187⟩ := weth9NameShortLoadReach187 (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  obtain ⟨_, _, h187⟩ := weth9NameShortLoadReach187 (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel hne hlt31
   exact weth9NameShortEncoder (weth9StringSlotWord σ I ⟨0⟩) hne hlt31 h187
 

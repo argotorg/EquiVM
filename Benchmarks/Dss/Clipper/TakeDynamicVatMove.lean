@@ -11,14 +11,14 @@ theorem RD.clipperTakeVatMoveExtcodesizeGuardWF {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd4701 : RD code ee g s0 ⟨4701⟩
       (dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hmem : clipperTakeMemoryWF mem aw)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ⟨4813⟩
@@ -26,7 +26,7 @@ theorem RD.clipperTakeVatMoveExtcodesizeGuardWF {code : ByteArray}
         ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
         clipperTakeVatTarget v :: dog :: slice :: owe :: tabNew :: lotNew :: price :: tic ::
         packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      (clipperTakeVatMoveCalldataMem σ ee owe mem) aw rdata (cA, σ) k' C' := by
+      (clipperTakeVatMoveCalldataMem σ ee owe mem) aw rdata σ k' C' := by
   let vatWord : UInt256 := EVM.Word.ofNat (↑v.vat : Nat)
   have hbaseMload64 := clipperTakeMemoryWF_mload64 mem aw hmem
   have hcallWF := clipperTakeVatMoveMemoryWF σ ee owe hmem
@@ -149,14 +149,14 @@ theorem RD.clipperTakeVatMoveNoCodeWF {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd4701 : RD code ee g s0 ⟨4701⟩
       (dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hmem : clipperTakeMemoryWF mem aw)
     (hcodeSizeVat : extCodeSizeWord σ (clipperTakeVatTarget v) = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) : RDrev code g s0 := by
@@ -170,41 +170,41 @@ theorem RD.clipperTakeVatMoveNoCodeWF {code : ByteArray}
     (by clipper_runtime_decode) (by clipper_runtime_decode)
     (by clipper_runtime_decode) (by simp only [List.length_cons]; omega)
 
-theorem RD.clipperTakeVatMovePostCallWF {cA0 cA gh bl σ₀ σStart σ I}
+theorem RD.clipperTakeVatMovePostCallWF {σ₀ σStart σ I}
     {g : Sat256} {A : Substate} {k C : ℕ}
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {baseMem rdata : ByteArray} {aw : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd4813 : RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨4813⟩
+    (rd4813 : RD code I g (initState σStart σ₀ g A I) ⟨4813⟩
       (clipperTakeVatTarget v :: clipperTakeVatTarget v :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
         clipperTakeVatTarget v :: dog :: slice :: owe :: tabNew :: lotNew :: price :: tic ::
         packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      (clipperTakeVatMoveCalldataMem σ I owe baseMem) aw rdata (cA, σ) k C)
+      (clipperTakeVatMoveCalldataMem σ I owe baseMem) aw rdata σ k C)
     (hbaseMem : clipperTakeMemoryWF baseMem aw)
     (hcodeSizeVat : extCodeSizeWord σ (clipperTakeVatTarget v) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ (cA_vat : Batteries.RBSet AccountAddress compare) (σ_vat : AccountMap)
+    ∃ (σ_vat : AccountMap)
       (zVat : Bool) (outVat : ByteArray) (A_vat : Substate) (k' C' : ℕ),
-      RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨4829⟩
+      RD code I g (initState σStart σ₀ g A I) ⟨4829⟩
         ((if zVat then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperTakeVatMoveSelectorWord ::
           clipperTakeVatTarget v :: dog :: slice :: owe :: tabNew :: lotNew :: price ::
           tic :: packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
         (clipperTakeVatMoveCalldataMem σ I owe baseMem) aw outVat
-        (cA_vat, σ_vat) k' C' ∧
+        σ_vat k' C' ∧
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σ, createdAccounts := cA }
+        { initState σStart σ₀ g A I with
+          accountMap := σ }
         (EVM.address v.vat) "move" 0
         [.address I.source,
           .address (AccountAddress.ofNat (clipperTakeVowTarget σ I).toNat),
           .int (Int.ofNat owe.toNat)]
         (zVat,
-          { initState cA0 gh bl σStart σ₀ g A I with
-            accountMap := σ_vat, substate := A_vat, createdAccounts := cA_vat },
+          { initState σStart σ₀ g A I with
+            accountMap := σ_vat, substate := A_vat },
           outVat) true ∧
       outVat.size < UInt256.size ∧
       clipperTakeMemoryWF (clipperTakeVatMoveCalldataMem σ I owe baseMem) aw := by
@@ -217,7 +217,7 @@ theorem RD.clipperTakeVatMovePostCallWF {cA0 cA gh bl σ₀ σStart σ I}
       (clipperTakeJumpDest4825 v hpatch)
       (by clipper_runtime_decode) (by clipper_runtime_decode)
       (by clipper_runtime_decode) (by simp only [List.length_cons]; omega)
-  obtain ⟨cA_vat, σ_vat, zVat, outVat, A_in, callGas, k4829, C4829, hΘpack,
+  obtain ⟨σ_vat, zVat, outVat, A_in, callGas, k4829, C4829, hΘpack,
       rd4829raw, houtVatSize⟩ :=
     RD.call rd4828 (by clipper_runtime_decode) hdepth (by evm_ov)
   obtain ⟨g'', A_vat, hΘ⟩ := hΘpack
@@ -245,7 +245,7 @@ theorem RD.clipperTakeVatMovePostCallWF {cA0 cA gh bl σ₀ σStart σ I}
       MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat (⟨100⟩ : UInt256).toNat by
         simp [MachineState.M]]
     exact hMIn
-  refine ⟨cA_vat, σ_vat, zVat, outVat, A_vat, k4829, C4829, ?_, ?_,
+  refine ⟨σ_vat, zVat, outVat, A_vat, k4829, C4829, ?_, ?_,
     houtVatSize, clipperTakeVatMoveMemoryWF σ I owe hbaseMem⟩
   · have hwrite : outVat.write 0 (clipperTakeVatMoveCalldataMem σ I owe baseMem)
         (⟨128⟩ : UInt256).toNat
@@ -257,15 +257,15 @@ theorem RD.clipperTakeVatMovePostCallWF {cA0 cA gh bl σ₀ σStart σ I}
     rw [hactive] at rd4829raw
     simpa using rd4829raw
   · let evmVat : EVM.State :=
-      { initState cA0 gh bl σStart σ₀ g A I with
-        accountMap := σ, createdAccounts := cA }
+      { initState σStart σ₀ g A I with
+        accountMap := σ }
     refine callCoincides (cfg := config v) (evm := evmVat) (name := "move")
       (args :=
         [.address I.source,
           .address (AccountAddress.ofNat (clipperTakeVowTarget σ I).toNat),
           .int (Int.ofNat owe.toNat)])
       (tgt := EVM.address v.vat) (targetWord := clipperTakeVatTarget v)
-      (cA' := cA_vat) (σ' := σ_vat) (A' := A_vat) (A_in := A_in)
+      (σ' := σ_vat) (A' := A_vat) (A_in := A_in)
       (z := zVat) (o := outVat) (g'' := g'') (callGas := callGas)
       (mem := clipperTakeVatMoveCalldataMem σ I owe baseMem)
       (inOff := ⟨128⟩) (inSize := ⟨100⟩) (callPerm := true)

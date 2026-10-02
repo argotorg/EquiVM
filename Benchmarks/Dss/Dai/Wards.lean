@@ -86,14 +86,14 @@ theorem daiWardsBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ## EVM trace -/
 
-theorem daiWardsX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiWardsX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1132⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3908⟩
+      (initState σ σ₀ g A I) ⟨1132⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨3908⟩
         [wardsArgMaskedWord I, ⟨524⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1154⟩ := RD.daiOneAddressExternalLenOk
     (entry := ⟨1132⟩) (ret := ⟨524⟩) (routine := ⟨3908⟩) hreach
     dai_one_address_external_entry_wf (by jump_dest) hsz36 hsize
@@ -103,23 +103,23 @@ theorem daiWardsX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_singleton]; omega)
   exact ⟨_, _, by simpa [wardsArgMaskedWord, wardsArgWord] using rd3908⟩
 
-theorem daiWardsX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiWardsX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1132⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨1132⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   exact RD.daiOneAddressExternalShort
     (entry := ⟨1132⟩) (ret := ⟨524⟩) (routine := ⟨3908⟩)
     hreach dai_one_address_external_entry_wf hsz4 hsize hshort
 
-theorem daiX_wards_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiX_wards_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1132⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret daiBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨1132⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret daiBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (wardsWord σ I)) := by
   obtain ⟨_, _, rd3908⟩ := daiWardsX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨k524, C524, rd524raw⟩ := RD.daiZeroSlotSingleMappingGetter (pc := ⟨3908⟩)
@@ -133,10 +133,10 @@ theorem daiX_wards_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         = wardsWord σ I := by
     unfold wardsWord
     rw [hslot]
-  have rd524 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨524⟩
+  have rd524 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨524⟩
       (wardsWord σ I :: ⟨524⟩ :: [sel])
       (daiMappingHashMem ⟨0⟩ (wardsArgMaskedWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k524 C524 := by
+      (UInt256.ofNat 3) ByteArray.empty σ k524 C524 := by
     simpa [hword] using rd524raw
   exact RD.daiReturnWordFromMem
     (val := wardsWord σ I) (ret := ⟨524⟩) (R := [sel])
@@ -151,7 +151,7 @@ theorem daiX_wards_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_singleton]; omega)
 
 theorem daiWardsBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -160,61 +160,56 @@ theorem daiWardsBodyCoreOk
       decodeCalldataWithMode config.abiDecodeMode (wardsTransition.params.map Param.name)
         (transitionSignature wardsTransition).paramTypes I.calldata = some (wardsStore I))
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1132⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : wardsWord σ_evm I = wardsWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (wardsStorageSlot I) ⟨0⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1132⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (wardsStore I)
         wardsTransition.body
         (.returned { contract := contract, locals := wardsStore I }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (wardsWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (wardsWord σ I).toNat))])) := by
     simpa [wardsWord, wardsStorageSlot, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       daiWardsBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
         (by simp only [initState]; exact hwv)
   exact (daiX_wards_ok (g := Sat256.ofUInt256 g) hsz36 hsize hreach)
-    |>.reEquivExecutionTransport hcode hdispatch hdecode hbody (by rw [← hword])
-      hAccounts
+    |>.reEquivExecution hcode hdispatch hdecode hbody
       (returnEquiv_of_encode
-        (by simpa [uint256] using uint256ReturnEncoding (wardsWord σ_evm I)))
+        (by simpa [uint256] using uint256ReturnEncoding (wardsWord σ I)))
 
 theorem daiWardsBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some wardsTransition)
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1132⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1132⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hdec := daiDecode_wards_none_short (I := I) hsz4 hshort
   exact (daiWardsX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
 
 /-- `wards(address)` body refines its Solm transition. -/
-theorem daiWardsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiWardsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiSelBytes 21))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiSelBytes 21)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 21) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some wardsTransition :=
     daiDispatchWards hsel
-  have hreach := daiReachWardsBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := daiReachWardsBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact daiWardsBodyCoreOk hcode hsize hwv hsz36 hdispatch
-      (daiDecode_wards_ok hsz36) hreach hAccounts
+      (daiDecode_wards_ok hsz36) hreach
   · exact daiWardsBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 
 end Benchmarks.Dss.Dai

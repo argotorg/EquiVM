@@ -8,22 +8,22 @@ set_option linter.unusedSimpArgs false
 
 namespace VyperERC20
 
-theorem erc20X_transferFromAllowanceStoreAfterOuterFinish {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_transferFromAllowanceStoreAfterOuterFinish {σ σ₀ A I} {g : Sat256}
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨486⟩
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨486⟩
       [transferFromAllowanceInnerSlotI I,
-        transferFromAllowanceDebitI cA gh bl σ σ₀ A I g,
+        transferFromAllowanceDebitI σ σ₀ A I g,
         transferFromSelectorWord]
       (transferFromAllowanceScratchMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, σ) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨492⟩
+      σ k C) :
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨492⟩
       [transferFromAllowanceSlotI I,
-        transferFromAllowanceDebitI cA gh bl σ σ₀ A I g,
+        transferFromAllowanceDebitI σ σ₀ A I g,
         transferFromSelectorWord]
       (transferFromAllowanceScratchMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   obtain ⟨k, C, rd486⟩ := hreach
   have hslotScratch :
       UInt256.ofNat

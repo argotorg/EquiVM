@@ -54,14 +54,14 @@ theorem clipperKickOverflowRevertTailWf (v : ClipperImmutables) {code : ByteArra
 set_option maxHeartbeats 1500000
 
 set_option maxHeartbeats 1500000 in
-theorem clipperKickX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperKickX_unauthorized {σ : AccountMap} {I : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hauth : clipperRelyAuthWord σ I ≠ ⟨1⟩)
     (h : RD code I g s0 ⟨5361⟩
       (clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   obtain ⟨_, _, rd5381⟩ := clipperKickX_authCheck v hpatch h
   have heq : UInt256.eq ⟨1⟩ (clipperRelyAuthWord σ I) = ⟨0⟩ :=
@@ -149,14 +149,14 @@ theorem clipperKickX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     raw rev 0 (by clipper_runtime_decode) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
-theorem clipperKickX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperKickX_locked {σ : AccountMap} {I : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hlocked : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩)
     (h : RD code I g s0 ⟨5443⟩
       (⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have rd5446pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
@@ -166,7 +166,7 @@ theorem clipperKickX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (solcSlotWord σ I ⟨13⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I ::
         clipperKickUsrMaskedWord I :: clipperKickLotWord I :: clipperKickTabWord I ::
         ⟨476⟩ :: [sel]) (clipperRelyAuthHashMem I) (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) _ _ from by simpa [solcSlotWord] using rd5447raw
+      ByteArray.empty σ _ _ from by simpa [solcSlotWord] using rd5447raw
   have rd5452 := (rd5447.iszero (by clipper_runtime_decode) (by evm_ov)).push2 ⟨5520⟩
     (by clipper_runtime_decode) (by evm_ov) |>.jumpiNT
       (by clipper_runtime_decode) (isZero_eq_zero_of_ne hlocked) (by evm_ov)
@@ -178,7 +178,7 @@ theorem clipperKickX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (clipperRelyAuthHashMem_read64 I) (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem clipperKickX_stopped {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperKickX_stopped {σ : AccountMap} {I : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
@@ -187,7 +187,7 @@ theorem clipperKickX_stopped {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (h : RD code I g s0 ⟨5520⟩
       (⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have rd5527pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
@@ -203,7 +203,7 @@ theorem clipperKickX_stopped {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         ⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) _ _ from by
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) _ _ from by
     simpa [solcSlotWord] using rd5531raw
   have hgt : UInt256.gt ⟨1⟩
       (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩) = ⟨0⟩ :=
@@ -221,14 +221,14 @@ theorem clipperKickX_stopped {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by decide) (by native_decide) (clipperRelyAuthHashMem_size I)
     (clipperRelyAuthHashMem_read64 I) (by simp)
 
-theorem clipperKickX_tabZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperKickX_tabZero {σ : AccountMap} {I : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (htab : ¬ 0 < (clipperKickTabWord I).toNat)
     (h : RD code I g s0 ⟨5609⟩
       (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have hgt : UInt256.gt (clipperKickTabWord I) ⟨0⟩ = ⟨0⟩ :=
     ugt_zero (by simpa using Nat.eq_zero_of_not_pos htab)
@@ -249,7 +249,7 @@ theorem clipperKickX_tabZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
 private theorem clipperKickX_lotZeroRaw {code : ByteArray} {I : ExecutionEnv}
     {g : Sat256} {s0 : State} {k C : ℕ} {one zero kpr usr lot : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code I g s0 ⟨5681⟩ (one :: zero :: kpr :: usr :: lot :: R)
       mem (UInt256.ofNat 3) rdata acc k C)
     (hgt : UInt256.gt lot ⟨0⟩ = ⟨0⟩)
@@ -271,14 +271,14 @@ private theorem clipperKickX_lotZeroRaw {code : ByteArray} {I : ExecutionEnv}
   have rd5689 := rd5689.push2 ⟨5753⟩ hd5686 hov
   exact ⟨_, _, rd5689.jumpiNT hd5689 rfl (by evm_ov)⟩
 
-theorem clipperKickX_lotZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperKickX_lotZero {σ : AccountMap} {I : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hlot : ¬ 0 < (clipperKickLotWord I).toNat)
     (h : RD code I g s0 ⟨5681⟩
       (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have hgt : UInt256.gt (clipperKickLotWord I) ⟨0⟩ = ⟨0⟩ :=
     ugt_zero (by simpa using Nat.eq_zero_of_not_pos hlot)
@@ -307,14 +307,14 @@ theorem clipperKickX_lotZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by decide) (by native_decide) (clipperRelyAuthHashMem_size I)
     (clipperRelyAuthHashMem_read64 I) (by simp)
 
-theorem clipperKickX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperKickX_usrZero {σ : AccountMap} {I : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (husr : clipperKickUsrMaskedWord I = ⟨0⟩)
     (h : RD code I g s0 ⟨5753⟩
       (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have rd5768 := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
@@ -336,14 +336,14 @@ theorem clipperKickX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (clipperRelyAuthHashMem_read64 I) (by simp)
 
 set_option maxHeartbeats 1000000 in
-theorem clipperKickX_idZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperKickX_idZero {σ : AccountMap} {I : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true) (hid : clipperKickIdWord σ I = ⟨0⟩)
     (h : RD code I g s0 ⟨5831⟩
       (⟨1⟩ :: ⟨0⟩ :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have rd5835 := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
@@ -354,7 +354,7 @@ theorem clipperKickX_idZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (solcSlotWord σ I ⟨10⟩ :: ⟨10⟩ :: ⟨1⟩ :: ⟨0⟩ ::
         clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) _ _ from by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ _ _ from by
     simpa [solcSlotWord] using rd5836raw
   have rd5842pre := evm_run rd5836 with [
     raw push1 ⟨1⟩ (by clipper_runtime_decode) (by evm_ov),

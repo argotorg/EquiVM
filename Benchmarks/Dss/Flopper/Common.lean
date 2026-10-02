@@ -247,7 +247,7 @@ theorem flopperStorageLocLoad_uint48_offset26 (evm : EVM.State) (slot : UInt256)
       (hbound := by decide) (by decide) (by decide) (by decide)
 
 theorem flopperAddressGetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry returnPc routine slot : UInt256}
     (hcode : I.code = flopperBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -255,9 +255,8 @@ theorem flopperAddressGetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flopperBytecode entry returnPc routine)
     (hgetter : solcAddressSlotGetterWf flopperBytecode routine slot)
     (hroutine : (D_J flopperBytecode 0).contains routine = true)
@@ -266,36 +265,29 @@ theorem flopperAddressGetterBodyCore
     (hreturn : transition.returnType = [addr])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (flopperAddressReturnWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : flopperSlotWord slot σ_evm I = flopperSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.address (AccountAddress.ofNat (flopperAddressReturnWord slot σ_solm I).toNat)] =
-        some [Value.address (AccountAddress.ofNat (flopperAddressReturnWord slot σ_evm I).toNat)] := by
-    have hslot : flopperSlotWord slot σ_solm I = flopperSlotWord slot σ_evm I := hword.symm
-    simp [flopperAddressReturnWord, hslot]
+            (flopperAddressReturnWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (flopperAddressReturnWord slot σ_evm I))
-        (some [(.address (AccountAddress.ofNat (flopperAddressReturnWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (flopperAddressReturnWord slot σ I))
+        (some [(.address (AccountAddress.ofNat (flopperAddressReturnWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     simpa [flopperAddressReturnWord] using
       (returnEquiv_of_encode
-        (solcAddressReturnEncoding (addrTy := addr) rfl (flopperSlotWord slot σ_evm I)))
+        (solcAddressReturnEncoding (addrTy := addr) rfl (flopperSlotWord slot σ I)))
   have hret := RD.solcAddressGetterExternal (code := flopperBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret flopperBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (flopperAddressReturnWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (flopperAddressReturnWord slot σ I)) := by
     simpa [flopperAddressReturnWord, flopperSlotWord] using hret
-  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret'.reEquivExecution hcode hdispatch hdecode hbody henc
 
 @[reducible] def flopperUint48Offset0SlotGetterWf
     (code : ByteArray) (pc slot : UInt256) : Prop :=
@@ -342,14 +334,14 @@ theorem flopperAddressGetterBodyCore
 theorem RD.flopperUint48Offset0SlotGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc slot ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem aw rdata (cA, σ) k C)
+    {σ : AccountMap}
+    (h : RD code ee g s0 pc (ret :: R) mem aw rdata σ k C)
     (hwf : flopperUint48Offset0SlotGetterWf code pc slot)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 4 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (UInt256.land (solcSlotWord σ ee slot) flopperUint48Mask :: ret :: R) mem aw rdata
-      (cA, σ) k' C' := by
+      σ k' C' := by
   rcases hwf with ⟨hd0, hd1, hd3, hd4, hd11, hd12, hd13⟩
   have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
   have rd3 := rd1.push1 slot hd1 (by simp only [List.length_cons]; omega)
@@ -364,15 +356,15 @@ theorem RD.flopperUint48Offset0SlotGetter {code : ByteArray} {g : Sat256} {s0 : 
 theorem RD.flopperUint48Offset6SlotGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc slot ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem aw rdata (cA, σ) k C)
+    {σ : AccountMap}
+    (h : RD code ee g s0 pc (ret :: R) mem aw rdata σ k C)
     (hwf : flopperUint48Offset6SlotGetterWf code pc slot)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (UInt256.land flopperUint48Mask
         (UInt256.div (solcSlotWord σ ee slot) (UInt256.ofNat (256 ^ 6))) :: ret :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd6, hd8, hd9, hd10, hd11, hd18, hd19, hd20⟩
   have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
@@ -459,7 +451,7 @@ theorem RD.flopperUint48Offset6SlotGetter {code : ByteArray} {g : Sat256} {s0 : 
 
 theorem RD.flopperReturnUint48FromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc val ret : UInt256} {R : List UInt256}
-    {mem memout rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem memout rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 pc (val :: ret :: R) mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : flopperReturnUint48FromMemWf code pc)
     (hmload64 :
@@ -519,16 +511,16 @@ theorem RD.flopperReturnUint48FromMem {code : ByteArray} {g : Sat256} {s0 : Stat
         exact hread128)
       (by evm_ov)]
 
-theorem RD.flopperUint48Offset0GetterExternal {code : ByteArray} {cA gh bl σ σ₀ A I}
+theorem RD.flopperUint48Offset0GetterExternal {code : ByteArray} {σ σ₀ A I}
     {g : Sat256} {sel entry returnPc routine slot : UInt256}
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : flopperUint48Offset0SlotGetterWf code routine slot)
     (hroutine : (D_J code 0).contains routine = true)
     (hreturnJd : (D_J code 0).contains returnPc = true)
     (hreturn : flopperReturnUint48FromMemWf code returnPc) :
-    RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    RDret code g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (flopperUint48Offset0Word slot σ I)) := by
   obtain ⟨_, _, rdRoutine⟩ := RD.solcGetterThunk hreach hentry hroutine
   obtain ⟨_, _, rdReturn⟩ :=
@@ -549,16 +541,16 @@ theorem RD.flopperUint48Offset0GetterExternal {code : ByteArray} {cA gh bl σ σ
     flopperUint48Mask_clean (solcSlotWord σ I slot)
   simpa [flopperUint48Offset0Word, flopperSlotWord, hclean'] using hret
 
-theorem RD.flopperUint48Offset6GetterExternal {code : ByteArray} {cA gh bl σ σ₀ A I}
+theorem RD.flopperUint48Offset6GetterExternal {code : ByteArray} {σ σ₀ A I}
     {g : Sat256} {sel entry returnPc routine slot : UInt256}
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : flopperUint48Offset6SlotGetterWf code routine slot)
     (hroutine : (D_J code 0).contains routine = true)
     (hreturnJd : (D_J code 0).contains returnPc = true)
     (hreturn : flopperReturnUint48FromMemWf code returnPc) :
-    RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    RDret code g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (flopperUint48Offset6Word slot σ I)) := by
   obtain ⟨_, _, rdRoutine⟩ := RD.solcGetterThunk hreach hentry hroutine
   obtain ⟨_, _, rdReturn⟩ :=
@@ -586,7 +578,7 @@ theorem RD.flopperUint48Offset6GetterExternal {code : ByteArray} {cA gh bl σ σ
   simpa [flopperUint48Offset6Word, flopperSlotWord] using hret
 
 theorem flopperUint48Offset0GetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry returnPc routine slot : UInt256}
     (hcode : I.code = flopperBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -594,9 +586,8 @@ theorem flopperUint48Offset0GetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flopperBytecode entry returnPc routine)
     (hgetter : flopperUint48Offset0SlotGetterWf flopperBytecode routine slot)
     (hroutine : (D_J flopperBytecode 0).contains routine = true)
@@ -605,40 +596,29 @@ theorem flopperUint48Offset0GetterBodyCore
     (hreturn : transition.returnType = [uint48])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int
-            (Int.ofNat (flopperUint48Offset0Word slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hslot : flopperSlotWord slot σ_evm I = flopperSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hslot' : solcSlotWord σ_solm I slot = solcSlotWord σ_evm I slot := by
-    simpa [flopperSlotWord] using hslot.symm
-  have hword :
-      flopperUint48Offset0Word slot σ_solm I = flopperUint48Offset0Word slot σ_evm I := by
-    simp [flopperUint48Offset0Word, flopperSlotWord, hslot']
-  have hval :
-      some [Value.int (Int.ofNat (flopperUint48Offset0Word slot σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (flopperUint48Offset0Word slot σ_evm I).toNat)] := by
-    rw [hword]
+            (Int.ofNat (flopperUint48Offset0Word slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (flopperUint48Offset0Word slot σ_evm I))
-        (some [(.int (Int.ofNat (flopperUint48Offset0Word slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (flopperUint48Offset0Word slot σ I))
+        (some [(.int (Int.ofNat (flopperUint48Offset0Word slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
       (by
         simpa [uint48] using
-          uint48ReturnEncoding (flopperUint48Offset0Word slot σ_evm I)
-            (flopperUint48Masked_lt (flopperSlotWord slot σ_evm I)))
+          uint48ReturnEncoding (flopperUint48Offset0Word slot σ I)
+            (flopperUint48Masked_lt (flopperSlotWord slot σ I)))
   have hret := RD.flopperUint48Offset0GetterExternal (code := flopperBytecode)
     (g := Sat256.ofUInt256 g) (returnPc := returnPc) (entry := entry)
     (routine := routine) (slot := slot) hreach hentry hgetter hroutine hreturnJd hretmem
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem flopperUint48Offset6GetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry returnPc routine slot : UInt256}
     (hcode : I.code = flopperBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -646,9 +626,8 @@ theorem flopperUint48Offset6GetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flopperBytecode entry returnPc routine)
     (hgetter : flopperUint48Offset6SlotGetterWf flopperBytecode routine slot)
     (hroutine : (D_J flopperBytecode 0).contains routine = true)
@@ -657,46 +636,35 @@ theorem flopperUint48Offset6GetterBodyCore
     (hreturn : transition.returnType = [uint48])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.int
-            (Int.ofNat (flopperUint48Offset6Word slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hslot : flopperSlotWord slot σ_evm I = flopperSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hslot' : solcSlotWord σ_solm I slot = solcSlotWord σ_evm I slot := by
-    simpa [flopperSlotWord] using hslot.symm
-  have hword :
-      flopperUint48Offset6Word slot σ_solm I = flopperUint48Offset6Word slot σ_evm I := by
-    simp [flopperUint48Offset6Word, flopperSlotWord, hslot']
-  have hval :
-      some [Value.int (Int.ofNat (flopperUint48Offset6Word slot σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (flopperUint48Offset6Word slot σ_evm I).toNat)] := by
-    rw [hword]
+            (Int.ofNat (flopperUint48Offset6Word slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (flopperUint48Offset6Word slot σ_evm I))
-        (some [(.int (Int.ofNat (flopperUint48Offset6Word slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (flopperUint48Offset6Word slot σ I))
+        (some [(.int (Int.ofNat (flopperUint48Offset6Word slot σ I).toNat))])
         transition.returnType := by
     have hlt :
-        (flopperUint48Offset6Word slot σ_evm I).toNat < EVM.twoPow 48 := by
+        (flopperUint48Offset6Word slot σ I).toNat < EVM.twoPow 48 := by
       rw [flopperUint48Offset6Word]
       rw [u256_land_comm flopperUint48Mask
-        (UInt256.div (flopperSlotWord slot σ_evm I) (UInt256.ofNat (256 ^ 6)))]
+        (UInt256.div (flopperSlotWord slot σ I) (UInt256.ofNat (256 ^ 6)))]
       exact flopperUint48Masked_lt
-        (UInt256.div (flopperSlotWord slot σ_evm I) (UInt256.ofNat (256 ^ 6)))
+        (UInt256.div (flopperSlotWord slot σ I) (UInt256.ofNat (256 ^ 6)))
     rw [hreturn]
     exact returnEquiv_of_encode
       (by
         simpa [uint48] using
-          uint48ReturnEncoding (flopperUint48Offset6Word slot σ_evm I) hlt)
+          uint48ReturnEncoding (flopperUint48Offset6Word slot σ I) hlt)
   have hret := RD.flopperUint48Offset6GetterExternal (code := flopperBytecode)
     (g := Sat256.ofUInt256 g) (returnPc := returnPc) (entry := entry)
     (routine := routine) (slot := slot) hreach hentry hgetter hroutine hreturnJd hretmem
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem flopperUint256GetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry returnPc routine slot : UInt256}
     (hcode : I.code = flopperBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -704,9 +672,8 @@ theorem flopperUint256GetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD flopperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf flopperBytecode entry returnPc routine)
     (hgetter : solcWordSlotGetterWf flopperBytecode routine slot)
     (hroutine : (D_J flopperBytecode 0).contains routine = true)
@@ -715,33 +682,27 @@ theorem flopperUint256GetterBodyCore
     (hreturn : transition.returnType = [uint256])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (flopperSlotWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : flopperSlotWord slot σ_evm I = flopperSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (flopperSlotWord slot σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (flopperSlotWord slot σ_evm I).toNat)] := by
-    rw [hword]
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (flopperSlotWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (flopperSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (flopperSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (flopperSlotWord slot σ I))
+        (some [(.int (Int.ofNat (flopperSlotWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (flopperSlotWord slot σ_evm I))
+      (by simpa [uint256] using uint256ReturnEncoding (flopperSlotWord slot σ I))
   have hret := RD.solcWordGetterExternal (code := flopperBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret flopperBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (flopperSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (flopperSlotWord slot σ I)) := by
     simpa [flopperSlotWord] using hret
-  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret'.reEquivExecution hcode hdispatch hdecode hbody henc
 
 @[reducible] def solcZeroSlotMappingGetterWf (code : ByteArray) (pc : UInt256) : Prop :=
   let p1 := pc + ⟨1⟩
@@ -776,15 +737,15 @@ theorem flopperUint256GetterBodyCore
 
 theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcZeroSlotMappingGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot ⟨0⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
       hd16, hd17⟩

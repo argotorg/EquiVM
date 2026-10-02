@@ -18,7 +18,7 @@ macro "clipper_decode" : tactic =>
 
 theorem clipperSplitNotTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc next selWord pivot tgt : UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} {rest : List UInt256}
     (h : RD code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
     (hdup : decode code pc = some (.DUP1, .none))
@@ -35,7 +35,7 @@ theorem clipperSplitNotTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
 
 theorem clipperSplitTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc selWord pivot tgt : UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} {rest : List UInt256}
     (h : RD code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
     (hdup : decode code pc = some (.DUP1, .none))
@@ -51,7 +51,7 @@ theorem clipperSplitTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
 
 theorem clipperArmNotTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc next selWord sel tgt : UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} {rest : List UInt256}
     (h : RD code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
     (hdup : decode code pc = some (.DUP1, .none))
@@ -68,7 +68,7 @@ theorem clipperArmNotTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
 
 theorem clipperArmTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc selWord sel tgt : UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} {rest : List UInt256}
     (h : RD code ee g s0 pc (selWord :: rest) mem aw rdata acc k C)
     (hdup : decode code pc = some (.DUP1, .none))
@@ -84,7 +84,7 @@ theorem clipperArmTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
 
 theorem clipperFallbackRevertAt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (h : RD code ee g s0 (⟨463⟩ : UInt256) stk mem aw rdata acc k C)
@@ -112,7 +112,7 @@ theorem clipperFallbackRevertAt {code : ByteArray} {ee : ExecutionEnv} {g : Sat2
 
 theorem clipperJumpFallbackRevert {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (h : RD code ee g s0 pc stk mem aw rdata acc k C)
@@ -136,11 +136,11 @@ theorem clipperBodyReverts_nonPayable (v : ClipperImmutables) (t : TransitionDec
     | rfl | rfl | rfl
   all_goals exact bodyReverts_nonPayable h
 
-theorem clipperX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
+theorem clipperX_callvalue_ne {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDrev code g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ)
     (σ₀ := σ₀) (A := A) (g := g) hcode
     (by rw [clipperDecodeBeforeFirstPatch v hpatch (⟨0⟩ : UInt256) (by native_decide)];
         native_decide)
@@ -181,11 +181,11 @@ theorem clipperX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperI
         native_decide)
     (by simp only [List.length]; omega)
 
-theorem clipperX_short {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
+theorem clipperX_short {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDrev code g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ)
     (σ₀ := σ₀) (A := A) (g := g) hcode
     (by rw [clipperDecodeBeforeFirstPatch v hpatch (⟨0⟩ : UInt256) (by native_decide)];
         native_decide)
@@ -283,14 +283,14 @@ theorem clipperX_short {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperImmutabl
         native_decide)
     (by simp only [List.length]; omega)
 
-theorem clipperReachRoot {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
+theorem clipperReachRoot {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨32⟩ : UInt256)
-      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨32⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   simpa [clipperSelWord, solcSelectorWord] using
-    (solcLegacyDispatchReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (solcLegacyDispatchReachSelector (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) (code := code)
       (bodyPc := (⟨18⟩ : UInt256)) (loadPc := (⟨26⟩ : UInt256))
       (firstPc := (⟨32⟩ : UInt256)) (guardTgt := (⟨16⟩ : UInt256))
@@ -359,7 +359,7 @@ theorem clipperReachRoot {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperImmuta
 
 theorem clipperNoMatchGroupARevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {code : ByteArray} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h65 : RD code ee g s0 (⟨65⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
@@ -459,7 +459,7 @@ theorem clipperNoMatchGroupARevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem clipperNoMatchGroupBRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {code : ByteArray} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h114 : RD code ee g s0 (⟨114⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
@@ -559,7 +559,7 @@ theorem clipperNoMatchGroupBRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem clipperNoMatchGroupCRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {code : ByteArray} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h174 : RD code ee g s0 (⟨174⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
@@ -659,7 +659,7 @@ theorem clipperNoMatchGroupCRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem clipperNoMatchGroupDRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {code : ByteArray} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h223 : RD code ee g s0 (⟨223⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
@@ -738,7 +738,7 @@ theorem clipperNoMatchGroupDRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem clipperNoMatchGroupERevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {code : ByteArray} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h283 : RD code ee g s0 (⟨283⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
@@ -838,7 +838,7 @@ theorem clipperNoMatchGroupERevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem clipperNoMatchGroupFRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {code : ByteArray} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h332 : RD code ee g s0 (⟨332⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
@@ -917,7 +917,7 @@ theorem clipperNoMatchGroupFRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem clipperNoMatchGroupGRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {code : ByteArray} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h381 : RD code ee g s0 (⟨381⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
@@ -1017,7 +1017,7 @@ theorem clipperNoMatchGroupGRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 theorem clipperNoMatchGroupHRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {code : ByteArray} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (v : ClipperImmutables) (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hzero : ∀ i, i < 29 → UInt256.eq (clipperSelNat i) (clipperSelWord ee) = ⟨0⟩)
     (h430 : RD code ee g s0 (⟨430⟩ : UInt256) [clipperSelWord ee] mem aw rdata acc k C) :
@@ -1090,9 +1090,9 @@ theorem clipperNoMatchGroupHRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
 theorem clipperNonPayable (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   exact (clipperX_callvalue_ne (g := Sat256.ofUInt256 g) v hpatch hcode hwv).reEquivElim
     hcode fun _ _ hrev => by
       by_cases hdisp : dispatchMsg (contract v) I.calldata = none
@@ -1107,19 +1107,18 @@ theorem clipperNonPayable (v : ClipperImmutables) {code : ByteArray}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (clipperBodyReverts_nonPayable v t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
 /-- `size < 4` or no selector matches: no Solm dispatch and EVM fallthrough reverts. -/
 theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hnm : ∀ i, i < 29 → (clipperSelBytes i == I.calldata.extract 0 4) = false)
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hnm : ∀ i, i < 29 → (clipperSelBytes i == I.calldata.extract 0 4) = false) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · have hzero : ∀ i, i < 29 →
         UInt256.eq (clipperSelNat i) (clipperSelWord I) = ⟨0⟩ := by
@@ -1127,9 +1126,9 @@ theorem clipperNoDispatch (v : ClipperImmutables) {code : ByteArray}
       rw [clipperSelectorEq I hsz i hi, hnm i hi]
       rfl
     have hrev : RDrev code (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
-      obtain ⟨_, _, h32⟩ := clipperReachRoot (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      obtain ⟨_, _, h32⟩ := clipperReachRoot
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
         v hpatch hcode hwv hsz hsize
       by_cases hroot :
           UInt256.gt (clipperSelNat 20) (clipperSelWord I) = ⟨0⟩

@@ -27,10 +27,10 @@ theorem evalExpr_flipperONE {evm : EVM.State} {locals : Store} :
   have hone : Int.ofNat flipperONEWord.toNat = ONE := by native_decide
   simpa [evalExpr?, pure, hone]
 
-theorem evalExpr_flipperBeg_of_get {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+theorem evalExpr_flipperBeg_of_get {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbeg : locals.get? "beg" = none) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (.storage begRef) =
+      (initState σ σ₀ g A I) (.storage begRef) =
         .ok (.int (Int.ofNat (flipperSlotWord ⟨4⟩ σ I).toNat)) := by
   rw [evalExpr_storage_scalar
     (slot := begRef)
@@ -44,7 +44,7 @@ theorem evalExpr_flipperBeg_of_get {cA gh bl σ σ₀ A I} {g : Sat256} {locals 
       funext evm
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])]
   exact congrArg EvalResult.ok
-    (flipperStorageLocLoad_uint256 (initState cA gh bl σ σ₀ g A I) ⟨4⟩)
+    (flipperStorageLocLoad_uint256 (initState σ σ₀ g A I) ⟨4⟩)
 
 -- LIBRARY CANDIDATE: UInt256 multiplication by zero for the named `UInt256.mul`.
 theorem flipper_uint256_mul_zero (x : UInt256) :
@@ -290,16 +290,16 @@ theorem evalExpr_checkedMulRequire_ok {evm : EVM.State} {locals : Store}
     exact evalExpr_or_false_right hleft hright
 
 set_option maxHeartbeats 1000000 in
-theorem flipperCheckedMulOk {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperCheckedMulOk {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret x y : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     (hret : (D_J flipperBytecode 0).contains ret = true)
     (hov : R.length + 10 ≤ 1024)
     (hfit : x.toNat * y.toNat < UInt256.size)
     (h : RD flipperBytecode I g s0 ⟨6305⟩ (y :: x :: ret :: R)
-      mem aw rdata (cA, σ) k C) :
+      mem aw rdata σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ret (UInt256.mul x y :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   have rd6314 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -362,13 +362,13 @@ theorem flipperCheckedMulOk {cA σ I} {g : Sat256} {s0 : State}
     exact ⟨_, _, by simpa using rdret⟩
 
 set_option maxHeartbeats 1000000 in
-theorem flipperCheckedMulRevert {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperCheckedMulRevert {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret x y : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     (hov : R.length + 10 ≤ 1024)
     (hover : UInt256.size ≤ x.toNat * y.toNat)
     (h : RD flipperBytecode I g s0 ⟨6305⟩ (y :: x :: ret :: R)
-      mem aw rdata (cA, σ) k C) :
+      mem aw rdata σ k C) :
     RDrev flipperBytecode g s0 := by
   have hy0 : y ≠ ⟨0⟩ := by
     intro hzero

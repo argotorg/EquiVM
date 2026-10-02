@@ -342,14 +342,14 @@ theorem RD.clipperTakeDogDigsOweCallSetupNonzero {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (rd4850 : RD code ee g s0 ⟨4850⟩
       (dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      mem (UInt256.ofNat 9) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 9) rdata σ k C)
     (hmem : mem.size = 260)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hlotNew : lotNew ≠ ⟨0⟩)
@@ -361,7 +361,7 @@ theorem RD.clipperTakeDogDigsOweCallSetupNonzero {code : ByteArray}
         dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
       (clipperDogDigsCalldataMem v owe mem)
-      (UInt256.ofNat 9) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 9) rdata σ k' C' := by
   rcases v.ilk_wf with ⟨ilkBs, hilk, hlen⟩
   let ilkWord : UInt256 := EVM.Word.ofNat (fromBytesBigEndian ilkBs)
   have hmload64 :
@@ -479,14 +479,14 @@ theorem RD.clipperTakeDogDigsOweCallSetupZero {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (rd4850 : RD code ee g s0 ⟨4850⟩
       (dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      mem (UInt256.ofNat 9) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 9) rdata σ k C)
     (hmem : mem.size = 260)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hlotNew : lotNew = ⟨0⟩) (htabNew : tabNew = ⟨0⟩)
@@ -498,7 +498,7 @@ theorem RD.clipperTakeDogDigsOweCallSetupZero {code : ByteArray}
         dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
       (clipperDogDigsCalldataMem v owe mem)
-      (UInt256.ofNat 9) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 9) rdata σ k' C' := by
   rcases v.ilk_wf with ⟨ilkBs, hilk, hlen⟩
   let ilkWord : UInt256 := EVM.Word.ofNat (fromBytesBigEndian ilkBs)
   have hmload64 :
@@ -619,7 +619,7 @@ theorem RD.clipperTakeDogDigsNoCode {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {target dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max
       amt id : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
@@ -628,7 +628,7 @@ theorem RD.clipperTakeDogDigsNoCode {code : ByteArray}
         ⟨196⟩ :: clipperDogDigsSelectorWord :: target :: dog :: slice :: owe ::
         tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen :: dataStart ::
         who :: max :: amt :: id :: R)
-      mem (UInt256.ofNat 9) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 9) rdata σ k C)
     (hcodeSizeDog : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
     RDrev code g s0 := by
@@ -642,27 +642,27 @@ theorem RD.clipperTakeDogDigsNoCode {code : ByteArray}
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.clipperTakeDogDigsPostCall {cA0 cA gh bl σ₀ σStart σ I}
+theorem RD.clipperTakeDogDigsPostCall {σ₀ σStart σ I}
     {g : Sat256} {A : Substate} {k C : ℕ}
     {target dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max
       amt id : UInt256}
     {R : List UInt256} {baseMem rdata : ByteArray} (v : ClipperImmutables)
     {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd4964 : RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨4964⟩
+    (rd4964 : RD code I g (initState σStart σ₀ g A I) ⟨4964⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ ::
         ⟨196⟩ :: clipperDogDigsSelectorWord :: target :: dog :: slice :: owe ::
         tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen :: dataStart ::
         who :: max :: amt :: id :: R)
       (clipperDogDigsCalldataMem v owe baseMem)
-      (UInt256.ofNat 9) rdata (cA, σ) k C)
+      (UInt256.ofNat 9) rdata σ k C)
     (hbaseMem : baseMem.size = 260)
     (hcodeSizeDog : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ (cA_dog : Batteries.RBSet AccountAddress compare) (σ_dog : AccountMap)
+    ∃ (σ_dog : AccountMap)
       (zDog : Bool) (outDog : ByteArray) (A_dog : Substate) (k' C' : ℕ),
-      RD code I g (initState cA0 gh bl σStart σ₀ g A I) ⟨4980⟩
+      RD code I g (initState σStart σ₀ g A I) ⟨4980⟩
         ((if zDog then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: clipperDogDigsSelectorWord ::
           target :: dog :: slice :: owe :: tabNew :: lotNew :: price :: tic ::
           packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
@@ -672,17 +672,17 @@ theorem RD.clipperTakeDogDigsPostCall {cA0 cA gh bl σ₀ σStart σ I}
           (MachineState.M (MachineState.M (UInt256.ofNat 9).toNat
             (⟨128⟩ : UInt256).toNat (⟨68⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
-        outDog (cA_dog, σ_dog) k' C' ∧
+        outDog σ_dog k' C' ∧
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A I with
-          accountMap := σ, createdAccounts := cA }
+        { initState σStart σ₀ g A I with
+          accountMap := σ }
         (EVM.address (AccountAddress.ofUInt256 target)) "digs" 0
         [v.ilk, .int (Int.ofNat owe.toNat)]
         (zDog,
-          { initState cA0 gh bl σStart σ₀ g A I with
+          { initState σStart σ₀ g A I with
             accountMap := σ_dog
             substate := A_dog
-            createdAccounts := cA_dog },
+             },
           outDog) true ∧
       outDog.size < UInt256.size := by
   obtain ⟨_, _, _, rd4979⟩ :=
@@ -695,21 +695,21 @@ theorem RD.clipperTakeDogDigsPostCall {cA0 cA gh bl σ₀ σStart σ I}
       (by clipper_runtime_decode) (by clipper_runtime_decode)
       (by clipper_runtime_decode)
       (by simp only [List.length_cons]; omega)
-  obtain ⟨cA_dog, σ_dog, zDog, outDog, A_in, callGas, k4980, C4980, hΘpack,
+  obtain ⟨σ_dog, zDog, outDog, A_in, callGas, k4980, C4980, hΘpack,
       rd4980raw, houtDogSize⟩ :=
     RD.call rd4979 (by clipper_runtime_decode) hdepth (by evm_ov)
   obtain ⟨g'', A_dog, hΘ⟩ := hΘpack
-  refine ⟨cA_dog, σ_dog, zDog, outDog, A_dog, k4980, C4980, ?_, ?_,
+  refine ⟨σ_dog, zDog, outDog, A_dog, k4980, C4980, ?_, ?_,
     houtDogSize⟩
   · exact rd4980raw
   · let evmDog : EVM.State :=
-      { initState cA0 gh bl σStart σ₀ g A I with accountMap := σ, createdAccounts := cA }
+      { initState σStart σ₀ g A I with accountMap := σ }
     refine callCoincides (cfg := config v)
       (evm := evmDog)
       (name := "digs") (args := [v.ilk, .int (Int.ofNat owe.toNat)])
       (tgt := EVM.address (AccountAddress.ofUInt256 target))
       (targetWord := target)
-      (cA' := cA_dog) (σ' := σ_dog) (A' := A_dog) (A_in := A_in)
+      (σ' := σ_dog) (A' := A_dog) (A_in := A_in)
       (z := zDog) (o := outDog) (g'' := g'') (callGas := callGas)
       (mem := clipperDogDigsCalldataMem v owe baseMem)
       (inOff := ⟨128⟩) (inSize := ⟨68⟩) (callPerm := true)
@@ -730,7 +730,7 @@ theorem RD.clipperTakeDogDigsCallFailure {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
     (rd : RD code ee g s0 ⟨4980⟩ (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
@@ -750,7 +750,7 @@ theorem RD.clipperTakeDogDigsCallSuccessToPostDog {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {target dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max
       amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
@@ -784,7 +784,7 @@ theorem RD.clipperTakePostDogLotZeroToRemove {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨5003⟩
@@ -819,7 +819,7 @@ theorem RD.clipperTakePostDogLotNonzeroToCallbackGuard {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨5003⟩
@@ -852,9 +852,9 @@ theorem RD.clipperYankRemoveIdEqMoveToJoinGeneric {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {ret : UInt256}
-    {R : List UInt256} {cA σ}
+    {R : List UInt256} {σ}
     (rd : RD code ee g s0 ⟨8274⟩ (clipperYankArgWord ee :: ret :: R)
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (hlen : solcSlotWord σ ee ⟨11⟩ ≠ ⟨0⟩)
     (heq :
       let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
@@ -866,7 +866,7 @@ theorem RD.clipperYankRemoveIdEqMoveToJoinGeneric {code : ByteArray}
     let aw1 := UInt256.ofNat (MachineState.M aw.toNat 0 32)
     let aw2 := UInt256.ofNat (MachineState.M aw1.toNat 0 32)
     ∃ k' C', RD code ee g s0 ⟨8379⟩ (move :: clipperYankArgWord ee :: ret :: R)
-      activeMem aw2 o (cA, σ) k' C' := by
+      activeMem aw2 o σ k' C' := by
   intro lastIndex move activeMem aw1 aw2
   have rd8277 := evm_run rd with [
     raw jumpdest (by clipper_yank_remove_decode) (by evm_ov),
@@ -930,13 +930,13 @@ theorem RD.clipperYankRemoveIdEqMoveToJoinGeneric {code : ByteArray}
   obtain ⟨k8307, C8307, rd8307slot⟩ :
       ∃ k C, RD code ee g s0 ⟨8307⟩
         (clipperYankActiveSlot lastIndex :: ⟨0⟩ :: clipperYankArgWord ee :: ret :: R)
-        activeMem aw2 o (cA, σ) k C := by
+        activeMem aw2 o σ k C := by
     exact ⟨_, _, by simpa [solcSlotWord, hslotActive] using rd8307pre⟩
   obtain ⟨_, _, rd8308raw⟩ := rd8307slot.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8308, C8308, rd8308⟩ :
       ∃ k C, RD code ee g s0 ⟨8308⟩
         (move :: ⟨0⟩ :: clipperYankArgWord ee :: ret :: R)
-        activeMem aw2 o (cA, σ) k C := by
+        activeMem aw2 o σ k C := by
     exact ⟨_, _, by simpa [move, solcSlotWord] using rd8308raw⟩
   have rd8312 := evm_run rd8308 with [
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov),
@@ -960,9 +960,9 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {ret move : UInt256}
-    {R : List UInt256} {cA σ}
+    {R : List UInt256} {σ}
     (rd : RD code ee g s0 ⟨8379⟩ (move :: clipperYankArgWord ee :: ret :: R)
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (hlen : solcSlotWord σ ee ⟨11⟩ ≠ ⟨0⟩)
     (hactiveMemSize : 64 ≤ (wordAt0Mem (⟨11⟩ : UInt256) mem).size)
     (hperm : ee.perm = true)
@@ -977,7 +977,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
     let aw4 := UInt256.ofNat (MachineState.M aw3.toNat 32 32)
     let aw5 := UInt256.ofNat (MachineState.M aw4.toNat 0 64)
     ∃ k' C', RD code ee g s0 ret R saleHashMem aw5 o
-      (cA, clipperYankRemoveAccountMap σ ee lastIndex) k' C' := by
+      (clipperYankRemoveAccountMap σ ee lastIndex) k' C' := by
   intro lastIndex activeMem aw1 aw2 saleHashMem aw3 aw4 aw5
   let len := solcSlotWord σ ee ⟨11⟩
   let saleKeyMem := wordAt0Mem (clipperYankArgWord ee) activeMem
@@ -1055,7 +1055,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
         (UInt256.lnot ⟨0⟩ :: ⟨32⟩ :: ⟨0⟩ :: solcSlotWord σ ee ⟨11⟩ :: ⟨11⟩ ::
           move :: clipperYankArgWord ee :: ret :: R)
         activeMem aw2 o
-        (cA, sstoreAccountMap ee.codeOwner σ (clipperYankActiveSlot lastIndex) ⟨0⟩)
+        (sstoreAccountMap ee.codeOwner σ (clipperYankActiveSlot lastIndex) ⟨0⟩)
         k C := by
     obtain ⟨k', C', rd'⟩ := rd8411pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons]; omega)
@@ -1069,7 +1069,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
   obtain ⟨k8418, C8418, rd8418⟩ :
       ∃ k C, RD code ee g s0 ⟨8418⟩
         (⟨32⟩ :: ⟨0⟩ :: move :: clipperYankArgWord ee :: ret :: R)
-        activeMem aw2 o (cA, clipperYankPopAccountMap σ ee lastIndex) k C := by
+        activeMem aw2 o (clipperYankPopAccountMap σ ee lastIndex) k C := by
     obtain ⟨k', C', rd'⟩ := rd8417pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons]; omega)
     exact ⟨k', C', by simpa [clipperYankPopAccountMap, lastIndex] using rd'⟩
@@ -1116,7 +1116,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
     raw dup2 (by clipper_yank_remove_decode) (by evm_ov)]
   obtain ⟨k8434, C8434, rd8434⟩ :
       ∃ k C, RD code ee g s0 ⟨8434⟩ (base :: ⟨0⟩ :: ret :: R)
-        saleHashMem aw5 o (cA, σSale0) k C := by
+        saleHashMem aw5 o σSale0 k C := by
     obtain ⟨k', C', rd'⟩ := rd8433pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons]; omega)
     exact ⟨k', C', by simpa [base, σSale0] using rd'⟩
@@ -1128,7 +1128,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov)]
   obtain ⟨k8441, C8441, rd8441⟩ :
       ∃ k C, RD code ee g s0 ⟨8441⟩ (base :: ⟨0⟩ :: ret :: R)
-        saleHashMem aw5 o (cA, σSale1) k C := by
+        saleHashMem aw5 o σSale1 k C := by
     obtain ⟨k', C', rd'⟩ := rd8440pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons]; omega)
     exact ⟨k', C', by simpa [σSale1] using rd'⟩
@@ -1140,7 +1140,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov)]
   obtain ⟨k8448, C8448, rd8448⟩ :
       ∃ k C, RD code ee g s0 ⟨8448⟩ (base :: ⟨0⟩ :: ret :: R)
-        saleHashMem aw5 o (cA, σSale2) k C := by
+        saleHashMem aw5 o σSale2 k C := by
     obtain ⟨k', C', rd'⟩ := rd8447pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons]; omega)
     exact ⟨k', C', by simpa [σSale2] using rd'⟩
@@ -1152,7 +1152,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov)]
   obtain ⟨k8455, C8455, rd8455⟩ :
       ∃ k C, RD code ee g s0 ⟨8455⟩ (base :: ⟨0⟩ :: ret :: R)
-        saleHashMem aw5 o (cA, σSale3) k C := by
+        saleHashMem aw5 o σSale3 k C := by
     obtain ⟨k', C', rd'⟩ := rd8454pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons]; omega)
     exact ⟨k', C', by simpa [σSale3] using rd'⟩
@@ -1161,7 +1161,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
     raw add (by clipper_yank_remove_decode) (by evm_ov)]
   obtain ⟨k8459, C8459, rd8459⟩ :
       ∃ k C, RD code ee g s0 ⟨8459⟩ (ret :: R)
-        saleHashMem aw5 o (cA, σRemoved) k C := by
+        saleHashMem aw5 o σRemoved k C := by
     obtain ⟨k', C', rd'⟩ := rd8458pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons]; omega)
     exact ⟨k', C', by
@@ -1175,7 +1175,7 @@ theorem RD.clipperTakeRemoveReturnToEventTail {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨5020⟩

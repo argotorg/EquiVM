@@ -7,17 +7,17 @@ namespace UniswapV2Pair
 set_option maxHeartbeats 1000000 in
 theorem uniswapInternalBurnRuntimeBalanceSubEntry
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {value holder ret : UInt256} {R : List UInt256}
     (rd8302 : RD uniswapV2PairBytecode I g s0 ⟨8302⟩ (value :: holder :: ret :: R)
-      mem feeToStaticcallActiveWords rdata (cA, σ) k C)
+      mem feeToStaticcallActiveWords rdata σ k C)
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6879⟩
       (value :: uniswapCodeOwnerStorageWord I σ
         (uniswapInternalMintBalanceHashSlot holder mem) ::
         ⟨8343⟩ :: value :: holder :: ret :: R)
       (uniswapInternalMintBalanceHashMem holder mem) feeToStaticcallActiveWords rdata
-      (cA, σ) k' C' := by
+      σ k' C' := by
   have rd8313 := evm_run rd8302 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and]
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -44,12 +44,12 @@ theorem uniswapInternalBurnRuntimeBalanceSubEntry
 set_option maxHeartbeats 1000000 in
 theorem uniswapInternalBurnRuntimeStoreBalanceSupplySubEntry
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {newBalance value holder ret : UInt256} {R : List UInt256}
     (rd8343 : RD uniswapV2PairBytecode I g s0 ⟨8343⟩
       (newBalance :: value :: holder :: ret :: R)
-      mem feeToStaticcallActiveWords rdata (cA, σ) k C)
+      mem feeToStaticcallActiveWords rdata σ k C)
     (hperm : I.perm = true) (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6879⟩
       (value :: uniswapCodeOwnerStorageWord I
@@ -57,7 +57,7 @@ theorem uniswapInternalBurnRuntimeStoreBalanceSupplySubEntry
           (uniswapInternalMintBalanceHashSlot holder mem) newBalance) ⟨0⟩ ::
         ⟨8388⟩ :: value :: holder :: ret :: R)
       (uniswapInternalMintBalanceHashMem holder mem) feeToStaticcallActiveWords rdata
-      (cA, sstoreAccountMap I.codeOwner σ
+      (sstoreAccountMap I.codeOwner σ
         (uniswapInternalMintBalanceHashSlot holder mem) newBalance) k' C' := by
   have rd8354 := evm_run rd8343 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and]
@@ -86,19 +86,19 @@ theorem uniswapInternalBurnRuntimeStoreBalanceSupplySubEntry
 set_option maxHeartbeats 1000000 in
 theorem uniswapInternalBurnRuntimeStoreSupplyEmitAndJump
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {newSupply value holder ret : UInt256} {R : List UInt256}
     (rd8388 : RD uniswapV2PairBytecode I g s0 ⟨8388⟩
       (newSupply :: value :: holder :: ret :: R)
-      mem feeToStaticcallActiveWords rdata (cA, σ) k C)
+      mem feeToStaticcallActiveWords rdata σ k C)
     (hperm : I.perm = true) (hmem : 160 ≤ mem.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ret R
       (uniswapInternalMintLogMem value mem) feeToStaticcallActiveWords rdata
-      (cA, sstoreAccountMap I.codeOwner σ ⟨0⟩ newSupply) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨0⟩ newSupply) k' C' := by
   have rd8393 := evm_run rd8388 with [jumpdest, push1 ⟨0⟩, swap1, dup2]
   obtain ⟨_, _, rd8394⟩ := rd8393.sstore hperm (by native_decide) (by evm_ov)
   have rd8397 := evm_run rd8394 with [push1 ⟨64⟩, dup1]

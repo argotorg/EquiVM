@@ -39,13 +39,13 @@ theorem vatDecode_dai_none_short {I : ExecutionEnv}
   simpa [config, daiTransition] using
     (decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort)
 
-theorem vatReachDaiBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vatReachDaiBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 3)) :
-    ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
         ⟨863⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vatSelWord I = ⟨0x6c25b346⟩ :=
     vatSelWord_eq_of_beq I hsz 0x6c 0x25 0xb3 0x46 ⟨0x6c25b346⟩
       (by native_decide) (by simpa [vatSelBytes] using hsel)
@@ -75,7 +75,7 @@ theorem vatReachDaiBody {cA gh bl σ σ₀ A I} {g : Sat256}
     hroot hlow hlowhigh heq0 htake (by jump_dest) (by native_decide)
 
 theorem vatDaiBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some daiTransition)
@@ -84,10 +84,9 @@ theorem vatDaiBodyCoreOk
         (transitionSignature daiTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (.address (daiMappingArg I))))
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨863⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨863⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let key := daiMappingKey I
   let slot := solcMappingSlot ⟨5⟩ key
   let locals : Store := (∅ : Store).insert "arg0" (.address (daiMappingArg I))
@@ -95,14 +94,14 @@ theorem vatDaiBodyCoreOk
     simp [slot, key, daiMappingSlotFor_eq]
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals daiTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals daiTransition.body
         (.returned { contract := contract, locals := locals }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (vatSlotWord (daiMappingSlotFor I) σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (vatSlotWord (daiMappingSlotFor I) σ I).toNat))])) := by
     simpa [daiTransition, daiMappingSlotFor, vatSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, locals, key] using
       vatUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         (ref := daiRef (.var "arg0")) (er := daiMappingEvaledRef I)
         (slot := daiMappingSlotFor I)
         (by simp only [initState]; exact hwv) (by simp [locals, daiRef])
@@ -135,12 +134,12 @@ theorem vatDaiBodyCoreOk
     (by jump_dest) (by simp)
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (vatSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (vatSlotWord slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨465⟩) (val := vatSlotWord slot σ_evm I) (ret := ⟨465⟩) (R := [sel])
+      (pc := ⟨465⟩) (val := vatSlotWord slot σ I) (ret := ⟨465⟩) (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨5⟩ key)
-        (vatSlotWord slot σ_evm I))
+        (vatSlotWord slot σ I))
       (by simpa [slot, vatSlotWord] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
@@ -148,37 +147,32 @@ theorem vatDaiBodyCoreOk
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨5⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (vatSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_mload64 (vatSlotWord slot σ I)
           (solcMappingHashMem_size ⟨5⟩ key) (solcMappingHashMem_read64 ⟨5⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (vatSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_read128 (vatSlotWord slot σ I)
           (solcMappingHashMem_size ⟨5⟩ key))
       (by simp)
     simpa [slot, vatSlotWord] using hret'
-  have hword : vatSlotWord slot σ_evm I = vatSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (vatSlotWord (daiMappingSlotFor I) σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (vatSlotWord slot σ_evm I).toNat)] := by
-    rw [hslot, hword]
+  rw [hslot] at hbody
   have henc :
-      returnEquiv (UInt256.toByteArray (vatSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (vatSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (vatSlotWord slot σ I))
+        (some [(.int (Int.ofNat (vatSlotWord slot σ I).toNat))])
         daiTransition.returnType := by
     rw [show daiTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (vatSlotWord slot σ_evm I))
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+      (by simpa [uint256] using uint256ReturnEncoding (vatSlotWord slot σ I))
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem vatDaiBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some daiTransition)
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨863⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨863⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -196,17 +190,17 @@ theorem vatDaiBodyCoreDecodeFailed_short
     (vatDecode_dai_none_short hsz4 hshort)
 
 theorem vatDaiBodyCore : VatBodyTheorem 3 := by
-  intro cA gh bl σ_evm σ_solm σ₀ A I g hcode hsize _hperm hwv hsel hAccounts
+  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some daiTransition :=
     vatDispatchDai hsel
-  have hreach := vatReachDaiBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := vatReachDaiBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact vatDaiBodyCoreOk hcode hwv hsz36 hsize hdispatch
-      (vatDecode_dai_ok hsz36) hreach hAccounts
+      (vatDecode_dai_ok hsz36) hreach
   · exact vatDaiBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 
 end Benchmarks.Dss.Vat

@@ -51,18 +51,18 @@ theorem endWardsArmsWellFormed :
   dsimp [armWellFormed]
   repeat' first | apply And.intro | native_decide
 
-theorem endReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem endReachWardsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I endWardsConcreteSelector) :
-    ∃ k C, RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD endBytecode I g (initState σ σ₀ g A I)
         endWardsEntryPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : endSelWord I = ⟨0xbf353dbb⟩ :=
     endSelWord_eq_of_beq I hsz 0xbf 0x35 0x3d 0xbb ⟨0xbf353dbb⟩
       (by native_decide) (by simpa [selIs, endWardsConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
-    endReachGroup174FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    endReachGroup174FirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
       (by rw [hword]; native_decide)
       (by rw [hword]; native_decide)
@@ -82,7 +82,7 @@ theorem endReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
 theorem endWardsBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some wardsTransition)
@@ -91,10 +91,9 @@ theorem endWardsBodyCoreOk
         (transitionSignature wardsTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (.address (endWardsArg I))))
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) endWardsEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) endWardsEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let key := endWardsKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let locals : Store := (∅ : Store).insert "arg0" (.address (endWardsArg I))
@@ -102,14 +101,14 @@ theorem endWardsBodyCoreOk
     simp [slot, key, endWardsSlotFor_eq]
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals wardsTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals wardsTransition.body
         (.returned { contract := contract, locals := locals }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (endSlotWord (endWardsSlotFor I) σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (endSlotWord (endWardsSlotFor I) σ I).toNat))])) := by
     simpa [wardsTransition, endWardsSlotFor, endSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, locals, key] using
       endUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         (ref := wardsRef (.var "arg0")) (er := endWardsEvaledRef I)
         (slot := endWardsSlotFor I)
         (by simp only [initState]; exact hwv) (by simp [locals, wardsRef])
@@ -142,13 +141,13 @@ theorem endWardsBodyCoreOk
     (by jump_dest) (by simp)
   have hret :
       RDret endBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (endSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (endSlotWord slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := endWordReturnPc) (val := endSlotWord slot σ_evm I) (ret := endWordReturnPc)
+      (pc := endWordReturnPc) (val := endSlotWord slot σ I) (ret := endWordReturnPc)
       (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨0⟩ key)
-        (endSlotWord slot σ_evm I))
+        (endSlotWord slot σ I))
       (by simpa [slot, endSlotWord] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
@@ -156,37 +155,36 @@ theorem endWardsBodyCoreOk
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨0⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (endSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_mload64 (endSlotWord slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key) (solcMappingHashMem_read64 ⟨0⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (endSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_read128 (endSlotWord slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key))
       (by simp)
     simpa [slot, endSlotWord] using hret'
-  have hword : endSlotWord slot σ_evm I = endSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
   have hval :
-      some [Value.int (Int.ofNat (endSlotWord (endWardsSlotFor I) σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (endSlotWord slot σ_evm I).toNat)] := by
-    rw [hslot, hword]
+      some [Value.int (Int.ofNat (endSlotWord (endWardsSlotFor I) σ I).toNat)] =
+        some [Value.int (Int.ofNat (endSlotWord slot σ I).toNat)] := by
+    rw [hslot]
   have henc :
-      returnEquiv (UInt256.toByteArray (endSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (endSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (endSlotWord slot σ I))
+        (some [(.int (Int.ofNat (endSlotWord slot σ I).toNat))])
         wardsTransition.returnType := by
     rw [show wardsTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (endSlotWord slot σ_evm I))
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+      (by simpa [uint256] using uint256ReturnEncoding (endSlotWord slot σ I))
+  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    (by simp [initState]) henc
 
 theorem endWardsBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some wardsTransition)
     (hreach : ∃ k C, RD endBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) endWardsEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) endWardsEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -203,24 +201,23 @@ theorem endWardsBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (endDecode_wards_none_short hsz4 hshort)
 
-theorem endWardsBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem endWardsBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = endBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (selectorOf wardsTransition))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (selectorOf wardsTransition)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsel' : selIs I endWardsConcreteSelector := by
     simpa [endWardsSelectorBytes, endWardsConcreteSelector] using hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I endWardsConcreteSelector (by rfl) hsel'
   have hdispatch : dispatchMsg contract I.calldata = some wardsTransition :=
     endDispatchWards hsel
-  have hreach := endReachWardsBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := endReachWardsBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel'
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact endWardsBodyCoreOk hcode hwv hsz36 hsize hdispatch
-      (endDecode_wards_ok hsz36) hreach hAccounts
+      (endDecode_wards_ok hsz36) hreach
   · exact endWardsBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 
 end Benchmarks.Dss.End

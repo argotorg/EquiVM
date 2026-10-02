@@ -637,15 +637,14 @@ theorem clipperSalesReturnMem_read128_192 {scratch : ByteArray}
 /-! ## EVM reachability -/
 
 set_option maxHeartbeats 1000000 in
-theorem clipperReachSalesBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
+theorem clipperReachSalesBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 18)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1161⟩ : UInt256)
-      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1161⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := clipperReachRoot (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperSalesSelectorWord hsz hsel
   have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
@@ -856,9 +855,9 @@ theorem clipperReachSalesBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperI
 set_option maxHeartbeats 4000000 in
 theorem RD.clipperSalesStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 (⟨6668⟩ : UInt256) (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperSalesStructGetterWf code)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 10 ≤ 1024) :
@@ -869,7 +868,7 @@ theorem RD.clipperSalesStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
         solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ key) + ⟨2⟩) ::
         solcSlotWord σ ee ((solcMappingSlot ⟨12⟩ key) + ⟨1⟩) ::
         solcSlotWord σ ee (solcMappingSlot ⟨12⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨12⟩ key) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcMappingHashMem ⟨12⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd6668, hd6669, hd6671, hd6673, hd6674, hd6676, hd6677, hd6678, hd6679,
       hd6681, hd6682, hd6683, hd6684, hd6685, hd6687, hd6688, hd6689, hd6690,
@@ -989,16 +988,16 @@ theorem clipperJumpDest6668 (v : ClipperImmutables) {code : ByteArray}
       simp [hIlk]
       native_decide
 
-theorem clipperSalesX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperSalesX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨1161⟩ : UInt256) [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨6668⟩ : UInt256)
+      (initState σ σ₀ g A I) (⟨1161⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨6668⟩ : UInt256)
       (clipperSalesArgWord I :: ⟨1190⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := code) (sel := sel) (entry := (⟨1161⟩ : UInt256))
     (ret := (⟨1190⟩ : UInt256)) (decoded := (⟨1183⟩ : UInt256))
@@ -1122,7 +1121,7 @@ set_option maxHeartbeats 2000000 in
 theorem RD.clipperSalesReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {top tic usr lot tab pos ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 (⟨1190⟩ : UInt256)
         (top :: tic :: usr :: lot :: tab :: pos :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
@@ -1249,15 +1248,15 @@ theorem clipperSalesReturnFromMemWfPatched (v : ClipperImmutables) {code : ByteA
     rw [clipperDecodeBeforeFirstPatch v hpatch _ (by native_decide)]
     native_decide
 
-theorem clipperSalesX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperSalesX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨1161⟩ : UInt256) [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) (⟨1161⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev code g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1304,16 +1303,16 @@ theorem clipperSalesX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     hlt
 
 theorem clipperSalesBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg (contract v) I.calldata = some salesTransition)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (⟨1161⟩ : UInt256)
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) (⟨1161⟩ : UInt256)
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hdec := clipperDecode_sales_none_short v (I := I) hsz4 hshort
   exact (clipperSalesX_shortarg (v := v) (g := Sat256.ofUInt256 g) hpatch hsz4 hsize
     hshort hreach)
@@ -1321,29 +1320,28 @@ theorem clipperSalesBodyCoreDecodeFailed_short
 
 theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (clipperSelBytes 18))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (clipperSelBytes 18)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
+  have hAccounts : σ = σ := rfl
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 18) (by native_decide) hsel
   have hdispatch : dispatchMsg (contract v) I.calldata = some salesTransition :=
     clipperDispatch_sales v hsel
-  have hreach := clipperReachSalesBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := clipperReachSalesBody (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · let key : UInt256 := clipperSalesArgWord I
     let base : UInt256 := solcMappingSlot ⟨12⟩ key
-    let posE : UInt256 := solcSlotWord σ_evm I base
-    let tabE : UInt256 := solcSlotWord σ_evm I (base + ⟨1⟩)
-    let lotE : UInt256 := solcSlotWord σ_evm I (base + ⟨2⟩)
-    let packedE : UInt256 := solcSlotWord σ_evm I (base + ⟨3⟩)
+    let posE : UInt256 := solcSlotWord σ I base
+    let tabE : UInt256 := solcSlotWord σ I (base + ⟨1⟩)
+    let lotE : UInt256 := solcSlotWord σ I (base + ⟨2⟩)
+    let packedE : UInt256 := solcSlotWord σ I (base + ⟨3⟩)
     let usrE : UInt256 := UInt256.land packedE solcAddrMask
     let ticE : UInt256 := clipperSalesPackedTicWord packedE
-    let topE : UInt256 := solcSlotWord σ_evm I (base + ⟨4⟩)
+    let topE : UInt256 := solcSlotWord σ I (base + ⟨4⟩)
     obtain ⟨_, _, rd6668⟩ := clipperSalesX_decoded (v := v) (g := Sat256.ofUInt256 g)
       hpatch hsz36 hsize hreach
     obtain ⟨_, _, rd1190⟩ := RD.clipperSalesStructGetter
@@ -1353,7 +1351,7 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
       (by simp)
     have hretRaw :
         RDret code (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
           (clipperSalesReturnBytes posE tabE lotE usrE
             (UInt256.land clipperSalesUint96Mask ticE) topE) := by
       simpa [key, base, posE, tabE, lotE, packedE, usrE, ticE, topE] using
@@ -1380,55 +1378,55 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
       exact u256LandMaskCleanOfToNat ticE clipperSalesUint96Mask hmask96 hticLt
     have hret :
         RDret code (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
           (clipperSalesReturnBytes posE tabE lotE packedE ticE topE) := by
       simpa [clipperSalesReturnBytes, usrE, husrClean, hticClean] using hretRaw
     have hdec := clipperDecode_sales_ok v (I := I) hsz36
     have hbody :
         ExecTransitionBody (config v) (contract v)
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (clipperSalesStore I) salesTransition.body
           (.returned { contract := contract v, locals := clipperSalesStore I }
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (some [
-              .int (Int.ofNat (solcSlotWord σ_solm I base).toNat),
-              .int (Int.ofNat (solcSlotWord σ_solm I (base + ⟨1⟩)).toNat),
-              .int (Int.ofNat (solcSlotWord σ_solm I (base + ⟨2⟩)).toNat),
+              .int (Int.ofNat (solcSlotWord σ I base).toNat),
+              .int (Int.ofNat (solcSlotWord σ I (base + ⟨1⟩)).toNat),
+              .int (Int.ofNat (solcSlotWord σ I (base + ⟨2⟩)).toNat),
               .address (AccountAddress.ofNat
-                (UInt256.land (solcSlotWord σ_solm I (base + ⟨3⟩)) solcAddrMask).toNat),
+                (UInt256.land (solcSlotWord σ I (base + ⟨3⟩)) solcAddrMask).toNat),
               .int (Int.ofNat
-                (clipperSalesPackedTicWord (solcSlotWord σ_solm I (base + ⟨3⟩))).toNat),
-              .int (Int.ofNat (solcSlotWord σ_solm I (base + ⟨4⟩)).toNat)])) := by
+                (clipperSalesPackedTicWord (solcSlotWord σ I (base + ⟨3⟩))).toNat),
+              .int (Int.ofNat (solcSlotWord σ I (base + ⟨4⟩)).toNat)])) := by
       simpa [key, base, clipperSalesPosSlot, clipperSalesTabSlot, clipperSalesLotSlot,
         clipperSalesPackedSlot, clipperSalesTopSlot, clipperSalesBaseSlot_eq I,
         solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
         clipperSalesBodyReturns v
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
           (by simp only [initState]; exact hwv)
-    have hposWord : posE = solcSlotWord σ_solm I base := by
+    have hposWord : posE = solcSlotWord σ I base := by
       simpa [posE] using accountMapEquiv_storage_findD hAccounts I.codeOwner base ⟨0⟩
-    have htabWord : tabE = solcSlotWord σ_solm I (base + ⟨1⟩) := by
+    have htabWord : tabE = solcSlotWord σ I (base + ⟨1⟩) := by
       simpa [tabE] using
         accountMapEquiv_storage_findD hAccounts I.codeOwner (base + ⟨1⟩) ⟨0⟩
-    have hlotWord : lotE = solcSlotWord σ_solm I (base + ⟨2⟩) := by
+    have hlotWord : lotE = solcSlotWord σ I (base + ⟨2⟩) := by
       simpa [lotE] using
         accountMapEquiv_storage_findD hAccounts I.codeOwner (base + ⟨2⟩) ⟨0⟩
-    have hpackedWord : packedE = solcSlotWord σ_solm I (base + ⟨3⟩) := by
+    have hpackedWord : packedE = solcSlotWord σ I (base + ⟨3⟩) := by
       simpa [packedE] using
         accountMapEquiv_storage_findD hAccounts I.codeOwner (base + ⟨3⟩) ⟨0⟩
-    have htopWord : topE = solcSlotWord σ_solm I (base + ⟨4⟩) := by
+    have htopWord : topE = solcSlotWord σ I (base + ⟨4⟩) := by
       simpa [topE] using
         accountMapEquiv_storage_findD hAccounts I.codeOwner (base + ⟨4⟩) ⟨0⟩
     have hval :
         some [
-          Value.int (Int.ofNat (solcSlotWord σ_solm I base).toNat),
-          Value.int (Int.ofNat (solcSlotWord σ_solm I (base + ⟨1⟩)).toNat),
-          Value.int (Int.ofNat (solcSlotWord σ_solm I (base + ⟨2⟩)).toNat),
+          Value.int (Int.ofNat (solcSlotWord σ I base).toNat),
+          Value.int (Int.ofNat (solcSlotWord σ I (base + ⟨1⟩)).toNat),
+          Value.int (Int.ofNat (solcSlotWord σ I (base + ⟨2⟩)).toNat),
           Value.address (AccountAddress.ofNat
-            (UInt256.land (solcSlotWord σ_solm I (base + ⟨3⟩)) solcAddrMask).toNat),
+            (UInt256.land (solcSlotWord σ I (base + ⟨3⟩)) solcAddrMask).toNat),
           Value.int (Int.ofNat
-            (clipperSalesPackedTicWord (solcSlotWord σ_solm I (base + ⟨3⟩))).toNat),
-          Value.int (Int.ofNat (solcSlotWord σ_solm I (base + ⟨4⟩)).toNat)] =
+            (clipperSalesPackedTicWord (solcSlotWord σ I (base + ⟨3⟩))).toNat),
+          Value.int (Int.ofNat (solcSlotWord σ I (base + ⟨4⟩)).toNat)] =
         some [
           Value.int (Int.ofNat posE.toNat), Value.int (Int.ofNat tabE.toNat),
           Value.int (Int.ofNat lotE.toNat),
@@ -1447,7 +1445,7 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
         from rfl]
       exact returnEquiv.returned rfl
         (clipperSalesReturnEncoding posE tabE lotE packedE ticE topE hticLt)
-    exact hret.reEquivExecutionTransport hcode hdispatch hdec hbody hval hAccounts henc
+    exact hret.reEquivExecutionTransport hcode hdispatch hdec hbody hval henc
   · exact clipperSalesBodyCoreDecodeFailed_short (v := v) hpatch hcode hsize hsz4
       (by omega) hdispatch hreach
 

@@ -253,15 +253,15 @@ theorem clipperDispatch_fileUint (v : ClipperImmutables) {I : ExecutionEnv}
     simpa [clipperSelBytes] using hsel
 
 set_option maxHeartbeats 1000000 in
-theorem clipperReachFileUintBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem clipperReachFileUintBody {σ σ₀ A I} {g : Sat256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 9)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨673⟩ : UInt256)
-      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨673⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperFileUintSelectorWord hsz hsel
   have h260 := clipperSplitTaken (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
@@ -368,7 +368,7 @@ theorem RD.clipperFileUintDecodeToRoutine (v : ClipperImmutables) {code : ByteAr
     {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 ⟨695⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hroutine : (D_J code 0).contains ⟨2621⟩ = true)
     (hov : R.length + 8 ≤ 1024) :
@@ -389,17 +389,17 @@ theorem RD.clipperFileUintDecodeToRoutine (v : ClipperImmutables) {code : ByteAr
       show (⟨36⟩ : UInt256).toNat = 36 from by decide]
       using rd707.jump (by clipper_decode) hroutine (by evm_ov)⟩
 
-theorem clipperFileUintDecodedToBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem clipperFileUintDecodedToBody {σ σ₀ A I} {g : Sat256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     {sel : UInt256}
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
       (⟨673⟩ : UInt256) [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨2621⟩ : UInt256)
+      σ k C) :
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨2621⟩ : UInt256)
       (clipperFileUintData I :: calldataWord I.calldata 4 :: ⟨502⟩ :: sel :: [])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := code) (sel := sel) (entry := ⟨673⟩) (ret := ⟨502⟩)
     (decoded := ⟨695⟩) hreach

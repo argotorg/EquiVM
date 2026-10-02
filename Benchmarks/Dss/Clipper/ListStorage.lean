@@ -22,9 +22,9 @@ theorem clipperListArrayHashMem_keccak_slot (len : UInt256) :
 set_option maxHeartbeats 1000000 in
 theorem clipperListStorageArrayGetterToBranch {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 (⟨1812⟩ : UInt256) (ret :: R) solcFreePtrMem
-      (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperListStorageArrayGetterWf code)
     (hov : R.length + 11 ≤ 1024) :
     ∃ k' C', RD code ee g s0 (⟨1853⟩ : UInt256)
@@ -33,7 +33,7 @@ theorem clipperListStorageArrayGetterToBranch {code : ByteArray} {g : Sat256} {s
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayBasePtr ::
         (⟨96⟩ : UInt256) :: ret :: R)
       (clipperListArrayLengthMem (solcSlotWord σ ee ⟨11⟩)) (UInt256.ofNat 5) rdata
-      (cA, σ) k' C' := by
+      σ k' C' := by
   rcases hwf with
     ⟨hd1812, hd1813, hd1815, hd1817, hd1818, hd1819, hd1820, hd1822, hd1823,
       hd1825, hd1826, hd1828, hd1829, hd1830, hd1831, hd1832, hd1834, hd1835,
@@ -83,14 +83,14 @@ theorem clipperListStorageArrayGetterToBranch {code : ByteArray} {g : Sat256} {s
 
 theorem clipperListStorageArrayGetterEmpty {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 (⟨1853⟩ : UInt256)
       ((⟨1890⟩ : UInt256) :: UInt256.isZero (solcSlotWord σ ee ⟨11⟩) ::
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayDataPtr ::
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayBasePtr ::
         (⟨96⟩ : UInt256) :: ret :: R)
       (clipperListArrayLengthMem (solcSlotWord σ ee ⟨11⟩)) (UInt256.ofNat 5) rdata
-      (cA, σ) k C)
+      σ k C)
     (hwf : clipperListStorageArrayGetterWf code)
     (h1890 : (D_J code 0).contains (⟨1890⟩ : UInt256) = true)
     (hret : (D_J code 0).contains ret = true)
@@ -98,7 +98,7 @@ theorem clipperListStorageArrayGetterEmpty {code : ByteArray} {g : Sat256} {s0 :
     (hov : R.length + 11 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret (clipperListArrayBasePtr :: R)
       (clipperListArrayLengthMem (solcSlotWord σ ee ⟨11⟩)) (UInt256.ofNat 5) rdata
-      (cA, σ) k' C' := by
+      σ k' C' := by
   have hwfAll := hwf
   rcases hwf with
     ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
@@ -111,9 +111,9 @@ theorem clipperListStorageArrayGetterEmpty {code : ByteArray} {g : Sat256} {s0 :
 
 theorem clipperListStorageArrayGetter_empty {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 (⟨1812⟩ : UInt256) (ret :: R) solcFreePtrMem
-      (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperListStorageArrayGetterWf code)
     (h1890 : (D_J code 0).contains (⟨1890⟩ : UInt256) = true)
     (hret : (D_J code 0).contains ret = true)
@@ -121,20 +121,20 @@ theorem clipperListStorageArrayGetter_empty {code : ByteArray} {g : Sat256} {s0 
     (hov : R.length + 11 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret (clipperListArrayBasePtr :: R)
       (clipperListArrayLengthMem (solcSlotWord σ ee ⟨11⟩)) (UInt256.ofNat 5) rdata
-      (cA, σ) k' C' := by
+      σ k' C' := by
   obtain ⟨_, _, rd1853⟩ := clipperListStorageArrayGetterToBranch h hwf hov
   exact clipperListStorageArrayGetterEmpty rd1853 hwf h1890 hret hlen hov
 
 theorem clipperListStorageArrayGetterNonemptyToLoop {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 (⟨1853⟩ : UInt256)
       ((⟨1890⟩ : UInt256) :: UInt256.isZero (solcSlotWord σ ee ⟨11⟩) ::
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayDataPtr ::
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayBasePtr ::
         (⟨96⟩ : UInt256) :: ret :: R)
       (clipperListArrayLengthMem (solcSlotWord σ ee ⟨11⟩)) (UInt256.ofNat 5) rdata
-      (cA, σ) k C)
+      σ k C)
     (hwf : clipperListStorageArrayGetterWf code)
     (hlen : solcSlotWord σ ee ⟨11⟩ ≠ ⟨0⟩)
     (hov : R.length + 11 ≤ 1024) :
@@ -144,7 +144,7 @@ theorem clipperListStorageArrayGetterNonemptyToLoop {code : ByteArray} {g : Sat2
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayBasePtr ::
         (⟨96⟩ : UInt256) :: ret :: R)
       (clipperListArrayHashMem (solcSlotWord σ ee ⟨11⟩)) (UInt256.ofNat 5) rdata
-      (cA, σ) k' C' := by
+      σ k' C' := by
   rcases hwf with
     ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
       _, _, _, hd1853, hd1854, hd1856, hd1857, hd1858, hd1859, hd1860, hd1861,
@@ -172,9 +172,9 @@ theorem clipperListStorageArrayGetterNonemptyToLoop {code : ByteArray} {g : Sat2
 
 theorem clipperListStorageArrayGetter_nonempty_to_loop {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 (⟨1812⟩ : UInt256) (ret :: R) solcFreePtrMem
-      (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (UInt256.ofNat 3) rdata σ k C)
     (hwf : clipperListStorageArrayGetterWf code)
     (hlen : solcSlotWord σ ee ⟨11⟩ ≠ ⟨0⟩)
     (hov : R.length + 11 ≤ 1024) :
@@ -184,7 +184,7 @@ theorem clipperListStorageArrayGetter_nonempty_to_loop {code : ByteArray} {g : S
         solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayBasePtr ::
         (⟨96⟩ : UInt256) :: ret :: R)
       (clipperListArrayHashMem (solcSlotWord σ ee ⟨11⟩)) (UInt256.ofNat 5) rdata
-      (cA, σ) k' C' := by
+      σ k' C' := by
   obtain ⟨_, _, rd1853⟩ := clipperListStorageArrayGetterToBranch h hwf hov
   exact clipperListStorageArrayGetterNonemptyToLoop rd1853 hwf hlen hov
 
@@ -192,16 +192,16 @@ set_option maxHeartbeats 1000000 in
 theorem clipperListStorageArrayLoopStepToBranch {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {dest slot endp : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD code ee g s0 (⟨1870⟩ : UInt256) (dest :: slot :: endp :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hwf : clipperListStorageArrayGetterWf code)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD code ee g s0 (⟨1889⟩ : UInt256)
       ((⟨1870⟩ : UInt256) :: UInt256.gt endp ((⟨32⟩ : UInt256) + dest) ::
         ((⟨32⟩ : UInt256) + dest) :: ((⟨1⟩ : UInt256) + slot) :: endp :: R)
       (clipperListArrayCopyStepMem σ ee slot dest mem) (clipperListArrayCopyStepAw aw dest)
-      rdata (cA, σ) k' C' := by
+      rdata σ k' C' := by
   rcases hwf with
     ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,
       _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, hd1870, hd1871, hd1872, hd1873,
@@ -233,10 +233,10 @@ theorem clipperListStorageArrayLoopStepToBranch {code : ByteArray} {g : Sat256}
 theorem clipperListStorageArrayLoopStepBack {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {dest slot endp : UInt256}
     {a b base ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD code ee g s0 (⟨1870⟩ : UInt256)
       (dest :: slot :: endp :: a :: b :: base :: (⟨96⟩ : UInt256) :: ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hwf : clipperListStorageArrayGetterWf code)
     (h1870 : (D_J code 0).contains (⟨1870⟩ : UInt256) = true)
     (hcond : UInt256.gt endp ((⟨32⟩ : UInt256) + dest) ≠ ⟨0⟩)
@@ -245,7 +245,7 @@ theorem clipperListStorageArrayLoopStepBack {code : ByteArray} {g : Sat256}
       (((⟨32⟩ : UInt256) + dest) :: ((⟨1⟩ : UInt256) + slot) :: endp ::
         a :: b :: base :: (⟨96⟩ : UInt256) :: ret :: R)
       (clipperListArrayCopyStepMem σ ee slot dest mem) (clipperListArrayCopyStepAw aw dest)
-      rdata (cA, σ) k' C' := by
+      rdata σ k' C' := by
   obtain ⟨_, _, rd1889⟩ :=
     clipperListStorageArrayLoopStepToBranch (R := a :: b :: base :: (⟨96⟩ : UInt256) :: ret :: R)
       h hwf (by simp only [List.length_cons]; omega)
@@ -258,17 +258,17 @@ theorem clipperListStorageArrayLoopStepBack {code : ByteArray} {g : Sat256}
 theorem clipperListStorageArrayLoopStepExit {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {dest slot endp : UInt256}
     {a b base ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD code ee g s0 (⟨1870⟩ : UInt256)
       (dest :: slot :: endp :: a :: b :: base :: (⟨96⟩ : UInt256) :: ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hwf : clipperListStorageArrayGetterWf code)
     (hret : (D_J code 0).contains ret = true)
     (hcond : UInt256.gt endp ((⟨32⟩ : UInt256) + dest) = ⟨0⟩)
     (hov : R.length + 10 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret (base :: R)
       (clipperListArrayCopyStepMem σ ee slot dest mem) (clipperListArrayCopyStepAw aw dest)
-      rdata (cA, σ) k' C' := by
+      rdata σ k' C' := by
   have hwfAll := hwf
   obtain ⟨_, _, rd1889⟩ :=
     clipperListStorageArrayLoopStepToBranch (R := a :: b :: base :: (⟨96⟩ : UInt256) :: ret :: R)
@@ -283,7 +283,7 @@ theorem clipperListStorageArrayLoopStepExit {code : ByteArray} {g : Sat256}
 set_option maxHeartbeats 1000000 in
 theorem clipperListStorageArrayLoopFrom {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (hwfStorage : clipperStorageWF σ ee)
     (hwf : clipperListStorageArrayGetterWf code)
     (h1870 : (D_J code 0).contains (⟨1870⟩ : UInt256) = true)
@@ -298,12 +298,12 @@ theorem clipperListStorageArrayLoopFrom {code : ByteArray} {g : Sat256}
             solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayBasePtr ::
             (⟨96⟩ : UInt256) :: ret :: R)
           (clipperListArrayCopiedMem σ ee (solcSlotWord σ ee ⟨11⟩) k)
-          (clipperListArrayCopiedAw k) rdata (cA, σ) k₀ C₀ →
+          (clipperListArrayCopiedAw k) rdata σ k₀ C₀ →
         ∃ k' C', RD code ee g s0 ret (clipperListArrayBasePtr :: R)
           (clipperListArrayCopiedMem σ ee (solcSlotWord σ ee ⟨11⟩)
             (solcSlotWord σ ee ⟨11⟩).toNat)
           (clipperListArrayCopiedAw (solcSlotWord σ ee ⟨11⟩).toNat)
-          rdata (cA, σ) k' C') := by
+          rdata σ k' C') := by
   intro m
   induction m with
   | zero =>
@@ -377,7 +377,7 @@ theorem clipperListStorageArrayLoopFrom {code : ByteArray} {g : Sat256}
               solcSlotWord σ ee ⟨11⟩ :: (⟨11⟩ : UInt256) :: clipperListArrayBasePtr ::
               (⟨96⟩ : UInt256) :: ret :: R)
             (clipperListArrayCopiedMem σ ee (solcSlotWord σ ee ⟨11⟩) (k + 1))
-            (clipperListArrayCopiedAw (k + 1)) rdata (cA, σ) kNext CNext := by
+            (clipperListArrayCopiedAw (k + 1)) rdata σ kNext CNext := by
         simpa [hdestStep, hmem, clipperListArrayCopiedAw, clipperListArraySlot] using rdnextRaw
       exact ih (k + 1) hnNext kNext CNext rdnext
 

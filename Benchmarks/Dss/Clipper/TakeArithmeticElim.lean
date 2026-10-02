@@ -10,14 +10,14 @@ theorem RD.clipperTakeOweLeTabElim
     {P : Prop} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (rd4057 : RD code ee g s0 ⟨4057⟩
       (UInt256.mul price slice :: slice :: ⟨0⟩ :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
-      mem (UInt256.ofNat 7) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 7) rdata σ k C)
     (hle : (UInt256.mul price slice).toNat ≤ tab.toNat)
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -27,13 +27,13 @@ theorem RD.clipperTakeOweLeTabElim
       (∃ k' C', RD code ee g s0 ⟨4223⟩
         (slice :: UInt256.mul price slice :: tab :: lot :: price :: tic :: packed ::
           stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
-        mem (UInt256.ofNat 7) rdata (cA, σ) k' C') → P)
+        mem (UInt256.ofNat 7) rdata σ k' C') → P)
     (onPlainSliceGe :
       (UInt256.mul price slice).toNat < tab.toNat → lot.toNat ≤ slice.toNat →
       (∃ k' C', RD code ee g s0 ⟨4223⟩
         (slice :: UInt256.mul price slice :: tab :: lot :: price :: tic :: packed ::
           stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
-        mem (UInt256.ofNat 7) rdata (cA, σ) k' C') → P)
+        mem (UInt256.ofNat 7) rdata σ k' C') → P)
     (onChostNoAdjust :
       (UInt256.mul price slice).toNat < tab.toNat →
       slice.toNat < lot.toNat →
@@ -42,7 +42,7 @@ theorem RD.clipperTakeOweLeTabElim
       (∃ k' C', RD code ee g s0 ⟨4223⟩
         (slice :: UInt256.mul price slice :: tab :: lot :: price :: tic :: packed ::
           stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
-        mem (UInt256.ofNat 7) rdata (cA, σ) k' C') → P)
+        mem (UInt256.ofNat 7) rdata σ k' C') → P)
     (onChostAdjust :
       (UInt256.mul price slice).toNat < tab.toNat →
       slice.toNat < lot.toNat →
@@ -54,7 +54,7 @@ theorem RD.clipperTakeOweLeTabElim
         (UInt256.div (UInt256.sub tab (solcSlotWord σ ee ⟨9⟩)) price ::
           UInt256.sub tab (solcSlotWord σ ee ⟨9⟩) :: tab :: lot :: price :: tic ::
           packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
-        mem (UInt256.ofNat 7) rdata (cA, σ) k' C') → P)
+        mem (UInt256.ofNat 7) rdata σ k' C') → P)
     (onNoPartial :
       (UInt256.mul price slice).toNat < tab.toNat →
       slice.toNat < lot.toNat →

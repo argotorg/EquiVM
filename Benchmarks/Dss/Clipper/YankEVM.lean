@@ -1024,16 +1024,16 @@ theorem clipperYankJumpDest2527 (v : ClipperImmutables) {code : ByteArray}
       native_decide
 
 set_option maxHeartbeats 1000000 in
-theorem clipperYankX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperYankX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
     (h : RD code I g s0 ⟨1912⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨1994⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((clipperRelyAuthHashMem I).readWithPadding 0 64))) =
@@ -1068,7 +1068,7 @@ theorem clipperYankX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by clipper_yank_decode) (by evm_ov)
   have rd1929 : RD code I g s0 ⟨1929⟩
       (clipperRelyAuthWord σ I :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1929 C1929 := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1929 C1929 := by
     simpa [clipperRelyAuthWord, solcSlotWord,
       clipperRelyAuthStorageSlot_eq_mapSlot_source I] using rd1929raw
   have rd1932pre := evm_run rd1929 with [
@@ -1081,13 +1081,13 @@ theorem clipperYankX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (clipperYankJumpDest1994 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperYankX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperYankX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hauth : clipperRelyAuthWord σ I ≠ ⟨1⟩)
     (h : RD code I g s0 ⟨1912⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -1123,7 +1123,7 @@ theorem clipperYankX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     (by clipper_yank_decode) (by evm_ov)
   have rd1929 : RD code I g s0 ⟨1929⟩
       (clipperRelyAuthWord σ I :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1929 C1929 := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1929 C1929 := by
     simpa [clipperRelyAuthWord, solcSlotWord,
       clipperRelyAuthStorageSlot_eq_mapSlot_source I] using rd1929raw
   have rd1932pre := evm_run rd1929 with [
@@ -1224,16 +1224,16 @@ theorem clipperYankX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     raw swap1 (by clipper_yank_decode) (by evm_ov),
     raw rev 0 (by clipper_yank_decode) mem_cost (by evm_ov)]
 
-theorem clipperYankX_lockOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperYankX_lockOpen {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (h : RD code I g s0 ⟨1994⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨2071⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd1997pre := evm_run h with [
     raw jumpdest (by clipper_yank_decode) (by evm_ov),
     raw push1 ⟨13⟩ (by clipper_yank_decode) (by evm_ov)]
@@ -1241,7 +1241,7 @@ theorem clipperYankX_lockOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by clipper_yank_decode) (by evm_ov)
   have rd1998 : RD code I g s0 ⟨1998⟩
       (solcSlotWord σ I ⟨13⟩ :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1998 C1998 := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1998 C1998 := by
     simpa [solcSlotWord] using rd1998raw
   have rd1999 := rd1998.iszero (by clipper_yank_decode) (by evm_ov)
   have hcond : UInt256.isZero (solcSlotWord σ I ⟨13⟩) ≠ ⟨0⟩ := by
@@ -1252,17 +1252,17 @@ theorem clipperYankX_lockOpen {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, rd2002.jumpiT (by clipper_yank_decode) hcond
     (clipperYankJumpDest2071 v hpatch) (by evm_ov)⟩
 
-theorem clipperYankX_lockStore {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperYankX_lockStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hperm : I.perm = true)
     (h : RD code I g s0 ⟨2071⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨2077⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
       (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) k' C' := by
   have rd2076 := evm_run h with [
     raw jumpdest (by clipper_yank_decode) (by evm_ov),
     raw push1 ⟨1⟩ (by clipper_yank_decode) (by evm_ov),
@@ -1271,18 +1271,18 @@ theorem clipperYankX_lockStore {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, by simpa using rd2077⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperYankX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperYankX_usrNonzero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (husr :
       clipperYankSalesUsrWord σ I ≠ ⟨0⟩)
     (h : RD code I g s0 ⟨2077⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨2184⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
       (twoWordHashMem (clipperYankArgWord I) ⟨12⟩ (clipperRelyAuthHashMem I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC
@@ -1323,7 +1323,7 @@ theorem clipperYankX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (solcSlotWord σ I (clipperYankSalesUsrSlot I) :: clipperYankArgWord I ::
         ⟨502⟩ :: [sel])
       (twoWordHashMem (clipperYankArgWord I) ⟨12⟩ (clipperRelyAuthHashMem I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2095 C2095 := by
+      (UInt256.ofNat 3) ByteArray.empty σ k2095 C2095 := by
     simpa [clipperYankSalesUsrSlot, solcSlotWord] using rd2095raw
   have rd2104pre := evm_run rd2095 with [
     raw push1 ⟨1⟩ (by clipper_yank_decode) (by evm_ov),
@@ -1343,16 +1343,16 @@ theorem clipperYankX_usrNonzero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (clipperYankJumpDest2184 v hpatch) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperYankX_loadDogAndTab {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperYankX_loadDogAndTab {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (h : RD code I g s0 ⟨2184⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
-      (clipperYankSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperYankSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨2208⟩
       (clipperYankSalesTabWord σ I :: ⟨0⟩ :: solcSlotWord σ I ⟨1⟩ ::
         ⟨64⟩ :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
-      (clipperYankSalesHashMemRefresh I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k'
+      (clipperYankSalesHashMemRefresh I) (UInt256.ofNat 3) ByteArray.empty σ k'
       C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -1369,7 +1369,7 @@ theorem clipperYankX_loadDogAndTab {cA σ I} {g : Sat256} {s0 : State} {k C : �
     (by clipper_yank_decode) (by evm_ov)
   have rd2189 : RD code I g s0 ⟨2189⟩
       (solcSlotWord σ I ⟨1⟩ :: ⟨1⟩ :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
-      (clipperYankSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2189
+      (clipperYankSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k2189
       C2189 := by
     simpa [solcSlotWord] using rd2189raw
   have rd2193pre := evm_run rd2189 with [
@@ -1403,26 +1403,26 @@ theorem clipperYankX_loadDogAndTab {cA σ I} {g : Sat256} {s0 : State} {k C : �
   have rd2208 : RD code I g s0 ⟨2208⟩
       (solcSlotWord σ I (clipperYankSalesTabSlot I) :: ⟨0⟩ :: solcSlotWord σ I ⟨1⟩ ::
         ⟨64⟩ :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
-      (clipperYankSalesHashMemRefresh I) (UInt256.ofNat 3) ByteArray.empty (cA, σ)
+      (clipperYankSalesHashMemRefresh I) (UInt256.ofNat 3) ByteArray.empty σ
       k2208 C2208 := by
     simpa [clipperYankSalesTabSlot, solcSlotWord] using rd2208raw
   exact ⟨_, _, by simpa [clipperYankSalesTabWord] using rd2208⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperYankX_dogDigsCallSetup {cA σ I} {g : Sat256} {s0 : State}
+theorem clipperYankX_dogDigsCallSetup {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (h : RD code I g s0 ⟨2208⟩
       [clipperYankSalesTabWord σ I, ⟨0⟩, solcSlotWord σ I ⟨1⟩, ⟨64⟩,
         clipperYankArgWord I, ⟨502⟩, sel]
-      (clipperYankSalesHashMemRefresh I) (UInt256.ofNat 3) ByteArray.empty (cA, σ)
+      (clipperYankSalesHashMemRefresh I) (UInt256.ofNat 3) ByteArray.empty σ
       k C) :
     ∃ k' C', RD code I g s0 ⟨2279⟩
       (UInt256.land solcAddrMask (solcSlotWord σ I ⟨1⟩) :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨128⟩ :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
       (clipperDogDigsCalldataMem v (clipperYankSalesTabWord σ I)
         (clipperYankSalesHashMemRefresh I))
-      (UInt256.ofNat 7) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 7) ByteArray.empty σ k' C' := by
   rcases v.ilk_wf with ⟨ilkBs, hilk, hlen⟩
   let ilkWord : UInt256 := EVM.Word.ofNat (fromBytesBigEndian ilkBs)
   have hmload64 :
@@ -1510,18 +1510,18 @@ theorem clipperYankX_dogDigsCallSetup {cA σ I} {g : Sat256} {s0 : State}
   exact ⟨_, _, by
     simpa [u256_land_comm] using rd2278pre⟩
 
-theorem clipperYankX_dogDigsExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
+theorem clipperYankX_dogDigsExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel target : UInt256} {mem : ByteArray}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (h : RD code I g s0 ⟨2279⟩
       [target, ⟨0⟩, ⟨128⟩, ⟨128⟩, clipperYankArgWord I, ⟨502⟩, sel]
-      mem (UInt256.ofNat 7) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 7) ByteArray.empty σ k C) :
     ∃ k' C', RD code I g s0 ⟨2301⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ ::
         ⟨196⟩ :: clipperDogDigsSelectorWord :: target :: clipperYankArgWord I ::
         ⟨502⟩ :: [sel])
-      mem (UInt256.ofNat 7) ByteArray.empty (cA, σ) k' C' := by
+      mem (UInt256.ofNat 7) ByteArray.empty σ k' C' := by
   have rd2301 := evm_run h with [
     raw swap3 (by clipper_yank_decode) (by evm_ov),
     raw push4 clipperDogDigsSelectorWord (by clipper_yank_decode) (by evm_ov),
@@ -1545,7 +1545,7 @@ theorem clipperYankX_dogDigsExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
   rw [show (⟨0⟩ : UInt256) + ⟨68⟩ = ⟨68⟩ from by native_decide] at rd2301
   exact ⟨_, _, by simpa using rd2301⟩
 
-theorem clipperYankX_dogDigsNoCode {cA σ I} {g : Sat256} {s0 : State}
+theorem clipperYankX_dogDigsNoCode {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel target tab : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
@@ -1554,7 +1554,7 @@ theorem clipperYankX_dogDigsNoCode {cA σ I} {g : Sat256} {s0 : State}
         ⟨196⟩ :: clipperDogDigsSelectorWord :: target :: clipperYankArgWord I ::
         ⟨502⟩ :: [sel])
       (clipperDogDigsCalldataMem v tab (clipperYankSalesHashMemRefresh I))
-      (UInt256.ofNat 7) ByteArray.empty (cA, σ) k C)
+      (UInt256.ofNat 7) ByteArray.empty σ k C)
     (hcodeSizeDog : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     RDrev code g s0 := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2301⟩) (okPc := ⟨2313⟩)
@@ -1565,21 +1565,21 @@ theorem clipperYankX_dogDigsNoCode {cA σ I} {g : Sat256} {s0 : State}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem clipperYankX_dogDigsPostCall {cA gh bl σ₀ σStart σ I}
+theorem clipperYankX_dogDigsPostCall {σ₀ σStart σ I}
     {g : Sat256} {A : Substate} {k C : ℕ} {sel target tab : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd2301 : RD code I g (initState cA gh bl σStart σ₀ g A I) ⟨2301⟩
+    (rd2301 : RD code I g (initState σStart σ₀ g A I) ⟨2301⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ ::
         ⟨196⟩ :: clipperDogDigsSelectorWord :: target :: clipperYankArgWord I ::
         ⟨502⟩ :: [sel])
       (clipperDogDigsCalldataMem v tab (clipperYankSalesHashMemRefresh I))
-      (UInt256.ofNat 7) ByteArray.empty (cA, σ) k C)
+      (UInt256.ofNat 7) ByteArray.empty σ k C)
     (hcodeSizeDog : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true) :
-    ∃ (cA_dog : Batteries.RBSet AccountAddress compare) (σ_dog : AccountMap)
+    ∃ (σ_dog : AccountMap)
       (zDog : Bool) (outDog : ByteArray) (A_dog : Substate) (k' C' : ℕ),
-      RD code I g (initState cA gh bl σStart σ₀ g A I) ⟨2317⟩
+      RD code I g (initState σStart σ₀ g A I) ⟨2317⟩
         ((if zDog then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: clipperDogDigsSelectorWord ::
           target :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
         (outDog.write 0
@@ -1589,16 +1589,16 @@ theorem clipperYankX_dogDigsPostCall {cA gh bl σ₀ σStart σ I}
           (MachineState.M (MachineState.M (UInt256.ofNat 7).toNat
             (⟨128⟩ : UInt256).toNat (⟨68⟩ : UInt256).toNat)
             (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat))
-        outDog (cA_dog, σ_dog) k' C' ∧
+        outDog σ_dog k' C' ∧
       typedCallViaEVM (config v)
-        { initState cA gh bl σStart σ₀ g A I with accountMap := σ }
+        { initState σStart σ₀ g A I with accountMap := σ }
         (EVM.address (AccountAddress.ofUInt256 target)) "digs" 0
         [v.ilk, .int (Int.ofNat tab.toNat)]
         (zDog,
-          { initState cA gh bl σStart σ₀ g A I with
+          { initState σStart σ₀ g A I with
             accountMap := σ_dog
             substate := A_dog
-            createdAccounts := cA_dog },
+            },
           outDog) true ∧
       outDog.size < UInt256.size := by
   obtain ⟨_, _, _, rd2316⟩ :=
@@ -1611,21 +1611,21 @@ theorem clipperYankX_dogDigsPostCall {cA gh bl σ₀ σStart σ I}
       (by clipper_yank_decode) (by clipper_yank_decode)
       (by clipper_yank_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)
-  obtain ⟨cA_dog, σ_dog, zDog, outDog, A_in, callGas, k2317, C2317, hΘpack,
+  obtain ⟨σ_dog, zDog, outDog, A_in, callGas, k2317, C2317, hΘpack,
       rd2317raw, houtDogSize⟩ :=
     RD.call rd2316 (by clipper_yank_decode) hdepth (by evm_ov)
   obtain ⟨g'', A_dog, hΘ⟩ := hΘpack
-  refine ⟨cA_dog, σ_dog, zDog, outDog, A_dog, k2317, C2317, ?_, ?_,
+  refine ⟨σ_dog, zDog, outDog, A_dog, k2317, C2317, ?_, ?_,
     houtDogSize⟩
   · exact rd2317raw
   · let evmDog : EVM.State :=
-      { initState cA gh bl σStart σ₀ g A I with accountMap := σ }
+      { initState σStart σ₀ g A I with accountMap := σ }
     refine callCoincides (cfg := config v)
       (evm := evmDog)
       (name := "digs") (args := [v.ilk, .int (Int.ofNat tab.toNat)])
       (tgt := EVM.address (AccountAddress.ofUInt256 target))
       (targetWord := target)
-      (cA' := cA_dog) (σ' := σ_dog) (A' := A_dog) (A_in := A_in)
+      (σ' := σ_dog) (A' := A_dog) (A_in := A_in)
       (z := zDog) (o := outDog) (g'' := g'') (callGas := callGas)
       (mem := clipperDogDigsCalldataMem v tab (clipperYankSalesHashMemRefresh I))
       (inOff := ⟨128⟩) (inSize := ⟨68⟩) (callPerm := true)
@@ -1646,7 +1646,7 @@ theorem RD.clipperYankDogDigsCallFailure
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
     (rd : RD code ee g s0 ⟨2317⟩ (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
@@ -1666,21 +1666,21 @@ set_option maxHeartbeats 1000000 in
 theorem RD.clipperYankDogDigsCallDepthLimit
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σStart σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    {σStart σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {sel target tab : UInt256}
-    (rd2301 : RD code I g (initState cA gh bl σStart σ₀ g A I) ⟨2301⟩
+    (rd2301 : RD code I g (initState σStart σ₀ g A I) ⟨2301⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ ::
         ⟨196⟩ :: clipperDogDigsSelectorWord :: target :: clipperYankArgWord I ::
         ⟨502⟩ :: [sel])
       (clipperDogDigsCalldataMem v tab (clipperYankSalesHashMemRefresh I))
-      (UInt256.ofNat 7) ByteArray.empty (cA, σ) k C)
+      (UInt256.ofNat 7) ByteArray.empty σ k C)
     (hcodeSizeDog : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
-    ∃ k' C', RD code I g (initState cA gh bl σStart σ₀ g A I) ⟨2317⟩
+    ∃ k' C', RD code I g (initState σStart σ₀ g A I) ⟨2317⟩
       (⟨0⟩ :: ⟨196⟩ :: clipperDogDigsSelectorWord :: target ::
         clipperYankArgWord I :: ⟨502⟩ :: [sel])
       (clipperDogDigsCalldataMem v tab (clipperYankSalesHashMemRefresh I))
-      (UInt256.ofNat 7) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 7) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, _, rd2316⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2301⟩) (okPc := ⟨2313⟩)
       rd2301 hcodeSizeDog
@@ -1710,7 +1710,7 @@ theorem RD.clipperYankDogDigsCallSuccessToFluxSetup
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {sel target : UInt256}
     (rd : RD code ee g s0 ⟨2317⟩
       (⟨1⟩ :: ⟨196⟩ :: clipperDogDigsSelectorWord :: target ::
@@ -1732,11 +1732,11 @@ abbrev clipperYankNotRunningAuctionWord : UInt256 :=
   ⟨0x436c69707065722f6e6f742d72756e6e696e672d61756374696f6e0000000000⟩
 
 set_option maxHeartbeats 1000000 in
-theorem clipperYankX_inactiveAuctionTail {cA σ I} {g : Sat256} {s0 : State}
+theorem clipperYankX_inactiveAuctionTail {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (h : RD code I g s0 ⟨2108⟩ [clipperYankArgWord I, ⟨502⟩, sel]
-      (clipperYankSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperYankSalesHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have rdMload := evm_run h with [
     raw push1 ⟨64⟩ (by clipper_yank_decode) (by evm_ov),
@@ -1797,13 +1797,13 @@ theorem clipperYankX_inactiveAuctionTail {cA σ I} {g : Sat256} {s0 : State}
     raw rev 0 (by clipper_yank_decode) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
-theorem clipperYankX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperYankX_usrZero {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (husr : clipperYankSalesUsrWord σ I = ⟨0⟩)
     (h : RD code I g s0 ⟨2077⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -1843,7 +1843,7 @@ theorem clipperYankX_usrZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (solcSlotWord σ I (clipperYankSalesUsrSlot I) :: clipperYankArgWord I ::
         ⟨502⟩ :: [sel])
       (clipperYankSalesHashMem I)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2095 C2095 := by
+      (UInt256.ofNat 3) ByteArray.empty σ k2095 C2095 := by
     simpa [clipperYankSalesUsrSlot, solcSlotWord, clipperYankSalesHashMem] using rd2095raw
   have rd2104pre := evm_run rd2095 with [
     raw push1 ⟨1⟩ (by clipper_yank_decode) (by evm_ov),
@@ -1879,13 +1879,13 @@ theorem clipperYankLockedStringWord :
   native_decide
 
 set_option maxHeartbeats 1000000 in
-theorem clipperYankX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem clipperYankX_locked {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hlocked : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩)
     (h : RD code I g s0 ⟨1994⟩
       [clipperYankArgWord I, ⟨502⟩, sel]
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev code g s0 := by
   have rd1997pre := evm_run h with [
     raw jumpdest (by clipper_yank_decode) (by evm_ov),
@@ -1894,7 +1894,7 @@ theorem clipperYankX_locked {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by clipper_yank_decode) (by evm_ov)
   have rd1998 : RD code I g s0 ⟨1998⟩
       (solcSlotWord σ I ⟨13⟩ :: clipperYankArgWord I :: ⟨502⟩ :: [sel])
-      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1998 C1998 := by
+      (clipperRelyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1998 C1998 := by
     simpa [solcSlotWord] using rd1998raw
   have rd1999pre := rd1998.iszero (by clipper_yank_decode) (by evm_ov)
   rw [isZero_eq_zero_of_ne hlocked] at rd1999pre

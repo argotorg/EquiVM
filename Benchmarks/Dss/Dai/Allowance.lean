@@ -135,14 +135,14 @@ theorem daiAllowanceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ## EVM trace -/
 
-theorem daiAllowanceX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiAllowanceX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1170⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3926⟩
+      (initState σ σ₀ g A I) ⟨1170⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨3926⟩
         [allowanceSpenderMaskedWord I, allowanceOwnerMaskedWord I, ⟨524⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1192⟩ := RD.daiTwoAddressExternalLenOk
     (entry := ⟨1170⟩) (ret := ⟨524⟩) (routine := ⟨3926⟩) hreach
     dai_two_address_external_entry_wf (by jump_dest) hsz68 hsize
@@ -154,23 +154,23 @@ theorem daiAllowanceX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     simpa [allowanceSpenderMaskedWord, allowanceSpenderWord, allowanceOwnerMaskedWord,
       allowanceOwnerWord] using rd3926⟩
 
-theorem daiAllowanceX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiAllowanceX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1170⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨1170⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   exact RD.daiTwoAddressExternalShort
     (entry := ⟨1170⟩) (ret := ⟨524⟩) (routine := ⟨3926⟩)
     hreach dai_two_address_external_entry_wf hsz4 hsize hshort
 
-theorem daiX_allowance_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiX_allowance_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1170⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret daiBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨1170⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret daiBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (allowanceWord σ I)) := by
   obtain ⟨_, _, rd3926⟩ := daiAllowanceX_decoded (g := g) hsz68 hsize hreach
   obtain ⟨k524, C524, rd524raw⟩ := RD.daiNestedMappingGetter (pc := ⟨3926⟩)
@@ -187,11 +187,11 @@ theorem daiX_allowance_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         = allowanceWord σ I := by
     unfold allowanceWord
     rw [hslot]
-  have rd524 : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨524⟩
+  have rd524 : RD daiBytecode I g (initState σ σ₀ g A I) ⟨524⟩
       (allowanceWord σ I :: ⟨524⟩ :: [sel])
       (daiNestedMappingHashMem ⟨3⟩ (allowanceOwnerMaskedWord I)
         (allowanceSpenderMaskedWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k524 C524 := by
+      (UInt256.ofNat 3) ByteArray.empty σ k524 C524 := by
     simpa [hword] using rd524raw
   exact RD.daiReturnWordFromMem
     (val := allowanceWord σ I) (ret := ⟨524⟩) (R := [sel])
@@ -211,7 +211,7 @@ theorem daiX_allowance_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_singleton]; omega)
 
 theorem daiAllowanceBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
@@ -221,61 +221,56 @@ theorem daiAllowanceBodyCoreOk
         (transitionSignature allowanceTransition).paramTypes I.calldata =
           some (allowanceStore I))
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1170⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : allowanceWord σ_evm I = allowanceWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (allowanceStorageSlot I) ⟨0⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1170⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (allowanceStore I)
         allowanceTransition.body
         (.returned { contract := contract, locals := allowanceStore I }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (allowanceWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (allowanceWord σ I).toNat))])) := by
     simpa [allowanceWord, allowanceStorageSlot, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       daiAllowanceBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
         (by simp only [initState]; exact hwv)
   exact (daiX_allowance_ok (g := Sat256.ofUInt256 g) hsz68 hsize hreach)
-    |>.reEquivExecutionTransport hcode hdispatch hdecode hbody (by rw [← hword])
-      hAccounts
+    |>.reEquivExecution hcode hdispatch hdecode hbody
       (returnEquiv_of_encode
-        (by simpa [uint256] using uint256ReturnEncoding (allowanceWord σ_evm I)))
+        (by simpa [uint256] using uint256ReturnEncoding (allowanceWord σ I)))
 
 theorem daiAllowanceBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some allowanceTransition)
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1170⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1170⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hdec := daiDecode_allowance_none_short (I := I) hsz4 hshort
   exact (daiAllowanceX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
 
 /-- `allowance(address,address)` body refines its Solm transition. -/
-theorem daiAllowanceBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiAllowanceBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiSelBytes 0))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiSelBytes 0)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 0) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some allowanceTransition :=
     daiDispatchAllowance hsel
-  have hreach := daiReachAllowanceBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := daiReachAllowanceBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
   · exact daiAllowanceBodyCoreOk hcode hsize hwv hsz68 hdispatch
-      (daiDecode_allowance_ok hsz68) hreach hAccounts
+      (daiDecode_allowance_ok hsz68) hreach
   · exact daiAllowanceBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach
 

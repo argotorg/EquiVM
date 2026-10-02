@@ -9,7 +9,7 @@ namespace Benchmarks.Dss.Flipper
 /-! ## Caller-changing `dent` branch correspondence -/
 
 theorem flipperDentBodyFrom4733Refund
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {k C : ℕ} {mem : ByteArray} {sel : UInt256}
     (hcode : I.code = flipperBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some dentTransition)
@@ -18,51 +18,50 @@ theorem flipperDentBodyFrom4733Refund
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I))
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (hguySolm : bidGuyWord (dentId I) σ_solm I ≠ ⟨0⟩)
+    (hguySolm : bidGuyWord (dentId I) σ I ≠ ⟨0⟩)
     (hticGuard :
       evalExpr? config { contract := contract, locals := dentLocals I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
           (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
           .ok (.bool true))
     (hendGuard :
       evalExpr? config { contract := contract, locals := dentLocals I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
           .ok (.bool true))
     (hbidGuard :
       evalExpr? config { contract := contract, locals := dentLocals I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
           .ok (.bool true))
     (htabGuard :
       evalExpr? config { contract := contract, locals := dentLocals I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
           .ok (.bool true))
     (hlotGuard :
       evalExpr? config { contract := contract, locals := dentLocals I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .lt (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
           .ok (.bool true))
-    (hfitLot : (bidLotWord (dentId I) σ_solm I).toNat * flipperONEWord.toNat <
+    (hfitLot : (bidLotWord (dentId I) σ I).toNat * flipperONEWord.toNat <
       UInt256.size)
-    (hfitBeg : (dentBegWord σ_solm I).toNat * (dentLot I).toNat < UInt256.size)
+    (hfitBeg : (dentBegWord σ I).toNat * (dentLot I).toNat < UInt256.size)
     (hdec :
-      evalExpr? config { contract := contract, locals := dentLocalsLotOneBegLot σ_solm I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      evalExpr? config { contract := contract, locals := dentLocalsLotOneBegLot σ I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .le (.var "begLot") (.var "lotOne")) = .ok (.bool true))
-    (hcallerEvm : solcSourceWord I ≠ bidGuyWord (dentId I) σ_evm I)
-    (hcallerSolm : solcSourceWord I ≠ bidGuyWord (dentId I) σ_solm I)
+    (hcallerEvm : solcSourceWord I ≠ bidGuyWord (dentId I) σ I)
+    (hcallerSolm : solcSourceWord I ≠ bidGuyWord (dentId I) σ I)
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨4733⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4733⟩
       [dentBid I, dentLot I, dentId I, ⟨323⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let memHash := twoWordHashMem (dentId I) ⟨1⟩ mem
   have hhashSize : memHash.size = 96 := by
     dsimp [memHash]
@@ -71,38 +70,36 @@ theorem flipperDentBodyFrom4733Refund
     dsimp [memHash]
     exact twoWordHashMem_read64 (dentId I) ⟨1⟩ hmemSize hmemRead64
   by_cases hrefundZero :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (flipperVatTargetWord σ_evm I) = ⟨0⟩
+      Reasoning.Theory.extCodeSizeWord σ
+        (flipperVatTargetWord σ I) = ⟨0⟩
   · have hrefundZeroSolm :
-        Reasoning.Theory.extCodeSizeWord σ_solm
-            (flipperVatTargetWord σ_solm I) = ⟨0⟩ :=
-      flipperVatCodeSize_zero_accountMapEquiv hAccounts hrefundZero
+        Reasoning.Theory.extCodeSizeWord σ
+            (flipperVatTargetWord σ I) = ⟨0⟩ := hrefundZero
     have hvatNoCode :=
-      flipperVatCode_zero_of_codeSize_zero (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hrefundZeroSolm
+      flipperVatCode_zero_of_codeSize_zero
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hrefundZeroSolm
     have hbody :
         ExecTransitionBody config contract
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (dentLocals I) dentTransition.body .reverted := by
       simpa using
-        (flipperDentSourceBodyRefundNoCode (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        (flipperDentSourceBodyRefundNoCode
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           hwv hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot
           hfitBeg hdec hcallerSolm hvatNoCode)
     exact (flipperDentX_refundNoCode hmemSize hmemRead64 hcallerEvm hrefundZero h)
       |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hrefundNeSolm :
-        Reasoning.Theory.extCodeSizeWord σ_solm
-            (flipperVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
-      flipperVatCodeSize_ne_zero_accountMapEquiv hAccounts hrefundZero
+        Reasoning.Theory.extCodeSizeWord σ
+            (flipperVatTargetWord σ I) ≠ ⟨0⟩ := hrefundZero
     have hrefundCodeSolm :=
-      flipperVatCode_pos_of_codeSize_ne_zero (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hrefundNeSolm
+      flipperVatCode_pos_of_codeSize_ne_zero
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hrefundNeSolm
     by_cases hdepthEq : I.depth = (1024 : Fin 1025)
     · obtain ⟨_, _, rd4873⟩ :=
         flipperDentX_refundDepthLimit hmemSize hmemRead64 hcallerEvm hrefundZero
           hdepthEq h
-      let evm0Solm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0Solm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmRefundSolm :=
         { evm0Solm with
           substate :=
@@ -111,11 +108,11 @@ theorem flipperDentBodyFrom4733Refund
                 (flipperVatAddress evm0Solm.accountMap evm0Solm.executionEnv))).substate }
       have hrefundEncode :
           config.externalABI.encode? "move" (dentRefundMoveArgValsOf evm0Solm I) =
-            some ((dentVatRefundCallMem memHash σ_solm I).readWithPadding 128 100) := by
+            some ((dentVatRefundCallMem memHash σ I).readWithPadding 128 100) := by
         simpa [evm0Solm, memHash, dentRefundMoveArgValsOf, initState, flipperSlotWord,
           solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
           bidGuyWord, bidPackedSlotOfWord, flipperAddressReturnWord]
-          using dentVatRefundCallMem_encode (mem := memHash) (σ := σ_solm) (I := I)
+          using dentVatRefundCallMem_encode (mem := memHash) (σ := σ) (I := I)
             hhashSize
       have hcallRefundSolm :
           typedCallViaEVM config evm0Solm
@@ -126,14 +123,14 @@ theorem flipperDentBodyFrom4733Refund
           (tgt := EVM.address
             (flipperVatAddress evm0Solm.accountMap evm0Solm.executionEnv))
           (name := "move") (args := dentRefundMoveArgValsOf evm0Solm I)
-          (calldata := (dentVatRefundCallMem memHash σ_solm I).readWithPadding 128 100)
+          (calldata := (dentVatRefundCallMem memHash σ I).readWithPadding 128 100)
           (callPerm := true) hrefundEncode (by simpa [evm0Solm, initState] using hdepthEq)
       have hbody :
           ExecTransitionBody config contract evm0Solm (dentLocals I) dentTransition.body
             .reverted := by
         simpa [evm0Solm] using
           (flipperDentSourceBodyRefundCallFailure
-            (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+            (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) (evmRefund := evmRefundSolm)
             (outRefund := ByteArray.empty)
             hwv hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot
@@ -147,58 +144,40 @@ theorem flipperDentBodyFrom4733Refund
         have hge : 1024 ≤ I.depth.val := Nat.le_of_not_gt hnot
         have hval : I.depth.val = 1024 := by omega
         exact hdepthEq (Fin.ext hval)
-      obtain ⟨cA_ref, σ_ref, zRefund, outRefund, A_ref, k4873, C4873, rd4873,
+      obtain ⟨σ_ref, zRefund, outRefund, A_ref, k4873, C4873, rd4873,
           hcallRefundEvmRaw, houtRefund⟩ :=
         flipperDentX_refundPostCall (Acur := A) hmemSize hmemRead64 hcallerEvm
           hrefundZero hperm hdepthLt h
-      let evm0Evm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-      let evm0Solm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0Evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0Solm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmRefundEvm : EVM.State :=
         { evm0Evm with
           accountMap := σ_ref
           substate := A_ref
-          createdAccounts := cA_ref }
+          }
       have hcallRefundEvm :
           typedCallViaEVM config evm0Evm
-            (EVM.address (flipperVatAddress σ_evm I)) "move" 0
+            (EVM.address (flipperVatAddress σ I)) "move" 0
             (dentRefundMoveArgValsOf evm0Evm I) (zRefund, evmRefundEvm, outRefund)
             true := by
         simpa [evm0Evm, evmRefundEvm] using hcallRefundEvmRaw
       obtain ⟨σ_ref_solm, A_ref_solm, hcallRefundSolmRaw, hRefundStateEquiv⟩ :=
-        flipper_typedCallViaEVM_accountMapEquiv_noSubstate
+        flipper_typedCallViaEVM_sameInputs
           (evm_solm := evm0Solm) hcallRefundEvm
-          (by simpa [evm0Evm, evm0Solm] using hAccounts)
-          (by simp [evm0Evm, evm0Solm, initState])
-          (by simp [evm0Evm, evm0Solm, initState])
-          (by simp [evm0Evm, evm0Solm, initState])
+          rfl
           (by simp [evm0Evm, evm0Solm, initState])
           (by simp [evm0Evm, evm0Solm, initState])
       let evmRefundSolm : EVM.State :=
         { evm0Solm with
           accountMap := σ_ref_solm
           substate := A_ref_solm
-          createdAccounts := cA_ref }
+          }
       have hrefundTargetEq :
-          EVM.address (flipperVatAddress σ_evm I) =
+          EVM.address (flipperVatAddress σ I) =
             EVM.address (flipperVatAddress evm0Solm.accountMap evm0Solm.executionEnv) := by
-        rw [flipperVatAddress_accountMapEquiv hAccounts]
         simp [evm0Solm, initState]
       have hrefundArgsEq :
-          dentRefundMoveArgValsOf evm0Evm I = dentRefundMoveArgValsOf evm0Solm I := by
-        have hloadPacked :
-            Solm.EVM.storageLoad evm0Evm I.codeOwner (bidPackedSlotOfWord (dentId I)) =
-              Solm.EVM.storageLoad evm0Solm I.codeOwner (bidPackedSlotOfWord (dentId I)) := by
-          simpa [evm0Evm, evm0Solm, initState] using
-            storageLoad_accountMapEquiv hAccounts I.codeOwner
-              (bidPackedSlotOfWord (dentId I))
-        simp [dentRefundMoveArgValsOf]
-        constructor
-        · simp [evm0Evm, evm0Solm, initState]
-        · have hownerEvm : evm0Evm.executionEnv.codeOwner = I.codeOwner := by
-            simp [evm0Evm, initState]
-          have hownerSolm : evm0Solm.executionEnv.codeOwner = I.codeOwner := by
-            simp [evm0Solm, initState]
-          rw [hownerEvm, hownerSolm, hloadPacked]
+          dentRefundMoveArgValsOf evm0Evm I = dentRefundMoveArgValsOf evm0Solm I := rfl
       have hcallRefundSolm :
           typedCallViaEVM config evm0Solm
             (EVM.address (flipperVatAddress evm0Solm.accountMap evm0Solm.executionEnv))
@@ -206,7 +185,7 @@ theorem flipperDentBodyFrom4733Refund
             (zRefund, evmRefundSolm, outRefund) true := by
         have hcallRefundSolmRaw' :
             typedCallViaEVM config evm0Solm
-              (EVM.address (flipperVatAddress σ_evm I)) "move" 0
+              (EVM.address (flipperVatAddress σ I)) "move" 0
               (dentRefundMoveArgValsOf evm0Evm I) (zRefund, evmRefundSolm, outRefund)
               true := by
           simpa [evmRefundSolm, evmRefundEvm] using hcallRefundSolmRaw
@@ -224,7 +203,7 @@ theorem flipperDentBodyFrom4733Refund
               .reverted := by
           simpa [evm0Solm] using
             (flipperDentSourceBodyRefundCallFailure
-              (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+              (σ := σ) (σ₀ := σ₀)
               (A := A) (I := I) (g := g) (evmRefund := evmRefundSolm)
               (outRefund := outRefund)
               hwv hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot
@@ -232,21 +211,21 @@ theorem flipperDentBodyFrom4733Refund
         exact (flipperDentX_refundCallFailure (by simpa using rd4873) houtRefund)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have rd4873True : RD flipperBytecode I (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨4873⟩
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4873⟩
             (⟨1⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
-              flipperVatTargetWord σ_evm I :: dentBid I :: dentLot I :: dentId I ::
+              flipperVatTargetWord σ I :: dentBid I :: dentLot I :: dentId I ::
               ⟨323⟩ :: sel :: [])
-            (dentVatRefundCallMem memHash σ_evm I) (UInt256.ofNat 8) outRefund
-            (cA_ref, σ_ref) k4873 C4873 := by
+            (dentVatRefundCallMem memHash σ I) (UInt256.ofNat 8) outRefund
+            σ_ref k4873 C4873 := by
           simpa [memHash] using rd4873
         obtain ⟨_, _, rd4893⟩ := flipperDentX_refundCallSuccessToStoreStart rd4873True
-        have hrefundMemSize : (dentVatRefundCallMem memHash σ_evm I).size = 228 :=
+        have hrefundMemSize : (dentVatRefundCallMem memHash σ I).size = 228 :=
           dentVatRefundCallMem_size hhashSize
         have hrefundMemRead64 :
-            (dentVatRefundCallMem memHash σ_evm I).readWithPadding 64 32 =
+            (dentVatRefundCallMem memHash σ I).readWithPadding 64 32 =
               UInt256.toByteArray ⟨128⟩ :=
           dentVatRefundCallMem_read64 hhashSize hhashRead64
-        have hrefundMemGe : 64 ≤ (dentVatRefundCallMem memHash σ_evm I).size := by
+        have hrefundMemGe : 64 ≤ (dentVatRefundCallMem memHash σ I).size := by
           rw [hrefundMemSize]
           norm_num
         obtain ⟨_, _, rd4927⟩ := flipperDentX_storeRefundGuyToFluxStart
@@ -293,13 +272,13 @@ theorem flipperDentBodyFrom4733Refund
           simpa [evmGuyEvm, evmRefundEvm, evm0Evm, dentAfterRefundMap,
             storageStore_accountMap, initState, Solm.EVM.storageLoad, State.lookupAccount,
             Account.lookupStorage, flipperSlotWord, solcSlotWord]
-        let memFlux := twoWordHashMem (dentId I) ⟨1⟩ (dentVatRefundCallMem memHash σ_evm I)
+        let memFlux := twoWordHashMem (dentId I) ⟨1⟩ (dentVatRefundCallMem memHash σ I)
         have hmemFluxSize : memFlux.size = 228 := by
           dsimp [memFlux]
           calc
             (twoWordHashMem (dentId I) ⟨1⟩
-                (dentVatRefundCallMem memHash σ_evm I)).size =
-                (dentVatRefundCallMem memHash σ_evm I).size :=
+                (dentVatRefundCallMem memHash σ I)).size =
+                (dentVatRefundCallMem memHash σ I).size :=
               tendTwoWordHashMem_size_of_size_ge (dentId I) ⟨1⟩ (by
                 rw [hrefundMemSize]
                 norm_num)
@@ -343,7 +322,7 @@ theorem flipperDentBodyFrom4733Refund
                 .reverted := by
             simpa [evm0Solm, evmGuySolm] using
               (flipperDentSourceBodyFluxNoCodeAfterRefund
-                (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                (σ := σ) (σ₀ := σ₀)
                 (A := A) (I := I) (g := g) (evmRefund := evmRefundSolm)
                 (outRefund := outRefund)
                 hwv hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot
@@ -377,15 +356,14 @@ theorem flipperDentBodyFrom4733Refund
             { evm0Evm with
               accountMap := dentAfterRefundMap σ_ref I
               substate := A_ref
-              createdAccounts := cA_ref }
+              }
           have hGuyCallStateEquiv : EVMStateEquiv evmGuyCallEvm evmGuySolm := by
             refine ⟨?_, ?_, ?_⟩
             · simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Evm, evm0Solm,
                 storageStore_executionEnv, initState]
             · simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Solm,
-                storageStore_createdAccounts, initState]
             · simpa [evmGuyCallEvm, hmapGuyEvm] using hGuyStateEquiv.accountMap
-          obtain ⟨cA_flux, σ_flux, zFlux, outFlux, A_flux, k5053, C5053, rd5053,
+          obtain ⟨σ_flux, zFlux, outFlux, A_flux, k5053, C5053, rd5053,
               hcallFluxEvmRaw, houtFlux⟩ :=
             flipperDentX_fluxPostCallAw8 (Acur := A_ref) hmemFluxSize hmemFluxRead64
               hfluxZero hperm hdepthLt rd4927
@@ -393,7 +371,7 @@ theorem flipperDentBodyFrom4733Refund
             { evmGuyCallEvm with
               accountMap := σ_flux
               substate := A_flux
-              createdAccounts := cA_flux }
+              }
           have hcallFluxEvm :
               typedCallViaEVM config evmGuyCallEvm
                 (EVM.address
@@ -402,22 +380,16 @@ theorem flipperDentBodyFrom4733Refund
                 (zFlux, evmFluxEvm, outFlux) true := by
             simpa [evmFluxEvm, evmGuyCallEvm, evm0Evm] using hcallFluxEvmRaw
           obtain ⟨σ_flux_solm, A_flux_solm, hcallFluxSolmRaw, hFluxStateEquiv⟩ :=
-            flipper_typedCallViaEVM_accountMapEquiv_noSubstate
+            flipper_typedCallViaEVM_sameInputs
               (evm_solm := evmGuySolm) hcallFluxEvm hGuyCallStateEquiv.accountMap
               (by simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Evm, evm0Solm,
                 tend_storageStore_sigma0, initState])
-              (by simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Solm,
-                storageStore_createdAccounts, initState])
-              (by simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Evm, evm0Solm,
-                tend_storageStore_genesisBlockHeader, initState])
-              (by simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Evm, evm0Solm,
-                tend_storageStore_blocks, initState])
               (by simpa using hGuyCallStateEquiv.executionEnv.symm)
           let evmFluxSolm : EVM.State :=
             { evmGuySolm with
               accountMap := σ_flux_solm
               substate := A_flux_solm
-              createdAccounts := cA_flux }
+              }
           have hfluxTargetEq :
               EVM.address
                   (flipperVatAddress evmGuyCallEvm.accountMap evmGuyCallEvm.executionEnv) =
@@ -481,7 +453,7 @@ theorem flipperDentBodyFrom4733Refund
                   .reverted := by
               simpa [evm0Solm, evmGuySolm] using
                 (flipperDentSourceBodyFluxCallFailureAfterRefund
-                  (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                  (σ := σ) (σ₀ := σ₀)
                   (A := A) (I := I) (g := g) (evmRefund := evmRefundSolm)
                   (evmFlux := evmFluxSolm) (outRefund := outRefund) (outFlux := outFlux)
                   hwv hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot
@@ -490,12 +462,12 @@ theorem flipperDentBodyFrom4733Refund
             exact (flipperDentX_fluxCallFailure (by simpa using rd5053) houtFlux)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
           · have rd5053True : RD flipperBytecode I (Sat256.ofUInt256 g)
-                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨5053⟩
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5053⟩
                 (⟨1⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
                   flipperVatTargetWord (dentAfterRefundMap σ_ref I) I :: dentBid I ::
                   dentLot I :: dentId I :: ⟨323⟩ :: sel :: [])
                 (dentVatFluxCallMem memFlux (dentAfterRefundMap σ_ref I) I)
-                (UInt256.ofNat 9) outFlux (cA_flux, σ_flux) k5053 C5053 := by
+                (UInt256.ofNat 9) outFlux σ_flux k5053 C5053 := by
               simpa [memFlux] using rd5053
             obtain ⟨_, _, rd5073⟩ := flipperDentX_fluxCallSuccessToStoreStart rd5053True
             have hfluxMemGe :
@@ -570,11 +542,11 @@ theorem flipperDentBodyFrom4733Refund
                     (.returned
                       { contract := contract,
                         locals :=
-                          dentLocalsAfterRefundWithTicFrom σ_solm evmLotSolm.accountMap I }
+                          dentLocalsAfterRefundWithTicFrom σ evmLotSolm.accountMap I }
                       evmTicSolm none) := by
                 simpa [evm0Solm, evmGuySolm, evmLotSolm, evmTicSolm] using
                   (flipperDentSourceBodySuccessAfterRefund
-                    (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                    (σ := σ) (σ₀ := σ₀)
                     (A := A) (I := I) (g := g) (evmRefund := evmRefundSolm)
                     (evmFlux := evmFluxSolm) (outRefund := outRefund) (outFlux := outFlux)
                     hwv hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot
@@ -609,7 +581,7 @@ theorem flipperDentBodyFrom4733Refund
                   EVMStateEquiv.storageStore_codeOwner hLotStateEquiv
                     (bidPackedSlotOfWord (dentId I)) hstoredTicEq
               have hAccountsRet :
-                  accountMapEquiv (tendStoreTicMap (dentAfterLotMap σ_flux I) I)
+                  Eq (tendStoreTicMap (dentAfterLotMap σ_flux I) I)
                     evmTicEvm.accountMap := by
                 have hownerLot : evmLotEvm.executionEnv.codeOwner = I.codeOwner := by
                   simp [evmLotEvm, evmFluxEvm, evmGuyCallEvm, evm0Evm,
@@ -618,12 +590,11 @@ theorem flipperDentBodyFrom4733Refund
                   tendStoredTicWord, flipperSlotWord, solcSlotWord, Solm.EVM.storageLoad,
                   State.lookupAccount, Account.lookupStorage, storageStore_accountMap, dentId,
                   tendId]
-                  using accountMapEquiv_refl (tendStoreTicMap (dentAfterLotMap σ_flux I) I)
+                  rfl
               have henc : returnEquiv ByteArray.empty none dentTransition.returnType := by
                 rw [show dentTransition.returnType = [] by rfl]
                 exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
               exact hret.reEquivExecutionGenEVMStateEquiv hcode hdispatch hdecode hbody
-                (by simp [evmTicEvm, evmLotEvm, evmFluxEvm, storageStore_createdAccounts])
                 hAccountsRet hTicStateEquiv henc
             · have hoverTicEvm :
                   2 ^ 48 ≤
@@ -643,7 +614,7 @@ theorem flipperDentBodyFrom4733Refund
                     dentTransition.body .reverted := by
                 simpa [evm0Solm, evmGuySolm, evmLotSolm] using
                   (flipperDentSourceBodyAdd48OverflowAfterRefund
-                    (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                    (σ := σ) (σ₀ := σ₀)
                     (A := A) (I := I) (g := g) (evmRefund := evmRefundSolm)
                     (evmFlux := evmFluxSolm) (outRefund := outRefund) (outFlux := outFlux)
                     hwv hguySolm hticGuard hendGuard hbidGuard htabGuard hlotGuard hfitLot

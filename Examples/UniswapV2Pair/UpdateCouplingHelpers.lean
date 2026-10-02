@@ -35,9 +35,9 @@ theorem RD.uniswapUpdateConditionFalseSkipsCumulatives
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (rd : RD uniswapV2PairBytecode ee g s0 ⟨7060⟩
-      (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata (cA, σ) k C)
+      (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata σ k C)
     (hskip :
       UInt256.land (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ ee) ee) reserve32Mask = ⟨0⟩ ∨
       UInt256.land reserve0 reserve112Mask = ⟨0⟩ ∨
@@ -46,7 +46,7 @@ theorem RD.uniswapUpdateConditionFalseSkipsCumulatives
     ∃ k' C', RD uniswapV2PairBytecode ee g s0 ⟨7241⟩
       (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ ee) ee ::
         uniswapUpdateTimestampWord ee :: reserve1 :: reserve0 :: balance1 :: balance0 :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   by_cases ht : UInt256.land
       (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ ee) ee) reserve32Mask = ⟨0⟩
   · simpa only [uniswapUpdateElapsedWord, uniswapUpdateTimestampWord, uniswapSlotWord] using
@@ -66,7 +66,7 @@ theorem RD.uniswapUpdateEmitSyncAndJump_aw6
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {packed elapsed timestamp reserve1 reserve0 balance1 balance0 ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD uniswapV2PairBytecode ee g s0 ⟨7339⟩
       (reserve112Shift :: reserve112Mask :: packed :: elapsed :: timestamp :: reserve1 ::
         reserve0 :: balance1 :: balance0 :: ret :: R)

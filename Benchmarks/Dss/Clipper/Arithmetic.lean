@@ -1138,7 +1138,7 @@ theorem RD.clipperMin {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 ⟨8661⟩ (x :: y :: ret :: R) mem aw rdata acc k C)
     (hret : (D_J code 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret (clipperMinWord x y :: R) mem aw rdata acc k' C' := by
@@ -1208,7 +1208,7 @@ theorem RD.clipperCheckedMul {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 ⟨8686⟩ (x :: y :: ret :: R) mem aw rdata acc k C)
     (hmul : x.toNat * y.toNat < UInt256.size)
     (hret : (D_J code 0).contains ret = true) (hov : R.length + 10 ≤ 1024) :
@@ -1284,7 +1284,7 @@ theorem RD.clipperCheckedMulRevert {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 ⟨8686⟩ (x :: y :: ret :: R) mem aw rdata acc k C)
     (hover : UInt256.size ≤ x.toNat * y.toNat) (hov : R.length + 12 ≤ 1024) :
     RDrev code g s0 := by
@@ -1338,7 +1338,7 @@ theorem RD.clipperWmulRoutine {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret keep : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 ⟨8238⟩ (x :: y :: ret :: keep :: R) mem aw rdata acc k C)
     (hmul : x.toNat * y.toNat < UInt256.size)
     (hret : (D_J code 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
@@ -1378,7 +1378,7 @@ theorem RD.clipperWmulRoutineRevert {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret keep : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 ⟨8238⟩ (x :: y :: ret :: keep :: R) mem aw rdata acc k C)
     (hover : UInt256.size ≤ x.toNat * y.toNat) (hov : R.length + 18 ≤ 1024) :
     RDrev code g s0 := by
@@ -1402,7 +1402,7 @@ theorem RD.clipperRmulRoutine {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret keep : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 ⟨9233⟩ (x :: y :: ret :: keep :: R) mem aw rdata acc k C)
     (hmul : x.toNat * y.toNat < UInt256.size)
     (hret : (D_J code 0).contains ret = true) (hov : R.length + 16 ≤ 1024) :
@@ -1443,7 +1443,7 @@ theorem RD.clipperRmulRoutineRevert {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret keep : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 ⟨9233⟩ (x :: y :: ret :: keep :: R) mem aw rdata acc k C)
     (hover : UInt256.size ≤ x.toNat * y.toNat) (hov : R.length + 18 ≤ 1024) :
     RDrev code g s0 := by
@@ -1464,7 +1464,7 @@ theorem RD.clipperRdivRoutine {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret keep : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 ⟨9290⟩ (y :: x :: ret :: keep :: R) mem aw rdata acc k C)
     (hmul : x.toNat * clipperRayWord.toNat < UInt256.size)
     (hy : y ≠ ⟨0⟩)
@@ -1507,7 +1507,7 @@ theorem RD.clipperRdivRoutineRevertMul {code : ByteArray} (v : ClipperImmutables
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret keep : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 ⟨9290⟩ (y :: x :: ret :: keep :: R) mem aw rdata acc k C)
     (hover : UInt256.size ≤ x.toNat * clipperRayWord.toNat)
     (hov : R.length + 18 ≤ 1024) :
@@ -1531,7 +1531,7 @@ theorem RD.clipperSubRoutine {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 ⟨9274⟩ (y :: x :: ret :: R) mem aw rdata acc k C)
     (hle : y.toNat ≤ x.toNat)
     (hret : (D_J code 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
@@ -1543,7 +1543,7 @@ theorem RD.clipperSubRoutineRevert {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {x y ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 ⟨9274⟩ (y :: x :: ret :: R) mem aw rdata acc k C)
     (hlt : x.toNat < y.toNat) (hov : R.length + 9 ≤ 1024) :
     RDrev code g s0 := by
@@ -1583,11 +1583,11 @@ theorem RD.clipperUpchostStoreChostReturn {code : ByteArray} (v : ClipperImmutab
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State} {k C : ℕ}
     {chost dust sel : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD code ee g s0 ⟨1806⟩ (chost :: dust :: ⟨502⟩ :: sel :: []) mem aw rdata
-      (cA, σ) k C)
+      σ k C)
     (hperm : ee.perm = true) :
-    RDret code g s0 (cA, sstoreAccountMap ee.codeOwner σ ⟨9⟩ chost) ByteArray.empty := by
+    RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨9⟩ chost) ByteArray.empty := by
   have rd1809pre := evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨9⟩ (by clipper_runtime_decode) (by evm_ov)]

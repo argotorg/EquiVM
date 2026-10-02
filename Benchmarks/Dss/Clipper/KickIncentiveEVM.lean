@@ -9,7 +9,7 @@ theorem RD.clipperKickIncentiveInactive {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {top id kpr usr lot tab sel : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨6203⟩
@@ -44,7 +44,7 @@ theorem RD.clipperKickIncentiveActive {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {chip tip top id kpr usr lot tab sel : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨6203⟩
@@ -96,7 +96,7 @@ theorem RD.clipperKickIncentiveToWmul {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {chip tip top id kpr usr lot tab sel : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨6222⟩
@@ -121,7 +121,7 @@ theorem RD.clipperKickIncentiveWmulToCheckedAdd {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {chip tab tip keep : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨8238⟩
@@ -145,7 +145,7 @@ theorem RD.clipperKickIncentiveAddSuccess {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {chipCoin tip keep : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨9258⟩
@@ -436,13 +436,13 @@ theorem RD.clipperKickIncentiveToSuckGuard {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {coin chip tip top id kpr usr lot tab sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨6240⟩
       (coin :: ⟨0⟩ :: chip :: tip :: top :: ⟨1⟩ :: id :: kpr :: usr :: lot :: tab ::
         ⟨476⟩ :: sel :: R)
-      mem (UInt256.ofNat 6) o (cA, σ) k C)
+      mem (UInt256.ofNat 6) o σ k C)
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 50 ≤ 1024) :
@@ -452,7 +452,7 @@ theorem RD.clipperKickIncentiveToSuckGuard {code : ByteArray}
         clipperRedoVatTarget v :: coin :: chip :: tip :: top :: ⟨1⟩ :: id :: kpr :: usr ::
         lot :: tab :: ⟨476⟩ :: sel :: R)
       (clipperRedoSuckCalldataMem σ ee kpr coin mem) (UInt256.ofNat 8) o
-      (cA, σ) k' C' := by
+      σ k' C' := by
   let vatWord : UInt256 := EVM.Word.ofNat (↑v.vat : Nat)
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
@@ -581,7 +581,7 @@ theorem RD.clipperKickSuckNoCode {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {coin chip tip top id kpr usr lot tab sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨6357⟩
@@ -589,7 +589,7 @@ theorem RD.clipperKickSuckNoCode {code : ByteArray}
         ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: clipperRedoSuckSelectorWord ::
         clipperRedoVatTarget v :: coin :: chip :: tip :: top :: ⟨1⟩ :: id :: kpr :: usr ::
         lot :: tab :: ⟨476⟩ :: sel :: R)
-      mem (UInt256.ofNat 8) o (cA, σ) k C)
+      mem (UInt256.ofNat 8) o σ k C)
     (hcodeSizeVat :
       Reasoning.Theory.extCodeSizeWord σ (clipperRedoVatTarget v) = ⟨0⟩)
     (hov : R.length + 50 ≤ 1024) : RDrev code g s0 := by
@@ -604,42 +604,42 @@ theorem RD.clipperKickSuckNoCode {code : ByteArray}
 
 set_option maxHeartbeats 1000000 in
 theorem RD.clipperKickSuckPostCall
-    {cA0 cA gh bl σ₀ σStart σ} {ee : ExecutionEnv}
+    {σ₀ σStart σ : AccountMap} {ee : ExecutionEnv}
     {g : Sat256} {A : Substate} {k C : ℕ}
     {coin chip tip top id kpr usr lot tab sel : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (rd : RD code ee g (initState cA0 gh bl σStart σ₀ g A ee) ⟨6357⟩
+    (rd : RD code ee g (initState σStart σ₀ g A ee) ⟨6357⟩
       (clipperRedoVatTarget v :: clipperRedoVatTarget v :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: clipperRedoSuckSelectorWord ::
         clipperRedoVatTarget v :: coin :: chip :: tip :: top :: ⟨1⟩ :: id :: kpr :: usr ::
         lot :: tab :: ⟨476⟩ :: sel :: R)
       (clipperRedoSuckCalldataMem σ ee kpr coin mem)
-      (UInt256.ofNat 8) rdata (cA, σ) k C)
+      (UInt256.ofNat 8) rdata σ k C)
     (hcodeSizeVat :
       Reasoning.Theory.extCodeSizeWord σ (clipperRedoVatTarget v) ≠ ⟨0⟩)
     (hdepth : ee.depth.val < 1024) (hperm : ee.perm = true)
     (hmem : mem.size = 192) (hov : R.length + 50 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD code ee g (initState cA0 gh bl σStart σ₀ g A ee) ⟨6373⟩
+      RD code ee g (initState σStart σ₀ g A ee) ⟨6373⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: clipperRedoSuckSelectorWord ::
           clipperRedoVatTarget v :: coin :: chip :: tip :: top :: ⟨1⟩ :: id :: kpr :: usr ::
           lot :: tab :: ⟨476⟩ :: sel :: R)
         (clipperRedoSuckCalldataMem σ ee kpr coin mem) (UInt256.ofNat 8) out
-        (cA', σ') k' C' ∧
+        σ' k' C' ∧
       typedCallViaEVM (config v)
-        { initState cA0 gh bl σStart σ₀ g A ee with
-          accountMap := σ, createdAccounts := cA }
+        { initState σStart σ₀ g A ee with
+          accountMap := σ }
         (EVM.address v.vat) "suck" 0
         [.address (AccountAddress.ofNat (clipperRedoVowTarget σ ee).toNat),
           .address (AccountAddress.ofNat kpr.toNat), .int (Int.ofNat coin.toNat)]
         (z,
-          { initState cA0 gh bl σStart σ₀ g A ee with
+          { initState σStart σ₀ g A ee with
             accountMap := σ'
             substate := A'
-            createdAccounts := cA' },
+},
           out) true ∧
       out.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd6372⟩ :=
@@ -652,11 +652,11 @@ theorem RD.clipperKickSuckPostCall
       (by clipper_runtime_decode) (by clipper_runtime_decode)
       (by clipper_runtime_decode)
       (by simp only [List.length_cons]; omega)
-  obtain ⟨cA', σ', z, out, A_in, callGas, k6373, C6373, hΘpack,
+  obtain ⟨σ', z, out, A_in, callGas, k6373, C6373, hΘpack,
       rd6373raw, houtSize⟩ :=
     RD.call rd6372 (by clipper_runtime_decode) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, out, A', k6373, C6373, ?_, ?_, houtSize⟩
+  refine ⟨σ', z, out, A', k6373, C6373, ?_, ?_, houtSize⟩
   · have hmin :
         (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
       have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat out.size := by
@@ -671,15 +671,15 @@ theorem RD.clipperKickSuckPostCall
           UInt256.ofNat 8 := by native_decide
     simpa [hmin, byteArray_write_len_zero, haw] using rd6373raw
   · let evmVat : EVM.State :=
-      { initState cA0 gh bl σStart σ₀ g A ee with
-        accountMap := σ, createdAccounts := cA }
+      { initState σStart σ₀ g A ee with
+        accountMap := σ }
     refine callCoincides (cfg := config v)
       (evm := evmVat) (name := "suck")
       (args :=
         [.address (AccountAddress.ofNat (clipperRedoVowTarget σ ee).toNat),
           .address (AccountAddress.ofNat kpr.toNat), .int (Int.ofNat coin.toNat)])
       (tgt := EVM.address v.vat) (targetWord := clipperRedoVatTarget v)
-      (cA' := cA') (σ' := σ') (A' := A') (A_in := A_in)
+      (σ' := σ') (A' := A') (A_in := A_in)
       (z := z) (o := out) (g'' := g'') (callGas := callGas)
       (mem := clipperRedoSuckCalldataMem σ ee kpr coin mem)
       (inOff := ⟨128⟩) (inSize := ⟨100⟩) (callPerm := true)
@@ -700,7 +700,7 @@ theorem RD.clipperKickSuckCallFailure {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (rd : RD code ee g s0 ⟨6373⟩ (⟨0⟩ :: R) mem aw out acc k C)
     (hout : out.size < UInt256.size) (hov : R.length + 5 ≤ 1024) :
@@ -719,7 +719,7 @@ theorem RD.clipperKickSuckCallSuccess {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {coin chip tip top id kpr usr lot tab sel : UInt256}
     {R : List UInt256} {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨6373⟩

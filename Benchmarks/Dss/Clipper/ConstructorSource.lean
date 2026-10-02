@@ -264,14 +264,12 @@ theorem clipperCtorRuntimeCodeOf (vat spotter dog : AccountAddress)
     bytes32Width, hilk]
 
 theorem clipperCtorBodySuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
     (v : ClipperImmutables) (vat spotter dog : AccountAddress) (ilk : List UInt8)
     (hwv : I.weiValue = ⟨0⟩) :
     let locals := clipperCtorLocals vat spotter dog ilk
     let finalLocals := clipperCtorFinalLocals vat spotter dog ilk
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := clipperCtorAfterStoppedState evm0
     let evm2 := clipperCtorAfterSpotterState evm1 spotter
@@ -315,14 +313,12 @@ theorem clipperCtorBodySuccess
     ExecBlock.nil
 
 theorem clipperSolmCtorExecSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
     (v : ClipperImmutables) (vat spotter dog : AccountAddress) (ilk : List UInt8)
     (hwv : I.weiValue = ⟨0⟩) :
     solmCtorExec (config v) (contract v)
       [.address vat, .address spotter, .address dog, .fixedBytes bytes32Width ilk]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+      σ σ₀ g A I
       (.returned { contract := contract v, locals :=
           clipperCtorFinalLocals vat spotter dog ilk }
         (clipperCtorAfterWardsState
@@ -330,30 +326,27 @@ theorem clipperSolmCtorExecSuccess
             (clipperCtorAfterDogState
               (clipperCtorAfterSpotterState
                 (clipperCtorAfterStoppedState
-                  (initState createdAccounts genesisBlockHeader blocks σ σ₀
+                  (initState σ σ₀
                     (Sat256.ofUInt256 g) A I)) spotter) dog))) none) := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := clipperCtorLocals vat spotter dog ilk) ?_ rfl ?_ ?_
   · rfl
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK (clipperCtorBodySuccess
-        (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         v vat spotter dog ilk hwv)
 
 theorem clipperSolmCtorExecReverts_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
     (v : ClipperImmutables) (vat spotter dog : AccountAddress) (ilk : List UInt8)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     solmCtorExec (config v) (contract v)
       [.address vat, .address spotter, .address dog, .fixedBytes bytes32Width ilk]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I .reverted := by
-  let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+      σ σ₀ g A I .reverted := by
+  let evm0 := initState σ σ₀
     (Sat256.ofUInt256 g) A I
   let evm1 := clipperCtorAfterStoppedState evm0
   have hstopped := assign_clipperCtorStoppedStorage (v := v) evm0

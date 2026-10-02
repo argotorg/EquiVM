@@ -15,13 +15,12 @@ set_option maxHeartbeats 20000000
 namespace StringStoreLite
 
 theorem stringStoreLiteSetValidRuntime
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = stringStoreLiteBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x4e, 0xd3, 0x88, 0x5e]⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hsz36 : 36 ≤ I.calldata.size)
     (hhi : I.calldata.size < 2 ^ 255 + 4)
     (hoffMax : ¬ ABI.solcMaxU64 < (calldataWord I.calldata 4).toNat)
@@ -38,13 +37,13 @@ theorem stringStoreLiteSetValidRuntime
       uInt256OfByteArray
         (I.calldata.readBytes
           ((((⟨4⟩ : UInt256) + calldataWord I.calldata 4)).toNat) 32) ≠ ⟨0⟩) :
-    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor stringStoreLiteConfig stringStoreLiteContract
+      σ σ₀ g A I := by
   by_cases hnewShort :
       (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)).toNat < 32
-  · exact stringStoreLiteSetNewShortRuntime hcode hsize hperm hwv hsel hAccounts hsz36 hhi
+  · exact stringStoreLiteSetNewShortRuntime hcode hsize hperm hwv hsel hsz36 hhi
       hoffMax hlenWord hsizeSign hlenMax hpayload hnonzero hnewShort
-  · exact stringStoreLiteSetNewLongRuntime hcode hsize hperm hwv hsel hAccounts hsz36 hhi
+  · exact stringStoreLiteSetNewLongRuntime hcode hsize hperm hwv hsel hsz36 hhi
       hoffMax hlenWord hsizeSign hlenMax hpayload hnonzero hnewShort
 
 

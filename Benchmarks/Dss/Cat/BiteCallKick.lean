@@ -320,36 +320,36 @@ producing the `Θ` witness (with `mem.readWithPadding 128 164` as calldata) and 
 (first return-decode instruction), or `RDrev` on the failure branches. -/
 
 /-- Missing-code branch: `EXTCODESIZE = 0` reverts. -/
-theorem RD.catBiteKickGuardMissing {cA gh bl σ σ₀ A I} {g target : UInt256} {mem : ByteArray}
+theorem RD.catBiteKickGuardMissing {σ σ₀ A I} {g target : UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
-    {cAx : Batteries.RBSet AccountAddress compare} {σx : AccountMap} {R : List UInt256} {k C : ℕ}
+    {σx : AccountMap} {R : List UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R)
-      mem aw rdata (cAx, σx) k C)
+      mem aw rdata σx k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σx target = ⟨0⟩)
     (hov : R.length + 9 ≤ 1024) :
     RDrev catBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons]; omega)
 
 /-- Present-code branch: step the guard to the `GAS`, reaching the `CALL` at pc `2531`. -/
-theorem RD.catBiteKickGuardOk {cA gh bl σ σ₀ A I} {g target : UInt256} {mem : ByteArray}
+theorem RD.catBiteKickGuardOk {σ σ₀ A I} {g target : UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
-    {cAx : Batteries.RBSet AccountAddress compare} {σx : AccountMap} {R : List UInt256} {k C : ℕ}
+    {σx : AccountMap} {R : List UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R)
-      mem aw rdata (cAx, σx) k C)
+      mem aw rdata σx k C)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σx target ≠ ⟨0⟩)
     (hov : R.length + 9 ≤ 1024) :
     ∃ gasWord k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       (gasWord :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R)
-      mem aw rdata (cAx, σx) k' C' := by
+      mem aw rdata σx k' C' := by
   obtain ⟨gasWord, k', C', rd'⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -359,63 +359,63 @@ theorem RD.catBiteKickGuardOk {cA gh bl σ σ₀ A I} {g target : UInt256} {mem 
 
 /-- Execute the `CALL` (`perm := true`, value `0`, `depth < 1024`): the `Θ` witness plus the RD at
     the success guard (pc `2532`). -/
-theorem RD.catBiteKickPostCall {cA gh bl σ σ₀ A I} {g target gasWord : UInt256} {mem : ByteArray}
+theorem RD.catBiteKickPostCall {σ σ₀ A I} {g target gasWord : UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
-    {cAx : Batteries.RBSet AccountAddress compare} {σx : AccountMap} {R : List UInt256} {k C : ℕ}
+    {σx : AccountMap} {R : List UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       (gasWord :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R)
-      mem aw rdata (cAx, σx) k C)
+      mem aw rdata σx k C)
     (hdepth : I.depth.val < 1024) (hov : R.length + 1 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cAx gh bl σx σ₀ Ain
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ σx σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 target) (toExecute σx (AccountAddress.ofUInt256 target))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
-          (mem.readWithPadding 128 164) (I.depth + 1) I.header I.perm)
+          (mem.readWithPadding 128 164) (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ RD catBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: R)
           (o.write 0 mem 128 (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat)
           (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat 128 164) 128 32))
-          o (cA', σ') k' C'
+          o σ' k' C'
       ∧ o.size < UInt256.size := by
-  obtain ⟨cA', σ', z, o, Ain, callGas, k', C', hΘ, rd2532, hout⟩ :=
+  obtain ⟨σ', z, o, Ain, callGas, k', C', hΘ, rd2532, hout⟩ :=
     RD.call rd (by native_decide) hdepth (by simpa using hov)
-  refine ⟨cA', σ', z, o, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ', z, o, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · simpa using rd2532
 
 /-- Depth-limit branch: at `depth = 1024` the `CALL` pushes status `0` without a `Θ` call. -/
-theorem RD.catBiteKickCallDepthLimit {cA gh bl σ σ₀ A I} {g target gasWord : UInt256}
+theorem RD.catBiteKickCallDepthLimit {σ σ₀ A I} {g target gasWord : UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {cAx : Batteries.RBSet AccountAddress compare} {σx : AccountMap} {R : List UInt256} {k C : ℕ}
+    {σx : AccountMap} {R : List UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       (gasWord :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R)
-      mem aw rdata (cAx, σx) k C)
+      mem aw rdata σx k C)
     (hdepth : I.depth = 1024) (hov : R.length + 1 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩ (⟨0⟩ :: R)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩ (⟨0⟩ :: R)
       (ByteArray.empty.write 0 mem 128 (min (⟨32⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat)
       (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat 128 164) 128 32))
-      ByteArray.empty (cAx, σx) k' C' := by
+      ByteArray.empty σx k' C' := by
   obtain ⟨k', C', rd'⟩ := RD.callDepthLimit rd (by native_decide) hdepth (by simpa using hov)
   exact ⟨k', C', by simpa using rd'⟩
 
 /-- Success guard, failure branch: status `0` bubbles the return data and reverts. -/
-theorem RD.catBiteKickCallFailed {cA gh bl σ σ₀ A I} {g : UInt256} {mem : ByteArray}
+theorem RD.catBiteKickCallFailed {σ σ₀ A I} {g : UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {R : List UInt256} {k C : ℕ}
+    {acc : AccountMap} {R : List UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩ (⟨0⟩ :: R)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩ (⟨0⟩ :: R)
       mem aw rdata acc k C)
     (hrdataSize : rdata.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
     RDrev catBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2532⟩) (okPc := ⟨2548⟩) rd rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -424,16 +424,16 @@ theorem RD.catBiteKickCallFailed {cA gh bl σ σ₀ A I} {g : UInt256} {mem : By
 
 /-- Success guard, ok branch: status `≠ 0` reaches the first return-decode instruction (pc `2550`)
     with the return data left in memory/returndata. -/
-theorem RD.catBiteKickCallSucceeded {cA gh bl σ σ₀ A I} {g status : UInt256} {mem : ByteArray}
+theorem RD.catBiteKickCallSucceeded {σ σ₀ A I} {g status : UInt256} {mem : ByteArray}
     {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {R : List UInt256} {k C : ℕ}
+    {acc : AccountMap} {R : List UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩ (status :: R)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2532⟩ (status :: R)
       mem aw rdata acc k C)
     (hstatus : status ≠ ⟨0⟩)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2550⟩ R
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2550⟩ R
       mem aw rdata acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨2532⟩) (okPc := ⟨2548⟩) rd hstatus
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)

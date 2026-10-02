@@ -74,13 +74,13 @@ theorem transferFromAllowanceSlot_eq_mapSlot (evm : EVM.State) (I : ExecutionEnv
   rw [keyValueToWord_address_of_canonical _ hcanonFrom, keyValueToWord_address]
 
 theorem transferFromCurrentAllowanceWord_initState_eq_uniswapCodeOwnerStorageWord
-    {cA gh bl σ σ₀ A I} {g : Sat256}
+    {σ σ₀ A I} {g : Sat256}
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus) :
-    transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I =
+    transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I =
       uniswapCodeOwnerStorageWord I σ
         (mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩)) := by
   unfold transferFromCurrentAllowanceWord
-  rw [transferFromAllowanceSlot_eq_mapSlot (initState cA gh bl σ σ₀ g A I) I hcanonFrom]
+  rw [transferFromAllowanceSlot_eq_mapSlot (initState σ σ₀ g A I) I hcanonFrom]
   exact uniswapCodeOwnerStorageWord_initState _
 
 theorem uniswapDecode_transferFrom_ok {I : ExecutionEnv}
@@ -144,16 +144,16 @@ theorem uniswapDecode_transferFrom_ok_noncanon_to {I : ExecutionEnv}
 
 /-- The optimized external wrapper for `transferFrom(address,address,uint256)` accepts canonical
     calldata and jumps to the transferFrom routine at pc 2938. -/
-theorem uniswapTransferFromX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapTransferFromX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2938⟩
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨2938⟩
       [transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨797⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd901⟩ := RD.addressAddressUint256ExternalLenOk
     (entry := ⟨879⟩) (ret := ⟨797⟩) (routine := ⟨2938⟩) hreach
     uniswap_address_address_uint256_external_entry_wf (by jump_dest) hsz100 hsize
@@ -166,21 +166,21 @@ theorem uniswapTransferFromX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel :
   exact ⟨_, _, by
     simpa [transferFromFromWord, transferFromToWord, transferFromValueWord] using rd2938⟩
 
-theorem uniswapTransferFromX_allowanceMaxBranch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapTransferFromX_allowanceMaxBranch {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hmax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat =
+    (hmax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat =
       UInt256.size - 1)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3071⟩
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3071⟩
       (⟨0⟩ :: transferFromValueWord I :: transferFromToWord I ::
         transferFromFromWord I :: ⟨797⟩ :: [sel])
       (uniswapApproveHashMem (transferFromFromWord I) (uniswapSourceWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd2938⟩ :=
     uniswapTransferFromX_decoded hsz100 hsize hcanonFrom hcanonTo hreach
   have hmaxEvm :
@@ -194,51 +194,51 @@ theorem uniswapTransferFromX_allowanceMaxBranch {cA gh bl σ σ₀ A I} {g : Sat
     (by simp only [List.length_singleton]; omega)
   exact ⟨_, _, by simpa using rd3071⟩
 
-theorem uniswapTransferFromX_allowanceMaxToInternal {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapTransferFromX_allowanceMaxToInternal {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hmax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat =
+    (hmax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat =
       UInt256.size - 1)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7510⟩
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7510⟩
       (transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ ::
         ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
         ⟨797⟩ :: [sel])
       (uniswapApproveHashMem (transferFromFromWord I) (uniswapSourceWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd3071⟩ := uniswapTransferFromX_allowanceMaxBranch
     hsz100 hsize hcanonFrom hcanonTo hmax hreach
   obtain ⟨_, _, rd7510⟩ := RD.uniswapTransferFromMaxAllowanceToInternal
     (R := [sel]) rd3071 (by simp only [List.length_singleton]; omega)
   exact ⟨_, _, by simpa using rd7510⟩
 
-theorem uniswapTransferFromX_allowanceFiniteToInternal {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapTransferFromX_allowanceFiniteToInternal {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hnotMax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat ≠
+    (hnotMax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat ≠
       UInt256.size - 1)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7510⟩
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7510⟩
       (transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ ::
         ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
         ⟨797⟩ :: [sel])
       (uniswapTransferFromAllowanceStoreMemOf (transferFromFromWord I) (uniswapSourceWord I)
         (uniswapTransferFromAllowanceStoreMem (transferFromFromWord I) (uniswapSourceWord I)))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ
+      (sstoreAccountMap I.codeOwner σ
         (mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩))
-        (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
+        (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd2938⟩ :=
     uniswapTransferFromX_decoded hsz100 hsize hcanonFrom hcanonTo hreach
   have hnotMaxEvm :
@@ -258,24 +258,24 @@ theorem uniswapTransferFromX_allowanceFiniteToInternal {cA gh bl σ σ₀ A I} {
   have hcurrWord :
       uniswapCodeOwnerStorageWord I σ
           (mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩)) =
-        transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I := by
+        transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I := by
     exact (transferFromCurrentAllowanceWord_initState_eq_uniswapCodeOwnerStorageWord
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       hcanonFrom).symm
   have hdebit :
       UInt256.sub
           (uniswapCodeOwnerStorageWord I σ
             (mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩)))
           (transferFromValueWord I) =
-        transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I := by
+        transferFromAllowanceDebitWord (initState σ σ₀ g A I) I := by
     rw [hcurrWord]
     apply u256_inj
     rw [usub_toNat hallowance]
     unfold transferFromAllowanceDebitWord
     rw [ulit_toNat' _ (lt_of_le_of_lt
-      (Nat.sub_le (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat
+      (Nat.sub_le (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat
         (transferFromValueWord I).toNat)
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).val.isLt)]
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).val.isLt)]
   have rd7510 := rd7510₀
   rw [hdebit] at rd7510
   exact ⟨_, _, rd7510⟩
@@ -293,24 +293,24 @@ def transferFromBalanceDebitWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 
 
 /-- Chained finite-allowance success prefix for `transferFrom(address,address,uint256)`, through
     the sender-balance checked subtraction in the shared `_transfer` routine. -/
-theorem uniswapTransferFromX_allowanceFiniteAfterDebit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapTransferFromX_allowanceFiniteAfterDebit {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hnotMax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat ≠
+    (hnotMax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat ≠
       UInt256.size - 1)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (transferFromAfterAllowanceState
-        (initState cA gh bl σ σ₀ g A I) I) I).toNat)
+        (initState σ σ₀ g A I) I) I).toNat)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7551⟩
-      (transferFromBalanceDebitWord (initState cA gh bl σ σ₀ g A I) I ::
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7551⟩
+      (transferFromBalanceDebitWord (initState σ σ₀ g A I) I ::
         transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ ::
         ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
         ⟨797⟩ :: [sel])
@@ -318,37 +318,37 @@ theorem uniswapTransferFromX_allowanceFiniteAfterDebit {cA gh bl σ σ₀ A I} {
         (uniswapTransferFromAllowanceStoreMemOf (transferFromFromWord I) (uniswapSourceWord I)
           (uniswapTransferFromAllowanceStoreMem (transferFromFromWord I) (uniswapSourceWord I))))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ
+      (sstoreAccountMap I.codeOwner σ
         (mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩))
-        (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
+        (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd7510⟩ := uniswapTransferFromX_allowanceFiniteToInternal
     hsz100 hsize hperm hcanonFrom hcanonTo hnotMax hallowance hreach
   let σAllowance := sstoreAccountMap I.codeOwner σ
     (mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩))
-    (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I)
+    (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I)
   have hfromKeyWord : keyValueToWord (transferFromFromKey I) = transferFromFromWord I := by
     unfold transferFromFromKey
     exact keyValueToWord_address_of_canonical _ hcanonFrom
   have hfromSlot : transferFromFromSlot I = mapSlot (transferFromFromWord I) ⟨1⟩ := by
     unfold transferFromFromSlot balanceOfSlot
     rw [hfromKeyWord]
-  have hallowanceSlot : transferFromAllowanceSlot (initState cA gh bl σ σ₀ g A I) I =
+  have hallowanceSlot : transferFromAllowanceSlot (initState σ σ₀ g A I) I =
       mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩) := by
-    exact transferFromAllowanceSlot_eq_mapSlot (initState cA gh bl σ σ₀ g A I) I hcanonFrom
+    exact transferFromAllowanceSlot_eq_mapSlot (initState σ σ₀ g A I) I hcanonFrom
   have hstateMap :
-      (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I).accountMap =
+      (transferFromAfterAllowanceState (initState σ σ₀ g A I) I).accountMap =
         σAllowance := by
     simp only [transferFromAfterAllowanceState, storageStore_accountMap, hallowanceSlot]
     rfl
   have hcodeOwner :
-      (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I).executionEnv.codeOwner =
+      (transferFromAfterAllowanceState (initState σ σ₀ g A I) I).executionEnv.codeOwner =
         I.codeOwner := by
     rw [transferFromAfterAllowance_codeOwner]
     rfl
   have hbalanceWord :
       uniswapCodeOwnerStorageWord I σAllowance (mapSlot (transferFromFromWord I) ⟨1⟩) =
         transferFromFromBalanceWord (transferFromAfterAllowanceState
-          (initState cA gh bl σ σ₀ g A I) I) I := by
+          (initState σ σ₀ g A I) I) I := by
     unfold uniswapCodeOwnerStorageWord transferFromFromBalanceWord Solm.EVM.storageLoad
     simp [State.lookupAccount, Account.lookupStorage, hstateMap, hfromSlot, hcodeOwner]
   have hbalanceEvm : (transferFromValueWord I).toNat ≤
@@ -369,39 +369,39 @@ theorem uniswapTransferFromX_allowanceFiniteAfterDebit {cA gh bl σ σ₀ A I} {
       UInt256.sub
           (uniswapCodeOwnerStorageWord I σAllowance (mapSlot (transferFromFromWord I) ⟨1⟩))
           (transferFromValueWord I) =
-        transferFromBalanceDebitWord (initState cA gh bl σ σ₀ g A I) I := by
+        transferFromBalanceDebitWord (initState σ σ₀ g A I) I := by
     rw [hbalanceWord]
     apply u256_inj
     rw [usub_toNat hbalance]
     unfold transferFromBalanceDebitWord
     rw [ulit_toNat' _ (lt_of_le_of_lt
       (Nat.sub_le (transferFromFromBalanceWord (transferFromAfterAllowanceState
-        (initState cA gh bl σ σ₀ g A I) I) I).toNat (transferFromValueWord I).toNat)
+        (initState σ σ₀ g A I) I) I).toNat (transferFromValueWord I).toNat)
       (transferFromFromBalanceWord (transferFromAfterAllowanceState
-        (initState cA gh bl σ σ₀ g A I) I) I).val.isLt)]
+        (initState σ σ₀ g A I) I) I).val.isLt)]
   have rd7551 := rd7551₀
   rw [hdebit] at rd7551
   exact ⟨_, _, by simpa [σAllowance] using rd7551⟩
 
 /-- Chained finite-allowance success prefix for `transferFrom(address,address,uint256)`, through
     the sender-balance `SSTORE` in the shared `_transfer` routine. -/
-theorem uniswapTransferFromX_allowanceFiniteAfterSenderStore {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapTransferFromX_allowanceFiniteAfterSenderStore {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hnotMax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat ≠
+    (hnotMax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat ≠
       UInt256.size - 1)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (transferFromAfterAllowanceState
-        (initState cA gh bl σ σ₀ g A I) I) I).toNat)
+        (initState σ σ₀ g A I) I) I).toNat)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7582⟩
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7582⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: transferFromValueWord I :: transferFromToWord I ::
         transferFromFromWord I :: ⟨3082⟩ :: ⟨0⟩ :: transferFromValueWord I ::
         transferFromToWord I :: transferFromFromWord I :: ⟨797⟩ :: [sel])
@@ -409,16 +409,16 @@ theorem uniswapTransferFromX_allowanceFiniteAfterSenderStore {cA gh bl σ σ₀ 
         (uniswapTransferFromAllowanceStoreMemOf (transferFromFromWord I) (uniswapSourceWord I)
           (uniswapTransferFromAllowanceStoreMem (transferFromFromWord I) (uniswapSourceWord I))))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ
           (mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩))
-          (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I))
+          (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I))
         (mapSlot (transferFromFromWord I) ⟨1⟩)
-        (transferFromBalanceDebitWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
+        (transferFromBalanceDebitWord (initState σ σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd7551⟩ := uniswapTransferFromX_allowanceFiniteAfterDebit
     hsz100 hsize hperm hcanonFrom hcanonTo hnotMax hallowance hbalance hreach
   obtain ⟨_, _, rd7582⟩ := RD.uniswapTransferInternalStoreDebitMem
-    (debit := transferFromBalanceDebitWord (initState cA gh bl σ σ₀ g A I) I)
+    (debit := transferFromBalanceDebitWord (initState σ σ₀ g A I) I)
     (value := transferFromValueWord I) (toWord := transferFromToWord I)
     (src := transferFromFromWord I) (ret := ⟨3082⟩)
     (R := ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I ::
@@ -638,9 +638,9 @@ theorem transferFromAssignAllowance (evm : EVM.State) (I : ExecutionEnv) :
   rfl
 
 theorem transferFromFromBalanceWord_initState_eq_uniswapCodeOwnerStorageWord
-    {cA gh bl σ σ₀ A I} {g : Sat256}
+    {σ σ₀ A I} {g : Sat256}
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus) :
-    transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I =
+    transferFromFromBalanceWord (initState σ σ₀ g A I) I =
       uniswapCodeOwnerStorageWord I σ (mapSlot (transferFromFromWord I) ⟨1⟩) := by
   unfold transferFromFromBalanceWord transferFromFromSlot balanceOfSlot transferFromFromKey
   rw [keyValueToWord_address_of_canonical _ hcanonFrom]
@@ -710,33 +710,33 @@ theorem transferFromAfterBalanceMax_codeOwner (evm : EVM.State) (I : ExecutionEn
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 
-theorem uniswapTransferFromX_allowanceMaxAfterDebit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapTransferFromX_allowanceMaxAfterDebit {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hmax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat =
+    (hmax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat =
       UInt256.size - 1)
     (hbalance : (transferFromValueWord I).toNat ≤
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7551⟩
-      (transferFromBalanceDebitWordMax (initState cA gh bl σ σ₀ g A I) I ::
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7551⟩
+      (transferFromBalanceDebitWordMax (initState σ σ₀ g A I) I ::
         transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ ::
         ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
         ⟨797⟩ :: [sel])
       (twoWordHashMem (transferFromFromWord I) ⟨1⟩
         (uniswapApproveHashMem (transferFromFromWord I) (uniswapSourceWord I)))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd7510⟩ := uniswapTransferFromX_allowanceMaxToInternal
     hsz100 hsize hcanonFrom hcanonTo hmax hreach
   have hbalanceWord :
       uniswapCodeOwnerStorageWord I σ (mapSlot (transferFromFromWord I) ⟨1⟩) =
-        transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I := by
+        transferFromFromBalanceWord (initState σ σ₀ g A I) I := by
     exact (transferFromFromBalanceWord_initState_eq_uniswapCodeOwnerStorageWord
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       hcanonFrom).symm
   have hbalanceEvm :
       (transferFromValueWord I).toNat ≤
@@ -753,47 +753,47 @@ theorem uniswapTransferFromX_allowanceMaxAfterDebit {cA gh bl σ σ₀ A I} {g :
   have hdebit :
       UInt256.sub (uniswapCodeOwnerStorageWord I σ (mapSlot (transferFromFromWord I) ⟨1⟩))
           (transferFromValueWord I) =
-        transferFromBalanceDebitWordMax (initState cA gh bl σ σ₀ g A I) I := by
+        transferFromBalanceDebitWordMax (initState σ σ₀ g A I) I := by
     rw [hbalanceWord]
     apply u256_inj
     rw [usub_toNat hbalance]
     unfold transferFromBalanceDebitWordMax
     rw [ulit_toNat' _ (lt_of_le_of_lt
-      (Nat.sub_le (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat
+      (Nat.sub_le (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat
         (transferFromValueWord I).toNat)
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).val.isLt)]
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).val.isLt)]
   have rd7551 := rd7551₀
   rw [hdebit] at rd7551
   exact ⟨_, _, rd7551⟩
 
 /-- Chained max-allowance success prefix for `transferFrom(address,address,uint256)`, through the
     sender-balance `SSTORE` in the shared `_transfer` routine. -/
-theorem uniswapTransferFromX_allowanceMaxAfterSenderStore {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapTransferFromX_allowanceMaxAfterSenderStore {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hmax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat =
+    (hmax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat =
       UInt256.size - 1)
     (hbalance : (transferFromValueWord I).toNat ≤
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7582⟩
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7582⟩
       (⟨0⟩ :: solcAddrMask :: ⟨64⟩ :: transferFromValueWord I :: transferFromToWord I ::
         transferFromFromWord I :: ⟨3082⟩ :: ⟨0⟩ :: transferFromValueWord I ::
         transferFromToWord I :: transferFromFromWord I :: ⟨797⟩ :: [sel])
       (uniswapTransferDebitHashMemOf (transferFromFromWord I)
         (uniswapApproveHashMem (transferFromFromWord I) (uniswapSourceWord I)))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ (mapSlot (transferFromFromWord I) ⟨1⟩)
-        (transferFromBalanceDebitWordMax (initState cA gh bl σ σ₀ g A I) I)) k C := by
+      (sstoreAccountMap I.codeOwner σ (mapSlot (transferFromFromWord I) ⟨1⟩)
+        (transferFromBalanceDebitWordMax (initState σ σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd7551⟩ := uniswapTransferFromX_allowanceMaxAfterDebit
     hsz100 hsize hcanonFrom hcanonTo hmax hbalance hreach
   obtain ⟨_, _, rd7582⟩ := RD.uniswapTransferInternalStoreDebitMem
-    (debit := transferFromBalanceDebitWordMax (initState cA gh bl σ σ₀ g A I) I)
+    (debit := transferFromBalanceDebitWordMax (initState σ σ₀ g A I) I)
     (value := transferFromValueWord I) (toWord := transferFromToWord I)
     (src := transferFromFromWord I) (ret := ⟨3082⟩)
     (R := ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I ::
@@ -836,25 +836,25 @@ theorem transferFromNewToWordMax_toNat (evm : EVM.State) (I : ExecutionEnv)
 
 /-- Chained finite-allowance success prefix for `transferFrom(address,address,uint256)`, through
     the recipient-balance checked addition in the shared `_transfer` routine. -/
-theorem uniswapTransferFromX_allowanceFiniteAfterCreditCalc {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapTransferFromX_allowanceFiniteAfterCreditCalc {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hnotMax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat ≠
+    (hnotMax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat ≠
       UInt256.size - 1)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord (transferFromAfterAllowanceState
-        (initState cA gh bl σ σ₀ g A I) I) I).toNat)
-    (hfit : transferFromNewToNat (initState cA gh bl σ σ₀ g A I) I < UInt256.size)
+        (initState σ σ₀ g A I) I) I).toNat)
+    (hfit : transferFromNewToNat (initState σ σ₀ g A I) I < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7604⟩
-      (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I ::
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7604⟩
+      (transferFromNewToWord (initState σ σ₀ g A I) I ::
         transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ ::
         ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
         ⟨797⟩ :: [sel])
@@ -862,19 +862,19 @@ theorem uniswapTransferFromX_allowanceFiniteAfterCreditCalc {cA gh bl σ σ₀ A
         (uniswapTransferFromAllowanceStoreMemOf (transferFromFromWord I) (uniswapSourceWord I)
           (uniswapTransferFromAllowanceStoreMem (transferFromFromWord I) (uniswapSourceWord I))))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ
           (mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩))
-          (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I))
+          (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I))
         (mapSlot (transferFromFromWord I) ⟨1⟩)
-        (transferFromBalanceDebitWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
+        (transferFromBalanceDebitWord (initState σ σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd7582⟩ := uniswapTransferFromX_allowanceFiniteAfterSenderStore
     hsz100 hsize hperm hcanonFrom hcanonTo hnotMax hallowance hbalance hreach
   let σAllowance := sstoreAccountMap I.codeOwner σ
     (mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩))
-    (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I)
+    (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I)
   let σDebit := sstoreAccountMap I.codeOwner σAllowance (mapSlot (transferFromFromWord I) ⟨1⟩)
-    (transferFromBalanceDebitWord (initState cA gh bl σ σ₀ g A I) I)
+    (transferFromBalanceDebitWord (initState σ σ₀ g A I) I)
   have hfromKeyWord : keyValueToWord (transferFromFromKey I) = transferFromFromWord I := by
     unfold transferFromFromKey
     exact keyValueToWord_address_of_canonical _ hcanonFrom
@@ -887,25 +887,25 @@ theorem uniswapTransferFromX_allowanceFiniteAfterCreditCalc {cA gh bl σ σ₀ A
   have htoSlot : transferFromToSlot I = mapSlot (transferFromToWord I) ⟨1⟩ := by
     unfold transferFromToSlot balanceOfSlot
     rw [htoKeyWord]
-  have hallowanceSlot : transferFromAllowanceSlot (initState cA gh bl σ σ₀ g A I) I =
+  have hallowanceSlot : transferFromAllowanceSlot (initState σ σ₀ g A I) I =
       mapSlot (uniswapSourceWord I) (mapSlot (transferFromFromWord I) ⟨2⟩) := by
-    exact transferFromAllowanceSlot_eq_mapSlot (initState cA gh bl σ σ₀ g A I) I hcanonFrom
+    exact transferFromAllowanceSlot_eq_mapSlot (initState σ σ₀ g A I) I hcanonFrom
   have hallowanceMap :
-      (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I).accountMap =
+      (transferFromAfterAllowanceState (initState σ σ₀ g A I) I).accountMap =
         σAllowance := by
     simp only [transferFromAfterAllowanceState, storageStore_accountMap, hallowanceSlot]
     rfl
   have hbalanceMap :
-      (transferFromAfterBalanceState (initState cA gh bl σ σ₀ g A I) I).accountMap =
+      (transferFromAfterBalanceState (initState σ σ₀ g A I) I).accountMap =
         σDebit := by
     simp only [transferFromAfterBalanceState, storageStore_accountMap, hfromSlot]
     rw [hallowanceMap]
     rfl
-  have hinitCodeOwner : (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner =
+  have hinitCodeOwner : (initState σ σ₀ g A I).executionEnv.codeOwner =
       I.codeOwner := rfl
   have htoBalanceWord :
       uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferFromToWord I) ⟨1⟩) =
-        transferFromToBalanceWord (initState cA gh bl σ σ₀ g A I) I := by
+        transferFromToBalanceWord (initState σ σ₀ g A I) I := by
     unfold uniswapCodeOwnerStorageWord transferFromToBalanceWord Solm.EVM.storageLoad
     rw [hinitCodeOwner]
     simp [State.lookupAccount, Account.lookupStorage, hbalanceMap, htoSlot]
@@ -927,7 +927,7 @@ theorem uniswapTransferFromX_allowanceFiniteAfterCreditCalc {cA gh bl σ σ₀ A
   have hnew :
       uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferFromToWord I) ⟨1⟩) +
           transferFromValueWord I =
-        transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I := by
+        transferFromNewToWord (initState σ σ₀ g A I) I := by
     apply u256_inj
     rw [uadd_toNat, Nat.mod_eq_of_lt hfitWord, htoBalanceWord,
       transferFromNewToWord_toNat _ _ hfit]
@@ -938,34 +938,34 @@ theorem uniswapTransferFromX_allowanceFiniteAfterCreditCalc {cA gh bl σ σ₀ A
 
 /-- Chained max-allowance success prefix for `transferFrom(address,address,uint256)`, through the
     recipient-balance checked addition in the shared `_transfer` routine. -/
-theorem uniswapTransferFromX_allowanceMaxAfterCreditCalc {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapTransferFromX_allowanceMaxAfterCreditCalc {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hmax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat =
+    (hmax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat =
       UInt256.size - 1)
     (hbalance : (transferFromValueWord I).toNat ≤
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
-    (hfit : transferFromNewToNatMax (initState cA gh bl σ σ₀ g A I) I < UInt256.size)
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
+    (hfit : transferFromNewToNatMax (initState σ σ₀ g A I) I < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7604⟩
-      (transferFromNewToWordMax (initState cA gh bl σ σ₀ g A I) I ::
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7604⟩
+      (transferFromNewToWordMax (initState σ σ₀ g A I) I ::
         transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ ::
         ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
         ⟨797⟩ :: [sel])
       (uniswapTransferToHashMemOf (transferFromFromWord I) (transferFromToWord I)
         (uniswapApproveHashMem (transferFromFromWord I) (uniswapSourceWord I)))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ (mapSlot (transferFromFromWord I) ⟨1⟩)
-        (transferFromBalanceDebitWordMax (initState cA gh bl σ σ₀ g A I) I)) k C := by
+      (sstoreAccountMap I.codeOwner σ (mapSlot (transferFromFromWord I) ⟨1⟩)
+        (transferFromBalanceDebitWordMax (initState σ σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd7582⟩ := uniswapTransferFromX_allowanceMaxAfterSenderStore
     hsz100 hsize hperm hcanonFrom hcanonTo hmax hbalance hreach
   let σDebit := sstoreAccountMap I.codeOwner σ (mapSlot (transferFromFromWord I) ⟨1⟩)
-    (transferFromBalanceDebitWordMax (initState cA gh bl σ σ₀ g A I) I)
+    (transferFromBalanceDebitWordMax (initState σ σ₀ g A I) I)
   have hfromKeyWord : keyValueToWord (transferFromFromKey I) = transferFromFromWord I := by
     unfold transferFromFromKey
     exact keyValueToWord_address_of_canonical _ hcanonFrom
@@ -980,7 +980,7 @@ theorem uniswapTransferFromX_allowanceMaxAfterCreditCalc {cA gh bl σ σ₀ A I}
     rw [htoKeyWord]
   have htoBalanceWord :
       uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferFromToWord I) ⟨1⟩) =
-        transferFromToBalanceWordMax (initState cA gh bl σ σ₀ g A I) I := by
+        transferFromToBalanceWordMax (initState σ σ₀ g A I) I := by
     simp [σDebit, uniswapCodeOwnerStorageWord, transferFromToBalanceWordMax,
       transferFromAfterBalanceStateMax, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, storageStore_accountMap, hfromSlot, htoSlot]
@@ -999,7 +999,7 @@ theorem uniswapTransferFromX_allowanceMaxAfterCreditCalc {cA gh bl σ σ₀ A I}
   have hnew :
       uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferFromToWord I) ⟨1⟩) +
           transferFromValueWord I =
-        transferFromNewToWordMax (initState cA gh bl σ σ₀ g A I) I := by
+        transferFromNewToWordMax (initState σ σ₀ g A I) I := by
     apply u256_inj
     rw [uadd_toNat, Nat.mod_eq_of_lt hfitWord, htoBalanceWord,
       transferFromNewToWordMax_toNat _ _ hfit]
@@ -1010,21 +1010,21 @@ theorem uniswapTransferFromX_allowanceMaxAfterCreditCalc {cA gh bl σ σ₀ A I}
 
 /-- Chained max-allowance success prefix for `transferFrom(address,address,uint256)`, through the
     recipient-balance `SSTORE` in the shared `_transfer` routine. -/
-theorem uniswapTransferFromX_allowanceMaxAfterCreditStore {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapTransferFromX_allowanceMaxAfterCreditStore {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hmax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat =
+    (hmax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat =
       UInt256.size - 1)
     (hbalance : (transferFromValueWord I).toNat ≤
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
-    (hfit : transferFromNewToNatMax (initState cA gh bl σ σ₀ g A I) I < UInt256.size)
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
+    (hfit : transferFromNewToNatMax (initState σ σ₀ g A I) I < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨7638⟩
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨7638⟩
       (⟨64⟩ :: transferFromToWord I :: solcAddrMask :: ⟨32⟩ :: transferFromValueWord I ::
         transferFromToWord I :: transferFromFromWord I :: ⟨3082⟩ :: ⟨0⟩ ::
         transferFromValueWord I :: transferFromToWord I :: transferFromFromWord I ::
@@ -1032,15 +1032,15 @@ theorem uniswapTransferFromX_allowanceMaxAfterCreditStore {cA gh bl σ σ₀ A I
       (uniswapTransferCreditHashMemOf (transferFromFromWord I) (transferFromToWord I)
         (uniswapApproveHashMem (transferFromFromWord I) (uniswapSourceWord I)))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (mapSlot (transferFromFromWord I) ⟨1⟩)
-          (transferFromBalanceDebitWordMax (initState cA gh bl σ σ₀ g A I) I))
+          (transferFromBalanceDebitWordMax (initState σ σ₀ g A I) I))
         (mapSlot (transferFromToWord I) ⟨1⟩)
-        (transferFromNewToWordMax (initState cA gh bl σ σ₀ g A I) I)) k C := by
+        (transferFromNewToWordMax (initState σ σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd7604⟩ := uniswapTransferFromX_allowanceMaxAfterCreditCalc
     hsz100 hsize hperm hcanonFrom hcanonTo hmax hbalance hfit hreach
   obtain ⟨_, _, rd7638⟩ := RD.uniswapTransferInternalStoreCreditMem
-    (newTo := transferFromNewToWordMax (initState cA gh bl σ σ₀ g A I) I)
+    (newTo := transferFromNewToWordMax (initState σ σ₀ g A I) I)
     (value := transferFromValueWord I) (toWord := transferFromToWord I)
     (src := transferFromFromWord I) (ret := ⟨3082⟩)
     (R := ⟨0⟩ :: transferFromValueWord I :: transferFromToWord I ::
@@ -1051,32 +1051,32 @@ theorem uniswapTransferFromX_allowanceMaxAfterCreditStore {cA gh bl σ σ₀ A I
 
 /-- Chained max-allowance success prefix for `transferFrom(address,address,uint256)`, through the
     shared `_transfer` event emission back to the `transferFrom` continuation. -/
-theorem uniswapTransferFromX_allowanceMaxAfterTransferEvent {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapTransferFromX_allowanceMaxAfterTransferEvent {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hmax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat =
+    (hmax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat =
       UInt256.size - 1)
     (hbalance : (transferFromValueWord I).toNat ≤
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
-    (hfit : transferFromNewToNatMax (initState cA gh bl σ σ₀ g A I) I < UInt256.size)
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
+    (hfit : transferFromNewToNatMax (initState σ σ₀ g A I) I < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3082⟩
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD uniswapV2PairBytecode I g (initState σ σ₀ g A I) ⟨3082⟩
       (⟨0⟩ :: transferFromValueWord I :: transferFromToWord I ::
         transferFromFromWord I :: ⟨797⟩ :: [sel])
       (uniswapTransferLogMemOf (transferFromFromWord I) (transferFromToWord I)
         (transferFromValueWord I)
         (uniswapApproveHashMem (transferFromFromWord I) (uniswapSourceWord I)))
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (mapSlot (transferFromFromWord I) ⟨1⟩)
-          (transferFromBalanceDebitWordMax (initState cA gh bl σ σ₀ g A I) I))
+          (transferFromBalanceDebitWordMax (initState σ σ₀ g A I) I))
         (mapSlot (transferFromToWord I) ⟨1⟩)
-        (transferFromNewToWordMax (initState cA gh bl σ σ₀ g A I) I)) k C := by
+        (transferFromNewToWordMax (initState σ σ₀ g A I) I)) k C := by
   obtain ⟨_, _, rd7638⟩ := uniswapTransferFromX_allowanceMaxAfterCreditStore
     hsz100 hsize hperm hcanonFrom hcanonTo hmax hbalance hfit hreach
   obtain ⟨_, _, rd3082⟩ := RD.uniswapTransferInternalEmitAndJumpMem
@@ -1091,25 +1091,25 @@ theorem uniswapTransferFromX_allowanceMaxAfterTransferEvent {cA gh bl σ σ₀ A
 
 /-- Successful EVM max-allowance path for `transferFrom(address,address,uint256)`, including the
     shared `_transfer` event emission, transferFrom continuation, and boolean return wrapper. -/
-theorem uniswapX_transferFrom_maxAllowance {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapX_transferFrom_maxAllowance {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hmax : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat =
+    (hmax : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat =
       UInt256.size - 1)
     (hbalance : (transferFromValueWord I).toNat ≤
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
-    (hfit : transferFromNewToNatMax (initState cA gh bl σ σ₀ g A I) I < UInt256.size)
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
+    (hfit : transferFromNewToNatMax (initState σ σ₀ g A I) I < UInt256.size)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner
+      (initState σ σ₀ g A I) ⟨879⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (mapSlot (transferFromFromWord I) ⟨1⟩)
-          (transferFromBalanceDebitWordMax (initState cA gh bl σ σ₀ g A I) I))
+          (transferFromBalanceDebitWordMax (initState σ σ₀ g A I) I))
         (mapSlot (transferFromToWord I) ⟨1⟩)
-        (transferFromNewToWordMax (initState cA gh bl σ σ₀ g A I) I))
+        (transferFromNewToWordMax (initState σ σ₀ g A I) I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, rd3082⟩ := uniswapTransferFromX_allowanceMaxAfterTransferEvent
     hsz100 hsize hperm hcanonFrom hcanonTo hmax hbalance hfit hreach

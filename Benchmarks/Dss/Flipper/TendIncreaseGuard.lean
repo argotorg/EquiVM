@@ -82,134 +82,134 @@ theorem tendLocalsBidOneBegBid_get_beg (σ : AccountMap) (I : ExecutionEnv) :
     (tendLocalsBidOneBegBid σ I).get? "beg" = none := by
   rw [tendLocalsBidOneBegBid, store_get_ne _ _ (by decide), tendLocalsBidOne_get_beg]
 
-theorem evalExpr_tendBidOneMul_ok {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_tendBidOneMul_ok {σ σ₀ A I} {g : Sat256}
     (hfit : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := tendLocals I }
-      (initState cA gh bl σ σ₀ g A I) (mul256 (.var "bid") (.intLit ONE)) =
+      (initState σ σ₀ g A I) (mul256 (.var "bid") (.intLit ONE)) =
         .ok (.int (Int.ofNat (tendBidOneWord I).toNat)) := by
   have hbid :=
-    evalExpr_varUInt256 (evm := initState cA gh bl σ σ₀ g A I)
+    evalExpr_varUInt256 (evm := initState σ σ₀ g A I)
       (locals := tendLocals I) (name := "bid") (value := tendBid I)
       (tendLocals_get_bid I)
   exact evalExpr_mul256_ok hbid evalExpr_flipperONE rfl hfit
 
-theorem evalExpr_tendBidOneMul_revert {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_tendBidOneMul_revert {σ σ₀ A I} {g : Sat256}
     (hover : UInt256.size ≤ (tendBid I).toNat * flipperONEWord.toNat) :
     evalExpr? config { contract := contract, locals := tendLocals I }
-      (initState cA gh bl σ σ₀ g A I) (mul256 (.var "bid") (.intLit ONE)) =
+      (initState σ σ₀ g A I) (mul256 (.var "bid") (.intLit ONE)) =
         .revert := by
   have hbid :=
-    evalExpr_varUInt256 (evm := initState cA gh bl σ σ₀ g A I)
+    evalExpr_varUInt256 (evm := initState σ σ₀ g A I)
       (locals := tendLocals I) (name := "bid") (value := tendBid I)
       (tendLocals_get_bid I)
   exact evalExpr_mul256_revert hbid evalExpr_flipperONE hover
 
-theorem evalExpr_tendBidOneRequire_ok {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_tendBidOneRequire_ok {σ σ₀ A I} {g : Sat256}
     (hfit : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := tendLocalsBidOne I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .or
         (.binary .eq (.intLit ONE) (.intLit 0))
         (.binary .eq (.binary .div (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
         .ok (.bool true) := by
   have hbid :=
-    evalExpr_varUInt256 (evm := initState cA gh bl σ σ₀ g A I)
+    evalExpr_varUInt256 (evm := initState σ σ₀ g A I)
       (locals := tendLocalsBidOne I) (name := "bid") (value := tendBid I)
       (tendLocalsBidOne_get_bid I)
   have hbidOne :=
-    evalExpr_varUInt256 (evm := initState cA gh bl σ σ₀ g A I)
+    evalExpr_varUInt256 (evm := initState σ σ₀ g A I)
       (locals := tendLocalsBidOne I) (name := "bidOne") (value := tendBidOneWord I)
       (tendLocalsBidOne_get_bidOne I)
   exact evalExpr_checkedMulRequire_ok hbid evalExpr_flipperONE hbidOne rfl hfit
 
-theorem evalExpr_tendBegBidMul_ok {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_tendBegBidMul_ok {σ σ₀ A I} {g : Sat256}
     (hfit :
       (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := tendLocalsBidOne I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (mul256 (.storage begRef) (.storage (bidsF (.var "id") "bid"))) =
         .ok (.int (Int.ofNat (tendBegBidWord σ I).toNat)) := by
-  have hbeg := evalExpr_flipperBeg_of_get (cA := cA) (gh := gh) (bl := bl)
+  have hbeg := evalExpr_flipperBeg_of_get
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (locals := tendLocalsBidOne I) (tendLocalsBidOne_get_beg I)
-  have hbid := evalExpr_bidBid_of_get_id (cA := cA) (gh := gh) (bl := bl)
+  have hbid := evalExpr_bidBid_of_get_id
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (locals := tendLocalsBidOne I) (id := tendId I)
     (tendLocalsBidOne_get_id I) (tendLocalsBidOne_get_bids I)
   exact evalExpr_mul256_ok hbeg hbid rfl hfit
 
-theorem evalExpr_tendBegBidMul_revert {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_tendBegBidMul_revert {σ σ₀ A I} {g : Sat256}
     (hover :
       UInt256.size ≤ (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat) :
     evalExpr? config { contract := contract, locals := tendLocalsBidOne I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (mul256 (.storage begRef) (.storage (bidsF (.var "id") "bid"))) =
         .revert := by
-  have hbeg := evalExpr_flipperBeg_of_get (cA := cA) (gh := gh) (bl := bl)
+  have hbeg := evalExpr_flipperBeg_of_get
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (locals := tendLocalsBidOne I) (tendLocalsBidOne_get_beg I)
-  have hbid := evalExpr_bidBid_of_get_id (cA := cA) (gh := gh) (bl := bl)
+  have hbid := evalExpr_bidBid_of_get_id
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (locals := tendLocalsBidOne I) (id := tendId I)
     (tendLocalsBidOne_get_id I) (tendLocalsBidOne_get_bids I)
   exact evalExpr_mul256_revert hbeg hbid hover
 
-theorem evalExpr_tendBegBidRequire_ok {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_tendBegBidRequire_ok {σ σ₀ A I} {g : Sat256}
     (hfit :
       (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .or
         (.binary .eq (.storage (bidsF (.var "id") "bid")) (.intLit 0))
         (.binary .eq (.binary .div (.var "begBid")
           (.storage (bidsF (.var "id") "bid"))) (.storage begRef))) =
         .ok (.bool true) := by
-  have hbeg := evalExpr_flipperBeg_of_get (cA := cA) (gh := gh) (bl := bl)
+  have hbeg := evalExpr_flipperBeg_of_get
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (locals := tendLocalsBidOneBegBid σ I) (tendLocalsBidOneBegBid_get_beg σ I)
-  have hbid := evalExpr_bidBid_of_get_id (cA := cA) (gh := gh) (bl := bl)
+  have hbid := evalExpr_bidBid_of_get_id
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (locals := tendLocalsBidOneBegBid σ I) (id := tendId I)
     (tendLocalsBidOneBegBid_get_id σ I) (tendLocalsBidOneBegBid_get_bids σ I)
   have hbegBid :=
-    evalExpr_varUInt256 (evm := initState cA gh bl σ σ₀ g A I)
+    evalExpr_varUInt256 (evm := initState σ σ₀ g A I)
       (locals := tendLocalsBidOneBegBid σ I) (name := "begBid")
       (value := tendBegBidWord σ I) (tendLocalsBidOneBegBid_get_begBid σ I)
   exact evalExpr_checkedMulRequire_ok hbeg hbid hbegBid rfl hfit
 
-theorem evalExpr_tendIncreaseRequire_false {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_tendIncreaseRequire_false {σ σ₀ A I} {g : Sat256}
     (hlt : (tendBidOneWord I).toNat < (tendBegBidWord σ I).toNat)
     (htab : tendBid I ≠ bidTabWord (tendId I) σ I) :
     evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .or
         (.binary .ge (.var "bidOne") (.var "begBid"))
         (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab")))) =
         .ok (.bool false) := by
   have hbidOne :=
-    evalExpr_varUInt256 (evm := initState cA gh bl σ σ₀ g A I)
+    evalExpr_varUInt256 (evm := initState σ σ₀ g A I)
       (locals := tendLocalsBidOneBegBid σ I) (name := "bidOne")
       (value := tendBidOneWord I) (tendLocalsBidOneBegBid_get_bidOne σ I)
   have hbegBid :=
-    evalExpr_varUInt256 (evm := initState cA gh bl σ σ₀ g A I)
+    evalExpr_varUInt256 (evm := initState σ σ₀ g A I)
       (locals := tendLocalsBidOneBegBid σ I) (name := "begBid")
       (value := tendBegBidWord σ I) (tendLocalsBidOneBegBid_get_begBid σ I)
   have hbid :=
-    evalExpr_varUInt256 (evm := initState cA gh bl σ σ₀ g A I)
+    evalExpr_varUInt256 (evm := initState σ σ₀ g A I)
       (locals := tendLocalsBidOneBegBid σ I) (name := "bid")
       (value := tendBid I) (tendLocalsBidOneBegBid_get_bid σ I)
-  have htabEval := evalExpr_bidTab_of_get_id (cA := cA) (gh := gh) (bl := bl)
+  have htabEval := evalExpr_bidTab_of_get_id
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (locals := tendLocalsBidOneBegBid σ I) (id := tendId I)
     (tendLocalsBidOneBegBid_get_id σ I) (tendLocalsBidOneBegBid_get_bids σ I)
   have hleft :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-        (initState cA gh bl σ σ₀ g A I)
+        (initState σ σ₀ g A I)
         (.binary .ge (.var "bidOne") (.var "begBid")) = .ok (.bool false) :=
     evalExpr_ge_uint256_false hbidOne hbegBid hlt
   have hright :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-        (initState cA gh bl σ σ₀ g A I)
+        (initState σ σ₀ g A I)
         (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
           .ok (.bool false) := by
     apply evalExpr_eq_int_false hbid htabEval
@@ -218,39 +218,39 @@ theorem evalExpr_tendIncreaseRequire_false {cA gh bl σ σ₀ A I} {g : Sat256}
   exact evalExpr_or_false_right hleft hright
 
 set_option maxHeartbeats 1000000 in
-theorem flipperTendSourceBodyBidOneOverflow {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperTendSourceBodyBidOneOverflow {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hguy : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
     (hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
           (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
           .ok (.bool true))
     (hendGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
           .ok (.bool true))
     (hlotGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .eq (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
           .ok (.bool true))
     (htabGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .le (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
           .ok (.bool true))
     (hbidGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
           .ok (.bool true))
     (hover : UInt256.size ≤ (tendBid I).toNat * flipperONEWord.toNat) :
     let locals := tendLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
   intro locals evm0
   have hguyGuard :
@@ -258,13 +258,13 @@ theorem flipperTendSourceBodyBidOneOverflow {cA gh bl σ σ₀ A I} {g : UInt256
         (.binary .ne (.storage (bidsF (.var "id") "guy")) zeroAddr) =
           .ok (.bool true) := by
     simpa [locals, evm0] using
-      evalExpr_tendGuyNeZero_true (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendGuyNeZero_true
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hguy
   have hmulRev :
       evalExpr? config { contract := contract, locals := locals } evm0
         (mul256 (.var "bid") (.intLit ONE)) = .revert := by
     dsimp [locals, evm0]
-    exact evalExpr_tendBidOneMul_revert (cA := cA) (gh := gh) (bl := bl)
+    exact evalExpr_tendBidOneMul_revert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hover
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 tendTransition.body
@@ -283,41 +283,41 @@ theorem flipperTendSourceBodyBidOneOverflow {cA gh bl σ σ₀ A I} {g : UInt256
     ExecFuncBody.execBlockRevert hblock
 
 set_option maxHeartbeats 1000000 in
-theorem flipperTendSourceBodyBegBidOverflow {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperTendSourceBodyBegBidOverflow {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hguy : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
     (hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
           (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
           .ok (.bool true))
     (hendGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
           .ok (.bool true))
     (hlotGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .eq (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
           .ok (.bool true))
     (htabGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .le (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
           .ok (.bool true))
     (hbidGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
           .ok (.bool true))
     (hfitBid : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size)
     (hoverBeg :
       UInt256.size ≤ (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat) :
     let locals := tendLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
   intro locals evm0
   have hguyGuard :
@@ -325,14 +325,14 @@ theorem flipperTendSourceBodyBegBidOverflow {cA gh bl σ σ₀ A I} {g : UInt256
         (.binary .ne (.storage (bidsF (.var "id") "guy")) zeroAddr) =
           .ok (.bool true) := by
     simpa [locals, evm0] using
-      evalExpr_tendGuyNeZero_true (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendGuyNeZero_true
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hguy
   have hmulBid :
       evalExpr? config { contract := contract, locals := locals } evm0
         (mul256 (.var "bid") (.intLit ONE)) =
           .ok (.int (Int.ofNat (tendBidOneWord I).toNat)) := by
     dsimp [locals, evm0]
-    exact evalExpr_tendBidOneMul_ok (cA := cA) (gh := gh) (bl := bl)
+    exact evalExpr_tendBidOneMul_ok
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hfitBid
   have hreqBid :
       evalExpr? config { contract := contract, locals := tendLocalsBidOne I } evm0
@@ -341,13 +341,13 @@ theorem flipperTendSourceBodyBegBidOverflow {cA gh bl σ σ₀ A I} {g : UInt256
           (.binary .eq (.binary .div (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
           .ok (.bool true) := by
     simpa [evm0] using
-      evalExpr_tendBidOneRequire_ok (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendBidOneRequire_ok
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hfitBid
   have hmulBegRev :
       evalExpr? config { contract := contract, locals := tendLocalsBidOne I } evm0
         (mul256 (.storage begRef) (.storage (bidsF (.var "id") "bid"))) = .revert := by
     dsimp [evm0]
-    exact evalExpr_tendBegBidMul_revert (cA := cA) (gh := gh) (bl := bl)
+    exact evalExpr_tendBegBidMul_revert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hoverBeg
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 tendTransition.body
@@ -368,34 +368,34 @@ theorem flipperTendSourceBodyBegBidOverflow {cA gh bl σ σ₀ A I} {g : UInt256
     ExecFuncBody.execBlockRevert hblock
 
 set_option maxHeartbeats 1000000 in
-theorem flipperTendSourceBodyInsufficientIncrease {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperTendSourceBodyInsufficientIncrease {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hguy : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
     (hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
           (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
           .ok (.bool true))
     (hendGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
           .ok (.bool true))
     (hlotGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .eq (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
           .ok (.bool true))
     (htabGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .le (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
           .ok (.bool true))
     (hbidGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
           .ok (.bool true))
     (hfitBid : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size)
@@ -404,7 +404,7 @@ theorem flipperTendSourceBodyInsufficientIncrease {cA gh bl σ σ₀ A I} {g : U
     (hlt : (tendBidOneWord I).toNat < (tendBegBidWord σ I).toNat)
     (htab : tendBid I ≠ bidTabWord (tendId I) σ I) :
     let locals := tendLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
   intro locals evm0
   have hguyGuard :
@@ -412,14 +412,14 @@ theorem flipperTendSourceBodyInsufficientIncrease {cA gh bl σ σ₀ A I} {g : U
         (.binary .ne (.storage (bidsF (.var "id") "guy")) zeroAddr) =
           .ok (.bool true) := by
     simpa [locals, evm0] using
-      evalExpr_tendGuyNeZero_true (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendGuyNeZero_true
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hguy
   have hmulBid :
       evalExpr? config { contract := contract, locals := locals } evm0
         (mul256 (.var "bid") (.intLit ONE)) =
           .ok (.int (Int.ofNat (tendBidOneWord I).toNat)) := by
     dsimp [locals, evm0]
-    exact evalExpr_tendBidOneMul_ok (cA := cA) (gh := gh) (bl := bl)
+    exact evalExpr_tendBidOneMul_ok
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hfitBid
   have hreqBid :
       evalExpr? config { contract := contract, locals := tendLocalsBidOne I } evm0
@@ -428,14 +428,14 @@ theorem flipperTendSourceBodyInsufficientIncrease {cA gh bl σ σ₀ A I} {g : U
           (.binary .eq (.binary .div (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
           .ok (.bool true) := by
     simpa [evm0] using
-      evalExpr_tendBidOneRequire_ok (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendBidOneRequire_ok
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hfitBid
   have hmulBeg :
       evalExpr? config { contract := contract, locals := tendLocalsBidOne I } evm0
         (mul256 (.storage begRef) (.storage (bidsF (.var "id") "bid"))) =
           .ok (.int (Int.ofNat (tendBegBidWord σ I).toNat)) := by
     dsimp [evm0]
-    exact evalExpr_tendBegBidMul_ok (cA := cA) (gh := gh) (bl := bl)
+    exact evalExpr_tendBegBidMul_ok
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hfitBeg
   have hreqBeg :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
@@ -445,7 +445,7 @@ theorem flipperTendSourceBodyInsufficientIncrease {cA gh bl σ σ₀ A I} {g : U
             (.storage (bidsF (.var "id") "bid"))) (.storage begRef))) =
           .ok (.bool true) := by
     simpa [evm0] using
-      evalExpr_tendBegBidRequire_ok (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendBegBidRequire_ok
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hfitBeg
   have hinc :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
@@ -454,7 +454,7 @@ theorem flipperTendSourceBodyInsufficientIncrease {cA gh bl σ σ₀ A I} {g : U
           (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab")))) =
           .ok (.bool false) := by
     simpa [evm0] using
-      evalExpr_tendIncreaseRequire_false (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendIncreaseRequire_false
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hlt htab
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 tendTransition.body
@@ -477,23 +477,23 @@ theorem flipperTendSourceBodyInsufficientIncrease {cA gh bl σ σ₀ A I} {g : U
     tendLocalsBidOneBegBid] using
     ExecFuncBody.execBlockRevert hblock
 
-theorem flipperTendX_begBidCheckedMulCall {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_begBidCheckedMulCall {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (h : RD flipperBytecode I g s0 ⟨3330⟩ [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨6305⟩
       [bidBidWord (tendId I) σ I, tendBegWord σ I, ⟨3358⟩, tendBid I,
         tendLot I, tendId I, ret, sel]
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd3333 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k3333, C3333, rd3333raw⟩ := rd3333.sload (by native_decide) (by evm_ov)
   have rd3334 : RD flipperBytecode I g s0 ⟨3334⟩
       [tendBegWord σ I, tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3333 C3333 := by
+      mem (UInt256.ofNat 3) ByteArray.empty σ k3333 C3333 := by
     simpa [tendBegWord, flipperSlotWord] using rd3333raw
   have rd3348 := evm_run rd3334 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -517,7 +517,7 @@ theorem flipperTendX_begBidCheckedMulCall {cA σ I} {g : Sat256} {s0 : State}
       [bidBidWord (tendId I) σ I, tendBegWord σ I, tendBid I,
         tendLot I, tendId I, ret, sel]
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3348 C3348 := by
+      (UInt256.ofNat 3) ByteArray.empty σ k3348 C3348 := by
     simpa [bidBidWord, flipperSlotWord] using rd3348raw
   exact ⟨_, _, evm_run rd3349 with [
     raw push2 ⟨3358⟩ (by native_decide) (by evm_ov),
@@ -526,13 +526,13 @@ theorem flipperTendX_begBidCheckedMulCall {cA σ I} {g : Sat256} {s0 : State}
     raw push2 ⟨6305⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]⟩
 
-theorem flipperTendX_begBidOverflow {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_begBidOverflow {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hover :
       UInt256.size ≤ (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat)
     (h : RD flipperBytecode I g s0 ⟨3330⟩ [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd6305⟩ := flipperTendX_begBidCheckedMulCall hmemSize h
   exact flipperCheckedMulRevert (ret := ⟨3358⟩) (x := tendBegWord σ I)
@@ -540,17 +540,17 @@ theorem flipperTendX_begBidOverflow {cA σ I} {g : Sat256} {s0 : State}
     (R := [tendBid I, tendLot I, tendId I, ret, sel])
     (by simp) hover rd6305
 
-theorem flipperTendX_afterBegBidOk {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_afterBegBidOk {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hfit :
       (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat < UInt256.size)
     (h : RD flipperBytecode I g s0 ⟨3330⟩ [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨3358⟩
       [tendBegBidWord σ I, tendBid I, tendLot I, tendId I, ret, sel]
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd6305⟩ := flipperTendX_begBidCheckedMulCall hmemSize h
   obtain ⟨_, _, rd3358⟩ := flipperCheckedMulOk
     (ret := ⟨3358⟩) (x := tendBegWord σ I)
@@ -559,15 +559,15 @@ theorem flipperTendX_afterBegBidOk {cA σ I} {g : Sat256} {s0 : State}
     (by native_decide) (by simp) hfit rd6305
   exact ⟨_, _, by simpa [tendBegBidWord] using rd3358⟩
 
-theorem flipperTendX_bidOneCheckedMulCall {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_bidOneCheckedMulCall {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (h : RD flipperBytecode I g s0 ⟨3358⟩
       [tendBegBidWord σ I, tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨6305⟩
       [flipperONEWord, tendBid I, ⟨3376⟩, tendBegBidWord σ I, tendBid I,
         tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      mem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd3363 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push2 ⟨3376⟩ (by native_decide) (by evm_ov),
@@ -579,14 +579,14 @@ theorem flipperTendX_bidOneCheckedMulCall {cA σ I} {g : Sat256} {s0 : State}
     raw push2 ⟨6305⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]⟩
 
-theorem flipperTendX_bidOneOverflow {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_bidOneOverflow {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hfitBeg :
       (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat < UInt256.size)
     (hoverBid : UInt256.size ≤ (tendBid I).toNat * flipperONEWord.toNat)
     (h : RD flipperBytecode I g s0 ⟨3330⟩ [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd3358⟩ := flipperTendX_afterBegBidOk hmemSize hfitBeg h
   obtain ⟨_, _, rd6305⟩ := flipperTendX_bidOneCheckedMulCall rd3358
@@ -595,18 +595,18 @@ theorem flipperTendX_bidOneOverflow {cA σ I} {g : Sat256} {s0 : State}
     (R := [tendBegBidWord σ I, tendBid I, tendLot I, tendId I, ret, sel])
     (by simp) hoverBid rd6305
 
-theorem flipperTendX_checkedMulOk {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_checkedMulOk {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hfitBeg :
       (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat < UInt256.size)
     (hfitBid : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size)
     (h : RD flipperBytecode I g s0 ⟨3330⟩ [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨3376⟩
       [tendBidOneWord I, tendBegBidWord σ I, tendBid I, tendLot I, tendId I, ret, sel]
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd3358⟩ := flipperTendX_afterBegBidOk hmemSize hfitBeg h
   obtain ⟨_, _, rd6305⟩ := flipperTendX_bidOneCheckedMulCall rd3358
   obtain ⟨_, _, rd3376⟩ := flipperCheckedMulOk
@@ -615,15 +615,15 @@ theorem flipperTendX_checkedMulOk {cA σ I} {g : Sat256} {s0 : State}
     (by native_decide) (by simp) hfitBid rd6305
   exact ⟨_, _, by simpa [tendBidOneWord] using rd3376⟩
 
-theorem flipperTendX_increaseOkByGe {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_increaseOkByGe {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hge : (tendBegBidWord σ I).toNat ≤ (tendBidOneWord I).toNat)
     (h : RD flipperBytecode I g s0 ⟨3376⟩
       [tendBidOneWord I, tendBegBidWord σ I, tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨3486⟩
       [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      mem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd3380 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw lt (by native_decide) (by evm_ov),
@@ -640,18 +640,18 @@ theorem flipperTendX_increaseOkByGe {cA σ I} {g : Sat256} {s0 : State}
     raw push2 ⟨3486⟩ (by native_decide) (by evm_ov),
     raw jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)]⟩
 
-theorem flipperTendX_increaseOkByTab {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_increaseOkByTab {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hlt : (tendBidOneWord I).toNat < (tendBegBidWord σ I).toNat)
     (htab : tendBid I = bidTabWord (tendId I) σ I)
     (h : RD flipperBytecode I g s0 ⟨3376⟩
       [tendBidOneWord I, tendBegBidWord σ I, tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨3486⟩
       [tendBid I, tendLot I, tendId I, ret, sel]
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd3380 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw lt (by native_decide) (by evm_ov),
@@ -687,7 +687,7 @@ theorem flipperTendX_increaseOkByTab {cA σ I} {g : Sat256} {s0 : State}
   have rd3403 : RD flipperBytecode I g s0 ⟨3403⟩
       [bidTabWord (tendId I) σ I, tendBid I, tendLot I, tendId I, ret, sel]
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3399 C3399 := by
+      (UInt256.ofNat 3) ByteArray.empty σ k3399 C3399 := by
     have hslotAdd :
         (⟨5⟩ : UInt256) + bidBaseOfWord (tendId I) = bidSlotOfWord (tendId I) ⟨5⟩ := by
       simpa [bidSlotOfWord] using
@@ -705,7 +705,7 @@ theorem flipperTendX_increaseOkByTab {cA σ I} {g : Sat256} {s0 : State}
     raw push2 ⟨3486⟩ (by native_decide) (by evm_ov),
     raw jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)]⟩
 
-theorem flipperTendX_insufficientIncrease {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_insufficientIncrease {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -713,7 +713,7 @@ theorem flipperTendX_insufficientIncrease {cA σ I} {g : Sat256} {s0 : State}
     (htab : tendBid I ≠ bidTabWord (tendId I) σ I)
     (h : RD flipperBytecode I g s0 ⟨3376⟩
       [tendBidOneWord I, tendBegBidWord σ I, tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   let memTab := twoWordHashMem (tendId I) ⟨1⟩ mem
   have hmemTabSize : memTab.size = 96 := by
@@ -757,7 +757,7 @@ theorem flipperTendX_insufficientIncrease {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨k3399, C3399, rd3399raw⟩ := rd3399.sload (by native_decide) (by evm_ov)
   have rd3403 : RD flipperBytecode I g s0 ⟨3403⟩
       [bidTabWord (tendId I) σ I, tendBid I, tendLot I, tendId I, ret, sel]
-      memTab (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3399 C3399 := by
+      memTab (UInt256.ofNat 3) ByteArray.empty σ k3399 C3399 := by
     have hslotAdd :
         (⟨5⟩ : UInt256) + bidBaseOfWord (tendId I) = bidSlotOfWord (tendId I) ⟨5⟩ := by
       simpa [bidSlotOfWord] using

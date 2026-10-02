@@ -7,7 +7,7 @@ namespace Benchmarks.Dss.Vat
 suppress_compilation
 
 theorem vatFrobSuccessEquivFromFinalState
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmFinal : EVM.State} {finalLocals : Store}
     (hcode : I.code = vatBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some frobTransition)
@@ -15,26 +15,25 @@ theorem vatFrobSuccessEquivFromFinalState
       decodeCalldataWithMode config.abiDecodeMode (frobTransition.params.map Param.name)
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
     (hret : RDret vatBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-      (cA, frobAfterRuntimeFinal σ_evm I) ByteArray.empty)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (frobAfterRuntimeFinal σ I) ByteArray.empty)
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (frobStore I) frobTransition.body
         (.returned { contract := contract, locals := finalLocals } evmFinal none))
-    (hcreated : (cA, frobAfterRuntimeFinal σ_evm I).1 = evmFinal.createdAccounts)
     (haccounts :
-      accountMapEquiv (cA, frobAfterRuntimeFinal σ_evm I).2 evmFinal.accountMap) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      Eq (frobAfterRuntimeFinal σ I) evmFinal.accountMap) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc : returnEquiv ByteArray.empty none frobTransition.returnType := by
     rw [show frobTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-    hcreated haccounts henc
+    haccounts henc
 
 set_option maxHeartbeats 0 in
 theorem vatFrobSuccessEquivFromSourceFinal
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {finalLocals : Store}
     (hsz196 : 196 ≤ I.calldata.size)
     (hcode : I.code = vatBytecode)
@@ -42,47 +41,39 @@ theorem vatFrobSuccessEquivFromSourceFinal
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (frobTransition.params.map Param.name)
         (transitionSignature frobTransition).paramTypes I.calldata = some (frobStore I))
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hret : RDret vatBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-      (cA, frobAfterRuntimeFinal σ_evm I) ByteArray.empty)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (frobAfterRuntimeFinal σ I) ByteArray.empty)
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (frobStore I) frobTransition.body
         (.returned { contract := contract, locals := finalLocals }
-          (frobSourceFinalState cA gh bl σ_solm σ₀ A I g
-            (frobUrnInkNew σ_solm I) (frobUrnArtNew σ_solm I)
-            (frobIlkArtNew σ_solm I) (frobGemNew σ_solm I)
-            (frobDaiNew σ_solm I)) none)) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hcreated :=
-    frobSourceFinalState_createdAccounts (cA := cA) (gh := gh) (bl := bl)
-      (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-      (frobUrnInkNew σ_solm I) (frobUrnArtNew σ_solm I)
-      (frobIlkArtNew σ_solm I) (frobGemNew σ_solm I)
-      (frobDaiNew σ_solm I)
+          (frobSourceFinalState σ σ₀ A I g
+            (frobUrnInkNew σ I) (frobUrnArtNew σ I)
+            (frobIlkArtNew σ I) (frobGemNew σ I)
+            (frobDaiNew σ I)) none)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsourceAccounts :=
-    accountMapEquiv_frobSourceFinalState (cA := cA) (gh := gh) (bl := bl)
-      (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    accountMapEquiv_frobSourceFinalState
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       hsz196
-      (frobUrnInkNew σ_solm I) (frobUrnArtNew σ_solm I)
-      (frobIlkArtNew σ_solm I) (frobGemNew σ_solm I)
-      (frobDaiNew σ_solm I) rfl rfl rfl rfl rfl
+      (frobUrnInkNew σ I) (frobUrnArtNew σ I)
+      (frobIlkArtNew σ I) (frobGemNew σ I)
+      (frobDaiNew σ I) rfl rfl rfl rfl rfl
   exact vatFrobSuccessEquivFromFinalState hcode hdispatch hdecode hret hbody
-    (by simpa using hcreated)
-    (by exact (accountMapEquiv_frobAfterRuntimeFinal hAccounts).trans hsourceAccounts)
+    (by simpa using hsourceAccounts)
 
-theorem vatFrobLiveOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem vatFrobLiveOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
-    (hdecoded : ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2975⟩
+    (hdecoded : ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I) ⟨2975⟩
       [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
         frobUMaskedWord I, frobIWord I, ⟨524⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3045⟩
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I) ⟨3045⟩
       [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
         frobUMaskedWord I, frobIWord I, ⟨524⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := hdecoded
   have hliveSolc : solcSlotWord σ I ⟨10⟩ = ⟨1⟩ := by
     simpa [vatSlotWord] using hlive

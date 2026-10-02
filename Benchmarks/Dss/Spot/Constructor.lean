@@ -52,35 +52,35 @@ theorem spotConstructorCorrect :
       have hslot : wardsSlot (.address I.source) = spotCtorCallerWardsSlot I :=
         spotCtorCallerWardsSlot_eq I
       have hAccountsWards : σWards = evm1s.accountMap := by
-        simpa [σWards, evm1s, evm0s, spotCtorAfterWardsState, initState,
-          storageStore_accountMap, storageStore_executionEnv, hslot] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner (spotCtorCallerWardsSlot I) ⟨1⟩
-            rfl
+        simp [σWards, evm1s, evm0s, spotCtorAfterWardsState, initState,
+          storageStore_accountMap, storageStore_executionEnv, hslot]
       have hOldVat :
           solcSlotWord σWards I ⟨2⟩ =
             Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨2⟩ := by
-        simpa [evm1s, evm0s, spotCtorAfterWardsState, initState, Solm.EVM.storageLoad,
-          State.lookupAccount, Account.lookupStorage, solcSlotWord, storageStore_executionEnv] using
-          accountMapEquiv_storage_findD hAccountsWards I.codeOwner ⟨2⟩ ⟨0⟩
+        unfold solcSlotWord Solm.EVM.storageLoad
+        rw [hAccountsWards]
+        simp [evm1s, evm0s, spotCtorAfterWardsState, initState,
+          State.lookupAccount, Account.lookupStorage, storageStore_executionEnv]
       have hAccountsVat : σVat = evm2s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨2⟩
-          (setAddressOffset0Word
-            (Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨2⟩)
-            (EVM.word vat.val))
-          hAccountsWards
-        simpa [σVat, σWards, evm2s, evm1s, spotCtorAfterVatState, storageStore_accountMap,
-          storageStore_executionEnv, spotCtorVatStored, hOldVat] using hbase
+        have hvalue :
+            spotCtorVatStored σWards I vat =
+              setAddressOffset0Word
+                (Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨2⟩)
+                (EVM.word vat.val) := by
+          unfold spotCtorVatStored
+          rw [hOldVat]
+        simp only [σVat, evm2s, spotCtorAfterVatState, storageStore_accountMap]
+        rw [hvalue, ← hAccountsWards]
+        simp [evm1s, evm0s, spotCtorAfterWardsState, initState,
+          storageStore_executionEnv]
       have hAccountsPar : σPar = evm3s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨3⟩ spotCtorOneWord
-          hAccountsVat
-        simpa [σPar, evm3s, evm2s, evm1s, evm0s, spotCtorAfterParState,
+        simp [σPar, evm3s, evm2s, evm1s, evm0s, spotCtorAfterParState,
           spotCtorAfterVatState, spotCtorAfterWardsState, initState, storageStore_accountMap,
-          storageStore_executionEnv] using hbase
+          storageStore_executionEnv, hAccountsVat]
       have hAccountsLive : σLive = evm4s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨4⟩ ⟨1⟩ hAccountsPar
-        simpa [σLive, evm4s, evm3s, evm2s, evm1s, evm0s, spotCtorAfterLiveState,
+        simp [σLive, evm4s, evm3s, evm2s, evm1s, evm0s, spotCtorAfterLiveState,
           spotCtorAfterParState, spotCtorAfterVatState, spotCtorAfterWardsState, initState,
-          storageStore_accountMap, storageStore_executionEnv] using hbase
+          storageStore_accountMap, storageStore_executionEnv, hAccountsPar]
       refine constructorEquivalenceFor.execution hsuccess
         (by
           simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using
@@ -89,7 +89,7 @@ theorem spotConstructorCorrect :
               (g := g) vat hwv)
         ?_
       refine ctorResultEquiv.success rfl rfl ?_ rfl
-      simpa [evm4s] using hAccountsLive
+      exact hAccountsLive
   · have hrd := spotInitcodeNonpayableRevert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat hcodeCtor hwv

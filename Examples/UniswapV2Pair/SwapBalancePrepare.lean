@@ -6,7 +6,7 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSwapBalance0Prepared
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw ptr token1 token0 scratch1 scratch0 reserve1 reserve0
       dataLen dataPtr toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
     (rd2091 : RD uniswapV2PairBytecode I g s0 ⟨2091⟩
@@ -37,7 +37,7 @@ theorem RD.uniswapSwapBalance0Prepared
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSwapBalance1Prepared
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw ptr newBalance0 token1 token0 scratch1 scratch0 reserve1 reserve0
       dataLen dataPtr toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
     (rd2206 : RD uniswapV2PairBytecode I g s0 ⟨2206⟩
@@ -67,7 +67,7 @@ theorem RD.uniswapSwapBalance1Prepared
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSwapBalancesExit
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw balance1 balance0 token1 token0 scratch1 reserve1 reserve0
       dataLen dataPtr toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
     (rd2324 : RD uniswapV2PairBytecode I g s0 ⟨2324⟩

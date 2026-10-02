@@ -643,17 +643,16 @@ theorem dentTypedCallViaEVM_zero_setSubstate {cfg : Config} {evm evm' : EVM.Stat
         (z,
           { { evm with substate := A0 } with
             accountMap := evm'.accountMap
-            substate := A'
-            createdAccounts := evm'.createdAccounts },
+            substate := A'},
           out) perm := by
   obtain ⟨calldata, henc, hraw⟩ := hcall
   cases hraw with
   | callMade hvalue hTheta hevm' hvalueLe _hdepth =>
-      rename_i valueWord cA' σ' g' A'
+      rename_i valueWord σ' g' A'
       subst evm'
       rcases hTheta with ⟨callGas, A_in, hTheta⟩
       refine ⟨A', ⟨calldata, henc, ?_⟩⟩
-      refine callViaEVM.callMade (valueWord := valueWord) (cA' := cA') (σ' := σ')
+      refine callViaEVM.callMade (valueWord := valueWord) (σ' := σ')
         (g' := g') (A' := A') (perm := perm) hvalue ⟨callGas, A_in, ?_⟩ ?_ ?_ ?_
       · simpa using hTheta
       · rfl

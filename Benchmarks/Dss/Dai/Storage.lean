@@ -102,9 +102,9 @@ macro "dai_single_mapping_getter_wf" : term =>
 
 theorem RD.daiSingleMappingGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc baseSlot key ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD Benchmarks.Dss.Dai.daiBytecode ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : daiSingleMappingGetterWf pc baseSlot)
     (hret : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains ret = true)
     (hov : R.length + 4 ≤ 1024) :
@@ -113,7 +113,7 @@ theorem RD.daiSingleMappingGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
           (fun acc => acc.storage.findD (Benchmarks.Dss.Dai.mapSlot key baseSlot) ⟨0⟩))
         :: ret :: R)
       (Benchmarks.Dss.Dai.daiMappingHashMem baseSlot key)
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   simpa [solcSlotWord, Benchmarks.Dss.Dai.daiMappingHashMem,
     Benchmarks.Dss.Dai.mapSlot, solcMappingSlot] using
       RD.solcSingleMappingGetter h hwf hret hov
@@ -161,9 +161,9 @@ macro "dai_zero_slot_single_mapping_getter_wf" : term =>
 
 theorem RD.daiZeroSlotSingleMappingGetter {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD Benchmarks.Dss.Dai.daiBytecode ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : daiZeroSlotSingleMappingGetterWf pc)
     (hret : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
@@ -172,7 +172,7 @@ theorem RD.daiZeroSlotSingleMappingGetter {g : Sat256} {s0 : State}
           (fun acc => acc.storage.findD (Benchmarks.Dss.Dai.mapSlot key ⟨0⟩) ⟨0⟩))
         :: ret :: R)
       (Benchmarks.Dss.Dai.daiMappingHashMem ⟨0⟩ key)
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
       hd16, hd17⟩
@@ -216,9 +216,9 @@ macro "dai_nested_mapping_getter_wf" : term =>
 theorem RD.daiNestedMappingInnerHash {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ}
     {pc baseSlot owner spender ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD Benchmarks.Dss.Dai.daiBytecode ee g s0 pc (spender :: owner :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : daiNestedMappingGetterWf pc baseSlot)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD Benchmarks.Dss.Dai.daiBytecode ee g s0
@@ -226,7 +226,7 @@ theorem RD.daiNestedMappingInnerHash {g : Sat256} {s0 : State}
       (Benchmarks.Dss.Dai.mapSlot owner baseSlot :: ⟨64⟩ :: ⟨32⟩ :: spender ::
         ⟨0⟩ :: ret :: R)
       (Benchmarks.Dss.Dai.daiMappingHashMem baseSlot owner)
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   simpa [Benchmarks.Dss.Dai.daiMappingHashMem, Benchmarks.Dss.Dai.mapSlot,
     solcMappingSlot] using
       RD.solcNestedMappingInnerHash h hwf hov
@@ -234,13 +234,13 @@ theorem RD.daiNestedMappingInnerHash {g : Sat256} {s0 : State}
 theorem RD.daiNestedMappingOuterHash {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ}
     {pc baseSlot owner spender ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD Benchmarks.Dss.Dai.daiBytecode ee g s0
       (solcNestedMappingGetterAfterInnerHashPc pc)
       (Benchmarks.Dss.Dai.mapSlot owner baseSlot :: ⟨64⟩ :: ⟨32⟩ :: spender ::
         ⟨0⟩ :: ret :: R)
       (Benchmarks.Dss.Dai.daiMappingHashMem baseSlot owner)
-      (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (UInt256.ofNat 3) rdata σ k C)
     (hwf : daiNestedMappingGetterWf pc baseSlot)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD Benchmarks.Dss.Dai.daiBytecode ee g s0
@@ -248,7 +248,7 @@ theorem RD.daiNestedMappingOuterHash {g : Sat256} {s0 : State}
       (Benchmarks.Dss.Dai.mapSlot spender (Benchmarks.Dss.Dai.mapSlot owner baseSlot) ::
         ret :: R)
       (Benchmarks.Dss.Dai.daiNestedMappingHashMem baseSlot owner spender)
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   simpa [Benchmarks.Dss.Dai.daiMappingHashMem,
     Benchmarks.Dss.Dai.daiNestedMappingHashMem, Benchmarks.Dss.Dai.mapSlot,
     solcMappingSlot] using
@@ -257,26 +257,26 @@ theorem RD.daiNestedMappingOuterHash {g : Sat256} {s0 : State}
 theorem RD.daiNestedMappingLoadAndJump {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc baseSlot slot ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD Benchmarks.Dss.Dai.daiBytecode ee g s0
       (solcNestedMappingGetterSloadPc pc) (slot :: ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hwf : daiNestedMappingGetterWf pc baseSlot)
     (hret : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD Benchmarks.Dss.Dai.daiBytecode ee g s0 ret
       ((σ.find? ee.codeOwner |>.option ⟨0⟩
           (fun acc => acc.storage.findD slot ⟨0⟩)) :: ret :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   simpa [solcSlotWord] using
     RD.solcNestedMappingLoadAndJump h hwf hret hov
 
 theorem RD.daiNestedMappingGetter {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ}
     {pc baseSlot owner spender ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD Benchmarks.Dss.Dai.daiBytecode ee g s0 pc (spender :: owner :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : daiNestedMappingGetterWf pc baseSlot)
     (hret : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
@@ -286,7 +286,7 @@ theorem RD.daiNestedMappingGetter {g : Sat256} {s0 : State}
             (Benchmarks.Dss.Dai.mapSlot spender
               (Benchmarks.Dss.Dai.mapSlot owner baseSlot)) ⟨0⟩)) :: ret :: R)
       (Benchmarks.Dss.Dai.daiNestedMappingHashMem baseSlot owner spender)
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨_, _, hinner⟩ := RD.daiNestedMappingInnerHash h hwf hov
   obtain ⟨_, _, houter⟩ := RD.daiNestedMappingOuterHash hinner hwf hov
   obtain ⟨_, _, hload⟩ := RD.daiNestedMappingLoadAndJump houter hwf hret (by omega)
@@ -380,20 +380,20 @@ macro "dai_one_address_external_entry_wf" : term =>
     repeat' first | apply And.intro | native_decide)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.daiOneAddressExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem RD.daiOneAddressExternalLenOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry ret routine : UInt256}
     (hreach : ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : daiOneAddressExternalEntryWf entry ret routine)
     (hdecoded : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains
       (daiOneAddressExternalDecodedPc entry) = true)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
     ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I)
+      (Reasoning.Theory.initState σ σ₀ g A I)
       (daiOneAddressExternalDecodedPc entry)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   rcases hwf with
     ⟨hd0, hd1, hd4, hd6, hd7, hd8, hd9, hd11, hd12, hd13, hd14, hd17, _hd18,
       _hd20, _hd21, _hd22, _hd23, _hd24, _hd25, _hd27, _hd29, _hd31, _hd32,
@@ -404,16 +404,16 @@ theorem RD.daiOneAddressExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel 
 set_option maxHeartbeats 1000000 in
 theorem RD.daiOneAddressExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD Benchmarks.Dss.Dai.daiBytecode ee g s0
       (daiOneAddressExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : daiOneAddressExternalEntryWf entry ret routine)
     (hroutine : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains routine = true)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD Benchmarks.Dss.Dai.daiBytecode ee g s0 routine
       (UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨_hd0, _hd1, _hd4, _hd6, _hd7, _hd8, _hd9, _hd11, _hd12, _hd13, _hd14,
       _hd17, _hd18, _hd20, _hd21, hd22, hd23, hd24, hd25, hd27, hd29, hd31,
@@ -422,16 +422,16 @@ theorem RD.daiOneAddressExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
     hd31 hd32 hd33 hd34 hd37 hroutine hov
 
 set_option maxHeartbeats 1000000 in
-theorem RD.daiOneAddressExternalShort {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.daiOneAddressExternalShort {σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256}
     (hreach : ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : daiOneAddressExternalEntryWf entry ret routine)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36) :
     RDrev Benchmarks.Dss.Dai.daiBytecode g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) := by
+      (Reasoning.Theory.initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -549,20 +549,20 @@ macro "dai_two_address_external_entry_wf" : term =>
     repeat' first | apply And.intro | native_decide)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.daiTwoAddressExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.daiTwoAddressExternalLenOk {σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256}
     (hreach : ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : daiTwoAddressExternalEntryWf entry ret routine)
     (hdecoded : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains
       (daiTwoAddressExternalDecodedPc entry) = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
     ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I)
+      (Reasoning.Theory.initState σ σ₀ g A I)
       (daiTwoAddressExternalDecodedPc entry)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   rcases hwf with
     ⟨hd0, hd1, hd4, hd6, hd7, hd8, hd9, hd11, hd12, hd13, hd14, hd17, _hd18,
       _hd20, _hd21, _hd22, _hd23, _hd24, _hd26, _hd28, _hd30, _hd31, _hd32,
@@ -573,17 +573,17 @@ theorem RD.daiTwoAddressExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 1000000 in
 theorem RD.daiTwoAddressExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD Benchmarks.Dss.Dai.daiBytecode ee g s0
       (daiTwoAddressExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : daiTwoAddressExternalEntryWf entry ret routine)
     (hroutine : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains routine = true)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD Benchmarks.Dss.Dai.daiBytecode ee g s0 routine
       (UInt256.land solcAddrMask (calldataWord ee.calldata 36) ::
         UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨_hd0, _hd1, _hd4, _hd6, _hd7, _hd8, _hd9, _hd11, _hd12, _hd13, _hd14,
       _hd17, _hd18, _hd20, _hd21, hd22, hd23, hd24, hd26, hd28, hd30, hd31,
@@ -593,16 +593,16 @@ theorem RD.daiTwoAddressExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
     hroutine hov
 
 set_option maxHeartbeats 1000000 in
-theorem RD.daiTwoAddressExternalShort {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.daiTwoAddressExternalShort {σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256}
     (hreach : ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : daiTwoAddressExternalEntryWf entry ret routine)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68) :
     RDrev Benchmarks.Dss.Dai.daiBytecode g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) := by
+      (Reasoning.Theory.initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -717,20 +717,20 @@ macro "dai_address_uint256_external_entry_wf" : term =>
     repeat' first | apply And.intro | native_decide)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.daiAddressUint256ExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.daiAddressUint256ExternalLenOk {σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256}
     (hreach : ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : daiAddressUint256ExternalEntryWf entry ret routine)
     (hdecoded : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains
       (daiAddressUint256ExternalDecodedPc entry) = true)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
     ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I)
+      (Reasoning.Theory.initState σ σ₀ g A I)
       (daiAddressUint256ExternalDecodedPc entry)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   rcases hwf with
     ⟨hd0, hd1, hd4, hd6, hd7, hd8, hd9, hd11, hd12, hd13, hd14, hd17, _hd18,
       _hd20, _hd21, _hd22, _hd23, _hd24, _hd26, _hd28, _hd30, _hd31, _hd32,
@@ -741,17 +741,17 @@ theorem RD.daiAddressUint256ExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 1000000 in
 theorem RD.daiAddressUint256ExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD Benchmarks.Dss.Dai.daiBytecode ee g s0
       (daiAddressUint256ExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : daiAddressUint256ExternalEntryWf entry ret routine)
     (hroutine : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains routine = true)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD Benchmarks.Dss.Dai.daiBytecode ee g s0 routine
       (calldataWord ee.calldata 36 ::
         UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨_hd0, _hd1, _hd4, _hd6, _hd7, _hd8, _hd9, _hd11, _hd12, _hd13, _hd14,
       _hd17, _hd18, _hd20, _hd21, hd22, hd23, hd24, hd26, hd28, hd30, hd31,
@@ -760,16 +760,16 @@ theorem RD.daiAddressUint256ExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
     hd28 hd30 hd31 hd32 hd33 hd34 hd35 hd36 hd38 hd39 hd40 hd43 hroutine hov
 
 set_option maxHeartbeats 1000000 in
-theorem RD.daiAddressUint256ExternalShort {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.daiAddressUint256ExternalShort {σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256}
     (hreach : ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : daiAddressUint256ExternalEntryWf entry ret routine)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68) :
     RDrev Benchmarks.Dss.Dai.daiBytecode g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) := by
+      (Reasoning.Theory.initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -903,20 +903,20 @@ macro "dai_address_address_uint256_external_entry_wf" : term =>
     repeat' first | apply And.intro | native_decide)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.daiAddressAddressUint256ExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.daiAddressAddressUint256ExternalLenOk {σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256}
     (hreach : ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : daiAddressAddressUint256ExternalEntryWf entry ret routine)
     (hdecoded : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains
       (daiAddressAddressUint256ExternalDecodedPc entry) = true)
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
     ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I)
+      (Reasoning.Theory.initState σ σ₀ g A I)
       (daiAddressAddressUint256ExternalDecodedPc entry)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ := by
     exact solcDecodeLenCheckOkUnsigned (by simpa using hsz100) hsize
@@ -931,10 +931,10 @@ theorem RD.daiAddressAddressUint256ExternalLenOk {cA gh bl σ σ₀ A I} {g : Sa
 set_option maxHeartbeats 1000000 in
 theorem RD.daiAddressAddressUint256ExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD Benchmarks.Dss.Dai.daiBytecode ee g s0
       (daiAddressAddressUint256ExternalDecodedPc entry) (de :: ⟨4⟩ :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : daiAddressAddressUint256ExternalEntryWf entry ret routine)
     (hroutine : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains routine = true)
     (hov : R.length + 7 ≤ 1024) :
@@ -942,7 +942,7 @@ theorem RD.daiAddressAddressUint256ExternalMaskAndJumpMasked {g : Sat256} {s0 : 
       (calldataWord ee.calldata 68 ::
         UInt256.land solcAddrMask (calldataWord ee.calldata 36) ::
         UInt256.land solcAddrMask (calldataWord ee.calldata 4) :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨_hd0, _hd1, _hd4, _hd6, _hd7, _hd8, _hd9, _hd11, _hd12, _hd13, _hd14,
       _hd17, _hd18, _hd20, _hd21, hd22, hd23, hd24, hd26, hd28, hd30, hd31,
@@ -953,16 +953,16 @@ theorem RD.daiAddressAddressUint256ExternalMaskAndJumpMasked {g : Sat256} {s0 : 
     hd43 hd44 hd45 hd46 hd48 hd49 hd50 hd53 hroutine hov
 
 set_option maxHeartbeats 1000000 in
-theorem RD.daiAddressAddressUint256ExternalShort {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.daiAddressAddressUint256ExternalShort {σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256}
     (hreach : ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : daiAddressAddressUint256ExternalEntryWf entry ret routine)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 100) :
     RDrev Benchmarks.Dss.Dai.daiBytecode g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) := by
+      (Reasoning.Theory.initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
     apply ult_one
@@ -991,7 +991,7 @@ macro "dai_return_word_from_mem_wf" : term =>
 
 theorem RD.daiReturnWordFromMem {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc val ret : UInt256} {R : List UInt256} {mem memout rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD Benchmarks.Dss.Dai.daiBytecode ee g s0 pc (val :: ret :: R) mem
       (UInt256.ofNat 3) rdata acc k C)
     (hwf : daiReturnWordFromMemWf pc)
@@ -1050,51 +1050,51 @@ macro "dai_return_uint8_from_mem_wf" : term =>
       Reasoning.Reach.solcReturnUint8FromMemWf
     repeat' first | apply And.intro | native_decide)
 
-theorem RD.daiWordGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.daiWordGetterExternal {σ σ₀ A I} {g : Sat256}
     {sel entry routine slot returnPc : UInt256}
     (hreach : ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : daiGetterEntryWf entry returnPc routine)
     (hgetter : daiWordSlotGetterWf routine slot)
     (hroutine : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains routine = true)
     (hret : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains returnPc = true)
     (hreturn : daiReturnWordFromMemWf returnPc) :
     RDret Benchmarks.Dss.Dai.daiBytecode g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (Reasoning.Theory.initState σ σ₀ g A I) σ
       (UInt256.toByteArray
         (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩))) := by
   simpa [daiGetterEntryWf, daiWordSlotGetterWf, daiReturnWordFromMemWf, solcSlotWord] using
     RD.solcWordGetterExternal hreach hentry hgetter hroutine hret hreturn
 
-theorem RD.daiWordConstGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.daiWordConstGetterExternal {σ σ₀ A I} {g : Sat256}
     {sel entry routine returnPc val : UInt256} {width : Nat} {op : Operation.POp}
     (hreach : ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : daiGetterEntryWf entry returnPc routine)
     (hgetter : daiConstGetterWf routine val width op)
     (hroutine : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains routine = true)
     (hret : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains returnPc = true)
     (hreturn : daiReturnWordFromMemWf returnPc) :
     RDret Benchmarks.Dss.Dai.daiBytecode g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (Reasoning.Theory.initState σ σ₀ g A I) σ
       (UInt256.toByteArray val) := by
   simpa [daiGetterEntryWf, daiConstGetterWf, daiReturnWordFromMemWf] using
     RD.solcWordConstGetterExternal hreach hentry hgetter hroutine hret hreturn
 
-theorem RD.daiUint8ConstGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.daiUint8ConstGetterExternal {σ σ₀ A I} {g : Sat256}
     {sel entry routine returnPc val : UInt256} {width : Nat} {op : Operation.POp}
     (hreach : ∃ k C, RD Benchmarks.Dss.Dai.daiBytecode I g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (Reasoning.Theory.initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : daiGetterEntryWf entry returnPc routine)
     (hgetter : daiConstGetterWf routine val width op)
     (hroutine : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains routine = true)
     (hret : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains returnPc = true)
     (hreturn : daiReturnUint8FromMemWf returnPc) :
     RDret Benchmarks.Dss.Dai.daiBytecode g
-      (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (Reasoning.Theory.initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.land val ⟨255⟩)) := by
   simpa [daiGetterEntryWf, daiConstGetterWf, daiReturnUint8FromMemWf] using
     RD.solcUint8ConstGetterExternal hreach hentry hgetter hroutine hret hreturn

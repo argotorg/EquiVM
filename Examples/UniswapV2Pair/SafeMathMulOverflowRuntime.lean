@@ -42,7 +42,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeMathMulOverflow_dynamic
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {a b ret aw ptr : UInt256} {R : List UInt256} {mem : ByteArray}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD uniswapV2PairBytecode ee g s0 ⟨6780⟩ (b :: a :: ret :: R)
       mem aw rdata acc k C)
     (hover : UInt256.size ≤ a.toNat * b.toNat)

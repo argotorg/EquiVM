@@ -47,28 +47,28 @@ conclusion to the frozen `catBiteReachPostIlks` but additionally supplies `288 �
 active words after the ilks return-copy (`outOff = 128`, `outSize = 160`) are `M (M 6 128 36) 128 160
 = 9`, so `9·32 = 288`. Derives the call at the low level (`RD.solcStaticcall`) to keep `aw`
 concrete instead of chaining the aw-forgetting wrapper. -/
-theorem catBiteReachPostIlksAw {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem catBiteReachPostIlksAw {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (catBiteVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (o' : ByteArray) (A' : Substate) (awout : UInt256) (k' C' : ℕ),
       RD catBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: catBiteIlksEndPtr :: catBiteIlksSelectorWord ::
           catBiteVatTargetWord σ I :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ ::
           UInt256.land biteAddrMaskWord (calldataWord I.calldata 36) :: biteIlkWord I ::
           ⟨419⟩ :: catSelWord I :: [])
         (o'.write 0 (catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem)
           catBiteIlksOutPtr.toNat (min catBiteIlksOutSize (UInt256.ofNat o'.size)).toNat)
-        awout o' (cA', σ') k' C'
-    ∧ typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        awout o' σ' k' C'
+    ∧ typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I)) "ilks" 0 [biteIlkVal I]
-        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ', substate := A', createdAccounts := cA' }, o') false
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ', substate := A' }, o') false
     ∧ o'.size < UInt256.size
     ∧ 288 ≤ awout.toNat * 32
     ∧ awout = ⟨9⟩ := by
@@ -86,10 +86,10 @@ theorem catBiteReachPostIlksAw {cA gh bl σ σ₀ A I} {g : UInt256}
     rd1233 hcodeSize (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by simp)
-  obtain ⟨cA', σ', z, o', A_in, callGas, k', C', hΘpack, rd1249, hosz⟩ :=
+  obtain ⟨σ', z, o', A_in, callGas, k', C', hΘpack, rd1249, hosz⟩ :=
     RD.solcStaticcall rd1248 (by native_decide) hdepth (by simp)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, o', A', _, k', C', rd1249, ?_, hosz, by native_decide, by native_decide⟩
+  refine ⟨σ', z, o', A', _, k', C', rd1249, ?_, hosz, by native_decide, by native_decide⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
     (callPerm := false) (targetWord := catBiteVatTargetWord σ I)
     (mem := catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem)
@@ -103,14 +103,14 @@ preamble as the frozen `catBiteReachPostUrns` (`Seg2a/2b/2c1/2c2` are `aw`-prese
 urns call is derived at the low level so the post-call `aw = M (M aw 128 68) 128 64` is exposed;
 for `aw ≥ 9` (from `catBiteReachPostIlksAw`'s `288 ≤ aw·32`) both `M`s collapse (`catBiteMInvNat`/
 `catBiteAwInvGen`), so the output active-words are exactly the input `aw` — the bound threads through. -/
-theorem catBiteReachPostUrnsAw {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReachPostUrnsAw {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {status urn iRate iSpot iDust : UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1249⟩
       (status :: catBiteIlksEndPtr :: catBiteIlksSelectorWord :: catBiteVatTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: urn :: biteIlkWord I :: ⟨419⟩ :: catSelWord I :: [])
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hstatus : status ≠ ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (haw : 288 ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
@@ -124,24 +124,24 @@ theorem catBiteReachPostUrnsAw {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'
       (UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
+    ∃ (σ'' : AccountMap) (z : Bool)
       (o' : ByteArray) (A'' : Substate) (k' C' : ℕ),
       RD catBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: ⟨606387804⟩ ::
           UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord ::
           ⟨0⟩ :: ⟨0⟩ :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: biteIlkWord I ::
           ⟨419⟩ :: catSelWord I :: [])
         (o'.write 0 (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem)
           (⟨128⟩ : UInt256).toNat (min (⟨64⟩ : UInt256) (UInt256.ofNat o'.size)).toNat)
-        aw o' (cA'', σ'') k' C'
+        aw o' σ'' k' C'
     ∧ typedCallViaEVM config
-        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σ', createdAccounts := cA' }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σ' }
         (AccountAddress.ofUInt256 (UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord))
         "urns" 0 [biteIlkVal I, biteUrnVal I]
-        (z, { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ'', substate := A'', createdAccounts := cA'' }, o') false
+        (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ'', substate := A'' }, o') false
     ∧ o'.size < UInt256.size := by
   have hnotge : ∀ off : UInt256, off.toNat ≤ 256 → ¬ (off ≥ aw * ⟨32⟩) := by
     intro off hoff hh
@@ -195,7 +195,7 @@ theorem catBiteReachPostUrnsAw {cA gh bl σ σ₀ A I} {g : UInt256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
-  obtain ⟨cA'', σ'', z, o', A_in, callGas, k', C', hΘpack, rd1399, hosz'⟩ :=
+  obtain ⟨σ'', z, o', A_in, callGas, k', C', hΘpack, rd1399, hosz'⟩ :=
     RD.solcStaticcall rd1398 (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
@@ -207,7 +207,7 @@ theorem catBiteReachPostUrnsAw {cA gh bl σ σ₀ A I} {g : UInt256}
       catBiteMInvNat aw.toNat 128 68 (by omega)]
     exact catBiteAwInvGen aw 128 64 (by omega)
   rw [hawEq] at rd1399
-  refine ⟨cA'', σ'', z, o', A', k', C', rd1399, ?_, hosz'⟩
+  refine ⟨σ'', z, o', A', k', C', rd1399, ?_, hosz'⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
     (callPerm := false) (targetWord := UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord)
     (mem := biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem)
@@ -222,13 +222,13 @@ theorem catBiteReachPostUrnsAw {cA gh bl σ σ₀ A I} {g : UInt256}
 unsatisfiable `q+96 ≤ aw·32` (aw≥10) no-growth assertion. All earlier milk writes stay within `aw=9`;
 only the dunk grows it (cost `Cₘ(10)−Cₘ(9)=3`, via `mstoreCost_of_stack`). Output active-words `⟨10⟩`.
 Specialised to the real free-ptr layout `aw=9`, `q=224` (=96+fp, fp=128). -/
-theorem catBiteReachSeg6Aw {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteReachSeg6Aw {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {art ink iDust iSpot iRate urn ilk fp q : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1620⟩
-      (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem ⟨9⟩ o (cA', σ') k C)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1620⟩
+      (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem ⟨9⟩ o σ' k C)
     (hqNat : q.toNat = 224)
     (hFp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -245,14 +245,14 @@ theorem catBiteReachSeg6Aw {cA gh bl σ σ₀ A I} {g : UInt256}
     (hle : (solcSlotWord σ' I ⟨6⟩).toNat ≤ (solcSlotWord σ' I ⟨5⟩).toNat)
     (hov : R.length + 20 ≤ 1024) :
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1708⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1708⟩
       (UInt256.sub (solcSlotWord σ' I ⟨5⟩) (solcSlotWord σ' I ⟨6⟩) ::
         ⟨0⟩ :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       (catBiteMilkMem mem fp ilk q
         (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk)))
         (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩))
         (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩)))
-      ⟨10⟩ o (cA', σ') k' C' := by
+      ⟨10⟩ o σ' k' C' := by
   have h9 : (⟨9⟩ : UInt256).toNat = 9 := by native_decide
   -- offset arithmetic
   have e32fp : (⟨32⟩ + fp).toNat = fp.toNat + 32 := uadd_lit32_toNat fp (by omega)
@@ -488,21 +488,21 @@ with the final `awF` EXPOSED in the conclusion instead of hidden under `∃` —
 reach can discharge its `p2 ≤ aw·32` precondition. Uses the local `catBiteAwStepL` machinery (the
 `BiteTrace` originals are `private`). The `awF` bound is recovered via `catBiteAwStepL_toNat`
 (`aw=10, p=320 ⇒ awF.toNat=17`). -/
-theorem catBiteTraceGrabBuildAw {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteTraceGrabBuildAw {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {q art ink iDust iSpot iRate urn ilk dart dink p : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2073⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2073⟩
       (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hFree64 : mem.readWithPadding 64 32 = UInt256.toByteArray p)
     (hp96 : 96 ≤ p.toNat) (hpmem : p.toNat ≤ mem.size)
     (hawcov : p.toNat ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
     (hpsz : p.toNat + 256 < UInt256.size)
     (hov : R.length + 22 ≤ 1024) :
     ∃ (k' C' : ℕ), RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2177⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2177⟩
       (UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord ::
         UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord ::
         ⟨0⟩ :: p :: ⟨196⟩ :: p :: ⟨0⟩ :: (p + ⟨196⟩) :: ⟨2074820416⟩ ::
@@ -510,7 +510,7 @@ theorem catBiteTraceGrabBuildAw {cA gh bl σ σ₀ A I} {g : UInt256}
         dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       (catBiteGrabCalldataMemP p ilk urn (UInt256.ofNat I.codeOwner.val) (solcSlotWord σ' I ⟨4⟩)
         dink dart mem)
-      (catBiteAwStepL aw (p + ⟨164⟩).toNat) o (cA', σ') k' C' := by
+      (catBiteAwStepL aw (p + ⟨164⟩).toNat) o σ' k' C' := by
   have h64 : (⟨64⟩ : UInt256).toNat = 64 := by decide
   have e4 : (p + ⟨4⟩).toNat = p.toNat + 4 := by
     rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, Nat.mod_eq_of_lt (by omega)]
@@ -557,16 +557,16 @@ theorem catBiteTraceGrabBuildAw {cA gh bl σ σ₀ A I} {g : UInt256}
   have rd2076 := rd2074.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2077raw⟩ := rd2076.sload (by native_decide) (by evm_ov)
   have rd2077 : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2077⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2077⟩
       (solcSlotWord σ' I ⟨3⟩ :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
-        urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd2077raw
+        urn :: ilk :: R) mem aw o σ' _ _ := rd2077raw
   have rd2079 := rd2077.push1 ⟨4⟩ (by native_decide) (by evm_ov)
   have rd2080d := rd2079.dup1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2081raw⟩ := rd2080d.sload (by native_decide) (by evm_ov)
   have rd2081 : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2081⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2081⟩
       (solcSlotWord σ' I ⟨4⟩ :: ⟨4⟩ :: solcSlotWord σ' I ⟨3⟩ :: dink :: dart :: q :: art :: ink ::
-        iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd2081raw
+        iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o σ' _ _ := rd2081raw
   have rd2083 := rd2081.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rd2084d := rd2083.dup1 (by native_decide) (by evm_ov)
   have rd2085 := RD.mload 0 p aw rd2084d (by native_decide) (memoryExpansionCost_zero_of_aw_stable hM64)
@@ -678,29 +678,29 @@ set_option maxHeartbeats 2000000 in
 /-- **`fess` calldata build (2242→2284) EXPOSING the grown active-words** `awF = catBiteAwStepL aw
 (⟨4⟩+p2)`. Local re-derivation of the frozen `catBiteTraceFessBuild` (2 expanding MSTOREs) exposing
 the final `awF` for the downstream reach. -/
-theorem catBiteTraceFessBuildAw {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap}
+theorem catBiteTraceFessBuildAw {σ σ₀ A I} {g : UInt256}
+    {σ' : AccountMap}
     {dartRate dink dart q art ink iDust iSpot iRate urn ilk p2 : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2242⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2242⟩
       (dartRate :: ⟨1769929592⟩ :: UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::
         dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
-      mem aw o (cA', σ') k C)
+      mem aw o σ' k C)
     (hFree64 : mem.readWithPadding 64 32 = UInt256.toByteArray p2)
     (hp96 : 96 ≤ p2.toNat) (hpmem : p2.toNat ≤ mem.size)
     (hawcov : p2.toNat ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
     (hpsz : p2.toNat + 96 < UInt256.size)
     (hov : R.length + 22 ≤ 1024) :
     ∃ (k' C' : ℕ), RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2284⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2284⟩
       (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::
         UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::
         ⟨0⟩ :: p2 :: ⟨36⟩ :: p2 :: ⟨0⟩ :: (⟨32⟩ + (⟨4⟩ + p2)) :: ⟨1769929592⟩ ::
         UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩) ::
         dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       (catBiteFessCalldataMemP p2 dartRate mem) (catBiteAwStepL aw (⟨4⟩ + p2).toNat)
-      o (cA', σ') k' C' := by
+      o σ' k' C' := by
   have h64 : (⟨64⟩ : UInt256).toNat = 64 := by decide
   have e4 : (⟨4⟩ + p2).toNat = p2.toNat + 4 := by
     rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, Nat.add_comm,

@@ -54,7 +54,7 @@ theorem uniswapBurnCachePrefix (evm : EVM.State) (I : ExecutionEnv)
 
 theorem uniswapAddressAtSlot_eq_runtime
     {σ : AccountMap} {I : ExecutionEnv} {evm : EVM.State} (slot : UInt256)
-    (hAccounts : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I) :
+    (hAccounts : Eq σ evm.accountMap) (henv : evm.executionEnv = I) :
     uniswapAddressAtSlot evm slot =
       AccountAddress.ofUInt256 (UInt256.land solcAddrMask (uniswapSlotWord slot σ I)) := by
   have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
@@ -66,7 +66,7 @@ theorem uniswapAddressAtSlot_eq_runtime
 theorem evalExpr_uniswap_codeGuard
     {σ : AccountMap} {evm : EVM.State} {frame : Frame} {receiver : Expr}
     {target : UInt256} {addr : AccountAddress}
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hAccounts : Eq σ evm.accountMap)
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hreceiver : evalExpr? config frame evm receiver = .ok (.address addr)) :
     evalExpr? config frame evm (.binary .gt (.extCodeSize receiver) (.intLit 0)) =

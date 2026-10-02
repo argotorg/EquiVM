@@ -9,7 +9,7 @@ namespace BlindAuction
 
 set_option maxHeartbeats 10000000 in
 theorem scratch_blindAuctionReveal_decoded_times_lengths_ok
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {callargs : Store} {values fakes secrets : List Value}
     {valuesLenWord fakesLenWord secretsLenWord : UInt256}
     (hcode : I.code = blindAuctionBytecode)
@@ -30,87 +30,81 @@ theorem scratch_blindAuctionReveal_decoded_times_lengths_ok
     (hfakesListLen : fakes.length = fakesLenWord.toNat)
     (hsecretsListLen : secrets.length = secretsLenWord.toNat)
     (hvaluesLenMax : UInt256.gt valuesLenWord revealMaxU64 = ⟨0⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hafter :
-      (revealScratchBiddingEndWord σ_evm I).toNat <
+      (revealScratchBiddingEndWord σ I).toNat <
         (revealScratchTimestampWord I).toNat)
     (hbefore :
       (revealScratchTimestampWord I).toNat <
-        (revealScratchRevealEndWord σ_evm I).toNat)
-    (hvaluesEq : revealScratchBidsLengthWord σ_evm I = valuesLenWord)
-    (hfakesEq : revealScratchBidsLengthWord σ_evm I = fakesLenWord)
-    (hsecretsEq : revealScratchBidsLengthWord σ_evm I = secretsLenWord)
+        (revealScratchRevealEndWord σ I).toNat)
+    (hvaluesEq : revealScratchBidsLengthWord σ I = valuesLenWord)
+    (hfakesEq : revealScratchBidsLengthWord σ I = fakesLenWord)
+    (hsecretsEq : revealScratchBidsLengthWord σ I = secretsLenWord)
     (h887 : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨887⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨887⟩
       (revealDecodedStack I valuesLenWord ((⟨4⟩ + revealValuesOffsetWord I) + ⟨32⟩)
         fakesLenWord ((⟨4⟩ + revealFakesOffsetWord I) + ⟨32⟩)
         secretsLenWord ((⟨4⟩ + revealSecretsOffsetWord I) + ⟨32⟩))
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+      σ σ₀ g A I := by
   obtain ⟨_, _, rd887⟩ := h887
   let evmSolm : EVM.State :=
-    initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hwvSolm : evmSolm.executionEnv.weiValue = ⟨0⟩ := by
     simpa [evmSolm, initState] using hwv
   have hbiddingAbsent : callargs.get? biddingEndRef.base = none :=
     blindAuctionDecode_reveal_callargs_absent hdec (by decide) (by decide) (by decide)
   have hrevealAbsent : callargs.get? revealEndRef.base = none :=
     blindAuctionDecode_reveal_callargs_absent hdec (by decide) (by decide) (by decide)
-  have hbidsEq := revealScratchBidsLengthWord_accountMapEquiv hAccounts I
   have hafterBody :
       (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨1⟩).toNat <
         (UInt256.ofNat evmSolm.executionEnv.header.timestamp).toNat := by
-    change (revealScratchBiddingEndWord σ_solm I).toNat <
+    change (revealScratchBiddingEndWord σ I).toNat <
       (revealScratchTimestampWord I).toNat
-    rw [← revealScratchBiddingEndWord_accountMapEquiv hAccounts I]
     exact hafter
   have hbeforeBody :
       (UInt256.ofNat evmSolm.executionEnv.header.timestamp).toNat <
         (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨2⟩).toNat := by
     change (revealScratchTimestampWord I).toNat <
-      (revealScratchRevealEndWord σ_solm I).toNat
-    rw [← revealScratchRevealEndWord_accountMapEquiv hAccounts I]
+      (revealScratchRevealEndWord σ I).toNat
     exact hbefore
   have hlenBody :
       Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
         (bidsBase (.address evmSolm.executionEnv.source)) =
-          revealScratchBidsLengthWord σ_solm I := by
+          revealScratchBidsLengthWord σ I := by
     rfl
   have hbidsHash := revealScratchBidsMappingBaseKeccak I
   have h963 :=
     blindAuctionRevealX_from887_afterTimeGuards
-      (cA := cA) (σ := σ_evm) (I := I) (g := Sat256.ofUInt256 g)
-      (s0 := initState cA gh bl σ_evm σ₀
+      (σ := σ) (I := I) (g := Sat256.ofUInt256 g)
+      (s0 := initState σ σ₀
         (Sat256.ofUInt256 g) A I)
       rd887 hafter hbefore
   rcases h963 with ⟨_, _, rd963⟩
   by_cases hbidsZero :
-      revealScratchBidsLengthWord σ_evm I = ⟨0⟩
+      revealScratchBidsLengthWord σ I = ⟨0⟩
   · exact scratch_blindAuctionReveal_decoded_empty_bids
       (I := I) (g := g)
-      (cA := cA) (gh := gh) (bl := bl)
-      (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀) (A := A)
+      (σ := σ)  (σ₀ := σ₀) (A := A)
       (callargs := callargs) (values := values) (fakes := fakes) (secrets := secrets)
       (valuesLenWord := valuesLenWord)
       (fakesLenWord := fakesLenWord)
       (secretsLenWord := secretsLenWord)
       hcode hperm hd hdec hwv
       hvaluesGet hfakesGet hsecretsGet
-      hvaluesListLen hfakesListLen hsecretsListLen hAccounts
+      hvaluesListLen hfakesListLen hsecretsListLen
       hafter hbefore hvaluesEq hfakesEq hsecretsEq hbidsZero
       ⟨_, _, rd963⟩
   · exact scratch_blindAuctionReveal_decoded_nonempty_bids
       (I := I) (g := g)
-      (cA := cA) (gh := gh) (bl := bl)
-      (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀) (A := A)
+      (σ := σ)  (σ₀ := σ₀) (A := A)
       (callargs := callargs) (values := values) (fakes := fakes) (secrets := secrets)
       (valuesLenWord := valuesLenWord)
       (fakesLenWord := fakesLenWord)
       (secretsLenWord := secretsLenWord)
       hcode hsize hperm hd hdec hstore hwv
       hvaluesGet hfakesGet hsecretsGet
-      hvaluesListLen hfakesListLen hsecretsListLen hvaluesLenMax hAccounts
+      hvaluesListLen hfakesListLen hsecretsListLen hvaluesLenMax
       hafter hbefore hvaluesEq hfakesEq hsecretsEq
       ⟨_, _, rd963⟩
 

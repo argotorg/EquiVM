@@ -278,8 +278,8 @@ def mintFeeOnKLastNonzeroInitialFromFactoryCasesData
 
 set_option maxHeartbeats 3000000 in
 theorem uniswapMintFeeOnKLastNonzeroNoFeeLiquidityPrefixFromFactory
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee σ'' : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee σ'' : AccountMap}
     {evm1S evmFeeS : EVM.State}
     {outFee o o1 memFee : ByteArray} {k C : ℕ}
     {amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel feeToWord : UInt256}
@@ -290,10 +290,10 @@ theorem uniswapMintFeeOnKLastNonzeroNoFeeLiquidityPrefixFromFactory
         (mintFeeCallFrame
           (uniswapReserve0Word
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
           (uniswapReserve1Word
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I))))
         evm1S (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
     (hfeeCall :
@@ -303,30 +303,30 @@ theorem uniswapMintFeeOnKLastNonzeroNoFeeLiquidityPrefixFromFactory
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
         reserve0)
     (hreserve1Eq :
       uniswapReserve1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
         reserve1)
     (hruntimeReserve0 :
-      reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I = reserve0)
+      reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
-      reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I = reserve1)
+      reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve1)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
     (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
         feeToSelectorWord, mintFeeFactoryWord σ'' I, ⟨0⟩, ⟨0⟩,
-        reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
-        reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
+        reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
+        reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
         ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
-        reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
-        reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
+        reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
+        reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
         ⟨0⟩, toWord, ⟨861⟩, sel]
-      memFee feeToStaticcallActiveWords outFee (cAFee, σFee) k C)
+      memFee feeToStaticcallActiveWords outFee σFee k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (ho132 : 32 ≤ o1.size) (ho1Size : o1.size < UInt256.size)
     (houtFeeSize : outFee.size < UInt256.size)
@@ -349,7 +349,7 @@ theorem uniswapMintFeeOnKLastNonzeroNoFeeLiquidityPrefixFromFactory
           locals :=
             mintAmountStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I))
               I balance0 balance1 }
         evm1S (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
         (.ok
@@ -358,19 +358,19 @@ theorem uniswapMintFeeOnKLastNonzeroNoFeeLiquidityPrefixFromFactory
               locals :=
                 mintAmountStore
                   (uniswapLockEnteredState
-                    (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+                    (initState σ σ₀ (Sat256.ofUInt256 g) A I))
                   I balance0 balance1 }
             "feeOn" (some [.bool true]))
           evmFeeS) ∧
       RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
         [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
           mintToMaskedWord I, ⟨861⟩, sel]
-        memFee feeToStaticcallActiveWords outFee (cAFee, σFee) k3701 C3701 ∧
+        memFee feeToStaticcallActiveWords outFee σFee k3701 C3701 ∧
       memFee.size = 164 ∧
       memFee.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   rcases hcase with ⟨hfeeToNonzero, hkLastNonzero, hrootCase⟩
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   have hfeeToAddr : feeTo ≠ AccountAddress.ofNat 0 := by
     rw [hfeeTo]
@@ -405,12 +405,12 @@ theorem uniswapMintFeeOnKLastNonzeroNoFeeLiquidityPrefixFromFactory
         0 ≤ rootK ∧ rootK.toNat < UInt256.size ∧
         0 ≤ rootKLast ∧ rootKLast.toNat < UInt256.size ∧
         RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7899⟩
           [UInt256.ofNat rootKLast.toNat, ⟨0⟩, UInt256.ofNat rootK.toNat,
             mintFeeKLastSlotWord σFee I, feeToWord, ⟨1⟩, reserve1, reserve0,
             ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0,
             ⟨0⟩, toWord, ⟨861⟩, sel]
-          memFee feeToStaticcallActiveWords outFee (cAFee, σFee) k7899 C7899 ∧
+          memFee feeToStaticcallActiveWords outFee σFee k7899 C7899 ∧
         (¬ rootK > rootKLast ∨
           rootK > rootKLast ∧
             mintFeeNumeratorNat evmFeeS rootK rootKLast < UInt256.size ∧
@@ -570,10 +570,10 @@ theorem uniswapMintFeeOnKLastNonzeroNoFeeLiquidityPrefixFromFactory
           (by simpa [evmL] using hfeeGuard) hfeeCall hfeeDec hfeeToAddr hkLastSource
           hprefix hrootNoMint
     have rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
         [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
           mintToMaskedWord I, ⟨861⟩, sel]
-        memFee feeToStaticcallActiveWords outFee (cAFee, σFee) k3701 C3701 := by
+        memFee feeToStaticcallActiveWords outFee σFee k3701 C3701 := by
       simpa [htoWord] using rd3701Raw
     exact ⟨k3701, C3701, by simpa [evmL, evmS] using hfee, rd3701, hmem, hmem64⟩
   · rcases hpositiveNoLiquidity with
@@ -598,17 +598,17 @@ theorem uniswapMintFeeOnKLastNonzeroNoFeeLiquidityPrefixFromFactory
           hprefix hroot hrootKNonneg hrootKSize hrootKLastNonneg hnumFit hrootFiveFit
           hdenFit hdenom hfeeLiq
     have rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
         [⟨1⟩, ⟨0⟩, amount1, amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩,
           mintToMaskedWord I, ⟨861⟩, sel]
-        memFee feeToStaticcallActiveWords outFee (cAFee, σFee) k3701 C3701 := by
+        memFee feeToStaticcallActiveWords outFee σFee k3701 C3701 := by
       simpa [htoWord] using rd3701Raw
     exact ⟨k3701, C3701, by simpa [evmL, evmS] using hfee, rd3701, hmem, hmem64⟩
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σAfter : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σAfter : AccountMap}
     {evm0S evm1S evmAfter : EVM.State}
     {out0 out1 mem rdata : ByteArray} {k C : ℕ}
     {amount0 amount1 balance0 balance1 reserve0 reserve1 liquidity sel : UInt256}
@@ -620,8 +620,8 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
     (hwv : I.weiValue = ⟨0⟩)
     (hunlockedSolm :
       Solm.EVM.storageLoad
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
           ⟨12⟩ =
         ⟨1⟩)
     (hguard0 :
@@ -630,9 +630,9 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
           locals :=
             mintReserveStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I }
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I }
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hguard1 :
@@ -641,22 +641,22 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
           locals :=
             (mintReserveStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I).insert
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I).insert
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hcall0 :
       typedCallViaEVM config
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (EVM.address
           (uniswapAddressAtSlot
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
         "balanceOf" 0
         [.address
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 :
@@ -666,16 +666,16 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
     (hle0Source :
       (uniswapReserve0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
         balance0.toNat)
     (hle1Source :
       (uniswapReserve1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
         balance1.toNat)
     (hfee :
       let evmL := uniswapLockEnteredState
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       ExecStmt config
         { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
         evm1S (.internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn")
@@ -684,13 +684,12 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
             { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
             "feeOn" (some [.bool true]))
           evmAfter))
-    (hPostAccountsAfter : accountMapEquiv σAfter evmAfter.accountMap)
+    (hPostAccountsAfter : Eq σAfter evmAfter.accountMap)
     (henvAfterI : evmAfter.executionEnv = I)
-    (hcreatedAfter : evmAfter.createdAccounts = cAFee)
     (htotalZero : mintFunctionTotalSupplyWord evmAfter = ⟨0⟩)
     (hsqrt :
       let evmL := uniswapLockEnteredState
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       let nextFrame :=
         resumeAfterInternalCall
           { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
@@ -712,11 +711,11 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
             "rootLiquidity" (some [.int rootLiquidity]))
           evmAfter))
     (rd2531 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       [UInt256.ofNat rootLiquidity.toNat, ⟨1000⟩, ⟨3742⟩, ⟨0⟩, ⟨1⟩, amount1,
         amount0, balance1, balance0, reserve1, reserve0, ⟨0⟩, mintToMaskedWord I,
         ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σAfter) k C)
+      mem feeToStaticcallActiveWords rdata σAfter k C)
     (hrootSize : rootLiquidity.toNat < UInt256.size)
     (hrootGeMin : minimumLiquidity ≤ rootLiquidity)
     (hliquidity : liquidity = UInt256.ofNat (rootLiquidity - minimumLiquidity).toNat)
@@ -863,8 +862,8 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
         UInt256.size)
     (hmem : mem.size = 164)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
     resumeAfterInternalCall
@@ -954,7 +953,7 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
     have h := solcAddressValue_masked (mintToWord I)
     simpa [mintToMaskedWord, u256_land_comm] using h
   exact uniswapMintFinishInitialFeeOn hcode hdispatch hsz36 hbody rd2531
-    hPostAccountsAfter henvAfterI hcreatedAfter hrecipient
+    hPostAccountsAfter henvAfterI hrecipient
     (mintInitial_rootSub_word_eq rootLiquidity liquidity hrootSize hrootGeMin hliquidity)
     (mintInitial_rootGe_word rootLiquidity hrootSize hrootGeMin) hliqNonzero hperm
     hfitSupplyMinSource hfitBalanceMinSource htotalFitMin hbalanceFitMin hfitSupplySource
@@ -963,8 +962,8 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
 
 set_option maxHeartbeats 3000000 in
 theorem uniswapMintFeeOnKLastNonzeroInitialReturnFromFactoryCase
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee σ'' : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee σ'' : AccountMap}
     {evm0S evm1S evmFeeS : EVM.State}
     {out0 out1 outFee o o1 memFee : ByteArray} {k C : ℕ}
     {amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel feeToWord : UInt256}
@@ -977,8 +976,8 @@ theorem uniswapMintFeeOnKLastNonzeroInitialReturnFromFactoryCase
     (hwv : I.weiValue = ⟨0⟩)
     (hunlockedSolm :
       Solm.EVM.storageLoad
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
           ⟨12⟩ =
         ⟨1⟩)
     (hguard0 :
@@ -987,9 +986,9 @@ theorem uniswapMintFeeOnKLastNonzeroInitialReturnFromFactoryCase
           locals :=
             mintReserveStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I }
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I }
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hguard1 :
@@ -998,22 +997,22 @@ theorem uniswapMintFeeOnKLastNonzeroInitialReturnFromFactoryCase
           locals :=
             (mintReserveStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I).insert
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I).insert
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hcall0 :
       typedCallViaEVM config
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (EVM.address
           (uniswapAddressAtSlot
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
         "balanceOf" 0
         [.address
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 :
@@ -1023,68 +1022,67 @@ theorem uniswapMintFeeOnKLastNonzeroInitialReturnFromFactoryCase
     (hle0Source :
       (uniswapReserve0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
         balance0.toNat)
     (hle1Source :
       (uniswapReserve1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
         balance1.toNat)
     (hfeeGuard :
       evalExpr? config
         (mintFeeCallFrame
           (uniswapReserve0Word
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
           (uniswapReserve1Word
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I))))
         evm1S (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
     (hfeeCall :
       typedCallViaEVM config evm1S (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (true, evmFeeS, outFee) false)
     (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
-    (hPostAccountsFee : accountMapEquiv σFee evmFeeS.accountMap)
+    (hPostAccountsFee : Eq σFee evmFeeS.accountMap)
     (henvFeeI : evmFeeS.executionEnv = I)
-    (hcreatedFee : evmFeeS.createdAccounts = cAFee)
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
         reserve0)
     (hreserve1Eq :
       uniswapReserve1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
         reserve1)
     (hruntimeReserve0 :
-      reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I = reserve0)
+      reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
-      reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I = reserve1)
+      reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve1)
     (hamount0Eq :
       mintAmount0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) balance0 =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance0 =
         amount0)
     (hamount1Eq :
       mintAmount1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
         amount1)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
     (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
         feeToSelectorWord, mintFeeFactoryWord σ'' I, ⟨0⟩, ⟨0⟩,
-        reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
-        reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
+        reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
+        reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
         ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
-        reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
-        reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
+        reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
+        reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
         ⟨0⟩, toWord, ⟨861⟩, sel]
-      memFee feeToStaticcallActiveWords outFee (cAFee, σFee) k C)
+      memFee feeToStaticcallActiveWords outFee σFee k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (ho132 : 32 ≤ o1.size) (ho1Size : o1.size < UInt256.size)
     (houtFeeSize : outFee.size < UInt256.size)
@@ -1102,10 +1100,10 @@ theorem uniswapMintFeeOnKLastNonzeroInitialReturnFromFactoryCase
       mintFeeOnKLastNonzeroInitialReturnFromFactoryCaseData feeToWord reserve0 reserve1
         amount0 amount1 balance0 balance1 σFee evmFeeS
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         I memFee) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
     resumeAfterInternalCall
@@ -1167,7 +1165,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialReturnFromFactoryCase
       (liquidity := UInt256.ofNat (root - minimumLiquidity).toNat)
       root hcode hdispatch hsz36 hperm hwv hunlockedSolm hguard0 hguard1 hcall0 hdec0
       hcall1 hdec1 hle0Source hle1Source
-      (by simpa [evmL, evmS] using hfee) hPostAccountsFee henvFeeI hcreatedFee
+      (by simpa [evmL, evmS] using hfee) hPostAccountsFee henvFeeI
       htotalSource
       (by simpa [caller, afterTotalSupplyLocals, nextFrame, evmL, evmS, htotalSource]
         using hsqrt)
@@ -1178,8 +1176,8 @@ theorem uniswapMintFeeOnKLastNonzeroInitialReturnFromFactoryCase
 
 set_option maxHeartbeats 3000000 in
 theorem uniswapMintFeeOnKLastNonzeroInitialZeroFromFactoryCase
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee σ'' : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee σ'' : AccountMap}
     {evm0S evm1S evmFeeS : EVM.State}
     {out0 out1 outFee o o1 memFee : ByteArray} {k C : ℕ}
     {amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel feeToWord : UInt256}
@@ -1192,8 +1190,8 @@ theorem uniswapMintFeeOnKLastNonzeroInitialZeroFromFactoryCase
     (hwv : I.weiValue = ⟨0⟩)
     (hunlockedSolm :
       Solm.EVM.storageLoad
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
           ⟨12⟩ =
         ⟨1⟩)
     (hguard0 :
@@ -1202,9 +1200,9 @@ theorem uniswapMintFeeOnKLastNonzeroInitialZeroFromFactoryCase
           locals :=
             mintReserveStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I }
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I }
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hguard1 :
@@ -1213,22 +1211,22 @@ theorem uniswapMintFeeOnKLastNonzeroInitialZeroFromFactoryCase
           locals :=
             (mintReserveStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I).insert
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I).insert
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hcall0 :
       typedCallViaEVM config
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (EVM.address
           (uniswapAddressAtSlot
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
         "balanceOf" 0
         [.address
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 :
@@ -1238,22 +1236,22 @@ theorem uniswapMintFeeOnKLastNonzeroInitialZeroFromFactoryCase
     (hle0Source :
       (uniswapReserve0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
         balance0.toNat)
     (hle1Source :
       (uniswapReserve1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
         balance1.toNat)
     (hfeeGuard :
       evalExpr? config
         (mintFeeCallFrame
           (uniswapReserve0Word
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
           (uniswapReserve1Word
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I))))
         evm1S (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
     (hfeeCall :
@@ -1263,40 +1261,40 @@ theorem uniswapMintFeeOnKLastNonzeroInitialZeroFromFactoryCase
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
         reserve0)
     (hreserve1Eq :
       uniswapReserve1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
         reserve1)
     (hruntimeReserve0 :
-      reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I = reserve0)
+      reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
-      reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I = reserve1)
+      reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve1)
     (hamount0Eq :
       mintAmount0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) balance0 =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance0 =
         amount0)
     (hamount1Eq :
       mintAmount1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
         amount1)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
     (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
         feeToSelectorWord, mintFeeFactoryWord σ'' I, ⟨0⟩, ⟨0⟩,
-        reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
-        reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
+        reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
+        reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
         ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
-        reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
-        reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
+        reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
+        reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
         ⟨0⟩, toWord, ⟨861⟩, sel]
-      memFee feeToStaticcallActiveWords outFee (cAFee, σFee) k C)
+      memFee feeToStaticcallActiveWords outFee σFee k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (ho132 : 32 ≤ o1.size) (ho1Size : o1.size < UInt256.size)
     (houtFeeSize : outFee.size < UInt256.size)
@@ -1314,10 +1312,10 @@ theorem uniswapMintFeeOnKLastNonzeroInitialZeroFromFactoryCase
       mintFeeOnKLastNonzeroInitialZeroFromFactoryCaseData feeToWord reserve0 reserve1
         amount0 amount1 balance0 balance1 σFee evmFeeS
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         I memFee) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
     resumeAfterInternalCall
@@ -1386,8 +1384,8 @@ theorem uniswapMintFeeOnKLastNonzeroInitialZeroFromFactoryCase
 
 set_option maxHeartbeats 3000000 in
 theorem uniswapMintFeeOnKLastNonzeroInitialProductOverflowFromFactoryCase
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee σ'' : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee σ'' : AccountMap}
     {evm0S evm1S evmFeeS : EVM.State}
     {out0 out1 outFee o o1 memFee : ByteArray} {k C : ℕ}
     {amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel feeToWord : UInt256}
@@ -1399,8 +1397,8 @@ theorem uniswapMintFeeOnKLastNonzeroInitialProductOverflowFromFactoryCase
     (hwv : I.weiValue = ⟨0⟩)
     (hunlockedSolm :
       Solm.EVM.storageLoad
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
           ⟨12⟩ =
         ⟨1⟩)
     (hguard0 :
@@ -1409,9 +1407,9 @@ theorem uniswapMintFeeOnKLastNonzeroInitialProductOverflowFromFactoryCase
           locals :=
             mintReserveStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I }
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I }
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hguard1 :
@@ -1420,22 +1418,22 @@ theorem uniswapMintFeeOnKLastNonzeroInitialProductOverflowFromFactoryCase
           locals :=
             (mintReserveStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I).insert
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I).insert
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hcall0 :
       typedCallViaEVM config
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (EVM.address
           (uniswapAddressAtSlot
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
         "balanceOf" 0
         [.address
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 :
@@ -1445,22 +1443,22 @@ theorem uniswapMintFeeOnKLastNonzeroInitialProductOverflowFromFactoryCase
     (hle0Source :
       (uniswapReserve0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
         balance0.toNat)
     (hle1Source :
       (uniswapReserve1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
         balance1.toNat)
     (hfeeGuard :
       evalExpr? config
         (mintFeeCallFrame
           (uniswapReserve0Word
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
           (uniswapReserve1Word
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I))))
         evm1S (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
     (hfeeCall :
@@ -1470,40 +1468,40 @@ theorem uniswapMintFeeOnKLastNonzeroInitialProductOverflowFromFactoryCase
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
         reserve0)
     (hreserve1Eq :
       uniswapReserve1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
         reserve1)
     (hruntimeReserve0 :
-      reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I = reserve0)
+      reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
-      reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I = reserve1)
+      reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve1)
     (hamount0Eq :
       mintAmount0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) balance0 =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance0 =
         amount0)
     (hamount1Eq :
       mintAmount1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
         amount1)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
     (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
         feeToSelectorWord, mintFeeFactoryWord σ'' I, ⟨0⟩, ⟨0⟩,
-        reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
-        reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
+        reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
+        reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
         ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
-        reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
-        reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
+        reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
+        reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
         ⟨0⟩, toWord, ⟨861⟩, sel]
-      memFee feeToStaticcallActiveWords outFee (cAFee, σFee) k C)
+      memFee feeToStaticcallActiveWords outFee σFee k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (ho132 : 32 ≤ o1.size) (ho1Size : o1.size < UInt256.size)
     (houtFeeSize : outFee.size < UInt256.size)
@@ -1520,8 +1518,8 @@ theorem uniswapMintFeeOnKLastNonzeroInitialProductOverflowFromFactoryCase
     (hcase :
       mintFeeOnKLastNonzeroInitialProductOverflowFromFactoryCaseData feeToWord reserve0
         reserve1 amount0 amount1 σFee evmFeeS I) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
     resumeAfterInternalCall
@@ -1549,8 +1547,8 @@ theorem uniswapMintFeeOnKLastNonzeroInitialProductOverflowFromFactoryCase
 
 set_option maxHeartbeats 3000000 in
 theorem uniswapMintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCase
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee σ'' : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee σ'' : AccountMap}
     {evm0S evm1S evmFeeS : EVM.State}
     {out0 out1 outFee o o1 memFee : ByteArray} {k C : ℕ}
     {amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel feeToWord : UInt256}
@@ -1562,8 +1560,8 @@ theorem uniswapMintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCase
     (hwv : I.weiValue = ⟨0⟩)
     (hunlockedSolm :
       Solm.EVM.storageLoad
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
           ⟨12⟩ =
         ⟨1⟩)
     (hguard0 :
@@ -1572,9 +1570,9 @@ theorem uniswapMintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCase
           locals :=
             mintReserveStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I }
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I }
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hguard1 :
@@ -1583,22 +1581,22 @@ theorem uniswapMintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCase
           locals :=
             (mintReserveStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I).insert
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I).insert
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hcall0 :
       typedCallViaEVM config
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (EVM.address
           (uniswapAddressAtSlot
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
         "balanceOf" 0
         [.address
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 :
@@ -1608,22 +1606,22 @@ theorem uniswapMintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCase
     (hle0Source :
       (uniswapReserve0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
         balance0.toNat)
     (hle1Source :
       (uniswapReserve1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
         balance1.toNat)
     (hfeeGuard :
       evalExpr? config
         (mintFeeCallFrame
           (uniswapReserve0Word
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
           (uniswapReserve1Word
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I))))
         evm1S (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
     (hfeeCall :
@@ -1633,40 +1631,40 @@ theorem uniswapMintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCase
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
         reserve0)
     (hreserve1Eq :
       uniswapReserve1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
         reserve1)
     (hruntimeReserve0 :
-      reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I = reserve0)
+      reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
-      reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I = reserve1)
+      reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve1)
     (hamount0Eq :
       mintAmount0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) balance0 =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance0 =
         amount0)
     (hamount1Eq :
       mintAmount1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
         amount1)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
     (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
         feeToSelectorWord, mintFeeFactoryWord σ'' I, ⟨0⟩, ⟨0⟩,
-        reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
-        reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
+        reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
+        reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
         ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
-        reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
-        reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
+        reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
+        reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
         ⟨0⟩, toWord, ⟨861⟩, sel]
-      memFee feeToStaticcallActiveWords outFee (cAFee, σFee) k C)
+      memFee feeToStaticcallActiveWords outFee σFee k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (ho132 : 32 ≤ o1.size) (ho1Size : o1.size < UInt256.size)
     (houtFeeSize : outFee.size < UInt256.size)
@@ -1684,10 +1682,10 @@ theorem uniswapMintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCase
       mintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCaseData feeToWord reserve0
         reserve1 amount0 amount1 balance0 balance1 σFee evmFeeS
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         I memFee) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmL := uniswapLockEnteredState evmS
   let nextFrame :=
     resumeAfterInternalCall
@@ -1751,8 +1749,8 @@ theorem uniswapMintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCase
       rd2531 hrootSize hrootLt hmem hmem64
 
 theorem uniswapMintFeeOnKLastNonzeroInitialFromFactoryCases
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee σ'' : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee σ'' : AccountMap}
     {evm0S evm1S evmFeeS : EVM.State}
     {out0 out1 outFee o o1 memFee : ByteArray} {k C : ℕ}
     {amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel feeToWord : UInt256}
@@ -1765,8 +1763,8 @@ theorem uniswapMintFeeOnKLastNonzeroInitialFromFactoryCases
     (hwv : I.weiValue = ⟨0⟩)
     (hunlockedSolm :
       Solm.EVM.storageLoad
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
           ⟨12⟩ =
         ⟨1⟩)
     (hguard0 :
@@ -1775,9 +1773,9 @@ theorem uniswapMintFeeOnKLastNonzeroInitialFromFactoryCases
           locals :=
             mintReserveStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I }
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I }
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (.binary .gt (.extCodeSize (.storage token0Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hguard1 :
@@ -1786,22 +1784,22 @@ theorem uniswapMintFeeOnKLastNonzeroInitialFromFactoryCases
           locals :=
             (mintReserveStore
               (uniswapLockEnteredState
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) I).insert
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)) I).insert
               "balance0" (uniswapUint256Value balance0) }
         evm0S (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
           .ok (.bool true))
     (hcall0 :
       typedCallViaEVM config
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (EVM.address
           (uniswapAddressAtSlot
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)) ⟨6⟩))
         "balanceOf" 0
         [.address
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)).executionEnv.codeOwner]
         (true, evm0S, out0) false)
     (hdec0 : config.externalABI.decode? "balanceOf" out0 = some [uniswapUint256Value balance0])
     (hcall1 :
@@ -1811,68 +1809,67 @@ theorem uniswapMintFeeOnKLastNonzeroInitialFromFactoryCases
     (hle0Source :
       (uniswapReserve0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
         balance0.toNat)
     (hle1Source :
       (uniswapReserve1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I))).toNat ≤
         balance1.toNat)
     (hfeeGuard :
       evalExpr? config
         (mintFeeCallFrame
           (uniswapReserve0Word
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)))
           (uniswapReserve1Word
             (uniswapLockEnteredState
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))))
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I))))
         evm1S (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
           .ok (.bool true))
     (hfeeCall :
       typedCallViaEVM config evm1S (EVM.address (uniswapAddressAtSlot evm1S ⟨5⟩))
         "feeTo" 0 [] (true, evmFeeS, outFee) false)
     (hfeeDec : config.externalABI.decode? "feeTo" outFee = some [.address feeTo])
-    (hPostAccountsFee : accountMapEquiv σFee evmFeeS.accountMap)
+    (hPostAccountsFee : Eq σFee evmFeeS.accountMap)
     (henvFeeI : evmFeeS.executionEnv = I)
-    (hcreatedFee : evmFeeS.createdAccounts = cAFee)
     (hreserve0Eq :
       uniswapReserve0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
         reserve0)
     (hreserve1Eq :
       uniswapReserve1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) =
         reserve1)
     (hruntimeReserve0 :
-      reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I = reserve0)
+      reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve0)
     (hruntimeReserve1 :
-      reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I = reserve1)
+      reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I = reserve1)
     (hamount0Eq :
       mintAmount0Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) balance0 =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance0 =
         amount0)
     (hamount1Eq :
       mintAmount1Word
           (uniswapLockEnteredState
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)) balance1 =
         amount1)
     (hkLastEq : mintFeeKLastWord evmFeeS = mintFeeKLastSlotWord σFee I)
     (htotalEq : mintFunctionTotalSupplyWord evmFeeS = uniswapSlotWord ⟨0⟩ σFee I)
     (rd7781 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7781⟩
       [(if zFee then (⟨1⟩ : UInt256) else ⟨0⟩), ⟨132⟩,
         feeToSelectorWord, mintFeeFactoryWord σ'' I, ⟨0⟩, ⟨0⟩,
-        reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
-        reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
+        reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
+        reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
         ⟨3701⟩, ⟨0⟩, amount1, amount0, balance1, balance0,
-        reserve1Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
-        reserve0Word (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I,
+        reserve1Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
+        reserve0Word (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I,
         ⟨0⟩, toWord, ⟨861⟩, sel]
-      memFee feeToStaticcallActiveWords outFee (cAFee, σFee) k C)
+      memFee feeToStaticcallActiveWords outFee σFee k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (ho132 : 32 ≤ o1.size) (ho1Size : o1.size < UInt256.size)
     (houtFeeSize : outFee.size < UInt256.size)
@@ -1890,15 +1887,15 @@ theorem uniswapMintFeeOnKLastNonzeroInitialFromFactoryCases
       mintFeeOnKLastNonzeroInitialFromFactoryCasesData feeToWord reserve0 reserve1 amount0
         amount1 balance0 balance1 σFee evmFeeS
         (uniswapLockEnteredState
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         I memFee) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   rcases hcase with hreturn | hrest
   · exact
       uniswapMintFeeOnKLastNonzeroInitialReturnFromFactoryCase feeTo hcode hdispatch
         hsz36 hperm hwv hunlockedSolm hguard0 hguard1 hcall0 hdec0 hcall1 hdec1
         hle0Source hle1Source hfeeGuard hfeeCall hfeeDec hPostAccountsFee henvFeeI
-        hcreatedFee hreserve0Eq hreserve1Eq hruntimeReserve0 hruntimeReserve1 hamount0Eq
+        hreserve0Eq hreserve1Eq hruntimeReserve0 hruntimeReserve1 hamount0Eq
         hamount1Eq hkLastEq htotalEq rd7781 ho32 hoSize ho132 ho1Size houtFeeSize
         hzFeeTrue houtFee32 hfeeToWord hfeeTo htoWord hmemFee hreturn
   rcases hrest with hzero | hrest

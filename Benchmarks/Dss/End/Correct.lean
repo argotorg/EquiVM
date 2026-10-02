@@ -44,7 +44,7 @@ namespace Benchmarks.Dss.End
 theorem endCorrect :
     runtimeEquivalence config endBytecode contract := by
   refine runtimeEquivalence.intro ?_
-  intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
+  intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hwards : selIs I (selectorOf wardsTransition)
     · exact endWardsBody hcode hsize hperm hwv hwards hAccounts

@@ -18,12 +18,12 @@ theorem uniswapCodeOwnerWord_clean (I : ExecutionEnv) :
 set_option maxHeartbeats 1000000 in
 theorem uniswapBurnRuntimeMintFeeEntry
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {balance0 balance1 token0 token1 reserve0 reserve1 : UInt256}
     {R : List UInt256} {k C : ℕ}
     (rd4444 : RD uniswapV2PairBytecode I g s0 ⟨4444⟩
       (balance1 :: ⟨0⟩ :: balance0 :: token1 :: token0 :: reserve1 :: reserve0 :: R)
-      mem feeToStaticcallActiveWords rdata (cA, σ) k C)
+      mem feeToStaticcallActiveWords rdata σ k C)
     (hov : R.length + 24 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨7696⟩
       (reserve1 :: reserve0 :: ⟨4472⟩ :: ⟨0⟩ ::
@@ -31,7 +31,7 @@ theorem uniswapBurnRuntimeMintFeeEntry
           (uniswapInternalMintBalanceHashSlot (UInt256.ofNat I.codeOwner.val) mem) ::
         balance1 :: balance0 :: token1 :: token0 :: reserve1 :: reserve0 :: R)
       (uniswapInternalMintBalanceHashMem (UInt256.ofNat I.codeOwner.val) mem)
-      feeToStaticcallActiveWords rdata (cA, σ) k' C' := by
+      feeToStaticcallActiveWords rdata σ k' C' := by
   have hclean := uniswapCodeOwnerWord_clean I
   have rd4449 := evm_run rd4444 with [address, push1 ⟨0⟩, swap1, dup2]
   have rd4450 := rd4449.mstore 0

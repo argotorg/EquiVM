@@ -11,9 +11,9 @@ abbrev cureStillLiveRawWord : UInt256 :=
 
 theorem RD.cureLoadStillLiveRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1348⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
-        rdata (cA, σ) k C)
+        rdata σ k C)
     (hlive : solcSlotWord σ ee ⟨1⟩ ≠ ⟨0⟩)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -54,13 +54,13 @@ theorem RD.cureLoadStillLiveRevert {g : Sat256} {s0 : State}
 
 theorem RD.cureLoadLiveZeroOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1348⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
-        rdata (cA, σ) k C)
+        rdata σ k C)
     (hlive : solcSlotWord σ ee ⟨1⟩ = ⟨0⟩)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD cureBytecode ee g s0 ⟨1419⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
-      rdata (cA, σ) k' C' := by
+      rdata σ k' C' := by
   have rdLoadPrefix := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
@@ -77,9 +77,9 @@ theorem RD.cureLoadLiveZeroOk {g : Sat256} {s0 : State}
 
 theorem RD.cureLoadPosZeroRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1419⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
-        rdata (cA, σ) k C)
+        rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hpos : solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) = ⟨0⟩)
     (hmem : mem.size = 96)
@@ -159,15 +159,15 @@ theorem RD.cureLoadPosZeroRevert {g : Sat256} {s0 : State}
 
 theorem RD.cureLoadPosNonzeroOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1419⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
-        rdata (cA, σ) k C)
+        rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hpos : solcSlotWord σ ee (solcMappingSlot ⟨5⟩ key) ≠ ⟨0⟩)
     (hmem : mem.size = 96)
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD cureBytecode ee g s0 ⟨1520⟩ (key :: ret :: R) (twoWordHashMem key ⟨5⟩ mem)
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   have hmask : UInt256.land solcAddrMask key = key :=
     solcAddrMask_clean_left hcanonKey
   have hmaskLiteral :
@@ -218,9 +218,9 @@ theorem RD.cureLoadPosNonzeroOk {g : Sat256} {s0 : State}
 
 theorem RD.cureLoadToCureExtcodesizeGuard {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1520⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
-        rdata (cA, σ) k C)
+        rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -233,7 +233,7 @@ theorem RD.cureLoadToCureExtcodesizeGuard {g : Sat256} {s0 : State}
       R'.length = R.length + 11 ∧
       RD cureBytecode ee g s0 ⟨1586⟩ (key :: key :: R')
       (loadCureSelectorMem (twoWordHashMem key ⟨6⟩ mem))
-      (UInt256.ofNat 5) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 5) rdata σ k' C' := by
   have hmask : UInt256.land solcAddrMask key = key :=
     solcAddrMask_clean_left hcanonKey
   have hmaskLiteral :
@@ -287,7 +287,7 @@ theorem RD.cureLoadToCureExtcodesizeGuard {g : Sat256} {s0 : State}
   obtain ⟨_, _, rdAmtLoad⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨1549⟩
       (solcSlotWord σ ee (solcMappingSlot ⟨6⟩ key) :: ⟨64⟩ :: ⟨32⟩ :: ⟨0⟩ ::
         key :: key :: ret :: R)
-      (twoWordHashMem key ⟨6⟩ mem) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (twoWordHashMem key ⟨6⟩ mem) (UInt256.ofNat 3) rdata σ k' C' := by
     exact ⟨_, _, by simpa [solcSlotWord] using rdAmtLoadRaw⟩
   have hmload64Amt :
       (if (⟨64⟩ : UInt256).toNat ≥ (twoWordHashMem key ⟨6⟩ mem).size then ⟨0⟩
@@ -356,9 +356,9 @@ theorem RD.cureLoadToCureExtcodesizeGuard {g : Sat256} {s0 : State}
 
 theorem RD.cureLoadNoCodeRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1520⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
-        rdata (cA, σ) k C)
+        rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hnoCode : extCodeSizeWord σ key = ⟨0⟩)
     (hmem : mem.size = 96)
@@ -375,9 +375,9 @@ theorem RD.cureLoadNoCodeRevert {g : Sat256} {s0 : State}
 
 theorem RD.cureLoadStaticcallSetup {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1520⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
-        rdata (cA, σ) k C)
+        rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hcodeSize : extCodeSizeWord σ key ≠ ⟨0⟩)
     (hmem : mem.size = 96)
@@ -389,7 +389,7 @@ theorem RD.cureLoadStaticcallSetup {g : Sat256} {s0 : State}
         key :: ⟨0⟩ :: solcSlotWord σ ee (solcMappingSlot ⟨6⟩ key) ::
         key :: ret :: R)
       (loadCureSelectorMem (twoWordHashMem key ⟨6⟩ mem))
-      (UInt256.ofNat 5) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 5) rdata σ k' C' := by
   obtain ⟨Rext, _, _, hRext, hRextLen, rd1586⟩ :=
     RD.cureLoadToCureExtcodesizeGuard h hcanonKey hmem hread64 hov
   obtain ⟨gasWord, k1601, C1601, rd1601⟩ :=
@@ -401,51 +401,47 @@ theorem RD.cureLoadStaticcallSetup {g : Sat256} {s0 : State}
   exact ⟨gasWord, k1601, C1601, by simpa [hRext] using rd1601⟩
 
 theorem RD.cureLoadStaticcall
-    {cA gh bl σ σCall σ₀ A I} {g : UInt256}
-    {cA_call : Batteries.RBSet AccountAddress compare}
+    {σ σCall σ₀ A I} {g : UInt256}
     {key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (h : RD cureBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1520⟩
-        (key :: ret :: R) mem (UInt256.ofNat 3) rdata (cA_call, σCall) k C)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1520⟩
+        (key :: ret :: R) mem (UInt256.ofNat 3) rdata σCall k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hcodeSize : extCodeSizeWord σCall key ≠ ⟨0⟩)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 16 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD cureBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1602⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1602⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ((⟨128⟩ : UInt256) + ⟨4⟩) ::
           ⟨2215084781⟩ :: key :: ⟨0⟩ ::
           solcSlotWord σCall I (solcMappingSlot ⟨6⟩ key) :: key :: ret :: R)
         (out.write 0 (loadCureSelectorMem (twoWordHashMem key ⟨6⟩ mem)) 128
           (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 5) out (cA', σ') k' C'
+        (UInt256.ofNat 5) out σ' k' C'
     ∧ typedCallViaEVM config
-        { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σCall
-          createdAccounts := cA_call }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σCall }
         (EVM.address (AccountAddress.ofUInt256 key)) "cure" 0 []
         (z,
-          { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
             accountMap := σ'
-            substate := A'
-            createdAccounts := cA' },
+            substate := A' },
           out) false
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd1601⟩ :=
     RD.cureLoadStaticcallSetup h hcanonKey hcodeSize hmem hread64 hov
-  obtain ⟨cA', σ', z, out, A_in, callGas, k1602, C1602, hΘpack,
+  obtain ⟨σ', z, out, A_in, callGas, k1602, C1602, hΘpack,
       rd1602raw, houtsz⟩ :=
     RD.solcStaticcall rd1601 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  let evmIn := { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-    accountMap := σCall
-    createdAccounts := cA_call }
-  refine ⟨cA', σ', z, out, A', k1602, C1602, ?_, ?_, houtsz⟩
+  let evmIn := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+    accountMap := σCall }
+  refine ⟨σ', z, out, A', k1602, C1602, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 5).toNat
           (⟨128⟩ : UInt256).toNat
@@ -475,12 +471,12 @@ theorem RD.cureLoadStaticcall
     simpa [evmIn, initState] using hΘ
 
 theorem RD.cureLoadStaticcallDepthLimit
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {key ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (h : RD cureBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1520⟩
-        (key :: ret :: R) mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1520⟩
+        (key :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hcodeSize : extCodeSizeWord σ key ≠ ⟨0⟩)
     (hmem : mem.size = 96)
@@ -488,13 +484,13 @@ theorem RD.cureLoadStaticcallDepthLimit
     (hdepth : I.depth = 1024)
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD cureBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1602⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1602⟩
       (⟨0⟩ :: ((⟨128⟩ : UInt256) + ⟨4⟩) ::
         ⟨2215084781⟩ :: key :: ⟨0⟩ ::
         solcSlotWord σ I (solcMappingSlot ⟨6⟩ key) :: key :: ret :: R)
       (ByteArray.empty.write 0 (loadCureSelectorMem (twoWordHashMem key ⟨6⟩ mem)) 128
         (min (⟨32⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat)
-      (UInt256.ofNat 5) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 5) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, _, rd1601⟩ :=
     RD.cureLoadStaticcallSetup h hcanonKey hcodeSize hmem hread64 hov
   obtain ⟨k1602, C1602, rd1602raw⟩ :=
@@ -508,7 +504,7 @@ theorem RD.cureLoadStaticcallDepthLimit
   exact ⟨k1602, C1602, haw ▸ rd1602raw⟩
 
 theorem RD.cureLoadCallFailure {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
     (rd : RD cureBytecode ee g s0 ⟨1602⟩ (⟨0⟩ :: rest) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
@@ -522,7 +518,7 @@ theorem RD.cureLoadCallFailure {g : Sat256} {s0 : State}
     hosz hov
 
 theorem RD.cureLoadCallSuccessToReturnDecode {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     {d0 d1 d2 d3 d4 d5 d6 : UInt256} {R : List UInt256}
     (rd : RD cureBytecode ee g s0 ⟨1602⟩
@@ -543,7 +539,7 @@ theorem RD.cureLoadCallSuccessToReturnDecode {g : Sat256} {s0 : State}
   exact ⟨_, _, by simpa using rd1623⟩
 
 theorem RD.cureLoadReturnDecodeShortReverts {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {R : List UInt256}
     (rd : RD cureBytecode ee g s0 ⟨1623⟩ R mem (UInt256.ofNat 5) o acc k C)
     (hshort : o.size < 32)
@@ -585,7 +581,7 @@ theorem RD.cureLoadReturnDecodeShortReverts {g : Sat256} {s0 : State}
     (by simp only [List.length_cons]; omega)
 
 theorem RD.cureLoadReturnDecodeOk {g : Sat256} {s0 : State}
-    {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {ee : ExecutionEnv} {acc : AccountMap}
     {mem o : ByteArray} {k C : ℕ} {retWord : UInt256} {R : List UInt256}
     (rd : RD cureBytecode ee g s0 ⟨1623⟩ R mem (UInt256.ofNat 5) o acc k C)
     (hlo : 32 ≤ o.size)
@@ -637,10 +633,10 @@ theorem RD.cureLoadReturnDecodeOk {g : Sat256} {s0 : State}
 
 theorem RD.cureLoadStoreAmt {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret newAmt oldAmt : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1643⟩
       (newAmt :: ⟨0⟩ :: oldAmt :: key :: ret :: R) mem (UInt256.ofNat 5)
-      rdata (cA, σ) k C)
+      rdata σ k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
     (hmem : mem.size = 160)
     (hperm : ee.perm = true)
@@ -648,7 +644,7 @@ theorem RD.cureLoadStoreAmt {g : Sat256} {s0 : State}
     ∃ k' C', RD cureBytecode ee g s0 ⟨1670⟩
       (newAmt :: ⟨0⟩ :: oldAmt :: key :: ret :: R)
       (twoWordHashMem key ⟨6⟩ mem) (UInt256.ofNat 5) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨6⟩ key) newAmt) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨6⟩ key) newAmt) k' C' := by
   have hmask : UInt256.land solcAddrMask key = key :=
     solcAddrMask_clean_left hcanonKey
   have hmaskLiteral :
@@ -697,15 +693,15 @@ theorem RD.cureLoadStoreAmt {g : Sat256} {s0 : State}
 
 theorem RD.cureLoadToSubRoutine {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret newAmt oldAmt : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1670⟩
       (newAmt :: ⟨0⟩ :: oldAmt :: key :: ret :: R) mem (UInt256.ofNat 5)
-      rdata (cA, σ) k C)
+      rdata σ k C)
     (hov : R.length + 9 ≤ 1024) :
     ∃ k' C', RD cureBytecode ee g s0 ⟨3666⟩
       (oldAmt :: solcSlotWord σ ee ⟨9⟩ :: ⟨1689⟩ :: ⟨1695⟩ ::
         newAmt :: oldAmt :: key :: ret :: R)
-      mem (UInt256.ofNat 5) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 5) rdata σ k' C' := by
   have rdPush := evm_run h with [
     raw push1 ⟨9⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rdLoad₀⟩ := rdPush.sload (by native_decide)
@@ -731,7 +727,7 @@ theorem RD.cureLoadToSubRoutine {g : Sat256} {s0 : State}
 theorem RD.cureLoadSubUnderflowRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret newAmt oldAmt sayAfter : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨3666⟩
       (oldAmt :: sayAfter :: ⟨1689⟩ :: ⟨1695⟩ :: newAmt :: oldAmt :: key :: ret :: R)
       mem (UInt256.ofNat 5) rdata acc k C)
@@ -834,7 +830,7 @@ theorem RD.cureLoadSubUnderflowRevert {g : Sat256} {s0 : State}
 theorem RD.cureLoadAddOverflowRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret newAmt oldAmt withoutOld : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1689⟩
       (withoutOld :: ⟨1695⟩ :: newAmt :: oldAmt :: key :: ret :: R)
       mem (UInt256.ofNat 5) rdata acc k C)
@@ -950,7 +946,7 @@ abbrev cureLoadEventTopic : UInt256 :=
 theorem RD.cureLoadEventReturn {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret newAmt oldAmt : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1767⟩ (newAmt :: oldAmt :: key :: ret :: R)
       mem (UInt256.ofNat 5) rdata acc k C)
     (hret : (D_J cureBytecode 0).contains ret = true)
@@ -1008,10 +1004,10 @@ theorem RD.cureLoadEventReturn {g : Sat256} {s0 : State}
 theorem RD.cureLoadSuccessLoadedNonzero {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret newAmt oldAmt sayNew : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1695⟩
       (sayNew :: newAmt :: oldAmt :: key :: ret :: R)
-      mem (UInt256.ofNat 5) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 5) rdata σ k C)
     (hret : (D_J cureBytecode 0).contains ret = true)
     (hperm : ee.perm = true)
     (hmem : mem.size = 160)
@@ -1023,7 +1019,7 @@ theorem RD.cureLoadSuccessLoadedNonzero {g : Sat256} {s0 : State}
     (hov : R.length + 13 ≤ 1024) :
     ∃ k' C', RD cureBytecode ee g s0 ret R (twoWordHashMem key ⟨7⟩ mem)
       (UInt256.ofNat 5) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ ⟨9⟩ sayNew) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ ⟨9⟩ sayNew) k' C' := by
   let σSay := sstoreAccountMap ee.codeOwner σ ⟨9⟩ sayNew
   have hmask :
       UInt256.land key
@@ -1041,7 +1037,7 @@ theorem RD.cureLoadSuccessLoadedNonzero {g : Sat256} {s0 : State}
     (by simp only [List.length_cons]; omega)
   have rdAfterSay : RD cureBytecode ee g s0 ⟨1699⟩
       (newAmt :: oldAmt :: key :: ret :: R) mem (UInt256.ofNat 5) rdata
-      (cA, σSay) kSay CSay := by
+      σSay kSay CSay := by
     simpa [σSay] using rdAfterSayRaw
   have rdMasked := evm_run rdAfterSay with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1072,7 +1068,7 @@ theorem RD.cureLoadSuccessLoadedNonzero {g : Sat256} {s0 : State}
   obtain ⟨kLoad, CLoad, rdLoadRaw⟩ := rdSlot.sload (by native_decide) (by evm_ov)
   have rdLoad : RD cureBytecode ee g s0 ⟨1724⟩
       (solcSlotWord σSay ee (solcMappingSlot ⟨7⟩ key) :: newAmt :: oldAmt :: key :: ret :: R)
-      (twoWordHashMem key ⟨7⟩ mem) (UInt256.ofNat 5) rdata (cA, σSay) kLoad CLoad := by
+      (twoWordHashMem key ⟨7⟩ mem) (UInt256.ofNat 5) rdata σSay kLoad CLoad := by
     simpa [solcSlotWord] using rdLoadRaw
   have rdPush := rdLoad.push2 ⟨1767⟩ (by native_decide) (by evm_ov)
   have rd1767 := rdPush.jumpiT (by native_decide)
@@ -1089,10 +1085,10 @@ theorem RD.cureLoadSuccessLoadedNonzero {g : Sat256} {s0 : State}
 theorem RD.cureLoadSuccessLoadedZero {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {key ret newAmt oldAmt sayNew : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1695⟩
       (sayNew :: newAmt :: oldAmt :: key :: ret :: R)
-      mem (UInt256.ofNat 5) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 5) rdata σ k C)
     (hret : (D_J cureBytecode 0).contains ret = true)
     (hperm : ee.perm = true)
     (hmem : mem.size = 160)
@@ -1108,7 +1104,7 @@ theorem RD.cureLoadSuccessLoadedZero {g : Sat256} {s0 : State}
     let σCount := sstoreAccountMap ee.codeOwner σLoaded ⟨8⟩ (solcSlotWord σLoaded ee ⟨8⟩ + ⟨1⟩)
     ∃ k' C', RD cureBytecode ee g s0 ret R
       (twoWordHashMem key ⟨7⟩ (twoWordHashMem key ⟨7⟩ mem))
-      (UInt256.ofNat 5) rdata (cA, σCount) k' C' := by
+      (UInt256.ofNat 5) rdata σCount k' C' := by
   intro σSay loadedSlot σLoaded σCount
   have hmask :
       UInt256.land key
@@ -1126,7 +1122,7 @@ theorem RD.cureLoadSuccessLoadedZero {g : Sat256} {s0 : State}
     (by simp only [List.length_cons]; omega)
   have rdAfterSay : RD cureBytecode ee g s0 ⟨1699⟩
       (newAmt :: oldAmt :: key :: ret :: R) mem (UInt256.ofNat 5) rdata
-      (cA, σSay) kSay CSay := by
+      σSay kSay CSay := by
     simpa [σSay] using rdAfterSayRaw
   have rdMasked := evm_run rdAfterSay with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1158,7 +1154,7 @@ theorem RD.cureLoadSuccessLoadedZero {g : Sat256} {s0 : State}
   obtain ⟨kLoad, CLoad, rdLoadRaw⟩ := rdSlot.sload (by native_decide) (by evm_ov)
   have rdLoad : RD cureBytecode ee g s0 ⟨1724⟩
       (solcSlotWord σSay ee loadedSlot :: newAmt :: oldAmt :: key :: ret :: R)
-      (twoWordHashMem key ⟨7⟩ mem) (UInt256.ofNat 5) rdata (cA, σSay) kLoad CLoad := by
+      (twoWordHashMem key ⟨7⟩ mem) (UInt256.ofNat 5) rdata σSay kLoad CLoad := by
     simpa [loadedSlot, solcSlotWord] using rdLoadRaw
   have rdPush := rdLoad.push2 ⟨1767⟩ (by native_decide) (by evm_ov)
   have rd1728 := rdPush.jumpiNT (by native_decide)
@@ -1204,7 +1200,7 @@ theorem RD.cureLoadSuccessLoadedZero {g : Sat256} {s0 : State}
   have rdAfterLoaded : RD cureBytecode ee g s0 ⟨1758⟩
       (⟨1⟩ :: newAmt :: oldAmt :: key :: ret :: R)
       (twoWordHashMem key ⟨7⟩ (twoWordHashMem key ⟨7⟩ mem)) (UInt256.ofNat 5) rdata
-      (cA, σLoaded) kLoaded CLoaded := by
+      σLoaded kLoaded CLoaded := by
     simpa [σLoaded, loadedSlot] using rdAfterLoadedRaw
   have rdLCountPrefix := evm_run rdAfterLoaded with [
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov),
@@ -1214,7 +1210,7 @@ theorem RD.cureLoadSuccessLoadedZero {g : Sat256} {s0 : State}
   have rdLCount : RD cureBytecode ee g s0 ⟨1762⟩
       (solcSlotWord σLoaded ee ⟨8⟩ :: ⟨8⟩ :: ⟨1⟩ :: newAmt :: oldAmt :: key :: ret :: R)
       (twoWordHashMem key ⟨7⟩ (twoWordHashMem key ⟨7⟩ mem)) (UInt256.ofNat 5) rdata
-      (cA, σLoaded) kLCount CLCount := by
+      σLoaded kLCount CLCount := by
     simpa [solcSlotWord] using rdLCountRaw
   have rdCountStoreReady := evm_run rdLCount with [
     raw swap1 (by native_decide) (by evm_ov),
@@ -1226,7 +1222,7 @@ theorem RD.cureLoadSuccessLoadedZero {g : Sat256} {s0 : State}
   have rd1767 : RD cureBytecode ee g s0 ⟨1767⟩
       (newAmt :: oldAmt :: key :: ret :: R)
       (twoWordHashMem key ⟨7⟩ (twoWordHashMem key ⟨7⟩ mem)) (UInt256.ofNat 5) rdata
-      (cA, σCount) kCount CCount := by
+      σCount kCount CCount := by
     simpa [σCount, u256_add_comm] using rdAfterCountRaw
   have hmemHash2 :
       (twoWordHashMem key ⟨7⟩ (twoWordHashMem key ⟨7⟩ mem)).size = 160 :=

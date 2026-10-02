@@ -72,13 +72,13 @@ theorem vatDecode_can_none_short {I : ExecutionEnv}
   simpa using decodeCalldata_legacyAddress_legacyAddress_none_short
     (cd := I.calldata) (x := "arg0") (y := "arg1") hsz4 hshort
 
-theorem vatReachCanBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vatReachCanBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 2)) :
-    ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
         ⟨711⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vatSelWord I = ⟨0x4538c4eb⟩ :=
     vatSelWord_eq_of_beq I hsz 0x45 0x38 0xc4 0xeb ⟨0x4538c4eb⟩
       (by native_decide) (by simpa [vatSelBytes] using hsel)
@@ -106,7 +106,7 @@ theorem vatReachCanBody {cA gh bl σ σ₀ A I} {g : Sat256}
     hroot hlow hlowhigh heq0 htake (by jump_dest) (by native_decide)
 
 theorem vatCanBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some canTransition)
@@ -114,24 +114,23 @@ theorem vatCanBodyCoreOk
       decodeCalldataWithMode config.abiDecodeMode (canTransition.params.map Param.name)
         (transitionSignature canTransition).paramTypes I.calldata = some (canStore I))
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨711⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨711⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let slot := solcMappingSlot (solcMappingSlot ⟨1⟩ (canSrcMaskedWord I)) (canUsrMaskedWord I)
   have hslot : canStorageSlot I = slot := by
     simp [slot, canStorageSlot_eq]
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (canStore I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) (canStore I)
         canTransition.body
         (.returned { contract := contract, locals := canStore I }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (vatSlotWord (canStorageSlot I) σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (vatSlotWord (canStorageSlot I) σ I).toNat))])) := by
     simpa [canTransition, canStorageSlot, vatSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vatUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (canStore I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) (canStore I)
         (ref := canRef (.var "arg0") (.var "arg1")) (er := canEvaledRef I)
         (slot := canStorageSlot I)
         (by simp only [initState]; exact hwv) (by simp [canStore, canRef])
@@ -168,13 +167,13 @@ theorem vatCanBodyCoreOk
     (by jump_dest) (by simp)
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (vatSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (vatSlotWord slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨465⟩) (val := vatSlotWord slot σ_evm I) (ret := ⟨465⟩) (R := [sel])
+      (pc := ⟨465⟩) (val := vatSlotWord slot σ I) (ret := ⟨465⟩) (R := [sel])
       (memout := solcScratchReturnMem
         (solcNestedMappingHashMem ⟨1⟩ (canSrcMaskedWord I) (canUsrMaskedWord I))
-        (vatSlotWord slot σ_evm I))
+        (vatSlotWord slot σ I))
       (by simpa [slot, vatSlotWord] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
@@ -184,38 +183,33 @@ theorem vatCanBodyCoreOk
           solcNestedMappingHashMem_mload64 ⟨1⟩ (canSrcMaskedWord I) (canUsrMaskedWord I))
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (vatSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_mload64 (vatSlotWord slot σ I)
           (solcNestedMappingHashMem_size ⟨1⟩ (canSrcMaskedWord I) (canUsrMaskedWord I))
           (solcNestedMappingHashMem_read64 ⟨1⟩ (canSrcMaskedWord I) (canUsrMaskedWord I)))
       (by
-        exact solcScratchReturnMem_read128 (vatSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_read128 (vatSlotWord slot σ I)
           (solcNestedMappingHashMem_size ⟨1⟩ (canSrcMaskedWord I) (canUsrMaskedWord I)))
       (by simp)
     simpa [slot, vatSlotWord] using hret'
-  have hword : vatSlotWord slot σ_evm I = vatSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (vatSlotWord (canStorageSlot I) σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (vatSlotWord slot σ_evm I).toNat)] := by
-    rw [hslot, hword]
+  rw [hslot] at hbody
   have henc :
-      returnEquiv (UInt256.toByteArray (vatSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (vatSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (vatSlotWord slot σ I))
+        (some [(.int (Int.ofNat (vatSlotWord slot σ I).toNat))])
         canTransition.returnType := by
     rw [show canTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (vatSlotWord slot σ_evm I))
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+      (by simpa [uint256] using uint256ReturnEncoding (vatSlotWord slot σ I))
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem vatCanBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some canTransition)
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨711⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨711⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hdec := vatDecode_can_none_short (I := I) hsz4 hshort
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
@@ -234,17 +228,17 @@ theorem vatCanBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch hdec
 
 theorem vatCanBodyCore : VatBodyTheorem 2 := by
-  intro cA gh bl σ_evm σ_solm σ₀ A I g hcode hsize _hperm hwv hsel hAccounts
+  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 2) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some canTransition :=
     vatDispatchCan hsel
-  have hreach := vatReachCanBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := vatReachCanBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
   · exact vatCanBodyCoreOk hcode hwv hsz68 hsize hdispatch
-      (vatDecode_can_ok hsz68) hreach hAccounts
+      (vatDecode_can_ok hsz68) hreach
   · exact vatCanBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 
 end Benchmarks.Dss.Vat

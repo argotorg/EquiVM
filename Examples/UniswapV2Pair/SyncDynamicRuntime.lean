@@ -7,7 +7,7 @@ theorem RD.uniswapUpdateEmitSyncAndJump_dynamic {g : Sat256} {s0 : State}
     {I : ExecutionEnv} {k C : Nat}
     {packed elapsed timestamp reserve1 reserve0 balance1 balance0 ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw ptr : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD uniswapV2PairBytecode I g s0 ⟨7339⟩
       (reserve112Shift :: reserve112Mask :: packed :: elapsed :: timestamp :: reserve1 ::
         reserve0 :: balance1 :: balance0 :: ret :: R) mem aw rdata acc k C)

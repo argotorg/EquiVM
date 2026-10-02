@@ -10,7 +10,7 @@ set_option maxRecDepth 2000000 in
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
      {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int} {feeTo : AccountAddress}
     {kLast feeToWord reserve0 reserve1 ret : UInt256} {R : List UInt256}
@@ -18,9 +18,10 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail
       s0 ⟨7899⟩
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeToWord ::
         ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
-    (hAccounts : accountMapEquiv σFee evmFeeS.accountMap)
+      mem feeToStaticcallActiveWords rdata σFee k C)
+    (hAccounts : σFee = evmFeeS.accountMap)
     (henv : evmFeeS.executionEnv = I)
+    (hσ0 : evmFeeS.σ₀ = s0.σ₀)
     (hrecipient : feeTo = AccountAddress.ofNat feeToWord.toNat)
     (hrootKNonneg : 0 ≤ rootK) (hrootKSize : rootK.toNat < UInt256.size)
     (hrootKLastNonneg : 0 ≤ rootKLast) (hrootKLastSize : rootKLast.toNat < UInt256.size)
@@ -38,15 +39,13 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evmFeeS [mintFeeRootComparisonStmt] (.ok frame' evm') ∧
       evalExpr? config frame' evm' (.var "feeOn") = .ok (.bool true) ∧
-      accountMapEquiv σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
-      evm'.createdAccounts = evmFeeS.createdAccounts ∧
+      σ' = evm'.accountMap ∧ evm'.executionEnv = I ∧
       RD uniswapV2PairBytecode I g
         s0 ret
-        (⟨1⟩ :: R) mem' feeToStaticcallActiveWords rdata (cAFee, σ') k' C' ∧
+        (⟨1⟩ :: R) mem' feeToStaticcallActiveWords rdata σ' k' C' ∧
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
-      evm'.σ₀ = evmFeeS.σ₀ ∧ evm'.genesisBlockHeader = evmFeeS.genesisBlockHeader ∧
-      evm'.blocks = evmFeeS.blocks ∧
-      mem'.readWithPadding 96 32 = mem.readWithPadding 96 32) := by
+      mem'.readWithPadding 96 32 = mem.readWithPadding 96 32 ∧
+      evm'.σ₀ = s0.σ₀) := by
   have htotalEq := mintFunctionTotalSupplyWord_eq_slot_of_accountMapEquiv hAccounts henv
   by_cases hroot : rootK > rootKLast
   · rcases uniswapMintFeeActualRootArithmeticCasesOfTail (hov := hov) rd7899 htotalEq hroot hrootKNonneg
@@ -102,23 +101,17 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail
                 kLast rootK rootKLast,
               accountMapEquiv_mintFunctionPostState_of_runtimeMintRecipient hAccounts henv
                 hrecipient (by rw [hmem]; omega) hfitSupply hfitBalance,
-              ?_, ?_, rdRet, ?_, ?_, ?_, ?_, ?_, ?_⟩
+              ?_, rdRet, ?_, ?_, ?_, ?_⟩
             · simp only [mintFunctionPostState, mintFunctionAfterTotalSupplyState,
                 storageStore_executionEnv, henv]
-            · simp only [mintFunctionPostState, mintFunctionAfterTotalSupplyState,
-                storageStore_createdAccounts]
             · exact (uniswapInternalMintSuccessMem_size_of_ge160 feeToWord
                 (mintFeeLiquidityWord evmFeeS rootK rootKLast) (by rw [hmem]; omega)).trans hmem
             · exact uniswapInternalMintSuccessMem_read64_of_ge160 feeToWord
                 (mintFeeLiquidityWord evmFeeS rootK rootKLast) (by rw [hmem]; omega) hmem64
-            · simp only [mintFunctionPostState, mintFunctionAfterTotalSupplyState,
-                balanceCallStorageStore_sigma0]
-            · simp only [mintFunctionPostState, mintFunctionAfterTotalSupplyState,
-                balanceCallStorageStore_genesisBlockHeader]
-            · simp only [mintFunctionPostState, mintFunctionAfterTotalSupplyState,
-                balanceCallStorageStore_blocks]
             · exact uniswapInternalMintSuccessMem_read96 feeToWord
                 (mintFeeLiquidityWord evmFeeS rootK rootKLast) (by rw [hmem]; omega)
+            · simpa only [mintFunctionPostState, mintFunctionAfterTotalSupplyState,
+                balanceCallStorageStore_sigma0] using hσ0
           · exact Or.inl ⟨uniswapMintFeeAfterRoots_mintCallReverts evmFeeS reserve0 reserve1
               feeTo kLast rootK rootKLast hroot hrootKNonneg hrootKSize hrootKLastNonneg
               hnumFit hrootFiveFit hdenFit hdenom hliq
@@ -143,7 +136,7 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail
             rootK rootKLast hroot hrootKNonneg hrootKSize hrootKLastNonneg
             hnumFit hrootFiveFit hdenFit hdenom hliq,
           evalExpr_mintFee_afterLiquidity_feeOn evmFeeS reserve0 reserve1 feeTo true kLast
-            rootK rootKLast, hAccounts, henv, rfl, rdRet, hmem, hmem64, rfl, rfl, rfl, rfl⟩
+            rootK rootKLast, hAccounts, henv, rdRet, hmem, hmem64, rfl, hσ0⟩
     · exact Or.inl hrev
   · obtain ⟨_, _, rdRet⟩ := uniswapMintFeeRuntimeAfterRootsNoMintReturnOfTail rd7899
       (mintFeeRuntimeRootLe_of_int_not_gt rootK rootKLast hroot hrootKSize hrootKLastSize)
@@ -151,14 +144,14 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail
     exact Or.inr ⟨_, evmFeeS, σFee, mem, _, _,
       uniswapMintFeeAfterRoots_noMint evmFeeS reserve0 reserve1 feeTo kLast rootK rootKLast hroot,
       evalExpr_mintFee_afterRootKLast_feeOn evmFeeS reserve0 reserve1 feeTo true kLast
-        rootK rootKLast, hAccounts, henv, rfl, rdRet, hmem, hmem64, rfl, rfl, rfl, rfl⟩
+        rootK rootKLast, hAccounts, henv, rdRet, hmem, hmem64, rfl, hσ0⟩
 
 
 set_option maxRecDepth 2000000 in
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeActualRootRuntimeCasesWithWorldOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
      {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int} {feeTo : AccountAddress}
     {kLast feeToWord reserve0 reserve1 ret : UInt256} {R : List UInt256}
@@ -166,9 +159,10 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithWorldOfTail
       s0 ⟨7899⟩
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeToWord ::
         ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
-    (hAccounts : accountMapEquiv σFee evmFeeS.accountMap)
+      mem feeToStaticcallActiveWords rdata σFee k C)
+    (hAccounts : σFee = evmFeeS.accountMap)
     (henv : evmFeeS.executionEnv = I)
+    (hσ0 : evmFeeS.σ₀ = s0.σ₀)
     (hrecipient : feeTo = AccountAddress.ofNat feeToWord.toNat)
     (hrootKNonneg : 0 ≤ rootK) (hrootKSize : rootK.toNat < UInt256.size)
     (hrootKLastNonneg : 0 ≤ rootKLast) (hrootKLastSize : rootKLast.toNat < UInt256.size)
@@ -186,26 +180,24 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithWorldOfTail
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evmFeeS [mintFeeRootComparisonStmt] (.ok frame' evm') ∧
       evalExpr? config frame' evm' (.var "feeOn") = .ok (.bool true) ∧
-      accountMapEquiv σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
-      evm'.createdAccounts = evmFeeS.createdAccounts ∧
+      σ' = evm'.accountMap ∧ evm'.executionEnv = I ∧
       RD uniswapV2PairBytecode I g
         s0 ret
-        (⟨1⟩ :: R) mem' feeToStaticcallActiveWords rdata (cAFee, σ') k' C' ∧
+        (⟨1⟩ :: R) mem' feeToStaticcallActiveWords rdata σ' k' C' ∧
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
-      evm'.σ₀ = evmFeeS.σ₀ ∧ evm'.genesisBlockHeader = evmFeeS.genesisBlockHeader ∧
-      evm'.blocks = evmFeeS.blocks) := by
-  rcases uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail evmFeeS rd7899 hAccounts henv
+      evm'.σ₀ = s0.σ₀) := by
+  rcases uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail evmFeeS rd7899 hAccounts henv hσ0
       hrecipient hrootKNonneg hrootKSize hrootKLastNonneg hrootKLastSize hperm hmem hmem64 hret hov with
-    hrev | ⟨f, e, σ', m, k', C', hb, hf, ha, he, hc, rd, hm, h64, hs, hg, hbl, _⟩
+    hrev | ⟨f, e, σ', m, k', C', hb, hf, ha, he, rd, hm, h64, _, hσ0⟩
   · exact Or.inl hrev
-  · exact Or.inr ⟨f, e, σ', m, k', C', hb, hf, ha, he, hc, rd, hm, h64, hs, hg, hbl⟩
+  · exact Or.inr ⟨f, e, σ', m, k', C', hb, hf, ha, he, rd, hm, h64, hσ0⟩
 
 
 set_option maxRecDepth 2000000 in
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeActualRootRuntimeCasesOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
      {mem rdata : ByteArray} {k C : ℕ}
     {rootK rootKLast : Int} {feeTo : AccountAddress}
     {kLast feeToWord reserve0 reserve1 ret : UInt256} {R : List UInt256}
@@ -213,9 +205,10 @@ theorem uniswapMintFeeActualRootRuntimeCasesOfTail
       s0 ⟨7899⟩
       (UInt256.ofNat rootKLast.toNat :: ⟨0⟩ :: UInt256.ofNat rootK.toNat :: kLast :: feeToWord ::
         ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
-    (hAccounts : accountMapEquiv σFee evmFeeS.accountMap)
+      mem feeToStaticcallActiveWords rdata σFee k C)
+    (hAccounts : σFee = evmFeeS.accountMap)
     (henv : evmFeeS.executionEnv = I)
+    (hσ0 : evmFeeS.σ₀ = s0.σ₀)
     (hrecipient : feeTo = AccountAddress.ofNat feeToWord.toNat)
     (hrootKNonneg : 0 ≤ rootK) (hrootKSize : rootK.toNat < UInt256.size)
     (hrootKLastNonneg : 0 ≤ rootKLast) (hrootKLastSize : rootKLast.toNat < UInt256.size)
@@ -233,16 +226,16 @@ theorem uniswapMintFeeActualRootRuntimeCasesOfTail
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evmFeeS [mintFeeRootComparisonStmt] (.ok frame' evm') ∧
       evalExpr? config frame' evm' (.var "feeOn") = .ok (.bool true) ∧
-      accountMapEquiv σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
-      evm'.createdAccounts = evmFeeS.createdAccounts ∧
+      σ' = evm'.accountMap ∧ evm'.executionEnv = I ∧
       RD uniswapV2PairBytecode I g
         s0 ret
-        (⟨1⟩ :: R) mem' feeToStaticcallActiveWords rdata (cAFee, σ') k' C' ∧
-      mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) := by
-  rcases uniswapMintFeeActualRootRuntimeCasesWithWorldOfTail evmFeeS rd7899 hAccounts henv
+        (⟨1⟩ :: R) mem' feeToStaticcallActiveWords rdata σ' k' C' ∧
+      mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
+      evm'.σ₀ = s0.σ₀) := by
+  rcases uniswapMintFeeActualRootRuntimeCasesWithWorldOfTail evmFeeS rd7899 hAccounts henv hσ0
       hrecipient hrootKNonneg hrootKSize hrootKLastNonneg hrootKLastSize hperm hmem
-      hmem64 hret hov with hrev | ⟨f, e, σ', m, k', C', hb, hf, ha, he, hc, rd, hm, h64, _⟩
+      hmem64 hret hov with hrev | ⟨f, e, σ', m, k', C', hb, hf, ha, he, rd, hm, h64, hσ0⟩
   · exact Or.inl hrev
-  · exact Or.inr ⟨f, e, σ', m, k', C', hb, hf, ha, he, hc, rd, hm, h64⟩
+  · exact Or.inr ⟨f, e, σ', m, k', C', hb, hf, ha, he, rd, hm, h64, hσ0⟩
 
 end UniswapV2Pair

@@ -1814,11 +1814,9 @@ theorem delegateTrueSuccessState_accountMapEquiv_init {σ σ₀ A I} {g : Sat256
 
 /-! ### `EVMStateEquiv` simulation chains for the delegate success states
 
-These carry the simulation relation compositionally through the writes, with the value/slot
-agreements for σ-dependent writes coming from the chain's own `storageLoad` agreement.  They are
-the delegate analogue of `voteFinalState_EVMStateEquiv` and feed the relaxed
-`reEquivExecutionGenEVMStateEquiv` connect (its `acc.2` side is up to `accountMapEquiv`, which
-absorbs the packed same-slot double write in `delegateAfterSenderState`). -/
+These document the simulation relation through the writes. The runtime proofs use the direct
+account-map equalities below, which absorb the packed same-slot double write in
+`delegateAfterSenderState`. -/
 
 theorem delegateAfterSenderState_EVMStateEquiv
     {σ σ₀ A I} {g : Sat256} :
@@ -3951,14 +3949,10 @@ theorem ballotDelegateNotVotedSuccessEquiv
   exact (ballotDelegateX_delegateNotVotedSuccess (g := Sat256.ofUInt256 g)
       hsz36 hsize hbig hperm hcanon hweight hvoted hnotself hdelegate hdelegateWeight
       hdelegateNotVoted hfit hreach)
-    |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-      (delegateFalseSuccessState_created_init (g := Sat256.ofUInt256 g) (σ := σ))
+    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
       (delegateFalseSuccessState_accountMapEquiv_init
         (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) hweight hfit)
-      (delegateFalseSuccessState_EVMStateEquiv
-        (σ₀ := σ₀)
-        (A := A) (I := I) (g := Sat256.ofUInt256 g) rfl)
       (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 theorem ballotDelegateVotedSuccessEquiv
@@ -4040,14 +4034,10 @@ theorem ballotDelegateVotedSuccessEquiv
   exact (ballotDelegateX_delegateVotedSuccess (g := Sat256.ofUInt256 g)
       hsz36 hsize hbig hperm hcanon hweight hvoted hnotself hdelegate hdelegateWeight
       hdelegateVoted hbound hfit hreach)
-    |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-      (delegateTrueSuccessState_created_init (g := Sat256.ofUInt256 g) (σ := σ))
+    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
       (delegateTrueSuccessState_accountMapEquiv_init
         (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) hweight hfit)
-      (delegateTrueSuccessState_EVMStateEquiv
-        (σ₀ := σ₀)
-        (A := A) (I := I) (g := Sat256.ofUInt256 g) rfl)
       (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 theorem ballotDelegateNotVotedOverflowEquiv

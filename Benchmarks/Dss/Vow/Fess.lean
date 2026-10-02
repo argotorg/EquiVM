@@ -126,10 +126,10 @@ theorem evalExpr_fessTab {evm : EVM.State} {I : ExecutionEnv} {locals : Store}
   rfl
 
 theorem evalExpr_fessSinStorage
-    {cA gh bl σ σ₀ A I} {g : UInt256} {locals : Store}
+    {σ σ₀ A I} {g : UInt256} {locals : Store}
     (hbase : locals.get? "sin" = none) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (.storage (sinRef (.env .timestamp))) =
         .ok (.int (Int.ofNat (vowSlotWord (fessSinSlotFor I) σ I).toNat)) := by
   rw [evalExpr_storage_scalar (er := fessSinEvaledRef I) (t := .int uint256Int)
@@ -160,9 +160,9 @@ theorem evalExpr_sinCapitalStorage (evm : EVM.State) {locals : Store}
     simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, sinCapitalEvaledRef]
 
 theorem assign_fessSinStorage
-    {cA gh bl σ σ₀ A I} {g : UInt256} {locals : Store} (sinNew : UInt256)
+    {σ σ₀ A I} {g : UInt256} {locals : Store} (sinNew : UInt256)
     (hbase : locals.get? "sin" = none) :
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner (fessSinSlotFor I) sinNew
     assignStorageRef? config { contract := contract, locals := locals } evm0
       .storage (sinRef (.env .timestamp)) (.int (Int.ofNat sinNew.toNat)) =
@@ -257,8 +257,8 @@ theorem assign_sinCapitalStorage (evm : EVM.State) {locals : Store} (SinNew : UI
 theorem RD.vowFessToFirstAdd {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc afterAddPc routinePc tab ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (tab :: ret :: R) mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    {σ : AccountMap}
+    (h : RD code ee g s0 pc (tab :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : vowFessToFirstAddWf code pc afterAddPc routinePc)
     (hmem : mem.size = 96)
     (hroutine : (D_J code 0).contains routinePc = true)
@@ -267,7 +267,7 @@ theorem RD.vowFessToFirstAdd {code : ByteArray} {g : Sat256} {s0 : State}
       (tab :: solcSlotWord σ ee (solcMappingSlot ⟨4⟩ (UInt256.ofNat ee.header.timestamp)) ::
         afterAddPc :: tab :: ret :: R)
       (twoWordHashMem (UInt256.ofNat ee.header.timestamp) ⟨4⟩ mem)
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd4, hd5, hd6, hd7, hd9, hd11, hd12, hd14, hd15, hd16,
       hd17, hd20, hd21, hd22, hd25⟩
@@ -344,9 +344,9 @@ theorem RD.vowFessToFirstAdd {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.vowFessStoreSinAndToSecondAdd {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc afterAddPc routinePc sinNew tab ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD code ee g s0 pc (sinNew :: tab :: ret :: R) mem (UInt256.ofNat 3) rdata
-      (cA, σ) k C)
+      σ k C)
     (hwf : vowFessStoreSinAndToSecondAddWf code pc afterAddPc routinePc)
     (hmem : mem.size = 96)
     (hperm : ee.perm = true)
@@ -361,7 +361,7 @@ theorem RD.vowFessStoreSinAndToSecondAdd {code : ByteArray} {g : Sat256} {s0 : S
         afterAddPc :: tab :: ret :: R)
       (twoWordHashMem (UInt256.ofNat ee.header.timestamp) ⟨4⟩ mem)
       (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ
+      (sstoreAccountMap ee.codeOwner σ
         (solcMappingSlot ⟨4⟩ (UInt256.ofNat ee.header.timestamp)) sinNew) k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd4, hd5, hd6, hd7, hd9, hd11, hd12, hd14, hd15, hd16,
@@ -410,15 +410,15 @@ theorem RD.vowFessStoreSinAndToSecondAdd {code : ByteArray} {g : Sat256} {s0 : S
 theorem RD.vowFessStoreSinCapital {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc sinNew tab ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD code ee g s0 pc (sinNew :: tab :: ret :: R) mem (UInt256.ofNat 3) rdata
-      (cA, σ) k C)
+      σ k C)
     (hwf : vowFessStoreSinCapitalWf code pc)
     (hperm : ee.perm = true)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret R mem (UInt256.ofNat 3) rdata
-      (cA, sstoreAccountMap ee.codeOwner σ ⟨5⟩ sinNew) k' C' := by
+      (sstoreAccountMap ee.codeOwner σ ⟨5⟩ sinNew) k' C' := by
   rcases hwf with ⟨hd0, hd1, hd3, hd4, hd5⟩
   have rdStorePrefix := evm_run h with [
     raw jumpdest hd0 (by evm_ov),
@@ -467,13 +467,13 @@ theorem vowDecode_fess_none_short {I : ExecutionEnv}
   simpa [config, fessTransition, uint256] using
     (decodeCalldata_legacyUInt256_none_short (cd := I.calldata) (x := "tab") hsz4 hshort)
 
-theorem vowReachFessBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vowReachFessBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x69, 0x7e, 0xfb, 0x78]⟩) :
-    ∃ k C, RD vowBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vowBytecode I g (initState σ σ₀ g A I)
         ⟨571⟩ [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vowSelWord I = ⟨1769929592⟩ :=
     vowSelWord_eq_of_beq I hsz 0x69 0x7e 0xfb 0x78 ⟨1769929592⟩
       (by native_decide) hsel
@@ -497,16 +497,16 @@ theorem vowReachFessBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by jump_dest) (by native_decide)
 
 theorem RD.vowFessDecodeToRoutine
-    {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) :
     ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3318⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3318⟩
       [fessTab I, ⟨412⟩, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   let tab := fessTab I
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := vowBytecode) (sel := sel) (entry := ⟨571⟩) (ret := ⟨412⟩)
@@ -524,10 +524,10 @@ theorem RD.vowFessDecodeToRoutine
       using rd599.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vowFessSuccess
-    {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hperm : I.perm = true)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
@@ -540,9 +540,8 @@ theorem RD.vowFessSuccess
             (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
           I ⟨5⟩).toNat + (fessTab I).toNat < UInt256.size) :
     RDret vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-      (cA,
-        sstoreAccountMap I.codeOwner
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨4⟩ (fessEraKey I))
             (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
           ⟨5⟩
@@ -621,15 +620,15 @@ theorem RD.vowFessSuccess
     RD.stop hretPc' (by native_decide) (by simp)
 
 theorem RD.vowFessAuthRevert
-    {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let tab := fessTab I
   obtain ⟨_, _, htoRoutineRD⟩ := RD.vowFessDecodeToRoutine hreach hsz36 hsize
   exact RD.vowAuthCheckRevert
@@ -645,17 +644,17 @@ theorem RD.vowFessAuthRevert
     hauth (by simp)
 
 theorem RD.vowFessFirstAddOverflow
-    {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
     (hauth : solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩)
     (hover : UInt256.size ≤
       (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I))).toNat + (fessTab I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let tab := fessTab I
   let era := fessEraKey I
   let eraSlot := solcMappingSlot ⟨4⟩ era
@@ -690,10 +689,10 @@ theorem RD.vowFessFirstAddOverflow
     (by simp)
 
 theorem RD.vowFessSecondAddOverflow
-    {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hperm : I.perm = true)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
@@ -706,7 +705,7 @@ theorem RD.vowFessSecondAddOverflow
             (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
           I ⟨5⟩).toNat + (fessTab I).toNat) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let tab := fessTab I
   let era := fessEraKey I
   let eraSlot := solcMappingSlot ⟨4⟩ era
@@ -768,7 +767,7 @@ theorem RD.vowFessSecondAddOverflow
 /-! ### Source body and refinement -/
 
 theorem vowFessBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hperm : I.perm = true) (hsz36 : 36 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size)
@@ -777,10 +776,9 @@ theorem vowFessBodyCore
       decodeCalldataWithMode config.abiDecodeMode (fessTransition.params.map Param.name)
         (transitionSignature fessTransition).paramTypes I.calldata = some (fessLocals I))
     (hreach : ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨571⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let tab := fessTab I
   let eraSlot := solcMappingSlot ⟨4⟩ (fessEraKey I)
   let slot := fessSinSlotFor I
@@ -788,40 +786,35 @@ theorem vowFessBodyCore
   let locals := fessLocals I
   have hslot : slot = eraSlot := by
     simp [slot, eraSlot, fessSinSlotFor_eq]
-  have hcallerWord : vowSlotWord callerSlot σ_evm I = vowSlotWord callerSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
-  have hsinWord : vowSlotWord slot σ_evm I = vowSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  by_cases hauthEvm : vowSlotWord callerSlot σ_evm I = ⟨1⟩
-  · have hauthSolm : vowSlotWord callerSlot σ_solm I = ⟨1⟩ := by
+  have hcallerWord : vowSlotWord callerSlot σ I = vowSlotWord callerSlot σ I := rfl
+  by_cases hauthEvm : vowSlotWord callerSlot σ I = ⟨1⟩
+  · have hauthSolm : vowSlotWord callerSlot σ I = ⟨1⟩ := by
       rw [← hcallerWord]
       exact hauthEvm
     have hauthSolc :
-        solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
+        solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
       simpa [callerSlot, vowCallerWardsSlot, vowSlotWord] using hauthEvm
-    by_cases hfitEraEvm : (vowSlotWord slot σ_evm I).toNat + tab.toNat < UInt256.size
-    · let sinNew := vowSlotWord slot σ_evm I + tab
+    by_cases hfitEraEvm : (vowSlotWord slot σ I).toNat + tab.toNat < UInt256.size
+    · let sinNew := vowSlotWord slot σ I + tab
       let locals1 := fessLocalsSinNew I sinNew
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm1 := Solm.EVM.storageStore evm0 I.codeOwner slot sinNew
-      let σ1_evm := sstoreAccountMap I.codeOwner σ_evm eraSlot sinNew
-      have hfitEraSolm : (vowSlotWord slot σ_solm I).toNat + tab.toNat < UInt256.size := by
-        rw [← hsinWord]
+      let σ1_evm := sstoreAccountMap I.codeOwner σ eraSlot sinNew
+      have hfitEraSolm : (vowSlotWord slot σ I).toNat + tab.toNat < UInt256.size := by
         exact hfitEraEvm
-      have hsinNewEqSolm : sinNew = vowSlotWord slot σ_solm I + tab := by
-        simp [sinNew, hsinWord]
+      have hsinNewEqSolm : sinNew = vowSlotWord slot σ I + tab := by
+        rfl
       have hsinNewNatSolm :
-          sinNew.toNat = (vowSlotWord slot σ_solm I).toNat + tab.toNat := by
+          sinNew.toNat = (vowSlotWord slot σ I).toNat + tab.toNat := by
         rw [hsinNewEqSolm, uadd_toNat, Nat.mod_eq_of_lt hfitEraSolm]
-      have haccounts1 : accountMapEquiv σ1_evm evm1.accountMap := by
-        simpa [σ1_evm, evm1, evm0, initState, storageStore_accountMap, hslot] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner eraSlot sinNew hAccounts
+      have haccounts1 : σ1_evm = evm1.accountMap := by
+        simp [σ1_evm, evm1, evm0, initState, storageStore_accountMap, hslot]
       have hsinRead0 :
           evalExpr? config { contract := contract, locals := locals } evm0
             (.storage (sinRef (.env .timestamp))) =
-              .ok (.int (Int.ofNat (vowSlotWord slot σ_solm I).toNat)) := by
+              .ok (.int (Int.ofNat (vowSlotWord slot σ I).toNat)) := by
         simpa [evm0, locals, slot] using
-          (evalExpr_fessSinStorage (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+          (evalExpr_fessSinStorage (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals)
             (by simp [locals, fessLocals]))
       have htab0 :
@@ -835,7 +828,7 @@ theorem vowFessBodyCore
             (add256 (.storage (sinRef (.env .timestamp))) (.var "tab")) =
               .ok (.int (Int.ofNat sinNew.toNat)) := by
         exact evalExpr_add256_tab_ok
-          (x := .storage (sinRef (.env .timestamp))) (old := vowSlotWord slot σ_solm I)
+          (x := .storage (sinRef (.env .timestamp))) (old := vowSlotWord slot σ I)
           (tab := tab) (sum := sinNew) hsinRead0 htab0 hsinNewEqSolm hfitEraSolm
       have hsinNewVar :
           evalExpr? config { contract := contract, locals := locals1 } evm0 (.var "sinNew") =
@@ -853,9 +846,9 @@ theorem vowFessBodyCore
         have hread :
             evalExpr? config { contract := contract, locals := locals1 } evm0
               (.storage (sinRef (.env .timestamp))) =
-                .ok (.int (Int.ofNat (vowSlotWord slot σ_solm I).toNat)) := by
+                .ok (.int (Int.ofNat (vowSlotWord slot σ I).toNat)) := by
           simpa [evm0, locals1, slot] using
-            (evalExpr_fessSinStorage (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+            (evalExpr_fessSinStorage (σ := σ)
               (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals1)
               (by simp [locals1, fessLocalsSinNew, fessLocals]))
         exact evalExpr_ge_uint256_true hsinNewVar hread (by rw [hsinNewNatSolm]; omega)
@@ -864,7 +857,7 @@ theorem vowFessBodyCore
             .storage (sinRef (.env .timestamp)) (.int (Int.ofNat sinNew.toNat)) =
               .ok ({ contract := contract, locals := locals1 }, evm1) := by
         simpa [evm0, evm1, locals1] using
-          (assign_fessSinStorage (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+          (assign_fessSinStorage (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals1) sinNew
             (by simp [locals1, fessLocalsSinNew, fessLocals]))
       by_cases hfitSinEvm : (vowSlotWord ⟨5⟩ σ1_evm I).toNat + tab.toNat < UInt256.size
@@ -874,7 +867,8 @@ theorem vowFessBodyCore
         have hsinCapitalWord :
             Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner ⟨5⟩ =
               vowSlotWord ⟨5⟩ σ1_evm I := by
-          have hword := accountMapEquiv_storage_findD haccounts1 I.codeOwner ⟨5⟩ ⟨0⟩
+          have hword : vowSlotWord ⟨5⟩ σ1_evm I = vowSlotWord ⟨5⟩ evm1.accountMap I := by
+            rw [haccounts1]
           symm
           calc
             vowSlotWord ⟨5⟩ σ1_evm I = vowSlotWord ⟨5⟩ evm1.accountMap I := hword
@@ -935,8 +929,8 @@ theorem vowFessBodyCore
         have hbody :
             ExecTransitionBody config contract evm0 locals fessTransition.body
               (.returned { contract := contract, locals := locals2 } evm2 none) := by
-          have hguard := vowAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+          have hguard := vowAuthGuardEval_true
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := locals)
             (by simp [locals, fessLocals]) hauthSolm
           have hblock :
@@ -965,36 +959,31 @@ theorem vowFessBodyCore
           simpa [ExecTransitionBody, fessTransition, nonpayable, auth, checkedAddUintInto,
             evm0, locals] using ExecFuncBody.execBlockOK hblock
         have hfitEraRD :
-            (solcSlotWord σ_evm I (solcMappingSlot ⟨4⟩ (fessEraKey I))).toNat +
+            (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I))).toNat +
               (fessTab I).toNat < UInt256.size := by
           simpa [vowSlotWord, tab, slot, eraSlot, hslot] using hfitEraEvm
         have hfitSinRD :
             (solcSlotWord
-                (sstoreAccountMap I.codeOwner σ_evm (solcMappingSlot ⟨4⟩ (fessEraKey I))
-                  (solcSlotWord σ_evm I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
+                (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨4⟩ (fessEraKey I))
+                  (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
                 I ⟨5⟩).toNat + (fessTab I).toNat < UInt256.size := by
           simpa [σ1_evm, sinNew, vowSlotWord, tab, slot, eraSlot, hslot] using hfitSinEvm
         have hret := RD.vowFessSuccess hreach hperm hsz36 hsize hauthSolc
           hfitEraRD hfitSinRD
-        have hcreated :
-            (cA,
-              sstoreAccountMap I.codeOwner σ1_evm ⟨5⟩ SinNew).1 = evm2.createdAccounts := by
-          simp [evm2, evm1, evm0, initState, storageStore_createdAccounts]
         have haccounts :
-            accountMapEquiv (sstoreAccountMap I.codeOwner σ1_evm ⟨5⟩ SinNew)
-              evm2.accountMap := by
-          simpa [evm2, evm1, evm0, initState, storageStore_accountMap] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨5⟩ SinNew haccounts1
+            sstoreAccountMap I.codeOwner σ1_evm ⟨5⟩ SinNew = evm2.accountMap := by
+          simp [evm2, evm1, evm0, initState, storageStore_accountMap,
+            σ1_evm, slot, eraSlot, hslot]
         have henc : returnEquiv ByteArray.empty none fessTransition.returnType := by
           rw [show fessTransition.returnType = [] by rfl]
           exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
         have hret' :
             RDret vowBytecode (Sat256.ofUInt256 g)
-              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-              (cA, sstoreAccountMap I.codeOwner σ1_evm ⟨5⟩ SinNew) ByteArray.empty := by
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+              (sstoreAccountMap I.codeOwner σ1_evm ⟨5⟩ SinNew) ByteArray.empty := by
           simpa [σ1_evm, sinNew, SinNew, tab, eraSlot, slot, hslot, vowSlotWord] using hret
         exact hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-          hcreated haccounts henc
+          haccounts henc
       · have hoverSinEvm :
             UInt256.size ≤ (vowSlotWord ⟨5⟩ σ1_evm I).toNat + tab.toNat := by
           omega
@@ -1003,7 +992,8 @@ theorem vowFessBodyCore
         have hsinCapitalWord :
             Solm.EVM.storageLoad evm1 evm1.executionEnv.codeOwner ⟨5⟩ =
               vowSlotWord ⟨5⟩ σ1_evm I := by
-          have hword := accountMapEquiv_storage_findD haccounts1 I.codeOwner ⟨5⟩ ⟨0⟩
+          have hword : vowSlotWord ⟨5⟩ σ1_evm I = vowSlotWord ⟨5⟩ evm1.accountMap I := by
+            rw [haccounts1]
           symm
           calc
             vowSlotWord ⟨5⟩ σ1_evm I = vowSlotWord ⟨5⟩ evm1.accountMap I := hword
@@ -1029,8 +1019,8 @@ theorem vowFessBodyCore
             (old := vowSlotWord ⟨5⟩ σ1_evm I) (tab := tab)
             hsinCapitalRead htab1 hoverSinEvm
         have hbody : ExecTransitionBody config contract evm0 locals fessTransition.body .reverted := by
-          have hguard := vowAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+          have hguard := vowAuthGuardEval_true
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := locals)
             (by simp [locals, fessLocals]) hauthSolm
           have hblock :
@@ -1056,33 +1046,32 @@ theorem vowFessBodyCore
           simpa [ExecTransitionBody, fessTransition, nonpayable, auth, checkedAddUintInto,
             evm0, locals] using ExecFuncBody.execBlockRevert hblock
         have hfitEraRD :
-            (solcSlotWord σ_evm I (solcMappingSlot ⟨4⟩ (fessEraKey I))).toNat +
+            (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I))).toNat +
               (fessTab I).toNat < UInt256.size := by
           simpa [vowSlotWord, tab, slot, eraSlot, hslot] using hfitEraEvm
         have hoverSinRD :
             UInt256.size ≤
               (solcSlotWord
-                  (sstoreAccountMap I.codeOwner σ_evm (solcMappingSlot ⟨4⟩ (fessEraKey I))
-                    (solcSlotWord σ_evm I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
+                  (sstoreAccountMap I.codeOwner σ (solcMappingSlot ⟨4⟩ (fessEraKey I))
+                    (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I)) + fessTab I))
                   I ⟨5⟩).toNat + (fessTab I).toNat := by
           simpa [σ1_evm, sinNew, vowSlotWord, tab, slot, eraSlot, hslot] using hoverSinEvm
         have hrev := RD.vowFessSecondAddOverflow hreach hperm hsz36 hsize hauthSolc
           hfitEraRD hoverSinRD
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hoverEraEvm :
-          UInt256.size ≤ (vowSlotWord slot σ_evm I).toNat + tab.toNat := by
+          UInt256.size ≤ (vowSlotWord slot σ I).toNat + tab.toNat := by
         omega
       have hoverEraSolm :
-          UInt256.size ≤ (vowSlotWord slot σ_solm I).toNat + tab.toNat := by
-        rw [← hsinWord]
+          UInt256.size ≤ (vowSlotWord slot σ I).toNat + tab.toNat := by
         exact hoverEraEvm
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hsinRead0 :
           evalExpr? config { contract := contract, locals := locals } evm0
             (.storage (sinRef (.env .timestamp))) =
-              .ok (.int (Int.ofNat (vowSlotWord slot σ_solm I).toNat)) := by
+              .ok (.int (Int.ofNat (vowSlotWord slot σ I).toNat)) := by
         simpa [evm0, locals, slot] using
-          (evalExpr_fessSinStorage (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+          (evalExpr_fessSinStorage (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals)
             (by simp [locals, fessLocals]))
       have htab0 :
@@ -1095,11 +1084,11 @@ theorem vowFessBodyCore
           evalExpr? config { contract := contract, locals := locals } evm0
             (add256 (.storage (sinRef (.env .timestamp))) (.var "tab")) = .revert := by
         exact evalExpr_add256_tab_revert
-          (x := .storage (sinRef (.env .timestamp))) (old := vowSlotWord slot σ_solm I)
+          (x := .storage (sinRef (.env .timestamp))) (old := vowSlotWord slot σ I)
           (tab := tab) hsinRead0 htab0 hoverEraSolm
       have hbody : ExecTransitionBody config contract evm0 locals fessTransition.body .reverted := by
-        have hguard := vowAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+        have hguard := vowAuthGuardEval_true
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := locals)
           (by simp [locals, fessLocals]) hauthSolm
         have hblock :
@@ -1122,18 +1111,18 @@ theorem vowFessBodyCore
           evm0, locals] using ExecFuncBody.execBlockRevert hblock
       have hoverEraRD :
           UInt256.size ≤
-            (solcSlotWord σ_evm I (solcMappingSlot ⟨4⟩ (fessEraKey I))).toNat +
+            (solcSlotWord σ I (solcMappingSlot ⟨4⟩ (fessEraKey I))).toNat +
               (fessTab I).toNat := by
         simpa [vowSlotWord, tab, slot, eraSlot, hslot] using hoverEraEvm
       have hrev := RD.vowFessFirstAddOverflow hreach hsz36 hsize hauthSolc hoverEraRD
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-  · have hauthSolm : vowSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
+  · have hauthSolm : vowSlotWord callerSlot σ I ≠ ⟨1⟩ := by
       intro hsolm
       exact hauthEvm (by rw [hcallerWord, hsolm])
-    let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbody : ExecTransitionBody config contract evm0 locals fessTransition.body .reverted := by
-      have hguard := vowAuthGuardEval_false (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+      have hguard := vowAuthGuardEval_false
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals, fessLocals]) hauthSolm
       have hblock := nonpayableSecondRequireReverts
@@ -1150,33 +1139,30 @@ theorem vowFessBodyCore
       simpa [ExecTransitionBody, fessTransition, nonpayable, auth, evm0, locals] using
         ExecFuncBody.execBlockRevert hblock
     have hauthSolc :
-        solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
+        solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
       simpa [callerSlot, vowCallerWardsSlot, vowSlotWord] using hauthEvm
     have hrev := RD.vowFessAuthRevert hreach hsz36 hsize hauthSolc
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
-theorem vowFessBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem vowFessBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hsel : selIs I ⟨#[0x69, 0x7e, 0xfb, 0x78]⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I ⟨#[0x69, 0x7e, 0xfb, 0x78]⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := by omega
   exact vowFessBodyCore hcode hwv hperm hsz36 hsize (vowDispatch_fess hsel)
     (by simpa [fessLocals] using vowDecode_fess_ok (I := I) hsz36)
     (vowReachFessBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
-    hAccounts
 
-theorem vowFessShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem vowFessShort {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vowBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
-    (hsel : selIs I ⟨#[0x69, 0x7e, 0xfb, 0x78]⟩)
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I ⟨#[0x69, 0x7e, 0xfb, 0x78]⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hreach :=
-    vowReachFessBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    vowReachFessBody (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   have hlt :

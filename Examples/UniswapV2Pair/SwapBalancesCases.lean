@@ -13,16 +13,15 @@ abbrev swapAfterBalancesFrame (caller : Frame) (balance0 balance1 : UInt256) : F
 set_option maxHeartbeats 1000000 in
 theorem uniswapSwapBalancesCases
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw ptr token1 token0 scratch1 scratch0 reserve1 reserve0
       dataLen dataPtr toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
     {caller : Frame} (evm : EVM.State) (token0Addr token1Addr : AccountAddress)
     (rd2091 : RD uniswapV2PairBytecode I g s0 ⟨2091⟩
       (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
-        toWord :: amount1Out :: amount0Out :: R) mem aw rdata (cA, σ) k C)
-    (ha : accountMapEquiv σ evm.accountMap) (he : evm.executionEnv = I)
-    (hc : evm.createdAccounts = cA) (hs : evm.σ₀ = s0.σ₀)
-    (hg : evm.genesisBlockHeader = s0.genesisBlockHeader) (hb : evm.blocks = s0.blocks)
+        toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
+    (ha : σ = evm.accountMap) (he : evm.executionEnv = I)
+    (hs : evm.σ₀ = s0.σ₀)
     (hcaller : caller.contract = contract)
     (ht0 : caller.locals.get? "_token0" = some (.address token0Addr))
     (ht1 : caller.locals.get? "_token1" = some (.address token1Addr))
@@ -33,16 +32,15 @@ theorem uniswapSwapBalancesCases
     (hfit : ptr.toNat + 67 < UInt256.size) (hread : mem.readWithPadding 64 32 = ptr.toByteArray)
     (hov : R.length + 25 ≤ 1024) :
     (ExecBlock config caller evm swapBalanceStmts .reverted ∧ RDrev uniswapV2PairBytecode g s0) ∨
-    ∃ evm' σ' cA' mem' aw' out balance0 balance1 k' C',
+    ∃ evm' σ' mem' aw' out balance0 balance1 k' C',
       ExecBlock config caller evm swapBalanceStmts
         (.ok (swapAfterBalancesFrame caller balance0 balance1) evm') ∧
-      accountMapEquiv σ' evm'.accountMap ∧ evm'.createdAccounts = cA' ∧ evm'.σ₀ = s0.σ₀ ∧
-      evm'.genesisBlockHeader = s0.genesisBlockHeader ∧ evm'.blocks = s0.blocks ∧ evm'.executionEnv = I ∧
+      σ' = evm'.accountMap ∧ evm'.σ₀ = s0.σ₀ ∧ evm'.executionEnv = I ∧
       96 ≤ mem'.size ∧ ptr.toNat - mem'.size < USize.size ∧ aw'.toNat * 32 < UInt256.size ∧
       96 ≤ aw'.toNat * 32 ∧ mem'.readWithPadding 64 32 = ptr.toByteArray ∧
       RD uniswapV2PairBytecode I g s0 ⟨2331⟩
         (⟨0⟩ :: balance1 :: balance0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
-          toWord :: amount1Out :: amount0Out :: R) mem' aw' out (cA', σ') k' C' := by
+          toWord :: amount1Out :: amount0Out :: R) mem' aw' out σ' k' C' := by
   rcases caller with ⟨decl, locals⟩
   dsimp only at hcaller
   subst decl
@@ -53,9 +51,9 @@ theorem uniswapSwapBalancesCases
       .ok (.address token0Addr) := by
     simp only [evalExpr?, EvalResult.ofOption, ht0]
   rcases uniswapPairBalanceCallRuntimeAnyDepthCases (site := .swap0) evm token0Addr locals
-      "_token0" "balance0" rd2149 ha he hc hs hg hb hr0 htarget0 hin hgap hlo haw hfit hread
+      "_token0" "balance0" rd2149 ha he hs hr0 htarget0 hin hgap hlo haw hfit hread
       (by simp only [List.length_cons]; omega) with
-    ⟨hfirst, rdRev⟩ | ⟨evm0, σ0, cA0, out0, k0, C0, hfirst, ha0, hc0, hs0, hg0, hb0, he0,
+    ⟨hfirst, rdRev⟩ | ⟨evm0, σ0, out0, k0, C0, hfirst, ha0, hs0, he0,
       hout0, hout0hi, rd2206⟩
   · exact Or.inl ⟨execBlock_append_term hfirst (by intro f e h; cases h), rdRev⟩
   · obtain ⟨hin0, hgap0, haw0, hawLo0, hread0⟩ := balanceDynamicReturnMem_invariants aw ptr
@@ -69,16 +67,16 @@ theorem uniswapSwapBalancesCases
       simp only [evalExpr?, store_get_ne _ _ (by decide : ("balance0" == "_token1") = false),
         EvalResult.ofOption, ht1]
     rcases uniswapPairBalanceCallRuntimeAnyDepthCases (site := .swap1) evm0 token1Addr _
-        "_token1" "balance1" rd2267 ha0 he0 hc0 hs0 hg0 hb0 hr1 htarget1 hin0 hgap0 hlo haw0
+        "_token1" "balance1" rd2267 ha0 he0 hs0 hr1 htarget1 hin0 hgap0 hlo haw0
         hfit hread0 (by simp only [List.length_cons]; omega) with
-      ⟨hsecond, rdRev⟩ | ⟨evm1, σ1, cA1, out1, k1, C1, hsecond, ha1, hc1, hs1, hg1, hb1, he1,
+      ⟨hsecond, rdRev⟩ | ⟨evm1, σ1, out1, k1, C1, hsecond, ha1, hs1, he1,
         hout1, hout1hi, rd2324⟩
     · exact Or.inl ⟨execBlock_append hfirst hsecond, rdRev⟩
     · obtain ⟨hin1, hgap1, haw1, hawLo1, hread1⟩ := balanceDynamicReturnMem_invariants
         (balanceDynamicCalldataWords aw ptr) ptr (UInt256.ofNat I.codeOwner.val) out1
         hin0 hlo hgap0 hfit haw0 hread0 hout1hi
       obtain ⟨_, _, rd2331⟩ := RD.uniswapSwapBalancesExit rd2324 (by omega)
-      exact Or.inr ⟨evm1, σ1, cA1, _, _, out1, _, _, _, _, execBlock_append hfirst hsecond,
-        ha1, hc1, hs1, hg1, hb1, he1, hin1, hgap1, haw1, hawLo1, hread1, rd2331⟩
+      exact Or.inr ⟨evm1, σ1, _, _, out1, _, _, _, _, execBlock_append hfirst hsecond,
+        ha1, hs1, he1, hin1, hgap1, haw1, hawLo1, hread1, rd2331⟩
 
 end UniswapV2Pair

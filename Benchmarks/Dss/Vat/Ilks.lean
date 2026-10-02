@@ -138,13 +138,13 @@ theorem vatDispatchIlks {I : ExecutionEnv}
     healSelectorBytes, hopeSelectorBytes, ilksSelectorBytes]
   native_decide
 
-theorem vatReachIlksBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vatReachIlksBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 16)) :
-    ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
         ⟨1395⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vatSelWord I = ⟨0xd9638d36⟩ :=
     vatSelWord_eq_of_beq I hsz 0xd9 0x63 0x8d 0x36 ⟨0xd9638d36⟩
       (by native_decide) (by simpa [vatSelBytes] using hsel)
@@ -255,9 +255,9 @@ theorem vatReachIlksBody {cA gh bl σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 2000000 in
 theorem RD.solcIlksStruct5Getter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcIlksStruct5GetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 10 ≤ 1024) :
@@ -267,7 +267,7 @@ theorem RD.solcIlksStruct5Getter {code : ByteArray} {g : Sat256} {s0 : State}
         solcSlotWord σ ee (solcMappingSlot ⟨2⟩ key + ⟨2⟩) ::
         solcSlotWord σ ee (solcMappingSlot ⟨2⟩ key + ⟨1⟩) ::
         solcSlotWord σ ee (solcMappingSlot ⟨2⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨2⟩ key) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcMappingHashMem ⟨2⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd10, hd11, hd12, hd13, hd15, hd16,
       hd17, hd18, hd19, hd20, hd22, hd23, hd24, hd25, hd26, hd27, hd28,
@@ -613,7 +613,7 @@ theorem solcScratchReturn5Mem_read128_160 {scratch : ByteArray}
 set_option maxHeartbeats 2000000 in
 theorem RD.solcFiveWordReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc art rate spot line dust ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 pc (dust :: line :: spot :: rate :: art :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcFiveWordReturnFromMemWf code pc)
@@ -901,7 +901,7 @@ theorem vatIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
         ExecBlock.consReturn (ExecStmt.return hreturns))
 
 theorem vatIlksBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some ilksTransition)
@@ -910,20 +910,19 @@ theorem vatIlksBodyCoreOk
         (transitionSignature ilksTransition).paramTypes I.calldata =
           some (ilksStore I))
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1395⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1395⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let artSlot := solcMappingSlot ⟨2⟩ (ilksArgWord I)
   let rateSlot := artSlot + ⟨1⟩
   let spotSlot := artSlot + ⟨2⟩
   let lineSlot := artSlot + ⟨3⟩
   let dustSlot := artSlot + ⟨4⟩
-  let artWord := vatSlotWord artSlot σ_evm I
-  let rateWord := vatSlotWord rateSlot σ_evm I
-  let spotWord := vatSlotWord spotSlot σ_evm I
-  let lineWord := vatSlotWord lineSlot σ_evm I
-  let dustWord := vatSlotWord dustSlot σ_evm I
+  let artWord := vatSlotWord artSlot σ I
+  let rateWord := vatSlotWord rateSlot σ I
+  let spotWord := vatSlotWord spotSlot σ I
+  let lineWord := vatSlotWord lineSlot σ I
+  let dustWord := vatSlotWord dustSlot σ I
   let locals : Store := ilksStore I
   have hArtSlot : ilksArtSlotFor I = artSlot := by
     simp [artSlot, ilksArtSlotFor_eq hsz36]
@@ -937,17 +936,17 @@ theorem vatIlksBodyCoreOk
     simp [dustSlot, artSlot, ilksDustSlotFor_eq hsz36]
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals ilksTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals ilksTransition.body
         (.returned { contract := contract, locals := locals }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (vatSlotWord (ilksArtSlotFor I) σ_solm I).toNat)),
-            (.int (Int.ofNat (vatSlotWord (ilksRateSlotFor I) σ_solm I).toNat)),
-            (.int (Int.ofNat (vatSlotWord (ilksSpotSlotFor I) σ_solm I).toNat)),
-            (.int (Int.ofNat (vatSlotWord (ilksLineSlotFor I) σ_solm I).toNat)),
-            (.int (Int.ofNat (vatSlotWord (ilksDustSlotFor I) σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (vatSlotWord (ilksArtSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (vatSlotWord (ilksRateSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (vatSlotWord (ilksSpotSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (vatSlotWord (ilksLineSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (vatSlotWord (ilksDustSlotFor I) σ I).toNat))])) := by
     simpa [locals, initState] using
       vatIlksBodyReturns hsz36
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         (by simp only [initState]; exact hwv) rfl
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨1395⟩) (ret := ⟨1424⟩)
@@ -973,7 +972,7 @@ theorem vatIlksBodyCoreOk
     (by jump_dest) (by simp)
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray artWord ++ UInt256.toByteArray rateWord ++
           UInt256.toByteArray spotWord ++ UInt256.toByteArray lineWord ++
           UInt256.toByteArray dustWord) := by
@@ -992,28 +991,7 @@ theorem vatIlksBodyCoreOk
       (solcMappingHashMem_read64 ⟨2⟩ (ilksArgWord I))
       (by simp)
     simpa [artWord, rateWord, spotWord, lineWord, dustWord] using hret'
-  have hArtWord : vatSlotWord artSlot σ_evm I = vatSlotWord artSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner artSlot ⟨0⟩
-  have hRateWord : vatSlotWord rateSlot σ_evm I = vatSlotWord rateSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner rateSlot ⟨0⟩
-  have hSpotWord : vatSlotWord spotSlot σ_evm I = vatSlotWord spotSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner spotSlot ⟨0⟩
-  have hLineWord : vatSlotWord lineSlot σ_evm I = vatSlotWord lineSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner lineSlot ⟨0⟩
-  have hDustWord : vatSlotWord dustSlot σ_evm I = vatSlotWord dustSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner dustSlot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (vatSlotWord (ilksArtSlotFor I) σ_solm I).toNat),
-        Value.int (Int.ofNat (vatSlotWord (ilksRateSlotFor I) σ_solm I).toNat),
-        Value.int (Int.ofNat (vatSlotWord (ilksSpotSlotFor I) σ_solm I).toNat),
-        Value.int (Int.ofNat (vatSlotWord (ilksLineSlotFor I) σ_solm I).toNat),
-        Value.int (Int.ofNat (vatSlotWord (ilksDustSlotFor I) σ_solm I).toNat)] =
-      some [Value.int (Int.ofNat artWord.toNat), Value.int (Int.ofNat rateWord.toNat),
-        Value.int (Int.ofNat spotWord.toNat), Value.int (Int.ofNat lineWord.toNat),
-        Value.int (Int.ofNat dustWord.toNat)] := by
-    rw [hArtSlot, hRateSlot, hSpotSlot, hLineSlot, hDustSlot]
-    simp [artWord, rateWord, spotWord, lineWord, dustWord, hArtWord, hRateWord,
-      hSpotWord, hLineWord, hDustWord]
+  rw [hArtSlot, hRateSlot, hSpotSlot, hLineSlot, hDustSlot] at hbody
   have henc :
       returnEquiv
         (UInt256.toByteArray artWord ++ UInt256.toByteArray rateWord ++
@@ -1026,17 +1004,17 @@ theorem vatIlksBodyCoreOk
     rw [show ilksTransition.returnType = [uint256, uint256, uint256, uint256, uint256] by rfl]
     exact returnEquiv.returned rfl
       (uint256FiveReturnEncoding artWord rateWord spotWord lineWord dustWord)
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem vatIlksBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some ilksTransition)
     (hreach : ∃ k C, RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1395⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1395⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1054,17 +1032,17 @@ theorem vatIlksBodyCoreDecodeFailed_short
     (vatDecode_ilks_none_short hsz4 hshort)
 
 theorem vatIlksBodyCore : VatBodyTheorem 16 := by
-  intro cA gh bl σ_evm σ_solm σ₀ A I g hcode hsize _hperm hwv hsel hAccounts
+  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 16) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some ilksTransition :=
     vatDispatchIlks hsel
-  have hreach := vatReachIlksBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := vatReachIlksBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact vatIlksBodyCoreOk hcode hwv hsz36 hsize hdispatch
-      (vatDecode_ilks_ok hsz36) hreach hAccounts
+      (vatDecode_ilks_ok hsz36) hreach
   · exact vatIlksBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 
 end Benchmarks.Dss.Vat

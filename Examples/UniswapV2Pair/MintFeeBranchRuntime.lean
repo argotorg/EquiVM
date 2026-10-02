@@ -7,19 +7,19 @@ namespace UniswapV2Pair
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimeFeeOffEntryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7825 : RD uniswapV2PairBytecode I g
       s0 ⟨7825⟩
       (kLast :: feeTo :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hfeeToZero : UInt256.land feeTo solcAddrMask = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ⟨8026⟩
       (kLast :: feeTo :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   have rd7848pre := evm_run rd7825 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and, iszero, dup1,
     iszero, swap5, pop, swap2, swap3, pop, swap1, push2 ⟨8026⟩]
@@ -33,20 +33,20 @@ theorem uniswapMintFeeRuntimeFeeOffEntryOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimeFeeOffKLastZeroReturnOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd8026 : RD uniswapV2PairBytecode I g
       s0 ⟨8026⟩
       (kLast :: feeTo :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hkLastZero : kLast = ⟨0⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ret
       (⟨0⟩ :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   have rd8038pre := evm_run rd8026 with [jumpdest, dup1, iszero, push2 ⟨8038⟩]
   rw [hkLastZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd8038pre
   have rd8038 := evm_run rd8038pre with [jumpiT one_ne_zero_uint (by jump_dest)]
@@ -56,20 +56,20 @@ theorem uniswapMintFeeRuntimeFeeOffKLastZeroReturnOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimeFeeOffKLastNonzeroReturnOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd8026 : RD uniswapV2PairBytecode I g
       s0 ⟨8026⟩
       (kLast :: feeTo :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hperm : I.perm = true) (hkLastNonzero : kLast ≠ ⟨0⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ret
       (⟨0⟩ :: R)
-      mem aw rdata (cAFee, sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) k' C' := by
+      mem aw rdata (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) k' C' := by
   have rd8038pre := evm_run rd8026 with [jumpdest, dup1, iszero, push2 ⟨8038⟩]
   rw [isZero_eq_zero_of_ne hkLastNonzero] at rd8038pre
   have rd8033 := evm_run rd8038pre with [jumpiNT (by native_decide)]
@@ -81,19 +81,19 @@ theorem uniswapMintFeeRuntimeFeeOffKLastNonzeroReturnOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimeFeeOnEntryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7825 : RD uniswapV2PairBytecode I g
       s0 ⟨7825⟩
       (kLast :: feeTo :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hfeeToNonzero : UInt256.land feeTo solcAddrMask ≠ ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ⟨7848⟩
       (kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   have rd7848pre := evm_run rd7825 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup3, and, iszero, dup1,
     iszero, swap5, pop, swap2, swap3, pop, swap1, push2 ⟨8026⟩]
@@ -106,20 +106,20 @@ theorem uniswapMintFeeRuntimeFeeOnEntryOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimeFeeOnKLastZeroReturnOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7848 : RD uniswapV2PairBytecode I g
       s0 ⟨7848⟩
       (kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hkLastZero : kLast = ⟨0⟩)
     (hret : (D_J uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ret
       (⟨1⟩ :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   have rd8021pre := evm_run rd7848 with [dup1, iszero, push2 ⟨8021⟩]
   rw [hkLastZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd8021pre
   have rd8021 := evm_run rd8021pre with [jumpiT one_ne_zero_uint (by jump_dest)]
@@ -130,13 +130,13 @@ theorem uniswapMintFeeRuntimeFeeOnKLastZeroReturnOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimeFeeOnKLastNonzeroMulEntryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7848 : RD uniswapV2PairBytecode I g
       s0 ⟨7848⟩
       (kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hkLastNonzero : kLast ≠ ⟨0⟩)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
@@ -144,7 +144,7 @@ theorem uniswapMintFeeRuntimeFeeOnKLastNonzeroMulEntryOfTail
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ⟨6780⟩
       (reserve1 :: reserve0 :: ⟨3737⟩ :: ⟨7886⟩ :: ⟨0⟩ :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   have rd7854pre := evm_run rd7848 with [dup1, iszero, push2 ⟨8021⟩]
   rw [isZero_eq_zero_of_ne hkLastNonzero] at rd7854pre
   have rd7854 := evm_run rd7854pre with [jumpiNT (by native_decide)]
@@ -162,20 +162,20 @@ theorem uniswapMintFeeRuntimeFeeOnKLastNonzeroMulEntryOfTail
 set_option maxHeartbeats 1000000 in
 theorem uniswapMintFeeRuntimeFeeOnKLastNonzeroRootKEntryOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ}
     {kLast feeTo reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd6780 : RD uniswapV2PairBytecode I g
       s0 ⟨6780⟩
       (reserve1 :: reserve0 :: ⟨3737⟩ :: ⟨7886⟩ :: ⟨0⟩ :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k C)
+      mem aw rdata σFee k C)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hov : R.length + 32 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g
       s0 ⟨8046⟩
       (UInt256.mul reserve0 reserve1 :: ⟨7886⟩ :: ⟨0⟩ :: kLast :: feeTo :: ⟨1⟩ :: reserve1 :: reserve0 :: ret :: R)
-      mem aw rdata (cAFee, σFee) k' C' := by
+      mem aw rdata σFee k' C' := by
   have hreserve0Lt : reserve0.toNat < 2 ^ 112 := by
     have h := uniswapUint112Masked_lt reserve0
     simpa [hclean0] using h

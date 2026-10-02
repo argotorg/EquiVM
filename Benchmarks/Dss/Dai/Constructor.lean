@@ -1076,9 +1076,6 @@ theorem daiCtorAssignDomain (evm : EVM.State) (I : ExecutionEnv) (chainId : Int)
       (daiCtorDomainValueToWord chainIdWord (daiCtorThisWord I))
 
 theorem daiSolmCtorExecReverts_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {g : UInt256}
@@ -1086,10 +1083,10 @@ theorem daiSolmCtorExecReverts_nonpayable
     {I : ExecutionEnv}
     (chainId : Int)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    solmCtorExec config contract [.int chainId] createdAccounts genesisBlockHeader blocks
+    solmCtorExec config contract [.int chainId]
       σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := daiCtorLocals chainId)
     ?_ rfl ?_ ?_
@@ -1099,9 +1096,6 @@ theorem daiSolmCtorExecReverts_nonpayable
       (locals := daiCtorLocals chainId) hwv
 
 theorem daiInitcodeNonpayableRevert
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {A : Substate}
@@ -1111,11 +1105,11 @@ theorem daiInitcodeNonpayableRevert
     (hcode : I.code = daiCreationBytecode ++ tail)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev (daiCreationBytecode ++ tail) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   have rd0 :
       RD (daiCreationBytecode ++ tail) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   have rd11 := dai_ctor_run rd0 with [
     push1 ⟨128⟩, push1 ⟨64⟩,
@@ -1130,9 +1124,6 @@ theorem daiInitcodeNonpayableRevert
     raw rev 0 (by dai_ctor_decode) mem_cost (by evm_ov)]
 
 theorem daiCtorPayableGuardTrace
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {A : Substate}
@@ -1142,13 +1133,13 @@ theorem daiCtorPayableGuardTrace
     (hcode : I.code = daiCtorCode chainIdWord)
     (hwv : I.weiValue = ⟨0⟩) :
     ∃ k C, RD (daiCtorCode chainIdWord) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨18⟩
+      (initState σ σ₀ g A I) ⟨18⟩
       [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (createdAccounts, σ) k C := by
+      σ k C := by
   have rd0 :
       RD (daiCtorCode chainIdWord) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   have rd16 := dai_ctor_run rd0 with [
     push1 ⟨128⟩, push1 ⟨64⟩,
@@ -1168,7 +1159,7 @@ theorem daiCtorArgCodecopyTrace
     {g : Sat256}
     {s0 : State}
     {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {k C : Nat}
     (chainIdWord : UInt256)
     (h : RD (daiCtorCode chainIdWord) I g s0 ⟨18⟩ []
@@ -1203,7 +1194,7 @@ theorem daiCtorArgFreePtrTrace
     {g : Sat256}
     {s0 : State}
     {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {k C : Nat}
     (chainIdWord : UInt256)
     (h : RD (daiCtorCode chainIdWord) I g s0 ⟨32⟩
@@ -1222,7 +1213,7 @@ theorem daiCtorArgCopyTrace
     {g : Sat256}
     {s0 : State}
     {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {k C : Nat}
     (chainIdWord : UInt256)
     (h : RD (daiCtorCode chainIdWord) I g s0 ⟨18⟩ []
@@ -1238,7 +1229,7 @@ theorem daiCtorArgLengthCheckTrace
     {g : Sat256}
     {s0 : State}
     {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {k C : Nat}
     {chainIdWord : UInt256}
     (h : RD (daiCtorCode chainIdWord) I g s0 ⟨38⟩
@@ -1252,9 +1243,6 @@ theorem daiCtorArgLengthCheckTrace
   exact ⟨_, _, rd⟩
 
 theorem daiInitcodePrologueSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {A : Substate}
@@ -1264,20 +1252,18 @@ theorem daiInitcodePrologueSuccess
     (hcode : I.code = daiCtorCode chainIdWord)
     (hwv : I.weiValue = ⟨0⟩) :
     ∃ k C, RD (daiCtorCode chainIdWord) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨53⟩
+      (initState σ σ₀ g A I) ⟨53⟩
       [⟨128⟩] (daiCtorArgFreeMem chainIdWord) (UInt256.ofNat 5) ByteArray.empty
-      (createdAccounts, σ) k C := by
+      σ k C := by
   obtain ⟨_, _, rd18⟩ :=
     daiCtorPayableGuardTrace
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       chainIdWord hcode hwv
   obtain ⟨_, _, rd38⟩ := daiCtorArgCopyTrace (I := I) chainIdWord rd18
   exact daiCtorArgLengthCheckTrace (I := I) (chainIdWord := chainIdWord) rd38
 
 set_option maxHeartbeats 900000 in
 theorem daiCtorWardsStoreTrace
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
     {σ : AccountMap}
     {I : ExecutionEnv}
     {g : Sat256}
@@ -1287,12 +1273,12 @@ theorem daiCtorWardsStoreTrace
     (chainIdWord : UInt256)
     (h : RD (daiCtorCode chainIdWord) I g s0 ⟨53⟩
       [⟨128⟩] (daiCtorArgFreeMem chainIdWord) (UInt256.ofNat 5) rdata
-      (createdAccounts, σ) k C)
+      σ k C)
     (hperm : I.perm = true) :
     ∃ k' C', RD (daiCtorCode chainIdWord) I g s0 ⟨77⟩
       [⟨1⟩, ⟨32⟩, ⟨64⟩, chainIdWord]
       (daiCtorWardsHashMem I chainIdWord) (UInt256.ofNat 5) rdata
-      (createdAccounts, sstoreAccountMap I.codeOwner σ (daiCtorWardsSlot I) ⟨1⟩) k' C' := by
+      (sstoreAccountMap I.codeOwner σ (daiCtorWardsSlot I) ⟨1⟩) k' C' := by
   have rdBeforeWardsStore := dai_ctor_run h with [
     raw mload 0 chainIdWord (UInt256.ofNat 5)
       (by dai_ctor_decode) mem_cost (daiCtorArgFreeMem_mload128 chainIdWord) (by decide)
@@ -1313,9 +1299,6 @@ theorem daiCtorWardsStoreTrace
   exact ⟨_, _, rdAfterWardsStore⟩
 
 theorem daiInitcodeAfterWardsStore
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {A : Substate}
@@ -1326,17 +1309,16 @@ theorem daiInitcodeAfterWardsStore
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
     ∃ k C, RD (daiCtorCode chainIdWord) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨77⟩
+      (initState σ σ₀ g A I) ⟨77⟩
       [⟨1⟩, ⟨32⟩, ⟨64⟩, chainIdWord]
       (daiCtorWardsHashMem I chainIdWord) (UInt256.ofNat 5) ByteArray.empty
-      (createdAccounts, sstoreAccountMap I.codeOwner σ (daiCtorWardsSlot I) ⟨1⟩) k C := by
+      (sstoreAccountMap I.codeOwner σ (daiCtorWardsSlot I) ⟨1⟩) k C := by
   obtain ⟨_, _, rd53⟩ :=
     daiInitcodePrologueSuccess
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       chainIdWord hcode hwv
   exact daiCtorWardsStoreTrace
-    (createdAccounts := createdAccounts) (σ := σ) (I := I) chainIdWord rd53 hperm
+    (σ := σ) (I := I) chainIdWord rd53 hperm
 
 set_option maxHeartbeats 1500000 in
 theorem daiCtorDomainWordsTrace
@@ -1344,7 +1326,7 @@ theorem daiCtorDomainWordsTrace
     {g : Sat256}
     {s0 : State}
     {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {k C : Nat}
     (chainIdWord : UInt256)
     (h : RD (daiCtorCode chainIdWord) I g s0 ⟨77⟩
@@ -1424,7 +1406,7 @@ theorem daiCtorDomainHashTrace
     {g : Sat256}
     {s0 : State}
     {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {k C : Nat}
     (chainIdWord : UInt256)
     (h : RD (daiCtorCode chainIdWord) I g s0 ⟨261⟩
@@ -1460,7 +1442,7 @@ theorem daiCtorReturnTrace
     {g : Sat256}
     {s0 : State}
     {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {k C : Nat}
     (chainIdWord : UInt256)
     (h : RD (daiCtorCode chainIdWord) I g s0 ⟨287⟩ []
@@ -1481,9 +1463,6 @@ theorem daiCtorReturnTrace
     (by evm_ov)
 
 theorem daiInitcodeSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {A : Substate}
@@ -1494,17 +1473,15 @@ theorem daiInitcodeSuccess
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
     RDret (daiCtorCode chainIdWord) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner
+      (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (daiCtorWardsSlot I) ⟨1⟩)
           daiCtorDomainSlot
           (daiCtorDomainWord chainIdWord (daiCtorThisWord I)))
       daiBytecode := by
   obtain ⟨_, _, rdAfterWardsStore⟩ :=
     daiInitcodeAfterWardsStore
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       chainIdWord hcode hperm hwv
   obtain ⟨_, _, rdDomainWords⟩ :=
     daiCtorDomainWordsTrace (I := I) chainIdWord rdAfterWardsStore
@@ -1516,9 +1493,6 @@ theorem daiInitcodeSuccess
   exact daiCtorReturnTrace (I := I) chainIdWord rdAfterDomainStore
 
 theorem daiSolmCtorExecSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {g : UInt256}
@@ -1528,22 +1502,22 @@ theorem daiSolmCtorExecSuccess
     (h0 : 0 ≤ chainId)
     (hlt : chainId < Int.ofNat (EVM.twoPow 256))
     (hwv : I.weiValue = ⟨0⟩) :
-    solmCtorExec config contract [.int chainId] createdAccounts genesisBlockHeader blocks
+    solmCtorExec config contract [.int chainId]
       σ σ₀ g A I
       (.returned (daiCtorFrame chainId)
         (daiCtorPostState
-          (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           I (EVM.word chainId.toNat))
         none) := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := daiCtorLocals chainId)
     ?_ rfl ?_ ?_
   · rfl
   · simp [daiCtorLocals, contract, constructorDecl]
   · refine ExecFuncBody.execBlockOK ?_
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner (daiCtorWardsSlot I) ⟨1⟩
     refine ExecBlock.consNormal (solm' := daiCtorFrame chainId) (evm' := evm0)
       (ExecStmt.requireTrue (evalCallvalueEq_true (cfg := config)
@@ -1555,7 +1529,7 @@ theorem daiSolmCtorExecSuccess
         (by
           unfold evm0
           exact daiCtorAssignWards
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             I chainId (by simp [initState]))
     · refine ExecBlock.consNormal ?_ ExecBlock.nil
       exact ExecStmt.assign
@@ -1566,7 +1540,7 @@ theorem daiSolmCtorExecSuccess
           simpa [daiCtorThisWord, storageStore_executionEnv, initState] using
             evalExpr_daiCtor_domain
             (Solm.EVM.storageStore
-              (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               I.codeOwner (daiCtorWardsSlot I) ⟨1⟩)
             chainId h0 hlt)
         (by
@@ -1574,15 +1548,15 @@ theorem daiSolmCtorExecSuccess
           simpa [storageStore_executionEnv, initState] using
             daiCtorAssignDomain
               (Solm.EVM.storageStore
-                (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 I.codeOwner (daiCtorWardsSlot I) ⟨1⟩)
               I chainId (EVM.word chainId.toNat))
 
 theorem daiConstructorCorrect :
     constructorEquivalence config daiCreationBytecode contract daiBytecode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
-      args deployedInitcode hdeploy hcode _hcalldata hperm hσ
+  intro σ σ₀ g A I
+      args deployedInitcode hdeploy hcode _hcalldata hperm
   rcases daiDeployment_shape hdeploy with ⟨chainId, hargs, h0, hlt, hdeployed⟩
   subst args
   by_cases hwv : I.weiValue = ⟨0⟩
@@ -1591,8 +1565,7 @@ theorem daiConstructorCorrect :
       unfold daiCtorCode
       rfl
     have hrd := daiInitcodeSuccess
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) (EVM.word chainId.toNat) hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
     · exact constructorEquivalenceFor.outOfGas
@@ -1602,38 +1575,24 @@ theorem daiConstructorCorrect :
     · have hsuccess := Xi_success_of_X (g := g) (by
         rw [← hcodeCtor] at hX
         simpa [Sat256.ofUInt256] using hX)
-      have hcA : s.createdAccounts = createdAccounts := congrArg Prod.fst hacc
-      have hσ' : s.accountMap =
-          sstoreAccountMap I.codeOwner
-            (sstoreAccountMap I.codeOwner σ_evm (daiCtorWardsSlot I) ⟨1⟩)
-            daiCtorDomainSlot
-            (daiCtorDomainWord (EVM.word chainId.toNat) (daiCtorThisWord I)) :=
-        congrArg Prod.snd hacc
-      rw [hcA, hσ'] at hsuccess
+      rw [hacc] at hsuccess
       refine constructorEquivalenceFor.execution hsuccess
         (daiSolmCtorExecSuccess
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+          (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
           chainId h0 hlt hwv) ?_
-      refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
-      · simp only [daiCtorPostState, storageStore_createdAccounts, initState]
-      · simp only [daiCtorPostState, storageStore_accountMap, storageStore_executionEnv, initState]
-        exact accountMapEquiv_sstoreAccountMap_two I.codeOwner I.codeOwner
-          (daiCtorWardsSlot I) ⟨1⟩ daiCtorDomainSlot
-          (daiCtorDomainWord (EVM.word chainId.toNat) (daiCtorThisWord I)) hσ
+      refine ctorResultEquiv.success rfl rfl ?_ rfl
+      simp [daiCtorPostState, storageStore_accountMap, storageStore_executionEnv, initState]
   · let tail := (EVM.Word.toBytesBE (EVM.word chainId.toNat)).toByteArray
     have hcodeTail : I.code = daiCreationBytecode ++ tail := by
       rw [hcode, hdeployed]
     have hrd := daiInitcodeNonpayableRevert
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) tail hcodeTail hwv
     rcases hrd.xiResult hcodeTail with hOOG | ⟨g', o, hrev⟩
     · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
     · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
         (daiSolmCtorExecReverts_nonpayable
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+          (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
           chainId hwv) ?_
       exact ctorResultEquiv.revert rfl rfl
 

@@ -372,7 +372,7 @@ theorem dogUint256GetterBodyReturns (v : DogImmutables) (evm : EVM.State) (local
 
 theorem dogAddressGetterBodyCore
     {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry returnPc routine slot : UInt256}
     (hcode : I.code = code)
     (hdispatch : dispatchMsg (contract v) I.calldata = some transition)
@@ -380,9 +380,8 @@ theorem dogAddressGetterBodyCore
       decodeCalldataWithMode (config v).abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : solcAddressSlotGetterWf code routine slot)
     (hroutine : (D_J code 0).contains routine = true)
@@ -391,40 +390,37 @@ theorem dogAddressGetterBodyCore
     (hreturn : transition.returnType = [addr])
     (hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract v, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (dogAddressReturnWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : dogSlotWord slot σ_evm I = dogSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
+            (dogAddressReturnWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hval :
-      some [Value.address (AccountAddress.ofNat (dogAddressReturnWord slot σ_solm I).toNat)] =
-        some [Value.address (AccountAddress.ofNat (dogAddressReturnWord slot σ_evm I).toNat)] := by
-    have hslot : dogSlotWord slot σ_solm I = dogSlotWord slot σ_evm I := hword.symm
-    simp [dogAddressReturnWord, hslot]
+      some [Value.address (AccountAddress.ofNat (dogAddressReturnWord slot σ I).toNat)] =
+        some [Value.address (AccountAddress.ofNat (dogAddressReturnWord slot σ I).toNat)] := by
+    rfl
   have henc :
-      returnEquiv (UInt256.toByteArray (dogAddressReturnWord slot σ_evm I))
-        (some [(.address (AccountAddress.ofNat (dogAddressReturnWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (dogAddressReturnWord slot σ I))
+        (some [(.address (AccountAddress.ofNat (dogAddressReturnWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     simpa [dogAddressReturnWord] using
       (returnEquiv_of_encode
-        (solcAddressReturnEncoding (addrTy := addr) rfl (dogSlotWord slot σ_evm I)))
+        (solcAddressReturnEncoding (addrTy := addr) rfl (dogSlotWord slot σ I)))
   have hret := RD.solcAddressGetterExternal (code := code) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret code (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (dogAddressReturnWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (dogAddressReturnWord slot σ I)) := by
     simpa [dogAddressReturnWord, dogSlotWord] using hret
-  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 theorem dogUint256GetterBodyCore
     {v : DogImmutables} {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry returnPc routine slot : UInt256}
     (hcode : I.code = code)
     (hdispatch : dispatchMsg (contract v) I.calldata = some transition)
@@ -432,9 +428,8 @@ theorem dogUint256GetterBodyCore
       decodeCalldataWithMode (config v).abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD code I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : solcWordSlotGetterWf code routine slot)
     (hroutine : (D_J code 0).contains routine = true)
@@ -443,33 +438,31 @@ theorem dogUint256GetterBodyCore
     (hreturn : transition.returnType = [uint256])
     (hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract v, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (dogSlotWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : dogSlotWord slot σ_evm I = dogSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (dogSlotWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hval :
-      some [Value.int (Int.ofNat (dogSlotWord slot σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (dogSlotWord slot σ_evm I).toNat)] := by
-    rw [hword]
+      some [Value.int (Int.ofNat (dogSlotWord slot σ I).toNat)] =
+        some [Value.int (Int.ofNat (dogSlotWord slot σ I).toNat)] := by
+    rfl
   have henc :
-      returnEquiv (UInt256.toByteArray (dogSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (dogSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (dogSlotWord slot σ I))
+        (some [(.int (Int.ofNat (dogSlotWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (dogSlotWord slot σ_evm I))
+      (by simpa [uint256] using uint256ReturnEncoding (dogSlotWord slot σ I))
   have hret := RD.solcWordGetterExternal (code := code) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret code (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (dogSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (dogSlotWord slot σ I)) := by
     simpa [dogSlotWord] using hret
-  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 theorem dogAddressValueTransport (a : AccountAddress) :
     some [Value.address (AccountAddress.ofNat a.toNat)] =
@@ -486,14 +479,14 @@ theorem dogAddressValueTransport (a : AccountAddress) :
   rw [solcAddrMask_clean hcanon, hword]
 
 theorem dogAddrLitEval {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : Sat256} (a : EVM.Address) :
+    {σ σ₀ A I} {g : Sat256} (a : EVM.Address) :
     evalExpr? (config v) { contract := contract v, locals := ∅ }
-      (initState cA gh bl σ σ₀ g A I) (addrLit a) =
+      (initState σ σ₀ g A I) (addrLit a) =
       .ok (Value.address (AccountAddress.ofNat a.toNat)) := by
   dsimp [addrLit]
   have hint :
       evalExpr? (config v) { contract := contract v, locals := ∅ }
-        (initState cA gh bl σ σ₀ g A I) (.intLit (↑↑a)) =
+        (initState σ σ₀ g A I) (.intLit (↑↑a)) =
         .ok (.int (↑↑a)) := by
     simp [evalExpr?, pure]
   unfold evalExpr?
@@ -545,7 +538,7 @@ theorem log2_xstep {s : State} {code : ByteArray} {pcv a b c d : UInt256}
 -- LIBRARY CANDIDATE: move to `Reasoning.Reach` beside `RD.log1`, `RD.log3`, and `RD.log4`.
 theorem RD.log2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
     (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG2, .none)) (hperm : ee.perm = true)
@@ -591,25 +584,25 @@ abbrev dogCallerWardsEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "wards", steps := [.mindex (.address I.source)] }
 
 theorem dogCallerWardsEvaledRef_ok {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+    {σ σ₀ A I} {g : Sat256} {locals : Store}
     (_hbase : locals.get? "wards" = none) :
     evalStorageRef (config v) { contract := contract v, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (wardsRef sender) =
+      (initState σ σ₀ g A I) (wardsRef sender) =
         .ok (dogCallerWardsEvaledRef I) := by
   simp [dogCallerWardsEvaledRef, wardsRef, sender, evalStorageRef, evalStorageRefSteps,
     evalStorageRefStep, evalExpr?, envValue, valueToKey?, EvalResult.ofOption,
     EvalResult.bind, pure, bind, initState]
 
 theorem dogAuthGuardEval_true {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+    {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
     (hauth : dogSlotWord (dogCallerWardsSlot I) σ I = ⟨1⟩) :
     evalExpr? (config v) { contract := contract v, locals := locals }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
-  have her := dogCallerWardsEvaledRef_ok (v := v) (cA := cA) (gh := gh) (bl := bl)
+  have her := dogCallerWardsEvaledRef_ok (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals) hbase
-  have hload : Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner
+  have hload : Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
       (dogCallerWardsSlot I) = ⟨1⟩ := by
     simpa [dogSlotWord] using hauth
   rw [evalExpr?]
@@ -631,15 +624,15 @@ theorem dogAuthGuardEval_true {v : DogImmutables}
   all_goals native_decide
 
 theorem dogAuthGuardEval_false {v : DogImmutables}
-    {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+    {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
     (hauth : dogSlotWord (dogCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     evalExpr? (config v) { contract := contract v, locals := locals }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool false) := by
-  have her := dogCallerWardsEvaledRef_ok (v := v) (cA := cA) (gh := gh) (bl := bl)
+  have her := dogCallerWardsEvaledRef_ok (v := v)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals) hbase
-  let w := Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner
+  let w := Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
       (dogCallerWardsSlot I)
   have hload : w ≠ ⟨1⟩ := by
     intro hw
@@ -665,17 +658,17 @@ theorem dogAuthGuardEval_false {v : DogImmutables}
     simpa using hnat
   all_goals native_decide
 
-theorem RD.solcAddressConstGetterExternal {code : ByteArray} {cA gh bl σ σ₀ A I}
+theorem RD.solcAddressConstGetterExternal {code : ByteArray} {σ σ₀ A I}
     {g : Sat256} {sel entry routine returnPc val : UInt256} {width : Nat}
     {op : Operation.POp}
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf code entry returnPc routine)
     (hgetter : solcConstGetterWf code routine val width op)
     (hroutine : (D_J code 0).contains routine = true)
     (hret : (D_J code 0).contains returnPc = true)
     (hreturn : solcReturnAddressFromMemWf code returnPc) :
-    RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    RDret code g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.land val solcAddrMask)) := by
   obtain ⟨_, _, rdRoutine⟩ := RD.solcGetterThunk hreach hentry hroutine
   obtain ⟨_, _, rdReturn⟩ := RD.solcConstGetter (val := val) (width := width)
@@ -702,7 +695,7 @@ theorem RD.solcAddressConstGetterExternal {code : ByteArray} {cA gh bl σ σ₀ 
 theorem RD.solcNoArgsExternalEntry {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc ret routine sel : UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc [sel] mem aw rdata acc k C)
     (hwf : solcNoArgsExternalEntryWf code pc ret routine)
     (hroutine : (D_J code 0).contains routine = true) :
@@ -849,7 +842,7 @@ theorem RD.dogErrorStringRevertTailDirect {code : ByteArray} {g : Sat256} {s0 : 
     {ee : ExecutionEnv} {k C : ℕ} {pc len word : UInt256}
     {op : Operation.POp} {width : ℕ}
     {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : dogErrorStringRevertTailDirectWf code pc len word op width)
     (hpush : op ≠ .PUSH0)
@@ -913,16 +906,16 @@ theorem RD.dogErrorStringRevertTailDirect {code : ByteArray} {g : Sat256} {s0 : 
 
 theorem RD.dogAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : dogAuthCheckWf code pc okPc)
     (hauth : solcSlotWord σ ee (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) = ⟨1⟩)
     (hok : (D_J code 0).contains okPc = true)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD code ee g s0 okPc (key :: ret :: R)
       (twoWordHashMem (solcSourceWord ee) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd4, hd5, hd6, hd7, hd9, hd10, hd11, hd12, hd14, hd15,
       hd16, hd17, hd19, hd20, hd23⟩
@@ -960,9 +953,9 @@ theorem RD.dogAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
 
 theorem RD.dogAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : dogAuthCheckWf code pc okPc)
     (htail : solcErrorStringRevertTailWf code (dogAuthTailPc pc) ⟨18⟩
       dogNotAuthorizedRawWord ⟨114⟩ .PUSH18 18)
@@ -1017,7 +1010,7 @@ theorem RD.dogAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
 theorem RD.solcOneBytes32ExternalJump {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {decoded ret routine de : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 decoded (de :: ⟨4⟩ :: ret :: R) mem aw rdata acc k C)
     (hd0 : decode code decoded = some (.JUMPDEST, .none))
     (hd1 : decode code (decoded + ⟨1⟩) = some (.POP, .none))
@@ -1073,15 +1066,15 @@ theorem RD.solcOneBytes32ExternalJump {code : ByteArray} {g : Sat256} {s0 : Stat
 
 theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcZeroSlotMappingGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot ⟨0⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
       hd16, hd17⟩
@@ -1147,16 +1140,16 @@ theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State
 
 theorem RD.solcIlksChopGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcIlksChopGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨1⟩) :: R)
       (twoWordHashMem key ⟨1⟩ solcFreePtrMem) (UInt256.ofNat 3) rdata
-      (cA, σ) k' C' := by
+      σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd4, hd5, hd6, hd8, hd10, hd11, hd12, hd13, hd15, hd16,
       hd17, hd18, hd19, hd20, hd21⟩
@@ -1320,43 +1313,63 @@ theorem dogDecodePatchedEqPrefix1405 {v : DogImmutables} {code : ByteArray} {pc 
   change decode (pref ++ tail) pc = decode dogBytecode pc
   rw [hleft, hright]
 
-def dogPrefixWindowLe1405 (pc : UInt256) : Bool :=
-  match (dogBytecode.extract 0 1405).get? pc.toNat with
+def prefixWindowLe (bytes : ByteArray) (pc : UInt256) : Bool :=
+  match bytes.get? pc.toNat with
   | some b =>
       match parseInstr b with
       | some instr => decide (pc.toNat + 1 + argOnNBytesOfInstr instr ≤ 1405)
       | none => true
   | none => true
 
+theorem prefixWindowLe_of_true {bytes : ByteArray} {pc : UInt256}
+    (hok : prefixWindowLe bytes pc = true) :
+    ∀ b instr, bytes.get? pc.toNat = some b → parseInstr b = some instr →
+      pc.toNat + 1 + argOnNBytesOfInstr instr ≤ 1405 := by
+  intro b instr hb hparse
+  unfold prefixWindowLe at hok
+  simp only [hb, hparse] at hok
+  exact of_decide_eq_true hok
+
+def dogPrefixWindowLe1405 (pc : UInt256) : Bool :=
+  prefixWindowLe (dogBytecode.extract 0 1405) pc
+
 theorem dogPrefixWindowLe1405_of_true {pc : UInt256}
     (hok : dogPrefixWindowLe1405 pc = true) :
     ∀ b instr,
-      (dogBytecode.extract 0 1405).get? pc.toNat = some b → parseInstr b = some instr →
+    (dogBytecode.extract 0 1405).get? pc.toNat = some b → parseInstr b = some instr →
         pc.toNat + 1 + argOnNBytesOfInstr instr ≤ 1405 := by
   intro b instr hb hparse
-  unfold dogPrefixWindowLe1405 at hok
-  rw [hb] at hok
-  simp [hparse] at hok
-  exact hok
+  change prefixWindowLe (dogBytecode.extract 0 1405) pc = true at hok
+  exact prefixWindowLe_of_true hok b instr hb hparse
 
-def dogPrefixWindowLt64 (pc : UInt256) : Bool :=
-  match (dogBytecode.extract 0 1405).get? pc.toNat with
+def prefixWindowLt64 (bytes : ByteArray) (pc : UInt256) : Bool :=
+  match bytes.get? pc.toNat with
   | some b =>
       match parseInstr b with
       | some instr => decide (pc.toNat + 1 + argOnNBytesOfInstr instr < 2 ^ 64)
       | none => true
   | none => true
 
+theorem prefixWindowLt64_of_true {bytes : ByteArray} {pc : UInt256}
+    (hok : prefixWindowLt64 bytes pc = true) :
+    ∀ b instr, bytes.get? pc.toNat = some b → parseInstr b = some instr →
+      pc.toNat + 1 + argOnNBytesOfInstr instr < 2 ^ 64 := by
+  intro b instr hb hparse
+  unfold prefixWindowLt64 at hok
+  simp only [hb, hparse] at hok
+  exact of_decide_eq_true hok
+
+def dogPrefixWindowLt64 (pc : UInt256) : Bool :=
+  prefixWindowLt64 (dogBytecode.extract 0 1405) pc
+
 theorem dogPrefixWindowLt64_of_true {pc : UInt256}
     (hok : dogPrefixWindowLt64 pc = true) :
     ∀ b instr,
-      (dogBytecode.extract 0 1405).get? pc.toNat = some b → parseInstr b = some instr →
+    (dogBytecode.extract 0 1405).get? pc.toNat = some b → parseInstr b = some instr →
         pc.toNat + 1 + argOnNBytesOfInstr instr < 2 ^ 64 := by
   intro b instr hb hparse
-  unfold dogPrefixWindowLt64 at hok
-  rw [hb] at hok
-  simp [hparse] at hok
-  exact hok
+  change prefixWindowLt64 (dogBytecode.extract 0 1405) pc = true at hok
+  exact prefixWindowLt64_of_true hok b instr hb hparse
 
 theorem dogPushAtPatchedEqTemplate1405 {v : DogImmutables} {code : ByteArray} {pc : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) (hwin : pc.toNat + 33 ≤ 1405) :

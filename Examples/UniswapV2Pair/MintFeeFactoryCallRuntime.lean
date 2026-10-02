@@ -7,13 +7,13 @@ namespace UniswapV2Pair
 set_option maxHeartbeats 1500000 in
 theorem uniswapMintFeeRuntimeFactoryExtcodesizeOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA'' : Batteries.RBSet AccountAddress compare} {σ'' : AccountMap}
+    {σ'' : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7696 : RD uniswapV2PairBytecode I g
       s0 ⟨7696⟩
       (reserve1 :: reserve0 :: ret :: R)
       mem
-      feeToStaticcallActiveWords rdata (cA'', σ'') k C)
+      feeToStaticcallActiveWords rdata σ'' k C)
     (hmem : 160 ≤ mem.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 32 ≤ 1024) :
@@ -23,7 +23,7 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesizeOfTail
         ⟨132⟩ :: feeToSelectorWord :: mintFeeFactoryWord σ'' I :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 ::
         ret :: R)
       (feeToSelectorMem mem)
-      feeToStaticcallActiveWords rdata (cA'', σ'') k' C' := by
+      feeToStaticcallActiveWords rdata σ'' k' C' := by
   let baseMem := mem
   let factoryRaw := uniswapSlotWord ⟨5⟩ σ'' I
   let factory := mintFeeFactoryWord σ'' I
@@ -33,7 +33,7 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesizeOfTail
   have rd7706 : RD uniswapV2PairBytecode I g
       s0 ⟨7706⟩
       (factoryRaw :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 :: ret :: R)
-      baseMem feeToStaticcallActiveWords rdata (cA'', σ'') k7706 C7706 := by
+      baseMem feeToStaticcallActiveWords rdata σ'' k7706 C7706 := by
     simpa [baseMem, factoryRaw, uniswapSlotWord] using rd7706₀
   have rd7738pre := evm_run rd7706 with [
     swap1, push2 ⟨256⟩, exp, swap1, div,
@@ -78,7 +78,7 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesizeOfTail
 set_option maxHeartbeats 1500000 in
 theorem uniswapMintFeeRuntimeFactoryMissingCodeRevertsOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA'' : Batteries.RBSet AccountAddress compare} {σ'' : AccountMap}
+    {σ'' : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7765 : RD uniswapV2PairBytecode I g
       s0 ⟨7765⟩
@@ -86,7 +86,7 @@ theorem uniswapMintFeeRuntimeFactoryMissingCodeRevertsOfTail
         ⟨132⟩ :: feeToSelectorWord :: mintFeeFactoryWord σ'' I :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 ::
         ret :: R)
       (feeToSelectorMem mem)
-      feeToStaticcallActiveWords rdata (cA'', σ'') k C)
+      feeToStaticcallActiveWords rdata σ'' k C)
     (hfactoryNoCode : extCodeSizeWord σ'' (mintFeeFactoryWord σ'' I) = ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
     RDrev uniswapV2PairBytecode g
@@ -100,7 +100,7 @@ theorem uniswapMintFeeRuntimeFactoryMissingCodeRevertsOfTail
 set_option maxHeartbeats 1500000 in
 theorem uniswapMintFeeRuntimeFactoryStaticcallMadeOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cA'' : Batteries.RBSet AccountAddress compare} {σ'' : AccountMap}
+    {σ'' : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ} {reserve0 reserve1 ret : UInt256} {R : List UInt256}
     (rd7765 : RD uniswapV2PairBytecode I g
       s0 ⟨7765⟩
@@ -108,16 +108,16 @@ theorem uniswapMintFeeRuntimeFactoryStaticcallMadeOfTail
         ⟨132⟩ :: feeToSelectorWord :: mintFeeFactoryWord σ'' I :: ⟨0⟩ :: ⟨0⟩ :: reserve1 :: reserve0 ::
         ret :: R)
       (feeToSelectorMem mem)
-      feeToStaticcallActiveWords rdata (cA'', σ'') k C)
+      feeToStaticcallActiveWords rdata σ'' k C)
     (hdepth : I.depth.val < 1024)
     (hfactoryCode : extCodeSizeWord σ'' (mintFeeFactoryWord σ'' I) ≠ ⟨0⟩)
     (hov : R.length + 32 ≤ 1024) :
-    ∃ (cAFee : Batteries.RBSet AccountAddress compare) (σFee : AccountMap)
+    ∃ (σFee : AccountMap)
       (zFee : Bool) (outFee : ByteArray) (A_inFee : Substate) (callGasFee : UInt256)
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cAFee, σFee, g'', A', zFee, outFee) = Ethereum.EVM.Θ I.blobVersionedHashes
-          cA'' s0.genesisBlockHeader s0.blocks σ'' s0.σ₀ A_inFee
+        (σFee, g'', A', zFee, outFee) = Ethereum.EVM.Θ
+          σ'' s0.σ₀ A_inFee
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner.val)) I.sender
           (AccountAddress.ofUInt256 (mintFeeFactoryWord σ'' I))
           (toExecute σ'' (AccountAddress.ofUInt256 (mintFeeFactoryWord σ'' I)))
@@ -125,7 +125,7 @@ theorem uniswapMintFeeRuntimeFactoryStaticcallMadeOfTail
           ((feeToSelectorMem
             mem).readWithPadding
               128 4)
-          (I.depth + 1) I.header false)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks false)
       ∧ RD uniswapV2PairBytecode I g
           s0 ⟨7781⟩
           ((if zFee then (⟨1⟩ : UInt256) else ⟨0⟩) :: ⟨132⟩ :: feeToSelectorWord ::
@@ -133,7 +133,7 @@ theorem uniswapMintFeeRuntimeFactoryStaticcallMadeOfTail
           (feeToStaticcallMem
             mem
             outFee)
-          feeToStaticcallActiveWords outFee (cAFee, σFee) k' C'
+          feeToStaticcallActiveWords outFee σFee k' C'
       ∧ outFee.size < UInt256.size := by
   let baseMem := mem
   let factory := mintFeeFactoryWord σ'' I
@@ -143,11 +143,11 @@ theorem uniswapMintFeeRuntimeFactoryStaticcallMadeOfTail
       (by native_decide) (by native_decide) (by jump_dest)
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
-  obtain ⟨cAFee, σFee, zFee, outFee, A_inFee, callGasFee, k', C', hΘ, rd7781,
+  obtain ⟨σFee, zFee, outFee, A_inFee, callGasFee, k', C', hΘ, rd7781,
       houtFeeSize⟩ :=
     RD.solcStaticcall rd7780 (by native_decide) hdepth
       (by simp only [List.length_cons]; omega)
-  exact ⟨cAFee, σFee, zFee, outFee, A_inFee, callGasFee, k', C',
+  exact ⟨σFee, zFee, outFee, A_inFee, callGasFee, k', C',
     by simpa [baseMem, factory] using hΘ,
     by simpa [baseMem, factory, feeToStaticcallMem, feeToStaticcallActiveWords] using rd7781,
     houtFeeSize⟩
@@ -155,7 +155,7 @@ theorem uniswapMintFeeRuntimeFactoryStaticcallMadeOfTail
 set_option maxHeartbeats 1500000 in
 theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCallOfTail
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σFee : AccountMap}
     {σ'' : AccountMap} {mem outFee : ByteArray} {k C : ℕ}
     {reserve0 reserve1 ret : UInt256} {R : List UInt256} {zFee : Bool}
     (rd7781 : RD uniswapV2PairBytecode I g
@@ -165,7 +165,7 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCallOfTail
       (feeToStaticcallMem
         mem
         outFee)
-      feeToStaticcallActiveWords outFee (cAFee, σFee) k C)
+      feeToStaticcallActiveWords outFee σFee k C)
     (hmem : 160 ≤ mem.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (houtFeeSize : outFee.size < UInt256.size)
@@ -184,7 +184,7 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCallOfTail
         (feeToStaticcallMem
           mem
           outFee)
-        feeToStaticcallActiveWords outFee (cAFee, σFee) k' C') := by
+        feeToStaticcallActiveWords outFee σFee k' C') := by
   let baseMem := mem
   refine ⟨?_, ?_, ?_⟩
   · intro hz

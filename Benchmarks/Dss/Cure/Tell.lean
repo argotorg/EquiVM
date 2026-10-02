@@ -67,10 +67,10 @@ theorem evalExpr_ge_uint256_false {evm : EVM.State} {locals : Store}
   simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?]
   exact_mod_cast hlt
 
-theorem evalExpr_tellLiveStorage {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+theorem evalExpr_tellLiveStorage {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "live" = none) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (.storage liveRef) =
+      (initState σ σ₀ g A I) (.storage liveRef) =
         .ok (.int (Int.ofNat (tellLiveWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar (er := tellLiveEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨1⟩)]
@@ -82,10 +82,10 @@ theorem evalExpr_tellLiveStorage {cA gh bl σ σ₀ A I} {g : Sat256} {locals : 
   · funext evm
     simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, tellLiveEvaledRef]
 
-theorem evalExpr_tellWhenStorage {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+theorem evalExpr_tellWhenStorage {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "when" = none) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (.storage whenRef) =
+      (initState σ σ₀ g A I) (.storage whenRef) =
         .ok (.int (Int.ofNat (tellWhenWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar (er := tellWhenEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨4⟩)]
@@ -97,10 +97,10 @@ theorem evalExpr_tellWhenStorage {cA gh bl σ σ₀ A I} {g : Sat256} {locals : 
   · funext evm
     simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, tellWhenEvaledRef]
 
-theorem evalExpr_tellLCountStorage {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+theorem evalExpr_tellLCountStorage {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "lCount" = none) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (.storage lCountRef) =
+      (initState σ σ₀ g A I) (.storage lCountRef) =
         .ok (.int (Int.ofNat (tellLCountWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar (er := tellLCountEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨8⟩)]
@@ -112,10 +112,10 @@ theorem evalExpr_tellLCountStorage {cA gh bl σ σ₀ A I} {g : Sat256} {locals 
   · funext evm
     simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, tellLCountEvaledRef]
 
-theorem evalExpr_tellSayStorage {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
+theorem evalExpr_tellSayStorage {σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "say" = none) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (.storage sayRef) =
+      (initState σ σ₀ g A I) (.storage sayRef) =
         .ok (.int (Int.ofNat (tellSayWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar (er := tellSayEvaledRef) (t := .int uint256Int)
     (loc := wordLoc ⟨9⟩)]
@@ -127,9 +127,9 @@ theorem evalExpr_tellSayStorage {cA gh bl σ σ₀ A I} {g : Sat256} {locals : S
   · funext evm
     simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw, tellSayEvaledRef]
 
-theorem evalExpr_tellSrcsLength {cA gh bl σ σ₀ A I} {g : Sat256} :
+theorem evalExpr_tellSrcsLength {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := ∅ }
-      (initState cA gh bl σ σ₀ g A I) (.arrayLength .storage srcsRef) =
+      (initState σ σ₀ g A I) (.arrayLength .storage srcsRef) =
         .ok (.int (Int.ofNat (tellSrcsLenWord σ I).toNat)) := by
   simp [evalExpr?, tellSrcsLenWord, cureSlotWord, initState, config, contract,
     srcsRef, storageDecls, storageLayout, solidityStorageLayout, storageLayoutRaw,
@@ -137,7 +137,7 @@ theorem evalExpr_tellSrcsLength {cA gh bl σ σ₀ A I} {g : Sat256} :
     evalStorageRefSteps, wordLoc, EvalResult.ofOption, EvalResult.bind, pure, bind]
   change
     (match storageLocLoad
-      (initState cA gh bl σ σ₀ g A I) (wordLoc ⟨2⟩) with
+      (initState σ σ₀ g A I) (wordLoc ⟨2⟩) with
     | Value.int n => EvalResult.ok (Value.int n)
     | _ => EvalResult.error EvalError.storageError) =
       EvalResult.ok (Value.int ↑(cureSlotWord ⟨2⟩ σ I).toNat)
@@ -145,58 +145,58 @@ theorem evalExpr_tellSrcsLength {cA gh bl σ σ₀ A I} {g : Sat256} :
   simp [cureSlotWord, solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount,
     Account.lookupStorage]
 
-theorem evalExpr_tellTimestamp {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store} :
+theorem evalExpr_tellTimestamp {σ σ₀ A I} {g : Sat256} {locals : Store} :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (.env .timestamp) =
+      (initState σ σ₀ g A I) (.env .timestamp) =
         .ok (.int (Int.ofNat (tellTimestampWord I).toNat)) := by
   simp [evalExpr?, envValue, tellTimestampWord, initState, pure]
 
-theorem cureTellGuardEval_countTrue {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureTellGuardEval_countTrue {σ σ₀ A I} {g : Sat256}
     (hlive : tellLiveWord σ I = ⟨0⟩)
     (hcount : tellLCountWord σ I = tellSrcsLenWord σ I) :
     evalExpr? config { contract := contract, locals := ∅ }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .and
         (.binary .eq (.storage liveRef) (.intLit 0))
         (.binary .or
           (.binary .eq (.storage lCountRef) (.arrayLength .storage srcsRef))
           (.binary .ge (.env .timestamp) (.storage whenRef)))) =
         .ok (.bool true) := by
-  have hliveEval := evalExpr_tellLiveStorage (cA := cA) (gh := gh) (bl := bl)
+  have hliveEval := evalExpr_tellLiveStorage
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := ∅)
     (by simp)
-  have hlcountEval := evalExpr_tellLCountStorage (cA := cA) (gh := gh) (bl := bl)
+  have hlcountEval := evalExpr_tellLCountStorage
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := ∅)
     (by simp)
-  have hsrcsEval := evalExpr_tellSrcsLength (cA := cA) (gh := gh) (bl := bl)
+  have hsrcsEval := evalExpr_tellSrcsLength
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
   simp [evalExpr?, EvalResult.bind, bind, hliveEval, hlcountEval, hsrcsEval,
     evalBinaryOp?, hlive, hcount, pure]
 
-theorem cureTellGuardEval_timeTrue {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureTellGuardEval_timeTrue {σ σ₀ A I} {g : Sat256}
     (hlive : tellLiveWord σ I = ⟨0⟩)
     (hcount : tellLCountWord σ I ≠ tellSrcsLenWord σ I)
     (htime : (tellWhenWord σ I).toNat ≤ (tellTimestampWord I).toNat) :
     evalExpr? config { contract := contract, locals := ∅ }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .and
         (.binary .eq (.storage liveRef) (.intLit 0))
         (.binary .or
           (.binary .eq (.storage lCountRef) (.arrayLength .storage srcsRef))
           (.binary .ge (.env .timestamp) (.storage whenRef)))) =
         .ok (.bool true) := by
-  have hliveEval := evalExpr_tellLiveStorage (cA := cA) (gh := gh) (bl := bl)
+  have hliveEval := evalExpr_tellLiveStorage
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := ∅)
     (by simp)
-  have hlcountEval := evalExpr_tellLCountStorage (cA := cA) (gh := gh) (bl := bl)
+  have hlcountEval := evalExpr_tellLCountStorage
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := ∅)
     (by simp)
-  have hsrcsEval := evalExpr_tellSrcsLength (cA := cA) (gh := gh) (bl := bl)
+  have hsrcsEval := evalExpr_tellSrcsLength
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
   have htimeEval := evalExpr_ge_uint256_true
-    (evalExpr_tellTimestamp (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    (evalExpr_tellTimestamp (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := ∅))
-    (evalExpr_tellWhenStorage (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    (evalExpr_tellWhenStorage (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := ∅)
       (by simp))
     htime
@@ -210,30 +210,30 @@ theorem cureTellGuardEval_timeTrue {cA gh bl σ σ₀ A I} {g : Sat256}
   simp [evalExpr?, EvalResult.bind, bind, hliveEval, hlcountEval, hsrcsEval, htimeEval,
     evalBinaryOp?, hlive, hcountEq, pure]
 
-theorem cureTellGuardEval_false {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureTellGuardEval_false {σ σ₀ A I} {g : Sat256}
     (hlive : tellLiveWord σ I = ⟨0⟩)
     (hcount : tellLCountWord σ I ≠ tellSrcsLenWord σ I)
     (htime : (tellTimestampWord I).toNat < (tellWhenWord σ I).toNat) :
     evalExpr? config { contract := contract, locals := ∅ }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .and
         (.binary .eq (.storage liveRef) (.intLit 0))
         (.binary .or
           (.binary .eq (.storage lCountRef) (.arrayLength .storage srcsRef))
           (.binary .ge (.env .timestamp) (.storage whenRef)))) =
         .ok (.bool false) := by
-  have hliveEval := evalExpr_tellLiveStorage (cA := cA) (gh := gh) (bl := bl)
+  have hliveEval := evalExpr_tellLiveStorage
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := ∅)
     (by simp)
-  have hlcountEval := evalExpr_tellLCountStorage (cA := cA) (gh := gh) (bl := bl)
+  have hlcountEval := evalExpr_tellLCountStorage
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := ∅)
     (by simp)
-  have hsrcsEval := evalExpr_tellSrcsLength (cA := cA) (gh := gh) (bl := bl)
+  have hsrcsEval := evalExpr_tellSrcsLength
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
   have htimeEval := evalExpr_ge_uint256_false
-    (evalExpr_tellTimestamp (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    (evalExpr_tellTimestamp (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := ∅))
-    (evalExpr_tellWhenStorage (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    (evalExpr_tellWhenStorage (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := ∅)
       (by simp))
     htime
@@ -247,12 +247,12 @@ theorem cureTellGuardEval_false {cA gh bl σ σ₀ A I} {g : Sat256}
   simp [evalExpr?, EvalResult.bind, bind, hliveEval, hlcountEval, hsrcsEval, htimeEval,
     evalBinaryOp?, hlive, hcountEq, pure]
 
-theorem cureTellGuardEval_liveFalse {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureTellGuardEval_liveFalse {σ σ₀ A I} {g : Sat256}
     (hlive : tellLiveWord σ I ≠ ⟨0⟩) :
     evalExpr? config { contract := contract, locals := ∅ }
-      (initState cA gh bl σ σ₀ g A I) tellGuardExpr =
+      (initState σ σ₀ g A I) tellGuardExpr =
         .ok (.bool false) := by
-  have hliveEval := evalExpr_tellLiveStorage (cA := cA) (gh := gh) (bl := bl)
+  have hliveEval := evalExpr_tellLiveStorage
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := ∅)
     (by simp)
   have hliveEq :
@@ -265,22 +265,22 @@ theorem cureTellGuardEval_liveFalse {cA gh bl σ σ₀ A I} {g : Sat256}
   simp [tellGuardExpr, evalExpr?, EvalResult.bind, bind, hliveEval, evalBinaryOp?,
     hliveEq, pure]
 
-theorem cureTellSourceBodyOk {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureTellSourceBodyOk {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hguard :
       evalExpr? config { contract := contract, locals := ∅ }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) tellGuardExpr =
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) tellGuardExpr =
           .ok (.bool true)) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tellTransition.body
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tellTransition.body
       (.returned { contract := contract, locals := ∅ }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (some [(.int (Int.ofNat (tellSayWord σ I).toNat))])) := by
-  let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hsayEval :
       evalExpr? config { contract := contract, locals := ∅ } evm0 (.storage sayRef) =
         .ok (.int (Int.ofNat (tellSayWord σ I).toNat)) :=
-    evalExpr_tellSayStorage (cA := cA) (gh := gh) (bl := bl)
+    evalExpr_tellSayStorage
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (locals := ∅) (by simp)
   have hblock :
@@ -297,16 +297,16 @@ theorem cureTellSourceBodyOk {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, tellTransition, nonpayable, tellGuardExpr, evm0] using
     ExecFuncBody.execBlockRet hblock
 
-theorem cureTellSourceBodyReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureTellSourceBodyReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hguard :
       evalExpr? config { contract := contract, locals := ∅ }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) tellGuardExpr =
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) tellGuardExpr =
           .ok (.bool false)) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tellTransition.body
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ tellTransition.body
       .reverted := by
-  let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hblock :
       ExecBlock config { contract := contract, locals := ∅ } evm0
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
@@ -414,8 +414,8 @@ theorem cureTellSourceBodyReverts {cA gh bl σ σ₀ A I} {g : UInt256}
 
 theorem RD.cureTellRoutineCountSuccess {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc guardPc successPc ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    {mem rdata : ByteArray} {σ : AccountMap}
+    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : cureTellCountSuccessWf code pc guardPc successPc)
     (hlive : solcSlotWord σ ee ⟨1⟩ = ⟨0⟩)
     (hcount : solcSlotWord σ ee ⟨8⟩ = solcSlotWord σ ee ⟨2⟩)
@@ -425,7 +425,7 @@ theorem RD.cureTellRoutineCountSuccess {code : ByteArray} {g : Sat256} {s0 : Sta
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       ((σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨9⟩ ⟨0⟩)) :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd8, hd9, hd10, hd11, hd14, hd15, hd16,
       hd18, hd19, hd21, hd22, hd23, hd24, hd27, _hd28, _hd29, _hd31, _hd32,
@@ -481,14 +481,14 @@ theorem RD.cureTellRoutineCountSuccess {code : ByteArray} {g : Sat256} {s0 : Sta
 theorem RD.cureTellRoutineCountFalseToTimeTail {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {pc guardPc successPc ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+    {σ : AccountMap}
+    (h : RD code ee g s0 pc (ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (hwf : cureTellCountSuccessWf code pc guardPc successPc)
     (hlive : solcSlotWord σ ee ⟨1⟩ = ⟨0⟩)
     (hcount : solcSlotWord σ ee ⟨8⟩ ≠ solcSlotWord σ ee ⟨2⟩)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD code ee g s0 (cureTellCountTimeTailPc pc)
-      (⟨0⟩ :: ⟨0⟩ :: ret :: R) mem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (⟨0⟩ :: ⟨0⟩ :: ret :: R) mem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd8, hd9, hd10, hd11, hd14, hd15, hd16,
       hd18, hd19, hd21, hd22, hd23, hd24, hd27, _hd28, _hd29, _hd31, _hd32,
@@ -573,9 +573,9 @@ set_option maxHeartbeats 1000000 in
 theorem RD.cureTellTimeTailSuccess {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc guardPc successPc ret junk keep : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD code ee g s0 pc (junk :: keep :: ret :: R) mem (UInt256.ofNat 3) rdata
-      (cA, σ) k C)
+      σ k C)
     (hwf : cureTellTimeTailSuccessWf code pc guardPc successPc)
     (htime : (solcSlotWord σ ee ⟨4⟩).toNat ≤ (UInt256.ofNat ee.header.timestamp).toNat)
     (hsuccess : (D_J code 0).contains successPc = true)
@@ -583,7 +583,7 @@ theorem RD.cureTellTimeTailSuccess {code : ByteArray} {g : Sat256} {s0 : State}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       ((σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨9⟩ ⟨0⟩)) :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd4, hd5, hd6, hguardPc, hdg0, hdg1, hdg4, hds0, hds1, hds2,
       hds4, hds5, hds6⟩
@@ -627,9 +627,9 @@ theorem cureTellTimeTailSuccessWf_concrete :
 
 theorem RD.cureTellRoutineTimeSuccessConcrete {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨2232⟩ (ret :: R) mem (UInt256.ofNat 3) rdata
-      (cA, σ) k C)
+      σ k C)
     (hlive : solcSlotWord σ ee ⟨1⟩ = ⟨0⟩)
     (hcount : solcSlotWord σ ee ⟨8⟩ ≠ solcSlotWord σ ee ⟨2⟩)
     (htime : (solcSlotWord σ ee ⟨4⟩).toNat ≤ (UInt256.ofNat ee.header.timestamp).toNat)
@@ -638,7 +638,7 @@ theorem RD.cureTellRoutineTimeSuccessConcrete {g : Sat256} {s0 : State}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD cureBytecode ee g s0 ret
       ((σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨9⟩ ⟨0⟩)) :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨_, _, htail⟩ := RD.cureTellRoutineCountFalseToTimeTail
     (code := cureBytecode) (g := g) (s0 := s0) (ee := ee) (pc := ⟨2232⟩)
     (guardPc := ⟨2267⟩) (successPc := ⟨2326⟩) (ret := ret) (R := R)
@@ -651,13 +651,13 @@ theorem RD.cureTellRoutineTimeSuccessConcrete {g : Sat256} {s0 : State}
 theorem RD.cureTellTimeTailGuardFalseConcrete {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret junk keep : UInt256}
     {R : List UInt256} {mem rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD cureBytecode ee g s0 (cureTellCountTimeTailPc ⟨2232⟩)
-      (junk :: keep :: ret :: R) mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (junk :: keep :: ret :: R) mem (UInt256.ofNat 3) rdata σ k C)
     (htime : (UInt256.ofNat ee.header.timestamp).toNat < (solcSlotWord σ ee ⟨4⟩).toNat)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD cureBytecode ee g s0 ⟨2272⟩ (keep :: ret :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases cureTellTimeTailSuccessWf_concrete with
     ⟨hd0, hd1, hd2, hd4, hd5, hd6, hguardPc, hdg0, hdg1, hdg4, _hds0,
       _hds1, _hds2, _hds4, _hds5, _hds6⟩
@@ -685,13 +685,13 @@ theorem RD.cureTellTimeTailGuardFalseConcrete {g : Sat256} {s0 : State}
 
 theorem RD.cureTellRoutineLiveNonzeroToRevertConcrete {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {σ : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨2232⟩ (ret :: R) mem (UInt256.ofNat 3) rdata
-      (cA, σ) k C)
+      σ k C)
     (hlive : solcSlotWord σ ee ⟨1⟩ ≠ ⟨0⟩)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD cureBytecode ee g s0 ⟨2272⟩ (⟨0⟩ :: ret :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      mem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases cureTellCountSuccessWf_concrete with
     ⟨hd0, hd1, hd3, hd5, hd6, hd8, hd9, hd10, hd11, hd14, _hd15, _hd16,
       _hd18, _hd19, _hd21, _hd22, _hd23, _hd24, _hd27, _hd28, _hd29, _hd31,
@@ -750,16 +750,16 @@ theorem cureDecode_tell {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem cureReachTellBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachTellBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 16)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨570⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨570⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x53d700e5⟩ :=
     cureSelWord_eq_of_beq I hsz 0x53 0xd7 0x00 0xe5 ⟨0x53d700e5⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h185⟩ := cureReachLowUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h185⟩ := cureReachLowUpperFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨570⟩ 1 h185 (fun j hj => cureLowUpperArmsWellFormed j (by omega))
@@ -768,17 +768,17 @@ theorem cureReachTellBody {cA gh bl σ σ₀ A I} {g : Sat256}
       · rw [hsw]; native_decide)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-theorem cureTellReturn_count {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureTellReturn_count {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (cureSelBytes 16))
     (hlive : tellLiveWord σ I = ⟨0⟩)
     (hcount : tellLCountWord σ I = tellSrcsLenWord σ I) :
     RDret cureBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (cA, σ)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (UInt256.toByteArray (tellSayWord σ I)) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 16) rfl hsel
-  have hreach := cureReachTellBody (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  have hreach := cureReachTellBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨570⟩ ⟨343⟩ ⟨2232⟩ := by
@@ -790,7 +790,7 @@ theorem cureTellReturn_count {cA gh bl σ σ₀ A I} {g : UInt256}
   obtain ⟨_, _, hroutine⟩ := RD.solcGetterThunk hreach hentry (by jump_dest)
   obtain ⟨_, _, hretPc⟩ := RD.cureTellRoutineCountSuccess
     (code := cureBytecode) (g := Sat256.ofUInt256 g)
-    (s0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (ee := I)
+    (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (ee := I)
     (pc := ⟨2232⟩) (guardPc := ⟨2267⟩) (successPc := ⟨2326⟩)
     (ret := ⟨343⟩) (R := [cureSelWord I]) hroutine cureTellCountSuccessWf_concrete
     (by simpa [tellLiveWord, cureSlotWord] using hlive)
@@ -808,18 +808,18 @@ theorem cureTellReturn_count {cA gh bl σ σ₀ A I} {g : UInt256}
     (by simp)
   simpa using hret
 
-theorem cureTellReturn_time {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureTellReturn_time {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (cureSelBytes 16))
     (hlive : tellLiveWord σ I = ⟨0⟩)
     (hcount : tellLCountWord σ I ≠ tellSrcsLenWord σ I)
     (htime : (tellWhenWord σ I).toNat ≤ (tellTimestampWord I).toNat) :
     RDret cureBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (cA, σ)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (UInt256.toByteArray (tellSayWord σ I)) := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 16) rfl hsel
-  have hreach := cureReachTellBody (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  have hreach := cureReachTellBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨570⟩ ⟨343⟩ ⟨2232⟩ := by
@@ -831,7 +831,7 @@ theorem cureTellReturn_time {cA gh bl σ σ₀ A I} {g : UInt256}
   obtain ⟨_, _, hroutine⟩ := RD.solcGetterThunk hreach hentry (by jump_dest)
   obtain ⟨_, _, hretPc⟩ := RD.cureTellRoutineTimeSuccessConcrete
     (g := Sat256.ofUInt256 g)
-    (s0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (ee := I)
+    (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (ee := I)
     (ret := ⟨343⟩) (R := [cureSelWord I]) hroutine
     (by simpa [tellLiveWord, cureSlotWord] using hlive)
     (by simpa [tellLCountWord, tellSrcsLenWord, cureSlotWord] using hcount)
@@ -901,7 +901,7 @@ theorem cureTellRevertLiteralMem_mload64 :
 
 theorem RD.cureTellRevertTail {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {stk : List UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨2272⟩ stk solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : stk.length + 8 ≤ 1024) :
     RDrev cureBytecode g s0 := by
@@ -963,95 +963,74 @@ theorem RD.cureTellRevertTail {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C
         Cₘ (UInt256.ofNat 8))
       (by native_decide) mem_cost (by evm_ov)]
 
-theorem cureTellBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem cureTellBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (cureSelBytes 16))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (cureSelBytes 16)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 16) rfl hsel
   have hdispatch := cureDispatchTell hsel
   have hdecode := cureDecode_tell hsz
-  have hliveWord : tellLiveWord σ_evm I = tellLiveWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-  have hsrcsLenWord : tellSrcsLenWord σ_evm I = tellSrcsLenWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  have hwhenWord : tellWhenWord σ_evm I = tellWhenWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨4⟩ ⟨0⟩
-  have hlcountWord : tellLCountWord σ_evm I = tellLCountWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-  have hsayWord : tellSayWord σ_evm I = tellSayWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨9⟩ ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (tellSayWord σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (tellSayWord σ_evm I).toNat)] := by
-    rw [hsayWord]
   have henc :
-      returnEquiv (UInt256.toByteArray (tellSayWord σ_evm I))
-        (some [(.int (Int.ofNat (tellSayWord σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (tellSayWord σ I))
+        (some [(.int (Int.ofNat (tellSayWord σ I).toNat))])
         tellTransition.returnType := by
     rw [show tellTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (tellSayWord σ_evm I))
-  have hreach := cureReachTellBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+      (by simpa [uint256] using uint256ReturnEncoding (tellSayWord σ I))
+  have hreach := cureReachTellBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨570⟩ ⟨343⟩ ⟨2232⟩ := by
     unfold solcGetterEntryWf
     repeat' first | apply And.intro | native_decide
   obtain ⟨_, _, hroutine⟩ := RD.solcGetterThunk hreach hentry (by jump_dest)
-  by_cases hliveEvm : tellLiveWord σ_evm I = ⟨0⟩
-  · have hliveSolm : tellLiveWord σ_solm I = ⟨0⟩ := by
-      rw [← hliveWord]
+  by_cases hliveEvm : tellLiveWord σ I = ⟨0⟩
+  · have hliveSolm : tellLiveWord σ I = ⟨0⟩ := by
       exact hliveEvm
-    by_cases hcountEvm : tellLCountWord σ_evm I = tellSrcsLenWord σ_evm I
-    · have hcountSolm : tellLCountWord σ_solm I = tellSrcsLenWord σ_solm I := by
-        rw [← hlcountWord, ← hsrcsLenWord]
+    by_cases hcountEvm : tellLCountWord σ I = tellSrcsLenWord σ I
+    · have hcountSolm : tellLCountWord σ I = tellSrcsLenWord σ I := by
         exact hcountEvm
-      have hguard := cureTellGuardEval_countTrue (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+      have hguard := cureTellGuardEval_countTrue
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
         hliveSolm hcountSolm
-      have hbody := cureTellSourceBodyOk (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
+      have hbody := cureTellSourceBodyOk
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
         (by simpa [tellGuardExpr] using hguard)
-      have hret := cureTellReturn_count (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      have hret := cureTellReturn_count
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsize hsel hliveEvm hcountEvm
-      exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval
-        hAccounts henc
-    · have hcountSolm : tellLCountWord σ_solm I ≠ tellSrcsLenWord σ_solm I := by
+      exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
+    · have hcountSolm : tellLCountWord σ I ≠ tellSrcsLenWord σ I := by
         intro hbad
-        exact hcountEvm (by rw [hlcountWord, hsrcsLenWord, hbad])
-      by_cases htimeEvm : (tellWhenWord σ_evm I).toNat ≤ (tellTimestampWord I).toNat
-      · have htimeSolm : (tellWhenWord σ_solm I).toNat ≤ (tellTimestampWord I).toNat := by
-          rw [← hwhenWord]
+        exact hcountEvm hbad
+      by_cases htimeEvm : (tellWhenWord σ I).toNat ≤ (tellTimestampWord I).toNat
+      · have htimeSolm : (tellWhenWord σ I).toNat ≤ (tellTimestampWord I).toNat := by
           exact htimeEvm
-        have hguard := cureTellGuardEval_timeTrue (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+        have hguard := cureTellGuardEval_timeTrue
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
           hliveSolm hcountSolm htimeSolm
-        have hbody := cureTellSourceBodyOk (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
+        have hbody := cureTellSourceBodyOk
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
           (by simpa [tellGuardExpr] using hguard)
-        have hret := cureTellReturn_time (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        have hret := cureTellReturn_time
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           hcode hwv hsize hsel hliveEvm hcountEvm htimeEvm
-        exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval
-          hAccounts henc
-      · have htimeSolm : (tellTimestampWord I).toNat < (tellWhenWord σ_solm I).toNat := by
-          rw [← hwhenWord]
+        exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
+      · have htimeSolm : (tellTimestampWord I).toNat < (tellWhenWord σ I).toNat := by
           exact Nat.lt_of_not_ge htimeEvm
-        have hguard := cureTellGuardEval_false (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+        have hguard := cureTellGuardEval_false
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
           hliveSolm hcountSolm htimeSolm
-        have hbody := cureTellSourceBodyReverts (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
+        have hbody := cureTellSourceBodyReverts
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
           (by simpa [tellGuardExpr] using hguard)
         obtain ⟨_, _, htail⟩ := RD.cureTellRoutineCountFalseToTimeTail
           (code := cureBytecode) (g := Sat256.ofUInt256 g)
-          (s0 := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (ee := I)
+          (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (ee := I)
           (pc := ⟨2232⟩) (guardPc := ⟨2267⟩) (successPc := ⟨2326⟩)
           (ret := ⟨343⟩) (R := [cureSelWord I])
           hroutine cureTellCountSuccessWf_concrete
@@ -1060,7 +1039,7 @@ theorem cureTellBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (by simp)
         obtain ⟨_, _, hrevPc⟩ := RD.cureTellTimeTailGuardFalseConcrete
           (g := Sat256.ofUInt256 g)
-          (s0 := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+          (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (ee := I) (ret := ⟨343⟩) (junk := ⟨0⟩) (keep := ⟨0⟩)
           (R := [cureSelWord I]) htail
           (by simpa [tellWhenWord, tellTimestampWord, cureSlotWord]
@@ -1068,18 +1047,18 @@ theorem cureTellBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (by simp)
         have hrev := RD.cureTellRevertTail hrevPc (by simp)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-  · have hliveSolm : tellLiveWord σ_solm I ≠ ⟨0⟩ := by
+  · have hliveSolm : tellLiveWord σ I ≠ ⟨0⟩ := by
       intro hbad
-      exact hliveEvm (by rw [hliveWord, hbad])
-    have hguard := cureTellGuardEval_liveFalse (cA := cA) (gh := gh) (bl := bl)
-      (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+      exact hliveEvm hbad
+    have hguard := cureTellGuardEval_liveFalse
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hliveSolm
-    have hbody := cureTellSourceBodyReverts (cA := cA) (gh := gh) (bl := bl)
-      (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
+    have hbody := cureTellSourceBodyReverts
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
       (by simpa [tellGuardExpr] using hguard)
     obtain ⟨_, _, hrevPc⟩ := RD.cureTellRoutineLiveNonzeroToRevertConcrete
       (g := Sat256.ofUInt256 g)
-      (s0 := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (ee := I)
+      (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I) (ee := I)
       (ret := ⟨343⟩) (R := [cureSelWord I]) hroutine
       (by simpa [tellLiveWord, cureSlotWord] using hliveEvm) (by simp)
     have hrev := RD.cureTellRevertTail hrevPc (by simp)

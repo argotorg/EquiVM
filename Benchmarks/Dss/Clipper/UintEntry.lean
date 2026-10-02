@@ -114,17 +114,17 @@ theorem decodeCalldataWithMode_legacyUint256_none_short {cd : ByteArray} {x : So
   ∧ decode code p28 = some (.JUMP, .none)
 
 set_option maxHeartbeats 1000000 in
-theorem solcOneUintExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem solcOneUintExternalLenOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {code : ByteArray} {entry ret routine : UInt256}
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : solcOneUintExternalEntryWf code entry ret routine)
     (hdecoded : (D_J code 0).contains (solcOneUintExternalDecodedPc entry) = true)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD code I g (initState σ σ₀ g A I)
       (solcOneUintExternalDecodedPc entry)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   rcases hwf with
     ⟨hd0, hd1, hd4, hd6, hd7, hd8, hd9, hd11, hd12, hd13, hd14, hd17, _hd18,
       _hd20, _hd21, _hd22, _hd23, _hd24, _hd25, _hd28⟩
@@ -135,15 +135,15 @@ set_option maxHeartbeats 1000000 in
 theorem solcOneUintExternalLoadAndJump {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256}
     {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD code ee g s0 (solcOneUintExternalDecodedPc entry)
-      (de :: ⟨4⟩ :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      (de :: ⟨4⟩ :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcOneUintExternalEntryWf code entry ret routine)
     (hroutine : (D_J code 0).contains routine = true)
     (hov : R.length + 4 ≤ 1024) :
     ∃ k' C', RD code ee g s0 routine
       (calldataWord ee.calldata 4 :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨_hd0, _hd1, _hd4, _hd6, _hd7, _hd8, _hd9, _hd11, _hd12, _hd13, _hd14,
       _hd17, _hd18, _hd20, _hd21, hd22, hd23, hd24, hd25, hd28⟩
@@ -156,14 +156,14 @@ theorem solcOneUintExternalLoadAndJump {code : ByteArray} {g : Sat256} {s0 : Sta
       rd28.jump hd28 hroutine (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem solcOneUintExternalShort {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem solcOneUintExternalShort {σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256} {code : ByteArray}
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hwf : solcOneUintExternalEntryWf code entry ret routine)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev code g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one

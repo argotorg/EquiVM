@@ -80,7 +80,7 @@ theorem flipperNoSelectorMatches {I : ExecutionEnv}
 theorem flipperCorrect :
     runtimeEquivalence config flipperBytecode contract := by
   refine runtimeEquivalence.intro ?_
-  intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
+  intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbeg : selIs I (flipperSelBytes 0)
     · exact flipperBegBodyCore hcode hsize hperm hwv hbeg hAccounts

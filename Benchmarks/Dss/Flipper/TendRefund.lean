@@ -62,31 +62,29 @@ theorem tend_storageStore_machineState (evm : EVM.State) (addr : AccountAddress)
   simp only [Solm.EVM.storageStore, State.lookupAccount]
   cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
 
-theorem tend_storageStore_blocks (evm : EVM.State) (addr : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).blocks = evm.blocks := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
   cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
 
-theorem tend_storageStore_genesisBlockHeader (evm : EVM.State) (addr : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).genesisBlockHeader =
       evm.genesisBlockHeader := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
   cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
 
-theorem evalExpr_tendCallerNeGuy_true {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem evalExpr_tendCallerNeGuy_true {σ σ₀ A I} {g : Sat256}
     (hcaller : solcSourceWord I ≠ bidGuyWord (tendId I) σ I) :
     evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       (.binary .ne sender (.storage (bidsF (.var "id") "guy"))) =
         .ok (.bool true) := by
   have hsender :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-        (initState cA gh bl σ σ₀ g A I) sender = .ok (.address I.source) := by
+        (initState σ σ₀ g A I) sender = .ok (.address I.source) := by
     simp [sender, evalExpr?, envValue, initState]
     rfl
-  have hguy := evalExpr_bidGuy_of_get_id (cA := cA) (gh := gh) (bl := bl)
+  have hguy := evalExpr_bidGuy_of_get_id
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (locals := tendLocalsBidOneBegBid σ I) (id := tendId I)
     (tendLocalsBidOneBegBid_get_id σ I) (tendLocalsBidOneBegBid_get_bids σ I)
@@ -233,36 +231,36 @@ theorem evalExpr_tendAfterRefundTicVarWithTicFrom {evm : EVM.State}
     (name := "tic_") (value := tendTicNewWord σtic I)
     (tendLocalsAfterRefundWithTicFrom_get_tic σpre σtic I)
 
-theorem flipperTendSourceBlockAfterRefundSuccessTail {cA gh bl σ σ₀ A I}
+theorem flipperTendSourceBlockAfterRefundSuccessTail {σ σ₀ A I}
     {g : UInt256} {evmRefund : EVM.State} {outRefund : ByteArray}
     {r : ExecResult}
     (hwv : I.weiValue = ⟨0⟩)
     (hguy : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
     (hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
           (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
           .ok (.bool true))
     (hendGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
           .ok (.bool true))
     (hlotGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .eq (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
           .ok (.bool true))
     (htabGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .le (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
           .ok (.bool true))
     (hbidGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
           .ok (.bool true))
     (hfitBid : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size)
@@ -270,7 +268,7 @@ theorem flipperTendSourceBlockAfterRefundSuccessTail {cA gh bl σ σ₀ A I}
       (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat < UInt256.size)
     (hinc :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .ge (.var "bidOne") (.var "begBid"))
           (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab")))) =
@@ -279,13 +277,13 @@ theorem flipperTendSourceBlockAfterRefundSuccessTail {cA gh bl σ σ₀ A I}
     (hvatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallRefund :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperVatAddress σ I)) "move" 0
         (tendRefundMoveArgValsOf
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
         (true, evmRefund, outRefund) true)
     (htail :
       let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
@@ -297,7 +295,7 @@ theorem flipperTendSourceBlockAfterRefundSuccessTail {cA gh bl σ σ₀ A I}
       ExecBlock config { contract := contract, locals := tendLocalsAfterRefund σ I } evmGuy
         tendAfterIncreasePayTailStmts r) :
     let locals := tendLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
       (bidPackedSlotOfWord (tendId I))
       (setAddressOffset0Word
@@ -311,14 +309,14 @@ theorem flipperTendSourceBlockAfterRefundSuccessTail {cA gh bl σ σ₀ A I}
         (.binary .ne (.storage (bidsF (.var "id") "guy")) zeroAddr) =
           .ok (.bool true) := by
     simpa [locals, evm0] using
-      evalExpr_tendGuyNeZero_true (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendGuyNeZero_true
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hguy
   have hmulBid :
       evalExpr? config { contract := contract, locals := locals } evm0
         (mul256 (.var "bid") (.intLit ONE)) =
           .ok (.int (Int.ofNat (tendBidOneWord I).toNat)) := by
     dsimp [locals, evm0]
-    exact evalExpr_tendBidOneMul_ok (cA := cA) (gh := gh) (bl := bl)
+    exact evalExpr_tendBidOneMul_ok
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hfitBid
   have hreqBid :
       evalExpr? config { contract := contract, locals := tendLocalsBidOne I } evm0
@@ -327,14 +325,14 @@ theorem flipperTendSourceBlockAfterRefundSuccessTail {cA gh bl σ σ₀ A I}
           (.binary .eq (.binary .div (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
           .ok (.bool true) := by
     simpa [evm0] using
-      evalExpr_tendBidOneRequire_ok (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendBidOneRequire_ok
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hfitBid
   have hmulBeg :
       evalExpr? config { contract := contract, locals := tendLocalsBidOne I } evm0
         (mul256 (.storage begRef) (.storage (bidsF (.var "id") "bid"))) =
           .ok (.int (Int.ofNat (tendBegBidWord σ I).toNat)) := by
     dsimp [evm0]
-    exact evalExpr_tendBegBidMul_ok (cA := cA) (gh := gh) (bl := bl)
+    exact evalExpr_tendBegBidMul_ok
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hfitBeg
   have hreqBeg :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
@@ -344,14 +342,14 @@ theorem flipperTendSourceBlockAfterRefundSuccessTail {cA gh bl σ σ₀ A I}
             (.storage (bidsF (.var "id") "bid"))) (.storage begRef))) =
           .ok (.bool true) := by
     simpa [evm0] using
-      evalExpr_tendBegBidRequire_ok (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendBegBidRequire_ok
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hfitBeg
   have hcallerTrue :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
         (.binary .ne sender (.storage (bidsF (.var "id") "guy"))) =
           .ok (.bool true) := by
     simpa [evm0] using
-      evalExpr_tendCallerNeGuy_true (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendCallerNeGuy_true
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hcaller
   have hvat :
@@ -435,34 +433,34 @@ theorem flipperTendSourceBlockAfterRefundSuccessTail {cA gh bl σ σ₀ A I}
   refine ExecBlock.consNormal (ExecStmt.iteTrue hcallerTrue hthen) ?_
   simpa [tendAfterIncreasePayTailStmts] using htail
 
-theorem flipperTendSourceBodyRefundBranchRevert {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperTendSourceBodyRefundBranchRevert {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hguy : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
     (hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
           (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
           .ok (.bool true))
     (hendGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
           .ok (.bool true))
     (hlotGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .eq (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
           .ok (.bool true))
     (htabGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .le (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
           .ok (.bool true))
     (hbidGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
           .ok (.bool true))
     (hfitBid : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size)
@@ -470,7 +468,7 @@ theorem flipperTendSourceBodyRefundBranchRevert {cA gh bl σ σ₀ A I} {g : UIn
       (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat < UInt256.size)
     (hinc :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .ge (.var "bidOne") (.var "begBid"))
           (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab")))) =
@@ -478,14 +476,14 @@ theorem flipperTendSourceBodyRefundBranchRevert {cA gh bl σ σ₀ A I} {g : UIn
     (hcaller : solcSourceWord I ≠ bidGuyWord (tendId I) σ I)
     (hbranch :
       ExecBlock config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
           [sender, .storage (bidsF (.var "id") "guy"),
             .storage (bidsF (.var "id") "bid")] "_refundRet" ++
         [ .assign .storage (bidsF (.var "id") "guy") sender ])
         .reverted) :
     let locals := tendLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
   intro locals evm0
   have hguyGuard :
@@ -493,14 +491,14 @@ theorem flipperTendSourceBodyRefundBranchRevert {cA gh bl σ σ₀ A I} {g : UIn
         (.binary .ne (.storage (bidsF (.var "id") "guy")) zeroAddr) =
           .ok (.bool true) := by
     simpa [locals, evm0] using
-      evalExpr_tendGuyNeZero_true (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendGuyNeZero_true
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hguy
   have hmulBid :
       evalExpr? config { contract := contract, locals := locals } evm0
         (mul256 (.var "bid") (.intLit ONE)) =
           .ok (.int (Int.ofNat (tendBidOneWord I).toNat)) := by
     dsimp [locals, evm0]
-    exact evalExpr_tendBidOneMul_ok (cA := cA) (gh := gh) (bl := bl)
+    exact evalExpr_tendBidOneMul_ok
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hfitBid
   have hreqBid :
       evalExpr? config { contract := contract, locals := tendLocalsBidOne I } evm0
@@ -509,14 +507,14 @@ theorem flipperTendSourceBodyRefundBranchRevert {cA gh bl σ σ₀ A I} {g : UIn
           (.binary .eq (.binary .div (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
           .ok (.bool true) := by
     simpa [evm0] using
-      evalExpr_tendBidOneRequire_ok (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendBidOneRequire_ok
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hfitBid
   have hmulBeg :
       evalExpr? config { contract := contract, locals := tendLocalsBidOne I } evm0
         (mul256 (.storage begRef) (.storage (bidsF (.var "id") "bid"))) =
           .ok (.int (Int.ofNat (tendBegBidWord σ I).toNat)) := by
     dsimp [evm0]
-    exact evalExpr_tendBegBidMul_ok (cA := cA) (gh := gh) (bl := bl)
+    exact evalExpr_tendBegBidMul_ok
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hfitBeg
   have hreqBeg :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
@@ -526,14 +524,14 @@ theorem flipperTendSourceBodyRefundBranchRevert {cA gh bl σ σ₀ A I} {g : UIn
             (.storage (bidsF (.var "id") "bid"))) (.storage begRef))) =
           .ok (.bool true) := by
     simpa [evm0] using
-      evalExpr_tendBegBidRequire_ok (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendBegBidRequire_ok
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hfitBeg
   have hcallerTrue :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
         (.binary .ne sender (.storage (bidsF (.var "id") "guy"))) =
           .ok (.bool true) := by
     simpa [evm0] using
-      evalExpr_tendCallerNeGuy_true (cA := cA) (gh := gh) (bl := bl)
+      evalExpr_tendCallerNeGuy_true
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hcaller
   have hblock :
@@ -555,34 +553,34 @@ theorem flipperTendSourceBodyRefundBranchRevert {cA gh bl σ σ₀ A I} {g : UIn
     exact ExecBlock.consRevert (ExecStmt.iteTrue hcallerTrue hbranch)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem flipperTendSourceBodyRefundNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperTendSourceBodyRefundNoCode {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hguy : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
     (hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
           (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
           .ok (.bool true))
     (hendGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
           .ok (.bool true))
     (hlotGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .eq (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
           .ok (.bool true))
     (htabGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .le (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
           .ok (.bool true))
     (hbidGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
           .ok (.bool true))
     (hfitBid : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size)
@@ -590,7 +588,7 @@ theorem flipperTendSourceBodyRefundNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
       (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat < UInt256.size)
     (hinc :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .ge (.var "bidOne") (.var "begBid"))
           (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab")))) =
@@ -598,10 +596,10 @@ theorem flipperTendSourceBodyRefundNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcaller : solcSourceWord I ≠ bidGuyWord (tendId I) σ I)
     (hvatNoCode :
       (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0) :
     let locals := tendLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
   intro locals evm0
   have hvat :
@@ -637,40 +635,40 @@ theorem flipperTendSourceBodyRefundNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     exact execBlock_append_term (s2 := [ .assign .storage (bidsF (.var "id") "guy") sender ])
       hrefundBlock (by intro f' e' h; cases h)
   simpa [locals, evm0] using
-    (flipperTendSourceBodyRefundBranchRevert (cA := cA) (gh := gh) (bl := bl)
+    (flipperTendSourceBodyRefundBranchRevert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       hwv hguy hticGuard hendGuard hlotGuard htabGuard hbidGuard hfitBid hfitBeg hinc
       hcaller hbranch)
 
-theorem flipperTendSourceBodyRefundCallFailure {cA gh bl σ σ₀ A I}
+theorem flipperTendSourceBodyRefundCallFailure {σ σ₀ A I}
     {g : UInt256} {evmRefund : EVM.State} {outRefund : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hguy : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
     (hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
           (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
           .ok (.bool true))
     (hendGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
           .ok (.bool true))
     (hlotGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .eq (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
           .ok (.bool true))
     (htabGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .le (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
           .ok (.bool true))
     (hbidGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
           .ok (.bool true))
     (hfitBid : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size)
@@ -678,7 +676,7 @@ theorem flipperTendSourceBodyRefundCallFailure {cA gh bl σ σ₀ A I}
       (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat < UInt256.size)
     (hinc :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .ge (.var "bidOne") (.var "begBid"))
           (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab")))) =
@@ -687,16 +685,16 @@ theorem flipperTendSourceBodyRefundCallFailure {cA gh bl σ σ₀ A I}
     (hvatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallRefund :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperVatAddress σ I)) "move" 0
         (tendRefundMoveArgValsOf
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
         (false, evmRefund, outRefund) true) :
     let locals := tendLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
   intro locals evm0
   have hvat :
@@ -746,40 +744,40 @@ theorem flipperTendSourceBodyRefundCallFailure {cA gh bl σ σ₀ A I}
     exact execBlock_append_term (s2 := [ .assign .storage (bidsF (.var "id") "guy") sender ])
       hrefundBlock (by intro f' e' h; cases h)
   simpa [locals, evm0] using
-    (flipperTendSourceBodyRefundBranchRevert (cA := cA) (gh := gh) (bl := bl)
+    (flipperTendSourceBodyRefundBranchRevert
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       hwv hguy hticGuard hendGuard hlotGuard htabGuard hbidGuard hfitBid hfitBeg hinc
       hcaller hbranch)
 
-theorem flipperTendSourceBodyPayNoCodeAfterRefund {cA gh bl σ σ₀ A I}
+theorem flipperTendSourceBodyPayNoCodeAfterRefund {σ σ₀ A I}
     {g : UInt256} {evmRefund : EVM.State} {outRefund : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hguy : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
     (hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
           (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
           .ok (.bool true))
     (hendGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
           .ok (.bool true))
     (hlotGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .eq (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
           .ok (.bool true))
     (htabGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .le (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
           .ok (.bool true))
     (hbidGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
           .ok (.bool true))
     (hfitBid : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size)
@@ -787,7 +785,7 @@ theorem flipperTendSourceBodyPayNoCodeAfterRefund {cA gh bl σ σ₀ A I}
       (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat < UInt256.size)
     (hinc :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .ge (.var "bidOne") (.var "begBid"))
           (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab")))) =
@@ -796,13 +794,13 @@ theorem flipperTendSourceBodyPayNoCodeAfterRefund {cA gh bl σ σ₀ A I}
     (hrefundCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallRefund :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperVatAddress σ I)) "move" 0
         (tendRefundMoveArgValsOf
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
         (true, evmRefund, outRefund) true)
     (hpayNoCode :
       let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
@@ -816,7 +814,7 @@ theorem flipperTendSourceBodyPayNoCodeAfterRefund {cA gh bl σ σ₀ A I}
           (flipperVatAddress evmGuy.accountMap evmGuy.executionEnv)).option
           0 (fun acc => acc.code.size))).toNat = 0) :
     let locals := tendLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
   intro locals evm0
   let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
@@ -861,42 +859,42 @@ theorem flipperTendSourceBodyPayNoCodeAfterRefund {cA gh bl σ σ₀ A I}
       ExecBlock config { contract := contract, locals := locals } evm0 tendTransition.body
         .reverted := by
     simpa [locals, evm0, evmGuy] using
-      (flipperTendSourceBlockAfterRefundSuccessTail (cA := cA) (gh := gh) (bl := bl)
+      (flipperTendSourceBlockAfterRefundSuccessTail
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmRefund := evmRefund) (outRefund := outRefund) hwv hguy hticGuard hendGuard
         hlotGuard htabGuard hbidGuard hfitBid hfitBeg hinc hcaller hrefundCode
         hcallRefund htail)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem flipperTendSourceBodyPayCallFailureAfterRefund {cA gh bl σ σ₀ A I}
+theorem flipperTendSourceBodyPayCallFailureAfterRefund {σ σ₀ A I}
     {g : UInt256} {evmRefund evmPay : EVM.State} {outRefund outPay : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hguy : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
     (hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
           (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
           .ok (.bool true))
     (hendGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
           .ok (.bool true))
     (hlotGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .eq (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
           .ok (.bool true))
     (htabGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .le (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
           .ok (.bool true))
     (hbidGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
           .ok (.bool true))
     (hfitBid : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size)
@@ -904,7 +902,7 @@ theorem flipperTendSourceBodyPayCallFailureAfterRefund {cA gh bl σ σ₀ A I}
       (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat < UInt256.size)
     (hinc :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .ge (.var "bidOne") (.var "begBid"))
           (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab")))) =
@@ -913,13 +911,13 @@ theorem flipperTendSourceBodyPayCallFailureAfterRefund {cA gh bl σ σ₀ A I}
     (hrefundCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallRefund :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperVatAddress σ I)) "move" 0
         (tendRefundMoveArgValsOf
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
         (true, evmRefund, outRefund) true)
     (hpayCode :
       let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
@@ -944,7 +942,7 @@ theorem flipperTendSourceBodyPayCallFailureAfterRefund {cA gh bl σ σ₀ A I}
         (EVM.address (flipperVatAddress evmGuy.accountMap evmGuy.executionEnv)) "move" 0
         (tendPayMoveArgValsOf evmGuy I) (false, evmPay, outPay) true) :
     let locals := tendLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
   intro locals evm0
   let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
@@ -1005,42 +1003,42 @@ theorem flipperTendSourceBodyPayCallFailureAfterRefund {cA gh bl σ σ₀ A I}
       ExecBlock config { contract := contract, locals := locals } evm0 tendTransition.body
         .reverted := by
     simpa [locals, evm0, evmGuy] using
-      (flipperTendSourceBlockAfterRefundSuccessTail (cA := cA) (gh := gh) (bl := bl)
+      (flipperTendSourceBlockAfterRefundSuccessTail
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmRefund := evmRefund) (outRefund := outRefund) hwv hguy hticGuard hendGuard
         hlotGuard htabGuard hbidGuard hfitBid hfitBeg hinc hcaller hrefundCode
         hcallRefund htail)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem flipperTendSourceBodySuccessAfterRefund {cA gh bl σ σ₀ A I}
+theorem flipperTendSourceBodySuccessAfterRefund {σ σ₀ A I}
     {g : UInt256} {evmRefund evmPay : EVM.State} {outRefund outPay : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hguy : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
     (hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
           (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
           .ok (.bool true))
     (hendGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
           .ok (.bool true))
     (hlotGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .eq (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
           .ok (.bool true))
     (htabGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .le (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
           .ok (.bool true))
     (hbidGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
           .ok (.bool true))
     (hfitBid : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size)
@@ -1048,7 +1046,7 @@ theorem flipperTendSourceBodySuccessAfterRefund {cA gh bl σ σ₀ A I}
       (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat < UInt256.size)
     (hinc :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .ge (.var "bidOne") (.var "begBid"))
           (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab")))) =
@@ -1057,13 +1055,13 @@ theorem flipperTendSourceBodySuccessAfterRefund {cA gh bl σ σ₀ A I}
     (hrefundCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallRefund :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperVatAddress σ I)) "move" 0
         (tendRefundMoveArgValsOf
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
         (true, evmRefund, outRefund) true)
     (hpayCode :
       let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
@@ -1096,7 +1094,7 @@ theorem flipperTendSourceBodySuccessAfterRefund {cA gh bl σ σ₀ A I}
               (bidBaseOfWord (tendId I)) (tendBid I)).accountMap I).toNat <
         2 ^ 48) :
     let locals := tendLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evmBid := Solm.EVM.storageStore evmPay evmPay.executionEnv.codeOwner
       (bidBaseOfWord (tendId I)) (tendBid I)
     let evmTic := Solm.EVM.storageStore evmBid evmBid.executionEnv.codeOwner
@@ -1248,7 +1246,7 @@ theorem flipperTendSourceBodySuccessAfterRefund {cA gh bl σ σ₀ A I}
           { contract := contract, locals := tendLocalsAfterRefundWithTicFrom σ evmBid.accountMap I }
           evmTic) := by
     simpa [locals, evm0, evmGuy] using
-      (flipperTendSourceBlockAfterRefundSuccessTail (cA := cA) (gh := gh) (bl := bl)
+      (flipperTendSourceBlockAfterRefundSuccessTail
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmRefund := evmRefund) (outRefund := outRefund) hwv hguy hticGuard hendGuard
         hlotGuard htabGuard hbidGuard hfitBid hfitBeg hinc hcaller hrefundCode
@@ -1256,35 +1254,35 @@ theorem flipperTendSourceBodySuccessAfterRefund {cA gh bl σ σ₀ A I}
   simpa [ExecTransitionBody, locals, evm0, evmBid, evmTic] using
     ExecFuncBody.execBlockOK hblock
 
-theorem flipperTendSourceBodyAdd48OverflowAfterRefund {cA gh bl σ σ₀ A I}
+theorem flipperTendSourceBodyAdd48OverflowAfterRefund {σ σ₀ A I}
     {g : UInt256} {evmRefund evmPay : EVM.State} {outRefund outPay : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hguy : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
     (hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
           (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
           .ok (.bool true))
     (hendGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
           .ok (.bool true))
     (hlotGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .eq (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
           .ok (.bool true))
     (htabGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .le (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
           .ok (.bool true))
     (hbidGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
           .ok (.bool true))
     (hfitBid : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size)
@@ -1292,7 +1290,7 @@ theorem flipperTendSourceBodyAdd48OverflowAfterRefund {cA gh bl σ σ₀ A I}
       (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat < UInt256.size)
     (hinc :
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .ge (.var "bidOne") (.var "begBid"))
           (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab")))) =
@@ -1301,13 +1299,13 @@ theorem flipperTendSourceBodyAdd48OverflowAfterRefund {cA gh bl σ σ₀ A I}
     (hrefundCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (flipperVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcallRefund :
-      typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+      typedCallViaEVM config (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperVatAddress σ I)) "move" 0
         (tendRefundMoveArgValsOf
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I)
         (true, evmRefund, outRefund) true)
     (hpayCode :
       let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
@@ -1340,7 +1338,7 @@ theorem flipperTendSourceBodyAdd48OverflowAfterRefund {cA gh bl σ σ₀ A I}
             (Solm.EVM.storageStore evmPay evmPay.executionEnv.codeOwner
               (bidBaseOfWord (tendId I)) (tendBid I)).accountMap I).toNat) :
     let locals := tendLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals tendTransition.body .reverted := by
   intro locals evm0
   let evmGuy := Solm.EVM.storageStore evmRefund evmRefund.executionEnv.codeOwner
@@ -1457,24 +1455,24 @@ theorem flipperTendSourceBodyAdd48OverflowAfterRefund {cA gh bl σ σ₀ A I}
       ExecBlock config { contract := contract, locals := locals } evm0 tendTransition.body
         .reverted := by
     simpa [locals, evm0, evmGuy] using
-      (flipperTendSourceBlockAfterRefundSuccessTail (cA := cA) (gh := gh) (bl := bl)
+      (flipperTendSourceBlockAfterRefundSuccessTail
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmRefund := evmRefund) (outRefund := outRefund) hwv hguy hticGuard hendGuard
         hlotGuard htabGuard hbidGuard hfitBid hfitBeg hinc hcaller hrefundCode
         hcallRefund htail)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem flipperTendX_takeRefundBranch {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_takeRefundBranch {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (_hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcaller : solcSourceWord I ≠ bidGuyWord (tendId I) σ I)
     (h : RD flipperBytecode I g s0 ⟨3486⟩ [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨3520⟩
       [tendBid I, tendLot I, tendId I, ret, sel]
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   let memHash := twoWordHashMem (tendId I) ⟨1⟩ mem
   let rawPacked := flipperSlotWord (bidPackedSlotOfWord (tendId I)) σ I
   have hmask160 :
@@ -1505,7 +1503,7 @@ theorem flipperTendX_takeRefundBranch {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨k3505, C3505, rd3505raw⟩ := rd3504.sload (by native_decide) (by evm_ov)
   have rd3505 : RD flipperBytecode I g s0 ⟨3505⟩
       [rawPacked, tendBid I, tendLot I, tendId I, ret, sel]
-      memHash (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3505 C3505 := by
+      memHash (UInt256.ofNat 3) ByteArray.empty σ k3505 C3505 := by
     have hslotAdd :
         (⟨2⟩ : UInt256) + bidBaseOfWord (tendId I) = bidPackedSlotOfWord (tendId I) := by
       simpa [bidPackedSlotOfWord] using
@@ -1524,7 +1522,7 @@ theorem flipperTendX_takeRefundBranch {cA σ I} {g : Sat256} {s0 : State}
       RD flipperBytecode I g s0 ⟨3516⟩
         [UInt256.eq (solcSourceWord I) (bidGuyWord (tendId I) σ I), tendBid I,
           tendLot I, tendId I, ret, sel]
-        memHash (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+        memHash (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by
       simpa [rawPacked, bidGuyWord, flipperAddressReturnWord, hmask160, u256_land_comm]
         using rd3516raw⟩
@@ -1535,18 +1533,18 @@ theorem flipperTendX_takeRefundBranch {cA σ I} {g : Sat256} {s0 : State}
     raw push2 ⟨3686⟩ (by native_decide) (by evm_ov),
     raw jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)]⟩
 
-theorem flipperTendX_refundCalldataReady {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_refundCalldataReady {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (h : RD flipperBytecode I g s0 ⟨3520⟩
       [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨3587⟩
       (⟨128⟩ :: ⟨64⟩ :: ⟨0⟩ :: flipperSlotWord ⟨2⟩ σ I :: solcAddrMask ::
         tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
       (tendVatRefundCallMem mem σ I) (UInt256.ofNat 8) ByteArray.empty
-      (cA, σ) k' C' := by
+      σ k' C' := by
   let rawVat := flipperSlotWord ⟨2⟩ σ I
   let rawPacked := flipperSlotWord (bidPackedSlotOfWord (tendId I)) σ I
   let rawBid := bidBidWord (tendId I) σ I
@@ -1578,7 +1576,7 @@ theorem flipperTendX_refundCalldataReady {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨k3524, C3524, rd3524raw⟩ := rd3523.sload (by native_decide) (by evm_ov)
   have rd3524 : RD flipperBytecode I g s0 ⟨3524⟩
       [rawVat, ⟨2⟩, tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3524 C3524 := by
+      mem (UInt256.ofNat 3) ByteArray.empty σ k3524 C3524 := by
     simpa [rawVat, flipperSlotWord, solcSlotWord] using rd3524raw
   have rd3542pre := evm_run rd3524 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -1607,7 +1605,7 @@ theorem flipperTendX_refundCalldataReady {cA σ I} {g : Sat256} {s0 : State}
   have rd3543 : RD flipperBytecode I g s0 ⟨3543⟩
       (rawPacked :: ⟨64⟩ :: ⟨0⟩ :: rawVat :: base :: tendBid I :: tendLot I ::
         tendId I :: ret :: sel :: [])
-      memHash (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3543 C3543 := by
+      memHash (UInt256.ofNat 3) ByteArray.empty σ k3543 C3543 := by
     have hslotAdd :
         base + (⟨2⟩ : UInt256) = bidPackedSlotOfWord (tendId I) := by
       simp [base, bidPackedSlotOfWord, bidBaseOfWord]
@@ -1617,7 +1615,7 @@ theorem flipperTendX_refundCalldataReady {cA σ I} {g : Sat256} {s0 : State}
   have rd3545 : RD flipperBytecode I g s0 ⟨3545⟩
       (rawBid :: ⟨64⟩ :: ⟨0⟩ :: rawVat :: rawPacked :: tendBid I ::
         tendLot I :: tendId I :: ret :: sel :: [])
-      memHash (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3545 C3545 := by
+      memHash (UInt256.ofNat 3) ByteArray.empty σ k3545 C3545 := by
     simpa [rawBid, bidBidWord, bidBaseOfWord, flipperSlotWord, base] using rd3545raw
   let mem1 := writeWord memHash 128 yankVatMoveSelectorWord
   let mem2 := writeWord mem1 132 (solcSourceWord I)
@@ -1673,19 +1671,19 @@ theorem flipperTendX_refundCalldataReady {cA σ I} {g : Sat256} {s0 : State}
         rfl) (by decide) (by evm_ov)]
   exact ⟨_, _, by simpa [rawVat] using rd3587⟩
 
-theorem flipperTendX_toRefundExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_toRefundExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcaller : solcSourceWord I ≠ bidGuyWord (tendId I) σ I)
     (h : RD flipperBytecode I g s0 ⟨3486⟩ [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨3616⟩
       (flipperVatTargetWord σ I :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
         flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
       (tendVatRefundCallMem (twoWordHashMem (tendId I) ⟨1⟩ mem) σ I)
-      (UInt256.ofNat 8) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 8) ByteArray.empty σ k' C' := by
   let memHash := twoWordHashMem (tendId I) ⟨1⟩ mem
   have hhashSize : memHash.size = 96 := by
     dsimp [memHash]
@@ -1764,7 +1762,7 @@ theorem flipperTendX_toRefundExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State
   rw [hsubAdd, hadd, hvatClean'] at rd3616
   exact ⟨_, _, by simpa using rd3616⟩
 
-theorem flipperTendX_refundNoCode {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_refundNoCode {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -1772,7 +1770,7 @@ theorem flipperTendX_refundNoCode {cA σ I} {g : Sat256} {s0 : State}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨3486⟩ [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd3616⟩ := flipperTendX_toRefundExtcodesizeGuard
     hmemSize hmemRead64 hcaller h
@@ -1782,7 +1780,7 @@ theorem flipperTendX_refundNoCode {cA σ I} {g : Sat256} {s0 : State}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp)
 
-theorem flipperTendX_toRefundCall {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_toRefundCall {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -1790,13 +1788,13 @@ theorem flipperTendX_toRefundCall {cA σ I} {g : Sat256} {s0 : State}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨3486⟩ [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨3631⟩
       (gasWord :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
         flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
       (tendVatRefundCallMem (twoWordHashMem (tendId I) ⟨1⟩ mem) σ I)
-      (UInt256.ofNat 8) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 8) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd3616⟩ := flipperTendX_toRefundExtcodesizeGuard
     hmemSize hmemRead64 hcaller h
   obtain ⟨gasWord, k3631, C3631, rd3631⟩ :=
@@ -1807,7 +1805,7 @@ theorem flipperTendX_toRefundCall {cA σ I} {g : Sat256} {s0 : State}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k3631, C3631, by simpa using rd3631⟩
 
-theorem flipperTendX_refundDepthLimit {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_refundDepthLimit {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -1816,12 +1814,12 @@ theorem flipperTendX_refundDepthLimit {cA σ I} {g : Sat256} {s0 : State}
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = (1024 : Fin 1025))
     (h : RD flipperBytecode I g s0 ⟨3486⟩ [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨3632⟩
       (⟨0⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
         flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
       (tendVatRefundCallMem (twoWordHashMem (tendId I) ⟨1⟩ mem) σ I)
-      (UInt256.ofNat 8) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 8) ByteArray.empty σ k' C' := by
   obtain ⟨gasWord, _, _, rd3631⟩ :=
     flipperTendX_toRefundCall hmemSize hmemRead64 hcaller hcodeSize h
   obtain ⟨k3632, C3632, rd3632raw⟩ :=
@@ -1839,14 +1837,14 @@ theorem flipperTendX_refundDepthLimit {cA σ I} {g : Sat256} {s0 : State}
       (ByteArray.empty.write 0
         (tendVatRefundCallMem (twoWordHashMem (tendId I) ⟨1⟩ mem) σ I) 128
         (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat)
-      (UInt256.ofNat 8) ByteArray.empty (cA, σ) k3632 C3632 := by
+      (UInt256.ofNat 8) ByteArray.empty σ k3632 C3632 := by
     simpa using haw ▸ rd3632raw
   rw [hmin, byteArray_write_len_zero] at rd3632
   exact ⟨_, _, rd3632⟩
 
 theorem flipperTendX_refundPostCall
-    {cA0 gh bl σbase σ₀ A I} {g : UInt256}
-    {cA : Batteries.RBSet AccountAddress compare}
+    {σbase σ₀ A I} {g : UInt256}
+
     {σ : AccountMap} {Acur : Substate}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
     (hmemSize : mem.size = 96)
@@ -1857,37 +1855,37 @@ theorem flipperTendX_refundPostCall
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3486⟩
+      (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3486⟩
       [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD flipperBytecode I (Sat256.ofUInt256 g)
-        (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3632⟩
+        (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3632⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: ⟨3140843579⟩ ::
           flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
         (tendVatRefundCallMem (twoWordHashMem (tendId I) ⟨1⟩ mem) σ I)
-        (UInt256.ofNat 8) out (cA', σ') k' C'
+        (UInt256.ofNat 8) out σ' k' C'
     ∧ typedCallViaEVM config
-        ({ initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ, substate := Acur, createdAccounts := cA })
+        ({ initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ, substate := Acur })
         (EVM.address (flipperVatAddress σ I)) "move" 0
         (tendRefundMoveArgValsOf
-          ({ initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ, substate := Acur, createdAccounts := cA }) I)
+          ({ initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ, substate := Acur }) I)
         (z,
-          { { initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ, substate := Acur, createdAccounts := cA } with
-            accountMap := σ', substate := A', createdAccounts := cA' },
+          { { initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ, substate := Acur } with
+            accountMap := σ', substate := A' },
           out) true
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd3631⟩ :=
     flipperTendX_toRefundCall hmemSize hmemRead64 hcaller hcodeSize h
-  obtain ⟨cA', σ', z, out, A_in, callGas, k3632, C3632, hΘpack, rd3632raw,
+  obtain ⟨σ', z, out, A_in, callGas, k3632, C3632, hΘpack, rd3632raw,
       houtsz⟩ :=
     RD.call rd3631 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, out, A', k3632, C3632, ?_, ?_, houtsz⟩
+  refine ⟨σ', z, out, A', k3632, C3632, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 8).toNat
           (⟨128⟩ : UInt256).toNat (⟨100⟩ : UInt256).toNat)
@@ -1896,13 +1894,13 @@ theorem flipperTendX_refundPostCall
     have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
       rfl
     have rd3632 : RD flipperBytecode I (Sat256.ofUInt256 g)
-        (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3632⟩
+        (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3632⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: ⟨3140843579⟩ ::
           flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
         (out.write 0
           (tendVatRefundCallMem (twoWordHashMem (tendId I) ⟨1⟩ mem) σ I) 128
           (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 8) out (cA', σ') k3632 C3632 :=
+        (UInt256.ofNat 8) out σ' k3632 C3632 :=
       haw ▸ rd3632raw
     rw [hmin, byteArray_write_len_zero] at rd3632
     exact rd3632
@@ -1914,7 +1912,7 @@ theorem flipperTendX_refundPostCall
         have hEq : I.depth = (1024 : Fin 1025) := by
           simpa [initState] using hdepthEq
         exact absurd hdepth (by rw [hEq]; decide))
-      (flipperVatEvmAddress_eq_target_of_accountMapEquiv (accountMapEquiv.refl σ))
+      (by rfl)
       ?_ ?_
     · have hhashSize :
           (twoWordHashMem (tendId I) ⟨1⟩ mem).size = 96 :=
@@ -1928,7 +1926,7 @@ theorem flipperTendX_refundPostCall
 
 theorem flipperTendX_refundCallFailure {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector bid lot : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD flipperBytecode I g s0 ⟨3632⟩
       (⟨0⟩ :: ⟨228⟩ :: selector :: target :: bid :: lot :: id :: ret :: sel :: [])
       mem aw out acc k C)
@@ -1943,7 +1941,7 @@ theorem flipperTendX_refundCallFailure {I} {g : Sat256} {s0 : State}
 
 theorem flipperTendX_refundCallSuccessToStoreStart {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector bid lot : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD flipperBytecode I g s0 ⟨3632⟩
       (⟨1⟩ :: ⟨228⟩ :: selector :: target :: bid :: lot :: id :: ret :: sel :: [])
       mem aw out acc k C) :
@@ -1960,17 +1958,17 @@ theorem flipperTendX_refundCallSuccessToStoreStart {I} {g : Sat256} {s0 : State}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3652⟩
 
-theorem flipperTendX_storeRefundGuyToPayStart {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_storeRefundGuyToPayStart {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {target ret sel : UInt256}
     (hperm : I.perm = true)
     (hmemSize : 64 ≤ mem.size)
     (h : RD flipperBytecode I g s0 ⟨3652⟩
       [target, tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 8) out (cA, σ) k C) :
+      mem (UInt256.ofNat 8) out σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨3686⟩
       [tendBid I, tendLot I, tendId I, ret, sel]
       (twoWordHashMem (tendId I) ⟨1⟩ mem) (UInt256.ofNat 8) out
-      (cA, tendAfterRefundMap σ I) k' C' := by
+      (tendAfterRefundMap σ I) k' C' := by
   let mem1 := wordAt0Mem (tendId I) mem
   let mem2 := twoWordHashMem (tendId I) ⟨1⟩ mem
   let slot := bidPackedSlotOfWord (tendId I)
@@ -2020,7 +2018,7 @@ theorem flipperTendX_storeRefundGuyToPayStart {cA σ I} {g : Sat256} {s0 : State
   obtain ⟨k3671, C3671, rd3671raw⟩ := rd3669.sload (by native_decide) (by evm_ov)
   have rd3671 : RD flipperBytecode I g s0 ⟨3671⟩
       [old, slot, target, tendBid I, tendLot I, tendId I, ret, sel]
-      mem2 (UInt256.ofNat 8) out (cA, σ) k3671 C3671 := by
+      mem2 (UInt256.ofNat 8) out σ k3671 C3671 := by
     have hslotAdd :
         (⟨2⟩ : UInt256) + bidBaseOfWord (tendId I) = slot := by
       simpa [slot, bidPackedSlotOfWord] using
@@ -2041,7 +2039,7 @@ theorem flipperTendX_storeRefundGuyToPayStart {cA σ I} {g : Sat256} {s0 : State
   obtain ⟨k3685, C3685, rd3685raw⟩ := rd3684.sstore hperm (by native_decide) (by evm_ov)
   have rd3685 : RD flipperBytecode I g s0 ⟨3685⟩
       [target, tendBid I, tendLot I, tendId I, ret, sel]
-      mem2 (UInt256.ofNat 8) out (cA, tendAfterRefundMap σ I) k3685 C3685 := by
+      mem2 (UInt256.ofNat 8) out (tendAfterRefundMap σ I) k3685 C3685 := by
     simpa [tendAfterRefundMap, old, slot, flipperSlotWord] using rd3685raw
   exact ⟨_, _, evm_run rd3685 with [
     raw pop (by native_decide) (by evm_ov)]⟩
@@ -2254,17 +2252,17 @@ theorem tendVatPayCallMem_encode_228 {mem : ByteArray} (σ : AccountMap) (I : Ex
   apply ByteArray.ext
   simp [moveSelector, byteArray_toList_eq, ByteArray.append_assoc]
 
-theorem flipperTendX_toPayExtcodesizeGuardAw8 {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_toPayExtcodesizeGuardAw8 {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem rdata : ByteArray}
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (h : RD flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 8) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 8) rdata σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨3784⟩
       (flipperVatTargetWord σ I :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
         flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
-      (tendVatPayCallMem mem σ I) (UInt256.ofNat 8) rdata (cA, σ) k' C' := by
+      (tendVatPayCallMem mem σ I) (UInt256.ofNat 8) rdata σ k' C' := by
   let rawVat := flipperSlotWord ⟨2⟩ σ I
   let rawGal := flipperSlotWord (bidSlotOfWord (tendId I) ⟨4⟩) σ I
   let base := solcMappingSlot ⟨1⟩ (tendId I)
@@ -2300,7 +2298,7 @@ theorem flipperTendX_toPayExtcodesizeGuardAw8 {cA σ I} {g : Sat256} {s0 : State
   obtain ⟨k3690, C3690, rd3690raw⟩ := rd3689.sload (by native_decide) (by evm_ov)
   have rd3690 : RD flipperBytecode I g s0 ⟨3690⟩
       [rawVat, tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 8) rdata (cA, σ) k3690 C3690 := by
+      mem (UInt256.ofNat 8) rdata σ k3690 C3690 := by
     simpa [rawVat, flipperSlotWord, solcSlotWord] using rd3690raw
   have rd3709pre := evm_run rd3690 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -2335,7 +2333,7 @@ theorem flipperTendX_toPayExtcodesizeGuardAw8 {cA σ I} {g : Sat256} {s0 : State
   have rd3711 : RD flipperBytecode I g s0 ⟨3711⟩
       (rawGal :: ⟨4⟩ :: base :: ⟨64⟩ :: ⟨0⟩ :: rawVat :: tendBid I ::
         tendLot I :: tendId I :: ret :: sel :: [])
-      (tendPayHashMem mem I) (UInt256.ofNat 8) rdata (cA, σ) k3711 C3711 := by
+      (tendPayHashMem mem I) (UInt256.ofNat 8) rdata σ k3711 C3711 := by
     have hslotAdd :
         (⟨4⟩ : UInt256) + base = bidSlotOfWord (tendId I) ⟨4⟩ := by
       simpa [base, bidSlotOfWord, bidBaseOfWord] using
@@ -2346,7 +2344,7 @@ theorem flipperTendX_toPayExtcodesizeGuardAw8 {cA σ I} {g : Sat256} {s0 : State
   have rd3713 : RD flipperBytecode I g s0 ⟨3713⟩
       (bidBidWord (tendId I) σ I :: ⟨4⟩ :: rawGal :: ⟨64⟩ :: ⟨0⟩ ::
         rawVat :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
-      (tendPayHashMem mem I) (UInt256.ofNat 8) rdata (cA, σ) k3713 C3713 := by
+      (tendPayHashMem mem I) (UInt256.ofNat 8) rdata σ k3713 C3713 := by
     simpa [bidBidWord, bidBaseOfWord, flipperSlotWord, base] using rd3713raw
   let mem1 := writeWord (tendPayHashMem mem I) 128 yankVatMoveSelectorWord
   let mem2 := writeWord mem1 132 (solcSourceWord I)
@@ -2431,14 +2429,14 @@ theorem flipperTendX_toPayExtcodesizeGuardAw8 {cA σ I} {g : Sat256} {s0 : State
   rw [hmask160, hvatClean] at rd3784
   exact ⟨_, _, by simpa using rd3784⟩
 
-theorem flipperTendX_payNoCodeAw8 {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_payNoCodeAw8 {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem rdata : ByteArray}
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 8) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 8) rdata σ k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd3784⟩ := flipperTendX_toPayExtcodesizeGuardAw8
     hmemSize hmemRead64 h
@@ -2448,20 +2446,20 @@ theorem flipperTendX_payNoCodeAw8 {cA σ I} {g : Sat256} {s0 : State}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp)
 
-theorem flipperTendX_toPayCallAw8 {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_toPayCallAw8 {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem rdata : ByteArray}
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 8) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 8) rdata σ k C) :
     ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨3799⟩
       (gasWord :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
         flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
       (tendVatPayCallMem mem σ I) (UInt256.ofNat 8) rdata
-      (cA, σ) k' C' := by
+      σ k' C' := by
   obtain ⟨_, _, rd3784⟩ := flipperTendX_toPayExtcodesizeGuardAw8
     hmemSize hmemRead64 h
   obtain ⟨gasWord, k3799, C3799, rd3799⟩ :=
@@ -2472,7 +2470,7 @@ theorem flipperTendX_toPayCallAw8 {cA σ I} {g : Sat256} {s0 : State}
       (by native_decide) (by native_decide) (by simp)
   exact ⟨gasWord, k3799, C3799, by simpa using rd3799⟩
 
-theorem flipperTendX_payDepthLimitAw8 {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperTendX_payDepthLimitAw8 {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem rdata : ByteArray}
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -2480,11 +2478,11 @@ theorem flipperTendX_payDepthLimitAw8 {cA σ I} {g : Sat256} {s0 : State}
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = (1024 : Fin 1025))
     (h : RD flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 8) rdata (cA, σ) k C) :
+      mem (UInt256.ofNat 8) rdata σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨3800⟩
       (⟨0⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
         flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
-      (tendVatPayCallMem mem σ I) (UInt256.ofNat 8) ByteArray.empty (cA, σ) k' C' := by
+      (tendVatPayCallMem mem σ I) (UInt256.ofNat 8) ByteArray.empty σ k' C' := by
   obtain ⟨gasWord, _, _, rd3799⟩ :=
     flipperTendX_toPayCallAw8 hmemSize hmemRead64 hcodeSize h
   obtain ⟨k3800, C3800, rd3800raw⟩ :=
@@ -2501,14 +2499,14 @@ theorem flipperTendX_payDepthLimitAw8 {cA σ I} {g : Sat256} {s0 : State}
         flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
       (ByteArray.empty.write 0 (tendVatPayCallMem mem σ I) 128
         (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat)
-      (UInt256.ofNat 8) ByteArray.empty (cA, σ) k3800 C3800 := by
+      (UInt256.ofNat 8) ByteArray.empty σ k3800 C3800 := by
     simpa using haw ▸ rd3800raw
   rw [hmin, byteArray_write_len_zero] at rd3800
   exact ⟨_, _, rd3800⟩
 
 theorem flipperTendX_payPostCallAw8
-    {cA0 gh bl σbase σ₀ A I} {g : UInt256}
-    {cA : Batteries.RBSet AccountAddress compare}
+    {σbase σ₀ A I} {g : UInt256}
+
     {σ : AccountMap} {Acur : Substate}
     {k C : ℕ} {ret sel : UInt256} {mem out0 : ByteArray}
     (hmemSize : mem.size = 228)
@@ -2518,36 +2516,36 @@ theorem flipperTendX_payPostCallAw8
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3686⟩
+      (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3686⟩
       [tendBid I, tendLot I, tendId I, ret, sel]
-      mem (UInt256.ofNat 8) out0 (cA, σ) k C) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+      mem (UInt256.ofNat 8) out0 σ k C) :
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD flipperBytecode I (Sat256.ofUInt256 g)
-        (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3800⟩
+        (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3800⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: ⟨3140843579⟩ ::
           flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
-        (tendVatPayCallMem mem σ I) (UInt256.ofNat 8) out (cA', σ') k' C'
+        (tendVatPayCallMem mem σ I) (UInt256.ofNat 8) out σ' k' C'
     ∧ typedCallViaEVM config
-        ({ initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ, substate := Acur, createdAccounts := cA })
+        ({ initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ, substate := Acur })
         (EVM.address (flipperVatAddress σ I)) "move" 0
         (tendPayMoveArgValsOf
-          ({ initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ, substate := Acur, createdAccounts := cA }) I)
+          ({ initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ, substate := Acur }) I)
         (z,
-          { { initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ, substate := Acur, createdAccounts := cA } with
-            accountMap := σ', substate := A', createdAccounts := cA' },
+          { { initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ, substate := Acur } with
+            accountMap := σ', substate := A' },
           out) true
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd3799⟩ :=
     flipperTendX_toPayCallAw8 hmemSize hmemRead64 hcodeSize h
-  obtain ⟨cA', σ', z, out, A_in, callGas, k3800, C3800, hΘpack, rd3800raw,
+  obtain ⟨σ', z, out, A_in, callGas, k3800, C3800, hΘpack, rd3800raw,
       houtsz⟩ :=
     RD.call rd3799 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, out, A', k3800, C3800, ?_, ?_, houtsz⟩
+  refine ⟨σ', z, out, A', k3800, C3800, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 8).toNat
           (⟨128⟩ : UInt256).toNat (⟨100⟩ : UInt256).toNat)
@@ -2556,12 +2554,12 @@ theorem flipperTendX_payPostCallAw8
     have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
       rfl
     have rd3800 : RD flipperBytecode I (Sat256.ofUInt256 g)
-        (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3800⟩
+        (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨3800⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: ⟨3140843579⟩ ::
           flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
         (out.write 0 (tendVatPayCallMem mem σ I) 128
           (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 8) out (cA', σ') k3800 C3800 :=
+        (UInt256.ofNat 8) out σ' k3800 C3800 :=
       haw ▸ rd3800raw
     rw [hmin, byteArray_write_len_zero] at rd3800
     exact rd3800
@@ -2572,7 +2570,7 @@ theorem flipperTendX_payPostCallAw8
         have hEq : I.depth = (1024 : Fin 1025) := by
           simpa [initState] using hdepthEq
         exact absurd hdepth (by rw [hEq]; decide))
-      (flipperVatEvmAddress_eq_target_of_accountMapEquiv (accountMapEquiv.refl σ))
+      (by rfl)
       ?_ ?_
     · simpa [tendPayMoveArgValsOf, initState, flipperSlotWord, solcSlotWord,
         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
@@ -2582,7 +2580,7 @@ theorem flipperTendX_payPostCallAw8
     · simpa [initState, hperm] using hΘ
 
 theorem flipperTendBodyFrom3486Refund
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {k C : ℕ} {mem : ByteArray} {sel : UInt256}
     (hcode : I.code = flipperBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some tendTransition)
@@ -2591,55 +2589,54 @@ theorem flipperTendBodyFrom3486Refund
         (transitionSignature tendTransition).paramTypes I.calldata = some (tendLocals I))
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (hguySolm : bidGuyWord (tendId I) σ_solm I ≠ ⟨0⟩)
+    (hguySolm : bidGuyWord (tendId I) σ I ≠ ⟨0⟩)
     (hticGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .gt (.storage (bidsF (.var "id") "tic")) (.env .timestamp))
           (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))) =
           .ok (.bool true))
     (hendGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.storage (bidsF (.var "id") "end")) (.env .timestamp)) =
           .ok (.bool true))
     (hlotGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .eq (.var "lot") (.storage (bidsF (.var "id") "lot"))) =
           .ok (.bool true))
     (htabGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .le (.var "bid") (.storage (bidsF (.var "id") "tab"))) =
           .ok (.bool true))
     (hbidGuard :
       evalExpr? config { contract := contract, locals := tendLocals I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .gt (.var "bid") (.storage (bidsF (.var "id") "bid"))) =
           .ok (.bool true))
     (hfitBid : (tendBid I).toNat * flipperONEWord.toNat < UInt256.size)
     (hfitBeg :
-      (tendBegWord σ_solm I).toNat * (bidBidWord (tendId I) σ_solm I).toNat <
+      (tendBegWord σ I).toNat * (bidBidWord (tendId I) σ I).toNat <
         UInt256.size)
     (hinc :
-      evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ_solm I }
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (.binary .or
           (.binary .ge (.var "bidOne") (.var "begBid"))
           (.binary .eq (.var "bid") (.storage (bidsF (.var "id") "tab")))) =
           .ok (.bool true))
-    (hcallerEvm : solcSourceWord I ≠ bidGuyWord (tendId I) σ_evm I)
-    (hcallerSolm : solcSourceWord I ≠ bidGuyWord (tendId I) σ_solm I)
+    (hcallerEvm : solcSourceWord I ≠ bidGuyWord (tendId I) σ I)
+    (hcallerSolm : solcSourceWord I ≠ bidGuyWord (tendId I) σ I)
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3486⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3486⟩
       [tendBid I, tendLot I, tendId I, ⟨323⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let memHash := twoWordHashMem (tendId I) ⟨1⟩ mem
   have hhashSize : memHash.size = 96 := by
     dsimp [memHash]
@@ -2648,38 +2645,36 @@ theorem flipperTendBodyFrom3486Refund
     dsimp [memHash]
     exact twoWordHashMem_read64 (tendId I) ⟨1⟩ hmemSize hmemRead64
   by_cases hrefundZero :
-      Reasoning.Theory.extCodeSizeWord σ_evm
-        (flipperVatTargetWord σ_evm I) = ⟨0⟩
+      Reasoning.Theory.extCodeSizeWord σ
+        (flipperVatTargetWord σ I) = ⟨0⟩
   · have hrefundZeroSolm :
-        Reasoning.Theory.extCodeSizeWord σ_solm
-            (flipperVatTargetWord σ_solm I) = ⟨0⟩ :=
-      flipperVatCodeSize_zero_accountMapEquiv hAccounts hrefundZero
+        Reasoning.Theory.extCodeSizeWord σ
+            (flipperVatTargetWord σ I) = ⟨0⟩ := hrefundZero
     have hvatNoCode :=
-      flipperVatCode_zero_of_codeSize_zero (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hrefundZeroSolm
+      flipperVatCode_zero_of_codeSize_zero
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hrefundZeroSolm
     have hbody :
         ExecTransitionBody config contract
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (tendLocals I) tendTransition.body .reverted := by
       simpa using
-        (flipperTendSourceBodyRefundNoCode (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+        (flipperTendSourceBodyRefundNoCode
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           hwv hguySolm hticGuard hendGuard hlotGuard htabGuard hbidGuard hfitBid
           hfitBeg hinc hcallerSolm hvatNoCode)
     exact (flipperTendX_refundNoCode hmemSize hmemRead64 hcallerEvm hrefundZero h)
       |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hrefundNeSolm :
-        Reasoning.Theory.extCodeSizeWord σ_solm
-            (flipperVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
-      flipperVatCodeSize_ne_zero_accountMapEquiv hAccounts hrefundZero
+        Reasoning.Theory.extCodeSizeWord σ
+            (flipperVatTargetWord σ I) ≠ ⟨0⟩ := hrefundZero
     have hrefundCodeSolm :=
-      flipperVatCode_pos_of_codeSize_ne_zero (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hrefundNeSolm
+      flipperVatCode_pos_of_codeSize_ne_zero
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hrefundNeSolm
     by_cases hdepthEq : I.depth = (1024 : Fin 1025)
     · obtain ⟨_, _, rd3632⟩ :=
         flipperTendX_refundDepthLimit hmemSize hmemRead64 hcallerEvm hrefundZero
           hdepthEq h
-      let evm0Solm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0Solm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmRefundSolm :=
         { evm0Solm with
           substate :=
@@ -2688,12 +2683,12 @@ theorem flipperTendBodyFrom3486Refund
                 (flipperVatAddress evm0Solm.accountMap evm0Solm.executionEnv))).substate }
       have hrefundEncode :
           config.externalABI.encode? "move" (tendRefundMoveArgValsOf evm0Solm I) =
-            some ((tendVatRefundCallMem memHash σ_solm I).readWithPadding 128 100) := by
+            some ((tendVatRefundCallMem memHash σ I).readWithPadding 128 100) := by
         simpa [evm0Solm, tendRefundMoveArgValsOf, initState, flipperSlotWord,
           solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
           bidGuyWord, bidPackedSlotOfWord, bidBidWord, bidBaseOfWord,
           flipperAddressReturnWord]
-          using tendVatRefundCallMem_encode σ_solm I hhashSize
+          using tendVatRefundCallMem_encode σ I hhashSize
       have hcallRefundSolm :
           typedCallViaEVM config evm0Solm
             (EVM.address (flipperVatAddress evm0Solm.accountMap evm0Solm.executionEnv))
@@ -2703,14 +2698,14 @@ theorem flipperTendBodyFrom3486Refund
           (tgt := EVM.address
             (flipperVatAddress evm0Solm.accountMap evm0Solm.executionEnv))
           (name := "move") (args := tendRefundMoveArgValsOf evm0Solm I)
-          (calldata := (tendVatRefundCallMem memHash σ_solm I).readWithPadding 128 100)
+          (calldata := (tendVatRefundCallMem memHash σ I).readWithPadding 128 100)
           (callPerm := true) hrefundEncode (by simpa [evm0Solm, initState] using hdepthEq)
       have hbody :
           ExecTransitionBody config contract evm0Solm (tendLocals I) tendTransition.body
             .reverted := by
         simpa [evm0Solm] using
           (flipperTendSourceBodyRefundCallFailure
-            (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+            (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := g) (evmRefund := evmRefundSolm)
             (outRefund := ByteArray.empty)
             hwv hguySolm hticGuard hendGuard hlotGuard htabGuard hbidGuard hfitBid
@@ -2724,69 +2719,40 @@ theorem flipperTendBodyFrom3486Refund
         have hge : 1024 ≤ I.depth.val := Nat.le_of_not_gt hnot
         have hval : I.depth.val = 1024 := by omega
         exact hdepthEq (Fin.ext hval)
-      obtain ⟨cA_ref, σ_ref, zRefund, outRefund, A_ref, k3632, C3632, rd3632,
+      obtain ⟨σ_ref, zRefund, outRefund, A_ref, k3632, C3632, rd3632,
           hcallRefundEvmRaw, houtRefund⟩ :=
         flipperTendX_refundPostCall (Acur := A) hmemSize hmemRead64 hcallerEvm
           hrefundZero hperm hdepthLt h
-      let evm0Evm := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-      let evm0Solm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0Evm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0Solm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmRefundEvm : EVM.State :=
         { evm0Evm with
           accountMap := σ_ref
           substate := A_ref
-          createdAccounts := cA_ref }
+          }
       have hcallRefundEvm :
           typedCallViaEVM config evm0Evm
-            (EVM.address (flipperVatAddress σ_evm I)) "move" 0
+            (EVM.address (flipperVatAddress σ I)) "move" 0
             (tendRefundMoveArgValsOf evm0Evm I) (zRefund, evmRefundEvm, outRefund)
             true := by
         simpa [evm0Evm, evmRefundEvm] using hcallRefundEvmRaw
       obtain ⟨σ_ref_solm, A_ref_solm, hcallRefundSolmRaw, hRefundStateEquiv⟩ :=
-        flipper_typedCallViaEVM_accountMapEquiv_noSubstate
+        flipper_typedCallViaEVM_sameInputs
           (evm_solm := evm0Solm) hcallRefundEvm
-          (by simpa [evm0Evm, evm0Solm] using hAccounts)
-          (by simp [evm0Evm, evm0Solm, initState])
-          (by simp [evm0Evm, evm0Solm, initState])
-          (by simp [evm0Evm, evm0Solm, initState])
+          rfl
           (by simp [evm0Evm, evm0Solm, initState])
           (by simp [evm0Evm, evm0Solm, initState])
       let evmRefundSolm : EVM.State :=
         { evm0Solm with
           accountMap := σ_ref_solm
           substate := A_ref_solm
-          createdAccounts := cA_ref }
+          }
       have hrefundTargetEq :
-          EVM.address (flipperVatAddress σ_evm I) =
+          EVM.address (flipperVatAddress σ I) =
             EVM.address (flipperVatAddress evm0Solm.accountMap evm0Solm.executionEnv) := by
-        rw [flipperVatAddress_accountMapEquiv hAccounts]
         simp [evm0Solm, initState]
       have hrefundArgsEq :
-          tendRefundMoveArgValsOf evm0Evm I = tendRefundMoveArgValsOf evm0Solm I := by
-        have hloadPacked :
-            Solm.EVM.storageLoad evm0Evm I.codeOwner (bidPackedSlotOfWord (tendId I)) =
-              Solm.EVM.storageLoad evm0Solm I.codeOwner (bidPackedSlotOfWord (tendId I)) := by
-          simpa [evm0Evm, evm0Solm, initState] using
-            storageLoad_accountMapEquiv hAccounts I.codeOwner
-              (bidPackedSlotOfWord (tendId I))
-        have hloadBid :
-            Solm.EVM.storageLoad evm0Evm I.codeOwner (bidBaseOfWord (tendId I)) =
-              Solm.EVM.storageLoad evm0Solm I.codeOwner (bidBaseOfWord (tendId I)) := by
-          simpa [evm0Evm, evm0Solm, initState] using
-            storageLoad_accountMapEquiv hAccounts I.codeOwner (bidBaseOfWord (tendId I))
-        simp [tendRefundMoveArgValsOf]
-        constructor
-        · simp [evm0Evm, evm0Solm, initState]
-        · constructor
-          · have hownerEvm : evm0Evm.executionEnv.codeOwner = I.codeOwner := by
-              simp [evm0Evm, initState]
-            have hownerSolm : evm0Solm.executionEnv.codeOwner = I.codeOwner := by
-              simp [evm0Solm, initState]
-            rw [hownerEvm, hownerSolm, hloadPacked]
-          · have hownerEvm : evm0Evm.executionEnv.codeOwner = I.codeOwner := by
-              simp [evm0Evm, initState]
-            have hownerSolm : evm0Solm.executionEnv.codeOwner = I.codeOwner := by
-              simp [evm0Solm, initState]
-            rw [hownerEvm, hownerSolm, hloadBid]
+          tendRefundMoveArgValsOf evm0Evm I = tendRefundMoveArgValsOf evm0Solm I := rfl
       have hcallRefundSolm :
           typedCallViaEVM config evm0Solm
             (EVM.address (flipperVatAddress evm0Solm.accountMap evm0Solm.executionEnv))
@@ -2794,7 +2760,7 @@ theorem flipperTendBodyFrom3486Refund
             (zRefund, evmRefundSolm, outRefund) true := by
         have hcallRefundSolmRaw' :
             typedCallViaEVM config evm0Solm
-              (EVM.address (flipperVatAddress σ_evm I)) "move" 0
+              (EVM.address (flipperVatAddress σ I)) "move" 0
               (tendRefundMoveArgValsOf evm0Evm I) (zRefund, evmRefundSolm, outRefund)
               true := by
           simpa [evmRefundSolm, evmRefundEvm] using hcallRefundSolmRaw
@@ -2812,7 +2778,7 @@ theorem flipperTendBodyFrom3486Refund
               .reverted := by
           simpa [evm0Solm] using
             (flipperTendSourceBodyRefundCallFailure
-              (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+              (σ := σ) (σ₀ := σ₀)
               (A := A) (I := I) (g := g) (evmRefund := evmRefundSolm)
               (outRefund := outRefund)
               hwv hguySolm hticGuard hendGuard hlotGuard htabGuard hbidGuard hfitBid
@@ -2820,21 +2786,21 @@ theorem flipperTendBodyFrom3486Refund
         exact (flipperTendX_refundCallFailure (by simpa using rd3632) houtRefund)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have rd3632True : RD flipperBytecode I (Sat256.ofUInt256 g)
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3632⟩
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3632⟩
             (⟨1⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
-              flipperVatTargetWord σ_evm I :: tendBid I :: tendLot I :: tendId I ::
+              flipperVatTargetWord σ I :: tendBid I :: tendLot I :: tendId I ::
               ⟨323⟩ :: sel :: [])
-            (tendVatRefundCallMem memHash σ_evm I) (UInt256.ofNat 8) outRefund
-            (cA_ref, σ_ref) k3632 C3632 := by
+            (tendVatRefundCallMem memHash σ I) (UInt256.ofNat 8) outRefund
+            σ_ref k3632 C3632 := by
           simpa [memHash] using rd3632
         obtain ⟨_, _, rd3652⟩ := flipperTendX_refundCallSuccessToStoreStart rd3632True
-        have hrefundMemSize : (tendVatRefundCallMem memHash σ_evm I).size = 228 := by
-          exact tendVatRefundCallMem_size σ_evm I hhashSize
+        have hrefundMemSize : (tendVatRefundCallMem memHash σ I).size = 228 := by
+          exact tendVatRefundCallMem_size σ I hhashSize
         have hrefundMemRead64 :
-            (tendVatRefundCallMem memHash σ_evm I).readWithPadding 64 32 =
+            (tendVatRefundCallMem memHash σ I).readWithPadding 64 32 =
               UInt256.toByteArray ⟨128⟩ :=
-          tendVatRefundCallMem_read64 σ_evm I hhashSize hhashRead64
-        have hrefundMemGe : 64 ≤ (tendVatRefundCallMem memHash σ_evm I).size := by
+          tendVatRefundCallMem_read64 σ I hhashSize hhashRead64
+        have hrefundMemGe : 64 ≤ (tendVatRefundCallMem memHash σ I).size := by
           rw [hrefundMemSize]
           norm_num
         obtain ⟨_, _, rd3686⟩ := flipperTendX_storeRefundGuyToPayStart
@@ -2881,13 +2847,13 @@ theorem flipperTendBodyFrom3486Refund
           simpa [evmGuyEvm, evmRefundEvm, evm0Evm, tendAfterRefundMap,
             storageStore_accountMap, initState, Solm.EVM.storageLoad, State.lookupAccount,
             Account.lookupStorage, flipperSlotWord, solcSlotWord]
-        let memPay := twoWordHashMem (tendId I) ⟨1⟩ (tendVatRefundCallMem memHash σ_evm I)
+        let memPay := twoWordHashMem (tendId I) ⟨1⟩ (tendVatRefundCallMem memHash σ I)
         have hmemPaySize : memPay.size = 228 := by
           dsimp [memPay]
           calc
             (twoWordHashMem (tendId I) ⟨1⟩
-                (tendVatRefundCallMem memHash σ_evm I)).size =
-                (tendVatRefundCallMem memHash σ_evm I).size :=
+                (tendVatRefundCallMem memHash σ I)).size =
+                (tendVatRefundCallMem memHash σ I).size :=
               tendTwoWordHashMem_size_of_size_ge (tendId I) ⟨1⟩ (by
                 rw [hrefundMemSize]
                 norm_num)
@@ -2931,7 +2897,7 @@ theorem flipperTendBodyFrom3486Refund
                 .reverted := by
             simpa [evm0Solm, evmGuySolm] using
               (flipperTendSourceBodyPayNoCodeAfterRefund
-                (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                (σ := σ) (σ₀ := σ₀)
                 (A := A) (I := I) (g := g) (evmRefund := evmRefundSolm)
                 (outRefund := outRefund)
                 hwv hguySolm hticGuard hendGuard hlotGuard htabGuard hbidGuard hfitBid
@@ -2965,15 +2931,14 @@ theorem flipperTendBodyFrom3486Refund
             { evm0Evm with
               accountMap := tendAfterRefundMap σ_ref I
               substate := A_ref
-              createdAccounts := cA_ref }
+              }
           have hGuyCallStateEquiv : EVMStateEquiv evmGuyCallEvm evmGuySolm := by
             refine ⟨?_, ?_, ?_⟩
             · simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Evm, evm0Solm,
                 storageStore_executionEnv, initState]
             · simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Solm,
-                storageStore_createdAccounts, initState]
             · simpa [evmGuyCallEvm, hmapGuyEvm] using hGuyStateEquiv.accountMap
-          obtain ⟨cA_pay, σ_pay, zPay, outPay, A_pay, k3800, C3800, rd3800,
+          obtain ⟨σ_pay, zPay, outPay, A_pay, k3800, C3800, rd3800,
               hcallPayEvmRaw, houtPay⟩ :=
             flipperTendX_payPostCallAw8 (Acur := A_ref) hmemPaySize hmemPayRead64
               hpayZero hperm hdepthLt rd3686
@@ -2981,7 +2946,7 @@ theorem flipperTendBodyFrom3486Refund
             { evmGuyCallEvm with
               accountMap := σ_pay
               substate := A_pay
-              createdAccounts := cA_pay }
+              }
           have hcallPayEvm :
               typedCallViaEVM config evmGuyCallEvm
                 (EVM.address
@@ -2990,22 +2955,16 @@ theorem flipperTendBodyFrom3486Refund
                 (zPay, evmPayEvm, outPay) true := by
             simpa [evmPayEvm, evmGuyCallEvm, evm0Evm] using hcallPayEvmRaw
           obtain ⟨σ_pay_solm, A_pay_solm, hcallPaySolmRaw, hPayStateEquiv⟩ :=
-            flipper_typedCallViaEVM_accountMapEquiv_noSubstate
+            flipper_typedCallViaEVM_sameInputs
               (evm_solm := evmGuySolm) hcallPayEvm hGuyCallStateEquiv.accountMap
               (by simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Evm, evm0Solm,
                 tend_storageStore_sigma0, initState])
-              (by simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Solm,
-                storageStore_createdAccounts, initState])
-              (by simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Evm, evm0Solm,
-                tend_storageStore_genesisBlockHeader, initState])
-              (by simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Evm, evm0Solm,
-                tend_storageStore_blocks, initState])
               (by simpa using hGuyCallStateEquiv.executionEnv.symm)
           let evmPaySolm : EVM.State :=
             { evmGuySolm with
               accountMap := σ_pay_solm
               substate := A_pay_solm
-              createdAccounts := cA_pay }
+              }
           have hpayTargetEq :
               EVM.address
                   (flipperVatAddress evmGuyCallEvm.accountMap evmGuyCallEvm.executionEnv) =
@@ -3061,7 +3020,7 @@ theorem flipperTendBodyFrom3486Refund
                   .reverted := by
               simpa [evm0Solm, evmGuySolm] using
                 (flipperTendSourceBodyPayCallFailureAfterRefund
-                  (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                  (σ := σ) (σ₀ := σ₀)
                   (A := A) (I := I) (g := g) (evmRefund := evmRefundSolm)
                   (evmPay := evmPaySolm) (outRefund := outRefund) (outPay := outPay)
                   hwv hguySolm hticGuard hendGuard hlotGuard htabGuard hbidGuard hfitBid
@@ -3070,12 +3029,12 @@ theorem flipperTendBodyFrom3486Refund
             exact (flipperTendX_payCallFailure (by simpa using rd3800) houtPay)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
           · have rd3800True : RD flipperBytecode I (Sat256.ofUInt256 g)
-                (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3800⟩
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3800⟩
                 (⟨1⟩ :: ⟨228⟩ :: ⟨3140843579⟩ ::
                   flipperVatTargetWord (tendAfterRefundMap σ_ref I) I :: tendBid I ::
                   tendLot I :: tendId I :: ⟨323⟩ :: sel :: [])
                 (tendVatPayCallMem memPay (tendAfterRefundMap σ_ref I) I)
-                (UInt256.ofNat 8) outPay (cA_pay, σ_pay) k3800 C3800 := by
+                (UInt256.ofNat 8) outPay σ_pay k3800 C3800 := by
               simpa [memPay] using rd3800
             obtain ⟨_, _, rd3820⟩ := flipperTendX_payCallSuccessToStoreStart rd3800True
             have hpayMemGe :
@@ -3152,11 +3111,11 @@ theorem flipperTendBodyFrom3486Refund
                     (.returned
                       { contract := contract,
                         locals :=
-                          tendLocalsAfterRefundWithTicFrom σ_solm evmBidSolm.accountMap I }
+                          tendLocalsAfterRefundWithTicFrom σ evmBidSolm.accountMap I }
                       evmTicSolm none) := by
                 simpa [evm0Solm, evmGuySolm, evmBidSolm, evmTicSolm] using
                   (flipperTendSourceBodySuccessAfterRefund
-                    (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                    (σ := σ) (σ₀ := σ₀)
                     (A := A) (I := I) (g := g) (evmRefund := evmRefundSolm)
                     (evmPay := evmPaySolm) (outRefund := outRefund) (outPay := outPay)
                     hwv hguySolm hticGuard hendGuard hlotGuard htabGuard hbidGuard hfitBid
@@ -3191,7 +3150,7 @@ theorem flipperTendBodyFrom3486Refund
                   EVMStateEquiv.storageStore_codeOwner hBidStateEquiv
                     (bidPackedSlotOfWord (tendId I)) hstoredTicEq
               have hAccountsRet :
-                  accountMapEquiv (tendStoreTicMap (tendAfterBidMap σ_pay I) I)
+                  Eq (tendStoreTicMap (tendAfterBidMap σ_pay I) I)
                     evmTicEvm.accountMap := by
                 have hownerBid : evmBidEvm.executionEnv.codeOwner = I.codeOwner := by
                   simp [evmBidEvm, evmPayEvm, evmGuyCallEvm, evm0Evm,
@@ -3199,12 +3158,11 @@ theorem flipperTendBodyFrom3486Refund
                 simpa [evmTicEvm, hmapBidEvm, hownerBid, tendStoreTicMap,
                   tendStoredTicWord, flipperSlotWord, solcSlotWord, Solm.EVM.storageLoad,
                   State.lookupAccount, Account.lookupStorage, storageStore_accountMap]
-                  using accountMapEquiv_refl (tendStoreTicMap (tendAfterBidMap σ_pay I) I)
+                  rfl
               have henc : returnEquiv ByteArray.empty none tendTransition.returnType := by
                 rw [show tendTransition.returnType = [] by rfl]
                 exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
               exact hret.reEquivExecutionGenEVMStateEquiv hcode hdispatch hdecode hbody
-                (by simp [evmTicEvm, evmBidEvm, evmPayEvm, storageStore_createdAccounts])
                 hAccountsRet hTicStateEquiv henc
             · have hoverTicEvm :
                   2 ^ 48 ≤
@@ -3224,7 +3182,7 @@ theorem flipperTendBodyFrom3486Refund
                     tendTransition.body .reverted := by
                 simpa [evm0Solm, evmGuySolm, evmBidSolm] using
                   (flipperTendSourceBodyAdd48OverflowAfterRefund
-                    (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                    (σ := σ) (σ₀ := σ₀)
                     (A := A) (I := I) (g := g) (evmRefund := evmRefundSolm)
                     (evmPay := evmPaySolm) (outRefund := outRefund) (outPay := outPay)
                     hwv hguySolm hticGuard hendGuard hlotGuard htabGuard hbidGuard hfitBid

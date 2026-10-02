@@ -15,13 +15,13 @@ theorem flipperDecode_cat {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem flipperReachCatBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flipperReachCatBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flipperSelBytes 2)) :
-    ∃ k C, RD flipperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
         ⟨930⟩ [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : flipperSelWord I = ⟨0xe4881813⟩ :=
     flipperSelWord_eq_of_beq I hsz 0xe4 0x88 0x18 0x13 ⟨0xe4881813⟩
       (by native_decide) (by simpa [flipperSelBytes] using hsel)
@@ -48,26 +48,25 @@ theorem flipperReachCatBody {cA gh bl σ σ₀ A I} {g : Sat256}
   exact flipperReachLowHighBody 3 (by omega) ⟨930⟩ hcode hwv hsz hsize hroot hlow
     heq0 htake (by jump_dest) (by native_decide)
 
-theorem flipperCatBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flipperCatBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (flipperSelBytes 2))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (flipperSelBytes 2)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 2) rfl hsel
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ catTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ catTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.address (AccountAddress.ofNat (catWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.address (AccountAddress.ofNat (catWord σ I).toNat))])) := by
     simpa [catTransition, catWord, flipperAddressReturnWord, flipperSlotWord, initState,
       Solm.EVM.storageLoad, State.lookupAccount] using
       flipperAddressGetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := catRef) (er := ({ base := "cat", steps := [] } : EvaledStorageRef))
         (slot := ⟨7⟩)
         (by simp only [initState]; exact hwv) (by simp [catRef])
@@ -76,7 +75,7 @@ theorem flipperCatBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   exact flipperAddressGetterBodyCore (entry := ⟨930⟩) (returnPc := ⟨452⟩)
     (routine := ⟨5949⟩) (slot := ⟨7⟩)
     hcode (flipperDispatchCat hsel) (flipperDecode_cat hsz)
-    (flipperReachCatBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
+    (flipperReachCatBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)

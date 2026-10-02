@@ -920,7 +920,7 @@ theorem skimSafeTransferCallMem2_read292_68
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferCopySetupToSelectorPatch {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
-    {o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o : ByteArray} {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6466⟩
       (solcAddrMask :: ⟨192⟩ :: ⟨32⟩ :: ⟨64⟩ :: value :: toWord ::
         token :: ret :: token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
@@ -951,7 +951,7 @@ theorem RD.uniswapSkimSafeTransferCopySetupToSelectorPatch {g : Sat256} {s0 : St
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferSelectorPatchToCopyLoop {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
-    {o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o : ByteArray} {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6491⟩
       (⟨224⟩ :: ⟨192⟩ :: solcAddrMask :: ⟨64⟩ :: value :: toWord ::
         token :: ret :: token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
@@ -978,7 +978,7 @@ theorem RD.uniswapSkimSafeTransferSelectorPatchToCopyLoop {g : Sat256} {s0 : Sta
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferCopyLoopFirst {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
-    {o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o : ByteArray} {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6512⟩
       (⟨224⟩ :: ⟨292⟩ :: ⟨68⟩ :: ⟨68⟩ :: ⟨224⟩ :: ⟨292⟩ :: ⟨292⟩ ::
         ⟨192⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
@@ -1014,7 +1014,7 @@ theorem RD.uniswapSkimSafeTransferCopyLoopFirst {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferCopyLoopSecond {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
-    {o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o : ByteArray} {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6512⟩
       (⟨256⟩ :: ⟨324⟩ :: ⟨36⟩ :: ⟨68⟩ :: ⟨224⟩ :: ⟨292⟩ :: ⟨292⟩ ::
         ⟨192⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
@@ -1050,7 +1050,7 @@ theorem RD.uniswapSkimSafeTransferCopyLoopSecond {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferCopyTail {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
-    {o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o : ByteArray} {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6512⟩
       (⟨288⟩ :: ⟨356⟩ :: ⟨4⟩ :: ⟨68⟩ :: ⟨224⟩ :: ⟨292⟩ :: ⟨292⟩ ::
         ⟨192⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
@@ -1087,7 +1087,7 @@ theorem RD.uniswapSkimSafeTransferCopyTail {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferBuiltToCall {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
-    {o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o : ByteArray} {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6575⟩
       (⟨68⟩ :: ⟨224⟩ :: ⟨292⟩ :: ⟨292⟩ :: ⟨192⟩ ::
         UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
@@ -1115,35 +1115,35 @@ theorem RD.uniswapSkimSafeTransferBuiltToCall {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferCallMade {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel gasArg : UInt256}
-    {o : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {o : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6594⟩
       (gasArg :: UInt256.land token solcAddrMask :: ⟨0⟩ :: ⟨292⟩ :: ⟨68⟩ ::
         ⟨292⟩ :: ⟨0⟩ :: ⟨360⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ ::
         ⟨0⟩ :: value :: toWord :: token :: ret :: token1 :: token :: toWord :: ⟨570⟩ ::
         sel :: [])
-      (skimSafeTransferCallMem2 self o toWord value) (UInt256.ofNat 13) o (cA, σ) k C)
+      (skimSafeTransferCallMem2 self o toWord value) (UInt256.ofNat 13) o σ k C)
     (hdepth : ee.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ ee.blobVersionedHashes cA s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ σ s0.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
             (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask))
             (toExecute σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
             callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
             ((skimSafeTransferCallMem2 self o toWord value).readWithPadding 292 68)
-            (ee.depth + 1) ee.header ee.perm)
+            (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)
       ∧ RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨360⟩ ::
             UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
             value :: toWord :: token :: ret :: token1 :: token :: toWord :: ⟨570⟩ ::
             sel :: [])
-          (skimSafeTransferCallMem2 self o toWord value) (UInt256.ofNat 13) out (cA', σ') k' C'
+          (skimSafeTransferCallMem2 self o toWord value) (UInt256.ofNat 13) out σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘ, rd6595, houtSize⟩ :=
+  obtain ⟨σ', z, out, A_in, callGas, k', C', hΘ, rd6595, houtSize⟩ :=
     h.call (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, A_in, callGas, k', C', ?_, ?_, houtSize⟩
+  refine ⟨σ', z, out, A_in, callGas, k', C', ?_, ?_, houtSize⟩
   · simpa using hΘ
   · have hlen :
         (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
@@ -1165,31 +1165,31 @@ theorem RD.uniswapSkimSafeTransferCallMade {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferEntryToCallMade {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
-    {o : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {o : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6370⟩
       (value :: toWord :: token :: ret :: token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
-      (balanceOfThisStaticcallMem self o) balanceOfThisStaticcallActiveWords o (cA, σ) k C)
+      (balanceOfThisStaticcallMem self o) balanceOfThisStaticcallActiveWords o σ k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hdepth : ee.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (A_in : Substate) (callGas gasArg : UInt256)
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ ee.blobVersionedHashes cA s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ σ s0.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
             (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask))
             (toExecute σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
             callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
             ((skimSafeTransferCallMem2 self o toWord value).readWithPadding 292 68)
-            (ee.depth + 1) ee.header ee.perm)
+            (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)
       ∧ RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨360⟩ ::
             UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
             value :: toWord :: token :: ret :: token1 :: token :: toWord :: ⟨570⟩ ::
             sel :: [])
           (skimSafeTransferCallMem2 self o toWord value) (UInt256.ofNat 13) out
-          (cA', σ') k' C'
+          σ' k' C'
       ∧ out.size < UInt256.size := by
   obtain ⟨_, _, rd6375⟩ :=
     RD.uniswapSkimSafeTransferEntryToFreePtr h ho32 hoSize
@@ -1219,9 +1219,9 @@ theorem RD.uniswapSkimSafeTransferEntryToCallMade {g : Sat256} {s0 : State}
     RD.uniswapSkimSafeTransferCopyTail rd6512b ho32 hoSize
   obtain ⟨gasArg, _, _, rd6594⟩ :=
     RD.uniswapSkimSafeTransferBuiltToCall rd6575 ho32 hoSize
-  obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘ, rd6595, houtSize⟩ :=
+  obtain ⟨σ', z, out, A_in, callGas, k', C', hΘ, rd6595, houtSize⟩ :=
     RD.uniswapSkimSafeTransferCallMade rd6594 hdepth
-  exact ⟨cA', σ', z, out, A_in, callGas, gasArg, k', C', hΘ, rd6595, houtSize⟩
+  exact ⟨σ', z, out, A_in, callGas, gasArg, k', C', hΘ, rd6595, houtSize⟩
 
 def uniswapSafeTransferFailedStringWord : UInt256 :=
   ⟨38641673103035791731704587915945305821834519506660595196760963476668136030208⟩
@@ -1834,7 +1834,7 @@ theorem skimSafeTransferReturnDataActiveWords_mload324_same (out : ByteArray)
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferEmptyFailureReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
-    {o out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o out : ByteArray} {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨0⟩ :: ⟨360⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token1 :: token :: toWord :: ⟨570⟩ ::
@@ -1893,7 +1893,7 @@ theorem RD.uniswapSkimSafeTransferEmptyFailureReverts {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferEmptyReturnToRet {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel : UInt256}
-    {o out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o out : ByteArray} {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: ⟨360⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token1 :: token :: toWord :: ⟨570⟩ ::
@@ -1931,7 +1931,7 @@ theorem RD.uniswapSkimSafeTransferEmptyReturnToRet {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferEmptyReturnTo5330 {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 sel : UInt256}
-    {o out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o out : ByteArray} {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: ⟨360⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ⟨5330⟩ :: token1 :: token :: toWord :: ⟨570⟩ ::

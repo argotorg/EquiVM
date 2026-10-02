@@ -164,16 +164,16 @@ theorem cureDispatchFile {I : ExecutionEnv}
     cureDropSelectorBytes, cureFileSelectorBytes]
   native_decide
 
-theorem cureReachFileBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachFileBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 4)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨449⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨449⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x29ae8114⟩ :=
     cureSelWord_eq_of_beq I hsz 0x29 0xae 0x81 0x14 ⟨0x29ae8114⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h245⟩ := cureReachLowLowerFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h245⟩ := cureReachLowLowerFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨449⟩ 2 h245 (fun j hj => cureLowLowerArmsWellFormed j (by omega))
@@ -183,7 +183,7 @@ theorem cureReachFileBody {cA gh bl σ σ₀ A I} {g : Sat256}
 theorem RD.cureFileDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 ⟨471⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = cureBytecode)
     (hroutine : (D_J code 0).contains ⟨1027⟩ = true)
@@ -206,14 +206,14 @@ theorem RD.cureFileDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
       show (⟨36⟩ : UInt256).toNat = 36 from by decide]
       using rd483.jump (by native_decide) hroutine (by evm_ov)⟩
 
-theorem cureFileX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem cureFileX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD cureBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨449⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1027⟩
+      (initState σ σ₀ g A I) ⟨449⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨1027⟩
         [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := cureBytecode) (sel := sel) (entry := ⟨449⟩) (ret := ⟨484⟩)
     (decoded := ⟨471⟩) (need := ⟨64⟩) hreach
@@ -228,13 +228,13 @@ theorem cureFileX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     hdecoded rfl (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [fileData] using hroutine⟩
 
-theorem cureFileX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem cureFileX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD cureBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨449⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev cureBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨449⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev cureBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -249,17 +249,17 @@ theorem cureFileX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) hlt
 
-theorem cureFileX_afterLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem cureFileX_afterLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
     (h : RD cureBytecode I g s0 ⟨1027⟩
       [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD cureBytecode I g s0 ⟨1188⟩
       [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
     simpa [cureCallerWardsSlot, cureSlotWord] using hauth
@@ -287,17 +287,17 @@ theorem fileWaitShiftConst :
       ABI.bytesToWord fileWaitBytes := by
   native_decide
 
-theorem RD.cureFileWaitStorePrefix {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem RD.cureFileWaitStorePrefix {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {data what ret : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
     (hperm : I.perm = true)
     (hmatch : what = ABI.bytesToWord fileWaitBytes)
     (h : RD cureBytecode I g s0 ⟨1188⟩
-      (data :: what :: ret :: R) mem aw rdata (cA, σ) k C)
+      (data :: what :: ret :: R) mem aw rdata σ k C)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD cureBytecode I g s0 ⟨1290⟩
       (data :: what :: ret :: R) mem aw rdata
-      (cA, sstoreAccountMap I.codeOwner σ ⟨3⟩ data) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨3⟩ data) k' C' := by
   have rd1189 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1190 := rd1189.dup2 (by native_decide) (by evm_ov)
   have rd1195 := rd1190.pushConst (⟨500718173⟩ : UInt256)
@@ -324,19 +324,19 @@ theorem RD.cureFileWaitStorePrefix {cA σ I} {g : Sat256} {s0 : State} {k C : �
     simpa [hmatch, fileWaitShiftConst] using
       rd1212.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem cureFileX_storeWaitPrefix {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem cureFileX_storeWaitPrefix {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hperm : I.perm = true)
     (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileWaitBytes)
     (h : RD cureBytecode I g s0 ⟨1188⟩
       [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD cureBytecode I g s0 ⟨1290⟩
       [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) k' C' := by
   exact RD.cureFileWaitStorePrefix hperm hmatch h (by simp)
 
 abbrev cureFileEventTopic : UInt256 :=
@@ -364,16 +364,16 @@ theorem fileEventMem_read64 {mem : ByteArray} (data : UInt256)
     hreadBound hbelow hgap]
   exact hread64
 
-theorem RD.cureFileEventTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem RD.cureFileEventTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {data what : UInt256} {R : List UInt256}
     {mem rdata : ByteArray}
     (h : RD cureBytecode I g s0 ⟨1290⟩ (data :: what :: ⟨484⟩ :: R)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hperm : I.perm = true)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 8 ≤ 1024) :
-    RDret cureBytecode g s0 (cA, σ) ByteArray.empty := by
+    RDret cureBytecode g s0 σ ByteArray.empty := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -436,16 +436,16 @@ theorem RD.cureFileEventTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rdStop := rdRet.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rdStop (by native_decide) (by evm_ov)
 
-theorem cureFileX_storeWait {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem cureFileX_storeWait {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hperm : I.perm = true)
     (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileWaitBytes)
     (h : RD cureBytecode I g s0 ⟨1188⟩
       [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret cureBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) ByteArray.empty := by
+      (sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I)) ByteArray.empty := by
   obtain ⟨_, _, h1290⟩ := cureFileX_storeWaitPrefix hperm hmatch h
   have hmem :
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -462,7 +462,7 @@ abbrev cureFileUnrecognizedRawWord : UInt256 :=
 
 theorem RD.cureFileUnrecognizedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD cureBytecode ee g s0 ⟨1213⟩ stk mem (UInt256.ofNat 3) rdata acc k C)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -520,13 +520,13 @@ theorem RD.cureFileUnrecognizedRevert {g : Sat256} {s0 : State} {ee : ExecutionE
     raw swap1 (by native_decide) (by evm_ov),
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
-theorem cureFileX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem cureFileX_unrecognized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hneq : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileWaitBytes)
     (h : RD cureBytecode I g s0 ⟨1188⟩
       [fileData I, calldataWord I.calldata 4, ⟨484⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev cureBytecode g s0 := by
   have rd1189 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1190 := rd1189.dup2 (by native_decide) (by evm_ov)
@@ -644,22 +644,22 @@ theorem assign_fileWaitStorage (evm : EVM.State) (I : ExecutionEnv) :
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
     (hstore := by simpa [evm'] using storageLocStore_uint256 evm ⟨3⟩ (fileData I))
 
-theorem cureFileSourceBodyOk {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureFileSourceBodyOk {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
     (hwhat : fileWhat I = fileWaitBytes) :
     let locals := fileLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨3⟩ (fileData I)
     ExecTransitionBody config contract evm0 locals fileTransition.body
       (.returned { contract := contract, locals := locals } evm1 none) := by
   intro locals evm0 evm1
-  have hguardAuth := cureAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  have hguardAuth := cureAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (locals := locals)
     (by simpa [locals] using fileLocals_get_wards I) hauth
-  have hguardLive := cureLiveGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  have hguardLive := cureLiveGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (locals := locals)
     (by simpa [locals] using fileLocals_get_live I) hlive
@@ -694,14 +694,14 @@ theorem cureFileSourceBodyOk {cA gh bl σ σ₀ A I} {g : UInt256}
     exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
   simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockOK hblock
 
-theorem cureFileSourceBodyAuthReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureFileSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : cureSlotWord (cureCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     let locals := fileLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
   intro locals evm0
-  have hguard := cureAuthGuardEval_false (cA := cA) (gh := gh) (bl := bl)
+  have hguard := cureAuthGuardEval_false
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (locals := locals)
     (by simpa [locals] using fileLocals_get_wards I) hauth
@@ -718,19 +718,19 @@ theorem cureFileSourceBodyAuthReverts {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, fileTransition, nonpayable, auth, evm0] using
     ExecFuncBody.execBlockRevert hblock
 
-theorem cureFileSourceBodyLiveReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureFileSourceBodyLiveReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I ≠ ⟨1⟩) :
     let locals := fileLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
   intro locals evm0
-  have hguardAuth := cureAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  have hguardAuth := cureAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (locals := locals)
     (by simpa [locals] using fileLocals_get_wards I) hauth
-  have hguardLive := cureLiveGuardEval_false (cA := cA) (gh := gh) (bl := bl)
+  have hguardLive := cureLiveGuardEval_false
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (locals := locals)
     (by simpa [locals] using fileLocals_get_live I) hlive
@@ -743,20 +743,20 @@ theorem cureFileSourceBodyLiveReverts {cA gh bl σ σ₀ A I} {g : UInt256}
     exact ExecBlock.consRevert (ExecStmt.requireFalse hguardLive)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem cureFileSourceBodyUnrecognized {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem cureFileSourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : cureSlotWord (cureCallerWardsSlot I) σ I = ⟨1⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨1⟩)
     (hwhat : fileWhat I ≠ fileWaitBytes) :
     let locals := fileLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
   intro locals evm0
-  have hguardAuth := cureAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  have hguardAuth := cureAuthGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (locals := locals)
     (by simpa [locals] using fileLocals_get_wards I) hauth
-  have hguardLive := cureLiveGuardEval_true (cA := cA) (gh := gh) (bl := bl)
+  have hguardLive := cureLiveGuardEval_true
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (locals := locals)
     (by simpa [locals] using fileLocals_get_live I) hlive
@@ -784,14 +784,13 @@ theorem cureFileSourceBodyUnrecognized {cA gh bl σ σ₀ A I} {g : UInt256}
     exact ExecBlock.consRevert (ExecStmt.iteFalse hcond helse)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem cureFileBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem cureFileBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (cureSelBytes 4))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (cureSelBytes 4)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let sel := cureSelWord I
   let callerSlot := cureCallerWardsSlot I
   let locals := fileLocals I
@@ -799,28 +798,24 @@ theorem cureFileBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     calldata_size_ge_of_selIs I (cureSelBytes 4) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some fileTransition :=
     cureDispatchFile hsel
-  have hreach := cureReachFileBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := cureReachFileBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
   · have hdecode :
         decodeCalldataWithMode config.abiDecodeMode (fileTransition.params.map Param.name)
           (transitionSignature fileTransition).paramTypes I.calldata = some (fileLocals I) :=
       cureDecode_file_ok hsz68
-    have hcallerWord :
-        cureSlotWord callerSlot σ_evm I = cureSlotWord callerSlot σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
-    have hliveWord :
-        cureSlotWord ⟨1⟩ σ_evm I = cureSlotWord ⟨1⟩ σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
+    have hcallerWord : cureSlotWord callerSlot σ I = cureSlotWord callerSlot σ I := rfl
+    have hliveWord : cureSlotWord ⟨1⟩ σ I = cureSlotWord ⟨1⟩ σ I := rfl
     obtain ⟨_, _, hdecoded⟩ := cureFileX_decoded (g := Sat256.ofUInt256 g)
       (sel := sel) hsz68 hsize hreach
-    by_cases hauthEvm : cureSlotWord callerSlot σ_evm I = ⟨1⟩
-    · have hauthSolm : cureSlotWord callerSlot σ_solm I = ⟨1⟩ := by
+    by_cases hauthEvm : cureSlotWord callerSlot σ I = ⟨1⟩
+    · have hauthSolm : cureSlotWord callerSlot σ I = ⟨1⟩ := by
         rw [← hcallerWord]
         exact hauthEvm
       have hauthSolc :
-          solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
+          solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
         simpa [callerSlot, cureCallerWardsSlot, cureSlotWord] using hauthEvm
       obtain ⟨_, _, hafterAuth⟩ := RD.cureAuthCheckOk
         (code := cureBytecode) (pc := ⟨1027⟩) (okPc := ⟨1117⟩)
@@ -830,8 +825,8 @@ theorem cureFileBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           unfold cureAuthCheckWf
           repeat' first | apply And.intro | native_decide)
         hauthSolc (by jump_dest) (by simp)
-      by_cases hliveEvm : cureSlotWord ⟨1⟩ σ_evm I = ⟨1⟩
-      · have hliveSolm : cureSlotWord ⟨1⟩ σ_solm I = ⟨1⟩ := by
+      by_cases hliveEvm : cureSlotWord ⟨1⟩ σ I = ⟨1⟩
+      · have hliveSolm : cureSlotWord ⟨1⟩ σ I = ⟨1⟩ := by
           rw [← hliveWord]
           exact hliveEvm
         obtain ⟨_, _, hafterLive⟩ := RD.cureLiveGuardOk
@@ -843,53 +838,46 @@ theorem cureFileBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             repeat' first | apply And.intro | native_decide)
           (by simpa [cureSlotWord] using hliveEvm) (by jump_dest) (by simp)
         by_cases hwhat : fileWhat I = fileWaitBytes
-        · let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
           let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨3⟩ (fileData I)
           have hbody :
               ExecTransitionBody config contract evm0 locals fileTransition.body
                 (.returned { contract := contract, locals := locals } evm1 none) := by
             simpa [evm0, evm1, locals] using
-              (cureFileSourceBodyOk (cA := cA) (gh := gh) (bl := bl)
-                (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+              (cureFileSourceBodyOk
+                (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 hwv hauthSolm hliveSolm hwhat)
           have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileWaitBytes :=
             fileWhatWord_eq_of_bytes_eq (by omega) hwhat
           have hret := cureFileX_storeWait (I := I) hperm hmatch hafterLive
-          have hcreated :
-              (cA, sstoreAccountMap I.codeOwner σ_evm ⟨3⟩ (fileData I)).1 =
-                evm1.createdAccounts := by
-            simp [evm1, evm0, initState, storageStore_createdAccounts]
           have haccounts :
-              accountMapEquiv
-                (cA, sstoreAccountMap I.codeOwner σ_evm ⟨3⟩ (fileData I)).2
-                evm1.accountMap := by
-            simpa [evm1, evm0, initState, storageStore_accountMap] using
-              accountMapEquiv_sstoreAccountMap I.codeOwner ⟨3⟩ (fileData I) hAccounts
+              sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileData I) = evm1.accountMap := by
+            simp [evm1, evm0, initState, storageStore_accountMap]
           have henc : returnEquiv ByteArray.empty none fileTransition.returnType := by
             rw [show fileTransition.returnType = [] by rfl]
             exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
           exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-            hcreated haccounts henc
-        · let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+            haccounts henc
+        · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
           have hbody :
               ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
             simpa [evm0, locals] using
-              (cureFileSourceBodyUnrecognized (cA := cA) (gh := gh) (bl := bl)
-                (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+              (cureFileSourceBodyUnrecognized
+                (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 hwv hauthSolm hliveSolm hwhat)
           have hneq : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileWaitBytes :=
             fileWhatWord_ne_of_bytes_ne (by omega) hwhat (by native_decide)
           exact (cureFileX_unrecognized (I := I) hneq hafterLive)
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-      · have hliveSolm : cureSlotWord ⟨1⟩ σ_solm I ≠ ⟨1⟩ := by
+      · have hliveSolm : cureSlotWord ⟨1⟩ σ I ≠ ⟨1⟩ := by
           intro hsolm
           exact hliveEvm (by rw [hliveWord, hsolm])
-        let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
             ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
           simpa [evm0, locals] using
-            (cureFileSourceBodyLiveReverts (cA := cA) (gh := gh) (bl := bl)
-              (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            (cureFileSourceBodyLiveReverts
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               hwv hauthSolm hliveSolm)
         have hmemAuth :
             (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -911,18 +899,18 @@ theorem cureFileBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             repeat' first | apply And.intro | native_decide)
           (by simpa [cureSlotWord] using hliveEvm) hmemAuth hread64 (by simp)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hauthSolm : cureSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
+    · have hauthSolm : cureSlotWord callerSlot σ I ≠ ⟨1⟩ := by
         intro hsolm
         exact hauthEvm (by rw [hcallerWord, hsolm])
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
           ExecTransitionBody config contract evm0 locals fileTransition.body .reverted := by
         simpa [evm0, locals] using
-          (cureFileSourceBodyAuthReverts (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          (cureFileSourceBodyAuthReverts
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             hwv hauthSolm)
       have hauthSolc :
-          solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
+          solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
         simpa [callerSlot, cureCallerWardsSlot, cureSlotWord] using hauthEvm
       have hrev := RD.cureAuthCheckRevert
         (code := cureBytecode) (pc := ⟨1027⟩) (okPc := ⟨1117⟩)

@@ -327,15 +327,15 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapGetReservesRoutine {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨2852⟩ (ret :: R) mem aw rdata
-        (cA, σ) k C)
+        σ k C)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
       (UniswapV2Pair.blockTimestampLastWord σ ee :: UniswapV2Pair.reserve1Word σ ee ::
         UniswapV2Pair.reserve0Word σ ee :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   have rd2855 := evm_run h with [jumpdest, push1 ⟨8⟩]
   obtain ⟨_, _, rd2856⟩ := rd2855.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
@@ -353,7 +353,7 @@ theorem RD.uniswapGetReservesRoutine {g : Sat256} {s0 : State} {ee : ExecutionEn
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapReturnGetReserves705 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ts r1 r0 : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨705⟩ (ts :: r1 :: r0 :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 10 ≤ 1024) :
@@ -415,11 +415,11 @@ namespace UniswapV2Pair
 /-! ## EVM trace and refinement bridge -/
 
 /-- From `getReserves()`'s external body entry (pc 697), the bytecode returns the packed values. -/
-theorem uniswapX_getReserves {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapX_getReserves {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨697⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨697⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (reserve0Word σ I) ++ UInt256.toByteArray (reserve1Word σ I) ++
         UInt256.toByteArray (blockTimestampLastWord σ I)) := by
   obtain ⟨_, _, rd2852⟩ := RD.uniswapGetterThunk (returnPc := ⟨705⟩) (routine := ⟨2852⟩)
@@ -445,81 +445,65 @@ theorem uniswapX_getReserves {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
 
 /-- `getReserves()` body core, parameterized by dispatcher/decode facts owned by `Correct`. -/
 theorem uniswapGetReservesBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some getReservesTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (getReservesTransition.params.map Param.name)
         (transitionSignature getReservesTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨697⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : getReservesSlotWord σ_evm I = getReservesSlotWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨697⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         getReservesTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some  [
-            .int (Int.ofNat (reserve0Word σ_solm I).toNat),
-            .int (Int.ofNat (reserve1Word σ_solm I).toNat),
-            .int (Int.ofNat (blockTimestampLastWord σ_solm I).toNat)])) := by
+            .int (Int.ofNat (reserve0Word σ I).toNat),
+            .int (Int.ofNat (reserve1Word σ I).toNat),
+            .int (Int.ofNat (blockTimestampLastWord σ I).toNat)])) := by
     simpa [reserve0Word, reserve1Word, blockTimestampLastWord, getReservesSlotWord,
       initState, Solm.EVM.storageLoad, State.lookupAccount] using
       uniswapGetReservesBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (by simp only [initState]; exact hwv)
-  have hval :
-      some [
-          Value.int (Int.ofNat (reserve0Word σ_solm I).toNat),
-          Value.int (Int.ofNat (reserve1Word σ_solm I).toNat),
-          Value.int (Int.ofNat (blockTimestampLastWord σ_solm I).toNat)] =
-        some [
-          Value.int (Int.ofNat (reserve0Word σ_evm I).toNat),
-          Value.int (Int.ofNat (reserve1Word σ_evm I).toNat),
-          Value.int (Int.ofNat (blockTimestampLastWord σ_evm I).toNat)] := by
-    have hslot : getReservesSlotWord σ_solm I = getReservesSlotWord σ_evm I := hword.symm
-    simp [reserve0Word, reserve1Word, blockTimestampLastWord, hslot]
   have henc :
       returnEquiv
-        (UInt256.toByteArray (reserve0Word σ_evm I) ++
-          UInt256.toByteArray (reserve1Word σ_evm I) ++
-          UInt256.toByteArray (blockTimestampLastWord σ_evm I))
+        (UInt256.toByteArray (reserve0Word σ I) ++
+          UInt256.toByteArray (reserve1Word σ I) ++
+          UInt256.toByteArray (blockTimestampLastWord σ I))
         (some [
-          .int (Int.ofNat (reserve0Word σ_evm I).toNat),
-          .int (Int.ofNat (reserve1Word σ_evm I).toNat),
-          .int (Int.ofNat (blockTimestampLastWord σ_evm I).toNat)])
+          .int (Int.ofNat (reserve0Word σ I).toNat),
+          .int (Int.ofNat (reserve1Word σ I).toNat),
+          .int (Int.ofNat (blockTimestampLastWord σ I).toNat)])
         getReservesTransition.returnType := by
     rw [show getReservesTransition.returnType = [uint112, uint112, uint32] from rfl]
     exact returnEquiv.returned rfl
-      (getReservesReturnEncoding (reserve0Word σ_evm I) (reserve1Word σ_evm I)
-        (blockTimestampLastWord σ_evm I)
-        (by simpa [reserve0Word] using reserve112Word_lt (getReservesSlotWord σ_evm I))
+      (getReservesReturnEncoding (reserve0Word σ I) (reserve1Word σ I)
+        (blockTimestampLastWord σ I)
+        (by simpa [reserve0Word] using reserve112Word_lt (getReservesSlotWord σ I))
         (by
           simpa [reserve1Word] using
-            reserve112Word_lt (UInt256.div (getReservesSlotWord σ_evm I) reserve112Shift))
+            reserve112Word_lt (UInt256.div (getReservesSlotWord σ I) reserve112Shift))
         (by
           simpa [blockTimestampLastWord] using
-            reserve32Word_lt (UInt256.div (getReservesSlotWord σ_evm I) reserve224Shift)))
+            reserve32Word_lt (UInt256.div (getReservesSlotWord σ I) reserve224Shift)))
   exact (uniswapX_getReserves (g := Sat256.ofUInt256 g) hreach)
-    |>.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+    |>.reEquivExecution hcode hdispatch hdecode hbody henc
 
 /-- `getReserves()` refinement slice, packaged from selector dispatch through the body core. -/
 theorem uniswapGetReservesBody
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x09, 0x02, 0xf1, 0xac]⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some getReservesTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hdispatch : dispatchMsg contract I.calldata = some getReservesTransition) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x09, 0x02, 0xf1, 0xac]⟩ rfl hsel
   exact uniswapGetReservesBodyCore hcode hwv hdispatch (uniswapDecode_getReserves hsz)
     (uniswapReachGetReservesBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
-    hAccounts
 
 end UniswapV2Pair

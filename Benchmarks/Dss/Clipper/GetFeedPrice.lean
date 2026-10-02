@@ -1901,10 +1901,10 @@ theorem RD.clipperGetFeedPriceToSpotterIlksExtcodesizeGuard {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {ret scratch lot tab : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (h : RD code ee g s0 ⟨8728⟩ (ret :: scratch :: lot :: tab :: R)
-      mem (UInt256.ofNat 7) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 7) rdata σ k C)
     (hmem : 164 ≤ mem.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 60 ≤ 1024) :
@@ -1914,7 +1914,7 @@ theorem RD.clipperGetFeedPriceToSpotterIlksExtcodesizeGuard {code : ByteArray}
         clipperSpotterIlksSelectorWord :: clipperSpotterTarget σ ee ::
         ⟨0⟩ :: ⟨0⟩ :: ret :: scratch :: lot :: tab :: R)
       (clipperSpotterIlksCalldataMem (clipperIlkWord v) mem)
-      (UInt256.ofNat 7) rdata (cA, σ) k' C' := by
+      (UInt256.ofNat 7) rdata σ k' C' := by
   rcases v.ilk_wf with ⟨ilkBs, hilk, hlen⟩
   let ilkWord : UInt256 := EVM.Word.ofNat (fromBytesBigEndian ilkBs)
   have hmload64 :
@@ -2015,12 +2015,11 @@ set_option maxHeartbeats 1000000 in
 theorem RD.clipperGetFeedPriceSpotterIlksNoCode {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {ee : ExecutionEnv} {g : Sat256} {s0 : State} {cA : Batteries.RBSet AccountAddress compare}
-    {σ : AccountMap} {ret scratch lot tab : UInt256} {R : List UInt256}
+    {ee : ExecutionEnv} {g : Sat256} {s0 : State} {σ : AccountMap} {ret scratch lot tab : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (h : RD code ee g s0 ⟨8728⟩
       (ret :: scratch :: lot :: tab :: R)
-      mem (UInt256.ofNat 7) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 7) rdata σ k C)
     (hcodeSize : extCodeSizeWord σ (clipperSpotterTarget σ ee) = ⟨0⟩)
     (hmem : 164 ≤ mem.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -2042,11 +2041,11 @@ set_option maxHeartbeats 1000000 in
 theorem RD.clipperGetFeedPriceSpotterIlksPostCall {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {s0 : State} {cA σ I} {g : UInt256}
+    {s0 : State} {σ I} {g : UInt256}
     {ret scratch lot tab : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : ℕ}
     (h : RD code I (Sat256.ofUInt256 g) s0 ⟨8728⟩
       (ret :: scratch :: lot :: tab :: R)
-      mem (UInt256.ofNat 7) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 7) rdata σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (clipperSpotterTarget σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
@@ -2054,20 +2053,20 @@ theorem RD.clipperGetFeedPriceSpotterIlksPostCall {code : ByteArray}
     (hmem : 164 ≤ mem.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 80 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (o : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD code I (Sat256.ofUInt256 g)
         s0 ⟨8840⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨164⟩ :: clipperSpotterIlksSelectorWord ::
           clipperSpotterTarget σ I :: ⟨0⟩ :: ⟨0⟩ :: ret :: scratch :: lot :: tab :: R)
         (clipperSpotterIlksPostCallMem v mem o)
-        (UInt256.ofNat 7) o (cA', σ') k' C'
+        (UInt256.ofNat 7) o σ' k' C'
     ∧ typedCallViaEVM (config v)
-        {s0 with accountMap := σ, createdAccounts := cA, executionEnv := I}
+        {s0 with accountMap := σ, executionEnv := I}
         (EVM.address (AccountAddress.ofUInt256 (clipperSpotterTarget σ I)))
         "spotterIlks" 0 [v.ilk]
-        (z, { {s0 with accountMap := σ, createdAccounts := cA, executionEnv := I} with
-              accountMap := σ', substate := A', createdAccounts := cA' }, o) true
+        (z, { {s0 with accountMap := σ, executionEnv := I} with
+              accountMap := σ', substate := A' }, o) true
     ∧ o.size < UInt256.size := by
   obtain ⟨_, _, rd8824⟩ :=
     RD.clipperGetFeedPriceToSpotterIlksExtcodesizeGuard (v := v) (hpatch := hpatch)
@@ -2082,10 +2081,10 @@ theorem RD.clipperGetFeedPriceSpotterIlksPostCall {code : ByteArray}
       (by clipper_runtime_decode) (by clipper_runtime_decode)
       (by clipper_runtime_decode)
       (by simp only [List.length_cons]; omega)
-  obtain ⟨cA', σ', z, o, A_in, callGas, k8840, C8840, hΘpack, rd8840raw, hosz⟩ :=
+  obtain ⟨σ', z, o, A_in, callGas, k8840, C8840, hΘpack, rd8840raw, hosz⟩ :=
     RD.call rd8839 (by clipper_runtime_decode) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, o, A', k8840, C8840, ?_, ?_, hosz⟩
+  refine ⟨σ', z, o, A', k8840, C8840, ?_, ?_, hosz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 7).toNat
           (⟨128⟩ : UInt256).toNat (⟨36⟩ : UInt256).toNat)
@@ -2094,11 +2093,11 @@ theorem RD.clipperGetFeedPriceSpotterIlksPostCall {code : ByteArray}
       native_decide
     simpa [clipperSpotterIlksPostCallMem, clipperIlkWord] using haw ▸ rd8840raw
   · refine callCoincides (cfg := config v)
-      (evm := {s0 with accountMap := σ, createdAccounts := cA, executionEnv := I})
+      (evm := {s0 with accountMap := σ, executionEnv := I})
       (name := "spotterIlks") (args := [v.ilk])
       (tgt := EVM.address (AccountAddress.ofUInt256 (clipperSpotterTarget σ I)))
       (targetWord := clipperSpotterTarget σ I)
-      (cA' := cA') (σ' := σ') (A' := A') (A_in := A_in) (z := z)
+      (σ' := σ') (A' := A') (A_in := A_in) (z := z)
       (o := o) (g'' := g'') (callGas := callGas)
       (mem := clipperSpotterIlksCalldataMem (clipperIlkWord v) mem)
       (inOff := ⟨128⟩) (inSize := ⟨36⟩) (callPerm := true)
@@ -2113,7 +2112,7 @@ theorem RD.clipperGetFeedPriceSpotterIlksCallFailure {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (rd : RD code ee g s0 ⟨8840⟩ (⟨0⟩ :: R) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
@@ -2133,7 +2132,7 @@ theorem RD.clipperGetFeedPriceSpotterIlksCallSuccessToDecode {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {target ret scratch lot tab : UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     {R : List UInt256}
     (rd : RD code ee g s0 ⟨8840⟩
@@ -2164,7 +2163,7 @@ theorem RD.clipperGetFeedPriceSpotterIlksDecodeShortReverts
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {d0 d1 ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨8861⟩
@@ -2214,7 +2213,7 @@ theorem RD.clipperGetFeedPriceSpotterIlksDecodeOkToPipPeekExtcodesizeGuard
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {d0 d1 ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨8861⟩
@@ -2363,10 +2362,10 @@ theorem RD.clipperGetFeedPricePipPeekNoCode {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {target : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
     {k C : ℕ}
-    (rd : RD code ee g s0 ⟨8937⟩ (target :: target :: R) mem aw rdata (cA, σ) k C)
+    (rd : RD code ee g s0 ⟨8937⟩ (target :: target :: R) mem aw rdata σ k C)
     (hcodeSize : extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
     RDrev code g s0 := by
@@ -2382,14 +2381,14 @@ set_option maxHeartbeats 1000000 in
 theorem RD.clipperGetFeedPricePipPeekPostCall {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {s0 : State} {cA σ I} {g : UInt256}
+    {s0 : State} {σ I} {g : UInt256}
     {target pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (rd : RD code I (Sat256.ofUInt256 g) s0 ⟨8937⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨4⟩ :: ⟨128⟩ :: ⟨64⟩ ::
         ⟨132⟩ :: clipperPipPeekSelectorWord :: target :: ⟨0⟩ :: ⟨0⟩ ::
         pipWord :: ret :: scratch :: lot :: tab :: R)
-      mem (UInt256.ofNat 7) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 7) rdata σ k C)
     (hcodeSize : extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hperm : I.perm = true)
@@ -2397,17 +2396,17 @@ theorem RD.clipperGetFeedPricePipPeekPostCall {code : ByteArray}
       (config v).externalABI.encode? "peek" [] = some (mem.readWithPadding 128 4))
     (htarget : AccountAddress.ofUInt256 target = clipperSpotterIlksPipAddress rdata)
     (hov : R.length + 80 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+    ∃ (σ' : AccountMap) (z : Bool)
       (o : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD code I (Sat256.ofUInt256 g) s0 ⟨8953⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨132⟩ :: clipperPipPeekSelectorWord ::
           target :: ⟨0⟩ :: ⟨0⟩ :: pipWord :: ret :: scratch :: lot :: tab :: R)
-        (clipperPipPeekPostCallMem mem o) (UInt256.ofNat 7) o (cA', σ') k' C'
+        (clipperPipPeekPostCallMem mem o) (UInt256.ofNat 7) o σ' k' C'
     ∧ typedCallViaEVM (config v)
-        {s0 with accountMap := σ, createdAccounts := cA, executionEnv := I}
+        {s0 with accountMap := σ, executionEnv := I}
         (EVM.address (clipperSpotterIlksPipAddress rdata)) "peek" 0 []
-        (z, { {s0 with accountMap := σ, createdAccounts := cA, executionEnv := I} with
-              accountMap := σ', substate := A', createdAccounts := cA' }, o) true
+        (z, { {s0 with accountMap := σ, executionEnv := I} with
+              accountMap := σ', substate := A' }, o) true
     ∧ o.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd8952⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨8937⟩) (okPc := ⟨8949⟩)
@@ -2419,11 +2418,11 @@ theorem RD.clipperGetFeedPricePipPeekPostCall {code : ByteArray}
       (by clipper_runtime_decode) (by clipper_runtime_decode)
       (by clipper_runtime_decode)
       (by simp only [List.length_cons]; omega)
-  obtain ⟨cA', σ', z, o, A_in, callGas, k8953, C8953, hΘpack, rd8953raw, hosz⟩ :=
+  obtain ⟨σ', z, o, A_in, callGas, k8953, C8953, hΘpack, rd8953raw, hosz⟩ :=
     RD.call rd8952 (by clipper_runtime_decode) hdepth
       (by simp only [List.length_cons]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, o, A', k8953, C8953, ?_, ?_, hosz⟩
+  refine ⟨σ', z, o, A', k8953, C8953, ?_, ?_, hosz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 7).toNat
           (⟨128⟩ : UInt256).toNat (⟨4⟩ : UInt256).toNat)
@@ -2432,11 +2431,11 @@ theorem RD.clipperGetFeedPricePipPeekPostCall {code : ByteArray}
       native_decide
     simpa [clipperPipPeekPostCallMem] using haw ▸ rd8953raw
   · refine callCoincides (cfg := config v)
-      (evm := {s0 with accountMap := σ, createdAccounts := cA, executionEnv := I})
+      (evm := {s0 with accountMap := σ, executionEnv := I})
       (name := "peek") (args := [])
       (tgt := EVM.address (clipperSpotterIlksPipAddress rdata))
       (targetWord := target)
-      (cA' := cA') (σ' := σ') (A' := A') (A_in := A_in) (z := z)
+      (σ' := σ') (A' := A') (A_in := A_in) (z := z)
       (o := o) (g'' := g'') (callGas := callGas)
       (mem := mem)
       (inOff := ⟨128⟩) (inSize := ⟨4⟩) (callPerm := true)
@@ -2452,7 +2451,7 @@ theorem RD.clipperGetFeedPricePipPeekCallFailure {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (rd : RD code ee g s0 ⟨8953⟩ (⟨0⟩ :: R) mem aw o acc k C)
     (hosz : o.size < UInt256.size)
@@ -2472,7 +2471,7 @@ theorem RD.clipperGetFeedPricePipPeekCallSuccessToDecode {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {target pipWord ret scratch lot tab : UInt256} {mem o : ByteArray}
     {aw : UInt256} {k C : ℕ} {R : List UInt256}
     (rd : RD code ee g s0 ⟨8953⟩
@@ -2503,7 +2502,7 @@ theorem RD.clipperGetFeedPricePipPeekDecodeShortReverts
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {d0 d1 pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨8974⟩
@@ -2553,7 +2552,7 @@ theorem RD.clipperGetFeedPricePipPeekHasFalseReverts
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {d0 d1 pipWord ret scratch lot tab : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨8974⟩

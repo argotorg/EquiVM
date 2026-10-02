@@ -313,10 +313,10 @@ theorem sstoreAccountMap_storage_findD_self_zero_present
     simp [hfalse]
     exact storage_findD_insert_self acc.storage slot val ⟨0⟩
 
-theorem bidDeleteCollapsedAccountMap_equiv_source (owner : AccountAddress)
+theorem bidDeleteCollapsedAccountMap_eq_source (owner : AccountAddress)
     (σ : AccountMap) (id : UInt256) :
-    accountMapEquiv (bidDeleteCollapsedAccountMap owner σ id)
-      (bidDeleteSourceAccountMap owner σ id) := by
+    bidDeleteCollapsedAccountMap owner σ id =
+      bidDeleteSourceAccountMap owner σ id := by
   let base := bidBaseOfWord id
   let σ0 := sstoreAccountMap owner σ base ⟨0⟩
   let σ1 := sstoreAccountMap owner σ0 (base + ⟨1⟩) ⟨0⟩
@@ -354,13 +354,11 @@ theorem bidDeleteCollapsedAccountMap_equiv_source (owner : AccountAddress)
       simpa [v3, hload3, v1] using
         (bid_slot2_delete_word (old := ((σ1.find? owner).option ⟨0⟩
           (fun acc => acc.storage.findD slot2 ⟨0⟩))))
-    have hslot2a :
-        accountMapEquiv σ2c (sstoreAccountMap owner σ2s slot2 ⟨0⟩) := by
-      have h1 := accountMapEquiv_sstoreAccountMap_self_update σ1 owner slot2 v1 ⟨0⟩
-      simpa [σ2c, σ2s] using h1
-    have hslot2 : accountMapEquiv σ2c σ4s := by
-      have h2 := accountMapEquiv_sstoreAccountMap_self_update σ2s owner slot2 v2 ⟨0⟩
-      have htrans := accountMapEquiv.trans hslot2a h2
+    have hslot2a : σ2c = sstoreAccountMap owner σ2s slot2 ⟨0⟩ := by
+      simpa [σ2c, σ2s] using sstoreAccountMap_self_update σ1 owner slot2 v1 ⟨0⟩
+    have hslot2 : σ2c = σ4s := by
+      have h2 := sstoreAccountMap_self_update σ2s owner slot2 v2 ⟨0⟩
+      have htrans := hslot2a.trans h2
       simpa [σ4s, σ3s, hv3] using htrans
     let σ3c := sstoreAccountMap owner σ2c slot3
       (setAddressOffset0Word
@@ -373,13 +371,9 @@ theorem bidDeleteCollapsedAccountMap_equiv_source (owner : AccountAddress)
           ((σ4s.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot3 ⟨0⟩)) ⟨0⟩ =
         setAddressOffset0Word
           ((σ2c.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot3 ⟨0⟩)) ⟨0⟩ := by
-      rw [accountMapEquiv_storage_findD hslot2 owner slot3 ⟨0⟩]
-    have hslot3 : accountMapEquiv σ3c σ5s := by
-      have h := accountMapEquiv_sstoreAccountMap owner slot3
-        (setAddressOffset0Word
-          ((σ2c.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot3 ⟨0⟩)) ⟨0⟩)
-        hslot2
-      simpa [σ3c, σ5s, hval3] using h
+      rw [← hslot2]
+    have hslot3 : σ3c = σ5s := by
+      simp [σ3c, σ5s, ← hslot2, hval3]
     let σ4c := sstoreAccountMap owner σ3c slot4
       (setAddressOffset0Word
         ((σ3c.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot4 ⟨0⟩)) ⟨0⟩)
@@ -391,14 +385,10 @@ theorem bidDeleteCollapsedAccountMap_equiv_source (owner : AccountAddress)
           ((σ5s.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot4 ⟨0⟩)) ⟨0⟩ =
         setAddressOffset0Word
           ((σ3c.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot4 ⟨0⟩)) ⟨0⟩ := by
-      rw [accountMapEquiv_storage_findD hslot3 owner slot4 ⟨0⟩]
-    have hslot4 : accountMapEquiv σ4c σ6s := by
-      have h := accountMapEquiv_sstoreAccountMap owner slot4
-        (setAddressOffset0Word
-          ((σ3c.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot4 ⟨0⟩)) ⟨0⟩)
-        hslot3
-      simpa [σ4c, σ6s, hval4] using h
-    have hslot5 := accountMapEquiv_sstoreAccountMap owner slot5 ⟨0⟩ hslot4
+      rw [← hslot3]
+    have hslot4 : σ4c = σ6s := by
+      simp [σ4c, σ6s, ← hslot3, hval4]
+    have hslot5 := congrArg (fun m => sstoreAccountMap owner m slot5 ⟨0⟩) hslot4
     simpa [bidDeleteCollapsedAccountMap, bidDeleteSourceAccountMap, base, σ0, σ1, slot2,
       slot3, slot4, slot5, σ2c, σ3c, σ4c, σ2s, σ3s, σ4s, σ5s, σ6s, v1, v2, v3, hv3]
       using hslot5
@@ -407,66 +397,7 @@ theorem bidDeleteCollapsedAccountMap_equiv_source (owner : AccountAddress)
       | none => rfl
       | some acc => exact False.elim (howner ⟨acc, h⟩)
     simp [bidDeleteCollapsedAccountMap, bidDeleteSourceAccountMap, sstoreAccountMap_absent_same,
-      hmissing, accountMapEquiv.refl]
-
-theorem bidDeleteCollapsedAccountMap_accountMapEquiv {owner : AccountAddress}
-    {σ τ : AccountMap} {id : UInt256} (hστ : accountMapEquiv σ τ) :
-    accountMapEquiv (bidDeleteCollapsedAccountMap owner σ id)
-      (bidDeleteCollapsedAccountMap owner τ id) := by
-  let base := bidBaseOfWord id
-  let slot2 := base + (⟨2⟩ : UInt256)
-  let slot3 := base + (⟨3⟩ : UInt256)
-  let slot4 := base + (⟨4⟩ : UInt256)
-  let slot5 := base + (⟨5⟩ : UInt256)
-  let σ0 := sstoreAccountMap owner σ base ⟨0⟩
-  let τ0 := sstoreAccountMap owner τ base ⟨0⟩
-  have h0 : accountMapEquiv σ0 τ0 := by
-    simpa [σ0, τ0] using accountMapEquiv_sstoreAccountMap owner base ⟨0⟩ hστ
-  let σ1 := sstoreAccountMap owner σ0 (base + ⟨1⟩) ⟨0⟩
-  let τ1 := sstoreAccountMap owner τ0 (base + ⟨1⟩) ⟨0⟩
-  have h1 : accountMapEquiv σ1 τ1 := by
-    simpa [σ1, τ1] using accountMapEquiv_sstoreAccountMap owner (base + ⟨1⟩) ⟨0⟩ h0
-  let σ2 := sstoreAccountMap owner σ1 slot2 ⟨0⟩
-  let τ2 := sstoreAccountMap owner τ1 slot2 ⟨0⟩
-  have h2 : accountMapEquiv σ2 τ2 := by
-    simpa [σ2, τ2] using accountMapEquiv_sstoreAccountMap owner slot2 ⟨0⟩ h1
-  let σ3 := sstoreAccountMap owner σ2 slot3
-    (setAddressOffset0Word
-      ((σ2.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot3 ⟨0⟩)) ⟨0⟩)
-  let τ3 := sstoreAccountMap owner τ2 slot3
-    (setAddressOffset0Word
-      ((τ2.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot3 ⟨0⟩)) ⟨0⟩)
-  have hslot3 :
-      ((σ2.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot3 ⟨0⟩)) =
-        ((τ2.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot3 ⟨0⟩)) :=
-    accountMapEquiv_storage_findD h2 owner slot3 ⟨0⟩
-  have h3 : accountMapEquiv σ3 τ3 := by
-    have h :=
-      accountMapEquiv_sstoreAccountMap owner slot3
-        (setAddressOffset0Word
-          ((σ2.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot3 ⟨0⟩)) ⟨0⟩)
-        h2
-    simpa [σ3, τ3, hslot3] using h
-  let σ4 := sstoreAccountMap owner σ3 slot4
-    (setAddressOffset0Word
-      ((σ3.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot4 ⟨0⟩)) ⟨0⟩)
-  let τ4 := sstoreAccountMap owner τ3 slot4
-    (setAddressOffset0Word
-      ((τ3.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot4 ⟨0⟩)) ⟨0⟩)
-  have hslot4 :
-      ((σ3.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot4 ⟨0⟩)) =
-        ((τ3.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot4 ⟨0⟩)) :=
-    accountMapEquiv_storage_findD h3 owner slot4 ⟨0⟩
-  have h4 : accountMapEquiv σ4 τ4 := by
-    have h :=
-      accountMapEquiv_sstoreAccountMap owner slot4
-        (setAddressOffset0Word
-          ((σ3.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot4 ⟨0⟩)) ⟨0⟩)
-        h3
-    simpa [σ4, τ4, hslot4] using h
-  have h5 := accountMapEquiv_sstoreAccountMap owner slot5 ⟨0⟩ h4
-  simpa [bidDeleteCollapsedAccountMap, base, slot2, slot3, slot4, slot5, σ0, τ0, σ1,
-    τ1, σ2, τ2, σ3, τ3, σ4, τ4] using h5
+      hmissing]
 
 theorem bidDeletedEVM_accountMap (evm : EVM.State) (id : UInt256) :
     (bidDeletedEVM evm id).accountMap =
@@ -474,13 +405,12 @@ theorem bidDeletedEVM_accountMap (evm : EVM.State) (id : UInt256) :
   simp [bidDeletedEVM, bidDeleteSourceAccountMap, storageStore_accountMap,
     storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
 
-theorem bidDeleteCollapsedAccountMap_accountMapEquiv_bidDeletedEVM
+theorem bidDeleteCollapsedAccountMap_eq_bidDeletedEVM
     (evm : EVM.State) (id : UInt256) :
-    accountMapEquiv
-      (bidDeleteCollapsedAccountMap evm.executionEnv.codeOwner evm.accountMap id)
+    bidDeleteCollapsedAccountMap evm.executionEnv.codeOwner evm.accountMap id =
       (bidDeletedEVM evm id).accountMap := by
   rw [bidDeletedEVM_accountMap]
-  exact bidDeleteCollapsedAccountMap_equiv_source evm.executionEnv.codeOwner evm.accountMap id
+  exact bidDeleteCollapsedAccountMap_eq_source evm.executionEnv.codeOwner evm.accountMap id
 
 theorem clearStorage_bid_struct {evm : EVM.State} {id : UInt256} :
     clearStorage? config evm (bidEvaledBaseRefOfWord id) BidStructTy =

@@ -82,11 +82,11 @@ theorem weth9DecimalsReturnWf : solcReturnUint8FromMemWf weth9Bytecode ⟨550⟩
 
 /-- The uint8 return-encoder tail at pc 550, parameterised over the raw slot word `w` (kept a
     variable so the `land` reconciliation stays symbolic and cheap). -/
-theorem weth9DecimalsReturn {cA gh bl σ σ₀ A I} {g : Sat256} {w : UInt256} {k C : ℕ}
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨550⟩
+theorem weth9DecimalsReturn {σ σ₀ A I} {g : Sat256} {w : UInt256} {k C : ℕ}
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨550⟩
       [UInt256.land ⟨255⟩ w, ⟨550⟩, weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) k C) :
-    RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      ByteArray.empty σ k C) :
+    RDret weth9Bytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (UInt256.land w ⟨255⟩)) := by
   have hthis := RD.solcReturnUint8FromMem h weth9DecimalsReturnWf solcFreePtrMem_mload64 rfl
     (solcReturnMem_mload64 (UInt256.land (UInt256.land ⟨255⟩ w) ⟨255⟩))
@@ -95,13 +95,13 @@ theorem weth9DecimalsReturn {cA gh bl σ σ₀ A I} {g : Sat256} {w : UInt256} {
   rwa [land255_double] at hthis
 
 set_option maxHeartbeats 4000000 in
-theorem weth9DecimalsX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9DecimalsX_ok {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 5)) :
-    RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    RDret weth9Bytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (decimalsWord σ I)) := by
-  obtain ⟨_, _, h529⟩ := weth9ReachDecimals (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  obtain ⟨_, _, h529⟩ := weth9ReachDecimals (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h543⟩ := weth9GuardPeelOk (gt := ⟨541⟩) h529 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -121,44 +121,38 @@ theorem weth9DecimalsX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
 
 /-! ## Refinement -/
 
-theorem weth9DecimalsBodyCoreOk {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem weth9DecimalsBodyCoreOk {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (weth9SelBytes 5))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (weth9SelBytes 5)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 5) (by native_decide) hsel
-  have hword : decimalsWord σ_evm I = decimalsWord σ_solm I := by
-    unfold decimalsWord
-    rw [accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩]
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ decimalsTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ decimalsTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (decimalsWord σ_solm I).toNat))])) := by
-    have hb := weth9DecimalsBodyReturns (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (decimalsWord σ I).toNat))])) := by
+    have hb := weth9DecimalsBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv)
     simpa [decimalsWord, Solm.EVM.storageLoad, State.lookupAccount, initState] using hb
-  exact weth9ReEquivExecTransport hcode
+  exact weth9ReEquivExecGen hcode
     (weth9DecimalsX_ok (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
-    (weth9SelectorDispatchDecimals hsel) (weth9Decode_decimals_ok hsz4) hbody (by rw [← hword])
-    hAccounts
+    (weth9SelectorDispatchDecimals hsel) (weth9Decode_decimals_ok hsz4) hbody rfl
     (returnEquiv_of_encode
       (by simpa [uint8, uint8Int] using
-        uint8ReturnEncoding (decimalsWord σ_evm I) (decimalsWord_lt σ_evm I)))
+        uint8ReturnEncoding (decimalsWord σ I) (decimalsWord_lt σ I)))
 
-theorem weth9DecimalsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem weth9DecimalsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 5))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (_hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 5)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
-  · exact weth9DecimalsBodyCoreOk hcode hsize hwv hsel hAccounts
+  · exact weth9DecimalsBodyCoreOk hcode hsize hwv hsel
   · have hsz4 : 4 ≤ I.calldata.size :=
       calldata_size_ge_of_selIs I (weth9SelBytes 5) (by native_decide) hsel
-    obtain ⟨_, _, h529⟩ := weth9ReachDecimals (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+    obtain ⟨_, _, h529⟩ := weth9ReachDecimals (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := weth9GuardPeelRev (gt := ⟨541⟩) h529 hwv
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)

@@ -1728,9 +1728,10 @@ theorem solcAddrMask_clean_left {w : UInt256} (hcanon : w.toNat < EVM.addressMod
   exact congrArg UInt256.toNat (solcAddrMask_clean hcanon)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.solcExternalStaticArgsLenOk {σ σ₀ A I} {g : Sat256}
+theorem RD.solcExternalStaticArgsLenOk {σ : AccountMap} {I : ExecutionEnv}
+    {s0 : State} {g : Sat256}
     {code : ByteArray} {sel entry ret decoded need : UInt256}
-    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) entry [sel]
+    (hreach : ∃ k C, RD code I g s0 entry [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hd0 : decode code entry = some (.JUMPDEST, .none))
     (hd1 : decode code (entry + ⟨1⟩) = some (.Push .PUSH2, some (ret, 2)))
@@ -1777,7 +1778,7 @@ theorem RD.solcExternalStaticArgsLenOk {σ σ₀ A I} {g : Sat256}
         some (.JUMPI, .none))
     (hdecoded : (D_J code 0).contains decoded = true)
     (hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) need = ⟨0⟩) :
-    ∃ k C, RD code I g (initState σ σ₀ g A I) decoded
+    ∃ k C, RD code I g s0 decoded
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ret :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rdEntry⟩ := hreach

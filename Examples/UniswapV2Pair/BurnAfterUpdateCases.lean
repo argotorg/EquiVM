@@ -10,12 +10,12 @@ set_option maxHeartbeats 1000000 in
 theorem uniswapBurnAfterUpdateRuntimeReturns {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {supply feeWord liquidity balance1 balance0 token1 token0 reserve1 reserve0 amount1 amount0 toWord : UInt256}
     {aw ptr : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {locals : Store}
+    {σ : AccountMap} {locals : Store}
     (evm : EVM.State) (fee : Bool)
     (rd : RD uniswapV2PairBytecode I g s0 ⟨4885⟩
       (supply :: feeWord :: liquidity :: balance1 :: balance0 :: token1 :: token0 :: reserve1 :: reserve0 ::
-        amount1 :: amount0 :: toWord :: ⟨1201⟩ :: R) mem aw rdata (cA, σ) k C)
-    (hAccounts : accountMapEquiv σ evm.accountMap) (henv : evm.executionEnv = I)
+        amount1 :: amount0 :: toWord :: ⟨1201⟩ :: R) mem aw rdata σ k C)
+    (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
     (hflag : feeWord = if fee then ⟨1⟩ else ⟨0⟩)
     (hfee : locals.get? "feeOn" = some (.bool fee))
     (ha0 : locals.get? "amount0" = some (uniswapUint256Value amount0))
@@ -30,21 +30,21 @@ theorem uniswapBurnAfterUpdateRuntimeReturns {g : Sat256} {s0 : State} {I : Exec
       ExecBlock config { contract := contract, locals := locals } evm burnAfterUpdateTail
         (.returned { contract := contract, locals := locals } evm'
           (some [uniswapUint256Value amount0, uniswapUint256Value amount1])) ∧
-      accountMapEquiv σ' evm'.accountMap ∧ evm'.createdAccounts = evm.createdAccounts ∧
-      RDret uniswapV2PairBytecode g s0 (cA, σ') (amount0.toByteArray ++ amount1.toByteArray) := by
+      σ' = evm'.accountMap ∧
+      RDret uniswapV2PairBytecode g s0 σ' (amount0.toByteArray ++ amount1.toByteArray) := by
   have hKLast : ∃ σK kK CK,
-      accountMapEquiv σK (uniswapKLastIfFeeState evm fee).accountMap ∧
+      σK = (uniswapKLastIfFeeState evm fee).accountMap ∧
       RD uniswapV2PairBytecode I g s0 ⟨4933⟩
         (supply :: feeWord :: liquidity :: balance1 :: balance0 :: token1 :: token0 :: reserve1 :: reserve0 ::
-          amount1 :: amount0 :: toWord :: ⟨1201⟩ :: R) mem aw rdata (cA, σK) kK CK := by
+          amount1 :: amount0 :: toWord :: ⟨1201⟩ :: R) mem aw rdata σK kK CK := by
     cases fee with
     | false =>
       obtain ⟨_, _, rd4933⟩ := RD.uniswapBurnAfterUpdateFeeOff rd hflag (by simp only [List.length_cons]; omega)
       exact ⟨σ, _, _, hAccounts, rd4933⟩
     | true =>
       have hslot8 : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ = uniswapSlotWord ⟨8⟩ σ I := by
-        have h := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-        simpa only [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, uniswapSlotWord, henv] using h.symm
+        simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+          uniswapSlotWord, henv, hAccounts]
       have hkValue : mintFeeReserveProductWord (uniswapReserve0Word evm) (uniswapReserve1Word evm) =
           UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σ I) reserve112Mask)
             (UInt256.land (UInt256.div (uniswapSlotWord ⟨8⟩ σ I) reserve112Shift) reserve112Mask) := by
@@ -53,10 +53,8 @@ theorem uniswapBurnAfterUpdateRuntimeReturns {g : Sat256} {s0 : State} {I : Exec
       obtain ⟨_, _, rd4933⟩ := RD.uniswapBurnAfterUpdateFeeOn rd (by rw [hflag]; decide)
         (mintFeeReserveProductNat_masked_lt _) hperm (by simp only [List.length_cons]; omega)
       refine ⟨_, _, _, ?_, rd4933⟩
-      simpa only [uniswapKLastIfFeeState, ↓reduceIte, mintKLastUpdatedState,
-        storageStore_accountMap, henv, hkValue] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner ⟨11⟩
-          (mintFeeReserveProductWord (uniswapReserve0Word evm) (uniswapReserve1Word evm)) hAccounts
+      simp [uniswapKLastIfFeeState, mintKLastUpdatedState,
+        storageStore_accountMap, henv, hkValue, hAccounts]
   obtain ⟨σK, _, _, hAccountsK, rd4933⟩ := hKLast
   have heK : (uniswapKLastIfFeeState evm fee).executionEnv = I := by
     cases fee <;> simp only [uniswapKLastIfFeeState, Bool.false_eq_true, ↓reduceIte,
@@ -71,10 +69,8 @@ theorem uniswapBurnAfterUpdateRuntimeReturns {g : Sat256} {s0 : State} {I : Exec
   have hreadLog := (pairDynamicMem_read_below ptr amount0 amount1 64 hin hlo hgap (by omega)).trans hread
   have rdRet := RD.uniswapBurnReturnPair rd1201 (by rw [hsLog]; omega) hlo hgLog hfit haw hcover hreadLog (by omega)
   refine ⟨uniswapLockExitedState (uniswapKLastIfFeeState evm fee), _,
-    uniswapBurnAfterUpdateSourceReturns evm fee amount0 amount1 hfee ha0 ha1 hr0 hr1 hk hu, ?_, ?_, rdRet⟩
+    uniswapBurnAfterUpdateSourceReturns evm fee amount0 amount1 hfee ha0 ha1 hr0 hr1 hk hu, ?_, rdRet⟩
   · simpa only [uniswapLockExitedState, uniswapUnlockedState, storageStore_accountMap, heK] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩ hAccountsK
-  · cases fee <;> simp only [uniswapLockExitedState, uniswapUnlockedState, uniswapKLastIfFeeState,
-      Bool.false_eq_true, ↓reduceIte, mintKLastUpdatedState, storageStore_createdAccounts]
+      congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨12⟩ ⟨1⟩) hAccountsK
 
 end UniswapV2Pair

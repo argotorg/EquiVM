@@ -12,14 +12,14 @@ theorem RD.clipperTakeRemoveContinuationElim
     {P : Prop} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id sel :
       UInt256}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd8274 : RD code ee g s0 ⟨8274⟩
       (id :: ⟨5020⟩ :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: [⟨502⟩, sel])
-      mem aw out (cA, σ) k C)
+      mem aw out σ k C)
     (hid : id = clipperYankArgWord ee)
     (hmem : clipperTakeMemoryWF mem aw) (hperm : ee.perm = true)
     (onEmpty : solcSlotWord σ ee ⟨11⟩ = ⟨0⟩ → RDinvalid code g s0 → P)
@@ -30,7 +30,7 @@ theorem RD.clipperTakeRemoveContinuationElim
            solcSlotWord σ ee (clipperYankActiveSlot lastIndex)) →
         (let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
          RDret code g s0
-           (cA, sstoreAccountMap ee.codeOwner
+           (sstoreAccountMap ee.codeOwner
              (clipperYankRemoveAccountMap σ ee lastIndex) ⟨13⟩ ⟨0⟩)
            ByteArray.empty) → P)
     (onIdNeJoinEmpty :
@@ -62,7 +62,7 @@ theorem RD.clipperTakeRemoveContinuationElim
          let σMove := clipperYankMoveAccountMap σ ee idx move
          let lastIndexAfter := solcSlotWord σMove ee ⟨11⟩ + UInt256.lnot ⟨0⟩
          RDret code g s0
-           (cA, sstoreAccountMap ee.codeOwner
+           (sstoreAccountMap ee.codeOwner
              (clipperYankRemoveAccountMap σMove ee lastIndexAfter) ⟨13⟩ ⟨0⟩)
            ByteArray.empty) → P)
     (onIdNeIndexOob :

@@ -636,35 +636,35 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {self value toWord prevValue token token0 ret sel : UInt256}
-    {o out1 out2 : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {o out1 out2 : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6370⟩
       (value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSecondBalanceDynamicStaticcallMem self o toWord prevValue out1 out2)
-      (skimSecondBalanceDynamicStaticcallWords out1) out2 (cA, σ) k C)
+      (skimSecondBalanceDynamicStaticcallWords out1) out2 σ k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout1Ne : out1.size ≠ 0) (hout1Size : out1.size < 2 ^ 255)
     (hout2_32 : 32 ≤ out2.size) (hout2Size : out2.size < UInt256.size)
     (hdepth : ee.depth.val < 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
-      (z : Bool) (out : ByteArray) (A_in : Substate) (callGas gasArg : UInt256)
+    ∃ (σ' : AccountMap) (z : Bool) (out : ByteArray) (A_in : Substate)
+      (callGas gasArg : UInt256)
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ ee.blobVersionedHashes cA s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ σ s0.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
             (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask))
             (toExecute σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
             callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
             ((skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
               |>.readWithPadding (skimSecondSafeTransferDynamicCallPtr out1).toNat 68)
-            (ee.depth + 1) ee.header ee.perm)
+            (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)
       ∧ RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: skimSecondSafeTransferDynamicRetEnd out1 ::
             UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
             value :: toWord :: token :: ret :: token :: token0 :: toWord :: ⟨570⟩ ::
             sel :: [])
           (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
-          (skimSecondSafeTransferDynamicWordsCall2 out1) out (cA', σ') k' C'
+          (skimSecondSafeTransferDynamicWordsCall2 out1) out σ' k' C'
       ∧ out.size < UInt256.size := by
   have rd6375 := evm_run h with [
     jumpdest, push1 ⟨64⟩, dup1,
@@ -1118,9 +1118,9 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
   rw [skimSecondSafeTransferDynamicCallPtr_add68 out1,
     skimSecondSafeTransferDynamicRetEnd_sub_callPtr out1 hout1Size]
     at rd6594
-  obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘ, rd6595, houtSize'⟩ :=
+  obtain ⟨σ', z, out, A_in, callGas, k', C', hΘ, rd6595, houtSize'⟩ :=
     rd6594.call (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA', σ', z, out, A_in, callGas, gasArg, k', C', ?_, ?_, houtSize'⟩
+  refine ⟨σ', z, out, A_in, callGas, gasArg, k', C', ?_, ?_, houtSize'⟩
   · simpa using hΘ
   · have hlen :
         (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by

@@ -16,11 +16,11 @@ def constructorStoredAccountMap (σ : AccountMap) (I : ExecutionEnv) (domainHash
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapConstructorStoreAndReturn {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {domainHash : UInt256} {mem : ByteArray} {R : List UInt256} {k C : Nat}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (rd225 : RD uniswapV2PairInitcode I g s0 ⟨225⟩ (domainHash :: ⟨128⟩ :: R)
-      mem ⟨14⟩ ByteArray.empty (cA, σ) k C)
+      mem ⟨14⟩ ByteArray.empty σ k C)
     (hperm : I.perm = true) (hov : R.length + 8 ≤ 1024) :
-    RDret uniswapV2PairInitcode g s0 (cA, constructorStoredAccountMap σ I domainHash)
+    RDret uniswapV2PairInitcode g s0 (constructorStoredAccountMap σ I domainHash)
       uniswapV2PairBytecode := by
   have rd227 := evm_run rd225 with [push1 ⟨3⟩]
   obtain ⟨_, _, rd228⟩ := rd227.sstore hperm (by native_decide) (by evm_ov)

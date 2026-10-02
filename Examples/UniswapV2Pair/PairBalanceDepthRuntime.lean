@@ -6,11 +6,11 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapPairBalanceDepthReverts
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {site : PairBalanceCallSite}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw ptr target endPtr selector : UInt256} {R : List UInt256} {k C : Nat}
     (rd : RD uniswapV2PairBytecode I g s0 site.pc
       (target :: target :: ptr :: ⟨36⟩ :: ptr :: ⟨32⟩ :: endPtr :: selector :: target :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hcode : extCodeSizeWord σ target ≠ ⟨0⟩) (hdepth : I.depth = 1024)
     (hov : R.length + 12 ≤ 1024) : RDrev uniswapV2PairBytecode g s0 := by
   obtain ⟨_, _, _, rdCall⟩ := RD.solcExtcodesizeGuardOkGas (okPc := site.pc + ⟨12⟩) rd hcode

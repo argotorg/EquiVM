@@ -13,15 +13,15 @@ namespace Benchmarks.WETH9
 
 /-- Peel the callvalue guard, pass the 3-word length check, decode `(src, dst, wad)`, and jump to the
     shared internal body (pc 1087) with `[wad, dstMasked, srcMasked, 361, sel]`. -/
-theorem weth9TFReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9TFReachBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 3)) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1087⟩
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1087⟩
       (tfWadWord I :: tfDstMasked I :: tfSrcMasked I :: ⟨361⟩ :: [weth9SelWord I])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsz4 : 4 ≤ I.calldata.size := by omega
-  obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+  obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h434⟩ := weth9GuardPeelOk (gt := ⟨432⟩) h420 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -65,15 +65,15 @@ abbrev wtfBoolReturnMem (src dst wad : UInt256) (mem : ByteArray) : ByteArray :=
 
 /-- From pc 1282 with `ret = 361` (the bool encoder), run the two balance stores + LOG3 tail, then
     the boolean-return encoder, halting with output `0x…01` and the two-store post-state. -/
-theorem weth9TFReturnTrue {ee g s0 rdata cA σ k C} {src dst wad : UInt256} {S : List UInt256}
+theorem weth9TFReturnTrue {ee g s0 rdata σ k C} {src dst wad : UInt256} {S : List UInt256}
     {mem : ByteArray}
     (h : RD weth9Bytecode ee g s0 ⟨1282⟩ (⟨0⟩ :: wad :: dst :: src :: ⟨361⟩ :: S)
-      mem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      mem (UInt256.ofNat 3) rdata σ k C)
     (hperm : ee.perm = true) (hsrc : src.toNat < EVM.addressModulus)
     (hdst : dst.toNat < EVM.addressModulus)
     (hmemsize : mem.size = 96) (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : S.length + 16 ≤ 1024) :
-    RDret weth9Bytecode g s0 (cA, wtfPostMap ee σ src dst wad)
+    RDret weth9Bytecode g s0 (wtfPostMap ee σ src dst wad)
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, h361⟩ := weth9TFTail h hperm hsrc hdst hmemsize hread64 (by jump_dest) hov
   have hM1size : (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)).size = 96 :=
@@ -137,7 +137,7 @@ theorem tfAddress_eq_of_srcMasked_eq (I : ExecutionEnv) (heq : tfSrcMasked I = s
   rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide, nat_land_mask_eq_mod,
     show AccountAddress.size = 2 ^ 160 by rfl, Nat.mod_mod]
 
-/-! ## Dispatch, return encoding, and post-state `accountMapEquiv` -/
+/-! ## Dispatch and return encoding -/
 
 theorem weth9SelectorDispatchTransferFrom {I : ExecutionEnv} (hsel : selIs I (weth9SelBytes 3)) :
     selectorDispatchMsg contract I.calldata = some transferFromTransition := by
@@ -148,77 +148,48 @@ theorem weth9SelectorDispatchTransferFrom {I : ExecutionEnv} (hsel : selIs I (we
     weth9TransferFromSelectorBytes]
   native_decide
 
-/-- `accountMapEquiv` is preserved by the shared two-balance-store post-state tower. -/
-theorem wtfPostMap_accountMapEquiv {σ_evm σ_solm : AccountMap} (I : ExecutionEnv)
-    (src dst wad : UInt256) (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    accountMapEquiv (wtfPostMap I σ_evm src dst wad) (wtfPostMap I σ_solm src dst wad) := by
-  have hsrc : solcSlotWord σ_evm I (wtfBalSlot src) = solcSlotWord σ_solm I (wtfBalSlot src) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (wtfBalSlot src) ⟨0⟩
-  have hAcc1 : accountMapEquiv (wtfSrcDebitedMap I σ_evm src wad) (wtfSrcDebitedMap I σ_solm src wad) := by
-    unfold wtfSrcDebitedMap; rw [hsrc]
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner (wtfBalSlot src) _ hAccounts
-  have hdst : solcSlotWord (wtfSrcDebitedMap I σ_evm src wad) I (wtfBalSlot dst)
-      = solcSlotWord (wtfSrcDebitedMap I σ_solm src wad) I (wtfBalSlot dst) :=
-    accountMapEquiv_storage_findD hAcc1 I.codeOwner (wtfBalSlot dst) ⟨0⟩
-  unfold wtfPostMap; rw [hdst]
-  exact accountMapEquiv_sstoreAccountMap I.codeOwner (wtfBalSlot dst) _ hAcc1
-
-/-- `accountMapEquiv` is preserved by the allowance-debit store. -/
-theorem tfAllowDebitMap_accountMapEquiv {σ_evm σ_solm : AccountMap} (I : ExecutionEnv)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    accountMapEquiv (tfAllowDebitMap I σ_evm) (tfAllowDebitMap I σ_solm) := by
-  have hallow : solcSlotWord σ_evm I (wtfAllowSlot I (tfSrcMasked I))
-      = solcSlotWord σ_solm I (wtfAllowSlot I (tfSrcMasked I)) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (wtfAllowSlot I (tfSrcMasked I)) ⟨0⟩
-  unfold tfAllowDebitMap; rw [hallow]
-  exact accountMapEquiv_sstoreAccountMap I.codeOwner (wtfAllowSlot I (tfSrcMasked I)) _ hAccounts
-
 /-- The shared refinement bridge for a `transferFrom` success run. -/
-theorem weth9TFConnect {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {evmPost : EVM.State} {cs}
-    {evmPostMap solmPostMap : AccountMap}
+theorem weth9TFConnect {σ σ₀ A I} {g : UInt256} {evmPost : EVM.State} {cs}
+    {evmPostMap : AccountMap}
     (hcode : I.code = weth9Bytecode) (hsel : selIs I (weth9SelBytes 3))
     (hsz100 : 100 ≤ I.calldata.size)
     (hX : RDret weth9Bytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, evmPostMap)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) evmPostMap
       (UInt256.toByteArray (⟨1⟩ : UInt256)))
     (hbody : ExecTransitionBody config contract
-      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (tfStore I)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) (tfStore I)
       transferFromTransition.body (.returned cs evmPost (some [.bool true])))
-    (hbodyMap : evmPost.accountMap = solmPostMap)
-    (hbodyCreated : evmPost.createdAccounts
-      = (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).createdAccounts)
-    (hequiv : accountMapEquiv evmPostMap solmPostMap) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hbodyMap : evmPost.accountMap = evmPostMap) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   refine weth9ReEquivExecGen (t := transferFromTransition) hcode hX
-    (weth9SelectorDispatchTransferFrom hsel) ?_ hbody ?_ ?_ ?_
+    (weth9SelectorDispatchTransferFrom hsel) ?_ hbody ?_ ?_
   · show decodeCalldataWithMode config.abiDecodeMode (transferFromTransition.params.map Param.name)
       (transitionSignature transferFromTransition).paramTypes I.calldata = some (tfStore I)
     exact tfDecode_ok hsz100
-  · rw [hbodyCreated]; simp [initState]
-  · rw [hbodyMap]; exact hequiv
+  · exact hbodyMap.symm
   · exact returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding)
 
 /-! ## Revert reach lemmas -/
 
 /-- `callvalue ≠ 0`: the payable guard at pc 420 reverts. -/
-theorem weth9TFGuardRev {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9TFGuardRev {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 3)) :
-    RDrev weth9Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   exact weth9GuardPeelRev (gt := ⟨432⟩) h420 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
 /-- Short calldata (`< 100`, but `callvalue = 0`): the 3-word length check reverts. -/
-theorem weth9TFDecodeFailRev {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9TFDecodeFailRev {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 3)) :
-    RDrev weth9Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, h420⟩ := weth9ReachTransferFrom (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h434⟩ := weth9GuardPeelOk (gt := ⟨432⟩) h420 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -242,25 +213,19 @@ theorem weth9TFDecodeFailRev {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.jumpiNT (by native_decide) (by rw [hltShort]; decide) (by simp)
     |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
 
-theorem weth9TransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem weth9TransferFromBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)
-    (hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 3))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hperm : I.perm = true) (hsel : selIs I (weth9SelBytes 3)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (weth9SelBytes 3) (by native_decide) hsel
   have hdisp := weth9SelectorDispatchTransferFrom hsel
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz100 : 100 ≤ I.calldata.size
     · -- decode succeeds; reach the shared body
-      obtain ⟨_, _, h1087⟩ := weth9TFReachBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+      obtain ⟨_, _, h1087⟩ := weth9TFReachBody (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz100 hsize hsel
-      -- transport EVM branch conditions to the source accountMap
-      have hbaleq : tfBalSrcWord I σ_evm = tfBalSrcWord I σ_solm :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (wtfBalSlot (tfSrcMasked I)) ⟨0⟩
-      have halloweq : tfAllowWord I σ_evm = tfAllowWord I σ_solm :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (wtfAllowSlot I (tfSrcMasked I)) ⟨0⟩
-      by_cases hbal : (tfWadWord I).toNat ≤ (tfBalSrcWord I σ_evm).toNat
+      by_cases hbal : (tfWadWord I).toNat ≤ (tfBalSrcWord I σ).toNat
       · obtain ⟨_, _, h1124⟩ := weth9TFReqBalanceOk h1087 (tfSrcMasked_canonical I) hbal
           (by simp only [List.length_cons, List.length_nil]; omega)
         by_cases hsrcAddr : AccountAddress.ofNat (tfSrcWord I).toNat = I.source
@@ -272,32 +237,30 @@ theorem weth9TransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
             (twoWordHashMem_size_96 (tfSrcMasked I) ⟨3⟩ solcFreePtrMem_size)
             (wtfBalHashMem_read64 (tfSrcMasked I))
             (by simp only [List.length_cons, List.length_nil]; omega)
-          obtain ⟨evmPost, cs, hbody, hmap, hcreated⟩ :=
-            weth9TFSolmSkipSender (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
-              (A := A) (I := I) (g := Sat256.ofUInt256 g) hwv hsrcAddr (by rw [← hbaleq]; exact hbal)
-          exact weth9TFConnect hcode hsel hsz100 hX hbody hmap hcreated
-            (wtfPostMap_accountMapEquiv I _ _ _ hAccounts)
+          obtain ⟨evmPost, cs, hbody, hmap⟩ :=
+            weth9TFSolmSkipSender (σ := σ) (σ₀ := σ₀)
+              (A := A) (I := I) (g := Sat256.ofUInt256 g) hwv hsrcAddr hbal
+          exact weth9TFConnect hcode hsel hsz100 hX hbody hmap
         · -- src ≠ caller: load the allowance
           have hne : solcSourceWord I ≠ tfSrcMasked I := fun h =>
             hsrcAddr (tfAddress_eq_of_srcMasked_eq I h.symm)
           obtain ⟨_, _, h1186⟩ := weth9TFAllowLoaded h1124 (tfSrcMasked_canonical I) hne
             (by simp only [List.length_cons, List.length_nil]; omega)
-          by_cases hmax : (tfAllowWord I σ_evm).toNat = UInt256.size - 1
+          by_cases hmax : (tfAllowWord I σ).toNat = UInt256.size - 1
           · -- SkipMax
             obtain ⟨_, _, h1282⟩ := weth9TFBranchSkipMax h1186 hmax
               (by simp only [List.length_cons, List.length_nil]; omega)
             have hX := weth9TFReturnTrue h1282 hperm (tfSrcMasked_canonical I) (tfDstMasked_canonical I)
               (wtfAllowHashMem_size I (tfSrcMasked I)) (wtfAllowHashMem_read64 I (tfSrcMasked I))
               (by simp only [List.length_cons, List.length_nil]; omega)
-            obtain ⟨evmPost, cs, hbody, hmap, hcreated⟩ :=
-              weth9TFSolmSkipMax (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
-                (A := A) (I := I) (g := Sat256.ofUInt256 g) hwv hsrcAddr (by rw [← halloweq]; exact hmax)
-                (by rw [← hbaleq]; exact hbal)
-            exact weth9TFConnect hcode hsel hsz100 hX hbody hmap hcreated
-              (wtfPostMap_accountMapEquiv I _ _ _ hAccounts)
-          · by_cases hallow : (tfWadWord I).toNat ≤ (tfAllowWord I σ_evm).toNat
+            obtain ⟨evmPost, cs, hbody, hmap⟩ :=
+              weth9TFSolmSkipMax (σ := σ) (σ₀ := σ₀)
+                (A := A) (I := I) (g := Sat256.ofUInt256 g) hwv hsrcAddr hmax
+                hbal
+            exact weth9TFConnect hcode hsel hsz100 hX hbody hmap
+          · by_cases hallow : (tfWadWord I).toNat ≤ (tfAllowWord I σ).toNat
             · -- Spend
-              have hnotMax : solcSlotWord σ_evm I (wtfAllowSlot I (tfSrcMasked I)) ≠ UInt256.lnot ⟨0⟩ :=
+              have hnotMax : solcSlotWord σ I (wtfAllowSlot I (tfSrcMasked I)) ≠ UInt256.lnot ⟨0⟩ :=
                 fun h => hmax (by unfold tfAllowWord; rw [h]; exact wtf_lnot0_toNat)
               obtain ⟨_, _, h1282⟩ := weth9TFBranchSpendOk h1186 hperm (tfSrcMasked_canonical I)
                 hnotMax hallow (by simp only [List.length_cons, List.length_nil]; omega)
@@ -310,32 +273,31 @@ theorem weth9TransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
                   (wtf_nestedHashMem_read64 ⟨4⟩ (tfSrcMasked I) I _
                     (wtfAllowHashMem_size I (tfSrcMasked I)) (wtfAllowHashMem_read64 I (tfSrcMasked I))))
                 (by simp only [List.length_cons, List.length_nil]; omega)
-              obtain ⟨evmPost, cs, hbody, hmap, hcreated⟩ :=
-                weth9TFSolmSpend (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+              obtain ⟨evmPost, cs, hbody, hmap⟩ :=
+                weth9TFSolmSpend (σ := σ) (σ₀ := σ₀)
                   (A := A) (I := I) (g := Sat256.ofUInt256 g) hwv hsrcAddr
-                  (by rw [← halloweq]; exact hmax) (by rw [← halloweq]; exact hallow)
-                  (by rw [← hbaleq]; exact hbal)
-              exact weth9TFConnect hcode hsel hsz100 hX hbody hmap hcreated
-                (wtfPostMap_accountMapEquiv I _ _ _ (tfAllowDebitMap_accountMapEquiv I hAccounts))
+                  hmax hallow
+                  hbal
+              exact weth9TFConnect hcode hsel hsz100 hX hbody hmap
             · -- allowance < wad: inner require reverts
-              have hnotMax : solcSlotWord σ_evm I (wtfAllowSlot I (tfSrcMasked I)) ≠ UInt256.lnot ⟨0⟩ :=
+              have hnotMax : solcSlotWord σ I (wtfAllowSlot I (tfSrcMasked I)) ≠ UInt256.lnot ⟨0⟩ :=
                 fun h => hmax (by unfold tfAllowWord; rw [h]; exact wtf_lnot0_toNat)
               have hrev := weth9TFBranchSpendRev h1186 (tfSrcMasked_canonical I) hnotMax
-                (by change (tfAllowWord I σ_evm).toNat < (tfWadWord I).toNat; omega)
+                (by change (tfAllowWord I σ).toNat < (tfWadWord I).toNat; omega)
                 (by simp only [List.length_cons, List.length_nil]; omega)
               exact weth9ReEquivExecRev hcode hrev hdisp (tfDecode_ok hsz100)
-                (weth9TFSolmRevAllow (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+                (weth9TFSolmRevAllow (σ := σ) (σ₀ := σ₀)
                   (A := A) (I := I) (g := Sat256.ofUInt256 g) hwv
-                  hsrcAddr (by rw [← halloweq]; exact hmax) (by rw [← hbaleq]; exact hbal)
-                  (by rw [← halloweq]; omega))
+                  hsrcAddr hmax hbal
+                  (by omega))
       · -- bal < wad: initial require reverts
         have hrev := weth9TFReqBalanceRev h1087 (tfSrcMasked_canonical I)
-          (by change (tfBalSrcWord I σ_evm).toNat < (tfWadWord I).toNat; omega)
+          (by change (tfBalSrcWord I σ).toNat < (tfWadWord I).toNat; omega)
           (by simp only [List.length_cons, List.length_nil]; omega)
         exact weth9ReEquivExecRev hcode hrev hdisp (tfDecode_ok hsz100)
-          (weth9TFSolmRevBal (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+          (weth9TFSolmRevBal (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := Sat256.ofUInt256 g) hwv
-            (by rw [← hbaleq]; omega))
+            (by omega))
     · -- calldata < 100: decode failure
       exact weth9ReEquivDecodeFailed hcode
         (weth9TFDecodeFailRev (g := Sat256.ofUInt256 g) hcode hwv hsz4 (by omega) hsize hsel) hdisp

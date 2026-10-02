@@ -29,13 +29,10 @@ private theorem flapperCtorDefaultsSlot5Word_eq_source (old : UInt256) :
   rw [u256_lor_comm]
 
 private theorem flapperCtorStateEquiv
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
-    {σ_evm σ_solm σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
-    (vat gem : AccountAddress)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    let evm0e := initState createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I
-    let evm0s := initState createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    (vat gem : AccountAddress) :
+    let evm0e := initState σ σ₀ g A I
+    let evm0s := initState σ σ₀ g A I
     let evm1e := flapperCtorAfterBegState evm0e
     let evm1s := flapperCtorAfterBegState evm0s
     let evm2e := Solm.EVM.storageStore evm1e evm1e.executionEnv.codeOwner ⟨5⟩
@@ -53,28 +50,34 @@ private theorem flapperCtorStateEquiv
     let evm7s := flapperCtorAfterGemState evm6s gem
     let evm8e := flapperCtorAfterLiveState evm7e
     let evm8s := flapperCtorAfterLiveState evm7s
-    EVMStateEquiv evm8e evm8s := by
+    evm8e.accountMap = evm8s.accountMap := by
   intro evm0e evm0s evm1e evm1s evm2e evm2s evm3s evm4e evm4s evm5e evm5s
     evm6e evm6s evm7e evm7s evm8e evm8s
-  have h0 : EVMStateEquiv evm0e evm0s := by
-    simpa [evm0e, evm0s] using EVMStateEquiv.initState (g := g) hAccounts
-  have h1 : EVMStateEquiv evm1e evm1s := by
-    simpa [evm1e, evm1s, evm0e, evm0s, flapperCtorAfterBegState, initState]
-      using h0.storageStore_codeOwner ⟨4⟩ (show flapperCtorBegWord = flapperCtorBegWord by rfl)
+  have h1 : evm1e.accountMap = evm1s.accountMap := by
+    simp [evm1e, evm1s, evm0e, evm0s, flapperCtorAfterBegState, initState,
+      storageStore_accountMap]
   let packedS :=
     flapperCtorDefaultsSlot5Word
       (Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨5⟩)
   let evm3sPacked :=
     Solm.EVM.storageStore evm1s evm1s.executionEnv.codeOwner ⟨5⟩ packedS
-  have hPacked : EVMStateEquiv evm2e evm3sPacked := by
+  have hPacked : evm2e.accountMap = evm3sPacked.accountMap := by
+    have hEnv : evm1e.executionEnv = evm1s.executionEnv := by
+      simp [evm1e, evm1s, evm0e, evm0s, flapperCtorAfterBegState,
+        storageStore_executionEnv]
+    have hLoad :
+        Solm.EVM.storageLoad evm1e evm1e.executionEnv.codeOwner ⟨5⟩ =
+          Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨5⟩ := by
+      simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, h1, hEnv]
     have hval :
         flapperCtorDefaultsSlot5Word
             (Solm.EVM.storageLoad evm1e evm1e.executionEnv.codeOwner ⟨5⟩) =
           packedS := by
-      simpa [packedS] using
-        congrArg flapperCtorDefaultsSlot5Word (h1.storageLoad_codeOwner ⟨5⟩)
-    simpa [evm2e, evm3sPacked] using h1.storageStore_codeOwner ⟨5⟩ hval
-  have hPackedActual : accountMapEquiv evm3sPacked.accountMap evm3s.accountMap := by
+      simpa [packedS] using congrArg flapperCtorDefaultsSlot5Word hLoad
+    simp only [evm2e, evm3sPacked, storageStore_accountMap]
+    rw [show evm1e.executionEnv.codeOwner = evm1s.executionEnv.codeOwner from
+      congrArg ExecutionEnv.codeOwner hEnv, h1, hval]
+  have hPackedActual : evm3sPacked.accountMap = evm3s.accountMap := by
     cases hacc : evm1s.accountMap.find? evm1s.executionEnv.codeOwner with
     | none =>
         have hPackedNoop : evm3sPacked = evm1s := by
@@ -92,7 +95,7 @@ private theorem flapperCtorStateEquiv
               (fileSetUint48Offset6Word
                 (Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨5⟩)
                 flapperCtorTauWord)
-        simpa [hPackedNoop, hTauNoop] using accountMapEquiv_refl evm1s.accountMap
+        simpa [hPackedNoop, hTauNoop]
     | some acc =>
         have hTtlLoad :
             Solm.EVM.storageLoad evm2s evm2s.executionEnv.codeOwner ⟨5⟩ =
@@ -125,7 +128,7 @@ private theorem flapperCtorStateEquiv
               packedS := by
           simpa [evm2s, flapperCtorAfterTtlState, storageStore_executionEnv] using hTauVal
         have hbase :=
-          accountMapEquiv_sstoreAccountMap_self_update evm1s.accountMap
+          sstoreAccountMap_self_update evm1s.accountMap
             evm1s.executionEnv.codeOwner ⟨5⟩
             (fileSetUint48Offset0Word
               (Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨5⟩)
@@ -134,16 +137,17 @@ private theorem flapperCtorStateEquiv
         simpa [evm3sPacked, evm3s, evm2s, flapperCtorAfterTtlState,
           flapperCtorAfterTauState, storageStore_accountMap, storageStore_executionEnv,
           hTauVal'] using hbase
-  have h2 : EVMStateEquiv evm2e evm3s := by
-    refine ⟨?_, ?_, accountMapEquiv.trans hPacked.accountMap hPackedActual⟩
-    · simpa [evm3sPacked, evm3s, evm2s, flapperCtorAfterTtlState,
-        flapperCtorAfterTauState, storageStore_executionEnv] using hPacked.executionEnv
-    · simpa [evm3sPacked, evm3s, evm2s, flapperCtorAfterTtlState,
-        flapperCtorAfterTauState, storageStore_createdAccounts] using hPacked.createdAccounts
-  have h3 : EVMStateEquiv evm4e evm4s := by
-    simpa [evm4e, evm4s, evm2e, evm3s, flapperCtorAfterKicksState]
-      using h2.storageStore_codeOwner ⟨6⟩ (show (⟨0⟩ : UInt256) = ⟨0⟩ by rfl)
-  have h4 : EVMStateEquiv evm5e evm5s := by
+  have h2 : evm2e.accountMap = evm3s.accountMap := hPacked.trans hPackedActual
+  have h3 : evm4e.accountMap = evm4s.accountMap := by
+    have hEnv : evm2e.executionEnv = evm3s.executionEnv := by
+      simp [evm2e, evm3s, evm2s, evm1e, evm1s, evm0e, evm0s,
+        flapperCtorAfterKicksState, flapperCtorAfterTauState,
+        flapperCtorAfterTtlState, flapperCtorAfterBegState,
+        storageStore_executionEnv, initState]
+    simp only [evm4e, evm4s, flapperCtorAfterKicksState, storageStore_accountMap]
+    rw [show evm2e.executionEnv.codeOwner = evm3s.executionEnv.codeOwner from
+      congrArg ExecutionEnv.codeOwner hEnv, h2]
+  have h4 : evm5e.accountMap = evm5s.accountMap := by
     have hslotE : wardsSlot (.address evm4e.executionEnv.source) = flapperCtorCallerWardsSlot I := by
       simpa [evm4e, evm2e, evm1e, evm0e, flapperCtorAfterKicksState,
         flapperCtorAfterBegState, initState,
@@ -153,10 +157,20 @@ private theorem flapperCtorStateEquiv
         flapperCtorAfterTauState, flapperCtorAfterTtlState,
         flapperCtorAfterBegState, initState, storageStore_executionEnv] using
         flapperCtorCallerWardsSlot_eq I
-    simpa [evm5e, evm5s, evm4e, evm4s, flapperCtorAfterWardsState, hslotE, hslotS]
-      using h3.storageStore_codeOwner (flapperCtorCallerWardsSlot I)
-        (show (⟨1⟩ : UInt256) = ⟨1⟩ by rfl)
-  have h5 : EVMStateEquiv evm6e evm6s := by
+    have hEnv : evm4e.executionEnv = evm4s.executionEnv := by
+      simp [evm4e, evm4s, evm2e, evm3s, evm2s, evm1e, evm1s, evm0e, evm0s,
+        flapperCtorAfterKicksState, flapperCtorAfterTauState,
+        flapperCtorAfterTtlState, flapperCtorAfterBegState,
+        storageStore_executionEnv, initState]
+    simp only [evm5e, evm5s, flapperCtorAfterWardsState, storageStore_accountMap]
+    rw [show evm4e.executionEnv.codeOwner = evm4s.executionEnv.codeOwner from
+      congrArg ExecutionEnv.codeOwner hEnv, h3, hslotE, hslotS]
+  have h5 : evm6e.accountMap = evm6s.accountMap := by
+    have hEnv : evm5e.executionEnv = evm5s.executionEnv := by
+      simp [evm5e, evm5s, evm4e, evm4s, evm2e, evm3s, evm1e, evm1s,
+        evm0e, evm0s, evm2s, flapperCtorAfterWardsState, flapperCtorAfterKicksState,
+        flapperCtorAfterTauState, flapperCtorAfterTtlState, flapperCtorAfterBegState,
+        storageStore_executionEnv, initState]
     have hval :
         setAddressOffset0Word
             (Solm.EVM.storageLoad evm5e evm5e.executionEnv.codeOwner ⟨2⟩)
@@ -164,10 +178,29 @@ private theorem flapperCtorStateEquiv
           setAddressOffset0Word
             (Solm.EVM.storageLoad evm5s evm5s.executionEnv.codeOwner ⟨2⟩)
             (EVM.word vat.val) := by
-      exact congrArg (fun old => setAddressOffset0Word old (EVM.word vat.val))
-        (h4.storageLoad_codeOwner ⟨2⟩)
-    simpa [evm6e, evm6s, flapperCtorAfterVatState] using h4.storageStore_codeOwner ⟨2⟩ hval
-  have h6 : EVMStateEquiv evm7e evm7s := by
+      have hLoad : Solm.EVM.storageLoad evm5e evm5e.executionEnv.codeOwner ⟨2⟩ =
+          Solm.EVM.storageLoad evm5s evm5s.executionEnv.codeOwner ⟨2⟩ := by
+        simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, h4, hEnv]
+      exact congrArg (fun old => setAddressOffset0Word old (EVM.word vat.val)) hLoad
+    simp only [evm6e, evm6s, flapperCtorAfterVatState, storageStore_accountMap]
+    have hval' :
+        setAddressOffset0Word
+            (Solm.EVM.storageLoad evm5e evm5s.executionEnv.codeOwner ⟨2⟩)
+            (EVM.word vat.val) =
+          setAddressOffset0Word
+            (Solm.EVM.storageLoad evm5s evm5s.executionEnv.codeOwner ⟨2⟩)
+            (EVM.word vat.val) := by
+      simpa [show evm5e.executionEnv.codeOwner = evm5s.executionEnv.codeOwner from
+        congrArg ExecutionEnv.codeOwner hEnv] using hval
+    rw [show evm5e.executionEnv.codeOwner = evm5s.executionEnv.codeOwner from
+      congrArg ExecutionEnv.codeOwner hEnv, h4, hval']
+  have h6 : evm7e.accountMap = evm7s.accountMap := by
+    have hEnv : evm6e.executionEnv = evm6s.executionEnv := by
+      simp [evm6e, evm6s, evm5e, evm5s, evm4e, evm4s, evm2e, evm3s,
+        evm1e, evm1s, evm0e, evm0s, evm2s, flapperCtorAfterVatState,
+        flapperCtorAfterWardsState, flapperCtorAfterKicksState,
+        flapperCtorAfterTauState, flapperCtorAfterTtlState, flapperCtorAfterBegState,
+        storageStore_executionEnv, initState]
     have hval :
         setAddressOffset0Word
             (Solm.EVM.storageLoad evm6e evm6e.executionEnv.codeOwner ⟨3⟩)
@@ -175,28 +208,48 @@ private theorem flapperCtorStateEquiv
           setAddressOffset0Word
             (Solm.EVM.storageLoad evm6s evm6s.executionEnv.codeOwner ⟨3⟩)
             (EVM.word gem.val) := by
-      exact congrArg (fun old => setAddressOffset0Word old (EVM.word gem.val))
-        (h5.storageLoad_codeOwner ⟨3⟩)
-    simpa [evm7e, evm7s, flapperCtorAfterGemState] using h5.storageStore_codeOwner ⟨3⟩ hval
-  have h7 : EVMStateEquiv evm8e evm8s := by
-    simpa [evm8e, evm8s, flapperCtorAfterLiveState]
-      using h6.storageStore_codeOwner ⟨7⟩ (show (⟨1⟩ : UInt256) = ⟨1⟩ by rfl)
+      have hLoad : Solm.EVM.storageLoad evm6e evm6e.executionEnv.codeOwner ⟨3⟩ =
+          Solm.EVM.storageLoad evm6s evm6s.executionEnv.codeOwner ⟨3⟩ := by
+        simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, h5, hEnv]
+      exact congrArg (fun old => setAddressOffset0Word old (EVM.word gem.val)) hLoad
+    simp only [evm7e, evm7s, flapperCtorAfterGemState, storageStore_accountMap]
+    have hval' :
+        setAddressOffset0Word
+            (Solm.EVM.storageLoad evm6e evm6s.executionEnv.codeOwner ⟨3⟩)
+            (EVM.word gem.val) =
+          setAddressOffset0Word
+            (Solm.EVM.storageLoad evm6s evm6s.executionEnv.codeOwner ⟨3⟩)
+            (EVM.word gem.val) := by
+      simpa [show evm6e.executionEnv.codeOwner = evm6s.executionEnv.codeOwner from
+        congrArg ExecutionEnv.codeOwner hEnv] using hval
+    rw [show evm6e.executionEnv.codeOwner = evm6s.executionEnv.codeOwner from
+      congrArg ExecutionEnv.codeOwner hEnv, h5, hval']
+  have h7 : evm8e.accountMap = evm8s.accountMap := by
+    have hEnv : evm7e.executionEnv = evm7s.executionEnv := by
+      simp [evm7e, evm7s, evm6e, evm6s, evm5e, evm5s, evm4e, evm4s,
+        evm2e, evm3s, evm2s, evm1e, evm1s, evm0e, evm0s,
+        flapperCtorAfterGemState, flapperCtorAfterVatState,
+        flapperCtorAfterWardsState, flapperCtorAfterKicksState,
+        flapperCtorAfterTauState, flapperCtorAfterTtlState, flapperCtorAfterBegState,
+        storageStore_executionEnv, initState]
+    simp only [evm8e, evm8s, flapperCtorAfterLiveState, storageStore_accountMap]
+    rw [show evm7e.executionEnv.codeOwner = evm7s.executionEnv.codeOwner from
+      congrArg ExecutionEnv.codeOwner hEnv, h6]
   exact h7
 
 set_option maxHeartbeats 2000000 in
 theorem flapperConstructorCorrect :
     constructorEquivalence config flapperCreationBytecode contract flapperBytecode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I args deployedInitcode
-    hdeploy hcode _hcalldata hperm hAccounts
+  intro σ σ₀ g A I args deployedInitcode
+    hdeploy hcode _hcalldata hperm
   rcases flapperCtorDeployment_shape hdeploy with ⟨vat, gem, hargs, hdeployed⟩
   subst args
   have hcodeCtor : I.code = flapperCtorCode vat gem := by
     rw [hcode, hdeployed]
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hrd := flapperInitcodeSuccess
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat gem hcodeCtor hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
     · exact constructorEquivalenceFor.outOfGas
@@ -206,13 +259,11 @@ theorem flapperConstructorCorrect :
     · have hsuccess := Xi_success_of_X (g := g) (by
         rw [← hcodeCtor] at hX
         simpa [Sat256.ofUInt256] using hX)
-      have hcA : s.createdAccounts = createdAccounts := congrArg Prod.fst hacc
       have hσ' : s.accountMap =
-          flapperCtorFinalMap (flapperCtorAfterKicksMap σ_evm I) I vat gem := by
-        simpa using congrArg Prod.snd hacc
-      rw [hcA, hσ'] at hsuccess
+          flapperCtorFinalMap (flapperCtorAfterKicksMap σ I) I vat gem := hacc
+      rw [hσ'] at hsuccess
       let evm0s :=
-        initState createdAccounts genesisBlockHeader blocks σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm1s := flapperCtorAfterBegState evm0s
       let evm2s := flapperCtorAfterTtlState evm1s
       let evm3s := flapperCtorAfterTauState evm2s
@@ -222,7 +273,7 @@ theorem flapperConstructorCorrect :
       let evm7s := flapperCtorAfterGemState evm6s gem
       let evm8s := flapperCtorAfterLiveState evm7s
       let evm0e :=
-        initState createdAccounts genesisBlockHeader blocks σ_evm σ₀ (Sat256.ofUInt256 g) A I
+        initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evm1e := flapperCtorAfterBegState evm0e
       let evm2e := Solm.EVM.storageStore evm1e evm1e.executionEnv.codeOwner ⟨5⟩
         (flapperCtorDefaultsSlot5Word
@@ -232,55 +283,44 @@ theorem flapperConstructorCorrect :
       let evm6e := flapperCtorAfterVatState evm5e vat
       let evm7e := flapperCtorAfterGemState evm6e gem
       let evm8e := flapperCtorAfterLiveState evm7e
-      have hstate : EVMStateEquiv evm8e evm8s := by
+      have hstate : evm8e.accountMap = evm8s.accountMap := by
         simpa [evm0e, evm0s, evm1e, evm1s, evm2e, evm2s, evm3s, evm4e, evm4s,
           evm5e, evm5s, evm6e, evm6s, evm7e, evm7s, evm8e, evm8s]
           using
             flapperCtorStateEquiv
-              (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-              (blocks := blocks) (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀)
-              (A := A) (I := I) (g := Sat256.ofUInt256 g) vat gem hAccounts
-      have hslot : wardsSlot (.address I.source) = flapperCtorCallerWardsSlot I :=
-        flapperCtorCallerWardsSlot_eq I
-      have hAccountsFinal :
-          accountMapEquiv (flapperCtorFinalMap (flapperCtorAfterKicksMap σ_evm I) I vat gem)
-            evm8s.accountMap := by
-        simpa [evm8e, evm7e, evm6e, evm5e, evm4e, evm2e, evm1e, evm0e,
-          evm8s, evm7s, evm6s, evm5s, evm4s, evm3s, evm2s, evm1s, evm0s,
+              (σ := σ)  (σ₀ := σ₀)
+              (A := A) (I := I) (g := Sat256.ofUInt256 g) vat gem
+      have hMapE : evm8e.accountMap =
+          flapperCtorFinalMap (flapperCtorAfterKicksMap σ I) I vat gem := by
+        simp [evm8e, evm7e, evm6e, evm5e, evm4e, evm2e, evm1e, evm0e,
           flapperCtorFinalMap, flapperCtorAfterGemMap, flapperCtorAfterVatMap,
           flapperCtorAfterWardsMap, flapperCtorAfterKicksMap,
-          flapperCtorAfterPackedDefaultsMap,
-          flapperCtorAfterBegMap, flapperCtorAfterLiveState, flapperCtorAfterGemState,
-          flapperCtorAfterVatState, flapperCtorAfterWardsState, flapperCtorAfterKicksState,
-          flapperCtorAfterTauState, flapperCtorAfterTtlState,
-          flapperCtorAfterBegState, initState, storageStore_accountMap,
-          storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount,
-          Account.lookupStorage, solcSlotWord, hslot] using hstate.accountMap
+          flapperCtorAfterPackedDefaultsMap, flapperCtorAfterBegMap,
+          flapperCtorAfterLiveState, flapperCtorAfterGemState,
+          flapperCtorAfterVatState, flapperCtorAfterWardsState,
+          flapperCtorAfterKicksState, flapperCtorAfterBegState, initState,
+          storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
+          State.lookupAccount, Account.lookupStorage, solcSlotWord,
+          flapperCtorCallerWardsSlot_eq]
+      have hMapFinal :
+          flapperCtorFinalMap (flapperCtorAfterKicksMap σ I) I vat gem =
+            evm8s.accountMap := hMapE.symm.trans hstate
       refine constructorEquivalenceFor.execution hsuccess
         (by
           simpa [evm0s, evm1s, evm2s, evm3s, evm4s, evm5s, evm6s, evm7s, evm8s] using
             flapperSolmCtorExecSuccess
-              (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-              (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
               (g := g) vat gem hwv)
         ?_
-      refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
-      · simp [evm8s, evm7s, evm6s, evm5s, evm4s, evm3s, evm2s, evm1s,
-          evm0s, flapperCtorAfterLiveState, flapperCtorAfterGemState,
-          flapperCtorAfterVatState, flapperCtorAfterWardsState, flapperCtorAfterKicksState,
-          flapperCtorAfterTauState, flapperCtorAfterTtlState,
-          flapperCtorAfterBegState, storageStore_createdAccounts, initState]
-      · exact hAccountsFinal
+      exact ctorResultEquiv.success rfl rfl hMapFinal rfl
   · have hrd := flapperInitcodeNonpayableRevert
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat gem hcodeCtor hperm hwv
     rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩
     · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
     · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
         (flapperSolmCtorExecReverts_nonpayable
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := g) vat gem hwv)
         ?_
       exact ctorResultEquiv.revert rfl rfl

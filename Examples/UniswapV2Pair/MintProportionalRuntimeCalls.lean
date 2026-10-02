@@ -11,7 +11,7 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapMintProportionalMul0Entry
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 : UInt256}
     (rd3762 : RD uniswapV2PairBytecode ee g s0 ⟨3762⟩
@@ -34,7 +34,7 @@ theorem RD.uniswapMintProportionalMul0Entry
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapMintProportionalMul1Entry
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 : UInt256}
     {liquidity0 : UInt256}
@@ -59,7 +59,7 @@ theorem RD.uniswapMintProportionalMul1Entry
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapMintProportionalDiv0Guard
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {product reserve : UInt256}
     (rd : RD uniswapV2PairBytecode ee g s0 ⟨3791⟩
@@ -72,7 +72,7 @@ theorem RD.uniswapMintProportionalDiv0Guard
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapMintProportionalDiv1Guard
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw : UInt256} {k C : ℕ} {R : List UInt256}
     {product reserve : UInt256}
     (rd : RD uniswapV2PairBytecode ee g s0 ⟨3825⟩

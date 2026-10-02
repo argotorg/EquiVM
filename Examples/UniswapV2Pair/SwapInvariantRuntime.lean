@@ -24,19 +24,19 @@ theorem swapInvariantReserveFits (reserve0 reserve1 : UInt256)
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSwapInvariantProductEntry
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw adjusted1 adjusted0 amount1In amount0In balance1 balance0 reserve1 reserve0 : UInt256}
     {R : List UInt256} {k C : Nat}
     (rd2570 : RD uniswapV2PairBytecode I g s0 ⟨2570⟩
       (adjusted1 :: adjusted0 :: amount1In :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: R)
-      mem aw rdata acc k C)
+      mem aw rdata σ k C)
     (hc0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hc1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hov : R.length + 23 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6780⟩
       (adjusted1 :: adjusted0 :: ⟨2632⟩ :: swapInvariantReserveWord reserve0 reserve1 ::
         adjusted1 :: adjusted0 :: amount1In :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: R)
-      mem aw rdata acc k' C' := by
+      mem aw rdata σ k' C' := by
   have rd2573 := evm_run rd2570 with [push2 ⟨2616⟩]
   have rd2577 := RD.pushConst rd2573 (⟨1000000⟩ : UInt256) (op := .PUSH3) (width := 3)
     (by decide) (by native_decide) (by simp only [List.length_cons]; omega)
@@ -67,12 +67,12 @@ abbrev swapInvariantValid (adjusted0 adjusted1 reserve0 reserve1 : UInt256) : Pr
 set_option maxHeartbeats 1000000 in
 theorem uniswapSwapInvariantRuntimeCases
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {aw ptr adjusted1 adjusted0 amount1In amount0In balance1 balance0 reserve1 reserve0 : UInt256}
     {R : List UInt256} {k C : Nat}
     (rd2570 : RD uniswapV2PairBytecode I g s0 ⟨2570⟩
       (adjusted1 :: adjusted0 :: amount1In :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: R)
-      mem aw rdata acc k C)
+      mem aw rdata σ k C)
     (hc0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hc1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hin : 96 ≤ mem.size) (hlo : 96 ≤ ptr.toNat) (hgap : ptr.toNat - mem.size < USize.size)
@@ -83,7 +83,7 @@ theorem uniswapSwapInvariantRuntimeCases
     swapInvariantValid adjusted0 adjusted1 reserve0 reserve1 ∧ ∃ k' C',
       RD uniswapV2PairBytecode I g s0 ⟨2701⟩
         (amount1In :: amount0In :: balance1 :: balance0 :: reserve1 :: reserve0 :: R)
-        mem aw rdata acc k' C' := by
+        mem aw rdata σ k' C' := by
   obtain ⟨_, _, rdMul⟩ := RD.uniswapSwapInvariantProductEntry rd2570 hc0 hc1 hov
   by_cases hfit : adjusted0.toNat * adjusted1.toNat < UInt256.size
   · obtain ⟨_, _, rd2632⟩ := RD.uniswapSafeMathMulSuccess rdMul hfit (by jump_dest)

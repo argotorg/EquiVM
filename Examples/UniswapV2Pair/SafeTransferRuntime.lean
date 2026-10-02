@@ -840,10 +840,10 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferEntryToCallMade {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {value toWord token ret : UInt256}
     {R : List UInt256} {base rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6370⟩
       (value :: toWord :: token :: ret :: R)
-      base balanceOfThisStaticcallActiveWords rdata (cA, σ) k C)
+      base balanceOfThisStaticcallActiveWords rdata σ k C)
     (hbase : base.size = 164)
     (hbaseMload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ base.size then ⟨0⟩
@@ -852,30 +852,30 @@ theorem RD.uniswapSafeTransferEntryToCallMade {g : Sat256} {s0 : State}
         ⟨128⟩)
     (hdepth : ee.depth.val < 1024)
     (hR : R.length + 20 ≤ 1024) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (A_in : Substate) (callGas _gasArg : UInt256)
       (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ ee.blobVersionedHashes cA s0.genesisBlockHeader s0.blocks σ s0.σ₀ A_in
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ σ s0.σ₀ A_in
             (AccountAddress.ofUInt256 (UInt256.ofNat ee.codeOwner)) ee.sender
             (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask))
             (toExecute σ (AccountAddress.ofUInt256 (UInt256.land token solcAddrMask)))
             callGas (UInt256.ofNat ee.gasPrice) ⟨0⟩ ⟨0⟩
             ((safeTransferRuntimeCallMem2 base toWord value).readWithPadding 292 68)
-            (ee.depth + 1) ee.header ee.perm)
+            (ee.depth + 1) ee.header ee.blobVersionedHashes ee.blocks ee.perm)
       ∧ RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨360⟩ ::
             UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
             value :: toWord :: token :: ret :: R)
           (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out
-          (cA', σ') k' C'
+          σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘ, rd6595, houtSize⟩ :=
+  obtain ⟨σ', z, out, A_in, callGas, k', C', hΘ, rd6595, houtSize⟩ :=
     RD.uniswapSafeTransferDynamicEntryToCallMade (ptr := ⟨128⟩) h hbaseMload64 (by native_decide)
       (by omega) (by change 128 - base.size < USize.size; rw [hbase]; exact lt_usize 0 (by omega))
       (by decide) (by change base.size ≤ 128 + 228; omega) (by native_decide) (by native_decide) hdepth hR
-  refine ⟨cA', σ', z, out, A_in, callGas, ⟨0⟩, k', C', ?_, ?_, houtSize⟩
+  refine ⟨σ', z, out, A_in, callGas, ⟨0⟩, k', C', ?_, ?_, houtSize⟩
   · simpa only [safeTransferDynamicCallMem2_default] using hΘ
   · simpa only [safeTransferDynamicCallMem2_default, safeTransferDynamicCallWords2_default] using rd6595
 
@@ -1234,17 +1234,17 @@ theorem RD.uniswapSafeTransferCallMem2NonemptyReturnToCheck
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {status value toWord token ret : UInt256} {R : List UInt256}
     {base out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (status :: ⟨360⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R)
-      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out acc k C)
+      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out σ k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (hbase : base.size = 164) (hR : R.length + 16 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
       (⟨292⟩ :: status :: value :: toWord :: token :: ret :: R)
       (safeTransferRuntimeReturnDataMem base toWord value out)
-      (safeTransferRuntimeReturnDataActiveWords out) out acc k' C' := by
+      (safeTransferRuntimeReturnDataActiveWords out) out σ k' C' := by
   exact RD.uniswapSafeTransferReturnNonemptyReturnToCheck
     (dataPtr := ⟨292⟩)
     (finalAw := safeTransferRuntimeReturnDataActiveWords out)
@@ -1267,11 +1267,11 @@ theorem RD.uniswapSafeTransferCallMem2NonemptyHugeReverts
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {status value toWord token ret : UInt256} {R : List UInt256}
     {base out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (status :: ⟨360⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R)
-      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out acc k C)
+      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out σ k C)
     (houtNe : out.size ≠ 0) (hhi : 2 ^ 255 ≤ out.size)
     (houtSize : out.size < UInt256.size)
     (hbase : base.size = 164) (hR : R.length + 16 ≤ 1024) :
@@ -1293,11 +1293,11 @@ theorem RD.uniswapSafeTransferCallMem2NonemptyFailureReverts
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {value toWord token ret : UInt256} {R : List UInt256}
     {base out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨0⟩ :: ⟨360⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R)
-      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out acc k C)
+      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out σ k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (hbase : base.size = 164) (hR : R.length + 16 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
@@ -1311,18 +1311,18 @@ theorem RD.uniswapSafeTransferCallMem2NonemptyTrueStatusToLengthLoaded
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {value toWord token ret : UInt256} {R : List UInt256}
     {base out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: ⟨360⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R)
-      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out acc k C)
+      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out σ k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (hbase : base.size = 164) (hR : R.length + 16 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
       (UInt256.ofNat out.size :: ⟨324⟩ :: ⟨292⟩ :: ⟨1⟩ ::
         value :: toWord :: token :: ret :: R)
       (safeTransferRuntimeReturnDataMem base toWord value out)
-      (safeTransferRuntimeReturnDataActiveWords out) out acc k' C' := by
+      (safeTransferRuntimeReturnDataActiveWords out) out σ k' C' := by
   obtain ⟨_, _, rd6652⟩ :=
     RD.uniswapSafeTransferCallMem2NonemptyReturnToCheck
       h houtNe houtSize hbase hR
@@ -1339,11 +1339,11 @@ theorem RD.uniswapSafeTransferCallMem2NonemptyShortReverts
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {value toWord token ret : UInt256} {R : List UInt256}
     {base out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: ⟨360⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R)
-      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out acc k C)
+      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out σ k C)
     (houtNe : out.size ≠ 0) (hshort : out.size < 32) (houtSize : out.size < 2 ^ 255)
     (hbase : base.size = 164) (hR : R.length + 16 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
@@ -1358,11 +1358,11 @@ theorem RD.uniswapSafeTransferCallMem2NonemptyFalseReverts
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {value toWord token ret : UInt256} {R : List UInt256}
     {base out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: ⟨360⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R)
-      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out acc k C)
+      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out σ k C)
     (houtNe : out.size ≠ 0) (hout32 : 32 ≤ out.size) (houtSize : out.size < 2 ^ 255)
     (hword : UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) = ⟨0⟩)
     (hbase : base.size = 164) (hR : R.length + 16 ≤ 1024) :
@@ -1382,18 +1382,18 @@ theorem RD.uniswapSafeTransferCallMem2NonemptyTrueToRet
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {value toWord token ret : UInt256} {R : List UInt256}
     {base out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: ⟨360⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R)
-      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out acc k C)
+      (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13) out σ k C)
     (houtNe : out.size ≠ 0) (hout32 : 32 ≤ out.size) (houtSize : out.size < 2 ^ 255)
     (hword : UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) ≠ ⟨0⟩)
     (hbase : base.size = 164) (hR : R.length + 16 ≤ 1024)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R
       (safeTransferRuntimeReturnDataMem base toWord value out)
-      (safeTransferRuntimeReturnDataActiveWords out) out acc k' C' := by
+      (safeTransferRuntimeReturnDataActiveWords out) out σ k' C' := by
   obtain ⟨_, _, rd6676⟩ :=
     RD.uniswapSafeTransferCallMem2NonemptyTrueStatusToLengthLoaded
       h houtNe houtSize hbase hR

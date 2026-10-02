@@ -7,11 +7,11 @@ namespace Benchmarks.Dss.Clipper
 
 set_option linter.unusedTactic false
 
-theorem clipperFileAddressAuthSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperFileAddressAuthSourceReverts {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hauth : clipperRelyAuthWord σ I ≠ ⟨1⟩) :
     let locals := clipperFileAddressLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals fileAddressTransition.body
       .reverted := by
   intro locals evm0
@@ -45,12 +45,12 @@ theorem clipperFileAddressAuthSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256
         hauthEval
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem clipperFileAddressLockedSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperFileAddressLockedSourceReverts {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩) :
     let locals := clipperFileAddressLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals fileAddressTransition.body
       .reverted := by
   intro locals evm0
@@ -75,13 +75,13 @@ theorem clipperFileAddressLockedSourceReverts {cA gh bl σ σ₀ A I} {g : UInt2
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileAddressSpotterSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperFileAddressSpotterSourceBody {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hwhat : clipperFileAddressWhat I = clipperFileAddressSpotterBytes) :
     let locals := clipperFileAddressLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm2 := clipperFileAddressPostState evm0 ⟨3⟩ (clipperFileAddressDataMaskedWord I)
     ExecTransitionBody (config v) (contract v) evm0 locals fileAddressTransition.body
       (.returned { contract := contract v, locals := locals } evm2 none) := by
@@ -171,14 +171,14 @@ theorem clipperFileAddressSpotterSourceBody {cA gh bl σ σ₀ A I} {g : UInt256
   simpa [ExecTransitionBody, locals, evm0, evm2] using ExecFuncBody.execBlockOK hblock
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileAddressDogSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperFileAddressDogSourceBody {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hnotSpotter : clipperFileAddressWhat I ≠ clipperFileAddressSpotterBytes)
     (hwhat : clipperFileAddressWhat I = clipperFileAddressDogBytes) :
     let locals := clipperFileAddressLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm2 := clipperFileAddressPostState evm0 ⟨1⟩ (clipperFileAddressDataMaskedWord I)
     ExecTransitionBody (config v) (contract v) evm0 locals fileAddressTransition.body
       (.returned { contract := contract v, locals := locals } evm2 none) := by
@@ -286,7 +286,7 @@ theorem clipperFileAddressDogSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, locals, evm0, evm2] using ExecFuncBody.execBlockOK hblock
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileAddressVowSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperFileAddressVowSourceBody {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
@@ -294,7 +294,7 @@ theorem clipperFileAddressVowSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
     (hnotDog : clipperFileAddressWhat I ≠ clipperFileAddressDogBytes)
     (hwhat : clipperFileAddressWhat I = clipperFileAddressVowBytes) :
     let locals := clipperFileAddressLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm2 := clipperFileAddressPostState evm0 ⟨2⟩ (clipperFileAddressDataMaskedWord I)
     ExecTransitionBody (config v) (contract v) evm0 locals fileAddressTransition.body
       (.returned { contract := contract v, locals := locals } evm2 none) := by
@@ -418,7 +418,7 @@ theorem clipperFileAddressVowSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, locals, evm0, evm2] using ExecFuncBody.execBlockOK hblock
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileAddressCalcSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperFileAddressCalcSourceBody {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
@@ -427,7 +427,7 @@ theorem clipperFileAddressCalcSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
     (hnotVow : clipperFileAddressWhat I ≠ clipperFileAddressVowBytes)
     (hwhat : clipperFileAddressWhat I = clipperFileAddressCalcBytes) :
     let locals := clipperFileAddressLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm2 := clipperFileAddressPostState evm0 ⟨4⟩ (clipperFileAddressDataMaskedWord I)
     ExecTransitionBody (config v) (contract v) evm0 locals fileAddressTransition.body
       (.returned { contract := contract v, locals := locals } evm2 none) := by
@@ -565,7 +565,7 @@ theorem clipperFileAddressCalcSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, locals, evm0, evm2] using ExecFuncBody.execBlockOK hblock
 
 set_option maxHeartbeats 1000000 in
-theorem clipperFileAddressUnrecognizedSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperFileAddressUnrecognizedSourceBody {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hauth : clipperRelyAuthWord σ I = ⟨1⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
@@ -574,7 +574,7 @@ theorem clipperFileAddressUnrecognizedSourceBody {cA gh bl σ σ₀ A I} {g : UI
     (hnotVow : clipperFileAddressWhat I ≠ clipperFileAddressVowBytes)
     (hnotCalc : clipperFileAddressWhat I ≠ clipperFileAddressCalcBytes) :
     let locals := clipperFileAddressLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals fileAddressTransition.body
       .reverted := by
   intro locals evm0

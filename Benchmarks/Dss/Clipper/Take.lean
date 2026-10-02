@@ -899,16 +899,15 @@ theorem clipperDispatch_take (v : ClipperImmutables) {I : ExecutionEnv}
     simpa [clipperSelBytes] using hsel
 
 set_option maxHeartbeats 1000000 in
-theorem clipperReachTakeBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem clipperReachTakeBody {σ σ₀ A I} {g : Sat256}
     (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 22)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨912⟩ : UInt256)
-      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨912⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := clipperReachRoot (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperTakeSelectorWord hsz hsel
   have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
     (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
@@ -959,15 +958,15 @@ theorem clipperReachTakeBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by simp)
   exact ⟨_, _, h912⟩
 
-theorem clipperTakeX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperTakeX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 164)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨912⟩ : UInt256) [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) (⟨912⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev code g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨160⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1011,16 +1010,16 @@ theorem clipperTakeX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     (by change decode code (⟨933⟩ : UInt256) = some (.REVERT, .none); clipper_decode)
     hlt
 
-theorem clipperTakeX_head_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperTakeX_head_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hsz164 : 164 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨912⟩ : UInt256) [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨934⟩ : UInt256)
+      (initState σ σ₀ g A I) (⟨912⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨934⟩ : UInt256)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ⟨502⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   exact RD.solcExternalStaticArgsLenOk
     (code := code) (sel := sel) (entry := (⟨912⟩ : UInt256))
     (ret := (⟨502⟩ : UInt256)) (decoded := (⟨934⟩ : UInt256))
@@ -1236,21 +1235,21 @@ theorem clipperTakePayloadGt_one {I : ExecutionEnv}
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 2000 in
-theorem clipperTakeX_offsetPrefix {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperTakeX_offsetPrefix {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨934⟩ : UInt256)
+      (initState σ σ₀ g A I) (⟨934⟩ : UInt256)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ⟨502⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨977⟩ : UInt256)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨977⟩ : UInt256)
       (clipperTakeDataOffsetWord I :: ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) ::
         (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd934⟩ := hreach
   have rd977 := evm_run rd934 with [
     raw jumpdest (by clipper_decode) (by evm_ov),
@@ -1295,15 +1294,15 @@ theorem clipperTakeX_offsetPrefix {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 2000 in
-theorem clipperTakeX_offset_huge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperTakeX_offset_huge {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hgt : UInt256.gt (clipperTakeDataOffsetWord I) (⟨4294967296⟩ : UInt256) = ⟨1⟩)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨934⟩ : UInt256)
+      (initState σ σ₀ g A I) (⟨934⟩ : UInt256)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ⟨502⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev code g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd977⟩ := clipperTakeX_offsetPrefix v hpatch hreach
   have hd977 : decode code (⟨977⟩ : UInt256) =
       some (.Push .PUSH5, some ((⟨4294967296⟩ : UInt256), 5)) := by
@@ -1311,21 +1310,21 @@ theorem clipperTakeX_offset_huge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     native_decide
   have rd983raw := rd977.pushConst (⟨4294967296⟩ : UInt256)
     (width := 5) (op := .PUSH5) (by decide) hd977 (by evm_ov)
-  have rd983 : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨983⟩ : UInt256)
+  have rd983 : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨983⟩ : UInt256)
       ((⟨4294967296⟩ : UInt256) :: clipperTakeDataOffsetWord I ::
         ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) :: (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa using rd983raw⟩
   obtain ⟨_, _, rd983⟩ := rd983
   have hd983 : decode code (⟨983⟩ : UInt256) = some (.DUP2, .none) := by
     rw [clipperDecodeBeforeFirstPatch v hpatch (⟨983⟩ : UInt256) (by native_decide)]
     native_decide
   have rd984raw := rd983.dup2 hd983 (by evm_ov)
-  have rd984 : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨984⟩ : UInt256)
+  have rd984 : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨984⟩ : UInt256)
       (clipperTakeDataOffsetWord I :: (⟨4294967296⟩ : UInt256) ::
         clipperTakeDataOffsetWord I :: ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) ::
         (⟨4⟩ : UInt256) ::
@@ -1333,35 +1332,35 @@ theorem clipperTakeX_offset_huge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa using rd984raw⟩
   obtain ⟨_, _, rd984⟩ := rd984
   have hd984 : decode code (⟨984⟩ : UInt256) = some (.GT, .none) := by
     rw [clipperDecodeBeforeFirstPatch v hpatch (⟨984⟩ : UInt256) (by native_decide)]
     native_decide
   have rd985raw := rd984.gt hd984 (by evm_ov)
-  have rd985 : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨985⟩ : UInt256)
+  have rd985 : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨985⟩ : UInt256)
       (⟨1⟩ :: clipperTakeDataOffsetWord I ::
         ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) :: (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [hgt] using rd985raw⟩
   obtain ⟨_, _, rd985⟩ := rd985
   have hd985 : decode code (⟨985⟩ : UInt256) = some (.ISZERO, .none) := by
     rw [clipperDecodeBeforeFirstPatch v hpatch (⟨985⟩ : UInt256) (by native_decide)]
     native_decide
   have rd986raw := rd985.iszero hd985 (by evm_ov)
-  have rd986 : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨986⟩ : UInt256)
+  have rd986 : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨986⟩ : UInt256)
       (⟨0⟩ :: clipperTakeDataOffsetWord I ::
         ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) :: (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa using rd986raw⟩
   obtain ⟨_, _, rd986⟩ := rd986
   have hd986 : decode code (⟨986⟩ : UInt256) =
@@ -1370,28 +1369,28 @@ theorem clipperTakeX_offset_huge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     native_decide
   have rd989raw := rd986.pushConst (⟨994⟩ : UInt256)
     (width := 2) (op := .PUSH2) (by decide) hd986 (by evm_ov)
-  have rd989 : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨989⟩ : UInt256)
+  have rd989 : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨989⟩ : UInt256)
       ((⟨994⟩ : UInt256) :: ⟨0⟩ :: clipperTakeDataOffsetWord I ::
         ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) :: (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa using rd989raw⟩
   obtain ⟨_, _, rd989⟩ := rd989
   have hd989 : decode code (⟨989⟩ : UInt256) = some (.JUMPI, .none) := by
     rw [clipperDecodeBeforeFirstPatch v hpatch (⟨989⟩ : UInt256) (by native_decide)]
     native_decide
   have rd990raw := rd989.jumpiNT hd989 rfl (by evm_ov)
-  have rd990 : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨990⟩ : UInt256)
+  have rd990 : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨990⟩ : UInt256)
       (clipperTakeDataOffsetWord I :: ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) ::
         (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa using rd990raw⟩
   obtain ⟨_, _, rd990⟩ := rd990
   have hd990 : decode code (⟨990⟩ : UInt256) =
@@ -1411,22 +1410,22 @@ theorem clipperTakeX_offset_huge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 2000 in
-theorem clipperTakeX_offset_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperTakeX_offset_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hgt : UInt256.gt (clipperTakeDataOffsetWord I) (⟨4294967296⟩ : UInt256) = ⟨0⟩)
     (hreach : ∃ k C, RD code I g
-      (initState cA gh bl σ σ₀ g A I) (⟨934⟩ : UInt256)
+      (initState σ σ₀ g A I) (⟨934⟩ : UInt256)
       (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ⟨502⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨994⟩ : UInt256)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨994⟩ : UInt256)
       (clipperTakeDataOffsetWord I :: ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) ::
         (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd977⟩ := clipperTakeX_offsetPrefix v hpatch hreach
   have hd977 : decode code (⟨977⟩ : UInt256) =
       some (.Push .PUSH5, some ((⟨4294967296⟩ : UInt256), 5)) := by
@@ -1434,21 +1433,21 @@ theorem clipperTakeX_offset_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     native_decide
   have rd983raw := rd977.pushConst (⟨4294967296⟩ : UInt256)
     (width := 5) (op := .PUSH5) (by decide) hd977 (by evm_ov)
-  have rd983 : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨983⟩ : UInt256)
+  have rd983 : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨983⟩ : UInt256)
       ((⟨4294967296⟩ : UInt256) :: clipperTakeDataOffsetWord I ::
         ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) :: (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa using rd983raw⟩
   obtain ⟨_, _, rd983⟩ := rd983
   have hd983 : decode code (⟨983⟩ : UInt256) = some (.DUP2, .none) := by
     rw [clipperDecodeBeforeFirstPatch v hpatch (⟨983⟩ : UInt256) (by native_decide)]
     native_decide
   have rd984raw := rd983.dup2 hd983 (by evm_ov)
-  have rd984 : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨984⟩ : UInt256)
+  have rd984 : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨984⟩ : UInt256)
       (clipperTakeDataOffsetWord I :: (⟨4294967296⟩ : UInt256) ::
         clipperTakeDataOffsetWord I :: ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) ::
         (⟨4⟩ : UInt256) ::
@@ -1456,35 +1455,35 @@ theorem clipperTakeX_offset_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa using rd984raw⟩
   obtain ⟨_, _, rd984⟩ := rd984
   have hd984 : decode code (⟨984⟩ : UInt256) = some (.GT, .none) := by
     rw [clipperDecodeBeforeFirstPatch v hpatch (⟨984⟩ : UInt256) (by native_decide)]
     native_decide
   have rd985raw := rd984.gt hd984 (by evm_ov)
-  have rd985 : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨985⟩ : UInt256)
+  have rd985 : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨985⟩ : UInt256)
       (⟨0⟩ :: clipperTakeDataOffsetWord I ::
         ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) :: (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [hgt] using rd985raw⟩
   obtain ⟨_, _, rd985⟩ := rd985
   have hd985 : decode code (⟨985⟩ : UInt256) = some (.ISZERO, .none) := by
     rw [clipperDecodeBeforeFirstPatch v hpatch (⟨985⟩ : UInt256) (by native_decide)]
     native_decide
   have rd986raw := rd985.iszero hd985 (by evm_ov)
-  have rd986 : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨986⟩ : UInt256)
+  have rd986 : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨986⟩ : UInt256)
       (⟨1⟩ :: clipperTakeDataOffsetWord I ::
         ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) :: (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa using rd986raw⟩
   obtain ⟨_, _, rd986⟩ := rd986
   have hd986 : decode code (⟨986⟩ : UInt256) =
@@ -1493,14 +1492,14 @@ theorem clipperTakeX_offset_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     native_decide
   have rd989raw := rd986.pushConst (⟨994⟩ : UInt256)
     (width := 2) (op := .PUSH2) (by decide) hd986 (by evm_ov)
-  have rd989 : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨989⟩ : UInt256)
+  have rd989 : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨989⟩ : UInt256)
       ((⟨994⟩ : UInt256) :: ⟨1⟩ :: clipperTakeDataOffsetWord I ::
         ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) :: (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa using rd989raw⟩
   obtain ⟨_, _, rd989⟩ := rd989
   have hd989 : decode code (⟨989⟩ : UInt256) = some (.JUMPI, .none) := by
@@ -1510,22 +1509,22 @@ theorem clipperTakeX_offset_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     (clipperJumpDestBeforeFirstPatch v hpatch (⟨994⟩ : UInt256) (by native_decide))
     (by evm_ov)⟩
 
-theorem clipperTakeX_length_short {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperTakeX_length_short {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hgt :
       UInt256.gt
         ((⟨4⟩ : UInt256) + (clipperTakeDataOffsetWord I + (⟨32⟩ : UInt256)))
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) = ⟨1⟩)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨994⟩ : UInt256)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨994⟩ : UInt256)
       (clipperTakeDataOffsetWord I :: ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) ::
         (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev code g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd994⟩ := hreach
   have hgt' :
       UInt256.gt
@@ -1578,29 +1577,29 @@ theorem clipperTakeX_length_short {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
       (by rw [clipperDecodeBeforeFirstPatch v hpatch _ (by native_decide)]; native_decide)
       mem_cost (by evm_ov)]
 
-theorem clipperTakeX_length_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperTakeX_length_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hgt :
       UInt256.gt
         ((⟨4⟩ : UInt256) + (clipperTakeDataOffsetWord I + (⟨32⟩ : UInt256)))
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) = ⟨0⟩)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨994⟩ : UInt256)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨994⟩ : UInt256)
       (clipperTakeDataOffsetWord I :: ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) ::
         (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1012⟩ : UInt256)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1012⟩ : UInt256)
       (((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I) ::
         ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) :: (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd994⟩ := hreach
   have hgt' :
       UInt256.gt
@@ -1648,20 +1647,20 @@ theorem clipperTakeX_length_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 2000 in
-theorem clipperTakeX_length_huge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperTakeX_length_huge {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
     (hlenHuge : solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataLenWord I).toNat)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1012⟩ : UInt256)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1012⟩ : UInt256)
       (((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I) ::
         ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) :: (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev code g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1012⟩ := hreach
   have hload := clipperTakeDataLenLoad_eq (I := I) hoffMax
   have hlenGt := clipperTakeDataLenGt_one (I := I) hlenHuge
@@ -1749,7 +1748,7 @@ theorem clipperTakeX_length_huge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
 
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 2000 in
-theorem clipperTakeX_payload_short {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem clipperTakeX_payload_short {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
@@ -1759,15 +1758,15 @@ theorem clipperTakeX_payload_short {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
         (((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I) +
           UInt256.mul (clipperTakeDataLenWord I) ⟨1⟩))
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) = ⟨1⟩)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1012⟩ : UInt256)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨1012⟩ : UInt256)
       (((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I) ::
         ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) :: (⟨4⟩ : UInt256) ::
         ((⟨4⟩ : UInt256) + UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ::
         ((clipperTakeWhoWord I).land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)) ::
         clipperTakeMaxWord I :: clipperTakeAmtWord I :: clipperTakeIdWord I ::
         (⟨502⟩ : UInt256) :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev code g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1012⟩ := hreach
   have hload := clipperTakeDataLenLoad_eq (I := I) hoffMax
   have hlenGt := clipperTakeDataLenGt_zero (I := I) hlenMax

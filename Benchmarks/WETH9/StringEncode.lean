@@ -266,51 +266,34 @@ theorem land31_toNat_mod (H : UInt256) :
 /-! ## Solm-side storage helpers (slot-parametric) -/
 
 /-- The storage word at an arbitrary slot, as read from `initState σ`. -/
-theorem weth9Header {cA gh bl σ σ₀ A I} {g : Sat256} (slot : UInt256) :
-    EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-        (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner slot =
+theorem weth9Header {σ σ₀ A I} {g : Sat256} (slot : UInt256) :
+    EVM.storageLoad (initState σ σ₀ g A I)
+        (initState σ σ₀ g A I).executionEnv.codeOwner slot =
       weth9StringSlotWord σ I slot := by
   simp [EVM.storageLoad, State.lookupAccount, initState, weth9StringSlotWord,
     Account.lookupStorage]
 
 /-- The keccak-data word at an arbitrary slot, as read from `initState σ`. -/
-theorem weth9LongStorageLoad {cA gh bl σ σ₀ A I} {g : Sat256} (slot : UInt256) :
-    EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-        (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner slot =
+theorem weth9LongStorageLoad {σ σ₀ A I} {g : Sat256} (slot : UInt256) :
+    EVM.storageLoad (initState σ σ₀ g A I)
+        (initState σ σ₀ g A I).executionEnv.codeOwner slot =
       weth9LongStorageWord σ I slot := by
   simp [EVM.storageLoad, State.lookupAccount, initState, weth9LongStorageWord, Account.lookupStorage]
 
-/-- A single storage word agrees between the EVM and Solm storages (`accountMapEquiv`). -/
-theorem weth9StorageLoad_bridge {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) (slot : UInt256) :
-    EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I)
-        (initState cA gh bl σ_solm σ₀ g A I).executionEnv.codeOwner slot =
-      EVM.storageLoad (initState cA gh bl σ_evm σ₀ g A I)
-        (initState cA gh bl σ_evm σ₀ g A I).executionEnv.codeOwner slot := by
-  simp only [EVM.storageLoad, State.lookupAccount, initState, Account.lookupStorage]
-  exact (accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩).symm
+/-- A storage load in the shared EVM state is reflexive. -/
+theorem weth9StorageLoad_bridge {σ σ₀ A I} {g : Sat256} (slot : UInt256) :
+    EVM.storageLoad (initState σ σ₀ g A I)
+        (initState σ σ₀ g A I).executionEnv.codeOwner slot =
+      EVM.storageLoad (initState σ σ₀ g A I)
+        (initState σ σ₀ g A I).executionEnv.codeOwner slot := rfl
 
-/-- The slot-0/1 header word agrees between the EVM and Solm storages (`accountMapEquiv`). -/
-theorem weth9StringSlotWord_bridge {σ_evm σ_solm : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) (slot : UInt256) :
-    weth9StringSlotWord σ_evm I slot = weth9StringSlotWord σ_solm I slot := by
-  unfold weth9StringSlotWord
-  exact accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
+/-- The slot word is identical when both sides use the same account map. -/
+theorem weth9StringSlotWord_bridge {σ : AccountMap} {I : ExecutionEnv} (slot : UInt256) :
+    weth9StringSlotWord σ I slot = weth9StringSlotWord σ I slot := rfl
 
-/-- The keccak-region data words agree between the EVM and Solm storages (`accountMapEquiv`). -/
-theorem weth9DataWords_bridge {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) (baseSlot : UInt256) (n : Nat) :
-    readSolidityBytesDataWordsFrom (initState cA gh bl σ_solm σ₀ g A I) baseSlot 0 n =
-      readSolidityBytesDataWordsFrom (initState cA gh bl σ_evm σ₀ g A I) baseSlot 0 n := by
-  suffices key : ∀ m idx,
-      readSolidityBytesDataWordsFrom (initState cA gh bl σ_solm σ₀ g A I) baseSlot idx m =
-        readSolidityBytesDataWordsFrom (initState cA gh bl σ_evm σ₀ g A I) baseSlot idx m from key n 0
-  intro m
-  induction m with
-  | zero => intro idx; rfl
-  | succ m ih =>
-    intro idx
-    unfold readSolidityBytesDataWordsFrom
-    rw [weth9StorageLoad_bridge hAccounts, ih (idx + 1)]
+/-- The keccak-region reads agree when both sides use the same EVM state. -/
+theorem weth9DataWords_bridge {σ σ₀ A I} {g : Sat256} (baseSlot : UInt256) (n : Nat) :
+    readSolidityBytesDataWordsFrom (initState σ σ₀ g A I) baseSlot 0 n =
+      readSolidityBytesDataWordsFrom (initState σ σ₀ g A I) baseSlot 0 n := rfl
 
 end Benchmarks.WETH9

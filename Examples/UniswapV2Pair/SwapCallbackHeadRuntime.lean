@@ -34,12 +34,12 @@ abbrev swapCallbackHeadWords5 (aw ptr : UInt256) : UInt256 :=
 set_option maxHeartbeats 1000000 in
 theorem uniswapSwapCallbackHeadStored
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {ptr aw token1 token0 scratch1 scratch0 reserve1 reserve0
       dataLen dataPtr toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
     (rd1911 : RD uniswapV2PairBytecode I g s0 ⟨1911⟩
       (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
-        toWord :: amount1Out :: amount0Out :: R) mem aw rdata acc k C)
+        toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
     (hload : memoryWordLoad mem ⟨64⟩ = ptr) (hw64 : memoryWordActiveWords aw ⟨64⟩ = aw)
     (hov : R.length + 28 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2001⟩
@@ -48,7 +48,7 @@ theorem uniswapSwapCallbackHeadStored
         UInt256.land solcAddrMask toWord :: token1 :: token0 :: scratch1 :: scratch0 ::
         reserve1 :: reserve0 :: dataLen :: dataPtr :: toWord :: amount1Out :: amount0Out :: R)
       (swapCallbackHeadMem5 mem ptr (UInt256.land solcAddrMask (UInt256.ofNat I.source.val))
-        amount0Out amount1Out dataLen) (swapCallbackHeadWords5 aw ptr) rdata acc k' C' := by
+        amount0Out amount1Out dataLen) (swapCallbackHeadWords5 aw ptr) rdata σ k' C' := by
   have rd1933 := evm_run rd1911 with [dup9, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     and, push4 ⟨282191964⟩, caller, dup14, dup14, dup13, dup13, push1 ⟨64⟩]
   have rd1934 := RD.mloadWord rd1933 (by native_decide) hload (by evm_ov)

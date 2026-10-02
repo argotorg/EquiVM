@@ -43,25 +43,25 @@ theorem transferFromReturnActualMemI_read160 (σ : AccountMap) (I : ExecutionEnv
     change (UInt256.toByteArray (⟨1⟩ : UInt256)).size ≤ 32
     rw [toByteArray_size])
 
-theorem erc20X_transferFromAfterLogTopics {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨563⟩
+theorem erc20X_transferFromAfterLogTopics {σ σ₀ A I} {g : Sat256}
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨563⟩
       [transferFromSelectorWord]
       (transferFromAfterToLoadMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, transferFromAccountMapAfterToI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+      (transferFromAccountMapAfterToI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)
-        (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨602⟩
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)
+        (transferFromNewToWord (initState σ σ₀ g A I) I)) k C) :
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨602⟩
       [transferEventTopic, transferFromFromWord I, transferFromToWord I, transferFromSelectorWord]
       (transferFromAfterToLoadMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, transferFromAccountMapAfterToI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+      (transferFromAccountMapAfterToI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)
-        (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)
+        (transferFromNewToWord (initState σ σ₀ g A I) I)) k C := by
   obtain ⟨k, C, rd563⟩ := hreach
   have hafterSize :
       (transferFromAfterToLoadMemI σ I).size = 160 := by
@@ -105,26 +105,26 @@ theorem erc20X_transferFromAfterLogTopics {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by vyper_erc20_transferFrom_decode) (by evm_ov)
   exact ⟨_, _, rdAfterTopic⟩
 
-theorem erc20X_transferFromBeforeLog {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨602⟩
+theorem erc20X_transferFromBeforeLog {σ σ₀ A I} {g : Sat256}
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨602⟩
       [transferEventTopic, transferFromFromWord I, transferFromToWord I, transferFromSelectorWord]
       (transferFromAfterToLoadMemI σ I)
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, transferFromAccountMapAfterToI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+      (transferFromAccountMapAfterToI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)
-        (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨612⟩
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)
+        (transferFromNewToWord (initState σ σ₀ g A I) I)) k C) :
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨612⟩
       [⟨160⟩, ⟨32⟩, transferEventTopic, transferFromFromWord I, transferFromToWord I,
         transferFromSelectorWord]
       (transferFromLogActualMemI σ I)
       (UInt256.ofNat 6) ByteArray.empty
-      (cA, transferFromAccountMapAfterToI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+      (transferFromAccountMapAfterToI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)
-        (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)
+        (transferFromNewToWord (initState σ σ₀ g A I) I)) k C := by
   obtain ⟨k, C, rdAfterTopic⟩ := hreach
   have rdBeforeLog := evm_run rdAfterTopic with [
     push1 ⟨68⟩, calldataload,
@@ -141,47 +141,47 @@ theorem erc20X_transferFromBeforeLog {cA gh bl σ σ₀ A I} {g : Sat256}
     native_decide
   exact ⟨_, _, by simpa [hpc612] using rdBeforeLog⟩
 
-theorem erc20X_transferFromAfterLog {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_transferFromAfterLog {σ σ₀ A I} {g : Sat256}
     (hperm : I.perm = true)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨612⟩
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨612⟩
       [⟨160⟩, ⟨32⟩, transferEventTopic, transferFromFromWord I, transferFromToWord I,
         transferFromSelectorWord]
       (transferFromLogActualMemI σ I)
       (UInt256.ofNat 6) ByteArray.empty
-      (cA, transferFromAccountMapAfterToI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+      (transferFromAccountMapAfterToI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)
-        (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨613⟩
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)
+        (transferFromNewToWord (initState σ σ₀ g A I) I)) k C) :
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨613⟩
       [transferFromSelectorWord]
       (transferFromLogActualMemI σ I)
       (UInt256.ofNat 6) ByteArray.empty
-      (cA, transferFromAccountMapAfterToI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+      (transferFromAccountMapAfterToI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)
-        (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)
+        (transferFromNewToWord (initState σ σ₀ g A I) I)) k C := by
   obtain ⟨k, C, rd612⟩ := hreach
   exact ⟨_, _, rd612.log3 0 (UInt256.ofNat 6)
     (by vyper_erc20_transferFrom_decode) hperm mem_cost (by decide) (by evm_ov)⟩
 
-theorem erc20X_transferFromReturnFromAfterLog {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨613⟩
+theorem erc20X_transferFromReturnFromAfterLog {σ σ₀ A I} {g : Sat256}
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨613⟩
       [transferFromSelectorWord]
       (transferFromLogActualMemI σ I)
       (UInt256.ofNat 6) ByteArray.empty
-      (cA, transferFromAccountMapAfterToI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+      (transferFromAccountMapAfterToI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)
-        (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C) :
-    RDret vyperERC20Bytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, transferFromAccountMapAfterToI σ I
-        (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)
+        (transferFromNewToWord (initState σ σ₀ g A I) I)) k C) :
+    RDret vyperERC20Bytecode g (initState σ σ₀ g A I)
+      (transferFromAccountMapAfterToI σ I
+        (transferFromAllowanceDebitI σ σ₀ A I g)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)
-        (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I))
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)
+        (transferFromNewToWord (initState σ σ₀ g A I) I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨k, C, rd613⟩ := hreach
   have rdBeforeReturn := evm_run rd613 with [

@@ -98,14 +98,14 @@ theorem clipperCountBodyReturns (v : ClipperImmutables) (evm : EVM.State) (local
       (clipperEvalActiveLength v evm locals hbase)
 
 set_option maxHeartbeats 1000000 in
-theorem clipperReachCountBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
+theorem clipperReachCountBody {σ σ₀ A I} {g : Sat256} (v : ClipperImmutables)
     {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (clipperSelBytes 5)) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨468⟩ : UInt256)
-      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h32⟩ := clipperReachRoot (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨468⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := clipperReachRoot
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
   have hword := clipperCountSelectorWord hsz hsel
   have h260 := clipperSplitTaken (pc := (⟨32⟩ : UInt256)) (pivot := clipperSelNat 20)
@@ -243,13 +243,13 @@ theorem clipperCountGetterEntryWf (v : ClipperImmutables) {code : ByteArray}
 theorem clipperWordSlotSwapGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc slot ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem aw rdata (cA, σ) k C)
+    {σ : AccountMap}
+    (h : RD code ee g s0 pc (ret :: R) mem aw rdata σ k C)
     (hwf : clipperWordSlotSwapGetterWf code pc slot)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret (solcSlotWord σ ee slot :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   rcases hwf with ⟨hd0, hd1, hd2, hd3, hd4⟩
   have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
   have rd3 := rd1.push1 slot hd1 (by simp only [List.length_cons]; omega)
@@ -269,11 +269,11 @@ theorem clipperCountSlotGetterWf (v : ClipperImmutables) {code : ByteArray}
 
 theorem clipperX_count (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I)
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
       (⟨468⟩ : UInt256) [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C) :
-    RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      σ k C) :
+    RDret code g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (solcSlotWord σ I ⟨11⟩)) := by
   obtain ⟨_, _, h1453⟩ := RD.solcGetterThunk hreach
     (clipperCountGetterEntryWf v hpatch)
@@ -291,44 +291,37 @@ theorem clipperX_count (v : ClipperImmutables) {code : ByteArray}
 
 theorem clipperCountBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (clipperSelBytes 5))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (clipperSelBytes 5)) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 5) (by native_decide) hsel
   have hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ countTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ countTransition.body
         (.returned { contract := contract v, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (solcSlotWord σ_solm I ⟨11⟩).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (solcSlotWord σ I ⟨11⟩).toNat))])) := by
     simpa [solcSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       clipperCountBodyReturns v
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv) (by simp)
-  have hword : solcSlotWord σ_evm I ⟨11⟩ = solcSlotWord σ_solm I ⟨11⟩ :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨11⟩ ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (solcSlotWord σ_solm I ⟨11⟩).toNat)] =
-        some [Value.int (Int.ofNat (solcSlotWord σ_evm I ⟨11⟩).toNat)] := by
-    rw [hword]
   have henc :
-      returnEquiv (UInt256.toByteArray (solcSlotWord σ_evm I ⟨11⟩))
-        (some [(.int (Int.ofNat (solcSlotWord σ_evm I ⟨11⟩).toNat))])
+      returnEquiv (UInt256.toByteArray (solcSlotWord σ I ⟨11⟩))
+        (some [(.int (Int.ofNat (solcSlotWord σ I ⟨11⟩).toNat))])
         countTransition.returnType := by
     rw [show countTransition.returnType = [uint256] from rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWord σ_evm I ⟨11⟩))
-  have hreach := clipperReachCountBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+      (by simpa [uint256] using uint256ReturnEncoding (solcSlotWord σ I ⟨11⟩))
+  have hreach := clipperReachCountBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz hsize hsel
-  have hret := clipperX_count (v := v) (code := code) (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+  have hret := clipperX_count (v := v) (code := code)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (sel := clipperSelWord I) hpatch hreach
-  exact hret.reEquivExecutionTransport hcode (clipperDispatch_count v hsel)
-    (clipperDecode_count v hsz) hbody hval hAccounts henc
+  exact hret.reEquivExecution hcode (clipperDispatch_count v hsel)
+    (clipperDecode_count v hsz) hbody henc
 
 end Benchmarks.Dss.Clipper

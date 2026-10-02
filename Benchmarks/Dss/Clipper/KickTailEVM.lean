@@ -84,7 +84,7 @@ theorem RD.clipperKickGetFeedPriceToRmul {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {feedPrice id kpr usr lot tab sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨6061⟩
@@ -93,7 +93,7 @@ theorem RD.clipperKickGetFeedPriceToRmul {code : ByteArray}
       mem aw o acc k C)
     (hov : R.length + 30 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ⟨9233⟩
-      (solcSlotWord acc.2 ee ⟨5⟩ :: feedPrice :: ⟨6069⟩ :: ⟨0⟩ :: ⟨1⟩ ::
+      (solcSlotWord acc ee ⟨5⟩ :: feedPrice :: ⟨6069⟩ :: ⟨0⟩ :: ⟨1⟩ ::
         id :: kpr :: usr :: lot :: tab :: ⟨476⟩ :: sel :: R)
       mem aw o acc k' C' := by
   have rdBufPre := evm_run rd with [
@@ -114,7 +114,7 @@ theorem RD.clipperKickRmulOverflowReverts {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {buf feedPrice keep : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨9233⟩
@@ -129,7 +129,7 @@ theorem RD.clipperKickRmulSuccess {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {buf feedPrice keep : UInt256} {R : List UInt256}
     {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
     (rd : RD code ee g s0 ⟨9233⟩
@@ -146,7 +146,7 @@ theorem RD.clipperKickTopZeroReverts {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {top id kpr usr lot tab sel : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨6069⟩
@@ -231,19 +231,19 @@ theorem RD.clipperKickTopPositiveToIncentive {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {top id kpr usr lot tab sel : UInt256} {R : List UInt256}
     {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨6069⟩
       (top :: ⟨0⟩ :: ⟨1⟩ :: id :: kpr :: usr :: lot :: tab :: ⟨476⟩ :: sel :: R)
-      mem (UInt256.ofNat 6) o (cA, σ) k C)
+      mem (UInt256.ofNat 6) o σ k C)
     (htop : 0 < top.toNat) (hperm : ee.perm = true)
     (hmem : mem.size = 192) (hov : R.length + 50 ≤ 1024) :
     let σTop := clipperKickTopMap σ ee id top
     ∃ k' C', RD code ee g s0 ⟨6203⟩
       (⟨0⟩ :: clipperKickChipWord σTop ee :: clipperKickTipWord σTop ee :: top ::
         ⟨1⟩ :: id :: kpr :: usr :: lot :: tab :: ⟨476⟩ :: sel :: R)
-      (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 6) o (cA, σTop) k' C' := by
+      (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 6) o σTop k' C' := by
   intro σTop
   have hgt : UInt256.gt top ⟨0⟩ = ⟨1⟩ := ugt_one (by simpa using htop)
   have rdGuard := evm_run rd with [

@@ -185,25 +185,25 @@ theorem weth9SolmCtorBodyReturns (evm : EVM.State) (hwv : evm.executionEnv.weiVa
   exact ExecBlock.nil
 
 theorem weth9SolmCtorExecSuccess
-    {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader} {bl : ProcessedBlocks}
+
     {σ σ₀ : AccountMap} {g : UInt256} {A : Substate} {I : ExecutionEnv}
     (hwv : I.weiValue = ⟨0⟩) :
-    solmCtorExec config contract [] cA gh bl σ σ₀ g A I
+    solmCtorExec config contract [] σ σ₀ g A I
       (.returned { contract := contract, locals := ∅ }
-        (weth9SolmFinalState (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)) none) := by
+        (weth9SolmFinalState (initState σ σ₀ (Sat256.ofUInt256 g) A I)) none) := by
   refine solmCtorExec.intro
-    (evmState := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (argsStore := ∅)
+    (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I) (argsStore := ∅)
     rfl rfl ?_ ?_
   · simp [contract, constructorDecl]
   · exact weth9SolmCtorBodyReturns _ (by simp only [initState]; exact hwv)
 
 theorem weth9SolmCtorExecReverts
-    {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader} {bl : ProcessedBlocks}
+
     {σ σ₀ : AccountMap} {g : UInt256} {A : Substate} {I : ExecutionEnv}
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    solmCtorExec config contract [] cA gh bl σ σ₀ g A I .reverted := by
+    solmCtorExec config contract [] σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (argsStore := ∅)
+    (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I) (argsStore := ∅)
     rfl rfl ?_ ?_
   · simp [contract, constructorDecl]
   · exact bodyReverts_nonPayable (by simp only [initState]; exact hwv)

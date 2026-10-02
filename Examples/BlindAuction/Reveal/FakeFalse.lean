@@ -7,16 +7,16 @@ set_option maxHeartbeats 10000000
 
 namespace BlindAuction
 
-set_option maxHeartbeats 3000000 in
+set_option maxHeartbeats 10000000 in
 theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
-    {s0 : State} {σ₀ : AccountMap} {gh : BlockHeader} {bl : ProcessedBlocks}
+    {s0 : State} {σ₀ : AccountMap}
     {A : Substate} {v k C : ℕ}
     {loopLen curLen revealEnd biddingEnd secretsLenWord secretsEnd fakesLenWord fakesEnd
       valuesLenWord valuesEnd sel value secret fakeWord : UInt256}
     {word : Nat}
     {values fakes secrets : List Value} {a : RevealLoopCursor} {L : Store}
     {evm : EVM.State}
-    (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A (v + 1) a L evm)
+    (hInv : RevealLoopInv loopLen values fakes secrets I σ₀ A (v + 1) a L evm)
     (rd1023 : RD blindAuctionBytecode I g s0 ⟨1023⟩
       (scratch_revealEvmLoopStack a.idx a.refund loopLen revealEnd biddingEnd
         secretsLenWord secretsEnd fakesLenWord fakesEnd valuesLenWord valuesEnd sel)
@@ -28,7 +28,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
           |>.readWithPadding 0 64) =
         UInt256.toByteArray (revealScratchBidsLengthSlot I))
     (hlenLoad :
-      (a.acc.2.find? I.codeOwner).option ⟨0⟩
+      (a.acc.find? I.codeOwner).option ⟨0⟩
         (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
     (hboundBids : a.idx.toNat < curLen.toNat)
     (hdataHash :
@@ -94,7 +94,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm1
         scratch_revealLoopPostStmts
         (.ok { contract := blindAuctionContract, locals := L2 } evm2) ∧
-      RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A v a' L2 evm2 ∧
+      RevealLoopInv loopLen values fakes secrets I σ₀ A v a' L2 evm2 ∧
       RD blindAuctionBytecode I g s0 ⟨1014⟩
         (scratch_revealEvmLoopStack a'.idx a'.refund loopLen revealEnd biddingEnd
           secretsLenWord secretsEnd fakesLenWord fakesEnd valuesLenWord valuesEnd sel)
@@ -103,13 +103,13 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
   let refundOf : RevealLoopCursor → UInt256 := fun a => a.refund
   let memOf : RevealLoopCursor → ByteArray := fun a => a.mem
   let awOf : RevealLoopCursor → UInt256 := fun a => a.aw
-  let accOf : RevealLoopCursor → Batteries.RBSet AccountAddress compare × AccountMap := fun a => a.acc
+  let accOf : RevealLoopCursor → AccountMap := fun a => a.acc
   let Inv : ℕ → RevealLoopCursor → Store → EVM.State → Prop :=
-    RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A
+    RevealLoopInv loopLen values fakes secrets I σ₀ A
   have hInvOrig := hInv
   rcases hInv with
     ⟨hiL, hlenL, hrefundL, hbidsL, hvaluesL, hfakesL, hsecretsL,
-      hvariant, hidxLe, henv, hσ0, hgh, hbl, hcreated, hsub, haccounts⟩
+      hvariant, hidxLe, henv, hσ0, hsub, haccounts⟩
   · have hfakeNorm :
         normalizeRawBoolWord? (rawBoolWordValue word) =
           .ok (.bool false) := by
@@ -194,22 +194,17 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
       rw [hslotSize]
       simpa [memOf] using a.hgap
     let blinded : UInt256 :=
-      ((accOf a).2.find? I.codeOwner).option ⟨0⟩
+      ((accOf a).find? I.codeOwner).option ⟨0⟩
         (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩)
     have hblindedEvm :
-        ((accOf a).2.find? I.codeOwner).option ⟨0⟩
+        ((accOf a).find? I.codeOwner).option ⟨0⟩
           (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded := rfl
     have hblindedSrc :
         Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (scratch_revealBidBlindedSlot evm (idx a)) = blinded := by
-      have hfind :=
-        accountMapEquiv_storage_findD haccounts I.codeOwner
-          ((⟨0⟩ : UInt256) + slot) ⟨0⟩
-      dsimp [blinded] at hfind ⊢
-      rw [henv]
-      simpa [Solm.EVM.storageLoad, State.lookupAccount,
-        Account.lookupStorage, scratch_revealBidBlindedSlot, slot,
-        u256_zero_add, henv] using hfind.symm
+      dsimp [blinded]
+      simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+        scratch_revealBidBlindedSlot, slot, u256_zero_add, henv, haccounts, accOf]
     let hashWord : UInt256 :=
       uInt256OfByteArray
         (KEC
@@ -225,7 +220,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
           (k := kSlot) (C := CSlot)
           (mem := memSlot3) (aw := awOf a)
           (rdata := ByteArray.empty)
-          (cA := (accOf a).1) (σ := (accOf a).2)
+          (σ := (accOf a))
           (L := L) (evm := evm)
           (values := values) (fakes := fakes)
           (secrets := secrets) (slot := slot) (i := idx a)
@@ -255,7 +250,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
           hblindedSrc
       exact Or.inr <|
         scratch_revealLoopAdvance_secretStore_continue
-          (I := I) (g := g) (s0 := s0) (σ₀ := σ₀) (gh := gh) (bl := bl) (A := A)
+          (I := I) (g := g) (s0 := s0) (σ₀ := σ₀) (A := A)
           (v := v) (k := kNext) (C := CNext) (loopLen := loopLen)
           (revealEnd := revealEnd) (biddingEnd := biddingEnd)
           (secretsLen := secretsLenWord) (secretsEnd := secretsEnd)
@@ -286,7 +281,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
           (k := kSlot) (C := CSlot)
           (mem := memSlot3) (aw := awOf a)
           (rdata := ByteArray.empty)
-          (cA := (accOf a).1) (σ := (accOf a).2)
+          (σ := (accOf a))
           (slot := slot) (i := idx a) (refund := refundOf a)
           (len := loopLen)
           (revealEnd := revealEnd)
@@ -307,32 +302,18 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
           (by simpa using hfakeZero)
           (by simpa using hsecretLoad)
       let deposit : UInt256 :=
-        ((accOf a).2.find? I.codeOwner).option ⟨0⟩
+        ((accOf a).find? I.codeOwner).option ⟨0⟩
           (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩)
       have hdepositEvm :
-          ((accOf a).2.find? I.codeOwner).option ⟨0⟩
+          ((accOf a).find? I.codeOwner).option ⟨0⟩
             (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) =
             deposit := rfl
       have hdepositSrc :
           Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
             (scratch_revealBidDepositSlot evm (idx a)) = deposit := by
-        have hfind :=
-          accountMapEquiv_storage_findD haccounts I.codeOwner
-            (slot + ⟨1⟩) ⟨0⟩
-        have hdep' :
-            Option.option (⟨0⟩ : UInt256)
-                (fun ac => ac.storage.findD
-                  (bidsElemSlot (.address I.source)
-                    (.int (Int.ofNat (idx a).toNat)) + ⟨1⟩)
-                  ⟨0⟩)
-                ((accOf a).2.find? I.codeOwner) = deposit := by
-          simpa [deposit, slot] using hdepositEvm
-        rw [henv]
-        simp [Solm.EVM.storageLoad, State.lookupAccount,
-          Account.lookupStorage, scratch_revealBidDepositSlot,
-          scratch_revealBidBlindedSlot, slot, henv] at hfind ⊢
-        rw [← hfind]
-        exact hdep'
+        simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+          scratch_revealBidDepositSlot, scratch_revealBidBlindedSlot,
+          slot, deposit, u256_zero_add, henv, haccounts, accOf] using hdepositEvm
       by_cases hfit :
           (refundOf a).toNat + deposit.toNat < UInt256.size
       · by_cases hdepositLt : deposit.toNat < value.toNat
@@ -343,7 +324,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
               (k := kPacked) (C := CPacked)
               (mem := memPacked) (aw := awPacked)
               (rdata := ByteArray.empty)
-              (cA := (accOf a).1) (σ := (accOf a).2)
+              (σ := (accOf a))
               (L := L) (evm := evm)
               (values := values) (fakes := fakes)
               (secrets := secrets) (slot := slot) (i := idx a)
@@ -377,7 +358,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
               scratch_revealLoopAdvance_refundAdded_zeroBlinded
                 (I := I) (g := g)
                 (s0 := s0)
-                (σ₀ := σ₀) (gh := gh) (bl := bl) (A := A)
+                (σ₀ := σ₀) (A := A)
                 (v := v) (k := kNext) (C := CNext)
                 (loopLen := loopLen) (slot := slot)
                 (revealEnd := revealEnd)
@@ -406,18 +387,13 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
         · have hdepositGe : value.toNat ≤ deposit.toNat :=
             Nat.le_of_not_gt hdepositLt
           let high : UInt256 :=
-            scratch_placeBidHighestBidWord (accOf a).2 I
+            scratch_placeBidHighestBidWord (accOf a) I
           have hhighSrc :
               Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
                 ⟨6⟩ = high := by
-            have hfind :=
-              accountMapEquiv_storage_findD haccounts I.codeOwner
-                ⟨6⟩ ⟨0⟩
-            rw [henv]
             simp [Solm.EVM.storageLoad, State.lookupAccount,
-              Account.lookupStorage, high,
-              scratch_placeBidHighestBidWord] at hfind ⊢
-            rw [← hfind]
+              Account.lookupStorage, high, scratch_placeBidHighestBidWord,
+              henv, haccounts, accOf]
           by_cases hplaceFalse : value.toNat ≤ high.toNat
           · obtain ⟨hbodyOk, hrdNext⟩ :=
               scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair
@@ -426,7 +402,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                 (k := kPacked) (C := CPacked)
                 (mem := memPacked) (aw := awPacked)
                 (rdata := ByteArray.empty)
-                (cA := (accOf a).1) (σ := (accOf a).2)
+                (σ := (accOf a))
                 (L := L) (evm := evm)
               (values := values) (fakes := fakes)
               (secrets := secrets) (slot := slot) (i := idx a)
@@ -464,7 +440,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                 scratch_revealLoopAdvance_refundAddedOk_zeroBlinded
                   (I := I) (g := g)
                   (s0 := s0)
-                  (σ₀ := σ₀) (gh := gh) (bl := bl) (A := A)
+                  (σ₀ := σ₀) (A := A)
                   (v := v) (k := kNext) (C := CNext)
                   (loopLen := loopLen) (slot := slot)
                   (revealEnd := revealEnd)
@@ -493,18 +469,13 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
           · have hlt : high.toNat < value.toNat :=
               Nat.lt_of_not_ge hplaceFalse
             let old : UInt256 :=
-              scratch_placeBidHighestBidderWord (accOf a).2 I
+              scratch_placeBidHighestBidderWord (accOf a) I
             have holdSrc :
                 Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
                   ⟨5⟩ = old := by
-              have hfind :=
-                accountMapEquiv_storage_findD haccounts I.codeOwner
-                  ⟨5⟩ ⟨0⟩
-              rw [henv]
               simp [Solm.EVM.storageLoad, State.lookupAccount,
-                Account.lookupStorage, old,
-                scratch_placeBidHighestBidderWord] at hfind ⊢
-              rw [← hfind]
+                Account.lookupStorage, old, scratch_placeBidHighestBidderWord,
+                henv, haccounts, accOf]
             by_cases hzero :
                 UInt256.land old solcAddrMask = ⟨0⟩
             · obtain ⟨hbodyOk, hrdNext⟩ :=
@@ -514,7 +485,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                   (k := kPacked) (C := CPacked)
                   (mem := memPacked) (aw := awPacked)
                   (rdata := ByteArray.empty)
-                  (cA := (accOf a).1) (σ := (accOf a).2)
+                  (σ := (accOf a))
                   (L := L) (evm := evm)
                   (values := values) (fakes := fakes)
                   (secrets := secrets) (slot := slot) (i := idx a)
@@ -554,7 +525,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                   scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidZero
                     (I := I) (g := g)
                     (s0 := s0)
-                    (σ₀ := σ₀) (gh := gh) (bl := bl) (A := A)
+                    (σ₀ := σ₀) (A := A)
                     (v := v) (k := kNext) (C := CNext)
                     (loopLen := loopLen) (slot := slot)
                     (revealEnd := revealEnd)
@@ -584,7 +555,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                 AccountAddress.ofNat
                   (UInt256.land old solcAddrMask).toNat
               let pending : UInt256 :=
-                scratch_placeBidPendingWord (accOf a).2 I
+                scratch_placeBidPendingWord (accOf a) I
               have holdAddr :
                   oldAddr =
                     AccountAddress.ofNat
@@ -594,19 +565,15 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                       evm.executionEnv.codeOwner
                       (pendingReturnsSlot (.address oldAddr)) =
                     pending := by
-                have hfind :=
-                  accountMapEquiv_storage_findD haccounts I.codeOwner
-                    (scratch_placeBidPendingSlot (accOf a).2 I) ⟨0⟩
                 have hslotPending :
-                    scratch_placeBidPendingSlot (accOf a).2 I =
+                    scratch_placeBidPendingSlot (accOf a) I =
                       pendingReturnsSlot (.address oldAddr) := by
                   unfold scratch_placeBidPendingSlot
                   simp [old, oldAddr]
-                rw [henv]
-                simp [Solm.EVM.storageLoad, State.lookupAccount,
-                  Account.lookupStorage, pending,
-                  scratch_placeBidPendingWord, hslotPending] at hfind ⊢
-                rw [← hfind]
+                unfold Solm.EVM.storageLoad State.lookupAccount
+                rw [henv, ← haccounts]
+                simp [Account.lookupStorage, pending, scratch_placeBidPendingWord,
+                  hslotPending, accOf]
               by_cases hsum :
                   pending.toNat + high.toNat < UInt256.size
               · obtain ⟨hbodyOk, hrdNext⟩ :=
@@ -616,7 +583,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                     (k := kPacked) (C := CPacked)
                     (mem := memPacked) (aw := awPacked)
                     (rdata := ByteArray.empty)
-                    (cA := (accOf a).1) (σ := (accOf a).2)
+                    (σ := (accOf a))
                     (L := L) (evm := evm)
                     (values := values) (fakes := fakes)
                     (secrets := secrets) (slot := slot) (i := idx a)
@@ -659,7 +626,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                     scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero_pendingHash
                       (I := I) (g := g)
                       (s0 := s0)
-                      (σ₀ := σ₀) (gh := gh) (bl := bl) (A := A)
+                      (σ₀ := σ₀) (A := A)
                       (v := v) (k := kNext) (C := CNext)
                       (loopLen := loopLen) (slot := slot)
                       (revealEnd := revealEnd)
@@ -735,7 +702,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                     (k := kPacked) (C := CPacked)
                     (mem := memPacked) (aw := awPacked)
                     (rdata := ByteArray.empty)
-                    (cA := (accOf a).1) (σ := (accOf a).2)
+                    (σ := (accOf a))
                     (secret := secret) (fakeWord := fakeWord)
                     (value := value) (slot := slot) (i := idx a)
                     (refund := refundOf a) (len := loopLen)
@@ -763,7 +730,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                     (s0 := s0)
                     (k := k1235) (C := C1235)
                     (rdata := ByteArray.empty)
-                    (acc := ((accOf a).1, (accOf a).2))
+                    (acc := (accOf a))
                     (secret := secret) (fake := fakeWord)
                     (value := value) (slot := slot) (i := idx a)
                     (refund := refundOf a) (len := loopLen)
@@ -785,7 +752,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                     (s0 := s0)
                     (k := k1247) (C := C1247)
                     (rdata := ByteArray.empty)
-                    (cA := (accOf a).1) (σ := (accOf a).2)
+                    (σ := (accOf a))
                     (secret := secret) (fake := fakeWord)
                     (value := value) (slot := slot) (i := idx a)
                     (refund := refundOf a) (len := loopLen)
@@ -804,9 +771,9 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                     (deposit := deposit) rd1247 hdepositEvm hfit
                 have hoverEvm :
                     UInt256.size ≤
-                      (scratch_placeBidPendingWord (accOf a).2 I).toNat +
+                      (scratch_placeBidPendingWord (accOf a) I).toNat +
                         (scratch_placeBidHighestBidWord
-                          (accOf a).2 I).toNat := by
+                          (accOf a) I).toNat := by
                   simpa [pending, high] using hoverPending
                 have hrev :
                     RDrev blindAuctionBytecode g s0 :=
@@ -816,7 +783,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
                     (k := k1265) (C := C1265)
                     (mem := memNext) (aw := awNext)
                     (rdata := ByteArray.empty)
-                    (cA := (accOf a).1) (σ := (accOf a).2)
+                    (σ := (accOf a))
                     (secret := secret) (value := value)
                     (slot := slot) (i := idx a)
                     (refund := deposit + refundOf a)
@@ -860,7 +827,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
             (k := kPacked) (C := CPacked)
             (mem := memPacked) (aw := awPacked)
             (rdata := ByteArray.empty)
-            (cA := (accOf a).1) (σ := (accOf a).2)
+            (σ := (accOf a))
             (secret := secret) (fakeWord := fakeWord)
             (value := value) (slot := slot) (i := idx a)
             (refund := refundOf a) (len := loopLen)
@@ -884,7 +851,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
             (s0 := s0)
             (k := k1235) (C := C1235)
             (rdata := ByteArray.empty)
-            (acc := ((accOf a).1, (accOf a).2))
+            (acc := (accOf a))
             (secret := secret) (fake := fakeWord)
             (value := value) (slot := slot) (i := idx a)
             (refund := refundOf a) (len := loopLen)
@@ -904,7 +871,7 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
             (k := k1247) (C := C1247)
             (mem := memNext) (aw := awNext)
             (rdata := ByteArray.empty)
-            (cA := (accOf a).1) (σ := (accOf a).2)
+            (σ := (accOf a))
             (L := L) (evm := evm)
             (values := values) (fakes := fakes)
             (secrets := secrets) (slot := slot) (i := idx a)

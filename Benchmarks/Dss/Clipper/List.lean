@@ -9,12 +9,12 @@ set_option linter.unusedTactic false
 
 theorem clipperX_list_empty_toCopyLoop (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I)
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
       (⟨504⟩ : UInt256) [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C)
+      σ k C)
     (hlen : solcSlotWord σ I ⟨11⟩ = ⟨0⟩) :
-    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨548⟩ : UInt256)
+    ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨548⟩ : UInt256)
       ((⟨0⟩ : UInt256) :: clipperListEmptySrc :: clipperListEmptyDst ::
         clipperListEmptyBound :: clipperListEmptyBound ::
         clipperListEmptySrc :: clipperListEmptyDst ::
@@ -24,9 +24,8 @@ theorem clipperX_list_empty_toCopyLoop (v : ClipperImmutables) {code : ByteArray
         (clipperListArrayLengthMem ⟨0⟩))
       (clipperListReturnFinalAw (UInt256.ofNat 5) clipperListEmptyFmp
         clipperListArrayBasePtr)
-      ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, rd1812⟩ := clipperX_list_entry (v := v) (code := code)
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+      ByteArray.empty σ k C := by
+  obtain ⟨_, _, rd1812⟩ := clipperX_list_entry (v := v) (code := code) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) hpatch hreach
   obtain ⟨_, _, rd512raw⟩ := clipperListStorageArrayGetter_empty
     (ret := (⟨512⟩ : UInt256)) (R := [sel]) rd1812
@@ -50,8 +49,8 @@ theorem clipperX_list_empty_toCopyLoop (v : ClipperImmutables) {code : ByteArray
 set_option maxHeartbeats 1000000 in
 theorem clipperX_list_empty_const (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hcopy : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨548⟩ : UInt256)
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hcopy : ∃ k C, RD code I g (initState σ σ₀ g A I) (⟨548⟩ : UInt256)
       ((⟨0⟩ : UInt256) :: clipperListEmptySrc :: clipperListEmptyDst ::
         clipperListEmptyBound :: clipperListEmptyBound ::
         clipperListEmptySrc :: clipperListEmptyDst ::
@@ -61,8 +60,8 @@ theorem clipperX_list_empty_const (v : ClipperImmutables) {code : ByteArray}
         (clipperListArrayLengthMem ⟨0⟩))
       (clipperListReturnFinalAw (UInt256.ofNat 5) clipperListEmptyFmp
         clipperListArrayBasePtr)
-      ByteArray.empty (cA, σ) k C) :
-    RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      ByteArray.empty σ k C) :
+    RDret code g (initState σ σ₀ g A I) σ
       ⟨(ABI.natBytes 32 ++ ABI.natBytes 0).toArray⟩ := by
   obtain ⟨_, _, rd548⟩ := hcopy
   have hdone :
@@ -88,13 +87,13 @@ theorem clipperX_list_empty_const (v : ClipperImmutables) {code : ByteArray}
 
 theorem clipperX_list_empty (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I)
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
       (⟨504⟩ : UInt256) [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C)
+      σ k C)
     (hlen : solcSlotWord σ I ⟨11⟩ = ⟨0⟩) :
-    RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ)
-      (clipperActiveArrayReturnBytes (initState cA gh bl σ σ₀ g A I)) := by
+    RDret code g (initState σ σ₀ g A I) σ
+      (clipperActiveArrayReturnBytes (initState σ σ₀ g A I)) := by
   have hcopy := clipperX_list_empty_toCopyLoop v hpatch hreach hlen
   have hret := clipperX_list_empty_const v hpatch hcopy
   rw [clipperActiveArrayReturnBytes_empty hlen]
@@ -103,16 +102,15 @@ theorem clipperX_list_empty (v : ClipperImmutables) {code : ByteArray}
 set_option maxHeartbeats 1000000 in
 theorem clipperX_list_nonempty (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hwfStorage : clipperStorageWF σ I)
-    (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I)
+    (hreach : ∃ k C, RD code I g (initState σ σ₀ g A I)
       (⟨504⟩ : UInt256) [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C)
+      σ k C)
     (hlen : solcSlotWord σ I ⟨11⟩ ≠ ⟨0⟩) :
-    RDret code g (initState cA gh bl σ σ₀ g A I) (cA, σ)
-      (clipperActiveArrayReturnBytes (initState cA gh bl σ σ₀ g A I)) := by
-  obtain ⟨_, _, rd1812⟩ := clipperX_list_entry (v := v) (code := code)
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    RDret code g (initState σ σ₀ g A I) σ
+      (clipperActiveArrayReturnBytes (initState σ σ₀ g A I)) := by
+  obtain ⟨_, _, rd1812⟩ := clipperX_list_entry (v := v) (code := code) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (sel := sel) hpatch hreach
   obtain ⟨_, _, rd1870raw⟩ := clipperListStorageArrayGetter_nonempty_to_loop
     (ret := (⟨512⟩ : UInt256)) (R := [sel]) rd1812
@@ -142,7 +140,7 @@ theorem clipperX_list_nonempty (v : ClipperImmutables) {code : ByteArray}
     (clipperListReturnBaseMem_mload128_of_wf hwfStorage)
     (by simp only [List.length_singleton]; omega)
   exact clipperListReturnCopyLoopFrom
-    (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
+    (A := A)
     hwfStorage (clipperListReturnFromMemWfPatched v hpatch)
     (clipperJumpDest548 v hpatch) (clipperJumpDest572 v hpatch)
     (by simp only [List.length_singleton]; omega)
@@ -150,55 +148,46 @@ theorem clipperX_list_nonempty (v : ClipperImmutables) {code : ByteArray}
 
 theorem clipperListBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 15))
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (hStorageWF : clipperStorageWF σ_evm I) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hStorageWF : clipperStorageWF σ I) :
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 15) (by native_decide) hsel
   have hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ listTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ listTransition.body
         (.returned { contract := contract v, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.array
             (clipperActiveArrayValues
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))])) := by
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)))])) := by
     exact clipperListBodyReturnsActive v
-      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       (by simp only [initState]; exact hwv) (by simp)
-  have hval :
-      some [Value.array
-          (clipperActiveArrayValues
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))] =
-        some [Value.array
-          (clipperActiveArrayValues
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))] := by
-    rw [← clipperActiveArrayValues_accountMapEquiv hAccounts]
   have henc :
       returnEquiv
         (clipperActiveArrayReturnBytes
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         (some [(.array
           (clipperActiveArrayValues
-            (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)))])
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)))])
         listTransition.returnType :=
-    clipperListReturnEquiv (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-  have hreach := clipperReachListBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    clipperListReturnEquiv (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+  have hreach := clipperReachListBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (v := v) hpatch hcode hwv hsz hsize hsel
   have hret :
       RDret code (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (clipperActiveArrayReturnBytes
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)) := by
-    by_cases hlen : solcSlotWord σ_evm I ⟨11⟩ = ⟨0⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
+    by_cases hlen : solcSlotWord σ I ⟨11⟩ = ⟨0⟩
     · exact clipperX_list_empty v hpatch hreach hlen
     · exact clipperX_list_nonempty v hpatch hStorageWF hreach hlen
-  exact hret.reEquivExecutionTransport hcode (clipperDispatch_list v hsel)
-    (clipperDecode_list v hsz) hbody hval hAccounts henc
+  exact hret.reEquivExecution hcode (clipperDispatch_list v hsel)
+    (clipperDecode_list v hsz) hbody henc
 
 end Benchmarks.Dss.Clipper

@@ -1161,9 +1161,6 @@ theorem erc6909SetOperatorBodyCore
         · have hdec := erc6909Decode_setOperator_ok (I := I) hsz68 hbig hcanonSpender hbool
           let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
           let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
-          have hσ : EVMStateEquiv evmE evmS := by
-            simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g)
-              rfl
           by_cases hsource : I.source = AccountAddress.ofNat 0
           · have hbody :
                 ExecTransitionBody config contract evmS (setOperatorStore I)
@@ -1195,28 +1192,13 @@ theorem erc6909SetOperatorBodyCore
                   (by simp only [evmS, initState]; exact hwv)
                   (by simpa [evmS, initState] using hsource)
                   (by simpa [evmS, initState] using hspender)
-              have hσPost :
-                  EVMStateEquiv (setOperatorPostState evmE I) (setOperatorPostState evmS I) := by
-                have hslotEq : setOperatorSlot evmE I = setOperatorSlot evmS I := by
-                  unfold setOperatorSlot
-                  rw [hσ.executionEnv]
-                have hloadEq :
-                    Solm.EVM.storageLoad evmE evmE.executionEnv.codeOwner
-                        (setOperatorSlot evmE I) =
-                      Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner
-                        (setOperatorSlot evmS I) := by
-                  rw [hslotEq]
-                unfold setOperatorPostState
-                exact hσ.storageStore_codeOwner
-                  (setOperatorSlot evmS I) (by rw [hloadEq])
               exact (erc6909X_setOperator (g := Sat256.ofUInt256 g)
                   hsz68 hsize hbig hperm hcanonSpender hbool hsource hspender hreach)
-                |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-                  (by simp [evmE, setOperatorPostState, setOperatorSlot, setOperatorSlotI,
+                |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                  (by simp [evmS, setOperatorPostState, setOperatorSlot, setOperatorSlotI,
                     setOperatorStoredWord, setOperatorStorageWord, initState,
                     Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                     storageStore_accountMap])
-                  hσPost
                   (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
         · have hnz : setOperatorApprovedWord I ≠ ⟨0⟩ := by
             intro hzero

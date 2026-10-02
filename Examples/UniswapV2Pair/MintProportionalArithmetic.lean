@@ -7,16 +7,16 @@ namespace UniswapV2Pair
 
 set_option maxRecDepth 2000000 in
 theorem uniswapMintProportionalArithmeticCases
-    {cA gh bl σ σ₀ A I} {g : UInt256}
-    {cAFee : Batteries.RBSet AccountAddress compare} {σFee : AccountMap}
+    {σ σ₀ A I} {g : UInt256}
+    {σFee : AccountMap}
     {mem rdata : ByteArray} {k C : ℕ}
     {feeOn totalSupply amount0 amount1 balance0 balance1 reserve0 reserve1 toWord sel : UInt256}
     {locals : Store} (evm : EVM.State)
     (rd3762 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3762⟩
       [totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1, reserve0,
         ⟨0⟩, toWord, ⟨861⟩, sel]
-      mem feeToStaticcallActiveWords rdata (cAFee, σFee) k C)
+      mem feeToStaticcallActiveWords rdata σFee k C)
     (hclean0 : UInt256.land reserve0 reserve112Mask = reserve0)
     (hclean1 : UInt256.land reserve1 reserve112Mask = reserve1)
     (hmem : mem.size = 164)
@@ -33,9 +33,9 @@ theorem uniswapMintProportionalArithmeticCases
     (ExecStmt config { contract := contract, locals := locals } evm
       mintLiquidityBranchStmt .reverted ∧
       (RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ∨
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∨
         RDinvalid uniswapV2PairBytecode (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I))) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))) := by
   by_cases hfit0 : mintAmountProductNat amount0 totalSupply < UInt256.size
   · by_cases hz0 : reserve0 = ⟨0⟩
     · have hsource := uniswapMintProportionalLiquidity0DivZeroReverts evm amount0

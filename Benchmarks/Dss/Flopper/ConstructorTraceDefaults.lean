@@ -12,20 +12,18 @@ set_option maxRecDepth 2000000
 
 set_option maxHeartbeats 2000000 in
 theorem flopperCtorDefaultsReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat gem : AccountAddress)
     (hcode : I.code = flopperCtorCode vat gem)
     (hperm : I.perm = true) :
     ∃ k C, RD (flopperCtorCode vat gem) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨78⟩
+      (initState σ σ₀ g A I) ⟨78⟩
       [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (createdAccounts, flopperCtorAfterKicksMap σ I) k C := by
+      (flopperCtorAfterKicksMap σ I) k C := by
   have rd0 :
       RD (flopperCtorCode vat gem) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   have rd5 := flopper_ctor_run rd0 with [
     push1 ⟨128⟩, push1 ⟨64⟩,
@@ -39,9 +37,9 @@ theorem flopperCtorDefaultsReach
   obtain ⟨k17, C17, rd17raw⟩ := rd16.sstore hperm (by flopper_ctor_decode) (by evm_ov)
   have rd17 :
       RD (flopperCtorCode vat gem) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨17⟩ []
+        (initState σ σ₀ g A I) ⟨17⟩ []
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (createdAccounts, flopperCtorAfterBegMap σ I) k17 C17 := by
+        (flopperCtorAfterBegMap σ I) k17 C17 := by
     simpa [flopperCtorAfterBegMap] using rd17raw
   have rd26 := rd17.pushConst flopperCtorPadWord (width := 8) (op := .PUSH8)
     (by decide) (by flopper_ctor_decode) (by evm_ov)
@@ -49,18 +47,18 @@ theorem flopperCtorDefaultsReach
   obtain ⟨k29, C29, rd29raw⟩ := rd28.sstore hperm (by flopper_ctor_decode) (by evm_ov)
   have rd29 :
       RD (flopperCtorCode vat gem) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨29⟩ []
+        (initState σ σ₀ g A I) ⟨29⟩ []
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (createdAccounts, flopperCtorAfterPadMap σ I) k29 C29 := by
+        (flopperCtorAfterPadMap σ I) k29 C29 := by
     simpa [flopperCtorAfterPadMap] using rd29raw
   have rd32pre := flopper_ctor_run rd29 with [push1 ⟨6⟩, dup1]
   obtain ⟨k33, C33, rd33raw⟩ := rd32pre.sload (by flopper_ctor_decode) (by evm_ov)
   have rd33 :
       RD (flopperCtorCode vat gem) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨33⟩
+        (initState σ σ₀ g A I) ⟨33⟩
         [solcSlotWord (flopperCtorAfterPadMap σ I) I ⟨6⟩, ⟨6⟩]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (createdAccounts, flopperCtorAfterPadMap σ I) k33 C33 := by
+        (flopperCtorAfterPadMap σ I) k33 C33 := by
     have hload :
         ((flopperCtorAfterPadMap σ I).find? I.codeOwner |>.option ⟨0⟩
           (fun ac => ac.storage.findD ⟨6⟩ ⟨0⟩)) =
@@ -80,9 +78,9 @@ theorem flopperCtorDefaultsReach
   obtain ⟨k73, C73, rd73raw⟩ := rd72.sstore hperm (by flopper_ctor_decode) (by evm_ov)
   have rd73 :
       RD (flopperCtorCode vat gem) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨73⟩ []
+        (initState σ σ₀ g A I) ⟨73⟩ []
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (createdAccounts, flopperCtorAfterPackedDefaultsMap σ I) k73 C73 := by
+        (flopperCtorAfterPackedDefaultsMap σ I) k73 C73 := by
     simpa [flopperCtorAfterPackedDefaultsMap, flopperCtorDefaultsSlot6Word,
       flopperCtorTtlWord, flopperCtorTauWord] using rd73raw
   have rd77 := flopper_ctor_run rd73 with [push1 ⟨0⟩, push1 ⟨7⟩]
@@ -91,21 +89,18 @@ theorem flopperCtorDefaultsReach
     simpa [flopperCtorAfterKicksMap] using rd78raw⟩
 
 theorem flopperCtorGuardSuccessReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat gem : AccountAddress)
     (hcode : I.code = flopperCtorCode vat gem)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
     ∃ k C, RD (flopperCtorCode vat gem) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨91⟩
+      (initState σ σ₀ g A I) ⟨91⟩
       [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (createdAccounts, flopperCtorAfterKicksMap σ I) k C := by
+      (flopperCtorAfterKicksMap σ I) k C := by
   obtain ⟨_, _, rd78⟩ :=
     flopperCtorDefaultsReach
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       vat gem hcode hperm
   have rdBeforeJump := flopper_ctor_run rd78 with [
     callvalue, dup1, iszero, push2 ⟨89⟩]
@@ -117,19 +112,16 @@ theorem flopperCtorGuardSuccessReach
       using rd91⟩
 
 theorem flopperInitcodeNonpayableRevert
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat gem : AccountAddress)
     (hcode : I.code = flopperCtorCode vat gem)
     (hperm : I.perm = true)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev (flopperCtorCode vat gem) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd78⟩ :=
     flopperCtorDefaultsReach
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       vat gem hcode hperm
   have rd85 := flopper_ctor_run rd78 with [
     callvalue, dup1, iszero, push2 ⟨89⟩, jumpiNT (isZero_eq_zero_of_ne hwv)]

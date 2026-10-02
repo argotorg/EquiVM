@@ -7,12 +7,12 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem uniswapSwapCallbackPrepared
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     {mem rdata : ByteArray} {ptr aw token1 token0 scratch1 scratch0 reserve1 reserve0
       dataLen dataPtr toWord amount1Out amount0Out : UInt256} {R : List UInt256} {k C : Nat}
     (rd1911 : RD uniswapV2PairBytecode I g s0 ⟨1911⟩
       (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
-        toWord :: amount1Out :: amount0Out :: R) mem aw rdata acc k C)
+        toWord :: amount1Out :: amount0Out :: R) mem aw rdata σ k C)
     (hready : SafeTransferMemoryReady mem aw ptr)
     (hdata : dataPtr.toNat + dataLen.toNat ≤ I.calldata.size) (hlen : dataLen.toNat ≠ 0)
     (hfit : ptr.toNat + dataLen.toNat + 227 < UInt256.size) (hov : R.length + 29 ≤ 1024) :
@@ -22,7 +22,7 @@ theorem uniswapSwapCallbackPrepared
         ⟨282191964⟩ :: UInt256.land solcAddrMask toWord ::
         token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R)
-      (swapCallbackMem I mem ptr amount0Out amount1Out dataPtr dataLen) (swapCallbackWords aw ptr dataLen) rdata acc k' C' := by
+      (swapCallbackMem I mem ptr amount0Out amount1Out dataPtr dataLen) (swapCallbackWords aw ptr dataLen) rdata σ k' C' := by
   have hcover : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := hready.wordsLo
   have hload : memoryWordLoad mem ⟨64⟩ = ptr :=
     mloadWordValue_of_readWithPadding (by change 64 < _; have := hready.sizeLo; omega) hready.read64

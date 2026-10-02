@@ -6,7 +6,7 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapBurnUpdatedBalance0Prepared
     {g : Sat256} {s0 : State} {I : ExecutionEnv}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {mem rdata : ByteArray} {aw ptr supply fee liquidity balance1 balance0 token1 token0 : UInt256}
     {R : List UInt256} {k C : Nat}
     (rd4639 : RD uniswapV2PairBytecode I g s0 ⟨4639⟩

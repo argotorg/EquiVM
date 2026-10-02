@@ -28,19 +28,17 @@ macro "ctor_tail_jump_dest" : tactic =>
     (exact D_J_contains_append_left vowCreationBytecode _ _ (by jump_dest)))
 
 theorem vowCtorHopeCallFailure
-    {createdAccounts createdAccounts' : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ σFinal : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     {mem out : ByteArray} {aw : UInt256} {k C : ℕ} {rest : List UInt256}
     (vat flapper flopper : AccountAddress)
     (rd217 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨217⟩
-        (⟨0⟩ :: rest) mem aw out (createdAccounts', σFinal) k C)
+        (initState σ σ₀ g A I) ⟨217⟩
+        (⟨0⟩ :: rest) mem aw out σFinal k C)
     (hout : out.size < UInt256.size)
     (hov : rest.length + 5 ≤ 1024) :
     RDrev (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨217⟩) (okPc := ⟨233⟩) rd217
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode)
@@ -49,23 +47,21 @@ theorem vowCtorHopeCallFailure
     hout hov
 
 theorem vowCtorHopeCallSuccessToReturnStart
-    {createdAccounts createdAccounts' : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ σFinal : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     {mem out : ByteArray} {aw target : UInt256} {k C : ℕ}
     (vat flapper flopper : AccountAddress)
     (rd217 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨217⟩
+        (initState σ σ₀ g A I) ⟨217⟩
         (⟨1⟩ :: vowCtorCallEndPtr :: vowCtorHopeSelectorWord :: target ::
           EVM.word flopper.val :: EVM.word flapper.val :: EVM.word vat.val :: [])
-        mem aw out (createdAccounts', σFinal) k C)
+        mem aw out σFinal k C)
     (hperm : I.perm = true) :
     ∃ k' C',
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨246⟩
+        (initState σ σ₀ g A I) ⟨246⟩
         [] mem aw out
-        (createdAccounts', sstoreAccountMap I.codeOwner σFinal ⟨12⟩ ⟨1⟩) k' C' := by
+        sstoreAccountMap I.codeOwner σFinal ⟨12⟩ ⟨1⟩ k' C' := by
   obtain ⟨_, _, rd235⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨217⟩) (okPc := ⟨233⟩) rd217
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -123,18 +119,16 @@ theorem vowCtorRuntimeMem_read (vat flapper flopper : AccountAddress) (mem : Byt
   · norm_num
 
 theorem vowCtorReturnRuntime
-    {createdAccounts createdAccounts' : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ σFinal : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     {mem out : ByteArray} {k C : ℕ}
     (vat flapper flopper : AccountAddress)
     (rd246 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨246⟩
-        [] mem (UInt256.ofNat 9) out (createdAccounts', σFinal) k C) :
+        (initState σ σ₀ g A I) ⟨246⟩
+        [] mem (UInt256.ofNat 9) out σFinal k C) :
     RDret (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-      (createdAccounts', σFinal) vowBytecode := by
+      (initState σ σ₀ g A I)
+      σFinal vowBytecode := by
   exact evm_run rd246 with [
     raw push2 ⟨5150⟩ (by ctor_tail_decode) (by evm_ov),
     raw dup1 (by ctor_tail_decode) (by evm_ov),
@@ -237,30 +231,6 @@ private theorem accountAddress_of_word_val_tail (a : AccountAddress) :
     AccountAddress.ofUInt256 (EVM.word a.val) = a := by
   exact accountAddress_roundtrip a
 
-private theorem storageStore_substate_tail (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).substate = evm.substate := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
-
-private theorem storageStore_sigma0_tail (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
-
-private theorem storageStore_blocks_tail (evm : EVM.State) (addr : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).blocks = evm.blocks := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
-
-private theorem storageStore_genesisBlockHeader_tail (evm : EVM.State)
-    (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).genesisBlockHeader = evm.genesisBlockHeader := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
-
 private theorem ctorExtCodeSize_ne_zero_lookup_code_pos {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
@@ -303,49 +273,46 @@ private theorem ctorExtCodeSize_zero_lookup_code_zero {σ : AccountMap} {target 
       have hword := congrArg UInt256.toNat hzero
       simpa [hacc] using hword
 
-theorem RDret.xiResultAcc {cA gh bl σ σ₀ A I} {g : Sat256} {code o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem RDret.xiResultAcc {σ σ' σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
+    {g : Sat256} {code o : ByteArray}
     (hcode : I.code = code)
-    (h : RDret code g (initState cA gh bl σ σ₀ g A I) acc o) :
-    Ξ cA gh bl σ σ₀ g.toUInt256 A I = .error .OutOfGass
+    (h : RDret code g (initState σ σ₀ g A I) σ' o) :
+    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
     ∨ ∃ (g' : UInt256) (A' : Substate),
-        Ξ cA gh bl σ σ₀ g.toUInt256 A I =
-          .ok (.success (acc.1, acc.2, g', A') o) := by
+        Ξ σ σ₀ g.toUInt256 A I =
+          .ok (.success (σ', g', A') o) := by
   rcases h with hoog | ⟨s, hX, hacc⟩
   · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
       rw [← hcode] at hoog
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hoog))
-  · have hcA : s.createdAccounts = acc.1 := congrArg Prod.fst hacc
-    have hσ : s.accountMap = acc.2 := congrArg Prod.snd hacc
+  · have hσ : s.accountMap = σ' := hacc
     have hxi := Xi_success_of_X (g := g.toUInt256) (by
       rw [← hcode] at hX
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
-    rw [hcA, hσ] at hxi
+    rw [hσ] at hxi
     exact Or.inr ⟨_, _, hxi⟩
 
 theorem vowCtorHopeCallDepthLimit
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σFinal σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     {mem : ByteArray} {k C : ℕ}
     (vat flapper flopper : AccountAddress) (vatStored gasWord : UInt256)
     (rd216 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨216⟩
+        (initState σ σ₀ g A I) ⟨216⟩
         [gasWord, UInt256.land solcAddrMask vatStored,
           vowCtorCallOutSize, vowCtorCallOutPtr, vowCtorCallInSize,
           vowCtorCallOutPtr, vowCtorCallOutSize, vowCtorCallEndPtr,
           vowCtorHopeSelectorWord, UInt256.land solcAddrMask vatStored,
           EVM.word flopper.val, EVM.word flapper.val, EVM.word vat.val]
-        mem (UInt256.ofNat 9) ByteArray.empty (createdAccounts, σFinal) k C)
+        mem (UInt256.ofNat 9) ByteArray.empty σFinal k C)
     (hdepth : I.depth = 1024) :
     ∃ k' C',
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨217⟩
+        (initState σ σ₀ g A I) ⟨217⟩
         (⟨0⟩ :: vowCtorCallEndPtr :: vowCtorHopeSelectorWord ::
           UInt256.land solcAddrMask vatStored :: EVM.word flopper.val :: EVM.word flapper.val ::
           EVM.word vat.val :: [])
-        mem (UInt256.ofNat 9) ByteArray.empty (createdAccounts, σFinal) k' C' := by
+        mem (UInt256.ofNat 9) ByteArray.empty σFinal k' C' := by
   obtain ⟨k', C', rd217raw⟩ := RD.callDepthLimit rd216 (by ctor_tail_decode) hdepth
     (by simp only [List.length_cons, List.length_nil]; omega)
   have haw :
@@ -358,26 +325,23 @@ theorem vowCtorHopeCallDepthLimit
     unfold vowCtorCallOutSize
     rfl
   have rd217 : RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨217⟩
+      (initState σ σ₀ g A I) ⟨217⟩
       (⟨0⟩ :: vowCtorCallEndPtr :: vowCtorHopeSelectorWord ::
         UInt256.land solcAddrMask vatStored :: EVM.word flopper.val :: EVM.word flapper.val ::
         EVM.word vat.val :: [])
       (ByteArray.empty.write 0 mem vowCtorCallOutPtr.toNat
         (min vowCtorCallOutSize (UInt256.ofNat ByteArray.empty.size)).toNat)
-      (UInt256.ofNat 9) ByteArray.empty (createdAccounts, σFinal) k' C' := by
+      (UInt256.ofNat 9) ByteArray.empty σFinal k' C' := by
     simpa [haw, vowCtorCallOutPtr, vowCtorCallOutSize, vowCtorCallInSize,
       vowCtorCallEndPtr] using rd217raw
   rw [hmin, byteArray_write_len_zero] at rd217
   exact ⟨k', C', by simpa using rd217⟩
 
 theorem vowCtorPrefixStateEquiv
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
-    {σ_evm σ_solm σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
-    (vat flapper flopper : AccountAddress)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    let evm0e := initState createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I
-    let evm0s := initState createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
+    (vat flapper flopper : AccountAddress) :
+    let evm0e := initState σ σ₀ g A I
+    let evm0s := initState σ σ₀ g A I
     let evm1e := vowCtorAfterWardsState evm0e
     let evm1s := vowCtorAfterWardsState evm0s
     let evm2e := vowCtorAfterVatState evm1e vat
@@ -386,60 +350,14 @@ theorem vowCtorPrefixStateEquiv
     let evm3s := vowCtorAfterFlapperState evm2s flapper
     let evm4e := vowCtorAfterFlopperState evm3e flopper
     let evm4s := vowCtorAfterFlopperState evm3s flopper
-    EVMStateEquiv evm4e evm4s := by
+    evm4e.accountMap = evm4s.accountMap := by
   intro evm0e evm0s evm1e evm1s evm2e evm2s evm3e evm3s evm4e evm4s
-  have h0 : EVMStateEquiv evm0e evm0s := by
-    simpa [evm0e, evm0s] using EVMStateEquiv.initState (g := g) hAccounts
-  have h1 : EVMStateEquiv evm1e evm1s := by
-    have hslot : wardsSlot (.address I.source) = vowCtorCallerWardsSlot I :=
-      vowCtorCallerWardsSlot_eq I
-    simpa [evm1e, evm1s, evm0e, evm0s, vowCtorAfterWardsState, initState, hslot]
-      using h0.storageStore_codeOwner (vowCtorCallerWardsSlot I)
-        (show (⟨1⟩ : UInt256) = ⟨1⟩ by rfl)
-  have h2 : EVMStateEquiv evm2e evm2s := by
-    have hval :
-        setAddressOffset0Word
-            (Solm.EVM.storageLoad evm1e evm1e.executionEnv.codeOwner ⟨1⟩)
-            (EVM.word vat.val) =
-          setAddressOffset0Word
-            (Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨1⟩)
-            (EVM.word vat.val) := by
-      exact congrArg (fun old => setAddressOffset0Word old (EVM.word vat.val))
-        (h1.storageLoad_codeOwner ⟨1⟩)
-    simpa [evm2e, evm2s, vowCtorAfterVatState] using h1.storageStore_codeOwner ⟨1⟩ hval
-  have h3 : EVMStateEquiv evm3e evm3s := by
-    have hval :
-        setAddressOffset0Word
-            (Solm.EVM.storageLoad evm2e evm2e.executionEnv.codeOwner ⟨2⟩)
-            (EVM.word flapper.val) =
-          setAddressOffset0Word
-            (Solm.EVM.storageLoad evm2s evm2s.executionEnv.codeOwner ⟨2⟩)
-            (EVM.word flapper.val) := by
-      exact congrArg (fun old => setAddressOffset0Word old (EVM.word flapper.val))
-        (h2.storageLoad_codeOwner ⟨2⟩)
-    simpa [evm3e, evm3s, vowCtorAfterFlapperState] using
-      h2.storageStore_codeOwner ⟨2⟩ hval
-  have h4 : EVMStateEquiv evm4e evm4s := by
-    have hval :
-        setAddressOffset0Word
-            (Solm.EVM.storageLoad evm3e evm3e.executionEnv.codeOwner ⟨3⟩)
-            (EVM.word flopper.val) =
-          setAddressOffset0Word
-            (Solm.EVM.storageLoad evm3s evm3s.executionEnv.codeOwner ⟨3⟩)
-            (EVM.word flopper.val) := by
-      exact congrArg (fun old => setAddressOffset0Word old (EVM.word flopper.val))
-        (h3.storageLoad_codeOwner ⟨3⟩)
-    simpa [evm4e, evm4s, vowCtorAfterFlopperState] using
-      h3.storageStore_codeOwner ⟨3⟩ hval
-  exact h4
+  rfl
 
 theorem vowCtorPrefixAccountMapEquiv
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
-    {σ_evm σ_solm σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
-    (vat flapper flopper : AccountAddress)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    let σWards := sstoreAccountMap I.codeOwner σ_evm (vowCtorCallerWardsSlot I) ⟨1⟩
+    {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
+    (vat flapper flopper : AccountAddress) :
+    let σWards := sstoreAccountMap I.codeOwner σ (vowCtorCallerWardsSlot I) ⟨1⟩
     let vatStored := setAddressOffset0Word (solcSlotWord σWards I ⟨1⟩) (EVM.word vat.val)
     let σVat := sstoreAccountMap I.codeOwner σWards ⟨1⟩ vatStored
     let flapperStored :=
@@ -449,29 +367,29 @@ theorem vowCtorPrefixAccountMapEquiv
       setAddressOffset0Word (solcSlotWord σFlapper I ⟨3⟩) (EVM.word flopper.val)
     let σFlopper := sstoreAccountMap I.codeOwner σFlapper ⟨3⟩ flopperStored
     let evm0s :=
-      initState createdAccounts genesisBlockHeader blocks σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1s := vowCtorAfterWardsState evm0s
     let evm2s := vowCtorAfterVatState evm1s vat
     let evm3s := vowCtorAfterFlapperState evm2s flapper
     let evm4s := vowCtorAfterFlopperState evm3s flopper
-    accountMapEquiv σFlopper evm4s.accountMap := by
+    Eq σFlopper evm4s.accountMap := by
   intro σWards vatStored σVat flapperStored σFlapper flopperStored σFlopper
     evm0s evm1s evm2s evm3s evm4s
   let evm0e :=
-    initState createdAccounts genesisBlockHeader blocks σ_evm σ₀ (Sat256.ofUInt256 g) A I
+    initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1e := vowCtorAfterWardsState evm0e
   let evm2e := vowCtorAfterVatState evm1e vat
   let evm3e := vowCtorAfterFlapperState evm2e flapper
   let evm4e := vowCtorAfterFlopperState evm3e flopper
-  have hprefix := vowCtorPrefixStateEquiv (createdAccounts := createdAccounts)
-    (genesisBlockHeader := genesisBlockHeader) (blocks := blocks) (σ_evm := σ_evm)
-    (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
-    vat flapper flopper hAccounts
+  have hprefix := vowCtorPrefixStateEquiv
+    (σ := σ)
+     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+    vat flapper flopper
   have hslot : wardsSlot (.address I.source) = vowCtorCallerWardsSlot I :=
     vowCtorCallerWardsSlot_eq I
-  have hmap : accountMapEquiv evm4e.accountMap evm4s.accountMap := by
+  have hmap : Eq evm4e.accountMap evm4s.accountMap := by
     simpa [evm0e, evm1e, evm2e, evm3e, evm4e, evm0s, evm1s, evm2s, evm3s, evm4s]
-      using hprefix.accountMap
+      using hprefix
   simpa [evm4e, evm3e, evm2e, evm1e, evm0e, σFlopper, flopperStored, σFlapper,
     flapperStored, σVat, vatStored, σWards, vowCtorAfterFlopperState,
     vowCtorAfterFlapperState, vowCtorAfterVatState, vowCtorAfterWardsState, initState,
@@ -482,19 +400,18 @@ set_option maxHeartbeats 0 in
 theorem vowConstructorCorrect :
     constructorEquivalence config vowCreationBytecode contract vowBytecode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I args deployedInitcode
-    hdeploy hcode _hcalldata hperm hAccounts
+  intro σ σ₀ g A I args deployedInitcode
+    hdeploy hcode _hcalldata hperm
   rcases vowCtorDeployment_shape hdeploy with ⟨vat, flapper, flopper, hargs, hdeployed⟩
   subst args
   have hcodeTail : I.code = vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper := by
     simpa [hdeployed] using hcode
   by_cases hwv : I.weiValue = ⟨0⟩
   · obtain ⟨_, _, rd67⟩ := vowCtorArgsReach
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat flapper flopper hcodeTail hwv
     obtain ⟨_, _, rd86⟩ := vowCtorWardsStoreReach vat flapper flopper hperm rd67
-    let σWards := sstoreAccountMap I.codeOwner σ_evm (vowCtorCallerWardsSlot I) ⟨1⟩
+    let σWards := sstoreAccountMap I.codeOwner σ (vowCtorCallerWardsSlot I) ⟨1⟩
     let vatStored := setAddressOffset0Word (solcSlotWord σWards I ⟨1⟩) (EVM.word vat.val)
     have rd86' := by
       simpa [σWards] using rd86
@@ -522,18 +439,18 @@ theorem vowConstructorCorrect :
       simpa [targetWord, vatStored] using
         setAddressOffset0Word_low_address_tail (solcSlotWord σWards I ⟨1⟩) vat
     let evm0s :=
-      initState createdAccounts genesisBlockHeader blocks σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1s := vowCtorAfterWardsState evm0s
     let evm2s := vowCtorAfterVatState evm1s vat
     let evm3s := vowCtorAfterFlapperState evm2s flapper
     let evm4s := vowCtorAfterFlopperState evm3s flopper
-    have hAccounts4 : accountMapEquiv σFlopper evm4s.accountMap := by
+    have hAccounts4 : Eq σFlopper evm4s.accountMap := by
       simpa [σWards, vatStored, σVat, flapperStored, σFlapper, flopperStored, σFlopper,
         evm0s, evm1s, evm2s, evm3s, evm4s] using
-        vowCtorPrefixAccountMapEquiv (createdAccounts := createdAccounts)
-          (genesisBlockHeader := genesisBlockHeader) (blocks := blocks) (σ_evm := σ_evm)
-          (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-          vat flapper flopper hAccounts
+        vowCtorPrefixAccountMapEquiv
+          (σ := σ)
+           (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          vat flapper flopper
     by_cases hcodeSize : extCodeSizeWord σFlopper targetWord = ⟨0⟩
     · have hrev := vowCtorHopeNoCode vat flapper flopper vatStored
         (by simpa [σFlopper, targetWord] using rd201)
@@ -553,8 +470,7 @@ theorem vowConstructorCorrect :
               (target := targetWord) (addr := vat) haddr hcodeSizeSolm
         refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
           (vowCtorSolmExecReverts_noCode
-            (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-            (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
             vat flapper flopper hwv (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using hvatNoCode))
           ?_
         exact ctorResultEquiv.revert rfl rfl
@@ -573,20 +489,20 @@ theorem vowConstructorCorrect :
       obtain ⟨gasWord, _, _, rd216⟩ := vowCtorHopeCallReady vat flapper flopper vatStored
         (by simpa [σFlopper, targetWord] using rd201) (by simpa [targetWord] using hcodeSize)
       by_cases hdepth : I.depth.val < 1024
-      · obtain ⟨createdAccountsCall, σCall, z, out, Ain, callGas, _, _, hΘ, rd217, hout⟩ :=
+      · obtain ⟨σCall, z, out, Ain, callGas, _, _, hΘ, rd217, hout⟩ :=
           vowCtorHopePostCall vat flapper flopper vatStored gasWord rd216 hdepth
         let evm0e :=
-          initState createdAccounts genesisBlockHeader blocks σ_evm σ₀ (Sat256.ofUInt256 g) A I
+          initState σ σ₀ (Sat256.ofUInt256 g) A I
         let evm1e := vowCtorAfterWardsState evm0e
         let evm2e := vowCtorAfterVatState evm1e vat
         let evm3e := vowCtorAfterFlapperState evm2e flapper
         let evm4e := vowCtorAfterFlopperState evm3e flopper
-        have hAccounts4e : accountMapEquiv evm4e.accountMap evm4s.accountMap := by
+        have hAccounts4e : Eq evm4e.accountMap evm4s.accountMap := by
           simpa [evm0e, evm1e, evm2e, evm3e, evm4e, evm0s, evm1s, evm2s, evm3s, evm4s]
-            using (vowCtorPrefixStateEquiv (createdAccounts := createdAccounts)
-              (genesisBlockHeader := genesisBlockHeader) (blocks := blocks) (σ_evm := σ_evm)
-              (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
-              (g := Sat256.ofUInt256 g) vat flapper flopper hAccounts).accountMap
+            using (vowCtorPrefixStateEquiv
+              (σ := σ)
+               (σ₀ := σ₀) (A := A) (I := I)
+              (g := Sat256.ofUInt256 g) vat flapper flopper)
         have htgt : EVM.address vat = AccountAddress.ofUInt256 targetWord := by
           rw [htargetWord, accountAddress_of_word_val_tail, evmAddress_accountAddress_tail]
         have hslot : wardsSlot (.address I.source) = vowCtorCallerWardsSlot I :=
@@ -606,7 +522,7 @@ theorem vowConstructorCorrect :
           { evm4e with
             accountMap := σCall
             substate := ATheta
-            createdAccounts := createdAccountsCall }
+          }
         have hcallEvm :
             typedCallViaEVM config evm4e (EVM.address vat) "hope" 0 [.address flapper]
               (z, evmCallEvm, out) true := by
@@ -621,31 +537,12 @@ theorem vowConstructorCorrect :
                 (vowCtorWardsHashMem_size I vat flapper flopper))
           · simpa [evm4e, evm3e, evm2e, evm1e, evm0e, σFlopper, targetWord,
               evmCallEvm, storageStore_accountMap, storageStore_executionEnv,
-              storageStore_createdAccounts, storageStore_sigma0_tail, storageStore_blocks_tail,
-              storageStore_genesisBlockHeader_tail, initState, Solm.EVM.storageLoad,
               State.lookupAccount, Account.lookupStorage, solcSlotWord, hslot, hperm] using hTheta
         obtain ⟨σSolmCall, ASolmCall, hcallSolm, hPostAccounts⟩ :=
           typedCallViaEVM_accountMapEquiv (evm_solm := evm4s) hcallEvm hAccounts4e
             (by simp [evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
               evm0e, evm0s, vowCtorAfterFlopperState, vowCtorAfterFlapperState,
-              vowCtorAfterVatState, vowCtorAfterWardsState, storageStore_sigma0_tail,
-              initState])
-            (by simp [evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
-              evm0e, evm0s, vowCtorAfterFlopperState, vowCtorAfterFlapperState,
-              vowCtorAfterVatState, vowCtorAfterWardsState, storageStore_createdAccounts,
-              initState])
-            (by simp [evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
-              evm0e, evm0s, vowCtorAfterFlopperState, vowCtorAfterFlapperState,
-              vowCtorAfterVatState, vowCtorAfterWardsState,
-              storageStore_genesisBlockHeader_tail, initState])
-            (by simp [evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
-              evm0e, evm0s, vowCtorAfterFlopperState, vowCtorAfterFlapperState,
-              vowCtorAfterVatState, vowCtorAfterWardsState, storageStore_blocks_tail,
-              initState])
-            (by simp [evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
-              evm0e, evm0s, vowCtorAfterFlopperState, vowCtorAfterFlapperState,
-              vowCtorAfterVatState, vowCtorAfterWardsState, storageStore_substate_tail,
-              initState])
+              vowCtorAfterVatState, vowCtorAfterWardsState, initState])
             (by simp [evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
               evm0e, evm0s, vowCtorAfterFlopperState, vowCtorAfterFlapperState,
               vowCtorAfterVatState, vowCtorAfterWardsState, storageStore_executionEnv,
@@ -654,7 +551,7 @@ theorem vowConstructorCorrect :
           { evm4s with
             accountMap := σSolmCall
             substate := ASolmCall
-            createdAccounts := createdAccountsCall }
+          }
         cases z
         · have hrev := vowCtorHopeCallFailure vat flapper flopper (by simpa using rd217) hout
             (by simp only [List.length_cons, List.length_nil]; omega)
@@ -662,8 +559,7 @@ theorem vowConstructorCorrect :
           · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
           · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
               (vowCtorSolmExecReverts_callFailure
-                (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-                (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 (evmHope := evmHopeSolm) (out := out)
                 vat flapper flopper hwv
                 (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using hvatCode)
@@ -675,11 +571,8 @@ theorem vowConstructorCorrect :
           have hret := vowCtorReturnRuntime vat flapper flopper rd246
           rcases RDret.xiResultAcc hcodeTail hret with hOOG | ⟨g', A', hSuccess⟩
           · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-          · have hcreated :
-                createdAccountsCall = (vowCtorAfterLiveState evmHopeSolm).createdAccounts := by
-              simp [evmHopeSolm, vowCtorAfterLiveState, storageStore_createdAccounts]
-            have hAccountsLive :
-                accountMapEquiv (sstoreAccountMap I.codeOwner σCall ⟨12⟩ ⟨1⟩)
+          · have hAccountsLive :
+                Eq (sstoreAccountMap I.codeOwner σCall ⟨12⟩ ⟨1⟩)
                   (vowCtorAfterLiveState evmHopeSolm).accountMap := by
               have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩ hPostAccounts
               simpa [evmHopeSolm, evm4s, evm3s, evm2s, evm1s, evm0s, vowCtorAfterLiveState,
@@ -688,13 +581,12 @@ theorem vowConstructorCorrect :
                 using hbase
             refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hSuccess)
               (vowCtorSolmExecSuccess
-                (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-                (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 (evmHope := evmHopeSolm) (out := out) vat flapper flopper hwv
                 (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using hvatCode)
                 (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s, evmHopeSolm] using hcallSolm))
               ?_
-            exact ctorResultEquiv.success rfl rfl hcreated hAccountsLive rfl
+            exact ctorResultEquiv.success rfl rfl hAccountsLive rfl
       · have hdepthEq : I.depth = 1024 := by
           apply Fin.ext
           have hle : I.depth.val ≤ 1024 := Nat.le_of_lt_succ I.depth.isLt
@@ -710,6 +602,7 @@ theorem vowConstructorCorrect :
           have hcallDepth :
               typedCallViaEVM config evm4s (EVM.address vat) "hope" 0 [.address flapper]
                 (false, { evm4s with substate := A_hope }, ByteArray.empty) true := by
+                }
             simpa [A_hope, evm4s, evm3s, evm2s, evm1s, evm0s, storageStore_executionEnv,
               vowCtorAfterFlopperState, vowCtorAfterFlapperState, vowCtorAfterVatState,
               vowCtorAfterWardsState, initState] using
@@ -728,24 +621,22 @@ theorem vowConstructorCorrect :
                     vowCtorAfterWardsState, initState] using hdepthEq))
           refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
             (vowCtorSolmExecReverts_callFailure
-              (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-              (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               (evmHope := { evm4s with substate := A_hope }) (out := ByteArray.empty)
+              }
               vat flapper flopper hwv
               (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using hvatCode)
               (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using hcallDepth))
             ?_
           exact ctorResultEquiv.revert rfl rfl
   · have hrd := vowCtorNonpayableRDrev
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat flapper flopper hcodeTail hwv
     rcases hrd.xiResult hcodeTail with hOOG | ⟨g', out, hRev⟩
     · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
     · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hRev)
         (vowCtorSolmExecReverts_nonpayable
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           vat flapper flopper hwv)
         ?_
       exact ctorResultEquiv.revert rfl rfl

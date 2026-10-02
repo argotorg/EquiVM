@@ -32,26 +32,25 @@ theorem cureDecode_when {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem cureWhenBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem cureWhenBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (cureSelBytes 19))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (cureSelBytes 19)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (cureSelBytes 19) rfl hsel
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ whenTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ whenTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (whenWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (whenWord σ I).toNat))])) := by
     simpa [whenTransition, whenWord, cureSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       cureUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := whenRef) (er := ({ base := "when", steps := [] } : EvaledStorageRef))
         (slot := ⟨4⟩)
         (by simp only [initState]; exact hwv) (by simp [whenRef])
@@ -60,7 +59,7 @@ theorem cureWhenBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   exact cureUint256GetterBodyCore (entry := ⟨808⟩) (returnPc := ⟨343⟩)
     (routine := ⟨3603⟩) (slot := ⟨4⟩)
     hcode (cureDispatchWhen hsel) (cureDecode_when hsz)
-    (cureReachWhenBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
+    (cureReachWhenBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)

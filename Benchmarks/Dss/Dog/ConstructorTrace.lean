@@ -12,18 +12,16 @@ namespace Benchmarks.Dss.Dog
 set_option maxRecDepth 2000000
 
 theorem dogInitcodeNonpayableRevert
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress)
     (hcode : I.code = dogCtorCode vat)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev (dogCtorCode vat) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   have rd0 :
       RD (dogCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   have rd12 := dog_ctor_run rd0 with [
     push1 ⟨160⟩, push1 ⟨64⟩,
@@ -38,42 +36,38 @@ theorem dogInitcodeNonpayableRevert
     push1 ⟨0⟩, dup1,
     raw rev 0 (by dog_ctor_decode) mem_cost (by evm_ov)]
 
-theorem RDret.xiResultAcc {cA gh bl σ σ₀ A I} {g : Sat256} {code o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem RDret.xiResultAcc {σ σ₀ A I} {g : Sat256} {code o : ByteArray}
+    {acc : AccountMap}
     (hcode : I.code = code)
-    (h : RDret code g (initState cA gh bl σ σ₀ g A I) acc o) :
-    Ξ cA gh bl σ σ₀ g.toUInt256 A I = .error .OutOfGass
+    (h : RDret code g (initState σ σ₀ g A I) acc o) :
+    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
     ∨ ∃ (g' : UInt256) (A' : Substate),
-        Ξ cA gh bl σ σ₀ g.toUInt256 A I =
-          .ok (.success (acc.1, acc.2, g', A') o) := by
+        Ξ σ σ₀ g.toUInt256 A I =
+          .ok (.success (acc, g', A') o) := by
   rcases h with hOOG | ⟨s, hX, hacc⟩
   · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
       rw [← hcode] at hOOG
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hOOG))
-  · have hcA : s.createdAccounts = acc.1 := congrArg Prod.fst hacc
-    have hσ : s.accountMap = acc.2 := congrArg Prod.snd hacc
-    have hxi := Xi_success_of_X (g := g.toUInt256) (by
+  · have hxi := Xi_success_of_X (g := g.toUInt256) (by
       rw [← hcode] at hX
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
-    rw [hcA, hσ] at hxi
+    rw [hacc] at hxi
     exact Or.inr ⟨_, _, hxi⟩
 
 set_option maxHeartbeats 1000000 in
 theorem dogCtorArgsReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress)
     (hcode : I.code = dogCtorCode vat)
     (hwv : I.weiValue = ⟨0⟩) :
     ∃ k C, RD (dogCtorCode vat) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨54⟩
+      (initState σ σ₀ g A I) ⟨54⟩
       [EVM.word vat.val] (dogCtorArgFreeMem vat) (UInt256.ofNat 6) ByteArray.empty
-      (createdAccounts, σ) k C := by
+      σ k C := by
   have rd0 :
       RD (dogCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   have hcopy : (dogCtorCode vat).write 4927 dogCtorFreePtrMem 160 32 =
       dogCtorArgMem vat := by
@@ -129,19 +123,17 @@ theorem dogCtorArgsReach
 
 set_option maxHeartbeats 1000000 in
 theorem dogCtorVatDecodeReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (rd54 :
       RD (dogCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨54⟩
+        (initState σ σ₀ g A I) ⟨54⟩
         [EVM.word vat.val] (dogCtorArgFreeMem vat) (UInt256.ofNat 6) ByteArray.empty
-        (createdAccounts, σ) k C) :
+        σ k C) :
     ∃ k' C', RD (dogCtorCode vat) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨72⟩
+      (initState σ σ₀ g A I) ⟨72⟩
       [EVM.word vat.val] (dogCtorVatMem vat) (UInt256.ofNat 6) ByteArray.empty
-      (createdAccounts, σ) k' C' := by
+      σ k' C' := by
   have rd72 := dog_ctor_run rd54 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨96⟩, shl, sub, not,
     push1 ⟨96⟩, dup3, swap1, shl, and, push1 ⟨128⟩,
@@ -155,20 +147,18 @@ theorem dogCtorVatDecodeReach
   exact ⟨_, _, rd72⟩
 
 theorem dogCtorLiveStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd72 :
       RD (dogCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨72⟩
+        (initState σ σ₀ g A I) ⟨72⟩
         [EVM.word vat.val] (dogCtorVatMem vat) (UInt256.ofNat 6) ByteArray.empty
-        (createdAccounts, σ) k C) :
+        σ k C) :
     ∃ k' C', RD (dogCtorCode vat) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨79⟩
+      (initState σ σ₀ g A I) ⟨79⟩
       [⟨1⟩, EVM.word vat.val] (dogCtorVatMem vat) (UInt256.ofNat 6) ByteArray.empty
-      (createdAccounts, sstoreAccountMap I.codeOwner σ ⟨3⟩ ⟨1⟩) k' C' := by
+      (sstoreAccountMap I.codeOwner σ ⟨3⟩ ⟨1⟩) k' C' := by
   have rdBeforeStore := dog_ctor_run rd72 with [
     push1 ⟨1⟩, push1 ⟨3⟩, dup2, swap1]
   obtain ⟨k', C', rd79⟩ := rdBeforeStore.sstore hperm (by dog_ctor_decode) (by evm_ov)
@@ -176,22 +166,19 @@ theorem dogCtorLiveStoreReach
 
 set_option maxHeartbeats 1000000 in
 theorem dogCtorWardsStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σLive σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd79 :
       RD (dogCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨79⟩
+        (initState σ σ₀ g A I) ⟨79⟩
         [⟨1⟩, EVM.word vat.val] (dogCtorVatMem vat) (UInt256.ofNat 6) ByteArray.empty
-        (createdAccounts, σLive) k C) :
+        σLive k C) :
     ∃ k' C', RD (dogCtorCode vat) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨99⟩
+      (initState σ σ₀ g A I) ⟨99⟩
       [⟨0⟩, solcSourceWord I, ⟨64⟩, EVM.word vat.val]
       (dogCtorWardsHashMem I vat) (UInt256.ofNat 6) ByteArray.empty
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner σLive (dogCtorCallerWardsSlot I) ⟨1⟩) k' C' := by
+      (sstoreAccountMap I.codeOwner σLive (dogCtorCallerWardsSlot I) ⟨1⟩) k' C' := by
   have rdBeforeHash := dog_ctor_run rd79 with [
     caller, push1 ⟨0⟩, dup2, dup2,
     raw mstore 0 (wordAt0Mem (solcSourceWord I) (dogCtorVatMem vat))
@@ -209,21 +196,19 @@ theorem dogCtorWardsStoreReach
 
 set_option maxHeartbeats 1000000 in
 theorem dogCtorRelyLogReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd99 :
       RD (dogCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨99⟩
+        (initState σ σ₀ g A I) ⟨99⟩
         [⟨0⟩, solcSourceWord I, ⟨64⟩, EVM.word vat.val]
         (dogCtorWardsHashMem I vat) (UInt256.ofNat 6) ByteArray.empty
-        (createdAccounts, σWards) k C) :
+        σWards k C) :
     ∃ k' C', RD (dogCtorCode vat) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨139⟩
+      (initState σ σ₀ g A I) ⟨139⟩
       [] (dogCtorWardsHashMem I vat) (UInt256.ofNat 6) ByteArray.empty
-      (createdAccounts, σWards) k' C' := by
+      σWards k' C' := by
   have rdMload := dog_ctor_run rd99 with [
     swap2,
     raw mload 0 ⟨192⟩ (UInt256.ofNat 6)
@@ -242,7 +227,7 @@ theorem dogCtorRelyLogReach
 set_option maxHeartbeats 1000000 in
 theorem dogCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {acc : AccountMap} {k C : Nat}
     (vat : AccountAddress)
     (h : RD (dogCtorCode vat) I g s0 ⟨139⟩ []
       (dogCtorWardsHashMem I vat) (UInt256.ofNat 6) rdata acc k C) :
@@ -311,24 +296,20 @@ theorem dogCtorReturnTrace
     (by dog_ctor_decode) mem_cost (dogCtorPatchedRuntime_read vat) (by evm_ov)
 
 theorem dogInitcodeSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress)
     (hcode : I.code = dogCtorCode vat)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
     RDret (dogCtorCode vat) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner
+      (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ ⟨3⟩ ⟨1⟩)
           (dogCtorCallerWardsSlot I) ⟨1⟩)
       (dogCtorPatchedRuntime vat) := by
   obtain ⟨_, _, rd54⟩ :=
     dogCtorArgsReach
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       vat hcode hwv
   obtain ⟨_, _, rd72⟩ := dogCtorVatDecodeReach vat rd54
   obtain ⟨_, _, rd79⟩ := dogCtorLiveStoreReach vat hperm rd72

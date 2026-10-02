@@ -440,14 +440,14 @@ theorem flapperHighHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
       if (flapperHighHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
   interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
-theorem flapperReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
         flapperRootSplitPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   simpa [flapperRootSplitPc, flapperSelWord] using
-    solcLegacyDispatchReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    solcLegacyDispatchReachSelector (σ := σ)
       (σ₀ := σ₀) (A := A) (g := g) (code := flapperBytecode)
       (bodyPc := flapperDispatchBodyPc) (loadPc := flapperSelectorLoadPc)
       (firstPc := flapperRootSplitPc) (guardTgt := (⟨16⟩ : UInt256))
@@ -462,142 +462,142 @@ theorem flapperReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
-theorem flapperReachLowSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperReachLowSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat flapperBytecode flapperRootSplitPc)
       (flapperSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
         flapperLowSplitPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    flapperReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    flapperReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h173 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h173 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperLowSplitJumpdestPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [flapperRootSplitPc, flapperLowSplitJumpdestPc] using
       RD.selectorSplitTakenAuto h32 flapperRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h174 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h174 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperLowSplitPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [flapperLowSplitPc] using h173.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h174⟩
 
-theorem flapperReachHighSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperReachHighSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat flapperBytecode flapperRootSplitPc)
       (flapperSelWord I) = ⟨0⟩) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
         flapperHighSplitPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    flapperReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    flapperReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h43 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperHighSplitPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [flapperHighSplitPc, flapperRootSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 flapperRootSplitWellFormed hroot (by simp)
   exact ⟨_, _, h43⟩
 
-theorem flapperReachLowLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperReachLowLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat flapperBytecode flapperRootSplitPc)
       (flapperSelWord I) ≠ ⟨0⟩)
     (hlow : UInt256.gt (armSelNat flapperBytecode flapperLowSplitPc)
       (flapperSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
         flapperLowLowFirstArmPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k174, C174, h174⟩ :=
-    flapperReachLowSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    flapperReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h244 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h244 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperLowLowJumpdestPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k174 + 5) (C174 + 22) := by
+      ByteArray.empty σ (k174 + 5) (C174 + 22) := by
     simpa [flapperLowSplitPc, flapperLowLowJumpdestPc] using
       RD.selectorSplitTakenAuto h174 flapperLowSplitWellFormed hlow (by jump_dest) (by simp)
-  have h245 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h245 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperLowLowFirstArmPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k174 + 5 + 1) (C174 + 22 + 1) := by
+      ByteArray.empty σ (k174 + 5 + 1) (C174 + 22 + 1) := by
     simpa [flapperLowLowFirstArmPc] using h244.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h245⟩
 
-theorem flapperReachLowHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperReachLowHighFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat flapperBytecode flapperRootSplitPc)
       (flapperSelWord I) ≠ ⟨0⟩)
     (hlow : UInt256.gt (armSelNat flapperBytecode flapperLowSplitPc)
       (flapperSelWord I) = ⟨0⟩) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
         flapperLowHighFirstArmPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k174, C174, h174⟩ :=
-    flapperReachLowSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    flapperReachLowSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h185 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h185 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperLowHighFirstArmPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k174 + 5) (C174 + 22) := by
+      ByteArray.empty σ (k174 + 5) (C174 + 22) := by
     simpa [flapperLowHighFirstArmPc, flapperLowSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h174 flapperLowSplitWellFormed hlow (by simp)
   exact ⟨_, _, h185⟩
 
-theorem flapperReachHighLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperReachHighLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat flapperBytecode flapperRootSplitPc)
       (flapperSelWord I) = ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat flapperBytecode flapperHighSplitPc)
       (flapperSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
         flapperHighLowFirstArmPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k43, C43, h43⟩ :=
-    flapperReachHighSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    flapperReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h113 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h113 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperHighLowJumpdestPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k43 + 5) (C43 + 22) := by
+      ByteArray.empty σ (k43 + 5) (C43 + 22) := by
     simpa [flapperHighSplitPc, flapperHighLowJumpdestPc] using
       RD.selectorSplitTakenAuto h43 flapperHighSplitWellFormed hhigh (by jump_dest) (by simp)
-  have h114 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h114 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperHighLowFirstArmPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k43 + 5 + 1) (C43 + 22 + 1) := by
+      ByteArray.empty σ (k43 + 5 + 1) (C43 + 22 + 1) := by
     simpa [flapperHighLowFirstArmPc] using h113.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h114⟩
 
-theorem flapperReachHighHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperReachHighHighFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat flapperBytecode flapperRootSplitPc)
       (flapperSelWord I) = ⟨0⟩)
     (hhigh : UInt256.gt (armSelNat flapperBytecode flapperHighSplitPc)
       (flapperSelWord I) = ⟨0⟩) :
-    ∃ k C, RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flapperBytecode I g (initState σ σ₀ g A I)
         flapperHighHighFirstArmPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k43, C43, h43⟩ :=
-    flapperReachHighSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    flapperReachHighSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
-  have h54 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h54 : RD flapperBytecode I g (initState σ σ₀ g A I)
       flapperHighHighFirstArmPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k43 + 5) (C43 + 22) := by
+      ByteArray.empty σ (k43 + 5) (C43 + 22) := by
     simpa [flapperHighHighFirstArmPc, flapperHighSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h43 flapperHighSplitWellFormed hhigh (by simp)
   exact ⟨_, _, h54⟩
 
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
-theorem flapperX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
@@ -607,11 +607,11 @@ theorem flapperX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (by native_decide) (by simp only [List.length]; omega)
 
 /-- Calldata shorter than a selector reverts at the shared dispatcher revert block. -/
-theorem flapperX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -632,13 +632,13 @@ theorem flapperX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (by native_decide) (by simp only [List.length]; omega)
 
 /-- A fallthrough `PUSH2 300; JUMP` reaches the shared revert block. -/
-theorem flapperJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt256}
+theorem flapperJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
-    (h : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) pc
-      [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (h : RD flapperBytecode I g (initState σ σ₀ g A I) pc
+      [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode flapperBytecode pc = some (.Push .PUSH2, some (flapperDispatchRevertPc, 2)))
     (hjump : decode flapperBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
   have h300 := h.push2 flapperDispatchRevertPc hpush
       (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
@@ -646,14 +646,14 @@ theorem flapperJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UI
   exact RD.solcPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem flapperLowLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) flapperLowLowFirstArmPc
-      [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem flapperLowLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD flapperBytecode I g (initState σ σ₀ g A I) flapperLowLowFirstArmPc
+      [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat flapperBytecode (nthArmPc flapperBytecode flapperLowLowFirstArmPc j))
         (flapperSelWord I) = ⟨0⟩) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
   have h300 := h
     |>.selectorArmNotTakenAuto (flapperLowLowArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -669,14 +669,14 @@ theorem flapperLowLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
   exact RD.solcPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem flapperLowHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) flapperLowHighFirstArmPc
-      [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem flapperLowHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD flapperBytecode I g (initState σ σ₀ g A I) flapperLowHighFirstArmPc
+      [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat flapperBytecode (nthArmPc flapperBytecode flapperLowHighFirstArmPc j))
         (flapperSelWord I) = ⟨0⟩) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
   have h240 := h
     |>.selectorArmNotTakenAuto (flapperLowHighArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -690,14 +690,14 @@ theorem flapperLowHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : 
         (heq0 4 (by omega)) (by simp)
   exact flapperJumpToNoMatchRevert h240 (by native_decide) (by native_decide)
 
-theorem flapperHighLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) flapperHighLowFirstArmPc
-      [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem flapperHighLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD flapperBytecode I g (initState σ σ₀ g A I) flapperHighLowFirstArmPc
+      [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat flapperBytecode (nthArmPc flapperBytecode flapperHighLowFirstArmPc j))
         (flapperSelWord I) = ⟨0⟩) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
   have h169 := h
     |>.selectorArmNotTakenAuto (flapperHighLowArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -711,14 +711,14 @@ theorem flapperHighLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : 
         (heq0 4 (by omega)) (by simp)
   exact flapperJumpToNoMatchRevert h169 (by native_decide) (by native_decide)
 
-theorem flapperHighHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) flapperHighHighFirstArmPc
-      [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem flapperHighHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD flapperBytecode I g (initState σ σ₀ g A I) flapperHighHighFirstArmPc
+      [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat flapperBytecode (nthArmPc flapperBytecode flapperHighHighFirstArmPc j))
         (flapperSelWord I) = ⟨0⟩) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
   have h109 := h
     |>.selectorArmNotTakenAuto (flapperHighHighArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -732,11 +732,11 @@ theorem flapperHighHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C :
         (heq0 4 (by omega)) (by simp)
   exact flapperJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
 
-theorem flapperX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flapperX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 20 → (flapperSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev flapperBytecode g (initState σ σ₀ g A I) := by
   have heqLowLow : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat flapperBytecode (nthArmPc flapperBytecode flapperLowLowFirstArmPc j))
@@ -846,7 +846,7 @@ theorem flapperX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
   · by_cases hlow : UInt256.gt (armSelNat flapperBytecode flapperLowSplitPc)
         (flapperSelWord I) ≠ ⟨0⟩
     · obtain ⟨_, _, hfirst⟩ :=
-        flapperReachLowLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+        flapperReachLowLowFirstArm (σ := σ)
           (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow
       exact flapperLowLowNoMatchRevert hfirst heqLowLow
     · have hlow0 : UInt256.gt (armSelNat flapperBytecode flapperLowSplitPc)
@@ -854,7 +854,7 @@ theorem flapperX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         by_contra hne
         exact hlow hne
       obtain ⟨_, _, hfirst⟩ :=
-        flapperReachLowHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+        flapperReachLowHighFirstArm (σ := σ)
           (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow0
       exact flapperLowHighNoMatchRevert hfirst heqLowHigh
   · have hroot0 : UInt256.gt (armSelNat flapperBytecode flapperRootSplitPc)
@@ -864,7 +864,7 @@ theorem flapperX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     by_cases hhigh : UInt256.gt (armSelNat flapperBytecode flapperHighSplitPc)
         (flapperSelWord I) ≠ ⟨0⟩
     · obtain ⟨_, _, hfirst⟩ :=
-        flapperReachHighLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+        flapperReachHighLowFirstArm (σ := σ)
           (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot0 hhigh
       exact flapperHighLowNoMatchRevert hfirst heqHighLow
     · have hhigh0 : UInt256.gt (armSelNat flapperBytecode flapperHighSplitPc)
@@ -872,7 +872,7 @@ theorem flapperX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         by_contra hne
         exact hhigh hne
       obtain ⟨_, _, hfirst⟩ :=
-        flapperReachHighHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+        flapperReachHighHighFirstArm (σ := σ)
           (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot0 hhigh0
       exact flapperHighHighNoMatchRevert hfirst heqHighHigh
 
@@ -921,10 +921,10 @@ theorem flapperNoSelectorMatches {I : ExecutionEnv}
   · simpa [selIs, flapperSelBytes] using hwards
   · simpa [selIs, flapperSelBytes] using hyank
 
-theorem flapperNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flapperNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (flapperX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -939,26 +939,25 @@ theorem flapperNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (flapperBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
-theorem flapperShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flapperShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   exact (flapperX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (flapperDispatch_none_short hsz)
 
-theorem flapperNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flapperNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hnm : ∀ i, i < 20 → (flapperSelBytes i == I.calldata.extract 0 4) = false)
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hnm : ∀ i, i < 20 → (flapperSelBytes i == I.calldata.extract 0 4) = false) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (flapperX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (flapperDispatch_none_nomatch hnm)

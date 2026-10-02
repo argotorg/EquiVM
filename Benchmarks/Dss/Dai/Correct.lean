@@ -68,10 +68,10 @@ theorem daiBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.tran
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     exact bodyReverts_nonPayable h
 
-theorem daiX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ)
     (σ₀ := σ₀) (A := A) (g := g) hcode (by decide) (by decide) (by decide)
     (by decide) (by decide) (by decide)
   have h12 := h0
@@ -82,11 +82,11 @@ theorem daiX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
-theorem daiX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ)
     (σ₀ := σ₀) (A := A) (g := g) hcode (by decide) (by decide) (by decide)
     (by decide) (by decide) (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -170,24 +170,24 @@ theorem daiDispatch_none_nomatch {cd : ByteArray}
   · simpa [selectorOf] using hnm 20 (by decide)
   · simpa [selectorOf] using hnm 21 (by decide)
 
-theorem daiJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
+theorem daiJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     {pc : UInt256}
-    (h : RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) pc [daiSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (h : RD daiBytecode I g (initState σ σ₀ g A I) pc [daiSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode daiBytecode pc = some (.Push .PUSH2, some (⟨322⟩, 2)))
     (hjump : decode daiBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   have h322 := h.push2 ⟨322⟩ hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by evm_ov)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
   exact RD.solcPush1Dup1Revert0 h322 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem daiX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 22 → (daiSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   have hselectorNoMatch (i : ℕ) (hi : i < 22) (c0 c1 c2 c3 : UInt8) (sel : UInt256)
       (hsel : (fromBytesBigEndian [c0, c1, c2, c3] : ℕ) = sel.toNat)
       (hbytes : daiSelBytes i = (⟨#[c0, c1, c2, c3]⟩ : ByteArray)) :
@@ -247,8 +247,8 @@ theorem daiX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.gt (armSelNat daiBytecode daiRootSplitPc) (daiSelWord I) = ⟨0⟩
   · by_cases hhigh :
         UInt256.gt (armSelNat daiBytecode daiHighSplitPc) (daiSelWord I) = ⟨0⟩
-    · obtain ⟨_, _, h54⟩ := daiReachVeryHighFirstArm (cA := cA) (gh := gh)
-        (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    · obtain ⟨_, _, h54⟩ := daiReachVeryHighFirstArm
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hhigh
       have h124 := h54
         |>.selectorArmNotTakenAuto (daiVeryHighArmsWellFormed 0 (by omega))
@@ -264,8 +264,8 @@ theorem daiX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         |>.selectorArmNotTakenAuto (daiVeryHighArmsWellFormed 5 (by omega))
             (heqVeryHigh 5 (by omega)) (by simp)
       exact daiJumpToNoMatchRevert h124 (by native_decide) (by native_decide)
-    · obtain ⟨_, _, h125⟩ := daiReachHighFirstArm (cA := cA) (gh := gh)
-        (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    · obtain ⟨_, _, h125⟩ := daiReachHighFirstArm
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hhigh
       have h181 := h125
         |>.selectorArmNotTakenAuto (daiHighArmsWellFormed 0 (by omega))
@@ -281,8 +281,8 @@ theorem daiX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
       exact daiJumpToNoMatchRevert h181 (by native_decide) (by native_decide)
   · by_cases hlow :
         UInt256.gt (armSelNat daiBytecode daiLowSplitPc) (daiSelWord I) = ⟨0⟩
-    · obtain ⟨_, _, h196⟩ := daiReachLowFirstArm (cA := cA) (gh := gh)
-        (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    · obtain ⟨_, _, h196⟩ := daiReachLowFirstArm
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hlow
       have h263 := h196
         |>.selectorArmNotTakenAuto (daiLowArmsWellFormed 0 (by omega))
@@ -298,8 +298,8 @@ theorem daiX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         |>.selectorArmNotTakenAuto (daiLowArmsWellFormed 5 (by omega))
             (heqLow 5 (by omega)) (by simp)
       exact daiJumpToNoMatchRevert h263 (by native_decide) (by native_decide)
-    · obtain ⟨_, _, h267⟩ := daiReachVeryLowFirstArm (cA := cA) (gh := gh)
-        (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    · obtain ⟨_, _, h267⟩ := daiReachVeryLowFirstArm
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hlow
       have h322 := h267
         |>.selectorArmNotTakenAuto (daiVeryLowArmsWellFormed 0 (by omega))
@@ -317,9 +317,9 @@ theorem daiX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         (by native_decide) (by simp only [List.length_singleton]; omega)
 
 /-- `callvalue != 0` reverts on both sides for every Dai transition. -/
-theorem daiNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (daiX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -334,24 +334,24 @@ theorem daiNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (daiBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) callargs
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) callargs
               (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
 /-- Calldata shorter than a selector reverts before runtime dispatch reaches a body. -/
-theorem daiShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (daiX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (daiDispatch_none_short hsz)
 
 /-- No selector matches: Solm dispatch fails and the bytecode falls through to the revert stub. -/
-theorem daiNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 22 → (daiSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (daiX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (daiDispatch_none_nomatch hnm)
@@ -361,53 +361,53 @@ theorem daiNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
 
 theorem daiCorrect :
     runtimeEquivalence config daiBytecode contract := by
-  refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize hperm => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases h0 : selIs I (daiSelBytes 0)
-      · exact daiAllowanceBodyCore hcode hsize hperm hwv h0 hAccounts
+      · exact daiAllowanceBodyCore hcode hsize hperm hwv h0
       · by_cases h1 : selIs I (daiSelBytes 1)
-        · exact daiApproveBodyCore hcode hsize hperm hwv h1 hAccounts
+        · exact daiApproveBodyCore hcode hsize hperm hwv h1
         · by_cases h2 : selIs I (daiSelBytes 2)
-          · exact daiBalanceOfBodyCore hcode hsize hperm hwv h2 hAccounts
+          · exact daiBalanceOfBodyCore hcode hsize hperm hwv h2
           · by_cases h3 : selIs I (daiSelBytes 3)
-            · exact daiBurnBodyCore hcode hsize hperm hwv h3 hAccounts
+            · exact daiBurnBodyCore hcode hsize hperm hwv h3
             · by_cases h4 : selIs I (daiSelBytes 4)
-              · exact daiDecimalsBodyCore hcode hsize hperm hwv h4 hAccounts
+              · exact daiDecimalsBodyCore hcode hsize hperm hwv h4
               · by_cases h5 : selIs I (daiSelBytes 5)
-                · exact daiDenyBodyCore hcode hsize hperm hwv h5 hAccounts
+                · exact daiDenyBodyCore hcode hsize hperm hwv h5
                 · by_cases h6 : selIs I (daiSelBytes 6)
-                  · exact daiDomainSeparatorBodyCore hcode hsize hperm hwv h6 hAccounts
+                  · exact daiDomainSeparatorBodyCore hcode hsize hperm hwv h6
                   · by_cases h7 : selIs I (daiSelBytes 7)
-                    · exact daiMintBodyCore hcode hsize hperm hwv h7 hAccounts
+                    · exact daiMintBodyCore hcode hsize hperm hwv h7
                     · by_cases h8 : selIs I (daiSelBytes 8)
-                      · exact daiMoveBodyCore hcode hsize hperm hwv h8 hAccounts
+                      · exact daiMoveBodyCore hcode hsize hperm hwv h8
                       · by_cases h9 : selIs I (daiSelBytes 9)
-                        · exact daiNameBodyCore hcode hsize hperm hwv h9 hAccounts
+                        · exact daiNameBodyCore hcode hsize hperm hwv h9
                         · by_cases h10 : selIs I (daiSelBytes 10)
-                          · exact daiNoncesBodyCore hcode hsize hperm hwv h10 hAccounts
+                          · exact daiNoncesBodyCore hcode hsize hperm hwv h10
                           · by_cases h11 : selIs I (daiSelBytes 11)
-                            · exact daiPermitBodyCore hcode hsize hperm hwv h11 hAccounts
+                            · exact daiPermitBodyCore hcode hsize hperm hwv h11
                             · by_cases h12 : selIs I (daiSelBytes 12)
-                              · exact daiPermitTypehashBodyCore hcode hsize hperm hwv h12 hAccounts
+                              · exact daiPermitTypehashBodyCore hcode hsize hperm hwv h12
                               · by_cases h13 : selIs I (daiSelBytes 13)
-                                · exact daiPullBodyCore hcode hsize hperm hwv h13 hAccounts
+                                · exact daiPullBodyCore hcode hsize hperm hwv h13
                                 · by_cases h14 : selIs I (daiSelBytes 14)
-                                  · exact daiPushBodyCore hcode hsize hperm hwv h14 hAccounts
+                                  · exact daiPushBodyCore hcode hsize hperm hwv h14
                                   · by_cases h15 : selIs I (daiSelBytes 15)
-                                    · exact daiRelyBodyCore hcode hsize hperm hwv h15 hAccounts
+                                    · exact daiRelyBodyCore hcode hsize hperm hwv h15
                                     · by_cases h16 : selIs I (daiSelBytes 16)
-                                      · exact daiSymbolBodyCore hcode hsize hperm hwv h16 hAccounts
+                                      · exact daiSymbolBodyCore hcode hsize hperm hwv h16
                                       · by_cases h17 : selIs I (daiSelBytes 17)
-                                        · exact daiTotalSupplyBodyCore hcode hsize hperm hwv h17 hAccounts
+                                        · exact daiTotalSupplyBodyCore hcode hsize hperm hwv h17
                                         · by_cases h18 : selIs I (daiSelBytes 18)
-                                          · exact daiTransferBodyCore hcode hsize hperm hwv h18 hAccounts
+                                          · exact daiTransferBodyCore hcode hsize hperm hwv h18
                                           · by_cases h19 : selIs I (daiSelBytes 19)
-                                            · exact daiTransferFromBodyCore hcode hsize hperm hwv h19 hAccounts
+                                            · exact daiTransferFromBodyCore hcode hsize hperm hwv h19
                                             · by_cases h20 : selIs I (daiSelBytes 20)
-                                              · exact daiVersionBodyCore hcode hsize hperm hwv h20 hAccounts
+                                              · exact daiVersionBodyCore hcode hsize hperm hwv h20
                                               · by_cases h21 : selIs I (daiSelBytes 21)
-                                                · exact daiWardsBodyCore hcode hsize hperm hwv h21 hAccounts
+                                                · exact daiWardsBodyCore hcode hsize hperm hwv h21
                                                 · refine daiNoDispatch hcode hsize hperm hwv ?_
                                                   intro i hi
                                                   interval_cases i

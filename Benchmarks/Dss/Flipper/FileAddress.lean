@@ -264,12 +264,12 @@ theorem assign_fileAddressCatStorage (evm : EVM.State) (I : ExecutionEnv) :
     storageLocStore_address_offset0 evm ⟨7⟩ (fileAddressDataKey I)
       (fileAddressDataKey_canonical I)
 
-theorem flipperFileAddressSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperFileAddressSourceBody {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileAddressWhat I = fileAddressCatBytes) :
     let locals := fileAddressLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨7⟩
       (setAddressOffset0Word (Solm.EVM.storageLoad evm0 I.codeOwner ⟨7⟩)
         (fileAddressDataKey I))
@@ -280,7 +280,7 @@ theorem flipperFileAddressSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     simpa [locals, evm0] using
-      flipperAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      flipperAuthGuardEval_true (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauth
   have hcond :
@@ -314,18 +314,18 @@ theorem flipperFileAddressSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
     exact ExecBlock.consNormal (ExecStmt.iteTrue hcond hthen) ExecBlock.nil
   simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockOK hblock
 
-theorem flipperFileAddressSourceBodyAuthReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperFileAddressSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     let locals := fileAddressLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileAddressTransition.body .reverted := by
   intro locals evm0
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool false) := by
     simpa [locals, evm0] using
-      flipperAuthGuardEval_false (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      flipperAuthGuardEval_false (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauth
   refine ExecFuncBody.execBlockRevert ?_
@@ -340,19 +340,19 @@ theorem flipperFileAddressSourceBodyAuthReverts {cA gh bl σ σ₀ A I} {g : UIn
       (by simp [evm0, initState]; exact hwv)
       hguard
 
-theorem flipperFileAddressSourceBodyUnrecognized {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperFileAddressSourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileAddressWhat I ≠ fileAddressCatBytes) :
     let locals := fileAddressLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileAddressTransition.body .reverted := by
   intro locals evm0
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     simpa [locals, evm0] using
-      flipperAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      flipperAuthGuardEval_true (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauth
   have hcond :
@@ -379,13 +379,13 @@ theorem flipperFileAddressSourceBodyUnrecognized {cA gh bl σ σ₀ A I} {g : UI
     exact ExecBlock.consRevert (ExecStmt.iteFalse hcond helse)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem flipperReachFileAddressBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flipperReachFileAddressBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flipperSelBytes 6)) :
-    ∃ k C, RD flipperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
         ⟨886⟩ [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : flipperSelWord I = ⟨0xd4e8be83⟩ :=
     flipperSelWord_eq_of_beq I hsz 0xd4 0xe8 0xbe 0x83 ⟨0xd4e8be83⟩
       (by native_decide) (by simpa [flipperSelBytes] using hsel)
@@ -415,7 +415,7 @@ theorem flipperReachFileAddressBody {cA gh bl σ σ₀ A I} {g : Sat256}
 theorem RD.flipperFileAddressDecodeToRoutine {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 ⟨908⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = flipperBytecode)
     (hroutine : (D_J code 0).contains ⟨5821⟩ = true)
@@ -447,14 +447,14 @@ theorem RD.flipperFileAddressDecodeToRoutine {code : ByteArray} {g : Sat256}
         solcAddrMask from by decide]
       using rd929.jump (by native_decide) hroutine (by evm_ov)⟩
 
-theorem flipperFileAddressX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flipperFileAddressX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD flipperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨886⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD flipperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5821⟩
+      (initState σ σ₀ g A I) ⟨886⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I) ⟨5821⟩
         [fileAddressDataKey I, calldataWord I.calldata 4, ⟨323⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flipperBytecode) (sel := sel) (entry := ⟨886⟩) (ret := ⟨323⟩)
     (decoded := ⟨908⟩) (need := ⟨64⟩) hreach
@@ -469,16 +469,16 @@ theorem flipperFileAddressX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     hdecoded rfl (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [fileAddressDataKey, fileAddressDataWord] using hroutine⟩
 
-theorem flipperFileAddressX_authorized {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperFileAddressX_authorized {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (h : RD flipperBytecode I g s0 ⟨5821⟩
       [fileAddressDataKey I, calldataWord I.calldata 4, ⟨323⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨5903⟩
       [fileAddressDataKey I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
     simpa [flipperCallerWardsSlot, flipperSlotWord] using hauth
@@ -491,12 +491,12 @@ theorem flipperFileAddressX_authorized {cA σ I} {g : Sat256} {s0 : State}
       repeat' first | apply And.intro | native_decide)
     hauthSolc (by jump_dest) (by simp)
 
-theorem flipperFileAddressX_unauthorized {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperFileAddressX_unauthorized {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩)
     (h : RD flipperBytecode I g s0 ⟨5821⟩
       [fileAddressDataKey I, calldataWord I.calldata 4, ⟨323⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
@@ -513,15 +513,15 @@ theorem flipperFileAddressX_unauthorized {cA σ I} {g : Sat256} {s0 : State}
       repeat' first | apply And.intro | native_decide)
     hauthSolc (by simp)
 
-theorem flipperFileAddressX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperFileAddressX_storeAuthorized {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
     (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileAddressCatBytes)
     (h : RD flipperBytecode I g s0 ⟨5903⟩
       [fileAddressDataKey I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret flipperBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner σ ⟨7⟩
+      (sstoreAccountMap I.codeOwner σ ⟨7⟩
         (setAddressOffset0Word (solcSlotWord σ I ⟨7⟩) (fileAddressDataKey I)))
       ByteArray.empty := by
   have rd5904 := h.jumpdest (by native_decide) (by evm_ov)
@@ -589,13 +589,13 @@ theorem flipperFileAddressX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State}
       solcAddrMask from by decide]
     using RD.stop rd324 (by native_decide) (by evm_ov)
 
-theorem flipperFileAddressX_unrecognized {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperFileAddressX_unrecognized {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hneq : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileAddressCatBytes)
     (h : RD flipperBytecode I g s0 ⟨5903⟩
       [fileAddressDataKey I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   have rd5904 := h.jumpdest (by native_decide) (by evm_ov)
   have rd5905 := rd5904.dup2 (by native_decide) (by evm_ov)
@@ -623,14 +623,14 @@ theorem flipperFileAddressX_unrecognized {cA σ I} {g : Sat256} {s0 : State}
     (twoWordHashMem_read64 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size solcFreePtrMem_read64)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem flipperFileAddressX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flipperFileAddressX_shortarg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD flipperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨886⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flipperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨886⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -646,11 +646,11 @@ theorem flipperFileAddressX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 theorem flipperFileAddressBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I = ⟨1⟩)
+    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileAddressWhat I = fileAddressCatBytes)
     (hdispatch : dispatchMsg contract I.calldata = some fileAddressTransition)
     (hdecode :
@@ -658,34 +658,21 @@ theorem flipperFileAddressBodyCoreOk
         (transitionSignature fileAddressTransition).paramTypes I.calldata =
           some (fileAddressLocals I))
     (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨886⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨886⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let data := fileAddressDataKey I
   let locals := fileAddressLocals I
-  let stored := setAddressOffset0Word (solcSlotWord σ_evm I ⟨7⟩) data
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let stored := setAddressOffset0Word (solcSlotWord σ I ⟨7⟩) data
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨7⟩ stored
-  have hauthSolm : flipperSlotWord (flipperCallerWardsSlot I) σ_solm I = ⟨1⟩ := by
-    have hword : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I =
-        flipperSlotWord (flipperCallerWardsSlot I) σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (flipperCallerWardsSlot I) ⟨0⟩
-    rw [← hword]
-    exact hauth
-  have hcatWord : flipperSlotWord ⟨7⟩ σ_evm I = flipperSlotWord ⟨7⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨7⟩ ⟨0⟩
-  have hstoredSolm :
-      stored = setAddressOffset0Word (solcSlotWord σ_solm I ⟨7⟩) data := by
-    simpa [stored, flipperSlotWord] using congrArg (fun old => setAddressOffset0Word old data)
-      hcatWord
   have hbody :
       ExecTransitionBody config contract evm0 locals fileAddressTransition.body
         (.returned { contract := contract, locals := locals } evm1 none) := by
-    simpa [evm0, evm1, locals, stored, data, hstoredSolm, solcSlotWord, initState,
+    simpa [evm0, evm1, locals, stored, data, solcSlotWord, initState,
       Solm.EVM.storageLoad] using
-      (flipperFileAddressSourceBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
-        (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hwhat)
+      (flipperFileAddressSourceBody (σ := σ)
+        (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hwhat)
   obtain ⟨_, _, hdecoded⟩ := flipperFileAddressX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
   obtain ⟨_, _, hswitch⟩ := flipperFileAddressX_authorized (I := I) hauth hdecoded
@@ -694,59 +681,48 @@ theorem flipperFileAddressBodyCoreOk
   have hret := flipperFileAddressX_storeAuthorized hperm hmatch hswitch
   have hret' :
       RDret flipperBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-        (cA, sstoreAccountMap I.codeOwner σ_evm ⟨7⟩ stored) ByteArray.empty := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (sstoreAccountMap I.codeOwner σ ⟨7⟩ stored) ByteArray.empty := by
     simpa [stored, data] using hret
   exact hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-    (by simp [evm1, evm0, initState, storageStore_createdAccounts])
-    (by
-      simpa [evm1, evm0, initState, storageStore_accountMap, stored, data, hstoredSolm,
-        solcSlotWord, Solm.EVM.storageLoad] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner ⟨7⟩ stored hAccounts)
+    (by simp [evm1, evm0, initState, storageStore_accountMap])
     (by
       rw [show fileAddressTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide))
 
 theorem flipperFileAddressBodyCoreUnauthorized
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I ≠ ⟨1⟩)
+    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some fileAddressTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (fileAddressTransition.params.map Param.name)
         (transitionSignature fileAddressTransition).paramTypes I.calldata =
           some (fileAddressLocals I))
     (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨886⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨886⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let locals := fileAddressLocals I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthSolm : flipperSlotWord (flipperCallerWardsSlot I) σ_solm I ≠ ⟨1⟩ := by
-    have hword : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I =
-        flipperSlotWord (flipperCallerWardsSlot I) σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (flipperCallerWardsSlot I) ⟨0⟩
-    intro hbad
-    exact hauth (by rw [hword, hbad])
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evm0 locals fileAddressTransition.body .reverted := by
     simpa [evm0, locals] using
-      (flipperFileAddressSourceBodyAuthReverts (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm)
+      (flipperFileAddressSourceBodyAuthReverts
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth)
   obtain ⟨_, _, hdecoded⟩ := flipperFileAddressX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
   exact (flipperFileAddressX_unauthorized (I := I) hauth hdecoded)
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem flipperFileAddressBodyCoreUnrecognized
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I = ⟨1⟩)
+    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileAddressWhat I ≠ fileAddressCatBytes)
     (hdispatch : dispatchMsg contract I.calldata = some fileAddressTransition)
     (hdecode :
@@ -754,23 +730,16 @@ theorem flipperFileAddressBodyCoreUnrecognized
         (transitionSignature fileAddressTransition).paramTypes I.calldata =
           some (fileAddressLocals I))
     (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨886⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨886⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let locals := fileAddressLocals I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthSolm : flipperSlotWord (flipperCallerWardsSlot I) σ_solm I = ⟨1⟩ := by
-    have hword : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I =
-        flipperSlotWord (flipperCallerWardsSlot I) σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (flipperCallerWardsSlot I) ⟨0⟩
-    rw [← hword]
-    exact hauth
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evm0 locals fileAddressTransition.body .reverted := by
     simpa [evm0, locals] using
-      (flipperFileAddressSourceBodyUnrecognized (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hwhat)
+      (flipperFileAddressSourceBodyUnrecognized
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hwhat)
   obtain ⟨_, _, hdecoded⟩ := flipperFileAddressX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
   obtain ⟨_, _, hswitch⟩ := flipperFileAddressX_authorized (I := I) hauth hdecoded
@@ -780,42 +749,41 @@ theorem flipperFileAddressBodyCoreUnrecognized
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem flipperFileAddressBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some fileAddressTransition)
     (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨886⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨886⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (flipperFileAddressX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch
       (flipperDecode_fileAddress_none_short hsz4 hshort)
 
-theorem flipperFileAddressBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flipperFileAddressBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (flipperSelBytes 6))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (flipperSelBytes 6)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 6) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some fileAddressTransition :=
     flipperDispatchFileAddress hsel
-  have hreach := flipperReachFileAddressBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := flipperReachFileAddressBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · by_cases hauth : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I = ⟨1⟩
+  · by_cases hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩
     · by_cases hwhat : fileAddressWhat I = fileAddressCatBytes
       · exact flipperFileAddressBodyCoreOk hcode hsize hperm hwv hsz68 hauth hwhat
-          hdispatch (flipperDecode_fileAddress_ok hsz68) hreach hAccounts
+          hdispatch (flipperDecode_fileAddress_ok hsz68) hreach
       · exact flipperFileAddressBodyCoreUnrecognized hcode hsize hwv hsz68 hauth hwhat
-          hdispatch (flipperDecode_fileAddress_ok hsz68) hreach hAccounts
+          hdispatch (flipperDecode_fileAddress_ok hsz68) hreach
     · exact flipperFileAddressBodyCoreUnauthorized hcode hsize hwv hsz68 hauth hdispatch
-        (flipperDecode_fileAddress_ok hsz68) hreach hAccounts
+        (flipperDecode_fileAddress_ok hsz68) hreach
   · exact flipperFileAddressBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach
 

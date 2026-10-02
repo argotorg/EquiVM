@@ -7,7 +7,7 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapBurnReturnPair {g : Sat256} {s0 : State} {I : ExecutionEnv}
     {amount1 amount0 aw ptr : UInt256} {R : List UInt256} {mem rdata : ByteArray} {k C : Nat}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD uniswapV2PairBytecode I g s0 ⟨1201⟩ (amount1 :: amount0 :: R) mem aw rdata acc k C)
     (hin : 96 ≤ mem.size) (hlo : 96 ≤ ptr.toNat) (hgap : ptr.toNat - mem.size < USize.size)
     (hfit : ptr.toNat + 95 < UInt256.size) (haw : aw.toNat * 32 < UInt256.size)

@@ -8,31 +8,31 @@ set_option linter.unusedSimpArgs false
 
 namespace VyperERC20
 
-theorem erc20X_transferFromAllowanceStoreGuard {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc20X_transferFromAllowanceStoreGuard {σ σ₀ A I} {g : Sat256}
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨445⟩
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
+    (hreach : ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨445⟩
       [transferFromSelectorWord]
       (transferFromFromBalanceHashMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
         (transferFromCurrentAllowanceRaw σ I))
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, σ) k C) :
-    ∃ k C, RD vyperERC20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨465⟩
-      [transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I,
+      σ k C) :
+    ∃ k C, RD vyperERC20Bytecode I g (initState σ σ₀ g A I) ⟨465⟩
+      [transferFromAllowanceDebitWord (initState σ σ₀ g A I) I,
         transferFromSelectorWord]
       (transferFromFromBalanceHashMem
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
         (transferFromCurrentAllowanceRaw σ I))
       (UInt256.ofNat 5) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   obtain ⟨k, C, rd445⟩ := hreach
-  let evm0 := initState cA gh bl σ σ₀ g A I
+  let evm0 := initState σ σ₀ g A I
   have hallowanceLoadRaw :
       transferFromCurrentAllowanceRaw σ I = transferFromCurrentAllowanceWord evm0 I := by
     simpa [evm0] using
-      (transferFromCurrentAllowanceRaw_initState (cA := cA) (gh := gh) (bl := bl)
+      (transferFromCurrentAllowanceRaw_initState
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g))
   have hallowanceEnoughRaw :
       (transferFromValueWord I).toNat ≤ (transferFromCurrentAllowanceRaw σ I).toNat := by

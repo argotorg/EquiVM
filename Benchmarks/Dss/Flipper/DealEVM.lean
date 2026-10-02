@@ -15,7 +15,7 @@ namespace Benchmarks.Dss.Flipper
 theorem RD.flipperDealDecodeToRoutine {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 ⟨863⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = flipperBytecode)
     (hroutine : (D_J code 0).contains ⟨5365⟩ = true)
@@ -31,14 +31,14 @@ theorem RD.flipperDealDecodeToRoutine {code : ByteArray} {g : Sat256}
     raw jump (by native_decide) hroutine (by evm_ov)]
   exact ⟨_, _, by simpa [calldataWord] using rd5365⟩
 
-theorem flipperDealX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flipperDealX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD flipperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨841⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD flipperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5365⟩
+      (initState σ σ₀ g A I) ⟨841⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I) ⟨5365⟩
         [dealId I, ⟨323⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flipperBytecode) (sel := sel) (entry := ⟨841⟩) (ret := ⟨323⟩)
     (decoded := ⟨863⟩) (need := ⟨32⟩) hreach
@@ -53,14 +53,14 @@ theorem flipperDealX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     hdecoded rfl (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [dealId] using hroutine⟩
 
-theorem flipperDealX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flipperDealX_shortarg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD flipperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨841⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flipperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨841⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -683,13 +683,13 @@ theorem dealVatFluxCallMem_encode (σmem σ : AccountMap) (I : ExecutionEnv) :
   apply ByteArray.ext
   simp [vatFluxSelector, byteArray_toList_eq, ByteArray.append_assoc]
 
-theorem flipperDealX_ticFlag {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_ticFlag {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (h : RD flipperBytecode I g s0 ⟨5365⟩ [dealId I, ret, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨5400⟩
       [UInt256.isZero (bidTicWord (dealId I) σ I), dealId I, ret, sel]
-      (dealHashMem0 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (dealHashMem0 I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd5382 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -712,7 +712,7 @@ theorem flipperDealX_ticFlag {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨k5384, C5384, rd5384raw⟩ := rd5382.sload (by native_decide) (by evm_ov)
   have rd5384 : RD flipperBytecode I g s0 ⟨5384⟩
       [flipperSlotWord (bidPackedSlotOfWord (dealId I)) σ I, dealId I, ret, sel]
-      (dealHashMem0 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k5384 C5384 := by
+      (dealHashMem0 I) (UInt256.ofNat 3) ByteArray.empty σ k5384 C5384 := by
     have hslotAdd :
         ⟨2⟩ + solcMappingSlot ⟨1⟩ (dealId I) =
           solcMappingSlot ⟨1⟩ (dealId I) + ⟨2⟩ := by
@@ -741,11 +741,11 @@ theorem flipperDealX_ticFlag {cA σ I} {g : Sat256} {s0 : State}
   exact ⟨_, _, by
     convert rd5399 using 1 <;> native_decide⟩
 
-theorem flipperDealX_ticZero {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_ticZero {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (htic : bidTicWord (dealId I) σ I = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨5365⟩ [dealId I, ret, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   have rd5382 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -769,7 +769,7 @@ theorem flipperDealX_ticZero {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨k5384, C5384, rd5384raw⟩ := rd5382.sload (by native_decide) (by evm_ov)
   have rd5384 : RD flipperBytecode I g s0 ⟨5384⟩
       [flipperSlotWord (bidPackedSlotOfWord (dealId I)) σ I, dealId I, ret, sel]
-      (dealHashMem0 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k5384 C5384 := by
+      (dealHashMem0 I) (UInt256.ofNat 3) ByteArray.empty σ k5384 C5384 := by
     have hslotAdd :
         ⟨2⟩ + solcMappingSlot ⟨1⟩ (dealId I) =
           solcMappingSlot ⟨1⟩ (dealId I) + ⟨2⟩ := by
@@ -823,15 +823,15 @@ theorem flipperDealX_ticZero {cA σ I} {g : Sat256} {s0 : State}
     (twoWordHashMem_read64 (dealId I) ⟨1⟩ solcFreePtrMem_size solcFreePtrMem_read64)
     (by simp [dealHashMem0])
 
-theorem flipperDealX_ticExpired {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_ticExpired {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hticNe : bidTicWord (dealId I) σ I ≠ ⟨0⟩)
     (hticLt : (bidTicWord (dealId I) σ I).toNat <
       (UInt256.ofNat I.header.timestamp).toNat)
     (h : RD flipperBytecode I g s0 ⟨5365⟩ [dealId I, ret, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨5558⟩ [dealId I, ret, sel]
-      (dealHashMem1 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (dealHashMem1 I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd5400⟩ := flipperDealX_ticFlag (I := I) h
   rw [Reasoning.Theory.isZero_eq_zero_of_ne hticNe] at rd5400
   have rd5408 := evm_run rd5400 with [
@@ -864,7 +864,7 @@ theorem flipperDealX_ticExpired {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨k5426, C5426, rd5426raw⟩ := rd5444.sload (by native_decide) (by evm_ov)
   have rd5426 : RD flipperBytecode I g s0 ⟨5426⟩
       [flipperSlotWord (bidPackedSlotOfWord (dealId I)) σ I, dealId I, ret, sel]
-      (dealHashMem1 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k5426 C5426 := by
+      (dealHashMem1 I) (UInt256.ofNat 3) ByteArray.empty σ k5426 C5426 := by
     have hslotAdd :
         ⟨2⟩ + solcMappingSlot ⟨1⟩ (dealId I) =
           solcMappingSlot ⟨1⟩ (dealId I) + ⟨2⟩ := by
@@ -907,15 +907,15 @@ theorem flipperDealX_ticExpired {cA σ I} {g : Sat256} {s0 : State}
       (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa using rd5558⟩
 
-theorem flipperDealX_endCheckStart {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_endCheckStart {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hticNe : bidTicWord (dealId I) σ I ≠ ⟨0⟩)
     (hticGe : (UInt256.ofNat I.header.timestamp).toNat ≤
       (bidTicWord (dealId I) σ I).toNat)
     (h : RD flipperBytecode I g s0 ⟨5365⟩ [dealId I, ret, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨5450⟩ [dealId I, ret, sel]
-      (dealHashMem1 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (dealHashMem1 I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd5400⟩ := flipperDealX_ticFlag (I := I) h
   rw [Reasoning.Theory.isZero_eq_zero_of_ne hticNe] at rd5400
   have rd5408 := evm_run rd5400 with [
@@ -948,7 +948,7 @@ theorem flipperDealX_endCheckStart {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨k5426, C5426, rd5426raw⟩ := rd5444.sload (by native_decide) (by evm_ov)
   have rd5426 : RD flipperBytecode I g s0 ⟨5426⟩
       [flipperSlotWord (bidPackedSlotOfWord (dealId I)) σ I, dealId I, ret, sel]
-      (dealHashMem1 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k5426 C5426 := by
+      (dealHashMem1 I) (UInt256.ofNat 3) ByteArray.empty σ k5426 C5426 := by
     have hslotAdd :
         ⟨2⟩ + solcMappingSlot ⟨1⟩ (dealId I) =
           solcMappingSlot ⟨1⟩ (dealId I) + ⟨2⟩ := by
@@ -988,7 +988,7 @@ theorem flipperDealX_endCheckStart {cA σ I} {g : Sat256} {s0 : State}
     raw pop (by native_decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd5450⟩
 
-theorem flipperDealX_endExpired {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_endExpired {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hticNe : bidTicWord (dealId I) σ I ≠ ⟨0⟩)
     (hticGe : (UInt256.ofNat I.header.timestamp).toNat ≤
@@ -996,9 +996,9 @@ theorem flipperDealX_endExpired {cA σ I} {g : Sat256} {s0 : State}
     (hendLt : (bidEndWord (dealId I) σ I).toNat <
       (UInt256.ofNat I.header.timestamp).toNat)
     (h : RD flipperBytecode I g s0 ⟨5365⟩ [dealId I, ret, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨5558⟩ [dealId I, ret, sel]
-      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd5450⟩ := flipperDealX_endCheckStart hticNe hticGe h
   have rd5486 := evm_run rd5450 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -1023,7 +1023,7 @@ theorem flipperDealX_endExpired {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨k5468, C5468, rd5468raw⟩ := rd5486.sload (by native_decide) (by evm_ov)
   have rd5468 : RD flipperBytecode I g s0 ⟨5468⟩
       [flipperSlotWord (bidPackedSlotOfWord (dealId I)) σ I, dealId I, ret, sel]
-      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k5468 C5468 := by
+      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty σ k5468 C5468 := by
     have hslotAdd :
         ⟨2⟩ + solcMappingSlot ⟨1⟩ (dealId I) =
           solcMappingSlot ⟨1⟩ (dealId I) + ⟨2⟩ := by
@@ -1062,7 +1062,7 @@ theorem flipperDealX_endExpired {cA σ I} {g : Sat256} {s0 : State}
       (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa using rd5558⟩
 
-theorem flipperDealX_notFinished {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_notFinished {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hticNe : bidTicWord (dealId I) σ I ≠ ⟨0⟩)
     (hticGe : (UInt256.ofNat I.header.timestamp).toNat ≤
@@ -1070,7 +1070,7 @@ theorem flipperDealX_notFinished {cA σ I} {g : Sat256} {s0 : State}
     (hendGe : (UInt256.ofNat I.header.timestamp).toNat ≤
       (bidEndWord (dealId I) σ I).toNat)
     (h : RD flipperBytecode I g s0 ⟨5365⟩ [dealId I, ret, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd5450⟩ := flipperDealX_endCheckStart hticNe hticGe h
   have rd5486 := evm_run rd5450 with [
@@ -1096,7 +1096,7 @@ theorem flipperDealX_notFinished {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨k5468, C5468, rd5468raw⟩ := rd5486.sload (by native_decide) (by evm_ov)
   have rd5468 : RD flipperBytecode I g s0 ⟨5468⟩
       [flipperSlotWord (bidPackedSlotOfWord (dealId I)) σ I, dealId I, ret, sel]
-      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k5468 C5468 := by
+      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty σ k5468 C5468 := by
     have hslotAdd :
         ⟨2⟩ + solcMappingSlot ⟨1⟩ (dealId I) =
           solcMappingSlot ⟨1⟩ (dealId I) + ⟨2⟩ := by
@@ -1156,22 +1156,22 @@ theorem flipperDealX_notFinished {cA σ I} {g : Sat256} {s0 : State}
           solcFreePtrMem_read64)))
     (by simp [dealHashMem2])
 
-theorem flipperDealX_toCatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_toCatExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (h : RD flipperBytecode I g s0 ⟨5558⟩ [dealId I, ret, sel]
-      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨5638⟩
       (flipperCatTargetWord σ I :: flipperCatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨36⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨164⟩ :: ⟨3865913243⟩ ::
         flipperCatTargetWord σ I :: dealId I :: ret :: sel :: [])
-      (dealCatCallMem σ I) (UInt256.ofNat 6) ByteArray.empty (cA, σ) k' C' := by
+      (dealCatCallMem σ I) (UInt256.ofNat 6) ByteArray.empty σ k' C' := by
   let rawTarget := flipperSlotWord ⟨7⟩ σ I
   have rd5561 := h.jumpdest (by native_decide) (by evm_ov)
     |>.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨k5562, C5562, rd5562raw⟩ := rd5561.sload (by native_decide) (by evm_ov)
   have rd5562 : RD flipperBytecode I g s0 ⟨5562⟩
       (rawTarget :: dealId I :: ret :: sel :: [])
-      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k5562 C5562 := by
+      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty σ k5562 C5562 := by
     simpa [rawTarget, flipperSlotWord, solcSlotWord] using rd5562raw
   have hmload64Hash :
       (if (⟨64⟩ : UInt256).toNat ≥ (dealCatHashMem I).size then ⟨0⟩
@@ -1212,7 +1212,7 @@ theorem flipperDealX_toCatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
   have rd5581 : RD flipperBytecode I g s0 ⟨5581⟩
       (bidTabWord (dealId I) σ I :: ⟨64⟩ :: ⟨0⟩ :: rawTarget ::
         dealId I :: ret :: sel :: [])
-      (dealCatHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k5581 C5581 := by
+      (dealCatHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k5581 C5581 := by
     have hslotAdd :
         ⟨5⟩ + solcMappingSlot ⟨1⟩ (dealId I) =
           solcMappingSlot ⟨1⟩ (dealId I) + ⟨5⟩ := by
@@ -1271,12 +1271,12 @@ theorem flipperDealX_toCatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
     simpa [rawTarget, flipperCatTargetWord, flipperAddressReturnWord, flipperSlotWord,
       solcSlotWord, solcAddrMask, dealCatSelectorWord] using rd5638⟩
 
-theorem flipperDealX_catNoCode {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_catNoCode {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨5558⟩ [dealId I, ret, sel]
-      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd5638⟩ := flipperDealX_toCatExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨5638⟩) (okPc := ⟨5650⟩) rd5638
@@ -1285,17 +1285,17 @@ theorem flipperDealX_catNoCode {cA σ I} {g : Sat256} {s0 : State}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp)
 
-theorem flipperDealX_toCatCall {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_toCatCall {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨5558⟩ [dealId I, ret, sel]
-      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨5653⟩
       (gasWord :: flipperCatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ :: ⟨36⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨164⟩ :: ⟨3865913243⟩ ::
         flipperCatTargetWord σ I :: dealId I :: ret :: sel :: [])
-      (dealCatCallMem σ I) (UInt256.ofNat 6) ByteArray.empty (cA, σ) k' C' := by
+      (dealCatCallMem σ I) (UInt256.ofNat 6) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd5638⟩ := flipperDealX_toCatExtcodesizeGuard h
   obtain ⟨gasWord, k5653, C5653, rd5653⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨5638⟩) (okPc := ⟨5650⟩) rd5638
@@ -1306,37 +1306,37 @@ theorem flipperDealX_toCatCall {cA σ I} {g : Sat256} {s0 : State}
   exact ⟨gasWord, k5653, C5653, by simpa using rd5653⟩
 
 theorem flipperDealX_catPostCall
-    {cA gh bl σ σ₀ A I} {g : UInt256} {k C : ℕ} {ret sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5558⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5558⟩
       [dealId I, ret, sel] (dealHashMem2 I) (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) k C) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+      ByteArray.empty σ k C) :
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD flipperBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5654⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5654⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨164⟩ :: ⟨3865913243⟩ ::
           flipperCatTargetWord σ I :: dealId I :: ret :: sel :: [])
-        (dealCatCallMem σ I) (UInt256.ofNat 6) out (cA', σ') k' C'
+        (dealCatCallMem σ I) (UInt256.ofNat 6) out σ' k' C'
     ∧ typedCallViaEVM config
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (flipperCatAddress σ I)) "claw" 0
         [Value.int (Int.ofNat (bidTabWord (dealId I) σ I).toNat)]
         (z,
-          { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ', substate := A', createdAccounts := cA' },
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ', substate := A' },
           out) true
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd5653⟩ := flipperDealX_toCatCall hcodeSize h
-  obtain ⟨cA', σ', z, out, A_in, callGas, k5654, C5654, hΘpack, rd5654raw,
+  obtain ⟨σ', z, out, A_in, callGas, k5654, C5654, hΘpack, rd5654raw,
       houtsz⟩ :=
     RD.call rd5653 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, out, A', k5654, C5654, ?_, ?_, houtsz⟩
+  refine ⟨σ', z, out, A', k5654, C5654, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           (⟨128⟩ : UInt256).toNat (⟨36⟩ : UInt256).toNat)
@@ -1345,12 +1345,12 @@ theorem flipperDealX_catPostCall
     have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
       rfl
     have rd5654 : RD flipperBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5654⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5654⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨164⟩ :: ⟨3865913243⟩ ::
           flipperCatTargetWord σ I :: dealId I :: ret :: sel :: [])
         (out.write 0 (dealCatCallMem σ I) 128
           (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 6) out (cA', σ') k5654 C5654 :=
+        (UInt256.ofNat 6) out σ' k5654 C5654 :=
       haw ▸ rd5654raw
     rw [hmin, byteArray_write_len_zero] at rd5654
     exact rd5654
@@ -1361,13 +1361,13 @@ theorem flipperDealX_catPostCall
         have hEq : I.depth = (1024 : Fin 1025) := by
           simpa [initState] using hdepthEq
         exact absurd hdepth (by rw [hEq]; decide))
-      (flipperCatEvmAddress_eq_target_of_accountMapEquiv (accountMapEquiv.refl σ))
+      (flipperCatEvmAddress_eq_target σ I)
       (dealCatCallMem_encode σ I) ?_
     simpa [initState, hperm] using hΘ
 
 theorem flipperDealX_catCallFailure {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD flipperBytecode I g s0 ⟨5654⟩
       (⟨0⟩ :: ⟨164⟩ :: selector :: target :: id :: ret :: sel :: [])
       mem aw out acc k C)
@@ -1380,20 +1380,20 @@ theorem flipperDealX_catCallFailure {I} {g : Sat256} {s0 : State}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     houtsz (by simp)
 
-theorem flipperDealX_catCallDepthLimit {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_catCallDepthLimit {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (h : RD flipperBytecode I g s0 ⟨5558⟩ [dealId I, ret, sel]
-      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨gasWord, _, _, rd5653⟩ := flipperDealX_toCatCall hcodeSize h
   obtain ⟨k5654, C5654, rd5654raw⟩ :=
     RD.callDepthLimit
       (code := flipperBytecode) (ee := I) (g := g) (s0 := s0) (pc := ⟨5653⟩)
       (mem := dealCatCallMem σ I) (aw := UInt256.ofNat 6) (rdata := ByteArray.empty)
-      (cA := cA) (σ := σ) (gasArg := gasWord) (target := flipperCatTargetWord σ I)
+      (σ := σ) (gasArg := gasWord) (target := flipperCatTargetWord σ I)
       (inOffset := ⟨128⟩) (inSize := ⟨36⟩) (outOffset := ⟨128⟩) (outSize := ⟨0⟩)
       (t := [⟨164⟩, ⟨3865913243⟩, flipperCatTargetWord σ I, dealId I, ret, sel])
       rd5653 (by native_decide) hdepth (by simp)
@@ -1407,7 +1407,7 @@ theorem flipperDealX_catCallDepthLimit {cA σ I} {g : Sat256} {s0 : State}
   have rd5654 : RD flipperBytecode I g s0 ⟨5654⟩
       (⟨0⟩ :: ⟨164⟩ :: ⟨3865913243⟩ ::
         flipperCatTargetWord σ I :: dealId I :: ret :: sel :: [])
-      (dealCatCallMem σ I) (UInt256.ofNat 6) ByteArray.empty (cA, σ) k5654 C5654 :=
+      (dealCatCallMem σ I) (UInt256.ofNat 6) ByteArray.empty σ k5654 C5654 :=
     by
       rw [hmin, byteArray_write_len_zero] at rd5654raw
       exact haw ▸ rd5654raw
@@ -1415,7 +1415,7 @@ theorem flipperDealX_catCallDepthLimit {cA σ I} {g : Sat256} {s0 : State}
 
 theorem flipperDealX_catCallSuccessToVatStart {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD flipperBytecode I g s0 ⟨5654⟩
       (⟨1⟩ :: ⟨164⟩ :: selector :: target :: id :: ret :: sel :: [])
       mem aw out acc k C) :
@@ -1431,16 +1431,16 @@ theorem flipperDealX_catCallSuccessToVatStart {I} {g : Sat256} {s0 : State}
   have rd5673 := rd5672.pop (by native_decide) (by evm_ov)
   exact ⟨k5672 + 1, C5672 + 2, by simpa using rd5673⟩
 
-theorem flipperDealX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_toVatExtcodesizeGuard {σmem σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {ret sel selector target : UInt256}
     (h : RD flipperBytecode I g s0 ⟨5673⟩
       (selector :: target :: dealId I :: ret :: sel :: [])
-      (dealCatCallMem σmem I) (UInt256.ofNat 6) out (cA, σ) k C) :
+      (dealCatCallMem σmem I) (UInt256.ofNat 6) out σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨5782⟩
       (flipperVatTargetWord σ I :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨132⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
         flipperVatTargetWord σ I :: dealId I :: ret :: sel :: [])
-      (dealVatFluxCallMem σmem σ I) (UInt256.ofNat 9) out (cA, σ) k' C' := by
+      (dealVatFluxCallMem σmem σ I) (UInt256.ofNat 9) out σ k' C' := by
   let rawVat := flipperSlotWord ⟨2⟩ σ I
   let rawIlk := flipperSlotWord ⟨3⟩ σ I
   let rawPacked := flipperSlotWord (bidPackedSlotOfWord (dealId I)) σ I
@@ -1477,13 +1477,13 @@ theorem flipperDealX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : St
   obtain ⟨k5677, C5677, rd5677raw⟩ := rd5676.sload (by native_decide) (by evm_ov)
   have rd5677 : RD flipperBytecode I g s0 ⟨5677⟩
       (rawVat :: ⟨2⟩ :: selector :: target :: dealId I :: ret :: sel :: [])
-      (dealCatCallMem σmem I) (UInt256.ofNat 6) out (cA, σ) k5677 C5677 := by
+      (dealCatCallMem σmem I) (UInt256.ofNat 6) out σ k5677 C5677 := by
     simpa [rawVat, flipperSlotWord, solcSlotWord] using rd5677raw
   have rd5679 := rd5677.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨k5680, C5680, rd5680raw⟩ := rd5679.sload (by native_decide) (by evm_ov)
   have rd5680 : RD flipperBytecode I g s0 ⟨5680⟩
       (rawIlk :: rawVat :: ⟨2⟩ :: selector :: target :: dealId I :: ret :: sel :: [])
-      (dealCatCallMem σmem I) (UInt256.ofNat 6) out (cA, σ) k5680 C5680 := by
+      (dealCatCallMem σmem I) (UInt256.ofNat 6) out σ k5680 C5680 := by
     simpa [rawIlk, flipperSlotWord, solcSlotWord] using rd5680raw
   have rd5699 := evm_run rd5680 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -1511,7 +1511,7 @@ theorem flipperDealX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : St
   have rd5701 : RD flipperBytecode I g s0 ⟨5701⟩
       (rawPacked :: ⟨64⟩ :: ⟨1⟩ :: ⟨0⟩ :: rawIlk :: rawVat ::
         base :: selector :: target :: dealId I :: ret :: sel :: [])
-      (dealVatHashMem σmem I) (UInt256.ofNat 6) out (cA, σ) k5701 C5701 := by
+      (dealVatHashMem σmem I) (UInt256.ofNat 6) out σ k5701 C5701 := by
     have hslotAdd :
         base + (⟨2⟩ : UInt256) = solcMappingSlot ⟨1⟩ (dealId I) + ⟨2⟩ := by
       simp [base]
@@ -1526,7 +1526,7 @@ theorem flipperDealX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : St
   have rd5706 : RD flipperBytecode I g s0 ⟨5706⟩
       (bidLotWord (dealId I) σ I :: ⟨64⟩ :: ⟨0⟩ :: rawIlk :: rawVat ::
         rawPacked :: selector :: target :: dealId I :: ret :: sel :: [])
-      (dealVatHashMem σmem I) (UInt256.ofNat 6) out (cA, σ) k5706 C5706 := by
+      (dealVatHashMem σmem I) (UInt256.ofNat 6) out σ k5706 C5706 := by
     have hslotAdd :
         (⟨1⟩ : UInt256) + base = solcMappingSlot ⟨1⟩ (dealId I) + ⟨1⟩ := by
       simpa [base] using
@@ -1612,13 +1612,13 @@ theorem flipperDealX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : St
   exact ⟨_, _, by
     convert rd5782 using 1 <;> native_decide⟩
 
-theorem flipperDealX_vatNoCode {cA σmem σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_vatNoCode {σmem σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨5673⟩
       (selector :: target :: dealId I :: ret :: sel :: [])
-      (dealCatCallMem σmem I) (UInt256.ofNat 6) out (cA, σ) k C) :
+      (dealCatCallMem σmem I) (UInt256.ofNat 6) out σ k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd5782⟩ := flipperDealX_toVatExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨5782⟩) (okPc := ⟨1611⟩) rd5782
@@ -1627,18 +1627,18 @@ theorem flipperDealX_vatNoCode {cA σmem σ I} {g : Sat256} {s0 : State}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp)
 
-theorem flipperDealX_toVatCall {cA σmem σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_toVatCall {σmem σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨5673⟩
       (selector :: target :: dealId I :: ret :: sel :: [])
-      (dealCatCallMem σmem I) (UInt256.ofNat 6) out (cA, σ) k C) :
+      (dealCatCallMem σmem I) (UInt256.ofNat 6) out σ k C) :
     ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨1614⟩
       (gasWord :: flipperVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ :: ⟨132⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
         flipperVatTargetWord σ I :: dealId I :: ret :: sel :: [])
-      (dealVatFluxCallMem σmem σ I) (UInt256.ofNat 9) out (cA, σ) k' C' := by
+      (dealVatFluxCallMem σmem σ I) (UInt256.ofNat 9) out σ k' C' := by
   obtain ⟨_, _, rd5782⟩ := flipperDealX_toVatExtcodesizeGuard h
   obtain ⟨gasWord, k1614, C1614, rd1614⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨5782⟩) (okPc := ⟨1611⟩) rd5782
@@ -1649,44 +1649,44 @@ theorem flipperDealX_toVatCall {cA σmem σ I} {g : Sat256} {s0 : State}
   exact ⟨gasWord, k1614, C1614, by simpa using rd1614⟩
 
 theorem flipperDealX_vatPostCall
-    {cA0 gh bl σbase σ₀ A I} {g : UInt256}
-    {cA : Batteries.RBSet AccountAddress compare} {σmem σ : AccountMap} {Acur : Substate}
+    {σbase σ₀ A I} {g : UInt256}
+    {σmem σ : AccountMap} {Acur : Substate}
     {k C : ℕ} {out0 : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨5673⟩
+      (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨5673⟩
       (selector :: target :: dealId I :: ret :: sel :: [])
-      (dealCatCallMem σmem I) (UInt256.ofNat 6) out0 (cA, σ) k C) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
+      (dealCatCallMem σmem I) (UInt256.ofNat 6) out0 σ k C) :
+    ∃ (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
       RD flipperBytecode I (Sat256.ofUInt256 g)
-        (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨1615⟩
+        (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨1615⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: ⟨1628552750⟩ ::
           flipperVatTargetWord σ I :: dealId I :: ret :: sel :: [])
-        (dealVatFluxCallMem σmem σ I) (UInt256.ofNat 9) out (cA', σ') k' C'
+        (dealVatFluxCallMem σmem σ I) (UInt256.ofNat 9) out σ' k' C'
     ∧ typedCallViaEVM config
-        ({ initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σ, substate := Acur, createdAccounts := cA })
+        ({ initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σ, substate := Acur })
         (EVM.address (flipperVatAddress σ I)) "flux" 0
         (dealFluxArgValsOf
-          ({ initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ, substate := Acur, createdAccounts := cA })
+          ({ initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ, substate := Acur })
           (dealId I))
         (z,
-          { { initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I with
-              accountMap := σ, substate := Acur, createdAccounts := cA } with
-            accountMap := σ', substate := A', createdAccounts := cA' },
+          { { initState σbase σ₀ (Sat256.ofUInt256 g) A I with
+              accountMap := σ, substate := Acur } with
+            accountMap := σ', substate := A' },
           out) true
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd1614⟩ := flipperDealX_toVatCall hcodeSize h
-  obtain ⟨cA', σ', z, out, A_in, callGas, k1615, C1615, hΘpack, rd1615raw,
+  obtain ⟨σ', z, out, A_in, callGas, k1615, C1615, hΘpack, rd1615raw,
       houtsz⟩ :=
     RD.call rd1614 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  refine ⟨cA', σ', z, out, A', k1615, C1615, ?_, ?_, houtsz⟩
+  refine ⟨σ', z, out, A', k1615, C1615, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 9).toNat
           (⟨128⟩ : UInt256).toNat (⟨132⟩ : UInt256).toNat)
@@ -1695,12 +1695,12 @@ theorem flipperDealX_vatPostCall
     have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
       rfl
     have rd1615 : RD flipperBytecode I (Sat256.ofUInt256 g)
-        (initState cA0 gh bl σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨1615⟩
+        (initState σbase σ₀ (Sat256.ofUInt256 g) A I) ⟨1615⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨260⟩ :: ⟨1628552750⟩ ::
           flipperVatTargetWord σ I :: dealId I :: ret :: sel :: [])
         (out.write 0 (dealVatFluxCallMem σmem σ I) 128
           (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 9) out (cA', σ') k1615 C1615 :=
+        (UInt256.ofNat 9) out σ' k1615 C1615 :=
       haw ▸ rd1615raw
     rw [hmin, byteArray_write_len_zero] at rd1615
     exact rd1615
@@ -1711,7 +1711,7 @@ theorem flipperDealX_vatPostCall
         have hEq : I.depth = (1024 : Fin 1025) := by
           simpa [initState] using hdepthEq
         exact absurd hdepth (by rw [hEq]; decide))
-      (flipperVatEvmAddress_eq_target_of_accountMapEquiv (accountMapEquiv.refl σ))
+      (flipperVatEvmAddress_eq_target σ I)
       ?_ ?_
     · simpa [dealFluxArgValsOf, initState, flipperSlotWord, solcSlotWord,
         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
@@ -1721,7 +1721,7 @@ theorem flipperDealX_vatPostCall
 
 theorem flipperDealX_vatCallFailure {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD flipperBytecode I g s0 ⟨1615⟩
       (⟨0⟩ :: ⟨260⟩ :: selector :: target :: id :: ret :: sel :: [])
       mem aw out acc k C)
@@ -1734,21 +1734,21 @@ theorem flipperDealX_vatCallFailure {I} {g : Sat256} {s0 : State}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     houtsz (by simp)
 
-theorem flipperDealX_vatCallDepthLimit {cA σmem σ I} {g : Sat256} {s0 : State}
+theorem flipperDealX_vatCallDepthLimit {σmem σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (h : RD flipperBytecode I g s0 ⟨5673⟩
       (selector :: target :: dealId I :: ret :: sel :: [])
-      (dealCatCallMem σmem I) (UInt256.ofNat 6) out (cA, σ) k C) :
+      (dealCatCallMem σmem I) (UInt256.ofNat 6) out σ k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨gasWord, _, _, rd1614⟩ := flipperDealX_toVatCall hcodeSize h
   obtain ⟨k1615, C1615, rd1615raw⟩ :=
     RD.callDepthLimit
       (code := flipperBytecode) (ee := I) (g := g) (s0 := s0) (pc := ⟨1614⟩)
       (mem := dealVatFluxCallMem σmem σ I) (aw := UInt256.ofNat 9) (rdata := out)
-      (cA := cA) (σ := σ) (gasArg := gasWord) (target := flipperVatTargetWord σ I)
+      (σ := σ) (gasArg := gasWord) (target := flipperVatTargetWord σ I)
       (inOffset := ⟨128⟩) (inSize := ⟨132⟩) (outOffset := ⟨128⟩) (outSize := ⟨0⟩)
       (t := [⟨260⟩, ⟨1628552750⟩, flipperVatTargetWord σ I, dealId I, ret, sel])
       rd1614 (by native_decide) hdepth (by simp)
@@ -1762,7 +1762,7 @@ theorem flipperDealX_vatCallDepthLimit {cA σmem σ I} {g : Sat256} {s0 : State}
   have rd1615 : RD flipperBytecode I g s0 ⟨1615⟩
       (⟨0⟩ :: ⟨260⟩ :: ⟨1628552750⟩ ::
         flipperVatTargetWord σ I :: dealId I :: ret :: sel :: [])
-      (dealVatFluxCallMem σmem σ I) (UInt256.ofNat 9) ByteArray.empty (cA, σ)
+      (dealVatFluxCallMem σmem σ I) (UInt256.ofNat 9) ByteArray.empty σ
       k1615 C1615 :=
     by
       rw [hmin, byteArray_write_len_zero] at rd1615raw
@@ -1771,7 +1771,7 @@ theorem flipperDealX_vatCallDepthLimit {cA σmem σ I} {g : Sat256} {s0 : State}
 
 theorem flipperDealX_vatCallSuccessToDeleteStart {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD flipperBytecode I g s0 ⟨1615⟩
       (⟨1⟩ :: ⟨260⟩ :: selector :: target :: id :: ret :: sel :: [])
       mem aw out acc k C) :
@@ -1787,13 +1787,13 @@ theorem flipperDealX_vatCallSuccessToDeleteStart {I} {g : Sat256} {s0 : State}
   exact ⟨k1633, C1633, by simpa using rd1633⟩
 
 theorem flipperDealX_vatDeleteReturn {I} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σmem σcall σ : AccountMap}
+    {σmem σcall σ : AccountMap}
     {k C : ℕ} {out : ByteArray} {selector target id sel : UInt256}
     (hperm : I.perm = true)
     (h : RD flipperBytecode I g s0 ⟨1633⟩
       (⟨260⟩ :: selector :: target :: id :: ⟨323⟩ :: sel :: [])
-      (dealVatFluxCallMem σmem σcall I) (UInt256.ofNat 9) out (cA, σ) k C) :
-    RDret flipperBytecode g s0 (cA, dealBidDeleteAccountMap I σ id) ByteArray.empty := by
+      (dealVatFluxCallMem σmem σcall I) (UInt256.ofNat 9) out σ k C) :
+    RDret flipperBytecode g s0 (dealBidDeleteAccountMap I σ id) ByteArray.empty := by
   let base := bidBaseOfWord id
   let memHash := dealDeleteHashMem σmem σcall I id
   let σ0 := sstoreAccountMap I.codeOwner σ base ⟨0⟩
@@ -1848,7 +1848,7 @@ theorem flipperDealX_vatDeleteReturn {I} {g : Sat256} {s0 : State}
   obtain ⟨k1655, C1655, rd1655raw⟩ := rd1654.sstore hperm (by native_decide) (by evm_ov)
   have rd1655 : RD flipperBytecode I g s0 ⟨1655⟩
       (base :: ⟨1⟩ :: ⟨0⟩ :: ⟨323⟩ :: sel :: [])
-      memHash (UInt256.ofNat 9) out (cA, σ0) k1655 C1655 := by
+      memHash (UInt256.ofNat 9) out σ0 k1655 C1655 := by
     simpa [σ0] using rd1655raw
   have rd1660 := evm_run rd1655 with [
     raw swap1 (by native_decide) (by evm_ov),
@@ -1859,7 +1859,7 @@ theorem flipperDealX_vatDeleteReturn {I} {g : Sat256} {s0 : State}
   obtain ⟨k1661, C1661, rd1661raw⟩ := rd1660.sstore hperm (by native_decide) (by evm_ov)
   have rd1661 : RD flipperBytecode I g s0 ⟨1661⟩
       (base :: ⟨0⟩ :: ⟨323⟩ :: sel :: [])
-      memHash (UInt256.ofNat 9) out (cA, σ1) k1661 C1661 := by
+      memHash (UInt256.ofNat 9) out σ1 k1661 C1661 := by
     simpa [σ1] using rd1661raw
   have rd1667 := evm_run rd1661 with [
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
@@ -1870,7 +1870,7 @@ theorem flipperDealX_vatDeleteReturn {I} {g : Sat256} {s0 : State}
   obtain ⟨k1668, C1668, rd1668raw⟩ := rd1667.sstore hperm (by native_decide) (by evm_ov)
   have rd1668 : RD flipperBytecode I g s0 ⟨1668⟩
       (base :: ⟨0⟩ :: ⟨323⟩ :: sel :: [])
-      memHash (UInt256.ofNat 9) out (cA, σ2) k1668 C1668 := by
+      memHash (UInt256.ofNat 9) out σ2 k1668 C1668 := by
     simpa [σ2] using rd1668raw
   have rd1672 := evm_run rd1668 with [
     raw push1 ⟨3⟩ (by native_decide) (by evm_ov),
@@ -1880,7 +1880,7 @@ theorem flipperDealX_vatDeleteReturn {I} {g : Sat256} {s0 : State}
   obtain ⟨k1674, C1674, rd1674raw⟩ := rd1672.sload (by native_decide) (by evm_ov)
   have rd1674 : RD flipperBytecode I g s0 ⟨1674⟩
       (old3 :: (base + ⟨3⟩) :: base :: ⟨0⟩ :: ⟨323⟩ :: sel :: [])
-      memHash (UInt256.ofNat 9) out (cA, σ2) k1674 C1674 := by
+      memHash (UInt256.ofNat 9) out σ2 k1674 C1674 := by
     simpa [old3, solcSlotWord] using rd1674raw
   have rd1688 := evm_run rd1674 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -1898,7 +1898,7 @@ theorem flipperDealX_vatDeleteReturn {I} {g : Sat256} {s0 : State}
   obtain ⟨k1689, C1689, rd1689raw⟩ := rd1688.sstore hperm (by native_decide) (by evm_ov)
   have rd1689 : RD flipperBytecode I g s0 ⟨1689⟩
       (UInt256.lnot solcAddrMask :: base :: ⟨0⟩ :: ⟨323⟩ :: sel :: [])
-      memHash (UInt256.ofNat 9) out (cA, σ3) k1689 C1689 := by
+      memHash (UInt256.ofNat 9) out σ3 k1689 C1689 := by
     simpa [σ3, clear3] using rd1689raw
   have rd1693 := evm_run rd1689 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
@@ -1909,7 +1909,7 @@ theorem flipperDealX_vatDeleteReturn {I} {g : Sat256} {s0 : State}
   have rd1695 : RD flipperBytecode I g s0 ⟨1695⟩
       (old4 :: (base + ⟨4⟩) :: UInt256.lnot solcAddrMask :: base :: ⟨0⟩ ::
         ⟨323⟩ :: sel :: [])
-      memHash (UInt256.ofNat 9) out (cA, σ3) k1695 C1695 := by
+      memHash (UInt256.ofNat 9) out σ3 k1695 C1695 := by
     simpa [old4, solcSlotWord] using rd1695raw
   have rd1699 := evm_run rd1695 with [
     raw swap1 (by native_decide) (by evm_ov),
@@ -1920,7 +1920,7 @@ theorem flipperDealX_vatDeleteReturn {I} {g : Sat256} {s0 : State}
   obtain ⟨k1700, C1700, rd1700raw⟩ := rd1699.sstore hperm (by native_decide) (by evm_ov)
   have rd1700 : RD flipperBytecode I g s0 ⟨1700⟩
       (base :: ⟨0⟩ :: ⟨323⟩ :: sel :: [])
-      memHash (UInt256.ofNat 9) out (cA, σ4) k1700 C1700 := by
+      memHash (UInt256.ofNat 9) out σ4 k1700 C1700 := by
     simpa [σ4, clear4] using rd1700raw
   have rd1703 := evm_run rd1700 with [
     raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
@@ -1930,24 +1930,24 @@ theorem flipperDealX_vatDeleteReturn {I} {g : Sat256} {s0 : State}
   obtain ⟨k1704, C1704, rd1704raw⟩ := rd1703.sstore hperm (by native_decide) (by evm_ov)
   have rd1704 : RD flipperBytecode I g s0 ⟨1704⟩
       (⟨323⟩ :: sel :: []) memHash (UInt256.ofNat 9) out
-      (cA, dealBidDeleteAccountMap I σ id) k1704 C1704 := by
+      (dealBidDeleteAccountMap I σ id) k1704 C1704 := by
     simpa [dealBidDeleteAccountMap, bidDeleteCollapsedAccountMap, base, σ0, σ1, σ2, σ3, σ4,
       old3, old4, clear3, clear4, solcSlotWord] using rd1704raw
   have rd323 := rd1704.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd324 (by native_decide) (by evm_ov)
 
-theorem flipperDealX_vatDeleteReturnFromPostCall {cA gh bl σmem σcall σ σ₀ A I}
-    {g : UInt256} {cA' : Batteries.RBSet AccountAddress compare} {k C : ℕ}
+theorem flipperDealX_vatDeleteReturnFromPostCall {σmem σcall σ σ₀ A I}
+    {g : UInt256} {k C : ℕ}
     {out : ByteArray} (hperm : I.perm = true)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σmem σ₀ (Sat256.ofUInt256 g) A I) ⟨1633⟩
+      (initState σmem σ₀ (Sat256.ofUInt256 g) A I) ⟨1633⟩
       (⟨260⟩ :: ⟨1628552750⟩ :: flipperVatTargetWord σcall I ::
         dealId I :: ⟨323⟩ :: flipperSelWord I :: [])
-      (dealVatFluxCallMem σmem σcall I) (UInt256.ofNat 9) out (cA', σ) k C) :
+      (dealVatFluxCallMem σmem σcall I) (UInt256.ofNat 9) out σ k C) :
     RDret flipperBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σmem σ₀ (Sat256.ofUInt256 g) A I)
-      (cA', dealBidDeleteAccountMap I σ (dealId I)) ByteArray.empty :=
+      (initState σmem σ₀ (Sat256.ofUInt256 g) A I)
+      (dealBidDeleteAccountMap I σ (dealId I)) ByteArray.empty :=
   flipperDealX_vatDeleteReturn
     (selector := ⟨1628552750⟩) (target := flipperVatTargetWord σcall I)
     (id := dealId I) (sel := flipperSelWord I) hperm h

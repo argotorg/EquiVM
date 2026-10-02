@@ -34,12 +34,12 @@ theorem catDecode_vow {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem catReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachVowBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x62, 0x6c, 0xb3, 0xc5]⟩) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
-        ⟨437⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
+        ⟨437⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hword : catSelWord I = ⟨1651291077⟩ :=
     catSelWord_eq_of_beq I hsz 0x62 0x6c 0xb3 0xc5 ⟨1651291077⟩ (by native_decide) hsel
   have hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) ≠ ⟨0⟩ := by
@@ -57,33 +57,32 @@ theorem catReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
   exact catReachLowHighBody 0 (by omega) ⟨437⟩ hcode hwv hsz hsize hroot hlow heq0 htake
     (by jump_dest) (by native_decide)
 
-theorem catVowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem catVowBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0x62, 0x6c, 0xb3, 0xc5]⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I ⟨#[0x62, 0x6c, 0xb3, 0xc5]⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x62, 0x6c, 0xb3, 0xc5]⟩ rfl hsel
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ vowTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ vowTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (catAddressReturnWord ⟨4⟩ σ_solm I).toNat))])) := by
+            (catAddressReturnWord ⟨4⟩ σ I).toNat))])) := by
     simpa [vowTransition, catAddressReturnWord, catSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, solcSlotWord] using
-      catAddressGetterBodyReturns (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+      catAddressGetterBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := vowRef) (er := ({ base := "vow", steps := [] } : EvaledStorageRef)) (slot := ⟨4⟩)
         (by simp only [initState]; exact hwv) (by simp [vowRef])
         (by simp [evalStorageRef, evalStorageRefSteps, vowRef, EvalResult.bind, pure, bind])
         (by decide) (by rfl)
   exact catAddressGetterBodyCore (entry := ⟨437⟩) (routine := ⟨2700⟩) (slot := ⟨4⟩)
     hcode (catDispatch_vow hsel) (catDecode_vow hsz)
-    (catReachVowBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
+    (catReachVowBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
     (by unfold solcGetterEntryWf; repeat' first | apply And.intro | native_decide)
     (by unfold solcAddressSlotGetterWf; repeat' first | apply And.intro | native_decide)
     (by jump_dest) (by rfl) (by simpa [catAddressReturnWord, catSlotWord] using hbody)

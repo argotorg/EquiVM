@@ -21,36 +21,20 @@ abbrev syncToken1GuardTrue (evm0 : EVM.State) (balance0 : Value) : Prop :=
     evm0 (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) = .ok (.bool true)
 
 theorem syncToken0GuardFalse_initState_of_noCode
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+    {σ σ₀ A I} {g : Sat256}
     (htoken0NoCode :
-      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
+          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩) :
-    syncToken0GuardFalse (initState cA gh bl σ_solm σ₀ g A I) := by
-  let σLockE := sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩
-  let σLockS := sstoreAccountMap I.codeOwner σ_solm ⟨12⟩ ⟨0⟩
-  let token0WordE := uniswapSlotWord ⟨6⟩ σLockE I
+    syncToken0GuardFalse (initState σ σ₀ g A I) := by
+  let σLockS := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
   let token0WordS := uniswapSlotWord ⟨6⟩ σLockS I
-  have hLockAccounts : accountMapEquiv σLockE σLockS := by
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨0⟩ hAccounts
-  have hslot : token0WordE = token0WordS := by
-    simpa [σLockE, σLockS, token0WordE, token0WordS] using
-      accountMapEquiv_storage_findD hLockAccounts I.codeOwner ⟨6⟩ ⟨0⟩
   have hnoSolm :
       extCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) = ⟨0⟩ := by
-    have hsame :=
-      extCodeSizeWord_accountMapEquiv hLockAccounts
-        (UInt256.land solcAddrMask token0WordE)
-    have hnoE :
-        extCodeSizeWord σLockE (UInt256.land solcAddrMask token0WordE) = ⟨0⟩ := by
-      simpa [σLockE, token0WordE] using htoken0NoCode
-    rw [← hslot]
-    rw [← hsame]
-    exact hnoE
+    simpa [σLockS, token0WordS] using htoken0NoCode
   unfold syncToken0GuardFalse
-  let evmS := initState cA gh bl σ_solm σ₀ g A I
+  let evmS := initState σ σ₀ g A I
   let evmL := uniswapLockEnteredState evmS
   have hstorage :
       evalExpr? config { contract := contract, locals := ∅ } evmL
@@ -694,26 +678,22 @@ theorem uniswapSyncBodyReturns (evm evm0 evm1 : EVM.State)
 /-! ## `sync()` refinement slices -/
 
 theorem uniswapSyncBodyCoreRevert_locked
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode)
     (hwv : I.weiValue = ⟨0⟩) (hsz4 : 4 ≤ I.calldata.size)
     (hlocked :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some syncTransition)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hlockedSolm :
       Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩ := by
-    simpa [evmS] using
-      (initState_codeOwner_storageLoad_ne_of_accountMapEquiv
-        (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
-        (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
-        (slot := ⟨12⟩) (val := ⟨1⟩) hAccounts hlocked)
+    simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
+      Account.lookupStorage] using hlocked
   have hdecode := uniswapDecode_sync (I := I) hsz4
   have hbody :
       ExecTransitionBody config contract evmS ∅ syncTransition.body .reverted := by
@@ -724,29 +704,27 @@ theorem uniswapSyncBodyCoreRevert_locked
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem uniswapSyncBodyCoreRevert_firstNoCode
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
     (hunlocked :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0NoCode :
-      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
+          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some syncTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hunlockedSolm :
       Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
-    have hword := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨12⟩ ⟨0⟩
     simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-      using (hword ▸ hunlocked)
+      using hunlocked
   have hguard0 : syncToken0GuardFalse evmS :=
-    syncToken0GuardFalse_initState_of_noCode hAccounts htoken0NoCode
+    syncToken0GuardFalse_initState_of_noCode htoken0NoCode
   have hbody :
       ExecTransitionBody config contract evmS ∅ syncTransition.body .reverted := by
     exact uniswapSyncBodyReverts_firstNoCode evmS
@@ -761,38 +739,35 @@ theorem uniswapSyncBodyCoreRevert_firstNoCode
 /-- Locked-revert `sync()` refinement slice, packaged from selector dispatch through the body
 core. -/
 theorem uniswapSyncBodyRevert_locked
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
     (hlocked :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some syncTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩ rfl hsel
   exact uniswapSyncBodyCoreRevert_locked hcode hwv hsz4 hlocked hdispatch
     (uniswapReachSyncBody (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
-    hAccounts
 
 theorem uniswapSyncBodyRevert_firstNoCode
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
     (hunlocked :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0NoCode :
-      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
-          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
+          (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some syncTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact uniswapSyncBodyCoreRevert_firstNoCode hcode hsize hperm hwv hsel
-    hunlocked htoken0NoCode hdispatch hAccounts
+    hunlocked htoken0NoCode hdispatch
 
 end UniswapV2Pair

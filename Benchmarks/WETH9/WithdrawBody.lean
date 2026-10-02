@@ -269,24 +269,24 @@ theorem weth9WithdrawBodyReverts_callFailure (evm evm' : EVM.State) (I : Executi
 /-! ## EVM trace: dispatch → guard → decode → body entry (pc 1395) -/
 
 /-- `callvalue ≠ 0`: the withdraw callvalue guard reverts. -/
-theorem weth9WithdrawGuardRev {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9WithdrawGuardRev {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue ≠ ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 4)) :
-    RDrev weth9Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨_, _, h487⟩ := weth9ReachWithdraw (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, h487⟩ := weth9ReachWithdraw (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   exact weth9GuardPeelRev (gt := ⟨499⟩) h487 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
 /-- `callvalue = 0`, `size < 36`: the ABI length guard reverts. -/
-theorem weth9WithdrawDecodeRev {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9WithdrawDecodeRev {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hsize : I.calldata.size < UInt256.size) (hsel : selIs I (weth9SelBytes 4)) :
-    RDrev weth9Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨_, _, h487⟩ := weth9ReachWithdraw (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, h487⟩ := weth9ReachWithdraw (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h501⟩ := weth9GuardPeelOk (gt := ⟨499⟩) h487 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -311,14 +311,14 @@ theorem weth9WithdrawDecodeRev {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
 
 /-- `callvalue = 0`, `size ≥ 36`: reach the body entry (pc 1395) with `[wad, 164, sel]`. -/
-theorem weth9WithdrawReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem weth9WithdrawReachBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = weth9Bytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (weth9SelBytes 4)) :
-    ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1395⟩
+    ∃ k C, RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1395⟩
       [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h487⟩ := weth9ReachWithdraw (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h487⟩ := weth9ReachWithdraw (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode (by omega) hsize hsel
   obtain ⟨_, _, h501⟩ := weth9GuardPeelOk (gt := ⟨499⟩) h487 hwv
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -365,15 +365,15 @@ theorem withdrawKeccak2 (I : ExecutionEnv) :
 
 /-- Require-check segment (pc 1395→1415): keccak `balanceOf[caller]` slot, `SLOAD`, `wad > bal`,
     `ISZERO`.  The top of stack is `¬(wad > bal)` = `bal ≥ wad`. -/
-theorem weth9WithdrawRequireCheck {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1395⟩
+theorem weth9WithdrawRequireCheck {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1395⟩
       [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1415⟩
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1415⟩
       [UInt256.isZero (UInt256.gt (withdrawWadWord I) (solcSlotWord σ I (callerBalSlot I))),
         withdrawWadWord I, ⟨164⟩, weth9SelWord I]
       (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k' C' := by
+      σ k' C' := by
   have hA := evm_run h with [
     jumpdest, caller, push1 ⟨0⟩, swap1, dup2,
     raw mstore 0 (wordAt0Mem (solcSourceWord I) solcFreePtrMem) (UInt256.ofNat 3)
@@ -389,12 +389,12 @@ theorem weth9WithdrawRequireCheck {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
   exact ⟨_, _, evm_run hSload with [dup2, gt, iszero]⟩
 
 /-- `bal < wad`: `require(balanceOf ≥ wad)` reverts at pc 1419. -/
-theorem weth9WithdrawRequireRev {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
+theorem weth9WithdrawRequireRev {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (hlt : (solcSlotWord σ I (callerBalSlot I)).toNat < (withdrawWadWord I).toNat)
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1395⟩
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1395⟩
       [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev weth9Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, h1415⟩ := weth9WithdrawRequireCheck h
   have hgt : UInt256.gt (withdrawWadWord I) (solcSlotWord σ I (callerBalSlot I)) = ⟨1⟩ :=
     ugt_one (by omega)
@@ -404,17 +404,17 @@ theorem weth9WithdrawRequireRev {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
 
 /-- `bal ≥ wad`: pass the require, re-keccak, `balanceOf[caller] -= wad` (`SSTORE`), reaching the
     `CALL` setup (pc 1447) with the mapping-hash memory and the decremented balance. -/
-theorem weth9WithdrawReachStore {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
+theorem weth9WithdrawReachStore {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (hperm : I.perm = true)
     (hle : (withdrawWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat)
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1395⟩
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1395⟩
       [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1447⟩
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1447⟩
       [⟨64⟩, ⟨0⟩, solcSourceWord I, withdrawWadWord I, ⟨164⟩, weth9SelWord I]
       (twoWordHashMem (solcSourceWord I) ⟨3⟩ (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ (callerBalSlot I)
+      (sstoreAccountMap I.codeOwner σ (callerBalSlot I)
         (UInt256.sub (solcSlotWord σ I (callerBalSlot I)) (withdrawWadWord I))) k' C' := by
   obtain ⟨_, _, h1415⟩ := weth9WithdrawRequireCheck h
   have h1423 := h1415.push2 ⟨1423⟩ (by native_decide) (by simp)
@@ -469,17 +469,17 @@ abbrev withdrawStoreMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
     (UInt256.sub (solcSlotWord σ I (callerBalSlot I)) (withdrawWadWord I))
 
 /-- `bal ≥ wad`: reach the value-transfer `CALL` (pc 1464) with its seven arguments assembled. -/
-theorem weth9WithdrawToCall {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
+theorem weth9WithdrawToCall {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (hperm : I.perm = true)
     (hle : (withdrawWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat)
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1395⟩
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1395⟩
       [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k' C', RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1464⟩
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k' C', RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1464⟩
       [withdrawGasArg I, solcSourceWord I, withdrawWadWord I, ⟨128⟩, ⟨0⟩, ⟨128⟩, ⟨0⟩, ⟨128⟩,
         withdrawWadWord I, withdrawGasArg I, solcSourceWord I, withdrawWadWord I, ⟨164⟩,
         weth9SelWord I]
-      (withdrawStoreMem I) (UInt256.ofNat 3) ByteArray.empty (cA, withdrawStoreMap σ I) k' C' := by
+      (withdrawStoreMem I) (UInt256.ofNat 3) ByteArray.empty (withdrawStoreMap σ I) k' C' := by
   obtain ⟨_, _, h1447⟩ := weth9WithdrawReachStore hperm hle h
   exact ⟨_, _, evm_run h1447 with [
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost (withdrawStoreMem_mload64 I)
@@ -489,23 +489,23 @@ theorem weth9WithdrawToCall {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
 /-! ## EVM trace: post-`CALL` cleanup + success/failure tails -/
 
 /-- Post-`CALL` stack cleanup (pc 1465→1470): drop the four scratch words, leaving `[status]`. -/
-theorem weth9WithdrawAfterCall {cA gh bl σ σ₀ A I} {g : Sat256} {zw : UInt256}
-    {mem o : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1465⟩
+theorem weth9WithdrawAfterCall {σ σ₀ A I} {g : Sat256} {zw : UInt256}
+    {mem o : ByteArray} {acc : AccountMap} {k C : ℕ}
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1465⟩
       [zw, ⟨128⟩, withdrawWadWord I, withdrawGasArg I, solcSourceWord I, withdrawWadWord I, ⟨164⟩,
         weth9SelWord I]
       mem (UInt256.ofNat 3) o acc k C) :
-    ∃ k' C', RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1470⟩
+    ∃ k' C', RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1470⟩
       [zw, withdrawWadWord I, ⟨164⟩, weth9SelWord I] mem (UInt256.ofNat 3) o acc k' C' := by
   exact ⟨_, _, evm_run h with [swap4, pop, pop, pop, pop]⟩
 
 /-- Call failed (`status = 0`): bubble up the callee's revert (`RETURNDATACOPY` + `REVERT`). -/
-theorem weth9WithdrawFailureTail {cA gh bl σ σ₀ A I} {g : Sat256} {mem o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+theorem weth9WithdrawFailureTail {σ σ₀ A I} {g : Sat256} {mem o : ByteArray}
+    {acc : AccountMap} {k C : ℕ}
     (hoSize : o.size < UInt256.size)
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1470⟩
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1470⟩
       [⟨0⟩, withdrawWadWord I, ⟨164⟩, weth9SelWord I] mem (UInt256.ofNat 3) o acc k C) :
-    RDrev weth9Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
   have hrdstoNat : (UInt256.ofNat o.size).toNat = o.size := UInt256.toNat_ofNat_of_lt hoSize
   have h1481 := evm_run h with [
     iszero, dup1, iszero, push2 ⟨1486⟩, jumpiNT (by decide),
@@ -594,14 +594,14 @@ theorem withdrawLogMem_mload64 (I : ExecutionEnv) :
   native_decide
 
 /-- Call succeeded (`status = 1`): store `wad`, emit the `Withdrawal` `LOG2`, and `STOP`. -/
-theorem weth9WithdrawSuccessTail {cA gh bl σ σ₀ A I} {g : Sat256} {o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+theorem weth9WithdrawSuccessTail {σ σ₀ A I} {g : Sat256} {o : ByteArray}
+    {acc : AccountMap} {k C : ℕ}
     (hperm : I.perm = true)
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1470⟩
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1470⟩
       [⟨1⟩, withdrawWadWord I, ⟨164⟩, weth9SelWord I]
       (withdrawStoreMem I) (UInt256.ofNat 3) o acc k C) :
-    RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I) acc ByteArray.empty := by
-  have hpermI : (initState cA gh bl σ σ₀ g A I).executionEnv.perm = true := by
+    RDret weth9Bytecode g (initState σ σ₀ g A I) acc ByteArray.empty := by
+  have hpermI : (initState σ σ₀ g A I).executionEnv.perm = true := by
     simp [initState]; exact hperm
   have hA := evm_run h with [
     iszero, dup1, iszero, push2 ⟨1486⟩, jumpiT (by decide) (by jump_dest),
@@ -630,14 +630,14 @@ theorem weth9WithdrawSuccessTail {cA gh bl σ σ₀ A I} {g : Sat256} {o : ByteA
 /-! ## EVM trace: the three `CALL` outcomes -/
 
 /-- `bal ≥ wad`, depth limit reached (`depth = 1024`): the `CALL` returns `0`, the body reverts. -/
-theorem weth9WithdrawCallDepthRev {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
+theorem weth9WithdrawCallDepthRev {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (hperm : I.perm = true)
     (hle : (withdrawWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat)
     (hdepth : I.depth = 1024)
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1395⟩
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1395⟩
       [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev weth9Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, h1464⟩ := weth9WithdrawToCall hperm hle h
   obtain ⟨_, _, rd1465⟩ :=
     h1464.callValueDepthLimitEmptyInOut hperm (by native_decide) hdepth (by evm_ov)
@@ -645,16 +645,16 @@ theorem weth9WithdrawCallDepthRev {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
   exact weth9WithdrawFailureTail (by decide) rd1470
 
 /-- `bal ≥ wad`, insufficient contract balance: the `CALL` returns `0`, the body reverts. -/
-theorem weth9WithdrawCallInsufficientRev {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
+theorem weth9WithdrawCallInsufficientRev {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (hperm : I.perm = true)
     (hle : (withdrawWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat)
     (hbalance : ¬ withdrawWadWord I ≤
       ((withdrawStoreMap σ I).find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024)
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1395⟩
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1395⟩
       [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev weth9Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev weth9Bytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, h1464⟩ := weth9WithdrawToCall hperm hle h
   obtain ⟨_, _, rd1465⟩ :=
     h1464.callValueInsufficientBalanceEmptyInOut hperm (by native_decide) hbalance hdepth (by evm_ov)
@@ -663,51 +663,48 @@ theorem weth9WithdrawCallInsufficientRev {cA gh bl σ σ₀ A I} {g : Sat256} {k
 
 /-- `bal ≥ wad`, sufficient balance, depth OK: the value `CALL` is dispatched; expose its `Θ` witness
     (for the Solm-side coupling) and the post-call `RD` at the branch (pc 1470). -/
-theorem weth9WithdrawCallMade {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
+theorem weth9WithdrawCallMade {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (hperm : I.perm = true)
     (hle : (withdrawWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat)
     (hbalance : withdrawWadWord I ≤
       ((withdrawStoreMap σ I).find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024)
-    (h : RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1395⟩
+    (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1395⟩
       [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool) (o : ByteArray)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ (σ' : AccountMap) (z : Bool) (o : ByteArray)
       (A_in : Substate) (callGas : UInt256),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA
-          (initState cA gh bl σ σ₀ g A I).genesisBlockHeader
-          (initState cA gh bl σ σ₀ g A I).blocks (withdrawStoreMap σ I)
-          (initState cA gh bl σ σ₀ g A I).σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ (withdrawStoreMap σ I) σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (solcSourceWord I))
           (toExecute (withdrawStoreMap σ I) (AccountAddress.ofUInt256 (solcSourceWord I)))
           callGas (UInt256.ofNat I.gasPrice) (withdrawWadWord I) (withdrawWadWord I)
-          ByteArray.empty (I.depth + 1) I.header I.perm)
+          ByteArray.empty (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ o.size < UInt256.size
-      ∧ ∃ k' C', RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1470⟩
+      ∧ ∃ k' C', RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1470⟩
           [(if z then ⟨1⟩ else ⟨0⟩), withdrawWadWord I, ⟨164⟩, weth9SelWord I]
-          (withdrawStoreMem I) (UInt256.ofNat 3) o (cA', σ') k' C' := by
+          (withdrawStoreMem I) (UInt256.ofNat 3) o σ' k' C' := by
   obtain ⟨_, _, h1464⟩ := weth9WithdrawToCall hperm hle h
-  obtain ⟨cA', σ', z, o, A_in, callGas, _, _, hΘ, rd1465, hosz⟩ :=
+  obtain ⟨σ', z, o, A_in, callGas, _, _, hΘ, rd1465, hosz⟩ :=
     h1464.callValueMadeEmptyInOut (by native_decide) hperm hbalance hdepth (by evm_ov)
-  refine ⟨cA', σ', z, o, A_in, callGas, ?_, hosz, weth9WithdrawAfterCall rd1465⟩
+  refine ⟨σ', z, o, A_in, callGas, ?_, hosz, weth9WithdrawAfterCall rd1465⟩
   simpa [initState] using hΘ
 
 /-! ## Solm store-state accountMap (for the external-call coupling) -/
 
 /-- The Solm store state's `accountMap` is the caller-keyed decremented map. -/
-theorem withdrawStoreState_accountMap {cA gh bl σ σ₀ A I} {g : Sat256} :
-    (withdrawStoreState (initState cA gh bl σ σ₀ g A I) I).accountMap =
+theorem withdrawStoreState_accountMap {σ σ₀ A I} {g : Sat256} :
+    (withdrawStoreState (initState σ σ₀ g A I) I).accountMap =
       sstoreAccountMap I.codeOwner σ (callerBalSlot I)
         (UInt256.sub (solcSlotWord σ I (callerBalSlot I)) (withdrawWadWord I)) := by
-  have hco : (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner := rfl
-  have h : Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I) I.codeOwner (callerBalSlot I)
+  have hco : (initState σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner := rfl
+  have h : Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner (callerBalSlot I)
       = solcSlotWord σ I (callerBalSlot I) := by
     simp [solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, initState,
       Ethereum.Account.lookupStorage]
   unfold withdrawStoreState
-  rw [hco, storageStore_accountMap, show (initState cA gh bl σ σ₀ g A I).accountMap = σ from rfl, h]
+  rw [hco, storageStore_accountMap, show (initState σ σ₀ g A I).accountMap = σ from rfl, h]
 
 /-- The store state keeps the execution environment. -/
 theorem withdrawStoreState_executionEnv (evm : EVM.State) (I : ExecutionEnv) :
@@ -716,21 +713,6 @@ theorem withdrawStoreState_executionEnv (evm : EVM.State) (I : ExecutionEnv) :
 
 theorem withdrawStoreState_originalMap (evm : EVM.State) (I : ExecutionEnv) :
     (withdrawStoreState evm I).σ₀ = evm.σ₀ := by
-  unfold withdrawStoreState Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
-
-theorem withdrawStoreState_createdAccounts (evm : EVM.State) (I : ExecutionEnv) :
-    (withdrawStoreState evm I).createdAccounts = evm.createdAccounts := by
-  unfold withdrawStoreState Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
-
-theorem withdrawStoreState_genesisBlockHeader (evm : EVM.State) (I : ExecutionEnv) :
-    (withdrawStoreState evm I).genesisBlockHeader = evm.genesisBlockHeader := by
-  unfold withdrawStoreState Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
-
-theorem withdrawStoreState_blocks (evm : EVM.State) (I : ExecutionEnv) :
-    (withdrawStoreState evm I).blocks = evm.blocks := by
   unfold withdrawStoreState Solm.EVM.storageStore State.lookupAccount
   cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
 

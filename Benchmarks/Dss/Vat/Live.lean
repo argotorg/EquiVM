@@ -15,13 +15,13 @@ theorem vatDecode_live {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem vatReachLiveBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vatReachLiveBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (vatSelBytes 18)) :
-    ∃ k C, RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD vatBytecode I g (initState σ σ₀ g A I)
         ⟨1161⟩ [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : vatSelWord I = ⟨0x957aa58c⟩ :=
     vatSelWord_eq_of_beq I hsz 0x95 0x7a 0xa5 0x8c ⟨0x957aa58c⟩
       (by native_decide) (by simpa [vatSelBytes] using hsel)
@@ -49,19 +49,19 @@ theorem vatReachLiveBody {cA gh bl σ σ₀ A I} {g : Sat256}
     hroot hhigh hhighlow heq0 htake (by jump_dest) (by native_decide)
 
 theorem vatLiveBodyCore : VatBodyTheorem 18 := by
-  intro cA gh bl σ_evm σ_solm σ₀ A I g hcode hsize _hperm hwv hsel hAccounts
+  intro σ σ₀ A I g hcode hsize _hperm hwv hsel
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 18) rfl hsel
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ liveTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ liveTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (liveWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (liveWord σ I).toNat))])) := by
     simpa [liveTransition, liveWord, vatSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       vatUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := liveRef) (er := ({ base := "live", steps := [] } : EvaledStorageRef))
         (slot := ⟨10⟩)
         (by simp only [initState]; exact hwv) (by simp [liveRef])
@@ -71,7 +71,6 @@ theorem vatLiveBodyCore : VatBodyTheorem 18 := by
     (routine := ⟨5356⟩) (slot := ⟨10⟩)
     hcode (vatDispatchLive hsel) (vatDecode_live hsz)
     (vatReachLiveBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
-    hAccounts
     (by
       unfold solcGetterEntryWf
       repeat' first | apply And.intro | native_decide)

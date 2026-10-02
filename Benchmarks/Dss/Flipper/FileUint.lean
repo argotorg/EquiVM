@@ -345,12 +345,12 @@ theorem assign_fileUintTauStorage (evm : EVM.State) (I : ExecutionEnv) :
     flipperStorageLocStore_uint48_offset6 evm ⟨5⟩ (fileUintData48 I)
       (uint48Mask_bound (fileUintData I))
 
-theorem flipperFileUintSourceBodyBeg {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperFileUintSourceBodyBeg {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileUintWhat I = fileUintBegBytes) :
     let locals := fileUintLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨4⟩ (fileUintData I)
     ExecTransitionBody config contract evm0 locals fileUintTransition.body
       (.returned { contract := contract, locals := locals } evm1 none) := by
@@ -359,7 +359,7 @@ theorem flipperFileUintSourceBodyBeg {cA gh bl σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     simpa [locals, evm0] using
-      flipperAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      flipperAuthGuardEval_true (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauth
   have hbeg :
@@ -394,13 +394,13 @@ theorem flipperFileUintSourceBodyBeg {cA gh bl σ σ₀ A I} {g : UInt256}
     exact ExecBlock.consNormal (ExecStmt.iteTrue hbeg hthen) ExecBlock.nil
   simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockOK hblock
 
-theorem flipperFileUintSourceBodyTtl {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperFileUintSourceBodyTtl {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotBeg : fileUintWhat I ≠ fileUintBegBytes)
     (hwhat : fileUintWhat I = fileUintTtlBytes) :
     let locals := fileUintLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨5⟩
       (setUint48Offset0Word (Solm.EVM.storageLoad evm0 I.codeOwner ⟨5⟩)
         (fileUintData48 I))
@@ -411,7 +411,7 @@ theorem flipperFileUintSourceBodyTtl {cA gh bl σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     simpa [locals, evm0] using
-      flipperAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      flipperAuthGuardEval_true (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauth
   have hbeg :
@@ -463,14 +463,14 @@ theorem flipperFileUintSourceBodyTtl {cA gh bl σ σ₀ A I} {g : UInt256}
     exact ExecBlock.consNormal (ExecStmt.iteFalse hbeg helse) ExecBlock.nil
   simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockOK hblock
 
-theorem flipperFileUintSourceBodyTau {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperFileUintSourceBodyTau {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotBeg : fileUintWhat I ≠ fileUintBegBytes)
     (hnotTtl : fileUintWhat I ≠ fileUintTtlBytes)
     (hwhat : fileUintWhat I = fileUintTauBytes) :
     let locals := fileUintLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨5⟩
       (setUint48Offset6Word (Solm.EVM.storageLoad evm0 I.codeOwner ⟨5⟩)
         (fileUintData48 I))
@@ -481,7 +481,7 @@ theorem flipperFileUintSourceBodyTau {cA gh bl σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     simpa [locals, evm0] using
-      flipperAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      flipperAuthGuardEval_true (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauth
   have hbeg :
@@ -547,18 +547,18 @@ theorem flipperFileUintSourceBodyTau {cA gh bl σ σ₀ A I} {g : UInt256}
     exact ExecBlock.consNormal (ExecStmt.iteFalse hbeg httlElse) ExecBlock.nil
   simpa [ExecTransitionBody, locals, evm0, evm1] using ExecFuncBody.execBlockOK hblock
 
-theorem flipperFileUintSourceBodyAuthReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperFileUintSourceBodyAuthReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩) :
     let locals := fileUintLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileUintTransition.body .reverted := by
   intro locals evm0
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool false) := by
     simpa [locals, evm0] using
-      flipperAuthGuardEval_false (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      flipperAuthGuardEval_false (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauth
   refine ExecFuncBody.execBlockRevert ?_
@@ -579,21 +579,21 @@ theorem flipperFileUintSourceBodyAuthReverts {cA gh bl σ σ₀ A I} {g : UInt25
       (by simp [evm0, initState]; exact hwv)
       hguard
 
-theorem flipperFileUintSourceBodyUnrecognized {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperFileUintSourceBodyUnrecognized {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotBeg : fileUintWhat I ≠ fileUintBegBytes)
     (hnotTtl : fileUintWhat I ≠ fileUintTtlBytes)
     (hnotTau : fileUintWhat I ≠ fileUintTauBytes) :
     let locals := fileUintLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals fileUintTransition.body .reverted := by
   intro locals evm0
   have hguard :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.binary .eq (.storage (wardsRef sender)) (.intLit 1)) = .ok (.bool true) := by
     simpa [locals, evm0] using
-      flipperAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      flipperAuthGuardEval_true (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) (locals := locals)
         (by simp [locals]) hauth
   have hbeg :
@@ -650,13 +650,13 @@ theorem flipperFileUintSourceBodyUnrecognized {cA gh bl σ σ₀ A I} {g : UInt2
     exact ExecBlock.consRevert (ExecStmt.iteFalse hbeg httlElse)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem flipperReachFileUintBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flipperReachFileUintBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flipperSelBytes 7)) :
-    ∃ k C, RD flipperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
         ⟨325⟩ [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : flipperSelWord I = ⟨0x29ae8114⟩ :=
     flipperSelWord_eq_of_beq I hsz 0x29 0xae 0x81 0x14 ⟨0x29ae8114⟩
       (by native_decide) (by simpa [flipperSelBytes] using hsel)
@@ -686,7 +686,7 @@ theorem flipperReachFileUintBody {cA gh bl σ σ₀ A I} {g : Sat256}
 theorem RD.flipperFileUintDecodeToRoutine {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 ⟨347⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = flipperBytecode)
     (hroutine : (D_J code 0).contains ⟨1705⟩ = true)
@@ -708,14 +708,14 @@ theorem RD.flipperFileUintDecodeToRoutine {code : ByteArray} {g : Sat256}
     raw jump (by native_decide) hroutine (by evm_ov)]
   exact ⟨_, _, by simpa [calldataWord] using rd359⟩
 
-theorem flipperFileUintX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flipperFileUintX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD flipperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨325⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD flipperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1705⟩
+      (initState σ σ₀ g A I) ⟨325⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I) ⟨1705⟩
         [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flipperBytecode) (sel := sel) (entry := ⟨325⟩) (ret := ⟨323⟩)
     (decoded := ⟨347⟩) (need := ⟨64⟩) hreach
@@ -730,16 +730,16 @@ theorem flipperFileUintX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     hdecoded rfl (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [fileUintData] using hroutine⟩
 
-theorem flipperFileUintX_authorized {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperFileUintX_authorized {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (h : RD flipperBytecode I g s0 ⟨1705⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨1787⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
     simpa [flipperCallerWardsSlot, flipperSlotWord] using hauth
@@ -752,12 +752,12 @@ theorem flipperFileUintX_authorized {cA σ I} {g : Sat256} {s0 : State}
       repeat' first | apply And.intro | native_decide)
     hauthSolc (by jump_dest) (by simp)
 
-theorem flipperFileUintX_unauthorized {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperFileUintX_unauthorized {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩)
     (h : RD flipperBytecode I g s0 ⟨1705⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ≠ ⟨1⟩ := by
@@ -859,18 +859,18 @@ theorem fileUintOffset6RuntimeWord (old data : UInt256) :
           unfold setUint48Offset6Word
           rw [hlow]
 
-theorem flipperFileUintX_skipBegTtl {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperFileUintX_skipBegTtl {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hnotBeg : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintBegBytes)
     (hnotTtl : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintTtlBytes)
     (h : RD flipperBytecode I g s0 ⟨1787⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨1855⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd1788 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1789 := rd1788.dup2 (by native_decide) (by evm_ov)
   have rd1793 := rd1789.pushConst (⟨6448487⟩ : UInt256)
@@ -909,15 +909,15 @@ theorem flipperFileUintX_skipBegTtl {cA σ I} {g : Sat256} {s0 : State}
     (by evm_ov)
   exact ⟨_, _, rd1855⟩
 
-theorem flipperFileUintX_storeBeg {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperFileUintX_storeBeg {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
     (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileUintBegBytes)
     (h : RD flipperBytecode I g s0 ⟨1787⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret flipperBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner σ ⟨4⟩ (fileUintData I)) ByteArray.empty := by
+      (sstoreAccountMap I.codeOwner σ ⟨4⟩ (fileUintData I)) ByteArray.empty := by
   have rd1796 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov),
@@ -946,16 +946,16 @@ theorem flipperFileUintX_storeBeg {cA σ I} {g : Sat256} {s0 : State}
   have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
   simpa [solcSlotWord] using RD.stop rd324 (by native_decide) (by evm_ov)
 
-theorem flipperFileUintX_storeTtl {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperFileUintX_storeTtl {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
     (hnotBeg : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintBegBytes)
     (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileUintTtlBytes)
     (h : RD flipperBytecode I g s0 ⟨1787⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret flipperBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner σ ⟨5⟩
+      (sstoreAccountMap I.codeOwner σ ⟨5⟩
         (setUint48Offset0Word (solcSlotWord σ I ⟨5⟩) (fileUintData48 I)))
       ByteArray.empty := by
   have rd1797 := evm_run h with [
@@ -1041,17 +1041,17 @@ theorem flipperFileUintX_storeTtl {cA σ I} {g : Sat256} {s0 : State}
   simpa [solcSlotWord, setUint48Offset0Word, fileUintData48, hword] using
     RD.stop rd324 (by native_decide) (by evm_ov)
 
-theorem flipperFileUintX_matchTauToSload {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperFileUintX_matchTauToSload {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileUintTauBytes)
     (h : RD flipperBytecode I g s0 ⟨1855⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD flipperBytecode I g s0 ⟨1874⟩
       [solcSlotWord σ I ⟨5⟩, ⟨5⟩, fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd1856 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1857 := rd1856.dup2 (by native_decide) (by evm_ov)
   have rd1861 := rd1857.pushConst (⟨7627125⟩ : UInt256)
@@ -1077,18 +1077,18 @@ theorem flipperFileUintX_matchTauToSload {cA σ I} {g : Sat256} {s0 : State}
   have rd1874 : RD flipperBytecode I g s0 ⟨1874⟩
       [solcSlotWord σ I ⟨5⟩, ⟨5⟩, fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1874 C1874 := by
+      (UInt256.ofNat 3) ByteArray.empty σ k1874 C1874 := by
     simpa [solcSlotWord] using rd1874raw
   exact ⟨_, _, rd1874⟩
 
-theorem flipperFileUintX_storeTauTail {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperFileUintX_storeTauTail {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
     (h : RD flipperBytecode I g s0 ⟨1874⟩
       [solcSlotWord σ I ⟨5⟩, ⟨5⟩, fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret flipperBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner σ ⟨5⟩
+      (sstoreAccountMap I.codeOwner σ ⟨5⟩
         (setUint48Offset6Word (solcSlotWord σ I ⟨5⟩) (fileUintData48 I)))
       ByteArray.empty := by
   have rd1887 := h.pushConst uint48MaskOffset6
@@ -1118,7 +1118,7 @@ theorem flipperFileUintX_storeTauTail {cA σ I} {g : Sat256} {s0 : State}
   have rd1907 : RD flipperBytecode I g s0 ⟨1907⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σTau) k1907 C1907 := by
+      (UInt256.ofNat 3) ByteArray.empty σTau k1907 C1907 := by
     simpa [slot5New, σTau, solcSlotWord] using rd1907raw
   have rd1988 := rd1907.push2 ⟨1988⟩ (by native_decide) (by evm_ov)
   have rd1989 := rd1988.jump (by native_decide) (by jump_dest) (by evm_ov)
@@ -1132,11 +1132,11 @@ theorem flipperFileUintX_storeTauTail {cA σ I} {g : Sat256} {s0 : State}
       fileUintOffset6RuntimeWord (solcSlotWord σ I ⟨5⟩) (fileUintData I)
   have rd323 := rd1991.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
-  have hstop : RDret flipperBytecode g s0 (cA, σTau) ByteArray.empty :=
+  have hstop : RDret flipperBytecode g s0 σTau ByteArray.empty :=
     RD.stop rd324 (by native_decide) (by evm_ov)
   simpa [σTau, hword] using hstop
 
-theorem flipperFileUintX_storeTau {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperFileUintX_storeTau {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
     (hnotBeg : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintBegBytes)
     (hnotTtl : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintTtlBytes)
@@ -1144,22 +1144,22 @@ theorem flipperFileUintX_storeTau {cA σ I} {g : Sat256} {s0 : State}
     (h : RD flipperBytecode I g s0 ⟨1787⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret flipperBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner σ ⟨5⟩
+      (sstoreAccountMap I.codeOwner σ ⟨5⟩
         (setUint48Offset6Word (solcSlotWord σ I ⟨5⟩) (fileUintData48 I)))
       ByteArray.empty := by
   obtain ⟨_, _, rd1855⟩ := flipperFileUintX_skipBegTtl hnotBeg hnotTtl h
   obtain ⟨_, _, rd1874⟩ := flipperFileUintX_matchTauToSload hmatch rd1855
   exact flipperFileUintX_storeTauTail hperm rd1874
 
-theorem flipperFileUintX_unrecognizedTau {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperFileUintX_unrecognizedTau {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hnotTau : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintTauBytes)
     (h : RD flipperBytecode I g s0 ⟨1855⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   have rd1856 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1857 := rd1856.dup2 (by native_decide) (by evm_ov)
@@ -1184,7 +1184,7 @@ theorem flipperFileUintX_unrecognizedTau {cA σ I} {g : Sat256} {s0 : State}
     (twoWordHashMem_read64 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size solcFreePtrMem_read64)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem flipperFileUintX_unrecognized {cA σ I} {g : Sat256} {s0 : State}
+theorem flipperFileUintX_unrecognized {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
     (hnotBeg : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintBegBytes)
     (hnotTtl : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileUintTtlBytes)
@@ -1192,19 +1192,19 @@ theorem flipperFileUintX_unrecognized {cA σ I} {g : Sat256} {s0 : State}
     (h : RD flipperBytecode I g s0 ⟨1787⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd1855⟩ := flipperFileUintX_skipBegTtl hnotBeg hnotTtl h
   exact flipperFileUintX_unrecognizedTau hnotTau rd1855
 
-theorem flipperFileUintX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flipperFileUintX_shortarg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD flipperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨325⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flipperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨325⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
@@ -1220,11 +1220,11 @@ theorem flipperFileUintX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 theorem flipperFileUintBodyCoreOkBeg
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I = ⟨1⟩)
+    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hwhat : fileUintWhat I = fileUintBegBytes)
     (hdispatch : dispatchMsg contract I.calldata = some fileUintTransition)
     (hdecode :
@@ -1232,25 +1232,18 @@ theorem flipperFileUintBodyCoreOkBeg
         (transitionSignature fileUintTransition).paramTypes I.calldata =
           some (fileUintLocals I))
     (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨325⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨325⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let locals := fileUintLocals I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨4⟩ (fileUintData I)
-  have hauthSolm : flipperSlotWord (flipperCallerWardsSlot I) σ_solm I = ⟨1⟩ := by
-    have hword : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I =
-        flipperSlotWord (flipperCallerWardsSlot I) σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (flipperCallerWardsSlot I) ⟨0⟩
-    rw [← hword]
-    exact hauth
   have hbody :
       ExecTransitionBody config contract evm0 locals fileUintTransition.body
         (.returned { contract := contract, locals := locals } evm1 none) := by
     simpa [evm0, evm1, locals, initState] using
-      (flipperFileUintSourceBodyBeg (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
-        (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hwhat)
+      (flipperFileUintSourceBodyBeg (σ := σ)
+        (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hwhat)
   obtain ⟨_, _, hdecoded⟩ := flipperFileUintX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
   obtain ⟨_, _, hswitch⟩ := flipperFileUintX_authorized (I := I) hauth hdecoded
@@ -1258,20 +1251,17 @@ theorem flipperFileUintBodyCoreOkBeg
     fileUintWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := flipperFileUintX_storeBeg hperm hmatch hswitch
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-    (by simp [evm1, evm0, initState, storageStore_createdAccounts])
-    (by
-      simpa [evm1, evm0, initState, storageStore_accountMap] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner ⟨4⟩ (fileUintData I) hAccounts)
+    (by simp [evm1, evm0, initState, storageStore_accountMap])
     (by
       rw [show fileUintTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide))
 
 theorem flipperFileUintBodyCoreOkTtl
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I = ⟨1⟩)
+    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotBeg : fileUintWhat I ≠ fileUintBegBytes)
     (hwhat : fileUintWhat I = fileUintTtlBytes)
     (hdispatch : dispatchMsg contract I.calldata = some fileUintTransition)
@@ -1280,34 +1270,21 @@ theorem flipperFileUintBodyCoreOkTtl
         (transitionSignature fileUintTransition).paramTypes I.calldata =
           some (fileUintLocals I))
     (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨325⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨325⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let data := fileUintData48 I
-  let stored := setUint48Offset0Word (solcSlotWord σ_evm I ⟨5⟩) data
+  let stored := setUint48Offset0Word (solcSlotWord σ I ⟨5⟩) data
   let locals := fileUintLocals I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨5⟩ stored
-  have hauthSolm : flipperSlotWord (flipperCallerWardsSlot I) σ_solm I = ⟨1⟩ := by
-    have hword : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I =
-        flipperSlotWord (flipperCallerWardsSlot I) σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (flipperCallerWardsSlot I) ⟨0⟩
-    rw [← hword]
-    exact hauth
-  have hslot5 : flipperSlotWord ⟨5⟩ σ_evm I = flipperSlotWord ⟨5⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
-  have hstoredSolm :
-      stored = setUint48Offset0Word (solcSlotWord σ_solm I ⟨5⟩) data := by
-    simpa [stored, flipperSlotWord] using congrArg (fun old => setUint48Offset0Word old data)
-      hslot5
   have hbody :
       ExecTransitionBody config contract evm0 locals fileUintTransition.body
         (.returned { contract := contract, locals := locals } evm1 none) := by
-    simpa [evm0, evm1, locals, stored, data, hstoredSolm, solcSlotWord, initState,
+    simpa [evm0, evm1, locals, stored, data, solcSlotWord, initState,
       Solm.EVM.storageLoad] using
-      (flipperFileUintSourceBodyTtl (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
-        (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hnotBeg hwhat)
+      (flipperFileUintSourceBodyTtl (σ := σ)
+        (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hnotBeg hwhat)
   obtain ⟨_, _, hdecoded⟩ := flipperFileUintX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
   obtain ⟨_, _, hswitch⟩ := flipperFileUintX_authorized (I := I) hauth hdecoded
@@ -1318,25 +1295,21 @@ theorem flipperFileUintBodyCoreOkTtl
   have hret := flipperFileUintX_storeTtl hperm hnotBegWord hmatch hswitch
   have hret' :
       RDret flipperBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-        (cA, sstoreAccountMap I.codeOwner σ_evm ⟨5⟩ stored) ByteArray.empty := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (sstoreAccountMap I.codeOwner σ ⟨5⟩ stored) ByteArray.empty := by
     simpa [stored, data] using hret
   exact hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-    (by simp [evm1, evm0, initState, storageStore_createdAccounts])
-    (by
-      simpa [evm1, evm0, initState, storageStore_accountMap, stored, data, hstoredSolm,
-        solcSlotWord, Solm.EVM.storageLoad] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner ⟨5⟩ stored hAccounts)
+    (by simp [evm1, evm0, initState, storageStore_accountMap])
     (by
       rw [show fileUintTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide))
 
 theorem flipperFileUintBodyCoreOkTau
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I = ⟨1⟩)
+    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotBeg : fileUintWhat I ≠ fileUintBegBytes)
     (hnotTtl : fileUintWhat I ≠ fileUintTtlBytes)
     (hwhat : fileUintWhat I = fileUintTauBytes)
@@ -1346,34 +1319,21 @@ theorem flipperFileUintBodyCoreOkTau
         (transitionSignature fileUintTransition).paramTypes I.calldata =
           some (fileUintLocals I))
     (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨325⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨325⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let data := fileUintData48 I
-  let stored := setUint48Offset6Word (solcSlotWord σ_evm I ⟨5⟩) data
+  let stored := setUint48Offset6Word (solcSlotWord σ I ⟨5⟩) data
   let locals := fileUintLocals I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨5⟩ stored
-  have hauthSolm : flipperSlotWord (flipperCallerWardsSlot I) σ_solm I = ⟨1⟩ := by
-    have hword : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I =
-        flipperSlotWord (flipperCallerWardsSlot I) σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (flipperCallerWardsSlot I) ⟨0⟩
-    rw [← hword]
-    exact hauth
-  have hslot5 : flipperSlotWord ⟨5⟩ σ_evm I = flipperSlotWord ⟨5⟩ σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
-  have hstoredSolm :
-      stored = setUint48Offset6Word (solcSlotWord σ_solm I ⟨5⟩) data := by
-    simpa [stored, flipperSlotWord] using congrArg (fun old => setUint48Offset6Word old data)
-      hslot5
   have hbody :
       ExecTransitionBody config contract evm0 locals fileUintTransition.body
         (.returned { contract := contract, locals := locals } evm1 none) := by
-    simpa [evm0, evm1, locals, stored, data, hstoredSolm, solcSlotWord, initState,
+    simpa [evm0, evm1, locals, stored, data, solcSlotWord, initState,
       Solm.EVM.storageLoad] using
-      (flipperFileUintSourceBodyTau (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
-        (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm hnotBeg hnotTtl hwhat)
+      (flipperFileUintSourceBodyTau (σ := σ)
+        (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth hnotBeg hnotTtl hwhat)
   obtain ⟨_, _, hdecoded⟩ := flipperFileUintX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
   obtain ⟨_, _, hswitch⟩ := flipperFileUintX_authorized (I := I) hauth hdecoded
@@ -1386,59 +1346,48 @@ theorem flipperFileUintBodyCoreOkTau
   have hret := flipperFileUintX_storeTau hperm hnotBegWord hnotTtlWord hmatch hswitch
   have hret' :
       RDret flipperBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-        (cA, sstoreAccountMap I.codeOwner σ_evm ⟨5⟩ stored) ByteArray.empty := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (sstoreAccountMap I.codeOwner σ ⟨5⟩ stored) ByteArray.empty := by
     simpa [stored, data] using hret
   exact hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-    (by simp [evm1, evm0, initState, storageStore_createdAccounts])
-    (by
-      simpa [evm1, evm0, initState, storageStore_accountMap, stored, data, hstoredSolm,
-        solcSlotWord, Solm.EVM.storageLoad] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner ⟨5⟩ stored hAccounts)
+    (by simp [evm1, evm0, initState, storageStore_accountMap])
     (by
       rw [show fileUintTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide))
 
 theorem flipperFileUintBodyCoreUnauthorized
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I ≠ ⟨1⟩)
+    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some fileUintTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (fileUintTransition.params.map Param.name)
         (transitionSignature fileUintTransition).paramTypes I.calldata =
           some (fileUintLocals I))
     (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨325⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨325⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let locals := fileUintLocals I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthSolm : flipperSlotWord (flipperCallerWardsSlot I) σ_solm I ≠ ⟨1⟩ := by
-    have hword : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I =
-        flipperSlotWord (flipperCallerWardsSlot I) σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (flipperCallerWardsSlot I) ⟨0⟩
-    intro hbad
-    exact hauth (by rw [hword, hbad])
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evm0 locals fileUintTransition.body .reverted := by
     simpa [evm0, locals] using
-      (flipperFileUintSourceBodyAuthReverts (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm)
+      (flipperFileUintSourceBodyAuthReverts
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth)
   obtain ⟨_, _, hdecoded⟩ := flipperFileUintX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
   exact (flipperFileUintX_unauthorized (I := I) hauth hdecoded)
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem flipperFileUintBodyCoreUnrecognized
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size)
-    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I = ⟨1⟩)
+    (hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩)
     (hnotBeg : fileUintWhat I ≠ fileUintBegBytes)
     (hnotTtl : fileUintWhat I ≠ fileUintTtlBytes)
     (hnotTau : fileUintWhat I ≠ fileUintTauBytes)
@@ -1448,23 +1397,16 @@ theorem flipperFileUintBodyCoreUnrecognized
         (transitionSignature fileUintTransition).paramTypes I.calldata =
           some (fileUintLocals I))
     (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨325⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨325⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let locals := fileUintLocals I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthSolm : flipperSlotWord (flipperCallerWardsSlot I) σ_solm I = ⟨1⟩ := by
-    have hword : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I =
-        flipperSlotWord (flipperCallerWardsSlot I) σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (flipperCallerWardsSlot I) ⟨0⟩
-    rw [← hword]
-    exact hauth
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evm0 locals fileUintTransition.body .reverted := by
     simpa [evm0, locals] using
-      (flipperFileUintSourceBodyUnrecognized (cA := cA) (gh := gh) (bl := bl)
-        (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauthSolm
+      (flipperFileUintSourceBodyUnrecognized
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hauth
         hnotBeg hnotTtl hnotTau)
   obtain ⟨_, _, hdecoded⟩ := flipperFileUintX_decoded (g := Sat256.ofUInt256 g)
     hsz68 hsize hreach
@@ -1479,48 +1421,47 @@ theorem flipperFileUintBodyCoreUnrecognized
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem flipperFileUintBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = flipperBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some fileUintTransition)
     (hreach : ∃ k C, RD flipperBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨325⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨325⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (flipperFileUintX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch
       (flipperDecode_fileUint_none_short hsz4 hshort)
 
-theorem flipperFileUintBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flipperFileUintBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (flipperSelBytes 7))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (flipperSelBytes 7)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 7) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some fileUintTransition :=
     flipperDispatchFileUint hsel
-  have hreach := flipperReachFileUintBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := flipperReachFileUintBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
-  · by_cases hauth : flipperSlotWord (flipperCallerWardsSlot I) σ_evm I = ⟨1⟩
+  · by_cases hauth : flipperSlotWord (flipperCallerWardsSlot I) σ I = ⟨1⟩
     · by_cases hbeg : fileUintWhat I = fileUintBegBytes
       · exact flipperFileUintBodyCoreOkBeg hcode hsize hperm hwv hsz68 hauth hbeg
-          hdispatch (flipperDecode_fileUint_ok hsz68) hreach hAccounts
+          hdispatch (flipperDecode_fileUint_ok hsz68) hreach
       · by_cases httl : fileUintWhat I = fileUintTtlBytes
         · exact flipperFileUintBodyCoreOkTtl hcode hsize hperm hwv hsz68 hauth hbeg httl
-            hdispatch (flipperDecode_fileUint_ok hsz68) hreach hAccounts
+            hdispatch (flipperDecode_fileUint_ok hsz68) hreach
         · by_cases htau : fileUintWhat I = fileUintTauBytes
           · exact flipperFileUintBodyCoreOkTau hcode hsize hperm hwv hsz68 hauth hbeg httl
-              htau hdispatch (flipperDecode_fileUint_ok hsz68) hreach hAccounts
+              htau hdispatch (flipperDecode_fileUint_ok hsz68) hreach
           · exact flipperFileUintBodyCoreUnrecognized hcode hsize hwv hsz68 hauth hbeg httl
-              htau hdispatch (flipperDecode_fileUint_ok hsz68) hreach hAccounts
+              htau hdispatch (flipperDecode_fileUint_ok hsz68) hreach
     · exact flipperFileUintBodyCoreUnauthorized hcode hsize hwv hsz68 hauth hdispatch
-        (flipperDecode_fileUint_ok hsz68) hreach hAccounts
+        (flipperDecode_fileUint_ok hsz68) hreach
   · exact flipperFileUintBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach
 

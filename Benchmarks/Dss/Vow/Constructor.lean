@@ -171,26 +171,24 @@ macro "ctor_jump_dest" : tactic =>
     (exact D_J_contains_append_left vowCreationBytecode _ _ (by jump_dest)))
 
 theorem vowCtorNonpayableRDrev
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress)
     (hcode : I.code = vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   let code := vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper
   have rd8 :
-      RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨8⟩
+      RD code I g (initState σ σ₀ g A I) ⟨8⟩
         [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (createdAccounts, σ) 6 26 := by
+        ByteArray.empty σ 6 26 := by
     exact solcGuardPrologueRD (code := code) hcode
       (by ctor_decode) (by ctor_decode) (by ctor_decode)
       (by ctor_decode) (by ctor_decode) (by ctor_decode)
   have rd12 :
-      RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨12⟩
+      RD code I g (initState σ σ₀ g A I) ⟨12⟩
         [I.weiValue] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (createdAccounts, σ) (6 + 2) (26 + 13) := by
+        σ (6 + 2) (26 + 13) := by
     exact (rd8
       |>.push2 ⟨16⟩ (by ctor_decode) (by simp only [List.length_cons, List.length_nil]; omega)
       |>.jumpiNT (by ctor_decode) (isZero_eq_zero_of_ne hwv)
@@ -198,7 +196,7 @@ theorem vowCtorNonpayableRDrev
   simpa [code, show ((⟨8⟩ : UInt256) + UInt256.ofNat 3 + ⟨1⟩) = ⟨12⟩ from by native_decide]
     using
       RD.solcPush1Dup1Revert0 (code := code) (ee := I) (g := g)
-        (s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) rd12
+        (s0 := initState σ σ₀ g A I) rd12
         (by ctor_decode) (by ctor_decode) (by ctor_decode)
         (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -359,21 +357,19 @@ theorem vowCtorArgsMem_mload_flopper (vat flapper flopper : AccountAddress) :
 
 set_option maxHeartbeats 1000000 in
 private theorem vowCtorArgsSizeReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress) {k C : ℕ}
     (rd18 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨18⟩
-        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σ) k C) :
+        (initState σ σ₀ g A I) ⟨18⟩
+        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨26⟩
+      (initState σ σ₀ g A I) ⟨26⟩
       [⟨96⟩, ⟨128⟩] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (createdAccounts, σ) k' C' := by
+      σ k' C' := by
   let code := vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-    ⟨18⟩ [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σ) k C
+  change RD code I g (initState σ σ₀ g A I)
+    ⟨18⟩ [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C
     at rd18
   have rd26 := evm_run rd18 with [
     raw push1 ⟨64⟩ (by ctor_decode) (by evm_ov),
@@ -388,23 +384,21 @@ private theorem vowCtorArgsSizeReach
 
 set_option maxHeartbeats 1000000 in
 private theorem vowCtorArgsCodecopyReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress) {k C : ℕ}
     (rd26 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨26⟩
+        (initState σ σ₀ g A I) ⟨26⟩
         [⟨96⟩, ⟨128⟩] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (createdAccounts, σ) k C) :
+        σ k C) :
     ∃ k' C', RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨32⟩
+      (initState σ σ₀ g A I) ⟨32⟩
       [⟨96⟩, ⟨128⟩] (vowCtorCopiedMem vat flapper flopper) (UInt256.ofNat 7)
-      ByteArray.empty (createdAccounts, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   let code := vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
+  change RD code I g (initState σ σ₀ g A I)
     ⟨26⟩ [⟨96⟩, ⟨128⟩] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-    (createdAccounts, σ) k C at rd26
+    σ k C at rd26
   have hcopy : code.write 5410 solcFreePtrMem 128 96 = vowCtorCopiedMem vat flapper flopper := by
     rfl
   have rd32 := evm_run rd26 with [
@@ -420,23 +414,21 @@ private theorem vowCtorArgsCodecopyReach
 
 set_option maxHeartbeats 1000000 in
 private theorem vowCtorArgsFreePtrReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress) {k C : ℕ}
     (rd32 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨32⟩
+        (initState σ σ₀ g A I) ⟨32⟩
         [⟨96⟩, ⟨128⟩] (vowCtorCopiedMem vat flapper flopper) (UInt256.ofNat 7)
-        ByteArray.empty (createdAccounts, σ) k C) :
+        ByteArray.empty σ k C) :
     ∃ k' C', RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨38⟩
+      (initState σ σ₀ g A I) ⟨38⟩
       [⟨96⟩, ⟨128⟩] (vowCtorArgsMem vat flapper flopper) (UInt256.ofNat 7)
-      ByteArray.empty (createdAccounts, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   let code := vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
+  change RD code I g (initState σ σ₀ g A I)
     ⟨32⟩ [⟨96⟩, ⟨128⟩] (vowCtorCopiedMem vat flapper flopper) (UInt256.ofNat 7)
-    ByteArray.empty (createdAccounts, σ) k C at rd32
+    ByteArray.empty σ k C at rd32
   have hmstore :
       (UInt256.toByteArray ⟨224⟩).write 0 (vowCtorCopiedMem vat flapper flopper) 64 32 =
         vowCtorArgsMem vat flapper flopper := by
@@ -452,24 +444,22 @@ private theorem vowCtorArgsFreePtrReach
 
 set_option maxHeartbeats 1000000 in
 private theorem vowCtorArgsGuardReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress) {k C : ℕ}
     (rd38 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨38⟩
+        (initState σ σ₀ g A I) ⟨38⟩
         [⟨96⟩, ⟨128⟩] (vowCtorArgsMem vat flapper flopper) (UInt256.ofNat 7)
-        ByteArray.empty (createdAccounts, σ) k C) :
+        ByteArray.empty σ k C) :
     ∃ k' C', RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨46⟩
+      (initState σ σ₀ g A I) ⟨46⟩
       [⟨51⟩, ⟨1⟩, ⟨96⟩, ⟨128⟩]
       (vowCtorArgsMem vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts, σ) k' C' := by
+      σ k' C' := by
   let code := vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
+  change RD code I g (initState σ σ₀ g A I)
     ⟨38⟩ [⟨96⟩, ⟨128⟩] (vowCtorArgsMem vat flapper flopper) (UInt256.ofNat 7)
-    ByteArray.empty (createdAccounts, σ) k C at rd38
+    ByteArray.empty σ k C at rd38
   have rd47 := evm_run rd38 with [
     raw push1 ⟨96⟩ (by ctor_decode) (by evm_ov),
     raw dup2 (by ctor_decode) (by evm_ov),
@@ -484,19 +474,17 @@ private theorem vowCtorArgsGuardReach
       using rd47⟩
 
 private theorem vowCtorArgsCopyReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress) {k C : ℕ}
     (rd18 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨18⟩
-        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σ) k C) :
+        (initState σ σ₀ g A I) ⟨18⟩
+        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨46⟩
+      (initState σ σ₀ g A I) ⟨46⟩
       [⟨51⟩, ⟨1⟩, ⟨96⟩, ⟨128⟩]
       (vowCtorArgsMem vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts, σ) k' C' := by
+      σ k' C' := by
   obtain ⟨_, _, rd26⟩ := vowCtorArgsSizeReach vat flapper flopper rd18
   obtain ⟨_, _, rd32⟩ := vowCtorArgsCodecopyReach vat flapper flopper rd26
   obtain ⟨_, _, rd38⟩ := vowCtorArgsFreePtrReach vat flapper flopper rd32
@@ -504,24 +492,22 @@ private theorem vowCtorArgsCopyReach
 
 set_option maxHeartbeats 1000000 in
 private theorem vowCtorArgsLoadReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress) {k C : ℕ}
     (rd51 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨51⟩
+        (initState σ σ₀ g A I) ⟨51⟩
         [⟨96⟩, ⟨128⟩] (vowCtorArgsMem vat flapper flopper) (UInt256.ofNat 7)
-        ByteArray.empty (createdAccounts, σ) k C) :
+        ByteArray.empty σ k C) :
     ∃ k' C', RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨67⟩
+      (initState σ σ₀ g A I) ⟨67⟩
       [EVM.word flopper.val, EVM.word flapper.val, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
       (vowCtorArgsMem vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts, σ) k' C' := by
+      σ k' C' := by
   let code := vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
+  change RD code I g (initState σ σ₀ g A I)
     ⟨51⟩ [⟨96⟩, ⟨128⟩] (vowCtorArgsMem vat flapper flopper) (UInt256.ofNat 7)
-    ByteArray.empty (createdAccounts, σ) k C at rd51
+    ByteArray.empty σ k C at rd51
   have hmloadVat := vowCtorArgsMem_mload_vat vat flapper flopper
   have hmloadFlapper := vowCtorArgsMem_mload_flapper vat flapper flopper
   have hmloadFlopper := vowCtorArgsMem_mload_flopper vat flapper flopper
@@ -547,22 +533,20 @@ private theorem vowCtorArgsLoadReach
 
 set_option maxHeartbeats 1000000 in
 theorem vowCtorArgsReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress)
     (hcode : I.code = vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper)
     (hwv : I.weiValue = ⟨0⟩) :
     ∃ k C, RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨67⟩
+      (initState σ σ₀ g A I) ⟨67⟩
       [EVM.word flopper.val, EVM.word flapper.val, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
       (vowCtorArgsMem vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts, σ) k C := by
+      σ k C := by
   let code := vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper
   have rd8 :
-      RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨8⟩
+      RD code I g (initState σ σ₀ g A I) ⟨8⟩
         [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (createdAccounts, σ) 6 26 := by
+        ByteArray.empty σ 6 26 := by
     exact solcGuardPrologueRD (code := code) hcode
       (by ctor_decode) (by ctor_decode) (by ctor_decode)
       (by ctor_decode) (by ctor_decode) (by ctor_decode)
@@ -572,8 +556,8 @@ theorem vowCtorArgsReach
     (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_jump_dest)
   have rd18' :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨18⟩
-        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σ) k18 C18 := by
+        (initState σ σ₀ g A I) ⟨18⟩
+        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k18 C18 := by
     simpa [code, show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by native_decide]
       using rd18
   obtain ⟨_, _, rd47⟩ := vowCtorArgsCopyReach vat flapper flopper rd18'
@@ -659,28 +643,26 @@ theorem vowCtorWardsHashSlot (I : ExecutionEnv) (vat flapper flopper : AccountAd
 
 set_option maxHeartbeats 1000000 in
 theorem vowCtorWardsStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd67 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨67⟩
+        (initState σ σ₀ g A I) ⟨67⟩
         [EVM.word flopper.val, EVM.word flapper.val, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
         (vowCtorArgsMem vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σ) k C) :
+        σ k C) :
     ∃ k' C', RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨86⟩
+      (initState σ σ₀ g A I) ⟨86⟩
       [⟨1⟩, EVM.word flopper.val, EVM.word flapper.val, ⟨0⟩, EVM.word vat.val, ⟨64⟩]
       (vowCtorWardsHashMem I vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts, sstoreAccountMap I.codeOwner σ (vowCtorCallerWardsSlot I) ⟨1⟩)
+      (sstoreAccountMap I.codeOwner σ (vowCtorCallerWardsSlot I) ⟨1⟩)
       k' C' := by
   let code := vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨67⟩
+  change RD code I g (initState σ σ₀ g A I) ⟨67⟩
         [EVM.word flopper.val, EVM.word flapper.val, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
         (vowCtorArgsMem vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σ) k C at rd67
+        σ k C at rd67
   have rdBeforeHash := evm_run rd67 with [
     raw caller (by ctor_decode) (by evm_ov),
     raw push1 ⟨0⟩ (by ctor_decode) (by evm_ov),
@@ -760,31 +742,28 @@ private theorem word_val_addr_canonical (a : AccountAddress) :
 
 set_option maxHeartbeats 1000000 in
 theorem vowCtorVatStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd86 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨86⟩
+        (initState σ σ₀ g A I) ⟨86⟩
         [⟨1⟩, EVM.word flopper.val, EVM.word flapper.val, ⟨0⟩, EVM.word vat.val, ⟨64⟩]
         (vowCtorWardsHashMem I vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σWards) k C) :
+        σWards k C) :
     ∃ k' C', RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨116⟩
+      (initState σ σ₀ g A I) ⟨116⟩
       [solcAddrMask, UInt256.lnot solcAddrMask,
         setAddressOffset0Word (solcSlotWord σWards I ⟨1⟩) (EVM.word vat.val),
         EVM.word flopper.val, EVM.word flapper.val, ⟨0⟩, EVM.word vat.val, ⟨64⟩]
       (vowCtorWardsHashMem I vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner σWards ⟨1⟩
+      (sstoreAccountMap I.codeOwner σWards ⟨1⟩
           (setAddressOffset0Word (solcSlotWord σWards I ⟨1⟩) (EVM.word vat.val))) k' C' := by
   let code := vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨86⟩
+  change RD code I g (initState σ σ₀ g A I) ⟨86⟩
         [⟨1⟩, EVM.word flopper.val, EVM.word flapper.val, ⟨0⟩, EVM.word vat.val, ⟨64⟩]
         (vowCtorWardsHashMem I vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σWards) k C at rd86
+        σWards k C at rd86
   have rd87 := rd86.dup1 (by ctor_decode) (by evm_ov)
   obtain ⟨_, _, rd88⟩ := rd87.sload (by ctor_decode) (by evm_ov)
   have rdBeforeStore := evm_run rd88 with [
@@ -837,33 +816,30 @@ theorem vowCtorVatStoreReach
 
 set_option maxHeartbeats 1000000 in
 theorem vowCtorFlapperStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σVat σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress) (vatStored : UInt256) {k C : ℕ}
     (hperm : I.perm = true)
     (rd116 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨116⟩
+        (initState σ σ₀ g A I) ⟨116⟩
         [solcAddrMask, UInt256.lnot solcAddrMask, vatStored,
           EVM.word flopper.val, EVM.word flapper.val, ⟨0⟩, EVM.word vat.val, ⟨64⟩]
         (vowCtorWardsHashMem I vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σVat) k C) :
+        σVat k C) :
     ∃ k' C', RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨131⟩
+      (initState σ σ₀ g A I) ⟨131⟩
       [EVM.word flapper.val, solcAddrMask, UInt256.lnot solcAddrMask, vatStored,
         EVM.word flopper.val, EVM.word flapper.val, ⟨0⟩, EVM.word vat.val, ⟨64⟩]
       (vowCtorWardsHashMem I vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner σVat ⟨2⟩
+      (sstoreAccountMap I.codeOwner σVat ⟨2⟩
           (setAddressOffset0Word (solcSlotWord σVat I ⟨2⟩) (EVM.word flapper.val)))
       k' C' := by
   let code := vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨116⟩
+  change RD code I g (initState σ σ₀ g A I) ⟨116⟩
         [solcAddrMask, UInt256.lnot solcAddrMask, vatStored,
           EVM.word flopper.val, EVM.word flapper.val, ⟨0⟩, EVM.word vat.val, ⟨64⟩]
         (vowCtorWardsHashMem I vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σVat) k C at rd116
+        σVat k C at rd116
   have rdBeforeSload := evm_run rd116 with [
     raw push1 ⟨2⟩ (by ctor_decode) (by evm_ov),
     raw dup1 (by ctor_decode) (by evm_ov)]
@@ -927,33 +903,30 @@ theorem vowCtorFlapperStoreReach
 
 set_option maxHeartbeats 1000000 in
 theorem vowCtorFlopperStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σFlapper σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress) (vatStored : UInt256) {k C : ℕ}
     (hperm : I.perm = true)
     (rd131 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨131⟩
+        (initState σ σ₀ g A I) ⟨131⟩
         [EVM.word flapper.val, solcAddrMask, UInt256.lnot solcAddrMask, vatStored,
           EVM.word flopper.val, EVM.word flapper.val, ⟨0⟩, EVM.word vat.val, ⟨64⟩]
         (vowCtorWardsHashMem I vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σFlapper) k C) :
+        σFlapper k C) :
     ∃ k' C', RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨147⟩
+      (initState σ σ₀ g A I) ⟨147⟩
       [solcAddrMask, EVM.word flapper.val, vatStored,
         EVM.word flopper.val, EVM.word flapper.val, ⟨0⟩, EVM.word vat.val, ⟨64⟩]
       (vowCtorWardsHashMem I vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner σFlapper ⟨3⟩
+      (sstoreAccountMap I.codeOwner σFlapper ⟨3⟩
           (setAddressOffset0Word (solcSlotWord σFlapper I ⟨3⟩) (EVM.word flopper.val)))
       k' C' := by
   let code := vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨131⟩
+  change RD code I g (initState σ σ₀ g A I) ⟨131⟩
         [EVM.word flapper.val, solcAddrMask, UInt256.lnot solcAddrMask, vatStored,
           EVM.word flopper.val, EVM.word flapper.val, ⟨0⟩, EVM.word vat.val, ⟨64⟩]
         (vowCtorWardsHashMem I vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σFlapper) k C at rd131
+        σFlapper k C at rd131
   have rdBeforeSload := evm_run rd131 with [
     raw push1 ⟨3⟩ (by ctor_decode) (by evm_ov),
     raw dup1 (by ctor_decode) (by evm_ov)]
@@ -1087,19 +1060,17 @@ theorem vowCtorHopeCalldataMem_read64 (arg : UInt256) {mem : ByteArray}
 
 set_option maxHeartbeats 2000000 in
 theorem vowCtorCallSetupReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σFinal σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress) (vatStored : UInt256) {k C : ℕ}
     (rd147 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨147⟩
+        (initState σ σ₀ g A I) ⟨147⟩
         [solcAddrMask, EVM.word flapper.val, vatStored,
           EVM.word flopper.val, EVM.word flapper.val, ⟨0⟩, EVM.word vat.val, ⟨64⟩]
         (vowCtorWardsHashMem I vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σFinal) k C) :
+        σFinal k C) :
     ∃ k' C', RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨201⟩
+      (initState σ σ₀ g A I) ⟨201⟩
       [UInt256.land solcAddrMask vatStored, UInt256.land solcAddrMask vatStored,
         vowCtorCallOutSize, vowCtorCallOutPtr, vowCtorCallInSize,
         vowCtorCallOutPtr, vowCtorCallOutSize, vowCtorCallEndPtr,
@@ -1107,13 +1078,13 @@ theorem vowCtorCallSetupReach
         EVM.word flopper.val, EVM.word flapper.val, EVM.word vat.val]
       (vowCtorHopeCalldataMem (EVM.word flapper.val)
         (vowCtorWardsHashMem I vat flapper flopper))
-      (UInt256.ofNat 9) ByteArray.empty (createdAccounts, σFinal) k' C' := by
+      (UInt256.ofNat 9) ByteArray.empty σFinal k' C' := by
   let code := vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨147⟩
+  change RD code I g (initState σ σ₀ g A I) ⟨147⟩
         [solcAddrMask, EVM.word flapper.val, vatStored,
           EVM.word flopper.val, EVM.word flapper.val, ⟨0⟩, EVM.word vat.val, ⟨64⟩]
         (vowCtorWardsHashMem I vat flapper flopper) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σFinal) k C at rd147
+        σFinal k C at rd147
   have hmem0 : (vowCtorWardsHashMem I vat flapper flopper).size = 224 :=
     vowCtorWardsHashMem_size I vat flapper flopper
   have hread64 := vowCtorWardsHashMem_read64 I vat flapper flopper
@@ -1207,13 +1178,11 @@ theorem vowCtorCallSetupReach
       solcAddrMask] using rd201⟩
 
 theorem vowCtorHopeNoCode
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σFinal σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress) (vatStored : UInt256) {k C : ℕ}
     (rd201 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨201⟩
+        (initState σ σ₀ g A I) ⟨201⟩
         [UInt256.land solcAddrMask vatStored, UInt256.land solcAddrMask vatStored,
           vowCtorCallOutSize, vowCtorCallOutPtr, vowCtorCallInSize,
           vowCtorCallOutPtr, vowCtorCallOutSize, vowCtorCallEndPtr,
@@ -1221,12 +1190,12 @@ theorem vowCtorHopeNoCode
           EVM.word flopper.val, EVM.word flapper.val, EVM.word vat.val]
         (vowCtorHopeCalldataMem (EVM.word flapper.val)
           (vowCtorWardsHashMem I vat flapper flopper))
-        (UInt256.ofNat 9) ByteArray.empty (createdAccounts, σFinal) k C)
+        (UInt256.ofNat 9) ByteArray.empty σFinal k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σFinal (UInt256.land solcAddrMask vatStored) =
         ⟨0⟩) :
     RDrev (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨201⟩) (okPc := ⟨213⟩) rd201
     hcodeSize
     (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode)
@@ -1234,13 +1203,11 @@ theorem vowCtorHopeNoCode
     (by ctor_decode) (by simp)
 
 theorem vowCtorHopeCallReady
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σFinal σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress) (vatStored : UInt256) {k C : ℕ}
     (rd201 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨201⟩
+        (initState σ σ₀ g A I) ⟨201⟩
         [UInt256.land solcAddrMask vatStored, UInt256.land solcAddrMask vatStored,
           vowCtorCallOutSize, vowCtorCallOutPtr, vowCtorCallInSize,
           vowCtorCallOutPtr, vowCtorCallOutSize, vowCtorCallEndPtr,
@@ -1248,12 +1215,12 @@ theorem vowCtorHopeCallReady
           EVM.word flopper.val, EVM.word flapper.val, EVM.word vat.val]
         (vowCtorHopeCalldataMem (EVM.word flapper.val)
           (vowCtorWardsHashMem I vat flapper flopper))
-        (UInt256.ofNat 9) ByteArray.empty (createdAccounts, σFinal) k C)
+        (UInt256.ofNat 9) ByteArray.empty σFinal k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σFinal (UInt256.land solcAddrMask vatStored) ≠
         ⟨0⟩) :
     ∃ gasWord k' C', RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨216⟩
+      (initState σ σ₀ g A I) ⟨216⟩
       [gasWord, UInt256.land solcAddrMask vatStored,
         vowCtorCallOutSize, vowCtorCallOutPtr, vowCtorCallInSize,
         vowCtorCallOutPtr, vowCtorCallOutSize, vowCtorCallEndPtr,
@@ -1261,7 +1228,7 @@ theorem vowCtorHopeCallReady
         EVM.word flopper.val, EVM.word flapper.val, EVM.word vat.val]
       (vowCtorHopeCalldataMem (EVM.word flapper.val)
         (vowCtorWardsHashMem I vat flapper flopper))
-      (UInt256.ofNat 9) ByteArray.empty (createdAccounts, σFinal) k' C' := by
+      (UInt256.ofNat 9) ByteArray.empty σFinal k' C' := by
   obtain ⟨gasWord, k', C', rd216⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨201⟩) (okPc := ⟨213⟩) rd201
       hcodeSize
@@ -1271,13 +1238,11 @@ theorem vowCtorHopeCallReady
   exact ⟨gasWord, k', C', by simpa using rd216⟩
 
 theorem vowCtorHopePostCall
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σFinal σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat flapper flopper : AccountAddress) (vatStored gasWord : UInt256) {k C : ℕ}
     (rd216 :
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨216⟩
+        (initState σ σ₀ g A I) ⟨216⟩
         [gasWord, UInt256.land solcAddrMask vatStored,
           vowCtorCallOutSize, vowCtorCallOutPtr, vowCtorCallInSize,
           vowCtorCallOutPtr, vowCtorCallOutSize, vowCtorCallEndPtr,
@@ -1285,15 +1250,13 @@ theorem vowCtorHopePostCall
           EVM.word flopper.val, EVM.word flapper.val, EVM.word vat.val]
         (vowCtorHopeCalldataMem (EVM.word flapper.val)
           (vowCtorWardsHashMem I vat flapper flopper))
-        (UInt256.ofNat 9) ByteArray.empty (createdAccounts, σFinal) k C)
+        (UInt256.ofNat 9) ByteArray.empty σFinal k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (createdAccounts' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (createdAccounts', σ', g'', A', z, out) = Ethereum.EVM.Θ I.blobVersionedHashes
-          createdAccounts (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I).genesisBlockHeader
-          (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I).blocks σFinal
-          (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I).σ₀ Ain
+        (σ', g'', A', z, out) = Ethereum.EVM.Θ
+          σFinal (initState σ σ₀ g A I).σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (UInt256.land solcAddrMask vatStored))
           (toExecute σFinal (AccountAddress.ofUInt256 (UInt256.land solcAddrMask vatStored)))
@@ -1301,19 +1264,19 @@ theorem vowCtorHopePostCall
           ((vowCtorHopeCalldataMem (EVM.word flapper.val)
             (vowCtorWardsHashMem I vat flapper flopper)).readWithPadding
             vowCtorCallOutPtr.toNat vowCtorCallInSize.toNat)
-          (I.depth + 1) I.header I.perm)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-          (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨217⟩
+          (initState σ σ₀ g A I) ⟨217⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: vowCtorCallEndPtr :: vowCtorHopeSelectorWord ::
             UInt256.land solcAddrMask vatStored :: EVM.word flopper.val :: EVM.word flapper.val ::
             EVM.word vat.val :: [])
           (vowCtorHopeCalldataMem (EVM.word flapper.val)
             (vowCtorWardsHashMem I vat flapper flopper))
-          (UInt256.ofNat 9) out (createdAccounts', σ') k' C'
+          (UInt256.ofNat 9) out σ' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨createdAccounts', σ', z, out, Ain, callGas, k', C', hΘ, rd217raw, hout⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hΘ, rd217raw, hout⟩ :=
     RD.call rd216 (by ctor_decode) hdepth (by evm_ov)
-  refine ⟨createdAccounts', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 9).toNat
@@ -1325,14 +1288,14 @@ theorem vowCtorHopePostCall
       unfold vowCtorCallOutSize
       rfl
     have rd217 : RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨217⟩
+        (initState σ σ₀ g A I) ⟨217⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: vowCtorCallEndPtr :: vowCtorHopeSelectorWord ::
           UInt256.land solcAddrMask vatStored :: EVM.word flopper.val :: EVM.word flapper.val ::
           EVM.word vat.val :: [])
         (out.write 0 (vowCtorHopeCalldataMem (EVM.word flapper.val)
           (vowCtorWardsHashMem I vat flapper flopper)) vowCtorCallOutPtr.toNat
           (min vowCtorCallOutSize (UInt256.ofNat out.size)).toNat)
-        (UInt256.ofNat 9) out (createdAccounts', σ') k' C' := by
+        (UInt256.ofNat 9) out σ' k' C' := by
       simpa [haw, vowCtorCallOutPtr, vowCtorCallOutSize, vowCtorCallInSize,
         vowCtorCallEndPtr] using rd217raw
     rw [hmin, byteArray_write_len_zero] at rd217
@@ -1343,10 +1306,10 @@ theorem vowCtorCallerWardsSlot_eq (I : ExecutionEnv) :
   unfold wardsSlot mapSlot vowCtorCallerWardsSlot solcMappingSlot solcSourceWord
   rw [keyValueToWord_address]
 
-theorem vowCtorCallerWardsEvaledRef_ok {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem vowCtorCallerWardsEvaledRef_ok {σ σ₀ A I} {g : Sat256}
     {locals : Store} :
     evalStorageRef config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (wardsRef sender) =
+      (initState σ σ₀ g A I) (wardsRef sender) =
         .ok (vowCtorCallerWardsEvaledRef I) := by
   simp [vowCtorCallerWardsEvaledRef, wardsRef, sender, evalStorageRef,
     evalStorageRefSteps, evalStorageRefStep, evalExpr?, envValue, valueToKey?,
@@ -1570,13 +1533,11 @@ abbrev vowCtorAfterLiveState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨12⟩ ⟨1⟩
 
 theorem vowCtorBodyPrefixToHope
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat flapper flopper : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩) :
     let locals := vowCtorLocals vat flapper flopper
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := vowCtorAfterWardsState evm0
     let evm2 := vowCtorAfterVatState evm1 vat
@@ -1625,15 +1586,13 @@ theorem vowCtorBodyPrefixToHope
   · simpa [locals] using evalExpr_vowCtorLocalFlopper (evm := evm3) vat flapper flopper
 
 theorem vowCtorSolmExecReverts_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat flapper flopper : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     solmCtorExec config contract [.address vat, .address flapper, .address flopper]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I .reverted := by
+      σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := vowCtorLocals vat flapper flopper)
     ?_ rfl ?_ ?_
@@ -1641,18 +1600,16 @@ theorem vowCtorSolmExecReverts_nonpayable
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl, nonpayable] using
       bodyReverts_nonPayable (cfg := config) (contract := contract)
-        (evm := initState createdAccounts genesisBlockHeader blocks σ σ₀
+        (evm := initState σ σ₀
           (Sat256.ofUInt256 g) A I)
         (locals := vowCtorLocals vat flapper flopper) hwv
 
 theorem vowCtorSolmExecReverts_noCode
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat flapper flopper : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩)
     (hvatNoCode :
-      let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+      let evm0 := initState σ σ₀
         (Sat256.ofUInt256 g) A I
       let evm1 := vowCtorAfterWardsState evm0
       let evm2 := vowCtorAfterVatState evm1 vat
@@ -1660,9 +1617,9 @@ theorem vowCtorSolmExecReverts_noCode
       let evm4 := vowCtorAfterFlopperState evm3 flopper
       (UInt256.ofNat ((evm4.lookupAccount vat).option 0 (fun acc => acc.code.size))).toNat = 0) :
     solmCtorExec config contract [.address vat, .address flapper, .address flopper]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I .reverted := by
+      σ σ₀ g A I .reverted := by
   let locals := vowCtorLocals vat flapper flopper
-  let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+  let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
   let evm1 := vowCtorAfterWardsState evm0
   let evm2 := vowCtorAfterVatState evm1 vat
@@ -1673,8 +1630,7 @@ theorem vowCtorSolmExecReverts_noCode
   · rfl
   · refine ExecFuncBody.execBlockRevert ?_
     have hprefix := vowCtorBodyPrefixToHope
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       vat flapper flopper hwv
     have hvat :
         evalExpr? config { contract := contract, locals := locals } evm4 (.var "vat_") =
@@ -1701,14 +1657,12 @@ theorem vowCtorSolmExecReverts_noCode
      execBlock_append hprefix htail
 
 theorem vowCtorSolmExecReverts_callFailure
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} {evmHope : EVM.State} {out : ByteArray}
     (vat flapper flopper : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
-      let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+      let evm0 := initState σ σ₀
         (Sat256.ofUInt256 g) A I
       let evm1 := vowCtorAfterWardsState evm0
       let evm2 := vowCtorAfterVatState evm1 vat
@@ -1716,7 +1670,7 @@ theorem vowCtorSolmExecReverts_callFailure
       let evm4 := vowCtorAfterFlopperState evm3 flopper
       0 < (UInt256.ofNat ((evm4.lookupAccount vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+      let evm0 := initState σ σ₀
         (Sat256.ofUInt256 g) A I
       let evm1 := vowCtorAfterWardsState evm0
       let evm2 := vowCtorAfterVatState evm1 vat
@@ -1725,9 +1679,9 @@ theorem vowCtorSolmExecReverts_callFailure
       typedCallViaEVM config evm4 (EVM.address vat) "hope" 0
         [.address flapper] (false, evmHope, out) true) :
     solmCtorExec config contract [.address vat, .address flapper, .address flopper]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I .reverted := by
+      σ σ₀ g A I .reverted := by
   let locals := vowCtorLocals vat flapper flopper
-  let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+  let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
   let evm1 := vowCtorAfterWardsState evm0
   let evm2 := vowCtorAfterVatState evm1 vat
@@ -1738,8 +1692,7 @@ theorem vowCtorSolmExecReverts_callFailure
   · rfl
   · refine ExecFuncBody.execBlockRevert ?_
     have hprefix := vowCtorBodyPrefixToHope
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       vat flapper flopper hwv
     have hvat :
         evalExpr? config { contract := contract, locals := locals } evm4 (.var "vat_") =
@@ -1775,14 +1728,12 @@ theorem vowCtorSolmExecReverts_callFailure
      execBlock_append hprefix htail
 
 theorem vowCtorSolmExecSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} {evmHope : EVM.State} {out : ByteArray}
     (vat flapper flopper : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩)
     (hvatCode :
-      let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+      let evm0 := initState σ σ₀
         (Sat256.ofUInt256 g) A I
       let evm1 := vowCtorAfterWardsState evm0
       let evm2 := vowCtorAfterVatState evm1 vat
@@ -1790,7 +1741,7 @@ theorem vowCtorSolmExecSuccess
       let evm4 := vowCtorAfterFlopperState evm3 flopper
       0 < (UInt256.ofNat ((evm4.lookupAccount vat).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+      let evm0 := initState σ σ₀
         (Sat256.ofUInt256 g) A I
       let evm1 := vowCtorAfterWardsState evm0
       let evm2 := vowCtorAfterVatState evm1 vat
@@ -1799,12 +1750,12 @@ theorem vowCtorSolmExecSuccess
       typedCallViaEVM config evm4 (EVM.address vat) "hope" 0
         [.address flapper] (true, evmHope, out) true) :
     solmCtorExec config contract [.address vat, .address flapper, .address flopper]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+      σ σ₀ g A I
       (.returned { contract := contract, locals := vowCtorLocalsHope vat flapper flopper }
         (vowCtorAfterLiveState evmHope) none) := by
   let locals := vowCtorLocals vat flapper flopper
   let localsHope := vowCtorLocalsHope vat flapper flopper
-  let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+  let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
   let evm1 := vowCtorAfterWardsState evm0
   let evm2 := vowCtorAfterVatState evm1 vat
@@ -1816,8 +1767,7 @@ theorem vowCtorSolmExecSuccess
   · rfl
   · refine ?_
     have hprefix := vowCtorBodyPrefixToHope
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       vat flapper flopper hwv
     have hvat :
         evalExpr? config { contract := contract, locals := locals } evm4 (.var "vat_") =

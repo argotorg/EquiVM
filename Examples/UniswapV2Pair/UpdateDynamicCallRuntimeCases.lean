@@ -8,12 +8,12 @@ set_option maxHeartbeats 1000000 in
 theorem uniswapUpdateCallRuntimeCases_dynamic
     {g : Sat256} {s0 : State} {I : ExecutionEnv} {k C : ℕ}
     {reserve1 reserve0 balance1 balance0 ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {aw ptr : UInt256} {args : List Expr} {retVar : Ident} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {mem rdata : ByteArray} {aw ptr : UInt256} {args : List Expr} {retVar : Ident} {σ : AccountMap}
     {locals : Store} (evm : EVM.State)
     (rd6959 : RD uniswapV2PairBytecode I g s0 ⟨6959⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: ret :: R)
-      mem aw rdata (cA, σ) k C)
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+      mem aw rdata σ k C)
+    (hAccounts : Eq σ evm.accountMap)
     (henv : evm.executionEnv = I)
     (hargs : evalExprs? config { contract := contract, locals := locals } evm args =
       .ok (syncUpdateCallArgValsWith balance0 balance1 reserve0 reserve1))
@@ -36,10 +36,9 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
           retVar)
         (.ok (resumeAfterInternalCall { contract := contract, locals := locals }
           retVar none) evm') ∧
-      accountMapEquiv σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
-      evm'.createdAccounts = evm.createdAccounts ∧
+      Eq σ' evm'.accountMap ∧ evm'.executionEnv = I ∧
       RD uniswapV2PairBytecode I g s0 ret R (pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed))
-        (pairDynamicWords aw ptr) rdata (cA, σ') k' C' ∧
+        (pairDynamicWords aw ptr) rdata σ' k' C' ∧
       (pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed)).size = max mem.size (ptr.toNat + 64) ∧
       (pairDynamicMem mem ptr (uniswapSyncReserve0Word packed) (uniswapSyncReserve1Word packed)).readWithPadding 64 32 = ptr.toByteArray) := by
   have hmask : Int.ofNat reserve112Mask.toNat = maxUint112 := by native_decide
@@ -81,9 +80,8 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
           uniswapUpdateCallReturnsConditionFalse evm balance0 balance1
             reserve0 reserve1 hargs hb0S hb1S hskipS,
           accountMapEquiv_syncUpdatePackedReserveState hAccounts henv hslot8 rfl,
-          ?_, ?_, rdRet, ?_, ?_⟩
+          ?_, rdRet, ?_, ?_⟩
         · simp only [syncUpdatePackedReserveState, storageStore_executionEnv, henv]
-        · simp only [syncUpdatePackedReserveState, storageStore_createdAccounts]
         · exact (pairDynamicMem_sizes ptr _ _ hgap (by omega)).2
         · exact (pairDynamicMem_read_below ptr _ _ 64 hin hlo hgap (by omega)).trans hmem64
       · have ht : UInt256.land
@@ -115,11 +113,9 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
             reserve0 reserve1 hargs hb0S hb1S htS hr0S hr1S,
           accountMapEquiv_syncUpdateCumulativePackedMapWith hAccounts henv hslot8
             (by rw [← hclean0]; exact reserve112Word_lt _)
-            (by rw [← hclean1]; exact reserve112Word_lt _), ?_, ?_, ?_, ?_, ?_⟩
+            (by rw [← hclean1]; exact reserve112Word_lt _), ?_, ?_, ?_, ?_⟩
         · simp only [syncUpdateCumulativePackedReserveStateWith,
             storageStore_executionEnv, henv]
-        · simp only [syncUpdateCumulativePackedReserveStateWith,
-            storageStore_createdAccounts]
         · simpa only [uniswapUpdateCumulativePackedMapWith, uniswapUpdateCumulativePackedWordWith,
             uniswapUpdatePrice1CumulativeMapWith, uniswapUpdatePrice0CumulativeMapWith,
             uniswapUpdateElapsedFromStorage, uniswapUpdateElapsedWord, uniswapUpdateTimestampWord,

@@ -120,17 +120,17 @@ theorem daiPullBodyReverts_from_transferFrom (evm : EVM.State) (I : ExecutionEnv
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
       ExecBlock.consRevert hcall
 
-theorem daiPullX_toTransferFrom {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiPullX_toTransferFrom {σ σ₀ A I} {g : Sat256}
     (hsel : selIs I (daiSelBytes 13))
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1216⟩ [daiSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1411⟩
+      (initState σ σ₀ g A I) ⟨1216⟩ [daiSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨1411⟩
       [transferFromWadWord I, transferFromDstMaskedWord I, transferFromSrcMaskedWord I,
         ⟨3886⟩, transferFromWadWord I, transferFromSrcMaskedWord I, ⟨686⟩,
         daiSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1238⟩ := RD.daiAddressUint256ExternalLenOk
     (entry := ⟨1216⟩) (ret := ⟨686⟩) (routine := ⟨3955⟩) hreach
     dai_address_uint256_external_entry_wf (by jump_dest) hsz68 hsize
@@ -140,9 +140,9 @@ theorem daiPullX_toTransferFrom {cA gh bl σ σ₀ A I} {g : Sat256}
     rd1238 dai_address_uint256_external_entry_wf (by jump_dest)
     (by simp only [List.length_singleton]; omega)
   obtain ⟨_, _, rd3955⟩ :
-      ∃ k C, RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3955⟩
+      ∃ k C, RD daiBytecode I g (initState σ σ₀ g A I) ⟨3955⟩
         [transferFromWadWord I, transferFromSrcMaskedWord I, ⟨686⟩, daiSelWord I]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
       simpa [transferFromSrcMaskedWord, transferFromSrcWord_of_pull I hsel,
         transferFromWadWord_of_pull I hsel, calldataWord] using rd3955raw⟩
@@ -160,24 +160,24 @@ theorem daiPullX_toTransferFrom {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd1411 := rd1411raw.jump (by native_decide) (by jump_dest) (by evm_ov)
   exact ⟨_, _, by simpa [hdstMask] using rd1411⟩
 
-theorem daiPullX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiPullX_shortarg {σ σ₀ A I} {g : Sat256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1216⟩ [daiSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨1216⟩ [daiSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev daiBytecode g (initState σ σ₀ g A I) := by
   exact RD.daiAddressUint256ExternalShort
     (entry := ⟨1216⟩) (ret := ⟨686⟩) (routine := ⟨3955⟩)
     hreach dai_address_uint256_external_entry_wf hsz4 hsize hshort
 
-theorem daiPullFinish {cA gh bl σInit σFinal σ₀ A I} {g : Sat256}
+theorem daiPullFinish {σInit σFinal σ₀ A I} {g : Sat256}
     {scratch : ByteArray} {k C : ℕ}
-    (h : RD daiBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨3886⟩
+    (h : RD daiBytecode I g (initState σInit σ₀ g A I) ⟨3886⟩
       [⟨1⟩, transferFromWadWord I, transferFromSrcMaskedWord I, ⟨686⟩, daiSelWord I]
       (solcScratchReturnMem scratch (transferFromWadWord I)) (UInt256.ofNat 5)
-      ByteArray.empty (cA, σFinal) k C) :
-    RDret daiBytecode g (initState cA gh bl σInit σ₀ g A I) (cA, σFinal)
+      ByteArray.empty σFinal k C) :
+    RDret daiBytecode g (initState σInit σ₀ g A I) σFinal
       ByteArray.empty := by
   have rd686raw := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -189,38 +189,37 @@ theorem daiPullFinish {cA gh bl σInit σFinal σ₀ A I} {g : Sat256}
   exact RD.stop rd687 (by native_decide) (by evm_ov)
 
 theorem daiPullBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 68)
     (hdispatch : dispatchMsg contract I.calldata = some pullTransition)
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1216⟩ [daiSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1216⟩ [daiSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hdec := daiDecode_pull_none_short (I := I) hsz4 hshort
   exact (daiPullX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch hdec
 
 /-- `pull(address,uint256)` body refines its Solm transition. -/
-theorem daiPullBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiPullBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiSelBytes 13))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiSelBytes 13)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 13) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some pullTransition :=
     daiDispatchPull hsel
-  have hreach := daiReachPullBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := daiReachPullBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
   · have hdecode := daiDecode_pull_ok (I := I) hsel hsz68
     obtain ⟨_, _, rd1411⟩ :=
       daiPullX_toTransferFrom (g := Sat256.ofUInt256 g) hsel hsz68 hsize hreach
     exact daiTransferFromInternalCallRuntimeCore
-      (cA := cA) (gh := gh) (bl := bl) (σ_evm := σ_evm) (σ_solm := σ_solm)
+      (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (t := pullTransition) (callargs := pullStore I)
       (ret := ⟨3886⟩)
@@ -230,15 +229,14 @@ theorem daiPullBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       hcode hdispatch hdecode hperm hwv
       (by simp only [List.length_cons, List.length_nil]; omega)
       (by jump_dest)
-      hAccounts
       rd1411
       (by
         intro σ' scratch k' C' _hscratch _hread64 rd3886
-        exact daiPullFinish (σInit := σ_evm) (σFinal := σ') rd3886)
+        exact daiPullFinish (σInit := σ) (σFinal := σ') rd3886)
       (by
         intro evmPost hcallee
         exact daiPullBodyReturns_from_transferFrom
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) evmPost I
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) evmPost I
           hsel
           (by simp only [initState]; exact hwv)
           (by simp [initState])
@@ -246,7 +244,7 @@ theorem daiPullBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       (by
         intro hcallee
         exact daiPullBodyReverts_from_transferFrom
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
           hsel
           (by simp only [initState]; exact hwv)
           (by simp [initState])

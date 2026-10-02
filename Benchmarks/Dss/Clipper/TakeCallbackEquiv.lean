@@ -12,31 +12,25 @@ namespace Benchmarks.Dss.Clipper
    avoids repeating the state reconstruction in every callback outcome. -/
 theorem clipperTakeVatFluxCallSyncFromPostAccounts
     (v : ClipperImmutables)
-    {cA cAPost gh bl σ_evm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {σPost σPostSolm σVat : AccountMap}
-    {cAVat : Batteries.RBSet AccountAddress compare} {AVat : Substate}
+    {AVat : Substate}
     {evmPriceSolm : EVM.State} {outVat : ByteArray}
     {price tab who : UInt256}
-    (hAccountsPost : accountMapEquiv σPost σPostSolm)
+    (hAccountsPost : Eq σPost σPostSolm)
     (hevmPriceAccounts : evmPriceSolm.accountMap = σPostSolm)
     (hevmPriceSigma0 : evmPriceSolm.σ₀ = σ₀)
-    (hevmPriceCreated : evmPriceSolm.createdAccounts = cAPost)
-    (hevmPriceGenesis : evmPriceSolm.genesisBlockHeader = gh)
-    (hevmPriceBlocks : evmPriceSolm.blocks = bl)
     (hevmPriceEnv : evmPriceSolm.executionEnv = I)
     (htab : tab = clipperTakeSalesTabEVMWord evmPriceSolm I)
     (hwho : who = UInt256.land (clipperTakeWhoWord I) solcAddrMask)
     (hcallVatEvm :
       typedCallViaEVM (config v)
-        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σPost, createdAccounts := cAPost }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with accountMap := σPost }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
           .int (Int.ofNat (tab.div price).toNat)]
-        (true,
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σVat, substate := AVat, createdAccounts := cAVat },
-          outVat) true) :
+        (true, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σVat, substate := AVat }, outVat) true) :
     ∃ evmVatSolm : EVM.State,
       typedCallViaEVM (config v) evmPriceSolm (EVM.address v.vat) "flux" 0
         [v.ilk, .address evmPriceSolm.executionEnv.codeOwner,
@@ -45,43 +39,29 @@ theorem clipperTakeVatFluxCallSyncFromPostAccounts
           .int (Int.ofNat
             (UInt256.div (clipperTakeSalesTabEVMWord evmPriceSolm I) price).toNat)]
         (true, evmVatSolm, outVat) true ∧
-      accountMapEquiv σVat evmVatSolm.accountMap ∧
+      σVat = evmVatSolm.accountMap ∧
       evmVatSolm.σ₀ = σ₀ ∧
-      evmVatSolm.createdAccounts = cAVat ∧
-      evmVatSolm.genesisBlockHeader = gh ∧
-      evmVatSolm.blocks = bl ∧
       evmVatSolm.executionEnv = I := by
   let evmPostEvm : EVM.State :=
-    { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-      accountMap := σPost, createdAccounts := cAPost }
-  have hAccountsState :
-      accountMapEquiv evmPostEvm.accountMap evmPriceSolm.accountMap := by
+    { initState σ σ₀ (Sat256.ofUInt256 g) A I with accountMap := σPost }
+  have hAccountsState : evmPostEvm.accountMap = evmPriceSolm.accountMap := by
     simpa [evmPostEvm, hevmPriceAccounts] using hAccountsPost
   obtain ⟨σVatSolm, AVatSolm, hcallVatSolmRaw, hAccountsVat⟩ :=
     typedCallViaEVM_accountMapEquiv_noSubstate
       (evm_solm := evmPriceSolm) (hcall := hcallVatEvm) hAccountsState
       (by simpa [evmPostEvm, initState] using hevmPriceSigma0.symm)
-      (by simpa [evmPostEvm, initState] using hevmPriceCreated)
-      (by simpa [evmPostEvm, initState] using hevmPriceGenesis)
-      (by simpa [evmPostEvm, initState] using hevmPriceBlocks)
       (by simpa [evmPostEvm, initState] using hevmPriceEnv)
   let evmVatSolm : EVM.State :=
-    { evmPriceSolm with
-      accountMap := σVatSolm
-      substate := AVatSolm
-      createdAccounts := cAVat }
-  refine ⟨evmVatSolm, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    { evmPriceSolm with accountMap := σVatSolm, substate := AVatSolm }
+  refine ⟨evmVatSolm, ?_, ?_, ?_, ?_⟩
   · simpa [evmVatSolm, hevmPriceEnv, htab, hwho] using hcallVatSolmRaw
   · simpa [evmVatSolm] using hAccountsVat
   · simp [evmVatSolm, hevmPriceSigma0]
-  · simp [evmVatSolm]
-  · simp [evmVatSolm, hevmPriceGenesis]
-  · simp [evmVatSolm, hevmPriceBlocks]
   · simp [evmVatSolm, hevmPriceEnv]
 
 theorem clipperTakeDogWord_eq_of_accountMapEquiv
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ evm.accountMap)
+    (hAccounts : Eq σ evm.accountMap)
     (henv : evm.executionEnv = I) :
     UInt256.land (solcSlotWord σ I ⟨1⟩) solcAddrMask =
       clipperTakeDogEVMWord evm := by
@@ -93,7 +73,7 @@ theorem clipperTakeCallbackSkipStmtOfEvmWords
     (v : ClipperImmutables) (evmLoc evmRead evmVat : EVM.State)
     (I : ExecutionEnv) (price slice owe0 owe slice' tabNew lotNew : UInt256)
     {σ : AccountMap}
-    (hAccounts : accountMapEquiv σ evmVat.accountMap)
+    (hAccounts : Eq σ evmVat.accountMap)
     (henv : evmVat.executionEnv = I)
     (hskip :
       UInt256.land (clipperTakeWhoWord I) solcAddrMask = clipperTakeVatTarget v ∨
@@ -269,7 +249,7 @@ theorem clipperTakeOweGtTabCallbackRevertTailBlock
 
 theorem clipperTakeOweGtTabCallbackRevertEquivFromPostWords
     (v : ClipperImmutables) {code : ByteArray}
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg (contract v) I.calldata = some (takeTransition v))
     (hdec :
@@ -277,17 +257,17 @@ theorem clipperTakeOweGtTabCallbackRevertEquivFromPostWords
         (List.map Param.name (takeTransition v).params)
         (transitionSignature (takeTransition v)).paramTypes I.calldata =
       some (clipperTakeStore I))
-    (hlockedSolm : solcSlotWord σ_solm I ⟨13⟩ = ⟨0⟩)
+    (hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstoppedSolmLt :
-      (solcSlotWord (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
+      (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
     (husrSolm :
-      clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
+      clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     {evmPriceSolm evmVatSolm : EVM.State} {outVat : ByteArray}
     {price tab lot : UInt256}
     (htab : tab = clipperTakeSalesTabEVMWord evmPriceSolm I)
     (hlot : lot = clipperTakeSalesLotEVMWord evmPriceSolm I)
     (hrev : RDrev code (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I))
     (hmax : price.toNat ≤ (clipperTakeMaxWord I).toNat)
     (hmul : price.toNat * (clipperMinWord (clipperTakeAmtWord I) lot).toNat <
       UInt256.size)
@@ -306,7 +286,7 @@ theorem clipperTakeOweGtTabCallbackRevertEquivFromPostWords
             (UInt256.div (clipperTakeSalesTabEVMWord evmPriceSolm I) price).toNat)]
         (true, evmVatSolm, outVat) true)
     (hcallback :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       let slice :=
         clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I)
@@ -332,7 +312,7 @@ theorem clipperTakeOweGtTabCallbackRevertEquivFromPostWords
           [])
         .reverted)
     (hstatus :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       ExecStmt (config v)
         { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
@@ -342,7 +322,7 @@ theorem clipperTakeOweGtTabCallbackRevertEquivFromPostWords
           { contract := contract v,
             locals := clipperTakeLocalsSt evmLock I false price }
           evmPriceSolm)) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   let slice :=
     clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I) (clipperTakeAmtWord I)
   have hsrcMul : slice.toNat * price.toNat < UInt256.size := by
@@ -364,27 +344,27 @@ theorem clipperTakeOweGtTabCallbackRevertEquivFromPostWords
   have htail :=
     clipperTakeOweGtTabCallbackRevertTailBlock v
       (Solm.EVM.storageStore
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
         ⟨13⟩ ⟨1⟩)
       evmPriceSolm evmVatSolm I price slice hsrcMul hsrcGt hsliceLot hvatCode
       hcallVat (by simpa [slice] using hcallback)
   have hbody :
       ExecTransitionBody (config v) (contract v)
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) (takeTransition v).body .reverted := by
     simpa using
       (clipperTakeOweGtTabVatFluxSuccessTailSourceReverts
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A)
+        (σ := σ) (σ₀ := σ₀) (A := A)
         (I := I) (g := g) v hwv hlockedSolm hstoppedSolmLt husrSolm
         (evmPrice := evmPriceSolm) price hmax (by simpa [slice] using htail) hstatus)
   exact hrev.reEquivExecutionRevert hcode hdispatch hdec hbody
 
 theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
     (v : ClipperImmutables) {code : ByteArray}
-    {cA cAPost gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {σPost σPostSolm σVat : AccountMap}
-    {cAVat : Batteries.RBSet AccountAddress compare} {AVat : Substate}
+    {AVat : Substate}
     {evmPriceSolm : EVM.State} {outVat : ByteArray}
     {price tab lot who : UInt256}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
@@ -394,19 +374,16 @@ theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
         (List.map Param.name (takeTransition v).params)
         (transitionSignature (takeTransition v)).paramTypes I.calldata =
       some (clipperTakeStore I))
-    (hlockedSolm : solcSlotWord σ_solm I ⟨13⟩ = ⟨0⟩)
+    (hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstoppedSolmLt :
-      (solcSlotWord (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
+      (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
     (husrSolm :
-      clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
+      clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     (hrev : RDrev code (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
-    (hAccountsPost : accountMapEquiv σPost σPostSolm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I))
+    (hAccountsPost : Eq σPost σPostSolm)
     (hevmPriceAccounts : evmPriceSolm.accountMap = σPostSolm)
     (hevmPriceSigma0 : evmPriceSolm.σ₀ = σ₀)
-    (hevmPriceCreated : evmPriceSolm.createdAccounts = cAPost)
-    (hevmPriceGenesis : evmPriceSolm.genesisBlockHeader = gh)
-    (hevmPriceBlocks : evmPriceSolm.blocks = bl)
     (hevmPriceEnv : evmPriceSolm.executionEnv = I)
     (htab : tab = clipperTakeSalesTabEVMWord evmPriceSolm I)
     (hlot : lot = clipperTakeSalesLotEVMWord evmPriceSolm I)
@@ -421,14 +398,14 @@ theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
       Reasoning.Theory.extCodeSizeWord σPost (clipperTakeVatTarget v) ≠ ⟨0⟩)
     (hcallVatEvm :
       typedCallViaEVM (config v)
-        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σPost, createdAccounts := cAPost }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σPost }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
           .int (Int.ofNat (tab.div price).toNat)]
         (true,
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σVat, substate := AVat, createdAccounts := cAVat },
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σVat, substate := AVat },
           outVat) true)
     (hdataLen : clipperTakeDataLenWord I ≠ ⟨0⟩)
     (hpayload : (clipperTakeDataBytes I).length =
@@ -441,7 +418,7 @@ theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
       Reasoning.Theory.extCodeSizeWord σVat
         (UInt256.land (clipperTakeWhoWord I) solcAddrMask) = ⟨0⟩)
     (hstatus :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0
         evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       ExecStmt (config v)
@@ -453,11 +430,10 @@ theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
             locals := clipperTakeLocalsSt evmLock I false price }
           evmPriceSolm)) :
     runtimeEquivalenceFor (config v) (contract v)
-      cA gh bl σ_evm σ_solm σ₀ g A I := by
-  obtain ⟨evmVatSolm, hcallVatSolm, hAccountsVat, _, _, _, _, hevmVatEnv⟩ :=
+      σ σ₀ g A I := by
+  obtain ⟨evmVatSolm, hcallVatSolm, hAccountsVat, hevmVatSigma0, hevmVatEnv⟩ :=
     clipperTakeVatFluxCallSyncFromPostAccounts v hAccountsPost
-      hevmPriceAccounts hevmPriceSigma0 hevmPriceCreated hevmPriceGenesis
-      hevmPriceBlocks hevmPriceEnv htab hwho hcallVatEvm
+      hevmPriceAccounts hevmPriceSigma0 hevmPriceEnv htab hwho hcallVatEvm
   have hvatCodeSolm :
       0 < (UInt256.ofNat
         ((evmPriceSolm.lookupAccount v.vat).option 0
@@ -481,7 +457,7 @@ theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
   have hguard :=
     clipperEvalTakeCallbackGuardTrue v
       (Solm.EVM.storageStore
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨13⟩ ⟨1⟩)
       evmPriceSolm evmVatSolm I price
       (clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I)
@@ -515,7 +491,7 @@ theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
   have hcallback :=
     clipperTakeCallbackNoCodeStmt v
       (Solm.EVM.storageStore
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨13⟩ ⟨1⟩)
       evmPriceSolm evmVatSolm I price
       (clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I)
@@ -540,9 +516,9 @@ theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
 
 theorem clipperTakeOweGtTabCallbackSkipVatMoveNoCodeRevertEquivFromPostCallAccounts
     (v : ClipperImmutables) {code : ByteArray}
-    {cA cAPost gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {σPost σPostSolm σVat : AccountMap}
-    {cAVat : Batteries.RBSet AccountAddress compare} {AVat : Substate}
+    {AVat : Substate}
     {evmPriceSolm : EVM.State} {outVat : ByteArray}
     {price tab lot who : UInt256}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
@@ -552,19 +528,16 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveNoCodeRevertEquivFromPostCallAccou
         (List.map Param.name (takeTransition v).params)
         (transitionSignature (takeTransition v)).paramTypes I.calldata =
       some (clipperTakeStore I))
-    (hlockedSolm : solcSlotWord σ_solm I ⟨13⟩ = ⟨0⟩)
+    (hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstoppedSolmLt :
-      (solcSlotWord (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
+      (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
     (husrSolm :
-      clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
+      clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     (hrev : RDrev code (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
-    (hAccountsPost : accountMapEquiv σPost σPostSolm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I))
+    (hAccountsPost : Eq σPost σPostSolm)
     (hevmPriceAccounts : evmPriceSolm.accountMap = σPostSolm)
     (hevmPriceSigma0 : evmPriceSolm.σ₀ = σ₀)
-    (hevmPriceCreated : evmPriceSolm.createdAccounts = cAPost)
-    (hevmPriceGenesis : evmPriceSolm.genesisBlockHeader = gh)
-    (hevmPriceBlocks : evmPriceSolm.blocks = bl)
     (hevmPriceEnv : evmPriceSolm.executionEnv = I)
     (htab : tab = clipperTakeSalesTabEVMWord evmPriceSolm I)
     (hlot : lot = clipperTakeSalesLotEVMWord evmPriceSolm I)
@@ -579,14 +552,14 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveNoCodeRevertEquivFromPostCallAccou
       Reasoning.Theory.extCodeSizeWord σPost (clipperTakeVatTarget v) ≠ ⟨0⟩)
     (hcallVatEvm :
       typedCallViaEVM (config v)
-        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σPost, createdAccounts := cAPost }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σPost }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
           .int (Int.ofNat (tab.div price).toNat)]
         (true,
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σVat, substate := AVat, createdAccounts := cAVat },
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σVat, substate := AVat },
           outVat) true)
     (hskip :
       UInt256.land (clipperTakeWhoWord I) solcAddrMask = clipperTakeVatTarget v ∨
@@ -595,7 +568,7 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveNoCodeRevertEquivFromPostCallAccou
     (hvatMoveNoCodeEvm :
       Reasoning.Theory.extCodeSizeWord σVat (clipperTakeVatTarget v) = ⟨0⟩)
     (hstatus :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0
         evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       ExecStmt (config v)
@@ -607,11 +580,10 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveNoCodeRevertEquivFromPostCallAccou
             locals := clipperTakeLocalsSt evmLock I false price }
           evmPriceSolm)) :
     runtimeEquivalenceFor (config v) (contract v)
-      cA gh bl σ_evm σ_solm σ₀ g A I := by
-  obtain ⟨evmVatSolm, hcallVatSolm, hAccountsVat, _, _, _, _, hevmVatEnv⟩ :=
+      σ σ₀ g A I := by
+  obtain ⟨evmVatSolm, hcallVatSolm, hAccountsVat, hevmVatSigma0, hevmVatEnv⟩ :=
     clipperTakeVatFluxCallSyncFromPostAccounts v hAccountsPost
-      hevmPriceAccounts hevmPriceSigma0 hevmPriceCreated hevmPriceGenesis
-      hevmPriceBlocks hevmPriceEnv htab hwho hcallVatEvm
+      hevmPriceAccounts hevmPriceSigma0 hevmPriceEnv htab hwho hcallVatEvm
   have hvatCodeSolm :
       0 < (UInt256.ofNat
         ((evmPriceSolm.lookupAccount v.vat).option 0
@@ -623,7 +595,7 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveNoCodeRevertEquivFromPostCallAccou
   have hcallback :=
     clipperTakeCallbackSkipStmtOfEvmWords v
       (Solm.EVM.storageStore
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨13⟩ ⟨1⟩)
       evmPriceSolm evmVatSolm I price
       (clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I)
@@ -658,9 +630,9 @@ set_option maxRecDepth 10000 in
 set_option maxHeartbeats 2000000 in
 theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
     (v : ClipperImmutables) {code : ByteArray}
-    {cA cAPost gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {σPost σPostSolm σVat σCb : AccountMap}
-    {cAVat cACb : Batteries.RBSet AccountAddress compare}
+
     {AVat ACb : Substate} {evmPriceSolm : EVM.State}
     {outVat outCb : ByteArray} {price tab lot who : UInt256}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
@@ -670,19 +642,16 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
         (List.map Param.name (takeTransition v).params)
         (transitionSignature (takeTransition v)).paramTypes I.calldata =
       some (clipperTakeStore I))
-    (hlockedSolm : solcSlotWord σ_solm I ⟨13⟩ = ⟨0⟩)
+    (hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstoppedSolmLt :
-      (solcSlotWord (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
+      (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
     (husrSolm :
-      clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
+      clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     (hrev : RDrev code (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
-    (hAccountsPost : accountMapEquiv σPost σPostSolm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I))
+    (hAccountsPost : Eq σPost σPostSolm)
     (hevmPriceAccounts : evmPriceSolm.accountMap = σPostSolm)
     (hevmPriceSigma0 : evmPriceSolm.σ₀ = σ₀)
-    (hevmPriceCreated : evmPriceSolm.createdAccounts = cAPost)
-    (hevmPriceGenesis : evmPriceSolm.genesisBlockHeader = gh)
-    (hevmPriceBlocks : evmPriceSolm.blocks = bl)
     (hevmPriceEnv : evmPriceSolm.executionEnv = I)
     (htab : tab = clipperTakeSalesTabEVMWord evmPriceSolm I)
     (hlot : lot = clipperTakeSalesLotEVMWord evmPriceSolm I)
@@ -697,27 +666,27 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
       Reasoning.Theory.extCodeSizeWord σPost (clipperTakeVatTarget v) ≠ ⟨0⟩)
     (hcallVatEvm :
       typedCallViaEVM (config v)
-        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σPost, createdAccounts := cAPost }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σPost }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
           .int (Int.ofNat (tab.div price).toNat)]
         (true,
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σVat, substate := AVat, createdAccounts := cAVat },
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σVat, substate := AVat },
           outVat) true)
     (hcallCbEvm :
       typedCallViaEVM (config v)
-        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σVat, substate := AVat, createdAccounts := cAVat }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σVat, substate := AVat }
         (EVM.address
           (AccountAddress.ofNat (UInt256.land who solcAddrMask).toNat))
         "clipperCall" 0
         [.address I.source, .int (Int.ofNat tab.toNat),
           .int (Int.ofNat (tab.div price).toNat), clipperTakeDataValue I]
         (false,
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σCb, substate := ACb, createdAccounts := cACb },
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σCb, substate := ACb },
           outCb) true)
     (hdataLen : clipperTakeDataLenWord I ≠ ⟨0⟩)
     (hpayload : (clipperTakeDataBytes I).length =
@@ -730,7 +699,7 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
       Reasoning.Theory.extCodeSizeWord σVat
         (UInt256.land (clipperTakeWhoWord I) solcAddrMask) ≠ ⟨0⟩)
     (hstatus :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0
         evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       ExecStmt (config v)
@@ -742,12 +711,10 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
             locals := clipperTakeLocalsSt evmLock I false price }
           evmPriceSolm)) :
     runtimeEquivalenceFor (config v) (contract v)
-      cA gh bl σ_evm σ_solm σ₀ g A I := by
-  obtain ⟨evmVatSolm, hcallVatSolm, hAccountsVat, hevmVatSigma0,
-      hevmVatCreated, hevmVatGenesis, hevmVatBlocks, hevmVatEnv⟩ :=
+      σ σ₀ g A I := by
+  obtain ⟨evmVatSolm, hcallVatSolm, hAccountsVat, hevmVatSigma0, hevmVatEnv⟩ :=
     clipperTakeVatFluxCallSyncFromPostAccounts v hAccountsPost
-      hevmPriceAccounts hevmPriceSigma0 hevmPriceCreated hevmPriceGenesis
-      hevmPriceBlocks hevmPriceEnv htab hwho hcallVatEvm
+      hevmPriceAccounts hevmPriceSigma0 hevmPriceEnv htab hwho hcallVatEvm
   have hvatCodeSolm :
       0 < (UInt256.ofNat
         ((evmPriceSolm.lookupAccount v.vat).option 0
@@ -771,7 +738,7 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
   have hguard :=
     clipperEvalTakeCallbackGuardTrue v
       (Solm.EVM.storageStore
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨13⟩ ⟨1⟩)
       evmPriceSolm evmVatSolm I price
       (clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I)
@@ -803,24 +770,21 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
       clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
         hAccountsVat haddr hcallbackCode
   let evmVatEvm : EVM.State :=
-    { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-      accountMap := σVat, substate := AVat, createdAccounts := cAVat }
+    { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+      accountMap := σVat, substate := AVat }
   have hAccountsState :
-      accountMapEquiv evmVatEvm.accountMap evmVatSolm.accountMap := by
+      Eq evmVatEvm.accountMap evmVatSolm.accountMap := by
     simpa [evmVatEvm] using hAccountsVat
   obtain ⟨σCbSolm, ACbSolm, hcallCbSolmRaw, _hAccountsCb⟩ :=
     typedCallViaEVM_accountMapEquiv_noSubstate
       (evm_solm := evmVatSolm) (hcall := hcallCbEvm) hAccountsState
       (by simpa [evmVatEvm, initState] using hevmVatSigma0.symm)
-      (by simpa [evmVatEvm, initState] using hevmVatCreated)
-      (by simpa [evmVatEvm, initState] using hevmVatGenesis)
-      (by simpa [evmVatEvm, initState] using hevmVatBlocks)
       (by simpa [evmVatEvm, initState] using hevmVatEnv)
   let evmCbSolm : EVM.State :=
     { evmVatSolm with
       accountMap := σCbSolm
       substate := ACbSolm
-      createdAccounts := cACb }
+       }
   have hcallCbSolm :
       typedCallViaEVM (config v) evmVatSolm
         (EVM.address (AccountAddress.ofNat (clipperTakeWhoWord I).toNat))
@@ -845,7 +809,7 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
   have hcallback :=
     clipperTakeCallbackCallFailureStmt v
       (Solm.EVM.storageStore
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨13⟩ ⟨1⟩)
       evmPriceSolm evmVatSolm evmCbSolm I price
       (clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I)
@@ -870,9 +834,9 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
 
 theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAccounts
     (v : ClipperImmutables) {code : ByteArray}
-    {cA cAPost gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {σPost σPostSolm σVat σMove : AccountMap}
-    {cAVat cAMove : Batteries.RBSet AccountAddress compare}
+
     {AVat AMove : Substate} {evmPriceSolm : EVM.State}
     {outVat outMove : ByteArray} {price tab lot who : UInt256}
     (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
@@ -882,19 +846,16 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAcco
         (List.map Param.name (takeTransition v).params)
         (transitionSignature (takeTransition v)).paramTypes I.calldata =
       some (clipperTakeStore I))
-    (hlockedSolm : solcSlotWord σ_solm I ⟨13⟩ = ⟨0⟩)
+    (hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstoppedSolmLt :
-      (solcSlotWord (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
+      (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat < 3)
     (husrSolm :
-      clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ_solm ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
+      clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     (hrev : RDrev code (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I))
-    (hAccountsPost : accountMapEquiv σPost σPostSolm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I))
+    (hAccountsPost : Eq σPost σPostSolm)
     (hevmPriceAccounts : evmPriceSolm.accountMap = σPostSolm)
     (hevmPriceSigma0 : evmPriceSolm.σ₀ = σ₀)
-    (hevmPriceCreated : evmPriceSolm.createdAccounts = cAPost)
-    (hevmPriceGenesis : evmPriceSolm.genesisBlockHeader = gh)
-    (hevmPriceBlocks : evmPriceSolm.blocks = bl)
     (hevmPriceEnv : evmPriceSolm.executionEnv = I)
     (htab : tab = clipperTakeSalesTabEVMWord evmPriceSolm I)
     (hlot : lot = clipperTakeSalesLotEVMWord evmPriceSolm I)
@@ -908,14 +869,14 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAcco
       Reasoning.Theory.extCodeSizeWord σPost (clipperTakeVatTarget v) ≠ ⟨0⟩)
     (hcallVatEvm :
       typedCallViaEVM (config v)
-        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σPost, createdAccounts := cAPost }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σPost }
         (EVM.address v.vat) "flux" 0
         [v.ilk, .address I.codeOwner, .address (AccountAddress.ofNat who.toNat),
           .int (Int.ofNat (tab.div price).toNat)]
         (true,
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σVat, substate := AVat, createdAccounts := cAVat },
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σVat, substate := AVat },
           outVat) true)
     (hskip :
       UInt256.land (clipperTakeWhoWord I) solcAddrMask = clipperTakeVatTarget v ∨
@@ -925,18 +886,18 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAcco
       Reasoning.Theory.extCodeSizeWord σVat (clipperTakeVatTarget v) ≠ ⟨0⟩)
     (hcallMoveEvm :
       typedCallViaEVM (config v)
-        { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σVat, createdAccounts := cAVat }
+        { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+          accountMap := σVat }
         (EVM.address v.vat) "move" 0
         [.address I.source,
           .address (AccountAddress.ofNat (clipperTakeVowTarget σVat I).toNat),
           .int (Int.ofNat tab.toNat)]
         (false,
-          { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-            accountMap := σMove, substate := AMove, createdAccounts := cAMove },
+          { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            accountMap := σMove, substate := AMove },
           outMove) true)
     (hstatus :
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0
         evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       ExecStmt (config v)
@@ -946,12 +907,10 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAcco
         (.ok (Frame.mk (contract v)
           (clipperTakeLocalsSt evmLock I false price)) evmPriceSolm)) :
     runtimeEquivalenceFor (config v) (contract v)
-      cA gh bl σ_evm σ_solm σ₀ g A I := by
-  obtain ⟨evmVatSolm, hcallVatSolm, hAccountsVat, hevmVatSigma0,
-      hevmVatCreated, hevmVatGenesis, hevmVatBlocks, hevmVatEnv⟩ :=
+      σ σ₀ g A I := by
+  obtain ⟨evmVatSolm, hcallVatSolm, hAccountsVat, hevmVatSigma0, hevmVatEnv⟩ :=
     clipperTakeVatFluxCallSyncFromPostAccounts v hAccountsPost
-      hevmPriceAccounts hevmPriceSigma0 hevmPriceCreated hevmPriceGenesis
-      hevmPriceBlocks hevmPriceEnv htab hwho hcallVatEvm
+      hevmPriceAccounts hevmPriceSigma0 hevmPriceEnv htab hwho hcallVatEvm
   have hvatCodeSolm :
       0 < (UInt256.ofNat
         ((evmPriceSolm.lookupAccount v.vat).option 0
@@ -963,7 +922,7 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAcco
   have hcallback :=
     clipperTakeCallbackSkipStmtOfEvmWords v
       (Solm.EVM.storageStore
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         I.codeOwner ⟨13⟩ ⟨1⟩)
       evmPriceSolm evmVatSolm I price
       (clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I)
@@ -996,25 +955,23 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAcco
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       solcSlotWord, hslot]
   let evmVatEvm : EVM.State :=
-    { initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I with
-      accountMap := σVat, createdAccounts := cAVat }
+    { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+      accountMap := σVat }
   have hAccountsMoveState :
-      accountMapEquiv evmVatEvm.accountMap evmVatSolm.accountMap := by
+      Eq evmVatEvm.accountMap evmVatSolm.accountMap := by
     simpa [evmVatEvm] using hAccountsVat
   obtain ⟨σMoveSolm, AMoveSolm, hcallMoveSolmRaw, _hAccountsMove⟩ :=
     typedCallViaEVM_accountMapEquiv_noSubstate
       (evm_solm := evmVatSolm) (hcall := hcallMoveEvm)
       hAccountsMoveState
       (by simpa [evmVatEvm, initState] using hevmVatSigma0.symm)
-      (by simp [evmVatEvm, initState, hevmVatCreated])
-      (by simpa [evmVatEvm, initState] using hevmVatGenesis)
-      (by simpa [evmVatEvm, initState] using hevmVatBlocks)
+      (by simp [evmVatEvm, initState])
       (by simpa [evmVatEvm, initState] using hevmVatEnv)
   let evmMoveSolm : EVM.State :=
     { evmVatSolm with
       accountMap := σMoveSolm
       substate := AMoveSolm
-      createdAccounts := cAMove }
+       }
   have hcallMoveSolm :
       typedCallViaEVM (config v) evmVatSolm (EVM.address v.vat) "move" 0
         [.address evmVatSolm.executionEnv.source,

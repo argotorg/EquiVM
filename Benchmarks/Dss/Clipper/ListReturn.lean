@@ -61,17 +61,17 @@ def clipperListArrayWordBytesFrom (σ : AccountMap) (I : ExecutionEnv) : Nat →
         clipperListArrayWordBytesFrom σ I (k + 1) n
 
 theorem clipperActiveArrayWordBytesFrom_eq_listSlots
-    {cA gh bl σ σ₀ A I} {g : Sat256} :
+    {σ σ₀ A I} {g : Sat256} :
     ∀ k n, k + n < UInt256.size →
-      clipperActiveArrayWordBytesFrom (initState cA gh bl σ σ₀ g A I) k n =
+      clipperActiveArrayWordBytesFrom (initState σ σ₀ g A I) k n =
         clipperListArrayWordBytesFrom σ I k n
   | _, 0, _ => rfl
   | k, n + 1, hbound => by
       have hk : k < UInt256.size := by omega
       have hslot := clipperListArraySlot_eq_activeSlot_of_lt k hk
       have hload :
-          Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-              (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner
+          Solm.EVM.storageLoad (initState σ σ₀ g A I)
+              (initState σ σ₀ g A I).executionEnv.codeOwner
               (activeSlot (.int (Int.ofNat k))) =
             solcSlotWord σ I (clipperListArraySlot k) := by
         rw [← hslot]
@@ -265,13 +265,13 @@ theorem clipperListArrayWordBytesFrom_succ_right (σ : AccountMap) (I : Executio
       rw [show k + 1 + n = k + (n + 1) by omega]
 
 theorem clipperActiveArrayReturnBytes_eq_listSlots
-    {cA gh bl σ σ₀ A I} {g : Sat256} (hwf : clipperStorageWF σ I) :
-    clipperActiveArrayReturnBytes (initState cA gh bl σ σ₀ g A I) =
+    {σ σ₀ A I} {g : Sat256} (hwf : clipperStorageWF σ I) :
+    clipperActiveArrayReturnBytes (initState σ σ₀ g A I) =
       ⟨(ABI.natBytes 32 ++ ABI.natBytes (solcSlotWord σ I ⟨11⟩).toNat ++
         clipperListArrayWordBytesFrom σ I 0 (solcSlotWord σ I ⟨11⟩).toNat).toArray⟩ := by
   have hlen :
-      Solm.EVM.storageLoad (initState cA gh bl σ σ₀ g A I)
-          (initState cA gh bl σ σ₀ g A I).executionEnv.codeOwner ⟨11⟩ =
+      Solm.EVM.storageLoad (initState σ σ₀ g A I)
+          (initState σ σ₀ g A I).executionEnv.codeOwner ⟨11⟩ =
         solcSlotWord σ I ⟨11⟩ := by
     simp [initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       solcSlotWord]
@@ -418,14 +418,14 @@ theorem clipperListReturnCopiedMem_returnBytes_of_wf {σ : AccountMap} {I : Exec
         omega
 
 theorem clipperListReturnCopiedMem_activeReturnBytes_of_wf
-    {cA gh bl σ σ₀ A I} {g : Sat256} (hwf : clipperStorageWF σ I) :
+    {σ σ₀ A I} {g : Sat256} (hwf : clipperStorageWF σ I) :
     (clipperListReturnCopiedMem σ I (solcSlotWord σ I ⟨11⟩).toNat).readWithPadding
         (clipperListArrayFreePtr (solcSlotWord σ I ⟨11⟩)).toNat
         (UInt256.sub
           (((solcSlotWord σ I ⟨11⟩) * (⟨32⟩ : UInt256)) +
             (clipperListArrayFreePtr (solcSlotWord σ I ⟨11⟩) + (⟨64⟩ : UInt256)))
           (clipperListArrayFreePtr (solcSlotWord σ I ⟨11⟩))).toNat =
-      clipperActiveArrayReturnBytes (initState cA gh bl σ σ₀ g A I) := by
+      clipperActiveArrayReturnBytes (initState σ σ₀ g A I) := by
   rw [clipperListReturnSize_toNat_of_wf hwf]
   rw [clipperListReturnCopiedMem_returnBytes_of_wf hwf
     (solcSlotWord σ I ⟨11⟩).toNat le_rfl]
@@ -438,7 +438,7 @@ theorem clipperListReturnCopiedMem_activeReturnBytes_of_wf
 set_option maxHeartbeats 1000000 in
 theorem clipperListReturnCopyLoopFrom {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {gh bl σ₀ A}
+    {rdata : ByteArray} {σ₀ A}
     {σ : AccountMap}
     (hwfStorage : clipperStorageWF σ ee)
     (hwf : clipperListReturnFromMemWf code)
@@ -460,9 +460,9 @@ theorem clipperListReturnCopyLoopFrom {code : ByteArray} {g : Sat256}
             clipperListArrayFreePtr (solcSlotWord σ ee ⟨11⟩) ::
             clipperListArrayBasePtr :: R)
           (clipperListReturnCopiedMem σ ee k)
-          (clipperListReturnCopiedAw σ ee k) rdata (cA, σ) k₀ C₀ →
-        RDret code g s0 (cA, σ)
-          (clipperActiveArrayReturnBytes (initState cA gh bl σ σ₀ g A ee))) := by
+          (clipperListReturnCopiedAw σ ee k) rdata σ k₀ C₀ →
+        RDret code g s0 σ
+          (clipperActiveArrayReturnBytes (initState σ σ₀ g A ee))) := by
   intro m
   induction m with
   | zero =>
@@ -490,10 +490,10 @@ theorem clipperListReturnCopyLoopFrom {code : ByteArray} {g : Sat256}
                 (((solcSlotWord σ ee ⟨11⟩) * (⟨32⟩ : UInt256)) +
                   (clipperListArrayFreePtr (solcSlotWord σ ee ⟨11⟩) + (⟨64⟩ : UInt256)))
                 (clipperListArrayFreePtr (solcSlotWord σ ee ⟨11⟩))).toNat =
-            clipperActiveArrayReturnBytes (initState cA gh bl σ σ₀ g A ee) := by
+            clipperActiveArrayReturnBytes (initState σ σ₀ g A ee) := by
         simpa [hn] using
           (clipperListReturnCopiedMem_activeReturnBytes_of_wf
-            (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+            (σ := σ) (σ₀ := σ₀)
             (A := A) (I := ee) (g := g) hwfStorage)
       exact clipperListReturnCopyLoopExit
         (i := clipperListReturnCopyIndex k)
@@ -551,7 +551,7 @@ theorem clipperListReturnCopyLoopFrom {code : ByteArray} {g : Sat256}
               clipperListArrayFreePtr (solcSlotWord σ ee ⟨11⟩) ::
               clipperListArrayBasePtr :: R)
             (clipperListReturnCopiedMem σ ee (k + 1))
-            (clipperListReturnCopiedAw σ ee (k + 1)) rdata (cA, σ) kNext CNext := by
+            (clipperListReturnCopiedAw σ ee (k + 1)) rdata σ kNext CNext := by
         simpa [hidxSucc, hmem, clipperListReturnCopiedAw] using rdnextRaw
       exact ih (k + 1) hnNext kNext CNext rdnext
 
@@ -614,9 +614,9 @@ theorem clipperListReturnLengthMem_empty_mload64 :
   unfold clipperListArrayAllocSize clipperListArrayBasePtr
   native_decide
 
-theorem clipperActiveArrayReturnBytes_empty {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem clipperActiveArrayReturnBytes_empty {σ σ₀ A I} {g : Sat256}
     (hlen : solcSlotWord σ I ⟨11⟩ = ⟨0⟩) :
-    clipperActiveArrayReturnBytes (initState cA gh bl σ σ₀ g A I) =
+    clipperActiveArrayReturnBytes (initState σ σ₀ g A I) =
       ⟨(ABI.natBytes 32 ++ ABI.natBytes 0).toArray⟩ := by
   unfold clipperActiveArrayReturnBytes clipperActiveArrayValues
   simp only [initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,

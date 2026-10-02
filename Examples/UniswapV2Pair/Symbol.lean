@@ -58,11 +58,11 @@ private theorem symbolReturnRead :
   native_decide
 
 /-- Runtime-only `symbol()` slice from selector dispatch through dynamic string return. -/
-theorem uniswapX_symbol {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapX_symbol {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1226⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨1226⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       symbolReturnBytes := by
   obtain ⟨_, _, h1226⟩ := hreach
   have h5027 := evm_run h1226 with [jumpdest, push2 ⟨580⟩, push2 ⟨5027⟩, jump (by jump_dest)]
@@ -140,44 +140,41 @@ theorem uniswapX_symbol {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 /-- `symbol()` body core, parameterized by dispatcher/decode facts owned by `Correct`. -/
 theorem uniswapSymbolBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some symbolTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (symbolTransition.params.map Param.name)
         (transitionSignature symbolTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1226⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1226⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ symbolTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ symbolTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.bytes symbolBytes)])) := by
     exact uniswapSymbolBodyReturns
-      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       (by simp only [initState]; exact hwv)
   have henc :
       returnEquiv symbolReturnBytes (some [.bytes symbolBytes]) symbolTransition.returnType := by
     rw [symbolTransition]
     exact returnEquiv_of_encode symbolReturnEncoding
-  exact (uniswapX_symbol (g := Sat256.ofUInt256 g) hreach).reEquivExecutionTransport
-    hcode hdispatch hdecode hbody rfl hAccounts henc
+  exact (uniswapX_symbol (g := Sat256.ofUInt256 g) hreach).reEquivExecution
+    hcode hdispatch hdecode hbody henc
 
 theorem uniswapSymbolBody
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x95, 0xd8, 0x9b, 0x41]⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some symbolTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hdispatch : dispatchMsg contract I.calldata = some symbolTransition) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x95, 0xd8, 0x9b, 0x41]⟩ rfl hsel
   exact uniswapSymbolBodyCore hcode hwv hdispatch (uniswapDecode_symbol hsz)
     (uniswapReachSymbolBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
-    hAccounts
 
 end UniswapV2Pair

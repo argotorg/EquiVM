@@ -1164,11 +1164,10 @@ theorem frobConstructedLocalsAuthDustExtras {I : ExecutionEnv}
 
 set_option maxHeartbeats 0 in
 theorem vatFrobBodyCoreLiveRateZeroRevert
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (vatSelBytes 11))
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hsz196 : 196 ≤ I.calldata.size)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (frobTransition.params.map Param.name)
@@ -1176,74 +1175,74 @@ theorem vatFrobBodyCoreLiveRateZeroRevert
     (hdecoded :
       ∃ k C,
         RD vatBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
-          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hlive : vatSlotWord ⟨10⟩ σ_evm I = ⟨1⟩)
-    (hrateZeroEvm : solcSlotWord σ_evm I (frobIlkRateSlot I) = ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hrateZeroEvm : solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (sel := vatSelWord I) hlive hdecoded
-  let urnInk := vatSlotWord (frobUrnInkSlot I) σ_solm I
-  let urnArt := vatSlotWord (frobUrnArtSlot I) σ_solm I
-  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ_solm I
-  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ_solm I
-  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ_solm I
-  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ_solm I
-  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ_solm I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hliveWord : vatSlotWord ⟨10⟩ σ_evm I = vatSlotWord ⟨10⟩ σ_solm I :=
+  let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
+  let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
+  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
+  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
+  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
+  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
+  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hliveWord : vatSlotWord ⟨10⟩ σ I = vatSlotWord ⟨10⟩ σ I :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨10⟩ ⟨0⟩
-  have hliveSolm : vatSlotWord ⟨10⟩ σ_solm I = ⟨1⟩ := by
+  have hliveSolm : vatSlotWord ⟨10⟩ σ I = ⟨1⟩ := by
     rw [← hliveWord]
     exact hlive
   have hrateWord :
-      vatSlotWord (frobIlkRateSlot I) σ_solm I = ⟨0⟩ := by
+      vatSlotWord (frobIlkRateSlot I) σ I = ⟨0⟩ := by
     have heq :
-        vatSlotWord (frobIlkRateSlot I) σ_evm I =
-          vatSlotWord (frobIlkRateSlot I) σ_solm I :=
+        vatSlotWord (frobIlkRateSlot I) σ I =
+          vatSlotWord (frobIlkRateSlot I) σ I :=
       accountMapEquiv_storage_findD hAccounts I.codeOwner
         (frobIlkRateSlot I) ⟨0⟩
     rw [← heq]
     simpa [vatSlotWord] using hrateZeroEvm
   have hbodyRaw :
       let locals := frobStore I
-      let evm0' := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
       ExecTransitionBody config contract evm0' locals frobTransition.body
         .reverted := by
     exact vatFrobSourceBodyRateZero
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g)
         (urnInk := urnInk) (urnArt := urnArt) (ilkArt := ilkArt)
         (ilkRate := ilkRate) (ilkSpot := ilkSpot) (ilkLine := ilkLine)
         (ilkDust := ilkDust)
         hwv hsz196 hliveSolm
         (by simpa [urnInk] using
-          (frobSourceLoad_urnInk (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_urnInk
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [urnArt] using
-          (frobSourceLoad_urnArt (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_urnArt
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkArt] using
-          (frobSourceLoad_ilkArt (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkArt
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkRate] using
-          (frobSourceLoad_ilkRate (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkRate
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkSpot] using
-          (frobSourceLoad_ilkSpot (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkSpot
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkLine] using
-          (frobSourceLoad_ilkLine (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkLine
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkDust] using
-          (frobSourceLoad_ilkDust (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkDust
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by
-          rw [show ilkRate = vatSlotWord (frobIlkRateSlot I) σ_solm I from rfl,
+          rw [show ilkRate = vatSlotWord (frobIlkRateSlot I) σ I from rfl,
             hrateWord]
           native_decide)
   have hbody :
@@ -3602,11 +3601,10 @@ theorem execFrobLoadedPrefixSafetyRequireRevert {evm : EVM.State}
     using hfull
 set_option maxHeartbeats 0 in
 theorem vatFrobBodyCoreLiveAddOverflowReverts
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (vatSelBytes 11))
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hsz196 : 196 ≤ I.calldata.size)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (frobTransition.params.map Param.name)
@@ -3614,38 +3612,38 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
     (hdecoded :
       ∃ k C,
         RD vatBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
-          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hlive : vatSlotWord ⟨10⟩ σ_evm I = ⟨1⟩)
-    (hrateZeroEvm : ¬ solcSlotWord σ_evm I (frobIlkRateSlot I) = ⟨0⟩)
-    (hAddFail : ¬ frobLiveAddArithmeticGuards σ_evm I) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
+    (hAddFail : ¬ frobLiveAddArithmeticGuards σ I) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (sel := vatSelWord I) hlive hdecoded
-  let urnInk := vatSlotWord (frobUrnInkSlot I) σ_solm I
-  let urnArt := vatSlotWord (frobUrnArtSlot I) σ_solm I
-  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ_solm I
-  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ_solm I
-  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ_solm I
-  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ_solm I
-  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ_solm I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hliveWord : vatSlotWord ⟨10⟩ σ_evm I = vatSlotWord ⟨10⟩ σ_solm I :=
+  let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
+  let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
+  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
+  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
+  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
+  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
+  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hliveWord : vatSlotWord ⟨10⟩ σ I = vatSlotWord ⟨10⟩ σ I :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨10⟩ ⟨0⟩
-  have hliveSolm : vatSlotWord ⟨10⟩ σ_solm I = ⟨1⟩ := by
+  have hliveSolm : vatSlotWord ⟨10⟩ σ I = ⟨1⟩ := by
     rw [← hliveWord]
     exact hlive
   have hrateWordNe :
-      vatSlotWord (frobIlkRateSlot I) σ_solm I ≠ ⟨0⟩ := by
+      vatSlotWord (frobIlkRateSlot I) σ I ≠ ⟨0⟩ := by
     intro hzeroSolm
     apply hrateZeroEvm
     have heq :
-        vatSlotWord (frobIlkRateSlot I) σ_evm I =
-          vatSlotWord (frobIlkRateSlot I) σ_solm I :=
+        vatSlotWord (frobIlkRateSlot I) σ I =
+          vatSlotWord (frobIlkRateSlot I) σ I :=
       accountMapEquiv_storage_findD hAccounts I.codeOwner
         (frobIlkRateSlot I) ⟨0⟩
     simpa [vatSlotWord, hzeroSolm] using heq.trans hzeroSolm
@@ -3658,7 +3656,7 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
     exact Nat.pos_of_ne_zero hnat
   have hsourcePrefixRaw :
       let locals := frobStore I
-      let evm0' := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
       ExecBlock config { contract := contract, locals := locals } evm0'
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
@@ -3677,33 +3675,33 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
               frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust }
           evm0') := by
     exact vatFrobSourceRateNonzeroPrefix
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g)
         (urnInk := urnInk) (urnArt := urnArt) (ilkArt := ilkArt)
         (ilkRate := ilkRate) (ilkSpot := ilkSpot) (ilkLine := ilkLine)
         (ilkDust := ilkDust)
         hwv hsz196 hliveSolm
         (by simpa [urnInk] using
-          (frobSourceLoad_urnInk (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_urnInk
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [urnArt] using
-          (frobSourceLoad_urnArt (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_urnArt
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkArt] using
-          (frobSourceLoad_ilkArt (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkArt
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkRate] using
-          (frobSourceLoad_ilkRate (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkRate
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkSpot] using
-          (frobSourceLoad_ilkSpot (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkSpot
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkLine] using
-          (frobSourceLoad_ilkLine (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkLine
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkDust] using
-          (frobSourceLoad_ilkDust (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkDust
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         hratePos
   have hsourcePrefix :
       ExecBlock config { contract := contract, locals := frobStore I } evm0
@@ -3730,39 +3728,39 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
   have hthreeAddsEvm :
       (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt
-          (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-          (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+          (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+          (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
       (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt
-          (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-          (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+          (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+          (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
       (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt
-          (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-          (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+          (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+          (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
       (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt
-          (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-          (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+          (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+          (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
       (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt
-          (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-          (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+          (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+          (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
       (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt
-          (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-          (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+          (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+          (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
       ∃ k' C',
         RD vatBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3306⟩
-          [frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I),
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3306⟩
+          [frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I),
             ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
             frobWMaskedWord I, frobVMaskedWord I, frobUMaskedWord I,
             frobIWord I, ⟨524⟩, vatSelWord I]
-          (frobUrnArtUpdatedMem σ_evm I
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-          (UInt256.ofNat 18) ByteArray.empty (cA, σ_evm) k' C' := by
+          (frobUrnArtUpdatedMem σ I
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+          (UInt256.ofNat 18) ByteArray.empty σ k' C' := by
     intro hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos
     obtain ⟨_, _, hInk⟩ :=
       RD.vatFrobUrnInkAddSuccess (h := hafterRateNonzero) hInkNeg hInkPos
@@ -3772,48 +3770,48 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
       RD.vatFrobIlkArtAddSuccess (h := by simpa using hArt) hIlkNeg hIlkPos
     exact ⟨_, _, by simpa using hIlk⟩
   have hUrnInkEq :
-      solcSlotWord σ_evm I (frobUrnInkSlot I) =
-        solcSlotWord σ_solm I (frobUrnInkSlot I) :=
+      solcSlotWord σ I (frobUrnInkSlot I) =
+        solcSlotWord σ I (frobUrnInkSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobUrnInkSlot I) ⟨0⟩
   have hUrnArtEq :
-      solcSlotWord σ_evm I (frobUrnArtSlot I) =
-        solcSlotWord σ_solm I (frobUrnArtSlot I) :=
+      solcSlotWord σ I (frobUrnArtSlot I) =
+        solcSlotWord σ I (frobUrnArtSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobUrnArtSlot I) ⟨0⟩
   have hIlkArtEq :
-      solcSlotWord σ_evm I (frobIlkArtSlot I) =
-        solcSlotWord σ_solm I (frobIlkArtSlot I) :=
+      solcSlotWord σ I (frobIlkArtSlot I) =
+        solcSlotWord σ I (frobIlkArtSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkArtSlot I) ⟨0⟩
   classical
   by_cases hInkNeg :
       UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt
-          (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-          (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩
+          (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+          (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩
   · by_cases hInkPos :
         UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩
     · by_cases hArtNeg :
           UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
             UInt256.gt
-              (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-              (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩
+              (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+              (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩
       · by_cases hArtPos :
             UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
               UInt256.lt
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-                (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+                (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩
         · by_cases hIlkNeg :
               UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                 UInt256.gt
-                  (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-                  (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩
+                  (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+                  (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩
           · by_cases hIlkPos :
                 UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                   UInt256.lt
-                    (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-                    (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩
+                    (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+                    (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩
             · exact False.elim (hAddFail (by
                 unfold frobLiveAddArithmeticGuards
                 exact ⟨hInkNeg, hInkPos, hArtNeg, hArtPos, hIlkNeg, hIlkPos⟩))
@@ -4129,11 +4127,10 @@ theorem vatFrobBodyCoreLiveAddOverflowReverts
 
 set_option maxHeartbeats 0 in
 theorem vatFrobBodyCoreLiveMulOverflowReverts
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (vatSelBytes 11))
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hsz196 : 196 ≤ I.calldata.size)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (frobTransition.params.map Param.name)
@@ -4141,39 +4138,39 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
     (hdecoded :
       ∃ k C,
         RD vatBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
-          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hlive : vatSlotWord ⟨10⟩ σ_evm I = ⟨1⟩)
-    (hrateZeroEvm : ¬ solcSlotWord σ_evm I (frobIlkRateSlot I) = ⟨0⟩)
-    (hAdd : frobLiveAddArithmeticGuards σ_evm I)
-    (hMulFail : ¬ frobLiveMulArithmeticGuards σ_evm I) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
+    (hAdd : frobLiveAddArithmeticGuards σ I)
+    (hMulFail : ¬ frobLiveMulArithmeticGuards σ I) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (sel := vatSelWord I) hlive hdecoded
-  let urnInk := vatSlotWord (frobUrnInkSlot I) σ_solm I
-  let urnArt := vatSlotWord (frobUrnArtSlot I) σ_solm I
-  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ_solm I
-  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ_solm I
-  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ_solm I
-  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ_solm I
-  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ_solm I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hliveWord : vatSlotWord ⟨10⟩ σ_evm I = vatSlotWord ⟨10⟩ σ_solm I :=
+  let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
+  let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
+  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
+  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
+  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
+  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
+  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hliveWord : vatSlotWord ⟨10⟩ σ I = vatSlotWord ⟨10⟩ σ I :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨10⟩ ⟨0⟩
-  have hliveSolm : vatSlotWord ⟨10⟩ σ_solm I = ⟨1⟩ := by
+  have hliveSolm : vatSlotWord ⟨10⟩ σ I = ⟨1⟩ := by
     rw [← hliveWord]
     exact hlive
   have hrateWordNe :
-      vatSlotWord (frobIlkRateSlot I) σ_solm I ≠ ⟨0⟩ := by
+      vatSlotWord (frobIlkRateSlot I) σ I ≠ ⟨0⟩ := by
     intro hzeroSolm
     apply hrateZeroEvm
     have heq :
-        vatSlotWord (frobIlkRateSlot I) σ_evm I =
-          vatSlotWord (frobIlkRateSlot I) σ_solm I :=
+        vatSlotWord (frobIlkRateSlot I) σ I =
+          vatSlotWord (frobIlkRateSlot I) σ I :=
       accountMapEquiv_storage_findD hAccounts I.codeOwner
         (frobIlkRateSlot I) ⟨0⟩
     simpa [vatSlotWord, hzeroSolm] using heq.trans hzeroSolm
@@ -4186,7 +4183,7 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
     exact Nat.pos_of_ne_zero hnat
   have hsourcePrefixRaw :
       let locals := frobStore I
-      let evm0' := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
       ExecBlock config { contract := contract, locals := locals } evm0'
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
@@ -4205,33 +4202,33 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
               frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust }
           evm0') := by
     exact vatFrobSourceRateNonzeroPrefix
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g)
         (urnInk := urnInk) (urnArt := urnArt) (ilkArt := ilkArt)
         (ilkRate := ilkRate) (ilkSpot := ilkSpot) (ilkLine := ilkLine)
         (ilkDust := ilkDust)
         hwv hsz196 hliveSolm
         (by simpa [urnInk] using
-          (frobSourceLoad_urnInk (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_urnInk
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [urnArt] using
-          (frobSourceLoad_urnArt (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_urnArt
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkArt] using
-          (frobSourceLoad_ilkArt (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkArt
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkRate] using
-          (frobSourceLoad_ilkRate (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkRate
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkSpot] using
-          (frobSourceLoad_ilkSpot (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkSpot
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkLine] using
-          (frobSourceLoad_ilkLine (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkLine
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkDust] using
-          (frobSourceLoad_ilkDust (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkDust
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         hratePos
   have hsourcePrefix :
       ExecBlock config { contract := contract, locals := frobStore I } evm0
@@ -4258,39 +4255,39 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
   have hthreeAddsEvm :
       (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt
-          (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-          (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+          (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+          (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
       (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt
-          (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-          (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+          (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+          (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
       (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt
-          (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-          (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+          (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+          (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
       (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt
-          (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-          (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+          (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+          (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
       (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt
-          (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-          (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+          (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+          (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
       (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt
-          (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-          (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+          (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+          (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
       ∃ k' C',
         RD vatBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3306⟩
-          [frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I),
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3306⟩
+          [frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I),
             ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
             frobWMaskedWord I, frobVMaskedWord I, frobUMaskedWord I,
             frobIWord I, ⟨524⟩, vatSelWord I]
-          (frobUrnArtUpdatedMem σ_evm I
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-          (UInt256.ofNat 18) ByteArray.empty (cA, σ_evm) k' C' := by
+          (frobUrnArtUpdatedMem σ I
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+          (UInt256.ofNat 18) ByteArray.empty σ k' C' := by
     intro hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos
     obtain ⟨_, _, hInk⟩ :=
       RD.vatFrobUrnInkAddSuccess (h := hafterRateNonzero) hInkNeg hInkPos
@@ -4302,49 +4299,49 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
   have hthroughDtabEvm :
       (UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt
-          (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-          (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+          (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+          (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
       (UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt
-          (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-          (solcSlotWord σ_evm I (frobUrnInkSlot I)) = ⟨0⟩) →
+          (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+          (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩) →
       (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt
-          (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-          (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+          (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+          (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
       (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt
-          (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-          (solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩) →
+          (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+          (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩) →
       (UInt256.slt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt
-          (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-          (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
+          (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+          (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
       (UInt256.sgt (frobDartWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.lt
-          (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-          (solcSlotWord σ_evm I (frobIlkArtSlot I)) = ⟨0⟩) →
-      UInt256.slt (solcSlotWord σ_evm I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
+          (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+          (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩) →
+      UInt256.slt (solcSlotWord σ I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →
       (frobDartWord I = ⟨0⟩ ∨
         UInt256.eq
           (UInt256.sdiv
             (UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+              (solcSlotWord σ I (frobIlkRateSlot I)))
             (frobDartWord I))
-          (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
+          (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩) →
       ∃ k' C',
         RD vatBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3329⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3329⟩
           [UInt256.mul (frobDartWord I)
-              (solcSlotWord σ_evm I (frobIlkRateSlot I)),
+              (solcSlotWord σ I (frobIlkRateSlot I)),
             ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
             frobWMaskedWord I, frobVMaskedWord I, frobUMaskedWord I,
             frobIWord I, ⟨524⟩, vatSelWord I]
-          (frobIlkArtUpdatedMem σ_evm I
-            (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-            (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-            (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I)))
-          (UInt256.ofNat 18) ByteArray.empty (cA, σ_evm) k' C' := by
+          (frobIlkArtUpdatedMem σ I
+            (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+            (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+            (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I)))
+          (UInt256.ofNat 18) ByteArray.empty σ k' C' := by
     intro hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos hRateMax hDtabMul
     obtain ⟨_, _, hIlk⟩ :=
       hthreeAddsEvm hInkNeg hInkPos hArtNeg hArtPos hIlkNeg hIlkPos
@@ -4352,20 +4349,20 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
       RD.vatFrobDtabMulSuccess (h := by simpa using hIlk) hRateMax hDtabMul
     exact ⟨_, _, by simpa using hDtab⟩
   have hUrnInkEq :
-      solcSlotWord σ_evm I (frobUrnInkSlot I) =
-        solcSlotWord σ_solm I (frobUrnInkSlot I) :=
+      solcSlotWord σ I (frobUrnInkSlot I) =
+        solcSlotWord σ I (frobUrnInkSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobUrnInkSlot I) ⟨0⟩
   have hUrnArtEq :
-      solcSlotWord σ_evm I (frobUrnArtSlot I) =
-        solcSlotWord σ_solm I (frobUrnArtSlot I) :=
+      solcSlotWord σ I (frobUrnArtSlot I) =
+        solcSlotWord σ I (frobUrnArtSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobUrnArtSlot I) ⟨0⟩
   have hIlkArtEq :
-      solcSlotWord σ_evm I (frobIlkArtSlot I) =
-        solcSlotWord σ_solm I (frobIlkArtSlot I) :=
+      solcSlotWord σ I (frobIlkArtSlot I) =
+        solcSlotWord σ I (frobIlkArtSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkArtSlot I) ⟨0⟩
   have hIlkRateEq :
-      solcSlotWord σ_evm I (frobIlkRateSlot I) =
-        solcSlotWord σ_solm I (frobIlkRateSlot I) :=
+      solcSlotWord σ I (frobIlkRateSlot I) =
+        solcSlotWord σ I (frobIlkRateSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkRateSlot I) ⟨0⟩
   let dtab : Int := Int.ofNat ilkRate.toNat * frobDartInt I
   classical
@@ -4395,24 +4392,24 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
         UInt256.lt (frobDartWord I + ilkArt) ilkArt = ⟨0⟩ := by
     simpa [ilkArt, vatSlotWord, hIlkArtEq] using hIlkPos
   by_cases hRateMax :
-      UInt256.slt (solcSlotWord σ_evm I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩
+      UInt256.slt (solcSlotWord σ I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩
   · by_cases hDtabMul :
         frobDartWord I = ⟨0⟩ ∨
           UInt256.eq
             (UInt256.sdiv
               (UInt256.mul (frobDartWord I)
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
               (frobDartWord I))
-            (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩
+            (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩
     · by_cases hTabMul :
-          (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)) = ⟨0⟩ ∨
+          (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩ ∨
             UInt256.eq
               (UInt256.div
-                (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                  (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-              (solcSlotWord σ_evm I (frobIlkRateSlot I)) ≠ ⟨0⟩
-      · have hMul : frobLiveMulArithmeticGuards σ_evm I := by
+                (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                  (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+              (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩
+      · have hMul : frobLiveMulArithmeticGuards σ I := by
           unfold frobLiveMulArithmeticGuards
           exact ⟨hRateMax, hDtabMul, hTabMul⟩
         exact False.elim (hMulFail hMul)
@@ -4457,7 +4454,7 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
     · have hbadRange : dtab < -((2 : Int) ^ 255) ∨ dtab ≥ (2 : Int) ^ 255 := by
         have hraw :=
           frobDtabBadRangeOfMulGuardFail
-            (σ := σ_evm) (I := I) (ilkRate := ilkRate)
+            (σ := σ) (I := I) (ilkRate := ilkRate)
             (by simpa [ilkRate, vatSlotWord] using hIlkRateEq)
             hDtabMul
         change Int.ofNat ilkRate.toNat * frobDartInt I < -((2 : Int) ^ 255) ∨
@@ -4510,12 +4507,11 @@ theorem vatFrobBodyCoreLiveMulOverflowReverts
 
 set_option maxHeartbeats 0 in
 theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (vatSelBytes 11))
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hsz196 : 196 ≤ I.calldata.size)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (frobTransition.params.map Param.name)
@@ -4523,42 +4519,42 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
     (hdecoded :
       ∃ k C,
         RD vatBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
-          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hlive : vatSlotWord ⟨10⟩ σ_evm I = ⟨1⟩)
-    (hrateZeroEvm : ¬ solcSlotWord σ_evm I (frobIlkRateSlot I) = ⟨0⟩)
-    (hArithmetic : frobLiveArithmeticPrefixGuards σ_evm I)
-    (hDebtSafety : frobLiveDebtCeilingSafetyGuards σ_evm I)
-    (hWishAuthDust : frobLiveWishAuthDustGuards σ_evm I)
-    (hFinalArithmeticFail : ¬ frobLiveFinalArithmeticGuards σ_evm I) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
+    (hArithmetic : frobLiveArithmeticPrefixGuards σ I)
+    (hDebtSafety : frobLiveDebtCeilingSafetyGuards σ I)
+    (hWishAuthDust : frobLiveWishAuthDustGuards σ I)
+    (hFinalArithmeticFail : ¬ frobLiveFinalArithmeticGuards σ I) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   classical
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (sel := vatSelWord I) hlive hdecoded
-  let urnInk := vatSlotWord (frobUrnInkSlot I) σ_solm I
-  let urnArt := vatSlotWord (frobUrnArtSlot I) σ_solm I
-  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ_solm I
-  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ_solm I
-  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ_solm I
-  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ_solm I
-  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ_solm I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hliveWord : vatSlotWord ⟨10⟩ σ_evm I = vatSlotWord ⟨10⟩ σ_solm I :=
+  let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
+  let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
+  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
+  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
+  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
+  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
+  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hliveWord : vatSlotWord ⟨10⟩ σ I = vatSlotWord ⟨10⟩ σ I :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨10⟩ ⟨0⟩
-  have hliveSolm : vatSlotWord ⟨10⟩ σ_solm I = ⟨1⟩ := by
+  have hliveSolm : vatSlotWord ⟨10⟩ σ I = ⟨1⟩ := by
     rw [← hliveWord]
     exact hlive
   have hrateWordNe :
-      vatSlotWord (frobIlkRateSlot I) σ_solm I ≠ ⟨0⟩ := by
+      vatSlotWord (frobIlkRateSlot I) σ I ≠ ⟨0⟩ := by
     intro hzeroSolm
     apply hrateZeroEvm
     have heq :
-        vatSlotWord (frobIlkRateSlot I) σ_evm I =
-          vatSlotWord (frobIlkRateSlot I) σ_solm I :=
+        vatSlotWord (frobIlkRateSlot I) σ I =
+          vatSlotWord (frobIlkRateSlot I) σ I :=
       accountMapEquiv_storage_findD hAccounts I.codeOwner
         (frobIlkRateSlot I) ⟨0⟩
     simpa [vatSlotWord, hzeroSolm] using heq.trans hzeroSolm
@@ -4571,7 +4567,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
     exact Nat.pos_of_ne_zero hnat
   have hsourcePrefixRaw :
       let locals := frobStore I
-      let evm0' := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
       ExecBlock config { contract := contract, locals := locals } evm0'
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
@@ -4590,33 +4586,33 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
               frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust }
           evm0') := by
     exact vatFrobSourceRateNonzeroPrefix
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g)
         (urnInk := urnInk) (urnArt := urnArt) (ilkArt := ilkArt)
         (ilkRate := ilkRate) (ilkSpot := ilkSpot) (ilkLine := ilkLine)
         (ilkDust := ilkDust)
         hwv hsz196 hliveSolm
         (by simpa [urnInk] using
-          (frobSourceLoad_urnInk (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_urnInk
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [urnArt] using
-          (frobSourceLoad_urnArt (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_urnArt
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkArt] using
-          (frobSourceLoad_ilkArt (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkArt
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkRate] using
-          (frobSourceLoad_ilkRate (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkRate
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkSpot] using
-          (frobSourceLoad_ilkSpot (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkSpot
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkLine] using
-          (frobSourceLoad_ilkLine (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkLine
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkDust] using
-          (frobSourceLoad_ilkDust (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkDust
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         hratePos
   have hsourcePrefix :
       ExecBlock config { contract := contract, locals := frobStore I } evm0
@@ -4658,10 +4654,10 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
   obtain ⟨_, _, hTabDone⟩ :=
     RD.vatFrobTabMulSuccess
       (h := by simpa using hDtabDone)
-      (urnArtNew := frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-      (ilkArtNew := frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
+      (urnArtNew := frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+      (ilkArtNew := frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
       (dtabWord :=
-        UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+        UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)))
       (by simpa using hTabMul)
   obtain ⟨_, _, hDebtDone⟩ :=
     RD.vatFrobDebtAddStoreSuccess
@@ -4681,43 +4677,43 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
       (by simpa using hInkMul)
       (by simpa using hSafetyOk)
   have hUrnInkEq :
-      solcSlotWord σ_evm I (frobUrnInkSlot I) =
-        solcSlotWord σ_solm I (frobUrnInkSlot I) :=
+      solcSlotWord σ I (frobUrnInkSlot I) =
+        solcSlotWord σ I (frobUrnInkSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobUrnInkSlot I) ⟨0⟩
   have hUrnArtEq :
-      solcSlotWord σ_evm I (frobUrnArtSlot I) =
-        solcSlotWord σ_solm I (frobUrnArtSlot I) :=
+      solcSlotWord σ I (frobUrnArtSlot I) =
+        solcSlotWord σ I (frobUrnArtSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobUrnArtSlot I) ⟨0⟩
   have hIlkArtEq :
-      solcSlotWord σ_evm I (frobIlkArtSlot I) =
-        solcSlotWord σ_solm I (frobIlkArtSlot I) :=
+      solcSlotWord σ I (frobIlkArtSlot I) =
+        solcSlotWord σ I (frobIlkArtSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkArtSlot I) ⟨0⟩
   have hIlkRateEq :
-      solcSlotWord σ_evm I (frobIlkRateSlot I) =
-        solcSlotWord σ_solm I (frobIlkRateSlot I) :=
+      solcSlotWord σ I (frobIlkRateSlot I) =
+        solcSlotWord σ I (frobIlkRateSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkRateSlot I) ⟨0⟩
   have hDebtEq :
-      solcSlotWord σ_evm I foldDebtSlot = solcSlotWord σ_solm I foldDebtSlot :=
+      solcSlotWord σ I foldDebtSlot = solcSlotWord σ I foldDebtSlot :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner foldDebtSlot ⟨0⟩
   have hIlkSpotEq :
-      solcSlotWord σ_evm I (frobIlkSpotSlot I) =
-        solcSlotWord σ_solm I (frobIlkSpotSlot I) :=
+      solcSlotWord σ I (frobIlkSpotSlot I) =
+        solcSlotWord σ I (frobIlkSpotSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkSpotSlot I) ⟨0⟩
   have hIlkLineEq :
-      solcSlotWord σ_evm I (frobIlkLineSlot I) =
-        solcSlotWord σ_solm I (frobIlkLineSlot I) :=
+      solcSlotWord σ I (frobIlkLineSlot I) =
+        solcSlotWord σ I (frobIlkLineSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkLineSlot I) ⟨0⟩
   have hIlkDustEq :
-      solcSlotWord σ_evm I (frobIlkDustSlot I) =
-        solcSlotWord σ_solm I (frobIlkDustSlot I) :=
+      solcSlotWord σ I (frobIlkDustSlot I) =
+        solcSlotWord σ I (frobIlkDustSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkDustSlot I) ⟨0⟩
-  have hLineEq : solcSlotWord σ_evm I ⟨9⟩ = solcSlotWord σ_solm I ⟨9⟩ :=
+  have hLineEq : solcSlotWord σ I ⟨9⟩ = solcSlotWord σ I ⟨9⟩ :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨9⟩ ⟨0⟩
   let dtab : Int := Int.ofNat ilkRate.toNat * frobDartInt I
-  let debtOld := vatSlotWord foldDebtSlot σ_solm I
+  let debtOld := vatSlotWord foldDebtSlot σ I
   let dtabWord := UInt256.mul (frobDartWord I) ilkRate
   let debtNew := dtabWord + debtOld
-  let Line := vatSlotWord ⟨9⟩ σ_solm I
+  let Line := vatSlotWord ⟨9⟩ σ I
   let urnInkNew := frobDinkWord I + urnInk
   let urnArtNew := frobDartWord I + urnArt
   let ilkArtNew := frobDartWord I + ilkArt
@@ -4738,11 +4734,11 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
     (localsDebt.insert "ceilingDebt" (.int (Int.ofNat ceilingDebt.toNat))).insert
       "inkSpot" (.int (Int.ofNat inkSpot.toNat))
   let uWish := vatSlotWord (frobUWishSlot I)
-    (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+    (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
   let vWish := vatSlotWord (frobVWishSlot I)
-    (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+    (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
   let wWish := vatSlotWord (frobWWishSlot I)
-    (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+    (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
   have hInkNegSource :
       UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt (frobDinkWord I + urnInk) urnInk = ⟨0⟩ := by
@@ -4826,7 +4822,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
         debtOld := by
     simpa [evm0, debtOld, vatSlotWord, solcSlotWord, codeOwnerStorageWord] using
       (codeOwnerStorageWord_initState
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) foldDebtSlot)
   have hdtabMod :
       dtab % (Int.ofNat EVM.wordModulus) = Int.ofNat dtabWord.toNat := by
@@ -4848,7 +4844,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
       simpa [evm0, Line, initState, vatSlotWord, solcSlotWord,
         codeOwnerStorageWord] using
         (codeOwnerStorageWord_initState
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := Sat256.ofUInt256 g) ⟨9⟩)
     have hstore :
         Solm.EVM.storageLoad
@@ -4912,45 +4908,45 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
       List.append_assoc] using hraw
   have hUWishEq :
       vatSlotWord (frobUWishSlot I)
-        (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
-          (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot)) I = uWish := by
+        (sstoreAccountMap I.codeOwner σ foldDebtSlot
+          (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot)) I = uWish := by
     simpa [uWish, debtNew, dtabWord, debtOld, ilkRate, vatSlotWord, hIlkRateEq,
       hDebtEq] using
       (vatSlotWord_debtStore_accountMapEquiv
-        (σ_evm := σ_evm) (σ_solm := σ_solm) (I := I) hAccounts
+        (σ := σ)  (I := I) hAccounts
         (frobUWishSlot I) debtNew)
   have hVWishEq :
       vatSlotWord (frobVWishSlot I)
-        (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
-          (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot)) I = vWish := by
+        (sstoreAccountMap I.codeOwner σ foldDebtSlot
+          (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot)) I = vWish := by
     simpa [vWish, debtNew, dtabWord, debtOld, ilkRate, vatSlotWord, hIlkRateEq,
       hDebtEq] using
       (vatSlotWord_debtStore_accountMapEquiv
-        (σ_evm := σ_evm) (σ_solm := σ_solm) (I := I) hAccounts
+        (σ := σ)  (I := I) hAccounts
         (frobVWishSlot I) debtNew)
   have hWWishEq :
       vatSlotWord (frobWWishSlot I)
-        (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
-          (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot)) I = wWish := by
+        (sstoreAccountMap I.codeOwner σ foldDebtSlot
+          (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot)) I = wWish := by
     simpa [wWish, debtNew, dtabWord, debtOld, ilkRate, vatSlotWord, hIlkRateEq,
       hDebtEq] using
       (vatSlotWord_debtStore_accountMapEquiv
-        (σ_evm := σ_evm) (σ_solm := σ_solm) (I := I) hAccounts
+        (σ := σ)  (I := I) hAccounts
         (frobWWishSlot I) debtNew)
   have hloadU :
       Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner
         (frobUWishSlot I) = uWish := by
     have hmap :
         evmDebt.accountMap =
-          sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew := by
+          sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew := by
       simpa [evmDebt, evm0, initState] using
         storageStore_accountMap evm0 evm0.executionEnv.codeOwner foldDebtSlot debtNew
     change Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner
         (frobUWishSlot I) =
-      solcSlotWord (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+      solcSlotWord (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
         (frobUWishSlot I)
     simp only [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
     rw [hmap]
@@ -4960,12 +4956,12 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
         (frobVWishSlot I) = vWish := by
     have hmap :
         evmDebt.accountMap =
-          sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew := by
+          sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew := by
       simpa [evmDebt, evm0, initState] using
         storageStore_accountMap evm0 evm0.executionEnv.codeOwner foldDebtSlot debtNew
     change Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner
         (frobVWishSlot I) =
-      solcSlotWord (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+      solcSlotWord (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
         (frobVWishSlot I)
     simp only [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
     rw [hmap]
@@ -4975,12 +4971,12 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
         (frobWWishSlot I) = wWish := by
     have hmap :
         evmDebt.accountMap =
-          sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew := by
+          sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew := by
       simpa [evmDebt, evm0, initState] using
         storageStore_accountMap evm0 evm0.executionEnv.codeOwner foldDebtSlot debtNew
     change Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner
         (frobWWishSlot I) =
-      solcSlotWord (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+      solcSlotWord (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
         (frobWWishSlot I)
     simp only [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
     rw [hmap]
@@ -5107,18 +5103,18 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
       (by simpa [foldDebtSlot] using hV)
       (by simpa [foldDebtSlot] using hW)
       (by simpa [foldDebtSlot] using hDust)
-  let gemOld := solcSlotWord (frobAfterDebt σ_solm I) I (frobGemVSlot I)
-  let gemNew := frobGemNew σ_solm I
+  let gemOld := solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I)
+  let gemNew := frobGemNew σ I
   have hdtabRange :=
     frobDtabRangeOfMulGuard (I := I) (ilkRate := ilkRate) hRateMaxSource
       hDtabMulSource
   have hDebtAccounts :
-      accountMapEquiv (frobAfterDebt σ_evm I) (frobAfterDebt σ_solm I) :=
+      Eq (frobAfterDebt σ I) (frobAfterDebt σ I) :=
     accountMapEquiv_frobAfterDebt (I := I) hAccounts
   have hGemOldEq :
-      solcSlotWord (frobAfterDebt σ_evm I) I (frobGemVSlot I) = gemOld :=
+      solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I) = gemOld :=
     accountMapEquiv_storage_findD hDebtAccounts I.codeOwner (frobGemVSlot I) ⟨0⟩
-  have hGemNewEq : frobGemNew σ_evm I = gemNew := by
+  have hGemNewEq : frobGemNew σ I = gemNew := by
     simp [gemNew, frobGemNew, gemOld, hGemOldEq]
   have hloadGem :
       Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner
@@ -5137,10 +5133,10 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
               (twoWordHashMem (hopeSourceWord I)
                 (solcMappingSlot ⟨1⟩ (frobUMaskedWord I))
                 (twoWordHashMem (frobUMaskedWord I) ⟨1⟩
-                  (frobIlkArtUpdatedMem σ_evm I
-                    (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                    (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-                    (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))))))))).size =
+                  (frobIlkArtUpdatedMem σ I
+                    (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                    (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+                    (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))))))))).size =
         576 := by
     exact twoWordHashMem_size_576 (hopeSourceWord I)
       (solcMappingSlot ⟨1⟩ (frobWMaskedWord I))
@@ -5151,24 +5147,24 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
             (twoWordHashMem_size_576 (hopeSourceWord I)
               (solcMappingSlot ⟨1⟩ (frobUMaskedWord I))
               (twoWordHashMem_size_576 (frobUMaskedWord I) ⟨1⟩
-                (frobIlkArtUpdatedMem_size σ_evm I
-                  (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                  (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-                  (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))))))))
+                (frobIlkArtUpdatedMem_size σ I
+                  (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                  (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+                  (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))))))))
   by_cases hGemPos :
       UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (frobGemNew σ_evm I)
-          (solcSlotWord (frobAfterDebt σ_evm I) I (frobGemVSlot I)) = ⟨0⟩
+        UInt256.gt (frobGemNew σ I)
+          (solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I)) = ⟨0⟩
   · by_cases hGemNeg :
       UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (frobGemNew σ_evm I)
-          (solcSlotWord (frobAfterDebt σ_evm I) I (frobGemVSlot I)) = ⟨0⟩
+        UInt256.lt (frobGemNew σ I)
+          (solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I)) = ⟨0⟩
     · let evmGem :=
         Solm.EVM.storageStore evmDebt evmDebt.executionEnv.codeOwner
           (frobGemVSourceSlot I) gemNew
       let localsGem := localsSafe.insert "gemNew" (.int (Int.ofNat gemNew.toNat))
-      let daiOld := solcSlotWord (frobAfterGem σ_solm I) I (frobDaiWSlot I)
-      let daiNew := frobDaiNew σ_solm I
+      let daiOld := solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)
+      let daiNew := frobDaiNew σ I
       have hGemPosS :
           UInt256.sgt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
             UInt256.gt gemNew gemOld = ⟨0⟩ := by
@@ -5201,19 +5197,19 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
           (by simpa [frobGemNew, frobAfterDebt, frobDebtNew, foldDebtSlot]
             using hGemNeg)
       have hAfterGemAccounts :
-          accountMapEquiv (frobAfterGem σ_evm I) (frobAfterGem σ_solm I) :=
+          Eq (frobAfterGem σ I) (frobAfterGem σ I) :=
         accountMapEquiv_frobAfterGem (I := I) hAccounts
       have hDaiOldEq :
-          solcSlotWord (frobAfterGem σ_evm I) I (frobDaiWSlot I) = daiOld :=
+          solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I) = daiOld :=
         accountMapEquiv_storage_findD hAfterGemAccounts I.codeOwner
           (frobDaiWSlot I) ⟨0⟩
-      have hDtabEq : frobDtabWord σ_evm I = dtabWord := by
+      have hDtabEq : frobDtabWord σ I = dtabWord := by
         simp [frobDtabWord, dtabWord, ilkRate, vatSlotWord, hIlkRateEq]
-      have hDaiNewEq : frobDaiNew σ_evm I = daiNew := by
+      have hDaiNewEq : frobDaiNew σ I = daiNew := by
         calc
-          frobDaiNew σ_evm I =
-              frobDtabWord σ_evm I +
-                solcSlotWord (frobAfterGem σ_evm I) I (frobDaiWSlot I) := by
+          frobDaiNew σ I =
+              frobDtabWord σ I +
+                solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I) := by
             rfl
           _ = dtabWord + daiOld := by
             rw [hDtabEq, hDaiOldEq]
@@ -5230,14 +5226,14 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
           frobDtabWord, ilkRate, vatSlotWord, frobGemVSourceSlot_eq I hsz196,
           frobDaiWSourceSlot_eq I]
       by_cases hDaiNeg :
-          UInt256.slt (frobDtabWord σ_evm I) ⟨0⟩ = ⟨0⟩ ∨
-            UInt256.gt (frobDaiNew σ_evm I)
-              (solcSlotWord (frobAfterGem σ_evm I) I (frobDaiWSlot I)) = ⟨0⟩
+          UInt256.slt (frobDtabWord σ I) ⟨0⟩ = ⟨0⟩ ∨
+            UInt256.gt (frobDaiNew σ I)
+              (solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)) = ⟨0⟩
       · by_cases hDaiPos :
-          UInt256.sgt (frobDtabWord σ_evm I) ⟨0⟩ = ⟨0⟩ ∨
-            UInt256.lt (frobDaiNew σ_evm I)
-              (solcSlotWord (frobAfterGem σ_evm I) I (frobDaiWSlot I)) = ⟨0⟩
-        · have hFinal : frobLiveFinalArithmeticGuards σ_evm I := by
+          UInt256.sgt (frobDtabWord σ I) ⟨0⟩ = ⟨0⟩ ∨
+            UInt256.lt (frobDaiNew σ I)
+              (solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I)) = ⟨0⟩
+        · have hFinal : frobLiveFinalArithmeticGuards σ I := by
             unfold frobLiveFinalArithmeticGuards
             exact ⟨hGemPos, hGemNeg, hDaiNeg, hDaiPos⟩
           exact False.elim (hFinalArithmeticFail hFinal)
@@ -5410,11 +5406,10 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
 
 set_option maxHeartbeats 0 in
 theorem vatFrobBodyCoreLiveArithmeticOverflowReverts
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (vatSelBytes 11))
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hsz196 : 196 ≤ I.calldata.size)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (frobTransition.params.map Param.name)
@@ -5422,18 +5417,18 @@ theorem vatFrobBodyCoreLiveArithmeticOverflowReverts
     (hdecoded :
       ∃ k C,
         RD vatBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
-          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hlive : vatSlotWord ⟨10⟩ σ_evm I = ⟨1⟩)
-    (hrateZeroEvm : ¬ solcSlotWord σ_evm I (frobIlkRateSlot I) = ⟨0⟩)
-    (hArithmeticFail : ¬ frobLiveArithmeticPrefixGuards σ_evm I) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
+    (hArithmeticFail : ¬ frobLiveArithmeticPrefixGuards σ I) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   classical
-  by_cases hAdd : frobLiveAddArithmeticGuards σ_evm I
-  · by_cases hMul : frobLiveMulArithmeticGuards σ_evm I
-    · have hArithmetic : frobLiveArithmeticPrefixGuards σ_evm I :=
+  by_cases hAdd : frobLiveAddArithmeticGuards σ I
+  · by_cases hMul : frobLiveMulArithmeticGuards σ I
+    · have hArithmetic : frobLiveArithmeticPrefixGuards σ I :=
         frobLiveArithmeticPrefixGuards_of_add_mul hAdd hMul
       exact False.elim (hArithmeticFail hArithmetic)
     · exact vatFrobBodyCoreLiveMulOverflowReverts
@@ -5449,12 +5444,11 @@ theorem vatFrobBodyCoreLiveArithmeticOverflowReverts
 
 set_option maxHeartbeats 0 in
 theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (vatSelBytes 11))
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hsz196 : 196 ≤ I.calldata.size)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (frobTransition.params.map Param.name)
@@ -5462,40 +5456,40 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
     (hdecoded :
       ∃ k C,
         RD vatBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
-          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hlive : vatSlotWord ⟨10⟩ σ_evm I = ⟨1⟩)
-    (hrateZeroEvm : ¬ solcSlotWord σ_evm I (frobIlkRateSlot I) = ⟨0⟩)
-    (hArithmetic : frobLiveArithmeticPrefixGuards σ_evm I)
-    (hDebtSafetyFail : ¬ frobLiveDebtCeilingSafetyGuards σ_evm I) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
+    (hArithmetic : frobLiveArithmeticPrefixGuards σ I)
+    (hDebtSafetyFail : ¬ frobLiveDebtCeilingSafetyGuards σ I) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   classical
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (sel := vatSelWord I) hlive hdecoded
-  let urnInk := vatSlotWord (frobUrnInkSlot I) σ_solm I
-  let urnArt := vatSlotWord (frobUrnArtSlot I) σ_solm I
-  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ_solm I
-  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ_solm I
-  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ_solm I
-  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ_solm I
-  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ_solm I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hliveWord : vatSlotWord ⟨10⟩ σ_evm I = vatSlotWord ⟨10⟩ σ_solm I :=
+  let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
+  let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
+  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
+  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
+  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
+  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
+  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hliveWord : vatSlotWord ⟨10⟩ σ I = vatSlotWord ⟨10⟩ σ I :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨10⟩ ⟨0⟩
-  have hliveSolm : vatSlotWord ⟨10⟩ σ_solm I = ⟨1⟩ := by
+  have hliveSolm : vatSlotWord ⟨10⟩ σ I = ⟨1⟩ := by
     rw [← hliveWord]
     exact hlive
   have hrateWordNe :
-      vatSlotWord (frobIlkRateSlot I) σ_solm I ≠ ⟨0⟩ := by
+      vatSlotWord (frobIlkRateSlot I) σ I ≠ ⟨0⟩ := by
     intro hzeroSolm
     apply hrateZeroEvm
     have heq :
-        vatSlotWord (frobIlkRateSlot I) σ_evm I =
-          vatSlotWord (frobIlkRateSlot I) σ_solm I :=
+        vatSlotWord (frobIlkRateSlot I) σ I =
+          vatSlotWord (frobIlkRateSlot I) σ I :=
       accountMapEquiv_storage_findD hAccounts I.codeOwner
         (frobIlkRateSlot I) ⟨0⟩
     simpa [vatSlotWord, hzeroSolm] using heq.trans hzeroSolm
@@ -5508,7 +5502,7 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
     exact Nat.pos_of_ne_zero hnat
   have hsourcePrefixRaw :
       let locals := frobStore I
-      let evm0' := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
       ExecBlock config { contract := contract, locals := locals } evm0'
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
@@ -5527,33 +5521,33 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
               frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust }
           evm0') := by
     exact vatFrobSourceRateNonzeroPrefix
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g)
         (urnInk := urnInk) (urnArt := urnArt) (ilkArt := ilkArt)
         (ilkRate := ilkRate) (ilkSpot := ilkSpot) (ilkLine := ilkLine)
         (ilkDust := ilkDust)
         hwv hsz196 hliveSolm
         (by simpa [urnInk] using
-          (frobSourceLoad_urnInk (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_urnInk
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [urnArt] using
-          (frobSourceLoad_urnArt (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_urnArt
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkArt] using
-          (frobSourceLoad_ilkArt (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkArt
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkRate] using
-          (frobSourceLoad_ilkRate (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkRate
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkSpot] using
-          (frobSourceLoad_ilkSpot (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkSpot
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkLine] using
-          (frobSourceLoad_ilkLine (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkLine
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkDust] using
-          (frobSourceLoad_ilkDust (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkDust
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         hratePos
   have hsourcePrefix :
       ExecBlock config { contract := contract, locals := frobStore I } evm0
@@ -5591,45 +5585,45 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
   obtain ⟨_, _, hTabDone⟩ :=
     RD.vatFrobTabMulSuccess
       (h := by simpa using hDtabDone)
-      (urnArtNew := frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-      (ilkArtNew := frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
+      (urnArtNew := frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+      (ilkArtNew := frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
       (dtabWord :=
-        UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+        UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)))
       (by simpa using hTabMul)
   have hUrnInkEq :
-      solcSlotWord σ_evm I (frobUrnInkSlot I) =
-        solcSlotWord σ_solm I (frobUrnInkSlot I) :=
+      solcSlotWord σ I (frobUrnInkSlot I) =
+        solcSlotWord σ I (frobUrnInkSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobUrnInkSlot I) ⟨0⟩
   have hUrnArtEq :
-      solcSlotWord σ_evm I (frobUrnArtSlot I) =
-        solcSlotWord σ_solm I (frobUrnArtSlot I) :=
+      solcSlotWord σ I (frobUrnArtSlot I) =
+        solcSlotWord σ I (frobUrnArtSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobUrnArtSlot I) ⟨0⟩
   have hIlkArtEq :
-      solcSlotWord σ_evm I (frobIlkArtSlot I) =
-        solcSlotWord σ_solm I (frobIlkArtSlot I) :=
+      solcSlotWord σ I (frobIlkArtSlot I) =
+        solcSlotWord σ I (frobIlkArtSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkArtSlot I) ⟨0⟩
   have hIlkRateEq :
-      solcSlotWord σ_evm I (frobIlkRateSlot I) =
-        solcSlotWord σ_solm I (frobIlkRateSlot I) :=
+      solcSlotWord σ I (frobIlkRateSlot I) =
+        solcSlotWord σ I (frobIlkRateSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkRateSlot I) ⟨0⟩
   have hDebtEq :
-      solcSlotWord σ_evm I foldDebtSlot = solcSlotWord σ_solm I foldDebtSlot :=
+      solcSlotWord σ I foldDebtSlot = solcSlotWord σ I foldDebtSlot :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner foldDebtSlot ⟨0⟩
   have hIlkSpotEq :
-      solcSlotWord σ_evm I (frobIlkSpotSlot I) =
-        solcSlotWord σ_solm I (frobIlkSpotSlot I) :=
+      solcSlotWord σ I (frobIlkSpotSlot I) =
+        solcSlotWord σ I (frobIlkSpotSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkSpotSlot I) ⟨0⟩
   have hIlkLineEq :
-      solcSlotWord σ_evm I (frobIlkLineSlot I) =
-        solcSlotWord σ_solm I (frobIlkLineSlot I) :=
+      solcSlotWord σ I (frobIlkLineSlot I) =
+        solcSlotWord σ I (frobIlkLineSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkLineSlot I) ⟨0⟩
-  have hLineEq : solcSlotWord σ_evm I ⟨9⟩ = solcSlotWord σ_solm I ⟨9⟩ :=
+  have hLineEq : solcSlotWord σ I ⟨9⟩ = solcSlotWord σ I ⟨9⟩ :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨9⟩ ⟨0⟩
   let dtab : Int := Int.ofNat ilkRate.toNat * frobDartInt I
-  let debtOld := vatSlotWord foldDebtSlot σ_solm I
+  let debtOld := vatSlotWord foldDebtSlot σ I
   let dtabWord := UInt256.mul (frobDartWord I) ilkRate
   let debtNew := dtabWord + debtOld
-  let Line := vatSlotWord ⟨9⟩ σ_solm I
+  let Line := vatSlotWord ⟨9⟩ σ I
   let urnInkNew := frobDinkWord I + urnInk
   let urnArtNew := frobDartWord I + urnArt
   let ilkArtNew := frobDartWord I + ilkArt
@@ -5679,7 +5673,7 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
         debtOld := by
     simpa [evm0, debtOld, vatSlotWord, solcSlotWord, codeOwnerStorageWord] using
       (codeOwnerStorageWord_initState
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) foldDebtSlot)
   have hdtabMod :
       dtab % (Int.ofNat EVM.wordModulus) = Int.ofNat dtabWord.toNat := by
@@ -5701,7 +5695,7 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
       simpa [evm0, Line, initState, vatSlotWord, solcSlotWord,
         codeOwnerStorageWord] using
         (codeOwnerStorageWord_initState
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := Sat256.ofUInt256 g) ⟨9⟩)
     have hstore :
         Solm.EVM.storageLoad
@@ -5711,31 +5705,31 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
       storageLoad_storageStore_ne evm0 evm0.executionEnv.codeOwner hne
     exact hstore.trans hload0
   have hDebtLoadStore :
-      (((sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
-        (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-          solcSlotWord σ_evm I foldDebtSlot)).find? I.codeOwner).option
+      (((sstoreAccountMap I.codeOwner σ foldDebtSlot
+        (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+          solcSlotWord σ I foldDebtSlot)).find? I.codeOwner).option
           (default : UInt256)
           (fun acc => acc.storage.findD (⟨7⟩ : UInt256) (default : UInt256))) =
-        (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-          solcSlotWord σ_evm I foldDebtSlot) := by
-    have hpresent : σ_evm.find? I.codeOwner ≠ none := by
+        (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+          solcSlotWord σ I foldDebtSlot) := by
+    have hpresent : σ.find? I.codeOwner ≠ none := by
       intro hmissing
       apply hrateZeroEvm
       simp [solcSlotWord, hmissing, Option.option]
     obtain ⟨acc, hacc⟩ := Option.ne_none_iff_exists'.mp hpresent
     simpa [foldDebtSlot] using
-      sstoreAccountMap_storage_findD_self_present σ_evm I.codeOwner hacc
+      sstoreAccountMap_storage_findD_self_present σ I.codeOwner hacc
         foldDebtSlot
-        (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-          solcSlotWord σ_evm I foldDebtSlot)
+        (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+          solcSlotWord σ I foldDebtSlot)
   by_cases hDebtNeg :
       UInt256.slt
-          (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+          (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)))
           ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt
-          (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot)
-          (solcSlotWord σ_evm I foldDebtSlot) = ⟨0⟩
+          (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot)
+          (solcSlotWord σ I foldDebtSlot) = ⟨0⟩
   · have hDebtNegSource :
         UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
           UInt256.gt debtNew debtOld = ⟨0⟩ := by
@@ -5743,12 +5737,12 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
         hDebtEq] using hDebtNeg
     by_cases hDebtPos :
         UInt256.sgt
-            (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+            (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)))
             ⟨0⟩ = ⟨0⟩ ∨
           UInt256.lt
-            (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-              solcSlotWord σ_evm I foldDebtSlot)
-            (solcSlotWord σ_evm I foldDebtSlot) = ⟨0⟩
+            (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+              solcSlotWord σ I foldDebtSlot)
+            (solcSlotWord σ I foldDebtSlot) = ⟨0⟩
     · have hDebtPosSource :
           UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
             UInt256.lt debtNew debtOld = ⟨0⟩ := by
@@ -5761,14 +5755,14 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
           (by simpa using hDebtNeg)
           (by simpa using hDebtPos)
       by_cases hCeilingMul :
-          solcSlotWord σ_evm I (frobIlkRateSlot I) = ⟨0⟩ ∨
+          solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩ ∨
             UInt256.eq
               (UInt256.div
                 (UInt256.mul
-                  (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-                  (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-                (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-              (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I)) ≠
+                  (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+                  (solcSlotWord σ I (frobIlkRateSlot I)))
+                (solcSlotWord σ I (frobIlkRateSlot I)))
+              (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I)) ≠
                 ⟨0⟩
       · have hCeilingMulSource :
             ilkRate = ⟨0⟩ ∨
@@ -5782,15 +5776,15 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
                 (UInt256.isZero
                   (UInt256.gt
                     (UInt256.mul (frobDartWord I)
-                      (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                    solcSlotWord σ_evm I foldDebtSlot)
-                    (solcSlotWord σ_evm I ⟨9⟩)))
+                      (solcSlotWord σ I (frobIlkRateSlot I)) +
+                    solcSlotWord σ I foldDebtSlot)
+                    (solcSlotWord σ I ⟨9⟩)))
                 (UInt256.isZero
                   (UInt256.gt
                     (UInt256.mul
-                      (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-                      (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-                    (solcSlotWord σ_evm I (frobIlkLineSlot I)))))
+                      (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+                      (solcSlotWord σ I (frobIlkRateSlot I)))
+                    (solcSlotWord σ I (frobIlkLineSlot I)))))
               (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) ≠ ⟨0⟩
         · have hCeilingOkSource :
               UInt256.lor
@@ -5809,14 +5803,14 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
               (by simpa using hCeilingOk)
               (by simpa [foldDebtSlot] using hDebtLoadStore)
           by_cases hInkMul :
-              solcSlotWord σ_evm I (frobIlkSpotSlot I) = ⟨0⟩ ∨
+              solcSlotWord σ I (frobIlkSpotSlot I) = ⟨0⟩ ∨
                 UInt256.eq
                   (UInt256.div
                     (UInt256.mul
-                      (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                      (solcSlotWord σ_evm I (frobIlkSpotSlot I)))
-                    (solcSlotWord σ_evm I (frobIlkSpotSlot I)))
-                  (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I)) ≠
+                      (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                      (solcSlotWord σ I (frobIlkSpotSlot I)))
+                    (solcSlotWord σ I (frobIlkSpotSlot I)))
+                  (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I)) ≠
                     ⟨0⟩
           · have hInkMulSource :
                 ilkSpot = ⟨0⟩ ∨
@@ -5828,15 +5822,15 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
                 UInt256.lor
                   (UInt256.isZero
                     (UInt256.gt
-                      (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                        (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
+                      (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                        (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
                       (UInt256.mul
-                        (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                        (solcSlotWord σ_evm I (frobIlkSpotSlot I)))))
+                        (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                        (solcSlotWord σ I (frobIlkSpotSlot I)))))
                   (UInt256.land
                     (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
                     (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) ≠ ⟨0⟩
-            · have hDebtSafety : frobLiveDebtCeilingSafetyGuards σ_evm I := by
+            · have hDebtSafety : frobLiveDebtCeilingSafetyGuards σ I := by
                 unfold frobLiveDebtCeilingSafetyGuards
                 exact ⟨hDebtNeg, hDebtPos, hCeilingMul, hCeilingOk,
                   hDebtLoadStore, hInkMul, hSafetyOk⟩
@@ -5845,11 +5839,11 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
                   UInt256.lor
                     (UInt256.isZero
                       (UInt256.gt
-                        (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                          (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
+                        (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                          (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
                         (UInt256.mul
-                          (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                          (solcSlotWord σ_evm I (frobIlkSpotSlot I)))))
+                          (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                          (solcSlotWord σ I (frobIlkSpotSlot I)))))
                     (UInt256.land
                       (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
                       (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩))) =
@@ -5933,15 +5927,15 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
                   (UInt256.isZero
                     (UInt256.gt
                       (UInt256.mul (frobDartWord I)
-                        (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                      solcSlotWord σ_evm I foldDebtSlot)
-                      (solcSlotWord σ_evm I ⟨9⟩)))
+                        (solcSlotWord σ I (frobIlkRateSlot I)) +
+                      solcSlotWord σ I foldDebtSlot)
+                      (solcSlotWord σ I ⟨9⟩)))
                   (UInt256.isZero
                     (UInt256.gt
                       (UInt256.mul
-                        (frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
-                        (solcSlotWord σ_evm I (frobIlkRateSlot I)))
-                      (solcSlotWord σ_evm I (frobIlkLineSlot I)))))
+                        (frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
+                        (solcSlotWord σ I (frobIlkRateSlot I)))
+                      (solcSlotWord σ I (frobIlkLineSlot I)))))
                 (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) =
                 ⟨0⟩ := by
             by_contra hne
@@ -5953,14 +5947,14 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
               vatSlotWord, hIlkArtEq, hIlkRateEq, hDebtEq] using hCeilingOkZero)
             (by simpa [foldDebtSlot] using hDebtLoadStore)
           by_cases hInkMul :
-              solcSlotWord σ_evm I (frobIlkSpotSlot I) = ⟨0⟩ ∨
+              solcSlotWord σ I (frobIlkSpotSlot I) = ⟨0⟩ ∨
                 UInt256.eq
                   (UInt256.div
                     (UInt256.mul
-                      (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I))
-                      (solcSlotWord σ_evm I (frobIlkSpotSlot I)))
-                    (solcSlotWord σ_evm I (frobIlkSpotSlot I)))
-                  (frobDinkWord I + solcSlotWord σ_evm I (frobUrnInkSlot I)) ≠
+                      (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I))
+                      (solcSlotWord σ I (frobIlkSpotSlot I)))
+                    (solcSlotWord σ I (frobIlkSpotSlot I)))
+                  (frobDinkWord I + solcSlotWord σ I (frobUrnInkSlot I)) ≠
                     ⟨0⟩
           · have hInkMulSource :
                 ilkSpot = ⟨0⟩ ∨
@@ -6107,12 +6101,11 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
 
 set_option maxHeartbeats 0 in
 theorem vatFrobBodyCoreLiveWishAuthDustReverts
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (vatSelBytes 11))
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hsz196 : 196 ≤ I.calldata.size)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (frobTransition.params.map Param.name)
@@ -6120,41 +6113,41 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
     (hdecoded :
       ∃ k C,
         RD vatBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
-          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hlive : vatSlotWord ⟨10⟩ σ_evm I = ⟨1⟩)
-    (hrateZeroEvm : ¬ solcSlotWord σ_evm I (frobIlkRateSlot I) = ⟨0⟩)
-    (hArithmetic : frobLiveArithmeticPrefixGuards σ_evm I)
-    (hDebtSafety : frobLiveDebtCeilingSafetyGuards σ_evm I)
-    (hWishAuthDustFail : ¬ frobLiveWishAuthDustGuards σ_evm I) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩)
+    (hrateZeroEvm : ¬ solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩)
+    (hArithmetic : frobLiveArithmeticPrefixGuards σ I)
+    (hDebtSafety : frobLiveDebtCeilingSafetyGuards σ I)
+    (hWishAuthDustFail : ¬ frobLiveWishAuthDustGuards σ I) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   classical
   obtain ⟨_, _, hafterLive⟩ := vatFrobLiveOk
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+    (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
     (sel := vatSelWord I) hlive hdecoded
-  let urnInk := vatSlotWord (frobUrnInkSlot I) σ_solm I
-  let urnArt := vatSlotWord (frobUrnArtSlot I) σ_solm I
-  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ_solm I
-  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ_solm I
-  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ_solm I
-  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ_solm I
-  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ_solm I
-  let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hliveWord : vatSlotWord ⟨10⟩ σ_evm I = vatSlotWord ⟨10⟩ σ_solm I :=
+  let urnInk := vatSlotWord (frobUrnInkSlot I) σ I
+  let urnArt := vatSlotWord (frobUrnArtSlot I) σ I
+  let ilkArt := vatSlotWord (frobIlkArtSlot I) σ I
+  let ilkRate := vatSlotWord (frobIlkRateSlot I) σ I
+  let ilkSpot := vatSlotWord (frobIlkSpotSlot I) σ I
+  let ilkLine := vatSlotWord (frobIlkLineSlot I) σ I
+  let ilkDust := vatSlotWord (frobIlkDustSlot I) σ I
+  let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hliveWord : vatSlotWord ⟨10⟩ σ I = vatSlotWord ⟨10⟩ σ I :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨10⟩ ⟨0⟩
-  have hliveSolm : vatSlotWord ⟨10⟩ σ_solm I = ⟨1⟩ := by
+  have hliveSolm : vatSlotWord ⟨10⟩ σ I = ⟨1⟩ := by
     rw [← hliveWord]
     exact hlive
   have hrateWordNe :
-      vatSlotWord (frobIlkRateSlot I) σ_solm I ≠ ⟨0⟩ := by
+      vatSlotWord (frobIlkRateSlot I) σ I ≠ ⟨0⟩ := by
     intro hzeroSolm
     apply hrateZeroEvm
     have heq :
-        vatSlotWord (frobIlkRateSlot I) σ_evm I =
-          vatSlotWord (frobIlkRateSlot I) σ_solm I :=
+        vatSlotWord (frobIlkRateSlot I) σ I =
+          vatSlotWord (frobIlkRateSlot I) σ I :=
       accountMapEquiv_storage_findD hAccounts I.codeOwner
         (frobIlkRateSlot I) ⟨0⟩
     simpa [vatSlotWord, hzeroSolm] using heq.trans hzeroSolm
@@ -6167,7 +6160,7 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
     exact Nat.pos_of_ne_zero hnat
   have hsourcePrefixRaw :
       let locals := frobStore I
-      let evm0' := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+      let evm0' := initState σ σ₀ (Sat256.ofUInt256 g) A I
       ExecBlock config { contract := contract, locals := locals } evm0'
         (nonpayable ++ requireLive ++
           [ .letDecl "urnInk" (some uint256)
@@ -6186,33 +6179,33 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
               frobStoreIlkDust I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine ilkDust }
           evm0') := by
     exact vatFrobSourceRateNonzeroPrefix
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g)
         (urnInk := urnInk) (urnArt := urnArt) (ilkArt := ilkArt)
         (ilkRate := ilkRate) (ilkSpot := ilkSpot) (ilkLine := ilkLine)
         (ilkDust := ilkDust)
         hwv hsz196 hliveSolm
         (by simpa [urnInk] using
-          (frobSourceLoad_urnInk (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_urnInk
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [urnArt] using
-          (frobSourceLoad_urnArt (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_urnArt
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkArt] using
-          (frobSourceLoad_ilkArt (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkArt
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkRate] using
-          (frobSourceLoad_ilkRate (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkRate
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkSpot] using
-          (frobSourceLoad_ilkSpot (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkSpot
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkLine] using
-          (frobSourceLoad_ilkLine (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkLine
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         (by simpa [ilkDust] using
-          (frobSourceLoad_ilkDust (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
+          (frobSourceLoad_ilkDust
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
         hratePos
   have hsourcePrefix :
       ExecBlock config { contract := contract, locals := frobStore I } evm0
@@ -6253,10 +6246,10 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
   obtain ⟨_, _, hTabDone⟩ :=
     RD.vatFrobTabMulSuccess
       (h := by simpa using hDtabDone)
-      (urnArtNew := frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))
-      (ilkArtNew := frobDartWord I + solcSlotWord σ_evm I (frobIlkArtSlot I))
+      (urnArtNew := frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))
+      (ilkArtNew := frobDartWord I + solcSlotWord σ I (frobIlkArtSlot I))
       (dtabWord :=
-        UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)))
+        UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)))
       (by simpa using hTabMul)
   obtain ⟨_, _, hDebtDone⟩ :=
     RD.vatFrobDebtAddStoreSuccess
@@ -6276,43 +6269,43 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
       (by simpa using hInkMul)
       (by simpa using hSafetyOk)
   have hUrnInkEq :
-      solcSlotWord σ_evm I (frobUrnInkSlot I) =
-        solcSlotWord σ_solm I (frobUrnInkSlot I) :=
+      solcSlotWord σ I (frobUrnInkSlot I) =
+        solcSlotWord σ I (frobUrnInkSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobUrnInkSlot I) ⟨0⟩
   have hUrnArtEq :
-      solcSlotWord σ_evm I (frobUrnArtSlot I) =
-        solcSlotWord σ_solm I (frobUrnArtSlot I) :=
+      solcSlotWord σ I (frobUrnArtSlot I) =
+        solcSlotWord σ I (frobUrnArtSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobUrnArtSlot I) ⟨0⟩
   have hIlkArtEq :
-      solcSlotWord σ_evm I (frobIlkArtSlot I) =
-        solcSlotWord σ_solm I (frobIlkArtSlot I) :=
+      solcSlotWord σ I (frobIlkArtSlot I) =
+        solcSlotWord σ I (frobIlkArtSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkArtSlot I) ⟨0⟩
   have hIlkRateEq :
-      solcSlotWord σ_evm I (frobIlkRateSlot I) =
-        solcSlotWord σ_solm I (frobIlkRateSlot I) :=
+      solcSlotWord σ I (frobIlkRateSlot I) =
+        solcSlotWord σ I (frobIlkRateSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkRateSlot I) ⟨0⟩
   have hDebtEq :
-      solcSlotWord σ_evm I foldDebtSlot = solcSlotWord σ_solm I foldDebtSlot :=
+      solcSlotWord σ I foldDebtSlot = solcSlotWord σ I foldDebtSlot :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner foldDebtSlot ⟨0⟩
   have hIlkSpotEq :
-      solcSlotWord σ_evm I (frobIlkSpotSlot I) =
-        solcSlotWord σ_solm I (frobIlkSpotSlot I) :=
+      solcSlotWord σ I (frobIlkSpotSlot I) =
+        solcSlotWord σ I (frobIlkSpotSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkSpotSlot I) ⟨0⟩
   have hIlkLineEq :
-      solcSlotWord σ_evm I (frobIlkLineSlot I) =
-        solcSlotWord σ_solm I (frobIlkLineSlot I) :=
+      solcSlotWord σ I (frobIlkLineSlot I) =
+        solcSlotWord σ I (frobIlkLineSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkLineSlot I) ⟨0⟩
   have hIlkDustEq :
-      solcSlotWord σ_evm I (frobIlkDustSlot I) =
-        solcSlotWord σ_solm I (frobIlkDustSlot I) :=
+      solcSlotWord σ I (frobIlkDustSlot I) =
+        solcSlotWord σ I (frobIlkDustSlot I) :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkDustSlot I) ⟨0⟩
-  have hLineEq : solcSlotWord σ_evm I ⟨9⟩ = solcSlotWord σ_solm I ⟨9⟩ :=
+  have hLineEq : solcSlotWord σ I ⟨9⟩ = solcSlotWord σ I ⟨9⟩ :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨9⟩ ⟨0⟩
   let dtab : Int := Int.ofNat ilkRate.toNat * frobDartInt I
-  let debtOld := vatSlotWord foldDebtSlot σ_solm I
+  let debtOld := vatSlotWord foldDebtSlot σ I
   let dtabWord := UInt256.mul (frobDartWord I) ilkRate
   let debtNew := dtabWord + debtOld
-  let Line := vatSlotWord ⟨9⟩ σ_solm I
+  let Line := vatSlotWord ⟨9⟩ σ I
   let urnInkNew := frobDinkWord I + urnInk
   let urnArtNew := frobDartWord I + urnArt
   let ilkArtNew := frobDartWord I + ilkArt
@@ -6333,11 +6326,11 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
     (localsDebt.insert "ceilingDebt" (.int (Int.ofNat ceilingDebt.toNat))).insert
       "inkSpot" (.int (Int.ofNat inkSpot.toNat))
   let uWish := vatSlotWord (frobUWishSlot I)
-    (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+    (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
   let vWish := vatSlotWord (frobVWishSlot I)
-    (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+    (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
   let wWish := vatSlotWord (frobWWishSlot I)
-    (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+    (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
   have hInkNegSource :
       UInt256.slt (frobDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
         UInt256.gt (frobDinkWord I + urnInk) urnInk = ⟨0⟩ := by
@@ -6421,7 +6414,7 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
         debtOld := by
     simpa [evm0, debtOld, vatSlotWord, solcSlotWord, codeOwnerStorageWord] using
       (codeOwnerStorageWord_initState
-        (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+        (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) foldDebtSlot)
   have hdtabMod :
       dtab % (Int.ofNat EVM.wordModulus) = Int.ofNat dtabWord.toNat := by
@@ -6443,7 +6436,7 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
       simpa [evm0, Line, initState, vatSlotWord, solcSlotWord,
         codeOwnerStorageWord] using
         (codeOwnerStorageWord_initState
-          (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
+          (σ := σ) (σ₀ := σ₀)
           (A := A) (I := I) (g := Sat256.ofUInt256 g) ⟨9⟩)
     have hstore :
         Solm.EVM.storageLoad
@@ -6507,45 +6500,45 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
       List.append_assoc] using hraw
   have hUWishEq :
       vatSlotWord (frobUWishSlot I)
-        (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
-          (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot)) I = uWish := by
+        (sstoreAccountMap I.codeOwner σ foldDebtSlot
+          (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot)) I = uWish := by
     simpa [uWish, debtNew, dtabWord, debtOld, ilkRate, vatSlotWord, hIlkRateEq,
       hDebtEq] using
       (vatSlotWord_debtStore_accountMapEquiv
-        (σ_evm := σ_evm) (σ_solm := σ_solm) (I := I) hAccounts
+        (σ := σ)  (I := I) hAccounts
         (frobUWishSlot I) debtNew)
   have hVWishEq :
       vatSlotWord (frobVWishSlot I)
-        (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
-          (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot)) I = vWish := by
+        (sstoreAccountMap I.codeOwner σ foldDebtSlot
+          (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot)) I = vWish := by
     simpa [vWish, debtNew, dtabWord, debtOld, ilkRate, vatSlotWord, hIlkRateEq,
       hDebtEq] using
       (vatSlotWord_debtStore_accountMapEquiv
-        (σ_evm := σ_evm) (σ_solm := σ_solm) (I := I) hAccounts
+        (σ := σ)  (I := I) hAccounts
         (frobVWishSlot I) debtNew)
   have hWWishEq :
       vatSlotWord (frobWWishSlot I)
-        (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
-          (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-            solcSlotWord σ_evm I foldDebtSlot)) I = wWish := by
+        (sstoreAccountMap I.codeOwner σ foldDebtSlot
+          (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+            solcSlotWord σ I foldDebtSlot)) I = wWish := by
     simpa [wWish, debtNew, dtabWord, debtOld, ilkRate, vatSlotWord, hIlkRateEq,
       hDebtEq] using
       (vatSlotWord_debtStore_accountMapEquiv
-        (σ_evm := σ_evm) (σ_solm := σ_solm) (I := I) hAccounts
+        (σ := σ)  (I := I) hAccounts
         (frobWWishSlot I) debtNew)
   have hloadU :
       Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner
         (frobUWishSlot I) = uWish := by
     have hmap :
         evmDebt.accountMap =
-          sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew := by
+          sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew := by
       simpa [evmDebt, evm0, initState] using
         storageStore_accountMap evm0 evm0.executionEnv.codeOwner foldDebtSlot debtNew
     change Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner
         (frobUWishSlot I) =
-      solcSlotWord (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+      solcSlotWord (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
         (frobUWishSlot I)
     simp only [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
     rw [hmap]
@@ -6555,12 +6548,12 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
         (frobVWishSlot I) = vWish := by
     have hmap :
         evmDebt.accountMap =
-          sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew := by
+          sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew := by
       simpa [evmDebt, evm0, initState] using
         storageStore_accountMap evm0 evm0.executionEnv.codeOwner foldDebtSlot debtNew
     change Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner
         (frobVWishSlot I) =
-      solcSlotWord (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+      solcSlotWord (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
         (frobVWishSlot I)
     simp only [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
     rw [hmap]
@@ -6570,12 +6563,12 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
         (frobWWishSlot I) = wWish := by
     have hmap :
         evmDebt.accountMap =
-          sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew := by
+          sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew := by
       simpa [evmDebt, evm0, initState] using
         storageStore_accountMap evm0 evm0.executionEnv.codeOwner foldDebtSlot debtNew
     change Solm.EVM.storageLoad evmDebt evmDebt.executionEnv.codeOwner
         (frobWWishSlot I) =
-      solcSlotWord (sstoreAccountMap I.codeOwner σ_solm foldDebtSlot debtNew) I
+      solcSlotWord (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I
         (frobWWishSlot I)
     simp only [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
     rw [hmap]
@@ -6797,9 +6790,9 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
       UInt256.lor
         (UInt256.lor
           (UInt256.eq (vatSlotWord (frobUWishSlot I)
-            (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
-              (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                solcSlotWord σ_evm I foldDebtSlot)) I) ⟨1⟩)
+            (sstoreAccountMap I.codeOwner σ foldDebtSlot
+              (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+                solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)
           (UInt256.eq (frobUMaskedWord I) (hopeSourceWord I)))
         (UInt256.land
           (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
@@ -6815,9 +6808,9 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
         UInt256.lor
           (UInt256.lor
             (UInt256.eq (vatSlotWord (frobVWishSlot I)
-              (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
-                (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                  solcSlotWord σ_evm I foldDebtSlot)) I) ⟨1⟩)
+              (sstoreAccountMap I.codeOwner σ foldDebtSlot
+                (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+                  solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)
             (UInt256.eq (frobVMaskedWord I) (hopeSourceWord I)))
           (UInt256.isZero (UInt256.sgt (frobDinkWord I) ⟨0⟩)) ≠ ⟨0⟩
     · have hVOk :=
@@ -6831,9 +6824,9 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
           UInt256.lor
             (UInt256.lor
               (UInt256.eq (vatSlotWord (frobWWishSlot I)
-                (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
-                  (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                    solcSlotWord σ_evm I foldDebtSlot)) I) ⟨1⟩)
+                (sstoreAccountMap I.codeOwner σ foldDebtSlot
+                  (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+                    solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)
               (UInt256.eq (frobWMaskedWord I) (hopeSourceWord I)))
             (UInt256.isZero (UInt256.slt (frobDartWord I) ⟨0⟩)) ≠ ⟨0⟩
       · have hWOk :=
@@ -6847,12 +6840,12 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
             UInt256.lor
               (UInt256.isZero
                 (UInt256.lt
-                  (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                    (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-                  (solcSlotWord σ_evm I (frobIlkDustSlot I))))
+                  (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                    (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+                  (solcSlotWord σ I (frobIlkDustSlot I))))
               (UInt256.eq ⟨0⟩
-                (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))) ≠ ⟨0⟩
-        · have hWishAuthDust : frobLiveWishAuthDustGuards σ_evm I := by
+                (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))) ≠ ⟨0⟩
+        · have hWishAuthDust : frobLiveWishAuthDustGuards σ I := by
             unfold frobLiveWishAuthDustGuards
             exact ⟨hU, hV, hW, hDust⟩
           exact False.elim (hWishAuthDustFail hWishAuthDust)
@@ -6860,11 +6853,11 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
               UInt256.lor
                 (UInt256.isZero
                   (UInt256.lt
-                    (UInt256.mul (solcSlotWord σ_evm I (frobIlkRateSlot I))
-                      (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I)))
-                    (solcSlotWord σ_evm I (frobIlkDustSlot I))))
+                    (UInt256.mul (solcSlotWord σ I (frobIlkRateSlot I))
+                      (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I)))
+                    (solcSlotWord σ I (frobIlkDustSlot I))))
                 (UInt256.eq ⟨0⟩
-                  (frobDartWord I + solcSlotWord σ_evm I (frobUrnArtSlot I))) =
+                  (frobDartWord I + solcSlotWord σ I (frobUrnArtSlot I))) =
                 ⟨0⟩ := by
             by_contra hne
             exact hDust hne
@@ -6900,9 +6893,9 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
             UInt256.lor
               (UInt256.lor
                 (UInt256.eq (vatSlotWord (frobWWishSlot I)
-                  (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
-                    (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                      solcSlotWord σ_evm I foldDebtSlot)) I) ⟨1⟩)
+                  (sstoreAccountMap I.codeOwner σ foldDebtSlot
+                    (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+                      solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)
                 (UInt256.eq (frobWMaskedWord I) (hopeSourceWord I)))
               (UInt256.isZero (UInt256.slt (frobDartWord I) ⟨0⟩)) = ⟨0⟩ := by
           by_contra hne
@@ -6935,9 +6928,9 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
           UInt256.lor
             (UInt256.lor
               (UInt256.eq (vatSlotWord (frobVWishSlot I)
-                (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
-                  (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                    solcSlotWord σ_evm I foldDebtSlot)) I) ⟨1⟩)
+                (sstoreAccountMap I.codeOwner σ foldDebtSlot
+                  (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+                    solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)
               (UInt256.eq (frobVMaskedWord I) (hopeSourceWord I)))
             (UInt256.isZero (UInt256.sgt (frobDinkWord I) ⟨0⟩)) = ⟨0⟩ := by
         by_contra hne
@@ -6967,9 +6960,9 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
         UInt256.lor
           (UInt256.lor
             (UInt256.eq (vatSlotWord (frobUWishSlot I)
-              (sstoreAccountMap I.codeOwner σ_evm foldDebtSlot
-                (UInt256.mul (frobDartWord I) (solcSlotWord σ_evm I (frobIlkRateSlot I)) +
-                  solcSlotWord σ_evm I foldDebtSlot)) I) ⟨1⟩)
+              (sstoreAccountMap I.codeOwner σ foldDebtSlot
+                (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
+                  solcSlotWord σ I foldDebtSlot)) I) ⟨1⟩)
             (UInt256.eq (frobUMaskedWord I) (hopeSourceWord I)))
           (UInt256.land
             (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
@@ -6999,13 +6992,12 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
 
 set_option maxHeartbeats 0 in
 theorem vatFrobBodyCoreLive
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (vatSelBytes 11))
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hsz196 : 196 ≤ I.calldata.size)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (frobTransition.params.map Param.name)
@@ -7013,24 +7005,24 @@ theorem vatFrobBodyCoreLive
     (hdecoded :
       ∃ k C,
         RD vatBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2975⟩
           [frobDartWord I, frobDinkWord I, frobWMaskedWord I, frobVMaskedWord I,
             frobUMaskedWord I, frobIWord I, ⟨524⟩, vatSelWord I]
-          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hlive : vatSlotWord ⟨10⟩ σ_evm I = ⟨1⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+          solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
+    (hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   classical
-  by_cases hrateZeroEvm : solcSlotWord σ_evm I (frobIlkRateSlot I) = ⟨0⟩
+  by_cases hrateZeroEvm : solcSlotWord σ I (frobIlkRateSlot I) = ⟨0⟩
   · exact vatFrobBodyCoreLiveRateZeroRevert
       (hcode := hcode) (hwv := hwv) (hsel := hsel)
       (hAccounts := hAccounts) (hsz196 := hsz196)
       (hdecode := hdecode) (hdecoded := hdecoded) (hlive := hlive)
       (hrateZeroEvm := hrateZeroEvm)
-  · by_cases hArithmetic : frobLiveArithmeticPrefixGuards σ_evm I
-    · by_cases hDebtSafety : frobLiveDebtCeilingSafetyGuards σ_evm I
-      · by_cases hWishAuthDust : frobLiveWishAuthDustGuards σ_evm I
-        · by_cases hFinalArithmetic : frobLiveFinalArithmeticGuards σ_evm I
-          · have hSuccess : frobLiveSuccessGuards σ_evm I :=
+  · by_cases hArithmetic : frobLiveArithmeticPrefixGuards σ I
+    · by_cases hDebtSafety : frobLiveDebtCeilingSafetyGuards σ I
+      · by_cases hWishAuthDust : frobLiveWishAuthDustGuards σ I
+        · by_cases hFinalArithmetic : frobLiveFinalArithmeticGuards σ I
+          · have hSuccess : frobLiveSuccessGuards σ I :=
               frobLiveSuccessGuards_of_groups hArithmetic hDebtSafety hWishAuthDust
                 hFinalArithmetic
             exact vatFrobBodyCoreLiveSuccessGuards

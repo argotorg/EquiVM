@@ -18,11 +18,11 @@ theorem RD.uniswapSafeTransferReturnNonemptyHugeReverts {g : Sat256} {s0 : State
     {ee : ExecutionEnv} {k C : ℕ}
     {status returnPc base gasMarker value toWord token ret : UInt256}
     {R : List UInt256} {callMem out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (status :: returnPc :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R)
-      callMem gasMarker out acc k C)
+      callMem gasMarker out σ k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < UInt256.size)
     (hcallMem64 :
       (if (⟨64⟩ : UInt256).toNat ≥ callMem.size
@@ -92,9 +92,9 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferReturnFailureMessageFrom6697Reverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {base status value toWord token ret : UInt256}
     {R : List UInt256} {mem0 out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {aw0 : UInt256}
+    {σ : AccountMap} {aw0 : UInt256}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6697⟩
-      (base :: status :: value :: toWord :: token :: ret :: R) mem0 aw0 out acc k C)
+      (base :: status :: value :: toWord :: token :: ret :: R) mem0 aw0 out σ k C)
     (hR : R.length + 16 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   let fp0 : UInt256 :=
@@ -186,9 +186,9 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferReturnNonemptyFailureReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {base value toWord token ret : UInt256}
     {R : List UInt256} {mem0 out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {aw0 : UInt256}
+    {σ : AccountMap} {aw0 : UInt256}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
-      (base :: ⟨0⟩ :: value :: toWord :: token :: ret :: R) mem0 aw0 out acc k C)
+      (base :: ⟨0⟩ :: value :: toWord :: token :: ret :: R) mem0 aw0 out σ k C)
     (hR : R.length + 16 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd6692 := evm_run h with [
@@ -202,9 +202,9 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueStatusToLengthLoaded {g : Sat256
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {base retPtr value toWord token ret : UInt256}
     {R : List UInt256} {mem0 out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {aw0 : UInt256}
+    {σ : AccountMap} {aw0 : UInt256}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
-      (base :: ⟨1⟩ :: value :: toWord :: token :: ret :: R) mem0 aw0 out acc k C)
+      (base :: ⟨1⟩ :: value :: toWord :: token :: ret :: R) mem0 aw0 out σ k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (hloadBase :
       (if base.toNat ≥ mem0.size then ⟨0⟩
@@ -216,7 +216,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueStatusToLengthLoaded {g : Sat256
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
       (UInt256.ofNat out.size :: retPtr :: base :: ⟨1⟩ ::
         value :: toWord :: token :: ret :: R)
-      mem0 aw0 out acc k' C' := by
+      mem0 aw0 out σ k' C' := by
   have hsizeNe : UInt256.ofNat out.size ≠ ⟨0⟩ := by
     intro hzero
     have hnat : (UInt256.ofNat out.size).toNat = 0 := by rw [hzero]; rfl
@@ -244,9 +244,9 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueStatusToLengthLoaded {g : Sat256
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferReturnNonemptyShortReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {next : UInt256} {T : List UInt256} {mem0 out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {aw0 : UInt256}
+    {σ : AccountMap} {aw0 : UInt256}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
-      (UInt256.ofNat out.size :: next :: T) mem0 aw0 out acc k C)
+      (UInt256.ofNat out.size :: next :: T) mem0 aw0 out σ k C)
     (hs : out.size < 32) (ho : out.size < 2 ^ 255) (hT : T.length + 4 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd6684₀ := evm_run h with [push1 ⟨32⟩, dup2, lt, iszero, push2 ⟨6689⟩]
@@ -265,11 +265,11 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferReturnNonemptyFalseReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {base retPtr value toWord token ret : UInt256}
     {R : List UInt256} {mem0 out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {aw0 : UInt256}
+    {σ : AccountMap} {aw0 : UInt256}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
       (UInt256.ofNat out.size :: retPtr :: base :: ⟨1⟩ :: value :: toWord :: token ::
         ret :: R)
-      mem0 aw0 out acc k C)
+      mem0 aw0 out σ k C)
     (hout32 : 32 ≤ out.size) (houtSize : out.size < 2 ^ 255)
     (hword : UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) = ⟨0⟩)
     (hloadRet :
@@ -305,11 +305,11 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferReturnNonemptyTrueToRet {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {base retPtr value toWord token ret : UInt256}
     {R : List UInt256} {mem0 out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {aw0 : UInt256}
+    {σ : AccountMap} {aw0 : UInt256}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6676⟩
       (UInt256.ofNat out.size :: retPtr :: base :: ⟨1⟩ :: value :: toWord :: token ::
         ret :: R)
-      mem0 aw0 out acc k C)
+      mem0 aw0 out σ k C)
     (hout32 : 32 ≤ out.size) (houtSize : out.size < 2 ^ 255)
     (hword : UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) ≠ ⟨0⟩)
     (hloadRet :
@@ -319,7 +319,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueToRet {g : Sat256} {s0 : State}
     (hawRet : UInt256.ofNat (MachineState.M aw0.toNat retPtr.toNat 32) = aw0)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hR : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R mem0 aw0 out acc k' C' := by
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R mem0 aw0 out σ k' C' := by
   have rd6684₀ := evm_run h with [push1 ⟨32⟩, dup2, lt, iszero, push2 ⟨6689⟩]
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256) = ⟨0⟩ := by
     apply Reasoning.Theory.ult_zero
@@ -345,10 +345,10 @@ theorem RD.uniswapSafeTransferReturnNonemptyReturnToCheck {g : Sat256} {s0 : Sta
     {ee : ExecutionEnv} {k C : ℕ}
     {status callRetOffset maskedToken value toWord token ret dataPtr finalAw : UInt256}
     {R : List UInt256} {mem0 memFinal out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {aw0 : UInt256}
+    {σ : AccountMap} {aw0 : UInt256}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (status :: callRetOffset :: maskedToken :: ⟨96⟩ :: ⟨0⟩ ::
-        value :: toWord :: token :: ret :: R) mem0 aw0 out acc k C)
+        value :: toWord :: token :: ret :: R) mem0 aw0 out σ k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (hloadPtr :
       (if (⟨64⟩ : UInt256).toNat ≥ mem0.size
@@ -375,7 +375,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyReturnToCheck {g : Sat256} {s0 : Sta
     (hR : R.length + 16 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
       (dataPtr :: status :: value :: toWord :: token :: ret :: R)
-      memFinal finalAw out acc k' C' := by
+      memFinal finalAw out σ k' C' := by
   let rdsz : UInt256 := UInt256.ofNat out.size
   have hrdsz_toNat : rdsz.toNat = out.size := by
     dsimp [rdsz]
@@ -452,19 +452,19 @@ theorem RD.uniswapSafeTransferReturnNonemptyReturnToCheck {g : Sat256} {s0 : Sta
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferNonemptyReturnToCheck {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {self value toWord token token1 ret sel status : UInt256}
-    {o out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {o out : ByteArray} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (status :: ⟨360⟩ :: UInt256.land token solcAddrMask :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: token1 :: token :: toWord :: ⟨570⟩ ::
         sel :: [])
-      (skimSafeTransferCallMem2 self o toWord value) (UInt256.ofNat 13) out acc k C)
+      (skimSafeTransferCallMem2 self o toWord value) (UInt256.ofNat 13) out σ k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6652⟩
       (⟨292⟩ :: status :: value :: toWord :: token :: ret :: token1 :: token :: toWord ::
         ⟨570⟩ :: sel :: [])
       (skimSafeTransferReturnDataMem self o toWord value out)
-      (skimSafeTransferReturnDataActiveWords out) out acc k' C' := by
+      (skimSafeTransferReturnDataActiveWords out) out σ k' C' := by
   exact RD.uniswapSafeTransferReturnNonemptyReturnToCheck
     (R := token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
     h houtNe houtSize
@@ -486,11 +486,11 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferEmptyFailureReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {callRetOffset maskedToken value toWord token ret : UInt256}
     {R : List UInt256} {mem out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {aw : UInt256}
+    {σ : AccountMap} {aw : UInt256}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨0⟩ :: callRetOffset :: maskedToken :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R)
-      mem aw out acc k C)
+      mem aw out σ k C)
     (hout : out.size = 0) (hR : R.length + 16 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   have rd6607 := evm_run h with [
@@ -506,11 +506,11 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferEmptyReturnToRet {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {callRetOffset maskedToken value toWord token ret : UInt256}
     {R : List UInt256} {mem out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {aw : UInt256}
+    {σ : AccountMap} {aw : UInt256}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
       (⟨1⟩ :: callRetOffset :: maskedToken :: ⟨96⟩ :: ⟨0⟩ ::
         value :: toWord :: token :: ret :: R)
-      mem aw out acc k C)
+      mem aw out σ k C)
     (hout : out.size = 0)
     (hload96 :
       (if (⟨96⟩ : UInt256).toNat ≥ mem.size then
@@ -521,7 +521,7 @@ theorem RD.uniswapSafeTransferEmptyReturnToRet {g : Sat256} {s0 : State}
     (haw96 : UInt256.ofNat (MachineState.M aw.toNat (⟨96⟩ : UInt256).toNat 32) = aw)
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hR : R.length + 16 ≤ 1024) :
-    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R mem aw out acc k' C' := by
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R mem aw out σ k' C' := by
   have rd6607 := evm_run h with [
     swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
   have rd6607' := rd6607

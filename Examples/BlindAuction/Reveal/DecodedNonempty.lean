@@ -10,7 +10,7 @@ attribute [local irreducible] RevealLoopRunFromStart
 
 set_option maxHeartbeats 10000000 in
 theorem scratch_blindAuctionReveal_decoded_nonempty_bids
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {callargs : Store} {values fakes secrets : List Value}
     {valuesLenWord fakesLenWord secretsLenWord : UInt256}
     (hcode : I.code = blindAuctionBytecode)
@@ -31,69 +31,65 @@ theorem scratch_blindAuctionReveal_decoded_nonempty_bids
     (hfakesListLen : fakes.length = fakesLenWord.toNat)
     (hsecretsListLen : secrets.length = secretsLenWord.toNat)
     (hvaluesLenMax : UInt256.gt valuesLenWord revealMaxU64 = ⟨0⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hafter :
-      (revealScratchBiddingEndWord σ_evm I).toNat <
+      (revealScratchBiddingEndWord σ I).toNat <
         (revealScratchTimestampWord I).toNat)
     (hbefore :
       (revealScratchTimestampWord I).toNat <
-        (revealScratchRevealEndWord σ_evm I).toNat)
-    (hvaluesEq : revealScratchBidsLengthWord σ_evm I = valuesLenWord)
-    (hfakesEq : revealScratchBidsLengthWord σ_evm I = fakesLenWord)
-    (hsecretsEq : revealScratchBidsLengthWord σ_evm I = secretsLenWord)
+        (revealScratchRevealEndWord σ I).toNat)
+    (hvaluesEq : revealScratchBidsLengthWord σ I = valuesLenWord)
+    (hfakesEq : revealScratchBidsLengthWord σ I = fakesLenWord)
+    (hsecretsEq : revealScratchBidsLengthWord σ I = secretsLenWord)
     (h963 : ∃ k C, RD blindAuctionBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨963⟩
-      [revealScratchRevealEndWord σ_evm I, revealScratchBiddingEndWord σ_evm I, secretsLenWord,
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨963⟩
+      [revealScratchRevealEndWord σ I, revealScratchBiddingEndWord σ I, secretsLenWord,
         ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩, fakesLenWord,
         ⟨4⟩ + revealFakesOffsetWord I + ⟨32⟩, valuesLenWord,
         ⟨4⟩ + revealValuesOffsetWord I + ⟨32⟩, ⟨276⟩, blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
+      σ σ₀ g A I := by
   obtain ⟨_, _, rd963⟩ := h963
   let evmSolm : EVM.State :=
-    initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+    initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hwvSolm : evmSolm.executionEnv.weiValue = ⟨0⟩ := by
     simpa [evmSolm, initState] using hwv
   have hbiddingAbsent : callargs.get? biddingEndRef.base = none :=
     blindAuctionDecode_reveal_callargs_absent hdec (by decide) (by decide) (by decide)
   have hrevealAbsent : callargs.get? revealEndRef.base = none :=
     blindAuctionDecode_reveal_callargs_absent hdec (by decide) (by decide) (by decide)
-  have hbidsEq := revealScratchBidsLengthWord_accountMapEquiv hAccounts I
   have hafterBody :
       (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨1⟩).toNat <
         (UInt256.ofNat evmSolm.executionEnv.header.timestamp).toNat := by
-    change (revealScratchBiddingEndWord σ_solm I).toNat <
+    change (revealScratchBiddingEndWord σ I).toNat <
       (revealScratchTimestampWord I).toNat
-    rw [← revealScratchBiddingEndWord_accountMapEquiv hAccounts I]
     exact hafter
   have hbeforeBody :
       (UInt256.ofNat evmSolm.executionEnv.header.timestamp).toNat <
         (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner ⟨2⟩).toNat := by
     change (revealScratchTimestampWord I).toNat <
-      (revealScratchRevealEndWord σ_solm I).toNat
-    rw [← revealScratchRevealEndWord_accountMapEquiv hAccounts I]
+      (revealScratchRevealEndWord σ I).toNat
     exact hbefore
   have hlenBody :
       Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
         (bidsBase (.address evmSolm.executionEnv.source)) =
-          revealScratchBidsLengthWord σ_solm I := by
+          revealScratchBidsLengthWord σ I := by
     rfl
   have hbidsHash := revealScratchBidsMappingBaseKeccak I
   obtain ⟨k1014, C1014, rd1014⟩ :=
     blindAuctionRevealX_from963_lengthsOk_toLoopInit
-      (cA := cA) (σ := σ_evm) (I := I)
+      (σ := σ) (I := I)
       (g := Sat256.ofUInt256 g)
-      (s0 := initState cA gh bl σ_evm σ₀
+      (s0 := initState σ σ₀
         (Sat256.ofUInt256 g) A I)
       rd963 hvaluesEq hfakesEq hsecretsEq hbidsHash
-  let loopLen : UInt256 := revealScratchBidsLengthWord σ_evm I
+  let loopLen : UInt256 := revealScratchBidsLengthWord σ I
   let initCursor : RevealLoopCursor :=
     { idx := ⟨0⟩,
       refund := ⟨0⟩,
       mem := revealScratchBidsHashMem I,
       aw := UInt256.ofNat 3,
-      acc := (cA, σ_evm),
+      acc := σ,
       fp := ⟨128⟩,
       haw := by decide,
       hawSmall := by decide,
@@ -110,13 +106,12 @@ theorem scratch_blindAuctionReveal_decoded_nonempty_bids
         exact lt_usize 64 (by norm_num),
       hfpIdx := by decide }
   let Inv : ℕ → RevealLoopCursor → Store → EVM.State → Prop :=
-    RevealLoopInv loopLen values fakes secrets I σ₀ gh bl A
+    RevealLoopInv loopLen values fakes secrets I σ₀ A
   have hinitInv :
       Inv loopLen.toNat initCursor
         (scratch_revealLoopStore callargs loopLen ⟨0⟩ ⟨0⟩) evmSolm := by
     refine
-      ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
-        ?_, ?_⟩
+      ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · exact scratch_revealLoopStore_i_get callargs loopLen ⟨0⟩ ⟨0⟩
     · exact scratch_revealLoopStore_length_get callargs loopLen ⟨0⟩ ⟨0⟩
     · exact scratch_revealLoopStore_refund_get callargs loopLen ⟨0⟩ ⟨0⟩
@@ -137,10 +132,7 @@ theorem scratch_blindAuctionReveal_decoded_nonempty_bids
     · simp [evmSolm, initState]
     · simp [evmSolm, initState]
     · simp [evmSolm, initState]
-    · simp [evmSolm, initState]
     · simp [evmSolm, initState, initCursor]
-    · simp [evmSolm, initState]
-    · simpa [evmSolm, initState, initCursor] using hAccounts
   have hloopRun :
       ∀ {revealEnd biddingEnd secretsEnd fakesEnd valuesEnd sel : UInt256},
         secretsEnd = ⟨4⟩ + revealSecretsOffsetWord I + ⟨32⟩ →
@@ -154,7 +146,7 @@ theorem scratch_blindAuctionReveal_decoded_nonempty_bids
         secrets.length = secretsLenWord.toNat →
         UInt256.gt valuesLenWord revealMaxU64 = ⟨0⟩ →
         RevealLoopRunFromStart I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) σ₀ gh bl A loopLen
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ₀ A loopLen
           revealEnd biddingEnd secretsLenWord secretsEnd fakesLenWord fakesEnd
           valuesLenWord valuesEnd sel values fakes secrets := by
     intro revealEnd biddingEnd secretsEnd fakesEnd valuesEnd sel hsecretsEnd hfakesEnd
@@ -163,8 +155,8 @@ theorem scratch_blindAuctionReveal_decoded_nonempty_bids
     exact
       scratch_revealLoop_fromLoopStart_or_revert
         (I := I) (g := Sat256.ofUInt256 g)
-        (s0 := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-        (σ₀ := σ₀) (gh := gh) (bl := bl) (A := A)
+        (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (σ₀ := σ₀) (A := A)
         (loopLen := loopLen) (revealEnd := revealEnd) (biddingEnd := biddingEnd)
         (secretsLenWord := secretsLenWord) (secretsEnd := secretsEnd)
         (fakesLenWord := fakesLenWord) (fakesEnd := fakesEnd)
@@ -176,8 +168,7 @@ theorem scratch_blindAuctionReveal_decoded_nonempty_bids
   exact
     scratch_blindAuctionReveal_nonempty_fromLoopStart
       (I := I) (g := g)
-      (cA := cA) (gh := gh) (bl := bl)
-      (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀) (A := A)
+      (σ := σ)  (σ₀ := σ₀) (A := A)
       (callargs := callargs)
       (values := values) (fakes := fakes) (secrets := secrets)
       (loopLen := loopLen)
@@ -188,7 +179,7 @@ theorem scratch_blindAuctionReveal_decoded_nonempty_bids
       (k1014 := k1014) (C1014 := C1014)
       hcode hperm hd hdec hstore rfl
       hwvSolm hafterBody hbeforeBody hbiddingAbsent hrevealAbsent
-      hvaluesGet hfakesGet hsecretsGet hlenBody hbidsEq
+      hvaluesGet hfakesGet hsecretsGet hlenBody
       rfl
       (by simpa [loopLen] using hvaluesEq)
       (by simpa [loopLen] using hfakesEq)

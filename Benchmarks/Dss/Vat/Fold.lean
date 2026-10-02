@@ -7,11 +7,11 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 
 theorem RD.vatFoldRateStoreOk
-    {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
+    {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
-    (h : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5733⟩
+    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨5733⟩
       [foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmem : mem.size = 96)
     (hneg :
       UInt256.slt (foldRateWord I) ⟨0⟩ = ⟨0⟩ ∨
@@ -24,12 +24,12 @@ theorem RD.vatFoldRateStoreOk
           (foldRateWord I + solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩))
           (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩)) = ⟨0⟩)
     (hperm : I.perm = true) :
-    ∃ k' C', RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5768⟩
+    ∃ k' C', RD vatBytecode I g (initState σ σ₀ g A I) ⟨5768⟩
       [solcMappingSlot ⟨2⟩ (foldIlkWord I), foldRateWord I, foldUsrMaskedWord I,
         foldIlkWord I, ⟨524⟩, sel]
       (twoWordHashMem (foldIlkWord I) ⟨2⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ
+      (sstoreAccountMap I.codeOwner σ
         (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩)
         (foldRateWord I + solcSlotWord σ I
           (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩))) k' C' := by
@@ -86,11 +86,11 @@ theorem RD.vatFoldRateStoreOk
   exact ⟨_, _, by simpa [base, old, sum] using rd5768⟩
 
 theorem RD.vatFoldRateStoreRevert
-    {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
+    {σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
-    (h : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5733⟩
+    (h : RD vatBytecode I g (initState σ σ₀ g A I) ⟨5733⟩
       [foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmem : mem.size = 96)
     (hfail :
       ¬ (UInt256.slt (foldRateWord I) ⟨0⟩ = ⟨0⟩ ∨
@@ -109,7 +109,7 @@ theorem RD.vatFoldRateStoreRevert
               (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩))
             (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩)) =
               ⟨0⟩)) :
-    RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev vatBytecode g (initState σ σ₀ g A I) := by
   let base := solcMappingSlot ⟨2⟩ (foldIlkWord I)
   let old := solcSlotWord σ I (base + ⟨1⟩)
   let sum := foldRateWord I + old
@@ -155,12 +155,12 @@ theorem RD.vatFoldRateStoreRevert
     rd6653 (by simpa [old, base, sum] using hfail) (by simp)
 
 theorem RD.vatFoldArtMulOk
-    {cA gh bl σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
+    {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
-    (h : RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨5768⟩
+    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5768⟩
       [solcMappingSlot ⟨2⟩ (foldIlkWord I), foldRateWord I, foldUsrMaskedWord I,
         foldIlkWord I, ⟨524⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hmax :
       UInt256.slt (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I))) ⟨0⟩ =
         ⟨0⟩)
@@ -172,12 +172,12 @@ theorem RD.vatFoldArtMulOk
               (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I))))
             (foldRateWord I))
           (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I))) ≠ ⟨0⟩) :
-    ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨5782⟩
+    ∃ k' C', RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5782⟩
       [UInt256.mul (foldRateWord I)
         (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I))),
         ⟨0⟩, solcMappingSlot ⟨2⟩ (foldIlkWord I), foldRateWord I, foldUsrMaskedWord I,
         foldIlkWord I, ⟨524⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      mem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   let base := solcMappingSlot ⟨2⟩ (foldIlkWord I)
   let art := solcSlotWord σ I base
   let rad := UInt256.mul (foldRateWord I) art
@@ -204,12 +204,12 @@ theorem RD.vatFoldArtMulOk
   exact ⟨_, _, by simpa [base, art, rad] using rd5782⟩
 
 theorem RD.vatFoldArtMulRevert
-    {cA gh bl σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
+    {σInit σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
-    (h : RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨5768⟩
+    (h : RD vatBytecode I g (initState σInit σ₀ g A I) ⟨5768⟩
       [solcMappingSlot ⟨2⟩ (foldIlkWord I), foldRateWord I, foldUsrMaskedWord I,
         foldIlkWord I, ⟨524⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      mem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hfail :
       ¬ UInt256.slt (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I))) ⟨0⟩ = ⟨0⟩ ∨
       UInt256.slt (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I))) ⟨0⟩ = ⟨0⟩ ∧
@@ -220,7 +220,7 @@ theorem RD.vatFoldArtMulRevert
                 (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I))))
               (foldRateWord I))
             (solcSlotWord σ I (solcMappingSlot ⟨2⟩ (foldIlkWord I))) ≠ ⟨0⟩)) :
-    RDrev vatBytecode g (initState cA gh bl σInit σ₀ g A I) := by
+    RDrev vatBytecode g (initState σInit σ₀ g A I) := by
   let base := solcMappingSlot ⟨2⟩ (foldIlkWord I)
   let art := solcSlotWord σ I base
   have rd5769 := h.dup1 (by native_decide) (by evm_ov)
@@ -244,9 +244,9 @@ theorem RD.vatFoldArtMulRevert
     rd6706 (by simpa [art, base] using hfail) (by simp)
 
 theorem vatFoldFinishSuccess
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g sel : UInt256}
+    {σ σ₀ A I} {g sel : UInt256}
     {mem : ByteArray} {k C : ℕ}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {cs : Frame} {evmOut : EVM.State}
     (hcode : I.code = vatBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some foldTransition)
@@ -255,51 +255,46 @@ theorem vatFoldFinishSuccess
         (transitionSignature foldTransition).paramTypes I.calldata = some (foldStore I))
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (foldStore I) foldTransition.body (.returned cs evmOut none))
-    (hcreated : acc.1 = evmOut.createdAccounts)
-    (haccounts : accountMapEquiv acc.2 evmOut.accountMap)
+    (haccounts : Eq acc evmOut.accountMap)
     (hretPc : RD vatBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨524⟩ [sel]
       mem (UInt256.ofNat 3) ByteArray.empty acc k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         acc ByteArray.empty := by
     simpa using RD.stop hretPc' (by native_decide) (by simp)
   have henc : returnEquiv ByteArray.empty none foldTransition.returnType := by
     rw [show foldTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-    hcreated haccounts henc
+    haccounts henc
 
 set_option maxHeartbeats 0 in
 theorem vatFoldBodyCore : VatBodyTheorem 9 := by
-  intro cA gh bl σ_evm σ_solm σ₀ A I g hcode hsize hperm hwv hsel hAccounts
+  intro σ σ₀ A I g hcode hsize hperm hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (vatSelBytes 9) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some foldTransition :=
     vatDispatchFold hsel
-  have hreach := vatReachFoldBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := vatReachFoldBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
   · have hdecode := vatDecode_fold_ok (I := I) hsz100
     obtain ⟨_, _, hdecoded⟩ := vatFoldX_decoded
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+      (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hsz100 hsize hreach
     let callerSlot := vatCallerWardsSlot I
-    have hcallerWord : vatSlotWord callerSlot σ_evm I = vatSlotWord callerSlot σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
-    by_cases hauthEvm : vatSlotWord callerSlot σ_evm I = ⟨1⟩
-    · have hauthSolm : vatSlotWord callerSlot σ_solm I = ⟨1⟩ := by
-        rw [← hcallerWord]
-        exact hauthEvm
+    by_cases hauthEvm : vatSlotWord callerSlot σ I = ⟨1⟩
+    · have hauthSolm : vatSlotWord callerSlot σ I = ⟨1⟩ := hauthEvm
       have hauthSolc :
-          solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
+          solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) = ⟨1⟩ := by
         simpa [callerSlot, vatCallerWardsSlot, vatSlotWord] using hauthEvm
       obtain ⟨_, _, hafterAuth⟩ := RD.vatAuthCheckOk
         (code := vatBytecode) (pc := ⟨5581⟩) (okPc := ⟨5663⟩)
@@ -309,13 +304,9 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
         (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
         hauthSolc (by jump_dest) (by simp)
       let liveSlot : UInt256 := ⟨10⟩
-      have hliveWord : vatSlotWord liveSlot σ_evm I = vatSlotWord liveSlot σ_solm I :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner liveSlot ⟨0⟩
-      by_cases hliveEvm : vatSlotWord liveSlot σ_evm I = ⟨1⟩
-      · have hliveSolm : vatSlotWord liveSlot σ_solm I = ⟨1⟩ := by
-          rw [← hliveWord]
-          exact hliveEvm
-        have hliveSolc : solcSlotWord σ_evm I ⟨10⟩ = ⟨1⟩ := by
+      by_cases hliveEvm : vatSlotWord liveSlot σ I = ⟨1⟩
+      · have hliveSolm : vatSlotWord liveSlot σ I = ⟨1⟩ := hliveEvm
+        have hliveSolc : solcSlotWord σ I ⟨10⟩ = ⟨1⟩ := by
           simpa [liveSlot, vatSlotWord] using hliveEvm
         obtain ⟨_, _, hafterLive⟩ := RD.vatLiveGuardOk
           (code := vatBytecode) (pc := ⟨5663⟩) (okPc := ⟨5733⟩)
@@ -323,11 +314,11 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
           (R := [foldIlkWord I, ⟨524⟩, vatSelWord I]) hafterAuth
           (by unfold vatLiveGuardWf; repeat' first | apply And.intro | native_decide)
           hliveSolc (by jump_dest) (by simp)
-        let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         let rateSlotE := solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩
         let rateSlotS := foldRateSlot I
-        let rateOldE := vatSlotWord rateSlotE σ_evm I
-        let rateOldS := vatSlotWord rateSlotS σ_solm I
+        let rateOldE := vatSlotWord rateSlotE σ I
+        let rateOldS := vatSlotWord rateSlotS σ I
         have hrateSlotEq : rateSlotS = rateSlotE := by
           simpa [rateSlotS, rateSlotE] using foldRateSlot_eq I hsz100
         have hrateWord : rateOldE = rateOldS := by
@@ -337,12 +328,12 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
             Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner rateSlotS = rateOldS := by
           simp [evm0, rateOldS, rateSlotS, vatSlotWord, solcSlotWord, initState,
             Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-        have hguardAuth := vatAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+        have hguardAuth := vatAuthGuardEval_true
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := foldStore I)
           (foldStore_wards I) (by simpa [callerSlot] using hauthSolm)
-        have hguardLive := vatLiveGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+        have hguardLive := vatLiveGuardEval_true
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := foldStore I)
           (foldStore_live I) (by simpa [liveSlot] using hliveSolm)
         have hmemLive :
@@ -388,18 +379,18 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                 UInt256.slt (foldRateWord I) ⟨0⟩ = ⟨0⟩ ∨
                   UInt256.gt
                     (foldRateWord I +
-                      solcSlotWord σ_evm I
+                      solcSlotWord σ I
                         (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩))
-                    (solcSlotWord σ_evm I
+                    (solcSlotWord σ I
                       (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩)) = ⟨0⟩ := by
               simpa [rateNewE, rateOldE, rateSlotE, vatSlotWord] using hRateNeg
             have hRatePosSolc :
                 UInt256.sgt (foldRateWord I) ⟨0⟩ = ⟨0⟩ ∨
                   UInt256.lt
                     (foldRateWord I +
-                      solcSlotWord σ_evm I
+                      solcSlotWord σ I
                         (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩))
-                    (solcSlotWord σ_evm I
+                    (solcSlotWord σ I
                       (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩)) = ⟨0⟩ := by
               simpa [rateNewE, rateOldE, rateSlotE, vatSlotWord] using hRatePos
             have hRateNegSource :
@@ -441,7 +432,7 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                   .ok (.bool true) :=
               evalSignedAddGuardPos_true hrateVar hrateNewVar hrateLoadEval hRatePosSource
             obtain ⟨_, _, hafterRate⟩ := RD.vatFoldRateStoreOk
-              (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+              (σ := σ) (σ₀ := σ₀)
               (A := A) (I := I) (g := Sat256.ofUInt256 g)
               (sel := vatSelWord I)
               hafterLive hmemLive hRateNegSolc hRatePosSolc hperm
@@ -449,14 +440,14 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
               rateSlotS rateNewS
             let artSlotE := solcMappingSlot ⟨2⟩ (foldIlkWord I)
             let artOldE := solcSlotWord
-              (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE) I artSlotE
+              (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE) I artSlotE
             let artOldS :=
               Solm.EVM.storageLoad evmRate evmRate.executionEnv.codeOwner (foldArtSlot I)
             have hrateNewWord : rateNewE = rateNewS := by
               simp [rateNewE, rateNewS, hrateWord]
             have hAccountsRate :
-                accountMapEquiv
-                  (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                Eq
+                  (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                   evmRate.accountMap := by
               simpa [evmRate, evm0, initState, storageStore_accountMap,
                 rateSlotS, hrateSlotEq, hrateNewWord] using
@@ -472,7 +463,7 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
             by_cases hArtMaxE : UInt256.slt artOldE ⟨0⟩ = ⟨0⟩
             · have hArtMaxSolc :
                   UInt256.slt
-                    (solcSlotWord (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                    (solcSlotWord (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                       I (solcMappingSlot ⟨2⟩ (foldIlkWord I))) ⟨0⟩ = ⟨0⟩ := by
                 simpa [artOldE, artSlotE] using hArtMaxE
               by_cases hMulE :
@@ -486,17 +477,17 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                         (UInt256.sdiv
                           (UInt256.mul (foldRateWord I)
                             (solcSlotWord
-                              (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                              (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                               I (solcMappingSlot ⟨2⟩ (foldIlkWord I))))
                           (foldRateWord I))
                         (solcSlotWord
-                          (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                          (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                           I (solcMappingSlot ⟨2⟩ (foldIlkWord I))) ≠ ⟨0⟩ := by
                   simpa [artOldE, artSlotE] using hMulE
                 obtain ⟨_, _, hafterArt⟩ := RD.vatFoldArtMulOk
-                  (cA := cA) (gh := gh) (bl := bl)
-                  (σInit := σ_evm)
-                  (σ := sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+
+                  (σInit := σ)
+                  (σ := sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                   (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
                   (sel := vatSelWord I) hafterRate hArtMaxSolc hMulSolc
                 by_cases hRateZeroE : foldRateWord I = ⟨0⟩
@@ -512,7 +503,7 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                     twoWordHashMem_size_96 (foldIlkWord I) ⟨2⟩ hmemLive
                   let daiSlotE := solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)
                   let daiOldE := solcSlotWord
-                    (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE) I daiSlotE
+                    (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE) I daiSlotE
                   let daiOldS :=
                     Solm.EVM.storageLoad evmRate evmRate.executionEnv.codeOwner
                       (foldDaiSlot I)
@@ -527,7 +518,7 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                       using h
                   have hDaiWordSlot :
                       solcSlotWord
-                        (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                        (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                         I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)) = daiOldS := by
                     simpa [daiOldE, daiSlotE] using hDaiWord
                   have hDaiNegSolc :
@@ -535,10 +526,10 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                         UInt256.gt
                           ((⟨0⟩ : UInt256) +
                             solcSlotWord
-                              (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                              (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                               I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)))
                           (solcSlotWord
-                            (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                            (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                             I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I))) = ⟨0⟩ := by
                     exact Or.inl (by native_decide)
                   have hDaiPosSolc :
@@ -546,10 +537,10 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                         UInt256.lt
                           ((⟨0⟩ : UInt256) +
                             solcSlotWord
-                              (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                              (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                               I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)))
                           (solcSlotWord
-                            (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                            (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                             I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I))) = ⟨0⟩ := by
                     exact Or.inl (by native_decide)
                   obtain ⟨_, _, hafterDai⟩ := RD.vatFoldDaiStoreOk
@@ -559,13 +550,13 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                   let evmDai := Solm.EVM.storageStore evmRate evmRate.executionEnv.codeOwner
                     (foldDaiSlot I) daiOldS
                   have hAccountsDai :
-                      accountMapEquiv
+                      Eq
                         (sstoreAccountMap I.codeOwner
-                          (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                          (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                           daiSlotE
                           ((⟨0⟩ : UInt256) +
                             solcSlotWord
-                              (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                              (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                               I daiSlotE))
                         evmDai.accountMap := by
                     simpa [evmDai, evmRate, evm0, initState, storageStore_accountMap,
@@ -575,11 +566,11 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                         hAccountsRate
                   let debtOldE := solcSlotWord
                     (sstoreAccountMap I.codeOwner
-                      (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                      (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                       daiSlotE
                       ((⟨0⟩ : UInt256) +
                         solcSlotWord
-                          (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                          (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                           I daiSlotE))
                     I ⟨7⟩
                   let debtOldS :=
@@ -594,7 +585,7 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                   have hDebtWordSimple :
                       solcSlotWord
                         (sstoreAccountMap I.codeOwner
-                          (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                          (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                           daiSlotE daiOldS) I ⟨7⟩ = debtOldS := by
                     simpa [debtOldE, daiSlotE, hDaiWordSlot, u256_zero_add] using hDebtWord
                   have hDebtNegSolc :
@@ -603,20 +594,20 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                           ((⟨0⟩ : UInt256) +
                             solcSlotWord
                               (sstoreAccountMap I.codeOwner
-                                (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                 daiSlotE
                                 ((⟨0⟩ : UInt256) +
                                   solcSlotWord
-                                    (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                    (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                     I daiSlotE))
                               I ⟨7⟩)
                           (solcSlotWord
                             (sstoreAccountMap I.codeOwner
-                              (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                              (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                               daiSlotE
                               ((⟨0⟩ : UInt256) +
                                 solcSlotWord
-                                  (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                  (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                   I daiSlotE))
                             I ⟨7⟩) = ⟨0⟩ := by
                     exact Or.inl (by native_decide)
@@ -626,20 +617,20 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                           ((⟨0⟩ : UInt256) +
                             solcSlotWord
                               (sstoreAccountMap I.codeOwner
-                                (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                 daiSlotE
                                 ((⟨0⟩ : UInt256) +
                                   solcSlotWord
-                                    (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                    (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                     I daiSlotE))
                               I ⟨7⟩)
                           (solcSlotWord
                             (sstoreAccountMap I.codeOwner
-                              (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                              (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                               daiSlotE
                               ((⟨0⟩ : UInt256) +
                                 solcSlotWord
-                                  (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                  (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                   I daiSlotE))
                             I ⟨7⟩) = ⟨0⟩ := by
                     exact Or.inl (by native_decide)
@@ -649,10 +640,10 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                   let evmDebt := Solm.EVM.storageStore evmDai evmDai.executionEnv.codeOwner
                     foldDebtSlot debtOldS
                   have hAccountsDebt :
-                      accountMapEquiv
+                      Eq
                         (sstoreAccountMap I.codeOwner
                           (sstoreAccountMap I.codeOwner
-                            (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                            (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                             daiSlotE
                             daiOldE)
                           ⟨7⟩ debtOldS)
@@ -840,8 +831,6 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                     (by simp [u256_zero_add]) hDebtGuardNeg hDebtGuardPos
                   exact vatFoldFinishSuccess hcode hdispatch hdecode hbody
                     (by
-                      simp [foldPostState, evm0, initState, storageStore_createdAccounts])
-                    (by
                       simpa [foldPostState, evmDebt, evmDai, evmRate,
                         storageStore_executionEnv, daiSlotE, hdaiSlotEq, daiOldE,
                         hDaiWord, hDebtWordSimple, u256_zero_add] using
@@ -949,7 +938,7 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                     twoWordHashMem_size_96 (foldIlkWord I) ⟨2⟩ hmemLive
                   let daiSlotE := solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)
                   let daiOldE := solcSlotWord
-                    (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE) I daiSlotE
+                    (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE) I daiSlotE
                   let daiOldS :=
                     Solm.EVM.storageLoad evmRate evmRate.executionEnv.codeOwner
                       (foldDaiSlot I)
@@ -974,20 +963,20 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                           UInt256.slt radWord ⟨0⟩ = ⟨0⟩ ∨
                             UInt256.gt
                               (radWord + solcSlotWord
-                                (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                 I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)))
                               (solcSlotWord
-                                (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                 I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I))) = ⟨0⟩ := by
                         simpa [daiOldE, daiNewE, daiSlotE] using hDaiNegE
                       have hDaiPosSolc :
                           UInt256.sgt radWord ⟨0⟩ = ⟨0⟩ ∨
                             UInt256.lt
                               (radWord + solcSlotWord
-                                (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                 I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)))
                               (solcSlotWord
-                                (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                 I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I))) = ⟨0⟩ := by
                         simpa [daiOldE, daiNewE, daiSlotE] using hDaiPosE
                       obtain ⟨_, _, hafterDai⟩ := RD.vatFoldDaiStoreOk
@@ -996,9 +985,9 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                       let evmDai := Solm.EVM.storageStore evmRate
                         evmRate.executionEnv.codeOwner (foldDaiSlot I) daiNewS
                       have hAccountsDai :
-                          accountMapEquiv
+                          Eq
                             (sstoreAccountMap I.codeOwner
-                              (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                              (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                               daiSlotE daiNewE)
                             evmDai.accountMap := by
                         simpa [evmDai, evmRate, evm0, initState,
@@ -1008,7 +997,7 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                             daiSlotE daiNewE hAccountsRate
                       let debtOldE := solcSlotWord
                         (sstoreAccountMap I.codeOwner
-                          (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                          (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                           daiSlotE daiNewE) I ⟨7⟩
                       let debtOldS :=
                         Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner
@@ -1033,12 +1022,12 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                                 UInt256.gt
                                   (radWord + solcSlotWord
                                     (sstoreAccountMap I.codeOwner
-                                      (sstoreAccountMap I.codeOwner σ_evm rateSlotE
+                                      (sstoreAccountMap I.codeOwner σ rateSlotE
                                         rateNewE)
                                       daiSlotE daiNewE) I ⟨7⟩)
                                   (solcSlotWord
                                     (sstoreAccountMap I.codeOwner
-                                      (sstoreAccountMap I.codeOwner σ_evm rateSlotE
+                                      (sstoreAccountMap I.codeOwner σ rateSlotE
                                         rateNewE)
                                       daiSlotE daiNewE) I ⟨7⟩) = ⟨0⟩ := by
                             simpa [debtOldE, debtNewE] using hDebtNegE
@@ -1047,12 +1036,12 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                                 UInt256.lt
                                   (radWord + solcSlotWord
                                     (sstoreAccountMap I.codeOwner
-                                      (sstoreAccountMap I.codeOwner σ_evm rateSlotE
+                                      (sstoreAccountMap I.codeOwner σ rateSlotE
                                         rateNewE)
                                       daiSlotE daiNewE) I ⟨7⟩)
                                   (solcSlotWord
                                     (sstoreAccountMap I.codeOwner
-                                      (sstoreAccountMap I.codeOwner σ_evm rateSlotE
+                                      (sstoreAccountMap I.codeOwner σ rateSlotE
                                         rateNewE)
                                       daiSlotE daiNewE) I ⟨7⟩) = ⟨0⟩ := by
                             simpa [debtOldE, debtNewE] using hDebtPosE
@@ -1062,10 +1051,10 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                           let evmDebt := Solm.EVM.storageStore evmDai
                             evmDai.executionEnv.codeOwner foldDebtSlot debtNewS
                           have hAccountsDebt :
-                              accountMapEquiv
+                              Eq
                                 (sstoreAccountMap I.codeOwner
                                   (sstoreAccountMap I.codeOwner
-                                    (sstoreAccountMap I.codeOwner σ_evm rateSlotE
+                                    (sstoreAccountMap I.codeOwner σ rateSlotE
                                       rateNewE)
                                     daiSlotE daiNewE)
                                   ⟨7⟩ debtNewE)
@@ -1229,20 +1218,17 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                           have hDebtWordSimple :
                               solcSlotWord
                                 (sstoreAccountMap I.codeOwner
-                                  (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                  (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                   daiSlotE daiNewE) I ⟨7⟩ = debtOldS := by
                             simpa [debtOldE] using hDebtWord
                           have hDebtWordFinal :
                               solcSlotWord
                                 (sstoreAccountMap I.codeOwner
-                                  (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                  (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                   (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I))
                                   (radWord + daiOldS)) I ⟨7⟩ = debtOldS := by
                             simpa [daiSlotE, daiNewE, hDaiWord] using hDebtWordSimple
                           exact vatFoldFinishSuccess hcode hdispatch hdecode hbody
-                            (by
-                              simp [foldPostState, evm0, initState,
-                                storageStore_createdAccounts])
                             (by
                               simpa [foldPostState, evmDebt, evmDai, evmRate,
                                 storageStore_executionEnv, rateSlotS, daiSlotE, hdaiSlotEq,
@@ -1255,12 +1241,12 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                                 UInt256.gt
                                   (radWord + solcSlotWord
                                     (sstoreAccountMap I.codeOwner
-                                      (sstoreAccountMap I.codeOwner σ_evm rateSlotE
+                                      (sstoreAccountMap I.codeOwner σ rateSlotE
                                         rateNewE)
                                       daiSlotE daiNewE) I ⟨7⟩)
                                   (solcSlotWord
                                     (sstoreAccountMap I.codeOwner
-                                      (sstoreAccountMap I.codeOwner σ_evm rateSlotE
+                                      (sstoreAccountMap I.codeOwner σ rateSlotE
                                         rateNewE)
                                       daiSlotE daiNewE) I ⟨7⟩) = ⟨0⟩ := by
                             simpa [debtOldE, debtNewE] using hDebtNegE
@@ -1269,12 +1255,12 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                                 UInt256.lt
                                   (radWord + solcSlotWord
                                     (sstoreAccountMap I.codeOwner
-                                      (sstoreAccountMap I.codeOwner σ_evm rateSlotE
+                                      (sstoreAccountMap I.codeOwner σ rateSlotE
                                         rateNewE)
                                       daiSlotE daiNewE) I ⟨7⟩)
                                   (solcSlotWord
                                     (sstoreAccountMap I.codeOwner
-                                      (sstoreAccountMap I.codeOwner σ_evm rateSlotE
+                                      (sstoreAccountMap I.codeOwner σ rateSlotE
                                         rateNewE)
                                       daiSlotE daiNewE) I ⟨7⟩) = ⟨0⟩) := by
                             intro h
@@ -1420,12 +1406,12 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                               UInt256.gt
                                 (radWord + solcSlotWord
                                   (sstoreAccountMap I.codeOwner
-                                    (sstoreAccountMap I.codeOwner σ_evm rateSlotE
+                                    (sstoreAccountMap I.codeOwner σ rateSlotE
                                       rateNewE)
                                     daiSlotE daiNewE) I ⟨7⟩)
                                 (solcSlotWord
                                   (sstoreAccountMap I.codeOwner
-                                    (sstoreAccountMap I.codeOwner σ_evm rateSlotE
+                                    (sstoreAccountMap I.codeOwner σ rateSlotE
                                       rateNewE)
                                     daiSlotE daiNewE) I ⟨7⟩) = ⟨0⟩) := by
                           intro h
@@ -1538,20 +1524,20 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                           UInt256.slt radWord ⟨0⟩ = ⟨0⟩ ∨
                             UInt256.gt
                               (radWord + solcSlotWord
-                                (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                 I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)))
                               (solcSlotWord
-                                (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                 I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I))) = ⟨0⟩ := by
                         simpa [daiOldE, daiNewE, daiSlotE] using hDaiNegE
                       have hDaiPosFailSolc :
                           ¬ (UInt256.sgt radWord ⟨0⟩ = ⟨0⟩ ∨
                             UInt256.lt
                               (radWord + solcSlotWord
-                                (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                 I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)))
                               (solcSlotWord
-                                (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                                (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                                 I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I))) = ⟨0⟩) := by
                         intro h
                         exact hDaiPosE (by simpa [daiOldE, daiNewE, daiSlotE] using h)
@@ -1627,10 +1613,10 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                         ¬ (UInt256.slt radWord ⟨0⟩ = ⟨0⟩ ∨
                           UInt256.gt
                             (radWord + solcSlotWord
-                              (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                              (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                               I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)))
                             (solcSlotWord
-                              (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                              (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                               I (solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I))) = ⟨0⟩) := by
                       intro h
                       exact hDaiNegE (by simpa [daiOldE, daiNewE, daiSlotE] using h)
@@ -1683,11 +1669,11 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                         (UInt256.sdiv
                           (UInt256.mul (foldRateWord I)
                             (solcSlotWord
-                              (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                              (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                               I (solcMappingSlot ⟨2⟩ (foldIlkWord I))))
                           (foldRateWord I))
                         (solcSlotWord
-                          (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                          (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                           I (solcMappingSlot ⟨2⟩ (foldIlkWord I))) ≠ ⟨0⟩) := by
                   intro h
                   exact hMulE (by simpa [artOldE, artSlotE] using h)
@@ -1695,8 +1681,8 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                   intro hzero
                   exact hMulE (fold_mul_word_guard_true_of_art_zero I hzero)
                 have hrev := RD.vatFoldArtMulRevert
-                  (cA := cA) (gh := gh) (bl := bl) (σInit := σ_evm)
-                  (σ := sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                  (σInit := σ)
+                  (σ := sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                   (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
                   (sel := vatSelWord I) hafterRate
                   (Or.inr ⟨hArtMaxSolc, hMulFailSolc⟩)
@@ -1740,7 +1726,7 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                     exact False.elim (hMulE hguardTrue)
             · have hArtMaxFailSolc :
                   ¬ UInt256.slt
-                    (solcSlotWord (sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                    (solcSlotWord (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                       I (solcMappingSlot ⟨2⟩ (foldIlkWord I))) ⟨0⟩ = ⟨0⟩ := by
                 intro h
                 exact hArtMaxE (by simpa [artOldE, artSlotE] using h)
@@ -1758,8 +1744,8 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                       hRateGuardNeg hRateGuardPos)
                 hradRevert
               have hrev := RD.vatFoldArtMulRevert
-                (cA := cA) (gh := gh) (bl := bl) (σInit := σ_evm)
-                (σ := sstoreAccountMap I.codeOwner σ_evm rateSlotE rateNewE)
+                (σInit := σ)
+                (σ := sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                 (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
                 (sel := vatSelWord I) hafterRate (Or.inl hArtMaxFailSolc)
               exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -1767,18 +1753,18 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                 UInt256.slt (foldRateWord I) ⟨0⟩ = ⟨0⟩ ∨
                   UInt256.gt
                     (foldRateWord I +
-                      solcSlotWord σ_evm I
+                      solcSlotWord σ I
                         (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩))
-                    (solcSlotWord σ_evm I
+                    (solcSlotWord σ I
                       (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩)) = ⟨0⟩ := by
               simpa [rateNewE, rateOldE, rateSlotE, vatSlotWord] using hRateNeg
             have hRatePosFailSolc :
                 ¬ (UInt256.sgt (foldRateWord I) ⟨0⟩ = ⟨0⟩ ∨
                   UInt256.lt
                     (foldRateWord I +
-                      solcSlotWord σ_evm I
+                      solcSlotWord σ I
                         (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩))
-                    (solcSlotWord σ_evm I
+                    (solcSlotWord σ I
                       (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩)) = ⟨0⟩) := by
               intro hp
               exact hRatePos (by simpa [rateNewE, rateOldE, rateSlotE, vatSlotWord] using hp)
@@ -1841,7 +1827,7 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
             have hbody := vatFoldSourceRevertAfterRateBlock evm0 I hwv
               hguardAuth hguardLive hrateRevert
             have hrev := RD.vatFoldRateStoreRevert
-              (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+              (σ := σ) (σ₀ := σ₀)
               (A := A) (I := I) (g := Sat256.ofUInt256 g) (sel := vatSelWord I)
               hafterLive hmemLive (Or.inr ⟨hRateNegSolc, hRatePosFailSolc⟩)
             exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
@@ -1849,9 +1835,9 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
               ¬ (UInt256.slt (foldRateWord I) ⟨0⟩ = ⟨0⟩ ∨
                 UInt256.gt
                   (foldRateWord I +
-                    solcSlotWord σ_evm I
+                    solcSlotWord σ I
                       (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩))
-                  (solcSlotWord σ_evm I
+                  (solcSlotWord σ I
                     (solcMappingSlot ⟨2⟩ (foldIlkWord I) + ⟨1⟩)) = ⟨0⟩) := by
             intro hn
             exact hRateNeg (by simpa [rateNewE, rateOldE, rateSlotE, vatSlotWord] using hn)
@@ -1894,22 +1880,22 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
           have hbody := vatFoldSourceRevertAfterRateBlock evm0 I hwv
             hguardAuth hguardLive hrateRevert
           have hrev := RD.vatFoldRateStoreRevert
-            (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+            (σ := σ) (σ₀ := σ₀)
             (A := A) (I := I) (g := Sat256.ofUInt256 g) (sel := vatSelWord I)
             hafterLive hmemLive (Or.inl hRateNegFailSolc)
           exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-      · have hliveSolm : vatSlotWord liveSlot σ_solm I ≠ ⟨1⟩ := by
+      · have hliveSolm : vatSlotWord liveSlot σ I ≠ ⟨1⟩ := by
           intro hsolm
-          exact hliveEvm (by rw [hliveWord, hsolm])
-        let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+          exact hliveEvm hsolm
+        let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
             ExecTransitionBody config contract evm0 (foldStore I) foldTransition.body .reverted := by
-          have hguardAuth := vatAuthGuardEval_true (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+          have hguardAuth := vatAuthGuardEval_true
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := foldStore I)
             (foldStore_wards I) (by simpa [callerSlot] using hauthSolm)
-          have hguardLive := vatLiveGuardEval_false (cA := cA) (gh := gh) (bl := bl)
-            (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+          have hguardLive := vatLiveGuardEval_false
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
             (g := Sat256.ofUInt256 g) (locals := foldStore I)
             (foldStore_live I) (by simpa [liveSlot] using hliveSolm)
           have hblock :
@@ -1933,7 +1919,7 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
             exact ExecBlock.consRevert (ExecStmt.requireFalse hguardLive)
           simpa [ExecTransitionBody, foldTransition, nonpayable, auth, requireLive, evm0,
             List.append_assoc] using ExecFuncBody.execBlockRevert hblock
-        have hliveSolc : solcSlotWord σ_evm I ⟨10⟩ ≠ ⟨1⟩ := by
+        have hliveSolc : solcSlotWord σ I ⟨10⟩ ≠ ⟨1⟩ := by
           simpa [liveSlot, vatSlotWord] using hliveEvm
         have hmemAuth :
             (twoWordHashMem (hopeSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -1953,14 +1939,14 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
             repeat' first | apply And.intro | native_decide)
           hliveSolc hmemAuth hread64 (by simp)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hauthSolm : vatSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
+    · have hauthSolm : vatSlotWord callerSlot σ I ≠ ⟨1⟩ := by
         intro hsolm
-        exact hauthEvm (by rw [hcallerWord, hsolm])
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        exact hauthEvm hsolm
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
           ExecTransitionBody config contract evm0 (foldStore I) foldTransition.body .reverted := by
-        have hguard := vatAuthGuardEval_false (cA := cA) (gh := gh) (bl := bl)
-          (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+        have hguard := vatAuthGuardEval_false
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := Sat256.ofUInt256 g) (locals := foldStore I)
           (foldStore_wards I) (by simpa [callerSlot] using hauthSolm)
         have hblock := nonpayableSecondRequireReverts
@@ -1982,7 +1968,7 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
         simpa [ExecTransitionBody, foldTransition, nonpayable, auth, requireLive, evm0,
           List.append_assoc] using ExecFuncBody.execBlockRevert hblock
       have hauthSolc :
-          solcSlotWord σ_evm I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) ≠ ⟨1⟩ := by
+          solcSlotWord σ I (solcMappingSlot ⟨0⟩ (hopeSourceWord I)) ≠ ⟨1⟩ := by
         simpa [callerSlot, vatCallerWardsSlot, vatSlotWord] using hauthEvm
       have hrev := RD.vatAuthCheckRevert
         (pc := ⟨5581⟩) (okPc := ⟨5663⟩) (key := foldRateWord I)

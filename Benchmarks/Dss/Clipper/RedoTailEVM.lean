@@ -35,7 +35,7 @@ namespace Reasoning.Reach
 
 theorem RD.clipperRedoDup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
     (h : RD code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
@@ -177,17 +177,17 @@ set_option maxHeartbeats 1000000 in
 theorem RD.clipperRedoEventUnlockSuccess {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {coin chip tip feedPrice lot tab done topNew tic usr two kpr id sel : UInt256}
     {R : List UInt256} {mem out : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨8118⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic :: usr ::
         two :: kpr :: id :: ⟨502⟩ :: sel :: R)
-      mem (UInt256.ofNat 8) out (cA, σ) k C)
+      mem (UInt256.ofNat 8) out σ k C)
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : ee.perm = true) (hov : R.length + 50 ≤ 1024) :
-    RDret code g s0 (cA, sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩)
+    RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩)
       ByteArray.empty := by
   let eventTopic : UInt256 :=
     ⟨0x275de7ecdd375b5e8049319f8b350686131c219dd4dc450a08e9cf83b03c865f⟩
@@ -330,17 +330,17 @@ theorem RD.clipperRedoEventUnlockSuccessFrom196 {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {coin chip tip feedPrice lot tab done topNew tic usr two kpr id sel : UInt256}
     {R : List UInt256} {mem out : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨8118⟩
       (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic :: usr ::
         two :: kpr :: id :: ⟨502⟩ :: sel :: R)
-      mem (UInt256.ofNat 7) out (cA, σ) k C)
+      mem (UInt256.ofNat 7) out σ k C)
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hperm : ee.perm = true) (hov : R.length + 50 ≤ 1024) :
-    RDret code g s0 (cA, sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩)
+    RDret code g s0 (sstoreAccountMap ee.codeOwner σ ⟨13⟩ ⟨0⟩)
       ByteArray.empty := by
   let eventTopic : UInt256 :=
     ⟨0x275de7ecdd375b5e8049319f8b350686131c219dd4dc450a08e9cf83b03c865f⟩

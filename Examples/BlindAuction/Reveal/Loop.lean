@@ -11,7 +11,7 @@ theorem scratch_RD_whileLoopCarryAcc {code : ByteArray} {ee : ExecutionEnv} {g :
     {s0 : State} {rdata : ByteArray} {α : Type}
     (header exit : UInt256) (Inv : ℕ → α → Prop) (stk : α → List UInt256)
     (mem : α → ByteArray) (aw : α → UInt256)
-    (acc : α → Batteries.RBSet AccountAddress compare × AccountMap)
+    (acc : α → AccountMap)
     (exitStk : α → List UInt256)
     (hexit : ∀ a, Inv 0 a → ∀ k C,
         RD code ee g s0 header (stk a) (mem a) (aw a) rdata (acc a) k C →
@@ -55,7 +55,7 @@ theorem scratch_blindAuctionRevealX_loop_from_body {I} {g : Sat256} {s0 : State}
       sel : UInt256)
     (Inv : ℕ → α → Prop) (idx refund : α → UInt256)
     (mem : α → ByteArray) (aw : α → UInt256)
-    (acc : α → Batteries.RBSet AccountAddress compare × AccountMap)
+    (acc : α → AccountMap)
     (hvariant : ∀ v a, Inv v a → (idx a).toNat + v = len.toNat ∧
       (idx a).toNat ≤ len.toNat)
     (hbody : ∀ v a, Inv (v + 1) a → ∀ k C,

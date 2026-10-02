@@ -31,7 +31,7 @@ theorem swap9_xstep {s : State} {code : ByteArray}
 
 theorem RD.swap9 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj : UInt256} {t : List UInt256}
     (rd : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
       mem aw rdata acc k C)
@@ -160,15 +160,15 @@ theorem evalStorageRef_bidsField {evm : EVM.State} {I : ExecutionEnv} {field : I
     evalStorageRefStep, evalExpr?, valueToKey?, EvalResult.ofOption, EvalResult.bind,
     pure, bind]
 
-theorem evalExpr_bidsBid {cA gh bl σ σ₀ A I} {g : Sat256} :
+theorem evalExpr_bidsBid {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
-      (initState cA gh bl σ σ₀ g A I) (.storage (bidsF (.var "arg0") "bid")) =
+      (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "bid")) =
         .ok (.int (Int.ofNat (bidsBidWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar
     (t := .int uint256Int)
     (loc := wordLoc (bidsBaseWord I))
     (hbase := bidsLocals_get_bids I)
-    (her := evalStorageRef_bidsField (evm := initState cA gh bl σ σ₀ g A I)
+    (her := evalStorageRef_bidsField (evm := initState σ σ₀ g A I)
       (I := I) (field := "bid"))
     (hty := by
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
@@ -181,17 +181,17 @@ theorem evalExpr_bidsBid {cA gh bl σ σ₀ A I} {g : Sat256} :
       rw [keyValueToWord_uint256_natCast])]
   simpa [initState, bidsBidWord, flipperSlotWord] using
     congrArg EvalResult.ok
-      (flipperStorageLocLoad_uint256 (initState cA gh bl σ σ₀ g A I) (bidsBaseWord I))
+      (flipperStorageLocLoad_uint256 (initState σ σ₀ g A I) (bidsBaseWord I))
 
-theorem evalExpr_bidsLot {cA gh bl σ σ₀ A I} {g : Sat256} :
+theorem evalExpr_bidsLot {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
-      (initState cA gh bl σ σ₀ g A I) (.storage (bidsF (.var "arg0") "lot")) =
+      (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "lot")) =
         .ok (.int (Int.ofNat (bidsLotWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar
     (t := .int uint256Int)
     (loc := wordLoc (bidsBaseWord I + ⟨1⟩))
     (hbase := bidsLocals_get_bids I)
-    (her := evalStorageRef_bidsField (evm := initState cA gh bl σ σ₀ g A I)
+    (her := evalStorageRef_bidsField (evm := initState σ σ₀ g A I)
       (I := I) (field := "lot"))
     (hty := by
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
@@ -204,18 +204,18 @@ theorem evalExpr_bidsLot {cA gh bl σ σ₀ A I} {g : Sat256} :
       rw [keyValueToWord_uint256_natCast])]
   simpa [initState, bidsLotWord, flipperSlotWord] using
     congrArg EvalResult.ok
-      (flipperStorageLocLoad_uint256 (initState cA gh bl σ σ₀ g A I)
+      (flipperStorageLocLoad_uint256 (initState σ σ₀ g A I)
         (bidsBaseWord I + ⟨1⟩))
 
-theorem evalExpr_bidsGuy {cA gh bl σ σ₀ A I} {g : Sat256} :
+theorem evalExpr_bidsGuy {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
-      (initState cA gh bl σ σ₀ g A I) (.storage (bidsF (.var "arg0") "guy")) =
+      (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "guy")) =
         .ok (.address (AccountAddress.ofNat (bidsGuyWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar
     (t := .address)
     (loc := addrLoc (bidsPackedSlot I))
     (hbase := bidsLocals_get_bids I)
-    (her := evalStorageRef_bidsField (evm := initState cA gh bl σ σ₀ g A I)
+    (her := evalStorageRef_bidsField (evm := initState σ σ₀ g A I)
       (I := I) (field := "guy"))
     (hty := by
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
@@ -228,18 +228,18 @@ theorem evalExpr_bidsGuy {cA gh bl σ σ₀ A I} {g : Sat256} :
       rw [keyValueToWord_uint256_natCast])]
   simpa [initState, bidsGuyWord, bidsPackedWord, flipperSlotWord] using
     congrArg EvalResult.ok
-      (flipperStorageLocLoad_address_offset0 (initState cA gh bl σ σ₀ g A I)
+      (flipperStorageLocLoad_address_offset0 (initState σ σ₀ g A I)
         (bidsPackedSlot I))
 
-theorem evalExpr_bidsTic {cA gh bl σ σ₀ A I} {g : Sat256} :
+theorem evalExpr_bidsTic {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
-      (initState cA gh bl σ σ₀ g A I) (.storage (bidsF (.var "arg0") "tic")) =
+      (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "tic")) =
         .ok (.int (Int.ofNat (bidsTicWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar
     (t := .int uint48Int)
     (loc := uint48Loc (bidsPackedSlot I) ⟨20, by decide⟩ (by decide))
     (hbase := bidsLocals_get_bids I)
-    (her := evalStorageRef_bidsField (evm := initState cA gh bl σ σ₀ g A I)
+    (her := evalStorageRef_bidsField (evm := initState σ σ₀ g A I)
       (I := I) (field := "tic"))
     (hty := by
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
@@ -253,18 +253,18 @@ theorem evalExpr_bidsTic {cA gh bl σ σ₀ A I} {g : Sat256} :
   simpa [initState, bidsTicWord, flipperUint48Offset20Word, bidsPackedWord,
     flipperSlotWord] using
     congrArg EvalResult.ok
-      (flipperStorageLocLoad_uint48_offset20 (initState cA gh bl σ σ₀ g A I)
+      (flipperStorageLocLoad_uint48_offset20 (initState σ σ₀ g A I)
         (bidsPackedSlot I))
 
-theorem evalExpr_bidsEnd {cA gh bl σ σ₀ A I} {g : Sat256} :
+theorem evalExpr_bidsEnd {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
-      (initState cA gh bl σ σ₀ g A I) (.storage (bidsF (.var "arg0") "end")) =
+      (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "end")) =
         .ok (.int (Int.ofNat (bidsEndWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar
     (t := .int uint48Int)
     (loc := uint48Loc (bidsPackedSlot I) ⟨26, by decide⟩ (by decide))
     (hbase := bidsLocals_get_bids I)
-    (her := evalStorageRef_bidsField (evm := initState cA gh bl σ σ₀ g A I)
+    (her := evalStorageRef_bidsField (evm := initState σ σ₀ g A I)
       (I := I) (field := "end"))
     (hty := by
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
@@ -278,18 +278,18 @@ theorem evalExpr_bidsEnd {cA gh bl σ σ₀ A I} {g : Sat256} :
   simpa [initState, bidsEndWord, flipperUint48Offset26Word, bidsPackedWord,
     flipperSlotWord] using
     congrArg EvalResult.ok
-      (flipperStorageLocLoad_uint48_offset26 (initState cA gh bl σ σ₀ g A I)
+      (flipperStorageLocLoad_uint48_offset26 (initState σ σ₀ g A I)
         (bidsPackedSlot I))
 
-theorem evalExpr_bidsUsr {cA gh bl σ σ₀ A I} {g : Sat256} :
+theorem evalExpr_bidsUsr {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
-      (initState cA gh bl σ σ₀ g A I) (.storage (bidsF (.var "arg0") "usr")) =
+      (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "usr")) =
         .ok (.address (AccountAddress.ofNat (bidsUsrWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar
     (t := .address)
     (loc := addrLoc (bidsBaseWord I + ⟨3⟩))
     (hbase := bidsLocals_get_bids I)
-    (her := evalStorageRef_bidsField (evm := initState cA gh bl σ σ₀ g A I)
+    (her := evalStorageRef_bidsField (evm := initState σ σ₀ g A I)
       (I := I) (field := "usr"))
     (hty := by
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
@@ -302,18 +302,18 @@ theorem evalExpr_bidsUsr {cA gh bl σ σ₀ A I} {g : Sat256} :
       rw [keyValueToWord_uint256_natCast])]
   simpa [initState, bidsUsrWord, flipperSlotWord] using
     congrArg EvalResult.ok
-      (flipperStorageLocLoad_address_offset0 (initState cA gh bl σ σ₀ g A I)
+      (flipperStorageLocLoad_address_offset0 (initState σ σ₀ g A I)
         (bidsBaseWord I + ⟨3⟩))
 
-theorem evalExpr_bidsGal {cA gh bl σ σ₀ A I} {g : Sat256} :
+theorem evalExpr_bidsGal {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
-      (initState cA gh bl σ σ₀ g A I) (.storage (bidsF (.var "arg0") "gal")) =
+      (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "gal")) =
         .ok (.address (AccountAddress.ofNat (bidsGalWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar
     (t := .address)
     (loc := addrLoc (bidsBaseWord I + ⟨4⟩))
     (hbase := bidsLocals_get_bids I)
-    (her := evalStorageRef_bidsField (evm := initState cA gh bl σ σ₀ g A I)
+    (her := evalStorageRef_bidsField (evm := initState σ σ₀ g A I)
       (I := I) (field := "gal"))
     (hty := by
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
@@ -326,18 +326,18 @@ theorem evalExpr_bidsGal {cA gh bl σ σ₀ A I} {g : Sat256} :
       rw [keyValueToWord_uint256_natCast])]
   simpa [initState, bidsGalWord, flipperSlotWord] using
     congrArg EvalResult.ok
-      (flipperStorageLocLoad_address_offset0 (initState cA gh bl σ σ₀ g A I)
+      (flipperStorageLocLoad_address_offset0 (initState σ σ₀ g A I)
         (bidsBaseWord I + ⟨4⟩))
 
-theorem evalExpr_bidsTab {cA gh bl σ σ₀ A I} {g : Sat256} :
+theorem evalExpr_bidsTab {σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := bidsLocals I }
-      (initState cA gh bl σ σ₀ g A I) (.storage (bidsF (.var "arg0") "tab")) =
+      (initState σ σ₀ g A I) (.storage (bidsF (.var "arg0") "tab")) =
         .ok (.int (Int.ofNat (bidsTabWord σ I).toNat)) := by
   rw [evalExpr_storage_scalar
     (t := .int uint256Int)
     (loc := wordLoc (bidsBaseWord I + ⟨5⟩))
     (hbase := bidsLocals_get_bids I)
-    (her := evalStorageRef_bidsField (evm := initState cA gh bl σ σ₀ g A I)
+    (her := evalStorageRef_bidsField (evm := initState σ σ₀ g A I)
       (I := I) (field := "tab"))
     (hty := by
       simp [storageTypeAt?, storageTypeStep?, bidsEvaledRef, contract, storageDecls,
@@ -350,12 +350,12 @@ theorem evalExpr_bidsTab {cA gh bl σ σ₀ A I} {g : Sat256} :
       rw [keyValueToWord_uint256_natCast])]
   simpa [initState, bidsTabWord, flipperSlotWord] using
     congrArg EvalResult.ok
-      (flipperStorageLocLoad_uint256 (initState cA gh bl σ σ₀ g A I)
+      (flipperStorageLocLoad_uint256 (initState σ σ₀ g A I)
         (bidsBaseWord I + ⟨5⟩))
 
-theorem evalExprs_bidsReturn {cA gh bl σ σ₀ A I} {g : Sat256} :
+theorem evalExprs_bidsReturn {σ σ₀ A I} {g : Sat256} :
     evalExprs? config { contract := contract, locals := bidsLocals I }
-      (initState cA gh bl σ σ₀ g A I)
+      (initState σ σ₀ g A I)
       [ .storage (bidsF (.var "arg0") "bid"),
         .storage (bidsF (.var "arg0") "lot"),
         .storage (bidsF (.var "arg0") "guy"),
@@ -369,13 +369,13 @@ theorem evalExprs_bidsReturn {cA gh bl σ σ₀ A I} {g : Sat256} :
     evalExpr_bidsGuy, evalExpr_bidsTic, evalExpr_bidsEnd, evalExpr_bidsUsr,
     evalExpr_bidsGal, evalExpr_bidsTab, EvalResult.bind, bind, pure]
 
-theorem flipperBidsSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem flipperBidsSourceBody {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) :
     ExecTransitionBody config contract
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (bidsLocals I)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) (bidsLocals I)
       bidsTransition.body
       (.returned { contract := contract, locals := bidsLocals I }
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (some (bidsReturnValues σ I))) := by
   exact ExecFuncBody.execBlockRet <|
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true (by
@@ -383,7 +383,7 @@ theorem flipperBidsSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
       exact hwv))) <|
       ExecBlock.consReturn (ExecStmt.return (by
         simpa [bidsTransition, nonpayable] using
-          (evalExprs_bidsReturn (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+          (evalExprs_bidsReturn (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g))))
 
 theorem encodeABIValue_uint256_word (w : UInt256) :
@@ -500,13 +500,13 @@ theorem flipperDispatchBids {I : ExecutionEnv}
   have hbids : (flipperSelBytes 1 == flipperSelBytes 1) = true := by native_decide
   simp [dispatchList, selectorOf, hcd, begSelectorBytes, bidsSelectorBytes, hbeg, hbids]
 
-theorem flipperReachBidsBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flipperReachBidsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flipperBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (flipperSelBytes 1)) :
-    ∃ k C, RD flipperBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I)
         ⟨480⟩ [flipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : flipperSelWord I = ⟨0x4423c5f1⟩ :=
     flipperSelWord_eq_of_beq I hsz 0x44 0x23 0xc5 0xf1 ⟨0x4423c5f1⟩
       (by native_decide) (by simpa [flipperSelBytes] using hsel)
@@ -536,7 +536,7 @@ theorem flipperReachBidsBody {cA gh bl σ σ₀ A I} {g : Sat256}
 theorem RD.flipperBidsDecodeToRoutine {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 ⟨502⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = flipperBytecode)
     (hroutine : (D_J code 0).contains ⟨2568⟩ = true)
@@ -552,14 +552,14 @@ theorem RD.flipperBidsDecodeToRoutine {code : ByteArray} {g : Sat256}
     raw jump (by native_decide) hroutine (by evm_ov)]
   exact ⟨_, _, by simpa [calldataWord] using rd2568⟩
 
-theorem flipperBidsX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flipperBidsX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD flipperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨480⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD flipperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2568⟩
+      (initState σ σ₀ g A I) ⟨480⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD flipperBytecode I g (initState σ σ₀ g A I) ⟨2568⟩
         [bidsId I, ⟨509⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flipperBytecode) (sel := sel) (entry := ⟨480⟩) (ret := ⟨509⟩)
     (decoded := ⟨502⟩) (need := ⟨32⟩) hreach
@@ -573,14 +573,14 @@ theorem flipperBidsX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     hdecoded rfl (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [bidsId] using hroutine⟩
 
-theorem flipperBidsX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem flipperBidsX_shortarg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD flipperBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨480⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev flipperBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨480⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev flipperBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -678,16 +678,16 @@ theorem flipperBidsDecodePushMask540 :
       some (.Push .PUSH6, some (uint48Mask, 6)) := by
   native_decide
 
-theorem flipperBidsX_loadStruct {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flipperBidsX_loadStruct {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
-    (h : RD flipperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2568⟩
+    (h : RD flipperBytecode I g (initState σ σ₀ g A I) ⟨2568⟩
       [bidsId I, ⟨509⟩, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C) :
-    ∃ k' C', RD flipperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨509⟩
+      σ k C) :
+    ∃ k' C', RD flipperBytecode I g (initState σ σ₀ g A I) ⟨509⟩
       [bidsTabWord σ I, bidsGalWord σ I, bidsUsrWord σ I, bidsEndWord σ I,
         bidsTicWord σ I, bidsGuyWord σ I, bidsLotWord σ I, bidsBidWord σ I,
         ⟨509⟩, sel]
-      (bidsHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (bidsHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   let base := bidsBaseWord I
   let packed := bidsPackedWord σ I
   have hbaseComm2 : ⟨2⟩ + base = base + ⟨2⟩ := u256_add_comm _ _
@@ -821,14 +821,14 @@ theorem flipperBidsX_loadStruct {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
       hticComm, u256_land_comm, flipperSlotWord]
       using rd509⟩
 
-theorem flipperBidsX_return {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem flipperBidsX_return {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
-    (h : RD flipperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨509⟩
+    (h : RD flipperBytecode I g (initState σ σ₀ g A I) ⟨509⟩
       [bidsTabWord σ I, bidsGalWord σ I, bidsUsrWord σ I, bidsEndWord σ I,
         bidsTicWord σ I, bidsGuyWord σ I, bidsLotWord σ I, bidsBidWord σ I,
         ⟨509⟩, sel]
-      (bidsHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret flipperBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (bidsHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret flipperBytecode g (initState σ σ₀ g A I) σ
       (bidsReturnData σ I) := by
   have hprefixStore :
       (UInt256.toByteArray (bidsBidWord σ I)).write 0 (bidsHashMem I) 128 32 =
@@ -1036,20 +1036,19 @@ theorem flipperBidsX_return {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       exact bidsReturnMem_read128_256 σ I)
     (by evm_ov)
 
-theorem flipperBidsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem flipperBidsBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (flipperSelBytes 1))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (flipperSelBytes 1)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 1) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some bidsTransition :=
     flipperDispatchBids hsel
-  have hreach := flipperReachBidsBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := flipperReachBidsBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · have hdecode := flipperDecode_bids_ok (I := I) hsz36
@@ -1059,52 +1058,18 @@ theorem flipperBidsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     have hret := flipperBidsX_return hloaded
     have hbody :
         ExecTransitionBody config contract
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (bidsLocals I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) (bidsLocals I)
           bidsTransition.body
           (.returned { contract := contract, locals := bidsLocals I }
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-            (some (bidsReturnValues σ_solm I))) := by
-      exact flipperBidsSourceBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+            (some (bidsReturnValues σ I))) := by
+      exact flipperBidsSourceBody (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv
-    have hslot0 :
-        flipperSlotWord (bidsBaseWord I) σ_evm I =
-          flipperSlotWord (bidsBaseWord I) σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (bidsBaseWord I) ⟨0⟩
-    have hslot1 :
-        flipperSlotWord (bidsBaseWord I + ⟨1⟩) σ_evm I =
-          flipperSlotWord (bidsBaseWord I + ⟨1⟩) σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner
-        (bidsBaseWord I + (⟨1⟩ : UInt256)) ⟨0⟩
-    have hslot2 :
-        flipperSlotWord (bidsPackedSlot I) σ_evm I =
-          flipperSlotWord (bidsPackedSlot I) σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (bidsPackedSlot I) ⟨0⟩
-    have hslot3 :
-        flipperSlotWord (bidsBaseWord I + ⟨3⟩) σ_evm I =
-          flipperSlotWord (bidsBaseWord I + ⟨3⟩) σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner
-        (bidsBaseWord I + (⟨3⟩ : UInt256)) ⟨0⟩
-    have hslot4 :
-        flipperSlotWord (bidsBaseWord I + ⟨4⟩) σ_evm I =
-          flipperSlotWord (bidsBaseWord I + ⟨4⟩) σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner
-        (bidsBaseWord I + (⟨4⟩ : UInt256)) ⟨0⟩
-    have hslot5 :
-        flipperSlotWord (bidsBaseWord I + ⟨5⟩) σ_evm I =
-          flipperSlotWord (bidsBaseWord I + ⟨5⟩) σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner
-        (bidsBaseWord I + (⟨5⟩ : UInt256)) ⟨0⟩
-    have hval :
-        some (bidsReturnValues σ_solm I) = some (bidsReturnValues σ_evm I) := by
-      simp [bidsReturnValues, bidsBidWord, bidsLotWord, bidsGuyWord, bidsTicWord,
-        bidsEndWord, bidsUsrWord, bidsGalWord, bidsTabWord, bidsPackedWord,
-        flipperUint48Offset20Word, flipperUint48Offset26Word, hslot0, hslot1,
-        hslot2, hslot3, hslot4, hslot5]
     have henc :
-        returnEquiv (bidsReturnData σ_evm I) (some (bidsReturnValues σ_evm I))
+        returnEquiv (bidsReturnData σ I) (some (bidsReturnValues σ I))
           bidsTransition.returnType := by
-      exact returnEquiv.returned rfl (bidsReturnEncoding σ_evm I)
-    exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+      exact returnEquiv.returned rfl (bidsReturnEncoding σ I)
+    exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
   · have hshort : I.calldata.size < 36 := by
       omega
     exact (flipperBidsX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)

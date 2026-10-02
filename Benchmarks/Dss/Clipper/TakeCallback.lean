@@ -63,7 +63,7 @@ namespace Reasoning.Reach
 
 theorem RD.clipperDup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
     (h : RD code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: t)
@@ -77,7 +77,7 @@ theorem RD.clipperDup12 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
 
 theorem RD.clipperDup16 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {a b c d e f gg hh ii jj kk ll mm nn oo pp : UInt256} {t : List UInt256}
     (h : RD code ee g s0 pc
       (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: kk :: ll :: mm :: nn ::
@@ -363,7 +363,7 @@ theorem RD.clipperTakeSkipClipperCallWhoVat {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {price slice owe tabNew lotNew tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
@@ -371,7 +371,7 @@ theorem RD.clipperTakeSkipClipperCallWhoVat {code : ByteArray}
       (⟨260⟩ :: clipperTakeVatFluxSelectorWord :: clipperTakeVatTarget v ::
         slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (hdataLen : dataLen ≠ ⟨0⟩)
     (hwhoVat : UInt256.land who solcAddrMask = clipperTakeVatTarget v)
     (hov : R.length + 32 ≤ 1024) :
@@ -379,7 +379,7 @@ theorem RD.clipperTakeSkipClipperCallWhoVat {code : ByteArray}
       (UInt256.land (solcSlotWord σ ee ⟨1⟩) solcAddrMask ::
         slice :: owe :: tabNew :: lotNew :: price :: tic ::
         packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      mem aw o (cA, σ) k' C' := by
+      mem aw o σ k' C' := by
   let vatWord : UInt256 := EVM.Word.ofNat (↑v.vat : Nat)
   have hwhoVat' : UInt256.land solcAddrMask who = clipperTakeVatTarget v := by
     simpa [u256_land_comm] using hwhoVat
@@ -453,7 +453,7 @@ theorem RD.clipperTakeSkipClipperCallWhoDog {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {price slice owe tabNew lotNew tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
@@ -461,7 +461,7 @@ theorem RD.clipperTakeSkipClipperCallWhoDog {code : ByteArray}
       (⟨260⟩ :: clipperTakeVatFluxSelectorWord :: clipperTakeVatTarget v ::
         slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (hdataLen : dataLen ≠ ⟨0⟩)
     (hwhoVat : UInt256.land who solcAddrMask ≠ clipperTakeVatTarget v)
     (hwhoDog :
@@ -472,7 +472,7 @@ theorem RD.clipperTakeSkipClipperCallWhoDog {code : ByteArray}
       (UInt256.land (solcSlotWord σ ee ⟨1⟩) solcAddrMask ::
         slice :: owe :: tabNew :: lotNew :: price :: tic ::
         packed :: stopped :: dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      mem aw o (cA, σ) k' C' := by
+      mem aw o σ k' C' := by
   let vatWord : UInt256 := EVM.Word.ofNat (↑v.vat : Nat)
   have hwhoVat' : UInt256.land solcAddrMask who ≠ clipperTakeVatTarget v := by
     intro h
@@ -588,7 +588,7 @@ theorem RD.clipperTakeClipperCallGuardTrue {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {price slice owe tabNew lotNew tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
@@ -596,7 +596,7 @@ theorem RD.clipperTakeClipperCallGuardTrue {code : ByteArray}
       (⟨260⟩ :: clipperTakeVatFluxSelectorWord :: clipperTakeVatTarget v ::
         slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      mem aw o (cA, σ) k C)
+      mem aw o σ k C)
     (hdataLen : dataLen ≠ ⟨0⟩)
     (hwhoVat : UInt256.land who solcAddrMask ≠ clipperTakeVatTarget v)
     (hwhoDog :
@@ -607,7 +607,7 @@ theorem RD.clipperTakeClipperCallGuardTrue {code : ByteArray}
       (UInt256.land (solcSlotWord σ ee ⟨1⟩) solcAddrMask ::
         slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      mem aw o (cA, σ) k' C' := by
+      mem aw o σ k' C' := by
   let vatWord : UInt256 := EVM.Word.ofNat (↑v.vat : Nat)
   have hwhoVat' : UInt256.land solcAddrMask who ≠ clipperTakeVatTarget v := by
     simpa [u256_land_comm] using hwhoVat
@@ -1347,14 +1347,14 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {dog slice owe tabNew lotNew price tic packed stopped dataLen dataStart who max amt id :
       UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨4530⟩
       (dog :: slice :: owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped ::
         dataLen :: dataStart :: who :: max :: amt :: id :: R)
-      mem (UInt256.ofNat 9) o (cA, σ) k C)
+      mem (UInt256.ofNat 9) o σ k C)
     (hmem : mem.size = 260)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hlenMax : dataLen.toNat ≤ 4294967296)
@@ -1370,7 +1370,7 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
           owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen :: dataStart ::
           who :: max :: amt :: id :: R)
         (clipperTakeCallbackCalldataMem ee owe slice dataLen dataStart mem)
-        aw o (cA, σ) k' C' ∧
+        aw o σ k' C' ∧
       clipperTakeMemoryWF
         (clipperTakeCallbackCalldataMem ee owe slice dataLen dataStart mem) aw := by
   have hbaseMload64 :

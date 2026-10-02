@@ -1105,9 +1105,6 @@ theorem erc6909ApproveBodyCore
       · have hdec := erc6909Decode_approve_ok (I := I) hsz100 hbig hcanonSpender
         let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
         let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
-        have hσ : EVMStateEquiv evmE evmS := by
-          simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g)
-            rfl
         by_cases hsource : I.source = AccountAddress.ofNat 0
         · have hbody :
               ExecTransitionBody config contract evmS (approveStore I)
@@ -1139,19 +1136,11 @@ theorem erc6909ApproveBodyCore
                 (by simp only [evmS, initState]; exact hwv)
                 (by simpa [evmS, initState] using hsource)
                 (by simpa [evmS, initState] using hspender)
-            have hσPost : EVMStateEquiv (approvePostState evmE I) (approvePostState evmS I) := by
-              unfold approvePostState approveSlot
-              rw [hσ.executionEnv]
-              exact hσ.storageStore_codeOwner
-                (allowanceSlot (.address evmS.executionEnv.source)
-                  (.address (AccountAddress.ofNat (approveSpenderWord I).toNat))
-                  (.int (Int.ofNat (approveIdWord I).toNat))) rfl
             exact (erc6909X_approve (g := Sat256.ofUInt256 g)
                 hsz100 hsize hbig hperm hcanonSpender hsource hspender hreach)
-              |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-                (by simp [evmE, approvePostState, approveSlot, approveSlotI, initState,
+              |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                (by simp [evmS, approvePostState, approveSlot, approveSlotI, initState,
                   storageStore_accountMap])
-                hσPost
                 (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
       · have hdec := erc6909Decode_approve_none_noncanon (I := I)
           hsz100 hbig hcanonSpender

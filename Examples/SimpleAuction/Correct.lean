@@ -121,7 +121,7 @@ theorem simpleAuctionCorrect :
                       (simpleAuctionHighMatches 3 (by omega) hsz
                         (by simpa [selIs, simpleAuctionHighSelBytes] using h6)).2
                       (by jump_dest) (by decide))
-                  · refine simpleAuctionNoDispatch hcode hsize hperm ?_
+                · refine simpleAuctionNoDispatch hcode hsize hperm ?_
                   intro i hi
                   interval_cases i
                   · simpa [selIs, simpleAuctionSelBytes] using h0
@@ -1158,8 +1158,7 @@ theorem simpleAuctionConstructorEquiv_success
       (simpleAuctionSolmCtorExecSuccess
         (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
         biddingTime beneficiaryAddress h0 hlt hwv hno) ?_
-    refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
-    · rfl
+    refine ctorResultEquiv.success rfl rfl ?_ rfl
     · have hAuctionEnd :
           EVM.word ((UInt256.ofNat I.header.timestamp).toNat + biddingTime.toNat) =
             auctionEndWordEvm := by
@@ -1170,7 +1169,6 @@ theorem simpleAuctionConstructorEquiv_success
       simp only [storageStore_accountMap, initState, simpleAuctionCtorAfterBeneficiaryState]
       simp only [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
       rw [hAuctionEnd]
-      rfl
 
 /-- The creation/initcode bytecode refines the Solm constructor specification. -/
 theorem simpleAuctionConstructorCorrect :

@@ -17,25 +17,10 @@ private theorem clipperKickStorageStore_originalAccounts (evm : EVM.State)
   cases evm.accountMap.find? addr <;>
     simp [Option.option, State.setAccount, Account.updateStorage]
 
-private theorem clipperKickStorageStore_genesisBlockHeader (evm : EVM.State)
-    (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).genesisBlockHeader =
-      evm.genesisBlockHeader := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;>
-    simp [Option.option, State.setAccount, Account.updateStorage]
-
-private theorem clipperKickStorageStore_blocks (evm : EVM.State)
-    (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).blocks = evm.blocks := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;>
-    simp [Option.option, State.setAccount, Account.updateStorage]
-
 theorem clipperKickVowAddress_eq_of_aligned
-    {s0 evm : EVM.State} {cA : Batteries.RBSet AccountAddress compare}
+    {s0 evm : EVM.State}
     {σ : AccountMap} {I : ExecutionEnv}
-    (halign : ClipperKickCallAligned s0 cA σ I evm) :
+    (halign : ClipperKickCallAligned s0 σ I evm) :
     clipperKickSourceVowAddress evm =
       AccountAddress.ofNat (clipperRedoVowTarget σ I).toNat := by
   have hslot := accountMapEquiv_storage_findD halign.accounts I.codeOwner ⟨2⟩ ⟨0⟩
@@ -66,16 +51,15 @@ inductive ClipperKickTailOutcome (v : ClipperImmutables) (code : ByteArray)
         sourceInit (clipperKickAfterInitializationBody v) .reverted)
       (hevm : RDinvalid code (Sat256.ofUInt256 g) s0)
   | returned
-      (cA : Batteries.RBSet AccountAddress compare) (σ : AccountMap)
+      (σ : AccountMap)
       (sourceAfter : EVM.State) (frame : Frame)
       (hsource : ExecBlock (config v)
         (Frame.mk (contract v) (clipperKickLocalsActivePos evmLock I))
         sourceInit (clipperKickAfterInitializationBody v)
         (.returned frame sourceAfter
           (some [.int (Int.ofNat (clipperKickSourceIdWord evmLock).toNat)])))
-      (hevm : RDret code (Sat256.ofUInt256 g) s0 (cA, σ) id.toByteArray)
-      (hcreated : sourceAfter.createdAccounts = cA)
-      (haccounts : accountMapEquiv σ sourceAfter.accountMap)
+      (hevm : RDret code (Sat256.ofUInt256 g) s0 σ id.toByteArray)
+      (haccounts : σ = sourceAfter.accountMap)
 
 theorem clipperKickAfterFeedTopPrefix
     (v : ClipperImmutables) (evmLock sourceInit sourceAfter evmTop : EVM.State)
@@ -110,11 +94,10 @@ theorem clipperKickAfterFeedTopPrefix
 theorem clipperKickFinishActive
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA0 : Batteries.RBSet AccountAddress compare} {gh : BlockHeader}
-    {bl : ProcessedBlocks} {σStart σ₀ : AccountMap} {A : Substate}
+    {σStart σ₀ : AccountMap} {A : Substate}
     {g : UInt256} {I : ExecutionEnv} {evmLock sourceInit evmTop : EVM.State}
     {feedPrice top id sel : UInt256} {R : List UInt256}
-    {cA : Batteries.RBSet AccountAddress compare} {σTop : AccountMap}
+    {σTop : AccountMap}
     {memTop out : ByteArray} {k C : ℕ}
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
     (hactive : clipperKickTipWord σTop I ≠ ⟨0⟩ ∨
@@ -130,20 +113,20 @@ theorem clipperKickFinishActive
         (Frame.mk (contract v) (clipperKickLocalsActivePos evmLock I))
         sourceInit (clipperKickAfterInitializationBody v) result)
     (halignTop : ClipperKickCallAligned
-      (initState cA0 gh bl σStart σ₀ (Sat256.ofUInt256 g) A I)
-      cA σTop I evmTop)
+      (initState σStart σ₀ (Sat256.ofUInt256 g) A I)
+      σTop I evmTop)
     (rd6203 : RD code I (Sat256.ofUInt256 g)
-      (initState cA0 gh bl σStart σ₀ (Sat256.ofUInt256 g) A I) ⟨6203⟩
+      (initState σStart σ₀ (Sat256.ofUInt256 g) A I) ⟨6203⟩
       (⟨0⟩ :: clipperKickChipWord σTop I :: clipperKickTipWord σTop I ::
         top :: ⟨1⟩ :: id :: clipperKickKprMaskedWord I ::
         clipperKickUsrMaskedWord I :: clipperKickLotWord I ::
         clipperKickTabWord I :: ⟨476⟩ :: sel :: R)
-      memTop (UInt256.ofNat 6) out (cA, σTop) k C)
+      memTop (UInt256.ofNat 6) out σTop k C)
     (hmemTop : memTop.size = 192)
     (hreadTop : memTop.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 100 ≤ 1024) :
     ClipperKickTailOutcome v code g
-      (initState cA0 gh bl σStart σ₀ (Sat256.ofUInt256 g) A I) I
+      (initState σStart σ₀ (Sat256.ofUInt256 g) A I) I
       evmLock sourceInit id := by
   have htip : clipperKickTipWord σTop I = clipperRedoTipSolmWord evmTop := by
     simpa [clipperKickTipWord, clipperRedoTipWord] using
@@ -230,7 +213,7 @@ theorem clipperKickFinishActive
           v evmLock evmTop I feedPrice top hactiveSource hwmulSource
             haddSource hsuck
         exact .reverted (hprefix htail) hevm
-      · obtain ⟨cASuck, σSuck, zSuck, outSuck, ASuck, k6373, C6373,
+      · obtain ⟨σSuck, zSuck, outSuck, ASuck, k6373, C6373,
             rd6373, hcallSuck, houtSuck⟩ := RD.clipperKickSuckPostCall
           v hpatch (by simpa [coin] using rd6357) hvat hdepth hperm hmemTop
             (by omega)
@@ -282,21 +265,15 @@ theorem clipperKickFinishActive
             evmSuck.executionEnv.codeOwner ⟨13⟩ ⟨0⟩
           have hFinalAccounts := clipperKickUnlockedState_accountMapEquiv
             evmSuck I halignSuck.executionEnv halignSuck.accounts
-          exact .returned cASuck
+          exact .returned
             (sstoreAccountMap I.codeOwner σSuck ⟨13⟩ ⟨0⟩) sourceFinal _
             (by simpa [sourceFinal, hevmeq] using hprefix htail) hevm
-            (by
-              calc
-                sourceFinal.createdAccounts = evmSuck.createdAccounts :=
-                  storageStore_createdAccounts _ _ _ _
-                _ = cASuck := halignSuck.createdAccounts)
             (by simpa [sourceFinal, hevmeq] using hFinalAccounts)
 
 theorem clipperKickFinishAfterFeedPrice
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA0 : Batteries.RBSet AccountAddress compare} {gh : BlockHeader}
-    {bl : ProcessedBlocks} {σStart σ₀ : AccountMap} {A : Substate}
+    {σStart σ₀ : AccountMap} {A : Substate}
     {g : UInt256} {I : ExecutionEnv} {evmLock sourceInit : EVM.State}
     {id sel : UInt256} {R : List UInt256}
     (hdepth : I.depth.val < 1024) (hperm : I.perm = true)
@@ -304,15 +281,15 @@ theorem clipperKickFinishAfterFeedPrice
       clipperKickTopSlot id)
     (hov : R.length + 100 ≤ 1024)
     (hfeed : ClipperKickFeedPriceOutcome v code g
-      (initState cA0 gh bl σStart σ₀ (Sat256.ofUInt256 g) A I) I
+      (initState σStart σ₀ (Sat256.ofUInt256 g) A I) I
       (clipperKickLocalsActivePos evmLock I) sourceInit
       ⟨6061⟩ ⟨6069⟩ ⟨0⟩ ⟨1⟩
       (id :: clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
         clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: sel :: R)) :
     ClipperKickTailOutcome v code g
-      (initState cA0 gh bl σStart σ₀ (Sat256.ofUInt256 g) A I) I
+      (initState σStart σ₀ (Sat256.ofUInt256 g) A I) I
       evmLock sourceInit id := by
-  let s0 := initState cA0 gh bl σStart σ₀ (Sat256.ofUInt256 g) A I
+  let s0 := initState σStart σ₀ (Sat256.ofUInt256 g) A I
   cases hfeed with
   | reverted hsource hevm =>
       exact .reverted
@@ -322,7 +299,7 @@ theorem clipperKickFinishAfterFeedPrice
       exact .invalid
         (clipperKickAfterInitializationGetFeedReverts v evmLock sourceInit I hsource)
         hevm
-  | returned feedPrice cA σ sourceAfter mem out k C hgetFeed halign hrd hmem
+  | returned feedPrice σ sourceAfter mem out k C hgetFeed halign hrd hmem
       hread64 =>
     obtain ⟨k9233, C9233, rd9233⟩ := RD.clipperKickGetFeedPriceToRmul
       v hpatch hrd (by omega)
@@ -374,10 +351,10 @@ theorem clipperKickFinishAfterFeedPrice
           v hpatch (by simpa [top] using rd6069) htopPos hperm hmem
             (by omega)
         let evmTop := clipperKickSourceTopState evmLock sourceAfter top
-        have hTopAccounts : accountMapEquiv σTop evmTop.accountMap := by
+        have hTopAccounts : σTop = evmTop.accountMap := by
           exact clipperKickTopState_accountMapEquiv evmLock sourceAfter I id top
             halign.executionEnv hslot halign.accounts
-        have halignTop : ClipperKickCallAligned s0 cA σTop I evmTop :=
+        have halignTop : ClipperKickCallAligned s0 σTop I evmTop :=
           { accounts := hTopAccounts
             originalAccounts := by
               calc
@@ -385,21 +362,6 @@ theorem clipperKickFinishAfterFeedPrice
                 _ = evmTop.σ₀ := by
                   symm
                   exact clipperKickStorageStore_originalAccounts _ _ _ _
-            createdAccounts := by
-              calc
-                evmTop.createdAccounts = sourceAfter.createdAccounts :=
-                  storageStore_createdAccounts _ _ _ _
-                _ = cA := halign.createdAccounts
-            genesisBlockHeader := by
-              calc
-                evmTop.genesisBlockHeader = sourceAfter.genesisBlockHeader :=
-                  clipperKickStorageStore_genesisBlockHeader _ _ _ _
-                _ = s0.genesisBlockHeader := halign.genesisBlockHeader
-            blocks := by
-              calc
-                evmTop.blocks = sourceAfter.blocks :=
-                  clipperKickStorageStore_blocks _ _ _ _
-                _ = s0.blocks := halign.blocks
             executionEnv := by
               calc
                 evmTop.executionEnv = sourceAfter.executionEnv :=
@@ -447,14 +409,9 @@ theorem clipperKickFinishAfterFeedPrice
               evmTop.executionEnv.codeOwner ⟨13⟩ ⟨0⟩
             have hFinalAccounts := clipperKickUnlockedState_accountMapEquiv
               evmTop I halignTop.executionEnv halignTop.accounts
-            exact .returned cA
+            exact .returned
               (sstoreAccountMap I.codeOwner σTop ⟨13⟩ ⟨0⟩) sourceFinal _
               (by simpa [sourceFinal] using hsource) hevm
-              (by
-                calc
-                  sourceFinal.createdAccounts = evmTop.createdAccounts :=
-                    storageStore_createdAccounts _ _ _ _
-                  _ = cA := halignTop.createdAccounts)
               (by simpa [sourceFinal] using hFinalAccounts)
           · exact clipperKickFinishActive v hpatch hdepth hperm
               (Or.inr hchipZero) hprefix halignTop

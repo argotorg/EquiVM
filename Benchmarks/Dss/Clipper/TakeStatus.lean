@@ -1161,7 +1161,7 @@ theorem clipperEvalTakeCheckedOwe0Require_true (v : ClipperImmutables)
     simp [evalExpr?, EvalResult.bind, bind, pure, hleft, hright]
 
 theorem clipperTakePostLotWord_eq {σ τ : AccountMap} {evm : EVM.State}
-    {I : ExecutionEnv} (hAccounts : accountMapEquiv σ τ)
+    {I : ExecutionEnv} (hAccounts : σ = τ)
     (hacc : evm.accountMap = τ) (howner : evm.executionEnv.codeOwner = I.codeOwner) :
     solcSlotWord σ I (solcMappingSlot ⟨12⟩ (clipperTakeIdWord I) + ⟨2⟩) =
       clipperTakeSalesLotEVMWord evm I := by
@@ -1174,7 +1174,7 @@ theorem clipperTakePostLotWord_eq {σ τ : AccountMap} {evm : EVM.State}
     State.lookupAccount, Account.lookupStorage, hacc, howner] using hslot
 
 theorem clipperTakePostTabWord_eq {σ τ : AccountMap} {evm : EVM.State}
-    {I : ExecutionEnv} (hAccounts : accountMapEquiv σ τ)
+    {I : ExecutionEnv} (hAccounts : σ = τ)
     (hacc : evm.accountMap = τ) (howner : evm.executionEnv.codeOwner = I.codeOwner) :
     solcSlotWord σ I (solcMappingSlot ⟨12⟩ (clipperTakeIdWord I) + ⟨1⟩) =
       clipperTakeSalesTabEVMWord evm I := by

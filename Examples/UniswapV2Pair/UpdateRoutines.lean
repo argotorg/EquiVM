@@ -42,7 +42,7 @@ def uniswapUpdateOverflowStringWord : UInt256 :=
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapUpdateOverflowStringRevertTail_aw6_size164 {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {R : List UInt256} {mem : ByteArray}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6994⟩ R mem (UInt256.ofNat 6)
       rdata acc k C)
     (hmem : mem.size = 164)
@@ -57,7 +57,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapUpdateOverflowGuardFirstReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6959⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem (UInt256.ofNat 6) rdata acc
       k C)
@@ -74,7 +74,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.uniswapUpdateOverflowGuardSecondReverts {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6959⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem (UInt256.ofNat 6) rdata acc
       k C)
@@ -94,7 +94,7 @@ so control jumps past the `UniswapV2: OVERFLOW` revert block. -/
 theorem RD.uniswapUpdateOverflowGuardOk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6959⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k C)
     (hfit0 : balance0.toNat ≤ UniswapV2Pair.reserve112Mask.toNat)
@@ -136,7 +136,7 @@ timestamp delta and jumps to the reserve-write block, skipping cumulative price 
 theorem RD.uniswapUpdateElapsedZeroSkipsCumulatives {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k C)
     (helapsed0 :
@@ -144,7 +144,7 @@ theorem RD.uniswapUpdateElapsedZeroSkipsCumulatives {g : Sat256} {s0 : State}
         (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
-              (acc.2.find? ee.codeOwner |>.option ⟨0⟩
+              (acc.find? ee.codeOwner |>.option ⟨0⟩
                 (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
               reserve224Shift)))
         reserve32Mask = ⟨0⟩)
@@ -153,7 +153,7 @@ theorem RD.uniswapUpdateElapsedZeroSkipsCumulatives {g : Sat256} {s0 : State}
       (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
-              (acc.2.find? ee.codeOwner |>.option ⟨0⟩
+              (acc.find? ee.codeOwner |>.option ⟨0⟩
                 (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
               reserve224Shift)) ::
         UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp) ::
@@ -182,7 +182,7 @@ previous packed `reserve0` is zero. The cumulative price updates are skipped. -/
 theorem RD.uniswapUpdateReserve0ZeroSkipsCumulatives {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k C)
     (helapsedNe :
@@ -190,7 +190,7 @@ theorem RD.uniswapUpdateReserve0ZeroSkipsCumulatives {g : Sat256} {s0 : State}
         (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
-              (acc.2.find? ee.codeOwner |>.option ⟨0⟩
+              (acc.find? ee.codeOwner |>.option ⟨0⟩
                 (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
               reserve224Shift)))
         reserve32Mask ≠ ⟨0⟩)
@@ -200,7 +200,7 @@ theorem RD.uniswapUpdateReserve0ZeroSkipsCumulatives {g : Sat256} {s0 : State}
       (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
-              (acc.2.find? ee.codeOwner |>.option ⟨0⟩
+              (acc.find? ee.codeOwner |>.option ⟨0⟩
                 (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
               reserve224Shift)) ::
         UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp) ::
@@ -212,7 +212,7 @@ theorem RD.uniswapUpdateReserve0ZeroSkipsCumulatives {g : Sat256} {s0 : State}
           (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
             (UInt256.land reserve32Mask
               (UInt256.div
-                (acc.2.find? ee.codeOwner |>.option ⟨0⟩
+                (acc.find? ee.codeOwner |>.option ⟨0⟩
                   (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
                 reserve224Shift)))
           reserve32Mask) = ⟨0⟩ :=
@@ -250,7 +250,7 @@ is nonzero, and the previous packed `reserve1` is zero. The cumulative price upd
 theorem RD.uniswapUpdateReserve1ZeroSkipsCumulatives {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {reserve1 reserve0 balance1 balance0 : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7060⟩
       (reserve1 :: reserve0 :: balance1 :: balance0 :: R) mem aw rdata acc k C)
     (helapsedNe :
@@ -258,7 +258,7 @@ theorem RD.uniswapUpdateReserve1ZeroSkipsCumulatives {g : Sat256} {s0 : State}
         (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
-              (acc.2.find? ee.codeOwner |>.option ⟨0⟩
+              (acc.find? ee.codeOwner |>.option ⟨0⟩
                 (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
               reserve224Shift)))
         reserve32Mask ≠ ⟨0⟩)
@@ -269,7 +269,7 @@ theorem RD.uniswapUpdateReserve1ZeroSkipsCumulatives {g : Sat256} {s0 : State}
       (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
-              (acc.2.find? ee.codeOwner |>.option ⟨0⟩
+              (acc.find? ee.codeOwner |>.option ⟨0⟩
                 (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
               reserve224Shift)) ::
         UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp) ::
@@ -281,7 +281,7 @@ theorem RD.uniswapUpdateReserve1ZeroSkipsCumulatives {g : Sat256} {s0 : State}
           (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
             (UInt256.land reserve32Mask
               (UInt256.div
-                (acc.2.find? ee.codeOwner |>.option ⟨0⟩
+                (acc.find? ee.codeOwner |>.option ⟨0⟩
                   (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
                 reserve224Shift)))
           reserve32Mask) = ⟨0⟩ :=
@@ -336,7 +336,7 @@ theorem RD.uniswapUpdateStorePackedReserves {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ}
     {elapsed timestamp reserve1 reserve0 balance1 balance0 : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7241⟩
       (elapsed :: timestamp :: reserve1 :: reserve0 :: balance1 :: balance0 :: R)
       mem aw rdata acc k C)
@@ -344,12 +344,12 @@ theorem RD.uniswapUpdateStorePackedReserves {g : Sat256} {s0 : State}
     (hov : R.length + 13 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7339⟩
       (reserve112Shift :: reserve112Mask ::
-        uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ acc.2 ee) timestamp balance1
+        uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ acc ee) timestamp balance1
           balance0 ::
         elapsed :: timestamp :: reserve1 :: reserve0 :: balance1 :: balance0 :: R)
       mem aw rdata
-      (acc.1, sstoreAccountMap ee.codeOwner acc.2 ⟨8⟩
-        (uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ acc.2 ee) timestamp balance1
+      (sstoreAccountMap ee.codeOwner acc ⟨8⟩
+        (uniswapUpdatePackedReserveWord (uniswapSlotWord ⟨8⟩ acc ee) timestamp balance1
           balance0))
       k' C' := by
   have rd7244 := evm_run h with [jumpdest, push1 ⟨8⟩, dup1]
@@ -384,7 +384,7 @@ theorem RD.uniswapUpdateEmitSyncAndJump {g : Sat256} {s0 : State}
     {packed elapsed timestamp reserve1 reserve0 balance1 balance0 ret : UInt256}
     {R : List UInt256} {mem rdata : ByteArray} {aw awLoad awLog : UInt256}
     {mcostLoad mcostStore0 mcostStore1 mcostLoadLog mcostLog : ℕ}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨7339⟩
       (reserve112Shift :: reserve112Mask :: packed :: elapsed :: timestamp :: reserve1 ::
         reserve0 :: balance1 :: balance0 :: ret :: R)

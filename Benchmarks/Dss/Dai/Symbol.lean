@@ -42,11 +42,11 @@ private theorem daiSymbolReturnRead :
   native_decide
 
 /-- Runtime-only `symbol()` slice from selector dispatch through dynamic string return. -/
-theorem daiX_symbol_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiX_symbol_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD daiBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨900⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret daiBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨900⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret daiBytecode g (initState σ σ₀ g A I) σ
       daiSymbolReturnBytes := by
   obtain ⟨_, _, h900⟩ := hreach
   have h3190 := evm_run h900 with [
@@ -129,7 +129,7 @@ theorem daiX_symbol_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       mem_cost daiSymbolReturnRead (by evm_ov)]
 
 theorem daiSymbolBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiBytecode) (_hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some symbolTransition)
@@ -138,24 +138,22 @@ theorem daiSymbolBodyCoreOk
         (transitionSignature symbolTransition).paramTypes I.calldata =
           some symbolStore)
     (hreach : ∃ k C, RD daiBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨900⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨900⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         symbolStore
         symbolTransition.body
         (.returned { contract := contract, locals := symbolStore }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [.bytes daiSymbolBytes])) := by
     exact daiSymbolBodyReturns
-      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv)
   exact (daiX_symbol_ok (g := Sat256.ofUInt256 g) hreach)
-    |>.reEquivExecutionTransport hcode hdispatch hdecode hbody rfl
-      hAccounts
+    |>.reEquivExecution hcode hdispatch hdecode hbody
       (by
         rw [symbolTransition]
         exact returnEquiv_of_encode daiSymbolReturnEncoding)
@@ -169,20 +167,19 @@ theorem daiDecode_symbol_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
   exact decodeCalldataWithMode_empty_ok hsz4
 
 /-- `symbol()` body refines its Solm transition. -/
-theorem daiSymbolBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiSymbolBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiSelBytes 16))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiSelBytes 16)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiSelBytes 16) (by native_decide) hsel
   have hdispatch : dispatchMsg contract I.calldata = some symbolTransition :=
     daiDispatchSymbol hsel
-  have hreach := daiReachSymbolBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := daiReachSymbolBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   exact daiSymbolBodyCoreOk hcode hsize hwv hdispatch
-    (daiDecode_symbol_ok hsz4) hreach hAccounts
+    (daiDecode_symbol_ok hsz4) hreach
 
 end Benchmarks.Dss.Dai

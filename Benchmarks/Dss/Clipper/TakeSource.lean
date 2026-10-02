@@ -73,11 +73,11 @@ theorem evalExpr_clipperTakeStopped_lt_three_true (v : ClipperImmutables)
   simp [evalBinaryOp?]
   omega
 
-theorem clipperTakeBodyRevertsLocked {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperTakeBodyRevertsLocked {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩) :
     let locals := clipperTakeStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted := by
   intro locals evm0
   have hlockedEval :
@@ -97,13 +97,13 @@ theorem clipperTakeBodyRevertsLocked {cA gh bl σ σ₀ A I} {g : UInt256}
         exact ExecBlock.consRevert (ExecStmt.requireFalse hlockedEval))
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem clipperTakeStoppedSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperTakeStoppedSourceReverts {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
       3 ≤ (solcSlotWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ⟨14⟩).toNat) :
     let locals := clipperTakeStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
@@ -142,7 +142,7 @@ theorem clipperTakeStoppedSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
         exact ExecBlock.consRevert (ExecStmt.requireFalse hstoppedEval))
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem clipperTakeInactiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperTakeInactiveSourceReverts {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -150,7 +150,7 @@ theorem clipperTakeInactiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
     (husr :
       clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I = ⟨0⟩) :
     let locals := clipperTakeStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
@@ -222,7 +222,7 @@ theorem clipperTakeInactiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
   simpa [ExecTransitionBody, startFrame, locals, evm0] using
     ExecFuncBody.execBlockRevert hblock
 
-theorem clipperTakeStatusSourceRevertsOfStatus {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperTakeStatusSourceRevertsOfStatus {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -230,14 +230,14 @@ theorem clipperTakeStatusSourceRevertsOfStatus {cA gh bl σ σ₀ A I} {g : UInt
     (husr :
       clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
         evmLock
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
         .reverted) :
     let locals := clipperTakeStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
@@ -315,7 +315,7 @@ theorem clipperTakeStatusSourceRevertsOfStatus {cA gh bl σ σ₀ A I} {g : UInt
   simpa [ExecTransitionBody, startFrame, locals, evm0] using
     ExecFuncBody.execBlockRevert hblock
 
-theorem clipperTakeStatusDoneTrueSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperTakeStatusDoneTrueSourceReverts {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -324,7 +324,7 @@ theorem clipperTakeStatusDoneTrueSourceReverts {cA gh bl σ σ₀ A I} {g : UInt
       clipperTakeSalesUsrWord (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) I ≠ ⟨0⟩)
     {evmPrice : EVM.State} (price : UInt256)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
         evmLock
@@ -332,7 +332,7 @@ theorem clipperTakeStatusDoneTrueSourceReverts {cA gh bl σ σ₀ A I} {g : UInt
         (.ok { contract := contract v, locals := clipperTakeLocalsSt evmLock I true price }
           evmPrice)) :
     let locals := clipperTakeStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
@@ -441,7 +441,7 @@ theorem clipperTakeStatusDoneTrueSourceReverts {cA gh bl σ σ₀ A I} {g : UInt
   simpa [ExecTransitionBody, startFrame, locals, evm0] using
     ExecFuncBody.execBlockRevert hblock
 
-theorem clipperTakeTooExpensiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperTakeTooExpensiveSourceReverts {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -451,7 +451,7 @@ theorem clipperTakeTooExpensiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt25
     {evmPrice : EVM.State} (price : UInt256)
     (hmax : (clipperTakeMaxWord I).toNat < price.toNat)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
         evmLock
@@ -459,7 +459,7 @@ theorem clipperTakeTooExpensiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt25
         (.ok { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
           evmPrice)) :
     let locals := clipperTakeStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
@@ -574,7 +574,7 @@ theorem clipperTakeTooExpensiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt25
   simpa [ExecTransitionBody, startFrame, locals, evm0] using
     ExecFuncBody.execBlockRevert hblock
 
-theorem clipperTakeOwe0MulOverflowSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem clipperTakeOwe0MulOverflowSourceReverts {σ σ₀ A I} {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
     (hstopped :
@@ -588,7 +588,7 @@ theorem clipperTakeOwe0MulOverflowSourceReverts {cA gh bl σ σ₀ A I} {g : UIn
         (clipperMinWord (clipperTakeSalesLotEVMWord evmPrice I)
           (clipperTakeAmtWord I)).toNat * price.toNat)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
         evmLock
@@ -596,7 +596,7 @@ theorem clipperTakeOwe0MulOverflowSourceReverts {cA gh bl σ σ₀ A I} {g : UIn
         (.ok { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
           evmPrice)) :
     let locals := clipperTakeStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
@@ -1492,7 +1492,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeTailBlock (v : ClipperImmutables)
     exact ExecBlock.consNormal hite (execBlockAppendRevert hsubBlock hvatRevert)
   simpa [sliceFrame, List.append_assoc] using execBlockAppendRevert hmulBlock hafterIte
 
-theorem clipperTakeOweGtTabVatFluxNoCodeSourceReverts {cA gh bl σ σ₀ A I}
+theorem clipperTakeOweGtTabVatFluxNoCodeSourceReverts {σ σ₀ A I}
     {g : UInt256}
     (v : ClipperImmutables) (hwv : I.weiValue = ⟨0⟩)
     (hlocked : solcSlotWord σ I ⟨13⟩ = ⟨0⟩)
@@ -1518,7 +1518,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeSourceReverts {cA gh bl σ σ₀ A I}
       (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0)
     (hstatus :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
       ExecStmt (config v) { contract := contract v, locals := clipperTakeLocalsTic evmLock I }
         evmLock
@@ -1526,7 +1526,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeSourceReverts {cA gh bl σ σ₀ A I}
         (.ok { contract := contract v, locals := clipperTakeLocalsSt evmLock I false price }
           evmPrice)) :
     let locals := clipperTakeStore I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody (config v) (contract v) evm0 locals (takeTransition v).body .reverted := by
   intro locals evm0
   let evmLock := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner ⟨13⟩ ⟨1⟩

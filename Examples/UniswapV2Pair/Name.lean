@@ -58,11 +58,11 @@ private theorem nameReturnRead :
   native_decide
 
 /-- Runtime-only `name()` slice from selector dispatch through dynamic string return. -/
-theorem uniswapX_name {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem uniswapX_name {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨572⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨572⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret uniswapV2PairBytecode g (initState σ σ₀ g A I) σ
       nameReturnBytes := by
   obtain ⟨_, _, h572⟩ := hreach
   have h2814 := evm_run h572 with [jumpdest, push2 ⟨580⟩, push2 ⟨2814⟩, jump (by jump_dest)]
@@ -140,44 +140,41 @@ theorem uniswapX_name {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
 
 /-- `name()` body core, parameterized by dispatcher/decode facts owned by `Correct`. -/
 theorem uniswapNameBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some nameTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (nameTransition.params.map Param.name)
         (transitionSignature nameTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨572⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨572⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ nameTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ nameTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.bytes nameBytes)])) := by
     exact uniswapNameBodyReturns
-      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
       (by simp only [initState]; exact hwv)
   have henc :
       returnEquiv nameReturnBytes (some [.bytes nameBytes]) nameTransition.returnType := by
     rw [nameTransition]
     exact returnEquiv_of_encode nameReturnEncoding
-  exact (uniswapX_name (g := Sat256.ofUInt256 g) hreach).reEquivExecutionTransport
-    hcode hdispatch hdecode hbody rfl hAccounts henc
+  exact (uniswapX_name (g := Sat256.ofUInt256 g) hreach).reEquivExecution
+    hcode hdispatch hdecode hbody henc
 
 theorem uniswapNameBody
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x06, 0xfd, 0xde, 0x03]⟩)
-    (hdispatch : dispatchMsg contract I.calldata = some nameTransition)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hdispatch : dispatchMsg contract I.calldata = some nameTransition) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x06, 0xfd, 0xde, 0x03]⟩ rfl hsel
   exact uniswapNameBodyCore hcode hwv hdispatch (uniswapDecode_name hsz)
     (uniswapReachNameBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
-    hAccounts
 
 end UniswapV2Pair

@@ -349,9 +349,9 @@ theorem catScratchReturn3Mem_read128_96 {scratch : ByteArray} (first second thir
 set_option maxHeartbeats 1000000 in
 theorem RD.catIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : catIlksStructGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 8 ≤ 1024) :
@@ -360,7 +360,7 @@ theorem RD.catIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
         solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key + ⟨1⟩) ::
         UInt256.land (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ key)) solcAddrMask ::
         ret :: R)
-      (solcMappingHashMem ⟨1⟩ key) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcMappingHashMem ⟨1⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd10, hd11, hd12, hd13, hd15, hd16, hd17, hd18, hd19,
       hd20, hd21, hd22, hd23, hd24, hd26, hd27, hd28, hd29, hd30, hd32, hd34, hd36, hd37, hd38,
@@ -485,7 +485,7 @@ theorem RD.catIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
 set_option maxHeartbeats 1000000 in
 theorem RD.catIlksReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc first second third ret : UInt256} {R : List UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {mem rdata : ByteArray} {acc : AccountMap}
     (h : RD code ee g s0 pc (third :: second :: first :: ret :: R)
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : catIlksReturnFromMemWf code pc)
@@ -636,13 +636,13 @@ theorem catDispatch_ilks {I : ExecutionEnv}
   · rw [selectorOf, ilksSelectorBytes]
     exact hsel
 
-theorem catReachIlksBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem catReachIlksBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0xd9, 0x63, 0x8d, 0x36]⟩) :
-    ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD catBytecode I g (initState σ σ₀ g A I)
         ⟨635⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : catSelWord I = ⟨3647180086⟩ :=
     catSelWord_eq_of_beq I hsz 0xd9 0x63 0x8d 0x36 ⟨3647180086⟩ (by native_decide) hsel
   have hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) = ⟨0⟩ := by
@@ -765,7 +765,7 @@ theorem catIlksBodyReturns {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
 /-! ### body core (≥36 bytes calldata) and short-calldata revert -/
 
 theorem catIlksBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some ilksTransition)
@@ -774,16 +774,15 @@ theorem catIlksBodyCoreOk
         (transitionSignature ilksTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (ilksArgValue I)))
     (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨635⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨635⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let flipSlot := solcMappingSlot ⟨1⟩ (ilksArgWord I)
   let chopSlot := flipSlot + ⟨1⟩
   let dunkSlot := flipSlot + ⟨2⟩
-  let flipWord := catSlotWord flipSlot σ_evm I
-  let chopWord := catSlotWord chopSlot σ_evm I
-  let dunkWord := catSlotWord dunkSlot σ_evm I
+  let flipWord := catSlotWord flipSlot σ I
+  let chopWord := catSlotWord chopSlot σ I
+  let dunkWord := catSlotWord dunkSlot σ I
   let locals : Store := (∅ : Store).insert "arg0" (ilksArgValue I)
   have hflipSlot : ilksFlipSlotFor I = flipSlot := by
     simp [flipSlot, ilksFlipSlotFor_eq hsz36]
@@ -793,16 +792,16 @@ theorem catIlksBodyCoreOk
     simp [dunkSlot, flipSlot, ilksDunkSlotFor_eq hsz36]
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals ilksTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals ilksTransition.body
         (.returned { contract := contract, locals := locals }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-                (UInt256.land (catSlotWord (ilksFlipSlotFor I) σ_solm I) solcAddrMask).toNat)),
-            (.int (Int.ofNat (catSlotWord (ilksChopSlotFor I) σ_solm I).toNat)),
-            (.int (Int.ofNat (catSlotWord (ilksDunkSlotFor I) σ_solm I).toNat))])) := by
+                (UInt256.land (catSlotWord (ilksFlipSlotFor I) σ I) solcAddrMask).toNat)),
+            (.int (Int.ofNat (catSlotWord (ilksChopSlotFor I) σ I).toNat)),
+            (.int (Int.ofNat (catSlotWord (ilksDunkSlotFor I) σ I).toNat))])) := by
     simpa [locals, initState, catSlotWord] using
       catIlksBodyReturns hsz36
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         (by simp only [initState]; exact hwv) rfl
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := catBytecode) (sel := sel) (entry := ⟨635⟩) (ret := ⟨664⟩)
@@ -813,9 +812,9 @@ theorem catIlksBodyCoreOk
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
   have htoRoutine : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3215⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3215⟩
       (ilksArgWord I :: ⟨664⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     have rd658 := hdecoded.jumpdest (by native_decide) (by evm_ov)
     have rd659 := rd658.pop (by native_decide) (by evm_ov)
     have rd660 := rd659.calldataload (by native_decide) (by evm_ov)
@@ -833,7 +832,7 @@ theorem catIlksBodyCoreOk
     (by jump_dest) (by simp)
   have hret :
       RDret catBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (UInt256.land flipWord solcAddrMask) ++
           UInt256.toByteArray chopWord ++ UInt256.toByteArray dunkWord) := by
     have hret' := RD.catIlksReturnFromMem
@@ -854,23 +853,22 @@ theorem catIlksBodyCoreOk
           UInt256.land flipWord solcAddrMask :=
       solcAddrMask_clean (solcAddrMask_result_canonical flipWord)
     simpa [hidem] using hret'
-  have hflipWord : catSlotWord flipSlot σ_evm I = catSlotWord flipSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner flipSlot ⟨0⟩
-  have hchopWord : catSlotWord chopSlot σ_evm I = catSlotWord chopSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner chopSlot ⟨0⟩
-  have hdunkWord : catSlotWord dunkSlot σ_evm I = catSlotWord dunkSlot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner dunkSlot ⟨0⟩
+  have hflipWord : catSlotWord flipSlot σ I = catSlotWord flipSlot σ I :=
+    rfl
+  have hchopWord : catSlotWord chopSlot σ I = catSlotWord chopSlot σ I :=
+    rfl
+  have hdunkWord : catSlotWord dunkSlot σ I = catSlotWord dunkSlot σ I :=
+    rfl
   have hval :
       some [Value.address (AccountAddress.ofNat
-              (UInt256.land (catSlotWord (ilksFlipSlotFor I) σ_solm I) solcAddrMask).toNat),
-          Value.int (Int.ofNat (catSlotWord (ilksChopSlotFor I) σ_solm I).toNat),
-          Value.int (Int.ofNat (catSlotWord (ilksDunkSlotFor I) σ_solm I).toNat)] =
+              (UInt256.land (catSlotWord (ilksFlipSlotFor I) σ I) solcAddrMask).toNat),
+          Value.int (Int.ofNat (catSlotWord (ilksChopSlotFor I) σ I).toNat),
+          Value.int (Int.ofNat (catSlotWord (ilksDunkSlotFor I) σ I).toNat)] =
         some [Value.address (AccountAddress.ofNat
               (UInt256.land flipWord solcAddrMask).toNat),
           Value.int (Int.ofNat chopWord.toNat),
           Value.int (Int.ofNat dunkWord.toNat)] := by
     rw [hflipSlot, hchopSlot, hdunkSlot]
-    simp [flipWord, chopWord, dunkWord, hflipWord, hchopWord, hdunkWord]
   have henc :
       returnEquiv
         (UInt256.toByteArray (UInt256.land flipWord solcAddrMask) ++
@@ -880,17 +878,17 @@ theorem catIlksBodyCoreOk
         ilksTransition.returnType := by
     rw [show ilksTransition.returnType = [addr, uint256, uint256] by rfl]
     exact returnEquiv.returned rfl (catAddrUintUintReturnEncoding flipWord chopWord dunkWord)
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 theorem catIlksBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = catBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some ilksTransition)
     (hreach : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨635⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨635⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -907,24 +905,23 @@ theorem catIlksBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (catDecode_ilks_none_short hsz4 hshort)
 
-theorem catIlksBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem catIlksBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I ⟨#[0xd9, 0x63, 0x8d, 0x36]⟩)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I ⟨#[0xd9, 0x63, 0x8d, 0x36]⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0xd9, 0x63, 0x8d, 0x36]⟩ rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some ilksTransition :=
     catDispatch_ilks hsel
-  have hreach := catReachIlksBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := catReachIlksBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact catIlksBodyCoreOk hcode hwv hsz36 hsize hdispatch
-      (catDecode_ilks_ok hsz36) hreach hAccounts
+      (catDecode_ilks_ok hsz36) hreach
   · exact catIlksBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 
 end Benchmarks.Dss.Cat

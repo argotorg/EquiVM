@@ -14,24 +14,22 @@ set_option maxHeartbeats 2000000
 abbrev clipperCtorRelyLogTopic : UInt256 :=
   ⟨0xdd0e34038ac38b2a1ce960229778ac48a8719bc900b6c4f8d0475c6e8b385a60⟩
 
-theorem RDret.xiResultAcc {cA gh bl σ σ₀ A I} {g : Sat256} {code o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (hcode : I.code = code)
-    (h : RDret code g (initState cA gh bl σ σ₀ g A I) acc o) :
-    Ξ cA gh bl σ σ₀ g.toUInt256 A I = .error .OutOfGass ∨
+
+/-- Lift a return trace whose final account map may differ from the initial map to `Ξ`. -/
+theorem clipperRDretXiResultAccountMap {σ σ₀ A I} {g : Sat256} {code o : ByteArray}
+    {acc : AccountMap} (hcode : I.code = code)
+    (h : RDret code g (initState σ σ₀ g A I) acc o) :
+    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass ∨
       ∃ (g' : UInt256) (A' : Substate),
-        Ξ cA gh bl σ σ₀ g.toUInt256 A I =
-          .ok (.success (acc.1, acc.2, g', A') o) := by
+        Ξ σ σ₀ g.toUInt256 A I = .ok (.success (acc, g', A') o) := by
   rcases h with hOOG | ⟨s, hX, hacc⟩
   · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
       rw [← hcode] at hOOG
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hOOG))
-  · have hcA : s.createdAccounts = acc.1 := congrArg Prod.fst hacc
-    have hσ : s.accountMap = acc.2 := congrArg Prod.snd hacc
-    have hxi := Xi_success_of_X (g := g.toUInt256) (by
+  · have hxi := Xi_success_of_X (g := g.toUInt256) (by
       rw [← hcode] at hX
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
-    rw [hcA, hσ] at hxi
+    rw [hacc] at hxi
     exact Or.inr ⟨_, _, hxi⟩
 
 theorem clipperCtorSetAddressWord_eq (old data : UInt256) :
@@ -49,18 +47,16 @@ theorem clipperCtorSetAddressWord_eq (old data : UInt256) :
     _ = setAddressOffset0Word old data := rfl
 
 theorem clipperCtorStoppedReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8)
     (hcode : I.code = clipperCtorCode vat spotter dog ilk) (hperm : I.perm = true) :
     ∃ k C, RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨10⟩ []
+      (initState σ σ₀ g A I) ⟨10⟩ []
       clipperCtorFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (createdAccounts, sstoreAccountMap I.codeOwner σ ⟨14⟩ ⟨0⟩) k C := by
+      (sstoreAccountMap I.codeOwner σ ⟨14⟩ ⟨0⟩) k C := by
   have rd0 : RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-      ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+      (initState σ σ₀ g A I) ⟨0⟩ []
+      ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (σ) 0 0 :=
     RD.initState hcode
   have rdBeforeStore := clipper_ctor_run rd0 with [
     push1 ⟨192⟩, push1 ⟨64⟩,
@@ -75,17 +71,14 @@ theorem clipperCtorStoppedReach
   exact ⟨k, C, by simpa using rd10⟩
 
 theorem clipperInitcodeNonpayableRevert
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8)
     (hcode : I.code = clipperCtorCode vat spotter dog ilk)
     (hperm : I.perm = true) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev (clipperCtorCode vat spotter dog ilk) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd10⟩ := clipperCtorStoppedReach
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     vat spotter dog ilk hcode hperm
   have rd17 := clipper_ctor_run rd10 with [
     callvalue, dup1, iszero, push2 ⟨21⟩, jumpiNT (isZero_eq_zero_of_ne hwv)]
@@ -94,21 +87,18 @@ theorem clipperInitcodeNonpayableRevert
     raw rev 0 (by clipper_ctor_decode) mem_cost (by evm_ov)]
 
 theorem clipperCtorArgsReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     (hcode : I.code = clipperCtorCode vat spotter dog ilk)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) :
     ∃ k C, RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨78⟩
+      (initState σ σ₀ g A I) ⟨78⟩
       [ABI.bytesToWord ilk, EVM.word dog.val, ⟨64⟩, EVM.word spotter.val,
         ⟨32⟩, EVM.word vat.val, ⟨96⟩]
       (clipperCtorArgFreeMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
-      (createdAccounts, sstoreAccountMap I.codeOwner σ ⟨14⟩ ⟨0⟩) k C := by
+      (sstoreAccountMap I.codeOwner σ ⟨14⟩ ⟨0⟩) k C := by
   obtain ⟨_, _, rd10⟩ := clipperCtorStoppedReach
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     vat spotter dog ilk hcode hperm
   have rd23 := clipper_ctor_run rd10 with [
     callvalue, dup1, iszero, push2 ⟨21⟩,
@@ -170,22 +160,20 @@ theorem clipperCtorArgsReach
   exact ⟨_, _, rd78⟩
 
 theorem clipperCtorVatDecodeReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σStopped σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) {k C : Nat}
     (rd78 : RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨78⟩
+      (initState σ σ₀ g A I) ⟨78⟩
       [ABI.bytesToWord ilk, EVM.word dog.val, ⟨64⟩, EVM.word spotter.val,
         ⟨32⟩, EVM.word vat.val, ⟨96⟩]
       (clipperCtorArgFreeMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
-      (createdAccounts, σStopped) k C) :
+      (σStopped) k C) :
     ∃ k' C', RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨95⟩
+      (initState σ σ₀ g A I) ⟨95⟩
       [EVM.word dog.val, ⟨64⟩, EVM.word spotter.val, ⟨32⟩,
         EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorVatMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
-      (createdAccounts, σStopped) k' C' := by
+      (σStopped) k' C' := by
   have hvatmem :
       (UInt256.land
           (UInt256.lnot (UInt256.sub
@@ -205,33 +193,31 @@ theorem clipperCtorVatDecodeReach
   exact ⟨_, _, rd95⟩
 
 theorem clipperCtorSpotterStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σStopped σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) {k C : Nat}
     (hperm : I.perm = true)
     (rd95 : RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨95⟩
+      (initState σ σ₀ g A I) ⟨95⟩
       [EVM.word dog.val, ⟨64⟩, EVM.word spotter.val, ⟨32⟩,
         EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorVatMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
-      (createdAccounts, σStopped) k C) :
+      (σStopped) k C) :
     ∃ k' C', RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨129⟩
+      (initState σ σ₀ g A I) ⟨129⟩
       [UInt256.lnot solcAddrMask, solcAddrMask, EVM.word dog.val, ⟨64⟩,
         EVM.word spotter.val, ⟨32⟩, EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorVatMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
-      (createdAccounts, sstoreAccountMap I.codeOwner σStopped ⟨3⟩
+      (sstoreAccountMap I.codeOwner σStopped ⟨3⟩
         (setAddressOffset0Word (solcSlotWord σStopped I ⟨3⟩)
           (EVM.word spotter.val))) k' C' := by
   have rdBeforeSload := clipper_ctor_run rd95 with [push1 ⟨3⟩, dup1]
   obtain ⟨k99, C99, rd99raw⟩ := rdBeforeSload.sload (by clipper_ctor_decode) (by evm_ov)
   have rd99 : RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨99⟩
+      (initState σ σ₀ g A I) ⟨99⟩
       [solcSlotWord σStopped I ⟨3⟩, ⟨3⟩, EVM.word dog.val, ⟨64⟩,
         EVM.word spotter.val, ⟨32⟩, EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorVatMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
-      (createdAccounts, σStopped) k99 C99 := by
+      (σStopped) k99 C99 := by
     simpa [solcSlotWord] using rd99raw
   have rdBeforeStore := clipper_ctor_run rd99 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, swap1, dup2, and,
@@ -245,34 +231,32 @@ theorem clipperCtorSpotterStoreReach
         solcAddrMask by decide] using rd129raw⟩
 
 theorem clipperCtorDogStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σSpotter σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) {k C : Nat}
     (hperm : I.perm = true)
     (rd129 : RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨129⟩
+      (initState σ σ₀ g A I) ⟨129⟩
       [UInt256.lnot solcAddrMask, solcAddrMask, EVM.word dog.val, ⟨64⟩,
         EVM.word spotter.val, ⟨32⟩, EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorVatMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
-      (createdAccounts, σSpotter) k C) :
+      (σSpotter) k C) :
     ∃ k' C', RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨145⟩
+      (initState σ σ₀ g A I) ⟨145⟩
       [⟨1⟩, EVM.word dog.val, ⟨64⟩, EVM.word spotter.val, ⟨32⟩,
         EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorVatMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
-      (createdAccounts, sstoreAccountMap I.codeOwner σSpotter ⟨1⟩
+      (sstoreAccountMap I.codeOwner σSpotter ⟨1⟩
         (setAddressOffset0Word (solcSlotWord σSpotter I ⟨1⟩)
           (EVM.word dog.val))) k' C' := by
   have rdBeforeSload := clipper_ctor_run rd129 with [push1 ⟨1⟩, dup1]
   obtain ⟨k133, C133, rd133raw⟩ := rdBeforeSload.sload (by clipper_ctor_decode) (by evm_ov)
   have rd133 : RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨133⟩
+      (initState σ σ₀ g A I) ⟨133⟩
       [solcSlotWord σSpotter I ⟨1⟩, ⟨1⟩, UInt256.lnot solcAddrMask,
         solcAddrMask, EVM.word dog.val, ⟨64⟩, EVM.word spotter.val, ⟨32⟩,
         EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorVatMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
-      (createdAccounts, σSpotter) k133 C133 := by
+      (σSpotter) k133 C133 := by
     simpa [solcSlotWord] using rd133raw
   have rdBeforeStore := clipper_ctor_run rd133 with [
     swap1, swap2, and, swap2, dup4, and, swap2, swap1, swap2, or, dup2]
@@ -282,24 +266,21 @@ theorem clipperCtorDogStoreReach
     simpa [clipperCtorSetAddressWord_eq] using rd145raw⟩
 
 theorem clipperCtorBufWardsReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σDog σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     {k C : Nat} (hperm : I.perm = true)
     (rd145 : RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨145⟩
+      (initState σ σ₀ g A I) ⟨145⟩
       [⟨1⟩, EVM.word dog.val, ⟨64⟩, EVM.word spotter.val, ⟨32⟩,
         EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorVatMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
-      (createdAccounts, σDog) k C) :
+      (σDog) k C) :
     ∃ k' C', RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨183⟩
+      (initState σ σ₀ g A I) ⟨183⟩
       [solcSourceWord I, EVM.word dog.val, ⟨64⟩, EVM.word spotter.val,
         ⟨0⟩, EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorWardsHashMem I vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σDog ⟨5⟩ clipperCtorRayWord)
           (clipperCtorCallerWardsSlot I) ⟨1⟩) k' C' := by
   have hilkmem :
@@ -309,11 +290,11 @@ theorem clipperCtorBufWardsReach
     rw [show (⟨128⟩ : UInt256).toNat = 128 by decide]
     rfl
   have rd149 : RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨149⟩
+      (initState σ σ₀ g A I) ⟨149⟩
       [⟨128⟩, ABI.bytesToWord ilk, ⟨1⟩, EVM.word dog.val, ⟨64⟩,
         EVM.word spotter.val, ⟨32⟩, EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorVatMem vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
-      (createdAccounts, σDog) (k + 3) (C + 9) := by
+      (σDog) (k + 3) (C + 9) := by
     simpa using clipper_ctor_run rd145 with [push1 ⟨128⟩, dup8, swap1]
   have rd150 := rd149.mstore 0 (clipperCtorIlkMem vat spotter dog ilk)
     (UInt256.ofNat 10) (by clipper_ctor_decode) mem_cost hilkmem
@@ -341,21 +322,19 @@ theorem clipperCtorBufWardsReach
   exact ⟨k', C', by simpa using rd183⟩
 
 theorem clipperCtorRelyLogReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σWards σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     {k C : Nat} (hperm : I.perm = true)
     (rd183 : RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨183⟩
+      (initState σ σ₀ g A I) ⟨183⟩
       [solcSourceWord I, EVM.word dog.val, ⟨64⟩, EVM.word spotter.val,
         ⟨0⟩, EVM.word vat.val, ABI.bytesToWord ilk]
       (clipperCtorWardsHashMem I vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
-      (createdAccounts, σWards) k C) :
+      (σWards) k C) :
     ∃ k' C', RD (clipperCtorCode vat spotter dog ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨230⟩ []
+      (initState σ σ₀ g A I) ⟨230⟩ []
       (clipperCtorWardsHashMem I vat spotter dog ilk) (UInt256.ofNat 10) ByteArray.empty
-      (createdAccounts, σWards) k' C' := by
+      (σWards) k' C' := by
   have rdMload := clipper_ctor_run rd183 with [
     swap2,
     raw mload 0 ⟨320⟩ (UInt256.ofNat 10)
@@ -415,7 +394,7 @@ theorem clipperCtorPatch18_eq (vat : AccountAddress) (ilk : List UInt8) :
 set_option maxHeartbeats 3000000 in
 theorem clipperCtorReturnTrace
     {I : ExecutionEnv} {g : Sat256} {s0 : State} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {acc : AccountMap} {k C : Nat}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     (h : RD (clipperCtorCode vat spotter dog ilk) I g s0 ⟨230⟩ []
       (clipperCtorWardsHashMem I vat spotter dog ilk) (UInt256.ofNat 10)
@@ -571,16 +550,13 @@ theorem clipperCtorReturnTrace
     (by clipper_ctor_decode) mem_cost (clipperCtorPatchedRuntime_read vat ilk) (by evm_ov)
 
 theorem clipperInitcodeSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     (hcode : I.code = clipperCtorCode vat spotter dog ilk)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) :
     RDret (clipperCtorCode vat spotter dog ilk) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner
+      (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner
               (sstoreAccountMap I.codeOwner
@@ -602,8 +578,7 @@ theorem clipperInitcodeSuccess
           (clipperCtorCallerWardsSlot I) ⟨1⟩)
       (clipperCtorPatchedRuntime vat ilk) := by
   obtain ⟨_, _, rd78⟩ := clipperCtorArgsReach
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     vat spotter dog ilk hilk hcode hperm hwv
   obtain ⟨_, _, rd95⟩ := clipperCtorVatDecodeReach vat spotter dog ilk rd78
   obtain ⟨_, _, rd129⟩ := clipperCtorSpotterStoreReach vat spotter dog ilk hperm rd95

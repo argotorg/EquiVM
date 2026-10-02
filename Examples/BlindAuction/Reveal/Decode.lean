@@ -18,7 +18,7 @@ open BlindAuction
 theorem RD.blindAuctionRevealDecodeEmptyArray1713 {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {start ennd ret headOff : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD blindAuctionBytecode ee g s0 ⟨1713⟩
         (start :: ennd :: ret :: headOff :: R) mem aw rdata acc k C)
     (hstart : UInt256.slt (start + ⟨31⟩) ennd = ⟨1⟩)
@@ -53,7 +53,7 @@ theorem RD.blindAuctionRevealDecodeEmptyArray1713 {g : Sat256} {s0 : State}
 theorem RD.blindAuctionRevealDecodeArray1713 {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {start ennd ret headOff len : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD blindAuctionBytecode ee g s0 ⟨1713⟩
         (start :: ennd :: ret :: headOff :: R) mem aw rdata acc k C)
     (hstart : UInt256.slt (start + ⟨31⟩) ennd = ⟨1⟩)
@@ -93,7 +93,7 @@ theorem RD.blindAuctionRevealDecodeArray1713_startRevert {g : Sat256} {s0 : Stat
     {ee : ExecutionEnv} {k C : Nat}
     {start ennd ret headOff : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD blindAuctionBytecode ee g s0 ⟨1713⟩
       (start :: ennd :: ret :: headOff :: R) mem aw rdata acc k C)
     (hstart : UInt256.slt (start + ⟨31⟩) ennd = ⟨0⟩)
@@ -112,7 +112,7 @@ theorem RD.blindAuctionRevealDecodeArray1713_lengthRevert {g : Sat256} {s0 : Sta
     {ee : ExecutionEnv} {k C : Nat}
     {start ennd ret headOff len : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD blindAuctionBytecode ee g s0 ⟨1713⟩
       (start :: ennd :: ret :: headOff :: R) mem aw rdata acc k C)
     (hstart : UInt256.slt (start + ⟨31⟩) ennd = ⟨1⟩)
@@ -144,7 +144,7 @@ theorem RD.blindAuctionRevealDecodeArray1713_endRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : Nat}
     {start ennd ret headOff len : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD blindAuctionBytecode ee g s0 ⟨1713⟩
       (start :: ennd :: ret :: headOff :: R) mem aw rdata acc k C)
     (hstart : UInt256.slt (start + ⟨31⟩) ennd = ⟨1⟩)
@@ -225,12 +225,12 @@ theorem blindAuctionDispatch_reveal {cd : ByteArray}
   rw [selectorOf, blindAuctionBidSelectorBytes, hcd]
   decide
 
-theorem blindAuctionX_reveal_nonpayable {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionX_reveal_nonpayable {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue ≠ ⟨0⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨387⟩ [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨387⟩ [blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd387⟩ := hreach
   have rd395 := evm_run rd387 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨398⟩,
@@ -238,15 +238,15 @@ theorem blindAuctionX_reveal_nonpayable {cA gh bl σ σ₀ A I} {g : Sat256}
   exact rd395.revertStub (by decide) (by decide) (by decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem blindAuctionX_reveal_decodeEntry {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionX_reveal_decodeEntry {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
     (hreach : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨387⟩ [blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ g A I) ⟨387⟩ [blindAuctionSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1785⟩
+      (initState σ σ₀ g A I) ⟨1785⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨413⟩, ⟨276⟩, blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd387⟩ := hreach
   have rd1785 := evm_run rd387 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨398⟩,
@@ -255,14 +255,14 @@ theorem blindAuctionX_reveal_decodeEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     push2 ⟨1785⟩, jump (by jump_dest)]
   exact ⟨_, _, rd1785⟩
 
-theorem blindAuctionRevealX_decode_head_revert {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionRevealX_decode_head_revert {σ σ₀ A I} {g : Sat256}
     (hslt :
       UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩)
     (hentry : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1785⟩
+      (initState σ σ₀ g A I) ⟨1785⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨413⟩, ⟨276⟩, blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1785⟩ := hentry
   exact evm_run rd1785 with [
     jumpdest, push0, push0, push0, push0, push0, push0, push1 ⟨96⟩,
@@ -270,18 +270,18 @@ theorem blindAuctionRevealX_decode_head_revert {cA gh bl σ σ₀ A I} {g : Sat2
     jumpiNT (by rw [hslt]; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem blindAuctionRevealX_decode_head_ok {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionRevealX_decode_head_ok {σ σ₀ A I} {g : Sat256}
     (hslt :
       UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩)
     (hentry : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1785⟩
+      (initState σ σ₀ g A I) ⟨1785⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨413⟩, ⟨276⟩, blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1806⟩
+      (initState σ σ₀ g A I) ⟨1806⟩
       [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
         UInt256.ofNat I.calldata.size, ⟨413⟩, ⟨276⟩, blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1785⟩ := hentry
   have rd1806 := evm_run rd1785 with [
     jumpdest, push0, push0, push0, push0, push0, push0, push1 ⟨96⟩,
@@ -289,14 +289,14 @@ theorem blindAuctionRevealX_decode_head_ok {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpiT (by rw [hslt]; decide) (by jump_dest) ]
   exact ⟨_, _, rd1806⟩
 
-theorem blindAuctionRevealX_decode_valuesOffset_revert {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionRevealX_decode_valuesOffset_revert {σ σ₀ A I} {g : Sat256}
     (hgt : UInt256.gt (revealValuesOffsetWord I) revealMaxU64 = ⟨1⟩)
     (hhead : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1806⟩
+      (initState σ σ₀ g A I) ⟨1806⟩
       [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
         UInt256.ofNat I.calldata.size, ⟨413⟩, ⟨276⟩, blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1806⟩ := hhead
   have rd1809 := evm_run rd1806 with [jumpdest, dup7, calldataload]
   have rd1818 := RD.pushConst rd1809 revealMaxU64 (width := 8) (op := .PUSH8)
@@ -311,18 +311,18 @@ theorem blindAuctionRevealX_decode_valuesOffset_revert {cA gh bl σ σ₀ A I} {
       rw [hgt']; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem blindAuctionRevealX_decode_valuesOffset_ok {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem blindAuctionRevealX_decode_valuesOffset_ok {σ σ₀ A I} {g : Sat256}
     (hgt : UInt256.gt (revealValuesOffsetWord I) revealMaxU64 = ⟨0⟩)
     (hhead : ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1806⟩
+      (initState σ σ₀ g A I) ⟨1806⟩
       [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
         UInt256.ofNat I.calldata.size, ⟨413⟩, ⟨276⟩, blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1828⟩
+      (initState σ σ₀ g A I) ⟨1828⟩
       [revealValuesOffsetWord I, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
         UInt256.ofNat I.calldata.size, ⟨413⟩, ⟨276⟩, blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd1806⟩ := hhead
   have rd1809 := evm_run rd1806 with [jumpdest, dup7, calldataload]
   have rd1818 := RD.pushConst rd1809 revealMaxU64 (width := 8) (op := .PUSH8)
@@ -349,7 +349,7 @@ theorem slt_zero_low_high {a b : UInt256}
 theorem blindAuctionRevealDecodeValuesCall1806_to_1713
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : Nat}
     {sel : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD blindAuctionBytecode ee g s0 ⟨1806⟩
       [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
         UInt256.ofNat ee.calldata.size, ⟨413⟩, ⟨276⟩, sel]
@@ -386,14 +386,14 @@ theorem uslt_eq_zero_of_ne_one {a b : UInt256}
   exact Reasoning.Theory.uslt_eq_zero_of_ne_one h
 
 theorem blindAuctionRevealDecodeFakesOffset1840_reverts
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {I} {g : Sat256}
+    {σ : AccountMap} {I} {g : Sat256}
     {s0 : State} {k C : Nat}
     {valuesLen valuesEnd : UInt256}
     (rd : RD blindAuctionBytecode I g s0 ⟨1840⟩
       [valuesLen, valuesEnd, revealValuesOffsetWord I, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩,
         ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size, ⟨413⟩, ⟨276⟩,
         blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hfakesGt : UInt256.gt (revealFakesOffsetWord I) revealMaxU64 = ⟨1⟩) :
     RDrev blindAuctionBytecode g s0 := by
   have rd1841 := evm_run rd with [jumpdest, swap1]
@@ -421,7 +421,7 @@ theorem blindAuctionRevealDecodeFakesCall1840_to_1713
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : Nat}
     {valuesLen valuesEnd sel : UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD blindAuctionBytecode ee g s0 ⟨1840⟩
       [valuesLen, valuesEnd, revealValuesOffsetWord ee, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩,
         ⟨0⟩, ⟨0⟩, ⟨4⟩, UInt256.ofNat ee.calldata.size, ⟨413⟩, ⟨276⟩, sel]
@@ -460,14 +460,14 @@ theorem blindAuctionRevealDecodeFakesCall1840_to_1713
   exact ⟨_, _, by simpa [revealFakesOffsetWord, calldataWord] using rd1882⟩
 
 theorem blindAuctionRevealDecodeSecretsOffset1883_reverts
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {I} {g : Sat256}
+    {σ : AccountMap} {I} {g : Sat256}
     {s0 : State} {k C : Nat}
     {valuesLen valuesEnd fakesLen fakesEnd : UInt256}
     (rd : RD blindAuctionBytecode I g s0 ⟨1883⟩
       [fakesLen, fakesEnd, revealFakesOffsetWord I, ⟨0⟩, ⟨0⟩, ⟨0⟩,
         ⟨0⟩, valuesLen, valuesEnd, ⟨4⟩, UInt256.ofNat I.calldata.size,
         ⟨413⟩, ⟨276⟩, blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hsecretsGt : UInt256.gt (revealSecretsOffsetWord I) revealMaxU64 = ⟨1⟩) :
     RDrev blindAuctionBytecode g s0 := by
   have rd1884 := evm_run rd with [jumpdest, swap1]
@@ -493,7 +493,7 @@ theorem blindAuctionRevealDecodeSecretsCall1883_to_1713
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : Nat}
     {valuesLen valuesEnd fakesLen fakesEnd sel : UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD blindAuctionBytecode ee g s0 ⟨1883⟩
       [fakesLen, fakesEnd, revealFakesOffsetWord ee, ⟨0⟩, ⟨0⟩, ⟨0⟩,
         ⟨0⟩, valuesLen, valuesEnd, ⟨4⟩, UInt256.ofNat ee.calldata.size,
@@ -531,18 +531,18 @@ theorem blindAuctionRevealDecodeSecretsCall1883_to_1713
   exact ⟨_, _, by simpa [revealSecretsOffsetWord, calldataWord] using rd1925⟩
 
 theorem blindAuctionRevealDecode1806_hugeDynamic_reverts
-    {cA gh bl σ σ₀ A I} {g : Sat256} {k C : Nat}
+    {σ σ₀ A I} {g : Sat256} {k C : Nat}
     (rd : RD blindAuctionBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨1806⟩
+      (initState σ σ₀ g A I) ⟨1806⟩
       [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
         UInt256.ofNat I.calldata.size, ⟨413⟩, ⟨276⟩, blindAuctionSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcalldataGe : 2 ^ 255 ≤ I.calldata.size)
     (hsize : I.calldata.size < UInt256.size) :
-    RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
   by_cases hvaluesGt : UInt256.gt (revealValuesOffsetWord I) revealMaxU64 = ⟨1⟩
   · exact blindAuctionRevealX_decode_valuesOffset_revert
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+      (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g) hvaluesGt ⟨k, C, rd⟩
   · have hvaluesGt0 :
         UInt256.gt (revealValuesOffsetWord I) revealMaxU64 = ⟨0⟩ :=
@@ -587,7 +587,7 @@ theorem blindAuctionRevealDecode1806_hugeDynamic_reverts
 theorem blindAuctionRevealDecodeEmptyArrays1806_to_413
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : Nat}
     {sel : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD blindAuctionBytecode ee g s0 ⟨1806⟩
       [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
         UInt256.ofNat ee.calldata.size, ⟨413⟩, ⟨276⟩, sel]
@@ -703,7 +703,7 @@ theorem blindAuctionRevealDecodeEmptyArrays1806_to_413
 theorem blindAuctionRevealDecodeEmptyArrays1806_to_887
     {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : Nat}
     {sel : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (rd : RD blindAuctionBytecode ee g s0 ⟨1806⟩
       [⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
         UInt256.ofNat ee.calldata.size, ⟨413⟩, ⟨276⟩, sel]

@@ -136,21 +136,21 @@ theorem cureStorageWF_returnBound {σ : AccountMap} {I : ExecutionEnv}
     224 + 64 * (cureSlotWord ⟨2⟩ σ I).toNat < 2 ^ 64 :=
   hwf
 
-theorem cureStorageWF_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
+theorem cureStorageWF_mapEq {σ τ : AccountMap} {I : ExecutionEnv}
+    (hMap : σ = τ) :
     cureStorageWF σ I ↔ cureStorageWF τ I := by
-  have hword : cureSlotWord ⟨2⟩ σ I = cureSlotWord ⟨2⟩ τ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
+  have hword : cureSlotWord ⟨2⟩ σ I = cureSlotWord ⟨2⟩ τ I := by
+    rw [hMap]
   constructor
   · intro h
     simpa [cureStorageWF, ← hword] using h
   · intro h
     simpa [cureStorageWF, hword] using h
 
-theorem cureStorageWF_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) (hwf : cureStorageWF σ I) :
+theorem cureStorageWF_of_mapEq {σ τ : AccountMap} {I : ExecutionEnv}
+    (hMap : σ = τ) (hwf : cureStorageWF σ I) :
     cureStorageWF τ I :=
-  (cureStorageWF_accountMapEquiv hAccounts).mp hwf
+  (cureStorageWF_mapEq hMap).mp hwf
 
 theorem cureStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (wordLoc slot) =
@@ -174,7 +174,7 @@ theorem cureUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
       exact congrArg EvalResult.ok (cureStorageLocLoad_uint256 evm slot))
 
 theorem cureUint256GetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry returnPc routine slot : UInt256}
     (hcode : I.code = cureBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -182,9 +182,8 @@ theorem cureUint256GetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD cureBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf cureBytecode entry returnPc routine)
     (hgetter : solcWordSlotGetterWf cureBytecode routine slot)
     (hroutine : (D_J cureBytecode 0).contains routine = true)
@@ -193,33 +192,27 @@ theorem cureUint256GetterBodyCore
     (hreturn : transition.returnType = [uint256])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (cureSlotWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : cureSlotWord slot σ_evm I = cureSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (cureSlotWord slot σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (cureSlotWord slot σ_evm I).toNat)] := by
-    rw [hword]
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (cureSlotWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (cureSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (cureSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (cureSlotWord slot σ I))
+        (some [(.int (Int.ofNat (cureSlotWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (cureSlotWord slot σ_evm I))
+      (by simpa [uint256] using uint256ReturnEncoding (cureSlotWord slot σ I))
   have hret := RD.solcWordGetterExternal (code := cureBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret cureBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (cureSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (cureSlotWord slot σ I)) := by
     simpa [cureSlotWord] using hret
-  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret'.reEquivExecution hcode hdispatch hdecode hbody henc
 
 -- LIBRARY CANDIDATE: variant of the solc word-slot getter that swaps the return pc before jumping.
 @[reducible] def solcWordSlotGetterSwapJumpWf
@@ -237,14 +230,14 @@ theorem cureUint256GetterBodyCore
 theorem RD.solcWordSlotGetterSwapJump {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc slot ret : UInt256} {R : List UInt256}
     {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD code ee g s0 pc (ret :: R) mem aw rdata (cA, σ) k C)
+    {σ : AccountMap}
+    (h : RD code ee g s0 pc (ret :: R) mem aw rdata σ k C)
     (hwf : solcWordSlotGetterSwapJumpWf code pc slot)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       ((σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   rcases hwf with ⟨hd0, hd1, hd2, hd3, hd4⟩
   have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
   have rd3 := rd1.push1 slot hd1 (by simp only [List.length_cons]; omega)
@@ -287,15 +280,15 @@ theorem RD.solcWordSlotGetterSwapJump {code : ByteArray} {g : Sat256} {s0 : Stat
 
 theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcZeroSlotMappingGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot ⟨0⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
       hd16, hd17⟩
@@ -334,11 +327,11 @@ theorem cureBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.tra
 
 -- GENERALIZES Reasoning.Solc.solcGuardCallvalueNonzeroRevert — supports legacy
 -- `PUSH1 0; DUP1; REVERT` revert stubs emitted before `PUSH0` was available.
-theorem solcGuardCallvalueNonzeroRevertLegacy {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem solcGuardCallvalueNonzeroRevertLegacy {σ σ₀ A I} {g : Sat256}
     {code : ByteArray} {ctgt : UInt256} {wC : ℕ} {opC : Operation.POp} {k0 C0 : ℕ}
-    (h : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨8⟩
+    (h : RD code I g (initState σ σ₀ g A I) ⟨8⟩
           [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3)
-          ByteArray.empty (cA, σ) k0 C0)
+          ByteArray.empty σ k0 C0)
     (hwv : I.weiValue ≠ ⟨0⟩) (hopC : opC ≠ .PUSH0)
     (hpushC : decode code ⟨8⟩ = some (.Push opC, some (ctgt, wC)))
     (hjumpi : decode code (⟨8⟩ + UInt256.ofNat wC.succ) = some (.JUMPI, .none))
@@ -348,17 +341,17 @@ theorem solcGuardCallvalueNonzeroRevertLegacy {cA gh bl σ σ₀ A I} {g : Sat25
       some (.DUP1, .none))
     (hr2 : decode code (⟨8⟩ + UInt256.ofNat wC.succ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) =
       some (.REVERT, .none)) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) :=
+    RDrev code g (initState σ σ₀ g A I) :=
   (h.pushConst ctgt hopC hpushC (by simp only [List.length]; omega)
     |>.jumpiNT hjumpi (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega))
     |>.solcPush1Dup1Revert0 hr0 hr1 hr2 (by simp only [List.length]; omega)
 
 /-- Legacy solc short-calldata revert for `PUSH1 0; DUP1; REVERT` stubs. -/
-theorem solcCalldataShortRevertLegacy {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem solcCalldataShortRevertLegacy {σ σ₀ A I} {g : Sat256}
     {code : ByteArray} {bodyPc rtgt : UInt256} {wR : ℕ} {opR : Operation.POp} {k0 C0 : ℕ}
-    (h : RD code I g (initState cA gh bl σ σ₀ g A I) bodyPc [] solcFreePtrMem
-          (UInt256.ofNat 3) ByteArray.empty (cA, σ) k0 C0)
+    (h : RD code I g (initState σ σ₀ g A I) bodyPc [] solcFreePtrMem
+          (UInt256.ofNat 3) ByteArray.empty σ k0 C0)
     (hsz : I.calldata.size < 4)
     (hd_p4 : decode code bodyPc = some (.Push .PUSH1, some (⟨4⟩, 1)))
     (hd_cds : decode code (bodyPc + UInt256.ofNat 2) = some (.CALLDATASIZE, .none))
@@ -374,7 +367,7 @@ theorem solcCalldataShortRevertLegacy {cA gh bl σ σ₀ A I} {g : Sat256}
     (hr0 : decode code (rtgt + ⟨1⟩) = some (.Push .PUSH1, some (⟨0⟩, 1)))
     (hr1 : decode code (rtgt + ⟨1⟩ + UInt256.ofNat 2) = some (.DUP1, .none))
     (hr2 : decode code (rtgt + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩) = some (.REVERT, .none)) :
-    RDrev code g (initState cA gh bl σ σ₀ g A I) :=
+    RDrev code g (initState σ σ₀ g A I) :=
   (h.push1 ⟨4⟩ hd_p4 (by simp only [List.length]; omega)
     |>.calldatasize hd_cds (by simp only [List.length]; omega)
     |>.lt hd_lt (by simp only [List.length]; omega)
@@ -384,9 +377,9 @@ theorem solcCalldataShortRevertLegacy {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.solcPush1Dup1Revert0 hr0 hr1 hr2 (by simp only [List.length]; omega)
 
 /-- `callvalue ≠ 0` makes the global solc non-payable guard revert before dispatch. -/
-theorem cureX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev cureBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cureBytecode g (initState σ σ₀ g A I) := by
   exact solcGuardCallvalueNonzeroRevertLegacy
     (ctgt := solcGuardTgt cureBytecode) (opC := solcGuardTgtOp cureBytecode)
     (wC := solcGuardTgtWidth cureBytecode)
@@ -396,11 +389,11 @@ theorem cureX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (by native_decide) (by native_decide) (by native_decide)
 
 /-- EVM calldata-size guard reverts when calldata is shorter than a selector. -/
-theorem cureX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev cureBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev cureBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -490,12 +483,12 @@ theorem cureSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
   simpa [cureSelWord, solcSelectorWord] using
     solcSelectorWord_eq_of_beq I hsz c0 c1 c2 c3 sel hsel hmatch
 
-theorem cureReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureRootSplitPc
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) cureRootSplitPc
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -515,39 +508,39 @@ theorem cureReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (by simp only [List.length]; omega)
   exact ⟨k, C, by simpa [cureRootSplitPc, cureSelWord] using hsplit⟩
 
-theorem cureReachMidSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachMidSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat cureBytecode cureRootSplitPc) (cureSelWord I) = ⟨0⟩) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureMidSplitPc
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h32⟩ := cureReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) cureMidSplitPc
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := cureReachRootSplit (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
   exact ⟨_, _, by
     simpa [cureMidSplitPc, cureRootSplitPc, selArmNextPc, armTgtWidth] using
       RD.selectorSplitNotTakenAuto h32 cureRootSplitWellFormed hroot (by simp)⟩
 
-theorem cureReachLowSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachLowSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat cureBytecode cureRootSplitPc) (cureSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureLowSplitPc
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h32⟩ := cureReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) cureLowSplitPc
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h32⟩ := cureReachRootSplit (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
   have h173 := RD.selectorSplitTakenAuto h32 cureRootSplitWellFormed hroot (by jump_dest) (by simp)
   exact ⟨_, _, by
     simpa [cureLowSplitPc, cureLowJumpdestPc, cureRootSplitPc, armTgt, pushAt] using
       h173.jumpdest (by native_decide) (by simp only [List.length]; omega)⟩
 
-theorem cureReachMidLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachMidLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat cureBytecode cureRootSplitPc) (cureSelWord I) = ⟨0⟩)
     (hmid : UInt256.gt (armSelNat cureBytecode cureMidSplitPc) (cureSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureMidLowFirstArmPc
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h43⟩ := cureReachMidSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) cureMidLowFirstArmPc
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h43⟩ := cureReachMidSplit (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
   have h113 := RD.selectorSplitTakenAuto h43 cureMidSplitWellFormed hmid
     (by jump_dest) (by simp)
@@ -555,40 +548,40 @@ theorem cureReachMidLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [cureMidLowFirstArmPc, cureMidLowJumpdestPc, cureMidSplitPc, armTgt, pushAt] using
       h113.jumpdest (by native_decide) (by simp only [List.length]; omega)⟩
 
-theorem cureReachHighUpperFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachHighUpperFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat cureBytecode cureRootSplitPc) (cureSelWord I) = ⟨0⟩)
     (hmid : UInt256.gt (armSelNat cureBytecode cureMidSplitPc) (cureSelWord I) = ⟨0⟩) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureHighUpperFirstArmPc
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h43⟩ := cureReachMidSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) cureHighUpperFirstArmPc
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h43⟩ := cureReachMidSplit (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
   exact ⟨_, _, by
     simpa [cureHighUpperFirstArmPc, cureMidSplitPc, selArmNextPc, armTgtWidth] using
       RD.selectorSplitNotTakenAuto h43 cureMidSplitWellFormed hmid (by simp)⟩
 
-theorem cureReachLowUpperFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachLowUpperFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat cureBytecode cureRootSplitPc) (cureSelWord I) ≠ ⟨0⟩)
     (hlow : UInt256.gt (armSelNat cureBytecode cureLowSplitPc) (cureSelWord I) = ⟨0⟩) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureLowUpperFirstArmPc
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h173⟩ := cureReachLowSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) cureLowUpperFirstArmPc
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h173⟩ := cureReachLowSplit (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
   exact ⟨_, _, by
     simpa [cureLowUpperFirstArmPc, cureLowSplitPc, selArmNextPc, armTgtWidth] using
       RD.selectorSplitNotTakenAuto h173 cureLowSplitWellFormed hlow (by simp)⟩
 
-theorem cureReachLowLowerFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachLowLowerFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat cureBytecode cureRootSplitPc) (cureSelWord I) ≠ ⟨0⟩)
     (hlow : UInt256.gt (armSelNat cureBytecode cureLowSplitPc) (cureSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureLowLowerFirstArmPc
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, h173⟩ := cureReachLowSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) cureLowLowerFirstArmPc
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, h173⟩ := cureReachLowSplit (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
   have h244 := RD.selectorSplitTakenAuto h173 cureLowSplitWellFormed hlow
     (by jump_dest) (by simp)
@@ -596,48 +589,48 @@ theorem cureReachLowLowerFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [cureLowLowerFirstArmPc, cureLowLowerJumpdestPc, cureLowSplitPc, armTgt, pushAt] using
       h244.jumpdest (by native_decide) (by simp only [List.length]; omega)⟩
 
-theorem cureReachAmtBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachAmtBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 0)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨305⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨305⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x09615662⟩ :=
     cureSelWord_eq_of_beq I hsz 0x09 0x61 0x56 0x62 ⟨0x09615662⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h245⟩ := cureReachLowLowerFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h245⟩ := cureReachLowLowerFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨305⟩ 0 h245 (fun j hj => cureLowLowerArmsWellFormed j (by omega))
     (fun j hj => by omega)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-theorem cureReachListBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachListBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 7)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨361⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨361⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x0f560cd7⟩ :=
     cureSelWord_eq_of_beq I hsz 0x0f 0x56 0x0c 0xd7 ⟨0x0f560cd7⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h245⟩ := cureReachLowLowerFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h245⟩ := cureReachLowLowerFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨361⟩ 1 h245 (fun j hj => cureLowLowerArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j; rw [hsw]; native_decide)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-theorem cureReachLoadBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachLoadBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 9)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨486⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨486⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x2f40e734⟩ :=
     cureSelWord_eq_of_beq I hsz 0x2f 0x40 0xe7 0x34 ⟨0x2f40e734⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h245⟩ := cureReachLowLowerFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h245⟩ := cureReachLowLowerFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨486⟩ 3 h245 (fun j hj => cureLowLowerArmsWellFormed j (by omega))
@@ -648,128 +641,128 @@ theorem cureReachLoadBody {cA gh bl σ σ₀ A I} {g : Sat256}
       · rw [hsw]; native_decide)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-theorem cureReachLiveBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachLiveBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 8)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨724⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨724⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x957aa58c⟩ :=
     cureSelWord_eq_of_beq I hsz 0x95 0x7a 0xa5 0x8c ⟨0x957aa58c⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h114⟩ := cureReachMidLowFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h114⟩ := cureReachMidLowFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨724⟩ 4 h114 (fun j hj => cureMidLowArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-theorem cureReachDropBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachDropBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 3)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨640⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨640⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x91f2700a⟩ :=
     cureSelWord_eq_of_beq I hsz 0x91 0xf2 0x70 0x0a ⟨0x91f2700a⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h114⟩ := cureReachMidLowFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h114⟩ := cureReachMidLowFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨640⟩ 1 h114 (fun j hj => cureMidLowArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j; rw [hsw]; native_decide)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-theorem cureReachSayBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachSayBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 13)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨716⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨716⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x954ab4b2⟩ :=
     cureSelWord_eq_of_beq I hsz 0x95 0x4a 0xb4 0xb2 ⟨0x954ab4b2⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h114⟩ := cureReachMidLowFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h114⟩ := cureReachMidLowFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨716⟩ 3 h114 (fun j hj => cureMidLowArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-theorem cureReachLCountBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachLCountBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 5)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨562⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨562⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x493aa4c7⟩ :=
     cureSelWord_eq_of_beq I hsz 0x49 0x3a 0xa4 0xc7 ⟨0x493aa4c7⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h185⟩ := cureReachLowUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h185⟩ := cureReachLowUpperFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨562⟩ 0 h185 (fun j hj => cureLowUpperArmsWellFormed j (by omega))
     (fun j hj => by omega)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-theorem cureReachTCountBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachTCountBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 15)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨578⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨578⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x53f9a873⟩ :=
     cureSelWord_eq_of_beq I hsz 0x53 0xf9 0xa8 0x73 ⟨0x53f9a873⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h185⟩ := cureReachLowUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h185⟩ := cureReachLowUpperFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨578⟩ 2 h185 (fun j hj => cureLowUpperArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-theorem cureReachWaitBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachWaitBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 17)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨586⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨586⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x64bd7013⟩ :=
     cureSelWord_eq_of_beq I hsz 0x64 0xbd 0x70 0x13 ⟨0x64bd7013⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h185⟩ := cureReachLowUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h185⟩ := cureReachLowUpperFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨586⟩ 3 h185 (fun j hj => cureLowUpperArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-theorem cureReachWhenBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachWhenBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 19)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨808⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨808⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0xe2b0caef⟩ :=
     cureSelWord_eq_of_beq I hsz 0xe2 0xb0 0xca 0xef ⟨0xe2b0caef⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h54⟩ := cureReachHighUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h54⟩ := cureReachHighUpperFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨808⟩ 2 h54 (fun j hj => cureHighUpperArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-theorem cureReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachWardsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 18)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨770⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨770⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0xbf353dbb⟩ :=
     cureSelWord_eq_of_beq I hsz 0xbf 0x35 0x3d 0xbb ⟨0xbf353dbb⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h54⟩ := cureReachHighUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h54⟩ := cureReachHighUpperFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨770⟩ 1 h54 (fun j hj => cureHighUpperArmsWellFormed j (by omega))
@@ -778,58 +771,58 @@ theorem cureReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
       · rw [hsw]; native_decide)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-theorem cureReachPosBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachPosBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 11)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨678⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨678⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0x93d0281c⟩ :=
     cureSelWord_eq_of_beq I hsz 0x93 0xd0 0x28 0x1c ⟨0x93d0281c⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h114⟩ := cureReachMidLowFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h114⟩ := cureReachMidLowFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨678⟩ 2 h114 (fun j hj => cureMidLowArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-theorem cureReachLoadedBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureReachLoadedBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (cureSelBytes 10)) :
-    ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨873⟩
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD cureBytecode I g (initState σ σ₀ g A I) ⟨873⟩
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hsw : cureSelWord I = ⟨0xffa9ca9f⟩ :=
     cureSelWord_eq_of_beq I hsz 0xff 0xa9 0xca 0x9f ⟨0xffa9ca9f⟩
       (by native_decide) (by simpa [cureSelBytes] using hsel)
-  obtain ⟨_, _, h54⟩ := cureReachHighUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, h54⟩ := cureReachHighUpperFirstArm
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
     (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
   exact RD.dispatchTo ⟨873⟩ 4 h54 (fun j hj => cureHighUpperArmsWellFormed j (by omega))
     (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
     (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
 
-theorem cureJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt256}
+theorem cureJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
-    (h : RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) pc
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (h : RD cureBytecode I g (initState σ σ₀ g A I) pc
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode cureBytecode pc = some (.Push .PUSH2, some (cureDispatchRevertPc, 2)))
     (hjump : decode cureBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev cureBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cureBytecode g (initState σ σ₀ g A I) := by
   have h300 := h.push2 cureDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
   exact RD.solcPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem cureLowLowerNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureLowLowerFirstArmPc
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem cureLowLowerNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD cureBytecode I g (initState σ σ₀ g A I) cureLowLowerFirstArmPc
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq (armSelNat cureBytecode (nthArmPc cureBytecode cureLowLowerFirstArmPc j))
         (cureSelWord I) = ⟨0⟩) :
-    RDrev cureBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cureBytecode g (initState σ σ₀ g A I) := by
   have h300 := h
     |>.selectorArmNotTakenAuto (cureLowLowerArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -845,13 +838,13 @@ theorem cureLowLowerNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
   exact RD.solcPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem cureLowUpperNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureLowUpperFirstArmPc
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem cureLowUpperNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD cureBytecode I g (initState σ σ₀ g A I) cureLowUpperFirstArmPc
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq (armSelNat cureBytecode (nthArmPc cureBytecode cureLowUpperFirstArmPc j))
         (cureSelWord I) = ⟨0⟩) :
-    RDrev cureBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cureBytecode g (initState σ σ₀ g A I) := by
   have h240 := h
     |>.selectorArmNotTakenAuto (cureLowUpperArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -865,13 +858,13 @@ theorem cureLowUpperNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
         (heq0 4 (by omega)) (by simp)
   exact cureJumpToNoMatchRevert h240 (by native_decide) (by native_decide)
 
-theorem cureMidLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureMidLowFirstArmPc
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem cureMidLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD cureBytecode I g (initState σ σ₀ g A I) cureMidLowFirstArmPc
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq (armSelNat cureBytecode (nthArmPc cureBytecode cureMidLowFirstArmPc j))
         (cureSelWord I) = ⟨0⟩) :
-    RDrev cureBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cureBytecode g (initState σ σ₀ g A I) := by
   have h169 := h
     |>.selectorArmNotTakenAuto (cureMidLowArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -885,13 +878,13 @@ theorem cureMidLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 4 (by omega)) (by simp)
   exact cureJumpToNoMatchRevert h169 (by native_decide) (by native_decide)
 
-theorem cureHighUpperNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureHighUpperFirstArmPc
-      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem cureHighUpperNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD cureBytecode I g (initState σ σ₀ g A I) cureHighUpperFirstArmPc
+      [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq (armSelNat cureBytecode (nthArmPc cureBytecode cureHighUpperFirstArmPc j))
         (cureSelWord I) = ⟨0⟩) :
-    RDrev cureBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cureBytecode g (initState σ σ₀ g A I) := by
   have h109 := h
     |>.selectorArmNotTakenAuto (cureHighUpperArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -905,10 +898,9 @@ theorem cureHighUpperNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
         (heq0 4 (by omega)) (by simp)
   exact cureJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
 
-theorem cureNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (hcode : I.code = cureBytecode) (hwv : I.weiValue ≠ ⟨0⟩)
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+theorem cureNonPayable {σ σ₀ A I} {g : UInt256}
+    (hcode : I.code = cureBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (cureX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -923,16 +915,16 @@ theorem cureNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (cureBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
 /-- With enough calldata for a selector but no selector match, Cure's dispatcher reverts. -/
-theorem cureX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem cureX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 20 → (cureSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev cureBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev cureBytecode g (initState σ σ₀ g A I) := by
   have hselectorNoMatch (i : ℕ) (hi : i < 20) (c0 c1 c2 c3 : UInt8) (sel : UInt256)
       (hsel : (fromBytesBigEndian [c0, c1, c2, c3] : ℕ) = sel.toNat)
       (hbytes : cureSelBytes i = (⟨#[c0, c1, c2, c3]⟩ : ByteArray)) :
@@ -988,32 +980,31 @@ theorem cureX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     · exact hselectorNoMatch 10 (by omega) 0xff 0xa9 0xca 0x9f _ (by native_decide) rfl
   by_cases hroot : UInt256.gt (armSelNat cureBytecode cureRootSplitPc) (cureSelWord I) = ⟨0⟩
   · by_cases hmid : UInt256.gt (armSelNat cureBytecode cureMidSplitPc) (cureSelWord I) = ⟨0⟩
-    · obtain ⟨_, _, hfirst⟩ := cureReachHighUpperFirstArm (cA := cA) (gh := gh)
-        (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    · obtain ⟨_, _, hfirst⟩ := cureReachHighUpperFirstArm
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hmid
       exact cureHighUpperNoMatchRevert hfirst heqHighUpper
-    · obtain ⟨_, _, hfirst⟩ := cureReachMidLowFirstArm (cA := cA) (gh := gh)
-        (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    · obtain ⟨_, _, hfirst⟩ := cureReachMidLowFirstArm
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hmid
       exact cureMidLowNoMatchRevert hfirst heqMidLow
   · by_cases hlow : UInt256.gt (armSelNat cureBytecode cureLowSplitPc) (cureSelWord I) = ⟨0⟩
-    · obtain ⟨_, _, hfirst⟩ := cureReachLowUpperFirstArm (cA := cA) (gh := gh)
-        (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    · obtain ⟨_, _, hfirst⟩ := cureReachLowUpperFirstArm
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hlow
       exact cureLowUpperNoMatchRevert hfirst heqLowUpper
-    · obtain ⟨_, _, hfirst⟩ := cureReachLowLowerFirstArm (cA := cA) (gh := gh)
-        (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    · obtain ⟨_, _, hfirst⟩ := cureReachLowLowerFirstArm
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hlow
       exact cureLowLowerNoMatchRevert hfirst heqLowLower
 
-theorem cureNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem cureNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hnm : ∀ i, i < 20 → (cureSelBytes i == I.calldata.extract 0 4) = false)
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hnm : ∀ i, i < 20 → (cureSelBytes i == I.calldata.extract 0 4) = false) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (cureX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (cureDispatch_none_nomatch hnm)

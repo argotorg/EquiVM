@@ -51,14 +51,14 @@ theorem RD.clipperTakeOweLtTabSliceLtLotChostGeToJoin {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {k C : ℕ}
     (h : RD code ee g s0 ⟨4057⟩
       (UInt256.mul price slice :: slice :: ⟨0⟩ :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hle : (UInt256.mul price slice).toNat ≤ tab.toNat)
     (hlt : (UInt256.mul price slice).toNat < tab.toNat)
     (hsliceLt : slice.toNat < lot.toNat)
@@ -69,7 +69,7 @@ theorem RD.clipperTakeOweLtTabSliceLtLotChostGeToJoin {code : ByteArray}
       (slice :: UInt256.mul price slice :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   have hgtWord : UInt256.gt (UInt256.mul price slice) tab = ⟨0⟩ :=
     ugt_zero hle
   have hltWord : UInt256.lt (UInt256.mul price slice) tab = ⟨1⟩ :=
@@ -149,14 +149,14 @@ theorem RD.clipperTakeOweLtTabSliceLtLotChostAdjustToJoin {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     {price slice tab lot tic packed stopped dataLen dataStart who max amt id : UInt256}
     {R : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray} {k C : ℕ}
     (h : RD code ee g s0 ⟨4057⟩
       (UInt256.mul price slice :: slice :: ⟨0⟩ :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hle : (UInt256.mul price slice).toNat ≤ tab.toNat)
     (hlt : (UInt256.mul price slice).toNat < tab.toNat)
     (hsliceLt : slice.toNat < lot.toNat)
@@ -170,7 +170,7 @@ theorem RD.clipperTakeOweLtTabSliceLtLotChostAdjustToJoin {code : ByteArray}
         UInt256.sub tab (solcSlotWord σ ee ⟨9⟩) :: tab :: lot ::
         price :: tic :: packed :: stopped :: dataLen :: dataStart :: who ::
         max :: amt :: id :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   have hgtWord : UInt256.gt (UInt256.mul price slice) tab = ⟨0⟩ :=
     ugt_zero hle
   have hltWord : UInt256.lt (UInt256.mul price slice) tab = ⟨1⟩ :=

@@ -7,13 +7,13 @@ namespace UniswapV2Pair
 set_option maxRecDepth 2000
 
 set_option maxHeartbeats 1000000 in
-theorem uniswapConstructorEntryCases {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem uniswapConstructorEntryCases {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairInitcode) (hperm : I.perm = true) :
-    (I.weiValue ≠ ⟨0⟩ ∧ RDrev uniswapV2PairInitcode g (initState cA gh bl σ σ₀ g A I)) ∨
+    (I.weiValue ≠ ⟨0⟩ ∧ RDrev uniswapV2PairInitcode g (initState σ σ₀ g A I)) ∨
     (I.weiValue = ⟨0⟩ ∧ ∃ k C,
-      RD uniswapV2PairInitcode I g (initState cA gh bl σ σ₀ g A I) ⟨23⟩ []
-        solcFreePtrMem ⟨3⟩ ByteArray.empty (cA, sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨1⟩) k C) := by
-  have rd4 := evm_run (RD.initState (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+      RD uniswapV2PairInitcode I g (initState σ σ₀ g A I) ⟨23⟩ []
+        solcFreePtrMem ⟨3⟩ ByteArray.empty (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨1⟩) k C) := by
+  have rd4 := evm_run (RD.initState (σ := σ)
     (σ₀ := σ₀) (A := A) (g := g) hcode) with [push1 ⟨128⟩, push1 ⟨64⟩]
   have rd5 := RD.mstoreWord rd4 (by native_decide) (by evm_ov)
   have rd9 := evm_run rd5 with [push1 ⟨1⟩, push1 ⟨12⟩]

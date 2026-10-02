@@ -14,10 +14,9 @@ theorem clipperRedoTopState_accountMapEquiv
     {σ τ : AccountMap} (evm : EVM.State) (I : ExecutionEnv) (topNew : UInt256)
     (hevmAccount : evm.accountMap = τ)
     (hevmEnv : evm.executionEnv = I)
-    (hAccounts : accountMapEquiv σ τ) :
-    accountMapEquiv
-      (sstoreAccountMap I.codeOwner σ
-        (clipperRedoTopSlotWord (clipperRedoIdWord I)) topNew)
+    (hAccounts : σ = τ) :
+    sstoreAccountMap I.codeOwner σ
+        (clipperRedoTopSlotWord (clipperRedoIdWord I)) topNew =
       (clipperRedoTopState evm I topNew).accountMap := by
   subst τ
   simpa [clipperRedoTopState, storageStore_accountMap, hevmEnv,
@@ -28,7 +27,7 @@ theorem clipperRedoTopState_accountMapEquiv
 theorem clipperRedoTipWord_eq_of_accountMapEquiv
     {σ : AccountMap} (evm : EVM.State) (I : ExecutionEnv)
     (hevmEnv : evm.executionEnv = I)
-    (hAccounts : accountMapEquiv σ evm.accountMap) :
+    (hAccounts : σ = evm.accountMap) :
     clipperRedoTipWord σ I = clipperRedoTipSolmWord evm := by
   have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
   rw [clipperRedoTipWord, clipperRedoTipSolmWord, hevmEnv]
@@ -41,7 +40,7 @@ theorem clipperRedoTipWord_eq_of_accountMapEquiv
 theorem clipperRedoChipWord_eq_of_accountMapEquiv
     {σ : AccountMap} (evm : EVM.State) (I : ExecutionEnv)
     (hevmEnv : evm.executionEnv = I)
-    (hAccounts : accountMapEquiv σ evm.accountMap) :
+    (hAccounts : σ = evm.accountMap) :
     clipperRedoChipWord σ I = clipperRedoChipSolmWord evm := by
   have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
   rw [clipperRedoChipWord, clipperRedoChipSolmWord, hevmEnv]
