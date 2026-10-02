@@ -255,14 +255,14 @@ theorem relyStoreHashMem_read64 (I : ExecutionEnv) :
   exact twoWordHashMem_read64 (relyUsrMaskedWord I) ⟨0⟩ (relyAuthHashMem_size I)
     (relyAuthHashMem_read64 I)
 
-theorem stairstepReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepReachRelyBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = linearDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (stairstepSelBytes 3)) :
     ∃ k C, RD linearDecreaseBytecode I g
-        (initState cA gh bl σ σ₀ g A I)
+        (initState σ σ₀ g A I)
         stairstepRelyEntryPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : stairstepSelWord I = ⟨0x65fae35e⟩ :=
     stairstepSelWord_eq_of_beq I hsz 0x65 0xfa 0xe3 0x5e ⟨0x65fae35e⟩
       (by native_decide) (by simpa [stairstepSelBytes] using hsel)
@@ -283,15 +283,15 @@ theorem stairstepReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256}
   exact stairstepReachBody 2 (by omega) stairstepRelyEntryPc hcode hwv hsz hsize
     heq0 htake (by jump_dest) (by native_decide)
 
-theorem stairstepRelyX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem stairstepRelyX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD linearDecreaseBytecode I g
-      (initState cA gh bl σ σ₀ g A I) stairstepRelyEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ g A I) stairstepRelyEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD linearDecreaseBytecode I g
-        (initState cA gh bl σ σ₀ g A I) ⟨626⟩
+        (initState σ σ₀ g A I) ⟨626⟩
         [relyUsrMaskedWord I, ⟨138⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := linearDecreaseBytecode) (sel := sel)
     (entry := stairstepRelyEntryPc) (ret := ⟨138⟩) (decoded := ⟨215⟩) hreach
@@ -307,13 +307,13 @@ theorem stairstepRelyX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [relyUsrMaskedWord, relyUsrWord, calldataWord] using hroutine⟩
 
-theorem stairstepRelyX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem stairstepRelyX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD linearDecreaseBytecode I g
-      (initState cA gh bl σ σ₀ g A I) stairstepRelyEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev linearDecreaseBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) stairstepRelyEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev linearDecreaseBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -330,14 +330,14 @@ theorem stairstepRelyX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (by native_decide) (by native_decide) (by native_decide) hlt
 
 set_option maxHeartbeats 1000000 in
-theorem stairstepRelyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem stairstepRelyX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
     (h : RD linearDecreaseBytecode I g s0 ⟨626⟩
       [relyUsrMaskedWord I, ⟨138⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD linearDecreaseBytecode I g s0 ⟨726⟩
       [relyUsrMaskedWord I, ⟨138⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -370,7 +370,7 @@ theorem stairstepRelyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
   obtain ⟨k736, C736, rd736raw⟩ := rd735.sload (by native_decide) (by evm_ov)
   have rd736 : RD linearDecreaseBytecode I g s0 ⟨643⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨138⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k736 C736 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k736 C736 := by
     simpa [relyAuthWord, stairstepSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd736raw
   have rd739pre := evm_run rd736 with [
@@ -383,11 +383,11 @@ theorem stairstepRelyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem stairstepRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem stairstepRelyX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (h : RD linearDecreaseBytecode I g s0 ⟨626⟩
       [relyUsrMaskedWord I, ⟨138⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev linearDecreaseBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -421,7 +421,7 @@ theorem stairstepRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : �
   obtain ⟨k736, C736, rd736raw⟩ := rd735.sload (by native_decide) (by evm_ov)
   have rd736 : RD linearDecreaseBytecode I g s0 ⟨643⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨138⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k736 C736 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k736 C736 := by
     simpa [relyAuthWord, stairstepSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd736raw
   have rd739pre := evm_run rd736 with [
@@ -445,13 +445,13 @@ theorem stairstepRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : �
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 4000000 in
-theorem stairstepRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem stairstepRelyX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (h : RD linearDecreaseBytecode I g s0 ⟨726⟩
       [relyUsrMaskedWord I, ⟨138⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret linearDecreaseBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨1⟩)
+      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨1⟩)
       ByteArray.empty := by
   have hstoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -543,51 +543,45 @@ theorem stairstepRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C 
   have hstop := RD.stop rd166 (by native_decide) (by evm_ov)
   simpa [relyUsrStorageSlot_eq_mapSlot_masked I] using hstop
 
-theorem stairstepX_rely_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem stairstepX_rely_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
     (hreach : ∃ k C, RD linearDecreaseBytecode I g
-      (initState cA gh bl σ σ₀ g A I) stairstepRelyEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret linearDecreaseBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨1⟩)
+      (initState σ σ₀ g A I) stairstepRelyEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret linearDecreaseBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ (relyUsrStorageSlot I) ⟨1⟩)
       ByteArray.empty := by
   obtain ⟨_, _, rd719⟩ := stairstepRelyX_decoded (g := g) hsz36 hsize hreach
   obtain ⟨_, _, rd797⟩ := stairstepRelyX_authorized (I := I) hauth rd719
   exact stairstepRelyX_storeAuthorized hperm rd797
 
-theorem stairstepX_rely_unauthorized {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem stairstepX_rely_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (hreach : ∃ k C, RD linearDecreaseBytecode I g
-      (initState cA gh bl σ σ₀ g A I) stairstepRelyEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev linearDecreaseBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) stairstepRelyEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev linearDecreaseBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd719⟩ := stairstepRelyX_decoded (g := g) hsz36 hsize hreach
   exact stairstepRelyX_unauthorized (I := I) hauth rd719
 
 theorem stairstepRelyBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = linearDecreaseBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hauth : relyAuthWord σ_evm I = ⟨1⟩)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some relyTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (relyTransition.params.map Param.name)
         (transitionSignature relyTransition).paramTypes I.calldata = some (relyStore I))
     (hreach : ∃ k C, RD linearDecreaseBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) stairstepRelyEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthWord : relyAuthWord σ_solm I = ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    rw [← hword]
-    exact hauth
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) stairstepRelyEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         relyTransition.body
@@ -598,41 +592,32 @@ theorem stairstepRelyBodyCoreOk
       stairstepRelyBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
         (by simp [evmSolm, initState])
-        hauthWord
+        hauth
   exact (stairstepX_rely_ok (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
     |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-      (by simp [relyPostState, evmSolm, initState, storageStore_createdAccounts])
       (by
-        simpa [relyPostState, evmSolm, initState, storageStore_accountMap] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner (relyUsrStorageSlot I) ⟨1⟩
-            hAccounts)
+        simp [relyPostState, evmSolm, initState, storageStore_accountMap])
       (by
         simpa [relyTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
             (dvs := []) rfl (by native_decide) (by native_decide)))
 
 theorem stairstepRelyBodyCoreUnauthorized
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = linearDecreaseBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
-    (hauth : relyAuthWord σ_evm I ≠ ⟨1⟩)
+    (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some relyTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (relyTransition.params.map Param.name)
         (transitionSignature relyTransition).paramTypes I.calldata = some (relyStore I))
     (hreach : ∃ k C, RD linearDecreaseBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) stairstepRelyEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthWord : relyAuthWord σ_solm I ≠ ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    intro hbad
-    exact hauth (by rw [hword, hbad])
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) stairstepRelyEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmSolm (relyStore I)
         relyTransition.body .reverted := by
@@ -641,44 +626,43 @@ theorem stairstepRelyBodyCoreUnauthorized
       stairstepRelyBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
         (by simp [evmSolm, initState])
-        hauthWord
+        hauth
   exact (stairstepX_rely_unauthorized (g := Sat256.ofUInt256 g) hsz36 hsize hauth hreach)
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem stairstepRelyBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = linearDecreaseBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some relyTransition)
     (hreach : ∃ k C, RD linearDecreaseBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) stairstepRelyEntryPc [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) stairstepRelyEntryPc [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (stairstepRelyX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize hshort hreach)
     |>.reEquivDecodingFailed hcode hdispatch (stairstepDecode_rely_none_short hsz4 hshort)
 
-theorem stairstepRelyBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem stairstepRelyBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = linearDecreaseBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (stairstepSelBytes 3))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (stairstepSelBytes 3)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (stairstepSelBytes 3) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some relyTransition :=
     stairstepDispatchRely hsel
-  have hreach := stairstepReachRelyBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := stairstepReachRelyBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
-  · by_cases hauth : relyAuthWord σ_evm I = ⟨1⟩
+  · by_cases hauth : relyAuthWord σ I = ⟨1⟩
     · exact stairstepRelyBodyCoreOk hcode hsize hperm hwv hsz36 hauth hdispatch
-        (stairstepDecode_rely_ok hsz36) hreach hAccounts
+        (stairstepDecode_rely_ok hsz36) hreach
     · exact stairstepRelyBodyCoreUnauthorized hcode hsize hwv hsz36 hauth hdispatch
-        (stairstepDecode_rely_ok hsz36) hreach hAccounts
+        (stairstepDecode_rely_ok hsz36) hreach
   · exact stairstepRelyBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach
 

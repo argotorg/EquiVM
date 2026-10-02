@@ -11,19 +11,19 @@ def mintFinalMem (mem out : ByteArray) (ptr : UInt256) : ByteArray :=
 def mintFinalWords (aw ptr : UInt256) : UInt256 :=
   expandedWords (mintCallWords aw ptr) ptr ⟨32⟩
 
-theorem mintRoutine {I g s0 ret R mem aw ptr rdata cA σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨3000⟩ (ret :: R) mem aw rdata (cA, σ) k C)
-    (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
+theorem mintRoutine {I g s0 ret R mem aw ptr rdata σ k C evm}
+    (h : RD auctionBytecode I g s0 ⟨3000⟩ (ret :: R) mem aw rdata σ k C)
+    (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 2 ^ 139 ≤ 2 ^ 200)
     (hov : R.length + 13 ≤ 1024) :
-    ∃ (evm' : EVM.State) (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray),
       callViaEVM evm (AccountAddress.ofUInt256 (nounsWord σ I)) 0
         mintSelector (z, evm', out) ∧
-      SourceState s0 I cA' σ' evm' ∧ out.size < 2 ^ 138 ∧
+      SourceState s0 I σ' evm' ∧ out.size < 2 ^ 138 ∧
       ((z = true ∧ 32 ≤ out.size ∧
           (∃ k' C', RD auctionBytecode I g s0 ⟨3172⟩ (calldataWord out 0 :: ret :: R)
-            (mintFinalMem mem out ptr) (mintFinalWords aw ptr) out (cA', σ') k' C') ∧
+            (mintFinalMem mem out ptr) (mintFinalWords aw ptr) out σ' k' C') ∧
           MemoryCursor (mintFinalMem mem out ptr) (mintFinalWords aw ptr)
             (returnReservePtr ptr out.size) ∧
           MemoryPrefix mem (mintFinalMem mem out ptr) ptr.toNat ∧
@@ -33,14 +33,14 @@ theorem mintRoutine {I g s0 ret R mem aw ptr rdata cA σ k C evm}
         (z = true ∧ out.size < 32 ∧ RDrev auctionBytecode g s0) ∨
         (z = false ∧
           (∃ k' C', RD auctionBytecode I g s0 ⟨3116⟩ (ret :: R)
-            (mintCallMem mem out ptr) (mintCallWords aw ptr) out (cA', σ') k' C') ∧
+            (mintCallMem mem out ptr) (mintCallWords aw ptr) out σ' k' C') ∧
           HeapMemory (mintCallMem mem out ptr) (mintCallWords aw ptr) ptr ∧
           MemoryPrefix mem (mintCallMem mem out ptr) ptr.toNat ∧
           aw.toNat ≤ (mintCallWords aw ptr).toNat)) := by
   have hb32 : ptr.toNat + 32 ≤ 2 ^ 200 := by omega
-  obtain ⟨evm', cA', σ', z, out, _, _, hc, hs', rd3071, ho⟩ :=
+  obtain ⟨evm', σ', z, out, _, _, hc, hs', rd3071, ho⟩ :=
     mintCall h hs hperm hm hb32 hov
-  refine ⟨evm', cA', σ', z, out, hc, hs', ho, ?_⟩
+  refine ⟨evm', σ', z, out, hc, hs', ho, ?_⟩
   have hou : out.size < UInt256.size := by change out.size < 2 ^ 256; omega
   have hh := mintCall_heap hm out hb32 hou
   have hp := mintCall_prefix hm out hou

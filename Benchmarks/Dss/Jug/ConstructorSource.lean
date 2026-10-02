@@ -114,13 +114,11 @@ theorem jugCtorCallerWardsSlot_eq (I : ExecutionEnv) :
   rw [keyValueToWord_address]
 
 theorem jugCtorBodySuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩) :
     let locals := jugCtorLocals vat
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := jugCtorAfterWardsState evm0
     let evm2 := jugCtorAfterVatState evm1 vat
@@ -147,50 +145,45 @@ theorem jugCtorBodySuccess
   · simpa [locals] using evalExpr_jugCtorLocalVat (evm := evm1) vat
 
 theorem jugSolmCtorExecSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue = ⟨0⟩) :
-    solmCtorExec config contract [.address vat] createdAccounts genesisBlockHeader blocks
-      σ σ₀ g A I
+    solmCtorExec config contract [.address vat] σ σ₀ g A I
       (.returned { contract := contract, locals := jugCtorLocals vat }
         (jugCtorAfterVatState
           (jugCtorAfterWardsState
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I))
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I))
           vat)
         none) := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := jugCtorLocals vat)
-    ?_ rfl ?_ ?_
+    ?_ ?_ ?_ ?_
   · rfl
-  · rfl
+  · simp [contract, constructorDecl]
+  · simp [jugCtorLocals, contract, constructorDecl]
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
         (jugCtorBodySuccess
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) vat hwv)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) vat hwv)
 
 theorem jugSolmCtorExecReverts_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat : AccountAddress)
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    solmCtorExec config contract [.address vat] createdAccounts genesisBlockHeader blocks
-      σ σ₀ g A I .reverted := by
+    solmCtorExec config contract [.address vat] σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := jugCtorLocals vat)
-    ?_ rfl ?_ ?_
+    ?_ ?_ ?_ ?_
   · rfl
-  · rfl
+  · simp [contract, constructorDecl]
+  · simp [jugCtorLocals, contract, constructorDecl]
   · simpa [ExecTransitionBody, contract, constructorDecl, nonpayable] using
       bodyReverts_nonPayable (cfg := config) (contract := contract)
-        (evm := initState createdAccounts genesisBlockHeader blocks σ σ₀
+        (evm := initState σ σ₀
           (Sat256.ofUInt256 g) A I)
         (locals := jugCtorLocals vat) hwv
 

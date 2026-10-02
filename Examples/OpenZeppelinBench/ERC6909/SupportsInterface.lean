@@ -260,38 +260,38 @@ theorem erc6909SupportsInterfaceBodyReturns (evm : EVM.State) (I : ExecutionEnv)
           evalExpr?, evalBinaryOp?, EvalResult.bind, EvalResult.ofOption, bind, pure, BEq.beq,
           erc6909Decide_eq_list_beq_uint8, h6909])
 
-theorem erc6909SupportsInterfaceX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909SupportsInterfaceX_toDecoder {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨174⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1696⟩
+      (initState σ σ₀ g A I) ⟨174⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1696⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨188⟩, ⟨193⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd⟩ := hreach
   exact ⟨_, _, evm_run rd with [
     jumpdest, push2 ⟨193⟩, push2 ⟨188⟩, calldatasize, push1 ⟨4⟩,
     push2 ⟨1696⟩, jump (by jump_dest) ]⟩
 
-theorem erc6909SupportsInterfaceX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909SupportsInterfaceX_decoded {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = some ())
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨174⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨447⟩
+      (initState σ σ₀ g A I) ⟨174⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨447⟩
       [supportsInterfaceWord I, ⟨193⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨0⟩ :=
     solcDecodeLenCheckOk_4_32 hsz36 hszhi hsize
   have hclean : UInt256.eq (supportsInterfaceWord I)
       (UInt256.land (supportsInterfaceWord I) supportsInterfaceMask) = ⟨1⟩ :=
     supportsInterfaceEqOne_of_padding hsz36 hpad
-  obtain ⟨_, _, rd1696⟩ := erc6909SupportsInterfaceX_toDecoder (cA := cA)
-    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  obtain ⟨_, _, rd1696⟩ := erc6909SupportsInterfaceX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact ⟨_, _, evm_run rd1696 with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨1712⟩,
     jumpiT (by rw [hslt]; decide) (by jump_dest),
@@ -311,7 +311,7 @@ theorem erc6909SupportsInterfaceX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
 
 theorem erc6909ReturnBool193 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {R : List UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {val : UInt256}
+    {acc : AccountMap} {val : UInt256}
     (h : RD erc6909BenchBytecode ee g s0 ⟨193⟩ (val :: R) solcFreePtrMem
         (UInt256.ofNat 3) rdata acc k C)
     (hnorm : UInt256.isZero (UInt256.isZero val) = val)
@@ -338,16 +338,16 @@ theorem erc6909ReturnBool193 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
         exact solcReturnMem_read128 val)
       (by evm_ov) ]
 
-theorem erc6909SupportsInterfaceX_body {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909SupportsInterfaceX_body {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨447⟩
+      (initState σ σ₀ g A I) ⟨447⟩
       [supportsInterfaceWord I, ⟨193⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨193⟩
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨193⟩
       [supportsInterfaceResultWord I, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd447⟩ := hreach
   have hmask :
       UInt256.lnot (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨224⟩) ⟨1⟩) =
@@ -411,77 +411,77 @@ theorem erc6909SupportsInterfaceX_body {cA gh bl σ σ₀ A I} {g : Sat256}
       simpa [hmask, hresultRev, ierc165IdWord] using evm_run rd441 with [
         jumpdest, swap3, swap2, pop, pop, jump (by jump_dest) ]⟩
 
-theorem erc6909X_supportsInterface {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909X_supportsInterface {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = some ())
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨174⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨174⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret erc6909BenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (supportsInterfaceResultWord I)) := by
-  obtain ⟨_, _, rd447⟩ := erc6909SupportsInterfaceX_decoded (cA := cA)
-    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+  obtain ⟨_, _, rd447⟩ := erc6909SupportsInterfaceX_decoded
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz36 hsize hszhi hpad hreach
-  obtain ⟨_, _, rd193⟩ := erc6909SupportsInterfaceX_body (cA := cA)
-    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+  obtain ⟨_, _, rd193⟩ := erc6909SupportsInterfaceX_body
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz36 ⟨_, _, rd447⟩
   exact erc6909ReturnBool193 rd193 (supportsInterfaceResultWord_norm I) (by evm_ov)
 
-theorem erc6909SupportsInterfaceX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909SupportsInterfaceX_shortarg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨174⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨174⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckShort_4_32 hsz4 hshort hsize
-  obtain ⟨_, _, rd1696⟩ := erc6909SupportsInterfaceX_toDecoder (cA := cA)
-    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  obtain ⟨_, _, rd1696⟩ := erc6909SupportsInterfaceX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact evm_run rd1696 with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨1712⟩,
     jumpiNT (by rw [hslt]; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem erc6909SupportsInterfaceX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909SupportsInterfaceX_hugearg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (_hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨174⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨174⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_32 hbig hsize
-  obtain ⟨_, _, rd1696⟩ := erc6909SupportsInterfaceX_toDecoder (cA := cA)
-    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  obtain ⟨_, _, rd1696⟩ := erc6909SupportsInterfaceX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact evm_run rd1696 with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨1712⟩,
     jumpiNT (by rw [hslt]; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem erc6909SupportsInterfaceX_badpad {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909SupportsInterfaceX_badpad {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hpad : zeroPadding? ((I.calldata.toList.drop 4).take 32) 4 28 = none)
     (hreach : ∃ k C, RD erc6909BenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨174⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨174⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ =
       ⟨0⟩ :=
     solcDecodeLenCheckOk_4_32 hsz36 hszhi hsize
   have hclean : UInt256.eq (supportsInterfaceWord I)
       (UInt256.land (supportsInterfaceWord I) supportsInterfaceMask) = ⟨0⟩ :=
     supportsInterfaceEqZero_of_padding_none hsz36 hpad
-  obtain ⟨_, _, rd1696⟩ := erc6909SupportsInterfaceX_toDecoder (cA := cA)
-    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  obtain ⟨_, _, rd1696⟩ := erc6909SupportsInterfaceX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact evm_run rd1696 with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨1712⟩,
     jumpiT (by rw [hslt]; decide) (by jump_dest),
@@ -496,17 +496,16 @@ theorem erc6909SupportsInterfaceX_badpad {cA gh bl σ σ₀ A I} {g : Sat256}
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 theorem erc6909SupportsInterfaceBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 1))
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨174⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨174⟩
       [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   have _hperm : I.perm = true := hperm
   have hselSupports : selIs I ⟨#[0x01, 0xff, 0xc9, 0xa7]⟩ := by
     simpa [erc6909SelBytes] using hsel
@@ -530,18 +529,18 @@ theorem erc6909SupportsInterfaceBodyCore
             (I := I) hsz36 hbig hpadSome
           have hbody :
               ExecTransitionBody config contract
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                 (supportsInterfaceStore I)
                 supportsInterfaceTransition.body
                 (.returned { contract := contract, locals := supportsInterfaceStore I }
-                  (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+                  (initState σ σ₀ (Sat256.ofUInt256 g) A I)
                   (some [(.bool (supportsInterfaceResult I))])) := by
             exact erc6909SupportsInterfaceBodyReturns
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)
           exact (erc6909X_supportsInterface (g := Sat256.ofUInt256 g)
               hsz36 hsize hbig hpadSome hreach)
-            |>.reEquivExecutionTransport hcode hd hdec hbody rfl hAccounts
+            |>.reEquivExecutionTransport hcode hd hdec hbody rfl
               (returnEquiv_of_encode (by
                 by_cases hr : supportsInterfaceResult I
                 · simpa [supportsInterfaceResultWord, hr] using

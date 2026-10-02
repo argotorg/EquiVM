@@ -51,36 +51,36 @@ theorem nounTransferCall_heap {mem aw ptr} (hm : HeapMemory mem aw ptr)
     (UInt256.land bidder solcAddrMask) nounId hb
   exact ⟨hh.size, hh.free, hh.lower, hh.gap, activeWords_expand hh.active hb⟩
 
-theorem nounTransferCall {I g s0 snap nounId bidder ret R mem aw ptr rdata cA σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨4536⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
-    (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
+theorem nounTransferCall {I g s0 snap nounId bidder ret R mem aw ptr rdata σ k C evm}
+    (h : RD auctionBytecode I g s0 ⟨4536⟩ (snap :: ret :: R) mem aw rdata σ k C)
+    (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 100 ≤ 2 ^ 200)
     (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hbid : loadedWord mem (snap + ⟨128⟩) = bidder)
     (hab : expandedWords aw (snap + ⟨128⟩) ⟨32⟩ = aw)
     (hyes : extCodeSizeWord σ (nounsWord σ I) ≠ ⟨0⟩) (hov : R.length + 17 ≤ 1024) :
-    ∃ (evm' : EVM.State) (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (k' C' : Nat),
       callViaEVM evm (AccountAddress.ofUInt256 (nounsWord σ I)) 0
         (nounTransferData I bidder nounId) (z, evm', out) ∧
-      SourceState s0 I cA' σ' evm' ∧
+      SourceState s0 I σ' evm' ∧
       RD auctionBytecode I g s0 ⟨4628⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: (ptr + ⟨100⟩) :: ⟨0x23b872dd⟩ ::
           nounsWord σ I :: snap :: ret :: R)
         (callMem3 mem ptr transferFromWord (contractAddressWord I) (UInt256.land bidder
           solcAddrMask)
-          nounId) (nounTransferCallWords aw ptr) out (cA', σ') k' C' ∧ out.size < 2 ^ 138 := by
+          nounId) (nounTransferCallWords aw ptr) out σ' k' C' ∧ out.size < 2 ^ 138 := by
   obtain ⟨_, _, _, rd4627⟩ := nounTransferCallPrefix h hm hb hn ha hbid hab hyes hov
   have hcd :
       (callMem3 mem ptr transferFromWord (contractAddressWord I) (UInt256.land bidder solcAddrMask)
         nounId).readWithPadding ptr.toNat 100 = nounTransferData I bidder nounId := by
     rw [callMem3_read hm, transferFromWord_prefix]
     rfl
-  obtain ⟨evm', cA', σ', z, out, _, _, hc, hs', rd4628, ho⟩ :=
+  obtain ⟨evm', σ', z, out, _, _, hc, hs', rd4628, ho⟩ :=
     callBridge rd4627 hs hperm (by native_decide) hcd
       (by rw [nounTransferData_size]; decide) (by evm_ov)
   rw [callOutputMem_zero] at rd4628
-  exact ⟨evm', cA', σ', z, out, _, _, hc, hs', rd4628, ho⟩
+  exact ⟨evm', σ', z, out, _, _, hc, hs', rd4628, ho⟩
 
 theorem nounTransferAfterSuccess {I g s0 snap ret R mem aw ptr out acc k C target}
     (h : RD auctionBytecode I g s0 ⟨4628⟩

@@ -462,34 +462,34 @@ theorem hasRoleOuterKeccakSlot (I : ExecutionEnv)
   exact mappingSlot_single (hasRoleAccountWord I)
     (roleDataSlot (hasRoleRoleKey I))
 
-theorem accessControlHasRoleX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem accessControlHasRoleX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨254⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨922⟩
+      (initState σ σ₀ g A I) ⟨254⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨922⟩
         [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨268⟩, ⟨145⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd⟩ := hreach
   exact ⟨_, _, evm_run rd with [
     jumpdest, push2 ⟨145⟩, push2 ⟨268⟩, calldatasize, push1 ⟨4⟩,
     push2 ⟨922⟩, jump (by jump_dest) ]⟩
 
-theorem accessControlHasRoleX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem accessControlHasRoleX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonAccount : (hasRoleAccountWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨254⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨451⟩
+      (initState σ σ₀ g A I) ⟨254⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨451⟩
         [hasRoleAccountWord I, hasRoleRoleWord I, ⟨145⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOk_4_64 hsz68 hszhi hsize
   have hclean : UInt256.eq (hasRoleAccountWord I)
       (UInt256.land (hasRoleAccountWord I) solcAddrMask) = ⟨1⟩ :=
     solcAddrCanon_eq hcanonAccount
-  obtain ⟨_, _, rd922⟩ := accessControlHasRoleX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd922⟩ := accessControlHasRoleX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask := by
@@ -509,16 +509,16 @@ theorem accessControlHasRoleX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel 
     jumpdest, dup1, swap2, pop, pop, swap3, pop, swap3, swap1, pop, jump (by jump_dest),
     jumpdest, push2 ⟨451⟩, jump (by jump_dest) ]⟩
 
-theorem accessControlX_hasRole {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem accessControlX_hasRole {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonAccount : (hasRoleAccountWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨254⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨254⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret accessControlBenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (hasRoleReturnWord σ I)) := by
-  obtain ⟨_, _, rd451⟩ := accessControlHasRoleX_decoded (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd451⟩ := accessControlHasRoleX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hcanonAccount hreach
   have hslot := hasRoleOuterKeccakSlot I hsz68 hcanonAccount
@@ -592,51 +592,51 @@ theorem accessControlX_hasRole {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
             (hasRoleMaskedWord σ I))
         (by evm_ov) ])
 
-theorem accessControlHasRoleX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem accessControlHasRoleX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨254⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨254⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     solcDecodeLenCheckShort_4_64 hsz4 hshort hsize
-  obtain ⟨_, _, rd922⟩ := accessControlHasRoleX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd922⟩ := accessControlHasRoleX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact evm_run rd922 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨939⟩, jumpiNT (by rw [hslt]; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem accessControlHasRoleX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem accessControlHasRoleX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨254⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨254⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_64 hbig hsize
-  obtain ⟨_, _, rd922⟩ := accessControlHasRoleX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd922⟩ := accessControlHasRoleX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact evm_run rd922 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨939⟩, jumpiNT (by rw [hslt]; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem accessControlHasRoleX_noncanon_account {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem accessControlHasRoleX_noncanon_account {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (hasRoleAccountWord I)
       (UInt256.land (hasRoleAccountWord I) solcAddrMask) = ⟨0⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨254⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨254⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOk_4_64 hsz68 hszhi hsize
-  obtain ⟨_, _, rd922⟩ := accessControlHasRoleX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd922⟩ := accessControlHasRoleX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask := by
@@ -654,18 +654,17 @@ theorem accessControlHasRoleX_noncanon_account {cA gh bl σ σ₀ A I} {g : Sat2
       rw [hmask, hnc]),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem accessControlHasRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem accessControlHasRoleBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x91, 0xd1, 0x48, 0x54]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨254⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨254⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   have _hperm : I.perm = true := hperm
   have hsz4 := hasRoleSelector_size hsel
   have hd := accessControlDispatch_hasRole (cd := I.calldata) (by simpa [selIs] using hsel)
@@ -673,31 +672,25 @@ theorem accessControlHasRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanonAccount : (hasRoleAccountWord I).toNat < EVM.addressModulus
       · have hdec := accessControlDecode_hasRole_ok (I := I) hsz68 hbig hcanonAccount
-        have hword : hasRoleStorageWord σ_evm I = hasRoleStorageWord σ_solm I :=
-          accountMapEquiv_storage_findD hAccounts I.codeOwner (hasRoleSlot I) ⟨0⟩
         have hbody :
             ExecTransitionBody config contract
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (hasRoleStore I)
               hasRoleTransition.body
               (.returned { contract := contract, locals := hasRoleStore I }
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                (some [(wordToElem .bool (hasRoleMaskedWord σ_solm I))])) := by
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                (some [(wordToElem .bool (hasRoleMaskedWord σ I))])) := by
           simpa [hasRoleStorageWord, hasRoleMaskedWord, hasRoleSlot, initState,
             Solm.EVM.storageLoad, State.lookupAccount] using
               accessControlHasRoleBodyReturns
-                (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv) hsz68
-        have hretVal :
-            (some [wordToElem .bool (hasRoleMaskedWord σ_solm I)] : Option (List Value)) =
-              some [wordToElem .bool (hasRoleMaskedWord σ_evm I)] := by
-          simp [hasRoleMaskedWord, hword.symm]
         exact (accessControlX_hasRole (g := Sat256.ofUInt256 g)
             hsz68 hsize hbig hcanonAccount hreach)
-          |>.reEquivExecutionTransport hcode hd hdec hbody hretVal hAccounts
+          |>.reEquivExecution hcode hd hdec hbody
             (returnEquiv_of_encode (by
               simpa [hasRoleMaskedWord, hasRoleReturnWord] using
-                boolWordReturnEncoding (hasRoleStorageWord σ_evm I)))
+                boolWordReturnEncoding (hasRoleStorageWord σ I)))
       · have hdec := accessControlDecode_hasRole_none_noncanon_account
           (I := I) hsz68 hbig hcanonAccount
         have hnc : UInt256.eq (hasRoleAccountWord I)

@@ -1373,13 +1373,13 @@ theorem tinyDecodeRevert66 (v : TinyImmutables) :
   rw [hpres]
   native_decide
 
-theorem tinyReachOwnerBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
+theorem tinyReachOwnerBody {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I) ⟨67⟩
+    ∃ k C, RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨67⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   exact solcDispatchReachBody
     (firstArmPc := tinyFirstArmPc) (bodyPC := ⟨67⟩) (i := 0)
     hcode hwv hsz hsize (tinyRuntimePrefixWf v) (tinyGuardJd v)
@@ -1392,14 +1392,14 @@ theorem tinyReachOwnerBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutab
       decide)
     (tinyContains67 v) (tinyArmTgt_owner v)
 
-theorem tinyReachQuoteBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
+theorem tinyReachQuoteBody {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
     (hquote : (quoteSelBytes == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I) ⟨148⟩
+    ∃ k C, RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨148⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   exact solcDispatchReachBody
     (firstArmPc := tinyFirstArmPc) (bodyPC := ⟨148⟩) (i := 1)
     hcode hwv hsz hsize (tinyRuntimePrefixWf v) (tinyGuardJd v)
@@ -1418,15 +1418,15 @@ theorem tinyReachQuoteBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutab
       decide)
     (tinyContains148 v) (tinyArmTgt_quote v)
 
-theorem tinyReachScaleBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
+theorem tinyReachScaleBody {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
     (hquote : (quoteSelBytes == I.calldata.extract 0 4) = false)
     (hscale : (scaleSelBytes == I.calldata.extract 0 4) = true) :
-    ∃ k C, RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I) ⟨181⟩
+    ∃ k C, RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨181⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) k C := by
+      σ k C := by
   exact solcDispatchReachBody
     (firstArmPc := tinyFirstArmPc) (bodyPC := ⟨181⟩) (i := 2)
     hcode hwv hsz hsize (tinyRuntimePrefixWf v) (tinyGuardJd v)
@@ -1449,10 +1449,10 @@ theorem tinyReachScaleBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutab
       decide)
     (tinyContains181 v) (tinyArmTgt_scale v)
 
-theorem tinyX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
+theorem tinyX_callvalue_ne {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hcode : I.code = patchedRuntime v) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ)
     (σ₀ := σ₀) (A := A) (g := g) hcode
     (by tiny_decode) (by tiny_decode) (by tiny_decode) (by tiny_decode) (by tiny_decode)
     (by tiny_decode)
@@ -1475,11 +1475,11 @@ theorem tinyX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutab
       change decode (patchedRuntime v) (⟨14⟩ : UInt256) = some (.REVERT, .none)
       tiny_decode)
 
-theorem tinyX_short {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
+theorem tinyX_short {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ)
     (σ₀ := σ₀) (A := A) (g := g) hcode
     (by tiny_decode) (by tiny_decode) (by tiny_decode) (by tiny_decode) (by tiny_decode)
     (by tiny_decode)
@@ -1567,15 +1567,15 @@ theorem tinyX_short {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       native_decide)
 
 set_option maxHeartbeats 1000000 in
-theorem tinyX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
+theorem tinyX_noMatch {σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (howner : (ownerSelBytes == I.calldata.extract 0 4) = false)
     (hquote : (quoteSelBytes == I.calldata.extract 0 4) = false)
     (hscale : (scaleSelBytes == I.calldata.extract 0 4) = false) :
-    RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev (patchedRuntime v) g (initState σ σ₀ g A I) := by
   obtain ⟨k30, C30, h30⟩ := solcDispatchReachSelector (firstPc := tinyFirstArmPc)
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (code := patchedRuntime v)
     hcode hwv hsz hsize (tinyRuntimePrefixWf v) (tinyGuardJd v)
   have h41 := h30.selectorArmNotTakenAuto (tinyOwnerArmWellFormed v)
@@ -1585,9 +1585,9 @@ theorem tinyX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       rw [tinyArmSelNat_ownerPc v, solcSelectorWord, tinyOwnerEvmSelector hsz]
       simp [howner])
     (by simp)
-  have h41' : RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I) ⟨41⟩
+  have h41' : RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨41⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (k30 + 5) (C30 + 22) := by
+      σ (k30 + 5) (C30 + 22) := by
     simpa [tinyOwnerArmNextPc v] using h41
   have h52 := h41'.selectorArmNotTakenAuto (tinyQuoteArmWellFormed v)
     (by
@@ -1596,9 +1596,9 @@ theorem tinyX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       rw [tinyArmSelNat_quotePc v, solcSelectorWord, tinyQuoteEvmSelector hsz]
       simp [hquote])
     (by simp)
-  have h52' : RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I) ⟨52⟩
+  have h52' : RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨52⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) ((k30 + 5) + 5) ((C30 + 22) + 22) := by
+      σ ((k30 + 5) + 5) ((C30 + 22) + 22) := by
     simpa [tinyQuoteArmNextPc v] using h52
   have h63 := h52'.selectorArmNotTakenAuto (tinyScaleArmWellFormed v)
     (by
@@ -1607,9 +1607,9 @@ theorem tinyX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
       rw [tinyArmSelNat_scalePc v, solcSelectorWord, tinyScaleEvmSelector hsz]
       simp [hscale])
     (by simp)
-  have h63' : RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I) ⟨63⟩
+  have h63' : RD (patchedRuntime v) I g (initState σ σ₀ g A I) ⟨63⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ) (((k30 + 5) + 5) + 5) (((C30 + 22) + 22) + 22) := by
+      σ (((k30 + 5) + 5) + 5) (((C30 + 22) + 22) + 22) := by
     simpa [tinyScaleArmNextPc v] using h63
   have h64 := h63'.jumpdest (tinyDecodeJumpdest63 v) (by simp)
   exact h64.revertStub (tinyDecodePush0_64 v) (tinyDecodePush0_65 v)
@@ -1637,7 +1637,7 @@ theorem tinyOwnerWord_clean (v : TinyImmutables) :
 set_option maxHeartbeats 1000000 in
 theorem RD.tinyReturnWord167 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : Nat}
     {v : TinyImmutables} {val : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD (patchedRuntime v) ee g s0 ⟨167⟩ (val :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 5 ≤ 1024) :
@@ -1676,7 +1676,7 @@ theorem RD.tinyReturnWord167 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C 
 set_option maxHeartbeats 1000000 in
 theorem RD.tinyReturnAddress106 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : Nat}
     {v : TinyImmutables} {val ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD (patchedRuntime v) ee g s0 ⟨106⟩ (val :: ret :: R)
         solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 9 ≤ 1024) :

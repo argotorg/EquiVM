@@ -18,16 +18,16 @@ theorem word_div_one (word : UInt256) : UInt256.div word ⟨1⟩ = word := by
   rw [udiv_toNat]
   exact Nat.div_one word.toNat
 
-theorem depositPrefix {I g s0 amount recipient ret R mem aw ptr rdata cA σ k C}
+theorem depositPrefix {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 32 ≤ 2 ^ 200)
     (hov : R.length + 17 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨3417⟩
       (wethWord σ I :: wethWord σ I :: amount :: ptr :: ⟨4⟩ :: ptr :: ⟨0⟩ ::
         (ptr + ⟨4⟩) :: amount :: ⟨0xd0e30db0⟩ :: wethWord σ I :: amount ::
         recipient :: ret :: R)
-      (selectorMem mem ptr depositWord) (expandedWords aw ptr ⟨32⟩) rdata (cA, σ) k' C' := by
+      (selectorMem mem ptr depositWord) (expandedWords aw ptr ⟨32⟩) rdata σ k' C' := by
   have rd3356 := evm_run h with [push1 ⟨202⟩, push0, swap1]
   obtain ⟨_, _, rd3357⟩ := rd3356.sload (by native_decide) (by evm_ov)
   have rd3387 := evm_run rd3357 with [swap1, push2 ⟨256⟩,
@@ -38,7 +38,7 @@ theorem depositPrefix {I g s0 amount recipient ret R mem aw ptr rdata cA σ k C}
   have hmask : UInt256.sub (UInt256.shiftLeft ⟨1⟩ ⟨160⟩) ⟨1⟩ = solcAddrMask := by decide
   simp only [he, hmask, word_div_one, u256_land_comm solcAddrMask, maskTwice] at rd3387
   change RD _ _ _ _ ⟨3387⟩ (⟨0xd0e30db0⟩ :: wethWord σ I :: amount :: recipient :: ret :: R)
-    mem aw rdata (cA, σ) _ _ at rd3387
+    mem aw rdata σ _ _ at rd3387
   have rd3391 := evm_run rd3387 with [dup3, push1 ⟨64⟩,
     raw mloadSymbolic (by native_decide) (by evm_ov)]
   rw [hm.load64, expandedWords64_eq hm.active] at rd3391
@@ -49,7 +49,7 @@ theorem depositPrefix {I g s0 amount recipient ret R mem aw ptr rdata cA σ k C}
   simp only [hsel] at rd3403
   change RD _ _ _ _ ⟨3403⟩ (ptr :: amount :: ⟨0xd0e30db0⟩ :: wethWord σ I ::
     amount :: recipient :: ret :: R) (selectorMem mem ptr depositWord)
-    (expandedWords aw ptr ⟨32⟩) rdata (cA, σ) _ _ at rd3403
+    (expandedWords aw ptr ⟨32⟩) rdata σ _ _ at rd3403
   have hh := selectorMem_heap hm depositWord hb
   have rd3410 := evm_run rd3403 with [push1 ⟨4⟩, add, push0, push1 ⟨64⟩,
     raw mloadSymbolic (by native_decide) (by evm_ov)]
@@ -58,9 +58,9 @@ theorem depositPrefix {I g s0 amount recipient ret R mem aw ptr rdata cA σ k C}
   simp only [word_add_sub_left, u256_add_comm ⟨4⟩ ptr] at rd3417
   exact ⟨_, _, rd3417⟩
 
-theorem depositCodeGuard {I g s0 amount recipient ret R mem aw ptr rdata cA σ k C}
+theorem depositCodeGuard {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 32 ≤ 2 ^ 200)
     (hov : R.length + 17 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨3424⟩
@@ -68,14 +68,14 @@ theorem depositCodeGuard {I g s0 amount recipient ret R mem aw ptr rdata cA σ k
         UInt256.isZero (extCodeSizeWord σ (wethWord σ I)) :: wethWord σ I ::
         amount :: ptr :: ⟨4⟩ :: ptr :: ⟨0⟩ :: (ptr + ⟨4⟩) :: amount ::
         ⟨0xd0e30db0⟩ :: wethWord σ I :: amount :: recipient :: ret :: R)
-      (selectorMem mem ptr depositWord) (expandedWords aw ptr ⟨32⟩) rdata (cA, σ) k' C' := by
+      (selectorMem mem ptr depositWord) (expandedWords aw ptr ⟨32⟩) rdata σ k' C' := by
   obtain ⟨_, _, rd3417⟩ := depositPrefix h hm hb hov
   obtain ⟨_, _, rd3418⟩ := rd3417.extcodesize (by native_decide) (by evm_ov)
   exact ⟨_, _, evm_run rd3418 with [iszero, dup1, iszero, push2 ⟨3428⟩]⟩
 
-theorem depositNoCode {I g s0 amount recipient ret R mem aw ptr rdata cA σ k C}
+theorem depositNoCode {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 32 ≤ 2 ^ 200)
     (hno : extCodeSizeWord σ (wethWord σ I) = ⟨0⟩) (hov : R.length + 18 ≤ 1024) :
     RDrev auctionBytecode g s0 := by
@@ -83,16 +83,16 @@ theorem depositNoCode {I g s0 amount recipient ret R mem aw ptr rdata cA σ k C}
   exact evm_run rd3424 with [jumpiNT (by rw [hno]; decide),
     raw auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)]
 
-theorem depositCallPrefix {I g s0 amount recipient ret R mem aw ptr rdata cA σ k C}
+theorem depositCallPrefix {I g s0 amount recipient ret R mem aw ptr rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3352⟩ (amount :: recipient :: ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 32 ≤ 2 ^ 200)
     (hyes : extCodeSizeWord σ (wethWord σ I) ≠ ⟨0⟩) (hov : R.length + 18 ≤ 1024) :
     ∃ gasArg k' C', RD auctionBytecode I g s0 ⟨3431⟩
       (gasArg :: wethWord σ I :: amount :: ptr :: ⟨4⟩ :: ptr :: ⟨0⟩ ::
         (ptr + ⟨4⟩) :: amount :: ⟨0xd0e30db0⟩ :: wethWord σ I :: amount ::
         recipient :: ret :: R)
-      (selectorMem mem ptr depositWord) (expandedWords aw ptr ⟨32⟩) rdata (cA, σ) k' C' := by
+      (selectorMem mem ptr depositWord) (expandedWords aw ptr ⟨32⟩) rdata σ k' C' := by
   obtain ⟨_, _, rd3424⟩ := depositCodeGuard h hm hb (by omega)
   have rd3430 := evm_run rd3424 with [
     jumpiT (by rw [isZero_eq_zero_of_ne hyes]; decide) (by jump_dest), jumpdest, pop]

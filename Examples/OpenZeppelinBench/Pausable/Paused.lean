@@ -29,19 +29,19 @@ theorem pausablePausedBodyReturns (evm : EVM.State) (locals : Store)
       rw [evalExpr_storage_scalar (t := .bool) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := by rfl), pausableStorageLocLoad_bool_offset0])
 
-theorem pausableX_paused {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem pausableX_paused {σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD pausableBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨99⟩ [pausableSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret pausableBenchBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨99⟩ [pausableSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret pausableBenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (pausedReturnWord σ I)) := by
   obtain ⟨_, _, rd99⟩ := hreach
   have rd101 := evm_run rd99 with [jumpdest, push0]
   obtain ⟨_, _, rd102₀⟩ := rd101.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd102⟩ :
-      ∃ k C, RD pausableBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨102⟩
+      ∃ k C, RD pausableBenchBytecode I g (initState σ σ₀ g A I) ⟨102⟩
         [pausedRawWord σ I, pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [pausedRawWord, initState] using rd102₀⟩
   have rd105₀ := evm_run rd102 with [push1 ⟨255⟩, and]
   have hmask : UInt256.land ⟨255⟩ (pausedRawWord σ I) = pausedWord σ I := by
@@ -106,48 +106,39 @@ theorem pausableDecode_paused {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem pausablePausedBody {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem pausablePausedBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x5c, 0x97, 0x5a, 0xbb]⟩)
     (hreach : ∃ k C, RD pausableBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨99⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨99⟩
       [pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz := pausablePausedSelector_size hsel
   have hd := pausableDispatch_paused (cd := I.calldata) hsel
   have hdec := pausableDecode_paused (I := I) hsz
-  have hword : pausedRawWord σ_evm I = pausedRawWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨0⟩ ⟨0⟩
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         pausedTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(wordToElem .bool (pausedWord σ_solm I))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(wordToElem .bool (pausedWord σ I))])) := by
     simpa [pausedRawWord, pausedWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       pausablePausedBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv) (by simp)
-  have hretVal :
-      (some [wordToElem .bool (pausedWord σ_solm I)] : Option (List Value)) =
-        some [wordToElem .bool (pausedWord σ_evm I)] := by
-    simp [pausedWord, hword.symm]
   have henc :
-      returnEquiv (UInt256.toByteArray (pausedReturnWord σ_evm I))
-        (some [wordToElem .bool (pausedWord σ_evm I)]) pausedTransition.returnType := by
+      returnEquiv (UInt256.toByteArray (pausedReturnWord σ I))
+        (some [wordToElem .bool (pausedWord σ I)]) pausedTransition.returnType := by
     simpa [pausedTransition] using
-      returnEquiv_of_encode (abit := boolTy) (rv := wordToElem .bool (pausedWord σ_evm I))
-        (o := UInt256.toByteArray (pausedReturnWord σ_evm I))
+      returnEquiv_of_encode (abit := boolTy) (rv := wordToElem .bool (pausedWord σ I))
+        (o := UInt256.toByteArray (pausedReturnWord σ I))
         (by simpa [pausedWord, pausedReturnWord] using
-          boolWordReturnEncoding (pausedRawWord σ_evm I))
+          boolWordReturnEncoding (pausedRawWord σ I))
   exact (pausableX_paused (g := Sat256.ofUInt256 g) hreach)
-    |>.reEquivExecutionTransport hcode hd hdec hbody
-      hretVal hAccounts henc
+    |>.reEquivExecution hcode hd hdec hbody henc
 
 end OpenZeppelinBench.Pausable

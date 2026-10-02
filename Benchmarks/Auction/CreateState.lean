@@ -28,9 +28,9 @@ def createdAuctionAccounts (σ : AccountMap) (I : ExecutionEnv)
   let σ' := createdScalarAccounts σ I noun start finish
   sstoreAccountMap I.codeOwner σ' ⟨211⟩ (clearAuctionPackedWord (storedWord σ' I ⟨211⟩))
 
-theorem SourceState.createdScalars {s0 I cA σ evm} (hs : SourceState s0 I cA σ evm)
+theorem SourceState.createdScalars {s0 I σ evm} (hs : SourceState s0 I σ evm)
     (noun start finish : UInt256) :
-    SourceState s0 I cA (createdScalarAccounts σ I noun start finish)
+    SourceState s0 I (createdScalarAccounts σ I noun start finish)
       (createdScalarState evm noun start finish) := by
   unfold createdScalarState createdScalarAccounts
   rw [hs.env]
@@ -38,20 +38,20 @@ theorem SourceState.createdScalars {s0 I cA σ evm} (hs : SourceState s0 I cA σ
     start).storageWrite
     ⟨210⟩ finish
 
-theorem SourceState.createdAuction {s0 I cA σ evm} (hs : SourceState s0 I cA σ evm)
+theorem SourceState.createdAuction {s0 I σ evm} (hs : SourceState s0 I σ evm)
     (noun start finish : UInt256) :
-    SourceState s0 I cA (createdAuctionAccounts σ I noun start finish)
+    SourceState s0 I (createdAuctionAccounts σ I noun start finish)
       (createdAuctionState evm noun start finish) :=
   (hs.createdScalars noun start finish).clearAuctionPacked
 
-theorem createStorePrefix {I g s0 noun start finish ret R mem aw rdata cA σ k C}
+theorem createStorePrefix {I g s0 noun start finish ret R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3240⟩
       (⟨0⟩ :: ⟨32⟩ :: ⟨64⟩ :: finish :: ⟨0⟩ :: start :: noun :: ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hperm : I.perm = true) (hov : R.length + 12 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨3274⟩
       (⟨32⟩ :: ⟨64⟩ :: finish :: ⟨0⟩ :: start :: noun :: ret :: R)
-      mem aw rdata (cA, createdAuctionAccounts σ I noun start finish) k' C' := by
+      mem aw rdata (createdAuctionAccounts σ I noun start finish) k' C' := by
   have rd3244 := evm_run h with [push1 ⟨207⟩, dup8, swap1]
   obtain ⟨_, _, rd3245⟩ := rd3244.sstore hperm (by native_decide) (by evm_ov)
   have rd3247 := evm_run rd3245 with [push1 ⟨208⟩]

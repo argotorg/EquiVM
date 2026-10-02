@@ -99,12 +99,6 @@ theorem simpleAuctionStorageStore_accountMap
       sstoreAccountMap a evm.accountMap slot val := by
   exact storageStore_accountMap evm a slot val
 
-/-- `EVM.storageStore` does not create accounts. -/
-theorem simpleAuctionStorageStore_createdAccounts
-    (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).createdAccounts = evm.createdAccounts := by
-  exact storageStore_createdAccounts evm a slot val
-
 /-! ## Storage-map preservation re-exports -/
 
 theorem simpleAuctionUInt256_compare_eq_val_compare (a b : UInt256) :

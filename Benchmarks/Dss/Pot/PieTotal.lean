@@ -14,13 +14,13 @@ theorem potDecode_PieTotal {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   show decodeCalldataWithMode config.abiDecodeMode [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem potReachPieTotalBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem potReachPieTotalBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (potSelBytes 0)) :
-    ∃ k C, RD potBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
         ⟨402⟩ [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : potSelWord I = ⟨0x2c69ed58⟩ :=
     potSelWord_eq_of_beq I hsz 0x2c 0x69 0xed 0x58 ⟨0x2c69ed58⟩
       (by native_decide) (by simpa [potSelBytes] using hsel)
@@ -38,27 +38,26 @@ theorem potReachPieTotalBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by jump_dest) (by native_decide)
 
 theorem potPieTotalBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some PieTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (PieTransition.params.map Param.name)
         (transitionSignature PieTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD potBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨402⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨402⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ PieTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ PieTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (PieTotalWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (PieTotalWord σ I).toNat))])) := by
     simpa [PieTransition, PieTotalWord, potSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount] using
       potUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (ref := PieRef) (er := ({ base := "Pie", steps := [] } : EvaledStorageRef))
         (slot := ⟨2⟩)
         (by simp only [initState]; exact hwv) (by simp [PieRef])
@@ -66,23 +65,22 @@ theorem potPieTotalBodyCore
         (by decide) (by rfl)
   exact potUint256GetterBodyCore (entry := ⟨402⟩) (returnPc := ⟨341⟩)
     (routine := ⟨1330⟩) (slot := ⟨2⟩)
-    hcode hdispatch hdecode hreach hAccounts
+    hcode hdispatch hdecode hreach
     (by unfold solcGetterEntryWf; repeat' first | apply And.intro | native_decide)
     (by unfold solcWordSlotGetterWf; repeat' first | apply And.intro | native_decide)
     (by jump_dest) (by jump_dest)
     (by unfold solcReturnWordFromMemWf; repeat' first | apply And.intro | native_decide)
     (by rfl) (by simpa [PieTotalWord] using hbody)
 
-theorem potPieTotalBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem potPieTotalBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (potSelBytes 0))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (potSelBytes 0)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (potSelBytes 0) rfl hsel
   exact potPieTotalBodyCore hcode hwv (potDispatchPie hsel) (potDecode_PieTotal hsz)
-    (potReachPieTotalBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
+    (potReachPieTotalBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)
 
 end Benchmarks.Dss.Pot

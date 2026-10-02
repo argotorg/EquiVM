@@ -8,13 +8,11 @@ set_option maxRecDepth 100000
 
 namespace Auction
 
-theorem initializeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem initializeBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I (entryBytes 11))
-    (hreach : EntryReached 11 cA gh bl σ_evm σ₀ A I g)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor auctionConfig auctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    (hreach : EntryReached 11 σ σ₀ A I g) :
+    runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 11 hsel
     have hsz := calldata_size_ge_of_selIs I (entryBytes 11) (entryBytes_size 11) hsel
@@ -36,31 +34,23 @@ theorem initializeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (initializeArgs I.calldata).weth :: (initializeArgs I.calldata).nouns ::
               ⟨413⟩ :: [solcSelectorWord I]) _ _ _ _ _ _ at rd731
           have rd2130 := evm_run rd731 with [jumpdest, push2 ⟨2130⟩, jump (by jump_dest)]
-          by_cases hg : initializingWord σ_evm I ≠ ⟨0⟩ ∨ initializedWord σ_evm I = ⟨0⟩
+          by_cases hg : initializingWord σ I ≠ ⟨0⟩ ∨ initializedWord σ I = ⟨0⟩
           · obtain ⟨_, _, rd413⟩ := initializeRuntime (initializeArgs I.calldata) rd2130 hc hg
               hperm (by jump_dest) (by evm_ov)
             have hbody := initializeBody
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-              (initializeArgs I.calldata) hwv hc (by
-                change initializingWord σ_solm I ≠ ⟨0⟩ ∨ initializedWord σ_solm I = ⟨0⟩
-                rw [← initializingWord_equiv hAccounts, ← initializedWord_equiv hAccounts]
-                exact hg)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+              (initializeArgs I.calldata) hwv hc hg
             exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGenAccountMapEquiv
-              hcode hd hdec hbody (by rw [initializeFinalState_created]; rfl)
+              hcode hd hdec hbody
               (initializeFinalState_accounts (initializeArgs I.calldata)
-                (σ := σ_evm) (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                hAccounts)
+                (σ := σ) (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) rfl)
               (.fallthrough rfl rfl (by native_decide))
-          · have hi : initializingWord σ_evm I = ⟨0⟩ := by
+          · have hi : initializingWord σ I = ⟨0⟩ := by
               by_contra h; exact hg (Or.inl h)
-            have hz : initializedWord σ_evm I ≠ ⟨0⟩ := fun h => hg (Or.inr h)
+            have hz : initializedWord σ I ≠ ⟨0⟩ := fun h => hg (Or.inr h)
             have hbody := initializeBodyReverts
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-              (initializeArgs I.calldata) hwv
-              (by change initializingWord σ_solm I = ⟨0⟩
-                  rw [← initializingWord_equiv hAccounts]; exact hi)
-              (by change initializedWord σ_solm I ≠ ⟨0⟩
-                  rw [← initializedWord_equiv hAccounts]; exact hz)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+              (initializeArgs I.calldata) hwv hi hz
             exact (initializeGuardRevert rd2130 hi hz (by evm_ov)).reEquivExecutionRevert
               hcode hd hdec hbody
         · rw [if_neg hc] at hdec

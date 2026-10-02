@@ -25,25 +25,24 @@ namespace Benchmarks.Dss.StairstepExponentialDecrease
 theorem stairstepExponentialDecreaseCorrect :
     runtimeEquivalence config stairstepExponentialDecreaseBytecode contract := by
   refine runtimeEquivalence.intro ?_
-  intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
+  intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcut : selIs I (stairstepSelBytes 0)
-    · exact stairstepCutBody hcode hsize hperm hwv hcut hAccounts
+    · exact stairstepCutBody hcode hsize hperm hwv hcut
     · by_cases hdeny : selIs I (stairstepSelBytes 1)
-      · exact stairstepDenyBody hcode hsize hperm hwv hdeny hAccounts
+      · exact stairstepDenyBody hcode hsize hperm hwv hdeny
       · by_cases hfile : selIs I (stairstepSelBytes 2)
-        · exact stairstepFileBody hcode hsize hperm hwv hfile hAccounts
+        · exact stairstepFileBody hcode hsize hperm hwv hfile
         · by_cases hprice : selIs I (stairstepSelBytes 3)
-          · exact stairstepPriceBody hcode hsize hperm hwv hprice hAccounts
+          · exact stairstepPriceBody hcode hsize hperm hwv hprice
           · by_cases hrely : selIs I (stairstepSelBytes 4)
-            · exact stairstepRelyBody hcode hsize hperm hwv hrely hAccounts
+            · exact stairstepRelyBody hcode hsize hperm hwv hrely
             · by_cases hstep : selIs I (stairstepSelBytes 5)
-              · exact stairstepStepBody hcode hsize hperm hwv hstep hAccounts
+              · exact stairstepStepBody hcode hsize hperm hwv hstep
               · by_cases hwards : selIs I (stairstepSelBytes 6)
-                · exact stairstepWardsBody hcode hsize hperm hwv hwards hAccounts
+                · exact stairstepWardsBody hcode hsize hperm hwv hwards
                 · exact stairstepNoDispatch hcode hsize hperm hwv
                     (stairstepNoSelectorMatches hcut hdeny hfile hprice hrely hstep hwards)
-                    hAccounts
   · exact stairstepNonPayable hcode hwv
 
 theorem stairstepExponentialDecreaseContractCorrect :

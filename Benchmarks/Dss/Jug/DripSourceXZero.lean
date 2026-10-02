@@ -4,7 +4,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Jug
 
-theorem jugDripSourceBodyVatIlksDiffBoundReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem jugDripSourceBodyVatIlksDiffBoundReverts {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -14,10 +14,10 @@ theorem jugDripSourceBodyVatIlksDiffBoundReverts {cA gh bl σ σ₀ A I} {g : UI
     (hvatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec :
@@ -34,7 +34,7 @@ theorem jugDripSourceBodyVatIlksDiffBoundReverts {cA gh bl σ σ₀ A I} {g : UI
     (hfitRmul : jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size)
     (hprevMaxNot : ¬ ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256) :
     let locals := dripLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   let base := jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv
@@ -250,7 +250,7 @@ theorem jugDripSourceBodyVatIlksDiffBoundReverts {cA gh bl σ σ₀ A I} {g : UI
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
 theorem jugDripSourceBodyVatIlksDiffYBoundRevertsXZeroNNonzero
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -260,10 +260,10 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsXZeroNNonzero
     (hvatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec :
@@ -284,7 +284,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsXZeroNNonzero
         ⟨0⟩)
     (hprevMaxNot : ¬ ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256) :
     let locals := dripLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   let base := jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv
@@ -533,7 +533,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsXZeroNNonzero
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
 theorem jugDripSourceBodyVatFoldNoCodeRevertsXZeroNNonzero
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -543,10 +543,10 @@ theorem jugDripSourceBodyVatFoldNoCodeRevertsXZeroNNonzero
     (hvatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec :
@@ -571,7 +571,7 @@ theorem jugDripSourceBodyVatFoldNoCodeRevertsXZeroNNonzero
         ((evmVat.lookupAccount (dripVatAddress evmVat.accountMap evmVat.executionEnv)).option 0
           (fun acc => acc.code.size))).toNat = 0) :
     let locals := dripLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   let base := jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv
@@ -815,7 +815,7 @@ theorem jugDripSourceBodyVatFoldNoCodeRevertsXZeroNNonzero
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
 theorem jugDripSourceBodyVatFoldCallFailedRevertsXZeroNNonzero
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmVat evmFold : EVM.State} {out foldOut : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -825,10 +825,10 @@ theorem jugDripSourceBodyVatFoldCallFailedRevertsXZeroNNonzero
     (hvatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec :
@@ -862,7 +862,7 @@ theorem jugDripSourceBodyVatFoldCallFailedRevertsXZeroNNonzero
           .int (((⟨0⟩ : UInt256).toNat : Int) - ((dripVatIlksPrevWord out).toNat : Int))]
         (false, evmFold, foldOut) true) :
     let locals := dripLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   let base := jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv
@@ -1115,7 +1115,7 @@ theorem jugDripSourceBodyVatFoldCallFailedRevertsXZeroNNonzero
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
 theorem jugDripSourceBodyVatFoldCallSucceededReturnsXZeroNNonzero
-    {cA gh bl σ σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     {evmVat evmFold : EVM.State} {out foldOut : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -1125,10 +1125,10 @@ theorem jugDripSourceBodyVatFoldCallSucceededReturnsXZeroNNonzero
     (hvatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec :
@@ -1162,7 +1162,7 @@ theorem jugDripSourceBodyVatFoldCallSucceededReturnsXZeroNNonzero
           .int (((⟨0⟩ : UInt256).toNat : Int) - ((dripVatIlksPrevWord out).toNat : Int))]
         (true, evmFold, foldOut) true) :
     let locals := dripLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let base := jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv
     let duty := jugSlotWord (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv
     let fee := base + duty

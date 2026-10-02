@@ -54,10 +54,9 @@ theorem snapshotSourceRead (evm : EVM.State) (locals : Store)
     uint256St, addrSt, boolSt, bind, EvalResult.bind, pure]
   rfl
 
-theorem snapshotSourceState {s0 I cA σ evm} (hs : SourceState s0 I cA σ evm) :
-    snapshotOfState evm = snapshotOf σ I := by
-  rw [snapshotOf_equiv hs.accounts, ← hs.env]
-  rfl
+theorem snapshotSourceState {s0 I σ evm} (hs : SourceState s0 I σ evm) :
+  snapshotOfState evm = snapshotOf σ I := by
+  simp [snapshotOfState, snapshotOf, hs.storageRead]
 
 theorem snapshotFieldSource {evm locals s name value}
     (hs : locals.get? "_auction" = some (Snapshot.value s))

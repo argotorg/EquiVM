@@ -35,29 +35,29 @@ theorem burnCall_heap {mem aw ptr} (hm : HeapMemory mem aw ptr) (nounId : UInt25
   have hh := callMem1_heap hm burnWord nounId hb
   exact ⟨hh.size, hh.free, hh.lower, hh.gap, activeWords_expand hh.active hb⟩
 
-theorem burnCall {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
-    (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
+theorem burnCall {I g s0 snap nounId ret R mem aw ptr rdata σ k C evm}
+    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
+    (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
     (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hyes : extCodeSizeWord σ (nounsWord σ I) ≠ ⟨0⟩) (hov : R.length + 16 ≤ 1024) :
-    ∃ (evm' : EVM.State) (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (k' C' : Nat),
       callViaEVM evm (AccountAddress.ofUInt256 (nounsWord σ I)) 0 (burnData nounId) (z, evm', out) ∧
-      SourceState s0 I cA' σ' evm' ∧
+      SourceState s0 I σ' evm' ∧
       RD auctionBytecode I g s0 ⟨4513⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: (ptr + ⟨36⟩) :: ⟨0x42966c68⟩ ::
           nounsWord σ I :: snap :: ret :: R)
-        (callMem1 mem ptr burnWord nounId) (burnCallWords aw ptr) out (cA', σ') k' C' ∧
+        (callMem1 mem ptr burnWord nounId) (burnCallWords aw ptr) out σ' k' C' ∧
       out.size < 2 ^ 138 := by
   obtain ⟨_, _, _, rd4512⟩ := burnCallPrefix h hm hb hn ha hyes hov
   have hcd : (callMem1 mem ptr burnWord nounId).readWithPadding ptr.toNat 36 = burnData nounId := by
     rw [callMem1_read hm, burnWord_prefix]
     rfl
-  obtain ⟨evm', cA', σ', z, out, _, _, hc, hs', rd4513, ho⟩ :=
+  obtain ⟨evm', σ', z, out, _, _, hc, hs', rd4513, ho⟩ :=
     callBridge rd4512 hs hperm (by native_decide) hcd (by rw [burnData_size]; decide) (by evm_ov)
   rw [callOutputMem_zero] at rd4513
-  exact ⟨evm', cA', σ', z, out, _, _, hc, hs', rd4513, ho⟩
+  exact ⟨evm', σ', z, out, _, _, hc, hs', rd4513, ho⟩
 
 theorem burnAfterSuccess {I g s0 snap ret R mem aw ptr out acc k C target}
     (h : RD auctionBytecode I g s0 ⟨4513⟩

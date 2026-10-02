@@ -34,11 +34,11 @@ theorem ownable2StepOwnerBodyReturns (evm : EVM.State) (locals : Store)
       rw [evalExpr_storage_scalar (t := .address) (hbase := hlocals) (her := her)
         (hty := hty) (hloc := by rfl), ownable2StepStorageLocLoad_address_offset0])
 
-theorem ownable2StepX_owner {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem ownable2StepX_owner {σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD ownable2StepBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨107⟩ [ownable2StepSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret ownable2StepBenchBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨107⟩ [ownable2StepSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret ownable2StepBenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray (ownerReturnWord σ I)) := by
   obtain ⟨_, _, rd107⟩ := hreach
   have rd108 := evm_run rd107 with [jumpdest, push0]
@@ -83,38 +83,33 @@ theorem ownable2StepDecode_owner {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem ownable2StepOwnerBody {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem ownable2StepOwnerBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x8d, 0xa5, 0xcb, 0x5b]⟩)
     (hreach : ∃ k C, RD ownable2StepBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨107⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨107⟩
       [ownable2StepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
   have hsz := ownable2StepOwnerSelector_size hsel
   have hd := ownable2StepDispatch_owner (cd := I.calldata) hsel
   have hdec := ownable2StepDecode_owner (I := I) hsz
-  have hword : ownerWord σ_evm I = ownerWord σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨0⟩ ⟨0⟩
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ ownerTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ ownerTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.address (AccountAddress.ofNat (ownerReturnWord σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.address (AccountAddress.ofNat (ownerReturnWord σ I).toNat))])) := by
     simpa [ownerWord, ownerReturnWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
       ownable2StepOwnerBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv) (by simp)
   exact (ownable2StepX_owner (g := Sat256.ofUInt256 g) hreach)
-    |>.reEquivExecutionTransport hcode hd hdec hbody
-      (by simp [ownerReturnWord, hword]) hAccounts
-      (returnEquiv_of_encode (solcAddressReturnEncoding (addrTy := addr) rfl (ownerWord σ_evm I)))
+    |>.reEquivExecution hcode hd hdec hbody
+      (returnEquiv_of_encode (solcAddressReturnEncoding (addrTy := addr) rfl (ownerWord σ I)))
 
 end OpenZeppelinBench.Ownable2Step

@@ -91,9 +91,8 @@ def clearAuctionPackedState (evm : EVM.State) : EVM.State :=
   clearSettledState (clearBidderState evm)
 
 theorem clearAuctionPackedState_accounts (evm : EVM.State) :
-    accountMapEquiv
-      (sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap ⟨211⟩
-        (clearAuctionPackedWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨211⟩)))
+    sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap ⟨211⟩
+      (clearAuctionPackedWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨211⟩)) =
       (clearAuctionPackedState evm).accountMap := by
   unfold clearAuctionPackedState clearSettledState clearBidderState
   rw [storageStore_executionEnv]
@@ -101,29 +100,26 @@ theorem clearAuctionPackedState_accounts (evm : EVM.State) :
   | none =>
     rw [storageStore_absent evm _ ha, storageStore_absent evm _ ha,
       sstoreAccountMap_absent_same ha]
-    exact accountMapEquiv.refl _
   | some acc =>
     rw [storageLoad_storageStore_same_present evm _ ha, clearBidderThenSettled,
       storageStore_accountMap, storageStore_accountMap]
-    exact accountMapEquiv_sstoreAccountMap_self_update _ _ _ _ _
+    exact sstoreAccountMap_self_update _ _ _ _ _
 
-theorem SourceState.clearAuctionPacked {s0 I cA σ evm} (hs : SourceState s0 I cA σ evm) :
-    SourceState s0 I cA
+theorem SourceState.clearAuctionPacked {s0 I σ evm} (hs : SourceState s0 I σ evm) :
+    SourceState s0 I
       (sstoreAccountMap I.codeOwner σ ⟨211⟩ (clearAuctionPackedWord (storedWord σ I ⟨211⟩)))
       (clearAuctionPackedState evm) := by
   have hs1 := hs.storageWrite ⟨211⟩
     (setAddressOffset0Word (Solm.EVM.storageLoad evm I.codeOwner ⟨211⟩) ⟨0⟩)
   have hs2 := hs1.storageWrite ⟨211⟩
     (clearSettledWord (Solm.EVM.storageLoad (clearBidderState evm) I.codeOwner ⟨211⟩))
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_⟩
   · simpa only [clearAuctionPackedState, clearSettledState, clearBidderState,
       storageStore_executionEnv, hs.env] using hs2.world
   · simp only [clearAuctionPackedState, clearSettledState, clearBidderState,
       storageStore_executionEnv, hs.env]
-  · simp only [clearAuctionPackedState, clearSettledState, clearBidderState,
-      storageStore_createdAccounts, hs.created]
   · have he := clearAuctionPackedState_accounts evm
-    rw [storedWord_equiv hs.accounts, ← hs.env]
-    exact (accountMapEquiv_sstoreAccountMap _ _ _ hs.accounts).trans he
+    rw [hs.accounts, ← hs.env]
+    simpa [storedWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage] using he
 
 end Auction

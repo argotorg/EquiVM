@@ -14,63 +14,38 @@ namespace OpenZeppelinBench.ERC6909
 
 set_option maxHeartbeats 20000000 in
 theorem erc6909TransferFromBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 7))
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨388⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨388⟩
       [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   have hsz4 := erc6909TransferFromSelector_size hsel
   have hd := erc6909Dispatch_transferFrom (cd := I.calldata) hsel
-  let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+  let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hσ : EVMStateEquiv evmE evmS := by
     simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g)
-      hAccounts
+      rfl
   have hOperator : transferFromOperatorWord evmE I = transferFromOperatorWord evmS I := by
-    unfold transferFromOperatorWord transferFromOperatorSlot
-    rw [hσ.executionEnv]
-    exact congrArg (fun w => UInt256.land w ⟨255⟩)
-      (hσ.storageLoad_codeOwner
-        (operatorApprovalSlot
-          (.address (AccountAddress.ofNat (transferFromSenderWord I).toNat))
-          (.address evmS.executionEnv.source)))
+    rfl
   have hAllowance :
       transferFromCurrentAllowanceWord evmE I =
-        transferFromCurrentAllowanceWord evmS I := by
-    unfold transferFromCurrentAllowanceWord transferFromAllowanceSlot
-    rw [hσ.executionEnv]
-    exact hσ.storageLoad_codeOwner
-      (allowanceSlot
-        (.address (AccountAddress.ofNat (transferFromSenderWord I).toNat))
-        (.address evmS.executionEnv.source)
-        (.int (Int.ofNat (transferFromIdWord I).toNat)))
+        transferFromCurrentAllowanceWord evmS I := rfl
   have hAllowanceDebit :
       transferFromAllowanceDebitWord evmE I = transferFromAllowanceDebitWord evmS I := by
     simp [transferFromAllowanceDebitWord, hAllowance]
   have hσAfterAllowance :
       EVMStateEquiv (transferFromAfterAllowanceState evmE I)
         (transferFromAfterAllowanceState evmS I) := by
-    unfold transferFromAfterAllowanceState transferFromAllowanceSlot
-    rw [hσ.executionEnv, hAllowanceDebit]
-    exact hσ.storageStore_codeOwner
-      (allowanceSlot
-        (.address (AccountAddress.ofNat (transferFromSenderWord I).toNat))
-        (.address evmS.executionEnv.source)
-        (.int (Int.ofNat (transferFromIdWord I).toNat))) rfl
+    exact ⟨rfl, rfl⟩
   have hAfterAllowanceSenderBalance :
       transferFromSenderBalanceWord (transferFromAfterAllowanceState evmE I) I =
-        transferFromSenderBalanceWord (transferFromAfterAllowanceState evmS I) I := by
-    unfold transferFromSenderBalanceWord
-    rw [transferFromAfterAllowance_codeOwner evmE I,
-      transferFromAfterAllowance_codeOwner evmS I]
-    exact hσAfterAllowance.storageLoad
-      (congrArg ExecutionEnv.codeOwner hσ.executionEnv) (transferFromSenderBalanceSlot I)
+        transferFromSenderBalanceWord (transferFromAfterAllowanceState evmS I) I := rfl
   have hSenderDebit :
       transferFromSenderDebitWord evmE I = transferFromSenderDebitWord evmS I := by
     simp [transferFromSenderDebitWord, hAfterAllowanceSenderBalance]
@@ -212,10 +187,7 @@ theorem erc6909TransferFromBodyCore
                         hfit hreach)
                       |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
                         (by simp [evmE, initState, transferFromTailPostState,
-                          transferFromTailAfterSenderBalanceState, storageStore_createdAccounts])
-                        (accountMapEquiv.of_eq (by
-                          simp [evmE, initState, transferFromTailPostState,
-                            transferFromTailAfterSenderBalanceState, storageStore_accountMap]))
+                          transferFromTailAfterSenderBalanceState, storageStore_accountMap])
                         hσTailPost
                         (returnEquiv_of_encode
                           (by simpa [boolTy] using boolTrueReturnEncoding))
@@ -332,12 +304,7 @@ theorem erc6909TransferFromBodyCore
                             hsenderZero hreceiverZero henough hfit hreach)
                           |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
                             (by simp [evmE, initState, transferFromTailPostState,
-                              transferFromTailAfterSenderBalanceState,
-                              storageStore_createdAccounts])
-                            (accountMapEquiv.of_eq (by
-                              simp [evmE, initState, transferFromTailPostState,
-                                transferFromTailAfterSenderBalanceState,
-                                storageStore_accountMap]))
+                              transferFromTailAfterSenderBalanceState, storageStore_accountMap])
                             hσTailPost
                             (returnEquiv_of_encode
                               (by simpa [boolTy] using boolTrueReturnEncoding))
@@ -394,12 +361,12 @@ theorem erc6909TransferFromBodyCore
                       (transferFromAmountWord I).toNat ≤
                         (transferFromCurrentAllowanceWord evmS I).toNat := by
                     simpa [hAllowance] using hallowanceEnough
-                  let σAllowance := sstoreAccountMap I.codeOwner σ_evm
+                  let σAllowance := sstoreAccountMap I.codeOwner σ
                     (transferFromAllowanceSlotI I) (transferFromAllowanceDebitWord evmE I)
                   have hAfterAllowanceInit :
                       transferFromAfterAllowanceState evmE I =
-                        initState cA gh bl σAllowance σ₀ (Sat256.ofUInt256 g) A I := by
-                    cases hfind : σ_evm.find? I.codeOwner <;>
+                        initState σAllowance σ₀ (Sat256.ofUInt256 g) A I := by
+                    cases hfind : σ.find? I.codeOwner <;>
                       simp [evmE, σAllowance, transferFromAfterAllowanceState,
                         transferFromAllowanceSlot, transferFromAllowanceSlotI, initState,
                         Solm.EVM.storageStore, State.lookupAccount, hfind, sstoreAccountMap,
@@ -412,7 +379,7 @@ theorem erc6909TransferFromBodyCore
                   have hPostAsTail :
                       transferFromPostState evmE I =
                         transferFromTailPostState
-                          (initState cA gh bl σAllowance σ₀
+                          (initState σAllowance σ₀
                             (Sat256.ofUInt256 g) A I) I := by
                     rw [← hAfterAllowanceInit]
                     simp [transferFromPostState, transferFromTailPostState,
@@ -427,13 +394,13 @@ theorem erc6909TransferFromBodyCore
                   have hread64 := transferFromOperatorAllowanceScratchMem_read64 I
                   obtain ⟨_, _, rd1193⟩ :=
                     erc6909TransferFromX_operatorFalse_afterAllowanceLoad
-                      (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+                      (σ := σ)
                       (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
                       (sel := erc6909SelWord I) hsz132 hsize hbig hcanonSender
                       hcanonReceiver hsenderCaller hopZero hreach
                   obtain ⟨_, _, rd661⟩ :=
                     erc6909TransferFromX_from1193_allowanceDebit_to661_base
-                      (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+                      (σ := σ)
                       (σ₀ := σ₀) (A := A) (g := Sat256.ofUInt256 g)
                       (sel := erc6909SelWord I)
                       (base := transferFromOperatorAllowanceScratchMem I)
@@ -445,7 +412,7 @@ theorem erc6909TransferFromBodyCore
                         hallowanceNotMaxExpr hallowanceEnoughS
                         (hsenderZeroAddr hsenderZero)
                     exact (erc6909TransferFromX_from661_revert_sender_zero_base
-                        (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+                        (σ := σ)
                         (σ₀ := σ₀) (σcur := σAllowance) (A := A)
                         (g := Sat256.ofUInt256 g) (sel := erc6909SelWord I)
                         (base := transferFromAllowanceScratchMem
@@ -462,7 +429,7 @@ theorem erc6909TransferFromBodyCore
                           hallowanceNotMaxExpr hallowanceEnoughS
                           (hsenderNZAddr hsenderZero) (hreceiverZeroAddr hreceiverZero)
                       exact (erc6909TransferFromX_from661_revert_receiver_zero_base
-                          (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+                          (σ := σ)
                           (σ₀ := σ₀) (σcur := σAllowance) (A := A)
                           (g := Sat256.ofUInt256 g) (sel := erc6909SelWord I)
                           (base := transferFromAllowanceScratchMem
@@ -473,7 +440,7 @@ theorem erc6909TransferFromBodyCore
                           (by simpa [evmE, σAllowance] using rd661))
                         |>.reEquivExecutionRevert hcode hd hdec hbody
                     · obtain ⟨_, _, rd1323⟩ := erc6909TransferFromX_from661_toUpdateHelper_base
-                        (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+                        (σ := σ)
                         (σ₀ := σ₀) (σcur := σAllowance) (A := A)
                         (g := Sat256.ofUInt256 g) (sel := erc6909SelWord I)
                         (base := transferFromAllowanceScratchMem
@@ -507,7 +474,7 @@ theorem erc6909TransferFromBodyCore
                               (hreceiverNZAddr hreceiverZero))
                             hbalanceEnoughS hfitS
                           exact (erc6909TransferFromX_from1323_successCaller_base
-                              (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+                              (σ := σ)
                               (σ₀ := σ₀) (σcur := σAllowance) (A := A)
                               (g := Sat256.ofUInt256 g) (sel := erc6909SelWord I)
                               (base := transferFromAllowanceScratchMem
@@ -532,12 +499,7 @@ theorem erc6909TransferFromBodyCore
                                 rw [hPostAsTail]
                                 simp [evmE, initState, transferFromTailPostState,
                                   transferFromTailAfterSenderBalanceState,
-                                  storageStore_createdAccounts])
-                              (accountMapEquiv.of_eq (by
-                                rw [hPostAsTail]
-                                simp [evmE, initState, transferFromTailPostState,
-                                  transferFromTailAfterSenderBalanceState,
-                                  storageStore_accountMap]))
+                                  storageStore_accountMap])
                               hσPost
                               (returnEquiv_of_encode
                                 (by simpa [boolTy] using boolTrueReturnEncoding))
@@ -558,7 +520,7 @@ theorem erc6909TransferFromBodyCore
                               (hsenderNZAddr hsenderZero) (hreceiverNZAddr hreceiverZero)
                               hbalanceEnoughS hoverS
                           exact (erc6909TransferFromX_from1323_overflow_base
-                              (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+                              (σ := σ)
                               (σ₀ := σ₀) (σcur := σAllowance) (A := A)
                               (g := Sat256.ofUInt256 g) (sel := erc6909SelWord I)
                               (base := transferFromAllowanceScratchMem
@@ -596,7 +558,7 @@ theorem erc6909TransferFromBodyCore
                             (hsenderNZAddr hsenderZero) (hreceiverNZAddr hreceiverZero)
                             hltS
                         exact (erc6909TransferFromX_from1323_insufficient_base
-                            (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+                            (σ := σ)
                             (σ₀ := σ₀) (σcur := σAllowance) (A := A)
                             (g := Sat256.ofUInt256 g) (sel := erc6909SelWord I)
                             (base := transferFromAllowanceScratchMem
@@ -668,12 +630,7 @@ theorem erc6909TransferFromBodyCore
                           hreceiverZero henough hfit hreach)
                         |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
                           (by simp [evmE, initState, transferFromTailPostState,
-                            transferFromTailAfterSenderBalanceState,
-                            storageStore_createdAccounts])
-                          (accountMapEquiv.of_eq (by
-                            simp [evmE, initState, transferFromTailPostState,
-                              transferFromTailAfterSenderBalanceState,
-                              storageStore_accountMap]))
+                            transferFromTailAfterSenderBalanceState, storageStore_accountMap])
                           hσTailPost
                           (returnEquiv_of_encode
                             (by simpa [boolTy] using boolTrueReturnEncoding))

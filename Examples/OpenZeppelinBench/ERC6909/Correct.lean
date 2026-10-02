@@ -75,9 +75,9 @@ theorem erc6909BodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
     exact bodyReverts_nonPayable h
 
-theorem erc6909X_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909X_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = erc6909BenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   exact solcGuardCallvalueNonzeroRevert
     (ctgt := solcGuardTgt erc6909BenchBytecode)
     (opC := solcGuardTgtOp erc6909BenchBytecode)
@@ -86,11 +86,11 @@ theorem erc6909X_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by decide))
     hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
 
-theorem erc6909X_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909X_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = erc6909BenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide)
     (by decide) (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -106,11 +106,11 @@ theorem erc6909X_short {cA gh bl σ σ₀ A I} {g : Sat256}
     h1 hsz (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
     (by decide) (by jump_dest) (by decide) (by decide) (by decide)
 
-theorem erc6909X_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909X_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = erc6909BenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 8 → (erc6909SelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have heqBalance0 :
       UInt256.eq (armSelNatW erc6909BenchBytecode erc6909LowFirstArmPc) (erc6909SelWord I) =
         ⟨0⟩ := by
@@ -132,7 +132,7 @@ theorem erc6909X_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     intro j hj
     rw [erc6909HighArmEq I hsz j hj, hnm (j + 4) (by omega)]
     rfl
-  obtain ⟨kS, CS, hsplit⟩ := erc6909ReachSplit (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨kS, CS, hsplit⟩ := erc6909ReachSplit
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
   by_cases hpivot :
       UInt256.gt (armSelNat erc6909BenchBytecode erc6909SplitPc) (erc6909SelWord I) = ⟨0⟩
@@ -146,8 +146,8 @@ theorem erc6909X_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     have h85 := RD.selectorArmNotTakenAuto h74 (erc6909HighArmsWellFormed 3 (by omega))
       (heqHigh0 3 (by omega)) (by simp)
     have h85' : ∃ k C, RD erc6909BenchBytecode I g
-        (initState cA gh bl σ σ₀ g A I) ⟨85⟩ [erc6909SelWord I] solcFreePtrMem
-        (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        (initState σ σ₀ g A I) ⟨85⟩ [erc6909SelWord I] solcFreePtrMem
+        (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 5 + 5 + 5 + 5, CS + 22 + 22 + 22 + 22 + 22, ?_⟩
       simpa [erc6909HighFirstArmPc, erc6909SplitPc, nthArmPc, selArmNextPc,
         armTgtWidth, selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using h85
@@ -165,8 +165,8 @@ theorem erc6909X_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     have h132 := RD.selectorArmNotTakenAuto h121 (erc6909LowRestArmsWellFormed 2 (by omega))
       (heqLowRest0 2 (by omega)) (by simp)
     have h132' : ∃ k C, RD erc6909BenchBytecode I g
-        (initState cA gh bl σ σ₀ g A I) ⟨132⟩ [erc6909SelWord I] solcFreePtrMem
-        (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        (initState σ σ₀ g A I) ⟨132⟩ [erc6909SelWord I] solcFreePtrMem
+        (UInt256.ofNat 3) ByteArray.empty σ k C := by
       refine ⟨kS + 5 + 1 + 5 + 5 + 5 + 5, CS + 22 + 1 + 22 + 22 + 22 + 22, ?_⟩
       simpa [erc6909LowRestFirstArmPc, erc6909LowFirstArmPc, erc6909LowJumpdestPc,
         erc6909SplitPc, nthArmPc, selArmNextPc, armTgtWidth, armTgt, pushAt,
@@ -177,10 +177,10 @@ theorem erc6909X_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     have h133 := h132rd.jumpdest (by decide) (by simp)
     exact h133.revertStub (by decide) (by decide) (by decide) (by simp)
 
-theorem erc6909NonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem erc6909NonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   exact (erc6909X_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -195,24 +195,24 @@ theorem erc6909NonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (erc6909BodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
-theorem erc6909ShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem erc6909ShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   exact (erc6909X_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (erc6909Dispatch_none_short hsz)
 
-theorem erc6909NoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem erc6909NoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 8 → (erc6909SelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (erc6909X_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (erc6909Dispatch_none_nomatch hnm)
@@ -223,8 +223,8 @@ theorem erc6909NoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
 /-- The deployed ERC6909 benchmark runtime bytecode refines the Solm specification. -/
 theorem erc6909Correct :
     runtimeEquivalence config erc6909BenchBytecode contract := by
-  refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
-      hAccounts => ?_⟩
+  refine ⟨fun σ σ₀ g A I hcode hsize hperm
+      => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size
     · by_cases h0 : selIs I (erc6909SelBytes 0)
@@ -240,7 +240,6 @@ theorem erc6909Correct :
           (erc6909ReachBalanceBody hcode hwv hsz hsize
             (erc6909PivotTaken 0 (by omega) hsz (by simpa [selIs] using h0))
             hbalanceTake)
-          hAccounts
       · have hbalance0 :
             UInt256.eq (armSelNatW erc6909BenchBytecode erc6909LowFirstArmPc)
                 (erc6909SelWord I) = ⟨0⟩ := by
@@ -260,7 +259,6 @@ theorem erc6909Correct :
               (erc6909LowRestMatches 0 (by omega) hsz
                 (by simpa [selIs] using h1)).2
               (by jump_dest) (by decide))
-            hAccounts
         · by_cases h2 : selIs I (erc6909SelBytes 2)
           · exact erc6909TransferBodyCore hcode hsize hperm hwv h2
               (erc6909ReachLowRestBody 1 (by omega) ⟨209⟩ hcode hwv hsz hsize
@@ -271,7 +269,6 @@ theorem erc6909Correct :
                 (erc6909LowRestMatches 1 (by omega) hsz
                   (by simpa [selIs] using h2)).2
                 (by jump_dest) (by decide))
-              hAccounts
           · by_cases h3 : selIs I (erc6909SelBytes 3)
             · exact erc6909ApproveBodyCore hcode hsize hperm hwv h3
                 (erc6909ReachLowRestBody 2 (by omega) ⟨228⟩ hcode hwv hsz hsize
@@ -282,7 +279,6 @@ theorem erc6909Correct :
                   (erc6909LowRestMatches 2 (by omega) hsz
                     (by simpa [selIs] using h3)).2
                   (by jump_dest) (by decide))
-                hAccounts
             · by_cases h4 : selIs I (erc6909SelBytes 4)
               · exact erc6909SetOperatorBodyCore hcode hsize hperm hwv h4
                   (erc6909ReachHighBody 0 (by omega) ⟨247⟩ hcode hwv hsz hsize
@@ -292,7 +288,6 @@ theorem erc6909Correct :
                     (erc6909HighMatches 0 (by omega) hsz
                       (by simpa [selIs] using h4)).2
                     (by jump_dest) (by decide))
-                  hAccounts
               · by_cases h5 : selIs I (erc6909SelBytes 5)
                 · exact erc6909AllowanceBodyCore hcode hsize hwv
                     (by simpa [selIs, erc6909SelBytes] using h5)
@@ -303,7 +298,6 @@ theorem erc6909Correct :
                       (erc6909HighMatches 1 (by omega) hsz
                         (by simpa [selIs] using h5)).2
                       (by jump_dest) (by decide))
-                    hAccounts
                 · by_cases h6 : selIs I (erc6909SelBytes 6)
                   · exact erc6909IsOperatorBodyCore hcode hsize hwv
                       (by simpa [selIs, erc6909SelBytes] using h6)
@@ -315,7 +309,6 @@ theorem erc6909Correct :
                         (erc6909HighMatches 2 (by omega) hsz
                           (by simpa [selIs] using h6)).2
                         (by jump_dest) (by decide))
-                      hAccounts
                   · by_cases h7 : selIs I (erc6909SelBytes 7)
                     · exact erc6909TransferFromBodyCore hcode hsize hperm hwv h7
                         (erc6909ReachHighBody 3 (by omega) ⟨388⟩ hcode hwv hsz hsize
@@ -326,7 +319,6 @@ theorem erc6909Correct :
                           (erc6909HighMatches 3 (by omega) hsz
                             (by simpa [selIs] using h7)).2
                           (by jump_dest) (by decide))
-                        hAccounts
                     · refine erc6909NoDispatch hcode hsize hperm hwv ?_
                       intro i hi
                       interval_cases i

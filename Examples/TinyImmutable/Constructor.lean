@@ -800,9 +800,6 @@ theorem tinyCtorBodyReturns (v : TinyImmutables) (evm : EVM.State)
           ExecBlock.nil)
 
 theorem tinySolmCtorExecSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {g : UInt256}
@@ -811,14 +808,14 @@ theorem tinySolmCtorExecSuccess
     (v : TinyImmutables) (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
     (hwv : I.weiValue = ⟨0⟩) :
     solmCtorExec (config v) (contract v) [.address owner, .int scaleInt, .bool useScale]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+      σ σ₀ g A I
       (.returned
         { contract := contract v
           locals := tinyCtorFinalLocals v owner scaleInt useScale }
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         none) := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+    (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
     (argsStore := tinyCtorArgLocals v owner scaleInt useScale)
     ?_ rfl ?_ ?_
   · rfl
@@ -826,9 +823,6 @@ theorem tinySolmCtorExecSuccess
   · exact tinyCtorBodyReturns v _ owner scaleInt useScale (by simp [initState, hwv])
 
 theorem tinySolmCtorExecReverts_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {g : UInt256}
@@ -837,16 +831,16 @@ theorem tinySolmCtorExecReverts_nonpayable
     (v : TinyImmutables) (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     solmCtorExec (config v) (contract v) [.address owner, .int scaleInt, .bool useScale]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I .reverted := by
+      σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
+    (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
     (argsStore := tinyCtorArgLocals v owner scaleInt useScale)
     ?_ rfl ?_ ?_
   · rfl
   · simp [tinyCtorArgLocals, contract, constructorDecl]
   · simpa [contract, constructorDecl, nonpayable] using
       (bodyReverts_nonPayable (cfg := config v) (contract := contract v)
-        (evm := initState createdAccounts genesisBlockHeader blocks σ σ₀
+        (evm := initState σ σ₀
           (Sat256.ofUInt256 g) A I)
         (locals := tinyCtorArgLocals v owner scaleInt useScale)
         (rest :=
@@ -898,9 +892,6 @@ macro "tiny_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => do
   return acc
 
 theorem tinyCtorInitcodeToBody
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {A : Substate}
@@ -910,14 +901,14 @@ theorem tinyCtorInitcodeToBody
     (hcode : I.code = tinyCtorCode owner scale useScale)
     (hwv : I.weiValue = ⟨0⟩) :
     ∃ k C, RD (tinyCtorCode owner scale useScale) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨46⟩
+      (initState σ σ₀ g A I) ⟨46⟩
       [useScale.toUInt256, scale, EVM.word (↑owner : Nat)]
       (tinyCtorAbiFreeMem owner scale useScale) (UInt256.ofNat 9)
-      ByteArray.empty (createdAccounts, σ) k C := by
+      ByteArray.empty σ k C := by
   have rd0 :
       RD (tinyCtorCode owner scale useScale) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   have rd79 := tiny_ctor_run rd0 with [
     push1 ⟨192⟩, push1 ⟨64⟩,
@@ -999,9 +990,6 @@ theorem tinyCtorInitcodeToBody
   exact ⟨_, _, by simpa [tinyOwnerWord_clean { owner := owner, scale := scale }] using rd46⟩
 
 theorem tinyCtorInitcodeSuccessTrue
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {A : Substate}
@@ -1011,11 +999,10 @@ theorem tinyCtorInitcodeSuccessTrue
     (hcode : I.code = tinyCtorCode owner scale true)
     (hwv : I.weiValue = ⟨0⟩) :
     RDret (tinyCtorCode owner scale true) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) (createdAccounts, σ)
+      (initState σ σ₀ g A I) σ
       (patchedRuntime { owner := owner, scale := scale }) := by
   obtain ⟨_, _, rd46⟩ := tinyCtorInitcodeToBody
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     owner scale true hcode hwv
   have rd158 := tiny_ctor_run rd46 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and,
@@ -1092,9 +1079,6 @@ theorem tinyCtorInitcodeSuccessTrue
       (by tiny_ctor_decode) mem_cost (tinyCtorPatchedRuntime_read owner scale) (by evm_ov)]
 
 theorem tinyCtorInitcodeSuccessFalse
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {A : Substate}
@@ -1104,11 +1088,10 @@ theorem tinyCtorInitcodeSuccessFalse
     (hcode : I.code = tinyCtorCode owner scale false)
     (hwv : I.weiValue = ⟨0⟩) :
     RDret (tinyCtorCode owner scale false) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) (createdAccounts, σ)
+      (initState σ σ₀ g A I) σ
       (patchedRuntime { owner := owner, scale := (⟨0⟩ : UInt256) }) := by
   obtain ⟨_, _, rd46⟩ := tinyCtorInitcodeToBody
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     owner scale false hcode hwv
   have rd158Raw := tiny_ctor_run rd46 with [
     jumpdest, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and,
@@ -1180,9 +1163,6 @@ theorem tinyCtorInitcodeSuccessFalse
       (by evm_ov)]
 
 theorem tinyCtorInitcodeNonpayableRevert
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader}
-    {blocks : ProcessedBlocks}
     {σ : AccountMap}
     {σ₀ : AccountMap}
     {A : Substate}
@@ -1192,11 +1172,11 @@ theorem tinyCtorInitcodeNonpayableRevert
     (hcode : I.code = tinyImmutableCreationBytecode ++ tail)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev (tinyImmutableCreationBytecode ++ tail) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   have rd0 :
       RD (tinyImmutableCreationBytecode ++ tail) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   have rd12 := tiny_ctor_run rd0 with [
     push1 ⟨192⟩, push1 ⟨64⟩,
@@ -1215,8 +1195,7 @@ theorem tinyImmutableConstructorCorrect (v : TinyImmutables) :
     constructorEquivalenceWith (config v) tinyImmutableCreationBytecode (contract v)
       (runtimeCodeOf tinyImmutableBytecode) := by
   refine constructorEquivalenceWith.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
-      args deployedInitcode hdeploy hcode _hcalldata _hperm hσ
+  intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata _hperm
   rcases tinyCtorDeployment_shape v hdeploy with
     ⟨owner, scaleInt, useScale, hargs, h0, hlt, hdeployed⟩
   subst args
@@ -1227,8 +1206,7 @@ theorem tinyImmutableConstructorCorrect (v : TinyImmutables) :
           I.code = tinyCtorCode owner (EVM.word scaleInt.toNat) false := by
         simpa [tinyCtorCode] using hcode
       have hrd := tinyCtorInitcodeSuccessFalse
-        (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) owner (EVM.word scaleInt.toNat) hcodeCtor hwv
       rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', A', hsuccess⟩
       · exact constructorEquivalenceForWith.outOfGas
@@ -1236,19 +1214,16 @@ theorem tinyImmutableConstructorCorrect (v : TinyImmutables) :
       · refine constructorEquivalenceForWith.execution
           (by simpa [Sat256.ofUInt256] using hsuccess)
           (tinySolmCtorExecSuccess
-            (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-            (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+            (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
             v owner scaleInt false hwv) ?_
-        refine ctorResultEquivWith.success rfl rfl ?_ ?_ ?_
+        refine ctorResultEquivWith.success rfl rfl ?_ ?_
         · rfl
-        · simpa [initState] using hσ
         · exact tinyCtorRuntimeCodeOf_false v owner scaleInt
     · have hcodeCtor :
           I.code = tinyCtorCode owner (EVM.word scaleInt.toNat) true := by
         simpa [tinyCtorCode] using hcode
       have hrd := tinyCtorInitcodeSuccessTrue
-        (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-        (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) owner (EVM.word scaleInt.toNat) hcodeCtor hwv
       rcases hrd.xiResult hcodeCtor with hOOG | ⟨g', A', hsuccess⟩
       · exact constructorEquivalenceForWith.outOfGas
@@ -1256,16 +1231,13 @@ theorem tinyImmutableConstructorCorrect (v : TinyImmutables) :
       · refine constructorEquivalenceForWith.execution
           (by simpa [Sat256.ofUInt256] using hsuccess)
           (tinySolmCtorExecSuccess
-            (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-            (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+            (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
             v owner scaleInt true hwv) ?_
-        refine ctorResultEquivWith.success rfl rfl ?_ ?_ ?_
+        refine ctorResultEquivWith.success rfl rfl ?_ ?_
         · rfl
-        · simpa [initState] using hσ
         · exact tinyCtorRuntimeCodeOf_true v owner scaleInt h0 hlt
   · have hrd := tinyCtorInitcodeNonpayableRevert
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g)
       (tail := tinyCtorTail owner (EVM.word scaleInt.toNat) useScale) hcode hwv
     rcases hrd.xiResult hcode with hOOG | ⟨g', o, hrev⟩
@@ -1274,8 +1246,7 @@ theorem tinyImmutableConstructorCorrect (v : TinyImmutables) :
     · refine constructorEquivalenceForWith.execution
         (by simpa [Sat256.ofUInt256] using hrev)
         (tinySolmCtorExecReverts_nonpayable
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (g := g) (A := A) (I := I)
+          (σ := σ) (σ₀ := σ₀) (g := g) (A := A) (I := I)
           v owner scaleInt useScale hwv) ?_
       exact ctorResultEquivWith.revert rfl rfl
 

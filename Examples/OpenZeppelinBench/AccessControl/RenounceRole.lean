@@ -401,10 +401,6 @@ theorem renounceRolePostState_accountMap (evm : EVM.State) (I : ExecutionEnv) :
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (renounceRoleTargetSlot I))) := by
   simp [renounceRolePostState, storageStore_accountMap]
 
-theorem renounceRolePostState_createdAccounts (evm : EVM.State) (I : ExecutionEnv) :
-    (renounceRolePostState evm I).createdAccounts = evm.createdAccounts := by
-  simp [renounceRolePostState, storageStore_createdAccounts]
-
 theorem renounceRolePostState_executionEnv (evm : EVM.State) (I : ExecutionEnv) :
     (renounceRolePostState evm I).executionEnv = evm.executionEnv := by
   simp [renounceRolePostState, storageStore_executionEnv]
@@ -602,37 +598,37 @@ theorem accessControlRenounceRoleBodyReverts_caller (evm : EVM.State) (I : Execu
 def renounceRoleBadConfirmationSelector : UInt256 :=
   UInt256.shiftLeft (⟨860608793⟩ : UInt256) ⟨225⟩
 
-theorem accessControlRenounceRoleX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem accessControlRenounceRoleX_toDecoder {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨235⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨922⟩
+      (initState σ σ₀ g A I) ⟨235⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨922⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨249⟩, ⟨233⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd⟩ := hreach
   exact ⟨_, _, evm_run rd with [
     jumpdest, push2 ⟨233⟩, push2 ⟨249⟩, calldatasize, push1 ⟨4⟩,
     push2 ⟨922⟩, jump (by jump_dest) ]⟩
 
-theorem accessControlRenounceRoleX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem accessControlRenounceRoleX_decoded {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanon : (renounceRoleCallerWord I).toNat < EVM.addressModulus)
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨235⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨395⟩
+      (initState σ σ₀ g A I) ⟨235⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨395⟩
       [renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨233⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOk_4_64 hsz68 hszhi hsize
   have hclean : UInt256.eq (renounceRoleCallerWord I)
       (UInt256.land (renounceRoleCallerWord I) solcAddrMask) = ⟨1⟩ :=
     solcAddrCanon_eq hcanon
-  obtain ⟨_, _, rd922⟩ := accessControlRenounceRoleX_toDecoder (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  obtain ⟨_, _, rd922⟩ := accessControlRenounceRoleX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask := by
     decide
@@ -654,54 +650,54 @@ theorem accessControlRenounceRoleX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, dup1, swap2, pop, pop, swap3, pop, swap3, swap1, pop, jump (by jump_dest),
     jumpdest, push2 ⟨395⟩, jump (by jump_dest) ]⟩
 
-theorem accessControlRenounceRoleX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem accessControlRenounceRoleX_shortarg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨235⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨235⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     solcDecodeLenCheckShort_4_64 hsz4 hshort hsize
-  obtain ⟨_, _, rd922⟩ := accessControlRenounceRoleX_toDecoder (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  obtain ⟨_, _, rd922⟩ := accessControlRenounceRoleX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact evm_run rd922 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨939⟩, jumpiNT (by rw [hslt]; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem accessControlRenounceRoleX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem accessControlRenounceRoleX_hugearg {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨235⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨235⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ :=
     solcDecodeLenCheckHuge_4_64 hbig hsize
-  obtain ⟨_, _, rd922⟩ := accessControlRenounceRoleX_toDecoder (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  obtain ⟨_, _, rd922⟩ := accessControlRenounceRoleX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact evm_run rd922 with [
     jumpdest, push0, push0, push1 ⟨64⟩, dup4, dup6, sub, slt, iszero,
     push2 ⟨939⟩, jumpiNT (by rw [hslt]; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem accessControlRenounceRoleX_noncanon_caller {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem accessControlRenounceRoleX_noncanon_caller {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (renounceRoleCallerWord I)
       (UInt256.land (renounceRoleCallerWord I) solcAddrMask) = ⟨0⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨235⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨235⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOk_4_64 hsz68 hszhi hsize
-  obtain ⟨_, _, rd922⟩ := accessControlRenounceRoleX_toDecoder (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
+  obtain ⟨_, _, rd922⟩ := accessControlRenounceRoleX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask := by
     decide
@@ -715,17 +711,17 @@ theorem accessControlRenounceRoleX_noncanon_caller {cA gh bl σ σ₀ A I} {g : 
       simpa [renounceRoleCallerWord, calldataWord] using hnc),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem accessControlRenounceRoleX_caller_ok {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem accessControlRenounceRoleX_caller_ok {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hcanon : (renounceRoleCallerWord I).toNat < EVM.addressModulus)
     (hcaller : AccountAddress.ofNat (renounceRoleCallerWord I).toNat = I.source)
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨395⟩
+      (initState σ σ₀ g A I) ⟨395⟩
       [renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨233⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨436⟩
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨436⟩
       [renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨233⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, rd395⟩ := hreach
   have haddrMask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask := by
@@ -743,15 +739,15 @@ theorem accessControlRenounceRoleX_caller_ok {cA gh bl σ σ₀ A I} {g : Sat256
       rw [u256_eq_refl]
       decide) (by jump_dest) ]⟩
 
-theorem accessControlRenounceRoleX_caller_revert {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem accessControlRenounceRoleX_caller_revert {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hcanon : (renounceRoleCallerWord I).toNat < EVM.addressModulus)
     (hcaller : AccountAddress.ofNat (renounceRoleCallerWord I).toNat ≠ I.source)
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨395⟩
+      (initState σ σ₀ g A I) ⟨395⟩
       [renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨233⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev accessControlBenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd395⟩ := hreach
   have haddrMask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask := by
@@ -797,33 +793,33 @@ theorem accessControlRenounceRoleX_caller_revert {cA gh bl σ σ₀ A I} {g : Sa
       native_decide)
     (by simp)
 
-theorem accessControlRenounceRoleX_revoke_noop {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem accessControlRenounceRoleX_revoke_noop {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size)
     (hcanon : (renounceRoleCallerWord I).toNat < EVM.addressModulus)
     (htarget : renounceRoleMaskedWord σ I = ⟨0⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨436⟩
+      (initState σ σ₀ g A I) ⟨436⟩
       [renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨233⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, σ) ByteArray.empty := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret accessControlBenchBytecode g (initState σ σ₀ g A I)
+      σ ByteArray.empty := by
   obtain ⟨_, _, rd436⟩ := hreach
   have rd683 := evm_run rd436 with [
     jumpdest, push2 ⟨446⟩, dup3, dup3, push2 ⟨683⟩, jump (by jump_dest) ]
   have rd451 := evm_run rd683 with [
     jumpdest, push0, push2 ⟨694⟩, dup4, dup4, push2 ⟨451⟩, jump (by jump_dest) ]
   have rd451' :
-      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨451⟩
+      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨451⟩
         [renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨694⟩, ⟨0⟩,
           renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨446⟩,
           renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨233⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, rd451⟩
   have hslot := revokeRoleAdminHasRoleKeccakSlotFrom (renounceRoleRoleWord I)
     (renounceRoleCallerWord I) solcFreePtrMem solcFreePtrMem_size hcanon
   obtain ⟨_, _, rd694₀⟩ := accessControlX_hasRole_internal
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (role := renounceRoleRoleWord I) (account := renounceRoleCallerWord I)
     (ret := ⟨694⟩) (mem0 := solcFreePtrMem)
     (R := [⟨0⟩, renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨446⟩,
@@ -831,13 +827,13 @@ theorem accessControlRenounceRoleX_revoke_noop {cA gh bl σ σ₀ A I} {g : Sat2
     solcFreePtrMem_size solcFreePtrMem_read64 hcanon (by jump_dest) (by simp) hslot rd451'
   have htargetSlotEq := renounceRoleTargetSlot_fixedBytes32 I hsz68 hcanon
   have rd694 :
-      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨694⟩
+      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨694⟩
         (renounceRoleMaskedWord σ I :: ⟨0⟩ :: renounceRoleCallerWord I ::
           renounceRoleRoleWord I :: ⟨446⟩ :: renounceRoleCallerWord I ::
           renounceRoleRoleWord I :: ⟨233⟩ :: sel :: [])
         (revokeRoleHasRoleSlotHashMemFrom (renounceRoleRoleWord I) (renounceRoleCallerWord I)
           solcFreePtrMem)
-        (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
       simpa [renounceRoleMaskedWord, renounceRoleStorageWord, revokeRoleStorageWordAt,
         ← htargetSlotEq] using rd694₀⟩
@@ -850,34 +846,34 @@ theorem accessControlRenounceRoleX_revoke_noop {cA gh bl σ σ₀ A I} {g : Sat2
     jumpdest]
   exact rd233.stop (by decide) (by evm_ov)
 
-theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem accessControlRenounceRoleX_revoke_write {σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
     (hperm : I.perm = true)
     (hsz68 : 68 ≤ I.calldata.size)
     (hcanon : (renounceRoleCallerWord I).toNat < EVM.addressModulus)
     (htarget : renounceRoleMaskedWord σ I ≠ ⟨0⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨436⟩
+      (initState σ σ₀ g A I) ⟨436⟩
       [renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨233⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, renounceRolePostMap σ I) ByteArray.empty := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret accessControlBenchBytecode g (initState σ σ₀ g A I)
+      (renounceRolePostMap σ I) ByteArray.empty := by
   obtain ⟨_, _, rd436⟩ := hreach
   have rd683 := evm_run rd436 with [
     jumpdest, push2 ⟨446⟩, dup3, dup3, push2 ⟨683⟩, jump (by jump_dest) ]
   have rd451 := evm_run rd683 with [
     jumpdest, push0, push2 ⟨694⟩, dup4, dup4, push2 ⟨451⟩, jump (by jump_dest) ]
   have rd451' :
-      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨451⟩
+      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨451⟩
         [renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨694⟩, ⟨0⟩,
           renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨446⟩,
           renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨233⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, rd451⟩
   have hslot := revokeRoleAdminHasRoleKeccakSlotFrom (renounceRoleRoleWord I)
     (renounceRoleCallerWord I) solcFreePtrMem solcFreePtrMem_size hcanon
   obtain ⟨_, _, rd694₀⟩ := accessControlX_hasRole_internal
-    (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) (role := renounceRoleRoleWord I) (account := renounceRoleCallerWord I)
     (ret := ⟨694⟩) (mem0 := solcFreePtrMem)
     (R := [⟨0⟩, renounceRoleCallerWord I, renounceRoleRoleWord I, ⟨446⟩,
@@ -888,11 +884,11 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
       solcFreePtrMem
   have htargetSlotEq := renounceRoleTargetSlot_fixedBytes32 I hsz68 hcanon
   have rd694 :
-      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨694⟩
+      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨694⟩
         (renounceRoleMaskedWord σ I :: ⟨0⟩ :: renounceRoleCallerWord I ::
           renounceRoleRoleWord I :: ⟨446⟩ :: renounceRoleCallerWord I ::
           renounceRoleRoleWord I :: ⟨233⟩ :: sel :: [])
-        memTarget (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        memTarget (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
       simpa [memTarget, renounceRoleMaskedWord, renounceRoleStorageWord,
         revokeRoleStorageWordAt, ← htargetSlotEq] using rd694₀⟩
@@ -958,14 +954,14 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
     dup1]
   obtain ⟨_, _, rd733₀⟩ := rd732.sload (by decide) (by evm_ov)
   have rd733 :
-      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨734⟩
+      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨734⟩
         [renounceRoleStorageWord σ I, renounceRoleTargetSlot I, ⟨64⟩,
           renounceRoleCallerWord I, ⟨0⟩, ⟨0⟩, renounceRoleCallerWord I,
           renounceRoleRoleWord I, ⟨446⟩, renounceRoleCallerWord I,
           renounceRoleRoleWord I, ⟨233⟩, sel]
         (revokeRoleHasRoleSlotHashMemFrom (renounceRoleRoleWord I) (renounceRoleCallerWord I)
           memTarget)
-        (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa [renounceRoleStorageWord, revokeRoleStorageWordAt] using rd733₀⟩
   obtain ⟨_, _, rd733⟩ := rd733
   have hclearComm :
@@ -978,13 +974,13 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
   rw [hclearComm] at rd739pre
   obtain ⟨_, _, rd740₀⟩ := rd739pre.sstore hperm (by decide) (by evm_ov)
   have rd740 :
-      ∃ k C, RD accessControlBenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨740⟩
+      ∃ k C, RD accessControlBenchBytecode I g (initState σ σ₀ g A I) ⟨740⟩
         [⟨64⟩, renounceRoleCallerWord I, ⟨0⟩, ⟨0⟩, renounceRoleCallerWord I,
           renounceRoleRoleWord I, ⟨446⟩, renounceRoleCallerWord I,
           renounceRoleRoleWord I, ⟨233⟩, sel]
         (revokeRoleHasRoleSlotHashMemFrom (renounceRoleRoleWord I) (renounceRoleCallerWord I)
           memTarget)
-        (UInt256.ofNat 3) ByteArray.empty (cA, renounceRolePostMap σ I) k C := by
+        (UInt256.ofNat 3) ByteArray.empty (renounceRolePostMap σ I) k C := by
     exact ⟨_, _, by simpa [renounceRolePostMap] using rd740₀⟩
   obtain ⟨_, _, rd740⟩ := rd740
   have hmemEvent :
@@ -1016,33 +1012,26 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
     jumpdest]
   exact rd233.stop (by decide) (by evm_ov)
 
-theorem accessControlRenounceRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem accessControlRenounceRoleBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0x36, 0x56, 0x8a, 0xbe]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨235⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨235⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   have _hperm : I.perm = true := hperm
   have hsz4 := renounceRoleSelector_size (by simpa [selIs] using hsel)
   have hd := accessControlDispatch_renounceRole (cd := I.calldata)
     (by simpa [selIs] using hsel)
-  let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hσ : EVMStateEquiv evmE evmS := EVMStateEquiv.initState hAccounts
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   by_cases hsz68 : 68 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanon : (renounceRoleCallerWord I).toNat < EVM.addressModulus
       · have hdec := accessControlDecode_renounceRole_ok (I := I) hsz68 hbig hcanon
-        have htargetWord :
-            renounceRoleStorageWord σ_evm I = renounceRoleStorageWord σ_solm I := by
-          exact accountMapEquiv_storage_findD hAccounts I.codeOwner
-            (renounceRoleTargetSlot I) ⟨0⟩
         have rd395 := accessControlRenounceRoleX_decoded (g := Sat256.ofUInt256 g)
           hsz68 hsize hbig hcanon hreach
         by_cases hcaller :
@@ -1052,63 +1041,34 @@ theorem accessControlRenounceRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
           have hcallerSolm :
               AccountAddress.ofNat (renounceRoleCallerWord I).toNat = evmS.executionEnv.source := by
             simpa [evmS, initState] using hcaller
-          by_cases htarget : renounceRoleMaskedWord σ_evm I = ⟨0⟩
+          by_cases htarget : renounceRoleMaskedWord σ I = ⟨0⟩
           · have htargetSolm :
                 UInt256.land
                   (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner
                     (renounceRoleTargetSlot I)) ⟨255⟩ = ⟨0⟩ := by
-              have hmaskEq :
-                  renounceRoleMaskedWord σ_evm I = renounceRoleMaskedWord σ_solm I := by
-                unfold renounceRoleMaskedWord
-                rw [htargetWord]
-              have hword : renounceRoleMaskedWord σ_solm I = ⟨0⟩ := by
-                rw [← hmaskEq]
-                exact htarget
               simpa [renounceRoleMaskedWord, renounceRoleStorageWord, evmS, initState,
-                Solm.EVM.storageLoad, State.lookupAccount] using hword
+                Solm.EVM.storageLoad, State.lookupAccount] using htarget
             have hbody := accessControlRenounceRoleBodyReturns_noop evmS I hsz68
               (by simp only [evmS, initState]; exact hwv) hcallerSolm htargetSolm
             exact (accessControlRenounceRoleX_revoke_noop (g := Sat256.ofUInt256 g)
                 hsz68 hcanon htarget rd436)
-              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.fallthrough rfl rfl (by native_decide))
-          · have htargetNonzero : renounceRoleMaskedWord σ_evm I ≠ ⟨0⟩ := htarget
+              |>.reEquivExecution hcode hd hdec hbody (returnEquiv.fallthrough rfl rfl (by native_decide))
+          · have htargetNonzero : renounceRoleMaskedWord σ I ≠ ⟨0⟩ := htarget
             have htargetSolm :
                 UInt256.land
                   (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner
                     (renounceRoleTargetSlot I)) ⟨255⟩ ≠ ⟨0⟩ := by
-              have hmaskEq :
-                  renounceRoleMaskedWord σ_evm I = renounceRoleMaskedWord σ_solm I := by
-                unfold renounceRoleMaskedWord
-                rw [htargetWord]
-              have hword : renounceRoleMaskedWord σ_solm I ≠ ⟨0⟩ := by
-                rw [← hmaskEq]
-                exact htargetNonzero
               simpa [renounceRoleMaskedWord, renounceRoleStorageWord, evmS, initState,
-                Solm.EVM.storageLoad, State.lookupAccount] using hword
+                Solm.EVM.storageLoad, State.lookupAccount] using htargetNonzero
             have hbody := accessControlRenounceRoleBodyReturns_write evmS I hsz68
               (by simp only [evmS, initState]; exact hwv) hcallerSolm htargetSolm
-            have hval :
-                renounceRoleClearLowByteWord
-                    (Solm.EVM.storageLoad evmE evmE.executionEnv.codeOwner
-                      (renounceRoleTargetSlot I)) =
-                  renounceRoleClearLowByteWord
-                    (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner
-                      (renounceRoleTargetSlot I)) := by
-              simpa [evmE, evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
-                renounceRoleStorageWord] using congrArg renounceRoleClearLowByteWord htargetWord
-            have hσPost :
-                EVMStateEquiv (renounceRolePostState evmE I) (renounceRolePostState evmS I) := by
-              simpa [renounceRolePostState] using
-                accessControlEVMStateEquiv_storageStore_codeOwner hσ (renounceRoleTargetSlot I) hval
             exact (accessControlRenounceRoleX_revoke_write (g := Sat256.ofUInt256 g)
                 hperm hsz68 hcanon htargetNonzero rd436)
-              |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-                (by simp [renounceRolePostState, evmE, initState, storageStore_createdAccounts])
-                (accountMapEquiv.of_eq (by
-                  simp [renounceRolePostState, renounceRolePostMap, evmE, initState,
+              |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                (by
+                  simp [renounceRolePostState, renounceRolePostMap, evmS, initState,
                     storageStore_accountMap, Solm.EVM.storageLoad, State.lookupAccount,
-                    Account.lookupStorage, renounceRoleStorageWord]))
-                hσPost
+                    Account.lookupStorage, renounceRoleStorageWord])
                 (returnEquiv.fallthrough rfl rfl (by native_decide))
         · have hcallerSolm :
               AccountAddress.ofNat (renounceRoleCallerWord I).toNat ≠ evmS.executionEnv.source := by

@@ -13,17 +13,17 @@ theorem bidBody_eq : createBidTransition.body =
       .letDecl "_auction" none (.storage auctionRef)] ++
       (bidInitialGuardStmts ++ (.require bidMinimumGuard :: bidAfterStmts)) := rfl
 
-theorem bidRoutine {I g s0 noun ret R mem aw rdata cA σ k C evm}
-    (h : RD auctionBytecode I g s0 ⟨1165⟩ (noun :: ret :: R) mem aw rdata (cA, σ) k C)
-    (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
+theorem bidRoutine {I g s0 noun ret R mem aw rdata σ k C evm}
+    (h : RD auctionBytecode I g s0 ⟨1165⟩ (noun :: ret :: R) mem aw rdata σ k C)
+    (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ⟨128⟩)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 28 ≤ 1024) :
-    (∃ (evm' : EVM.State) (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    (∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' : UInt256) (out : ByteArray) (k' C' : Nat),
       ExecBlock auctionConfig { contract := auctionContract, locals := bidParams noun } evm
         createBidTransition.body (.ok { contract := auctionContract, locals := locals' } evm') ∧
-      SourceState s0 I cA' σ' evm' ∧
-      RD auctionBytecode I g s0 ret R mem' aw' out (cA', σ') k' C') ∨
+      SourceState s0 I σ' evm' ∧
+      RD auctionBytecode I g s0 ret R mem' aw' out σ' k' C') ∨
     (ExecBlock auctionConfig { contract := auctionContract, locals := bidParams noun } evm
       createBidTransition.body .reverted ∧ RDrev auctionBytecode g s0) := by
   rw [bidBody_eq]
@@ -65,8 +65,8 @@ theorem bidRoutine {I g s0 noun ret R mem aw rdata cA σ k C evm}
     · rcases bidMinimumCheck rd1511 hs2 hsm hv (by evm_ov) with
         ⟨_, _, hminimum, rd1681⟩ | ⟨hminimum, hr⟩
       · rcases bidAfterRoutine rd1681 hs2 hperm hm2 hsm hv ht hret hov with
-          ⟨evm', cA', σ', locals', mem', aw', out, _, _, hafter, hs', hr⟩ | ⟨hafter, hr⟩
-        · exact Or.inl ⟨evm', cA', σ', locals', mem', aw', out, _, _,
+          ⟨evm', σ', locals', mem', aw', out, _, _, hafter, hs', hr⟩ | ⟨hafter, hr⟩
+        · exact Or.inl ⟨evm', σ', locals', mem', aw', out, _, _,
             execBlock_append hprefix (execBlock_append hchecks
               (ExecBlock.consNormal hminimum hafter)), hs', hr⟩
         · exact Or.inr ⟨execBlock_append hprefix (execBlock_append hchecks

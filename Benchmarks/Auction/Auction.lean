@@ -97,10 +97,10 @@ theorem auctionEncode {ee g s0 R rdata acc k C} (s : Snapshot)
         exact returnMem_read128 s.words (by simp [Snapshot.words]) (by simp [Snapshot.words]))
       (by evm_ov) ]
 
-theorem auctionX {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hreach : EntryReached 9 cA gh bl σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
+theorem auctionX {σ σ₀ A I} {g : UInt256}
+    (hreach : EntryReached 9 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
     RDret auctionBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (cA, σ)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (wordBytes (snapshotOf σ I).words) := by
   obtain ⟨_, _, rd570⟩ := hreach
   obtain ⟨_, _, rd583⟩ := entryGuardZero 9 (by decide) rd570 hwv
@@ -130,13 +130,11 @@ theorem auctionX {cA gh bl σ σ₀ A I} {g : UInt256}
   rw [hmask] at rd629
   exact auctionEncode (snapshotOf σ I) rd629 (by evm_ov)
 
-theorem auctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem auctionBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hsel : selIs I (entryBytes 9))
-    (hreach : EntryReached 9 cA gh bl σ_evm σ₀ A I g)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor auctionConfig auctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    (hreach : EntryReached 9 σ σ₀ A I g) :
+    runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hsz := calldata_size_ge_of_selIs I (entryBytes 9) (entryBytes_size 9) hsel
     have hd := dispatchEntry 9 hsel
@@ -144,19 +142,17 @@ theorem auctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (auctionGetter.params.map Param.name)
         (transitionSignature auctionGetter).paramTypes I.calldata = some ∅ :=
       decodeCalldata_empty_ok hsz
-    have hsnapshot := snapshotOf_equiv hAccounts I
     have hbody : ExecTransitionBody auctionConfig auctionContract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ auctionGetter.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ auctionGetter.body
         (.returned { contract := auctionContract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some (snapshotOf σ_solm I).values)) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some (snapshotOf σ I).values)) := by
       simpa [snapshotOf, snapshotOfState, storedWord, initState,
         Solm.EVM.storageLoad, State.lookupAccount] using
-        auctionBodyReturns (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        auctionBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           ∅ hwv (by simp)
-    exact (auctionX hreach hwv).reEquivExecutionTransport hcode hd hdec hbody
-      (by rw [hsnapshot]) hAccounts
-      (returnEquiv.returned rfl (snapshotReturnEncoding (snapshotOf σ_evm I)))
+    exact (auctionX hreach hwv).reEquivExecution hcode hd hdec hbody
+      (returnEquiv.returned rfl (snapshotReturnEncoding (snapshotOf σ I)))
   · exact entryNonpayableRevert 9 (by decide) hcode hsel hreach hwv
 
 end Auction

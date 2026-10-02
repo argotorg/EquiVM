@@ -291,14 +291,14 @@ theorem gemJoinHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
       if (gemJoinHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
   interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
-theorem gemJoinReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem gemJoinReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD gemJoinBytecode I g (initState σ σ₀ g A I)
         gemJoinRootSplitPc [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   simpa [gemJoinRootSplitPc, gemJoinSelWord] using
-    solcLegacyDispatchReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    solcLegacyDispatchReachSelector (σ := σ)
       (σ₀ := σ₀) (A := A) (g := g) (code := gemJoinBytecode)
       (bodyPc := gemJoinDispatchBodyPc) (loadPc := gemJoinSelectorLoadPc)
       (firstPc := gemJoinRootSplitPc) (guardTgt := (⟨16⟩ : UInt256))
@@ -313,48 +313,48 @@ theorem gemJoinReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
-theorem gemJoinReachLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem gemJoinReachLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat gemJoinBytecode gemJoinRootSplitPc) (gemJoinSelWord I)
       ≠ ⟨0⟩) :
-    ∃ k C, RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD gemJoinBytecode I g (initState σ σ₀ g A I)
         gemJoinLowFirstArmPc [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    gemJoinReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    gemJoinReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h113 : RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h113 : RD gemJoinBytecode I g (initState σ σ₀ g A I)
       gemJoinLowJumpdestPc [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [gemJoinRootSplitPc, gemJoinLowJumpdestPc] using
       RD.selectorSplitTakenAuto h32 gemJoinRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h114 : RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h114 : RD gemJoinBytecode I g (initState σ σ₀ g A I)
       gemJoinLowFirstArmPc [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [gemJoinLowFirstArmPc] using h113.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h114⟩
 
-theorem gemJoinReachHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem gemJoinReachHighFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat gemJoinBytecode gemJoinRootSplitPc) (gemJoinSelWord I)
       = ⟨0⟩) :
-    ∃ k C, RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD gemJoinBytecode I g (initState σ σ₀ g A I)
         gemJoinHighFirstArmPc [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    gemJoinReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    gemJoinReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h43 : RD gemJoinBytecode I g (initState σ σ₀ g A I)
       gemJoinHighFirstArmPc [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [gemJoinHighFirstArmPc, gemJoinRootSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 gemJoinRootSplitWellFormed hroot (by simp)
   exact ⟨_, _, h43⟩
 
-theorem gemJoinReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem gemJoinReachLowBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 4) (bodyPC : UInt256)
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -368,17 +368,17 @@ theorem gemJoinReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (gemJoinSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J gemJoinBytecode 0).contains bodyPC = true)
     (hbody : armTgt gemJoinBytecode (nthArmPc gemJoinBytecode gemJoinLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD gemJoinBytecode I g (initState σ σ₀ g A I)
         bodyPC [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
-    gemJoinReachLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    gemJoinReachLowFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
   exact RD.dispatchTo bodyPC i hfirst
     (fun j hj => gemJoinLowArmsWellFormed j (le_trans hj hi))
     heq0 htake (by simpa [hbody] using hjd) hbody (by simp)
 
-theorem gemJoinReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem gemJoinReachHighBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 5) (bodyPC : UInt256)
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -392,23 +392,23 @@ theorem gemJoinReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (gemJoinSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J gemJoinBytecode 0).contains bodyPC = true)
     (hbody : armTgt gemJoinBytecode (nthArmPc gemJoinBytecode gemJoinHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD gemJoinBytecode I g (initState σ σ₀ g A I)
         bodyPC [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
-    gemJoinReachHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    gemJoinReachHighFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
   exact RD.dispatchTo bodyPC i hfirst
     (fun j hj => gemJoinHighArmsWellFormed j (le_trans hj hi))
     heq0 htake (by simpa [hbody] using hjd) hbody (by simp)
 
-theorem gemJoinJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt256}
+theorem gemJoinJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
-    (h : RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I) pc
-      [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (h : RD gemJoinBytecode I g (initState σ σ₀ g A I) pc
+      [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode gemJoinBytecode pc = some (.Push .PUSH2, some (gemJoinDispatchRevertPc, 2)))
     (hjump : decode gemJoinBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev gemJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev gemJoinBytecode g (initState σ σ₀ g A I) := by
   have h169 := h.push2 gemJoinDispatchRevertPc hpush
       (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
@@ -416,13 +416,13 @@ theorem gemJoinJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UI
   exact RD.solcPush1Dup1Revert0 h169 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem gemJoinLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I) gemJoinLowFirstArmPc
-      [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem gemJoinLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD gemJoinBytecode I g (initState σ σ₀ g A I) gemJoinLowFirstArmPc
+      [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 5 →
       UInt256.eq (armSelNat gemJoinBytecode (nthArmPc gemJoinBytecode gemJoinLowFirstArmPc j))
         (gemJoinSelWord I) = ⟨0⟩) :
-    RDrev gemJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev gemJoinBytecode g (initState σ σ₀ g A I) := by
   have h169 := h
     |>.selectorArmNotTakenAuto (gemJoinLowArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -438,13 +438,13 @@ theorem gemJoinLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact RD.solcPush1Dup1Revert0 h169 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem gemJoinHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I) gemJoinHighFirstArmPc
-      [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem gemJoinHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD gemJoinBytecode I g (initState σ σ₀ g A I) gemJoinHighFirstArmPc
+      [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 6 →
       UInt256.eq (armSelNat gemJoinBytecode (nthArmPc gemJoinBytecode gemJoinHighFirstArmPc j))
         (gemJoinSelWord I) = ⟨0⟩) :
-    RDrev gemJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev gemJoinBytecode g (initState σ σ₀ g A I) := by
   have h109 := h
     |>.selectorArmNotTakenAuto (gemJoinHighArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -460,10 +460,10 @@ theorem gemJoinHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 5 (by omega)) (by simp)
   exact gemJoinJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
 
-theorem gemJoinX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem gemJoinX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev gemJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev gemJoinBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
@@ -472,11 +472,11 @@ theorem gemJoinX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
-theorem gemJoinX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem gemJoinX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev gemJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev gemJoinBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -495,11 +495,11 @@ theorem gemJoinX_short {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcPush1Dup1Revert0 h169 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
-theorem gemJoinX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem gemJoinX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 11 → (gemJoinSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev gemJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev gemJoinBytecode g (initState σ σ₀ g A I) := by
   have heqLow : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat gemJoinBytecode (nthArmPc gemJoinBytecode gemJoinLowFirstArmPc j))
@@ -559,7 +559,7 @@ theorem gemJoinX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
   by_cases hroot :
       UInt256.gt (armSelNat gemJoinBytecode gemJoinRootSplitPc) (gemJoinSelWord I) ≠ ⟨0⟩
   · obtain ⟨_, _, hfirst⟩ :=
-      gemJoinReachLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      gemJoinReachLowFirstArm (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
     exact gemJoinLowNoMatchRevert hfirst heqLow
   · have hroot0 :
@@ -567,13 +567,13 @@ theorem gemJoinX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
       by_contra hne
       exact hroot hne
     obtain ⟨_, _, hfirst⟩ :=
-      gemJoinReachHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      gemJoinReachHighFirstArm (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot0
     exact gemJoinHighNoMatchRevert hfirst heqHigh
 
-theorem gemJoinNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem gemJoinNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (gemJoinX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -588,18 +588,17 @@ theorem gemJoinNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (gemJoinBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
-theorem gemJoinNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem gemJoinNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = gemJoinBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hnm : ∀ i, i < 11 → (gemJoinSelBytes i == I.calldata.extract 0 4) = false)
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hnm : ∀ i, i < 11 → (gemJoinSelBytes i == I.calldata.extract 0 4) = false) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (gemJoinX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (gemJoinDispatch_none_nomatch hnm)

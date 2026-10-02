@@ -75,13 +75,13 @@ theorem initializerBegins : ∀ i : InitializerBodySite, initializerBeginWf i :=
   unfold initializerBeginWf
   native_decide
 
-theorem initializerBegin {I g s0 R mem aw rdata cA σ k C} (i : InitializerBodySite)
+theorem initializerBegin {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite)
     (h : RD auctionBytecode I g s0 (initializerGuardSuccess (initializerBodyGuard i))
-      R mem aw rdata (cA, σ) k C)
+      R mem aw rdata σ k C)
     (hperm : I.perm = true) (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 (initializerBodyPc i)
       (UInt256.isZero (initializingWord σ I) :: R) mem aw rdata
-      (cA, initializerEntered σ I) k' C' := by
+      (initializerEntered σ I) k' C' := by
   obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13,
     h14, h15, h16, h17, h18, h19, h20, h21, h22, hp, hd⟩ := initializerBegins i
   have rdLoad := evm_run h with [
@@ -109,7 +109,7 @@ theorem initializerBegin {I g s0 R mem aw rdata cA σ k C} (i : InitializerBodyS
       raw or h20 (by evm_ov), raw swap1 h21 (by evm_ov) ]
     obtain ⟨_, _, rdBody⟩ := rdStore.sstore hperm h22 (by evm_ov)
     rw [hp] at rdBody
-    change RD _ _ _ _ _ _ _ _ _ (cA, sstoreAccountMap I.codeOwner σ ⟨0⟩
+    change RD _ _ _ _ _ _ _ _ _ (sstoreAccountMap I.codeOwner σ ⟨0⟩
       (UInt256.lor ⟨257⟩ (UInt256.land (UInt256.lnot ⟨65535⟩) (storedWord σ I ⟨0⟩))))
       _ _ at rdBody
     rw [u256_land_comm (UInt256.lnot ⟨65535⟩), u256_lor_comm ⟨257⟩] at rdBody
@@ -130,12 +130,12 @@ theorem initializerEntered_ready_eq {σ : AccountMap} {I : ExecutionEnv}
     · exact sstoreAccountMap_absent_same ha
     · rfl
 
-theorem initializerPrefixReady {I g s0 R mem aw rdata cA σ k C} (i : InitializerBodySite)
+theorem initializerPrefixReady {I g s0 R mem aw rdata σ k C} (i : InitializerBodySite)
     (h : RD auctionBytecode I g s0 (initializerPc (initializerBodyGuard i))
-      R mem aw rdata (cA, σ) k C)
+      R mem aw rdata σ k C)
     (hr : InitializerReady σ I) (hperm : I.perm = true) (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 (initializerBodyPc i)
-      (UInt256.isZero (initializingWord σ I) :: R) mem aw rdata (cA, σ) k' C' := by
+      (UInt256.isZero (initializingWord σ I) :: R) mem aw rdata σ k' C' := by
   obtain ⟨_, _, rdGuard⟩ := initializerGuardReady (initializerBodyGuard i) h hr (by omega)
   obtain ⟨_, _, rdBody⟩ := initializerBegin i rdGuard hperm hov
   rw [initializerEntered_ready_eq hr] at rdBody

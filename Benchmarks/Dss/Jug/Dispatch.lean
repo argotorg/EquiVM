@@ -276,14 +276,14 @@ theorem jugHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
       if (jugHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
   interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
-theorem jugReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem jugReachRootSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD jugBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD jugBytecode I g (initState σ σ₀ g A I)
         jugRootSplitPc [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   simpa [jugRootSplitPc, jugSelWord] using
-    solcLegacyDispatchReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    solcLegacyDispatchReachSelector (σ := σ)
       (σ₀ := σ₀) (A := A) (g := g) (code := jugBytecode)
       (bodyPc := jugDispatchBodyPc) (loadPc := jugSelectorLoadPc)
       (firstPc := jugRootSplitPc) (guardTgt := (⟨16⟩ : UInt256))
@@ -298,46 +298,46 @@ theorem jugReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
-theorem jugReachLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem jugReachLowFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat jugBytecode jugRootSplitPc) (jugSelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD jugBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD jugBytecode I g (initState σ σ₀ g A I)
         jugLowFirstArmPc [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    jugReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    jugReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h113 : RD jugBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h113 : RD jugBytecode I g (initState σ σ₀ g A I)
       jugLowJumpdestPc [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [jugRootSplitPc, jugLowJumpdestPc] using
       RD.selectorSplitTakenAuto h32 jugRootSplitWellFormed hroot (by jump_dest) (by simp)
-  have h114 : RD jugBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h114 : RD jugBytecode I g (initState σ σ₀ g A I)
       jugLowFirstArmPc [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
+      ByteArray.empty σ (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [jugLowFirstArmPc] using h113.jumpdest (by native_decide) (by simp)
   exact ⟨_, _, h114⟩
 
-theorem jugReachHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem jugReachHighFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hroot : UInt256.gt (armSelNat jugBytecode jugRootSplitPc) (jugSelWord I) = ⟨0⟩) :
-    ∃ k C, RD jugBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD jugBytecode I g (initState σ σ₀ g A I)
         jugHighFirstArmPc [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   obtain ⟨k32, C32, h32⟩ :=
-    jugReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    jugReachRootSplit (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD jugBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h43 : RD jugBytecode I g (initState σ σ₀ g A I)
       jugHighFirstArmPc [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
+      ByteArray.empty σ (k32 + 5) (C32 + 22) := by
     simpa [jugHighFirstArmPc, jugRootSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 jugRootSplitWellFormed hroot (by simp)
   exact ⟨_, _, h43⟩
 
-theorem jugReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem jugReachLowBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 5) (bodyPC : UInt256)
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -350,17 +350,17 @@ theorem jugReachLowBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (jugSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J jugBytecode 0).contains bodyPC = true)
     (hbody : armTgt jugBytecode (nthArmPc jugBytecode jugLowFirstArmPc i) = bodyPC) :
-    ∃ k C, RD jugBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD jugBytecode I g (initState σ σ₀ g A I)
         bodyPC [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
-    jugReachLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    jugReachLowFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
   exact RD.dispatchTo bodyPC i hfirst
     (fun j hj => jugLowArmsWellFormed j (le_trans hj hi))
     heq0 htake (by simpa [hbody] using hjd) hbody (by simp)
 
-theorem jugReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem jugReachHighBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 5) (bodyPC : UInt256)
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -373,36 +373,36 @@ theorem jugReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (jugSelWord I) ≠ ⟨0⟩)
     (hjd : (D_J jugBytecode 0).contains bodyPC = true)
     (hbody : armTgt jugBytecode (nthArmPc jugBytecode jugHighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD jugBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD jugBytecode I g (initState σ σ₀ g A I)
         bodyPC [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
-    jugReachHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    jugReachHighFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
   exact RD.dispatchTo bodyPC i hfirst
     (fun j hj => jugHighArmsWellFormed j (le_trans hj hi))
     heq0 htake (by simpa [hbody] using hjd) hbody (by simp)
 
-theorem jugJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt256}
+theorem jugJumpToNoMatchRevert {σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
-    (h : RD jugBytecode I g (initState cA gh bl σ σ₀ g A I) pc
-      [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+    (h : RD jugBytecode I g (initState σ σ₀ g A I) pc
+      [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpush : decode jugBytecode pc = some (.Push .PUSH2, some (jugDispatchRevertPc, 2)))
     (hjump : decode jugBytecode (pc + UInt256.ofNat 3) = some (.JUMP, .none)) :
-    RDrev jugBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev jugBytecode g (initState σ σ₀ g A I) := by
   have h180 := h.push2 jugDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
   exact RD.solcPush1Dup1Revert0 h180 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem jugLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD jugBytecode I g (initState cA gh bl σ σ₀ g A I) jugLowFirstArmPc
-      [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem jugLowNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD jugBytecode I g (initState σ σ₀ g A I) jugLowFirstArmPc
+      [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 6 →
       UInt256.eq (armSelNat jugBytecode (nthArmPc jugBytecode jugLowFirstArmPc j))
         (jugSelWord I) = ⟨0⟩) :
-    RDrev jugBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev jugBytecode g (initState σ σ₀ g A I) := by
   have h180 := h
     |>.selectorArmNotTakenAuto (jugLowArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -420,13 +420,13 @@ theorem jugLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact RD.solcPush1Dup1Revert0 h180 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem jugHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD jugBytecode I g (initState cA gh bl σ σ₀ g A I) jugHighFirstArmPc
-      [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+theorem jugHighNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD jugBytecode I g (initState σ σ₀ g A I) jugHighFirstArmPc
+      [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 6 →
       UInt256.eq (armSelNat jugBytecode (nthArmPc jugBytecode jugHighFirstArmPc j))
         (jugSelWord I) = ⟨0⟩) :
-    RDrev jugBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev jugBytecode g (initState σ σ₀ g A I) := by
   have h109 := h
     |>.selectorArmNotTakenAuto (jugHighArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -442,10 +442,10 @@ theorem jugHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 5 (by omega)) (by simp)
   exact jugJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
 
-theorem jugX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem jugX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev jugBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev jugBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
@@ -454,11 +454,11 @@ theorem jugX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
-theorem jugX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem jugX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev jugBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev jugBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -477,11 +477,11 @@ theorem jugX_short {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcPush1Dup1Revert0 h180 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
-theorem jugX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem jugX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 12 → (jugSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev jugBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev jugBytecode g (initState σ σ₀ g A I) := by
   have heqLow : ∀ j, j < 6 →
       UInt256.eq
         (armSelNat jugBytecode (nthArmPc jugBytecode jugLowFirstArmPc j))
@@ -544,14 +544,14 @@ theorem jugX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
       rw [hfalse]; rfl
   by_cases hroot : UInt256.gt (armSelNat jugBytecode jugRootSplitPc) (jugSelWord I) ≠ ⟨0⟩
   · obtain ⟨_, _, hfirst⟩ :=
-      jugReachLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      jugReachLowFirstArm (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot
     exact jugLowNoMatchRevert hfirst heqLow
   · have hroot0 : UInt256.gt (armSelNat jugBytecode jugRootSplitPc) (jugSelWord I) = ⟨0⟩ := by
       by_contra hne
       exact hroot hne
     obtain ⟨_, _, hfirst⟩ :=
-      jugReachHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+      jugReachHighFirstArm (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot0
     exact jugHighNoMatchRevert hfirst heqHigh
 

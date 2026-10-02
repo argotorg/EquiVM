@@ -23,8 +23,8 @@ theorem transferSourceLocals_data (locals : Store) (z : Bool) (out : ByteArray) 
     (transferSourceLocals locals z out).get? "_transferData" = some (.bytes out) :=
       store_get_self _ _ _
 
-theorem transferCallSource {s0 I cA σ evm evm' locals recipient amount ptr out z}
-    (hs : SourceState s0 I cA σ evm) (hv : PaymentValues locals recipient amount ptr)
+theorem transferCallSource {s0 I σ evm evm' locals recipient amount ptr out z}
+    (hs : SourceState s0 I σ evm) (hv : PaymentValues locals recipient amount ptr)
     (hc : callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
       (transferData recipient amount) (z, evm', out)) :
     ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
@@ -82,8 +82,8 @@ theorem boolDecodeSourceInvalid {evm locals out}
     | none => EvalResult.revert) = _
   rw [hh]
 
-theorem transferSourceSuccess {s0 I cA σ evm evm' locals recipient amount ptr out}
-    (hs : SourceState s0 I cA σ evm) (hv : PaymentValues locals recipient amount ptr)
+theorem transferSourceSuccess {s0 I σ evm evm' locals recipient amount ptr out}
+    (hs : SourceState s0 I σ evm) (hv : PaymentValues locals recipient amount ptr)
     (hc : callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
       (transferData recipient amount) (true, evm', out))
     (hb : ptr.toNat + out.size + 31 ≤ 2 ^ 200) (ho : out.size < 2 ^ 255)
@@ -106,8 +106,8 @@ theorem transferSourceSuccess {s0 I cA σ evm evm' locals recipient amount ptr o
     hp.insertOther _ (by decide) (by decide) (by decide) (by decide)⟩
   simp only [evalExpr?, transferSourceLocals_status, EvalResult.ofOption]
 
-theorem transferSourceFailure {s0 I cA σ evm evm' locals recipient amount ptr out z}
-    (hs : SourceState s0 I cA σ evm) (hv : PaymentValues locals recipient amount ptr)
+theorem transferSourceFailure {s0 I σ evm evm' locals recipient amount ptr out z}
+    (hs : SourceState s0 I σ evm) (hv : PaymentValues locals recipient amount ptr)
     (hc : callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I)) 0
       (transferData recipient amount) (z, evm', out))
     (hb : ptr.toNat + out.size + 31 ≤ 2 ^ 200) (ho : out.size < 2 ^ 255)

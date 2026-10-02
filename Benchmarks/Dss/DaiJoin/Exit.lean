@@ -592,12 +592,12 @@ theorem exitExitEventMem_read64 (I : ExecutionEnv) {mem : ByteArray}
     (by rw [hmem]; omega) (by omega)]
   exact hread64
 
-theorem daiJoinExitLiveReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiJoinExitLiveReverts {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hnotLive : exitLiveWord σ I ≠ ⟨1⟩)
     (h : RD daiJoinBytecode I g s0 ⟨1262⟩
       [exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiJoinBytecode g s0 := by
   have heq0 : UInt256.eq (exitLiveWord σ I) ⟨1⟩ = ⟨0⟩ :=
     u256_eq_of_ne hnotLive
@@ -611,7 +611,7 @@ theorem daiJoinExitLiveReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k1266, C1266, rd1266raw⟩ := rd1272.sload (by native_decide) (by evm_ov)
   have rd1266 : RD daiJoinBytecode I g s0 ⟨1266⟩
       (exitLiveWord σ I :: exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1266 C1266 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1266 C1266 := by
     simpa [exitLiveWord, daiJoinSlotWord, solcSlotWord] using rd1266raw
   have rd1272' := evm_run rd1266 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -630,15 +630,15 @@ theorem daiJoinExitLiveReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by decide) rfl solcFreePtrMem_size solcFreePtrMem_read64
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem daiJoinExitLiveOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiJoinExitLiveOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hlive : exitLiveWord σ I = ⟨1⟩)
     (h : RD daiJoinBytecode I g s0 ⟨1262⟩
       [exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiJoinBytecode I g s0 ⟨1336⟩
       [exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have heq1 : UInt256.eq (exitLiveWord σ I) ⟨1⟩ = ⟨1⟩ := by
     rw [hlive]
     native_decide
@@ -651,7 +651,7 @@ theorem daiJoinExitLiveOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k1266, C1266, rd1266raw⟩ := rd1272.sload (by native_decide) (by evm_ov)
   have rd1266 : RD daiJoinBytecode I g s0 ⟨1266⟩
       (exitLiveWord σ I :: exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1266 C1266 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1266 C1266 := by
     simpa [exitLiveWord, daiJoinSlotWord, solcSlotWord] using rd1266raw
   have rd1272' := evm_run rd1266 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -660,19 +660,19 @@ theorem daiJoinExitLiveOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   rw [heq1rev] at rd1272'
   exact ⟨_, _, rd1272'.jumpiT (by native_decide) (by decide) (by jump_dest) (by evm_ov)⟩
 
-theorem daiJoinExitMulSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiJoinExitMulSuccess {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hguard :
       exitWadWord I = ⟨0⟩ ∨
         UInt256.div (daiJoinRadWord (exitWadWord I)) (exitWadWord I) = daiJoinONEWord)
     (h : RD daiJoinBytecode I g s0 ⟨1336⟩
       [exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiJoinBytecode I g s0 ⟨1377⟩
       [daiJoinRadWord (exitWadWord I), UInt256.ofNat I.codeOwner, solcSourceWord I,
         joinMoveSelectorPlainWord, daiJoinVatTargetWord σ I, exitWadWord I,
         exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hmaskConst :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
@@ -682,7 +682,7 @@ theorem daiJoinExitMulSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k1340, C1340, rd1340raw⟩ := rd1356p.sload (by native_decide) (by evm_ov)
   have rd1340 : RD daiJoinBytecode I g s0 ⟨1340⟩
       (daiJoinSlotWord ⟨1⟩ σ I :: exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1340 C1340 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1340 C1340 := by
     simpa [daiJoinSlotWord, solcSlotWord] using rd1340raw
   have rd1359 := evm_run rd1340 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -698,7 +698,7 @@ theorem daiJoinExitMulSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1359Norm : ∃ k C, RD daiJoinBytecode I g s0 ⟨1359⟩
       [⟨1377⟩, UInt256.ofNat I.codeOwner, solcSourceWord I, joinMoveSelectorPlainWord,
         daiJoinVatTargetWord σ I, exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
       simpa [daiJoinVatTargetWord, daiJoinAddressReturnWord, hmaskConst, u256_land_comm]
         using rd1359⟩
@@ -709,7 +709,7 @@ theorem daiJoinExitMulSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [daiJoinONEWord, ⟨1377⟩, UInt256.ofNat I.codeOwner, solcSourceWord I,
         joinMoveSelectorPlainWord, daiJoinVatTargetWord σ I, exitWadWord I,
         exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa using rd1372⟩
   obtain ⟨_, _, rd1372'⟩ := rd1372Norm
   have rd1376 := evm_run rd1372' with [
@@ -719,7 +719,7 @@ theorem daiJoinExitMulSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [exitWadWord I, daiJoinONEWord, ⟨1377⟩, UInt256.ofNat I.codeOwner,
         solcSourceWord I, joinMoveSelectorPlainWord, daiJoinVatTargetWord σ I,
         exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     have hpc :
         ((⟨1372⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 3) =
           (⟨1376⟩ : UInt256) := by
@@ -728,7 +728,7 @@ theorem daiJoinExitMulSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         [⟨1678⟩, exitWadWord I, daiJoinONEWord, ⟨1377⟩, UInt256.ofNat I.codeOwner,
           solcSourceWord I, joinMoveSelectorPlainWord, daiJoinVatTargetWord σ I,
           exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
       exact ⟨_, _, by simpa [hpc] using rd1376⟩
     obtain ⟨_, _, rd1376'⟩ := rd1376Norm
     exact ⟨_, _, RD.jump (a := ⟨1678⟩) rd1376'
@@ -742,13 +742,13 @@ theorem daiJoinExitMulSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     rd1678 hguard (by jump_dest) daiJoinMulRoutine_shape (by simp)
   exact ⟨_, _, by simpa [daiJoinRadWord] using rd1377⟩
 
-theorem daiJoinExitMulReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiJoinExitMulReverts {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
     (hwad : exitWadWord I ≠ ⟨0⟩)
     (hguard : UInt256.div (daiJoinRadWord (exitWadWord I)) (exitWadWord I) ≠ daiJoinONEWord)
     (h : RD daiJoinBytecode I g s0 ⟨1336⟩
       [exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiJoinBytecode g s0 := by
   have hmaskConst :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
@@ -759,7 +759,7 @@ theorem daiJoinExitMulReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k1340, C1340, rd1340raw⟩ := rd1356p.sload (by native_decide) (by evm_ov)
   have rd1340 : RD daiJoinBytecode I g s0 ⟨1340⟩
       (daiJoinSlotWord ⟨1⟩ σ I :: exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1340 C1340 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1340 C1340 := by
     simpa [daiJoinSlotWord, solcSlotWord] using rd1340raw
   have rd1359 := evm_run rd1340 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -775,7 +775,7 @@ theorem daiJoinExitMulReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd1359Norm : ∃ k C, RD daiJoinBytecode I g s0 ⟨1359⟩
       [⟨1377⟩, UInt256.ofNat I.codeOwner, solcSourceWord I, joinMoveSelectorPlainWord,
         daiJoinVatTargetWord σ I, exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by
       simpa [daiJoinVatTargetWord, daiJoinAddressReturnWord, hmaskConst, u256_land_comm]
         using rd1359⟩
@@ -786,7 +786,7 @@ theorem daiJoinExitMulReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [daiJoinONEWord, ⟨1377⟩, UInt256.ofNat I.codeOwner, solcSourceWord I,
         joinMoveSelectorPlainWord, daiJoinVatTargetWord σ I, exitWadWord I,
         exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     exact ⟨_, _, by simpa using rd1372⟩
   obtain ⟨_, _, rd1372'⟩ := rd1372Norm
   have rd1376 := evm_run rd1372' with [
@@ -796,7 +796,7 @@ theorem daiJoinExitMulReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [exitWadWord I, daiJoinONEWord, ⟨1377⟩, UInt256.ofNat I.codeOwner,
         solcSourceWord I, joinMoveSelectorPlainWord, daiJoinVatTargetWord σ I,
         exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
     have hpc :
         ((⟨1372⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 3) =
           (⟨1376⟩ : UInt256) := by
@@ -805,7 +805,7 @@ theorem daiJoinExitMulReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         [⟨1678⟩, exitWadWord I, daiJoinONEWord, ⟨1377⟩, UInt256.ofNat I.codeOwner,
           solcSourceWord I, joinMoveSelectorPlainWord, daiJoinVatTargetWord σ I,
           exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
       exact ⟨_, _, by simpa [hpc] using rd1376⟩
     obtain ⟨_, _, rd1376'⟩ := rd1376Norm
     exact ⟨_, _, RD.jump (a := ⟨1678⟩) rd1376'
@@ -818,19 +818,19 @@ theorem daiJoinExitMulReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       daiJoinVatTargetWord σ I, exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel])
     rd1678 hwad hguard daiJoinMulRoutine_revert_shape (by simp)
 
-theorem daiJoinExitToVatMoveExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
+theorem daiJoinExitToVatMoveExtcodesizeGuard {σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel rad : UInt256}
     (h : RD daiJoinBytecode I g s0 ⟨1377⟩
       [rad, UInt256.ofNat I.codeOwner, solcSourceWord I, joinMoveSelectorPlainWord,
         daiJoinVatTargetWord σ I, exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiJoinBytecode I g s0 ⟨1451⟩
       (daiJoinVatTargetWord σ I :: daiJoinVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ ::
         ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: joinMoveSelectorPlainWord ::
         daiJoinVatTargetWord σ I :: exitWadWord I :: exitUsrMaskedWord I ::
         ⟨232⟩ :: sel :: [])
       (exitMoveCalldataMem I rad solcFreePtrMem) (UInt256.ofNat 8)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   have hmaskConst :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
@@ -970,11 +970,11 @@ theorem daiJoinExitToVatMoveExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
       using rd1451⟩
 
 theorem daiJoinExitVatMoveNoCode
-    {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel rad : UInt256}
+    {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel rad : UInt256}
     (rd1377 : RD daiJoinBytecode I g s0 ⟨1377⟩
       [rad, UInt256.ofNat I.codeOwner, solcSourceWord I, joinMoveSelectorPlainWord,
         daiJoinVatTargetWord σ I, exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (daiJoinVatTargetWord σ I) = ⟨0⟩) :
     RDrev daiJoinBytecode g s0 := by
@@ -986,11 +986,11 @@ theorem daiJoinExitVatMoveNoCode
     (by native_decide) (by simp)
 
 theorem daiJoinExitVatMoveCallReady
-    {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel rad : UInt256}
+    {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel rad : UInt256}
     (rd1377 : RD daiJoinBytecode I g s0 ⟨1377⟩
       [rad, UInt256.ofNat I.codeOwner, solcSourceWord I, joinMoveSelectorPlainWord,
         daiJoinVatTargetWord σ I, exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (daiJoinVatTargetWord σ I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD daiJoinBytecode I g s0 ⟨1466⟩
@@ -999,7 +999,7 @@ theorem daiJoinExitVatMoveCallReady
         daiJoinVatTargetWord σ I :: exitWadWord I :: exitUsrMaskedWord I ::
         ⟨232⟩ :: sel :: [])
       (exitMoveCalldataMem I rad solcFreePtrMem) (UInt256.ofNat 8)
-      ByteArray.empty (cA, σ) k' C' := by
+      ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd1451⟩ := daiJoinExitToVatMoveExtcodesizeGuard rd1377
   obtain ⟨gasWord, k', C', rd1466⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1451⟩) (okPc := ⟨1463⟩) rd1451
@@ -1010,38 +1010,38 @@ theorem daiJoinExitVatMoveCallReady
   exact ⟨gasWord, k', C', by simpa using rd1466⟩
 
 theorem daiJoinExitVatMovePostCall
-    {cA cA' σ σ₀ σ' I} {g sel rad gasWord : UInt256}
+    {σ σ₀ σ' A I} {g sel rad gasWord : UInt256}
     {rdata : ByteArray} {k C : ℕ}
     (rd1466 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1466⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1466⟩
       (gasWord :: daiJoinVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: joinMoveSelectorPlainWord ::
         daiJoinVatTargetWord σ I :: exitWadWord I :: exitUsrMaskedWord I ::
         ⟨232⟩ :: sel :: [])
       (exitMoveCalldataMem I rad solcFreePtrMem) (UInt256.ofNat 8)
-      rdata (cA', σ') k C)
+      rdata σ' k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+    ∃ (σ'' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA'', σ'', g'', A', z, out) = Ethereum.EVM.Θ I.blobVersionedHashes cA' gh bl σ' σ₀ Ain
+        (σ'', g'', A', z, out) = Ethereum.EVM.Θ σ' σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I))
           (toExecute σ' (AccountAddress.ofUInt256 (daiJoinVatTargetWord σ I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((exitMoveCalldataMem I rad solcFreePtrMem).readWithPadding 128 100)
-          (I.depth + 1) I.header I.perm)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ RD daiJoinBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: joinMoveSelectorPlainWord ::
             daiJoinVatTargetWord σ I :: exitWadWord I :: exitUsrMaskedWord I ::
             ⟨232⟩ :: sel :: [])
           (exitMoveCalldataMem I rad solcFreePtrMem) (UInt256.ofNat 8)
-          out (cA'', σ'') k' C'
+          out σ'' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA'', σ'', z, out, Ain, callGas, k', C', hΘ, rd1467raw, hout⟩ :=
+  obtain ⟨σ'', z, out, Ain, callGas, k', C', hΘ, rd1467raw, hout⟩ :=
     RD.call rd1466 (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA'', σ'', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ'', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 8).toNat
@@ -1055,23 +1055,23 @@ theorem daiJoinExitVatMovePostCall
     simpa [byteArray_write_len_zero, hmin, haw] using rd1467raw
 
 theorem daiJoinExitVatMoveCallDepthLimit
-    {cA cA' σ σ₀ σ' I} {g sel rad gasWord : UInt256}
+    {σ σ₀ σ' A I} {g sel rad gasWord : UInt256}
     {rdata : ByteArray} {k C : ℕ}
     (rd1466 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1466⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1466⟩
       (gasWord :: daiJoinVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: joinMoveSelectorPlainWord ::
         daiJoinVatTargetWord σ I :: exitWadWord I :: exitUsrMaskedWord I ::
         ⟨232⟩ :: sel :: [])
       (exitMoveCalldataMem I rad solcFreePtrMem) (UInt256.ofNat 8)
-      rdata (cA', σ') k C)
+      rdata σ' k C)
     (hdepth : I.depth = 1024) :
     ∃ k' C', RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩
       (⟨0⟩ :: ⟨228⟩ :: joinMoveSelectorPlainWord :: daiJoinVatTargetWord σ I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       (exitMoveCalldataMem I rad solcFreePtrMem) (UInt256.ofNat 8)
-      ByteArray.empty (cA', σ') k' C' := by
+      ByteArray.empty σ' k' C' := by
   obtain ⟨k', C', rd1467raw⟩ :=
     RD.callDepthLimit rd1466 (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1086,17 +1086,17 @@ theorem daiJoinExitVatMoveCallDepthLimit
     decide
   simpa [byteArray_write_len_zero, hmin, haw] using rd1467raw
 
-theorem daiJoinExitVatMoveCallFailed {cA σ σ₀ A I} {g sel : UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem daiJoinExitVatMoveCallFailed {σ σ₀ A I} {g sel : UInt256}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
     (rd1467 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩
       (⟨0⟩ :: ⟨228⟩ :: joinMoveSelectorPlainWord :: daiJoinVatTargetWord σ I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev daiJoinBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1467⟩) (okPc := ⟨1483⟩) rd1467
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1104,16 +1104,16 @@ theorem daiJoinExitVatMoveCallFailed {cA σ σ₀ A I} {g sel : UInt256}
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     hrdataSize (by simp)
 
-theorem daiJoinExitVatMoveCallSucceeded {cA σ σ₀ A I} {g sel : UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem daiJoinExitVatMoveCallSucceeded {σ σ₀ A I} {g sel : UInt256}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
     (rd1467 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩
       (⟨1⟩ :: ⟨228⟩ :: joinMoveSelectorPlainWord :: daiJoinVatTargetWord σ I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k C) :
     ∃ k' C', RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1485⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1485⟩
       (⟨228⟩ :: joinMoveSelectorPlainWord :: daiJoinVatTargetWord σ I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k' C' := by
@@ -1124,23 +1124,22 @@ theorem daiJoinExitVatMoveCallSucceeded {cA σ σ₀ A I} {g sel : UInt256}
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem daiJoinExitVatMoveToDaiMintExtcodesizeGuard
-    {cA σ σ₀ σ' A I} {g sel rad : UInt256}
-    {rdata : ByteArray} {cA' : Batteries.RBSet AccountAddress compare}
-    {k C : ℕ}
+    {σ σ₀ σ' A I} {g sel rad : UInt256}
+    {rdata : ByteArray}     {k C : ℕ}
     (rd1485 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1485⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1485⟩
       (⟨228⟩ :: joinMoveSelectorPlainWord :: daiJoinVatTargetWord σ I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       (exitMoveCalldataMem I rad solcFreePtrMem) (UInt256.ofNat 8)
-      rdata (cA', σ') k C) :
+      rdata σ' k C) :
     ∃ k' C', RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1560⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1560⟩
       (daiJoinDaiTargetWord σ' I :: daiJoinDaiTargetWord σ' I :: ⟨0⟩ ::
         ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨0⟩ :: ⟨196⟩ ::
         exitMintSelectorPlainWord :: daiJoinDaiTargetWord σ' I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       (exitMintCalldataMem I (exitMoveCalldataMem I rad solcFreePtrMem))
-      (UInt256.ofNat 8) rdata (cA', σ') k' C' := by
+      (UInt256.ofNat 8) rdata σ' k' C' := by
   have hmaskConst :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
@@ -1186,12 +1185,12 @@ theorem daiJoinExitVatMoveToDaiMintExtcodesizeGuard
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k1489, C1489, rd1489raw⟩ := rd1488p.sload (by native_decide) (by evm_ov)
   have rd1489 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1489⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1489⟩
       (daiJoinSlotWord ⟨2⟩ σ' I :: joinMoveSelectorPlainWord ::
         daiJoinVatTargetWord σ I :: exitWadWord I :: exitUsrMaskedWord I ::
         ⟨232⟩ :: sel :: [])
       (exitMoveCalldataMem I rad solcFreePtrMem) (UInt256.ofNat 8)
-      rdata (cA', σ') k1489 C1489 := by
+      rdata σ' k1489 C1489 := by
     simpa [daiJoinSlotWord, solcSlotWord] using rd1489raw
   have rd1560 := evm_run rd1489 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -1281,19 +1280,18 @@ theorem daiJoinExitVatMoveToDaiMintExtcodesizeGuard
       using rd1560⟩
 
 theorem daiJoinExitDaiMintNoCode
-    {cA σ σ₀ σ' A I} {g sel rad : UInt256}
-    {rdata : ByteArray} {cA' : Batteries.RBSet AccountAddress compare}
-    {k C : ℕ}
+    {σ σ₀ σ' A I} {g sel rad : UInt256}
+    {rdata : ByteArray}     {k C : ℕ}
     (rd1485 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1485⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1485⟩
       (⟨228⟩ :: joinMoveSelectorPlainWord :: daiJoinVatTargetWord σ I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       (exitMoveCalldataMem I rad solcFreePtrMem) (UInt256.ofNat 8)
-      rdata (cA', σ') k C)
+      rdata σ' k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) = ⟨0⟩) :
     RDrev daiJoinBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd1560⟩ := daiJoinExitVatMoveToDaiMintExtcodesizeGuard rd1485
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1560⟩) (okPc := ⟨1572⟩) rd1560
     hcodeSize
@@ -1302,25 +1300,24 @@ theorem daiJoinExitDaiMintNoCode
     (by native_decide) (by simp)
 
 theorem daiJoinExitDaiMintCallReady
-    {cA σ σ₀ σ' A I} {g sel rad : UInt256}
-    {rdata : ByteArray} {cA' : Batteries.RBSet AccountAddress compare}
-    {k C : ℕ}
+    {σ σ₀ σ' A I} {g sel rad : UInt256}
+    {rdata : ByteArray}     {k C : ℕ}
     (rd1485 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1485⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1485⟩
       (⟨228⟩ :: joinMoveSelectorPlainWord :: daiJoinVatTargetWord σ I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       (exitMoveCalldataMem I rad solcFreePtrMem) (UInt256.ofNat 8)
-      rdata (cA', σ') k C)
+      rdata σ' k C)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1575⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1575⟩
       (gasWord :: daiJoinDaiTargetWord σ' I :: ⟨0⟩ :: ⟨128⟩ :: ⟨68⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨196⟩ :: exitMintSelectorPlainWord ::
         daiJoinDaiTargetWord σ' I :: exitWadWord I :: exitUsrMaskedWord I ::
         ⟨232⟩ :: sel :: [])
       (exitMintCalldataMem I (exitMoveCalldataMem I rad solcFreePtrMem))
-      (UInt256.ofNat 8) rdata (cA', σ') k' C' := by
+      (UInt256.ofNat 8) rdata σ' k' C' := by
   obtain ⟨_, _, rd1560⟩ := daiJoinExitVatMoveToDaiMintExtcodesizeGuard rd1485
   obtain ⟨gasWord, k', C', rd1575⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1560⟩) (okPc := ⟨1572⟩) rd1560
@@ -1331,39 +1328,39 @@ theorem daiJoinExitDaiMintCallReady
   exact ⟨gasWord, k', C', by simpa using rd1575⟩
 
 theorem daiJoinExitDaiMintPostCall
-    {cA cA' σ σ₀ σ' A I} {g sel rad gasWord : UInt256}
+    {σ σ₀ σ' A I} {g sel rad gasWord : UInt256}
     {rdata : ByteArray} {k C : ℕ}
     (rd1575 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1575⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1575⟩
       (gasWord :: daiJoinDaiTargetWord σ' I :: ⟨0⟩ :: ⟨128⟩ :: ⟨68⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨196⟩ :: exitMintSelectorPlainWord ::
         daiJoinDaiTargetWord σ' I :: exitWadWord I :: exitUsrMaskedWord I ::
         ⟨232⟩ :: sel :: [])
       (exitMintCalldataMem I (exitMoveCalldataMem I rad solcFreePtrMem))
-      (UInt256.ofNat 8) rdata (cA', σ') k C)
+      (UInt256.ofNat 8) rdata σ' k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+    ∃ (σ'' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA'', σ'', g'', A', z, out) = Ethereum.EVM.Θ I.blobVersionedHashes cA' gh bl σ' σ₀ Ain
+        (σ'', g'', A', z, out) = Ethereum.EVM.Θ σ' σ₀ Ain
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I))
           (toExecute σ' (AccountAddress.ofUInt256 (daiJoinDaiTargetWord σ' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((exitMintCalldataMem I (exitMoveCalldataMem I rad solcFreePtrMem)).readWithPadding
             128 68)
-          (I.depth + 1) I.header I.perm)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ RD daiJoinBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1576⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1576⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: exitMintSelectorPlainWord ::
             daiJoinDaiTargetWord σ' I :: exitWadWord I :: exitUsrMaskedWord I ::
             ⟨232⟩ :: sel :: [])
           (exitMintCalldataMem I (exitMoveCalldataMem I rad solcFreePtrMem))
-          (UInt256.ofNat 8) out (cA'', σ'') k' C'
+          (UInt256.ofNat 8) out σ'' k' C'
       ∧ out.size < UInt256.size := by
-  obtain ⟨cA'', σ'', z, out, Ain, callGas, k', C', hΘ, rd1576raw, hout⟩ :=
+  obtain ⟨σ'', z, out, Ain, callGas, k', C', hΘ, rd1576raw, hout⟩ :=
     RD.call rd1575 (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA'', σ'', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ'', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 8).toNat
@@ -1377,17 +1374,17 @@ theorem daiJoinExitDaiMintPostCall
     simpa [byteArray_write_len_zero, hmin, haw] using rd1576raw
 
 theorem daiJoinExitDaiMintCallFailed
-    {cA σ σ₀ σd A I} {g sel : UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ σd A I} {g sel : UInt256}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
     (rd1576 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1576⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1576⟩
       (⟨0⟩ :: ⟨196⟩ :: exitMintSelectorPlainWord :: daiJoinDaiTargetWord σd I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev daiJoinBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1576⟩) (okPc := ⟨1592⟩) rd1576
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1396,16 +1393,16 @@ theorem daiJoinExitDaiMintCallFailed
     hrdataSize (by simp)
 
 theorem daiJoinExitDaiMintCallSucceeded
-    {cA σ σ₀ σd A I} {g sel : UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ σd A I} {g sel : UInt256}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
     (rd1576 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1576⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1576⟩
       (⟨1⟩ :: ⟨196⟩ :: exitMintSelectorPlainWord :: daiJoinDaiTargetWord σd I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k C) :
     ∃ k' C', RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1594⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1594⟩
       (⟨196⟩ :: exitMintSelectorPlainWord :: daiJoinDaiTargetWord σd I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k' C' := by
@@ -1416,19 +1413,19 @@ theorem daiJoinExitDaiMintCallSucceeded
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem daiJoinExitDaiMintSuccessTail
-    {cA σ σ₀ σd A I} {g sel : UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ σd A I} {g sel : UInt256}
+    {mem rdata : ByteArray} {acc : AccountMap}
     {k C : ℕ}
     (hperm : I.perm = true)
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (rd1594 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1594⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1594⟩
       (⟨196⟩ :: exitMintSelectorPlainWord :: daiJoinDaiTargetWord σd I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k C) :
     RDret daiJoinBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty := by
   have hmaskConst :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
@@ -1485,7 +1482,7 @@ theorem daiJoinExitDaiMintSuccessTail
         ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨1616⟩ : UInt256) := by
     native_decide
   have rd1616Norm : ∃ k' C', RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1616⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1616⟩
       (⟨128⟩ :: ⟨128⟩ :: exitMintSelectorPlainWord :: exitUsrMaskedWord I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       (exitExitEventMem I mem) (UInt256.ofNat 8) rdata acc k' C' := by
@@ -1510,7 +1507,7 @@ theorem daiJoinExitDaiMintSuccessTail
         ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩) = (⟨1659⟩ : UInt256) := by
     native_decide
   have rd1659Norm : ∃ k' C', RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1659⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1659⟩
       (⟨128⟩ :: ⟨32⟩ :: exitEventSignatureWord :: exitUsrMaskedWord I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       (exitExitEventMem I mem) (UInt256.ofNat 8) rdata acc k' C' := by
@@ -1554,14 +1551,14 @@ theorem daiJoinDecode_exit_none_short {I : ExecutionEnv}
     decodeCalldata_legacyAddress_uint256_none_short (cd := I.calldata)
       (x := "usr") (y := "wad") hsz4 hshort
 
-theorem daiJoinReachExitBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiJoinReachExitBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiJoinSelBytes 3)) :
     ∃ k C, RD daiJoinBytecode I g
-        (initState cA gh bl σ σ₀ g A I)
+        (initState σ σ₀ g A I)
         ⟨382⟩ [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : daiJoinSelWord I = ⟨0xef693bed⟩ :=
     daiJoinSelWord_eq_of_beq I hsz 0xef 0x69 0x3b 0xed ⟨0xef693bed⟩
       (by native_decide) (by simpa [daiJoinSelBytes] using hsel)
@@ -1586,15 +1583,15 @@ theorem daiJoinReachExitBody {cA gh bl σ σ₀ A I} {g : Sat256}
   exact daiJoinReachHighBody 3 (by omega) ⟨382⟩ hcode hwv hsz hsize hroot heq0 htake
     (by jump_dest) (by native_decide)
 
-theorem daiJoinExitX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiJoinExitX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD daiJoinBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨382⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ g A I) ⟨382⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD daiJoinBytecode I g
-        (initState cA gh bl σ σ₀ g A I) ⟨1262⟩
+        (initState σ σ₀ g A I) ⟨1262⟩
         [exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := daiJoinBytecode) (sel := sel)
     (entry := ⟨382⟩) (ret := ⟨232⟩) (decoded := ⟨404⟩) hreach
@@ -1612,13 +1609,13 @@ theorem daiJoinExitX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [exitWadWord, exitUsrMaskedWord, exitUsrWord, calldataWord] using hroutine⟩
 
-theorem daiJoinExitX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiJoinExitX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 68)
     (hreach : ∃ k C, RD daiJoinBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨382⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev daiJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨382⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev daiJoinBytecode g (initState σ σ₀ g A I) := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one

@@ -6,13 +6,13 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-theorem bidMinimumPrefix {I g s0 s noun ptr ret R mem aw rdata cA σ k C}
+theorem bidMinimumPrefix {I g s0 s noun ptr ret R mem aw rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨1511⟩ (ptr :: noun :: ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hm : SnapshotMemory s mem aw ptr) (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨5650⟩
       (s.amount :: bidPercentage σ I :: ⟨1537⟩ :: ⟨100⟩ :: ptr :: noun :: ret :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   have rd1514 := evm_run h with [jumpdest, push1 ⟨205⟩]
   obtain ⟨_, _, rd1515⟩ := rd1514.sload (by native_decide) (by evm_ov)
   have rd1520 := evm_run rd1515 with [push1 ⟨32⟩, dup3, add,
@@ -23,16 +23,16 @@ theorem bidMinimumPrefix {I g s0 s noun ptr ret R mem aw rdata cA σ k C}
   exact ⟨_, _, evm_run rd1520 with [push1 ⟨100⟩, swap2, push2 ⟨1537⟩, swap2,
     push1 ⟨255⟩, swap1, swap2, and, swap1, push2 ⟨5650⟩, jump (by jump_dest)]⟩
 
-theorem bidMinimumCheck {I g s0 s noun ptr ret R mem aw rdata cA σ k C evm locals}
+theorem bidMinimumCheck {I g s0 s noun ptr ret R mem aw rdata σ k C evm locals}
     (h : RD auctionBytecode I g s0 ⟨1511⟩ (ptr :: noun :: ret :: R)
-      mem aw rdata (cA, σ) k C)
-    (hs : SourceState s0 I cA σ evm) (hm : SnapshotMemory s mem aw ptr)
+      mem aw rdata σ k C)
+    (hs : SourceState s0 I σ evm) (hm : SnapshotMemory s mem aw ptr)
     (hv : BidValues locals s noun) (hov : R.length + 13 ≤ 1024) :
     (∃ k' C',
       ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
         (.require bidMinimumGuard) (.ok { contract := auctionContract, locals := locals } evm) ∧
       RD auctionBytecode I g s0 ⟨1681⟩ (ptr :: noun :: ret :: R)
-        mem aw rdata (cA, σ) k' C') ∨
+        mem aw rdata σ k' C') ∨
     (ExecStmt auctionConfig { contract := auctionContract, locals := locals } evm
       (.require bidMinimumGuard) .reverted ∧ RDrev auctionBytecode g s0) := by
   obtain ⟨_, _, rd5650⟩ := bidMinimumPrefix h hm (by omega)
@@ -46,7 +46,7 @@ theorem bidMinimumCheck {I g s0 s noun ptr ret R mem aw rdata cA σ k C evm loca
       push2 ⟨5673⟩, jump (by jump_dest)]
     obtain ⟨_, _, rd1547⟩ := checkedDivOk rd5673 (by decide) (by jump_dest) (by evm_ov)
     change RD _ _ _ _ ⟨1547⟩ (bidIncrement s.amount (bidPercentage σ I) :: ptr :: noun :: ret :: R)
-      mem aw rdata (cA, σ) _ _ at rd1547
+      mem aw rdata σ _ _ at rd1547
     have rd1553 := evm_run rd1547 with [jumpdest, dup2, push1 ⟨32⟩, add,
       raw mloadSymbolic (by native_decide) (by evm_ov)]
     have hl : loadedWord mem (ptr + ⟨32⟩) = s.amount := hm.load ⟨1, by decide⟩

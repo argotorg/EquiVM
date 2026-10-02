@@ -316,7 +316,7 @@ theorem execDaiJoinMulFunctionRevert (evm : EVM.State) {x y : UInt256}
 
 theorem daiJoinMulRoutine_success {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {x y ret : UInt256} {R : List UInt256}
     (h : RD code ee g s0 ⟨1678⟩ (y :: x :: ret :: R) mem aw rdata acc k C)
     (hguard : y = ⟨0⟩ ∨ UInt256.div (UInt256.mul x y) y = x)
@@ -432,7 +432,7 @@ theorem daiJoinMulRoutine_success {code : ByteArray} {ee : ExecutionEnv} {g : Sa
 
 theorem daiJoinMulRoutine_revert {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     {x y ret : UInt256} {R : List UInt256}
     (h : RD code ee g s0 ⟨1678⟩ (y :: x :: ret :: R) mem aw rdata acc k C)
     (hy : y ≠ ⟨0⟩)

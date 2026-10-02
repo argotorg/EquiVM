@@ -99,7 +99,7 @@ theorem spotUint256GetterBodyReturns (evm : EVM.State) (locals : Store)
       exact congrArg EvalResult.ok (spotStorageLocLoad_uint256 evm slot))
 
 theorem spotAddressGetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry returnPc routine slot : UInt256}
     (hcode : I.code = spotBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -107,9 +107,8 @@ theorem spotAddressGetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD spotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf spotBytecode entry returnPc routine)
     (hgetter : solcAddressSlotGetterWf spotBytecode routine slot)
     (hroutine : (D_J spotBytecode 0).contains routine = true)
@@ -118,39 +117,32 @@ theorem spotAddressGetterBodyCore
     (hreturn : transition.returnType = [addr])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [(.address (AccountAddress.ofNat
-            (spotAddressReturnWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : spotSlotWord slot σ_evm I = spotSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.address (AccountAddress.ofNat (spotAddressReturnWord slot σ_solm I).toNat)] =
-        some [Value.address (AccountAddress.ofNat (spotAddressReturnWord slot σ_evm I).toNat)] := by
-    have hslot : spotSlotWord slot σ_solm I = spotSlotWord slot σ_evm I := hword.symm
-    simp [spotAddressReturnWord, hslot]
+            (spotAddressReturnWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (spotAddressReturnWord slot σ_evm I))
-        (some [(.address (AccountAddress.ofNat (spotAddressReturnWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (spotAddressReturnWord slot σ I))
+        (some [(.address (AccountAddress.ofNat (spotAddressReturnWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     simpa [spotAddressReturnWord] using
       (returnEquiv_of_encode
-        (solcAddressReturnEncoding (addrTy := addr) rfl (spotSlotWord slot σ_evm I)))
+        (solcAddressReturnEncoding (addrTy := addr) rfl (spotSlotWord slot σ I)))
   have hret := RD.solcAddressGetterExternal (code := spotBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret spotBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (spotAddressReturnWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (spotAddressReturnWord slot σ I)) := by
     simpa [spotAddressReturnWord, spotSlotWord] using hret
-  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody rfl henc
 
 theorem spotUint256GetterBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry returnPc routine slot : UInt256}
     (hcode : I.code = spotBytecode)
     (hdispatch : dispatchMsg contract I.calldata = some transition)
@@ -158,9 +150,8 @@ theorem spotUint256GetterBodyCore
       decodeCalldataWithMode config.abiDecodeMode (transition.params.map Param.name)
         (transitionSignature transition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD spotBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) entry [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hentry : solcGetterEntryWf spotBytecode entry returnPc routine)
     (hgetter : solcWordSlotGetterWf spotBytecode routine slot)
     (hroutine : (D_J spotBytecode 0).contains routine = true)
@@ -169,33 +160,27 @@ theorem spotUint256GetterBodyCore
     (hreturn : transition.returnType = [uint256])
     (hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ transition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (spotSlotWord slot σ_solm I).toNat))]))) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hword : spotSlotWord slot σ_evm I = spotSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (spotSlotWord slot σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (spotSlotWord slot σ_evm I).toNat)] := by
-    rw [hword]
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (spotSlotWord slot σ I).toNat))]))) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc :
-      returnEquiv (UInt256.toByteArray (spotSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (spotSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (spotSlotWord slot σ I))
+        (some [(.int (Int.ofNat (spotSlotWord slot σ I).toNat))])
         transition.returnType := by
     rw [hreturn]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (spotSlotWord slot σ_evm I))
+      (by simpa [uint256] using uint256ReturnEncoding (spotSlotWord slot σ I))
   have hret := RD.solcWordGetterExternal (code := spotBytecode) (g := Sat256.ofUInt256 g)
     (returnPc := returnPc) (entry := entry) (routine := routine) (slot := slot)
     hreach hentry hgetter hroutine hreturnJd hretmem
   have hret' :
       RDret spotBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (spotSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (spotSlotWord slot σ I)) := by
     simpa [spotSlotWord] using hret
-  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret'.reEquivExecutionTransport hcode hdispatch hdecode hbody rfl henc
 
 -- GENERALIZES Benchmarks.Dss.Jug.solcZeroSlotMappingGetterWf — move to Reasoning by
 -- parameterizing over the bytecode and mapping base slot.
@@ -234,15 +219,15 @@ theorem spotUint256GetterBodyCore
 -- `solcZeroSlotMappingGetterWf`.
 theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD code ee g s0 pc (key :: ret :: R)
-        solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hwf : solcZeroSlotMappingGetterWf code pc)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (solcSlotWord σ ee (solcMappingSlot ⟨0⟩ key) :: ret :: R)
-      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
+      (solcMappingHashMem ⟨0⟩ key) (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd7, hd8, hd9, hd10, hd11, hd13, hd14, hd15,
       hd16, hd17⟩

@@ -16,13 +16,13 @@ theorem assignOwner (evm : EVM.State) (locals : Store) (value : UInt256)
   exact scalarWrite evm _ locals "_owner" (.elem .address) (auctionAddrLoc ⟨151⟩) _
     hbase (by native_decide) rfl (by trivial) (storageLocStore_address_offset0 evm ⟨151⟩ value hc)
 
-theorem transferOwnerRoutine {I g s0 value ret R rdata cA σ k C}
+theorem transferOwnerRoutine {I g s0 value ret R rdata σ k C}
     (h : RD auctionBytecode I g s0 ⟨3574⟩ (value :: ret :: R)
-      solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+      solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 12 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret R solcFreePtrMem (UInt256.ofNat 3)
-      rdata (cA, sstoreAccountMap I.codeOwner σ ⟨151⟩
+      rdata (sstoreAccountMap I.codeOwner σ ⟨151⟩
         (setAddressOffset0Word (storedWord σ I ⟨151⟩) value)) k' C' := by
   have rd3578 := evm_run h with [jumpdest, push1 ⟨151⟩, dup1]
   obtain ⟨_, _, rd3579⟩ := rd3578.sload (by native_decide) (by evm_ov)
@@ -45,7 +45,7 @@ theorem transferOwnerRoutine {I g s0 value ret R rdata cA σ k C}
       (by decide) (by evm_ov),
     pop, pop, jump hret ]
   change RD _ _ _ _ _ _ _ _ _
-    (cA, sstoreAccountMap I.codeOwner σ ⟨151⟩
+    (sstoreAccountMap I.codeOwner σ ⟨151⟩
       (UInt256.lor (UInt256.land solcAddrMask value)
         (UInt256.land (storedWord σ I ⟨151⟩) (UInt256.lnot solcAddrMask)))) _ _ at rdRet
   rw [u256_land_comm solcAddrMask value, u256_lor_comm (UInt256.land value solcAddrMask)]

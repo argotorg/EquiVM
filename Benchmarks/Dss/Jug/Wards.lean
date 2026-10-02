@@ -37,13 +37,13 @@ theorem jugDecode_wards_none_short {I : ExecutionEnv}
   simpa [config, wardsTransition] using
     (decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort)
 
-theorem jugReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem jugReachWardsBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (jugSelBytes 11)) :
-    ∃ k C, RD jugBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD jugBytecode I g (initState σ σ₀ g A I)
         ⟨467⟩ [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : jugSelWord I = ⟨0xbf353dbb⟩ :=
     jugSelWord_eq_of_beq I hsz 0xbf 0x35 0x3d 0xbb ⟨0xbf353dbb⟩
       (by native_decide) (by simpa [jugSelBytes] using hsel)
@@ -64,7 +64,7 @@ theorem jugReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by jump_dest) (by native_decide)
 
 theorem jugWardsBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hdispatch : dispatchMsg contract I.calldata = some wardsTransition)
@@ -73,10 +73,9 @@ theorem jugWardsBodyCoreOk
         (transitionSignature wardsTransition).paramTypes I.calldata =
           some ((∅ : Store).insert "arg0" (.address (wardsMappingArg I))))
     (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨467⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨467⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let key := wardsMappingKey I
   let slot := solcMappingSlot ⟨0⟩ key
   let locals : Store := (∅ : Store).insert "arg0" (.address (wardsMappingArg I))
@@ -84,14 +83,14 @@ theorem jugWardsBodyCoreOk
     simp [slot, key, wardsMappingSlotFor_eq]
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals wardsTransition.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals wardsTransition.body
         (.returned { contract := contract, locals := locals }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [(.int (Int.ofNat (jugSlotWord (wardsMappingSlotFor I) σ_solm I).toNat))])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [(.int (Int.ofNat (jugSlotWord (wardsMappingSlotFor I) σ I).toNat))])) := by
     simpa [wardsTransition, wardsMappingSlotFor, jugSlotWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, locals, key] using
       jugUint256GetterBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) locals
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) locals
         (ref := wardsRef (.var "arg0")) (er := wardsMappingEvaledRef I)
         (slot := wardsMappingSlotFor I)
         (by simp only [initState]; exact hwv) (by simp [locals, wardsRef])
@@ -123,12 +122,12 @@ theorem jugWardsBodyCoreOk
     (by jump_dest) (by simp)
   have hret :
       RDret jugBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
-        (UInt256.toByteArray (jugSlotWord slot σ_evm I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
+        (UInt256.toByteArray (jugSlotWord slot σ I)) := by
     have hret' := RD.solcReturnWordFromMem
-      (pc := ⟨357⟩) (val := jugSlotWord slot σ_evm I) (ret := ⟨357⟩) (R := [sel])
+      (pc := ⟨357⟩) (val := jugSlotWord slot σ I) (ret := ⟨357⟩) (R := [sel])
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨0⟩ key)
-        (jugSlotWord slot σ_evm I))
+        (jugSlotWord slot σ I))
       (by simpa [slot, jugSlotWord] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
@@ -136,37 +135,35 @@ theorem jugWardsBodyCoreOk
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨0⟩ key)
       (by rfl)
       (by
-        exact solcScratchReturnMem_mload64 (jugSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_mload64 (jugSlotWord slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key) (solcMappingHashMem_read64 ⟨0⟩ key))
       (by
-        exact solcScratchReturnMem_read128 (jugSlotWord slot σ_evm I)
+        exact solcScratchReturnMem_read128 (jugSlotWord slot σ I)
           (solcMappingHashMem_size ⟨0⟩ key))
       (by simp)
     simpa [slot, jugSlotWord] using hret'
-  have hword : jugSlotWord slot σ_evm I = jugSlotWord slot σ_solm I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
   have hval :
-      some [Value.int (Int.ofNat (jugSlotWord (wardsMappingSlotFor I) σ_solm I).toNat)] =
-        some [Value.int (Int.ofNat (jugSlotWord slot σ_evm I).toNat)] := by
-    rw [hslot, hword]
+      some [Value.int (Int.ofNat (jugSlotWord (wardsMappingSlotFor I) σ I).toNat)] =
+        some [Value.int (Int.ofNat (jugSlotWord slot σ I).toNat)] := by
+    rw [hslot]
   have henc :
-      returnEquiv (UInt256.toByteArray (jugSlotWord slot σ_evm I))
-        (some [(.int (Int.ofNat (jugSlotWord slot σ_evm I).toNat))])
+      returnEquiv (UInt256.toByteArray (jugSlotWord slot σ I))
+        (some [(.int (Int.ofNat (jugSlotWord slot σ I).toNat))])
         wardsTransition.returnType := by
     rw [show wardsTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
-      (by simpa [uint256] using uint256ReturnEncoding (jugSlotWord slot σ_evm I))
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+      (by simpa [uint256] using uint256ReturnEncoding (jugSlotWord slot σ I))
+  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval henc
 
 theorem jugWardsBodyCoreDecodeFailed_short
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = jugBytecode) (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36)
     (hdispatch : dispatchMsg contract I.calldata = some wardsTransition)
     (hreach : ∃ k C, RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨467⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨467⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hlt :
       UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
@@ -183,24 +180,23 @@ theorem jugWardsBodyCoreDecodeFailed_short
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (jugDecode_wards_none_short hsz4 hshort)
 
-theorem jugWardsBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem jugWardsBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = jugBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (jugSelBytes 11))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (jugSelBytes 11)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (jugSelBytes 11) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some wardsTransition :=
     jugDispatchWards hsel
-  have hreach := jugReachWardsBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
+  have hreach := jugReachWardsBody (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact jugWardsBodyCoreOk hcode hwv hsz36 hsize hdispatch
-      (jugDecode_wards_ok hsz36) hreach hAccounts
+      (jugDecode_wards_ok hsz36) hreach
   · exact jugWardsBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 
 end Benchmarks.Dss.Jug

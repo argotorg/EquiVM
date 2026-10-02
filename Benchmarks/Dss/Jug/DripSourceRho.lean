@@ -4,14 +4,14 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Jug
 
-theorem jugDripSourceBodyRhoReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem jugDripSourceBodyRhoReverts {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hlt :
       (UInt256.ofNat I.header.timestamp).toNat <
         (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat) :
     let locals := dripLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   have htimeGuard :
@@ -29,13 +29,13 @@ theorem jugDripSourceBodyRhoReverts {cA gh bl σ σ₀ A I} {g : UInt256}
     exact ExecBlock.consRevert (ExecStmt.requireFalse htimeGuard)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem jugReachDripBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem jugReachDripBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (jugSelBytes 2)) :
-    ∃ k C, RD jugBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD jugBytecode I g (initState σ σ₀ g A I)
         ⟨328⟩ [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : jugSelWord I = ⟨0x44e2a5a8⟩ :=
     jugSelWord_eq_of_beq I hsz 0x44 0xe2 0xa5 0xa8 ⟨0x44e2a5a8⟩
       (by native_decide) (by simpa [jugSelBytes] using hsel)
@@ -58,7 +58,7 @@ theorem jugReachDripBody {cA gh bl σ σ₀ A I} {g : Sat256}
 theorem RD.jugDripDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
     {mem rdata : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 ⟨350⟩ (de :: ⟨4⟩ :: ret :: sel :: R) mem aw rdata acc k C)
     (hwf : code = jugBytecode)
     (hroutine : (D_J code 0).contains ⟨1235⟩ = true)
@@ -75,14 +75,14 @@ theorem RD.jugDripDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
       using rd356.jump (by native_decide) hroutine (by evm_ov)⟩
 
-theorem jugDripX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem jugDripX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD jugBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨328⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD jugBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1235⟩
+      (initState σ σ₀ g A I) ⟨328⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD jugBytecode I g (initState σ σ₀ g A I) ⟨1235⟩
         [fileDutyIlkWord I, ⟨357⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := jugBytecode) (sel := sel) (entry := ⟨328⟩) (ret := ⟨357⟩)
     (decoded := ⟨350⟩) (need := ⟨32⟩) hreach
@@ -97,15 +97,15 @@ theorem jugDripX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     hdecoded rfl (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [fileDutyIlkWord] using hroutine⟩
 
-theorem jugDripX_loadRho {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem jugDripX_loadRho {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size)
     (h : RD jugBytecode I g s0 ⟨1235⟩
       [fileDutyIlkWord I, ⟨357⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD jugBytecode I g s0 ⟨1254⟩
       (jugSlotWord (fileDutyRhoSlotFor I) σ I :: ⟨0⟩ :: fileDutyIlkWord I ::
         ⟨357⟩ :: [sel])
-      (dripIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (dripIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((dripIlkHashMem I).readWithPadding 0 64))) =
@@ -136,14 +136,14 @@ theorem jugDripX_loadRho {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨k1254, C1254, by
     simpa [jugSlotWord, fileDutyRhoSlotFor_eq hsz36] using rd1254raw⟩
 
-theorem jugDripX_invalidNow {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem jugDripX_invalidNow {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size)
     (hlt :
       (UInt256.ofNat I.header.timestamp).toNat <
         (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat)
     (h : RD jugBytecode I g s0 ⟨1235⟩
       [fileDutyIlkWord I, ⟨357⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev jugBytecode g s0 := by
   obtain ⟨_, _, rd1254⟩ := jugDripX_loadRho (I := I) hsz36 h
   have rd1255 := RD.timestamp rd1254 (by native_decide) (by evm_ov)
@@ -176,17 +176,17 @@ theorem jugDripX_invalidNow {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (dripIlkHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem jugDripX_nowOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem jugDripX_nowOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hsz36 : 36 ≤ I.calldata.size)
     (hle :
       (jugSlotWord (fileDutyRhoSlotFor I) σ I).toNat ≤
         (UInt256.ofNat I.header.timestamp).toNat)
     (h : RD jugBytecode I g s0 ⟨1235⟩
       [fileDutyIlkWord I, ⟨357⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD jugBytecode I g s0 ⟨1323⟩
       [⟨0⟩, fileDutyIlkWord I, ⟨357⟩, sel]
-      (dripIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (dripIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd1254⟩ := jugDripX_loadRho (I := I) hsz36 h
   have rd1255 := RD.timestamp rd1254 (by native_decide) (by evm_ov)
   have rd1256 := rd1255.lt (by native_decide) (by evm_ov)
@@ -202,7 +202,7 @@ theorem jugDripX_nowOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   exact ⟨_, _, rd1260.jumpiT (by native_decide) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
-theorem jugDripSourceBodyVatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem jugDripSourceBodyVatIlksNoCode {σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hle :
@@ -210,10 +210,10 @@ theorem jugDripSourceBodyVatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
         (UInt256.ofNat I.header.timestamp).toNat)
     (hvatNoCode :
       (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0) :
     let locals := dripLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   have htimeGuard :
@@ -248,7 +248,7 @@ theorem jugDripSourceBodyVatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     exact ExecBlock.consRevert (ExecStmt.requireFalse hvatGuard)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem jugDripSourceBodyVatIlksCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem jugDripSourceBodyVatIlksCallFailed {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -258,14 +258,14 @@ theorem jugDripSourceBodyVatIlksCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
     (hvatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (false, evmVat, out) true) :
     let locals := dripLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   have htimeGuard :
@@ -308,7 +308,7 @@ theorem jugDripSourceBodyVatIlksCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
         (by simpa [evm0] using hcall))
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem jugDripSourceBodyVatIlksReturnDecodeReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem jugDripSourceBodyVatIlksReturnDecodeReverts {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -318,15 +318,15 @@ theorem jugDripSourceBodyVatIlksReturnDecodeReverts {cA gh bl σ σ₀ A I} {g :
     (hvatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec : config.externalABI.decode? "ilks" out = none) :
     let locals := dripLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   have htimeGuard :
@@ -369,7 +369,7 @@ theorem jugDripSourceBodyVatIlksReturnDecodeReverts {cA gh bl σ σ₀ A I} {g :
         (by simp [evalExpr?, pure]) hargs (by simpa [evm0] using hcall) hdec)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem jugDripSourceBodyVatIlksAddOverflowReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem jugDripSourceBodyVatIlksAddOverflowReverts {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -379,10 +379,10 @@ theorem jugDripSourceBodyVatIlksAddOverflowReverts {cA gh bl σ σ₀ A I} {g : 
     (hvatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec :
@@ -393,7 +393,7 @@ theorem jugDripSourceBodyVatIlksAddOverflowReverts {cA gh bl σ σ₀ A I} {g : 
       UInt256.size ≤ (jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv).toNat +
         (jugSlotWord (fileDutyDutySlotFor I) evmVat.accountMap evmVat.executionEnv).toNat) :
     let locals := dripLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   let base := jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv
@@ -487,7 +487,7 @@ theorem jugDripSourceBodyVatIlksAddOverflowReverts {cA gh bl σ σ₀ A I} {g : 
       simpa [locals, dripVatIlksLocals, dripVatIlksPrevLocals, collapseReturns] using haddRevert)
   simpa [ExecTransitionBody, locals, evm0] using ExecFuncBody.execBlockRevert hblock
 
-theorem jugDripSourceBodyVatIlksRmulOverflowReverts {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem jugDripSourceBodyVatIlksRmulOverflowReverts {σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hwv : I.weiValue = ⟨0⟩)
     (hsz36 : 36 ≤ I.calldata.size)
@@ -497,10 +497,10 @@ theorem jugDripSourceBodyVatIlksRmulOverflowReverts {cA gh bl σ σ₀ A I} {g :
     (hvatCode :
       0 <
         (UInt256.ofNat
-          (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+          (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
             (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat)
     (hcall :
-      let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       typedCallViaEVM config evm0 (EVM.address (dripVatAddress σ I)) "ilks" 0
         [.fixedBytes bytes32Width (fileDutyIlkBytes I)] (true, evmVat, out) true)
     (hdec :
@@ -516,7 +516,7 @@ theorem jugDripSourceBodyVatIlksRmulOverflowReverts {cA gh bl σ σ₀ A I} {g :
         (jugSlotWord (fileDutyRhoSlotFor I) evmVat.accountMap evmVat.executionEnv) = ⟨0⟩)
     (hrmulOverflow : UInt256.size ≤ jugRay.toNat * (dripVatIlksPrevWord out).toNat) :
     let locals := dripLocals I
-    let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 locals dripTransition.body .reverted := by
   intro locals evm0
   let base := jugSlotWord ⟨4⟩ evmVat.accountMap evmVat.executionEnv

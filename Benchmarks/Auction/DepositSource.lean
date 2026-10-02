@@ -5,8 +5,8 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-theorem wethSourceRead {s0 I cA σ evm locals}
-    (hs : SourceState s0 I cA σ evm) (hb : locals.get? "weth" = none) :
+theorem wethSourceRead {s0 I σ evm locals}
+    (hs : SourceState s0 I σ evm) (hb : locals.get? "weth" = none) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm (.storage
       wethRef) =
       .ok (.address (AccountAddress.ofUInt256 (wethWord σ I))) := by
@@ -17,20 +17,20 @@ theorem wethSourceRead {s0 I cA σ evm locals}
   rw [hw, addressOfWord_eq]
   rfl
 
--- LIBRARY CANDIDATE: the source code-size expression agrees under account-map equivalence.
+-- LIBRARY CANDIDATE: the source code-size expression agrees under account-map equality.
 theorem extCodeSource {cfg frame evm σ target receiver}
-    (hs : accountMapEquiv σ evm.accountMap)
+    (hs : σ = evm.accountMap)
     (hr : evalExpr? cfg frame evm receiver =
       .ok (.address (AccountAddress.ofUInt256 target))) :
     evalExpr? cfg frame evm (.extCodeSize receiver) =
       .ok (.int (Int.ofNat (extCodeSizeWord σ target).toNat)) := by
   simp only [evalExpr?, hr, pure, bind, EvalResult.bind]
-  rw [extCodeSizeWord_accountMapEquiv hs]
+  rw [hs]
   unfold State.lookupAccount extCodeSizeWord
   cases evm.accountMap.find? (AccountAddress.ofUInt256 target) <;> rfl
 
-theorem wethCodeGuardSource {s0 I cA σ evm locals}
-    (hs : SourceState s0 I cA σ evm) (hb : locals.get? "weth" = none) :
+theorem wethCodeGuardSource {s0 I σ evm locals}
+    (hs : SourceState s0 I σ evm) (hb : locals.get? "weth" = none) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       (.binary .gt (.extCodeSize (.storage wethRef)) (.intLit 0)) =
       .ok (.bool (decide (extCodeSizeWord σ (wethWord σ I) ≠ ⟨0⟩))) := by
@@ -55,8 +55,8 @@ theorem depositTypedCall {evm evm' target out z} {amount : UInt256}
   rw [addressOfAddress]
   exact ⟨depositSelector, rfl, hc⟩
 
-theorem depositSourceSuccess {s0 I cA σ evm evm' locals recipient amount ptr out}
-    (hs : SourceState s0 I cA σ evm) (hv : PaymentValues locals recipient amount ptr)
+theorem depositSourceSuccess {s0 I σ evm evm' locals recipient amount ptr out}
+    (hs : SourceState s0 I σ evm) (hv : PaymentValues locals recipient amount ptr)
     (hyes : extCodeSizeWord σ (wethWord σ I) ≠ ⟨0⟩)
     (hc : callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I))
       (Int.ofNat amount.toNat) depositSelector (true, evm', out)) :
@@ -71,8 +71,8 @@ theorem depositSourceSuccess {s0 I cA σ evm evm' locals recipient amount ptr ou
     · simp only [evalExpr?, hv.amount, EvalResult.ofOption]
     · simp [evalExprs?, pure]
 
-theorem depositSourceFailure {s0 I cA σ evm evm' locals recipient amount ptr out}
-    (hs : SourceState s0 I cA σ evm) (hv : PaymentValues locals recipient amount ptr)
+theorem depositSourceFailure {s0 I σ evm evm' locals recipient amount ptr out}
+    (hs : SourceState s0 I σ evm) (hv : PaymentValues locals recipient amount ptr)
     (hyes : extCodeSizeWord σ (wethWord σ I) ≠ ⟨0⟩)
     (hc : callViaEVM evm (AccountAddress.ofUInt256 (wethWord σ I))
       (Int.ofNat amount.toNat) depositSelector (false, evm', out)) :
@@ -84,8 +84,8 @@ theorem depositSourceFailure {s0 I cA σ evm evm' locals recipient amount ptr ou
       (by simp only [evalExpr?, hv.amount, EvalResult.ofOption])
       (by simp [evalExprs?, pure]) (depositTypedCall hc))
 
-theorem depositSourceNoCode {s0 I cA σ evm locals recipient amount ptr}
-    (hs : SourceState s0 I cA σ evm) (hv : PaymentValues locals recipient amount ptr)
+theorem depositSourceNoCode {s0 I σ evm locals recipient amount ptr}
+    (hs : SourceState s0 I σ evm) (hv : PaymentValues locals recipient amount ptr)
     (hno : extCodeSizeWord σ (wethWord σ I) = ⟨0⟩) :
     ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
       paymentFallbackStmts .reverted := by

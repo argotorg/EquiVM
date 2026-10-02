@@ -14,7 +14,7 @@ def UnpauseCreates (σ : AccountMap) (I : ExecutionEnv) : Prop :=
 instance (σ : AccountMap) (I : ExecutionEnv) : Decidable (UnpauseCreates σ I) :=
   inferInstanceAs (Decidable (_ ∨ _))
 
-theorem unpauseCreateSource {s0 I cA σ evm locals} (hs : SourceState s0 I cA σ evm)
+theorem unpauseCreateSource {s0 I σ evm locals} (hs : SourceState s0 I σ evm)
     (ha : locals.get? "auction" = none) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       unpauseCreateExpr = .ok (.bool (decide (UnpauseCreates σ I))) := by
@@ -58,11 +58,11 @@ theorem unpauseCreateWord_nonzero (σ : AccountMap) (I : ExecutionEnv) :
     decide
   · simp only [hz, if_false, false_or]
 
-theorem unpauseCondition {I g s0 R mem aw rdata cA σ k C}
-    (h : RD auctionBytecode I g s0 ⟨1126⟩ R mem aw rdata (cA, σ) k C)
+theorem unpauseCondition {I g s0 R mem aw rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨1126⟩ R mem aw rdata σ k C)
     (hov : R.length + 4 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨1150⟩ (unpauseCreateWord σ I :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   have rd1129 := evm_run h with [jumpdest, push1 ⟨209⟩]
   obtain ⟨_, _, rd1130⟩ := rd1129.sload (by native_decide) (by evm_ov)
   change RD _ _ _ _ _ (storedWord σ I ⟨209⟩ :: R) _ _ _ _ _ _ at rd1130

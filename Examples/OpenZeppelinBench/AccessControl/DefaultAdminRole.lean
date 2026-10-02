@@ -63,11 +63,11 @@ theorem accessControlDefaultAdminRoleSubRet32_toNat :
     (UInt256.sub accessControlDefaultAdminRoleRetEnd ⟨128⟩).toNat = 32 := by
   decide
 
-theorem accessControlX_defaultAdminRole {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem accessControlX_defaultAdminRole {σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD accessControlBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨273⟩ [accessControlSelWord I]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret accessControlBenchBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+      (initState σ σ₀ g A I) ⟨273⟩ [accessControlSelWord I]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret accessControlBenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray defaultAdminRoleWord) := by
   obtain ⟨_, _, rd273⟩ := hreach
   have rd200 := evm_run rd273 with [
@@ -99,18 +99,17 @@ theorem accessControlX_defaultAdminRole {cA gh bl σ σ₀ A I} {g : Sat256}
         simpa using solcReturnMem_read128 defaultAdminRoleWord)
       (by evm_ov) ]
 
-theorem accessControlDefaultAdminRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem accessControlDefaultAdminRoleBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = accessControlBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xa2, 0x17, 0xfd, 0xdf]⟩)
     (hreach : ∃ k C, RD accessControlBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨273⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨273⟩
       [accessControlSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
   have hsz := accessControlDefaultAdminRoleSelector_size hsel
@@ -119,16 +118,16 @@ theorem accessControlDefaultAdminRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
   have hdec := accessControlDecode_defaultAdminRole (I := I) hsz
   have hbody :
       ExecTransitionBody config contract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         defaultAdminRoleTransition.body
         (.returned { contract := contract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           (some [defaultAdminRoleValue])) := by
     exact accessControlDefaultAdminRoleBodyReturns
-      (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       (by simp only [initState]; exact hwv)
   exact (accessControlX_defaultAdminRole (g := Sat256.ofUInt256 g) hreach)
-    |>.reEquivExecutionTransport hcode hd hdec hbody rfl hAccounts
+    |>.reEquivExecution hcode hd hdec hbody
       (returnEquiv_of_encode (by
         simpa [bytes32] using bytes32ReturnEncoding defaultAdminRoleWord))
 

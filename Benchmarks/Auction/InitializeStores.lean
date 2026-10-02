@@ -25,12 +25,12 @@ def initializerExited (σ : AccountMap) (I : ExecutionEnv) (top : UInt256) : Acc
   if top = ⟨0⟩ then σ else
     sstoreAccountMap I.codeOwner σ ⟨0⟩ (initializerEndWord (storedWord σ I ⟨0⟩))
 
-theorem initializeStoreArgs {I g s0 top ret R mem aw rdata cA σ k C} (args : InitializeArgs)
+theorem initializeStoreArgs {I g s0 top ret R mem aw rdata σ k C} (args : InitializeArgs)
     (h : RD auctionBytecode I g s0 ⟨2245⟩ (top :: args.words.reverse ++ ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hc : args.canonical) (hperm : I.perm = true) (hov : R.length + 15 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨2326⟩ (top :: args.words.reverse ++ ret :: R)
-      mem aw rdata (cA, args.storeMap σ I) k' C' := by
+      mem aw rdata (args.storeMap σ I) k' C' := by
   change RD _ _ _ _ _
     (top :: args.duration :: args.minBidIncrement :: args.reservePrice :: args.timeBuffer ::
       args.weth :: args.nouns :: ret :: R) _ _ _ _ _ _ at h
@@ -62,13 +62,13 @@ theorem initializeStoreArgs {I g s0 top ret R mem aw rdata cA σ k C} (args : In
     at rd2326
   exact ⟨_, _, rd2326⟩
 
-theorem initializeExit {I g s0 top ret R mem aw rdata cA σ k C} (args : InitializeArgs)
+theorem initializeExit {I g s0 top ret R mem aw rdata σ k C} (args : InitializeArgs)
     (h : RD auctionBytecode I g s0 ⟨2326⟩ (top :: args.words.reverse ++ ret :: R)
-      mem aw rdata (cA, σ) k C)
+      mem aw rdata σ k C)
     (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 12 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret R mem aw rdata
-      (cA, initializerExited σ I top) k' C' := by
+      (initializerExited σ I top) k' C' := by
   change RD _ _ _ _ _
     (top :: args.duration :: args.minBidIncrement :: args.reservePrice :: args.timeBuffer ::
       args.weth :: args.nouns :: ret :: R) _ _ _ _ _ _ at h
@@ -83,7 +83,7 @@ theorem initializeExit {I g s0 top ret R mem aw rdata cA σ k C} (args : Initial
     obtain ⟨_, _, rd2335⟩ := rd2334.sload (by native_decide) (by evm_ov)
     have rd2341 := evm_run rd2335 with [push2 ⟨65280⟩, not, and, swap1]
     obtain ⟨_, _, rd2342⟩ := rd2341.sstore hperm (by native_decide) (by evm_ov)
-    change RD _ _ _ _ _ _ _ _ _ (cA, sstoreAccountMap I.codeOwner σ ⟨0⟩
+    change RD _ _ _ _ _ _ _ _ _ (sstoreAccountMap I.codeOwner σ ⟨0⟩
       (UInt256.land (UInt256.lnot ⟨65280⟩) (storedWord σ I ⟨0⟩))) _ _ at rd2342
     rw [u256_land_comm (UInt256.lnot ⟨65280⟩)] at rd2342
     exact ⟨_, _, evm_run rd2342 with [jumpdest, pop, pop, pop, pop, pop, pop, pop, jump hret]⟩

@@ -63,27 +63,27 @@ theorem callActiveWords_zero (aw inOff outOff : UInt256) :
     callActiveWords aw inOff ⟨0⟩ outOff ⟨0⟩ = aw := by
   exact u256_ofNat_toNat aw
 
-theorem rawEthCall {I g s0 amount recipient ret R mem aw ptr rdata cA σ k C evm}
+theorem rawEthCall {I g s0 amount recipient ret R mem aw ptr rdata σ k C evm}
     (h : RD auctionBytecode I g s0 ⟨4768⟩ (amount :: recipient :: ret :: R)
-      mem aw rdata (cA, σ) k C)
-    (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
+      mem aw rdata σ k C)
+    (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 64 ≤ 2 ^ 200)
     (hov : R.length + 20 ≤ 1024) :
-    ∃ (evm' : EVM.State) (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    ∃ (evm' : EVM.State) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (k' C' : Nat),
       callViaEVM evm (AccountAddress.ofUInt256 (UInt256.land recipient solcAddrMask))
         (Int.ofNat amount.toNat) ByteArray.empty (z, evm', out) ∧
-      SourceState s0 I cA' σ' evm' ∧
+      SourceState s0 I σ' evm' ∧
       RD auctionBytecode I g s0 ⟨4833⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨0⟩ :: ⟨0⟩ :: amount :: recipient :: ret :: R)
-        (emptyEncodedMem mem ptr) (emptyEncodedWords aw ptr) out (cA', σ') k' C' ∧
+        (emptyEncodedMem mem ptr) (emptyEncodedWords aw ptr) out σ' k' C' ∧
       out.size < 2 ^ 138 := by
   obtain ⟨_, _, rd4827⟩ := rawEthPrefix h hm hb hov
-  obtain ⟨evm', cA', σ', z, out, _, _, hc, hs', rd4828, ho⟩ :=
+  obtain ⟨evm', σ', z, out, _, _, hc, hs', rd4828, ho⟩ :=
     callBridge rd4827 hs hperm (by native_decide) (byteArray_readWithPadding_zero _ _)
       (by decide) (by evm_ov)
   rw [callOutputMem_zero, callActiveWords_zero] at rd4828
   have rd4833 := evm_run rd4828 with [swap4, pop, pop, pop, pop]
-  exact ⟨evm', cA', σ', z, out, _, _, hc, hs', rd4833, ho⟩
+  exact ⟨evm', σ', z, out, _, _, hc, hs', rd4833, ho⟩
 
 end Auction

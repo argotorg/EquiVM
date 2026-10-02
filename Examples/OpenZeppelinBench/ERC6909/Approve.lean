@@ -662,29 +662,29 @@ theorem approveFinalKeccakSlot (I : ExecutionEnv)
 
 /-! ## EVM ABI decode traces for the approve body wrapper -/
 
-theorem erc6909ApproveX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨228⟩
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1742⟩
+theorem erc6909ApproveX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨1742⟩
       [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨242⟩, ⟨193⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := hreach
   exact ⟨_, _, evm_run rd with [
     jumpdest, push2 ⟨193⟩, push2 ⟨242⟩, calldatasize, push1 ⟨4⟩,
     push2 ⟨1742⟩, jump (by jump_dest) ]⟩
 
-theorem erc6909ApproveX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909ApproveX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨228⟩
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨522⟩
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨522⟩
       [approveAmountWord I, approveIdWord I, approveSpenderWord I, ⟨193⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
     solcCalldataStaticLenCheckOk (words := 3) (by simpa using hsz100) hszhi hsize
-  obtain ⟨k, C, rd1742⟩ := erc6909ApproveX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨k, C, rd1742⟩ := erc6909ApproveX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   have rd1629 := evm_run rd1742 with [
     jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
@@ -704,48 +704,48 @@ theorem erc6909ApproveX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
   exact ⟨_, _, by
     simpa [approveSpenderWord, approveIdWord, approveAmountWord, calldataWord] using rd522⟩
 
-theorem erc6909ApproveX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909ApproveX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 100)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨228⟩
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ :=
     solcCalldataStaticLenCheckShort (words := 3) hsz4 (by simpa using hshort) hsize
       (by norm_num)
-  obtain ⟨k, C, rd1742⟩ := erc6909ApproveX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨k, C, rd1742⟩ := erc6909ApproveX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact evm_run rd1742 with [
     jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
     push2 ⟨1760⟩, jumpiNT (by rw [hslt]; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem erc6909ApproveX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909ApproveX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨228⟩
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ :=
     solcCalldataStaticLenCheckHuge (words := 3) hbig hsize (by norm_num)
-  obtain ⟨k, C, rd1742⟩ := erc6909ApproveX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨k, C, rd1742⟩ := erc6909ApproveX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   exact evm_run rd1742 with [
     jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
     push2 ⟨1760⟩, jumpiNT (by rw [hslt]; decide),
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem erc6909ApproveX_noncanon_spender {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909ApproveX_noncanon_spender {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (approveSpenderWord I)
       (UInt256.land (approveSpenderWord I) solcAddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨228⟩
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ :=
     solcCalldataStaticLenCheckOk (words := 3) (by simpa using hsz100) hszhi hsize
-  obtain ⟨k, C, rd1742⟩ := erc6909ApproveX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨k, C, rd1742⟩ := erc6909ApproveX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hreach
   have rd1629 := evm_run rd1742 with [
     jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
@@ -793,17 +793,17 @@ theorem approveErrorMem_mload64 (selector arg : UInt256) :
   mloadFreePtrValue (by rw [approveErrorMem_size]; decide)
     (approveErrorMem_read64 selector arg)
 
-theorem erc6909ApproveX_toHelper {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909ApproveX_toHelper {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨228⟩
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨766⟩
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨766⟩
       [approveAmountWord I, approveIdWord I, approveSpenderWord I, approveOwnerWord I,
         ⟨512⟩, ⟨0⟩, approveAmountWord I, approveIdWord I, approveSpenderWord I, ⟨193⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, rd522⟩ := erc6909ApproveX_decoded (cA := cA) (gh := gh) (bl := bl)
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨_, _, rd522⟩ := erc6909ApproveX_decoded
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonSpender hreach
   exact ⟨_, _, by
@@ -811,23 +811,23 @@ theorem erc6909ApproveX_toHelper {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
       jumpdest, push0, push2 ⟨512⟩, caller, dup6, dup6, dup6, push2 ⟨766⟩,
       jump (by jump_dest) ]⟩
 
-theorem erc6909ApproveX_stored {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hperm : I.perm = true)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hsource : I.source ≠ AccountAddress.ofNat 0)
     (hspender : AccountAddress.ofNat (approveSpenderWord I).toNat ≠ AccountAddress.ofNat 0)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨228⟩
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨900⟩
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨900⟩
       [⟨32⟩, ⟨64⟩, approveOwnerWord I, approveSpenderWord I, approveAmountWord I,
         approveIdWord I, approveSpenderWord I, approveOwnerWord I, ⟨512⟩, ⟨0⟩,
         approveAmountWord I, approveIdWord I, approveSpenderWord I, ⟨193⟩, sel]
       (approveIdHashMem (approveOwnerWord I) (approveSpenderWord I) (approveIdWord I))
       (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveAmountWord I)) k C := by
-  obtain ⟨_, _, rd766⟩ := erc6909ApproveX_toHelper (cA := cA) (gh := gh) (bl := bl)
+      (sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveAmountWord I)) k C := by
+  obtain ⟨_, _, rd766⟩ := erc6909ApproveX_toHelper
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonSpender hreach
   have hownerWordNZ : approveOwnerWord I ≠ ⟨0⟩ := by
@@ -914,15 +914,15 @@ theorem erc6909ApproveX_stored {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     solcAddrMask_clean hcanonSpender] at rd899'
   simpa using rd899'.sstore hperm (by decide) (by evm_ov)
 
-theorem erc6909ApproveX_revert_owner {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909ApproveX_revert_owner {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hsource : I.source = AccountAddress.ofNat 0)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨228⟩
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨_, _, rd766⟩ := erc6909ApproveX_toHelper (cA := cA) (gh := gh) (bl := bl)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd766⟩ := erc6909ApproveX_toHelper
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonSpender hreach
   have hownerZeroWord : approveOwnerWord I = ⟨0⟩ := (approveSource_zero_iff I).mp hsource
@@ -952,16 +952,16 @@ theorem erc6909ApproveX_revert_owner {cA gh bl σ σ₀ A I} {g : Sat256} {sel :
     dup1, swap2, sub, swap1,
     raw rev 0 (by decide) mem_cost (by evm_ov) ]
 
-theorem erc6909ApproveX_revert_spender {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909ApproveX_revert_spender {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hsource : I.source ≠ AccountAddress.ofNat 0)
     (hspender : AccountAddress.ofNat (approveSpenderWord I).toNat = AccountAddress.ofNat 0)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨228⟩
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨_, _, rd766⟩ := erc6909ApproveX_toHelper (cA := cA) (gh := gh) (bl := bl)
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc6909BenchBytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨_, _, rd766⟩ := erc6909ApproveX_toHelper
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonSpender hreach
   have hownerWordNZ : approveOwnerWord I ≠ ⟨0⟩ := by
@@ -1003,19 +1003,19 @@ theorem erc6909ApproveX_revert_spender {cA gh bl σ σ₀ A I} {g : Sat256} {sel
     dup1, swap2, sub, swap1,
     raw rev 0 (by decide) mem_cost (by evm_ov) ]
 
-theorem erc6909X_approve {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc6909X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hperm : I.perm = true)
     (hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus)
     (hsource : I.source ≠ AccountAddress.ofNat 0)
     (hspender : AccountAddress.ofNat (approveSpenderWord I).toNat ≠ AccountAddress.ofNat 0)
-    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨228⟩
-      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret erc6909BenchBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveAmountWord I))
+    (hreach : ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨228⟩
+      [sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret erc6909BenchBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ (approveSlotI I) (approveAmountWord I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
-  obtain ⟨_, _, rd900⟩ := erc6909ApproveX_stored (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨_, _, rd900⟩ := erc6909ApproveX_stored
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hperm hcanonSpender hsource hspender hreach
   have rd951 := evm_run rd900 with [
@@ -1085,17 +1085,16 @@ theorem erc6909X_approve {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (by evm_ov) ]
 
 theorem erc6909ApproveBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+    {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = erc6909BenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (erc6909SelBytes 3))
     (hreach : ∃ k C, RD erc6909BenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨228⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨228⟩
       [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   have hselApprove : selIs I ⟨#[0x42, 0x6a, 0x84, 0x93]⟩ := by
     simpa [erc6909SelBytes] using hsel
   have hsz4 := erc6909ApproveSelector_size hselApprove
@@ -1104,11 +1103,11 @@ theorem erc6909ApproveBodyCore
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanonSpender : (approveSpenderWord I).toNat < EVM.addressModulus
       · have hdec := erc6909Decode_approve_ok (I := I) hsz100 hbig hcanonSpender
-        let evmE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
-        let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
+        let evmE := initState σ σ₀ (Sat256.ofUInt256 g) A I
+        let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hσ : EVMStateEquiv evmE evmS := by
           simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g)
-            hAccounts
+            rfl
         by_cases hsource : I.source = AccountAddress.ofNat 0
         · have hbody :
               ExecTransitionBody config contract evmS (approveStore I)
@@ -1150,11 +1149,8 @@ theorem erc6909ApproveBodyCore
             exact (erc6909X_approve (g := Sat256.ofUInt256 g)
                 hsz100 hsize hbig hperm hcanonSpender hsource hspender hreach)
               |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-                (by simp [evmE, approvePostState, approveSlot, initState,
-                  storageStore_createdAccounts])
-                (accountMapEquiv.of_eq (by
-                  simp [evmE, approvePostState, approveSlot, approveSlotI, initState,
-                    storageStore_accountMap]))
+                (by simp [evmE, approvePostState, approveSlot, approveSlotI, initState,
+                  storageStore_accountMap])
                 hσPost
                 (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
       · have hdec := erc6909Decode_approve_none_noncanon (I := I)

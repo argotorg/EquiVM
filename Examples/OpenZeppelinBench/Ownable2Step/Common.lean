@@ -72,7 +72,7 @@ theorem ownable2StepMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 5)
     interval_cases i <;> decide
 
 /-- Standard solc prologue/guards/selector-load, then linear dispatch to a body entry. -/
-theorem ownable2StepReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem ownable2StepReachBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi4 : i ≤ 4) (bodyPC : UInt256)
     (hcode : I.code = ownable2StepBenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -88,9 +88,9 @@ theorem ownable2StepReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hjd : (D_J ownable2StepBenchBytecode 0).contains bodyPC = true)
     (hbody : armTgt ownable2StepBenchBytecode
         (nthArmPc ownable2StepBenchBytecode ownable2StepFirstArmPc i) = bodyPC) :
-    ∃ k C, RD ownable2StepBenchBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
+    ∃ k C, RD ownable2StepBenchBytecode I g (initState σ σ₀ g A I) bodyPC
         [ownable2StepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   exact solcDispatchReachBody
     (firstArmPc := ownable2StepFirstArmPc) (bodyPC := bodyPC) (i := i)
     hcode hwv hsz hsize (by solc_dispatch_prefix) (by jump_dest)
@@ -136,9 +136,9 @@ theorem ownable2StepBodyReverts_nonPayable
   rcases ht with rfl | rfl | rfl | rfl | rfl <;>
     exact bodyReverts_nonPayable h
 
-theorem ownable2StepX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem ownable2StepX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ownable2StepBenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev ownable2StepBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev ownable2StepBenchBytecode g (initState σ σ₀ g A I) := by
   exact solcGuardCallvalueNonzeroRevert
     (ctgt := solcGuardTgt ownable2StepBenchBytecode)
     (opC := solcGuardTgtOp ownable2StepBenchBytecode)
@@ -147,11 +147,11 @@ theorem ownable2StepX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by decide))
     hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
 
-theorem ownable2StepX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem ownable2StepX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ownable2StepBenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev ownable2StepBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev ownable2StepBenchBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt ownable2StepBenchBytecode)
@@ -166,11 +166,11 @@ theorem ownable2StepX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     h1 hsz (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
     (by decide) (by jump_dest) (by decide) (by decide) (by decide)
 
-theorem ownable2StepX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem ownable2StepX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = ownable2StepBenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 5 → (ownable2StepSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev ownable2StepBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev ownable2StepBenchBytecode g (initState σ σ₀ g A I) := by
   have heq0 : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat ownable2StepBenchBytecode
@@ -180,7 +180,7 @@ theorem ownable2StepX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [ownable2StepArmEq I hsz j hj]
     rw [hnm j hj]
     rfl
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt ownable2StepBenchBytecode)
@@ -195,9 +195,9 @@ theorem ownable2StepX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨k3, C3, h3⟩ :=
     solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
-  have h4 : RD ownable2StepBenchBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h4 : RD ownable2StepBenchBytecode I g (initState σ σ₀ g A I)
       ownable2StepFirstArmPc [ownable2StepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) k3 C3 := by
+      ByteArray.empty σ k3 C3 := by
     simpa [ownable2StepFirstArmPc, ownable2StepSelWord, solcFirstArmPcFromPrefix,
       solcSelectorWord, solcSelectorLoadPc, solcCalldataJumpiPc, solcCalldataRevertPushPc,
       solcDispatchBodyPc] using h3
@@ -213,8 +213,8 @@ theorem ownable2StepX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.selectorArmNotTakenAuto (ownable2StepArmsWellFormed 4 (by omega)) (heq0 4 (by omega))
         (by simp)
   have h85 : ∃ k C, RD ownable2StepBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨85⟩ [ownable2StepSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (initState σ σ₀ g A I) ⟨85⟩ [ownable2StepSelWord I] solcFreePtrMem
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
     refine ⟨k3 + 5 + 5 + 5 + 5 + 5, C3 + 22 + 22 + 22 + 22 + 22, ?_⟩
     simpa [ownable2StepFirstArmPc, nthArmPc, selArmNextPc, armTgtWidth, armTgt,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using h5
@@ -222,11 +222,11 @@ theorem ownable2StepX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
   exact evm_run h85rd with [
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem ownable2StepNonPayable {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem ownable2StepNonPayable {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   exact (ownable2StepX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -241,26 +241,26 @@ theorem ownable2StepNonPayable {cA gh bl σ_evm σ_solm σ₀ A I}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (ownable2StepBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
-theorem ownable2StepShortRevert {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem ownable2StepShortRevert {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   exact (ownable2StepX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (ownable2StepDispatch_none_short hsz)
 
-theorem ownable2StepNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem ownable2StepNoDispatch {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = ownable2StepBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 5 → (ownable2StepSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract
+      σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (ownable2StepX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (ownable2StepDispatch_none_nomatch hnm)
@@ -374,7 +374,7 @@ def ownable2StepOnlyOwnerWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 /-- Ownable2StepBench's direct one-word address return tail at pc 119. -/
 theorem RD.ownable2StepReturnAddress119 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {val : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD _root_.OpenZeppelinBench.Ownable2Step.ownable2StepBenchBytecode ee g s0 ⟨119⟩
         (val :: R) solcFreePtrMem (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 8 ≤ 1024) :
@@ -409,9 +409,9 @@ theorem RD.ownable2StepReturnAddress119 {g : Sat256} {s0 : State} {ee : Executio
 set_option maxHeartbeats 1000000 in
 theorem RD.ownable2StepOnlyOwnerPass {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {rdata : ByteArray} {σ : AccountMap}
     (h : RD _root_.OpenZeppelinBench.Ownable2Step.ownable2StepBenchBytecode ee g s0 ⟨387⟩
-        (ret :: R) mem aw rdata (cA, σ) k C)
+        (ret :: R) mem aw rdata σ k C)
     (howner :
       UInt256.land (ownable2StepOnlyOwnerWord σ ee) solcAddrMask =
         _root_.OpenZeppelinBench.Ownable2Step.ownable2StepSourceWord ee)
@@ -420,12 +420,12 @@ theorem RD.ownable2StepOnlyOwnerPass {g : Sat256} {s0 : State} {ee : ExecutionEn
         true)
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD _root_.OpenZeppelinBench.Ownable2Step.ownable2StepBenchBytecode ee g s0 ret R
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   have rd389 := evm_run h with [jumpdest, push0]
   obtain ⟨_, _, rd390₀⟩ := rd389.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd390⟩ : ∃ k' C',
       RD _root_.OpenZeppelinBench.Ownable2Step.ownable2StepBenchBytecode ee g s0 ⟨390⟩
-        (ownable2StepOnlyOwnerWord σ ee :: ret :: R) mem aw rdata (cA, σ) k' C' := by
+        (ownable2StepOnlyOwnerWord σ ee :: ret :: R) mem aw rdata σ k' C' := by
     exact ⟨_, _, by simpa [ownable2StepOnlyOwnerWord] using rd390₀⟩
   have rd401₀ := evm_run rd390 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and, caller, eq]
@@ -449,9 +449,9 @@ theorem RD.ownable2StepOnlyOwnerPass {g : Sat256} {s0 : State} {ee : ExecutionEn
 set_option maxHeartbeats 1000000 in
 theorem RD.ownable2StepOnlyOwnerRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD _root_.OpenZeppelinBench.Ownable2Step.ownable2StepBenchBytecode ee g s0 ⟨387⟩
-        (ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata (cA, σ) k C)
+        (ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata σ k C)
     (howner :
       UInt256.land (ownable2StepOnlyOwnerWord σ ee) solcAddrMask ≠
         _root_.OpenZeppelinBench.Ownable2Step.ownable2StepSourceWord ee)
@@ -462,7 +462,7 @@ theorem RD.ownable2StepOnlyOwnerRevert {g : Sat256} {s0 : State} {ee : Execution
   obtain ⟨_, _, rd390⟩ : ∃ k' C',
       RD _root_.OpenZeppelinBench.Ownable2Step.ownable2StepBenchBytecode ee g s0 ⟨390⟩
         (ownable2StepOnlyOwnerWord σ ee :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata
-        (cA, σ) k' C' := by
+        σ k' C' := by
     exact ⟨_, _, by simpa [ownable2StepOnlyOwnerWord] using rd390₀⟩
   have rd401₀ := evm_run rd390 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and, caller, eq]

@@ -5,18 +5,18 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Benchmarks.Dss.Jug
 
 theorem RD.jugDripToDiffRoutine
-    {cA cA' gh bl σ σ' σ₀ A I} {g rate prev sel : UInt256}
+    {σ σ' σ₀ A I} {g rate prev sel : UInt256}
     {mem out : ByteArray} {k C : ℕ}
     (rd1530 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1530⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1530⟩
       (rate :: prev :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
-      mem (UInt256.ofNat 6) out (cA', σ') k C) :
+      mem (UInt256.ofNat 6) out σ' k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2397⟩
       (prev :: rate :: ⟨1570⟩ :: dripVowTargetWord σ' I :: fileDutyIlkWord I ::
         dripVatFoldSelectorWord :: dripVatTargetWord σ' I :: prev :: rate ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
-      mem (UInt256.ofNat 6) out (cA', σ') k' C' := by
+      mem (UInt256.ofNat 6) out σ' k' C' := by
   let vatRaw := jugSlotWord ⟨2⟩ σ' I
   let vowRaw := jugSlotWord ⟨3⟩ σ' I
   have hmask :
@@ -34,17 +34,17 @@ theorem RD.jugDripToDiffRoutine
   have rd1533 := rd1531.push1 ⟨2⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1534, C1534, rd1534raw⟩ := rd1533.sload (by native_decide) (by evm_ov)
   have rd1534 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1534⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1534⟩
       (vatRaw :: rate :: prev :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
-      mem (UInt256.ofNat 6) out (cA', σ') k1534 C1534 := by
+      mem (UInt256.ofNat 6) out σ' k1534 C1534 := by
     simpa [vatRaw, jugSlotWord, solcSlotWord] using rd1534raw
   have rd1536 := rd1534.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1537, C1537, rd1537raw⟩ := rd1536.sload (by native_decide) (by evm_ov)
   have rd1537 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1537⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1537⟩
       (vowRaw :: vatRaw :: rate :: prev :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ ::
         sel :: [])
-      mem (UInt256.ofNat 6) out (cA', σ') k1537 C1537 := by
+      mem (UInt256.ofNat 6) out σ' k1537 C1537 := by
     simpa [vowRaw, jugSlotWord, solcSlotWord] using rd1537raw
   have rd1569 := evm_run rd1537 with [
     raw swap2 (by native_decide) (by evm_ov),
@@ -74,22 +74,22 @@ theorem RD.jugDripToDiffRoutine
       using rd2397⟩
 
 theorem RD.jugDripVatFoldCallGuard
-    {cA cA' gh bl σ σ' σ₀ A I} {g delta prev rate sel : UInt256}
+    {σ σ' σ₀ A I} {g delta prev rate sel : UInt256}
     {mem out : ByteArray} {k C : ℕ}
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (rd1570 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
       (delta :: dripVowTargetWord σ' I :: fileDutyIlkWord I :: dripVatFoldSelectorWord ::
         dripVatTargetWord σ' I :: prev :: rate :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
-      mem (UInt256.ofNat 6) out (cA', σ') k C) :
+      mem (UInt256.ofNat 6) out σ' k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1635⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1635⟩
       (dripVatTargetWord σ' I :: dripVatTargetWord σ' I :: ⟨0⟩ :: dripVatFoldOutPtr ::
         dripVatFoldInSize :: dripVatFoldOutPtr :: ⟨0⟩ :: dripVatFoldEndPtr ::
         dripVatFoldSelectorWord :: dripVatTargetWord σ' I :: prev :: rate ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
-      (dripVatFoldCalldataMem σ' I delta mem) (UInt256.ofNat 8) out (cA', σ') k' C' := by
+      (dripVatFoldCalldataMem σ' I delta mem) (UInt256.ofNat 8) out σ' k' C' := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
@@ -172,24 +172,24 @@ theorem RD.jugDripVatFoldCallGuard
       dripVatFoldSelectorWord, dripVatFoldSelectorShifted, hselector, hvowMask] using rd1635⟩
 
 theorem RD.jugDripVatFoldCallReady
-    {cA cA' gh bl σ σ' σ₀ A I} {g delta prev rate sel : UInt256}
+    {σ σ' σ₀ A I} {g delta prev rate sel : UInt256}
     {mem out : ByteArray} {k C : ℕ}
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (dripVatTargetWord σ' I) ≠ ⟨0⟩)
     (rd1570 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
       (delta :: dripVowTargetWord σ' I :: fileDutyIlkWord I :: dripVatFoldSelectorWord ::
         dripVatTargetWord σ' I :: prev :: rate :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
-      mem (UInt256.ofNat 6) out (cA', σ') k C) :
+      mem (UInt256.ofNat 6) out σ' k C) :
     ∃ gasWord k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1650⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1650⟩
       (gasWord :: dripVatTargetWord σ' I :: ⟨0⟩ :: dripVatFoldOutPtr ::
         dripVatFoldInSize :: dripVatFoldOutPtr :: ⟨0⟩ :: dripVatFoldEndPtr ::
         dripVatFoldSelectorWord :: dripVatTargetWord σ' I :: prev :: rate ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
-      (dripVatFoldCalldataMem σ' I delta mem) (UInt256.ofNat 8) out (cA', σ') k' C' := by
+      (dripVatFoldCalldataMem σ' I delta mem) (UInt256.ofNat 8) out σ' k' C' := by
   obtain ⟨_, _, rd1635⟩ := RD.jugDripVatFoldCallGuard hmem hread64 rd1570
   obtain ⟨gasWord, k', C', rd1650⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1635⟩) (okPc := ⟨1647⟩) rd1635
@@ -200,19 +200,19 @@ theorem RD.jugDripVatFoldCallReady
   exact ⟨gasWord, k', C', by simpa using rd1650⟩
 
 theorem RD.jugDripVatFoldNoCode
-    {cA cA' gh bl σ σ' σ₀ A I} {g delta prev rate sel : UInt256}
+    {σ σ' σ₀ A I} {g delta prev rate sel : UInt256}
     {mem out : ByteArray} {k C : ℕ}
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ' (dripVatTargetWord σ' I) = ⟨0⟩)
     (rd1570 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
       (delta :: dripVowTargetWord σ' I :: fileDutyIlkWord I :: dripVatFoldSelectorWord ::
         dripVatTargetWord σ' I :: prev :: rate :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
-      mem (UInt256.ofNat 6) out (cA', σ') k C) :
+      mem (UInt256.ofNat 6) out σ' k C) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd1635⟩ := RD.jugDripVatFoldCallGuard hmem hread64 rd1570
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1635⟩) (okPc := ⟨1647⟩) rd1635
     hcodeSize
@@ -221,38 +221,38 @@ theorem RD.jugDripVatFoldNoCode
     (by native_decide) (by simp)
 
 theorem RD.jugDripVatFoldPostCall
-    {cA cA' gh bl σ σ' σ₀ A I} {g delta prev rate sel gasWord : UInt256}
+    {σ σ' σ₀ A I} {g delta prev rate sel gasWord : UInt256}
     {mem out : ByteArray} {k C : ℕ}
     (rd1650 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1650⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1650⟩
       (gasWord :: dripVatTargetWord σ' I :: ⟨0⟩ :: dripVatFoldOutPtr ::
         dripVatFoldInSize :: dripVatFoldOutPtr :: ⟨0⟩ :: dripVatFoldEndPtr ::
         dripVatFoldSelectorWord :: dripVatTargetWord σ' I :: prev :: rate ::
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
-      (dripVatFoldCalldataMem σ' I delta mem) (UInt256.ofNat 8) out (cA', σ') k C)
+      (dripVatFoldCalldataMem σ' I delta mem) (UInt256.ofNat 8) out σ' k C)
     (hdepth : I.depth.val < 1024) :
-    ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
+    ∃ (σ'' : AccountMap)
       (z : Bool) (foldOut : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA'', σ'', g'', A', z, foldOut) = Ethereum.EVM.Θ I.blobVersionedHashes cA' gh bl σ'
+        (σ'', g'', A', z, foldOut) = Ethereum.EVM.Θ σ'
           σ₀ Ain (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (dripVatTargetWord σ' I))
           (toExecute σ' (AccountAddress.ofUInt256 (dripVatTargetWord σ' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((dripVatFoldCalldataMem σ' I delta mem).readWithPadding
             dripVatFoldOutPtr.toNat dripVatFoldInSize.toNat)
-          (I.depth + 1) I.header I.perm)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ RD jugBytecode I (Sat256.ofUInt256 g)
-          (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1651⟩
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1651⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: dripVatFoldEndPtr :: dripVatFoldSelectorWord ::
             dripVatTargetWord σ' I :: prev :: rate :: fileDutyIlkWord I :: ⟨357⟩ ::
             sel :: [])
           (dripVatFoldCalldataMem σ' I delta mem) (UInt256.ofNat 8) foldOut
-          (cA'', σ'') k' C'
+          σ'' k' C'
       ∧ foldOut.size < UInt256.size := by
-  obtain ⟨cA'', σ'', z, foldOut, Ain, callGas, k', C', hΘ, rd1651raw, hout⟩ :=
+  obtain ⟨σ'', z, foldOut, Ain, callGas, k', C', hΘ, rd1651raw, hout⟩ :=
     RD.call rd1650 (by native_decide) hdepth (by evm_ov)
-  refine ⟨cA'', σ'', z, foldOut, Ain, callGas, k', C', ?_, ?_, hout⟩
+  refine ⟨σ'', z, foldOut, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin :
         (min (⟨0⟩ : UInt256) (UInt256.ofNat foldOut.size)).toNat = 0 := by
@@ -271,16 +271,16 @@ theorem RD.jugDripVatFoldPostCall
       byteArray_write_len_zero, haw] using rd1651raw
 
 theorem RD.jugDripVatFoldCallFailed
-    {cA cA'' gh bl σ σ'' σ₀ A I} {g targetWord prev rate sel : UInt256}
+    {σ σ'' σ₀ A I} {g targetWord prev rate sel : UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (rd1651 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1651⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1651⟩
       (⟨0⟩ :: dripVatFoldEndPtr :: dripVatFoldSelectorWord :: targetWord ::
         prev :: rate :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
-      mem (UInt256.ofNat 8) rdata (cA'', σ'') k C)
+      mem (UInt256.ofNat 8) rdata σ'' k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1651⟩) (okPc := ⟨1667⟩) rd1651
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -289,15 +289,15 @@ theorem RD.jugDripVatFoldCallFailed
     hrdataSize (by simp)
 
 theorem RD.jugDripVatFoldCallSucceeded
-    {cA gh bl σ σ₀ A I} {g targetWord prev rate sel : UInt256}
-    {mem rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {σ σ₀ A I} {g targetWord prev rate sel : UInt256}
+    {mem rdata : ByteArray} {acc : AccountMap} {k C : ℕ}
     (rd1651 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1651⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1651⟩
       (⟨1⟩ :: dripVatFoldEndPtr :: dripVatFoldSelectorWord :: targetWord ::
         prev :: rate :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k C) :
     ∃ k' C', RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1669⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1669⟩
       (dripVatFoldEndPtr :: dripVatFoldSelectorWord :: targetWord ::
         prev :: rate :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k' C' := by
@@ -308,20 +308,20 @@ theorem RD.jugDripVatFoldCallSucceeded
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem RD.jugDripVatFoldStoreRhoReturns
-    {cA cA' gh bl σ σ' σ₀ A I} {g targetWord prev rate sel : UInt256}
+    {σ σ' σ₀ A I} {g targetWord prev rate sel : UInt256}
     {mem rdata : ByteArray} {k C : ℕ}
     (hsz36 : 36 ≤ I.calldata.size)
     (hperm : I.perm = true)
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (rd1669 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1669⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1669⟩
       (dripVatFoldEndPtr :: dripVatFoldSelectorWord :: targetWord ::
         prev :: rate :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
-      mem (UInt256.ofNat 8) rdata (cA', σ') k C) :
+      mem (UInt256.ofNat 8) rdata σ' k C) :
     RDret jugBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
-      (cA', sstoreAccountMap I.codeOwner σ' (fileDutyRhoSlotFor I)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      (sstoreAccountMap I.codeOwner σ' (fileDutyRhoSlotFor I)
         (UInt256.ofNat I.header.timestamp))
       (UInt256.toByteArray rate) := by
   let hashMem := twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ mem
@@ -398,9 +398,9 @@ theorem RD.jugDripVatFoldStoreRhoReturns
   obtain ⟨k1697, C1697, rd1697raw⟩ := rd1696pre.sstore hperm (by native_decide)
     (by evm_ov)
   have rd1697 : RD jugBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1697⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1697⟩
       (rate :: ⟨357⟩ :: sel :: []) hashMem (UInt256.ofNat 8) rdata
-      (cA', sstoreAccountMap I.codeOwner σ' (fileDutyRhoSlotFor I)
+      (sstoreAccountMap I.codeOwner σ' (fileDutyRhoSlotFor I)
         (UInt256.ofNat I.header.timestamp)) k1697 C1697 := by
     simpa [fileDutyRhoSlotFor_eq hsz36, u256_add_comm] using rd1697raw
   have rd1698 := rd1697.swap1 (by native_decide) (by evm_ov)

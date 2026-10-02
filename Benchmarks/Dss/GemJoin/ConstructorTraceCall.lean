@@ -14,26 +14,24 @@ abbrev gemJoinCtorGemTargetOfStored (stored : UInt256) : UInt256 :=
   UInt256.land solcAddrMask stored
 
 theorem gemJoinCtorDecimalsSetupReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σStored σAcc σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g0 : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (rd141 :
       RD (gemJoinCtorCode vat ilk gem) I g0
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) ⟨141⟩
+        (initState σ σ₀ g0 A I) ⟨141⟩
         [gemJoinCtorGemStored σStored I gem, solcAddrMask, EVM.word gem.val, ilk, ⟨32⟩,
           EVM.word vat.val, ⟨64⟩]
         (gemJoinCtorWardsHashMem I vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σAcc) k C) :
+        σAcc k C) :
     ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) ⟨184⟩
+      (initState σ σ₀ g0 A I) ⟨184⟩
       [gemJoinCtorGemTargetOfStored (gemJoinCtorGemStored σStored I gem),
         gemJoinCtorGemTargetOfStored (gemJoinCtorGemStored σStored I gem),
         ⟨224⟩, ⟨4⟩, ⟨224⟩, ⟨32⟩, ⟨228⟩, ⟨826074471⟩,
         gemJoinCtorGemTargetOfStored (gemJoinCtorGemStored σStored I gem),
         EVM.word gem.val, ilk, EVM.word vat.val]
       (gemJoinCtorDecimalsCalldataMem I vat ilk gem) (UInt256.ofNat 8) ByteArray.empty
-      (createdAccounts, σAcc) k' C' := by
+      σAcc k' C' := by
   have rd151pre := gem_ctor_run rd141 with [
     dup7,
     raw mload 0 ⟨224⟩ (UInt256.ofNat 7) (by gem_ctor_decode) mem_cost
@@ -81,8 +79,6 @@ theorem gemJoinCtorDecimalsSetupReach
         from by native_decide] using rd184⟩
 
 theorem gemJoinCtorDecimalsStaticcallReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σAcc σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g0 : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (gemTarget : UInt256)
@@ -91,26 +87,25 @@ theorem gemJoinCtorDecimalsStaticcallReach
     (hdepth : I.depth.val < 1024)
     (rd184 :
       RD (gemJoinCtorCode vat ilk gem) I g0
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) ⟨184⟩
+        (initState σ σ₀ g0 A I) ⟨184⟩
         [gemTarget, gemTarget,
           ⟨224⟩, ⟨4⟩, ⟨224⟩, ⟨32⟩, ⟨228⟩, ⟨826074471⟩,
           gemTarget, EVM.word gem.val, ilk, EVM.word vat.val]
         (gemJoinCtorDecimalsCalldataMem I vat ilk gem) (UInt256.ofNat 8) ByteArray.empty
-        (createdAccounts, σAcc) k C) :
-    ∃ (createdAccounts' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+        σAcc k C) :
+    ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (Ain : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (createdAccounts', σ', g'', A', z, out) =
-          Ethereum.EVM.Θ I.blobVersionedHashes createdAccounts genesisBlockHeader blocks
-            σAcc σ₀ Ain
+        (σ', g'', A', z, out) =
+          Ethereum.EVM.Θ σAcc σ₀ Ain
             (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
             (AccountAddress.ofUInt256 gemTarget)
             (toExecute σAcc (AccountAddress.ofUInt256 gemTarget))
             callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
             ((gemJoinCtorDecimalsCalldataMem I vat ilk gem).readWithPadding 224 4)
-            (I.depth + 1) I.header false) ∧
+            (I.depth + 1) I.header I.blobVersionedHashes I.blocks false) ∧
       RD (gemJoinCtorCode vat ilk gem) I g0
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) ⟨200⟩
+        (initState σ σ₀ g0 A I) ⟨200⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: [⟨228⟩, ⟨826074471⟩,
           gemTarget, EVM.word gem.val, ilk, EVM.word vat.val])
         (out.write 0 (gemJoinCtorDecimalsCalldataMem I vat ilk gem) 224
@@ -120,7 +115,7 @@ theorem gemJoinCtorDecimalsStaticcallReach
             (MachineState.M (UInt256.ofNat 8).toNat (⟨224⟩ : UInt256).toNat
               (⟨4⟩ : UInt256).toNat)
             (⟨224⟩ : UInt256).toNat (⟨32⟩ : UInt256).toNat))
-        out (createdAccounts', σ') k' C' ∧
+        out σ' k' C' ∧
       out.size < UInt256.size := by
   obtain ⟨gasWord, kGas, CGas, rd199⟩ :=
     RD.solcExtcodesizeGuardOkGas
@@ -129,15 +124,13 @@ theorem gemJoinCtorDecimalsStaticcallReach
       (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode)
       (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_jd)
       (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode) (by evm_ov)
-  obtain ⟨createdAccounts', σ', z, out, Ain, callGas, k', C', hTheta, rd200, houtSize⟩ :=
+  obtain ⟨σ', z, out, Ain, callGas, k', C', hTheta, rd200, houtSize⟩ :=
     RD.solcStaticcall rd199 (by gem_ctor_decode) hdepth (by evm_ov)
-  exact ⟨createdAccounts', σ', z, out, Ain, callGas, k', C', hTheta, by
+  exact ⟨σ', z, out, Ain, callGas, k', C', hTheta, by
     simpa [show (⟨199⟩ : UInt256) + ⟨1⟩ = ⟨200⟩ from by native_decide] using rd200,
     houtSize⟩
 
 theorem gemJoinCtorDecimalsStaticcallDepthLimitReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σAcc σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g0 : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (gemTarget : UInt256)
@@ -146,14 +139,14 @@ theorem gemJoinCtorDecimalsStaticcallDepthLimitReach
     (hdepth : I.depth = 1024)
     (rd184 :
       RD (gemJoinCtorCode vat ilk gem) I g0
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) ⟨184⟩
+        (initState σ σ₀ g0 A I) ⟨184⟩
         [gemTarget, gemTarget,
           ⟨224⟩, ⟨4⟩, ⟨224⟩, ⟨32⟩, ⟨228⟩, ⟨826074471⟩,
           gemTarget, EVM.word gem.val, ilk, EVM.word vat.val]
         (gemJoinCtorDecimalsCalldataMem I vat ilk gem) (UInt256.ofNat 8) ByteArray.empty
-        (createdAccounts, σAcc) k C) :
+        σAcc k C) :
     ∃ k' C', RD (gemJoinCtorCode vat ilk gem) I g0
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) ⟨200⟩
+      (initState σ σ₀ g0 A I) ⟨200⟩
       (⟨0⟩ :: [⟨228⟩, ⟨826074471⟩,
         gemTarget, EVM.word gem.val, ilk, EVM.word vat.val])
       (ByteArray.empty.write 0 (gemJoinCtorDecimalsCalldataMem I vat ilk gem) 224
@@ -163,7 +156,7 @@ theorem gemJoinCtorDecimalsStaticcallDepthLimitReach
           (MachineState.M (UInt256.ofNat 8).toNat (⟨224⟩ : UInt256).toNat
             (⟨4⟩ : UInt256).toNat)
           (⟨224⟩ : UInt256).toNat (⟨32⟩ : UInt256).toNat))
-      ByteArray.empty (createdAccounts, σAcc) k' C' := by
+      ByteArray.empty σAcc k' C' := by
   obtain ⟨gasWord, kGas, CGas, rd199⟩ :=
     RD.solcExtcodesizeGuardOkGas
       (pc := ⟨184⟩) (okPc := ⟨196⟩)
@@ -178,8 +171,6 @@ theorem gemJoinCtorDecimalsStaticcallDepthLimitReach
       using rd200⟩
 
 theorem gemJoinCtorDecimalsNoCodeReverts
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σAcc σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g0 : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (gemTarget : UInt256)
@@ -187,14 +178,14 @@ theorem gemJoinCtorDecimalsNoCodeReverts
       Reasoning.Theory.extCodeSizeWord σAcc gemTarget = ⟨0⟩)
     (rd184 :
       RD (gemJoinCtorCode vat ilk gem) I g0
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) ⟨184⟩
+        (initState σ σ₀ g0 A I) ⟨184⟩
         [gemTarget, gemTarget,
           ⟨224⟩, ⟨4⟩, ⟨224⟩, ⟨32⟩, ⟨228⟩, ⟨826074471⟩,
           gemTarget, EVM.word gem.val, ilk, EVM.word vat.val]
         (gemJoinCtorDecimalsCalldataMem I vat ilk gem) (UInt256.ofNat 8) ByteArray.empty
-        (createdAccounts, σAcc) k C) :
+        σAcc k C) :
     RDrev (gemJoinCtorCode vat ilk gem) g0
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) := by
+      (initState σ σ₀ g0 A I) := by
   exact RD.solcExtcodesizeGuardMissing
     (pc := ⟨184⟩) (okPc := ⟨196⟩)
     rd184 hcodeSize
@@ -278,7 +269,7 @@ theorem gemJoinCtorDecimalsStatusOkReach
     {s0 : State} {I : ExecutionEnv} {g0 : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     (gemTarget : UInt256) {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {z : Bool} {k C : ℕ}
+    {acc : AccountMap} {z : Bool} {k C : ℕ}
     (hz : z = true)
     (rd200 :
       RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨200⟩
@@ -301,7 +292,7 @@ theorem gemJoinCtorDecimalsStatusFailReverts
     {s0 : State} {I : ExecutionEnv} {g0 : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     (gemTarget : UInt256) {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {z : Bool} {k C : ℕ}
+    {acc : AccountMap} {z : Bool} {k C : ℕ}
     (hz : z = false) (houtSize : out.size < UInt256.size)
     (rd200 :
       RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨200⟩
@@ -323,7 +314,7 @@ theorem gemJoinCtorDecimalsReturnDecodeOkReach
     {s0 : State} {I : ExecutionEnv} {g0 : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     (gemTarget retWord : UInt256) {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (hlo : 32 ≤ out.size) (hhi : out.size < UInt256.size)
     (hMload64Cost : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = 0)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
@@ -395,7 +386,7 @@ theorem gemJoinCtorDecimalsReturnDecodeShortReverts
     {s0 : State} {I : ExecutionEnv} {g0 : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     (gemTarget : UInt256) {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {acc : AccountMap} {k C : ℕ}
     (hshort : out.size < 32) (hhi : out.size < UInt256.size)
     (hMload64Cost : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = 0)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)

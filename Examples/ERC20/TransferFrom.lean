@@ -1324,13 +1324,13 @@ theorem transferFromInsufficientAllowanceStringMem_mload64 (owner spender : UInt
       = ⟨128⟩ :=
   mloadFreePtrValue (by rw [transferFromInsufficientAllowanceStringMem_size]; decide) (transferFromInsufficientAllowanceStringMem_read64 owner spender)
 
-theorem erc20TransferFromX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_toDecoder {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2098⟩
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨2098⟩
         [⟨4⟩, UInt256.ofNat I.calldata.size, ⟨199⟩, ⟨204⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, rd⟩ := hreach
   have rd' := evm_run rd with [
     jumpdest, push2 ⟨204⟩, push1 ⟨4⟩, dup1, calldatasize, sub, dup2, add, swap1,
@@ -1339,18 +1339,18 @@ theorem erc20TransferFromX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} {sel :
     (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by decide]; exact hsz4) hsize] at rd'
   exact ⟨_, _, rd'⟩
 
-theorem erc20TransferFromX_dec1874_from {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_dec1874_from {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1874⟩
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1874⟩
         [⟨4⟩ + ⟨0⟩, UInt256.ofNat I.calldata.size, ⟨2134⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩,
           ⟨0⟩, ⟨4⟩, UInt256.ofNat I.calldata.size, ⟨199⟩, ⟨204⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨0⟩ := by
     simpa using solcCalldataStaticLenCheckOk (words := 3) hsz100 hszhi hsize
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_toDecoder (cA := cA) (gh := gh) (bl := bl)
+  obtain ⟨k, C, rd⟩ := erc20TransferFromX_toDecoder
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) (by omega) hsize hreach
   exact ⟨_, _, evm_run rd with [
     jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
@@ -1360,32 +1360,32 @@ theorem erc20TransferFromX_dec1874_from {cA gh bl σ σ₀ A I} {g : Sat256} {se
 
 /-- The `from` address decode (success): one application of the shared `RD.erc20DecodeAddrOk`
     routine, replacing the former `dec1852`/`dec1835`/`dec1861`/`dec2134` from chain. -/
-theorem erc20TransferFromX_dec2134 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_dec2134 {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2134⟩
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨2134⟩
         [transferFromFromWord I, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨0⟩, ⟨4⟩,
           UInt256.ofNat I.calldata.size, ⟨199⟩, ⟨204⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1874_from (cA := cA) (gh := gh) (bl := bl)
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1874_from
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel) hsz100 hsize hszhi hreach
   exact RD.erc20DecodeAddrOk rd hcanonFrom (by jump_dest) (by evm_ov)
 
-theorem erc20TransferFromX_dec1874_to {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_dec1874_to {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1874⟩
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1874⟩
         [⟨4⟩ + ⟨32⟩, UInt256.ofNat I.calldata.size, ⟨2151⟩, ⟨32⟩, ⟨0⟩,
           ⟨0⟩, transferFromFromWord I, ⟨4⟩, UInt256.ofNat I.calldata.size,
           ⟨199⟩, ⟨204⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec2134 (cA := cA) (gh := gh) (bl := bl)
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec2134
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hreach
   exact ⟨_, _, evm_run rd with [
@@ -1394,73 +1394,73 @@ theorem erc20TransferFromX_dec1874_to {cA gh bl σ σ₀ A I} {g : Sat256} {sel 
 
 /-- The `to` address decode (success): a second application of the shared `RD.erc20DecodeAddrOk`
     routine, replacing the former `dec1852`/`dec1835`/`dec1861`/`dec2151` to chain. -/
-theorem erc20TransferFromX_dec2151 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_dec2151 {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2151⟩
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨2151⟩
         [transferFromToWord I, ⟨32⟩, ⟨0⟩, ⟨0⟩, transferFromFromWord I, ⟨4⟩,
           UInt256.ofNat I.calldata.size, ⟨199⟩, ⟨204⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1874_to (cA := cA) (gh := gh) (bl := bl)
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1874_to
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hreach
   exact RD.erc20DecodeAddrOk rd hcanonTo (by jump_dest) (by evm_ov)
 
-theorem erc20TransferFromX_dec1925_value {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_dec1925_value {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1925⟩
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1925⟩
         [⟨4⟩ + ⟨64⟩, UInt256.ofNat I.calldata.size, ⟨2168⟩, ⟨64⟩, ⟨0⟩,
           transferFromToWord I, transferFromFromWord I, ⟨4⟩, UInt256.ofNat I.calldata.size,
           ⟨199⟩, ⟨204⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec2151 (cA := cA) (gh := gh) (bl := bl)
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec2151
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hcanonTo hreach
   exact ⟨_, _, evm_run rd with [
     jumpdest, swap3, pop, pop, push1 ⟨64⟩, push2 ⟨2168⟩, dup7, dup3, dup8,
     add, push2 ⟨1925⟩, jump erc20_jd ]⟩
 
-theorem erc20TransferFromX_dec1903_value {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_dec1903_value {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1903⟩
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1903⟩
         [transferFromValueWord I, ⟨1939⟩, transferFromValueWord I, ⟨4⟩ + ⟨64⟩,
           UInt256.ofNat I.calldata.size, ⟨2168⟩, ⟨64⟩, ⟨0⟩, transferFromToWord I,
           transferFromFromWord I, ⟨4⟩, UInt256.ofNat I.calldata.size, ⟨199⟩,
           ⟨204⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1925_value (cA := cA) (gh := gh) (bl := bl)
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1925_value
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hcanonTo hreach
   exact ⟨_, _, evm_run rd with [
     jumpdest, push0, dup2, calldataload, swap1, pop, push2 ⟨1939⟩, dup2,
     push2 ⟨1903⟩, jump erc20_jd ]⟩
 
-theorem erc20TransferFromX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨613⟩
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨613⟩
         [transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd1903⟩ := erc20TransferFromX_dec1903_value (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨k, C, rd1903⟩ := erc20TransferFromX_dec1903_value
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hcanonTo hreach
   have rd1894 := evm_run rd1903 with [
     jumpdest, push2 ⟨1912⟩, dup2, push2 ⟨1894⟩, jump erc20_jd ]
@@ -1478,22 +1478,22 @@ theorem erc20TransferFromX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
 
 /-- The `transferFrom` body loads `allowance[from][msg.sender]` and passes the allowance
     requirement, leaving the loaded allowance and a scratch zero on the stack. -/
-theorem erc20TransferFromX_afterAllowance {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_afterAllowance {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨805⟩
-        [transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩,
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨805⟩
+        [transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩,
           transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
         (allowanceOuterHashMem (transferFromFromWord I) (transferFromSenderWord I))
-        (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd613⟩ := erc20TransferFromX_decoded (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+        (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨k, C, rd613⟩ := erc20TransferFromX_decoded
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hcanonTo hreach
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) = transferFromFromWord I :=
     erc20AddrMask_clean_left hcanonFrom
@@ -1517,16 +1517,16 @@ theorem erc20TransferFromX_afterAllowance {cA gh bl σ σ₀ A I} {g : Sat256} {
     (approveOuterSpenderMem_writeSlot (transferFromFromWord I) (transferFromSenderWord I))
     hslot (by evm_ov)
   obtain ⟨k1, C1, rd736₀⟩ := rd735.sload (by decide) (by evm_ov)
-  have rd737 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨737⟩
-      [transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩, ⟨0⟩,
+  have rd737 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨737⟩
+      [transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩, ⟨0⟩,
         transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
       (allowanceOuterHashMem (transferFromFromWord I) (transferFromSenderWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1 C1 := by
+      (UInt256.ofNat 3) ByteArray.empty σ k1 C1 := by
     simpa [transferFromCurrentAllowanceWord, transferFromAllowanceSlot,
       transferFromAllowanceSlotI, transferFromSenderWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, transferFromSender_ofNat] using rd736₀
   have hlt : UInt256.lt
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I)
       (transferFromValueWord I) = ⟨0⟩ := ult_zero hallowance
   exact ⟨_, _, evm_run rd737 with [
     swap1, pop, dup3, dup2, lt, iszero,
@@ -1535,24 +1535,24 @@ theorem erc20TransferFromX_afterAllowance {cA gh bl σ σ₀ A I} {g : Sat256} {
 /-- After the allowance check, `transferFrom` loads `balanceOf[from]` using the same
     balance mapping layout as `transfer`, checks `value <= fromBalance`, and reaches the
     mutation branch. -/
-theorem erc20TransferFromX_afterBalance {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_afterBalance {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨932⟩
-        [transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩,
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨932⟩
+        [transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩,
           transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
         (balanceOfHashMem (transferFromFromWord I))
-        (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k, C, rd805⟩ := erc20TransferFromX_afterAllowance (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+        (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨k, C, rd805⟩ := erc20TransferFromX_afterAllowance
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hcanonTo hallowance hreach
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) = transferFromFromWord I :=
     erc20AddrMask_clean_left hcanonFrom
@@ -1567,43 +1567,43 @@ theorem erc20TransferFromX_afterBalance {cA gh bl σ σ₀ A I} {g : Sat256} {se
     (allowanceOuterHashMem_writeBalanceSlot (transferFromFromWord I) (transferFromSenderWord I))
     hslot (by evm_ov)
   obtain ⟨k1, C1, rd868₀⟩ := rd867.sload (by decide) (by evm_ov)
-  have rd868 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨868⟩
-      [transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I,
+  have rd868 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨868⟩
+      [transferFromFromBalanceWord (initState σ σ₀ g A I) I,
         transferFromValueWord I,
-        transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩,
+        transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩,
         transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
-      (balanceOfHashMem (transferFromFromWord I)) (UInt256.ofNat 3) ByteArray.empty (cA, σ)
+      (balanceOfHashMem (transferFromFromWord I)) (UInt256.ofNat 3) ByteArray.empty σ
       k1 C1 := by
     simpa [transferFromFromBalanceWord, transferFromFromSlot, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
       using rd868₀
   have hlt : UInt256.lt
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I)
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I)
       (transferFromValueWord I) = ⟨0⟩ := ult_zero hbalance
   exact ⟨_, _, evm_run rd868 with [
     lt, iszero, push2 ⟨932⟩, jumpiT (by rw [hlt]; decide) erc20_jd ]⟩
 
-theorem erc20TransferFromX_afterAllowanceStore {cA gh bl σ σ₀ A I}
+theorem erc20TransferFromX_afterAllowanceStore {σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1069⟩
-        [transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩,
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1069⟩
+        [transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩,
           transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
         (allowanceOuterHashMem (transferFromFromWord I) (transferFromSenderWord I))
         (UInt256.ofNat 3) ByteArray.empty
-        (cA, sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
-          (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
-  obtain ⟨k, C, rd932⟩ := erc20TransferFromX_afterBalance (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+        (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
+          (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I)) k C := by
+  obtain ⟨k, C, rd932⟩ := erc20TransferFromX_afterBalance
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hcanonTo hallowance hbalance hreach
   have rd2552 := evm_run rd932 with [
     jumpdest, dup3, dup2, push2 ⟨944⟩, swap2, swap1, push2 ⟨2552⟩, jump erc20_jd ]
@@ -1611,17 +1611,17 @@ theorem erc20TransferFromX_afterAllowanceStore {cA gh bl σ σ₀ A I}
     (by simp only [List.length_cons, List.length_nil]; omega)
   have hdebit :
       UInt256.sub
-          (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I)
+          (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I)
           (transferFromValueWord I) =
-        transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I := by
+        transferFromAllowanceDebitWord (initState σ σ₀ g A I) I := by
     apply u256_inj
     rw [usub_toNat hallowance]
     unfold transferFromAllowanceDebitWord
     rw [ulit_toNat' _ (lt_of_le_of_lt
       (Nat.sub_le
-        (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat
+        (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat
         (transferFromValueWord I).toNat)
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).val.isLt)]
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).val.isLt)]
   have rd944 := rd944₀
   rw [hdebit] at rd944
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) = transferFromFromWord I :=
@@ -1650,34 +1650,34 @@ theorem erc20TransferFromX_afterAllowanceStore {cA gh bl σ σ₀ A I}
   obtain ⟨k2, C2, rd1067s⟩ := rd1067.sstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, evm_run rd1067s with [ pop ]⟩
 
-theorem erc20TransferFromX_afterFromStore {cA gh bl σ σ₀ A I}
+theorem erc20TransferFromX_afterFromStore {σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalanceDebit : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord
-        (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I).toNat)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1151⟩
-        [transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩,
+        (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I).toNat)
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1151⟩
+        [transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩,
           transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
         (balanceOfHashMem (transferFromFromWord I))
         (UInt256.ofNat 3) ByteArray.empty
-        (cA, sstoreAccountMap I.codeOwner
+        (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
-            (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I))
+            (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I))
           (transferFromFromSlot I)
           (transferFromBalanceDebitWord
-            (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)) k C := by
-  obtain ⟨k, C, rd1069⟩ := erc20TransferFromX_afterAllowanceStore (cA := cA)
-    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+            (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)) k C := by
+  obtain ⟨k, C, rd1069⟩ := erc20TransferFromX_afterAllowanceStore
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hperm hcanonFrom hcanonTo hallowance hbalance hreach
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) = transferFromFromWord I :=
     erc20AddrMask_clean_left hcanonFrom
@@ -1693,17 +1693,17 @@ theorem erc20TransferFromX_afterFromStore {cA gh bl σ σ₀ A I}
     hslot (by evm_ov)
   have rd1130 := evm_run rd1130₀ with [ push0, dup3, dup3 ]
   obtain ⟨k1, C1, rd1134₀⟩ := rd1130.sload (by decide) (by evm_ov)
-  have rd1134 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1134⟩
+  have rd1134 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1134⟩
       [transferFromFromBalanceWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I,
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I,
         transferFromValueWord I, ⟨0⟩, transferFromFromSlot I, transferFromValueWord I,
-        transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩,
+        transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩,
         transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
       (balanceOfHashMem (transferFromFromWord I)) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
-        (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I)) k1 C1 := by
+      (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
+        (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I)) k1 C1 := by
     unfold transferFromFromBalanceWord
-    rw [transferFromAfterAllowance_codeOwner (initState cA gh bl σ σ₀ g A I) I]
+    rw [transferFromAfterAllowance_codeOwner (initState σ σ₀ g A I) I]
     simpa [transferFromFromSlot, transferFromAfterAllowanceState,
       transferFromAllowanceSlot, transferFromAllowanceSlotI, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, erc20StorageStore_accountMap]
@@ -1715,20 +1715,20 @@ theorem erc20TransferFromX_afterFromStore {cA gh bl σ σ₀ A I}
   have hdebit :
       UInt256.sub
           (transferFromFromBalanceWord
-            (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)
+            (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)
           (transferFromValueWord I) =
         transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I := by
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I := by
     apply u256_inj
     rw [usub_toNat hbalanceDebit]
     unfold transferFromBalanceDebitWord
     rw [ulit_toNat' _ (lt_of_le_of_lt
       (Nat.sub_le
         (transferFromFromBalanceWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I).toNat
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I).toNat
         (transferFromValueWord I).toNat)
       (transferFromFromBalanceWord
-        (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I).val.isLt)]
+        (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I).val.isLt)]
   have rd1143 := rd1143₀
   rw [hdebit] at rd1143
   have rd1149 := evm_run rd1143 with [
@@ -1736,25 +1736,25 @@ theorem erc20TransferFromX_afterFromStore {cA gh bl σ σ₀ A I}
   obtain ⟨k3, C3, rd1149s⟩ := rd1149.sstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, evm_run rd1149s with [ pop ]⟩
 
-theorem erc20TransferFromX_balanceDebitUnderflow {cA gh bl σ σ₀ A I}
+theorem erc20TransferFromX_balanceDebitUnderflow {σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hltDebit :
       (transferFromFromBalanceWord
-        (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I).toNat <
+        (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I).toNat <
         (transferFromValueWord I).toNat)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨k, C, rd1069⟩ := erc20TransferFromX_afterAllowanceStore (cA := cA)
-    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨k, C, rd1069⟩ := erc20TransferFromX_afterAllowanceStore
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hperm hcanonFrom hcanonTo hallowance hbalance hreach
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) = transferFromFromWord I :=
     erc20AddrMask_clean_left hcanonFrom
@@ -1770,17 +1770,17 @@ theorem erc20TransferFromX_balanceDebitUnderflow {cA gh bl σ σ₀ A I}
     hslot (by evm_ov)
   have rd1130 := evm_run rd1130₀ with [ push0, dup3, dup3 ]
   obtain ⟨k1, C1, rd1134₀⟩ := rd1130.sload (by decide) (by evm_ov)
-  have rd1134 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1134⟩
+  have rd1134 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1134⟩
       [transferFromFromBalanceWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I,
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I,
         transferFromValueWord I, ⟨0⟩, transferFromFromSlot I, transferFromValueWord I,
-        transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩,
+        transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩,
         transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
       (balanceOfHashMem (transferFromFromWord I)) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
-        (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I)) k1 C1 := by
+      (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
+        (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I)) k1 C1 := by
     unfold transferFromFromBalanceWord
-    rw [transferFromAfterAllowance_codeOwner (initState cA gh bl σ σ₀ g A I) I]
+    rw [transferFromAfterAllowance_codeOwner (initState σ σ₀ g A I) I]
     simpa [transferFromFromSlot, transferFromAfterAllowanceState,
       transferFromAllowanceSlot, transferFromAllowanceSlotI, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, erc20StorageStore_accountMap]
@@ -1790,38 +1790,38 @@ theorem erc20TransferFromX_balanceDebitUnderflow {cA gh bl σ σ₀ A I}
   exact erc20RoutineCheckedSub_underflow rd2552 hltDebit
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem erc20TransferFromX_afterToStore {cA gh bl σ σ₀ A I}
+theorem erc20TransferFromX_afterToStore {σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalanceDebit : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord
-        (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I).toNat)
-    (hfit : transferFromNewToNat (initState cA gh bl σ σ₀ g A I) I < UInt256.size)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1233⟩
-        [transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩,
+        (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I).toNat)
+    (hfit : transferFromNewToNat (initState σ σ₀ g A I) I < UInt256.size)
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1233⟩
+        [transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩,
           transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
         (balanceOfHashMem (transferFromToWord I))
         (UInt256.ofNat 3) ByteArray.empty
-        (cA, sstoreAccountMap I.codeOwner
+        (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
-              (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I))
+              (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I))
             (transferFromFromSlot I)
             (transferFromBalanceDebitWord
-              (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I))
+              (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I))
           (transferFromToSlot I)
-          (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I)) k C := by
-  obtain ⟨k, C, rd1151⟩ := erc20TransferFromX_afterFromStore (cA := cA)
-    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+          (transferFromNewToWord (initState σ σ₀ g A I) I)) k C := by
+  obtain ⟨k, C, rd1151⟩ := erc20TransferFromX_afterFromStore
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hperm hcanonFrom hcanonTo hallowance hbalance hbalanceDebit hreach
   have htoCleanL : UInt256.land erc20AddrMask (transferFromToWord I) = transferFromToWord I :=
     erc20AddrMask_clean_left hcanonTo
@@ -1836,18 +1836,18 @@ theorem erc20TransferFromX_afterToStore {cA gh bl σ σ₀ A I}
     (balanceOfHashMem_writeSlot_self (transferFromToWord I)) hslot (by evm_ov)
   have rd1215 := evm_run rd1215₀ with [ push0, dup3, dup3 ]
   obtain ⟨k1, C1, rd1216₀⟩ := rd1215.sload (by decide) (by evm_ov)
-  have rd1216 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1216⟩
-      [transferFromToBalanceWord (initState cA gh bl σ σ₀ g A I) I,
+  have rd1216 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1216⟩
+      [transferFromToBalanceWord (initState σ σ₀ g A I) I,
         transferFromValueWord I, ⟨0⟩, transferFromToSlot I, transferFromValueWord I,
-        transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩,
+        transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩,
         transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
       (balanceOfHashMem (transferFromToWord I)) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
-          (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I))
+          (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I))
         (transferFromFromSlot I)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)) k1 C1 := by
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)) k1 C1 := by
     simpa [transferFromToBalanceWord, transferFromAfterBalanceState,
       transferFromAfterAllowanceState, transferFromAllowanceSlot, transferFromAllowanceSlotI,
       initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
@@ -1859,9 +1859,9 @@ theorem erc20TransferFromX_afterToStore {cA gh bl σ σ₀ A I}
     (by simpa [transferFromNewToNat] using hfit)
     erc20_jd (by simp only [List.length_cons, List.length_nil]; omega)
   have hnew :
-      transferFromToBalanceWord (initState cA gh bl σ σ₀ g A I) I +
+      transferFromToBalanceWord (initState σ σ₀ g A I) I +
           transferFromValueWord I =
-        transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I := by
+        transferFromNewToWord (initState σ σ₀ g A I) I := by
     apply u256_inj
     rw [uadd_toNat, Nat.mod_eq_of_lt (by simpa [transferFromNewToNat] using hfit)]
     unfold transferFromNewToWord
@@ -1874,34 +1874,34 @@ theorem erc20TransferFromX_afterToStore {cA gh bl σ σ₀ A I}
   obtain ⟨k3, C3, rd1231s⟩ := rd1231.sstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, evm_run rd1231s with [ pop ]⟩
 
-theorem erc20X_transferFrom {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20X_transferFrom {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalanceDebit : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord
-        (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I).toNat)
-    (hfit : transferFromNewToNat (initState cA gh bl σ σ₀ g A I) I < UInt256.size)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret erc20Bytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner
+        (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I).toNat)
+    (hfit : transferFromNewToNat (initState σ σ₀ g A I) I < UInt256.size)
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret erc20Bytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
-            (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I))
+            (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I))
           (transferFromFromSlot I)
           (transferFromBalanceDebitWord
-            (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I))
+            (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I))
         (transferFromToSlot I)
-        (transferFromNewToWord (initState cA gh bl σ σ₀ g A I) I))
+        (transferFromNewToWord (initState σ σ₀ g A I) I))
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
-  obtain ⟨k, C, rd1233⟩ := erc20TransferFromX_afterToStore (cA := cA)
-    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+  obtain ⟨k, C, rd1233⟩ := erc20TransferFromX_afterToStore
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hperm hcanonFrom hcanonTo hallowance hbalance hbalanceDebit hfit hreach
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) =
       transferFromFromWord I :=
@@ -1925,7 +1925,7 @@ theorem erc20X_transferFrom {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨k1, C1, rd1325⟩ := erc20RoutineEncodeUint256FromMem
     (val := transferFromValueWord I) (ret := ⟨1325⟩)
     (R := [transferTransferTopic, transferFromFromWord I, transferFromToWord I,
-      transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩,
+      transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩,
       transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel])
     rd2073 (by rfl) erc20_jd (by simp only [List.length_cons, List.length_nil]; omega)
   have rd1333 := evm_run rd1325 with [
@@ -1966,25 +1966,25 @@ theorem erc20X_transferFrom {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         exact transferReturnMem_read128 (transferFromToWord I) (transferFromValueWord I))
       (by evm_ov) ]
 
-theorem erc20TransferFromX_overflow {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_overflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4) (hperm : I.perm = true)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalance : (transferFromValueWord I).toNat ≤
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat)
     (hbalanceDebit : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord
-        (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I).toNat)
+        (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I).toNat)
     (hover : UInt256.size ≤
-      transferFromNewToNat (initState cA gh bl σ σ₀ g A I) I)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨k, C, rd1151⟩ := erc20TransferFromX_afterFromStore (cA := cA)
-    (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+      transferFromNewToNat (initState σ σ₀ g A I) I)
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨k, C, rd1151⟩ := erc20TransferFromX_afterFromStore
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hperm hcanonFrom hcanonTo hallowance hbalance hbalanceDebit hreach
   have htoCleanL : UInt256.land erc20AddrMask (transferFromToWord I) = transferFromToWord I :=
     erc20AddrMask_clean_left hcanonTo
@@ -1999,18 +1999,18 @@ theorem erc20TransferFromX_overflow {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     (balanceOfHashMem_writeSlot_self (transferFromToWord I)) hslot (by evm_ov)
   have rd1215 := evm_run rd1215₀ with [ push0, dup3, dup3 ]
   obtain ⟨k1, C1, rd1216₀⟩ := rd1215.sload (by decide) (by evm_ov)
-  have rd1216 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1216⟩
-      [transferFromToBalanceWord (initState cA gh bl σ σ₀ g A I) I,
+  have rd1216 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨1216⟩
+      [transferFromToBalanceWord (initState σ σ₀ g A I) I,
         transferFromValueWord I, ⟨0⟩, transferFromToSlot I, transferFromValueWord I,
-        transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩,
+        transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩,
         transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
       (balanceOfHashMem (transferFromToWord I)) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I)
-          (transferFromAllowanceDebitWord (initState cA gh bl σ σ₀ g A I) I))
+          (transferFromAllowanceDebitWord (initState σ σ₀ g A I) I))
         (transferFromFromSlot I)
         (transferFromBalanceDebitWord
-          (transferFromAfterAllowanceState (initState cA gh bl σ σ₀ g A I) I) I)) k1 C1 := by
+          (transferFromAfterAllowanceState (initState σ σ₀ g A I) I) I)) k1 C1 := by
     simpa [transferFromToBalanceWord, transferFromAfterBalanceState,
       transferFromAfterAllowanceState, transferFromAllowanceSlot, transferFromAllowanceSlotI,
       initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
@@ -2022,17 +2022,17 @@ theorem erc20TransferFromX_overflow {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     (by simpa [transferFromNewToNat] using hover)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem erc20TransferFromX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 100)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
     simpa using solcCalldataStaticLenCheckShort (words := 3) hsz4
       (by simpa using hshort) hsize (by norm_num)
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_toDecoder (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+  obtain ⟨k, C, rd⟩ := erc20TransferFromX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz4 hsize hreach
   exact evm_run rd with [
     jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
@@ -2040,16 +2040,16 @@ theorem erc20TransferFromX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     push2 ⟨2120⟩, push2 ⟨1800⟩, jump erc20_jd,
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem erc20TransferFromX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_hugearg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hbig : 2 ^ 255 + 4 ≤ I.calldata.size)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
   have hslt : UInt256.slt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨96⟩ = ⟨1⟩ := by
     simpa using solcCalldataStaticLenCheckHuge (words := 3) hbig hsize (by norm_num)
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_toDecoder (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+  obtain ⟨k, C, rd⟩ := erc20TransferFromX_toDecoder
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz4 hsize hreach
   exact evm_run rd with [
     jumpdest, push0, push0, push0, push1 ⟨96⟩, dup5, dup7, sub, slt, iszero,
@@ -2057,30 +2057,30 @@ theorem erc20TransferFromX_hugearg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
     push2 ⟨2120⟩, push2 ⟨1800⟩, jump erc20_jd,
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem erc20TransferFromX_noncanon_from {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_noncanon_from {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hnc : UInt256.eq (transferFromFromWord I)
       (UInt256.land (transferFromFromWord I) erc20AddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1874_from (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1874_from
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hreach
   exact RD.erc20DecodeAddrRevert rd hnc (by evm_ov)
 
-theorem erc20TransferFromX_noncanon_to {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem erc20TransferFromX_noncanon_to {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hnc : UInt256.eq (transferFromToWord I)
       (UInt256.land (transferFromToWord I) erc20AddrMask) = ⟨0⟩)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1874_to (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨k, C, rd⟩ := erc20TransferFromX_dec1874_to
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hreach
   exact RD.erc20DecodeAddrRevert rd hnc (by evm_ov)
 
@@ -2108,19 +2108,19 @@ theorem erc20Dispatch_transferFrom {cd : ByteArray}
 
 /-- ERC20-local trace fact for the `require(currentAllowance >= value)` failure path.
     The branch builds `Error("ERC20: insufficient allowance")` and reverts. -/
-theorem erc20TransferFromX_insufficientAllowance {cA gh bl σ σ₀ A I}
+theorem erc20TransferFromX_insufficientAllowance {σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
-    (hlt : (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat <
+    (hlt : (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat <
       (transferFromValueWord I).toNat)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨k, C, rd613⟩ := erc20TransferFromX_decoded (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨k, C, rd613⟩ := erc20TransferFromX_decoded
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hcanonTo hreach
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) = transferFromFromWord I :=
     erc20AddrMask_clean_left hcanonFrom
@@ -2144,16 +2144,16 @@ theorem erc20TransferFromX_insufficientAllowance {cA gh bl σ σ₀ A I}
     (approveOuterSpenderMem_writeSlot (transferFromFromWord I) (transferFromSenderWord I))
     hslot (by evm_ov)
   obtain ⟨k1, C1, rd736₀⟩ := rd735.sload (by decide) (by evm_ov)
-  have rd737 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨737⟩
-      [transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩, ⟨0⟩,
+  have rd737 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨737⟩
+      [transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩, ⟨0⟩,
         transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
       (allowanceOuterHashMem (transferFromFromWord I) (transferFromSenderWord I))
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1 C1 := by
+      (UInt256.ofNat 3) ByteArray.empty σ k1 C1 := by
     simpa [transferFromCurrentAllowanceWord, transferFromAllowanceSlot,
       transferFromAllowanceSlotI, transferFromSenderWord, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, transferFromSender_ofNat] using rd736₀
   have hltw : UInt256.lt
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I)
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I)
       (transferFromValueWord I) = ⟨1⟩ := ult_one hlt
   have rd742₀ := evm_run rd737 with [ swap1, pop, dup3, dup2, lt ]
   have rd742 := rd742₀
@@ -2232,21 +2232,21 @@ theorem erc20TransferFromX_insufficientAllowance {cA gh bl σ σ₀ A I}
 
 /-- ERC20-local trace fact for the `require(balanceOf[from] >= value)` failure path.
     The branch builds `Error("ERC20: insufficient balance")` and reverts. -/
-theorem erc20TransferFromX_insufficientBalance {cA gh bl σ σ₀ A I}
+theorem erc20TransferFromX_insufficientBalance {σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hszhi : I.calldata.size < 2 ^ 255 + 4)
     (hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus)
     (hcanonTo : (transferFromToWord I).toNat < EVM.addressModulus)
     (hallowance : (transferFromValueWord I).toNat ≤
-      (transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I).toNat)
-    (hlt : (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I).toNat <
+      (transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I).toNat)
+    (hlt : (transferFromFromBalanceWord (initState σ σ₀ g A I) I).toNat <
       (transferFromValueWord I).toNat)
-    (hreach : ∃ k C, RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev erc20Bytecode g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨k, C, rd805⟩ := erc20TransferFromX_afterAllowance (cA := cA) (gh := gh)
-    (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
+    (hreach : ∃ k C, RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev erc20Bytecode g (initState σ σ₀ g A I) := by
+  obtain ⟨k, C, rd805⟩ := erc20TransferFromX_afterAllowance
+    (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hcanonTo hallowance hreach
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) = transferFromFromWord I :=
     erc20AddrMask_clean_left hcanonFrom
@@ -2261,18 +2261,18 @@ theorem erc20TransferFromX_insufficientBalance {cA gh bl σ σ₀ A I}
     (allowanceOuterHashMem_writeBalanceSlot (transferFromFromWord I) (transferFromSenderWord I))
     hslot (by evm_ov)
   obtain ⟨k1, C1, rd868₀⟩ := rd867.sload (by decide) (by evm_ov)
-  have rd868 : RD erc20Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨868⟩
-      [transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I,
+  have rd868 : RD erc20Bytecode I g (initState σ σ₀ g A I) ⟨868⟩
+      [transferFromFromBalanceWord (initState σ σ₀ g A I) I,
         transferFromValueWord I,
-        transferFromCurrentAllowanceWord (initState cA gh bl σ σ₀ g A I) I, ⟨0⟩,
+        transferFromCurrentAllowanceWord (initState σ σ₀ g A I) I, ⟨0⟩,
         transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨204⟩, sel]
-      (balanceOfHashMem (transferFromFromWord I)) (UInt256.ofNat 3) ByteArray.empty (cA, σ)
+      (balanceOfHashMem (transferFromFromWord I)) (UInt256.ofNat 3) ByteArray.empty σ
       k1 C1 := by
     simpa [transferFromFromBalanceWord, transferFromFromSlot, initState,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
       using rd868₀
   have hltw : UInt256.lt
-      (transferFromFromBalanceWord (initState cA gh bl σ σ₀ g A I) I)
+      (transferFromFromBalanceWord (initState σ σ₀ g A I) I)
       (transferFromValueWord I) = ⟨1⟩ := ult_one hlt
   have rd869₀ := evm_run rd868 with [ lt ]
   have rd869 := rd869₀
@@ -2341,68 +2341,18 @@ theorem erc20TransferFromX_insufficientBalance {cA gh bl σ σ₀ A I}
   exact rd923.rev 0 (by decide) mem_cost (by evm_ov)
 
 theorem erc20TransferFromBodyCore
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = erc20Bytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true)
     (hreach : ∃ k C, RD erc20Bytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨178⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor erc20Config erc20Contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨178⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor erc20Config erc20Contract
+      σ σ₀ g A I := by
   have hsz4 := erc20TransferFromSelector_size hsel
   have hd := erc20Dispatch_transferFrom (cd := I.calldata) hsel
-  let σ := σ_evm
-  let σ₀ := σ₀
-  let evmE := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
-  let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hσ : EVMStateEquiv evmE evmS := by
-    simpa [evmE, evmS] using EVMStateEquiv.initState (g := Sat256.ofUInt256 g) hAccounts
-  have hAllowance :
-      transferFromCurrentAllowanceWord evmE I = transferFromCurrentAllowanceWord evmS I := by
-    simpa [transferFromCurrentAllowanceWord, transferFromAllowanceSlot, evmE, evmS, initState]
-      using hσ.storageLoad_codeOwner
-      (erc20AllowanceSlot (.address (AccountAddress.ofNat (transferFromFromWord I).toNat))
-        (.address I.source))
-  have hσAllowance : EVMStateEquiv (transferFromAfterAllowanceState evmE I)
-      (transferFromAfterAllowanceState evmS I) := by
-    simpa [transferFromAfterAllowanceState, transferFromAllowanceSlot, evmE, evmS, initState]
-      using hσ.storageStore_codeOwner
-      (erc20AllowanceSlot (.address (AccountAddress.ofNat (transferFromFromWord I).toNat))
-        (.address I.source)) (by
-          simpa [transferFromAllowanceDebitWord, evmE, evmS] using
-            congrArg
-              (fun w : UInt256 =>
-                UInt256.ofNat (w.toNat - (transferFromValueWord I).toNat))
-              hAllowance)
-  have hFromBalance :
-      transferFromFromBalanceWord evmE I = transferFromFromBalanceWord evmS I := by
-    simpa [transferFromFromBalanceWord] using
-      hσ.storageLoad_codeOwner (transferFromFromSlot I)
-  have hAfterAllowanceFromBalance :
-      transferFromFromBalanceWord (transferFromAfterAllowanceState evmE I) I =
-        transferFromFromBalanceWord (transferFromAfterAllowanceState evmS I) I := by
-    simpa [transferFromFromBalanceWord] using
-      hσAllowance.storageLoad_codeOwner (transferFromFromSlot I)
-  have hσBalance : EVMStateEquiv (transferFromAfterBalanceState evmE I)
-      (transferFromAfterBalanceState evmS I) := by
-    simpa [transferFromAfterBalanceState] using
-      hσAllowance.storageStore (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
-        (transferFromFromSlot I)
-      (by simp [transferFromBalanceDebitWord, hAfterAllowanceFromBalance])
-  have hToBalance :
-      transferFromToBalanceWord evmE I = transferFromToBalanceWord evmS I := by
-    simpa [transferFromToBalanceWord] using
-      hσBalance.storageLoad (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
-        (transferFromToSlot I)
-  have hNewToNat : transferFromNewToNat evmE I = transferFromNewToNat evmS I := by
-    simp [transferFromNewToNat, hToBalance]
-  have hσPost : EVMStateEquiv (transferFromPostState evmE I) (transferFromPostState evmS I) := by
-    simpa [transferFromPostState] using
-      hσBalance.storageStore (congrArg ExecutionEnv.codeOwner hσ.executionEnv)
-        (transferFromToSlot I)
-      (by simp [transferFromNewToWord, hNewToNat])
+  let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   by_cases hsz100 : 100 ≤ I.calldata.size
   · by_cases hbig : I.calldata.size < 2 ^ 255 + 4
     · by_cases hcanonFrom : (transferFromFromWord I).toNat < EVM.addressModulus
@@ -2411,49 +2361,44 @@ theorem erc20TransferFromBodyCore
             hsz100 hbig hcanonFrom hcanonTo
           by_cases hallowance : (transferFromValueWord I).toNat ≤
               (transferFromCurrentAllowanceWord
-                (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat
+                (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat
           · by_cases hbalance : (transferFromValueWord I).toNat ≤
                 (transferFromFromBalanceWord
-                  (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat
+                  (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat
             · by_cases hbalanceDebit : (transferFromValueWord I).toNat ≤
                 (transferFromFromBalanceWord
                   (transferFromAfterAllowanceState
-                    (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I) I).toNat
+                    (initState σ σ₀ (Sat256.ofUInt256 g) A I) I) I).toNat
               · by_cases hfit :
                 transferFromNewToNat
-                    (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I <
+                    (initState σ σ₀ (Sat256.ofUInt256 g) A I) I <
                   UInt256.size
                 · have hbody := erc20TransferFromBodyReturns evmS I
                       (by simp only [evmS, initState]; exact hwv)
-                      (by simpa [evmE, hAllowance] using hallowance)
-                      (by simpa [evmE, hFromBalance] using hbalance)
-                      (by simpa [evmE, hAfterAllowanceFromBalance] using hbalanceDebit)
-                      (by simpa [evmE, hNewToNat] using hfit)
+                      (by simpa [evmS] using hallowance)
+                      (by simpa [evmS] using hbalance)
+                      (by simpa [evmS] using hbalanceDebit)
+                      (by simpa [evmS] using hfit)
                   exact (erc20X_transferFrom (g := Sat256.ofUInt256 g)
                     hsz100 hsize hbig hperm hcanonFrom hcanonTo hallowance hbalance
                     hbalanceDebit hfit
                     hreach)
-                  |>.reEquivExecutionGenEVMStateEquiv hcode hd hdec hbody
-                    (by simp [evmE, transferFromPostState, transferFromAfterBalanceState,
+                  |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                    (by simp [evmS, transferFromPostState, transferFromAfterBalanceState,
                       transferFromAfterAllowanceState, transferFromAllowanceSlot,
-                      transferFromAllowanceSlotI, initState, erc20StorageStore_createdAccounts])
-                    (accountMapEquiv.of_eq (by
-                      simp [evmE, transferFromPostState, transferFromAfterBalanceState,
-                        transferFromAfterAllowanceState, transferFromAllowanceSlot,
-                        transferFromAllowanceSlotI, initState, erc20StorageStore_accountMap]))
-                    hσPost
+                      transferFromAllowanceSlotI, initState, erc20StorageStore_accountMap])
                     (returnEquiv_of_encode erc20BoolTrueReturnEncoding)
                 · have hover :
                     UInt256.size ≤
                       transferFromNewToNat
-                        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I := by
+                        (initState σ σ₀ (Sat256.ofUInt256 g) A I) I := by
                     omega
                   have hbody := erc20TransferFromBodyReverts_overflow evmS I
                       (by simp only [evmS, initState]; exact hwv)
-                      (by simpa [evmE, hAllowance] using hallowance)
-                      (by simpa [evmE, hFromBalance] using hbalance)
-                      (by simpa [evmE, hAfterAllowanceFromBalance] using hbalanceDebit)
-                      (by simpa [evmE, hNewToNat] using hover)
+                      (by simpa [evmS] using hallowance)
+                      (by simpa [evmS] using hbalance)
+                      (by simpa [evmS] using hbalanceDebit)
+                      (by simpa [evmS] using hover)
                   exact (erc20TransferFromX_overflow (g := Sat256.ofUInt256 g)
                     hsz100 hsize hbig hperm hcanonFrom hcanonTo hallowance hbalance
                     hbalanceDebit hover
@@ -2462,38 +2407,38 @@ theorem erc20TransferFromBodyCore
               · have hltDebit :
                   (transferFromFromBalanceWord
                     (transferFromAfterAllowanceState
-                      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I) I).toNat <
+                      (initState σ σ₀ (Sat256.ofUInt256 g) A I) I) I).toNat <
                     (transferFromValueWord I).toNat := by
                   omega
                 have hbody := erc20TransferFromBodyReverts_balanceDebit evmS I
                   (by simp only [evmS, initState]; exact hwv)
-                  (by simpa [evmE, hAllowance] using hallowance)
-                  (by simpa [evmE, hFromBalance] using hbalance)
-                  (by simpa [evmE, hAfterAllowanceFromBalance] using hltDebit)
+                  (by simpa [evmS] using hallowance)
+                  (by simpa [evmS] using hbalance)
+                  (by simpa [evmS] using hltDebit)
                 exact (erc20TransferFromX_balanceDebitUnderflow (g := Sat256.ofUInt256 g)
                     hsz100 hsize hbig hperm hcanonFrom hcanonTo hallowance hbalance hltDebit
                     hreach)
                   |>.reEquivExecutionRevert hcode hd hdec hbody
             · have hlt :
                 (transferFromFromBalanceWord
-                    (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat <
+                    (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat <
                   (transferFromValueWord I).toNat := by
                 omega
               have hbody := erc20TransferFromBodyReverts_balance evmS I
                 (by simp only [evmS, initState]; exact hwv)
-                (by simpa [evmE, hAllowance] using hallowance)
-                (by simpa [evmE, hFromBalance] using hlt)
+                (by simpa [evmS] using hallowance)
+                (by simpa [evmS] using hlt)
               exact (erc20TransferFromX_insufficientBalance (g := Sat256.ofUInt256 g)
                   hsz100 hsize hbig hcanonFrom hcanonTo hallowance hlt hreach)
                 |>.reEquivExecutionRevert hcode hd hdec hbody
           · have hlt :
               (transferFromCurrentAllowanceWord
-                  (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat <
+                  (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).toNat <
                 (transferFromValueWord I).toNat := by
               omega
             have hbody := erc20TransferFromBodyReverts_allowance evmS I
               (by simp only [evmS, initState]; exact hwv)
-              (by simpa [evmE, hAllowance] using hlt)
+              (by simpa [evmS] using hlt)
             exact (erc20TransferFromX_insufficientAllowance (g := Sat256.ofUInt256 g)
                 hsz100 hsize hbig hcanonFrom hcanonTo hlt hreach)
               |>.reEquivExecutionRevert hcode hd hdec hbody

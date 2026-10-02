@@ -51,13 +51,13 @@ theorem potDecode_drip {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
 
 /-! ## Reach the drip logic block `@1819` -/
 
-theorem potReachDripEntry {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem potReachDripEntry {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (potSelBytes 4)) :
-    ∃ k C, RD potBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
         ⟨583⟩ [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : potSelWord I = ⟨0x9f678cca⟩ :=
     potSelWord_eq_of_beq I hsz 0x9f 0x67 0x8c 0xca ⟨0x9f678cca⟩
       (by native_decide) (by simpa [potSelBytes] using hsel)
@@ -76,44 +76,44 @@ theorem potReachDripEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     (by jump_dest) (by native_decide)
 
 /-- Entry `@583`: push return addr `341`, push logic `1819`, jump. -/
-theorem potDripX_entered {cA σ I} {g : Sat256} {s0 : State} {sel : UInt256}
+theorem potDripX_entered {σ I} {g : Sat256} {s0 : State} {sel : UInt256}
     (hreach : ∃ k C, RD potBytecode I g s0 ⟨583⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨1819⟩ [⟨341⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨k, C, h⟩ := hreach
   have rd584 := h.jumpdest (by native_decide) (by evm_ov)
   have rd587 := rd584.push2 ⟨341⟩ (by native_decide) (by evm_ov)
   have rd590 := rd587.push2 ⟨1819⟩ (by native_decide) (by evm_ov)
   exact ⟨_, _, rd590.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
-theorem potReachDripBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem potReachDripBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (potSelBytes 4)) :
-    ∃ k C, RD potBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
         ⟨1819⟩ [⟨341⟩, potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C :=
+        σ k C :=
   potDripX_entered (potReachDripEntry hcode hwv hsz hsize hsel)
 
 /-! ## EVM-side `now >= rho` guard (`@1819`–`@1831`) -/
 
 /-- Common prefix: load rho (slot 7), compare with `now`, land on `@1828` after `ISZERO`
 with the guard condition on top of `[0, 341, sel]`. -/
-theorem potDripX_guardCond {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
+theorem potDripX_guardCond {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     (h : RD potBytecode I g s0 ⟨1819⟩ [⟨341⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨1828⟩
       (UInt256.isZero (UInt256.lt (dripNowWord I) (dripRhoWord σ I)) ::
         ⟨0⟩ :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have rd1820 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1822 := rd1820.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd1824 := rd1822.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1825, C1825, rd1825raw⟩ := rd1824.sload (by native_decide) (by evm_ov)
   have rd1825 : RD potBytecode I g s0 ⟨1825⟩
       (dripRhoWord σ I :: ⟨0⟩ :: ⟨341⟩ :: [sel])
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1825 C1825 := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k1825 C1825 := by
     simpa [dripRhoWord, potSlotWord, solcSlotWord] using rd1825raw
   have rd1826 := RD.timestamp rd1825 (by native_decide) (by evm_ov)
   have rd1827 := rd1826.lt (by native_decide) (by evm_ov)
@@ -121,12 +121,12 @@ theorem potDripX_guardCond {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel 
   exact ⟨_, _, by simpa [dripNowWord] using rd1828⟩
 
 /-- `now >= rho`: the guard is taken, landing at `@1894` with `[0, 341, sel]`. -/
-theorem potDripX_nowOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
+theorem potDripX_nowOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     (hle : (dripRhoWord σ I).toNat ≤ (dripNowWord I).toNat)
     (h : RD potBytecode I g s0 ⟨1819⟩ [⟨341⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨1894⟩ [⟨0⟩, ⟨341⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   obtain ⟨_, _, rd1828⟩ := potDripX_guardCond h
   have hltZero : UInt256.lt (dripNowWord I) (dripRhoWord σ I) = ⟨0⟩ := ult_zero hle
   rw [hltZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1828
@@ -135,10 +135,10 @@ theorem potDripX_nowOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UI
   exact ⟨_, _, rd1831.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 /-- `now < rho`: the guard falls through to the `"Pot/invalid-now"` string revert. -/
-theorem potDripX_invalidNow {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
+theorem potDripX_invalidNow {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     (hlt : (dripNowWord I).toNat < (dripRhoWord σ I).toNat)
     (h : RD potBytecode I g s0 ⟨1819⟩ [⟨341⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev potBytecode g s0 := by
   obtain ⟨_, _, rd1828⟩ := potDripX_guardCond h
   have hltOne : UInt256.lt (dripNowWord I) (dripRhoWord σ I) = ⟨1⟩ := ult_one hlt

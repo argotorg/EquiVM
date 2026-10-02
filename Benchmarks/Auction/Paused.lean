@@ -17,10 +17,10 @@ theorem pausedBodyReturns (evm : EVM.State) (locals : Store)
       rw [pausedRef, scalarRead evm locals "_paused" .bool (auctionBoolLoc ⟨51⟩)
         hbase (by native_decide) rfl, loadBool])
 
-theorem pausedX {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hreach : EntryReached 5 cA gh bl σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
+theorem pausedX {σ σ₀ A I} {g : UInt256}
+    (hreach : EntryReached 5 σ σ₀ A I g) (hwv : I.weiValue = ⟨0⟩) :
     RDret auctionBytecode (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (cA, σ)
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
       (UInt256.toByteArray
         (UInt256.isZero (UInt256.isZero (UInt256.land (storedWord σ I ⟨51⟩) ⟨255⟩)))) := by
   obtain ⟨_, _, rd466⟩ := hreach
@@ -39,13 +39,11 @@ theorem pausedX {cA gh bl σ σ₀ A I} {g : UInt256}
   have hret := rd318.auctionReturn32 (by evm_ov)
   simpa only [val, u256_land_comm ⟨255⟩ (storedWord σ I ⟨51⟩)] using hret
 
-theorem pausedBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem pausedBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hsel : selIs I (entryBytes 5))
-    (hreach : EntryReached 5 cA gh bl σ_evm σ₀ A I g)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor auctionConfig auctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    (hreach : EntryReached 5 σ σ₀ A I g) :
+    runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hsz := calldata_size_ge_of_selIs I (entryBytes 5) (entryBytes_size 5) hsel
     have hd := dispatchEntry 5 hsel
@@ -53,18 +51,16 @@ theorem pausedBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (pausedGetter.params.map Param.name)
         (transitionSignature pausedGetter).paramTypes I.calldata = some ∅ :=
       decodeCalldata_empty_ok hsz
-    have hword := storedWord_equiv hAccounts I ⟨51⟩
     have hbody : ExecTransitionBody auctionConfig auctionContract
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ pausedGetter.body
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅ pausedGetter.body
         (.returned { contract := auctionContract, locals := ∅ }
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-          (some [wordToElem .bool (UInt256.land (storedWord σ_solm I ⟨51⟩) ⟨255⟩)])) := by
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          (some [wordToElem .bool (UInt256.land (storedWord σ I ⟨51⟩) ⟨255⟩)])) := by
       simpa [storedWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
-        pausedBodyReturns (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+        pausedBodyReturns (initState σ σ₀ (Sat256.ofUInt256 g) A I)
           ∅ hwv (by simp)
-    exact (pausedX hreach hwv).reEquivExecutionTransport hcode hd hdec hbody
-      (by rw [hword]) hAccounts
-      (returnEquiv_of_encode (boolWordReturnEncoding (storedWord σ_evm I ⟨51⟩)))
+    exact (pausedX hreach hwv).reEquivExecution hcode hd hdec hbody
+      (returnEquiv_of_encode (boolWordReturnEncoding (storedWord σ I ⟨51⟩)))
   · exact entryNonpayableRevert 5 (by decide) hcode hsel hreach hwv
 
 end Auction

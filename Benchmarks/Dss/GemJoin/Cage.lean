@@ -69,13 +69,13 @@ theorem gemJoinCageBodyReverts (evm : EVM.State) (I : ExecutionEnv)
       hwv
       (evalExpr_auth_false_of_wards_none evm I ∅ (by simp) hsrc hauth)
 
-theorem gemJoinReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem gemJoinReachCageBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (gemJoinSelBytes 0)) :
-    ∃ k C, RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD gemJoinBytecode I g (initState σ σ₀ g A I)
         ⟨294⟩ [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : gemJoinSelWord I = ⟨0x69245009⟩ :=
     gemJoinSelWord_eq_of_beq I hsz 0x69 0x24 0x50 0x09 ⟨0x69245009⟩
       (by native_decide) (by simpa [gemJoinSelBytes] using hsel)
@@ -99,13 +99,13 @@ theorem gemJoinReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
   exact gemJoinReachLowBody 3 (by omega) ⟨294⟩ hcode hwv hsz hsize hroot heq0 htake
     (by jump_dest) (by native_decide)
 
-theorem gemJoinCageX_enter {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem gemJoinCageX_enter {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD gemJoinBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨294⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    ∃ k C, RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1191⟩
+      (initState σ σ₀ g A I) ⟨294⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    ∃ k C, RD gemJoinBytecode I g (initState σ σ₀ g A I) ⟨1191⟩
         [⟨254⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨_, _, h294⟩ := hreach
   have rd295 := h294.jumpdest (by native_decide) (by evm_ov)
   have rd298 := rd295.push2 ⟨254⟩ (by native_decide) (by evm_ov)
@@ -113,12 +113,12 @@ theorem gemJoinCageX_enter {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact ⟨_, _, rd301.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem gemJoinCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem gemJoinCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
     (h : RD gemJoinBytecode I g s0 ⟨1191⟩ [⟨254⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD gemJoinBytecode I g s0 ⟨1284⟩ [⟨254⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -149,7 +149,7 @@ theorem gemJoinCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k1208, C1208, rd1208raw⟩ := rd1207.sload (by native_decide) (by evm_ov)
   have rd1208 : RD gemJoinBytecode I g s0 ⟨1208⟩
       (relyAuthWord σ I :: ⟨254⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1208 C1208 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1208 C1208 := by
     simpa [relyAuthWord, gemJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1208raw
   have rd1211pre := evm_run rd1208 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -167,10 +167,10 @@ theorem gemJoinNotAuthorizedWord :
   native_decide
 
 set_option maxHeartbeats 1000000 in
-theorem gemJoinCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem gemJoinCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (h : RD gemJoinBytecode I g s0 ⟨1191⟩ [⟨254⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev gemJoinBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -202,7 +202,7 @@ theorem gemJoinCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
   obtain ⟨k1208, C1208, rd1208raw⟩ := rd1207.sload (by native_decide) (by evm_ov)
   have rd1208 : RD gemJoinBytecode I g s0 ⟨1208⟩
       (relyAuthWord σ I :: ⟨254⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1208 C1208 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k1208 C1208 := by
     simpa [relyAuthWord, gemJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1208raw
   have rd1211pre := evm_run rd1208 with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -233,12 +233,12 @@ theorem gemJoinCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
-theorem gemJoinCageX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem gemJoinCageX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (h : RD gemJoinBytecode I g s0 ⟨1284⟩ [⟨254⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret gemJoinBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner σ ⟨5⟩ ⟨0⟩)
+      (sstoreAccountMap I.codeOwner σ ⟨5⟩ ⟨0⟩)
       ByteArray.empty := by
   have rd1285 := h.jumpdest (by native_decide) (by evm_ov)
   have rd1291pre := evm_run rd1285 with [
@@ -266,46 +266,41 @@ theorem gemJoinCageX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
   have rd255 := rd254.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop rd255 (by native_decide) (by evm_ov)
 
-theorem gemJoinX_cage_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem gemJoinX_cage_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
     (hreach : ∃ k C, RD gemJoinBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨294⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret gemJoinBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner σ ⟨5⟩ ⟨0⟩)
+      (initState σ σ₀ g A I) ⟨294⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret gemJoinBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ ⟨5⟩ ⟨0⟩)
       ByteArray.empty := by
   obtain ⟨_, _, rd1191⟩ := gemJoinCageX_enter (g := g) hreach
   obtain ⟨_, _, rd1284⟩ := gemJoinCageX_authorized (I := I) hauth rd1191
   exact gemJoinCageX_storeAuthorized hperm rd1284
 
-theorem gemJoinX_cage_unauthorized {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem gemJoinX_cage_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (hreach : ∃ k C, RD gemJoinBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨294⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev gemJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨294⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev gemJoinBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd1191⟩ := gemJoinCageX_enter (g := g) hreach
   exact gemJoinCageX_unauthorized (I := I) hauth rd1191
 
 theorem gemJoinCageBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = gemJoinBytecode) (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : relyAuthWord σ_evm I = ⟨1⟩)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨294⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthWord : relyAuthWord σ_solm I = ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    rw [← hword]
-    exact hauth
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨294⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthWord : relyAuthWord σ I = ⟨1⟩ := hauth
   have hbody :
       ExecTransitionBody config contract evmSolm ∅ cageTransition.body
         (.returned { contract := contract, locals := ∅ } (cagePostState evmSolm) none) := by
@@ -317,34 +312,28 @@ theorem gemJoinCageBodyCoreOk
         hauthWord
   exact (gemJoinX_cage_ok (g := Sat256.ofUInt256 g) hperm hauth hreach)
     |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-      (by simp [cagePostState, evmSolm, initState, storageStore_createdAccounts])
       (by
-        simpa [cagePostState, evmSolm, initState, storageStore_accountMap] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner ⟨5⟩ ⟨0⟩ hAccounts)
+        simpa [cagePostState, evmSolm, initState, storageStore_accountMap,
+          storageStore_executionEnv, sstoreAccountMap])
       (by
         simpa [cageTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
             (dvs := []) rfl (by native_decide) (by native_decide)))
 
 theorem gemJoinCageBodyCoreUnauthorized
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : relyAuthWord σ_evm I ≠ ⟨1⟩)
+    (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD gemJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨294⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthWord : relyAuthWord σ_solm I ≠ ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    intro hbad
-    exact hauth (by rw [hword, hbad])
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨294⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+  have hauthWord : relyAuthWord σ I ≠ ⟨1⟩ := hauth
   have hbody :
       ExecTransitionBody config contract evmSolm ∅ cageTransition.body .reverted := by
     simpa [evmSolm, relyAuthWord, gemJoinSlotWord, initState, Solm.EVM.storageLoad,
@@ -356,14 +345,13 @@ theorem gemJoinCageBodyCoreUnauthorized
   exact (gemJoinX_cage_unauthorized (g := Sat256.ofUInt256 g) hauth hreach)
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
-theorem gemJoinCageBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem gemJoinCageBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = gemJoinBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (gemJoinSelBytes 0))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (gemJoinSelBytes 0)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (gemJoinSelBytes 0) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
@@ -372,11 +360,11 @@ theorem gemJoinCageBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅ :=
     gemJoinDecode_cage hsz4
-  have hreach := gemJoinReachCageBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := gemJoinReachCageBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz4 hsize hsel
-  by_cases hauth : relyAuthWord σ_evm I = ⟨1⟩
-  · exact gemJoinCageBodyCoreOk hcode hperm hwv hauth hdispatch hdecode hreach hAccounts
-  · exact gemJoinCageBodyCoreUnauthorized hcode hwv hauth hdispatch hdecode hreach hAccounts
+  by_cases hauth : relyAuthWord σ I = ⟨1⟩
+  · exact gemJoinCageBodyCoreOk hcode hperm hwv hauth hdispatch hdecode hreach
+  · exact gemJoinCageBodyCoreUnauthorized hcode hwv hauth hdispatch hdecode hreach
 
 end Benchmarks.Dss.GemJoin

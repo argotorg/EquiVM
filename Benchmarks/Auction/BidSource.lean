@@ -63,16 +63,16 @@ theorem bidNounGuardSource {evm locals s noun} (hv : BidValues locals s noun) :
   · intro he
     rw [he]
 
-theorem bidTimeGuardSource {s0 I cA σ evm locals s noun}
-    (hs : SourceState s0 I cA σ evm) (hv : BidValues locals s noun) :
+theorem bidTimeGuardSource {s0 I σ evm locals s noun}
+    (hs : SourceState s0 I σ evm) (hv : BidValues locals s noun) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       (.binary .lt now (auctionMemField "endTime")) =
       .ok (.bool (decide ((UInt256.ofNat I.header.timestamp).toNat < s.endTime.toNat))) := by
   simp only [now, evalExpr?, snapshotEndSource hv.snapshot, envValue, hs.env, pure,
     bind, EvalResult.bind, evalBinaryOp?, Int.ofNat_eq_natCast, Int.ofNat_lt]
 
-theorem bidReserveGuardSource {s0 I cA σ evm locals s noun}
-    (hs : SourceState s0 I cA σ evm) (hv : BidValues locals s noun) :
+theorem bidReserveGuardSource {s0 I σ evm locals s noun}
+    (hs : SourceState s0 I σ evm) (hv : BidValues locals s noun) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       (.binary .ge (.env .callvalue) (.storage reservePriceRef)) =
       .ok (.bool (decide ((storedWord σ I ⟨204⟩).toNat ≤ I.weiValue.toNat))) := by
@@ -87,8 +87,8 @@ theorem bidReserveGuardSource {s0 I cA σ evm locals s noun}
     bind, EvalResult.bind, evalBinaryOp?, Int.ofNat_eq_natCast, Int.ofNat_le]
   rfl
 
-theorem bidPercentageSource {s0 I cA σ evm locals s noun}
-    (hs : SourceState s0 I cA σ evm) (hv : BidValues locals s noun) :
+theorem bidPercentageSource {s0 I σ evm locals s noun}
+    (hs : SourceState s0 I σ evm) (hv : BidValues locals s noun) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       (.storage minBidIncRef) = .ok (.int (Int.ofNat (bidPercentage σ I).toNat)) := by
   rw [minBidIncRef, scalarRead evm locals "minBidIncrementPercentage"
@@ -97,8 +97,8 @@ theorem bidPercentageSource {s0 I cA σ evm locals s noun}
   rw [bidPercentage, storedWord_equiv hs.accounts, ← hs.env]
   rfl
 
-theorem bidMinimumSource {s0 I cA σ evm locals s noun}
-    (hs : SourceState s0 I cA σ evm) (hv : BidValues locals s noun)
+theorem bidMinimumSource {s0 I σ evm locals s noun}
+    (hs : SourceState s0 I σ evm) (hv : BidValues locals s noun)
     (hmul : s.amount.toNat * (bidPercentage σ I).toNat < UInt256.size)
     (hadd : s.amount.toNat + (bidIncrement s.amount (bidPercentage σ I)).toNat < UInt256.size) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
@@ -116,8 +116,8 @@ theorem bidMinimumSource {s0 I cA σ evm locals s noun}
     Int.ofNat_eq_natCast, Int.ofNat_le]
   rfl
 
-theorem bidMinimumMulOverflow {s0 I cA σ evm locals s noun}
-    (hs : SourceState s0 I cA σ evm) (hv : BidValues locals s noun)
+theorem bidMinimumMulOverflow {s0 I σ evm locals s noun}
+    (hs : SourceState s0 I σ evm) (hv : BidValues locals s noun)
     (hmul : UInt256.size ≤ s.amount.toNat * (bidPercentage σ I).toNat) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       bidMinimumGuard = .revert := by
@@ -127,8 +127,8 @@ theorem bidMinimumMulOverflow {s0 I cA σ evm locals s noun}
   simp only [bidMinimumGuard, bidMinimumExpr, u256, evalExpr?, hp,
     envValue, snapshotAmountSource hv.snapshot, pure, bind, EvalResult.bind]
 
-theorem bidMinimumAddOverflow {s0 I cA σ evm locals s noun}
-    (hs : SourceState s0 I cA σ evm) (hv : BidValues locals s noun)
+theorem bidMinimumAddOverflow {s0 I σ evm locals s noun}
+    (hs : SourceState s0 I σ evm) (hv : BidValues locals s noun)
     (hmul : s.amount.toNat * (bidPercentage σ I).toNat < UInt256.size)
     (hadd : UInt256.size ≤ s.amount.toNat + (bidIncrement s.amount (bidPercentage σ I)).toNat) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm

@@ -16,20 +16,18 @@ set_option maxRecDepth 2000000
 
 set_option maxHeartbeats 1000000 in
 theorem potCtorWardsStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) {k C : ℕ}
     (hperm : I.perm = true)
     (rd54 :
       RD (potCtorCode vat) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨54⟩
+        (initState σ σ₀ g A I) ⟨54⟩
         [EVM.word vat.val] (potCtorArgFreeMem vat) (UInt256.ofNat 5) ByteArray.empty
-        (createdAccounts, σ) k C) :
+        σ k C) :
     ∃ k' C', RD (potCtorCode vat) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨75⟩
+      (initState σ σ₀ g A I) ⟨75⟩
       [⟨1⟩, EVM.word vat.val] (potCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
-      (createdAccounts, sstoreAccountMap I.codeOwner σ (potCtorCallerWardsSlot I) ⟨1⟩)
+      (sstoreAccountMap I.codeOwner σ (potCtorCallerWardsSlot I) ⟨1⟩)
       k' C' := by
   have rdBeforeHash := pot_ctor_run rd54 with [
     caller, push1 ⟨0⟩, swap1, dup2,

@@ -11,18 +11,16 @@ namespace Benchmarks.Dss.GemJoin
 set_option maxRecDepth 2000000
 
 theorem gemJoinInitcodeNonpayableRevert
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     (hcode : I.code = gemJoinCtorCode vat ilk gem)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev (gemJoinCtorCode vat ilk gem) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   have rd0 :
       RD (gemJoinCtorCode vat ilk gem) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   have rd12 := gem_ctor_run rd0 with [
     push1 ⟨128⟩, push1 ⟨64⟩,
@@ -38,7 +36,7 @@ theorem gemJoinInitcodeNonpayableRevert
 set_option maxHeartbeats 1000000 in
 theorem gemJoinCtorArgCopyTrace
     {I : ExecutionEnv} {g0 : Sat256} {s0 : State} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {acc : AccountMap} {k C : Nat}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     (h : RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨18⟩ []
       solcFreePtrMem (UInt256.ofNat 3) rdata acc k C) :
@@ -93,7 +91,7 @@ theorem gemJoinCtorArgCopyTrace
 set_option maxHeartbeats 1000000 in
 theorem gemJoinCtorArgDecodeTrace
     {I : ExecutionEnv} {g0 : Sat256} {s0 : State} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {acc : AccountMap} {k C : Nat}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     (h : RD (gemJoinCtorCode vat ilk gem) I g0 s0 ⟨38⟩
       [(UInt256.ofNat (gemJoinCtorCode vat ilk gem).size).sub ⟨2326⟩, ⟨128⟩]
@@ -151,22 +149,20 @@ theorem gemJoinCtorArgDecodeTrace
   exact rd68'
 
 theorem gemJoinCtorArgsReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g0 : Sat256}
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress)
     (hcode : I.code = gemJoinCtorCode vat ilk gem)
     (hwv : I.weiValue = ⟨0⟩) :
     ∃ k C, RD (gemJoinCtorCode vat ilk gem) I g0
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) ⟨68⟩
+      (initState σ σ₀ g0 A I) ⟨68⟩
       [solcSourceWord I, EVM.word gem.val, ilk, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
       (gemJoinCtorArgFreeMem vat ilk gem) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts, σ) k C := by
+      σ k C := by
   have rd8 :
       RD (gemJoinCtorCode vat ilk gem) I g0
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) ⟨8⟩
+        (initState σ σ₀ g0 A I) ⟨8⟩
         [UInt256.isZero I.weiValue, I.weiValue] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (createdAccounts, σ) 6 26 := by
+        ByteArray.empty σ 6 26 := by
     exact solcGuardPrologueRD (code := gemJoinCtorCode vat ilk gem) hcode
       (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode)
       (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode)
@@ -177,8 +173,8 @@ theorem gemJoinCtorArgsReach
       (by gem_ctor_jd)
   have rd18' :
       RD (gemJoinCtorCode vat ilk gem) I g0
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) ⟨18⟩
-        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σ) k18 C18 := by
+        (initState σ σ₀ g0 A I) ⟨18⟩
+        [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k18 C18 := by
     simpa [show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by native_decide]
       using rd18
   obtain ⟨_, _, rd38⟩ := gemJoinCtorArgCopyTrace vat ilk gem rd18'

@@ -20,20 +20,20 @@ theorem uInt256_land_one_eq_one_of_odd {n : UInt256} (hodd : n.toNat % 2 ≠ 0) 
   omega
 
 theorem RD.potDripRpowToLoop
-    {cA gh bl σ σ₀ A I} {g b n x : UInt256} {aw : UInt256}
-    {mem out : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {σ σ₀ A I} {g b n x : UInt256} {aw : UInt256}
+    {mem out : ByteArray} {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hx : x ≠ ⟨0⟩)
     (rd2352 : RD potBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2352⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2352⟩
       (b :: n :: x :: ⟨1926⟩ :: R)
       mem aw out acc k C) :
     let half := UInt256.div b ⟨2⟩
     let z := if n.toNat % 2 = 0 then b else x
     let n' := UInt256.div n ⟨2⟩
     ∃ scratch k' C', RD potBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2395⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2395⟩
       (half :: scratch :: z :: b :: n' :: x :: ⟨1926⟩ :: R)
       mem aw out acc k' C' := by
   intro half z n'
@@ -373,15 +373,15 @@ theorem execRpowFunctionRevertXNonzeroWithLoop
   simpa [locals] using ExecFuncBody.execBlockRevert hblock
 
 theorem rpowFunctionCoupled
-    {cA gh bl σ σ₀ A I} {g x n b : UInt256} {aw : UInt256}
+    {σ σ₀ A I} {g x n b : UInt256} {aw : UInt256}
     {evm : EVM.State} {mem out : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hx : x ≠ ⟨0⟩)
     (hb : b ≠ ⟨0⟩)
     (rd2352 : RD potBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2352⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2352⟩
       (b :: n :: x :: ⟨1926⟩ :: R)
       mem aw out acc k C) :
     (∃ xFinal zFinal localsFinal k' C',
@@ -391,12 +391,12 @@ theorem rpowFunctionCoupled
         (.returned { contract := contract, locals := localsFinal } evm
           (some [.int (Int.ofNat zFinal.toNat)])) ∧
       RD potBytecode I (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1926⟩
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1926⟩
         (zFinal :: R) mem aw out acc k' C') ∨
     (ExecFuncBody config { contract := contract, locals := uintTernaryLocals x n b } evm
         rpowFunction.body .reverted ∧
       RDrev potBytecode (Sat256.ofUInt256 g)
-        (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)) := by
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)) := by
   let half := UInt256.div b ⟨2⟩
   let z := if n.toNat % 2 = 0 then b else x
   let n' := UInt256.div n ⟨2⟩
@@ -408,7 +408,7 @@ theorem rpowFunctionCoupled
     simpa [localsLoop] using RpowLoopStore.rpowLocalsZHN x n b z half n'
   have hloop :=
     rpowLoopCoupled
-      (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A)
+      (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g) (evm := evm) (R := R) (hRlen := hRlen)
       (hstore := hstoreLoop) (hb := hb) (hle := Nat.le_refl n'.toNat)
       (rd2395 := by simpa [half, z, n'] using rd2395)

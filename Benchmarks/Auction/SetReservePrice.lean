@@ -20,13 +20,12 @@ theorem setReservePriceBody (evm : EVM.State) (value : UInt256)
   exact ownerSetUint256 evm _ "reservePrice" "_reservePrice" ⟨204⟩ value hwv ho
     (by simp) (by simp) (by simp) (by native_decide) rfl
 
-theorem setReservePriceBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem setReservePriceBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I (entryBytes 15))
-    (hreach : EntryReached 15 cA gh bl σ_evm σ₀ A I g)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor auctionConfig auctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    (hreach : EntryReached 15 σ σ₀ A I g) :
+    runtimeEquivalenceFor auctionConfig auctionContract
+      σ σ₀ g A I := by
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hd := dispatchEntry 15 hsel
     have hsz := calldata_size_ge_of_selIs I (entryBytes 15) (entryBytes_size 7) hsel
@@ -44,30 +43,23 @@ theorem setReservePriceBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
         obtain ⟨_, _, rd854⟩ := decodeUint256Ok rd5357 hlen hhi hsize
           (by native_decide) (by evm_ov)
         obtain ⟨_, _, rd2478⟩ := setterFromDecoder 1 rd854 (by evm_ov)
-        by_cases ho : solcSourceWord I = ownerWord σ_evm I
+        by_cases ho : solcSourceWord I = ownerWord σ I
         · obtain ⟨_, _, rd2520⟩ := ownerAllowed 5 rd2478 ho (by evm_ov)
           obtain ⟨_, _, rd413⟩ := setterStoreEvent 1 rd2520 hperm
             (by jump_dest) (by evm_ov)
           have hbody := setReservePriceBody
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-            (calldataWord I.calldata 4) hwv (by
-              change solcSourceWord I = ownerWord σ_solm I
-              rw [← ownerWord_equiv hAccounts I]
-              exact ho)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+            (calldataWord I.calldata 4) hwv ho
           exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGenAccountMapEquiv
-            hcode hd hdec hbody (by rw [storageStore_createdAccounts]; rfl) (by
-              rw [storageStore_accountMap]
-              exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨204⟩ _ hAccounts)
+            hcode hd hdec hbody (by simp [storageStore_accountMap, initState, setterSlot])
             (.fallthrough rfl rfl (by native_decide))
         · have hbody : ExecTransitionBody auctionConfig auctionContract
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               ((∅ : Store).insert "_reservePrice"
                 (.int (Int.ofNat (calldataWord I.calldata 4).toNat)))
               setReservePriceTransition.body .reverted := by
             apply ownerBodyReverts _ _ _ hwv
-            · change solcSourceWord I ≠ ownerWord σ_solm I
-              rw [← ownerWord_equiv hAccounts I]
-              exact ho
+            · exact ho
             · simp
           exact (ownerDenied 5 rd2478 ho (by evm_ov)).reEquivExecutionRevert
             hcode hd hdec hbody

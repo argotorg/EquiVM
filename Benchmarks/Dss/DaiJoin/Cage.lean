@@ -150,14 +150,14 @@ theorem daiJoinCageBodyReverts (evm : EVM.State) (I : ExecutionEnv)
       hwv
       (evalExpr_cage_auth_false evm I hsrc hauth)
 
-theorem daiJoinReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem daiJoinReachCageBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (daiJoinSelBytes 0)) :
     ∃ k C, RD daiJoinBytecode I g
-        (initState cA gh bl σ σ₀ g A I)
+        (initState σ σ₀ g A I)
         ⟨272⟩ [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   have hword : daiJoinSelWord I = ⟨0x69245009⟩ :=
     daiJoinSelWord_eq_of_beq I hsz 0x69 0x24 0x50 0x09 ⟨0x69245009⟩
       (by native_decide) (by simpa [daiJoinSelBytes] using hsel)
@@ -181,14 +181,14 @@ theorem daiJoinReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
   exact daiJoinReachLowBody 3 (by omega) ⟨272⟩ hcode hwv hsz hsize hroot heq0 htake
     (by jump_dest) (by native_decide)
 
-theorem daiJoinCageX_entry {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiJoinCageX_entry {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD daiJoinBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨272⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (initState σ σ₀ g A I) ⟨272⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD daiJoinBytecode I g
-        (initState cA gh bl σ σ₀ g A I) ⟨936⟩
+        (initState σ σ₀ g A I) ⟨936⟩
         [⟨232⟩, sel]
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   rcases hreach with ⟨_, _, h⟩
   have h' := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -198,14 +198,14 @@ theorem daiJoinCageX_entry {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact ⟨_, _, h'⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiJoinCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiJoinCageX_authorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I = ⟨1⟩)
     (h : RD daiJoinBytecode I g s0 ⟨936⟩
       [⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD daiJoinBytecode I g s0 ⟨1029⟩
       [⟨232⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (KEC ((relyAuthHashMem I).readWithPadding 0 64))) =
@@ -238,7 +238,7 @@ theorem daiJoinCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   obtain ⟨k953, C953, rd953raw⟩ := rd952.sload (by native_decide) (by evm_ov)
   have rd953 : RD daiJoinBytecode I g s0 ⟨953⟩
       (relyAuthWord σ I :: ⟨232⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k953 C953 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k953 C953 := by
     simpa [relyAuthWord, daiJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd953raw
   have rd956pre := evm_run rd953 with [
@@ -251,11 +251,11 @@ theorem daiJoinCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
-theorem daiJoinCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiJoinCageX_unauthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (h : RD daiJoinBytecode I g s0 ⟨936⟩
       [⟨232⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev daiJoinBytecode g s0 := by
   have hauthSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -289,7 +289,7 @@ theorem daiJoinCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
   obtain ⟨k953, C953, rd953raw⟩ := rd952.sload (by native_decide) (by evm_ov)
   have rd953 : RD daiJoinBytecode I g s0 ⟨953⟩
       (relyAuthWord σ I :: ⟨232⟩ :: [sel])
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k953 C953 := by
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k953 C953 := by
     simpa [relyAuthWord, daiJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd953raw
   have rd956pre := evm_run rd953 with [
@@ -320,13 +320,13 @@ theorem daiJoinCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 2000000 in
-theorem daiJoinCageX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
+theorem daiJoinCageX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hperm : I.perm = true)
     (h : RD daiJoinBytecode I g s0 ⟨1029⟩
       [⟨232⟩, sel]
-      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDret daiJoinBytecode g s0
-      (cA, sstoreAccountMap I.codeOwner σ ⟨3⟩ ⟨0⟩)
+      (sstoreAccountMap I.codeOwner σ ⟨3⟩ ⟨0⟩)
       ByteArray.empty := by
   have rd1036pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -339,7 +339,7 @@ theorem daiJoinCageX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
   have rd1037 : RD daiJoinBytecode I g s0 ⟨1037⟩
       [⟨0⟩, ⟨232⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ ⟨3⟩ ⟨0⟩) k1037 C1037 := by
+      (sstoreAccountMap I.codeOwner σ ⟨3⟩ ⟨0⟩) k1037 C1037 := by
     simpa using rd1037raw
   have rd1039 := rd1037.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rd1040 := rd1039.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
@@ -364,47 +364,41 @@ theorem daiJoinCageX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
     (by native_decide) (by evm_ov)
   exact RD.stop rd232' (by native_decide) (by evm_ov)
 
-theorem daiJoinX_cage_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiJoinX_cage_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
     (hreach : ∃ k C, RD daiJoinBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨272⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDret daiJoinBytecode g (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner σ ⟨3⟩ ⟨0⟩)
+      (initState σ σ₀ g A I) ⟨272⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDret daiJoinBytecode g (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ ⟨3⟩ ⟨0⟩)
       ByteArray.empty := by
   obtain ⟨_, _, rd936⟩ := daiJoinCageX_entry hreach
   obtain ⟨_, _, rd1029⟩ := daiJoinCageX_authorized (I := I) hauth rd936
   exact daiJoinCageX_storeAuthorized hperm rd1029
 
-theorem daiJoinX_cage_unauthorized {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem daiJoinX_cage_unauthorized {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (hreach : ∃ k C, RD daiJoinBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨272⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
-    RDrev daiJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) ⟨272⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    RDrev daiJoinBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd936⟩ := daiJoinCageX_entry hreach
   exact daiJoinCageX_unauthorized (I := I) hauth rd936
 
 theorem daiJoinCageBodyCoreOk
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiJoinBytecode)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
-    (hauth : relyAuthWord σ_evm I = ⟨1⟩)
+    (hauth : relyAuthWord σ I = ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨272⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthWord : relyAuthWord σ_solm I = ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    rw [← hword]
-    exact hauth
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨272⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmSolm ∅ cageTransition.body
         (.returned { contract := contract, locals := ∅ } (cagePostState evmSolm) none) := by
@@ -413,38 +407,29 @@ theorem daiJoinCageBodyCoreOk
       daiJoinCageBodyReturns evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
         (by simp [evmSolm, initState])
-        hauthWord
+        hauth
   exact (daiJoinX_cage_ok (g := Sat256.ofUInt256 g) hperm hauth hreach)
     |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-      (by simp [cagePostState, evmSolm, initState, storageStore_createdAccounts])
-      (by
-        simpa [cagePostState, evmSolm, initState, storageStore_accountMap] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner ⟨3⟩ ⟨0⟩ hAccounts)
+      (by simp [cagePostState, evmSolm, initState, storageStore_accountMap])
       (by
         simpa [cageTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
             (dvs := []) rfl (by native_decide) (by native_decide)))
 
 theorem daiJoinCageBodyCoreUnauthorized
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
+    {σ σ₀ A I} {g : UInt256} {sel : UInt256}
     (hcode : I.code = daiJoinBytecode)
     (hwv : I.weiValue = ⟨0⟩)
-    (hauth : relyAuthWord σ_evm I ≠ ⟨1⟩)
+    (hauth : relyAuthWord σ I ≠ ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
       decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
         (transitionSignature cageTransition).paramTypes I.calldata = some ∅)
     (hreach : ∃ k C, RD daiJoinBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨272⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  let evmSolm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-  have hauthWord : relyAuthWord σ_solm I ≠ ⟨1⟩ := by
-    have hword : relyAuthWord σ_evm I = relyAuthWord σ_solm I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (relyAuthStorageSlot I) ⟨0⟩
-    intro hbad
-    exact hauth (by rw [hword, hbad])
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨272⟩ [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
+  let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hbody :
       ExecTransitionBody config contract evmSolm ∅ cageTransition.body .reverted := by
     simpa [evmSolm, relyAuthWord, daiJoinSlotWord, initState, Solm.EVM.storageLoad,
@@ -452,28 +437,27 @@ theorem daiJoinCageBodyCoreUnauthorized
       daiJoinCageBodyReverts evmSolm I
         (by simp only [evmSolm, initState]; exact hwv)
         (by simp [evmSolm, initState])
-        hauthWord
+        hauth
   exact (daiJoinX_cage_unauthorized (g := Sat256.ofUInt256 g) hauth hreach)
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
-theorem daiJoinCageBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem daiJoinCageBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = daiJoinBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (daiJoinSelBytes 0))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (daiJoinSelBytes 0)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (daiJoinSelBytes 0) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some cageTransition :=
     daiJoinDispatchCage hsel
   have hdecode := daiJoinDecode_cage hsz
-  have hreach := daiJoinReachCageBody (cA := cA) (gh := gh) (bl := bl)
-    (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
+  have hreach := daiJoinReachCageBody
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
     hcode hwv hsz hsize hsel
-  by_cases hauth : relyAuthWord σ_evm I = ⟨1⟩
-  · exact daiJoinCageBodyCoreOk hcode hperm hwv hauth hdispatch hdecode hreach hAccounts
-  · exact daiJoinCageBodyCoreUnauthorized hcode hwv hauth hdispatch hdecode hreach hAccounts
+  by_cases hauth : relyAuthWord σ I = ⟨1⟩
+  · exact daiJoinCageBodyCoreOk hcode hperm hwv hauth hdispatch hdecode hreach
+  · exact daiJoinCageBodyCoreUnauthorized hcode hwv hauth hdispatch hdecode hreach
 
 end Benchmarks.Dss.DaiJoin

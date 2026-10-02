@@ -191,14 +191,14 @@ theorem stairstepArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
       if (stairstepArmSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
   interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
-theorem stairstepReachFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepReachFirstArm {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = linearDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD linearDecreaseBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD linearDecreaseBytecode I g (initState σ σ₀ g A I)
         stairstepFirstArmPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-        ByteArray.empty (cA, σ) k C := by
+        ByteArray.empty σ k C := by
   simpa [stairstepFirstArmPc, stairstepSelWord] using
-    solcLegacyDispatchReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ)
+    solcLegacyDispatchReachSelector (σ := σ)
       (σ₀ := σ₀) (A := A) (g := g) (code := linearDecreaseBytecode)
       (bodyPc := stairstepDispatchBodyPc) (loadPc := stairstepSelectorLoadPc)
       (firstPc := stairstepFirstArmPc) (guardTgt := (⟨16⟩ : UInt256))
@@ -213,7 +213,7 @@ theorem stairstepReachFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
 
-theorem stairstepReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepReachBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 5) (bodyPC : UInt256)
     (hcode : I.code = linearDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -231,26 +231,26 @@ theorem stairstepReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hbody :
       armTgt linearDecreaseBytecode
         (nthArmPc linearDecreaseBytecode stairstepFirstArmPc i) = bodyPC) :
-    ∃ k C, RD linearDecreaseBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD linearDecreaseBytecode I g (initState σ σ₀ g A I)
         bodyPC [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   obtain ⟨_, _, hfirst⟩ :=
-    stairstepReachFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    stairstepReachFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
   exact RD.dispatchTo bodyPC i hfirst
     (fun j hj => stairstepArmsWellFormed j (le_trans hj hi))
     heq0 htake (by simpa [hbody] using hjd) hbody (by simp)
 
-theorem stairstepNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
-    (h : RD linearDecreaseBytecode I g (initState cA gh bl σ σ₀ g A I)
+theorem stairstepNoMatchRevert {σ σ₀ A I} {g : Sat256} {k C : ℕ}
+    (h : RD linearDecreaseBytecode I g (initState σ σ₀ g A I)
       stairstepFirstArmPc [stairstepSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) k C)
+      ByteArray.empty σ k C)
     (heq0 : ∀ j, j < 6 →
       UInt256.eq
         (armSelNat linearDecreaseBytecode
           (nthArmPc linearDecreaseBytecode stairstepFirstArmPc j))
         (stairstepSelWord I) = ⟨0⟩) :
-    RDrev linearDecreaseBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev linearDecreaseBytecode g (initState σ σ₀ g A I) := by
   have h98 := h
     |>.selectorArmNotTakenAuto (stairstepArmsWellFormed 0 (by omega))
         (heq0 0 (by omega)) (by simp)
@@ -268,10 +268,10 @@ theorem stairstepNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
   exact RD.solcPush1Dup1Revert0 h98 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
-theorem stairstepX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = linearDecreaseBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev linearDecreaseBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev linearDecreaseBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
@@ -280,11 +280,11 @@ theorem stairstepX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
-theorem stairstepX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = linearDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev linearDecreaseBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev linearDecreaseBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
@@ -303,11 +303,11 @@ theorem stairstepX_short {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcPush1Dup1Revert0 h98 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
-theorem stairstepX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = linearDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 6 → (stairstepSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev linearDecreaseBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev linearDecreaseBytecode g (initState σ σ₀ g A I) := by
   have heq : ∀ j, j < 6 →
       UInt256.eq
         (armSelNat linearDecreaseBytecode
@@ -340,13 +340,13 @@ theorem stairstepX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         simpa [stairstepArmSelBytes, stairstepSelBytes] using hnm 4 (by omega)
       rw [hfalse]; rfl
   obtain ⟨_, _, hfirst⟩ :=
-    stairstepReachFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    stairstepReachFirstArm (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
   exact stairstepNoMatchRevert hfirst heq
 
-theorem stairstepNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem stairstepNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = linearDecreaseBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (stairstepX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -361,18 +361,17 @@ theorem stairstepNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (stairstepBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
-theorem stairstepNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem stairstepNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = linearDecreaseBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hnm : ∀ i, i < 6 → (stairstepSelBytes i == I.calldata.extract 0 4) = false)
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hnm : ∀ i, i < 6 → (stairstepSelBytes i == I.calldata.extract 0 4) = false) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (stairstepX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (stairstepDispatch_none_nomatch hnm)

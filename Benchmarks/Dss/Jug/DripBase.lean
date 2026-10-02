@@ -938,45 +938,36 @@ theorem dripVatIlksDecode_ok {out : ByteArray} (hlo : 64 ≤ out.size) :
   simpa [config, jugExternalABI, uint256, uint256Int, abiUInt256] using h
 
 theorem dripVatTargetWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
+    (hAccounts : σ = τ) :
     dripVatTargetWord σ I = dripVatTargetWord τ I := by
-  have hslot : jugSlotWord ⟨2⟩ σ I = jugSlotWord ⟨2⟩ τ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩
-  simp [dripVatTargetWord, jugAddressReturnWord, hslot]
+  subst τ
+  rfl
 
 theorem dripVowTargetWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
+    (hAccounts : σ = τ) :
     dripVowTargetWord σ I = dripVowTargetWord τ I := by
-  have hslot : jugSlotWord ⟨3⟩ σ I = jugSlotWord ⟨3⟩ τ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨3⟩ ⟨0⟩
-  simp [dripVowTargetWord, jugAddressReturnWord, hslot]
+  subst τ
+  rfl
 
 theorem dripVatAddress_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ) :
+    (hAccounts : σ = τ) :
     dripVatAddress σ I = dripVatAddress τ I := by
-  apply Fin.ext
-  simp [dripVatAddress, dripVatTargetWord_accountMapEquiv hAccounts]
+  subst τ
+  rfl
 
 theorem dripVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hzero :
-      Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) = ⟨0⟩) :
+    (hAccounts : σ = τ)
+    (hzero : Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) = ⟨0⟩) :
     Reasoning.Theory.extCodeSizeWord τ (dripVatTargetWord τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (dripVatTargetWord σ I)
-  have htarget : dripVatTargetWord σ I = dripVatTargetWord τ I :=
-    dripVatTargetWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame]
+  subst τ
   exact hzero
 
 theorem dripVatCodeSize_ne_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : accountMapEquiv σ τ)
-    (hne :
-      Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩) :
+    (hAccounts : σ = τ)
+    (hne : Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩) :
     Reasoning.Theory.extCodeSizeWord τ (dripVatTargetWord τ I) ≠ ⟨0⟩ := by
-  intro hzero
-  exact hne (dripVatCodeSize_zero_accountMapEquiv hAccounts.symm hzero)
+  subst τ
+  exact hne
 
 theorem dripVatAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
     dripVatAddress σ I = AccountAddress.ofUInt256 (dripVatTargetWord σ I) := by
@@ -989,21 +980,16 @@ theorem evmAddress_accountAddress (a : AccountAddress) :
   rw [show EVM.addressModulus = AccountAddress.size from by decide]
   exact Nat.mod_eq_of_lt a.isLt
 
-theorem dripVatAddress_eq_evm_target_of_accountMapEquiv {σ_evm σ_solm : AccountMap}
-    {I : ExecutionEnv} (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    dripVatAddress σ_solm I =
-      AccountAddress.ofUInt256 (dripVatTargetWord σ_evm I) :=
-  calc
-    dripVatAddress σ_solm I = dripVatAddress σ_evm I :=
-      (dripVatAddress_accountMapEquiv hAccounts).symm
-    _ = AccountAddress.ofUInt256 (dripVatTargetWord σ_evm I) :=
-      dripVatAddress_eq_target σ_evm I
+theorem dripVatAddress_eq_evm_target_of_accountMapEquiv {σ : AccountMap}
+    {I : ExecutionEnv} (_hAccounts : σ = σ) :
+    dripVatAddress σ I = AccountAddress.ofUInt256 (dripVatTargetWord σ I) :=
+  dripVatAddress_eq_target σ I
 
-theorem dripVatEvmAddress_eq_target_of_accountMapEquiv {σ_evm σ_solm : AccountMap}
-    {I : ExecutionEnv} (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    EVM.address (dripVatAddress σ_solm I) =
-      AccountAddress.ofUInt256 (dripVatTargetWord σ_evm I) := by
-  rw [dripVatAddress_eq_evm_target_of_accountMapEquiv hAccounts]
+theorem dripVatEvmAddress_eq_target_of_accountMapEquiv {σ : AccountMap}
+    {I : ExecutionEnv} (_hAccounts : σ = σ) :
+    EVM.address (dripVatAddress σ I) =
+      AccountAddress.ofUInt256 (dripVatTargetWord σ I) := by
+  rw [dripVatAddress_eq_evm_target_of_accountMapEquiv _hAccounts]
   exact evmAddress_accountAddress _
 
 theorem drip_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
@@ -1022,38 +1008,38 @@ theorem drip_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : U
       have hword := congrArg UInt256.toNat hzero
       simpa [hacc] using hword
 
-theorem dripVatCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem dripVatCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
     (hzero :
       Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) = ⟨0⟩) :
     (UInt256.ofNat
-      (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+      (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
     drip_extCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := dripVatTargetWord σ I) (addr := dripVatAddress σ I)
       (dripVatAddress_eq_target σ I) hzero
 
-theorem dripVatCode_pos_of_codeSize_ne_zero {cA gh bl σ σ₀ A I} {g : UInt256}
+theorem dripVatCode_pos_of_codeSize_ne_zero {σ σ₀ A I} {g : UInt256}
     (hne :
       Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩) :
     0 <
       (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat := by
   by_contra hnot
   have hnat :
       (UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 :=
     Nat.eq_zero_of_not_pos hnot
   have hwordZero :
       UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (dripVatAddress σ I)).option 0 (fun acc => acc.code.size)) = ⟨0⟩ :=
     uint256_toNat_eq_zero hnat
   have hword :
       UInt256.ofNat
-        (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
+        (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (dripVatAddress σ I)).option 0 (fun acc => acc.code.size)) =
         Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) := by
     cases hacc : σ.find? (AccountAddress.ofUInt256 (dripVatTargetWord σ I)) <;>

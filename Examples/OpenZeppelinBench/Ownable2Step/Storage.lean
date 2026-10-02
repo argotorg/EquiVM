@@ -59,17 +59,4 @@ theorem ownable2StepStorageLocStore_address_offset0 (evm : EVM.State)
   simpa [addrLoc, addressOffset0Loc, ownable2StepSetAddressWord,
     setAddressOffset0Word] using storageLocStore_address_offset0 evm slot addr hcanon
 
-/-- `EVM.storageStore`'s account map is exactly the map carried by `RD.sstore`. -/
-theorem ownable2StepStorageStore_accountMap
-    (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).accountMap =
-      sstoreAccountMap a evm.accountMap slot val := by
-  exact storageStore_accountMap evm a slot val
-
-/-- `EVM.storageStore` does not create accounts. -/
-theorem ownable2StepStorageStore_createdAccounts
-    (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).createdAccounts = evm.createdAccounts := by
-  exact storageStore_createdAccounts evm a slot val
-
 end OpenZeppelinBench.Ownable2Step

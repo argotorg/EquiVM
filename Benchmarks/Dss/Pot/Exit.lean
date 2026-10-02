@@ -18,12 +18,12 @@ stack order (and hence the `potMoveCalldataMem` arguments) differ. -/
 /-- `_sub(a, b)` routine (`@2336`): stack `[a, b, ret, R]` → `[b - a, R]` at `ret`, no underflow. -/
 theorem RD.potSubReturns {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
-    (h : RD potBytecode ee g s0 ⟨2336⟩ (a :: b :: ret :: R) mem aw rdata (cA, σ) k C)
+    {rdata : ByteArray} {σ : AccountMap} {k C : ℕ}
+    (h : RD potBytecode ee g s0 ⟨2336⟩ (a :: b :: ret :: R) mem aw rdata σ k C)
     (hle : a.toNat ≤ b.toNat)
     (hret : (D_J potBytecode 0).contains ret = true)
     (hov : R.length + 6 ≤ 1024) :
-    ∃ k' C', RD potBytecode ee g s0 ret ((UInt256.sub b a) :: R) mem aw rdata (cA, σ) k' C' := by
+    ∃ k' C', RD potBytecode ee g s0 ret ((UInt256.sub b a) :: R) mem aw rdata σ k' C' := by
   have hgt : UInt256.gt (UInt256.sub b a) b = ⟨0⟩ :=
     ugt_zero (by rw [usub_toNat hle]; omega)
   have rdPre := evm_run h with [
@@ -48,8 +48,8 @@ theorem RD.potSubReturns {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 /-- `_sub(a, b)` routine (`@2336`): underflow (`b < a`) reverts. -/
 theorem RD.potSubReverts {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {k C : ℕ}
-    (h : RD potBytecode ee g s0 ⟨2336⟩ (a :: b :: ret :: R) mem aw rdata (cA, σ) k C)
+    {rdata : ByteArray} {σ : AccountMap} {k C : ℕ}
+    (h : RD potBytecode ee g s0 ⟨2336⟩ (a :: b :: ret :: R) mem aw rdata σ k C)
     (hunder : b.toNat < a.toNat)
     (hov : R.length + 6 ≤ 1024) :
     RDrev potBytecode g s0 := by
@@ -73,13 +73,13 @@ theorem RD.potSubReverts {ee : ExecutionEnv} {g : Sat256} {s0 : State}
 
 /-! ## `exit(uint256)` EVM-side reachability + calldata decode -/
 
-theorem potReachExitBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem potReachExitBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I (potSelBytes 6)) :
-    ∃ k C, RD potBytecode I g (initState cA gh bl σ σ₀ g A I)
+    ∃ k C, RD potBytecode I g (initState σ σ₀ g A I)
         ⟨508⟩ [potSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   have hword : potSelWord I = ⟨0x7f8661a1⟩ :=
     potSelWord_eq_of_beq I hsz 0x7f 0x86 0x61 0xa1 ⟨0x7f8661a1⟩
       (by native_decide) (by simpa [potSelBytes] using hsel)
@@ -98,12 +98,12 @@ theorem potReachExitBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by jump_dest) (by native_decide)
 
 /-- Entry `@508`: decode the single `uint256 wad` argument, jump to logic `@1602`. -/
-theorem potExitX_decoded {cA σ I} {g : Sat256} {s0 : State} {sel : UInt256}
+theorem potExitX_decoded {σ I} {g : Sat256} {s0 : State} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hreach : ∃ k C, RD potBytecode I g s0 ⟨508⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k C, RD potBytecode I g s0 ⟨1602⟩ [joinWadWord I, ⟨301⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   obtain ⟨k, C, h⟩ := hreach
   have hsz4 : 4 ≤ I.calldata.size := by omega
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩ := by
@@ -133,11 +133,11 @@ theorem potExitX_decoded {cA σ I} {g : Sat256} {s0 : State} {sel : UInt256}
   exact ⟨_, _, by simpa [joinWadWord, calldataWord] using rd1602⟩
 
 /-- Entry `@508`: short calldata (`< 36` bytes) reverts before decoding. -/
-theorem potExitX_shortReverts {cA σ I} {g : Sat256} {s0 : State} {sel : UInt256}
+theorem potExitX_shortReverts {σ I} {g : Sat256} {s0 : State} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hshort : I.calldata.size < 36)
     (hreach : ∃ k C, RD potBytecode I g s0 ⟨508⟩ [sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev potBytecode g s0 := by
   obtain ⟨k, C, h⟩ := hreach
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
@@ -165,14 +165,14 @@ theorem potExitX_shortReverts {cA σ I} {g : Sat256} {s0 : State} {sel : UInt256
 /-! ## `exit(uint256)` — `pie[caller] -= wad`, `Pie -= wad` -/
 
 /-- Logic `@1602 → @1645`: load `pie[caller]`, `_sub wad`, store back. -/
-theorem potExitX_pieStore {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
+theorem potExitX_pieStore {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     (hperm : I.perm = true)
     (hle : (joinWadWord I).toNat ≤ (joinPie0 σ I).toNat)
     (h : RD potBytecode I g s0 ⟨1602⟩ [joinWadWord I, ⟨301⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨1645⟩ [joinWadWord I, ⟨301⟩, sel]
       (joinPieStoreHashMem I) (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ (joinPieSlot I)
+      (sstoreAccountMap I.codeOwner σ (joinPieSlot I)
         (UInt256.sub (joinPie0 σ I) (joinWadWord I))) k' C' := by
   have rdPre1 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -227,15 +227,15 @@ theorem potExitX_pieStore {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel :
   exact ⟨_, _, by simpa [joinPie0] using rd1645⟩
 
 /-- Logic `@1645 → @1661`: load `Pie` (slot 2), `_sub wad`, store back. -/
-theorem potExitX_PieStore {cA σ' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
+theorem potExitX_PieStore {σ' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
     (hperm : I.perm = true)
     (hle : (joinWadWord I).toNat ≤ (solcSlotWord σ' I ⟨2⟩).toNat)
     (h : RD potBytecode I g s0 ⟨1645⟩ [joinWadWord I, ⟨301⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ') k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ' k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨1661⟩ [joinWadWord I, ⟨301⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty
-      (cA, sstoreAccountMap I.codeOwner σ' ⟨2⟩
+      (sstoreAccountMap I.codeOwner σ' ⟨2⟩
         (UInt256.sub (solcSlotWord σ' I ⟨2⟩) (joinWadWord I))) k' C' := by
   have rd1647 := h.push1 ⟨2⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1648⟩ := rd1647.sload (by native_decide) (by evm_ov)
@@ -255,15 +255,15 @@ theorem potExitX_PieStore {cA σ' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel 
 
 /-- Logic `@1661 → @853`: load `vat`/`chi`, `_mul chi wad` (product fits); stack `from = this`,
     `to = caller` — swapped vs `join`. -/
-theorem potExitX_mulReady {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
+theorem potExitX_mulReady {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
     (hfit : (joinChi σ'' I).toNat * (joinWadWord I).toNat < UInt256.size)
     (h : RD potBytecode I g s0 ⟨1661⟩ [joinWadWord I, ⟨301⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ'') k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ'' k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨853⟩
       [UInt256.mul (joinChi σ'' I) (joinWadWord I), joinCallerWord I, joinThisWord I,
         potMoveSelectorWord, joinVatMasked σ'' I, joinWadWord I, ⟨301⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ'') k' C' := by
+      mem (UInt256.ofNat 3) ByteArray.empty σ'' k' C' := by
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     decide
   have rd1663 := h.push1 ⟨5⟩ (by native_decide) (by evm_ov)
@@ -306,19 +306,19 @@ theorem potExitX_mulReady {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel
 set_option maxHeartbeats 1000000 in
 /-- Logic 853 to 927: build the `move(this, caller, rad)` calldata in memory (`from = this`,
 `to = caller`; swapped vs `join`), reach the `CALL` EXTCODESIZE guard. -/
-theorem potExitX_callGuard {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
+theorem potExitX_callGuard {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray} (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (h : RD potBytecode I g s0 ⟨853⟩
       [UInt256.mul (joinChi σ'' I) (joinWadWord I), joinCallerWord I, joinThisWord I,
         potMoveSelectorWord, joinVatMasked σ'' I, joinWadWord I, ⟨301⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ'') k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ'' k C) :
     ∃ k' C', RD potBytecode I g s0 ⟨927⟩
       (joinVatMasked σ'' I :: joinVatMasked σ'' I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ ::
         ⟨228⟩ :: potMoveSelectorWord :: joinVatMasked σ'' I :: joinWadWord I :: ⟨301⟩ :: sel :: [])
       (potMoveCalldataMem (joinThisWord I) (joinCallerWord I)
         (UInt256.mul (joinChi σ'' I) (joinWadWord I)) mem)
-      (UInt256.ofNat 8) ByteArray.empty (cA, σ'') k' C' := by
+      (UInt256.ofNat 8) ByteArray.empty σ'' k' C' := by
   set rad := UInt256.mul (joinChi σ'' I) (joinWadWord I) with hrad
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by decide
   have hselShift : UInt256.shiftLeft
@@ -415,7 +415,7 @@ theorem potExitX_callGuard {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {se
   exact ⟨_, _, by simpa using rd927⟩
 
 /-- Logic 927 → 943: `extcodesize(vat) ≠ 0` ⇒ fire the `move` CALL. -/
-theorem potExitX_postCall {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
+theorem potExitX_postCall {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray} (hmemSize : mem.size = 96)
     (hdepth : I.depth.val < 1024)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'' (joinVatMasked σ'' I) ≠ ⟨0⟩)
@@ -424,36 +424,35 @@ theorem potExitX_postCall {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel
         ⟨228⟩ :: potMoveSelectorWord :: joinVatMasked σ'' I :: joinWadWord I :: ⟨301⟩ :: sel :: [])
       (potMoveCalldataMem (joinThisWord I) (joinCallerWord I)
         (UInt256.mul (joinChi σ'' I) (joinWadWord I)) mem)
-      (UInt256.ofNat 8) ByteArray.empty (cA, σ'') k C) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool) (o : ByteArray)
+      (UInt256.ofNat 8) ByteArray.empty σ'' k C) :
+    ∃ (σ' : AccountMap) (z : Bool) (o : ByteArray)
       (A_in : Substate) (callGas : UInt256) (mem' : ByteArray) (aw' : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
-        (cA', σ', g'', A', z, o) = Ethereum.EVM.Θ I.blobVersionedHashes cA s0.genesisBlockHeader
-          s0.blocks σ'' s0.σ₀ A_in
+        (σ', g'', A', z, o) = Ethereum.EVM.Θ σ'' s0.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (joinVatMasked σ'' I))
           (toExecute σ'' (AccountAddress.ofUInt256 (joinVatMasked σ'' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((potMoveCalldataMem (joinThisWord I) (joinCallerWord I)
             (UInt256.mul (joinChi σ'' I) (joinWadWord I)) mem).readWithPadding 128 100)
-          (I.depth + 1) I.header I.perm)
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm)
       ∧ RD potBytecode I g s0 ⟨943⟩
           ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨228⟩ :: potMoveSelectorWord :: joinVatMasked σ'' I ::
             joinWadWord I :: ⟨301⟩ :: sel :: [])
-          mem' aw' o (cA', σ') k' C'
+          mem' aw' o σ' k' C'
       ∧ o.size < UInt256.size := by
   obtain ⟨gasWord, k1, C1, rd942⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨927⟩) (okPc := ⟨939⟩) h hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
-  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd943raw, hosz⟩ :=
+  obtain ⟨σ', z, o, A_in, callGas, k', C', hΘ, rd943raw, hosz⟩ :=
     RD.call (target := joinVatMasked σ'' I) rd942 (by native_decide) hdepth (by evm_ov)
-  exact ⟨cA', σ', z, o, A_in, callGas, _, _, k', C', hΘ, rd943raw, hosz⟩
+  exact ⟨σ', z, o, A_in, callGas, _, _, k', C', hΘ, rd943raw, hosz⟩
 
 set_option maxHeartbeats 1000000 in
 /-- Logic 927 → revert at the call-depth limit (`I.depth = 1024`). -/
-theorem potExitX_depthLimitReverts {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
+theorem potExitX_depthLimitReverts {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
     (hdepth : I.depth = 1024)
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'' (joinVatMasked σ'' I) ≠ ⟨0⟩)
@@ -462,7 +461,7 @@ theorem potExitX_depthLimitReverts {cA σ'' I} {g : Sat256} {s0 : State} {k C : 
         ⟨228⟩ :: potMoveSelectorWord :: joinVatMasked σ'' I :: joinWadWord I :: ⟨301⟩ :: sel :: [])
       (potMoveCalldataMem (joinThisWord I) (joinCallerWord I)
         (UInt256.mul (joinChi σ'' I) (joinWadWord I)) mem)
-      (UInt256.ofNat 8) ByteArray.empty (cA, σ'') k C) :
+      (UInt256.ofNat 8) ByteArray.empty σ'' k C) :
     RDrev potBytecode g s0 := by
   obtain ⟨gasWord, k1, C1, rd942⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨927⟩) (okPc := ⟨939⟩) h hcodeSize
@@ -477,10 +476,10 @@ theorem potExitX_depthLimitReverts {cA σ'' I} {g : Sat256} {s0 : State} {k C : 
 /-! ### `exit(uint256)` — checked-arithmetic underflow/overflow reverts (EVM side) -/
 
 /-- Logic `@1602`: `pie[caller] - wad` underflows ⇒ the `_sub` check reverts. -/
-theorem potExitX_pieUnderflowReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
+theorem potExitX_pieUnderflowReverts {σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     (hunder : (joinPie0 σ I).toNat < (joinWadWord I).toNat)
     (h : RD potBytecode I g s0 ⟨1602⟩ [joinWadWord I, ⟨301⟩, sel]
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     RDrev potBytecode g s0 := by
   have rdPre1 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -512,11 +511,11 @@ theorem potExitX_pieUnderflowReverts {cA σ I} {g : Sat256} {s0 : State} {k C : 
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 /-- Logic `@1645`: `Pie - wad` underflows ⇒ the `_sub` check reverts. -/
-theorem potExitX_PieUnderflowReverts {cA σ' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
+theorem potExitX_PieUnderflowReverts {σ' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
     (hunder : (solcSlotWord σ' I ⟨2⟩).toNat < (joinWadWord I).toNat)
     (h : RD potBytecode I g s0 ⟨1645⟩ [joinWadWord I, ⟨301⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ') k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ' k C) :
     RDrev potBytecode g s0 := by
   have rd1647 := h.push1 ⟨2⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1648⟩ := rd1647.sload (by native_decide) (by evm_ov)
@@ -530,11 +529,11 @@ theorem potExitX_PieUnderflowReverts {cA σ' I} {g : Sat256} {s0 : State} {k C :
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 /-- Logic `@1661`: `chi * wad` overflows ⇒ the `_mul` check reverts. -/
-theorem potExitX_mulOverflowReverts {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
+theorem potExitX_mulOverflowReverts {σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
     (hover : UInt256.size ≤ (joinChi σ'' I).toNat * (joinWadWord I).toNat)
     (h : RD potBytecode I g s0 ⟨1661⟩ [joinWadWord I, ⟨301⟩, sel]
-      mem (UInt256.ofNat 3) ByteArray.empty (cA, σ'') k C) :
+      mem (UInt256.ofNat 3) ByteArray.empty σ'' k C) :
     RDrev potBytecode g s0 := by
   have rd1663 := h.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1664⟩ := rd1663.sload (by native_decide) (by evm_ov)
@@ -621,141 +620,91 @@ theorem potDecode_exit_none_short {I : ExecutionEnv}
 /-! ## `exit(uint256)` — post-store state abbreviations -/
 
 /-- EVM post-`pie`-store account map. -/
-abbrev exitSigma' (σ_evm : AccountMap) (I : ExecutionEnv) : AccountMap :=
-  sstoreAccountMap I.codeOwner σ_evm (joinPieSlot I)
-    (UInt256.sub (joinPie0 σ_evm I) (joinWadWord I))
+abbrev exitSigma' (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
+  sstoreAccountMap I.codeOwner σ (joinPieSlot I)
+    (UInt256.sub (joinPie0 σ I) (joinWadWord I))
 
 /-- EVM post-`Pie`-store account map. -/
-abbrev exitSigma'' (σ_evm : AccountMap) (I : ExecutionEnv) : AccountMap :=
-  sstoreAccountMap I.codeOwner (exitSigma' σ_evm I) ⟨2⟩
-    (UInt256.sub (solcSlotWord (exitSigma' σ_evm I) I ⟨2⟩) (joinWadWord I))
+abbrev exitSigma'' (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
+  sstoreAccountMap I.codeOwner (exitSigma' σ I) ⟨2⟩
+    (UInt256.sub (solcSlotWord (exitSigma' σ I) I ⟨2⟩) (joinWadWord I))
 
 /-- Solm post-`pie`-store state. -/
-abbrev exitSolmEvm1 (cA : Batteries.RBSet AccountAddress compare)
-    (gh : BlockHeader) (bl : ProcessedBlocks) (σ_solm σ₀ : AccountMap) (g : Sat256) (A : Substate)
+abbrev exitSolmEvm1 (σ σ₀ : AccountMap) (g : Sat256) (A : Substate)
     (I : ExecutionEnv) : EVM.State :=
-  Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner (pieSlot (.address I.source))
-    (UInt256.sub (Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+  Solm.EVM.storageStore (initState σ σ₀ g A I) I.codeOwner (pieSlot (.address I.source))
+    (UInt256.sub (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
       (pieSlot (.address I.source))) (joinWadWord I))
 
 /-- Solm post-`Pie`-store state. -/
-abbrev exitSolmEvm2 (cA : Batteries.RBSet AccountAddress compare)
-    (gh : BlockHeader) (bl : ProcessedBlocks) (σ_solm σ₀ : AccountMap) (g : Sat256) (A : Substate)
+abbrev exitSolmEvm2 (σ σ₀ : AccountMap) (g : Sat256) (A : Substate)
     (I : ExecutionEnv) : EVM.State :=
-  Solm.EVM.storageStore (exitSolmEvm1 cA gh bl σ_solm σ₀ g A I) I.codeOwner ⟨2⟩
-    (UInt256.sub (Solm.EVM.storageLoad (exitSolmEvm1 cA gh bl σ_solm σ₀ g A I) I.codeOwner ⟨2⟩)
+  Solm.EVM.storageStore (exitSolmEvm1 σ σ₀ g A I) I.codeOwner ⟨2⟩
+    (UInt256.sub (Solm.EVM.storageLoad (exitSolmEvm1 σ σ₀ g A I) I.codeOwner ⟨2⟩)
       (joinWadWord I))
 
-theorem exitSolmEvm2_codeOwner {cA gh bl σ_solm σ₀ A I} {g : Sat256} :
-    (exitSolmEvm2 cA gh bl σ_solm σ₀ g A I).executionEnv.codeOwner = I.codeOwner := by
+theorem exitSolmEvm2_codeOwner {σ σ₀ A I} {g : Sat256} :
+    (exitSolmEvm2 σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner := by
   rw [exitSolmEvm2, storageStore_executionEnv, exitSolmEvm1, storageStore_executionEnv]; rfl
 
-theorem exitSolmEvm2_source {cA gh bl σ_solm σ₀ A I} {g : Sat256} :
-    (exitSolmEvm2 cA gh bl σ_solm σ₀ g A I).executionEnv.source = I.source := by
+theorem exitSolmEvm2_source {σ σ₀ A I} {g : Sat256} :
+    (exitSolmEvm2 σ σ₀ g A I).executionEnv.source = I.source := by
   rw [exitSolmEvm2, storageStore_executionEnv, exitSolmEvm1, storageStore_executionEnv]; rfl
 
-theorem exitSolmEvm2_env {cA gh bl σ_solm σ₀ A I} {g : Sat256} :
-    (exitSolmEvm2 cA gh bl σ_solm σ₀ g A I).executionEnv = I := by
+theorem exitSolmEvm2_env {σ σ₀ A I} {g : Sat256} :
+    (exitSolmEvm2 σ σ₀ g A I).executionEnv = I := by
   rw [exitSolmEvm2, storageStore_executionEnv, exitSolmEvm1, storageStore_executionEnv]; rfl
 
-theorem exitSolmEvm2_σ₀ {cA gh bl σ_solm σ₀ A I} {g : Sat256} :
-    (exitSolmEvm2 cA gh bl σ_solm σ₀ g A I).σ₀ = σ₀ := by
+theorem exitSolmEvm2_σ₀ {σ σ₀ A I} {g : Sat256} :
+    (exitSolmEvm2 σ σ₀ g A I).σ₀ = σ₀ := by
   rw [exitSolmEvm2, storageStore_σ₀, exitSolmEvm1, storageStore_σ₀]; rfl
 
-theorem exitSolmEvm2_created {cA gh bl σ_solm σ₀ A I} {g : Sat256} :
-    (exitSolmEvm2 cA gh bl σ_solm σ₀ g A I).createdAccounts = cA := by
-  rw [exitSolmEvm2, storageStore_createdAccounts, exitSolmEvm1, storageStore_createdAccounts]; rfl
-
-theorem exitSolmEvm2_genesis {cA gh bl σ_solm σ₀ A I} {g : Sat256} :
-    (exitSolmEvm2 cA gh bl σ_solm σ₀ g A I).genesisBlockHeader = gh := by
-  rw [exitSolmEvm2, storageStore_genesis, exitSolmEvm1, storageStore_genesis]; rfl
-
-theorem exitSolmEvm2_blocks {cA gh bl σ_solm σ₀ A I} {g : Sat256} :
-    (exitSolmEvm2 cA gh bl σ_solm σ₀ g A I).blocks = bl := by
-  rw [exitSolmEvm2, storageStore_blocks, exitSolmEvm1, storageStore_blocks]; rfl
-
-theorem exitSolmEvm2_substate {cA gh bl σ_solm σ₀ A I} {g : Sat256} :
-    (exitSolmEvm2 cA gh bl σ_solm σ₀ g A I).substate = A := by
+theorem exitSolmEvm2_substate {σ σ₀ A I} {g : Sat256} :
+    (exitSolmEvm2 σ σ₀ g A I).substate = A := by
   rw [exitSolmEvm2, storageStore_substate, exitSolmEvm1, storageStore_substate]; rfl
 
 /-! ## `exit(uint256)` — the pre-`CALL` account-map coincidence -/
 
-set_option maxHeartbeats 1000000 in
-/-- The EVM post-store state `exitSigma''` is account-map equivalent to the Solm post-store
-    state `exitSolmEvm2`, given `accountMapEquiv σ_evm σ_solm`. -/
-theorem exitPreCallAccounts {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    accountMapEquiv (exitSigma'' σ_evm I) (exitSolmEvm2 cA gh bl σ_solm σ₀ g A I).accountMap := by
-  have hslot : pieSlot (.address I.source) = joinPieSlot I := joinPieSlot_eq I
-  have hpieAgree : solcSlotWord σ_evm I (joinPieSlot I) = solcSlotWord σ_solm I (joinPieSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (joinPieSlot I) ⟨0⟩
-  have hpieRead : Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
-      (pieSlot (.address I.source)) = joinPie0 σ_evm I := by
-    rw [joinStorageLoad_eq, hslot]
-    show solcSlotWord σ_solm I (joinPieSlot I) = solcSlotWord σ_evm I (joinPieSlot I)
-    exact hpieAgree.symm
-  show accountMapEquiv (exitSigma'' σ_evm I) (exitSolmEvm2 cA gh bl σ_solm σ₀ g A I).accountMap
-  rw [exitSigma'', exitSigma', exitSolmEvm2, exitSolmEvm1, storageStore_accountMap,
-    storageStore_accountMap, hpieRead, hslot]
-  have hPieEquiv : accountMapEquiv
-      (sstoreAccountMap I.codeOwner σ_evm (joinPieSlot I)
-        (UInt256.sub (joinPie0 σ_evm I) (joinWadWord I)))
-      (sstoreAccountMap I.codeOwner σ_solm (joinPieSlot I)
-        (UInt256.sub (joinPie0 σ_evm I) (joinWadWord I))) :=
-    accountMapEquiv_sstoreAccountMap I.codeOwner (joinPieSlot I)
-      (UInt256.sub (joinPie0 σ_evm I) (joinWadWord I)) hAccounts
-  have hPieRead : Solm.EVM.storageLoad
-      (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner (joinPieSlot I)
-        (UInt256.sub (joinPie0 σ_evm I) (joinWadWord I))) I.codeOwner ⟨2⟩
-      = solcSlotWord (sstoreAccountMap I.codeOwner σ_evm (joinPieSlot I)
-          (UInt256.sub (joinPie0 σ_evm I) (joinWadWord I))) I ⟨2⟩ := by
-    rw [joinStorageLoad_eq, storageStore_accountMap]
-    show solcSlotWord (sstoreAccountMap I.codeOwner σ_solm (joinPieSlot I) _) I ⟨2⟩ = _
-    exact (accountMapEquiv_storage_findD hPieEquiv I.codeOwner ⟨2⟩ ⟨0⟩).symm
-  rw [hPieRead]
-  exact accountMapEquiv_sstoreAccountMap_two I.codeOwner I.codeOwner (joinPieSlot I)
-    (UInt256.sub (joinPie0 σ_evm I) (joinWadWord I)) ⟨2⟩
-    (UInt256.sub (solcSlotWord (sstoreAccountMap I.codeOwner σ_evm (joinPieSlot I)
-      (UInt256.sub (joinPie0 σ_evm I) (joinWadWord I))) I ⟨2⟩) (joinWadWord I)) hAccounts
+/-- The EVM and Solm post-store account maps agree when both start from `σ`. -/
+theorem exitPreCallAccounts {σ σ₀ A I} {g : Sat256} :
+    exitSigma'' σ I = (exitSolmEvm2 σ σ₀ g A I).accountMap := by
+  rw [exitSigma'', exitSigma', exitSolmEvm2, exitSolmEvm1,
+    storageStore_accountMap, storageStore_accountMap]
+  simp [joinStorageLoad_eq, storageStore_accountMap, initState, joinPieSlot_eq]
 
-/-- The pre-`CALL` account-map coincidence in abbreviation form. -/
-theorem exitAccPre {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    accountMapEquiv (exitSigma'' σ_evm I) (exitSolmEvm2 cA gh bl σ_solm σ₀ g A I).accountMap :=
-  exitPreCallAccounts hAccounts
+/-- The pre-`CALL` account-map equality in abbreviation form. -/
+theorem exitAccPre {σ σ₀ A I} {g : Sat256} :
+    exitSigma'' σ I = (exitSolmEvm2 σ σ₀ g A I).accountMap :=
+  exitPreCallAccounts
 
-theorem exitChiReadB {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    Solm.EVM.storageLoad (exitSolmEvm2 cA gh bl σ_solm σ₀ g A I) I.codeOwner ⟨4⟩
-      = joinChi (exitSigma'' σ_evm I) I := by
-  rw [joinStorageLoad_eq]
-  exact (accountMapEquiv_storage_findD (exitAccPre hAccounts) I.codeOwner ⟨4⟩ ⟨0⟩).symm
+theorem exitChiReadB {σ σ₀ A I} {g : Sat256} :
+    Solm.EVM.storageLoad (exitSolmEvm2 σ σ₀ g A I) I.codeOwner ⟨4⟩
+      = joinChi (exitSigma'' σ I) I := by
+  rw [joinStorageLoad_eq, exitAccPre]
 
-theorem exitVatReadB {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    joinVatRaw (exitSigma'' σ_evm I) I
-      = Solm.EVM.storageLoad (exitSolmEvm2 cA gh bl σ_solm σ₀ g A I) I.codeOwner ⟨5⟩ := by
-  rw [joinStorageLoad_eq]
-  exact accountMapEquiv_storage_findD (exitAccPre hAccounts) I.codeOwner ⟨5⟩ ⟨0⟩
+theorem exitVatReadB {σ σ₀ A I} {g : Sat256} :
+    joinVatRaw (exitSigma'' σ I) I
+      = Solm.EVM.storageLoad (exitSolmEvm2 σ σ₀ g A I) I.codeOwner ⟨5⟩ := by
+  rw [joinStorageLoad_eq, exitAccPre]
 
 /-! ## `exit(uint256)` — Solm-side statement drivers -/
 
 set_option maxHeartbeats 1000000 in
 /-- Runs the Solm body prefix through the `pie[caller] -= wad` store (statements 0–3),
     leaving the tail obligation from the post-`pie`-store frame/state. -/
-theorem potExitSolmDriverPie {cA gh bl σ_solm σ₀ A I} {g : Sat256} {result : ExecResult}
+theorem potExitSolmDriverPie {σ σ₀ A I} {g : Sat256} {result : ExecResult}
     (hwv : I.weiValue = ⟨0⟩)
-    (hpieOk : (joinWadWord I).toNat ≤ (Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I)
+    (hpieOk : (joinWadWord I).toNat ≤ (Solm.EVM.storageLoad (initState σ σ₀ g A I)
         I.codeOwner (pieSlot (.address I.source))).toNat)
     (htail : ExecBlock config
         { contract := contract,
           locals := ((∅ : Store).insert "wad" (.int (Int.ofNat (joinWadWord I).toNat))).insert
             "pieNew" (.int (Int.ofNat (UInt256.sub (Solm.EVM.storageLoad
-              (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner (pieSlot (.address I.source)))
+              (initState σ σ₀ g A I) I.codeOwner (pieSlot (.address I.source)))
               (joinWadWord I)).toNat)) }
-        (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+        (Solm.EVM.storageStore (initState σ σ₀ g A I) I.codeOwner
           (pieSlot (.address I.source))
-          (UInt256.sub (Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+          (UInt256.sub (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
             (pieSlot (.address I.source))) (joinWadWord I)))
         [ .letDecl "PieNew" (some uint256) (sub256 (.storage PieRef) (.var "wad")),
           .require (.binary .le (.var "PieNew") (.storage PieRef)),
@@ -768,57 +717,57 @@ theorem potExitSolmDriverPie {cA gh bl σ_solm σ₀ A I} {g : Sat256} {result :
     ExecBlock config
       { contract := contract,
         locals := (∅ : Store).insert "wad" (.int (Int.ofNat (joinWadWord I).toNat)) }
-      (initState cA gh bl σ_solm σ₀ g A I) exitTransition.body result := by
-  have hpieValNat : (UInt256.sub (Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+      (initState σ σ₀ g A I) exitTransition.body result := by
+  have hpieValNat : (UInt256.sub (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
       (pieSlot (.address I.source))) (joinWadWord I)).toNat
-      = (Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+      = (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
           (pieSlot (.address I.source))).toNat - (joinWadWord I).toNat := by
     rw [usub_toNat hpieOk]
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   refine ExecBlock.consNormal (ExecStmt.letDecl
     (evalExpr_sub256_ok
-      (a := Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+      (a := Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
         (pieSlot (.address I.source)))
       (b := joinWadWord I)
-      (diff := UInt256.sub (Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+      (diff := UInt256.sub (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
         (pieSlot (.address I.source))) (joinWadWord I))
       (evalExpr_joinPieMapOf (by simp))
       (evalExpr_varUInt256 (by simp)) rfl hpieOk)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_le_uint256_true
-      (a := UInt256.sub (Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+      (a := UInt256.sub (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
         (pieSlot (.address I.source))) (joinWadWord I))
-      (b := Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+      (b := Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
         (pieSlot (.address I.source)))
       (evalExpr_varUInt256 (by simp))
       (evalExpr_joinPieMapOf (by simp)) (by rw [hpieValNat]; omega))) ?_
   refine ExecBlock.consNormal (ExecStmt.assign
     (value := .int (Int.ofNat (UInt256.sub (Solm.EVM.storageLoad
-      (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner (pieSlot (.address I.source)))
+      (initState σ σ₀ g A I) I.codeOwner (pieSlot (.address I.source)))
       (joinWadWord I)).toNat))
     (evalExpr_varUInt256 (by simp))
-    (joinAssignPieMap (initState cA gh bl σ_solm σ₀ g A I)
-      (UInt256.sub (Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+    (joinAssignPieMap (initState σ σ₀ g A I)
+      (UInt256.sub (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
         (pieSlot (.address I.source))) (joinWadWord I)) (by simp))) ?_
   exact htail
 
 set_option maxHeartbeats 1000000 in
 /-- Runs statements 4–6 (`Pie -= wad` store), from the post-`pie`-store frame/state. -/
-theorem potExitSolmMulSeg {cA gh bl σ_solm σ₀ A I} {g : Sat256} {result : ExecResult}
+theorem potExitSolmMulSeg {σ σ₀ A I} {g : Sat256} {result : ExecResult}
     {PIEV : UInt256} {pnV : Value}
     (hPieOk : (joinWadWord I).toNat ≤ (Solm.EVM.storageLoad
-        (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+        (Solm.EVM.storageStore (initState σ σ₀ g A I) I.codeOwner
           (pieSlot (.address I.source)) PIEV) I.codeOwner ⟨2⟩).toNat)
     (htail : ExecBlock config
         { contract := contract,
           locals := ((((∅ : Store).insert "wad" (.int (Int.ofNat (joinWadWord I).toNat))).insert
             "pieNew" pnV).insert "PieNew" (.int (Int.ofNat (UInt256.sub (Solm.EVM.storageLoad
-              (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+              (Solm.EVM.storageStore (initState σ σ₀ g A I) I.codeOwner
                 (pieSlot (.address I.source)) PIEV) I.codeOwner ⟨2⟩) (joinWadWord I)).toNat))) }
-        (Solm.EVM.storageStore (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+        (Solm.EVM.storageStore (Solm.EVM.storageStore (initState σ σ₀ g A I) I.codeOwner
           (pieSlot (.address I.source)) PIEV) I.codeOwner ⟨2⟩
           (UInt256.sub (Solm.EVM.storageLoad (Solm.EVM.storageStore
-            (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner (pieSlot (.address I.source)) PIEV)
+            (initState σ σ₀ g A I) I.codeOwner (pieSlot (.address I.source)) PIEV)
             I.codeOwner ⟨2⟩) (joinWadWord I)))
         [ .internalCall "_mul" [.storage chiRef, .var "wad"] "rad",
           .require (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)),
@@ -829,7 +778,7 @@ theorem potExitSolmMulSeg {cA gh bl σ_solm σ₀ A I} {g : Sat256} {result : Ex
       { contract := contract,
         locals := (((∅ : Store).insert "wad" (.int (Int.ofNat (joinWadWord I).toNat))).insert
           "pieNew" pnV) }
-      (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+      (Solm.EVM.storageStore (initState σ σ₀ g A I) I.codeOwner
         (pieSlot (.address I.source)) PIEV)
       [ .letDecl "PieNew" (some uint256) (sub256 (.storage PieRef) (.var "wad")),
         .require (.binary .le (.var "PieNew") (.storage PieRef)),
@@ -839,39 +788,39 @@ theorem potExitSolmMulSeg {cA gh bl σ_solm σ₀ A I} {g : Sat256} {result : Ex
         .externalCall (.storage vatRef) "move" (.intLit 0) [.env .this, sender, .var "rad"]
           "_moveRet" ]
       result := by
-  have hco0 : (initState cA gh bl σ_solm σ₀ g A I).executionEnv.codeOwner = I.codeOwner := rfl
-  have he1co : (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+  have hco0 : (initState σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner := rfl
+  have he1co : (Solm.EVM.storageStore (initState σ σ₀ g A I) I.codeOwner
       (pieSlot (.address I.source)) PIEV).executionEnv.codeOwner = I.codeOwner := by
     rw [storageStore_executionEnv]; exact hco0
   have hPieValNat : (UInt256.sub (Solm.EVM.storageLoad (Solm.EVM.storageStore
-      (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner (pieSlot (.address I.source)) PIEV)
+      (initState σ σ₀ g A I) I.codeOwner (pieSlot (.address I.source)) PIEV)
       I.codeOwner ⟨2⟩) (joinWadWord I)).toNat
-      = (Solm.EVM.storageLoad (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I)
+      = (Solm.EVM.storageLoad (Solm.EVM.storageStore (initState σ σ₀ g A I)
           I.codeOwner (pieSlot (.address I.source)) PIEV) I.codeOwner ⟨2⟩).toNat
           - (joinWadWord I).toNat := by
     rw [usub_toNat hPieOk]
   refine ExecBlock.consNormal (ExecStmt.letDecl
     (evalExpr_sub256_ok
-      (a := Solm.EVM.storageLoad (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I)
+      (a := Solm.EVM.storageLoad (Solm.EVM.storageStore (initState σ σ₀ g A I)
         I.codeOwner (pieSlot (.address I.source)) PIEV) I.codeOwner ⟨2⟩)
       (b := joinWadWord I)
       (diff := UInt256.sub (Solm.EVM.storageLoad (Solm.EVM.storageStore
-        (initState cA gh bl σ_solm σ₀ g A I)
+        (initState σ σ₀ g A I)
         I.codeOwner (pieSlot (.address I.source)) PIEV) I.codeOwner ⟨2⟩) (joinWadWord I))
       (joinReadPieScalar he1co (by simp))
       (evalExpr_varUInt256 (by rw [store_get_ne _ _ (by decide), store_get_self])) rfl hPieOk)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_le_uint256_true
       (a := UInt256.sub (Solm.EVM.storageLoad (Solm.EVM.storageStore
-        (initState cA gh bl σ_solm σ₀ g A I)
+        (initState σ σ₀ g A I)
         I.codeOwner (pieSlot (.address I.source)) PIEV) I.codeOwner ⟨2⟩) (joinWadWord I))
-      (b := Solm.EVM.storageLoad (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I)
+      (b := Solm.EVM.storageLoad (Solm.EVM.storageStore (initState σ σ₀ g A I)
         I.codeOwner (pieSlot (.address I.source)) PIEV) I.codeOwner ⟨2⟩)
       (evalExpr_varUInt256 (by simp)) (joinReadPieScalar he1co (by simp))
       (by rw [hPieValNat]; omega))) ?_
   refine ExecBlock.consNormal (ExecStmt.assign
     (value := .int (Int.ofNat (UInt256.sub (Solm.EVM.storageLoad (Solm.EVM.storageStore
-      (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner (pieSlot (.address I.source)) PIEV)
+      (initState σ σ₀ g A I) I.codeOwner (pieSlot (.address I.source)) PIEV)
       I.codeOwner ⟨2⟩) (joinWadWord I)).toNat))
     (evalExpr_varUInt256 (by simp))
     (joinAssignPieScalar _ _ (by simp))) ?_
@@ -987,27 +936,24 @@ theorem exitTailEcs {evm2 : EVM.State} {I : ExecutionEnv} {c wad : UInt256}
 /-! ### `exit(uint256)` — the `vat.move(this, caller, rad)` external-call bridge -/
 
 set_option maxHeartbeats 1600000 in
-/-- Transport the bytecode `Θ`-link of the `vat.move` `CALL` to a Solm-side `typedCallViaEVM`
-    (`move(this, caller, rad)`) over the equivalent post-store state. -/
-theorem potExitCallBridge {cA gh bl σ₀ A I} {g : Sat256}
+/-- Transport the bytecode `Θ`-link of the `vat.move` `CALL` to the current Solm state. -/
+theorem potExitCallBridge {σ₀ I} {A : Substate} {g : Sat256}
     {σ'' : AccountMap} {evm2_solm : EVM.State} {mem : ByteArray}
-    {cA' : Batteries.RBSet AccountAddress compare} {σ_final : AccountMap} {z : Bool}
+    {σ_final : AccountMap} {z : Bool}
     {o : ByteArray} {A_in A' : Substate} {callGas g'' : UInt256}
     (hmem : mem.size = 96)
     (hEnv : evm2_solm.executionEnv = I) (hσ0 : evm2_solm.σ₀ = σ₀)
-    (hCreated : evm2_solm.createdAccounts = cA) (hGenesis : evm2_solm.genesisBlockHeader = gh)
-    (hBlocks : evm2_solm.blocks = bl) (hSubstate : evm2_solm.substate = A)
-    (hAccountsPre : accountMapEquiv σ'' evm2_solm.accountMap)
+    (hAccountsPre : σ'' = evm2_solm.accountMap)
     (hdepth : I.depth ≠ 1024)
-    (hΘ : (cA', σ_final, g'', A', z, o) =
-        Ethereum.EVM.Θ I.blobVersionedHashes cA gh bl σ'' σ₀ A_in
+    (hΘ : (σ_final, g'', A', z, o) =
+        Ethereum.EVM.Θ σ'' σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
           (AccountAddress.ofUInt256 (joinVatMasked σ'' I))
           (toExecute σ'' (AccountAddress.ofUInt256 (joinVatMasked σ'' I)))
           callGas (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
           ((potMoveCalldataMem (joinThisWord I) (joinCallerWord I)
             (UInt256.mul (joinChi σ'' I) (joinWadWord I)) mem).readWithPadding 128 100)
-          (I.depth + 1) I.header I.perm) :
+          (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm) :
     ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
       typedCallViaEVM config evm2_solm
         (EVM.address (AccountAddress.ofNat
@@ -1016,14 +962,14 @@ theorem potExitCallBridge {cA gh bl σ₀ A I} {g : Sat256}
         [.address I.codeOwner, .address I.source,
           .int (Int.ofNat (UInt256.mul (Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨4⟩)
             (joinWadWord I)).toNat)]
-        (z, { evm2_solm with accountMap := σ'_solm, substate := A'_solm, createdAccounts := cA' }, o)
-        I.perm ∧ accountMapEquiv σ_final σ'_solm := by
+        (z, { evm2_solm with accountMap := σ'_solm, substate := A'_solm }, o)
+        I.perm ∧ σ_final = σ'_solm := by
   have hChi : joinChi σ'' I = Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨4⟩ := by
-    rw [joinStorageLoad_eq]; exact accountMapEquiv_storage_findD hAccountsPre I.codeOwner ⟨4⟩ ⟨0⟩
+    rw [joinStorageLoad_eq, hAccountsPre]
   have hVat : joinVatRaw σ'' I = Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨5⟩ := by
-    rw [joinStorageLoad_eq]; exact accountMapEquiv_storage_findD hAccountsPre I.codeOwner ⟨5⟩ ⟨0⟩
+    rw [joinStorageLoad_eq, hAccountsPre]
   refine typedCallViaEVM_callMade_accountMapEquiv
-    (cfg := config) (evm_evm := initState cA gh bl σ'' σ₀ g A I) (evm_solm := evm2_solm)
+    (cfg := config) (evm_evm := initState σ'' σ₀ g A I) (evm_solm := evm2_solm)
     (tgt := EVM.address (AccountAddress.ofNat
       (UInt256.land (Solm.EVM.storageLoad evm2_solm I.codeOwner ⟨5⟩) solcAddrMask).toNat))
     (targetWord := joinVatMasked σ'' I) (name := "move")
@@ -1039,58 +985,58 @@ theorem potExitCallBridge {cA gh bl σ₀ A I} {g : Sat256}
       rw [← hChi]
       exact potMoveEncode_eq I.codeOwner I.source (joinThisWord I) (joinCallerWord I)
         (UInt256.mul (joinChi σ'' I) (joinWadWord I)) hmem rfl rfl)
-    (hΘ := by simpa using hΘ)
-    (hAccounts := by simpa using hAccountsPre)
-    (hOriginalAccounts := hσ0.symm) (hCreated := hCreated) (hGenesis := hGenesis)
-    (hBlocks := hBlocks) (hSubstate := hSubstate) (hEnv := hEnv)
+    (hΘ := by simpa [initState] using hΘ)
+    (hAccounts := by simpa [initState] using hAccountsPre)
+    (hOriginalAccounts := by simpa [initState] using hσ0.symm)
+    (hEnv := by simpa [initState] using hEnv.symm)
 
 /-! ### `exit(uint256)` — early-underflow Solm bodies -/
 
 set_option maxHeartbeats 1000000 in
 /-- `pie[caller] - wad` underflows: the body reverts at the `pieNew` `letDecl`. -/
-theorem potExitSolmRevertPie {cA gh bl σ_solm σ₀ A I} {g : Sat256}
+theorem potExitSolmRevertPie {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hunder : (Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+    (hunder : (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
       (pieSlot (.address I.source))).toNat < (joinWadWord I).toNat) :
-    ExecTransitionBody config contract (initState cA gh bl σ_solm σ₀ g A I)
+    ExecTransitionBody config contract (initState σ σ₀ g A I)
       ((∅ : Store).insert "wad" (.int (Int.ofNat (joinWadWord I).toNat)))
       exitTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   exact ExecBlock.consRevert (ExecStmt.letDeclRevert
     (evalExpr_sub256_revert
-      (a := Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+      (a := Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
         (pieSlot (.address I.source)))
       (b := joinWadWord I)
       (evalExpr_joinPieMapOf (by simp)) (evalExpr_varUInt256 (by simp)) hunder))
 
 set_option maxHeartbeats 1000000 in
 /-- `Pie - wad` underflows: the body reverts at the `PieNew` `letDecl` (after `pie` is stored). -/
-theorem potExitSolmRevertPie2 {cA gh bl σ_solm σ₀ A I} {g : Sat256}
+theorem potExitSolmRevertPie2 {σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
-    (hpieOk : (joinWadWord I).toNat ≤ (Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I)
+    (hpieOk : (joinWadWord I).toNat ≤ (Solm.EVM.storageLoad (initState σ σ₀ g A I)
         I.codeOwner (pieSlot (.address I.source))).toNat)
     (hunder : (Solm.EVM.storageLoad
-        (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+        (Solm.EVM.storageStore (initState σ σ₀ g A I) I.codeOwner
           (pieSlot (.address I.source))
-          (UInt256.sub (Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+          (UInt256.sub (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
             (pieSlot (.address I.source))) (joinWadWord I))) I.codeOwner ⟨2⟩).toNat
         < (joinWadWord I).toNat) :
-    ExecTransitionBody config contract (initState cA gh bl σ_solm σ₀ g A I)
+    ExecTransitionBody config contract (initState σ σ₀ g A I)
       ((∅ : Store).insert "wad" (.int (Int.ofNat (joinWadWord I).toNat)))
       exitTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine potExitSolmDriverPie hwv hpieOk ?_
-  have he1co : (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+  have he1co : (Solm.EVM.storageStore (initState σ σ₀ g A I) I.codeOwner
       (pieSlot (.address I.source))
-      (UInt256.sub (Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+      (UInt256.sub (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
         (pieSlot (.address I.source))) (joinWadWord I))).executionEnv.codeOwner = I.codeOwner := by
     rw [storageStore_executionEnv]; rfl
   exact ExecBlock.consRevert (ExecStmt.letDeclRevert
     (evalExpr_sub256_revert
-      (a := Solm.EVM.storageLoad (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I)
+      (a := Solm.EVM.storageLoad (Solm.EVM.storageStore (initState σ σ₀ g A I)
         I.codeOwner (pieSlot (.address I.source))
-        (UInt256.sub (Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
+        (UInt256.sub (Solm.EVM.storageLoad (initState σ σ₀ g A I) I.codeOwner
           (pieSlot (.address I.source))) (joinWadWord I))) I.codeOwner ⟨2⟩)
       (b := joinWadWord I)
       (joinReadPieScalar he1co (by simp))
@@ -1100,49 +1046,48 @@ theorem potExitSolmRevertPie2 {cA gh bl σ_solm σ₀ A I} {g : Sat256}
 
 set_option maxHeartbeats 4000000 in
 /-- `exit(uint256)` external: `pie[snd] -= wad; Pie -= wad; vat.move(this, snd, chi*wad)`. -/
-theorem potExitBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem potExitBody {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = potBytecode)
     (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩)
-    (hsel : selIs I (potSelBytes 6))
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
+    (hsel : selIs I (potSelBytes 6)) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size := calldata_size_ge_of_selIs I (potSelBytes 6) rfl hsel
   have hdispatch : dispatchMsg contract I.calldata = some exitTransition := potDispatchExit hsel
-  have hreach := potReachExitBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
+  have hreach := potReachExitBody (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
-  have hpieB : Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-      I.codeOwner (pieSlot (.address I.source)) = joinPie0 σ_evm I := by
+  have hpieB : Solm.EVM.storageLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+      I.codeOwner (pieSlot (.address I.source)) = joinPie0 σ I := by
     rw [joinStorageLoad_eq, joinPieSlot_eq]
-    exact (accountMapEquiv_storage_findD hAccounts I.codeOwner (joinPieSlot I) ⟨0⟩).symm
+    change solcSlotWord σ I (joinPieSlot I) = joinPie0 σ I
+    rfl
   by_cases hsz36 : 36 ≤ I.calldata.size
   · obtain ⟨_, _, rd1602⟩ := potExitX_decoded hsz36 hsize hreach
-    by_cases hpieUf : (joinPie0 σ_evm I).toNat < (joinWadWord I).toNat
+    by_cases hpieUf : (joinPie0 σ I).toNat < (joinWadWord I).toNat
     · exact (potExitX_pieUnderflowReverts hpieUf rd1602).reEquivExecutionRevert hcode hdispatch
         (potDecode_exit_ok hsz36)
         (potExitSolmRevertPie hwv (by rw [hpieB]; exact hpieUf))
     · obtain ⟨_, _, rd1645⟩ := potExitX_pieStore _hperm (not_lt.mp hpieUf) rd1602
       have hPie1B : Solm.EVM.storageLoad (Solm.EVM.storageStore
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I.codeOwner
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) I.codeOwner
           (pieSlot (.address I.source))
-          (UInt256.sub (Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+          (UInt256.sub (Solm.EVM.storageLoad (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             I.codeOwner (pieSlot (.address I.source))) (joinWadWord I))) I.codeOwner ⟨2⟩
-          = solcSlotWord (sstoreAccountMap I.codeOwner σ_evm (joinPieSlot I)
-            (UInt256.sub (joinPie0 σ_evm I) (joinWadWord I))) I ⟨2⟩ := by
-        rw [joinStorageLoad_eq, storageStore_accountMap, hpieB, joinPieSlot_eq]
-        exact (accountMapEquiv_storage_findD (accountMapEquiv_sstoreAccountMap I.codeOwner
-          (joinPieSlot I) (UInt256.sub (joinPie0 σ_evm I) (joinWadWord I)) hAccounts)
-          I.codeOwner ⟨2⟩ ⟨0⟩).symm
-      by_cases hPieUf : (solcSlotWord (sstoreAccountMap I.codeOwner σ_evm
-          (joinPieSlot I) (UInt256.sub (joinPie0 σ_evm I) (joinWadWord I))) I ⟨2⟩).toNat
+          = solcSlotWord (sstoreAccountMap I.codeOwner σ (joinPieSlot I)
+            (UInt256.sub (joinPie0 σ I) (joinWadWord I))) I ⟨2⟩ := by
+        rw [joinStorageLoad_eq, storageStore_accountMap, joinStorageLoad_eq,
+          joinPieSlot_eq]
+        rfl
+      by_cases hPieUf : (solcSlotWord (sstoreAccountMap I.codeOwner σ
+          (joinPieSlot I) (UInt256.sub (joinPie0 σ I) (joinWadWord I))) I ⟨2⟩).toNat
           < (joinWadWord I).toNat
       · exact (potExitX_PieUnderflowReverts hPieUf rd1645).reEquivExecutionRevert hcode hdispatch
           (potDecode_exit_ok hsz36)
           (potExitSolmRevertPie2 hwv (by rw [hpieB]; exact not_lt.mp hpieUf)
             (by rw [hPie1B]; exact hPieUf))
       · obtain ⟨_, _, rd1661⟩ := potExitX_PieStore _hperm (not_lt.mp hPieUf) rd1645
-        by_cases hMulOvf : UInt256.size ≤ (joinChi (exitSigma'' σ_evm I) I).toNat
+        by_cases hMulOvf : UInt256.size ≤ (joinChi (exitSigma'' σ I) I).toNat
             * (joinWadWord I).toNat
         · exact (potExitX_mulOverflowReverts hMulOvf rd1661).reEquivExecutionRevert hcode hdispatch
             (potDecode_exit_ok hsz36)
@@ -1150,7 +1095,7 @@ theorem potExitBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (by rw [hpieB]; exact not_lt.mp hpieUf)
               (potExitSolmMulSeg (by rw [hPie1B]; exact not_lt.mp hPieUf)
                 (ExecBlock.consRevert (joinMulStmtRevert exitSolmEvm2_codeOwner
-                  (exitChiReadB hAccounts)
+                  (exitChiReadB)
                   (by rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
                     store_get_self])
                   (by simp) hMulOvf)))))
@@ -1162,8 +1107,8 @@ theorem potExitBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             twoWordHashMem_read64 (joinCallerWord I) ⟨1⟩ (joinPieHashMem_size I)
               (joinPieHashMem_read64 I)
           obtain ⟨_, _, rd927⟩ := potExitX_callGuard hmemSz hmemR64 rd853
-          by_cases hEcs : extCodeSizeWord (exitSigma'' σ_evm I)
-              (joinVatMasked (exitSigma'' σ_evm I) I) = ⟨0⟩
+          by_cases hEcs : extCodeSizeWord (exitSigma'' σ I)
+              (joinVatMasked (exitSigma'' σ I) I) = ⟨0⟩
           · refine (potJoinX_ecsZero hEcs rd927).reEquivExecutionRevert hcode hdispatch
               (potDecode_exit_ok hsz36)
               (ExecFuncBody.execBlockRevert (potExitSolmDriverPie hwv
@@ -1173,10 +1118,10 @@ theorem potExitBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (by rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
                       store_get_self])
                     (by simp) (by simp)
-                    (by rw [exitChiReadB hAccounts]; exact not_le.mp hMulOvf) rfl
-                    (joinExtCodeEq (exitSigma'' σ_evm I) (exitSolmEvm2 cA gh bl σ_solm σ₀
-                      (Sat256.ofUInt256 g) A I) I (exitAccPre hAccounts)
-                      (exitVatReadB hAccounts) hEcs)))))
+                    (by rw [exitChiReadB]; exact not_le.mp hMulOvf) rfl
+                    (joinExtCodeEq (exitSigma'' σ I) (exitSolmEvm2 σ σ₀
+                      (Sat256.ofUInt256 g) A I) I (exitAccPre)
+                      (exitVatReadB) hEcs)))))
           · by_cases hdepth : I.depth = 1024
             · refine (potExitX_depthLimitReverts hdepth hEcs rd927).reEquivExecutionRevert hcode
                 hdispatch (potDecode_exit_ok hsz36)
@@ -1187,26 +1132,25 @@ theorem potExitBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       (by rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
                         store_get_self])
                       (by simp) (by simp)
-                      (by rw [exitChiReadB hAccounts]; exact not_le.mp hMulOvf) rfl
-                      (joinExtCodeNe (exitSigma'' σ_evm I) (exitSolmEvm2 cA gh bl σ_solm σ₀
-                        (Sat256.ofUInt256 g) A I) I (exitAccPre hAccounts)
-                        (exitVatReadB hAccounts) hEcs)
+                      (by rw [exitChiReadB]; exact not_le.mp hMulOvf) rfl
+                      (joinExtCodeNe (exitSigma'' σ I) (exitSolmEvm2 σ σ₀
+                        (Sat256.ofUInt256 g) A I) I (exitAccPre)
+                        (exitVatReadB) hEcs)
                       (callNotMade_depthLimit
                         (potMoveEncode_eq I.codeOwner I.source (joinThisWord I) (joinCallerWord I)
                           (UInt256.mul (Solm.EVM.storageLoad
-                            (exitSolmEvm2 cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I.codeOwner
+                            (exitSolmEvm2 σ σ₀ (Sat256.ofUInt256 g) A I) I.codeOwner
                             ⟨4⟩) (joinWadWord I)) hmemSz rfl rfl)
                         (by rw [exitSolmEvm2_env]; exact hdepth))))))
             · have hdepthLt : I.depth.val < 1024 :=
                 lt_of_le_of_ne (Nat.le_of_lt_succ I.depth.isLt) (fun h => hdepth (Fin.ext h))
-              obtain ⟨cA', σ_final, z, o, A_in, callGas, mem', aw', k', C', ⟨g'', A', hΘ⟩,
+              obtain ⟨σ_final, z, o, A_in, callGas, mem', aw', k', C', ⟨g'', A', hΘ⟩,
                 rd943, hosz⟩ := potExitX_postCall hmemSz hdepthLt hEcs rd927
               obtain ⟨σ'_solm, A'_solm, hcall, hAcc'⟩ :=
-                potExitCallBridge (g := Sat256.ofUInt256 g) (σ'' := exitSigma'' σ_evm I)
-                  (evm2_solm := exitSolmEvm2 cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-                  hmemSz exitSolmEvm2_env exitSolmEvm2_σ₀ exitSolmEvm2_created
-                  exitSolmEvm2_genesis exitSolmEvm2_blocks exitSolmEvm2_substate
-                  (exitAccPre hAccounts) hdepth hΘ
+                potExitCallBridge (A := A) (g := Sat256.ofUInt256 g) (σ'' := exitSigma'' σ I)
+                  (evm2_solm := exitSolmEvm2 σ σ₀ (Sat256.ofUInt256 g) A I)
+                  hmemSz exitSolmEvm2_env exitSolmEvm2_σ₀
+                  (exitAccPre) hdepth hΘ
               cases z
               · simp only [Bool.false_eq_true, if_false] at rd943
                 refine (potJoinX_failTailGen hosz rd943).reEquivExecutionRevert hcode hdispatch
@@ -1218,10 +1162,10 @@ theorem potExitBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         (by rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
                           store_get_self])
                         (by simp) (by simp)
-                        (by rw [exitChiReadB hAccounts]; exact not_le.mp hMulOvf) rfl
-                        (joinExtCodeNe (exitSigma'' σ_evm I) (exitSolmEvm2 cA gh bl σ_solm σ₀
-                          (Sat256.ofUInt256 g) A I) I (exitAccPre hAccounts)
-                          (exitVatReadB hAccounts) hEcs)
+                        (by rw [exitChiReadB]; exact not_le.mp hMulOvf) rfl
+                        (joinExtCodeNe (exitSigma'' σ I) (exitSolmEvm2 σ σ₀
+                          (Sat256.ofUInt256 g) A I) I (exitAccPre)
+                          (exitVatReadB) hEcs)
                         (_hperm ▸ hcall)))))
               · simp only [if_true] at rd943
                 refine (potJoinX_successTailGen rd943).reEquivExecutionGenAccountMapEquiv hcode
@@ -1233,12 +1177,12 @@ theorem potExitBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         (by rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
                           store_get_self])
                         (by simp) (by simp)
-                        (by rw [exitChiReadB hAccounts]; exact not_le.mp hMulOvf) rfl
-                        (joinExtCodeNe (exitSigma'' σ_evm I) (exitSolmEvm2 cA gh bl σ_solm σ₀
-                          (Sat256.ofUInt256 g) A I) I (exitAccPre hAccounts)
-                          (exitVatReadB hAccounts) hEcs)
+                        (by rw [exitChiReadB]; exact not_le.mp hMulOvf) rfl
+                        (joinExtCodeNe (exitSigma'' σ I) (exitSolmEvm2 σ σ₀
+                          (Sat256.ofUInt256 g) A I) I (exitAccPre)
+                          (exitVatReadB) hEcs)
                         (_hperm ▸ hcall)))))
-                  rfl hAcc'
+                  (by simpa using hAcc')
                   (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
                     (dvs := []) rfl (by native_decide) (by native_decide))
   · exact (potExitX_shortReverts hsz4 hsize (by omega) hreach).reEquivDecodingFailed hcode hdispatch

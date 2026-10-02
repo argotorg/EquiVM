@@ -111,13 +111,10 @@ theorem assign_stairstepCtorWardsCaller (evm : EVM.State) {locals : Store}
     (hstore := hstore)
 
 theorem stairstepCtorBodySuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) :
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
-      (Sat256.ofUInt256 g) A I
+    let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     let evm1 := stairstepCtorAfterWardsState evm0
     ExecBlock config { contract := contract, locals := ∅ } evm0 constructorDecl.body
       (.ok { contract := contract, locals := ∅ } evm1) := by
@@ -134,20 +131,16 @@ theorem stairstepCtorBodySuccess
   exact ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassign) ExecBlock.nil
 
 theorem stairstepSolmCtorExecSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) :
-    solmCtorExec config contract [] createdAccounts genesisBlockHeader blocks
-      σ σ₀ g A I
+    solmCtorExec config contract [] σ σ₀ g A I
       (.returned { contract := contract, locals := ∅ }
         (stairstepCtorAfterWardsState
-          (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I))
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I))
         none) := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
-      (Sat256.ofUInt256 g) A I)
+    (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
     (argsStore := (∅ : Store))
     ?_ rfl ?_ ?_
   · rfl
@@ -155,42 +148,36 @@ theorem stairstepSolmCtorExecSuccess
   · simpa [ExecTransitionBody, contract, constructorDecl] using
       ExecFuncBody.execBlockOK
         (stairstepCtorBodySuccess
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv)
 
 theorem stairstepSolmCtorExecReverts_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256}
     (hwv : I.weiValue ≠ ⟨0⟩) :
-    solmCtorExec config contract [] createdAccounts genesisBlockHeader blocks
-      σ σ₀ g A I .reverted := by
+    solmCtorExec config contract [] σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
-      (Sat256.ofUInt256 g) A I)
+    (evmState := initState σ σ₀ (Sat256.ofUInt256 g) A I)
     (argsStore := (∅ : Store))
     ?_ rfl ?_ ?_
   · rfl
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl, nonpayable] using
       bodyReverts_nonPayable (cfg := config) (contract := contract)
-        (evm := initState createdAccounts genesisBlockHeader blocks σ σ₀
-          (Sat256.ofUInt256 g) A I)
+        (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (locals := (∅ : Store)) hwv
 
 /-! ## EVM initcode trace -/
 
 set_option maxHeartbeats 2000000 in
-theorem stairstepCtorInitcodeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepCtorInitcodeRevert {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = linearDecreaseCreationBytecode)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev linearDecreaseCreationBytecode g
-      (initState cA gh bl σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   have rd0 :
       RD linearDecreaseCreationBytecode I g
-        (initState cA gh bl σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (cA, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   have rd12 := evm_run rd0 with [
     push1 ⟨128⟩, push1 ⟨64⟩,
@@ -205,18 +192,18 @@ theorem stairstepCtorInitcodeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 4000000 in
-theorem stairstepCtorInitcodeSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem stairstepCtorInitcodeSuccess {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = linearDecreaseCreationBytecode)
     (hperm : I.perm = true)
     (hwv : I.weiValue = ⟨0⟩) :
     RDret linearDecreaseCreationBytecode g
-      (initState cA gh bl σ σ₀ g A I)
-      (cA, sstoreAccountMap I.codeOwner σ (stairstepCtorCallerWardsSlot I) ⟨1⟩)
+      (initState σ σ₀ g A I)
+      (sstoreAccountMap I.codeOwner σ (stairstepCtorCallerWardsSlot I) ⟨1⟩)
       linearDecreaseBytecode := by
   have rd0 :
       RD linearDecreaseCreationBytecode I g
-        (initState cA gh bl σ σ₀ g A I) ⟨0⟩ []
-        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (cA, σ) 0 0 :=
+        (initState σ σ₀ g A I) ⟨0⟩ []
+        ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   have rd16 := evm_run rd0 with [
     push1 ⟨128⟩, push1 ⟨64⟩,
@@ -299,8 +286,7 @@ theorem linearDecreaseConstructorCorrect :
     constructorEquivalence config linearDecreaseCreationBytecode contract
       linearDecreaseBytecode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
-      args deployedInitcode hdeploy hcode _hcalldata hperm hAccounts
+  intro σ σ₀ g A I args deployedInitcode hdeploy hcode _hcalldata hperm
   have hdeployed := emptyCtorDeployment_eq_initcode stairstep_selfDeployment_eq
     stairstep_ctor_params_nil hdeploy
   rw [hdeployed] at hcode
@@ -311,8 +297,8 @@ theorem linearDecreaseConstructorCorrect :
     exact List.eq_nil_of_length_eq_zero hlen
   by_cases hwv : I.weiValue = ⟨0⟩
   · have hrd := stairstepCtorInitcodeSuccess
-      (cA := createdAccounts) (gh := genesisBlockHeader) (bl := blocks) (σ := σ_evm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hperm hwv
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+      (g := Sat256.ofUInt256 g) hcode hperm hwv
     rcases hrd with hOOG | ⟨s, hX, hacc⟩
     · exact constructorEquivalenceFor.outOfGas
         (Xi_error_of_X (g := g) (by
@@ -321,39 +307,32 @@ theorem linearDecreaseConstructorCorrect :
     · have hsuccess := Xi_success_of_X (g := g) (by
         rw [← hcode] at hX
         simpa [Sat256.ofUInt256] using hX)
-      have hcA : s.createdAccounts = createdAccounts := congrArg Prod.fst hacc
       have hσ' : s.accountMap =
-          sstoreAccountMap I.codeOwner σ_evm (stairstepCtorCallerWardsSlot I) ⟨1⟩ :=
-        congrArg Prod.snd hacc
-      rw [hcA, hσ'] at hsuccess
+          sstoreAccountMap I.codeOwner σ (stairstepCtorCallerWardsSlot I) ⟨1⟩ :=
+        hacc
+      rw [hσ'] at hsuccess
       let evm0s :=
-        initState createdAccounts genesisBlockHeader blocks σ_solm σ₀
-          (Sat256.ofUInt256 g) A I
+        initState σ σ₀ (Sat256.ofUInt256 g) A I
       refine constructorEquivalenceFor.execution hsuccess
         (by
           simpa [evm0s] using
             stairstepSolmCtorExecSuccess
-              (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-              (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
               (g := g) hwv)
         ?_
-      refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
-      · simp [stairstepCtorAfterWardsState, storageStore_createdAccounts, initState]
-      · have hslot : wardsSlot (.address I.source) = stairstepCtorCallerWardsSlot I :=
-          stairstepCtorCallerWardsSlot_eq I
-        simpa [evm0s, stairstepCtorAfterWardsState, storageStore_accountMap,
-          storageStore_executionEnv, initState, hslot] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner (stairstepCtorCallerWardsSlot I) ⟨1⟩
-            hAccounts
+      refine ctorResultEquiv.success rfl rfl ?_ rfl
+      have hslot : wardsSlot (.address I.source) = stairstepCtorCallerWardsSlot I :=
+        stairstepCtorCallerWardsSlot_eq I
+      simp [evm0s, stairstepCtorAfterWardsState, storageStore_accountMap,
+        storageStore_executionEnv, initState, hslot]
   · have hrd := stairstepCtorInitcodeRevert
-      (cA := createdAccounts) (gh := genesisBlockHeader) (bl := blocks) (σ := σ_evm)
-      (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
+      (g := Sat256.ofUInt256 g) hcode hwv
     rcases hrd.xiResult hcode with hOOG | ⟨g', o, hrev⟩
     · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
     · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
         (stairstepSolmCtorExecReverts_nonpayable
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := g) hwv) ?_
       exact ctorResultEquiv.revert rfl rfl
 

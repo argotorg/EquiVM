@@ -6,13 +6,11 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-theorem createBidBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem createBidBodyCore {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = auctionBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hsel : selIs I (entryBytes 6))
-    (hreach : EntryReached 6 cA gh bl σ_evm σ₀ A I g)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor auctionConfig auctionContract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    (hreach : EntryReached 6 σ σ₀ A I g) :
+    runtimeEquivalenceFor auctionConfig auctionContract σ σ₀ g A I := by
   have hd := dispatchEntry 6 hsel
   have hsz := calldata_size_ge_of_selIs I (entryBytes 6) (entryBytes_size 6) hsel
   obtain ⟨_, _, rd500⟩ := hreach
@@ -27,13 +25,13 @@ theorem createBidBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         decodeCalldata_uint256_ok hlen hhi
       obtain ⟨_, _, rd514⟩ := decodeUint256Ok rd5357 hlen hhi hsize (by jump_dest) (by evm_ov)
       have rd1165 := evm_run rd514 with [jumpdest, push2 ⟨1165⟩, jump (by jump_dest)]
-      let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
-      have hs0 : SourceState (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-          I cA σ_evm evm0 := SourceState.init hAccounts
+      let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
+      have hs0 : SourceState (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+          I σ evm0 := SourceState.init
       rcases bidRoutine rd1165 hs0 hperm freshHeapMemory (by jump_dest) (by evm_ov) with
-        ⟨evm', cA', σ', locals', mem', aw', out, _, _, hbody, hs', rd413⟩ | ⟨hbody, hr⟩
+        ⟨evm', σ', locals', mem', aw', out, _, _, hbody, hs', rd413⟩ | ⟨hbody, hr⟩
       · exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGenAccountMapEquiv
-          hcode hd hdec (ExecFuncBody.execBlockOK hbody) hs'.created.symm hs'.accounts
+          hcode hd hdec (ExecFuncBody.execBlockOK hbody) hs'.accounts
           (.fallthrough rfl rfl (by native_decide))
       · exact hr.reEquivExecutionRevert hcode hd hdec (ExecFuncBody.execBlockRevert hbody)
     · have hdec : decodeCalldataWithMode auctionConfig.abiDecodeMode

@@ -194,19 +194,19 @@ theorem erc6909PivotNotTaken {I : ExecutionEnv} (i : ℕ) (hi : i < 4)
 /-! ### Dispatcher reachability -/
 
 /-- Standard solc prologue/guards/selector-load, stopping at ERC6909's pivot split. -/
-theorem erc6909ReachSplit {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909ReachSplit {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = erc6909BenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) erc6909SplitPc
-        [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) erc6909SplitPc
+        [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hprefix : solcDispatchPrefixWellFormed erc6909BenchBytecode erc6909SplitPc := by
     solc_dispatch_prefix
   simpa [erc6909SelWord, solcSelectorWord] using
-    (solcDispatchReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    (solcDispatchReachSelector (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize hprefix (by jump_dest))
 
 /-- Reach a body in ERC6909's high selector half. -/
-theorem erc6909ReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909ReachHighBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 3) (bodyPC : UInt256)
     (hcode : I.code = erc6909BenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -223,12 +223,12 @@ theorem erc6909ReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hjd : (D_J erc6909BenchBytecode 0).contains bodyPC = true)
     (hbody : armTgt erc6909BenchBytecode
         (nthArmPc erc6909BenchBytecode erc6909HighFirstArmPc i) = bodyPC) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) bodyPC
+        [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
   have hprefix : solcDispatchPrefixWellFormed erc6909BenchBytecode erc6909SplitPc := by
     solc_dispatch_prefix
   simpa [erc6909SelWord, solcSelectorWord] using
-    (solcBinaryDispatchReachHighBody (cA := cA) (gh := gh) (bl := bl)
+    (solcBinaryDispatchReachHighBody
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (code := erc6909BenchBytecode) (splitPc := erc6909SplitPc) (bodyPC := bodyPC) (i := i)
       hcode hwv hsz hsize hprefix (by jump_dest) erc6909SplitWellFormed
@@ -251,16 +251,16 @@ theorem erc6909ReachHighBody {cA gh bl σ σ₀ A I} {g : Sat256}
           selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using hbody))
 
 /-- Reach the special `balanceOf` body through the low split and `PUSH3` selector arm. -/
-theorem erc6909ReachBalanceBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909ReachBalanceBody {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = erc6909BenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hpivot : UInt256.gt (armSelNat erc6909BenchBytecode erc6909SplitPc)
         (erc6909SelWord I) ≠ ⟨0⟩)
     (htake : UInt256.eq (armSelNatW erc6909BenchBytecode erc6909LowFirstArmPc)
         (erc6909SelWord I) ≠ ⟨0⟩) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨136⟩
-        [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k0, C0, hsplit⟩ := erc6909ReachSplit (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) ⟨136⟩
+        [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨k0, C0, hsplit⟩ := erc6909ReachSplit
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
   have h88 := hsplit.selectorSplitTakenAuto erc6909SplitWellFormed hpivot (by jump_dest) (by simp)
   have h89 := h88.jumpdest (by decide) (by simp)
@@ -272,7 +272,7 @@ theorem erc6909ReachBalanceBody {cA gh bl σ σ₀ A I} {g : Sat256}
     using h136
 
 /-- Reach a body in the low selector half after the special `balanceOf` arm. -/
-theorem erc6909ReachLowRestBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem erc6909ReachLowRestBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 2) (bodyPC : UInt256)
     (hcode : I.code = erc6909BenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -292,9 +292,9 @@ theorem erc6909ReachLowRestBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hjd : (D_J erc6909BenchBytecode 0).contains bodyPC = true)
     (hbody : armTgt erc6909BenchBytecode
         (nthArmPc erc6909BenchBytecode erc6909LowRestFirstArmPc i) = bodyPC) :
-    ∃ k C, RD erc6909BenchBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
-        [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨k0, C0, hsplit⟩ := erc6909ReachSplit (cA := cA) (gh := gh) (bl := bl)
+    ∃ k C, RD erc6909BenchBytecode I g (initState σ σ₀ g A I) bodyPC
+        [erc6909SelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C := by
+  obtain ⟨k0, C0, hsplit⟩ := erc6909ReachSplit
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
   have h88 := hsplit.selectorSplitTakenAuto erc6909SplitWellFormed hpivot (by jump_dest) (by simp)
   have h89 := h88.jumpdest (by decide) (by simp)
@@ -316,7 +316,7 @@ theorem erc6909ReachLowRestBody {cA gh bl σ σ₀ A I} {g : Sat256}
 set_option maxHeartbeats 400000 in
 theorem erc6909DecodeAddrOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD erc6909BenchBytecode ee g s0 ⟨1629⟩ (off :: ret :: R) mem aw rdata acc k C)
     (hcanon : (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)).toNat
         < EVM.addressModulus)
@@ -335,7 +335,7 @@ theorem erc6909DecodeAddrOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C :
 set_option maxHeartbeats 400000 in
 theorem erc6909DecodeAddrRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {off ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {rdata : ByteArray} {acc : AccountMap}
     (h : RD erc6909BenchBytecode ee g s0 ⟨1629⟩ (off :: ret :: R) mem aw rdata acc k C)
     (hnc : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
       (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32)) solcAddrMask) =

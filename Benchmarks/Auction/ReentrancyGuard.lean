@@ -77,12 +77,12 @@ theorem reentrancyFailureWfs : ∀ i : ReentrancySite, reentrancyFailureWf i := 
   unfold reentrancyFailureWf
   native_decide
 
-theorem reentrancyPrefix {I g s0 R mem aw rdata cA σ k C} (i : ReentrancySite)
-    (h : RD auctionBytecode I g s0 (reentrancyPc i) R mem aw rdata (cA, σ) k C)
+theorem reentrancyPrefix {I g s0 R mem aw rdata σ k C} (i : ReentrancySite)
+    (h : RD auctionBytecode I g s0 (reentrancyPc i) R mem aw rdata σ k C)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 (reentrancyBranchPc i)
       (reentrancyAllowedPc i :: UInt256.sub (storedWord σ I ⟨101⟩) ⟨2⟩ :: R)
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   obtain ⟨h0, h1, h2, h3, h4, h5, _, _⟩ := reentrancyGuardWfs i
   have rdLoad := evm_run h with [raw jumpdest h0 (by evm_ov),
     raw push1 ⟨2⟩ h1 (by evm_ov), raw push1 ⟨101⟩ h2 (by evm_ov)]
@@ -90,11 +90,11 @@ theorem reentrancyPrefix {I g s0 R mem aw rdata cA σ k C} (i : ReentrancySite)
   exact ⟨_, _, evm_run rdWord with [raw sub h4 (by evm_ov),
     raw push2 (reentrancyAllowedPc i) h5 (by evm_ov)]⟩
 
-theorem reentrancyAllowed {I g s0 R mem aw rdata cA σ k C} (i : ReentrancySite)
-    (h : RD auctionBytecode I g s0 (reentrancyPc i) R mem aw rdata (cA, σ) k C)
+theorem reentrancyAllowed {I g s0 R mem aw rdata σ k C} (i : ReentrancySite)
+    (h : RD auctionBytecode I g s0 (reentrancyPc i) R mem aw rdata σ k C)
     (hs : storedWord σ I ⟨101⟩ ≠ ⟨2⟩) (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 (reentrancyAllowedPc i) R
-      mem aw rdata (cA, σ) k' C' := by
+      mem aw rdata σ k' C' := by
   obtain ⟨_, _, rd⟩ := reentrancyPrefix i h hov
   obtain ⟨_, _, _, _, _, _, hj, hd⟩ := reentrancyGuardWfs i
   exact ⟨_, _, evm_run rd with [raw jumpiT hj (u256_sub_ne_zero_of_ne hs) hd (by evm_ov)]⟩
@@ -113,8 +113,8 @@ theorem reentrancyErrorRevert {I g s0 ptr R mem aw rdata acc k C}
     jump (by jump_dest)]
   exact auctionErrorRevert rd994 (by evm_ov)
 
-theorem reentrancyDenied {I g s0 R mem aw rdata cA σ k C} (i : ReentrancySite)
-    (h : RD auctionBytecode I g s0 (reentrancyPc i) R mem aw rdata (cA, σ) k C)
+theorem reentrancyDenied {I g s0 R mem aw rdata σ k C} (i : ReentrancySite)
+    (h : RD auctionBytecode I g s0 (reentrancyPc i) R mem aw rdata σ k C)
     (hs : storedWord σ I ⟨101⟩ = ⟨2⟩) (hov : R.length + 7 ≤ 1024) :
     RDrev auctionBytecode g s0 := by
   obtain ⟨_, _, rd⟩ := reentrancyPrefix i h (by omega)

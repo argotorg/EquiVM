@@ -160,7 +160,7 @@ theorem pausableMatches {I : ExecutionEnv} (i : ℕ) (hi : i < 5)
     interval_cases i <;> decide
 
 /-- Standard solc prologue/guards/selector-load, then linear dispatch to a body entry. -/
-theorem pausableReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem pausableReachBody {σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi4 : i ≤ 4) (bodyPC : UInt256)
     (hcode : I.code = pausableBenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -176,9 +176,9 @@ theorem pausableReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hjd : (D_J pausableBenchBytecode 0).contains bodyPC = true)
     (hbody : armTgt pausableBenchBytecode
         (nthArmPc pausableBenchBytecode pausableFirstArmPc i) = bodyPC) :
-    ∃ k C, RD pausableBenchBytecode I g (initState cA gh bl σ σ₀ g A I) bodyPC
+    ∃ k C, RD pausableBenchBytecode I g (initState σ σ₀ g A I) bodyPC
         [pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (cA, σ) k C := by
+        σ k C := by
   exact solcDispatchReachBody
     (firstArmPc := pausableFirstArmPc) (bodyPC := bodyPC) (i := i)
     hcode hwv hsz hsize (by solc_dispatch_prefix) (by jump_dest)
@@ -226,9 +226,9 @@ theorem pausableBodyReverts_nonPayable
   rcases ht with rfl | rfl | rfl | rfl | rfl <;>
     exact bodyReverts_nonPayable h
 
-theorem pausableX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem pausableX_callvalue_ne {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = pausableBenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    RDrev pausableBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev pausableBenchBytecode g (initState σ σ₀ g A I) := by
   exact solcGuardCallvalueNonzeroRevert
     (ctgt := solcGuardTgt pausableBenchBytecode)
     (opC := solcGuardTgtOp pausableBenchBytecode)
@@ -237,11 +237,11 @@ theorem pausableX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by decide))
     hwv (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
 
-theorem pausableX_short {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem pausableX_short {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = pausableBenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
-    RDrev pausableBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+    RDrev pausableBenchBytecode g (initState σ σ₀ g A I) := by
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt pausableBenchBytecode)
@@ -256,11 +256,11 @@ theorem pausableX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     h1 hsz (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
     (by decide) (by jump_dest) (by decide) (by decide) (by decide)
 
-theorem pausableX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem pausableX_noMatch {σ σ₀ A I} {g : Sat256}
     (hcode : I.code = pausableBenchBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hnm : ∀ i, i < 5 → (pausableSelBytes i == I.calldata.extract 0 4) = false) :
-    RDrev pausableBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev pausableBenchBytecode g (initState σ σ₀ g A I) := by
   have heq0 : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat pausableBenchBytecode
@@ -270,7 +270,7 @@ theorem pausableX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [pausableArmEq I hsz j hj]
     rw [hnm j hj]
     rfl
-  have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  have h0 := solcGuardPrologueRD (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt pausableBenchBytecode)
@@ -285,9 +285,9 @@ theorem pausableX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     h1 hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
   obtain ⟨k3, C3, h3⟩ :=
     solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide) (by simp)
-  have h4 : RD pausableBenchBytecode I g (initState cA gh bl σ σ₀ g A I)
+  have h4 : RD pausableBenchBytecode I g (initState σ σ₀ g A I)
       pausableFirstArmPc [pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) k3 C3 := by
+      ByteArray.empty σ k3 C3 := by
     simpa [pausableFirstArmPc, pausableSelWord, solcFirstArmPcFromPrefix,
       solcSelectorWord, solcSelectorLoadPc, solcCalldataJumpiPc, solcCalldataRevertPushPc,
       solcDispatchBodyPc] using h3
@@ -303,8 +303,8 @@ theorem pausableX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.selectorArmNotTakenAuto (pausableArmsWellFormed 4 (by omega)) (heq0 4 (by omega))
         (by simp)
   have h85 : ∃ k C, RD pausableBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨85⟩ [pausableSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+      (initState σ σ₀ g A I) ⟨85⟩ [pausableSelWord I] solcFreePtrMem
+      (UInt256.ofNat 3) ByteArray.empty σ k C := by
     refine ⟨k3 + 5 + 5 + 5 + 5 + 5, C3 + 22 + 22 + 22 + 22 + 22, ?_⟩
     simpa [pausableFirstArmPc, nthArmPc, selArmNextPc, armTgtWidth, armTgt,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using h5
@@ -312,10 +312,9 @@ theorem pausableX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
   exact evm_run h85rd with [
     jumpdest, raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
-theorem pausableNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem pausableNonPayable {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (pausableX_callvalue_ne (g := Sat256.ofUInt256 g) hcode hwv).reEquivElim hcode
     fun _ _ hrev => by
       by_cases hdisp : dispatchMsg contract I.calldata = none
@@ -330,24 +329,22 @@ theorem pausableNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         · obtain ⟨callargs, hca⟩ := Option.ne_none_iff_exists'.mp hdec
           exact reEquiv_execution ht hca
             (pausableBodyReverts_nonPayable t htmem
-              (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+              (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               callargs (by simp only [initState]; exact hwv))
             (by rw [hrev]; exact execResultsEquiv.revert rfl rfl)
 
-theorem pausableShortRevert {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem pausableShortRevert {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (_hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩) (hsz : I.calldata.size < 4) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   exact (pausableX_short (g := Sat256.ofUInt256 g) hcode hwv hsz).reEquivNoDispatch hcode
     (pausableDispatch_none_short hsz)
 
-theorem pausableNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
+theorem pausableNoDispatch {σ σ₀ A I} {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hnm : ∀ i, i < 5 → (pausableSelBytes i == I.calldata.extract 0 4) = false) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz : 4 ≤ I.calldata.size
   · exact (pausableX_noMatch (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hnm)
       |>.reEquivNoDispatch hcode (pausableDispatch_none_nomatch hnm)
@@ -366,7 +363,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory OpenZeppelinBench.Pausable
 set_option maxHeartbeats 1000000 in
 theorem RD.pausableReturnBoolTrue105 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {R : List UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD pausableBenchBytecode ee g s0 ⟨105⟩ (⟨1⟩ :: R) solcFreePtrMem
         (UInt256.ofNat 3) rdata acc k C)
     (hov : R.length + 8 ≤ 1024) :
@@ -395,17 +392,17 @@ theorem RD.pausableReturnBoolTrue105 {g : Sat256} {s0 : State} {ee : ExecutionEn
 set_option maxHeartbeats 1000000 in
 theorem RD.pausableWhenNotPausedPass {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD pausableBenchBytecode ee g s0 ⟨332⟩ (ret :: R) mem aw rdata (cA, σ) k C)
+    {rdata : ByteArray} {σ : AccountMap}
+    (h : RD pausableBenchBytecode ee g s0 ⟨332⟩ (ret :: R) mem aw rdata σ k C)
     (hzero : pausedWord σ ee = ⟨0⟩)
     (hret : (D_J pausableBenchBytecode 0).contains ret = true)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD pausableBenchBytecode ee g s0 ret R mem aw rdata (cA, σ) k' C' := by
+    ∃ k' C', RD pausableBenchBytecode ee g s0 ret R mem aw rdata σ k' C' := by
   have rd334 := evm_run h with [jumpdest, push0]
   obtain ⟨_, _, rd335₀⟩ := rd334.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd335⟩ : ∃ k' C',
       RD pausableBenchBytecode ee g s0 ⟨335⟩
-        (pausedRawWord σ ee :: ret :: R) mem aw rdata (cA, σ) k' C' := by
+        (pausedRawWord σ ee :: ret :: R) mem aw rdata σ k' C' := by
     exact ⟨_, _, by simpa [pausedRawWord] using rd335₀⟩
   have rd339₀ := evm_run rd335 with [push1 ⟨255⟩, and, iszero]
   have hmask : UInt256.land ⟨255⟩ (pausedRawWord σ ee) = pausedWord σ ee := by
@@ -419,9 +416,9 @@ theorem RD.pausableWhenNotPausedPass {g : Sat256} {s0 : State} {ee : ExecutionEn
 set_option maxHeartbeats 1000000 in
 theorem RD.pausableWhenNotPausedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD pausableBenchBytecode ee g s0 ⟨332⟩ (ret :: R) solcFreePtrMem
-        (UInt256.ofNat 3) rdata (cA, σ) k C)
+        (UInt256.ofNat 3) rdata σ k C)
     (hnz : pausedWord σ ee ≠ ⟨0⟩)
     (hov : R.length + 8 ≤ 1024) :
     RDrev pausableBenchBytecode g s0 := by
@@ -430,7 +427,7 @@ theorem RD.pausableWhenNotPausedRevert {g : Sat256} {s0 : State} {ee : Execution
   obtain ⟨_, _, rd335⟩ : ∃ k' C',
       RD pausableBenchBytecode ee g s0 ⟨335⟩
         (pausedRawWord σ ee :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata
-        (cA, σ) k' C' := by
+        σ k' C' := by
     exact ⟨_, _, by simpa [pausedRawWord] using rd335₀⟩
   have rd339₀ := evm_run rd335 with [push1 ⟨255⟩, and, iszero]
   have hmask : UInt256.land ⟨255⟩ (pausedRawWord σ ee) = pausedWord σ ee := by
@@ -459,17 +456,17 @@ theorem RD.pausableWhenNotPausedRevert {g : Sat256} {s0 : State} {ee : Execution
 set_option maxHeartbeats 1000000 in
 theorem RD.pausableWhenPausedPass {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
-    {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    (h : RD pausableBenchBytecode ee g s0 ⟨367⟩ (ret :: R) mem aw rdata (cA, σ) k C)
+    {rdata : ByteArray} {σ : AccountMap}
+    (h : RD pausableBenchBytecode ee g s0 ⟨367⟩ (ret :: R) mem aw rdata σ k C)
     (hnz : pausedWord σ ee ≠ ⟨0⟩)
     (hret : (D_J pausableBenchBytecode 0).contains ret = true)
     (hov : R.length + 4 ≤ 1024) :
-    ∃ k' C', RD pausableBenchBytecode ee g s0 ret R mem aw rdata (cA, σ) k' C' := by
+    ∃ k' C', RD pausableBenchBytecode ee g s0 ret R mem aw rdata σ k' C' := by
   have rd369 := evm_run h with [jumpdest, push0]
   obtain ⟨_, _, rd370₀⟩ := rd369.sload (by decide) (by evm_ov)
   obtain ⟨_, _, rd370⟩ : ∃ k' C',
       RD pausableBenchBytecode ee g s0 ⟨370⟩
-        (pausedRawWord σ ee :: ret :: R) mem aw rdata (cA, σ) k' C' := by
+        (pausedRawWord σ ee :: ret :: R) mem aw rdata σ k' C' := by
     exact ⟨_, _, by simpa [pausedRawWord] using rd370₀⟩
   have rd373₀ := evm_run rd370 with [push1 ⟨255⟩, and]
   have hmask : UInt256.land ⟨255⟩ (pausedRawWord σ ee) = pausedWord σ ee := by
@@ -483,9 +480,9 @@ theorem RD.pausableWhenPausedPass {g : Sat256} {s0 : State} {ee : ExecutionEnv}
 set_option maxHeartbeats 1000000 in
 theorem RD.pausableWhenPausedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {ret : UInt256} {R : List UInt256} {rdata : ByteArray}
-    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {σ : AccountMap}
     (h : RD pausableBenchBytecode ee g s0 ⟨367⟩ (ret :: R) solcFreePtrMem
-        (UInt256.ofNat 3) rdata (cA, σ) k C)
+        (UInt256.ofNat 3) rdata σ k C)
     (hzero : pausedWord σ ee = ⟨0⟩)
     (hov : R.length + 8 ≤ 1024) :
     RDrev pausableBenchBytecode g s0 := by
@@ -494,7 +491,7 @@ theorem RD.pausableWhenPausedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv
   obtain ⟨_, _, rd370⟩ : ∃ k' C',
       RD pausableBenchBytecode ee g s0 ⟨370⟩
         (pausedRawWord σ ee :: ret :: R) solcFreePtrMem (UInt256.ofNat 3) rdata
-        (cA, σ) k' C' := by
+        σ k' C' := by
     exact ⟨_, _, by simpa [pausedRawWord] using rd370₀⟩
   have rd373₀ := evm_run rd370 with [push1 ⟨255⟩, and]
   have hmask : UInt256.land ⟨255⟩ (pausedRawWord σ ee) = pausedWord σ ee := by

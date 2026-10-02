@@ -64,7 +64,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowXZeroNNonzeroReturns
     {I} {g : Sat256} {s0 : State} {b n : UInt256}
     {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hnz : n ≠ ⟨0⟩)
@@ -112,7 +112,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowToLoop
     {I} {g : Sat256} {s0 : State} {b n x : UInt256}
     {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hnz : n ≠ ⟨0⟩)
@@ -200,7 +200,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowLoopExit
     {I} {g : Sat256} {s0 : State} {half scratch₁ scratch₂ z b x : UInt256}
     {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (rd1092 : RD stairstepExponentialDecreaseBytecode I g s0 ⟨1092⟩
@@ -239,7 +239,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowLoopBodyEntry
     {I} {g : Sat256} {s0 : State} {half scratch₁ scratch₂ z b n x : UInt256}
     {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hnz : n ≠ ⟨0⟩)
@@ -261,7 +261,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowLoopRevertXX
     {I} {g : Sat256} {s0 : State} {half scratch₁ scratch₂ z b n x : UInt256}
     {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hover : UInt256.size ≤ x.toNat * x.toNat)
@@ -289,7 +289,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowLoopRevertXXRound
     {I} {g : Sat256} {s0 : State} {half scratch₁ scratch₂ z b n x : UInt256}
     {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfit : x.toNat * x.toNat < UInt256.size)
@@ -336,7 +336,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowLoopOddTailEntry
     {I} {g : Sat256} {s0 : State} {half scratch₁ scratch₂ z b n x : UInt256}
     {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfitXX : x.toNat * x.toNat < UInt256.size)
@@ -413,7 +413,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowLoopRevertZX
     {I} {g : Sat256} {s0 : State} {half scratch₁ scratch₂ z b n x : UInt256}
     {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfitXX : x.toNat * x.toNat < UInt256.size)
@@ -487,7 +487,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowLoopRevertZXRound
     {I} {g : Sat256} {s0 : State} {half scratch₁ scratch₂ z b n x : UInt256}
     {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfitXX : x.toNat * x.toNat < UInt256.size)
@@ -579,7 +579,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowLoopStepEven
     {I} {g : Sat256} {s0 : State} {half scratch₁ scratch₂ z b n x : UInt256}
     {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfitXX : x.toNat * x.toNat < UInt256.size)
@@ -663,7 +663,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowLoopStepOdd
     {I} {g : Sat256} {s0 : State} {half scratch₁ scratch₂ z b n x : UInt256}
     {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hfitXX : x.toNat * x.toNat < UInt256.size)
@@ -781,7 +781,7 @@ theorem rpowLoopCoupled
     {I} {g : Sat256} {s0 : State} {half scratch₁ scratch₂ x n b z : UInt256}
     {evm : EVM.State} {locals : Store}
     {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {R : List UInt256} {k C v : ℕ}
     (hRlen : R.length ≤ 1000)
     (hstore : RpowLoopStore x n b z half locals)
@@ -922,7 +922,7 @@ set_option maxHeartbeats 4000000 in
 theorem rpowFunctionCoupled
     {I} {g : Sat256} {s0 : State} {x n b : UInt256}
     {evm : EVM.State} {mem out : ByteArray} {aw : UInt256}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     {R : List UInt256} {k C : ℕ}
     (hRlen : R.length ≤ 1000)
     (hn : n ≠ ⟨0⟩)

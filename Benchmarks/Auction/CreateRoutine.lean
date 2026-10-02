@@ -7,24 +7,24 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-theorem createRoutine {I g s0 ret R mem aw ptr rdata cA σ k C evm locals}
-    (h : RD auctionBytecode I g s0 ⟨3000⟩ (ret :: R) mem aw rdata (cA, σ) k C)
-    (hs : SourceState s0 I cA σ evm) (hperm : I.perm = true)
+theorem createRoutine {I g s0 ret R mem aw ptr rdata σ k C evm locals}
+    (h : RD auctionBytecode I g s0 ⟨3000⟩ (ret :: R) mem aw rdata σ k C)
+    (hs : SourceState s0 I σ evm) (hperm : I.perm = true)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 2 ^ 140 ≤ 2 ^ 200)
     (hp : locals.get? "_freePtr" = some (.int (Int.ofNat ptr.toNat)))
     (hnouns : locals.get? "nouns" = none) (ha : locals.get? "auction" = none)
     (hd : locals.get? "duration" = none) (hpause : locals.get? "_paused" = none)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 19 ≤ 1024) :
-    (∃ (evm' : EVM.State) (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
+    (∃ (evm' : EVM.State) (σ' : AccountMap)
         (locals' : Store) (mem' : ByteArray) (aw' : UInt256) (out : ByteArray) (k' C' : Nat),
       ExecFuncBody auctionConfig { contract := auctionContract, locals := locals } evm
         createAuctionFn.body (.returned { contract := auctionContract, locals := locals' } evm'
           none) ∧
-      SourceState s0 I cA' σ' evm' ∧
-      RD auctionBytecode I g s0 ret R mem' aw' out (cA', σ') k' C') ∨
+      SourceState s0 I σ' evm' ∧
+      RD auctionBytecode I g s0 ret R mem' aw' out σ' k' C') ∨
     (ExecFuncBody auctionConfig { contract := auctionContract, locals := locals } evm
       createAuctionFn.body .reverted ∧ RDrev auctionBytecode g s0) := by
-  obtain ⟨evmM, cAM, σM, z, out, hc, hsM, ho, hmint⟩ :=
+  obtain ⟨evmM, σM, z, out, hc, hsM, ho, hmint⟩ :=
     mintRoutine h hs hperm hm (by omega) (by omega)
   have hr := nounsSourceRead (locals := locals) hs hnouns
   have hv : evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
@@ -46,7 +46,7 @@ theorem createRoutine {I g s0 ret R mem aw ptr rdata cA σ k C evm locals}
         ((store_get_ne _ _ (by decide)).trans ha) ((store_get_ne _ _ (by decide)).trans hd)
         (store_get_self _ _ _) hret (by omega) with
       ⟨evm', σ', locals', mem', aw', _, _, hsrc, hs', hrd⟩ | ⟨hsrc, hrd⟩
-    · refine Or.inl ⟨evm', cAM, σ', locals', mem', aw', out, _, _, ?_, hs', hrd⟩
+    · refine Or.inl ⟨evm', σ', locals', mem', aw', out, _, _, ?_, hs', hrd⟩
       exact ExecFuncBody.execBlockOK (ExecBlock.consNormal
         (ExecStmt.checkedCallSuccess hr hv hargs ht hdecode hsrc) ExecBlock.nil)
     · exact Or.inr ⟨ExecFuncBody.execBlockRevert (ExecBlock.consRevert
@@ -65,7 +65,7 @@ theorem createRoutine {I g s0 ret R mem aw ptr rdata cA σ k C evm locals}
         ((store_get_ne _ _ (by decide)).trans hp)
         ((store_get_ne _ _ (by decide)).trans hpause) hret hov with
       ⟨evm', σ', locals', mem', aw', _, _, hsrc, hs', hrd⟩ | ⟨hsrc, hrd⟩
-    · refine Or.inl ⟨evm', cAM, σ', locals', mem', aw', out, _, _, ?_, hs', hrd⟩
+    · refine Or.inl ⟨evm', σ', locals', mem', aw', out, _, _, ?_, hs', hrd⟩
       exact ExecFuncBody.execBlockOK (ExecBlock.consNormal
         (ExecStmt.checkedCallFail hr hv hargs ht hsrc) ExecBlock.nil)
     · exact Or.inr ⟨ExecFuncBody.execBlockRevert (ExecBlock.consRevert

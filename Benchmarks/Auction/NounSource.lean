@@ -5,8 +5,8 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Auction
 
-theorem nounsSourceRead {s0 I cA σ evm locals}
-    (hs : SourceState s0 I cA σ evm) (hb : locals.get? "nouns" = none) :
+theorem nounsSourceRead {s0 I σ evm locals}
+    (hs : SourceState s0 I σ evm) (hb : locals.get? "nouns" = none) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm (.storage
       nounsRef) =
       .ok (.address (AccountAddress.ofUInt256 (nounsWord σ I))) := by
@@ -17,8 +17,8 @@ theorem nounsSourceRead {s0 I cA σ evm locals}
   rw [hw, addressOfWord_eq]
   rfl
 
-theorem nounsCodeGuardSource {s0 I cA σ evm locals}
-    (hs : SourceState s0 I cA σ evm) (hb : locals.get? "nouns" = none) :
+theorem nounsCodeGuardSource {s0 I σ evm locals}
+    (hs : SourceState s0 I σ evm) (hb : locals.get? "nouns" = none) :
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       (.binary .gt (.extCodeSize (.storage nounsRef)) (.intLit 0)) =
       .ok (.bool (decide (extCodeSizeWord σ (nounsWord σ I) ≠ ⟨0⟩))) := by
@@ -36,8 +36,8 @@ theorem nounsCodeGuardSource {s0 I cA σ evm locals}
     by_contra hz
     exact hn (uint256_toNat_eq_zero (by omega))
 
-theorem checkedNounSourceNoCode {s0 I cA σ evm locals name retVar args}
-    (hs : SourceState s0 I cA σ evm) (hb : locals.get? "nouns" = none)
+theorem checkedNounSourceNoCode {s0 I σ evm locals name retVar args}
+    (hs : SourceState s0 I σ evm) (hb : locals.get? "nouns" = none)
     (hno : extCodeSizeWord σ (nounsWord σ I) = ⟨0⟩) :
     ExecBlock auctionConfig { contract := auctionContract, locals := locals } evm
       (checkedExternalCallStmts (.storage nounsRef) name (.intLit 0) args retVar) .reverted := by
@@ -45,8 +45,8 @@ theorem checkedNounSourceNoCode {s0 I cA σ evm locals name retVar args}
     rw [nounsCodeGuardSource hs hb, hno]
     rfl))
 
-theorem checkedNounSourceSuccess {s0 I cA σ evm evm' locals name retVar args values cdata out}
-    (hs : SourceState s0 I cA σ evm) (hb : locals.get? "nouns" = none)
+theorem checkedNounSourceSuccess {s0 I σ evm evm' locals name retVar args values cdata out}
+    (hs : SourceState s0 I σ evm) (hb : locals.get? "nouns" = none)
     (hyes : extCodeSizeWord σ (nounsWord σ I) ≠ ⟨0⟩)
     (hargs : evalExprs? auctionConfig { contract := auctionContract, locals := locals } evm args =
       .ok values)
@@ -63,8 +63,8 @@ theorem checkedNounSourceSuccess {s0 I cA σ evm evm' locals name retVar args va
   · rw [addressOfAddress]
     exact ⟨cdata, hencode, hc⟩
 
-theorem checkedNounSourceFailure {s0 I cA σ evm evm' locals name retVar args values cdata out}
-    (hs : SourceState s0 I cA σ evm) (hb : locals.get? "nouns" = none)
+theorem checkedNounSourceFailure {s0 I σ evm evm' locals name retVar args values cdata out}
+    (hs : SourceState s0 I σ evm) (hb : locals.get? "nouns" = none)
     (hyes : extCodeSizeWord σ (nounsWord σ I) ≠ ⟨0⟩)
     (hargs : evalExprs? auctionConfig { contract := auctionContract, locals := locals } evm args =
       .ok values)

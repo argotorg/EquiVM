@@ -8,15 +8,15 @@ namespace Auction
 def nounsWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (storedWord σ I ⟨201⟩) solcAddrMask
 
-theorem burnPrefix {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
+theorem burnPrefix {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
     (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hov : R.length + 15 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨4498⟩
       (nounsWord σ I :: nounsWord σ I :: ⟨0⟩ :: ptr :: ⟨36⟩ :: ptr :: ⟨0⟩ ::
         (ptr + ⟨36⟩) :: ⟨0x42966c68⟩ :: nounsWord σ I :: snap :: ret :: R)
-      (callMem1 mem ptr burnWord nounId) (callWords1 aw ptr) rdata (cA, σ) k' C' := by
+      (callMem1 mem ptr burnWord nounId) (callWords1 aw ptr) rdata σ k' C' := by
   have rd4437 := evm_run h with [push1 ⟨201⟩]
   obtain ⟨_, _, rd4438⟩ := rd4437.sload (by native_decide) (by evm_ov)
   have rd4440 := evm_run rd4438 with [dup2, raw mloadSymbolic (by native_decide) (by evm_ov)]
@@ -29,7 +29,7 @@ theorem burnPrefix {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
   have hsel : UInt256.shiftLeft ⟨0x0852cd8d⟩ ⟨227⟩ = burnWord := by native_decide
   rw [hsel] at rd4453
   change RD _ _ _ _ ⟨4453⟩ (ptr :: nounId :: storedWord σ I ⟨201⟩ :: snap :: ret :: R)
-    (selectorMem mem ptr burnWord) (expandedWords aw ptr ⟨32⟩) rdata (cA, σ) _ _ at rd4453
+    (selectorMem mem ptr burnWord) (expandedWords aw ptr ⟨32⟩) rdata σ _ _ at rd4453
   have rd4481 := evm_run rd4453 with [push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub,
     swap1, swap3, and, swap2, push4 ⟨0x42966c68⟩, swap2, push2 ⟨4486⟩, swap2,
     push1 ⟨4⟩, add, swap1, dup2, raw mstoreSymbolic (by native_decide) (by evm_ov)]
@@ -39,7 +39,7 @@ theorem burnPrefix {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
   simp only [hmask, u256_add_comm ⟨4⟩ ptr, h4] at rd4481
   change RD _ _ _ _ ⟨4481⟩ ((ptr + ⟨4⟩) :: ⟨4486⟩ :: ⟨0x42966c68⟩ ::
     nounsWord σ I :: snap :: ret :: R) (callMem1 mem ptr burnWord nounId)
-    (callWords1 aw ptr) rdata (cA, σ) _ _ at rd4481
+    (callWords1 aw ptr) rdata σ _ _ at rd4481
   have rd4491 := evm_run rd4481 with [push1 ⟨32⟩, add, swap1, jump (by jump_dest),
     jumpdest, push0, push1 ⟨64⟩, raw mloadSymbolic (by native_decide) (by evm_ov)]
   have hh := callMem1_heap hm burnWord nounId hb
@@ -52,8 +52,8 @@ theorem burnPrefix {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
   rw [word_add_sub_left] at rd4498
   exact ⟨_, _, rd4498⟩
 
-theorem burnCodeGuard {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
+theorem burnCodeGuard {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
     (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hov : R.length + 15 ≤ 1024) :
@@ -62,13 +62,13 @@ theorem burnCodeGuard {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
         UInt256.isZero (extCodeSizeWord σ (nounsWord σ I)) :: nounsWord σ I :: ⟨0⟩ ::
         ptr :: ⟨36⟩ :: ptr :: ⟨0⟩ :: (ptr + ⟨36⟩) :: ⟨0x42966c68⟩ ::
         nounsWord σ I :: snap :: ret :: R)
-      (callMem1 mem ptr burnWord nounId) (callWords1 aw ptr) rdata (cA, σ) k' C' := by
+      (callMem1 mem ptr burnWord nounId) (callWords1 aw ptr) rdata σ k' C' := by
   obtain ⟨_, _, rd4498⟩ := burnPrefix h hm hb hn ha hov
   obtain ⟨_, _, rd4499⟩ := rd4498.extcodesize (by native_decide) (by evm_ov)
   exact ⟨_, _, evm_run rd4499 with [iszero, dup1, iszero, push2 ⟨4509⟩]⟩
 
-theorem burnNoCode {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
+theorem burnNoCode {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
     (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hno : extCodeSizeWord σ (nounsWord σ I) = ⟨0⟩) (hov : R.length + 16 ≤ 1024) :
@@ -77,15 +77,15 @@ theorem burnNoCode {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
   exact evm_run rd4505 with [jumpiNT (by rw [hno]; decide),
     raw auctionRevert0 (by native_decide) (by native_decide) (by native_decide) (by evm_ov)]
 
-theorem burnCallPrefix {I g s0 snap nounId ret R mem aw ptr rdata cA σ k C}
-    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata (cA, σ) k C)
+theorem burnCallPrefix {I g s0 snap nounId ret R mem aw ptr rdata σ k C}
+    (h : RD auctionBytecode I g s0 ⟨4435⟩ (snap :: ret :: R) mem aw rdata σ k C)
     (hm : HeapMemory mem aw ptr) (hb : ptr.toNat + 36 ≤ 2 ^ 200)
     (hn : loadedWord mem snap = nounId) (ha : expandedWords aw snap ⟨32⟩ = aw)
     (hyes : extCodeSizeWord σ (nounsWord σ I) ≠ ⟨0⟩) (hov : R.length + 16 ≤ 1024) :
     ∃ gasArg k' C', RD auctionBytecode I g s0 ⟨4512⟩
       (gasArg :: nounsWord σ I :: ⟨0⟩ :: ptr :: ⟨36⟩ :: ptr :: ⟨0⟩ ::
         (ptr + ⟨36⟩) :: ⟨0x42966c68⟩ :: nounsWord σ I :: snap :: ret :: R)
-      (callMem1 mem ptr burnWord nounId) (callWords1 aw ptr) rdata (cA, σ) k' C' := by
+      (callMem1 mem ptr burnWord nounId) (callWords1 aw ptr) rdata σ k' C' := by
   obtain ⟨_, _, rd4505⟩ := burnCodeGuard h hm hb hn ha (by omega)
   have rd4511 := evm_run rd4505 with [
     jumpiT (by rw [isZero_eq_zero_of_ne hyes]; decide) (by jump_dest), jumpdest, pop]

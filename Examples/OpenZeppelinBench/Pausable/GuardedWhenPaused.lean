@@ -33,12 +33,12 @@ theorem pausableGuardedWhenPausedBodyReverts (evm : EVM.State)
 
 /-! ## `guardedWhenPaused()` EVM traces and refinement -/
 
-theorem pausableX_guardedWhenPaused {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem pausableX_guardedWhenPaused {σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD pausableBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨141⟩ [pausableSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (initState σ σ₀ g A I) ⟨141⟩ [pausableSelWord I] solcFreePtrMem
+      (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hnz : pausedWord σ I ≠ ⟨0⟩) :
-    RDret pausableBenchBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
+    RDret pausableBenchBytecode g (initState σ σ₀ g A I) σ
       (UInt256.toByteArray ⟨1⟩) := by
   obtain ⟨_, _, rd141⟩ := hreach
   have rd182 := evm_run rd141 with [
@@ -54,12 +54,12 @@ theorem pausableX_guardedWhenPaused {cA gh bl σ σ₀ A I} {g : Sat256}
     simp only [List.length_singleton]
     omega)
 
-theorem pausableX_guardedWhenPaused_revert {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem pausableX_guardedWhenPaused_revert {σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD pausableBenchBytecode I g
-      (initState cA gh bl σ σ₀ g A I) ⟨141⟩ [pausableSelWord I] solcFreePtrMem
-      (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
+      (initState σ σ₀ g A I) ⟨141⟩ [pausableSelWord I] solcFreePtrMem
+      (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hzero : pausedWord σ I = ⟨0⟩) :
-    RDrev pausableBenchBytecode g (initState cA gh bl σ σ₀ g A I) := by
+    RDrev pausableBenchBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd141⟩ := hreach
   have rd182 := evm_run rd141 with [
     jumpdest, push2 ⟨105⟩, push2 ⟨182⟩, jump (by jump_dest)]
@@ -97,54 +97,43 @@ theorem pausableDecode_guardedWhenPaused {I : ExecutionEnv} (hsz : 4 ≤ I.calld
   show decodeCalldata [] [] I.calldata = some ∅
   exact decodeCalldata_empty_ok hsz
 
-theorem pausableGuardedWhenPausedBody {cA gh bl σ_evm σ_solm σ₀ A I}
+theorem pausableGuardedWhenPausedBody {σ σ₀ A I}
     {g : UInt256}
     (hcode : I.code = pausableBenchBytecode) (hsize : I.calldata.size < UInt256.size)
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I ⟨#[0xdd, 0xf7, 0x03, 0x09]⟩)
     (hreach : ∃ k C, RD pausableBenchBytecode I (Sat256.ofUInt256 g)
-      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨141⟩
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨141⟩
       [pausableSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (cA, σ_evm) k C)
-    (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor config contract cA gh bl
-      σ_evm σ_solm σ₀ g A I := by
+      σ k C) :
+    runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have _hsize : I.calldata.size < UInt256.size := hsize
   have _hperm : I.perm = true := hperm
   have hsz := pausableGuardedWhenPausedSelector_size hsel
   have hd := pausableDispatch_guardedWhenPaused (cd := I.calldata) hsel
   have hdec := pausableDecode_guardedWhenPaused (I := I) hsz
-  have hword : pausedWord σ_evm I = pausedWord σ_solm I := by
-    unfold pausedWord pausedRawWord
-    rw [accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨0⟩ ⟨0⟩]
-  by_cases hzero : pausedWord σ_evm I = ⟨0⟩
-  · have hzeroSolm : pausedWord σ_solm I = ⟨0⟩ := by
-      rw [← hword]
-      exact hzero
-    have hbody :
+  by_cases hzero : pausedWord σ I = ⟨0⟩
+  · have hbody :
         ExecTransitionBody config contract
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           guardedWhenPausedTransition.body .reverted := by
       exact pausableGuardedWhenPausedBodyReverts
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
-        (by simp only [initState]; exact hwv) (by simpa [initState] using hzeroSolm)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+        (by simp only [initState]; exact hwv) (by simpa [initState] using hzero)
     exact (pausableX_guardedWhenPaused_revert (g := Sat256.ofUInt256 g) hreach hzero)
       |>.reEquivExecutionRevert hcode hd hdec hbody
-  · have hnzSolm : pausedWord σ_solm I ≠ ⟨0⟩ := by
-      intro hzeroSolm
-      exact hzero (by rw [hword]; exact hzeroSolm)
-    have hbody :
+  · have hbody :
         ExecTransitionBody config contract
-          (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
+          (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           guardedWhenPausedTransition.body
           (.returned { contract := contract, locals := ∅ }
-            (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (some [(.bool true)])) := by
       exact pausableGuardedWhenPausedBodyReturns
-        (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
-        (by simp only [initState]; exact hwv) (by simp) (by simpa [initState] using hnzSolm)
+        (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
+        (by simp only [initState]; exact hwv) (by simp) (by simpa [initState] using hzero)
     exact (pausableX_guardedWhenPaused (g := Sat256.ofUInt256 g) hreach hzero)
-      |>.reEquivExecution hcode hd hdec hbody hAccounts
+      |>.reEquivExecution hcode hd hdec hbody
         (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
 
 end OpenZeppelinBench.Pausable

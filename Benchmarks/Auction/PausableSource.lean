@@ -10,10 +10,6 @@ def pausedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 def pauseWord (old : UInt256) : UInt256 :=
   UInt256.lor (UInt256.land old (UInt256.lnot ⟨255⟩)) ⟨1⟩
 
-theorem pausedWord_equiv {σ₁ σ₂ : AccountMap} (h : accountMapEquiv σ₁ σ₂)
-    (I : ExecutionEnv) : pausedWord σ₁ I = pausedWord σ₂ I := by
-  rw [pausedWord, pausedWord, storedWord_equiv h]
-
 theorem readPausedFalse (evm : EVM.State) (locals : Store)
     (hbase : locals.get? "_paused" = none)
     (hp : pausedWord evm.accountMap evm.executionEnv = ⟨0⟩) :
