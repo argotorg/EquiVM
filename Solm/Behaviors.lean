@@ -21,7 +21,7 @@ open ABI
 abbrev EVMResult :=
   Except Ethereum.EVM.ExecutionException
     (Ethereum.ExecutionResult
-      (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap ×
+      (Ethereum.AccountMap ×
         Ethereum.UInt256 × Ethereum.Substate))
 
 /-- The specification rejects the calldata: no transition (nor `receive`/`fallback`) accepts it,
@@ -36,12 +36,10 @@ def specRejects (cfg : Config) (contract : ContractDecl) (calldata : ByteArray) 
     either some run of the specification is `execResultsEquiv`-related to `r`, or the
     specification rejects the calldata and `r` is a revert. -/
 def capturedBySpec (cfg : Config) (contract : ContractDecl)
-    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
-    (σ_solm σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
+    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv) (r : EVMResult) : Prop :=
   (∃ solmRes returnConvention,
-      solmExec cfg contract createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I
+      solmExec cfg contract σ σ₀ g A I
         solmRes returnConvention ∧
       execResultsEquiv r solmRes returnConvention) ∨
   (specRejects cfg contract I.calldata ∧ ∃ g' o, r = .ok (.revert g' o))
@@ -49,15 +47,12 @@ def capturedBySpec (cfg : Config) (contract : ContractDecl)
 /-- Behavioral inclusion at fixed inputs: a `runtimeEquivalenceFor` derivation says that the
     bytecode's result is out of gas or captured by the specification. -/
 theorem runtimeEquivalenceFor_captured {cfg : Config} {contract : ContractDecl}
-    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
-    {genesisBlockHeader : Ethereum.BlockHeader} {blocks : Ethereum.ProcessedBlocks}
-    {σ_evm σ_solm σ₀ : Ethereum.AccountMap} {g : Ethereum.UInt256} {A : Ethereum.Substate}
+    {σ σ₀ : Ethereum.AccountMap} {g : Ethereum.UInt256} {A : Ethereum.Substate}
     {I : Ethereum.ExecutionEnv}
-    (h : runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks
-      σ_evm σ_solm σ₀ g A I) :
-    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .error .OutOfGass ∨
-    capturedBySpec cfg contract createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I
-      (Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I) := by
+    (h : runtimeEquivalenceFor cfg contract σ σ₀ g A I) :
+    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass ∨
+    capturedBySpec cfg contract σ σ₀ g A I
+      (Ethereum.EVM.Ξ σ σ₀ g A I) := by
   cases h with
   | execution hΞ hsolm hequiv =>
       right; left
@@ -78,49 +73,42 @@ theorem runtimeEquivalenceFor_captured {cfg : Config} {contract : ContractDecl}
     behavior of the specification.  No other behavior of the bytecode exists. -/
 theorem runtimeEquivalence_behaviors_included {cfg : Config} {bytecode : ByteArray}
     {contract : ContractDecl} (h : runtimeEquivalence cfg bytecode contract)
-    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
-    (σ_evm σ_solm σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
+    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv)
     (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
-    (hperm : I.perm = true) (hAccounts : accountMapEquiv σ_evm σ_solm) :
-    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .error .OutOfGass ∨
-    capturedBySpec cfg contract createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I
-      (Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I) := by
+    (hperm : I.perm = true) :
+    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass ∨
+    capturedBySpec cfg contract σ σ₀ g A I
+      (Ethereum.EVM.Ξ σ σ₀ g A I) := by
   obtain ⟨hrun⟩ := h
   exact runtimeEquivalenceFor_captured
-    (hrun createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts)
+    (hrun σ σ₀ g A I hcode hsize hperm)
 
 /-- The same inclusion for relations carrying a storage well-formedness precondition. -/
 theorem runtimeEquivalenceWithWF_behaviors_included {wf : StorageWF} {cfg : Config}
     {bytecode : ByteArray} {contract : ContractDecl}
     (h : runtimeEquivalenceWithWF wf cfg bytecode contract)
-    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
-    (σ_evm σ_solm σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
+    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv)
     (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
-    (hperm : I.perm = true) (hAccounts : accountMapEquiv σ_evm σ_solm) (hwf : wf σ_evm I) :
-    Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .error .OutOfGass ∨
-    capturedBySpec cfg contract createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I
-      (Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I) := by
+    (hperm : I.perm = true) (hwf : wf σ I) :
+    Ethereum.EVM.Ξ σ σ₀ g A I = .error .OutOfGass ∨
+    capturedBySpec cfg contract σ σ₀ g A I
+      (Ethereum.EVM.Ξ σ σ₀ g A I) := by
   obtain ⟨hrun⟩ := h
   exact runtimeEquivalenceFor_captured
-    (hrun createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I hcode hsize hperm
-      hAccounts hwf)
+    (hrun σ σ₀ g A I hcode hsize hperm hwf)
 
 /-- A captured result is never an exceptional halt other than `INVALID`. -/
 theorem capturedBySpec_error {cfg : Config} {contract : ContractDecl}
-    {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
-    {genesisBlockHeader : Ethereum.BlockHeader} {blocks : Ethereum.ProcessedBlocks}
     {σ_solm σ₀ : Ethereum.AccountMap} {g : Ethereum.UInt256} {A : Ethereum.Substate}
     {I : Ethereum.ExecutionEnv} {e : Ethereum.EVM.ExecutionException}
-    (h : capturedBySpec cfg contract createdAccounts genesisBlockHeader blocks σ_solm σ₀ g A I
+    (h : capturedBySpec cfg contract σ_solm σ₀ g A I
       (.error e)) :
     e = .InvalidInstruction := by
   rcases h with ⟨_, _, _, hequiv⟩ | ⟨_, _, _, hrev⟩
   · cases hequiv with
-    | success h1 _ _ _ _ => exact absurd h1 (by simp)
+    | success h1 _ _ _ => exact absurd h1 (by simp)
     | revert h1 _ => exact absurd h1 (by simp)
     | invalidHalt h1 _ => exact Except.error.inj h1
   · exact absurd hrev (by simp)
@@ -130,16 +118,14 @@ theorem capturedBySpec_error {cfg : Config} {contract : ContractDecl}
     or static-mode violation is reachable. -/
 theorem runtimeEquivalence_no_crash {cfg : Config} {bytecode : ByteArray}
     {contract : ContractDecl} (h : runtimeEquivalence cfg bytecode contract)
-    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
-    (σ_evm σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
+    (σ σ₀ : Ethereum.AccountMap) (g : Ethereum.UInt256) (A : Ethereum.Substate)
     (I : Ethereum.ExecutionEnv)
     (hcode : I.code = bytecode) (hsize : I.calldata.size < Ethereum.UInt256.size)
     (hperm : I.perm = true) {e : Ethereum.EVM.ExecutionException}
-    (herr : Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .error e) :
+    (herr : Ethereum.EVM.Ξ σ σ₀ g A I = .error e) :
     e = .OutOfGass ∨ e = .InvalidInstruction := by
-  rcases runtimeEquivalence_behaviors_included h createdAccounts genesisBlockHeader blocks
-      σ_evm σ_evm σ₀ g A I hcode hsize hperm (accountMapEquiv.refl σ_evm) with hoog | hcap
+  rcases runtimeEquivalence_behaviors_included h
+      σ σ₀ g A I hcode hsize hperm with hoog | hcap
   · left; rw [herr] at hoog; exact Except.error.inj hoog
   · right; rw [herr] at hcap; exact capturedBySpec_error hcap
 

@@ -32,38 +32,33 @@ namespace Reasoning.Theory
     **definitionally** the `freshEvmState` inside `Ethereum.EVM.Ξ` and the `evmState`
     inside `actExec`, so both can be rewritten to mention this single name. -/
 def initState
-    (createdAccounts : Batteries.RBSet AccountAddress compare)
-    (genesisBlockHeader : BlockHeader) (blocks : ProcessedBlocks)
     (σ σ₀ : AccountMap) (g : Sat256) (A : Substate) (I : ExecutionEnv) : State :=
   { (default : State) with
       accountMap := σ
       σ₀ := σ₀
       executionEnv := I
       substate := A
-      createdAccounts := createdAccounts
-      machineState.gasAvailable := g
-      blocks := blocks
-      genesisBlockHeader := genesisBlockHeader }
+      machineState.gasAvailable := g }
 
 /-! ## From `Ξ` to the fuelled iterator `X` -/
 
 /-- If the fuelled iterator errors, so does `Ξ`. -/
 theorem Xi_error_of_X
-    {createdAccounts genesisBlockHeader blocks σ σ₀  A I} {e} {g : UInt256}
+    {σ σ₀  A I} {e} {g : UInt256}
     (h : X (g.toNat + 1) (D_J I.code 0)
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ (.ofUInt256 g) A I) = .error e) :
-    Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .error e := by
+            (initState σ σ₀ (.ofUInt256 g) A I) = .error e) :
+    Ξ σ σ₀ g A I = .error e := by
   unfold Ξ
   simp only [initState, Sat256.ofUInt256] at h
   simp [bind, Except.bind, Sat256.ofUInt256, h]
 
 /-- If the fuelled iterator reverts, so does `Ξ` (same gas/output). -/
 theorem Xi_revert_of_X
-    {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {g' o} {g : UInt256}
+    {σ σ₀ A I} {g' o} {g : UInt256}
     (h : X (g.toNat + 1) (D_J I.code 0)
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ (.ofUInt256 g) A I)
+            (initState σ σ₀ (.ofUInt256 g) A I)
           = .ok (.revert g' o)) :
-    Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I = .ok (.revert g' o) := by
+    Ξ σ σ₀ g A I = .ok (.revert g' o) := by
   unfold Ξ
   simp only [initState, Sat256.ofUInt256] at h
   simp [bind, Except.bind, Sat256.ofUInt256, h]
@@ -71,12 +66,12 @@ theorem Xi_revert_of_X
 /-- If the fuelled iterator succeeds (halts), so does `Ξ`, projecting the relevant
     fields of the final machine state. -/
 theorem Xi_success_of_X
-    {createdAccounts genesisBlockHeader blocks σ σ₀ A I} {s' o} {g : UInt256}
+    {σ σ₀ A I} {s' o} {g : UInt256}
     (h : X (g.toNat + 1) (D_J I.code 0)
-            (initState createdAccounts genesisBlockHeader blocks σ σ₀ (.ofUInt256 g) A I)
+            (initState σ σ₀ (.ofUInt256 g) A I)
           = .ok (.success s' o)) :
-    Ξ createdAccounts genesisBlockHeader blocks σ σ₀ g A I
-      = .ok (.success (s'.createdAccounts, s'.accountMap, s'.machineState.gasAvailable.toUInt256,
+    Ξ σ σ₀ g A I
+      = .ok (.success (s'.accountMap, s'.machineState.gasAvailable.toUInt256,
                        s'.substate) o) := by
   unfold Ξ
   simp only [initState] at h
@@ -1328,10 +1323,11 @@ theorem storageStore_accountMap (evm : EVM.State) (a : AccountAddress) (slot val
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 
+-- TODO: check why we need this
 /-- `EVM.storageStore` does not change the created-account set. -/
 theorem storageStore_createdAccounts (evm : EVM.State) (a : AccountAddress)
     (slot val : UInt256) :
-    (EVM.storageStore evm a slot val).createdAccounts = evm.createdAccounts := by
+    (EVM.storageStore evm a slot val).substate.createdAccounts = evm.substate.createdAccounts := by
   simp only [EVM.storageStore, State.lookupAccount]
   cases evm.accountMap.find? a with
   | none => rfl
@@ -1342,7 +1338,9 @@ theorem storageStore_createdAccounts (evm : EVM.State) (a : AccountAddress)
       = sstoreAccountMap s.executionEnv.codeOwner s.accountMap slot val := rfl
 
 @[simp] theorem stSStore_createdAccounts (s : State) (slot val : UInt256) (t : List UInt256) :
-    (stSStore s slot val t).createdAccounts = s.createdAccounts := rfl
+    (stSStore s slot val t).substate.createdAccounts = s.substate.createdAccounts := by
+      simp [stSStore]
+      split <;> simp [Option.option] <;> split <;> rfl
 
 @[simp] theorem stSStore_pc (s : State) (slot val : UInt256) (t : List UInt256) :
     (stSStore s slot val t).machineState.pc = s.machineState.pc + ⟨1⟩ := rfl

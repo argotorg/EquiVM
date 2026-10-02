@@ -574,9 +574,6 @@ def ExecTransitionBody (cfg : Config) (contract : ContractDecl) (evm : EVM.State
 inductive solmExec
     (conf : Config)
     (contract : ContractDecl) /- Spec -/
-    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader)
-    (blocks : Ethereum.ProcessedBlocks)
     (σ : Ethereum.AccountMap)
     (σ₀ : Ethereum.AccountMap)
     (g : Ethereum.UInt256)
@@ -596,13 +593,10 @@ inductive solmExec
           σ₀ := σ₀
           executionEnv := I
           substate := A
-          createdAccounts := createdAccounts
           machineState.gasAvailable := .ofUInt256 g
-          blocks := blocks
-          genesisBlockHeader := genesisBlockHeader
       } →
     ExecTransitionBody conf contract evmState callargs transition.body solmRes →
-    solmExec conf contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes
+    solmExec conf contract σ σ₀ g A I solmRes
       (.abi transition.returnType)
   | fallback :
     /- Solidity fallback dispatch has no selector or ABI argument decoding. -/
@@ -617,13 +611,10 @@ inductive solmExec
           σ₀ := σ₀
           executionEnv := I
           substate := A
-          createdAccounts := createdAccounts
           machineState.gasAvailable := .ofUInt256 g
-          blocks := blocks
-          genesisBlockHeader := genesisBlockHeader
       } →
     ExecTransitionBody conf contract evmState callargs transition.body solmRes →
-    solmExec conf contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes
+    solmExec conf contract σ σ₀ g A I solmRes
       returnConvention
   | receive :
     /- Solidity receive dispatch has no selector or ABI argument decoding. -/
@@ -636,22 +627,16 @@ inductive solmExec
           σ₀ := σ₀
           executionEnv := I
           substate := A
-          createdAccounts := createdAccounts
           machineState.gasAvailable := .ofUInt256 g
-          blocks := blocks
-          genesisBlockHeader := genesisBlockHeader
       } →
     ExecTransitionBody conf contract evmState ∅ transition.body solmRes →
-    solmExec conf contract createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes (.abi [])
+    solmExec conf contract σ σ₀ g A I solmRes (.abi [])
 
 /-- Solm constructor execution. -/
 inductive solmCtorExec
     (conf : Config)
     (contract : ContractDecl) /- Spec -/
     (args : List Value)
-    (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
-    (genesisBlockHeader : Ethereum.BlockHeader)
-    (blocks : Ethereum.ProcessedBlocks)
     (σ : Ethereum.AccountMap)
     (σ₀ : Ethereum.AccountMap)
     (g : Ethereum.UInt256)
@@ -666,16 +651,13 @@ inductive solmCtorExec
           σ₀ := σ₀
           executionEnv := I
           substate := A
-          createdAccounts := createdAccounts
           machineState.gasAvailable := .ofUInt256 g
-          blocks := blocks
-          genesisBlockHeader := genesisBlockHeader
       } →
     -- This may be redundant when `cfg.selfDeployment` already enforces valid constructor ABI
     -- encoding, but it keeps the parameter store from relying on `List.zip` truncation.
     args.length = contract.ctor.params.length →
     argsStore = Std.HashMap.ofList (List.zip (contract.ctor.params.map Param.name) args) →
     ExecTransitionBody conf contract evmState argsStore contract.ctor.body solmRes →
-    solmCtorExec conf contract args createdAccounts genesisBlockHeader blocks σ σ₀ g A I solmRes
+    solmCtorExec conf contract args σ σ₀ g A I solmRes
 
 end Solm

@@ -49,12 +49,8 @@ inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
         -- substate `A_in` is existentially quantified: the call "behaves as `Θ` would for some
         -- gas and substate".  (The result substate `A'` is discarded; `execResultsEquiv` ignores
         -- it.)  `g'` is the (discarded) returned gas; named so it is a plain implicit.
-          (cA', σ', g', A', z, o)
+          (σ', g', A', z, o)
             = Ethereum.EVM.Θ
-            evm.executionEnv.blobVersionedHashes
-            evm.createdAccounts
-            evm.genesisBlockHeader
-            evm.blocks
             evm.accountMap
             evm.σ₀
             A_in
@@ -69,11 +65,13 @@ inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
             calldata
             (evm.executionEnv.depth + 1)
             evm.executionEnv.header
+            evm.executionEnv.blobVersionedHashes
+            evm.executionEnv.blocks
             perm -- permission to modify state;
                  -- true for call/delegatecall/callcode, false for staticcall
         )
 
-      → evm' = { evm with accountMap := σ', substate := A', createdAccounts := cA' }
+      → evm' = { evm with accountMap := σ', substate := A' }
 
       → valueWord ≤ (evm.accountMap.find? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))
       → evm.executionEnv.depth ≠ 1024
@@ -94,12 +92,8 @@ inductive delegateCallViaEVM (evm : EVM.State) (target : EVM.Address)
     (calldata : EVM.Bytes) : (Bool × EVM.State × EVM.Bytes) → Prop where
   | callMade :
       (∃ (callGas : Ethereum.UInt256) (A_in : Ethereum.Substate),
-          (cA', σ', g', A', z, o)
+          (σ', g', A', z, o)
             = Ethereum.EVM.Θ
-            evm.executionEnv.blobVersionedHashes
-            evm.createdAccounts
-            evm.genesisBlockHeader
-            evm.blocks
             evm.accountMap
             evm.σ₀
             A_in
@@ -114,8 +108,10 @@ inductive delegateCallViaEVM (evm : EVM.State) (target : EVM.Address)
             calldata
             (evm.executionEnv.depth + 1)
             evm.executionEnv.header
+            evm.executionEnv.blobVersionedHashes
+            evm.executionEnv.blocks
             evm.executionEnv.perm)
-      → evm' = { evm with accountMap := σ', substate := A', createdAccounts := cA' }
+      → evm' = { evm with accountMap := σ', substate := A' }
       → evm.executionEnv.depth ≠ 1024
       → delegateCallViaEVM evm target calldata (z, evm', o)
   | callNotMade :
@@ -153,27 +149,18 @@ inductive newViaEVM (cfg : Config) (evm : EVM.State)
       cfg.creationCode name args = .some initCode
       → newCanCreate evm value initCode
       → valueWord = EVM.wordOfInt value
-      → (∃ createGas refunds accessedStorageKeys,
-          -- As in `callViaEVM`, existentially quantify over substate fields
-          -- whose value we do not track accurately but which creation can change.
-          let A_exist := { evm.substate with
-                      refundBalance := refunds
-                      accessedStorageKeys := accessedStorageKeys }
+      → (∃ createGas A_in,
           -- Mirror the CREATE opcode: bump the creator's nonce before calling `Lambda`,
           -- which derives the new address from `sender.nonce - 1` and so expects the
           -- already-incremented nonce.
           let creator := evm.accountMap.find? evm.executionEnv.codeOwner |>.getD default
           let σStar := evm.accountMap.insert evm.executionEnv.codeOwner
                         { creator with nonce := creator.nonce + ⟨1⟩ }
-          (addr, cA', σ', _, A', z, _)
+          (addr, σ', _, A', z, _)
             = Ethereum.EVM.Lambda
-            evm.executionEnv.blobVersionedHashes
-            evm.createdAccounts
-            evm.genesisBlockHeader
-            evm.blocks
             σStar
             evm.σ₀
-            A_exist
+            A_in
             evm.executionEnv.codeOwner  -- sender (msg.sender): `this`, as CREATE does
             evm.executionEnv.sender     -- original transactor (tx.origin)
             createGas
@@ -183,8 +170,10 @@ inductive newViaEVM (cfg : Config) (evm : EVM.State)
             (evm.executionEnv.depth + 1)
             salt                        -- `none` ⇒ CREATE; `some s` ⇒ CREATE2 with salt `s`
             evm.executionEnv.header
+            evm.executionEnv.blobVersionedHashes
+            evm.executionEnv.blocks
             true)                       -- permission to modify state
-      → evm' = { evm with accountMap := σ', substate := A', createdAccounts := cA' }
+      → evm' = { evm with accountMap := σ', substate := A' }
       → newViaEVM cfg evm name value args salt (addr, evm', z)
   | notCreated :
       cfg.creationCode name args = .some initCode
