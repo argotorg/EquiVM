@@ -230,7 +230,9 @@ def runCase (cfg : Config) (fc : FlatContract) (c₀ : Case) (skipOOG : Bool := 
     | _ =>
       match r, runSpec cfg fc c code with
       | _, .stuck => d.add false "spec stuck"
-      | .ok (.revert _ out), .rejected => d.add (out.isEmpty) s!"spec rejects but evm reverted with {hexOfBytes out}"
+      | .ok (.revert _ out), .rejected =>
+        d.add (out.isEmpty || (Interp.rejectPanicsB fc (c.env code) && out == panicData 0x41))
+          s!"spec rejects but evm reverted with {hexOfBytes out}"
       | .ok (.success _ _), .rejected => d.add false "spec rejects but evm succeeded"
       | .error e, .rejected => d.add false s!"spec rejects but evm raised {repr e}"
       | _, .run res conv => { msgs := d.msgs ++ (compareRun r res conv).msgs }

@@ -943,6 +943,16 @@ def specRejectsB (I : Ethereum.ExecutionEnv) : Bool :=
       | none => false
     | none => false
 
+/-- Whether a rejected call may revert with `Panic(0x41)` instead of empty data (the relation's
+    `decodeFailureData`): the dispatched function decodes a dynamic argument into memory. -/
+def rejectPanicsB (I : Ethereum.ExecutionEnv) : Bool :=
+  match selectorDispatch fc I.calldata with
+  | some e =>
+    match fc.fns[e.fn]? with
+    | some fn => hasDynamicMemoryParam fc.types fn.decl
+    | none => false
+  | none => false
+
 /-- One state-variable initializer of the constructor. -/
 def initStep (fuel : Nat) (acc : Frame × Machine) (v : FlatVar) : IM (Frame × Machine) := do
   let some e := v.init | failure

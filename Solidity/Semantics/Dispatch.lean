@@ -28,6 +28,13 @@ def decodeArgs (cfg : Config) (env : TypeEnv) (d : FnDecl) (calldata : ByteArray
   let sig ← sigOf env d.name (d.params.map (·.ty))
   ABI.decodeCalldataValues? sig.paramTypes calldata cfg.abiDecodeMode
 
+/-- Whether solc decodes some argument of `d` into memory with a length-dependent allocation: a
+    parameter of dynamic type that is not located in calldata (getter parameters carry no
+    location and are decoded to memory).  Such a decoder reverts with `Panic(0x41)` when an
+    encoded length exceeds the allocator's bound, before the calldata bounds are checked. -/
+def hasDynamicMemoryParam (env : TypeEnv) (d : FnDecl) : Bool :=
+  d.params.any fun p => p.loc != some .calldata && ((abiTypeOf env p.ty).map isDynamicABIType).getD false
+
 def returnAbiTys (env : TypeEnv) (d : FnDecl) : Option (List ABIType) :=
   d.returns.mapM fun p => abiTypeOf env p.ty
 

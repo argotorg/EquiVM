@@ -38,10 +38,10 @@ of the positional `decodeCalldataValues_*` facts in `EVMReasoning/ABI.lean`.
 - The layout record (`Storage.StorageLayout`) is keyed on Sol⁻'s `EvaledStorageRef`/`StorageType`,
   and mapping keys are Sol⁻'s `KeyValue`. The next pass makes the layout record generic in the path
   type and states the `bytes`/`string` representation on locations.
-- `Solidity/Examples/ERC20` imports `Solm.Examples.ERC20.Correct` for the bytecode traces, and the
-  harness imports pinned bytecode from `Solm/Examples/*/Bytecode.lean`. Pinned bytecode belongs in
-  a shared `Contracts/` tree; that move waits on restating the per-contract selector axioms on
-  literal signature strings, since today they are phrased with Sol⁻'s `transitionSigStr`.
+- The differential harness imports pinned bytecode from `Solm/Examples/*/Bytecode.lean`. Pinned
+  bytecode belongs in a shared `Contracts/` tree; that move waits on restating the per-contract
+  selector axioms on literal signature strings, since today they are phrased with Sol⁻'s
+  `transitionSigStr`.
 - The moved definitions keep aliases under their old `Solm.*` names (`export` in the stub modules
   `Solm/Storage.lean`, `Solm/SolidityLayout.lean`, `Solm/Equiv.lean`, `Solm/Semantics/Dispatch.lean`,
   `Solm/Behaviors.lean`), so Sol⁻ proofs did not change; new code uses `Storage.*`/`Refinement.*`.

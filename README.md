@@ -119,7 +119,8 @@ boundary is defined in terms of the EVM semantics.
   A second specification language whose syntax and semantics are Solidity 0.8's,
   with an executable interpreter proved equivalent to its rules and a
   differential test harness (`lake exe solidity-diff`) against real bytecode.
-  Its proofs live under `Solidity/Examples/`. See [`STRUCTURE.md`](STRUCTURE.md)
+  Its refinement relation (`Solidity/Equiv.lean`) also compares revert data and event logs;
+  the reasoning library for it is in `Solidity/Theory/`. See [`STRUCTURE.md`](STRUCTURE.md)
   for the layout and dependency rules.
 
 - **Examples** ([`Solm/Examples/`](Solm/Examples/))

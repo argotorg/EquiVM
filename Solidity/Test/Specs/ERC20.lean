@@ -3,8 +3,8 @@ import Solidity
 /-!
 # ERC20 in the Solidity spec language
 
-Transcribed from `Examples/ERC20/ERC20.sol` (`from`/`to` are Lean keywords, hence «from»/«to»).
-The Sol⁻ spec is `Examples/ERC20/Spec.lean`; the refinement proof against this spec is in the sibling files.
+Transcribed from `Solm/Examples/ERC20/ERC20.sol` (`from`/`to` are Lean keywords, hence «from»/«to»).
+Harness input only.
 -/
 
 namespace ERC20.SoliditySpec

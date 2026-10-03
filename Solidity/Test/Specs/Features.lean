@@ -114,6 +114,12 @@ def features : SourceUnit := sol% contract Features {
     bytes16 h = "0123456789abcdef";
     return h[v & 0xf];
   }
+
+  function lenMem(bytes memory b) external pure returns (uint256) { return b.length; }
+  function sumMem(uint256[] memory xs, string memory s) external pure returns (uint256 t) {
+    for (uint256 i = 0; i < xs.length; i = uncheckedInc(i)) { t += xs[i]; }
+    t += bytes(s).length;
+  }
 }
 
 def program : Program := [uncheckedIncFn, clampFn, ikicker, child, features]

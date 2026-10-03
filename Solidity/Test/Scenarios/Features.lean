@@ -78,6 +78,18 @@ def cases : List Case :=
     rv "bytesN-index-out-of-range" { call := some ("byteAt(bytes32,uint256)", [b32 0x0102030405, .int 32]) },
     rt "hex-digit" { call := some ("hexDigit(uint8)", [.int 10]) },
     rt "hex-digit-masked" { call := some ("hexDigit(uint8)", [.int 255]) },
+    rt "memory-bytes" { call := some ("lenMem(bytes)", [.bytes (bytesN 5)]) },
+    rt "memory-array-string" { call := some ("sumMem(uint256[],string)",
+                                 [.array [.int 1, .int 2, .int 3], .bytes "ab".toUTF8]) },
+    -- undecodable arguments: a `memory` decoder panics with 0x41 on a length it cannot allocate
+    -- (observed on this bytecode for 2^64 and 2^64 - 1) and reverts empty past the calldata;
+    -- a `calldata` decoder always reverts empty
+    rv "memory-bytes-length-2^64" { calldata := selectorOfSig "lenMem(bytes)" ++ wordBytes 0x20 ++ wordBytes (2 ^ 64) },
+    rv "memory-bytes-length-2^64-1" { calldata := selectorOfSig "lenMem(bytes)" ++ wordBytes 0x20 ++ wordBytes (2 ^ 64 - 1) },
+    rv "memory-bytes-length-past-calldata" { calldata := selectorOfSig "lenMem(bytes)" ++ wordBytes 0x20 ++ wordBytes (2 ^ 32) },
+    rv "memory-array-length-2^64" { calldata := selectorOfSig "sumMem(uint256[],string)" ++ wordBytes 0x40 ++
+                                      wordBytes 0x60 ++ wordBytes (2 ^ 64) ++ wordBytes 0 },
+    rv "calldata-bytes-length-2^64" { calldata := selectorOfSig "sliceHead(bytes)" ++ wordBytes 0x20 ++ wordBytes (2 ^ 64) },
     { name := "constructor", code := creation, ctorArgs := some ([], runtime), expect := .success } ]
 
 def scenario : Scenario :=

@@ -4,7 +4,7 @@ import Solidity.Test.Specs.Caller
 import Solidity.Test.Specs.Reuse
 import Solidity.Test.Specs.CtorStore
 import Solidity.Test.Specs.CtorTruth
-import Solidity.Examples.ERC20.Spec
+import Solidity.Test.Specs.ERC20
 import Solidity.Test.Specs.StringStoreLite
 import Solidity.Test.Specs.TinyImmutable
 import Solidity.Test.Specs.Ballot

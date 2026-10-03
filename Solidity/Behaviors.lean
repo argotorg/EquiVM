@@ -5,7 +5,8 @@ import Solidity.Equiv
 
 Every result the bytecode can produce is either out-of-gas or captured by the spec: a spec
 execution (under some oracle) that agrees on accounts, return/revert data and logs, or a
-spec-side rejection (no dispatch / undecodable calldata) matched by an empty revert.  In
+spec-side rejection (no dispatch / undecodable calldata) matched by a revert with empty data, or
+with `Panic(0x41)` from the argument decoder of a function with a dynamic memory parameter.  In
 particular the bytecode never crashes: the only EVM exception it can raise is out-of-gas.
 -/
 
@@ -17,6 +18,12 @@ def specRejects (cfg : Config) (fc : FlatContract) (I : Ethereum.ExecutionEnv) :
   ∃ e fn, selectorDispatch fc I.calldata = some e ∧ fc.fns[e.fn]? = some fn ∧
     payableOrNoValue fn.decl I ∧ decodeArgs cfg fc.types fn.decl I.calldata = none
 
+/-- Revert data the bytecode may return when the spec rejects the calldata. -/
+def rejectData (fc : FlatContract) (I : Ethereum.ExecutionEnv) (out : ByteArray) : Prop :=
+  out = ByteArray.empty ∨
+  ∃ e fn, selectorDispatch fc I.calldata = some e ∧ fc.fns[e.fn]? = some fn ∧
+    hasDynamicMemoryParam fc.types fn.decl = true ∧ out = panicData 0x41
+
 def capturedBySpec (cfg : Config) (fc : FlatContract)
     (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
     (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
@@ -25,7 +32,7 @@ def capturedBySpec (cfg : Config) (fc : FlatContract)
   (∃ (o : Oracle) (res : TopResult) (conv : Refinement.ReturnConvention),
       solidityExec cfg o fc createdAccounts genesisBlockHeader blocks σ_spec σ₀ g A I res conv ∧
       execResultsEquiv r res conv) ∨
-  (specRejects cfg fc I ∧ ∃ g', r = .ok (.revert g' ByteArray.empty))
+  (specRejects cfg fc I ∧ ∃ g' out, r = .ok (.revert g' out) ∧ rejectData fc I out)
 
 theorem runtimeEquivalenceFor_captured {cfg fc cA gh bl σ_evm σ_spec σ₀ g A I}
     (h : runtimeEquivalenceFor cfg fc cA gh bl σ_evm σ_spec σ₀ g A I) :
@@ -35,8 +42,12 @@ theorem runtimeEquivalenceFor_captured {cfg fc cA gh bl σ_evm σ_spec σ₀ g A
   | execution hΞ hex =>
     obtain ⟨o, hexec, hequiv⟩ := hex
     exact Or.inr (Or.inl ⟨o, _, _, hexec, hΞ ▸ hequiv⟩)
-  | noDispatch hd hΞ => exact Or.inr (Or.inr ⟨Or.inl hd, _, hΞ⟩)
-  | decodingFailed h1 h2 h3 h4 hΞ => exact Or.inr (Or.inr ⟨Or.inr ⟨_, _, h1, h2, h3, h4⟩, _, hΞ⟩)
+  | noDispatch hd hΞ => exact Or.inr (Or.inr ⟨Or.inl hd, _, _, hΞ, Or.inl rfl⟩)
+  | decodingFailed h1 h2 h3 h4 hΞ hd =>
+    refine Or.inr (Or.inr ⟨Or.inr ⟨_, _, h1, h2, h3, h4⟩, _, _, hΞ, ?_⟩)
+    rcases hd with hd | ⟨hm, ho⟩
+    · exact Or.inl hd
+    · exact Or.inr ⟨_, _, h1, h2, hm, ho⟩
   | outOfGas hΞ => exact Or.inl hΞ
 
 /-- Under runtime equivalence, every admissible execution of the bytecode is out-of-gas or
@@ -71,7 +82,7 @@ theorem runtimeEquivalence_no_crash {cfg bytecode fc}
     | success h1 => rw [hΞ'] at hΞ; rw [h1] at hΞ; cases hΞ
     | revert h1 => rw [hΞ'] at hΞ; rw [h1] at hΞ; cases hΞ
   | noDispatch _ hΞ' => rw [hΞ'] at hΞ; cases hΞ
-  | decodingFailed _ _ _ _ hΞ' => rw [hΞ'] at hΞ; cases hΞ
+  | decodingFailed _ _ _ _ hΞ' _ => rw [hΞ'] at hΞ; cases hΞ
   | outOfGas hΞ' => rw [hΞ'] at hΞ; cases hΞ; rfl
 
 end Solidity

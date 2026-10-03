@@ -367,7 +367,22 @@ theorem Reverted.specDecodingFailed {cfg fc cA gh bl σ_evm σ_spec σ₀ A I} {
     runtimeEquivalenceFor cfg fc cA gh bl σ_evm σ_spec σ₀ g A I := by
   rcases Reverted.xi hcode h with hoog | ⟨g', hxi⟩
   · exact .outOfGas hoog
-  · exact .decodingFailed he hfn hpay hdec hxi
+  · exact .decodingFailed he hfn hpay hdec hxi (Or.inl rfl)
+
+/-- A `Panic(0x41)` revert from the argument decoder of a function with a dynamic memory parameter,
+    when the spec dispatches but cannot decode the arguments ⇒ `decodingFailed`. -/
+theorem Reverted.specDecodingPanic {cfg fc cA gh bl σ_evm σ_spec σ₀ A I} {g : UInt256} {code : ByteArray}
+    {e : DispatchEntry} {fn : FnDef}
+    (hcode : I.code = code)
+    (h : Reverted code (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (panicData 0x41))
+    (he : selectorDispatch fc I.calldata = some e) (hfn : fc.fns[e.fn]? = some fn)
+    (hpay : payableOrNoValue fn.decl I)
+    (hdec : decodeArgs cfg fc.types fn.decl I.calldata = none)
+    (hmem : hasDynamicMemoryParam fc.types fn.decl = true) :
+    runtimeEquivalenceFor cfg fc cA gh bl σ_evm σ_spec σ₀ g A I := by
+  rcases Reverted.xi hcode h with hoog | ⟨g', hxi⟩
+  · exact .outOfGas hoog
+  · exact .decodingFailed he hfn hpay hdec hxi (Or.inr ⟨hmem, rfl⟩)
 
 /-! ## Constructors -/
 

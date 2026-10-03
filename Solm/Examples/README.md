@@ -35,9 +35,8 @@ All proofs are complete.
 - `Bytecode.lean` — the compiled bytecode as a byte array, with the compiler invocation recorded
   in the header, plus the verified jump-destination table.
 - `Correct.lean` — the top-level theorem; per-function proofs live in sibling files.
-- The Solidity-language re-specification of ERC20 and its proof live outside this tree, in
-  `Solidity/Examples/ERC20/` at the repo root; the other transcriptions are harness inputs under
-  `Solidity/Test/Specs/`.
+- The Solidity-language transcriptions of these examples are harness inputs under
+  `Solidity/Test/Specs/` at the repo root.
 - `.sol`/`.vy` sources are checked in next to the Lean files.
 
 ## Trusted base
