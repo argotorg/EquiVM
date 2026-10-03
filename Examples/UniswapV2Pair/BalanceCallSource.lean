@@ -108,23 +108,21 @@ theorem uniswapBalanceTypedCallFromState_source
   have hcdE : config.externalABI.encode? "balanceOf" [.address evmE.executionEnv.codeOwner] =
       some (calldataMem.readWithPadding inOff.toNat 36) := by
     simpa [evmE] using hcd
-  obtain ⟨σ2S, A2S, hcall, hMap⟩ :=
-    typedCallViaEVM_callMade_accountMapEquiv
-      (cfg := config) (evm_evm := evmE) (evm_solm := evm1S)
-      (tgt := target) (targetWord := targetWord) (name := "balanceOf")
-      (args := [.address evmE.executionEnv.codeOwner]) (σ' := σ2)
-      (A' := A'_evm) (A_in := A_in2) (z := z2) (out := out2) (g'' := g'')
-      (callGas := callGas2) (mem := calldataMem) (inOff := inOff)
-      (inSize := ⟨36⟩) (callPerm := false)
-      hdepthNe rfl hcdE hΘE (by simpa [evmE] using hPost)
-      (by simpa [evmE] using hσ0.symm)
-      (by simpa [evmE] using henv.symm)
-  let evm2S : EVM.State := { evm1S with accountMap := σ2S, substate := A2S }
-  refine ⟨evm2S, ?_, ?_, ?_, ?_⟩
-  · simpa [evm2S, evmE, target, henv] using hcall
-  · simpa [evm2S] using hMap.symm
-  · simp [evm2S]
-  · simp [evm2S]
+  have hevmE : evmE = evm1S := by
+    cases evm1S
+    simp_all [evmE]
+  have hcallE :
+      typedCallViaEVM config evmE target "balanceOf" 0
+        [.address evmE.executionEnv.codeOwner]
+        (z2, { evmE with accountMap := σ2, substate := A'_evm }, out2) false :=
+    callCoincides
+      (cfg := config) (evm := evmE) (tgt := target) (targetWord := targetWord)
+      (name := "balanceOf") (args := [.address evmE.executionEnv.codeOwner])
+      (σ' := σ2) (A' := A'_evm) (A_in := A_in2) (z := z2) (o := out2)
+      (g'' := g'') (callGas := callGas2) (mem := calldataMem) (inOff := inOff)
+      (inSize := ⟨36⟩) (callPerm := false) hdepthNe rfl hcdE hΘE
+  refine ⟨{ evm1S with accountMap := σ2, substate := A'_evm }, ?_, rfl, rfl, rfl⟩
+  simpa [hevmE] using hcallE
 
 theorem uniswapFirstBalanceTypedCall_source
     {σ σ₀ A I} {g : UInt256} {σ' : AccountMap}

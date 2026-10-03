@@ -359,310 +359,6 @@ theorem forkDartSubGuardPosFailCond {I : ExecutionEnv} {old new : UInt256}
       intro hlt
       exact h (Or.inr hlt))
 
-theorem accountMapEquiv_forkAfterSrcInk {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    Eq (forkAfterSrcInk σ I) (forkAfterSrcInk τ I) := by
-  have hSrcInkOld :
-      solcSlotWord σ I (forkSrcInkSlot I) =
-        solcSlotWord τ I (forkSrcInkSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (forkSrcInkSlot I) ⟨0⟩
-  have hSrcInkNew : forkSrcInkNew σ I = forkSrcInkNew τ I := by
-    simp [forkSrcInkNew, hSrcInkOld]
-  simpa [forkAfterSrcInk, hSrcInkNew] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner (forkSrcInkSlot I)
-      (forkSrcInkNew τ I) hAccounts
-
-theorem accountMapEquiv_forkAfterSrcArt {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    Eq (forkAfterSrcArt σ I) (forkAfterSrcArt τ I) := by
-  have hSrcInk := accountMapEquiv_forkAfterSrcInk (I := I) hAccounts
-  have hSrcArtOld :
-      solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I) =
-        solcSlotWord (forkAfterSrcInk τ I) I (forkSrcArtSlot I) :=
-    accountMapEquiv_storage_findD hSrcInk I.codeOwner (forkSrcArtSlot I) ⟨0⟩
-  have hSrcArtNew : forkSrcArtNew σ I = forkSrcArtNew τ I := by
-    simp [forkSrcArtNew, hSrcArtOld]
-  simpa [forkAfterSrcArt, hSrcArtNew] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner (forkSrcArtSlot I)
-      (forkSrcArtNew τ I) hSrcInk
-
-theorem accountMapEquiv_forkAfterDstInk {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    Eq (forkAfterDstInk σ I) (forkAfterDstInk τ I) := by
-  have hSrcArt := accountMapEquiv_forkAfterSrcArt (I := I) hAccounts
-  have hDstInkOld :
-      solcSlotWord (forkAfterSrcArt σ I) I (forkDstInkSlot I) =
-        solcSlotWord (forkAfterSrcArt τ I) I (forkDstInkSlot I) :=
-    accountMapEquiv_storage_findD hSrcArt I.codeOwner (forkDstInkSlot I) ⟨0⟩
-  have hDstInkNew : forkDstInkNew σ I = forkDstInkNew τ I := by
-    simp [forkDstInkNew, hDstInkOld]
-  simpa [forkAfterDstInk, hDstInkNew] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner (forkDstInkSlot I)
-      (forkDstInkNew τ I) hSrcArt
-
-theorem accountMapEquiv_forkAfterDstArt {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    Eq (forkAfterDstArt σ I) (forkAfterDstArt τ I) := by
-  have hDstInk := accountMapEquiv_forkAfterDstInk (I := I) hAccounts
-  have hDstArtOld :
-      solcSlotWord (forkAfterDstInk σ I) I (forkDstArtSlot I) =
-        solcSlotWord (forkAfterDstInk τ I) I (forkDstArtSlot I) :=
-    accountMapEquiv_storage_findD hDstInk I.codeOwner (forkDstArtSlot I) ⟨0⟩
-  have hDstArtNew : forkDstArtNew σ I = forkDstArtNew τ I := by
-    simp [forkDstArtNew, hDstArtOld]
-  simpa [forkAfterDstArt, hDstArtNew] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner (forkDstArtSlot I)
-      (forkDstArtNew τ I) hDstInk
-
-theorem forkSrcInkNew_eq_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    forkSrcInkNew σ I = forkSrcInkNew τ I := by
-  have hSrcInkOld :
-      solcSlotWord σ I (forkSrcInkSlot I) =
-        solcSlotWord τ I (forkSrcInkSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (forkSrcInkSlot I) ⟨0⟩
-  simp [forkSrcInkNew, hSrcInkOld]
-
-theorem forkSrcArtNew_eq_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    forkSrcArtNew σ I = forkSrcArtNew τ I := by
-  have hSrcInk := accountMapEquiv_forkAfterSrcInk (I := I) hAccounts
-  have hSrcArtOld :
-      solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I) =
-        solcSlotWord (forkAfterSrcInk τ I) I (forkSrcArtSlot I) :=
-    accountMapEquiv_storage_findD hSrcInk I.codeOwner (forkSrcArtSlot I) ⟨0⟩
-  simp [forkSrcArtNew, hSrcArtOld]
-
-theorem forkDstInkNew_eq_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    forkDstInkNew σ I = forkDstInkNew τ I := by
-  have hSrcArt := accountMapEquiv_forkAfterSrcArt (I := I) hAccounts
-  have hDstInkOld :
-      solcSlotWord (forkAfterSrcArt σ I) I (forkDstInkSlot I) =
-        solcSlotWord (forkAfterSrcArt τ I) I (forkDstInkSlot I) :=
-    accountMapEquiv_storage_findD hSrcArt I.codeOwner (forkDstInkSlot I) ⟨0⟩
-  simp [forkDstInkNew, hDstInkOld]
-
-theorem forkDstArtNew_eq_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    forkDstArtNew σ I = forkDstArtNew τ I := by
-  have hDstInk := accountMapEquiv_forkAfterDstInk (I := I) hAccounts
-  have hDstArtOld :
-      solcSlotWord (forkAfterDstInk σ I) I (forkDstArtSlot I) =
-        solcSlotWord (forkAfterDstInk τ I) I (forkDstArtSlot I) :=
-    accountMapEquiv_storage_findD hDstInk I.codeOwner (forkDstArtSlot I) ⟨0⟩
-  simp [forkDstArtNew, hDstArtOld]
-
-theorem forkAfterDstArt_slot_eq_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) (slot : UInt256) :
-    solcSlotWord (forkAfterDstArt σ I) I slot =
-      solcSlotWord (forkAfterDstArt τ I) I slot := by
-  exact accountMapEquiv_storage_findD
-    (accountMapEquiv_forkAfterDstArt (I := I) hAccounts) I.codeOwner slot ⟨0⟩
-
-theorem forkSrcWishWord_eq_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    forkSrcWishWord σ I = forkSrcWishWord τ I := by
-  have hslot :
-      vatSlotWord (forkSrcWishSlot I) σ I =
-        vatSlotWord (forkSrcWishSlot I) τ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (forkSrcWishSlot I) ⟨0⟩
-  unfold forkSrcWishWord
-  simpa [vatSlotWord] using congrArg (fun w => UInt256.lor (UInt256.eq w ⟨1⟩)
-    (UInt256.eq (forkSrcMaskedWord I) (hopeSourceWord I))) hslot
-
-theorem forkDstWishWord_eq_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    forkDstWishWord σ I = forkDstWishWord τ I := by
-  have hslot :
-      vatSlotWord (forkDstWishSlot I) σ I =
-        vatSlotWord (forkDstWishSlot I) τ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (forkDstWishSlot I) ⟨0⟩
-  unfold forkDstWishWord
-  simpa [vatSlotWord] using congrArg (fun w => UInt256.lor (UInt256.eq w ⟨1⟩)
-    (UInt256.eq (forkDstMaskedWord I) (hopeSourceWord I))) hslot
-
-theorem forkBothWishWord_eq_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    forkBothWishWord σ I = forkBothWishWord τ I := by
-  simp [forkBothWishWord, forkSrcWishWord_eq_of_accountMapEquiv (I := I) hAccounts,
-    forkDstWishWord_eq_of_accountMapEquiv (I := I) hAccounts]
-
-theorem forkAfterDstArt_mulGuard_iff_of_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) (aSlot bSlot : UInt256) :
-    (solcSlotWord (forkAfterDstArt σ I) I bSlot = ⟨0⟩ ∨
-        UInt256.eq
-          (UInt256.div
-            (UInt256.mul
-              (solcSlotWord (forkAfterDstArt σ I) I aSlot)
-              (solcSlotWord (forkAfterDstArt σ I) I bSlot))
-            (solcSlotWord (forkAfterDstArt σ I) I bSlot))
-          (solcSlotWord (forkAfterDstArt σ I) I aSlot) ≠ ⟨0⟩) ↔
-      (solcSlotWord (forkAfterDstArt τ I) I bSlot = ⟨0⟩ ∨
-        UInt256.eq
-          (UInt256.div
-            (UInt256.mul
-              (solcSlotWord (forkAfterDstArt τ I) I aSlot)
-              (solcSlotWord (forkAfterDstArt τ I) I bSlot))
-            (solcSlotWord (forkAfterDstArt τ I) I bSlot))
-          (solcSlotWord (forkAfterDstArt τ I) I aSlot) ≠ ⟨0⟩) := by
-  have ha := forkAfterDstArt_slot_eq_of_accountMapEquiv (I := I) hAccounts aSlot
-  have hb := forkAfterDstArt_slot_eq_of_accountMapEquiv (I := I) hAccounts bSlot
-  simp [ha, hb]
-
-theorem forkAfterDstArt_unsafeGuard_iff_of_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) (tab aSlot bSlot : UInt256) :
-    (UInt256.gt tab
-        (UInt256.mul
-          (solcSlotWord (forkAfterDstArt σ I) I aSlot)
-          (solcSlotWord (forkAfterDstArt σ I) I bSlot)) = ⟨0⟩) ↔
-      (UInt256.gt tab
-        (UInt256.mul
-          (solcSlotWord (forkAfterDstArt τ I) I aSlot)
-          (solcSlotWord (forkAfterDstArt τ I) I bSlot)) = ⟨0⟩) := by
-  have ha := forkAfterDstArt_slot_eq_of_accountMapEquiv (I := I) hAccounts aSlot
-  have hb := forkAfterDstArt_slot_eq_of_accountMapEquiv (I := I) hAccounts bSlot
-  simp [ha, hb]
-
-theorem forkAfterDstArt_dustGuard_iff_of_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) (tab artSlot dustSlot : UInt256) :
-    (UInt256.lor
-        (UInt256.eq ⟨0⟩ (solcSlotWord (forkAfterDstArt σ I) I artSlot))
-        (UInt256.isZero
-          (UInt256.lt tab (solcSlotWord (forkAfterDstArt σ I) I dustSlot))) ≠ ⟨0⟩) ↔
-      (UInt256.lor
-        (UInt256.eq ⟨0⟩ (solcSlotWord (forkAfterDstArt τ I) I artSlot))
-        (UInt256.isZero
-          (UInt256.lt tab (solcSlotWord (forkAfterDstArt τ I) I dustSlot))) ≠ ⟨0⟩) := by
-  have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv (I := I) hAccounts artSlot
-  have hdust := forkAfterDstArt_slot_eq_of_accountMapEquiv (I := I) hAccounts dustSlot
-  simp [hart, hdust]
-
-theorem forkSrcInkSubGuardNeg_iff_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    (UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (forkSrcInkNew σ I) (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩) ↔
-      (UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (forkSrcInkNew τ I) (solcSlotWord τ I (forkSrcInkSlot I)) = ⟨0⟩) := by
-  have hOld :
-      solcSlotWord σ I (forkSrcInkSlot I) =
-        solcSlotWord τ I (forkSrcInkSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (forkSrcInkSlot I) ⟨0⟩
-  have hNew := forkSrcInkNew_eq_of_accountMapEquiv (I := I) hAccounts
-  constructor <;> intro h <;> simpa [hOld, hNew] using h
-
-theorem forkSrcInkSubGuardPos_iff_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    (UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (forkSrcInkNew σ I) (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩) ↔
-      (UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (forkSrcInkNew τ I) (solcSlotWord τ I (forkSrcInkSlot I)) = ⟨0⟩) := by
-  have hOld :
-      solcSlotWord σ I (forkSrcInkSlot I) =
-        solcSlotWord τ I (forkSrcInkSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (forkSrcInkSlot I) ⟨0⟩
-  have hNew := forkSrcInkNew_eq_of_accountMapEquiv (I := I) hAccounts
-  constructor <;> intro h <;> simpa [hOld, hNew] using h
-
-theorem forkSrcArtSubGuardNeg_iff_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    (UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (forkSrcArtNew σ I)
-          (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I)) = ⟨0⟩) ↔
-      (UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (forkSrcArtNew τ I)
-          (solcSlotWord (forkAfterSrcInk τ I) I (forkSrcArtSlot I)) = ⟨0⟩) := by
-  have hSrcInk := accountMapEquiv_forkAfterSrcInk (I := I) hAccounts
-  have hOld :
-      solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I) =
-        solcSlotWord (forkAfterSrcInk τ I) I (forkSrcArtSlot I) :=
-    accountMapEquiv_storage_findD hSrcInk I.codeOwner (forkSrcArtSlot I) ⟨0⟩
-  have hNew := forkSrcArtNew_eq_of_accountMapEquiv (I := I) hAccounts
-  constructor <;> intro h <;> simpa [hOld, hNew] using h
-
-theorem forkSrcArtSubGuardPos_iff_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    (UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (forkSrcArtNew σ I)
-          (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I)) = ⟨0⟩) ↔
-      (UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (forkSrcArtNew τ I)
-          (solcSlotWord (forkAfterSrcInk τ I) I (forkSrcArtSlot I)) = ⟨0⟩) := by
-  have hSrcInk := accountMapEquiv_forkAfterSrcInk (I := I) hAccounts
-  have hOld :
-      solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I) =
-        solcSlotWord (forkAfterSrcInk τ I) I (forkSrcArtSlot I) :=
-    accountMapEquiv_storage_findD hSrcInk I.codeOwner (forkSrcArtSlot I) ⟨0⟩
-  have hNew := forkSrcArtNew_eq_of_accountMapEquiv (I := I) hAccounts
-  constructor <;> intro h <;> simpa [hOld, hNew] using h
-
-theorem forkDstInkAddGuardNeg_iff_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    (UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (forkDstInkNew σ I)
-          (solcSlotWord (forkAfterSrcArt σ I) I (forkDstInkSlot I)) = ⟨0⟩) ↔
-      (UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (forkDstInkNew τ I)
-          (solcSlotWord (forkAfterSrcArt τ I) I (forkDstInkSlot I)) = ⟨0⟩) := by
-  have hSrcArt := accountMapEquiv_forkAfterSrcArt (I := I) hAccounts
-  have hOld :
-      solcSlotWord (forkAfterSrcArt σ I) I (forkDstInkSlot I) =
-        solcSlotWord (forkAfterSrcArt τ I) I (forkDstInkSlot I) :=
-    accountMapEquiv_storage_findD hSrcArt I.codeOwner (forkDstInkSlot I) ⟨0⟩
-  have hNew := forkDstInkNew_eq_of_accountMapEquiv (I := I) hAccounts
-  constructor <;> intro h <;> simpa [hOld, hNew] using h
-
-theorem forkDstInkAddGuardPos_iff_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    (UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (forkDstInkNew σ I)
-          (solcSlotWord (forkAfterSrcArt σ I) I (forkDstInkSlot I)) = ⟨0⟩) ↔
-      (UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (forkDstInkNew τ I)
-          (solcSlotWord (forkAfterSrcArt τ I) I (forkDstInkSlot I)) = ⟨0⟩) := by
-  have hSrcArt := accountMapEquiv_forkAfterSrcArt (I := I) hAccounts
-  have hOld :
-      solcSlotWord (forkAfterSrcArt σ I) I (forkDstInkSlot I) =
-        solcSlotWord (forkAfterSrcArt τ I) I (forkDstInkSlot I) :=
-    accountMapEquiv_storage_findD hSrcArt I.codeOwner (forkDstInkSlot I) ⟨0⟩
-  have hNew := forkDstInkNew_eq_of_accountMapEquiv (I := I) hAccounts
-  constructor <;> intro h <;> simpa [hOld, hNew] using h
-
-theorem forkDstArtAddGuardNeg_iff_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    (UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (forkDstArtNew σ I)
-          (solcSlotWord (forkAfterDstInk σ I) I (forkDstArtSlot I)) = ⟨0⟩) ↔
-      (UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (forkDstArtNew τ I)
-          (solcSlotWord (forkAfterDstInk τ I) I (forkDstArtSlot I)) = ⟨0⟩) := by
-  have hDstInk := accountMapEquiv_forkAfterDstInk (I := I) hAccounts
-  have hOld :
-      solcSlotWord (forkAfterDstInk σ I) I (forkDstArtSlot I) =
-        solcSlotWord (forkAfterDstInk τ I) I (forkDstArtSlot I) :=
-    accountMapEquiv_storage_findD hDstInk I.codeOwner (forkDstArtSlot I) ⟨0⟩
-  have hNew := forkDstArtNew_eq_of_accountMapEquiv (I := I) hAccounts
-  constructor <;> intro h <;> simpa [hOld, hNew] using h
-
-theorem forkDstArtAddGuardPos_iff_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    (UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (forkDstArtNew σ I)
-          (solcSlotWord (forkAfterDstInk σ I) I (forkDstArtSlot I)) = ⟨0⟩) ↔
-      (UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (forkDstArtNew τ I)
-          (solcSlotWord (forkAfterDstInk τ I) I (forkDstArtSlot I)) = ⟨0⟩) := by
-  have hDstInk := accountMapEquiv_forkAfterDstInk (I := I) hAccounts
-  have hOld :
-      solcSlotWord (forkAfterDstInk σ I) I (forkDstArtSlot I) =
-        solcSlotWord (forkAfterDstInk τ I) I (forkDstArtSlot I) :=
-    accountMapEquiv_storage_findD hDstInk I.codeOwner (forkDstArtSlot I) ⟨0⟩
-  have hNew := forkDstArtNew_eq_of_accountMapEquiv (I := I) hAccounts
-  constructor <;> intro h <;> simpa [hOld, hNew] using h
-
 abbrev forkSrcInkEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "urns", steps := [.mindex (forkIlkKey I), .mindex (forkSrcKey I), .field "ink"] }
 
@@ -9807,30 +9503,71 @@ theorem decodeABIValues_bytes32_address_address_int256_int256_legacy_ok {bytes :
                Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat -
                  Int.ofNat EVM.wordModulus) ],
          160) := by
-  have hge32 : 32 ≤ bytes.length - 32 := by
-    rw [List.length_take, List.length_drop] at hlen32
-    omega
-  have hge64 : 32 ≤ bytes.length - 64 := by
-    rw [List.length_take, List.length_drop] at hlen64
-    omega
-  have hge96 : 32 ≤ bytes.length - 96 := by
-    rw [List.length_take, List.length_drop] at hlen96
-    omega
-  have hge128 : 32 ≤ bytes.length - 128 := by
-    rw [List.length_take, List.length_drop] at hlen128
-    omega
-  have htakeBytes32 :
-      List.take (↑bytes32Width + 1) (List.take 32 bytes) = List.take 32 bytes := by
-    simp [bytes32Width]
-  set_option linter.unusedSimpArgs false in
-    simp (config := { maxSteps := 200000 }) [decodeABIValues?, decodeABIValue?, readBytes?,
-      readWord?, decodeABIWord?,
-      bytes32, addr, int256, bytes32Width, int256Int, isDynamicABIType,
-      staticABIEncodedSize?, hlen0, hlen32, hlen64, hlen96, hlen128, htakeBytes32,
-      hge32, hge64, hge96, hge128, UInt256.toNat]
-  constructor
-  · exact normalizeInt_sint256_word (ABI.bytesToWord ((bytes.drop 96).take 32))
-  · exact normalizeInt_sint256_word (ABI.bytesToWord ((bytes.drop 128).take 32))
+  have hbytes32 :
+      decodeABIValue? (.elem (.bytes bytes32Width)) bytes 0 DecodeMode.legacySolc05 =
+        some (.fixedBytes bytes32Width (bytes.take 32), 32) := by
+    simp only [bytes32Width, decodeABIValue?, readBytes?, bind, Option.bind]
+    rw [if_pos (by simpa using hlen0)]
+    simp [zeroPadding?, readBytes?]
+  have haddr32 :
+      decodeScalarWordWithMode? DecodeMode.legacySolc05 addr bytes 32 =
+        some (.address (AccountAddress.ofNat
+          (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat), 32 + 32) := by
+    simpa [addr] using
+      decodeScalarWord_legacyAddress_ok (bytes := bytes) (start := 32) hlen32
+  have haddr64 :
+      decodeScalarWordWithMode? DecodeMode.legacySolc05 addr bytes 64 =
+        some (.address (AccountAddress.ofNat
+          (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat), 64 + 32) := by
+    simpa [addr] using
+      decodeScalarWord_legacyAddress_ok (bytes := bytes) (start := 64) hlen64
+  have hint96 := vatDecodeScalarWordWithMode_legacyInt256_ok
+    (bytes := bytes) (start := 96) hlen96
+  have hint128 := vatDecodeScalarWordWithMode_legacyInt256_ok
+    (bytes := bytes) (start := 128) hlen128
+  have htail :
+      decodeScalarWordsWithMode? DecodeMode.legacySolc05
+        [addr, addr, int256, int256] bytes 32 =
+        some
+          [ .address (AccountAddress.ofNat
+              (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat),
+            .address (AccountAddress.ofNat
+              (ABI.bytesToWord ((bytes.drop 64).take 32)).toNat),
+            .int
+              (if (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat < EVM.twoPow 255 then
+                Int.ofNat (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat
+              else
+                Int.ofNat (ABI.bytesToWord ((bytes.drop 96).take 32)).toNat -
+                  Int.ofNat EVM.wordModulus),
+            .int
+              (if (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat < EVM.twoPow 255 then
+                Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat
+              else
+                Int.ofNat (ABI.bytesToWord ((bytes.drop 128).take 32)).toNat -
+                  Int.ofNat EVM.wordModulus) ] := by
+    simp only [decodeScalarWordsWithMode?]
+    norm_num
+    rw [haddr32]
+    simp only [Option.bind, bind]
+    rw [haddr64]
+    simp only [Option.bind, bind]
+    rw [hint96]
+    simp only [Option.bind, bind]
+    rw [hint128]
+    rfl
+  rw [decodeABIValues?]
+  simp only [bytes32, isDynamicABIType, staticABIEncodedSize?, Bool.false_eq_true, if_false,
+    Nat.zero_add, Option.bind, bind]
+  rw [hbytes32]
+  simp only [Option.bind, bind]
+  rw [if_pos (by norm_num)]
+  rw [show max 160 32 = 160 by norm_num]
+  rw [decodeABIValues_scalarWordsWithMode_eq
+    (mode := DecodeMode.legacySolc05)
+    (types := [addr, addr, int256, int256])
+    (bytes := bytes) (cursor := 32) (total := 160)
+    (by native_decide) (by norm_num)]
+  rw [htail]
 
 set_option maxHeartbeats 0 in
 theorem decodeCalldata_legacyBytes32_address_address_int256_int256_ok {cd : ByteArray}
@@ -13547,7 +13284,7 @@ theorem RD.vatForkFinishSuccess
   have h525 := h524.jumpdest (by native_decide) (by evm_ov)
   exact RD.stop h525 (by native_decide) (by simp)
 
-theorem accountMapEquiv_forkSourceFinal
+theorem forkSourceFinal_accountMap_eq
     {σ σ₀ A I} {g : UInt256}
     (srcInkNew srcArtNew dstInkNew dstArtNew : UInt256)
     (hSrcInk : srcInkNew = forkSrcInkNew σ I)
@@ -13570,22 +13307,22 @@ theorem accountMapEquiv_forkSourceFinal
   have h1 : Eq (forkAfterSrcInk σ I) evm1.accountMap := by
     simpa [evm1, evm0, initState, storageStore_accountMap, forkAfterSrcInk,
       storageStore_executionEnv, hSrcInk] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (forkSrcInkSlot I)
-        (forkSrcInkNew σ I) h0
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (forkSrcInkSlot I) (forkSrcInkNew σ I)) h0
   have h2 : Eq (forkAfterSrcArt σ I) evm2.accountMap := by
     simpa [evm2, evm1, evm0, initState, storageStore_accountMap, forkAfterSrcArt,
       storageStore_executionEnv, hSrcArt] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (forkSrcArtSlot I)
-        (forkSrcArtNew σ I) h1
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (forkSrcArtSlot I) (forkSrcArtNew σ I)) h1
   have h3 : Eq (forkAfterDstInk σ I) evm3.accountMap := by
     simpa [evm3, evm2, evm1, evm0, initState, storageStore_accountMap,
       forkAfterDstInk, storageStore_executionEnv, hDstInk] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (forkDstInkSlot I)
-        (forkDstInkNew σ I) h2
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (forkDstInkSlot I) (forkDstInkNew σ I)) h2
   simpa [evm4, evm3, evm2, evm1, evm0, initState, storageStore_accountMap,
     forkAfterDstArt, storageStore_executionEnv, hDstArt] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner (forkDstArtSlot I)
-      (forkDstArtNew σ I) h3
+    congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+      (forkDstArtSlot I) (forkDstArtNew σ I)) h3
 
 theorem forkSourceFinal_storageLoad
     {σ σ₀ A I} {g : UInt256}
@@ -14125,7 +13862,7 @@ theorem vatForkSuccessEquivFromSourceFinal
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   dsimp at hbody
   have hsourceAccounts :=
-    accountMapEquiv_forkSourceFinal
+    forkSourceFinal_accountMap_eq
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (forkSrcInkNew σ I) (forkSrcArtNew σ I)
       (forkDstInkNew σ I) (forkDstArtNew σ I)
@@ -14178,7 +13915,7 @@ theorem vatForkSuccessEquivFromSourceFinal
               (forkSrcArtSlot I) (forkSrcArtNew σ I)).executionEnv.codeOwner
             (forkDstInkSlot I) (forkDstInkNew σ I)).executionEnv.codeOwner
           (forkDstArtSlot I) (forkDstArtNew σ I)).accountMap := by
-    exact (accountMapEquiv_forkAfterDstArt hAccounts).trans hsourceAccounts
+    exact hsourceAccounts
   exact vatForkSuccessEquivFromFinalState hcode hdispatch hdecode hret hbody
     haccounts
 
@@ -14364,88 +14101,54 @@ theorem vatForkSuccessEquivFromFinalGuards
     (σFinal := forkAfterDstArt σ I) (σ₀ := σ₀) (A := A) (I := I)
     (g := Sat256.ofUInt256 g) (sel := vatSelWord I) hpath
   have hsrcInkNegS :=
-    (forkSrcInkSubGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp hsrcInkNeg
+    hsrcInkNeg
   have hsrcInkPosS :=
-    (forkSrcInkSubGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp hsrcInkPos
+    hsrcInkPos
   have hsrcArtNegS :=
-    (forkSrcArtSubGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp hsrcArtNeg
+    hsrcArtNeg
   have hsrcArtPosS :=
-    (forkSrcArtSubGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp hsrcArtPos
+    hsrcArtPos
   have hdstInkNegS :=
-    (forkDstInkAddGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp hdstInkNeg
+    hdstInkNeg
   have hdstInkPosS :=
-    (forkDstInkAddGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp hdstInkPos
+    hdstInkPos
   have hdstArtNegS :=
-    (forkDstArtAddGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp hdstArtNeg
+    hdstArtNeg
   have hdstArtPosS :=
-    (forkDstArtAddGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp hdstArtPos
-  have hAfterAccounts := accountMapEquiv_forkAfterDstArt (I := I) hAccounts
+    hdstArtPos
   have hutabOkS :=
-    (forkAfterDstArt_mulGuard_iff_of_accountMapEquiv (I := I) hAccounts
-      (forkSrcArtSlot I) (forkIlkRateSlot I)).mp hutabOk
+    hutabOk
   have hvtabOkS :=
-    (forkAfterDstArt_mulGuard_iff_of_accountMapEquiv (I := I) hAccounts
-      (forkDstArtSlot I) (forkIlkRateSlot I)).mp hvtabOk
-  have hwishS : forkBothWishWord (forkAfterDstArt σ I) I ≠ ⟨0⟩ := by
-    have heq := forkBothWishWord_eq_of_accountMapEquiv (I := I) hAfterAccounts
-    rwa [← heq]
+    hvtabOk
   have hsrcInkSpotOkS :=
-    (forkAfterDstArt_mulGuard_iff_of_accountMapEquiv (I := I) hAccounts
-      (forkSrcInkSlot I) (forkIlkSpotSlot I)).mp hsrcInkSpotOk
+    hsrcInkSpotOk
   have hdstInkSpotOkS :=
-    (forkAfterDstArt_mulGuard_iff_of_accountMapEquiv (I := I) hAccounts
-      (forkDstInkSlot I) (forkIlkSpotSlot I)).mp hdstInkSpotOk
+    hdstInkSpotOk
   have hsrcTabEq :
       UInt256.mul
           (solcSlotWord (forkAfterDstArt σ I) I (forkSrcArtSlot I))
           (solcSlotWord (forkAfterDstArt σ I) I (forkIlkRateSlot I)) =
         UInt256.mul
           (solcSlotWord (forkAfterDstArt σ I) I (forkSrcArtSlot I))
-          (solcSlotWord (forkAfterDstArt σ I) I (forkIlkRateSlot I)) := by
-    have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv (I := I) hAccounts
-      (forkSrcArtSlot I)
-    have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv (I := I) hAccounts
-      (forkIlkRateSlot I)
-    simp [hart, hrate]
+          (solcSlotWord (forkAfterDstArt σ I) I (forkIlkRateSlot I)) := rfl
   have hdstTabEq :
       UInt256.mul
           (solcSlotWord (forkAfterDstArt σ I) I (forkDstArtSlot I))
           (solcSlotWord (forkAfterDstArt σ I) I (forkIlkRateSlot I)) =
         UInt256.mul
           (solcSlotWord (forkAfterDstArt σ I) I (forkDstArtSlot I))
-          (solcSlotWord (forkAfterDstArt σ I) I (forkIlkRateSlot I)) := by
-    have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv (I := I) hAccounts
-      (forkDstArtSlot I)
-    have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv (I := I) hAccounts
-      (forkIlkRateSlot I)
-    simp [hart, hrate]
+          (solcSlotWord (forkAfterDstArt σ I) I (forkIlkRateSlot I)) := rfl
   have hsrcUnsafeS :=
-    (forkAfterDstArt_unsafeGuard_iff_of_accountMapEquiv (I := I) hAccounts
-      (UInt256.mul
-        (solcSlotWord (forkAfterDstArt σ I) I (forkSrcArtSlot I))
-        (solcSlotWord (forkAfterDstArt σ I) I (forkIlkRateSlot I)))
-      (forkSrcInkSlot I) (forkIlkSpotSlot I)).mp (by
+    (by
         simpa [hsrcTabEq] using hsrcUnsafe)
   have hdstUnsafeS :=
-    (forkAfterDstArt_unsafeGuard_iff_of_accountMapEquiv (I := I) hAccounts
-      (UInt256.mul
-        (solcSlotWord (forkAfterDstArt σ I) I (forkDstArtSlot I))
-        (solcSlotWord (forkAfterDstArt σ I) I (forkIlkRateSlot I)))
-      (forkDstInkSlot I) (forkIlkSpotSlot I)).mp (by
+    (by
         simpa [hdstTabEq] using hdstUnsafe)
   have hsrcDustS :=
-    (forkAfterDstArt_dustGuard_iff_of_accountMapEquiv (I := I) hAccounts
-      (UInt256.mul
-        (solcSlotWord (forkAfterDstArt σ I) I (forkSrcArtSlot I))
-        (solcSlotWord (forkAfterDstArt σ I) I (forkIlkRateSlot I)))
-      (forkSrcArtSlot I) (forkIlkDustSlot I)).mp (by
+    (by
         simpa [hsrcTabEq] using hsrcDust)
   have hdstDustS :=
-    (forkAfterDstArt_dustGuard_iff_of_accountMapEquiv (I := I) hAccounts
-      (UInt256.mul
-        (solcSlotWord (forkAfterDstArt σ I) I (forkDstArtSlot I))
-        (solcSlotWord (forkAfterDstArt σ I) I (forkIlkRateSlot I)))
-      (forkDstArtSlot I) (forkIlkDustSlot I)).mp (by
+    (by
         simpa [hdstTabEq] using hdstDust)
   have hbody :=
     vatForkSourceSuccessBodyFromFinalGuards
@@ -14453,12 +14156,12 @@ theorem vatForkSuccessEquivFromFinalGuards
       (A := A) (I := I) (g := g)
       hwv hsz164 hsrcInkNegS hsrcInkPosS hsrcArtNegS hsrcArtPosS
       hdstInkNegS hdstInkPosS hdstArtNegS hdstArtPosS
-      hutabOkS hvtabOkS hwishS hsrcInkSpotOkS hsrcUnsafeS
+      hutabOkS hvtabOkS hwish hsrcInkSpotOkS hsrcUnsafeS
       hdstInkSpotOkS hdstUnsafeS hsrcDustS hdstDustS
   exact vatForkSuccessEquivFromSourceFinal hcode (vatDispatchFork hsel) hdecode
-    hAccounts hret hbody
+    hret hbody
 
-set_option maxHeartbeats 0 in
+set_option maxHeartbeats 1000000 in
 theorem vatForkBodyCore : VatBodyTheorem 10 := by
   intro σ σ₀ A I g hcode hsize hperm hwv hsel
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -14575,7 +14278,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                       exact vatForkSuccessEquivFromFinalGuards
                         (σ := σ)
                          (σ₀ := σ₀) (A := A) (I := I) (g := g)
-                        hcode hperm hwv hsel hAccounts hsz164 hdecode
+                        hcode hperm hwv hsel hsz164 hdecode
                         ⟨_, _, hdecoded⟩
                         hsrcInkNeg hsrcInkPos hsrcArtNeg hsrcArtPos hdstInkNeg
                         hdstInkPos hdstArtNeg hdstArtPos
@@ -14628,56 +14331,48 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                   UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.gt (forkSrcInkNew σ I)
                                       (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                                (forkSrcInkSubGuardNeg_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hsrcInkNeg
+                                hsrcInkNeg
                               have hsrcInkPosS :
                                   UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.lt (forkSrcInkNew σ I)
                                       (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                                (forkSrcInkSubGuardPos_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hsrcInkPos
+                                hsrcInkPos
                               have hsrcArtNegS :
                                   UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.gt (forkSrcArtNew σ I)
                                       (solcSlotWord (forkAfterSrcInk σ I) I
                                         (forkSrcArtSlot I)) = ⟨0⟩ :=
-                                (forkSrcArtSubGuardNeg_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hsrcArtNeg
+                                hsrcArtNeg
                               have hsrcArtPosS :
                                   UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.lt (forkSrcArtNew σ I)
                                       (solcSlotWord (forkAfterSrcInk σ I) I
                                         (forkSrcArtSlot I)) = ⟨0⟩ :=
-                                (forkSrcArtSubGuardPos_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hsrcArtPos
+                                hsrcArtPos
                               have hdstInkNegS :
                                   UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.gt (forkDstInkNew σ I)
                                       (solcSlotWord (forkAfterSrcArt σ I) I
                                         (forkDstInkSlot I)) = ⟨0⟩ :=
-                                (forkDstInkAddGuardNeg_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hdstInkNeg
+                                hdstInkNeg
                               have hdstInkPosS :
                                   UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.lt (forkDstInkNew σ I)
                                       (solcSlotWord (forkAfterSrcArt σ I) I
                                         (forkDstInkSlot I)) = ⟨0⟩ :=
-                                (forkDstInkAddGuardPos_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hdstInkPos
+                                hdstInkPos
                               have hdstArtNegS :
                                   UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.gt (forkDstArtNew σ I)
                                       (solcSlotWord (forkAfterDstInk σ I) I
                                         (forkDstArtSlot I)) = ⟨0⟩ :=
-                                (forkDstArtAddGuardNeg_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hdstArtNeg
+                                hdstArtNeg
                               have hdstArtPosS :
                                   UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.lt (forkDstArtNew σ I)
                                       (solcSlotWord (forkAfterDstInk σ I) I
                                         (forkDstArtSlot I)) = ⟨0⟩ :=
-                                (forkDstArtAddGuardPos_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hdstArtPos
+                                hdstArtPos
                               have hutabOkS :
                                   solcSlotWord (forkAfterDstArt σ I) I
                                         (forkIlkRateSlot I) = ⟨0⟩ ∨
@@ -14692,11 +14387,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                             (forkIlkRateSlot I)))
                                         (solcSlotWord (forkAfterDstArt σ I) I
                                           (forkSrcArtSlot I)) ≠ ⟨0⟩ := by
-                                have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkSrcArtSlot I)
-                                have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkIlkRateSlot I)
-                                simpa [σFinal, hart, hrate] using hutabOk
+                                simpa [σFinal] using hutabOk
                               have hvtabOkS :
                                   solcSlotWord (forkAfterDstArt σ I) I
                                         (forkIlkRateSlot I) = ⟨0⟩ ∨
@@ -14711,11 +14402,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                             (forkIlkRateSlot I)))
                                         (solcSlotWord (forkAfterDstArt σ I) I
                                           (forkDstArtSlot I)) ≠ ⟨0⟩ := by
-                                have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkDstArtSlot I)
-                                have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkIlkRateSlot I)
-                                simpa [σFinal, hart, hrate] using hvtabOk
+                                simpa [σFinal] using hvtabOk
                               have hsrcInkSpotOkS :
                                   solcSlotWord (forkAfterDstArt σ I) I
                                         (forkIlkSpotSlot I) = ⟨0⟩ ∨
@@ -14730,11 +14417,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                             (forkIlkSpotSlot I)))
                                         (solcSlotWord (forkAfterDstArt σ I) I
                                           (forkSrcInkSlot I)) ≠ ⟨0⟩ := by
-                                have hink := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkSrcInkSlot I)
-                                have hspot := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkIlkSpotSlot I)
-                                simpa [σFinal, hink, hspot] using hsrcInkSpotOk
+                                simpa [σFinal] using hsrcInkSpotOk
                               have hdstInkSpotOkS :
                                   solcSlotWord (forkAfterDstArt σ I) I
                                         (forkIlkSpotSlot I) = ⟨0⟩ ∨
@@ -14749,11 +14432,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                             (forkIlkSpotSlot I)))
                                         (solcSlotWord (forkAfterDstArt σ I) I
                                           (forkDstInkSlot I)) ≠ ⟨0⟩ := by
-                                have hink := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkDstInkSlot I)
-                                have hspot := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkIlkSpotSlot I)
-                                simpa [σFinal, hink, hspot] using hdstInkSpotOk
+                                simpa [σFinal] using hdstInkSpotOk
                               let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
                               let evm1 := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                                 (forkSrcInkSlot I) (forkSrcInkNew σ I)
@@ -15015,61 +14694,28 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                               (UInt256.isZero (UInt256.lt vtabS
                                                 (solcSlotWord σFinalS I
                                                   (forkIlkDustSlot I)))) = ⟨0⟩ := by
-                                          have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkDstArtSlot I)
-                                          have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkIlkRateSlot I)
-                                          have hdust := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkIlkDustSlot I)
-                                          simpa [σFinal, σFinalS, dstArtFinalS, vtabS, hart,
-                                            hrate, hdust] using hdstDustEq
+                                          simpa [σFinal, σFinalS, dstArtFinalS, vtabS] using hdstDustEq
                                         have hdstDustCondS :=
                                           forkDustSourceCond_false_of_evm hdstDustEqS
                                         have hwishS : forkBothWishWord σFinalS I ≠ ⟨0⟩ := by
-                                          have heq := forkBothWishWord_eq_of_accountMapEquiv
-                                            (I := I)
-                                            (accountMapEquiv_forkAfterDstArt (I := I) hAccounts)
-                                          rwa [← heq]
+                                          simpa [σFinal, σFinalS] using hwish
                                         have hsrcUnsafeS :
                                             UInt256.gt utabS srcInkSpotS = ⟨0⟩ := by
-                                          have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkSrcArtSlot I)
-                                          have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkIlkRateSlot I)
-                                          have hink := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkSrcInkSlot I)
-                                          have hspot := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkIlkSpotSlot I)
                                           simpa [srcUnsafeWord, σFinal, σFinalS, utabS,
                                             srcInkSpotS, srcArtFinalS, srcInkFinalS, rateS,
-                                            spotS, hart, hrate, hink, hspot] using hsrcUnsafe
+                                            spotS] using hsrcUnsafe
                                         have hdstUnsafeS :
                                             UInt256.gt vtabS dstInkSpotS = ⟨0⟩ := by
-                                          have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkDstArtSlot I)
-                                          have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkIlkRateSlot I)
-                                          have hink := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkDstInkSlot I)
-                                          have hspot := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkIlkSpotSlot I)
                                           simpa [dstUnsafeWord, σFinal, σFinalS, vtabS,
                                             dstInkSpotS, dstArtFinalS, dstInkFinalS, rateS,
-                                            spotS, hart, hrate, hink, hspot] using hdstUnsafe
+                                            spotS] using hdstUnsafe
                                         have hsrcDustS :
                                             UInt256.lor
                                               (UInt256.eq ⟨0⟩ srcArtFinalS)
                                               (UInt256.isZero (UInt256.lt utabS
                                                 (solcSlotWord σFinalS I
                                                   (forkIlkDustSlot I)))) ≠ ⟨0⟩ := by
-                                          have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkSrcArtSlot I)
-                                          have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkIlkRateSlot I)
-                                          have hdust := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkIlkDustSlot I)
-                                          simpa [σFinal, σFinalS, srcArtFinalS, utabS, hart,
-                                            hrate, hdust] using hsrcDust
+                                          simpa [σFinal, σFinalS, srcArtFinalS, utabS] using hsrcDust
                                         have hbody := hsourceBodyOf
                                           (execForkFinalRequiresRevertDstDust
                                             (evalExpr_fork_wish_both_true_of_word_final_store
@@ -15152,23 +14798,13 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                                 (UInt256.isZero (UInt256.lt utabS
                                                   (solcSlotWord σFinalS I
                                                     (forkIlkDustSlot I)))) = ⟨0⟩ := by
-                                            have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                              (I := I) hAccounts (forkSrcArtSlot I)
-                                            have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                              (I := I) hAccounts (forkIlkRateSlot I)
-                                            have hdust := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                              (I := I) hAccounts (forkIlkDustSlot I)
-                                            simpa [σFinal, σFinalS, srcArtFinalS, utabS, hart,
-                                              hrate, hdust] using hsrcDustEq
+                                            simpa [σFinal, σFinalS, srcArtFinalS, utabS] using hsrcDustEq
                                           have hsrcDustCondS :=
                                             forkDustSourceCond_false_of_evm hsrcDustEqS
                                           exact execForkFinalRequiresRevertSrcDust
                                             (by
                                               have hwishS : forkBothWishWord σFinalS I ≠ ⟨0⟩ := by
-                                                have heq := forkBothWishWord_eq_of_accountMapEquiv
-                                                  (I := I)
-                                                  (accountMapEquiv_forkAfterDstArt (I := I) hAccounts)
-                                                rwa [← heq]
+                                                simpa [σFinal, σFinalS] using hwish
                                               exact evalExpr_fork_wish_both_true_of_word_final_store
                                                 (evm := evm4) (σ := σFinalS)
                                                 (forkSrcInkNew σ I) (forkSrcArtNew σ I)
@@ -15184,17 +14820,9 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                             (by
                                               have hsrcUnsafeS :
                                                   UInt256.gt utabS srcInkSpotS = ⟨0⟩ := by
-                                                have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                                  (I := I) hAccounts (forkSrcArtSlot I)
-                                                have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                                  (I := I) hAccounts (forkIlkRateSlot I)
-                                                have hink := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                                  (I := I) hAccounts (forkSrcInkSlot I)
-                                                have hspot := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                                  (I := I) hAccounts (forkIlkSpotSlot I)
                                                 simpa [srcUnsafeWord, σFinal, σFinalS, utabS,
                                                   srcInkSpotS, srcArtFinalS, srcInkFinalS,
-                                                  rateS, spotS, hart, hrate, hink, hspot]
+                                                  rateS, spotS]
                                                   using hsrcUnsafe
                                               exact evalExpr_fork_utab_le_srcInkSpot_final_store
                                                 (evm := evm4) (I := I)
@@ -15206,17 +14834,9 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                             (by
                                               have hdstUnsafeS :
                                                   UInt256.gt vtabS dstInkSpotS = ⟨0⟩ := by
-                                                have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                                  (I := I) hAccounts (forkDstArtSlot I)
-                                                have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                                  (I := I) hAccounts (forkIlkRateSlot I)
-                                                have hink := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                                  (I := I) hAccounts (forkDstInkSlot I)
-                                                have hspot := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                                  (I := I) hAccounts (forkIlkSpotSlot I)
                                                 simpa [dstUnsafeWord, σFinal, σFinalS, vtabS,
                                                   dstInkSpotS, dstArtFinalS, dstInkFinalS,
-                                                  rateS, spotS, hart, hrate, hink, hspot]
+                                                  rateS, spotS]
                                                   using hdstUnsafe
                                               exact evalExpr_fork_vtab_le_dstInkSpot_final_store
                                                 (evm := evm4) (I := I)
@@ -15249,36 +14869,17 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                     have hbody := hsourceBodyOf
                                       (by
                                         have hwishS : forkBothWishWord σFinalS I ≠ ⟨0⟩ := by
-                                          have heq := forkBothWishWord_eq_of_accountMapEquiv
-                                            (I := I)
-                                            (accountMapEquiv_forkAfterDstArt (I := I) hAccounts)
-                                          rwa [← heq]
+                                          simpa [σFinal, σFinalS] using hwish
                                         have hsrcUnsafeS :
                                             UInt256.gt utabS srcInkSpotS = ⟨0⟩ := by
-                                          have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkSrcArtSlot I)
-                                          have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkIlkRateSlot I)
-                                          have hink := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkSrcInkSlot I)
-                                          have hspot := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkIlkSpotSlot I)
                                           simpa [srcUnsafeWord, σFinal, σFinalS, utabS,
                                             srcInkSpotS, srcArtFinalS, srcInkFinalS, rateS,
-                                            spotS, hart, hrate, hink, hspot] using hsrcUnsafe
+                                            spotS] using hsrcUnsafe
                                         have hdstUnsafeS :
                                             UInt256.gt vtabS dstInkSpotS ≠ ⟨0⟩ := by
-                                          have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkDstArtSlot I)
-                                          have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkIlkRateSlot I)
-                                          have hink := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkDstInkSlot I)
-                                          have hspot := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                            (I := I) hAccounts (forkIlkSpotSlot I)
                                           simpa [dstUnsafeWord, σFinal, σFinalS, vtabS,
                                             dstInkSpotS, dstArtFinalS, dstInkFinalS, rateS,
-                                            spotS, hart, hrate, hink, hspot] using hdstUnsafe
+                                            spotS] using hdstUnsafe
                                         exact execForkFinalRequiresRevertVtab
                                           (evalExpr_fork_wish_both_true_of_word_final_store
                                             (evm := evm4) (σ := σFinalS)
@@ -15320,23 +14921,12 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                   have hbody := hsourceBodyOf
                                     (by
                                       have hwishS : forkBothWishWord σFinalS I ≠ ⟨0⟩ := by
-                                        have heq := forkBothWishWord_eq_of_accountMapEquiv
-                                          (I := I)
-                                          (accountMapEquiv_forkAfterDstArt (I := I) hAccounts)
-                                        rwa [← heq]
+                                        simpa [σFinal, σFinalS] using hwish
                                       have hsrcUnsafeS :
                                           UInt256.gt utabS srcInkSpotS ≠ ⟨0⟩ := by
-                                        have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                          (I := I) hAccounts (forkSrcArtSlot I)
-                                        have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                          (I := I) hAccounts (forkIlkRateSlot I)
-                                        have hink := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                          (I := I) hAccounts (forkSrcInkSlot I)
-                                        have hspot := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                          (I := I) hAccounts (forkIlkSpotSlot I)
                                         simpa [srcUnsafeWord, σFinal, σFinalS, utabS,
                                           srcInkSpotS, srcArtFinalS, srcInkFinalS, rateS,
-                                          spotS, hart, hrate, hink, hspot] using hsrcUnsafe
+                                          spotS] using hsrcUnsafe
                                       exact execForkFinalRequiresRevertUtab
                                         (evalExpr_fork_wish_both_true_of_word_final_store
                                           (evm := evm4) (σ := σFinalS)
@@ -15371,10 +14961,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                 have hbody := hsourceBodyOf
                                   (by
                                     have hwishZeroS : forkBothWishWord σFinalS I = ⟨0⟩ := by
-                                      have heq := forkBothWishWord_eq_of_accountMapEquiv
-                                        (I := I)
-                                        (accountMapEquiv_forkAfterDstArt (I := I) hAccounts)
-                                      rwa [← heq]
+                                      simpa [σFinal, σFinalS] using hwishZero
                                     exact execForkFinalRequiresRevertWish
                                       (evalExpr_fork_wish_both_false_of_word_zero_final_store
                                         (evm := evm4) (σ := σFinalS)
@@ -15393,56 +14980,48 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                   UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.gt (forkSrcInkNew σ I)
                                       (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                                (forkSrcInkSubGuardNeg_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hsrcInkNeg
+                                hsrcInkNeg
                               have hsrcInkPosS :
                                   UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.lt (forkSrcInkNew σ I)
                                       (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                                (forkSrcInkSubGuardPos_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hsrcInkPos
+                                hsrcInkPos
                               have hsrcArtNegS :
                                   UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.gt (forkSrcArtNew σ I)
                                       (solcSlotWord (forkAfterSrcInk σ I) I
                                         (forkSrcArtSlot I)) = ⟨0⟩ :=
-                                (forkSrcArtSubGuardNeg_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hsrcArtNeg
+                                hsrcArtNeg
                               have hsrcArtPosS :
                                   UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.lt (forkSrcArtNew σ I)
                                       (solcSlotWord (forkAfterSrcInk σ I) I
                                         (forkSrcArtSlot I)) = ⟨0⟩ :=
-                                (forkSrcArtSubGuardPos_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hsrcArtPos
+                                hsrcArtPos
                               have hdstInkNegS :
                                   UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.gt (forkDstInkNew σ I)
                                       (solcSlotWord (forkAfterSrcArt σ I) I
                                         (forkDstInkSlot I)) = ⟨0⟩ :=
-                                (forkDstInkAddGuardNeg_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hdstInkNeg
+                                hdstInkNeg
                               have hdstInkPosS :
                                   UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.lt (forkDstInkNew σ I)
                                       (solcSlotWord (forkAfterSrcArt σ I) I
                                         (forkDstInkSlot I)) = ⟨0⟩ :=
-                                (forkDstInkAddGuardPos_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hdstInkPos
+                                hdstInkPos
                               have hdstArtNegS :
                                   UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.gt (forkDstArtNew σ I)
                                       (solcSlotWord (forkAfterDstInk σ I) I
                                         (forkDstArtSlot I)) = ⟨0⟩ :=
-                                (forkDstArtAddGuardNeg_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hdstArtNeg
+                                hdstArtNeg
                               have hdstArtPosS :
                                   UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.lt (forkDstArtNew σ I)
                                       (solcSlotWord (forkAfterDstInk σ I) I
                                         (forkDstArtSlot I)) = ⟨0⟩ :=
-                                (forkDstArtAddGuardPos_iff_of_accountMapEquiv (I := I)
-                                  hAccounts).mp hdstArtPos
+                                hdstArtPos
                               let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
                               let evm1 := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                                 (forkSrcInkSlot I) (forkSrcInkNew σ I)
@@ -15510,11 +15089,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                             (forkIlkRateSlot I)))
                                         (solcSlotWord (forkAfterDstArt σ I) I
                                           (forkSrcArtSlot I)) ≠ ⟨0⟩ := by
-                                have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkSrcArtSlot I)
-                                have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkIlkRateSlot I)
-                                simpa [σFinal, hart, hrate] using hutabOk
+                                simpa [σFinal] using hutabOk
                               have hvtabOkS :
                                   solcSlotWord (forkAfterDstArt σ I) I
                                         (forkIlkRateSlot I) = ⟨0⟩ ∨
@@ -15529,11 +15104,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                             (forkIlkRateSlot I)))
                                         (solcSlotWord (forkAfterDstArt σ I) I
                                           (forkDstArtSlot I)) ≠ ⟨0⟩ := by
-                                have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkDstArtSlot I)
-                                have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkIlkRateSlot I)
-                                simpa [σFinal, hart, hrate] using hvtabOk
+                                simpa [σFinal] using hvtabOk
                               have hsrcInkSpotOkS :
                                   solcSlotWord (forkAfterDstArt σ I) I
                                         (forkIlkSpotSlot I) = ⟨0⟩ ∨
@@ -15548,11 +15119,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                             (forkIlkSpotSlot I)))
                                         (solcSlotWord (forkAfterDstArt σ I) I
                                           (forkSrcInkSlot I)) ≠ ⟨0⟩ := by
-                                have hink := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkSrcInkSlot I)
-                                have hspot := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkIlkSpotSlot I)
-                                simpa [σFinal, hink, hspot] using hsrcInkSpotOk
+                                simpa [σFinal] using hsrcInkSpotOk
                               have hdstInkSpotFailS :
                                   ¬ (solcSlotWord (forkAfterDstArt σ I) I
                                         (forkIlkSpotSlot I) = ⟨0⟩ ∨
@@ -15568,11 +15135,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                         (solcSlotWord (forkAfterDstArt σ I) I
                                           (forkDstInkSlot I)) ≠ ⟨0⟩) := by
                                 intro hokS
-                                have hink := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkDstInkSlot I)
-                                have hspot := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                  (I := I) hAccounts (forkIlkSpotSlot I)
-                                exact hdstInkSpotOk (by simpa [σFinal, hink, hspot] using hokS)
+                                exact hdstInkSpotOk (by simpa [σFinal] using hokS)
                               have hutabFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
                                 (a := solcSlotWord (forkAfterDstArt σ I) I
                                   (forkSrcArtSlot I))
@@ -15828,56 +15391,48 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                 UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                   UInt256.gt (forkSrcInkNew σ I)
                                     (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                              (forkSrcInkSubGuardNeg_iff_of_accountMapEquiv (I := I)
-                                hAccounts).mp hsrcInkNeg
+                              hsrcInkNeg
                             have hsrcInkPosS :
                                 UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                   UInt256.lt (forkSrcInkNew σ I)
                                     (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                              (forkSrcInkSubGuardPos_iff_of_accountMapEquiv (I := I)
-                                hAccounts).mp hsrcInkPos
+                              hsrcInkPos
                             have hsrcArtNegS :
                                 UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                   UInt256.gt (forkSrcArtNew σ I)
                                     (solcSlotWord (forkAfterSrcInk σ I) I
                                       (forkSrcArtSlot I)) = ⟨0⟩ :=
-                              (forkSrcArtSubGuardNeg_iff_of_accountMapEquiv (I := I)
-                                hAccounts).mp hsrcArtNeg
+                              hsrcArtNeg
                             have hsrcArtPosS :
                                 UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                   UInt256.lt (forkSrcArtNew σ I)
                                     (solcSlotWord (forkAfterSrcInk σ I) I
                                       (forkSrcArtSlot I)) = ⟨0⟩ :=
-                              (forkSrcArtSubGuardPos_iff_of_accountMapEquiv (I := I)
-                                hAccounts).mp hsrcArtPos
+                              hsrcArtPos
                             have hdstInkNegS :
                                 UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                   UInt256.gt (forkDstInkNew σ I)
                                     (solcSlotWord (forkAfterSrcArt σ I) I
                                       (forkDstInkSlot I)) = ⟨0⟩ :=
-                              (forkDstInkAddGuardNeg_iff_of_accountMapEquiv (I := I)
-                                hAccounts).mp hdstInkNeg
+                              hdstInkNeg
                             have hdstInkPosS :
                                 UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                   UInt256.lt (forkDstInkNew σ I)
                                     (solcSlotWord (forkAfterSrcArt σ I) I
                                       (forkDstInkSlot I)) = ⟨0⟩ :=
-                              (forkDstInkAddGuardPos_iff_of_accountMapEquiv (I := I)
-                                hAccounts).mp hdstInkPos
+                              hdstInkPos
                             have hdstArtNegS :
                                 UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                   UInt256.gt (forkDstArtNew σ I)
                                     (solcSlotWord (forkAfterDstInk σ I) I
                                       (forkDstArtSlot I)) = ⟨0⟩ :=
-                              (forkDstArtAddGuardNeg_iff_of_accountMapEquiv (I := I)
-                                hAccounts).mp hdstArtNeg
+                              hdstArtNeg
                             have hdstArtPosS :
                                 UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                   UInt256.lt (forkDstArtNew σ I)
                                     (solcSlotWord (forkAfterDstInk σ I) I
                                       (forkDstArtSlot I)) = ⟨0⟩ :=
-                              (forkDstArtAddGuardPos_iff_of_accountMapEquiv (I := I)
-                                hAccounts).mp hdstArtPos
+                              hdstArtPos
                             let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
                             let evm1 := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                               (forkSrcInkSlot I) (forkSrcInkNew σ I)
@@ -15945,11 +15500,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                           (forkIlkRateSlot I)))
                                       (solcSlotWord (forkAfterDstArt σ I) I
                                         (forkSrcArtSlot I)) ≠ ⟨0⟩ := by
-                              have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                (I := I) hAccounts (forkSrcArtSlot I)
-                              have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                (I := I) hAccounts (forkIlkRateSlot I)
-                              simpa [σFinal, hart, hrate] using hutabOk
+                              simpa [σFinal] using hutabOk
                             have hvtabOkS :
                                 solcSlotWord (forkAfterDstArt σ I) I
                                       (forkIlkRateSlot I) = ⟨0⟩ ∨
@@ -15964,11 +15515,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                           (forkIlkRateSlot I)))
                                       (solcSlotWord (forkAfterDstArt σ I) I
                                         (forkDstArtSlot I)) ≠ ⟨0⟩ := by
-                              have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                (I := I) hAccounts (forkDstArtSlot I)
-                              have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                (I := I) hAccounts (forkIlkRateSlot I)
-                              simpa [σFinal, hart, hrate] using hvtabOk
+                              simpa [σFinal] using hvtabOk
                             have hsrcInkSpotFailS :
                                 ¬ (solcSlotWord (forkAfterDstArt σ I) I
                                       (forkIlkSpotSlot I) = ⟨0⟩ ∨
@@ -15984,11 +15531,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                       (solcSlotWord (forkAfterDstArt σ I) I
                                         (forkSrcInkSlot I)) ≠ ⟨0⟩) := by
                               intro hokS
-                              have hink := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                (I := I) hAccounts (forkSrcInkSlot I)
-                              have hspot := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                                (I := I) hAccounts (forkIlkSpotSlot I)
-                              exact hsrcInkSpotOk (by simpa [σFinal, hink, hspot] using hokS)
+                              exact hsrcInkSpotOk (by simpa [σFinal] using hokS)
                             have hutabFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
                               (a := solcSlotWord (forkAfterDstArt σ I) I
                                 (forkSrcArtSlot I))
@@ -16167,56 +15710,48 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                               UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                 UInt256.gt (forkSrcInkNew σ I)
                                   (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                            (forkSrcInkSubGuardNeg_iff_of_accountMapEquiv (I := I)
-                              hAccounts).mp hsrcInkNeg
+                            hsrcInkNeg
                           have hsrcInkPosS :
                               UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                 UInt256.lt (forkSrcInkNew σ I)
                                   (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                            (forkSrcInkSubGuardPos_iff_of_accountMapEquiv (I := I)
-                              hAccounts).mp hsrcInkPos
+                            hsrcInkPos
                           have hsrcArtNegS :
                               UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                 UInt256.gt (forkSrcArtNew σ I)
                                   (solcSlotWord (forkAfterSrcInk σ I) I
                                     (forkSrcArtSlot I)) = ⟨0⟩ :=
-                            (forkSrcArtSubGuardNeg_iff_of_accountMapEquiv (I := I)
-                              hAccounts).mp hsrcArtNeg
+                            hsrcArtNeg
                           have hsrcArtPosS :
                               UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                 UInt256.lt (forkSrcArtNew σ I)
                                   (solcSlotWord (forkAfterSrcInk σ I) I
                                     (forkSrcArtSlot I)) = ⟨0⟩ :=
-                            (forkSrcArtSubGuardPos_iff_of_accountMapEquiv (I := I)
-                              hAccounts).mp hsrcArtPos
+                            hsrcArtPos
                           have hdstInkNegS :
                               UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                 UInt256.gt (forkDstInkNew σ I)
                                   (solcSlotWord (forkAfterSrcArt σ I) I
                                     (forkDstInkSlot I)) = ⟨0⟩ :=
-                            (forkDstInkAddGuardNeg_iff_of_accountMapEquiv (I := I)
-                              hAccounts).mp hdstInkNeg
+                            hdstInkNeg
                           have hdstInkPosS :
                               UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                 UInt256.lt (forkDstInkNew σ I)
                                   (solcSlotWord (forkAfterSrcArt σ I) I
                                     (forkDstInkSlot I)) = ⟨0⟩ :=
-                            (forkDstInkAddGuardPos_iff_of_accountMapEquiv (I := I)
-                              hAccounts).mp hdstInkPos
+                            hdstInkPos
                           have hdstArtNegS :
                               UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                 UInt256.gt (forkDstArtNew σ I)
                                   (solcSlotWord (forkAfterDstInk σ I) I
                                     (forkDstArtSlot I)) = ⟨0⟩ :=
-                            (forkDstArtAddGuardNeg_iff_of_accountMapEquiv (I := I)
-                              hAccounts).mp hdstArtNeg
+                            hdstArtNeg
                           have hdstArtPosS :
                               UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                                 UInt256.lt (forkDstArtNew σ I)
                                   (solcSlotWord (forkAfterDstInk σ I) I
                                     (forkDstArtSlot I)) = ⟨0⟩ :=
-                            (forkDstArtAddGuardPos_iff_of_accountMapEquiv (I := I)
-                              hAccounts).mp hdstArtPos
+                            hdstArtPos
                           let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
                           let evm1 := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                             (forkSrcInkSlot I) (forkSrcInkNew σ I)
@@ -16284,11 +15819,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                         (forkIlkRateSlot I)))
                                     (solcSlotWord (forkAfterDstArt σ I) I
                                       (forkSrcArtSlot I)) ≠ ⟨0⟩ := by
-                            have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                              (I := I) hAccounts (forkSrcArtSlot I)
-                            have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                              (I := I) hAccounts (forkIlkRateSlot I)
-                            simpa [σFinal, hart, hrate] using hutabOk
+                            simpa [σFinal] using hutabOk
                           have hvtabFailS :
                               ¬ (solcSlotWord (forkAfterDstArt σ I) I
                                     (forkIlkRateSlot I) = ⟨0⟩ ∨
@@ -16304,11 +15835,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                     (solcSlotWord (forkAfterDstArt σ I) I
                                       (forkDstArtSlot I)) ≠ ⟨0⟩) := by
                             intro hokS
-                            have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                              (I := I) hAccounts (forkDstArtSlot I)
-                            have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                              (I := I) hAccounts (forkIlkRateSlot I)
-                            exact hvtabOk (by simpa [σFinal, hart, hrate] using hokS)
+                            exact hvtabOk (by simpa [σFinal] using hokS)
                           have hutabFitGuard := forkUintCheckedMulGuard_to_fit_and_source_guard
                             (a := solcSlotWord (forkAfterDstArt σ I) I
                               (forkSrcArtSlot I))
@@ -16414,56 +15941,48 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                             UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                               UInt256.gt (forkSrcInkNew σ I)
                                 (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                          (forkSrcInkSubGuardNeg_iff_of_accountMapEquiv (I := I)
-                            hAccounts).mp hsrcInkNeg
+                          hsrcInkNeg
                         have hsrcInkPosS :
                             UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                               UInt256.lt (forkSrcInkNew σ I)
                                 (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                          (forkSrcInkSubGuardPos_iff_of_accountMapEquiv (I := I)
-                            hAccounts).mp hsrcInkPos
+                          hsrcInkPos
                         have hsrcArtNegS :
                             UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                               UInt256.gt (forkSrcArtNew σ I)
                                 (solcSlotWord (forkAfterSrcInk σ I) I
                                   (forkSrcArtSlot I)) = ⟨0⟩ :=
-                          (forkSrcArtSubGuardNeg_iff_of_accountMapEquiv (I := I)
-                            hAccounts).mp hsrcArtNeg
+                          hsrcArtNeg
                         have hsrcArtPosS :
                             UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                               UInt256.lt (forkSrcArtNew σ I)
                                 (solcSlotWord (forkAfterSrcInk σ I) I
                                   (forkSrcArtSlot I)) = ⟨0⟩ :=
-                          (forkSrcArtSubGuardPos_iff_of_accountMapEquiv (I := I)
-                            hAccounts).mp hsrcArtPos
+                          hsrcArtPos
                         have hdstInkNegS :
                             UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                               UInt256.gt (forkDstInkNew σ I)
                                 (solcSlotWord (forkAfterSrcArt σ I) I
                                   (forkDstInkSlot I)) = ⟨0⟩ :=
-                          (forkDstInkAddGuardNeg_iff_of_accountMapEquiv (I := I)
-                            hAccounts).mp hdstInkNeg
+                          hdstInkNeg
                         have hdstInkPosS :
                             UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                               UInt256.lt (forkDstInkNew σ I)
                                 (solcSlotWord (forkAfterSrcArt σ I) I
                                   (forkDstInkSlot I)) = ⟨0⟩ :=
-                          (forkDstInkAddGuardPos_iff_of_accountMapEquiv (I := I)
-                            hAccounts).mp hdstInkPos
+                          hdstInkPos
                         have hdstArtNegS :
                             UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                               UInt256.gt (forkDstArtNew σ I)
                                 (solcSlotWord (forkAfterDstInk σ I) I
                                   (forkDstArtSlot I)) = ⟨0⟩ :=
-                          (forkDstArtAddGuardNeg_iff_of_accountMapEquiv (I := I)
-                            hAccounts).mp hdstArtNeg
+                          hdstArtNeg
                         have hdstArtPosS :
                             UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                               UInt256.lt (forkDstArtNew σ I)
                                 (solcSlotWord (forkAfterDstInk σ I) I
                                   (forkDstArtSlot I)) = ⟨0⟩ :=
-                          (forkDstArtAddGuardPos_iff_of_accountMapEquiv (I := I)
-                            hAccounts).mp hdstArtPos
+                          hdstArtPos
                         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
                         let evm1 := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                           (forkSrcInkSlot I) (forkSrcInkNew σ I)
@@ -16530,11 +16049,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                                   (solcSlotWord (forkAfterDstArt σ I) I
                                     (forkSrcArtSlot I)) ≠ ⟨0⟩) := by
                           intro hokS
-                          have hart := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                            (I := I) hAccounts (forkSrcArtSlot I)
-                          have hrate := forkAfterDstArt_slot_eq_of_accountMapEquiv
-                            (I := I) hAccounts (forkIlkRateSlot I)
-                          exact hutabOk (by simpa [σFinal, hart, hrate] using hokS)
+                          exact hutabOk (by simpa [σFinal] using hokS)
                         have hbody := execForkSourceRevertUtabMul
                           (evm0 := evm0) (I := I)
                           (solcSlotWord σ I (forkSrcInkSlot I)) (forkSrcInkNew σ I)
@@ -16609,51 +16124,43 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                         UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                           UInt256.gt (forkSrcInkNew σ I)
                             (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                      (forkSrcInkSubGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                        hsrcInkNeg
+                      hsrcInkNeg
                     have hsrcInkPosS :
                         UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                           UInt256.lt (forkSrcInkNew σ I)
                             (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                      (forkSrcInkSubGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                        hsrcInkPos
+                      hsrcInkPos
                     have hsrcArtNegS :
                         UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                           UInt256.gt (forkSrcArtNew σ I)
                             (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I)) = ⟨0⟩ :=
-                      (forkSrcArtSubGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                        hsrcArtNeg
+                      hsrcArtNeg
                     have hsrcArtPosS :
                         UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                           UInt256.lt (forkSrcArtNew σ I)
                             (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I)) = ⟨0⟩ :=
-                      (forkSrcArtSubGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                        hsrcArtPos
+                      hsrcArtPos
                     have hdstInkNegS :
                         UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                           UInt256.gt (forkDstInkNew σ I)
                             (solcSlotWord (forkAfterSrcArt σ I) I (forkDstInkSlot I)) = ⟨0⟩ :=
-                      (forkDstInkAddGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                        hdstInkNeg
+                      hdstInkNeg
                     have hdstInkPosS :
                         UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                           UInt256.lt (forkDstInkNew σ I)
                             (solcSlotWord (forkAfterSrcArt σ I) I (forkDstInkSlot I)) = ⟨0⟩ :=
-                      (forkDstInkAddGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                        hdstInkPos
+                      hdstInkPos
                     have hdstArtNegS :
                         UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                           UInt256.gt (forkDstArtNew σ I)
                             (solcSlotWord (forkAfterDstInk σ I) I (forkDstArtSlot I)) = ⟨0⟩ :=
-                      (forkDstArtAddGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                        hdstArtNeg
+                      hdstArtNeg
                     have hdstArtPosFailS :
                         ¬ (UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                           UInt256.lt (forkDstArtNew σ I)
                             (solcSlotWord (forkAfterDstInk σ I) I (forkDstArtSlot I)) = ⟨0⟩) := by
                       intro hs
-                      exact hdstArtPos ((forkDstArtAddGuardPos_iff_of_accountMapEquiv
-                        (I := I) hAccounts).mpr hs)
+                      exact hdstArtPos (hs)
                     have hloadSrcInk :
                         Solm.EVM.storageLoad
                           (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -16745,45 +16252,38 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                       UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                         UInt256.gt (forkSrcInkNew σ I)
                           (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                    (forkSrcInkSubGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                      hsrcInkNeg
+                    hsrcInkNeg
                   have hsrcInkPosS :
                       UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                         UInt256.lt (forkSrcInkNew σ I)
                           (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                    (forkSrcInkSubGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                      hsrcInkPos
+                    hsrcInkPos
                   have hsrcArtNegS :
                       UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                         UInt256.gt (forkSrcArtNew σ I)
                           (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I)) = ⟨0⟩ :=
-                    (forkSrcArtSubGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                      hsrcArtNeg
+                    hsrcArtNeg
                   have hsrcArtPosS :
                       UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                         UInt256.lt (forkSrcArtNew σ I)
                           (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I)) = ⟨0⟩ :=
-                    (forkSrcArtSubGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                      hsrcArtPos
+                    hsrcArtPos
                   have hdstInkNegS :
                       UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                         UInt256.gt (forkDstInkNew σ I)
                           (solcSlotWord (forkAfterSrcArt σ I) I (forkDstInkSlot I)) = ⟨0⟩ :=
-                    (forkDstInkAddGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                      hdstInkNeg
+                    hdstInkNeg
                   have hdstInkPosS :
                       UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                         UInt256.lt (forkDstInkNew σ I)
                           (solcSlotWord (forkAfterSrcArt σ I) I (forkDstInkSlot I)) = ⟨0⟩ :=
-                    (forkDstInkAddGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                      hdstInkPos
+                    hdstInkPos
                   have hdstArtNegFailS :
                       ¬ (UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                         UInt256.gt (forkDstArtNew σ I)
                           (solcSlotWord (forkAfterDstInk σ I) I (forkDstArtSlot I)) = ⟨0⟩) := by
                     intro hs
-                    exact hdstArtNeg ((forkDstArtAddGuardNeg_iff_of_accountMapEquiv
-                      (I := I) hAccounts).mpr hs)
+                    exact hdstArtNeg (hs)
                   have hloadSrcInk :
                       Solm.EVM.storageLoad
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -16874,39 +16374,33 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                     UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                       UInt256.gt (forkSrcInkNew σ I)
                         (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                  (forkSrcInkSubGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                    hsrcInkNeg
+                  hsrcInkNeg
                 have hsrcInkPosS :
                     UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                       UInt256.lt (forkSrcInkNew σ I)
                         (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                  (forkSrcInkSubGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                    hsrcInkPos
+                  hsrcInkPos
                 have hsrcArtNegS :
                     UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                       UInt256.gt (forkSrcArtNew σ I)
                         (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I)) = ⟨0⟩ :=
-                  (forkSrcArtSubGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                    hsrcArtNeg
+                  hsrcArtNeg
                 have hsrcArtPosS :
                     UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                       UInt256.lt (forkSrcArtNew σ I)
                         (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I)) = ⟨0⟩ :=
-                  (forkSrcArtSubGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                    hsrcArtPos
+                  hsrcArtPos
                 have hdstInkNegS :
                     UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                       UInt256.gt (forkDstInkNew σ I)
                         (solcSlotWord (forkAfterSrcArt σ I) I (forkDstInkSlot I)) = ⟨0⟩ :=
-                  (forkDstInkAddGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                    hdstInkNeg
+                  hdstInkNeg
                 have hdstInkPosFailS :
                     ¬ (UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                       UInt256.lt (forkDstInkNew σ I)
                         (solcSlotWord (forkAfterSrcArt σ I) I (forkDstInkSlot I)) = ⟨0⟩) := by
                   intro hs
-                  exact hdstInkPos ((forkDstInkAddGuardPos_iff_of_accountMapEquiv
-                    (I := I) hAccounts).mpr hs)
+                  exact hdstInkPos (hs)
                 have hloadSrcInk :
                     Solm.EVM.storageLoad
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -16971,33 +16465,28 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                   UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                     UInt256.gt (forkSrcInkNew σ I)
                       (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                (forkSrcInkSubGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                  hsrcInkNeg
+                hsrcInkNeg
               have hsrcInkPosS :
                   UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                     UInt256.lt (forkSrcInkNew σ I)
                       (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-                (forkSrcInkSubGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                  hsrcInkPos
+                hsrcInkPos
               have hsrcArtNegS :
                   UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                     UInt256.gt (forkSrcArtNew σ I)
                       (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I)) = ⟨0⟩ :=
-                (forkSrcArtSubGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                  hsrcArtNeg
+                hsrcArtNeg
               have hsrcArtPosS :
                   UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                     UInt256.lt (forkSrcArtNew σ I)
                       (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I)) = ⟨0⟩ :=
-                (forkSrcArtSubGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                  hsrcArtPos
+                hsrcArtPos
               have hdstInkNegFailS :
                   ¬ (UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                     UInt256.gt (forkDstInkNew σ I)
                       (solcSlotWord (forkAfterSrcArt σ I) I (forkDstInkSlot I)) = ⟨0⟩) := by
                 intro hs
-                exact hdstInkNeg ((forkDstInkAddGuardNeg_iff_of_accountMapEquiv
-                  (I := I) hAccounts).mpr hs)
+                exact hdstInkNeg (hs)
               have hloadSrcInk :
                   Solm.EVM.storageLoad
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -17063,27 +16552,23 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
                 UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                   UInt256.gt (forkSrcInkNew σ I)
                     (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-              (forkSrcInkSubGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                hsrcInkNeg
+              hsrcInkNeg
             have hsrcInkPosS :
                 UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                   UInt256.lt (forkSrcInkNew σ I)
                     (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-              (forkSrcInkSubGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                hsrcInkPos
+              hsrcInkPos
             have hsrcArtNegS :
                 UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                   UInt256.gt (forkSrcArtNew σ I)
                     (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I)) = ⟨0⟩ :=
-              (forkSrcArtSubGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-                hsrcArtNeg
+              hsrcArtNeg
             have hsrcArtPosFailS :
                 ¬ (UInt256.slt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                   UInt256.lt (forkSrcArtNew σ I)
                     (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I)) = ⟨0⟩) := by
               intro hs
-              exact hsrcArtPos ((forkSrcArtSubGuardPos_iff_of_accountMapEquiv
-                (I := I) hAccounts).mpr hs)
+              exact hsrcArtPos (hs)
             have hloadSrcInk :
                 Solm.EVM.storageLoad
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -17129,21 +16614,18 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
               UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                 UInt256.gt (forkSrcInkNew σ I)
                   (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-            (forkSrcInkSubGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-              hsrcInkNeg
+            hsrcInkNeg
           have hsrcInkPosS :
               UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                 UInt256.lt (forkSrcInkNew σ I)
                   (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-            (forkSrcInkSubGuardPos_iff_of_accountMapEquiv (I := I) hAccounts).mp
-              hsrcInkPos
+            hsrcInkPos
           have hsrcArtNegFailS :
               ¬ (UInt256.sgt (forkDartWord I) ⟨0⟩ = ⟨0⟩ ∨
                 UInt256.gt (forkSrcArtNew σ I)
                   (solcSlotWord (forkAfterSrcInk σ I) I (forkSrcArtSlot I)) = ⟨0⟩) := by
             intro hs
-            exact hsrcArtNeg ((forkSrcArtSubGuardNeg_iff_of_accountMapEquiv
-              (I := I) hAccounts).mpr hs)
+            exact hsrcArtNeg (hs)
           have hloadSrcInk :
               Solm.EVM.storageLoad
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -17188,15 +16670,13 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
             UInt256.sgt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
               UInt256.gt (forkSrcInkNew σ I)
                 (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩ :=
-          (forkSrcInkSubGuardNeg_iff_of_accountMapEquiv (I := I) hAccounts).mp
-            hsrcInkNeg
+          hsrcInkNeg
         have hsrcInkPosFailS :
             ¬ (UInt256.slt (forkDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
               UInt256.lt (forkSrcInkNew σ I)
                 (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩) := by
           intro hs
-          exact hsrcInkPos ((forkSrcInkSubGuardPos_iff_of_accountMapEquiv
-            (I := I) hAccounts).mpr hs)
+          exact hsrcInkPos (hs)
         have hloadSrcInk :
             Solm.EVM.storageLoad
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -17220,8 +16700,7 @@ theorem vatForkBodyCore : VatBodyTheorem 10 := by
             UInt256.gt (forkSrcInkNew σ I)
               (solcSlotWord σ I (forkSrcInkSlot I)) = ⟨0⟩) := by
         intro hs
-        exact hsrcInkNeg ((forkSrcInkSubGuardNeg_iff_of_accountMapEquiv
-          (I := I) hAccounts).mpr hs)
+        exact hsrcInkNeg (hs)
       have hloadSrcInk :
           Solm.EVM.storageLoad
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)

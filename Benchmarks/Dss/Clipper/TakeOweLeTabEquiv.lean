@@ -183,9 +183,8 @@ theorem clipperTakeOweLeTabEquiv
     have hchostEq :
         Solm.EVM.storageLoad evmPrice evmPrice.executionEnv.codeOwner ⟨9⟩ =
           solcSlotWord σPost I ⟨9⟩ := by
-      have hslot := accountMapEquiv_storage_findD hAccountsPost I.codeOwner ⟨9⟩ ⟨0⟩
       simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-        solcSlotWord, hevmPriceEnv, hslot]
+        solcSlotWord, hevmPriceEnv, hAccountsPost]
     have hpref := clipperTakeOwe0MulSuccessBlock v evmLock evmPrice I price slice
       (by simpa [Nat.mul_comm] using hmul)
     have hadjust := clipperTakeOweLtTabSliceLtLotChostRequireReverts v

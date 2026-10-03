@@ -530,17 +530,6 @@ theorem vowFlapVatSin0NoCodeBodyCore
       Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) = ⟨0⟩) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hrev := RD.vowFlapVatSin0NoCode hreach hcodeSize
-  have hVat : vowSlotWord ⟨1⟩ σ I = vowSlotWord ⟨1⟩ σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-  have hTarget : kissDaiTargetWord σ I = kissDaiTargetWord σ I := by
-    simp [kissDaiTargetWord, hVat]
-  have hcodeSizeSolm :
-      Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) = ⟨0⟩ := by
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-        (kissDaiTargetWord σ I)
-    rw [← hTarget, ← hsame]
-    exact hcodeSize
   have haddr :
       kissVatAddress σ I =
         AccountAddress.ofUInt256 (kissDaiTargetWord σ I) :=
@@ -552,7 +541,7 @@ theorem vowFlapVatSin0NoCodeBodyCore
     simpa [initState, State.lookupAccount] using
       extCodeSizeWord_zero_lookup_code_zero
         (σ := σ) (target := kissDaiTargetWord σ I)
-        (addr := kissVatAddress σ I) haddr hcodeSizeSolm
+        (addr := kissVatAddress σ I) haddr hcodeSize
   have hbody := vowFlapSourceVatSin0NoCode
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hvatNoCode
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode (by simpa using hbody)

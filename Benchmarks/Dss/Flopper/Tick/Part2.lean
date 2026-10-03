@@ -546,18 +546,15 @@ theorem flopperTickX_addOverflow
     (by native_decide) (by native_decide) (by native_decide)
     (by simp)
 
-theorem tickRuntimeAfterLotMap_source_accountMapEquiv
+theorem tickRuntimeAfterLotMap_source_eq
     {σ σ₀ A I} {g : UInt256} :
     Eq (tickRuntimeAfterLotMap I.codeOwner σ I)
       (tickAfterLotStore (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         I).accountMap := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have h := tickRuntimeAfterLotMap_accountMapEquiv (owner := I.codeOwner) (I := I)
-    (σ := σ) (τ := σ) rfl
-  simpa [evmSolm, initState, tickAfterLotStore, storageStore_accountMap,
+  simp [evmSolm, initState, tickAfterLotStore, storageStore_accountMap,
     tickRuntimeAfterLotMap, tickRuntimeLotPostWord, tickRuntimeLotBaseWord,
     tickLotPostWord, tickLotBaseWord, tickPadWord, tickLotWord, flopperSlotWord]
-    using h
 
 theorem tickRuntimeTauWord_source_eq
     {σ σ₀ A I} {g : UInt256} :
@@ -567,14 +564,14 @@ theorem tickRuntimeTauWord_source_eq
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) I) := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hAfter :=
-    tickRuntimeAfterLotMap_source_accountMapEquiv
+    tickRuntimeAfterLotMap_source_eq
       (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g)
-  have h := flopperUint48Offset6Word_accountMapEquiv (I := I) hAfter ⟨6⟩
+  have h := congrArg (fun accounts => flopperUint48Offset6Word ⟨6⟩ accounts I) hAfter
   simpa [evmSolm, tickRuntimeTauWord, tickTauWord, tickAfterLotStore_executionEnv,
     initState] using h
 
-theorem tickRuntimeSuccessAccountMap_accountMapEquiv
+theorem tickRuntimeSuccessAccountMap_eq_postState
     {σ σ₀ A I} {g : UInt256}
     (haddFit :
       (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
@@ -587,7 +584,7 @@ theorem tickRuntimeSuccessAccountMap_accountMapEquiv
   let runtimeOld := solcSlotWord (tickRuntimeAfterLotMap I.codeOwner σ I) I packedSlot
   let runtimeAdd := tickRuntimeAddWord I.codeOwner σ I
   have hAfter :=
-    tickRuntimeAfterLotMap_source_accountMapEquiv
+    tickRuntimeAfterLotMap_source_eq
       (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g)
   have htau :=
@@ -619,7 +616,8 @@ theorem tickRuntimeSuccessAccountMap_accountMapEquiv
       runtimeOld =
         Solm.EVM.storageLoad (tickAfterLotStore evmSolm I)
           (tickAfterLotStore evmSolm I).executionEnv.codeOwner packedSlot := by
-    have hslot := flopperSlotWord_accountMapEquiv (I := I) hAfter packedSlot
+    have hslot :=
+      congrArg (fun accounts => flopperSlotWord packedSlot accounts I) hAfter
     simpa [runtimeOld, packedSlot, flopperSlotWord, solcSlotWord, evmSolm,
       initState, tickAfterLotStore_executionEnv] using hslot
   have hstored :
@@ -632,8 +630,9 @@ theorem tickRuntimeSuccessAccountMap_accountMapEquiv
   simpa [evmSolm, initState, storageStore_accountMap, tickAfterLotStore_executionEnv,
     packedSlot, runtimeOld, runtimeAdd, tickRuntimeSuccessAccountMap, tickPostState,
     hstored] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner packedSlot (tickEndStoredWord evmSolm I)
-      hAfter
+    congrArg
+      (fun accounts => sstoreAccountMap I.codeOwner accounts packedSlot
+        (tickEndStoredWord evmSolm I)) hAfter
 
 theorem flopperTickBodyCoreEndNotExpired
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -653,9 +652,7 @@ theorem flopperTickBodyCoreEndNotExpired
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendGeSolm :
       (tickTimestampWord evmSolm).toNat ≤ (tickEndWord evmSolm I).toNat := by
-    have hword := flopperUint48Offset26Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionPackedSlot (tickIdWord I))
-    simpa [evmSolm, tickTimestampWord, tickEndWord, initState, hword] using hendGe
+    simpa [evmSolm, tickTimestampWord, tickEndWord, initState] using hendGe
   have hbody :
       ExecTransitionBody config contract evmSolm (tickLocals I) tickTransition.body
         .reverted := by
@@ -683,15 +680,10 @@ theorem flopperTickBodyCoreTicNonzero
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtSolm :
       (tickEndWord evmSolm I).toNat < (tickTimestampWord evmSolm).toNat := by
-    have hword := flopperUint48Offset26Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionPackedSlot (tickIdWord I))
-    simpa [evmSolm, tickEndWord, tickTimestampWord, initState, hword] using hendLt
+    simpa [evmSolm, tickEndWord, tickTimestampWord, initState] using hendLt
   have hticSolm : tickTicWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     apply htic
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionPackedSlot (tickIdWord I))
-    rw [hword]
     simpa [evmSolm, tickTicWord, initState] using hzero
   have hbody :
       ExecTransitionBody config contract evmSolm (tickLocals I) tickTransition.body
@@ -723,19 +715,12 @@ theorem flopperTickBodyCoreMulOverflow
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtSolm :
       (tickEndWord evmSolm I).toNat < (tickTimestampWord evmSolm).toNat := by
-    have hword := flopperUint48Offset26Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionPackedSlot (tickIdWord I))
-    simpa [evmSolm, tickEndWord, tickTimestampWord, initState, hword] using hendLt
+    simpa [evmSolm, tickEndWord, tickTimestampWord, initState] using hendLt
   have hticSolm : tickTicWord evmSolm I = ⟨0⟩ := by
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionPackedSlot (tickIdWord I))
-    simpa [evmSolm, tickTicWord, initState, hword] using htic
+    simpa [evmSolm, tickTicWord, initState] using htic
   have hoverSolm :
       UInt256.size ≤ (tickPadWord evmSolm).toNat * (tickLotWord evmSolm I).toNat := by
-    have hpad := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨5⟩
-    have hlot := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (tickIdWord I))
-    simpa [evmSolm, tickPadWord, tickLotWord, initState, hpad, hlot] using hover
+    simpa [evmSolm, tickPadWord, tickLotWord, initState] using hover
   have hbody :
       ExecTransitionBody config contract evmSolm (tickLocals I) tickTransition.body
         .reverted := by
@@ -770,19 +755,12 @@ theorem flopperTickBodyCoreAddOverflow
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtSolm :
       (tickEndWord evmSolm I).toNat < (tickTimestampWord evmSolm).toNat := by
-    have hword := flopperUint48Offset26Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionPackedSlot (tickIdWord I))
-    simpa [evmSolm, tickEndWord, tickTimestampWord, initState, hword] using hendLt
+    simpa [evmSolm, tickEndWord, tickTimestampWord, initState] using hendLt
   have hticSolm : tickTicWord evmSolm I = ⟨0⟩ := by
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionPackedSlot (tickIdWord I))
-    simpa [evmSolm, tickTicWord, initState, hword] using htic
+    simpa [evmSolm, tickTicWord, initState] using htic
   have hmulFitSolm :
       (tickPadWord evmSolm).toNat * (tickLotWord evmSolm I).toNat < UInt256.size := by
-    have hpad := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨5⟩
-    have hlot := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (tickIdWord I))
-    simpa [evmSolm, tickPadWord, tickLotWord, initState, hpad, hlot] using hmulFit
+    simpa [evmSolm, tickPadWord, tickLotWord, initState] using hmulFit
   have htau :=
     tickRuntimeTauWord_source_eq
       (σ := σ) (σ₀ := σ₀) (A := A)
@@ -829,19 +807,12 @@ theorem flopperTickBodyCoreSuccess
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hendLtSolm :
       (tickEndWord evmSolm I).toNat < (tickTimestampWord evmSolm).toNat := by
-    have hword := flopperUint48Offset26Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionPackedSlot (tickIdWord I))
-    simpa [evmSolm, tickEndWord, tickTimestampWord, initState, hword] using hendLt
+    simpa [evmSolm, tickEndWord, tickTimestampWord, initState] using hendLt
   have hticSolm : tickTicWord evmSolm I = ⟨0⟩ := by
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionPackedSlot (tickIdWord I))
-    simpa [evmSolm, tickTicWord, initState, hword] using htic
+    simpa [evmSolm, tickTicWord, initState] using htic
   have hmulFitSolm :
       (tickPadWord evmSolm).toNat * (tickLotWord evmSolm I).toNat < UInt256.size := by
-    have hpad := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨5⟩
-    have hlot := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (tickIdWord I))
-    simpa [evmSolm, tickPadWord, tickLotWord, initState, hpad, hlot] using hmulFit
+    simpa [evmSolm, tickPadWord, tickLotWord, initState] using hmulFit
   have htau :=
     tickRuntimeTauWord_source_eq
       (σ := σ) (σ₀ := σ₀) (A := A)
@@ -860,7 +831,7 @@ theorem flopperTickBodyCoreSuccess
   have hret := flopperTickX_success (g := Sat256.ofUInt256 g) hperm hendLt htic
     hmulFit haddFit rd4292
   have hpostAccounts :=
-    tickRuntimeSuccessAccountMap_accountMapEquiv
+    tickRuntimeSuccessAccountMap_eq_postState
       (σ₀ := σ₀) (A := A)
       (I := I) (g := g) haddFit
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody

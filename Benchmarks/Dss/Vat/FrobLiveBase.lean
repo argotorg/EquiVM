@@ -55,7 +55,7 @@ theorem vatFrobSuccessEquivFromSourceFinal
             (frobDaiNew σ I)) none)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have hsourceAccounts :=
-    accountMapEquiv_frobSourceFinalState
+    frobSourceFinalState_accountMap_eq
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
       hsz196
       (frobUrnInkNew σ I) (frobUrnArtNew σ I)

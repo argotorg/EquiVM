@@ -1,7 +1,6 @@
 import Benchmarks.Dss.Flipper.Dispatch
 import Benchmarks.Dss.Flipper.BidAccess
 import Benchmarks.Dss.Flipper.ExternalTargets
-import Benchmarks.Dss.Flipper.ExternalCallTransport
 import Reasoning.ExternalCall
 import Reasoning.MemCascade
 

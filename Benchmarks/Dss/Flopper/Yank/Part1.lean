@@ -216,7 +216,7 @@ theorem yankDeletePackedFinalWord_zero (evm : EVM.State) (I : ExecutionEnv) :
     exact clearUint48Offset26_after_offset20_after_address_zero _
 
 set_option maxHeartbeats 1000000 in
-theorem yankDeletePostState_accountMapEquiv (evm : EVM.State) (I : ExecutionEnv)
+theorem yankRuntimeDeleteAccountMap_eq_postState (evm : EVM.State) (I : ExecutionEnv)
     (howner : evm.executionEnv.codeOwner = I.codeOwner) :
     Eq (yankRuntimeDeleteAccountMap I evm.accountMap)
       (yankDeletePostState evm I).accountMap := by
@@ -244,14 +244,14 @@ theorem yankDeletePostState_accountMapEquiv (evm : EVM.State) (I : ExecutionEnv)
   have h1 :
       Eq (sstoreAccountMap owner m2 packedSlot vEnd)
         (sstoreAccountMap owner (sstoreAccountMap owner m2 packedSlot vGuy) packedSlot vEnd) :=
-    accountMapEquiv_sstoreAccountMap_self_update m2 owner packedSlot vGuy vEnd
+    sstoreAccountMap_self_update m2 owner packedSlot vGuy vEnd
   have h2 :
       Eq
         (sstoreAccountMap owner (sstoreAccountMap owner m2 packedSlot vGuy) packedSlot vEnd)
         (sstoreAccountMap owner
           (sstoreAccountMap owner (sstoreAccountMap owner m2 packedSlot vGuy) packedSlot vTic)
           packedSlot vEnd) :=
-    accountMapEquiv_sstoreAccountMap_self_update
+    sstoreAccountMap_self_update
       (sstoreAccountMap owner m2 packedSlot vGuy) owner packedSlot vTic vEnd
   have h := Eq.trans h1 h2
   have hleftEq :

@@ -295,7 +295,7 @@ theorem erc20TotalSupplyBodyCore
         (by simp only [initState]; exact hwv) (by simp)
   exact (erc20X_totalSupplyFromEntry (g := Sat256.ofUInt256 g) hwv hreach)
     |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody (by rfl)
-      (returnEquiv_of_encode (ERC20.erc20Uint256ReturnEncoding (totalSupplyWord σ I)))
+      (returnEquiv_of_encode (Reasoning.Theory.uint256ReturnEncoding (totalSupplyWord σ I)))
 
 theorem erc20TotalSupplyRuntime
     {σ σ₀ A I} {g : UInt256}

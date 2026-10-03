@@ -1628,365 +1628,6 @@ def grabViceNegOk (σ : AccountMap) (I : ExecutionEnv) : Prop :=
     UInt256.lt (grabViceNew σ I)
       (solcSlotWord (grabAfterSin σ I) I ⟨8⟩) = ⟨0⟩
 
-theorem accountMapEquiv_grabAfterVice {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    Eq (grabAfterVice σ I) (grabAfterVice τ I) := by
-  have hInkOld :
-      solcSlotWord σ I (grabUrnInkSlot I) =
-        solcSlotWord τ I (grabUrnInkSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (grabUrnInkSlot I) ⟨0⟩
-  have hInkNew : grabUrnInkNew σ I = grabUrnInkNew τ I := by
-    simp [grabUrnInkNew, hInkOld]
-  have hInk :
-      Eq (grabAfterUrnInk σ I) (grabAfterUrnInk τ I) := by
-    simp [grabAfterUrnInk, hInkNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabUrnInkSlot I)
-        (grabUrnInkNew τ I) hAccounts]
-  have hArtOld :
-      solcSlotWord (grabAfterUrnInk σ I) I (grabUrnArtSlot I) =
-        solcSlotWord (grabAfterUrnInk τ I) I (grabUrnArtSlot I) :=
-    accountMapEquiv_storage_findD hInk I.codeOwner (grabUrnArtSlot I) ⟨0⟩
-  have hArtNew : grabUrnArtNew σ I = grabUrnArtNew τ I := by
-    simp [grabUrnArtNew, hArtOld]
-  have hArt :
-      Eq (grabAfterUrnArt σ I) (grabAfterUrnArt τ I) := by
-    simp [grabAfterUrnArt, hArtNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabUrnArtSlot I)
-        (grabUrnArtNew τ I) hInk]
-  have hIlkArtOld :
-      solcSlotWord (grabAfterUrnArt σ I) I (grabIlkArtSlot I) =
-        solcSlotWord (grabAfterUrnArt τ I) I (grabIlkArtSlot I) :=
-    accountMapEquiv_storage_findD hArt I.codeOwner (grabIlkArtSlot I) ⟨0⟩
-  have hIlkArtNew : grabIlkArtNew σ I = grabIlkArtNew τ I := by
-    simp [grabIlkArtNew, hIlkArtOld]
-  have hIlk :
-      Eq (grabAfterIlkArt σ I) (grabAfterIlkArt τ I) := by
-    simp [grabAfterIlkArt, hIlkArtNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabIlkArtSlot I)
-        (grabIlkArtNew τ I) hArt]
-  have hRate :
-      solcSlotWord (grabAfterIlkArt σ I) I (grabIlkRateSlot I) =
-        solcSlotWord (grabAfterIlkArt τ I) I (grabIlkRateSlot I) :=
-    accountMapEquiv_storage_findD hIlk I.codeOwner (grabIlkRateSlot I) ⟨0⟩
-  have hDtab : grabDtab σ I = grabDtab τ I := by
-    simp [grabDtab, hRate]
-  have hGemOld :
-      solcSlotWord (grabAfterIlkArt σ I) I (grabGemVSlot I) =
-        solcSlotWord (grabAfterIlkArt τ I) I (grabGemVSlot I) :=
-    accountMapEquiv_storage_findD hIlk I.codeOwner (grabGemVSlot I) ⟨0⟩
-  have hGemNew : grabGemNew σ I = grabGemNew τ I := by
-    simp [grabGemNew, hGemOld]
-  have hGem :
-      Eq (grabAfterGem σ I) (grabAfterGem τ I) := by
-    simp [grabAfterGem, hGemNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabGemVSlot I)
-        (grabGemNew τ I) hIlk]
-  have hSinOld :
-      solcSlotWord (grabAfterGem σ I) I (grabSinSlot I) =
-        solcSlotWord (grabAfterGem τ I) I (grabSinSlot I) :=
-    accountMapEquiv_storage_findD hGem I.codeOwner (grabSinSlot I) ⟨0⟩
-  have hSinNew : grabSinNew σ I = grabSinNew τ I := by
-    simp [grabSinNew, hSinOld, hDtab]
-  have hSin :
-      Eq (grabAfterSin σ I) (grabAfterSin τ I) := by
-    simp [grabAfterSin, hSinNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabSinSlot I)
-        (grabSinNew τ I) hGem]
-  have hViceOld :
-      solcSlotWord (grabAfterSin σ I) I ⟨8⟩ =
-        solcSlotWord (grabAfterSin τ I) I ⟨8⟩ :=
-    accountMapEquiv_storage_findD hSin I.codeOwner ⟨8⟩ ⟨0⟩
-  have hViceNew : grabViceNew σ I = grabViceNew τ I := by
-    simp [grabViceNew, hViceOld, hDtab]
-  simp [grabAfterVice, hViceNew,
-    accountMapEquiv_sstoreAccountMap I.codeOwner ⟨8⟩ (grabViceNew τ I) hSin]
-
-theorem accountMapEquiv_grabGuards
-    {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ)
-    (hInkNeg : grabInkNegOk σ I) (hInkPos : grabInkPosOk σ I)
-    (hUrnArtNeg : grabUrnArtNegOk σ I) (hUrnArtPos : grabUrnArtPosOk σ I)
-    (hIlkArtNeg : grabIlkArtNegOk σ I) (hIlkArtPos : grabIlkArtPosOk σ I)
-    (hDtabMax : grabDtabMaxOk σ I) (hDtabMul : grabDtabMulOk σ I)
-    (hGemPos : grabGemPosOk σ I) (hGemNeg : grabGemNegOk σ I)
-    (hSinPos : grabSinPosOk σ I) (hSinNeg : grabSinNegOk σ I)
-    (hVicePos : grabVicePosOk σ I) (hViceNeg : grabViceNegOk σ I) :
-    grabInkNegOk τ I ∧ grabInkPosOk τ I ∧
-    grabUrnArtNegOk τ I ∧ grabUrnArtPosOk τ I ∧
-    grabIlkArtNegOk τ I ∧ grabIlkArtPosOk τ I ∧
-    grabDtabMaxOk τ I ∧ grabDtabMulOk τ I ∧
-    grabGemPosOk τ I ∧ grabGemNegOk τ I ∧
-    grabSinPosOk τ I ∧ grabSinNegOk τ I ∧
-    grabVicePosOk τ I ∧ grabViceNegOk τ I := by
-  have hInkOld :
-      solcSlotWord σ I (grabUrnInkSlot I) =
-        solcSlotWord τ I (grabUrnInkSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (grabUrnInkSlot I) ⟨0⟩
-  have hInkNew : grabUrnInkNew σ I = grabUrnInkNew τ I := by
-    simp [grabUrnInkNew, hInkOld]
-  have hInk :
-      Eq (grabAfterUrnInk σ I) (grabAfterUrnInk τ I) := by
-    simp [grabAfterUrnInk, hInkNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabUrnInkSlot I)
-        (grabUrnInkNew τ I) hAccounts]
-  have hArtOld :
-      solcSlotWord (grabAfterUrnInk σ I) I (grabUrnArtSlot I) =
-        solcSlotWord (grabAfterUrnInk τ I) I (grabUrnArtSlot I) :=
-    accountMapEquiv_storage_findD hInk I.codeOwner (grabUrnArtSlot I) ⟨0⟩
-  have hArtNew : grabUrnArtNew σ I = grabUrnArtNew τ I := by
-    simp [grabUrnArtNew, hArtOld]
-  have hArt :
-      Eq (grabAfterUrnArt σ I) (grabAfterUrnArt τ I) := by
-    simp [grabAfterUrnArt, hArtNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabUrnArtSlot I)
-        (grabUrnArtNew τ I) hInk]
-  have hIlkArtOld :
-      solcSlotWord (grabAfterUrnArt σ I) I (grabIlkArtSlot I) =
-        solcSlotWord (grabAfterUrnArt τ I) I (grabIlkArtSlot I) :=
-    accountMapEquiv_storage_findD hArt I.codeOwner (grabIlkArtSlot I) ⟨0⟩
-  have hIlkArtNew : grabIlkArtNew σ I = grabIlkArtNew τ I := by
-    simp [grabIlkArtNew, hIlkArtOld]
-  have hIlk :
-      Eq (grabAfterIlkArt σ I) (grabAfterIlkArt τ I) := by
-    simp [grabAfterIlkArt, hIlkArtNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabIlkArtSlot I)
-        (grabIlkArtNew τ I) hArt]
-  have hRate :
-      solcSlotWord (grabAfterIlkArt σ I) I (grabIlkRateSlot I) =
-        solcSlotWord (grabAfterIlkArt τ I) I (grabIlkRateSlot I) :=
-    accountMapEquiv_storage_findD hIlk I.codeOwner (grabIlkRateSlot I) ⟨0⟩
-  have hDtab : grabDtab σ I = grabDtab τ I := by
-    simp [grabDtab, hRate]
-  have hGemOld :
-      solcSlotWord (grabAfterIlkArt σ I) I (grabGemVSlot I) =
-        solcSlotWord (grabAfterIlkArt τ I) I (grabGemVSlot I) :=
-    accountMapEquiv_storage_findD hIlk I.codeOwner (grabGemVSlot I) ⟨0⟩
-  have hGemNew : grabGemNew σ I = grabGemNew τ I := by
-    simp [grabGemNew, hGemOld]
-  have hGem :
-      Eq (grabAfterGem σ I) (grabAfterGem τ I) := by
-    simp [grabAfterGem, hGemNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabGemVSlot I)
-        (grabGemNew τ I) hIlk]
-  have hSinOld :
-      solcSlotWord (grabAfterGem σ I) I (grabSinSlot I) =
-        solcSlotWord (grabAfterGem τ I) I (grabSinSlot I) :=
-    accountMapEquiv_storage_findD hGem I.codeOwner (grabSinSlot I) ⟨0⟩
-  have hSinNew : grabSinNew σ I = grabSinNew τ I := by
-    simp [grabSinNew, hSinOld, hDtab]
-  have hSin :
-      Eq (grabAfterSin σ I) (grabAfterSin τ I) := by
-    simp [grabAfterSin, hSinNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabSinSlot I)
-        (grabSinNew τ I) hGem]
-  have hViceOld :
-      solcSlotWord (grabAfterSin σ I) I ⟨8⟩ =
-        solcSlotWord (grabAfterSin τ I) I ⟨8⟩ :=
-    accountMapEquiv_storage_findD hSin I.codeOwner ⟨8⟩ ⟨0⟩
-  have hViceNew : grabViceNew σ I = grabViceNew τ I := by
-    simp [grabViceNew, hViceOld, hDtab]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · simpa [grabInkNegOk, hInkOld, hInkNew] using hInkNeg
-  · simpa [grabInkPosOk, hInkOld, hInkNew] using hInkPos
-  · simpa [grabUrnArtNegOk, hArtOld, hArtNew] using hUrnArtNeg
-  · simpa [grabUrnArtPosOk, hArtOld, hArtNew] using hUrnArtPos
-  · simpa [grabIlkArtNegOk, hIlkArtOld, hIlkArtNew] using hIlkArtNeg
-  · simpa [grabIlkArtPosOk, hIlkArtOld, hIlkArtNew] using hIlkArtPos
-  · simpa [grabDtabMaxOk, hRate] using hDtabMax
-  · simpa [grabDtabMulOk, hRate] using hDtabMul
-  · simpa [grabGemPosOk, hGemOld, hGemNew] using hGemPos
-  · simpa [grabGemNegOk, hGemOld, hGemNew] using hGemNeg
-  · simpa [grabSinPosOk, hDtab, hSinOld, hSinNew] using hSinPos
-  · simpa [grabSinNegOk, hDtab, hSinOld, hSinNew] using hSinNeg
-  · simpa [grabVicePosOk, hDtab, hViceOld, hViceNew] using hVicePos
-  · simpa [grabViceNegOk, hDtab, hViceOld, hViceNew] using hViceNeg
-
-theorem accountMapEquiv_grabAddGuards
-    {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ)
-    (hInkNeg : grabInkNegOk σ I) (hInkPos : grabInkPosOk σ I)
-    (hUrnArtNeg : grabUrnArtNegOk σ I) (hUrnArtPos : grabUrnArtPosOk σ I)
-    (hIlkArtNeg : grabIlkArtNegOk σ I) (hIlkArtPos : grabIlkArtPosOk σ I) :
-    grabInkNegOk τ I ∧ grabInkPosOk τ I ∧
-    grabUrnArtNegOk τ I ∧ grabUrnArtPosOk τ I ∧
-    grabIlkArtNegOk τ I ∧ grabIlkArtPosOk τ I ∧
-    Eq (grabAfterIlkArt σ I) (grabAfterIlkArt τ I) := by
-  have hInkOld :
-      solcSlotWord σ I (grabUrnInkSlot I) =
-        solcSlotWord τ I (grabUrnInkSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (grabUrnInkSlot I) ⟨0⟩
-  have hInkNew : grabUrnInkNew σ I = grabUrnInkNew τ I := by
-    simp [grabUrnInkNew, hInkOld]
-  have hInk :
-      Eq (grabAfterUrnInk σ I) (grabAfterUrnInk τ I) := by
-    simp [grabAfterUrnInk, hInkNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabUrnInkSlot I)
-        (grabUrnInkNew τ I) hAccounts]
-  have hArtOld :
-      solcSlotWord (grabAfterUrnInk σ I) I (grabUrnArtSlot I) =
-        solcSlotWord (grabAfterUrnInk τ I) I (grabUrnArtSlot I) :=
-    accountMapEquiv_storage_findD hInk I.codeOwner (grabUrnArtSlot I) ⟨0⟩
-  have hArtNew : grabUrnArtNew σ I = grabUrnArtNew τ I := by
-    simp [grabUrnArtNew, hArtOld]
-  have hArt :
-      Eq (grabAfterUrnArt σ I) (grabAfterUrnArt τ I) := by
-    simp [grabAfterUrnArt, hArtNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabUrnArtSlot I)
-        (grabUrnArtNew τ I) hInk]
-  have hIlkArtOld :
-      solcSlotWord (grabAfterUrnArt σ I) I (grabIlkArtSlot I) =
-        solcSlotWord (grabAfterUrnArt τ I) I (grabIlkArtSlot I) :=
-    accountMapEquiv_storage_findD hArt I.codeOwner (grabIlkArtSlot I) ⟨0⟩
-  have hIlkArtNew : grabIlkArtNew σ I = grabIlkArtNew τ I := by
-    simp [grabIlkArtNew, hIlkArtOld]
-  have hIlk :
-      Eq (grabAfterIlkArt σ I) (grabAfterIlkArt τ I) := by
-    simp [grabAfterIlkArt, hIlkArtNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabIlkArtSlot I)
-        (grabIlkArtNew τ I) hArt]
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, hIlk⟩
-  · simpa [grabInkNegOk, hInkOld, hInkNew] using hInkNeg
-  · simpa [grabInkPosOk, hInkOld, hInkNew] using hInkPos
-  · simpa [grabUrnArtNegOk, hArtOld, hArtNew] using hUrnArtNeg
-  · simpa [grabUrnArtPosOk, hArtOld, hArtNew] using hUrnArtPos
-  · simpa [grabIlkArtNegOk, hIlkArtOld, hIlkArtNew] using hIlkArtNeg
-  · simpa [grabIlkArtPosOk, hIlkArtOld, hIlkArtNew] using hIlkArtPos
-
-theorem accountMapEquiv_grabSourceGuardConds
-    {σ : AccountMap} {I : ExecutionEnv}
-    (hIlkArtRead :
-      solcSlotWord (grabAfterUrnArt σ I) I (grabIlkArtSlot I) =
-        vatSlotWord (grabIlkArtSlot I) σ I)
-    (hGemRead :
-      solcSlotWord (grabAfterIlkArt σ I) I (grabGemVSlot I) =
-        vatSlotWord (grabGemVSlot I) σ I)
-    (hSinRead :
-      solcSlotWord (grabAfterGem σ I) I (grabSinSlot I) =
-        vatSlotWord (grabSinSlot I) σ I)
-    (hViceRead :
-      solcSlotWord (grabAfterSin σ I) I ⟨8⟩ =
-        vatSlotWord ⟨8⟩ σ I)
-    (dtab : Int) (dtabWord : UInt256)
-    (hDtabWord : dtabWord = grabDtab σ I)
-    (hdtabLo : -((2 : Int) ^ 255) ≤ dtab)
-    (hdtabHi : dtab < (2 : Int) ^ 255)
-    (hdtabMod : dtab % (Int.ofNat EVM.wordModulus) = Int.ofNat dtabWord.toNat)
-    (hInkNeg : grabInkNegOk σ I) (hInkPos : grabInkPosOk σ I)
-    (hUrnArtNeg : grabUrnArtNegOk σ I)
-    (hUrnArtPos : grabUrnArtPosOk σ I)
-    (hIlkArtNeg : grabIlkArtNegOk σ I)
-    (hIlkArtPos : grabIlkArtPosOk σ I)
-    (hDtabMax : grabDtabMaxOk σ I) (hDtabMul : grabDtabMulOk σ I)
-    (hGemPos : grabGemPosOk σ I) (hGemNeg : grabGemNegOk σ I)
-    (hSinPos : grabSinPosOk σ I) (hSinNeg : grabSinNegOk σ I)
-    (hVicePos : grabVicePosOk σ I) (hViceNeg : grabViceNegOk σ I) :
-    (0 ≤ grabDinkInt I ∨
-      (grabUrnInkNew σ I).toNat ≤
-        (vatSlotWord (grabUrnInkSlot I) σ I).toNat) ∧
-    (grabDinkInt I ≤ 0 ∨
-      (vatSlotWord (grabUrnInkSlot I) σ I).toNat ≤
-        (grabUrnInkNew σ I).toNat) ∧
-    (0 ≤ grabDartInt I ∨
-      (grabUrnArtNew σ I).toNat ≤
-        (vatSlotWord (grabUrnArtSlot I) σ I).toNat) ∧
-    (grabDartInt I ≤ 0 ∨
-      (vatSlotWord (grabUrnArtSlot I) σ I).toNat ≤
-        (grabUrnArtNew σ I).toNat) ∧
-    (0 ≤ grabDartInt I ∨
-      (grabIlkArtNew σ I).toNat ≤
-        (vatSlotWord (grabIlkArtSlot I) σ I).toNat) ∧
-    (grabDartInt I ≤ 0 ∨
-      (vatSlotWord (grabIlkArtSlot I) σ I).toNat ≤
-        (grabIlkArtNew σ I).toNat) ∧
-    (grabDinkInt I ≤ 0 ∨
-      (grabGemNew σ I).toNat ≤
-        (vatSlotWord (grabGemVSlot I) σ I).toNat) ∧
-    (0 ≤ grabDinkInt I ∨
-      (vatSlotWord (grabGemVSlot I) σ I).toNat ≤
-        (grabGemNew σ I).toNat) ∧
-    (dtab ≤ 0 ∨
-      (grabSinNew σ I).toNat ≤
-        (vatSlotWord (grabSinSlot I) σ I).toNat) ∧
-    (0 ≤ dtab ∨
-      (vatSlotWord (grabSinSlot I) σ I).toNat ≤
-        (grabSinNew σ I).toNat) ∧
-    (dtab ≤ 0 ∨
-      (grabViceNew σ I).toNat ≤ (vatSlotWord ⟨8⟩ σ I).toNat) ∧
-    (0 ≤ dtab ∨
-      (vatSlotWord ⟨8⟩ σ I).toNat ≤ (grabViceNew σ I).toNat) := by
-  rcases accountMapEquiv_grabGuards (σ := σ) (τ := σ) rfl hInkNeg hInkPos hUrnArtNeg
-      hUrnArtPos hIlkArtNeg hIlkArtPos hDtabMax hDtabMul hGemPos hGemNeg hSinPos
-      hSinNeg hVicePos hViceNeg with
-    ⟨hInkNegS, hInkPosS, hUrnArtNegS, hUrnArtPosS, hIlkArtNegS,
-      hIlkArtPosS, _, _, hGemPosS, hGemNegS, hSinPosS, hSinNegS, hVicePosS,
-      hViceNegS⟩
-  have hUrnArtRead :
-      solcSlotWord (grabAfterUrnInk σ I) I (grabUrnArtSlot I) =
-        vatSlotWord (grabUrnArtSlot I) σ I := by
-    simpa [grabAfterUrnInk, vatSlotWord] using
-      grabUrnArtWord_after_urnInk σ I (grabUrnInkNew σ I)
-  have hUrnArtNegInit :
-      UInt256.slt (grabDartWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (grabUrnArtNew σ I)
-          (vatSlotWord (grabUrnArtSlot I) σ I) = ⟨0⟩ := by
-    simpa [grabUrnArtNegOk, hUrnArtRead] using hUrnArtNegS
-  have hUrnArtPosInit :
-      UInt256.sgt (grabDartWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (grabUrnArtNew σ I)
-          (vatSlotWord (grabUrnArtSlot I) σ I) = ⟨0⟩ := by
-    simpa [grabUrnArtPosOk, hUrnArtRead] using hUrnArtPosS
-  have hIlkArtNegInit :
-      UInt256.slt (grabDartWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (grabIlkArtNew σ I)
-          (vatSlotWord (grabIlkArtSlot I) σ I) = ⟨0⟩ := by
-    simpa [grabIlkArtNegOk, hIlkArtRead] using hIlkArtNegS
-  have hIlkArtPosInit :
-      UInt256.sgt (grabDartWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (grabIlkArtNew σ I)
-          (vatSlotWord (grabIlkArtSlot I) σ I) = ⟨0⟩ := by
-    simpa [grabIlkArtPosOk, hIlkArtRead] using hIlkArtPosS
-  have hGemPosInit :
-      UInt256.sgt (grabDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (grabGemNew σ I)
-          (vatSlotWord (grabGemVSlot I) σ I) = ⟨0⟩ := by
-    simpa [grabGemPosOk, hGemRead] using hGemPosS
-  have hGemNegInit :
-      UInt256.slt (grabDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (grabGemNew σ I)
-          (vatSlotWord (grabGemVSlot I) σ I) = ⟨0⟩ := by
-    simpa [grabGemNegOk, hGemRead] using hGemNegS
-  have hSinPosInit :
-      UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (grabSinNew σ I)
-          (vatSlotWord (grabSinSlot I) σ I) = ⟨0⟩ := by
-    simpa [grabSinPosOk, hSinRead, hDtabWord] using hSinPosS
-  have hSinNegInit :
-      UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (grabSinNew σ I)
-          (vatSlotWord (grabSinSlot I) σ I) = ⟨0⟩ := by
-    simpa [grabSinNegOk, hSinRead, hDtabWord] using hSinNegS
-  have hVicePosInit :
-      UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.gt (grabViceNew σ I) (vatSlotWord ⟨8⟩ σ I) = ⟨0⟩ := by
-    simpa [grabVicePosOk, hViceRead, hDtabWord] using hVicePosS
-  have hViceNegInit :
-      UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
-        UInt256.lt (grabViceNew σ I) (vatSlotWord ⟨8⟩ σ I) = ⟨0⟩ := by
-    simpa [grabViceNegOk, hViceRead, hDtabWord] using hViceNegS
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · exact grabDinkAddGuardNegCond hInkNegS
-  · exact grabDinkAddGuardPosCond hInkPosS
-  · exact grabDartAddGuardNegCond hUrnArtNegInit
-  · exact grabDartAddGuardPosCond hUrnArtPosInit
-  · exact grabDartAddGuardNegCond hIlkArtNegInit
-  · exact grabDartAddGuardPosCond hIlkArtPosInit
-  · exact grabDinkSubGuardNegCond hGemPosInit
-  · exact grabDinkSubGuardPosCond hGemNegInit
-  · exact grabDtabSubGuardNegCond hdtabLo hdtabHi hdtabMod hSinPosInit
-  · exact grabDtabSubGuardPosCond hdtabLo hdtabHi hdtabMod hSinNegInit
-  · exact grabDtabSubGuardNegCond hdtabLo hdtabHi hdtabMod hVicePosInit
-  · exact grabDtabSubGuardPosCond hdtabLo hdtabHi hdtabMod hViceNegInit
-
 theorem grabUMaskedWord_clean (I : ExecutionEnv) :
     UInt256.land (grabUMaskedWord I) solcAddrMask = grabUMaskedWord I := by
   unfold grabUMaskedWord
@@ -2211,7 +1852,7 @@ theorem grabSourceLoad_vice_staged {σ σ₀ A I} {g : UInt256}
     grabUrnArtSourceSlot_eq I hsz196, grabIlkArtSourceSlot_eq I hsz196,
     grabGemSourceSlot_eq I hsz196, grabSinSourceSlot_eq I, grabViceSourceSlot]
 
-theorem accountMapEquiv_grabSourceFinal
+theorem grabSourceFinal_accountMap_eq
     {σ σ₀ A I} {g : UInt256}
     (hsz196 : 196 ≤ I.calldata.size)
     (urnInkNew urnArtNew ilkArtNew gemNew sinNew viceNew : UInt256)
@@ -2236,40 +1877,40 @@ theorem accountMapEquiv_grabSourceFinal
       grabViceSourceSlot viceNew
     Eq (grabAfterVice σ I) evm6.accountMap := by
   intro evm0 evm1 evm2 evm3 evm4 evm5 evm6
-  have h0 : Eq σ σ := rfl
+  have h0 : Eq σ evm0.accountMap := by simp [evm0, initState]
   have h1 : Eq (grabAfterUrnInk σ I) evm1.accountMap := by
     simpa [evm1, evm0, initState, storageStore_accountMap, grabAfterUrnInk,
       grabUrnInkSourceSlot_eq I hsz196, hInk] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabUrnInkSlot I)
-        (grabUrnInkNew σ I) h0
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (grabUrnInkSlot I) (grabUrnInkNew σ I)) h0
   have h2 : Eq (grabAfterUrnArt σ I) evm2.accountMap := by
     simpa [evm2, evm1, evm0, initState, storageStore_accountMap,
       storageStore_executionEnv, grabAfterUrnArt, grabUrnArtSourceSlot_eq I hsz196,
       hArt] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabUrnArtSlot I)
-        (grabUrnArtNew σ I) h1
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (grabUrnArtSlot I) (grabUrnArtNew σ I)) h1
   have h3 : Eq (grabAfterIlkArt σ I) evm3.accountMap := by
     simpa [evm3, evm2, evm1, evm0, initState, storageStore_accountMap,
       storageStore_executionEnv, grabAfterIlkArt, grabIlkArtSourceSlot_eq I hsz196,
       hIlk] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabIlkArtSlot I)
-        (grabIlkArtNew σ I) h2
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (grabIlkArtSlot I) (grabIlkArtNew σ I)) h2
   have h4 : Eq (grabAfterGem σ I) evm4.accountMap := by
     simpa [evm4, evm3, evm2, evm1, evm0, initState, storageStore_accountMap,
       storageStore_executionEnv, grabAfterGem, grabGemSourceSlot_eq I hsz196, hGem]
       using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabGemVSlot I)
-        (grabGemNew σ I) h3
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (grabGemVSlot I) (grabGemNew σ I)) h3
   have h5 : Eq (grabAfterSin σ I) evm5.accountMap := by
     simpa [evm5, evm4, evm3, evm2, evm1, evm0, initState, storageStore_accountMap,
       storageStore_executionEnv, grabAfterSin, grabSinSourceSlot_eq I, hSin] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (grabSinSlot I)
-        (grabSinNew σ I) h4
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (grabSinSlot I) (grabSinNew σ I)) h4
   simpa [evm6, evm5, evm4, evm3, evm2, evm1, evm0, initState,
     storageStore_accountMap, storageStore_executionEnv, grabAfterVice, grabViceSourceSlot,
     hVice] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner (⟨8⟩ : UInt256)
-      (grabViceNew σ I) h5
+    congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+      (⟨8⟩ : UInt256) (grabViceNew σ I)) h5
 
 theorem grabStorageType_urn_ink (I : ExecutionEnv) :
     storageTypeAt? contract.storage (grabUrnInkEvaledRef I) =
@@ -5635,32 +5276,26 @@ theorem vatGrabSourceBodySuccessFromRuntimeGuards
       grabStoreViceNew I urnInkNew urnArtNew ilkArtNew dtab gemNew sinNew viceNew
     ExecTransitionBody config contract evm0 (grabStore I) grabTransition.body
       (.returned { contract := contract, locals := finalLocals } evm6 none) := by
-  rcases accountMapEquiv_grabGuards (σ := σ) (τ := σ) rfl hInkNeg hInkPos hUrnArtNeg
-      hUrnArtPos hIlkArtNeg hIlkArtPos hDtabMax hDtabMul hGemPos hGemNeg hSinPos
-      hSinNeg hVicePos hViceNeg with
-    ⟨hInkNegS, hInkPosS, hUrnArtNegS, hUrnArtPosS, hIlkArtNegS,
-      hIlkArtPosS, _, _, hGemPosS, hGemNegS, hSinPosS, hSinNegS, hVicePosS,
-      hViceNegS⟩
   exact vatGrabSourceBodySuccessFromFinalValues
     (σ := σ) (σ₀ := σ₀) (A := A)
     (I := I) (g := g) hwei hauth hsz196 dtab dtabWord
     hDtab hdtabLo hdtabHi hguardMax hguardMul hDtabWord hdtabMod
-    (grabDinkAddGuardNegCond hInkNegS)
-    (grabDinkAddGuardPosCond hInkPosS)
-    (grabDartAddGuardNegCond hUrnArtNegS)
-    (grabDartAddGuardPosCond hUrnArtPosS)
-    (grabDartAddGuardNegCond hIlkArtNegS)
-    (grabDartAddGuardPosCond hIlkArtPosS)
-    (grabDinkSubGuardNegCond hGemPosS)
-    (grabDinkSubGuardPosCond hGemNegS)
+    (grabDinkAddGuardNegCond hInkNeg)
+    (grabDinkAddGuardPosCond hInkPos)
+    (grabDartAddGuardNegCond hUrnArtNeg)
+    (grabDartAddGuardPosCond hUrnArtPos)
+    (grabDartAddGuardNegCond hIlkArtNeg)
+    (grabDartAddGuardPosCond hIlkArtPos)
+    (grabDinkSubGuardNegCond hGemPos)
+    (grabDinkSubGuardPosCond hGemNeg)
     (grabDtabSubGuardNegCond hdtabLo hdtabHi hdtabMod
-      (by simpa [grabSinPosOk, hDtabWord] using hSinPosS))
+      (by simpa [grabSinPosOk, hDtabWord] using hSinPos))
     (grabDtabSubGuardPosCond hdtabLo hdtabHi hdtabMod
-      (by simpa [grabSinNegOk, hDtabWord] using hSinNegS))
+      (by simpa [grabSinNegOk, hDtabWord] using hSinNeg))
     (grabDtabSubGuardNegCond hdtabLo hdtabHi hdtabMod
-      (by simpa [grabVicePosOk, hDtabWord] using hVicePosS))
+      (by simpa [grabVicePosOk, hDtabWord] using hVicePos))
     (grabDtabSubGuardPosCond hdtabLo hdtabHi hdtabMod
-      (by simpa [grabViceNegOk, hDtabWord] using hViceNegS))
+      (by simpa [grabViceNegOk, hDtabWord] using hViceNeg))
 
 theorem vatGrabSourceBodyUrnInkRevertGuardNeg
     {σ σ₀ A I} {g : UInt256}
@@ -6934,12 +6569,7 @@ theorem vatGrabBodyCoreUnauthorized
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let locals := grabStore I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hcallerWord : vatSlotWord (vatCallerWardsSlot I) σ I =
-      vatSlotWord (vatCallerWardsSlot I) σ I :=
-    accountMapEquiv_storage_findD rfl I.codeOwner (vatCallerWardsSlot I) ⟨0⟩
-  have hauthSolm : vatSlotWord (vatCallerWardsSlot I) σ I ≠ ⟨1⟩ := by
-    intro hbad
-    exact hauth (by rw [hcallerWord, hbad])
+  have hauthSolm : vatSlotWord (vatCallerWardsSlot I) σ I ≠ ⟨1⟩ := hauth
   have hbody :
       ExecTransitionBody config contract evm0 locals grabTransition.body .reverted := by
     simpa [evm0, locals] using
@@ -8824,7 +8454,7 @@ theorem vatGrabSuccessEquivFromFinalState
   have hsourceAccounts :
       Eq (grabAfterVice σ I) evm6.accountMap := by
     simpa [evm0, evm1, evm2, evm3, evm4, evm5, evm6] using
-      (accountMapEquiv_grabSourceFinal
+      (grabSourceFinal_accountMap_eq
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196
         urnInkNew urnArtNew ilkArtNew gemNew sinNew viceNew hInkEq hArtEq hIlkEq hGemEq
         hSinEq hViceEq)
@@ -8952,11 +8582,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
       let localsDtab :=
         (grabStoreIlkArtNew I (grabUrnInkNew σ I) (grabUrnArtNew σ I)
           (grabIlkArtNew σ I)).insert "dtab" (.int dtab)
-      have hauthSolm : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩ := by
-        have hcallerWord : vatSlotWord (vatCallerWardsSlot I) σ I =
-            vatSlotWord (vatCallerWardsSlot I) σ I :=
-          accountMapEquiv_storage_findD rfl I.codeOwner (vatCallerWardsSlot I) ⟨0⟩
-        simpa [hcallerWord] using hauth
+      have hauthSolm : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩ := hauth
       by_cases hsuccess :
           grabInkNegOk σ I ∧ grabInkPosOk σ I ∧
           grabUrnArtNegOk σ I ∧ grabUrnArtPosOk σ I ∧
@@ -9016,16 +8642,11 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                 · by_cases hIlkArtPos : grabIlkArtPosOk σ I
                   · by_cases hDtabMax : grabDtabMaxOk σ I
                     · by_cases hDtabMul : grabDtabMulOk σ I
-                      · rcases accountMapEquiv_grabAddGuards (σ := σ) (τ := σ) rfl hInkNeg hInkPos
-                            hUrnArtNeg hUrnArtPos hIlkArtNeg hIlkArtPos with
-                          ⟨hInkNegS, hInkPosS, hUrnArtNegS, hUrnArtPosS,
-                            hIlkArtNegS, hIlkArtPosS, hAfterIlk⟩
-                        have hRateEq :
+                      · have hRateEq :
                             solcSlotWord (grabAfterIlkArt σ I) I (grabIlkRateSlot I) =
                               solcSlotWord (grabAfterIlkArt σ I) I
                                 (grabIlkRateSlot I) :=
-                          accountMapEquiv_storage_findD hAfterIlk I.codeOwner
-                            (grabIlkRateSlot I) ⟨0⟩
+                          rfl
                         have hDtabMaxS :
                             UInt256.slt
                               (solcSlotWord (grabAfterIlkArt σ I) I
@@ -9194,41 +8815,41 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                               (grabUrnInkNew σ I).toNat ≤
                                 (vatSlotWord (grabUrnInkSlot I) σ I).toNat := by
                           exact grabDinkAddGuardNegCond (by
-                            simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNegS)
+                            simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNeg)
                         have hInkGuardPos :
                             grabDinkInt I ≤ 0 ∨
                               (vatSlotWord (grabUrnInkSlot I) σ I).toNat ≤
                                 (grabUrnInkNew σ I).toNat := by
                           exact grabDinkAddGuardPosCond (by
-                            simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using hInkPosS)
+                            simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using hInkPos)
                         have hArtGuardNeg :
                             0 ≤ grabDartInt I ∨
                               (grabUrnArtNew σ I).toNat ≤
                                 (solcSlotWord (grabAfterUrnInk σ I) I
                                   (grabUrnArtSlot I)).toNat := by
                           exact grabDartAddGuardNegCond (by
-                            simpa [grabUrnArtNegOk, grabUrnArtNew] using hUrnArtNegS)
+                            simpa [grabUrnArtNegOk, grabUrnArtNew] using hUrnArtNeg)
                         have hArtGuardPos :
                             grabDartInt I ≤ 0 ∨
                               (solcSlotWord (grabAfterUrnInk σ I) I
                                 (grabUrnArtSlot I)).toNat ≤
                                 (grabUrnArtNew σ I).toNat := by
                           exact grabDartAddGuardPosCond (by
-                            simpa [grabUrnArtPosOk, grabUrnArtNew] using hUrnArtPosS)
+                            simpa [grabUrnArtPosOk, grabUrnArtNew] using hUrnArtPos)
                         have hIlkGuardNeg :
                             0 ≤ grabDartInt I ∨
                               (grabIlkArtNew σ I).toNat ≤
                                 (solcSlotWord (grabAfterUrnArt σ I) I
                                   (grabIlkArtSlot I)).toNat := by
                           exact grabDartAddGuardNegCond (by
-                            simpa [grabIlkArtNegOk, grabIlkArtNew] using hIlkArtNegS)
+                            simpa [grabIlkArtNegOk, grabIlkArtNew] using hIlkArtNeg)
                         have hIlkGuardPos :
                             grabDartInt I ≤ 0 ∨
                               (solcSlotWord (grabAfterUrnArt σ I) I
                                 (grabIlkArtSlot I)).toNat ≤
                                 (grabIlkArtNew σ I).toNat := by
                           exact grabDartAddGuardPosCond (by
-                            simpa [grabIlkArtPosOk, grabIlkArtNew] using hIlkArtPosS)
+                            simpa [grabIlkArtPosOk, grabIlkArtNew] using hIlkArtPos)
                         have hDtabOk :
                             let evm0 := initState σ σ₀
                               (Sat256.ofUInt256 g) A I
@@ -9327,78 +8948,38 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                         hIlkArtNeg, hIlkArtPos, hDtabMax, hDtabMul,
                                         hGemPos, hGemNeg, hSinPos, hSinNeg, hVicePos,
                                         hViceNeg, hdtabLo, hdtabHi, hguardMax, hguardMul⟩)
-                                  · have hGemOldEq :
-                                        solcSlotWord (grabAfterIlkArt σ I) I
-                                          (grabGemVSlot I) =
-                                          solcSlotWord (grabAfterIlkArt σ I) I
-                                            (grabGemVSlot I) :=
-                                      accountMapEquiv_storage_findD hAfterIlk I.codeOwner
-                                        (grabGemVSlot I) ⟨0⟩
-                                    have hGemNewEq :
-                                        grabGemNew σ I = grabGemNew σ I := by
-                                      simp [grabGemNew, hGemOldEq]
-                                    have hAfterGem :
-                                        Eq (grabAfterGem σ I)
-                                          (grabAfterGem σ I) := by
-                                      simp [grabAfterGem, hGemNewEq,
-                                        accountMapEquiv_sstoreAccountMap I.codeOwner
-                                          (grabGemVSlot I) (grabGemNew σ I) hAfterIlk]
-                                    have hSinOldEq :
-                                        solcSlotWord (grabAfterGem σ I) I
-                                          (grabSinSlot I) =
-                                          solcSlotWord (grabAfterGem σ I) I
-                                            (grabSinSlot I) :=
-                                      accountMapEquiv_storage_findD hAfterGem I.codeOwner
-                                        (grabSinSlot I) ⟨0⟩
-                                    have hDtabEq : grabDtab σ I = grabDtab σ I := by
-                                      simp [grabDtab, hRateEq]
-                                    have hSinNewEq :
-                                        grabSinNew σ I = grabSinNew σ I := by
-                                      simp [grabSinNew, hSinOldEq, hDtabEq]
-                                    have hAfterSin :
-                                        Eq (grabAfterSin σ I)
-                                          (grabAfterSin σ I) := by
-                                      simp [grabAfterSin, hSinNewEq,
-                                        accountMapEquiv_sstoreAccountMap I.codeOwner
-                                          (grabSinSlot I) (grabSinNew σ I) hAfterGem]
-                                    have hViceOldEq :
-                                        solcSlotWord (grabAfterSin σ I) I ⟨8⟩ =
-                                          solcSlotWord (grabAfterSin σ I) I ⟨8⟩ :=
-                                      accountMapEquiv_storage_findD hAfterSin I.codeOwner
-                                        ⟨8⟩ ⟨0⟩
-                                    have hGemPosS :
+                                  · have hGemPosS :
                                         UInt256.sgt (grabDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                           UInt256.gt (grabGemNew σ I)
                                             (solcSlotWord (grabAfterIlkArt σ I) I
                                               (grabGemVSlot I)) = ⟨0⟩ := by
-                                      simpa [grabGemPosOk, grabGemNew, hGemOldEq] using hGemPos
+                                      simpa [grabGemPosOk, grabGemNew] using hGemPos
                                     have hGemNegS :
                                         UInt256.slt (grabDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                           UInt256.lt (grabGemNew σ I)
                                             (solcSlotWord (grabAfterIlkArt σ I) I
                                               (grabGemVSlot I)) = ⟨0⟩ := by
-                                      simpa [grabGemNegOk, grabGemNew, hGemOldEq] using hGemNeg
+                                      simpa [grabGemNegOk, grabGemNew] using hGemNeg
                                     have hSinPosS :
                                         UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
                                           UInt256.gt (grabSinNew σ I)
                                             (solcSlotWord (grabAfterGem σ I) I
                                               (grabSinSlot I)) = ⟨0⟩ := by
-                                      simpa [grabSinPosOk, grabSinNew, hSinOldEq, hDtabEq]
+                                      simpa [grabSinPosOk, grabSinNew]
                                         using hSinPos
                                     have hSinNegS :
                                         UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
                                           UInt256.lt (grabSinNew σ I)
                                             (solcSlotWord (grabAfterGem σ I) I
                                               (grabSinSlot I)) = ⟨0⟩ := by
-                                      simpa [grabSinNegOk, grabSinNew, hSinOldEq, hDtabEq]
+                                      simpa [grabSinNegOk, grabSinNew]
                                         using hSinNeg
                                     have hVicePosS :
                                         UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
                                           UInt256.gt (grabViceNew σ I)
                                             (solcSlotWord (grabAfterSin σ I) I ⟨8⟩) =
                                             ⟨0⟩ := by
-                                      simpa [grabVicePosOk, grabViceNew, hViceOldEq,
-                                        hDtabEq] using hVicePos
+                                      simpa [grabVicePosOk, grabViceNew] using hVicePos
                                     have hViceNegFailS :
                                         ¬ (UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
                                           UInt256.lt (grabViceNew σ I)
@@ -9406,8 +8987,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                             ⟨0⟩) := by
                                       intro h
                                       exact hViceNeg (by
-                                        simpa [grabViceNegOk, grabViceNew, hViceOldEq,
-                                          hDtabEq] using h)
+                                        simpa [grabViceNegOk, grabViceNew] using h)
                                     have hbody :=
                                       vatGrabSourceBodyPostDtabRevertFromBlock
                                         (σ := σ)
@@ -9590,70 +9170,31 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                           simpa [grabViceNegOk, grabViceNew] using h)⟩)
                                     exact hrev.reEquivExecutionRevert hcode
                                       (vatDispatchGrab hsel) hdecode hbody
-                                · have hGemOldEq :
-                                      solcSlotWord (grabAfterIlkArt σ I) I
-                                        (grabGemVSlot I) =
-                                        solcSlotWord (grabAfterIlkArt σ I) I
-                                          (grabGemVSlot I) :=
-                                    accountMapEquiv_storage_findD hAfterIlk I.codeOwner
-                                      (grabGemVSlot I) ⟨0⟩
-                                  have hGemNewEq :
-                                      grabGemNew σ I = grabGemNew σ I := by
-                                    simp [grabGemNew, hGemOldEq]
-                                  have hAfterGem :
-                                      Eq (grabAfterGem σ I)
-                                        (grabAfterGem σ I) := by
-                                    simp [grabAfterGem, hGemNewEq,
-                                      accountMapEquiv_sstoreAccountMap I.codeOwner
-                                        (grabGemVSlot I) (grabGemNew σ I) hAfterIlk]
-                                  have hSinOldEq :
-                                      solcSlotWord (grabAfterGem σ I) I
-                                        (grabSinSlot I) =
-                                        solcSlotWord (grabAfterGem σ I) I
-                                          (grabSinSlot I) :=
-                                    accountMapEquiv_storage_findD hAfterGem I.codeOwner
-                                      (grabSinSlot I) ⟨0⟩
-                                  have hDtabEq : grabDtab σ I = grabDtab σ I := by
-                                    simp [grabDtab, hRateEq]
-                                  have hSinNewEq :
-                                      grabSinNew σ I = grabSinNew σ I := by
-                                    simp [grabSinNew, hSinOldEq, hDtabEq]
-                                  have hAfterSin :
-                                      Eq (grabAfterSin σ I)
-                                        (grabAfterSin σ I) := by
-                                    simp [grabAfterSin, hSinNewEq,
-                                      accountMapEquiv_sstoreAccountMap I.codeOwner
-                                        (grabSinSlot I) (grabSinNew σ I) hAfterGem]
-                                  have hViceOldEq :
-                                      solcSlotWord (grabAfterSin σ I) I ⟨8⟩ =
-                                        solcSlotWord (grabAfterSin σ I) I ⟨8⟩ :=
-                                    accountMapEquiv_storage_findD hAfterSin I.codeOwner
-                                      ⟨8⟩ ⟨0⟩
-                                  have hGemPosS :
+                                · have hGemPosS :
                                       UInt256.sgt (grabDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                         UInt256.gt (grabGemNew σ I)
                                           (solcSlotWord (grabAfterIlkArt σ I) I
                                             (grabGemVSlot I)) = ⟨0⟩ := by
-                                    simpa [grabGemPosOk, grabGemNew, hGemOldEq] using hGemPos
+                                    simpa [grabGemPosOk, grabGemNew] using hGemPos
                                   have hGemNegS :
                                       UInt256.slt (grabDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                         UInt256.lt (grabGemNew σ I)
                                           (solcSlotWord (grabAfterIlkArt σ I) I
                                             (grabGemVSlot I)) = ⟨0⟩ := by
-                                    simpa [grabGemNegOk, grabGemNew, hGemOldEq] using hGemNeg
+                                    simpa [grabGemNegOk, grabGemNew] using hGemNeg
                                   have hSinPosS :
                                       UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
                                         UInt256.gt (grabSinNew σ I)
                                           (solcSlotWord (grabAfterGem σ I) I
                                             (grabSinSlot I)) = ⟨0⟩ := by
-                                    simpa [grabSinPosOk, grabSinNew, hSinOldEq, hDtabEq]
+                                    simpa [grabSinPosOk, grabSinNew]
                                       using hSinPos
                                   have hSinNegS :
                                       UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
                                         UInt256.lt (grabSinNew σ I)
                                           (solcSlotWord (grabAfterGem σ I) I
                                             (grabSinSlot I)) = ⟨0⟩ := by
-                                    simpa [grabSinNegOk, grabSinNew, hSinOldEq, hDtabEq]
+                                    simpa [grabSinNegOk, grabSinNew]
                                       using hSinNeg
                                   have hVicePosFailS :
                                       ¬ (UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
@@ -9662,8 +9203,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                           ⟨0⟩) := by
                                     intro h
                                     exact hVicePos (by
-                                      simpa [grabVicePosOk, grabViceNew, hViceOldEq,
-                                        hDtabEq] using h)
+                                      simpa [grabVicePosOk, grabViceNew] using h)
                                   have hbody :=
                                     vatGrabSourceBodyPostDtabRevertFromBlock
                                       (σ := σ)
@@ -9837,48 +9377,24 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                         simpa [grabVicePosOk, grabViceNew] using h)))
                                   exact hrev.reEquivExecutionRevert hcode (vatDispatchGrab hsel)
                                     hdecode hbody
-                              · have hGemOldEq :
-                                    solcSlotWord (grabAfterIlkArt σ I) I
-                                      (grabGemVSlot I) =
-                                      solcSlotWord (grabAfterIlkArt σ I) I
-                                        (grabGemVSlot I) :=
-                                  accountMapEquiv_storage_findD hAfterIlk I.codeOwner
-                                    (grabGemVSlot I) ⟨0⟩
-                                have hGemNewEq :
-                                    grabGemNew σ I = grabGemNew σ I := by
-                                  simp [grabGemNew, hGemOldEq]
-                                have hAfterGem :
-                                    Eq (grabAfterGem σ I)
-                                      (grabAfterGem σ I) := by
-                                  simp [grabAfterGem, hGemNewEq,
-                                    accountMapEquiv_sstoreAccountMap I.codeOwner
-                                      (grabGemVSlot I) (grabGemNew σ I) hAfterIlk]
-                                have hSinOldEq :
-                                    solcSlotWord (grabAfterGem σ I) I (grabSinSlot I) =
-                                      solcSlotWord (grabAfterGem σ I) I
-                                        (grabSinSlot I) :=
-                                  accountMapEquiv_storage_findD hAfterGem I.codeOwner
-                                    (grabSinSlot I) ⟨0⟩
-                                have hDtabEq : grabDtab σ I = grabDtab σ I := by
-                                  simp [grabDtab, hRateEq]
-                                have hGemPosS :
+                              · have hGemPosS :
                                     UInt256.sgt (grabDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                       UInt256.gt (grabGemNew σ I)
                                         (solcSlotWord (grabAfterIlkArt σ I) I
                                           (grabGemVSlot I)) = ⟨0⟩ := by
-                                  simpa [grabGemPosOk, grabGemNew, hGemOldEq] using hGemPos
+                                  simpa [grabGemPosOk, grabGemNew] using hGemPos
                                 have hGemNegS :
                                     UInt256.slt (grabDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                       UInt256.lt (grabGemNew σ I)
                                         (solcSlotWord (grabAfterIlkArt σ I) I
                                           (grabGemVSlot I)) = ⟨0⟩ := by
-                                  simpa [grabGemNegOk, grabGemNew, hGemOldEq] using hGemNeg
+                                  simpa [grabGemNegOk, grabGemNew] using hGemNeg
                                 have hSinPosS :
                                     UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
                                       UInt256.gt (grabSinNew σ I)
                                         (solcSlotWord (grabAfterGem σ I) I
                                           (grabSinSlot I)) = ⟨0⟩ := by
-                                  simpa [grabSinPosOk, grabSinNew, hSinOldEq, hDtabEq]
+                                  simpa [grabSinPosOk, grabSinNew]
                                     using hSinPos
                                 have hSinNegFailS :
                                     ¬ (UInt256.slt dtabWord ⟨0⟩ = ⟨0⟩ ∨
@@ -9887,7 +9403,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                           (grabSinSlot I)) = ⟨0⟩) := by
                                   intro h
                                   exact hSinNeg (by
-                                    simpa [grabSinNegOk, grabSinNew, hSinOldEq, hDtabEq]
+                                    simpa [grabSinNegOk, grabSinNew]
                                       using h)
                                 have hbody :=
                                   vatGrabSourceBodyPostDtabRevertFromBlock
@@ -10006,41 +9522,18 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                       simpa [grabSinNegOk, grabSinNew] using h)⟩)
                                 exact hrev.reEquivExecutionRevert hcode (vatDispatchGrab hsel)
                                   hdecode hbody
-                            · have hGemOldEq :
-                                  solcSlotWord (grabAfterIlkArt σ I) I
-                                    (grabGemVSlot I) =
-                                    solcSlotWord (grabAfterIlkArt σ I) I
-                                      (grabGemVSlot I) :=
-                                accountMapEquiv_storage_findD hAfterIlk I.codeOwner
-                                  (grabGemVSlot I) ⟨0⟩
-                              have hGemNewEq :
-                                  grabGemNew σ I = grabGemNew σ I := by
-                                simp [grabGemNew, hGemOldEq]
-                              have hAfterGem :
-                                  Eq (grabAfterGem σ I)
-                                    (grabAfterGem σ I) := by
-                                simp [grabAfterGem, hGemNewEq,
-                                  accountMapEquiv_sstoreAccountMap I.codeOwner
-                                    (grabGemVSlot I) (grabGemNew σ I) hAfterIlk]
-                              have hSinOldEq :
-                                  solcSlotWord (grabAfterGem σ I) I (grabSinSlot I) =
-                                    solcSlotWord (grabAfterGem σ I) I (grabSinSlot I) :=
-                                accountMapEquiv_storage_findD hAfterGem I.codeOwner
-                                  (grabSinSlot I) ⟨0⟩
-                              have hDtabEq : grabDtab σ I = grabDtab σ I := by
-                                simp [grabDtab, hRateEq]
-                              have hGemPosS :
+                            · have hGemPosS :
                                   UInt256.sgt (grabDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.gt (grabGemNew σ I)
                                       (solcSlotWord (grabAfterIlkArt σ I) I
                                         (grabGemVSlot I)) = ⟨0⟩ := by
-                                simpa [grabGemPosOk, grabGemNew, hGemOldEq] using hGemPos
+                                simpa [grabGemPosOk, grabGemNew] using hGemPos
                               have hGemNegS :
                                   UInt256.slt (grabDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.lt (grabGemNew σ I)
                                       (solcSlotWord (grabAfterIlkArt σ I) I
                                         (grabGemVSlot I)) = ⟨0⟩ := by
-                                simpa [grabGemNegOk, grabGemNew, hGemOldEq] using hGemNeg
+                                simpa [grabGemNegOk, grabGemNew] using hGemNeg
                               have hSinPosFailS :
                                   ¬ (UInt256.sgt dtabWord ⟨0⟩ = ⟨0⟩ ∨
                                     UInt256.gt (grabSinNew σ I)
@@ -10048,7 +9541,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                         (grabSinSlot I)) = ⟨0⟩) := by
                                 intro h
                                 exact hSinPos (by
-                                  simpa [grabSinPosOk, grabSinNew, hSinOldEq, hDtabEq]
+                                  simpa [grabSinPosOk, grabSinNew]
                                     using h)
                               have hbody :=
                                 vatGrabSourceBodyPostDtabRevertFromBlock
@@ -10164,19 +9657,12 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                     simpa [grabSinPosOk, grabSinNew] using h)))
                               exact hrev.reEquivExecutionRevert hcode (vatDispatchGrab hsel)
                                 hdecode hbody
-                          · have hGemOldEq :
-                                solcSlotWord (grabAfterIlkArt σ I) I
-                                  (grabGemVSlot I) =
-                                  solcSlotWord (grabAfterIlkArt σ I) I
-                                    (grabGemVSlot I) :=
-                              accountMapEquiv_storage_findD hAfterIlk I.codeOwner
-                                (grabGemVSlot I) ⟨0⟩
-                            have hGemPosS :
+                          · have hGemPosS :
                                 UInt256.sgt (grabDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                   UInt256.gt (grabGemNew σ I)
                                     (solcSlotWord (grabAfterIlkArt σ I) I
                                       (grabGemVSlot I)) = ⟨0⟩ := by
-                              simpa [grabGemPosOk, grabGemNew, hGemOldEq] using hGemPos
+                              simpa [grabGemPosOk, grabGemNew] using hGemPos
                             have hGemNegFailS :
                                 ¬ (UInt256.slt (grabDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                   UInt256.lt (grabGemNew σ I)
@@ -10184,7 +9670,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                       (grabGemVSlot I)) = ⟨0⟩) := by
                               intro h
                               exact hGemNeg (by
-                                simpa [grabGemNegOk, grabGemNew, hGemOldEq] using h)
+                                simpa [grabGemNegOk, grabGemNew] using h)
                             have hbody :=
                               vatGrabSourceBodyPostDtabRevertFromBlock
                                 (σ := σ)
@@ -10231,20 +9717,14 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                   simpa [grabGemNegOk, grabGemNew] using h)⟩)
                             exact hrev.reEquivExecutionRevert hcode (vatDispatchGrab hsel)
                               hdecode hbody
-                        · have hGemOldEq :
-                              solcSlotWord (grabAfterIlkArt σ I) I (grabGemVSlot I) =
-                                solcSlotWord (grabAfterIlkArt σ I) I
-                                  (grabGemVSlot I) :=
-                            accountMapEquiv_storage_findD hAfterIlk I.codeOwner
-                              (grabGemVSlot I) ⟨0⟩
-                          have hGemPosFailS :
+                        · have hGemPosFailS :
                               ¬ (UInt256.sgt (grabDinkWord I) ⟨0⟩ = ⟨0⟩ ∨
                                 UInt256.gt (grabGemNew σ I)
                                   (solcSlotWord (grabAfterIlkArt σ I) I
                                     (grabGemVSlot I)) = ⟨0⟩) := by
                             intro h
                             exact hGemPos (by
-                              simpa [grabGemPosOk, grabGemNew, hGemOldEq] using h)
+                              simpa [grabGemPosOk, grabGemNew] using h)
                           have hbody :=
                             vatGrabSourceBodyPostDtabRevertFromBlock
                               (σ := σ)
@@ -10289,16 +9769,11 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                               exact hGemPos (by simpa [grabGemPosOk, grabGemNew] using h)))
                           exact hrev.reEquivExecutionRevert hcode (vatDispatchGrab hsel)
                             hdecode hbody
-                      · rcases accountMapEquiv_grabAddGuards (σ := σ) (τ := σ) rfl hInkNeg hInkPos
-                            hUrnArtNeg hUrnArtPos hIlkArtNeg hIlkArtPos with
-                        ⟨hInkNegS, hInkPosS, hUrnArtNegS, hUrnArtPosS,
-                          hIlkArtNegS, hIlkArtPosS, hAfterIlk⟩
-                        have hRateEq :
+                      · have hRateEq :
                             solcSlotWord (grabAfterIlkArt σ I) I (grabIlkRateSlot I) =
                               solcSlotWord (grabAfterIlkArt σ I) I
                                 (grabIlkRateSlot I) :=
-                          accountMapEquiv_storage_findD hAfterIlk I.codeOwner
-                            (grabIlkRateSlot I) ⟨0⟩
+                          rfl
                         have hDtabMulFailE :
                             ¬ (grabDartWord I = ⟨0⟩ ∨
                               UInt256.eq
@@ -10331,41 +9806,41 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                 (grabUrnInkNew σ I).toNat ≤
                                   (vatSlotWord (grabUrnInkSlot I) σ I).toNat := by
                             exact grabDinkAddGuardNegCond (by
-                              simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNegS)
+                              simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNeg)
                           have hInkGuardPos :
                               grabDinkInt I ≤ 0 ∨
                                 (vatSlotWord (grabUrnInkSlot I) σ I).toNat ≤
                                   (grabUrnInkNew σ I).toNat := by
                             exact grabDinkAddGuardPosCond (by
-                              simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using hInkPosS)
+                              simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using hInkPos)
                           have hArtGuardNeg :
                               0 ≤ grabDartInt I ∨
                                 (grabUrnArtNew σ I).toNat ≤
                                   (solcSlotWord (grabAfterUrnInk σ I) I
                                     (grabUrnArtSlot I)).toNat := by
                             exact grabDartAddGuardNegCond (by
-                              simpa [grabUrnArtNegOk, grabUrnArtNew] using hUrnArtNegS)
+                              simpa [grabUrnArtNegOk, grabUrnArtNew] using hUrnArtNeg)
                           have hArtGuardPos :
                               grabDartInt I ≤ 0 ∨
                                 (solcSlotWord (grabAfterUrnInk σ I) I
                                   (grabUrnArtSlot I)).toNat ≤
                                   (grabUrnArtNew σ I).toNat := by
                             exact grabDartAddGuardPosCond (by
-                              simpa [grabUrnArtPosOk, grabUrnArtNew] using hUrnArtPosS)
+                              simpa [grabUrnArtPosOk, grabUrnArtNew] using hUrnArtPos)
                           have hIlkGuardNeg :
                               0 ≤ grabDartInt I ∨
                                 (grabIlkArtNew σ I).toNat ≤
                                   (solcSlotWord (grabAfterUrnArt σ I) I
                                     (grabIlkArtSlot I)).toNat := by
                             exact grabDartAddGuardNegCond (by
-                              simpa [grabIlkArtNegOk, grabIlkArtNew] using hIlkArtNegS)
+                              simpa [grabIlkArtNegOk, grabIlkArtNew] using hIlkArtNeg)
                           have hIlkGuardPos :
                               grabDartInt I ≤ 0 ∨
                                 (solcSlotWord (grabAfterUrnArt σ I) I
                                   (grabIlkArtSlot I)).toNat ≤
                                   (grabIlkArtNew σ I).toNat := by
                             exact grabDartAddGuardPosCond (by
-                              simpa [grabIlkArtPosOk, grabIlkArtNew] using hIlkArtPosS)
+                              simpa [grabIlkArtPosOk, grabIlkArtNew] using hIlkArtPos)
                           have hbody :=
                             vatGrabSourceBodyDtabRevertFromBlock
                               (σ := σ)
@@ -10480,16 +9955,11 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                   (grabIlkRateSlot I))
                                 (not_lt.mp hdartLow) hrateNe hprodLo
                             exact False.elim (hDtabMulFailS hguardTrue)
-                    · rcases accountMapEquiv_grabAddGuards (σ := σ) (τ := σ) rfl hInkNeg hInkPos
-                          hUrnArtNeg hUrnArtPos hIlkArtNeg hIlkArtPos with
-                        ⟨hInkNegS, hInkPosS, hUrnArtNegS, hUrnArtPosS,
-                          hIlkArtNegS, hIlkArtPosS, hAfterIlk⟩
-                      have hRateEq :
+                    · have hRateEq :
                           solcSlotWord (grabAfterIlkArt σ I) I (grabIlkRateSlot I) =
                             solcSlotWord (grabAfterIlkArt σ I) I
                               (grabIlkRateSlot I) :=
-                        accountMapEquiv_storage_findD hAfterIlk I.codeOwner
-                          (grabIlkRateSlot I) ⟨0⟩
+                        rfl
                       have hDtabMaxFailS :
                           UInt256.slt
                             (solcSlotWord (grabAfterIlkArt σ I) I
@@ -10502,41 +9972,41 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                             (grabUrnInkNew σ I).toNat ≤
                               (vatSlotWord (grabUrnInkSlot I) σ I).toNat := by
                         exact grabDinkAddGuardNegCond (by
-                          simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNegS)
+                          simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNeg)
                       have hInkGuardPos :
                           grabDinkInt I ≤ 0 ∨
                             (vatSlotWord (grabUrnInkSlot I) σ I).toNat ≤
                               (grabUrnInkNew σ I).toNat := by
                         exact grabDinkAddGuardPosCond (by
-                          simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using hInkPosS)
+                          simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using hInkPos)
                       have hArtGuardNeg :
                           0 ≤ grabDartInt I ∨
                             (grabUrnArtNew σ I).toNat ≤
                               (solcSlotWord (grabAfterUrnInk σ I) I
                                 (grabUrnArtSlot I)).toNat := by
                         exact grabDartAddGuardNegCond (by
-                          simpa [grabUrnArtNegOk, grabUrnArtNew] using hUrnArtNegS)
+                          simpa [grabUrnArtNegOk, grabUrnArtNew] using hUrnArtNeg)
                       have hArtGuardPos :
                           grabDartInt I ≤ 0 ∨
                             (solcSlotWord (grabAfterUrnInk σ I) I
                               (grabUrnArtSlot I)).toNat ≤
                               (grabUrnArtNew σ I).toNat := by
                         exact grabDartAddGuardPosCond (by
-                          simpa [grabUrnArtPosOk, grabUrnArtNew] using hUrnArtPosS)
+                          simpa [grabUrnArtPosOk, grabUrnArtNew] using hUrnArtPos)
                       have hIlkGuardNeg :
                           0 ≤ grabDartInt I ∨
                             (grabIlkArtNew σ I).toNat ≤
                               (solcSlotWord (grabAfterUrnArt σ I) I
                                 (grabIlkArtSlot I)).toNat := by
                         exact grabDartAddGuardNegCond (by
-                          simpa [grabIlkArtNegOk, grabIlkArtNew] using hIlkArtNegS)
+                          simpa [grabIlkArtNegOk, grabIlkArtNew] using hIlkArtNeg)
                       have hIlkGuardPos :
                           grabDartInt I ≤ 0 ∨
                             (solcSlotWord (grabAfterUrnArt σ I) I
                               (grabIlkArtSlot I)).toNat ≤
                               (grabIlkArtNew σ I).toNat := by
                         exact grabDartAddGuardPosCond (by
-                          simpa [grabIlkArtPosOk, grabIlkArtNew] using hIlkArtPosS)
+                          simpa [grabIlkArtPosOk, grabIlkArtNew] using hIlkArtPos)
                       by_cases hbadRange :
                           dtab < -((2 : Int) ^ 255) ∨ dtab ≥ (2 : Int) ^ 255
                       · have hbody :=
@@ -10669,87 +10139,39 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                               grabAfterIlkArt] using hDtabMax))
                         exact hrev.reEquivExecutionRevert hcode (vatDispatchGrab hsel)
                           hdecode hbody
-                  · have hInkOldEq :
-                        solcSlotWord σ I (grabUrnInkSlot I) =
-                          solcSlotWord σ I (grabUrnInkSlot I) :=
-                        accountMapEquiv_storage_findD rfl I.codeOwner
-                          (grabUrnInkSlot I) ⟨0⟩
-                    have hInkNewEq : grabUrnInkNew σ I = grabUrnInkNew σ I := by
-                      simp [grabUrnInkNew, hInkOldEq]
-                    have hAfterInk :
-                        Eq (grabAfterUrnInk σ I)
-                          (grabAfterUrnInk σ I) := by
-                      simp [grabAfterUrnInk, hInkNewEq,
-                        accountMapEquiv_sstoreAccountMap I.codeOwner (grabUrnInkSlot I)
-                          (grabUrnInkNew σ I) rfl]
-                    have hArtOldEq :
-                        solcSlotWord (grabAfterUrnInk σ I) I (grabUrnArtSlot I) =
-                          solcSlotWord (grabAfterUrnInk σ I) I (grabUrnArtSlot I) :=
-                        accountMapEquiv_storage_findD hAfterInk I.codeOwner
-                          (grabUrnArtSlot I) ⟨0⟩
-                    have hArtNewEq : grabUrnArtNew σ I = grabUrnArtNew σ I := by
-                      simp [grabUrnArtNew, hArtOldEq]
-                    have hAfterArt :
-                        Eq (grabAfterUrnArt σ I)
-                          (grabAfterUrnArt σ I) := by
-                      simp [grabAfterUrnArt, hArtNewEq,
-                        accountMapEquiv_sstoreAccountMap I.codeOwner (grabUrnArtSlot I)
-                          (grabUrnArtNew σ I) hAfterInk]
-                    have hIlkOldEq :
-                        solcSlotWord (grabAfterUrnArt σ I) I (grabIlkArtSlot I) =
-                          solcSlotWord (grabAfterUrnArt σ I) I (grabIlkArtSlot I) :=
-                        accountMapEquiv_storage_findD hAfterArt I.codeOwner
-                          (grabIlkArtSlot I) ⟨0⟩
-                    have hIlkNewEq : grabIlkArtNew σ I = grabIlkArtNew σ I := by
-                      simp [grabIlkArtNew, hIlkOldEq]
-                    have hInkNegSolm : grabInkNegOk σ I := by
-                      simpa [grabInkNegOk, hInkOldEq, hInkNewEq] using hInkNeg
-                    have hInkPosSolm : grabInkPosOk σ I := by
-                      simpa [grabInkPosOk, hInkOldEq, hInkNewEq] using hInkPos
-                    have hUrnArtNegSolm : grabUrnArtNegOk σ I := by
-                      simpa [grabUrnArtNegOk, hArtOldEq, hArtNewEq] using hUrnArtNeg
-                    have hUrnArtPosSolm : grabUrnArtPosOk σ I := by
-                      simpa [grabUrnArtPosOk, hArtOldEq, hArtNewEq] using hUrnArtPos
-                    have hIlkArtNegSolm : grabIlkArtNegOk σ I := by
-                      simpa [grabIlkArtNegOk, hIlkOldEq, hIlkNewEq] using hIlkArtNeg
-                    have hIlkArtPosFailSolm : ¬ grabIlkArtPosOk σ I := by
-                      intro hIlkArtPosSolm
-                      exact hIlkArtPos (by
-                        simpa [grabIlkArtPosOk, hIlkOldEq, hIlkNewEq] using
-                          hIlkArtPosSolm)
-                    have hInkGuardNeg :
+                  · have hInkGuardNeg :
                         0 ≤ grabDinkInt I ∨
                           (grabUrnInkNew σ I).toNat ≤
                             (vatSlotWord (grabUrnInkSlot I) σ I).toNat := by
                       exact grabDinkAddGuardNegCond (by
-                        simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNegSolm)
+                        simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNeg)
                     have hInkGuardPos :
                         grabDinkInt I ≤ 0 ∨
                           (vatSlotWord (grabUrnInkSlot I) σ I).toNat ≤
                             (grabUrnInkNew σ I).toNat := by
                       exact grabDinkAddGuardPosCond (by
-                        simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using hInkPosSolm)
+                        simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using hInkPos)
                     have hArtGuardNeg :
                         0 ≤ grabDartInt I ∨
                           (grabUrnArtNew σ I).toNat ≤
                             (solcSlotWord (grabAfterUrnInk σ I) I
                               (grabUrnArtSlot I)).toNat := by
                       exact grabDartAddGuardNegCond (by
-                        simpa [grabUrnArtNegOk, grabUrnArtNew] using hUrnArtNegSolm)
+                        simpa [grabUrnArtNegOk, grabUrnArtNew] using hUrnArtNeg)
                     have hArtGuardPos :
                         grabDartInt I ≤ 0 ∨
                           (solcSlotWord (grabAfterUrnInk σ I) I
                             (grabUrnArtSlot I)).toNat ≤
                             (grabUrnArtNew σ I).toNat := by
                       exact grabDartAddGuardPosCond (by
-                        simpa [grabUrnArtPosOk, grabUrnArtNew] using hUrnArtPosSolm)
+                        simpa [grabUrnArtPosOk, grabUrnArtNew] using hUrnArtPos)
                     have hIlkGuardNeg :
                         0 ≤ grabDartInt I ∨
                           (grabIlkArtNew σ I).toNat ≤
                             (solcSlotWord (grabAfterUrnArt σ I) I
                               (grabIlkArtSlot I)).toNat := by
                       exact grabDartAddGuardNegCond (by
-                        simpa [grabIlkArtNegOk, grabIlkArtNew] using hIlkArtNegSolm)
+                        simpa [grabIlkArtNegOk, grabIlkArtNew] using hIlkArtNeg)
                     have hIlkGuardPos :
                         0 < grabDartInt I ∧
                           (grabIlkArtNew σ I).toNat <
@@ -10759,7 +10181,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                         (grabDartInt_lo I) (grabDartInt_hi I) (grabDartInt_mod_word I)
                         (by
                           intro h
-                          exact hIlkArtPosFailSolm (by
+                          exact hIlkArtPos (by
                             simpa [grabIlkArtPosOk, grabIlkArtNew] using h))
                     have hbody :=
                       vatGrabSourceBodyIlkArtRevertGuardPos
@@ -10792,78 +10214,32 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                           using hIlkArtPos)⟩)
                     exact hrev.reEquivExecutionRevert hcode (vatDispatchGrab hsel) hdecode
                       hbody
-                · have hInkOldEq :
-                      solcSlotWord σ I (grabUrnInkSlot I) =
-                        solcSlotWord σ I (grabUrnInkSlot I) :=
-                      accountMapEquiv_storage_findD rfl I.codeOwner
-                        (grabUrnInkSlot I) ⟨0⟩
-                  have hInkNewEq : grabUrnInkNew σ I = grabUrnInkNew σ I := by
-                    simp [grabUrnInkNew, hInkOldEq]
-                  have hAfterInk :
-                      Eq (grabAfterUrnInk σ I)
-                        (grabAfterUrnInk σ I) := by
-                    simp [grabAfterUrnInk, hInkNewEq,
-                      accountMapEquiv_sstoreAccountMap I.codeOwner (grabUrnInkSlot I)
-                        (grabUrnInkNew σ I) rfl]
-                  have hArtOldEq :
-                      solcSlotWord (grabAfterUrnInk σ I) I (grabUrnArtSlot I) =
-                        solcSlotWord (grabAfterUrnInk σ I) I (grabUrnArtSlot I) :=
-                      accountMapEquiv_storage_findD hAfterInk I.codeOwner
-                        (grabUrnArtSlot I) ⟨0⟩
-                  have hArtNewEq : grabUrnArtNew σ I = grabUrnArtNew σ I := by
-                    simp [grabUrnArtNew, hArtOldEq]
-                  have hAfterArt :
-                      Eq (grabAfterUrnArt σ I)
-                        (grabAfterUrnArt σ I) := by
-                    simp [grabAfterUrnArt, hArtNewEq,
-                      accountMapEquiv_sstoreAccountMap I.codeOwner (grabUrnArtSlot I)
-                        (grabUrnArtNew σ I) hAfterInk]
-                  have hIlkOldEq :
-                      solcSlotWord (grabAfterUrnArt σ I) I (grabIlkArtSlot I) =
-                        solcSlotWord (grabAfterUrnArt σ I) I (grabIlkArtSlot I) :=
-                      accountMapEquiv_storage_findD hAfterArt I.codeOwner
-                        (grabIlkArtSlot I) ⟨0⟩
-                  have hIlkNewEq : grabIlkArtNew σ I = grabIlkArtNew σ I := by
-                    simp [grabIlkArtNew, hIlkOldEq]
-                  have hInkNegSolm : grabInkNegOk σ I := by
-                    simpa [grabInkNegOk, hInkOldEq, hInkNewEq] using hInkNeg
-                  have hInkPosSolm : grabInkPosOk σ I := by
-                    simpa [grabInkPosOk, hInkOldEq, hInkNewEq] using hInkPos
-                  have hUrnArtNegSolm : grabUrnArtNegOk σ I := by
-                    simpa [grabUrnArtNegOk, hArtOldEq, hArtNewEq] using hUrnArtNeg
-                  have hUrnArtPosSolm : grabUrnArtPosOk σ I := by
-                    simpa [grabUrnArtPosOk, hArtOldEq, hArtNewEq] using hUrnArtPos
-                  have hIlkArtNegFailSolm : ¬ grabIlkArtNegOk σ I := by
-                    intro hIlkArtNegSolm
-                    exact hIlkArtNeg (by
-                      simpa [grabIlkArtNegOk, hIlkOldEq, hIlkNewEq] using
-                        hIlkArtNegSolm)
-                  have hInkGuardNeg :
+                · have hInkGuardNeg :
                       0 ≤ grabDinkInt I ∨
                         (grabUrnInkNew σ I).toNat ≤
                           (vatSlotWord (grabUrnInkSlot I) σ I).toNat := by
                     exact grabDinkAddGuardNegCond (by
-                      simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNegSolm)
+                      simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNeg)
                   have hInkGuardPos :
                       grabDinkInt I ≤ 0 ∨
                         (vatSlotWord (grabUrnInkSlot I) σ I).toNat ≤
                           (grabUrnInkNew σ I).toNat := by
                     exact grabDinkAddGuardPosCond (by
-                      simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using hInkPosSolm)
+                      simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using hInkPos)
                   have hArtGuardNeg :
                       0 ≤ grabDartInt I ∨
                         (grabUrnArtNew σ I).toNat ≤
                           (solcSlotWord (grabAfterUrnInk σ I) I
                             (grabUrnArtSlot I)).toNat := by
                     exact grabDartAddGuardNegCond (by
-                      simpa [grabUrnArtNegOk, grabUrnArtNew] using hUrnArtNegSolm)
+                      simpa [grabUrnArtNegOk, grabUrnArtNew] using hUrnArtNeg)
                   have hArtGuardPos :
                       grabDartInt I ≤ 0 ∨
                         (solcSlotWord (grabAfterUrnInk σ I) I
                           (grabUrnArtSlot I)).toNat ≤
                           (grabUrnArtNew σ I).toNat := by
                     exact grabDartAddGuardPosCond (by
-                      simpa [grabUrnArtPosOk, grabUrnArtNew] using hUrnArtPosSolm)
+                      simpa [grabUrnArtPosOk, grabUrnArtNew] using hUrnArtPos)
                   have hIlkGuardNeg :
                       grabDartInt I < 0 ∧
                         (solcSlotWord (grabAfterUrnArt σ I) I
@@ -10873,7 +10249,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                       (grabDartInt_lo I) (grabDartInt_hi I) (grabDartInt_mod_word I)
                       (by
                         intro h
-                        exact hIlkArtNegFailSolm (by
+                        exact hIlkArtNeg (by
                           simpa [grabIlkArtNegOk, grabIlkArtNew] using h))
                   have hbody :=
                     vatGrabSourceBodyIlkArtRevertGuardNeg
@@ -10902,56 +10278,25 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                       using hIlkArtNeg))
                   exact hrev.reEquivExecutionRevert hcode (vatDispatchGrab hsel) hdecode
                     hbody
-              · have hInkOldEq :
-                    solcSlotWord σ I (grabUrnInkSlot I) =
-                      solcSlotWord σ I (grabUrnInkSlot I) :=
-                    accountMapEquiv_storage_findD rfl I.codeOwner
-                      (grabUrnInkSlot I) ⟨0⟩
-                have hInkNewEq : grabUrnInkNew σ I = grabUrnInkNew σ I := by
-                  simp [grabUrnInkNew, hInkOldEq]
-                have hAfterInk :
-                    Eq (grabAfterUrnInk σ I)
-                      (grabAfterUrnInk σ I) := by
-                  simp [grabAfterUrnInk, hInkNewEq,
-                    accountMapEquiv_sstoreAccountMap I.codeOwner (grabUrnInkSlot I)
-                      (grabUrnInkNew σ I) rfl]
-                have hArtOldEq :
-                    solcSlotWord (grabAfterUrnInk σ I) I (grabUrnArtSlot I) =
-                      solcSlotWord (grabAfterUrnInk σ I) I (grabUrnArtSlot I) :=
-                    accountMapEquiv_storage_findD hAfterInk I.codeOwner
-                      (grabUrnArtSlot I) ⟨0⟩
-                have hArtNewEq : grabUrnArtNew σ I = grabUrnArtNew σ I := by
-                  simp [grabUrnArtNew, hArtOldEq]
-                have hInkNegSolm : grabInkNegOk σ I := by
-                  simpa [grabInkNegOk, hInkOldEq, hInkNewEq] using hInkNeg
-                have hInkPosSolm : grabInkPosOk σ I := by
-                  simpa [grabInkPosOk, hInkOldEq, hInkNewEq] using hInkPos
-                have hUrnArtNegSolm : grabUrnArtNegOk σ I := by
-                  simpa [grabUrnArtNegOk, hArtOldEq, hArtNewEq] using hUrnArtNeg
-                have hUrnArtPosFailSolm : ¬ grabUrnArtPosOk σ I := by
-                  intro hUrnArtPosSolm
-                  exact hUrnArtPos (by
-                    simpa [grabUrnArtPosOk, hArtOldEq, hArtNewEq] using
-                      hUrnArtPosSolm)
-                have hInkGuardNeg :
+              · have hInkGuardNeg :
                     0 ≤ grabDinkInt I ∨
                       (grabUrnInkNew σ I).toNat ≤
                         (vatSlotWord (grabUrnInkSlot I) σ I).toNat := by
                   exact grabDinkAddGuardNegCond (by
-                    simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNegSolm)
+                    simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNeg)
                 have hInkGuardPos :
                     grabDinkInt I ≤ 0 ∨
                       (vatSlotWord (grabUrnInkSlot I) σ I).toNat ≤
                         (grabUrnInkNew σ I).toNat := by
                   exact grabDinkAddGuardPosCond (by
-                    simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using hInkPosSolm)
+                    simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using hInkPos)
                 have hArtGuardNeg :
                     0 ≤ grabDartInt I ∨
                       (grabUrnArtNew σ I).toNat ≤
                         (solcSlotWord (grabAfterUrnInk σ I) I
                           (grabUrnArtSlot I)).toNat := by
                   exact grabDartAddGuardNegCond (by
-                    simpa [grabUrnArtNegOk, grabUrnArtNew] using hUrnArtNegSolm)
+                    simpa [grabUrnArtNegOk, grabUrnArtNew] using hUrnArtNeg)
                 have hArtGuardPos :
                     0 < grabDartInt I ∧
                       (grabUrnArtNew σ I).toNat <
@@ -10961,7 +10306,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                     (grabDartInt_lo I) (grabDartInt_hi I) (grabDartInt_mod_word I)
                     (by
                       intro h
-                      exact hUrnArtPosFailSolm (by
+                      exact hUrnArtPos (by
                         simpa [grabUrnArtPosOk, grabUrnArtNew] using h))
                 have hbody :=
                   vatGrabSourceBodyUrnArtRevertGuardPos
@@ -10985,47 +10330,18 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                       grabUrnArtNew] using hUrnArtPos)⟩)
                 exact hrev.reEquivExecutionRevert hcode (vatDispatchGrab hsel) hdecode
                   hbody
-            · have hInkOldEq :
-                  solcSlotWord σ I (grabUrnInkSlot I) =
-                    solcSlotWord σ I (grabUrnInkSlot I) :=
-                  accountMapEquiv_storage_findD rfl I.codeOwner
-                    (grabUrnInkSlot I) ⟨0⟩
-              have hInkNewEq : grabUrnInkNew σ I = grabUrnInkNew σ I := by
-                simp [grabUrnInkNew, hInkOldEq]
-              have hAfterInk :
-                  Eq (grabAfterUrnInk σ I)
-                    (grabAfterUrnInk σ I) := by
-                simp [grabAfterUrnInk, hInkNewEq,
-                  accountMapEquiv_sstoreAccountMap I.codeOwner (grabUrnInkSlot I)
-                    (grabUrnInkNew σ I) rfl]
-              have hArtOldEq :
-                  solcSlotWord (grabAfterUrnInk σ I) I (grabUrnArtSlot I) =
-                    solcSlotWord (grabAfterUrnInk σ I) I (grabUrnArtSlot I) :=
-                  accountMapEquiv_storage_findD hAfterInk I.codeOwner
-                    (grabUrnArtSlot I) ⟨0⟩
-              have hArtNewEq : grabUrnArtNew σ I = grabUrnArtNew σ I := by
-                simp [grabUrnArtNew, hArtOldEq]
-              have hInkNegSolm : grabInkNegOk σ I := by
-                simpa [grabInkNegOk, hInkOldEq, hInkNewEq] using hInkNeg
-              have hInkPosSolm : grabInkPosOk σ I := by
-                simpa [grabInkPosOk, hInkOldEq, hInkNewEq] using hInkPos
-              have hUrnArtNegFailSolm : ¬ grabUrnArtNegOk σ I := by
-                intro hUrnArtNegSolm
-                exact hUrnArtNeg (by
-                  simpa [grabUrnArtNegOk, hArtOldEq, hArtNewEq] using
-                    hUrnArtNegSolm)
-              have hInkGuardNeg :
+            · have hInkGuardNeg :
                   0 ≤ grabDinkInt I ∨
                     (grabUrnInkNew σ I).toNat ≤
                       (vatSlotWord (grabUrnInkSlot I) σ I).toNat := by
                 exact grabDinkAddGuardNegCond (by
-                  simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNegSolm)
+                  simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNeg)
               have hInkGuardPos :
                   grabDinkInt I ≤ 0 ∨
                     (vatSlotWord (grabUrnInkSlot I) σ I).toNat ≤
                       (grabUrnInkNew σ I).toNat := by
                 exact grabDinkAddGuardPosCond (by
-                  simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using hInkPosSolm)
+                  simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using hInkPos)
               have hArtGuardNeg :
                   grabDartInt I < 0 ∧
                     (solcSlotWord (grabAfterUrnInk σ I) I
@@ -11035,7 +10351,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                   (grabDartInt_lo I) (grabDartInt_hi I) (grabDartInt_mod_word I)
                   (by
                     intro h
-                    exact hUrnArtNegFailSolm (by
+                    exact hUrnArtNeg (by
                       simpa [grabUrnArtNegOk, grabUrnArtNew] using h))
               have hbody :=
                 vatGrabSourceBodyUrnArtRevertGuardNeg
@@ -11054,25 +10370,12 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                 (Or.inl (by simpa [grabUrnArtNegOk, grabUrnInkNew, grabAfterUrnInk,
                   grabUrnArtNew] using hUrnArtNeg))
               exact hrev.reEquivExecutionRevert hcode (vatDispatchGrab hsel) hdecode hbody
-          · have hInkOldEq :
-                solcSlotWord σ I (grabUrnInkSlot I) =
-                  solcSlotWord σ I (grabUrnInkSlot I) :=
-                accountMapEquiv_storage_findD rfl I.codeOwner
-                  (grabUrnInkSlot I) ⟨0⟩
-            have hInkNewEq : grabUrnInkNew σ I = grabUrnInkNew σ I := by
-              simp [grabUrnInkNew, hInkOldEq]
-            have hInkNegSolm : grabInkNegOk σ I := by
-              simpa [grabInkNegOk, hInkOldEq, hInkNewEq] using hInkNeg
-            have hInkPosFailSolm : ¬ grabInkPosOk σ I := by
-              intro hInkPosSolm
-              exact hInkPos (by
-                simpa [grabInkPosOk, hInkOldEq, hInkNewEq] using hInkPosSolm)
-            have hguardNeg :
+          · have hguardNeg :
                 0 ≤ grabDinkInt I ∨
                   (grabUrnInkNew σ I).toNat ≤
                     (vatSlotWord (grabUrnInkSlot I) σ I).toNat := by
               exact grabDinkAddGuardNegCond (by
-                simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNegSolm)
+                simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using hInkNeg)
             have hguardPos :
                 0 < grabDinkInt I ∧
                   (grabUrnInkNew σ I).toNat <
@@ -11081,7 +10384,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                 (grabDinkInt_lo I) (grabDinkInt_hi I) (grabDinkInt_mod_word I)
                 (by
                   intro h
-                  exact hInkPosFailSolm (by
+                  exact hInkPos (by
                     simpa [grabInkPosOk, grabUrnInkNew, vatSlotWord] using h))
             have hbody :=
               vatGrabSourceBodyUrnInkRevertGuardPos
@@ -11097,18 +10400,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                 (by simpa [grabInkNegOk, grabUrnInkNew] using hInkNeg),
                 (by simpa [grabInkPosOk, grabUrnInkNew] using hInkPos)⟩)
             exact hrev.reEquivExecutionRevert hcode (vatDispatchGrab hsel) hdecode hbody
-        · have hInkOldEq :
-              solcSlotWord σ I (grabUrnInkSlot I) =
-                solcSlotWord σ I (grabUrnInkSlot I) :=
-              accountMapEquiv_storage_findD rfl I.codeOwner
-                (grabUrnInkSlot I) ⟨0⟩
-          have hInkNewEq : grabUrnInkNew σ I = grabUrnInkNew σ I := by
-            simp [grabUrnInkNew, hInkOldEq]
-          have hInkNegFailSolm : ¬ grabInkNegOk σ I := by
-            intro hInkNegSolm
-            exact hInkNeg (by
-              simpa [grabInkNegOk, hInkOldEq, hInkNewEq] using hInkNegSolm)
-          have hguardNeg :
+        · have hguardNeg :
               grabDinkInt I < 0 ∧
                 (vatSlotWord (grabUrnInkSlot I) σ I).toNat <
                   (grabUrnInkNew σ I).toNat := by
@@ -11116,7 +10408,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
               (grabDinkInt_lo I) (grabDinkInt_hi I) (grabDinkInt_mod_word I)
               (by
                 intro h
-                exact hInkNegFailSolm (by
+                exact hInkNeg (by
                   simpa [grabInkNegOk, grabUrnInkNew, vatSlotWord] using h))
           have hbody :=
             vatGrabSourceBodyUrnInkRevertGuardNeg

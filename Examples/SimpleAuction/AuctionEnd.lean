@@ -917,7 +917,7 @@ theorem auctionEndAfterEndedState_accountMap (evm : EVM.State) :
     (auctionEndAfterEndedState evm).accountMap =
       sstoreAccountMap evm.executionEnv.codeOwner evm.accountMap ⟨5⟩
         (auctionEndSetEndedWord (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨5⟩)) := by
-  simp [auctionEndAfterEndedState, simpleAuctionStorageStore_accountMap]
+  simp [auctionEndAfterEndedState, storageStore_accountMap]
 
 theorem auctionEndAfterEndedState_executionEnv (evm : EVM.State) :
     (auctionEndAfterEndedState evm).executionEnv = evm.executionEnv := by

@@ -201,7 +201,7 @@ theorem uniswapMintFinishProportionalFeeOffCumulative
         (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) mem) + liquidity)
   have hMintAccounts : Eq σAfterMint postMint.accountMap := by
     simpa [postMint, σAfterMint, htotal] using
-      accountMapEquiv_mintFunctionPostState_of_runtimeMint
+      mintFunctionPostState_accountMap_eq_of_runtimeMint
         hPostAccountsFee henvFeeI (by rw [hmem]; omega)
         hfitSupplySource hbalanceFitSource
   have henvMint : postMint.executionEnv = I := by
@@ -210,7 +210,7 @@ theorem uniswapMintFinishProportionalFeeOffCumulative
   have hslot8 :
       Solm.EVM.storageLoad postMint postMint.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σAfterMint I := by
-    have hword := accountMapEquiv_storage_findD hMintAccounts I.codeOwner ⟨8⟩ ⟨0⟩
+    have hword := congrArg (fun m => uniswapSlotWord ⟨8⟩ m I) hMintAccounts
     simpa [postMint, uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, henvMint] using hword.symm
   have hreserve0Lt : reserve0.toNat < 2 ^ 112 := by
@@ -225,7 +225,7 @@ theorem uniswapMintFinishProportionalFeeOffCumulative
         (uniswapLockExitedState
           (syncUpdateCumulativePackedReserveStateWith
             postMint balance0 balance1 reserve0 reserve1)).accountMap :=
-    accountMapEquiv_syncUpdateCumulativeReturnMapWith hMintAccounts henvMint hslot8
+    syncUpdateCumulativeReturnMapWith_accounts_eq hMintAccounts henvMint hslot8
       hreserve0Lt hreserve1Lt
   have rdRet :
       RDret uniswapV2PairBytecode (Sat256.ofUInt256 g)
@@ -360,7 +360,7 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
         reserve112Mask)
   have hMintAccounts : Eq σAfterMint postMint.accountMap := by
     simpa [postMint, σAfterMint, htotal] using
-      accountMapEquiv_mintFunctionPostState_of_runtimeMint
+      mintFunctionPostState_accountMap_eq_of_runtimeMint
         hPostAccountsFee henvFeeI (by rw [hmem]; omega)
         hfitSupplySource hbalanceFitSource
   have henvMint : postMint.executionEnv = I := by
@@ -369,7 +369,7 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
   have hslot8 :
       Solm.EVM.storageLoad postMint postMint.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σAfterMint I := by
-    have hword := accountMapEquiv_storage_findD hMintAccounts I.codeOwner ⟨8⟩ ⟨0⟩
+    have hword := congrArg (fun m => uniswapSlotWord ⟨8⟩ m I) hMintAccounts
     simpa [postMint, uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, henvMint] using hword.symm
   have hreserve0Lt : reserve0.toNat < 2 ^ 112 := by
@@ -389,7 +389,7 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
     uniswapUpdateCumulativePackedWordWith σAfterMint I balance0 balance1 reserve0 reserve1
   have hP1Accounts : Eq σP1 evmP1.accountMap := by
     simpa [σP1, evmP0, evmP1] using
-      accountMapEquiv_uniswapUpdatePrice1CumulativeMapWith hMintAccounts henvMint hslot8
+      uniswapUpdatePrice1CumulativeMapWith_accounts_eq hMintAccounts henvMint hslot8
         hreserve0Lt hreserve1Lt
   have henvP0 : evmP0.executionEnv = I := by
     simp [evmP0, storageStore_executionEnv, henvMint]
@@ -398,7 +398,7 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
   have hslot8P1 :
       Solm.EVM.storageLoad evmP1 evmP1.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σP1 I := by
-    have h := accountMapEquiv_storage_findD hP1Accounts I.codeOwner ⟨8⟩ ⟨0⟩
+    have h := congrArg (fun m => uniswapSlotWord ⟨8⟩ m I) hP1Accounts
     simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       uniswapSlotWord, henvP1] at h ⊢
     exact h.symm
@@ -406,7 +406,7 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
       Eq
         (sstoreAccountMap I.codeOwner σP1 ⟨8⟩ packedCumulative)
         (syncUpdatePackedReserveState evmP1 balance0 balance1).accountMap :=
-    accountMapEquiv_syncUpdatePackedReserveState hP1Accounts henvP1 hslot8P1
+    syncUpdatePackedReserveState_accountMap_eq hP1Accounts henvP1 hslot8P1
       (by simp [packedCumulative, uniswapUpdateCumulativePackedWordWith, σP1])
   have hPackedAccounts : Eq σCumulative syncState.accountMap := by
     simpa [σCumulative, syncState, uniswapUpdateCumulativePackedMapWith,
@@ -419,7 +419,7 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
   have hslot8Sync :
       Solm.EVM.storageLoad syncState syncState.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σCumulative I := by
-    have hword := accountMapEquiv_storage_findD hPackedAccounts I.codeOwner ⟨8⟩ ⟨0⟩
+    have hword := congrArg (fun m => uniswapSlotWord ⟨8⟩ m I) hPackedAccounts
     simpa [syncState, uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, henvSync] using hword.symm
   have hsyncReserve0 :
@@ -442,8 +442,7 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
   have hKLastAccounts :
       Eq (sstoreAccountMap I.codeOwner σCumulative ⟨11⟩ kLastWord)
         (mintKLastUpdatedState syncState).accountMap := by
-    have hs := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨11⟩ kLastWord
-      hPackedAccounts
+    have hs := congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨11⟩ kLastWord) hPackedAccounts
     simpa [mintKLastUpdatedState, storageStore_accountMap, henvSync, hkLastValue] using hs
   have hAccountsRet :
       Eq
@@ -451,7 +450,7 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
           (sstoreAccountMap I.codeOwner σCumulative ⟨11⟩ kLastWord) ⟨12⟩
           (⟨1⟩ : UInt256))
         (uniswapLockExitedState (mintKLastUpdatedState syncState)).accountMap := by
-    have hs := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩ hKLastAccounts
+    have hs := congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨12⟩ ⟨1⟩) hKLastAccounts
     simpa [uniswapLockExitedState, uniswapUnlockedState, storageStore_accountMap,
       storageStore_executionEnv, mintKLastUpdatedState, henvSync] using hs
   have rdRet :
@@ -584,7 +583,7 @@ theorem uniswapMintFinishProportionalFeeOnKLastUpdated
         reserve112Mask)
   have hMintAccounts : Eq σAfterMint postMint.accountMap := by
     simpa [postMint, σAfterMint, htotal] using
-      accountMapEquiv_mintFunctionPostState_of_runtimeMint
+      mintFunctionPostState_accountMap_eq_of_runtimeMint
         hPostAccountsFee henvFeeI (by rw [hmem]; omega)
         hfitSupplySource hbalanceFitSource
   have henvMint : postMint.executionEnv = I := by
@@ -593,18 +592,18 @@ theorem uniswapMintFinishProportionalFeeOnKLastUpdated
   have hslot8 :
       Solm.EVM.storageLoad postMint postMint.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σAfterMint I := by
-    have hword := accountMapEquiv_storage_findD hMintAccounts I.codeOwner ⟨8⟩ ⟨0⟩
+    have hword := congrArg (fun m => uniswapSlotWord ⟨8⟩ m I) hMintAccounts
     simpa [postMint, uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, henvMint] using hword.symm
   have hPackedAccounts : Eq σPacked syncState.accountMap := by
-    exact accountMapEquiv_syncUpdatePackedReserveState hMintAccounts henvMint hslot8 rfl
+    exact syncUpdatePackedReserveState_accountMap_eq hMintAccounts henvMint hslot8 rfl
   have henvSync : syncState.executionEnv = I := by
     simp [syncState, postMint, syncUpdatePackedReserveState, henvMint,
       storageStore_executionEnv]
   have hslot8Sync :
       Solm.EVM.storageLoad syncState syncState.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σPacked I := by
-    have hword := accountMapEquiv_storage_findD hPackedAccounts I.codeOwner ⟨8⟩ ⟨0⟩
+    have hword := congrArg (fun m => uniswapSlotWord ⟨8⟩ m I) hPackedAccounts
     simpa [syncState, uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, henvSync] using hword.symm
   have hsyncReserve0 :
@@ -627,15 +626,14 @@ theorem uniswapMintFinishProportionalFeeOnKLastUpdated
   have hKLastAccounts :
       Eq (sstoreAccountMap I.codeOwner σPacked ⟨11⟩ kLastWord)
         (mintKLastUpdatedState syncState).accountMap := by
-    have hs := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨11⟩ kLastWord
-      hPackedAccounts
+    have hs := congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨11⟩ kLastWord) hPackedAccounts
     simpa [mintKLastUpdatedState, storageStore_accountMap, henvSync, hkLastValue] using hs
   have hAccountsRet :
       Eq
         (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σPacked ⟨11⟩ kLastWord) ⟨12⟩ (⟨1⟩ : UInt256))
         (uniswapLockExitedState (mintKLastUpdatedState syncState)).accountMap := by
-    have hs := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩ hKLastAccounts
+    have hs := congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨12⟩ ⟨1⟩) hKLastAccounts
     simpa [uniswapLockExitedState, uniswapUnlockedState, storageStore_accountMap,
       storageStore_executionEnv, mintKLastUpdatedState, henvSync] using hs
   have rdRet :
@@ -1538,7 +1536,7 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveWithLiquidityCase
     exact uint256_toNat_eq_zero hzero
   have hPostAfterFee : Eq σAfterFee evmAfterFee.accountMap := by
     have hraw :=
-      accountMapEquiv_mintFunctionPostState_of_runtimeMintRecipient
+      mintFunctionPostState_accountMap_eq_of_runtimeMintRecipient
         (σ := σFee) (evm := evmFeeS) (I := I) (mem := memFee)
         (liquidity := feeLiquidity) (recipientWord := feeToWord) (recipient := feeTo)
         hPostAccountsFee henvFeeI
@@ -1555,7 +1553,7 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveWithLiquidityCase
   have htotalEqAfterFee :
       mintFunctionTotalSupplyWord evmAfterFee = totalSupply := by
     have hslot :=
-      mintFunctionTotalSupplyWord_eq_slot_of_accountMapEquiv hPostAfterFee henvAfterFee
+      mintFunctionTotalSupplyWord_eq_slot hPostAfterFee henvAfterFee
     exact hslot.trans htotalSlot
   have htotalSourceNonzero : mintFunctionTotalSupplyWord evmAfterFee ≠ ⟨0⟩ := by
     intro hzero

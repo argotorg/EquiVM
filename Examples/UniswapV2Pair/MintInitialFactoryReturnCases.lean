@@ -971,7 +971,8 @@ theorem uniswapMintInitialFeeOffKLastNonzeroReturnFromFactoryWitnessCase
     rw [← hkLastEq]
     exact uint256_toNat_eq_zero hzero
   have hPostCleared : Eq σCleared evmAfterFee.accountMap := by
-    have hstore := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨11⟩ ⟨0⟩
+    have hstore := congrArg
+      (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨11⟩ ⟨0⟩)
       hPostAccountsFee
     simpa [σCleared, evmAfterFee, mintFeeKLastClearedState, henvFeeI,
       storageStore_accountMap] using hstore

@@ -162,7 +162,7 @@ theorem flipperDentBodyFrom4733Refund
             true := by
         simpa [evm0Evm, evmRefundEvm] using hcallRefundEvmRaw
       obtain ⟨σ_ref_solm, A_ref_solm, hcallRefundSolmRaw, hRefundStateEquiv⟩ :=
-        flipper_typedCallViaEVM_sameInputs
+        typedCallViaEVM_sameInputs_stateEquiv
           (evm_solm := evm0Solm) hcallRefundEvm
           rfl
           (by simp [evm0Evm, evm0Solm, initState])
@@ -303,7 +303,7 @@ theorem flipperDentBodyFrom4733Refund
           have hfluxZeroSolm :
               Reasoning.Theory.extCodeSizeWord evmGuySolm.accountMap
                 (flipperVatTargetWord evmGuySolm.accountMap I) = ⟨0⟩ :=
-            flipperVatCodeSize_zero_accountMapEquiv hGuyStateEquiv.accountMap hfluxZeroEvm
+            by rw [← hGuyStateEquiv.accountMap]; exact hfluxZeroEvm
           have hfluxNoCodeSolm :
               (UInt256.ofNat
                 ((evmGuySolm.lookupAccount
@@ -337,7 +337,7 @@ theorem flipperDentBodyFrom4733Refund
           have hfluxNeSolm :
               Reasoning.Theory.extCodeSizeWord evmGuySolm.accountMap
                 (flipperVatTargetWord evmGuySolm.accountMap I) ≠ ⟨0⟩ :=
-            flipperVatCodeSize_ne_zero_accountMapEquiv hGuyStateEquiv.accountMap hfluxNeEvm
+            by rw [← hGuyStateEquiv.accountMap]; exact hfluxNeEvm
           have hfluxCodeSolm :
               0 <
                 (UInt256.ofNat
@@ -358,10 +358,9 @@ theorem flipperDentBodyFrom4733Refund
               substate := A_ref
               }
           have hGuyCallStateEquiv : EVMStateEquiv evmGuyCallEvm evmGuySolm := by
-            refine ⟨?_, ?_, ?_⟩
+            refine ⟨?_, ?_⟩
             · simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Evm, evm0Solm,
                 storageStore_executionEnv, initState]
-            · simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Solm,
             · simpa [evmGuyCallEvm, hmapGuyEvm] using hGuyStateEquiv.accountMap
           obtain ⟨σ_flux, zFlux, outFlux, A_flux, k5053, C5053, rd5053,
               hcallFluxEvmRaw, houtFlux⟩ :=
@@ -380,11 +379,11 @@ theorem flipperDentBodyFrom4733Refund
                 (zFlux, evmFluxEvm, outFlux) true := by
             simpa [evmFluxEvm, evmGuyCallEvm, evm0Evm] using hcallFluxEvmRaw
           obtain ⟨σ_flux_solm, A_flux_solm, hcallFluxSolmRaw, hFluxStateEquiv⟩ :=
-            flipper_typedCallViaEVM_sameInputs
+            typedCallViaEVM_sameInputs_stateEquiv
               (evm_solm := evmGuySolm) hcallFluxEvm hGuyCallStateEquiv.accountMap
               (by simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Evm, evm0Solm,
                 tend_storageStore_sigma0, initState])
-              (by simpa using hGuyCallStateEquiv.executionEnv.symm)
+              hGuyCallStateEquiv.executionEnv
           let evmFluxSolm : EVM.State :=
             { evmGuySolm with
               accountMap := σ_flux_solm
@@ -395,8 +394,7 @@ theorem flipperDentBodyFrom4733Refund
                   (flipperVatAddress evmGuyCallEvm.accountMap evmGuyCallEvm.executionEnv) =
                 EVM.address
                   (flipperVatAddress evmGuySolm.accountMap evmGuySolm.executionEnv) := by
-            rw [hGuyCallStateEquiv.executionEnv]
-            rw [flipperVatAddress_accountMapEquiv hGuyCallStateEquiv.accountMap]
+            rw [hGuyCallStateEquiv.executionEnv, hGuyCallStateEquiv.accountMap]
           have hfluxArgsEq :
               dentFluxArgValsOf evmGuyCallEvm I = dentFluxArgValsOf evmGuySolm I := by
             have hloadIlk :
@@ -497,8 +495,8 @@ theorem flipperDentBodyFrom4733Refund
                 storageStore_accountMap, storageStore_executionEnv, initState]
             have httlEq :
                 tendTtlWord evmLotEvm.accountMap I = tendTtlWord evmLotSolm.accountMap I := by
-              unfold tendTtlWord flipperUint48Offset0Word flipperSlotWord solcSlotWord
-              rw [accountMapEquiv_storage_findD hLotStateEquiv.accountMap I.codeOwner ⟨5⟩ ⟨0⟩]
+              exact congrArg (fun accounts => tendTtlWord accounts I)
+                hLotStateEquiv.accountMap
             have httlEvmMap :
                 tendTtlWord evmLotEvm.accountMap I =
                   tendTtlWord (dentAfterLotMap σ_flux I) I := by
@@ -589,13 +587,12 @@ theorem flipperDentBodyFrom4733Refund
                 simpa [evmTicEvm, hmapLotEvm, hownerLot, tendStoreTicMap,
                   tendStoredTicWord, flipperSlotWord, solcSlotWord, Solm.EVM.storageLoad,
                   State.lookupAccount, Account.lookupStorage, storageStore_accountMap, dentId,
-                  tendId]
-                  rfl
+                  tendId] using rfl
               have henc : returnEquiv ByteArray.empty none dentTransition.returnType := by
                 rw [show dentTransition.returnType = [] by rfl]
                 exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-              exact hret.reEquivExecutionGenEVMStateEquiv hcode hdispatch hdecode hbody
-                hAccountsRet hTicStateEquiv henc
+              exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+                (hAccountsRet.trans hTicStateEquiv.accountMap) henc
             · have hoverTicEvm :
                   2 ^ 48 ≤
                     (tendNow48 I).toNat +

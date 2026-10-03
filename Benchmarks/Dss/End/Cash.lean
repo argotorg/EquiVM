@@ -2550,40 +2550,6 @@ theorem evalExpr_endCash_vat {locals : Store} (evm : EVM.State)
     (hloc := by rfl)
     (hload := endStorageLocLoad_address_offset0 evm ⟨1⟩)
 
-theorem endCashVatWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    endCashVatWord σ I = endCashVatWord τ I := by
-  simp [endCashVatWord, endSlotWord, solcSlotWord,
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩]
-
-theorem endCashVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ)
-    (hzero :
-      Reasoning.Theory.extCodeSizeWord σ (endCashVatWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endCashVatWord τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endCashVatWord σ I)
-  have htarget : endCashVatWord σ I = endCashVatWord τ I :=
-    endCashVatWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame]
-  exact hzero
-
-theorem endCashVatCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ)
-    (hne :
-      Reasoning.Theory.extCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endCashVatWord τ I) ≠ ⟨0⟩ := by
-  intro hzero
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endCashVatWord σ I)
-  have htarget : endCashVatWord σ I = endCashVatWord τ I :=
-    endCashVatWord_accountMapEquiv hAccounts
-  rw [hsame, htarget]
-  exact hzero
-
 theorem endCashVatAddr_eq_ofUInt256 (σ : AccountMap) (I : ExecutionEnv) :
     endCashVatAddr σ I = AccountAddress.ofUInt256 (endCashVatWord σ I) := by
   simpa [endCashVatAddr] using
@@ -3732,9 +3698,7 @@ theorem endCashBody {σ σ₀ A I} {g : UInt256}
     obtain ⟨_, _, hbodyReach⟩ :=
       endCashX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
     let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hfixCouple : endCashFixWord σ I = endCashFixWord σ I := by
-      simpa [endCashFixWord, endSlotWord] using
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (endCashFixSlot I) ⟨0⟩
+    have hfixCouple : endCashFixWord σ I = endCashFixWord σ I := rfl
     by_cases hfix : endCashFixWord σ I = ⟨0⟩
     · have hfixSolm : endCashFixWord σ I = ⟨0⟩ := by
         rw [← hfixCouple]
@@ -3781,7 +3745,7 @@ theorem endCashBody {σ σ₀ A I} {g : UInt256}
         · have hvatCodeSolm :
               Reasoning.Theory.extCodeSizeWord σ
                 (endCashVatWord σ I) = ⟨0⟩ :=
-            endCashVatCodeSize_zero_accountMapEquiv hAccounts hvatCode
+            hvatCode
           have hbody :
               ExecTransitionBody config contract evmSolm (endCashStore I)
                 cashTransition.body .reverted := by
@@ -3798,7 +3762,7 @@ theorem endCashBody {σ σ₀ A I} {g : UInt256}
           have hvatCodeSolmNE :
               Reasoning.Theory.extCodeSizeWord σ
                 (endCashVatWord σ I) ≠ ⟨0⟩ :=
-            endCashVatCodeSize_ne_accountMapEquiv hAccounts hvatCodeNE
+            hvatCodeNE
           obtain ⟨gasWord, _, _, hcallReady⟩ :=
             endCashX_fluxCallReady (g := Sat256.ofUInt256 g) hafterRmul hvatCodeNE
           by_cases hdepthLt : I.depth.val < 1024
@@ -3859,13 +3823,8 @@ theorem endCashBody {σ σ₀ A I} {g : UInt256}
                 (endCashFluxEncode_eq σ I (endCashAmtWord σ I)
                   hsz68 (endCashFixHashMem2_size I))
                 (by simpa [initState, hperm] using hΘeq)
-            obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hStateCall⟩ :=
-              typedCallViaEVM_initState_EVMStateEquiv (hcall := hcallEvm)
-                (by simp [initState]) hAccounts
-            have hVatAddr : endCashVatAddr σ I = endCashVatAddr σ I := by
-              simp [endCashVatAddr, endCashVatWord_accountMapEquiv hAccounts]
-            have hAmtWord : endCashAmtWord σ I = endCashAmtWord σ I := by
-              simp [endCashAmtWord, hfixCouple]
+            let σ'_solm := σ'
+            let A'_solm := A'
             have hcallSolm :
                 typedCallViaEVM config evmSolm
                   (EVM.address (endCashVatAddr σ I)) "flux" 0
@@ -3877,7 +3836,7 @@ theorem endCashBody {σ σ₀ A I} {g : UInt256}
                       accountMap := σ'_solm
                       substate := A'_solm },
                     out) true := by
-              simpa [evmSolm, hVatAddr, hAmtWord] using hcallSolmRaw
+              simpa [evmSolm, σ'_solm, A'_solm] using hcallEvm
             cases z
             · have hbody :
                   ExecTransitionBody config contract evmSolm (endCashStore I)
@@ -3909,9 +3868,9 @@ theorem endCashBody {σ σ₀ A I} {g : UInt256}
                   endCashOutWord σ' I =
                     Solm.EVM.storageLoad evmFluxSolm evmFluxSolm.executionEnv.codeOwner
                       (endCashOutSlot I) := by
-                have hload := hStateCall.storageLoad_codeOwner (endCashOutSlot I)
-                simpa [evmFluxEvm, evmFluxSolm, initState, Solm.EVM.storageLoad,
-                  State.lookupAccount, endCashOutWord, endSlotWord, solcSlotWord] using hload
+                simp [evmFluxEvm, evmFluxSolm, evmSolm, σ'_solm, initState,
+                  Solm.EVM.storageLoad, State.lookupAccount, endCashOutWord,
+                  Account.lookupStorage, endSlotWord, solcSlotWord]
               obtain ⟨_, _, rdAddEntry⟩ := endCashX_outAddEntry (g := g) hsz68 rd9855
               by_cases hoverAdd :
                   UInt256.size ≤
@@ -3960,12 +3919,16 @@ theorem endCashBody {σ σ₀ A I} {g : UInt256}
                     hperm hsz68 rdAddReturn'
                 have houtNewCouple : outNew = outNewSolm := by
                   simp [outNew, outNewSolm, outWordSolm, houtCouple]
+                have hStateFlux : EVMStateEquiv evmFluxEvm evmFluxSolm := by
+                  constructor <;>
+                    simp [evmFluxEvm, evmFluxSolm, evmSolm, σ'_solm,
+                      A'_solm, initState]
                 have hStatePost :
                     EVMStateEquiv (endCashPostState evmFluxEvm I outNew)
                       (endCashPostState evmFluxSolm I outNewSolm) := by
-                  simpa [evmFluxEvm, evmFluxSolm, endCashPostState, houtNewCouple] using
-                    hStateCall.storageStore_codeOwner (endCashOutSlot I) (val₁ := outNew)
-                      (val₂ := outNewSolm) houtNewCouple
+                  simpa [endCashPostState] using
+                    hStateFlux.storageStore_codeOwner (endCashOutSlot I)
+                      (val₁ := outNew) (val₂ := outNewSolm) houtNewCouple
                 have hbagPostEvm :
                     Solm.EVM.storageLoad (endCashPostState evmFluxEvm I outNew)
                       (endCashPostState evmFluxEvm I outNew).executionEnv.codeOwner
@@ -4036,18 +3999,14 @@ theorem endCashBody {σ σ₀ A I} {g : UInt256}
                         hwv hsz68 hfixSolm hfitSolm hvatCodeSolmNE
                         (by simpa [evmFluxSolm, evmSolm] using hcallSolm)
                         hsrcFlux hfitAddSolm hleSolm
-                  exact hret.reEquivExecutionGenEVMStateEquiv
-                    (evm'_evm := endCashPostState evmFluxEvm I outNew)
-                    (evm'_solm := endCashPostState evmFluxSolm I outNewSolm)
+                  have hAccountsPost :
+                      endCashPostAccountMap σ' I outNew =
+                        (endCashPostState evmFluxEvm I outNew).accountMap := by
+                    simp [endCashPostAccountMap, evmFluxEvm, endCashPostState,
+                      initState, storageStore_accountMap]
+                  exact hret.reEquivExecutionGenAccountMapEquiv
                     hcode hdispatch hdecode hbody
-                    (by
-                      simp [evmFluxEvm, endCashPostState, initState,
-                        ])
-                    (by
-                      simpa [evmFluxEvm, endCashPostState, initState,
-                        storageStore_accountMap, endCashPostAccountMap] using
-                          Eq.refl (endCashPostAccountMap σ' I outNew))
-                    hStatePost
+                    (hAccountsPost.trans hStatePost.accountMap)
                     (by
                       simpa [cashTransition] using
                         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none)

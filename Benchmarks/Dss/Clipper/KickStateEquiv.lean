@@ -12,16 +12,14 @@ set_option linter.unusedTactic false
 
 /-! Relate the compiler's account-map updates to the source interpreter's state updates. -/
 
-theorem clipperKickSlotWord_eq_of_accountMapEquiv
+theorem clipperKickSlotWord_eq_of_accounts_eq
     {σ : AccountMap} (evm : EVM.State) (I : ExecutionEnv) (slot : UInt256)
     (henv : evm.executionEnv = I)
     (hAccounts : σ = evm.accountMap) :
-    solcSlotWord σ I slot =
+  solcSlotWord σ I slot =
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot := by
-  have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  rw [henv]
-  simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-    solcSlotWord] using hslot
+  simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+    solcSlotWord, henv, hAccounts]
 
 theorem clipperKickSalesBaseSlot_eq (evm : EVM.State) (σ : AccountMap)
     (I : ExecutionEnv)
@@ -73,10 +71,7 @@ theorem clipperKickSetAddressWord_eq (old data : UInt256) :
     _ = UInt256.lor (UInt256.land old (UInt256.lnot solcAddrMask))
           (UInt256.land data solcAddrMask) := u256_lor_comm _ _
 
-theorem clipperKickAccountMapEquiv_trans {σ τ υ : AccountMap}
-    (hστ : σ = τ) (hτυ : τ = υ) : σ = υ := hστ.trans hτυ
-
-theorem clipperKickInitializedState_accountMapEquiv
+theorem clipperKickInitializedState_accounts_eq
     {σ : AccountMap} (evm : EVM.State) (I : ExecutionEnv)
     (henv : evm.executionEnv = I)
     (hpresent : ∃ acc, evm.accountMap.find? I.codeOwner = some acc)
@@ -99,7 +94,7 @@ theorem clipperKickInitializedState_accountMapEquiv
   have howner : evm.executionEnv.codeOwner = I.codeOwner := by rw [henv]
   have hid : clipperKickSourceIdWord evm = clipperKickIdWord σ I := by
     rw [clipperKickSourceIdWord, clipperKickIdWord,
-      ← clipperKickSlotWord_eq_of_accountMapEquiv evm I ⟨10⟩ henv hAccounts]
+      ← clipperKickSlotWord_eq_of_accounts_eq evm I ⟨10⟩ henv hAccounts]
   have henvId : evmId.executionEnv = I := by
     simp [evmId, clipperKickSourceIdState, storageStore_executionEnv, henv]
   have hownerId : evmId.executionEnv.codeOwner = I.codeOwner :=
@@ -107,13 +102,13 @@ theorem clipperKickInitializedState_accountMapEquiv
   have hId : σId = evmId.accountMap := by
     simpa [σId, evmId, clipperKickIdMap, clipperKickSourceIdState,
       storageStore_accountMap, howner, hid] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner ⟨10⟩
-        (clipperKickIdWord σ I) hAccounts
+      congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨10⟩
+        (clipperKickIdWord σ I)) hAccounts
   have hlen : clipperKickSourceActiveLengthWord evm =
       clipperKickActiveLengthWord σ I := by
     simpa [clipperKickSourceActiveLengthWord, clipperKickActiveLengthWord,
       evmId, σId, howner, hownerId] using
-      (clipperKickSlotWord_eq_of_accountMapEquiv evmId I ⟨11⟩ henvId hId).symm
+      (clipperKickSlotWord_eq_of_accounts_eq evmId I ⟨11⟩ henvId hId).symm
   have henvLen : evmLen.executionEnv = I := by
     dsimp only [evmLen]
     rw [clipperKickSourceActiveLengthState, storageStore_executionEnv]
@@ -121,8 +116,8 @@ theorem clipperKickInitializedState_accountMapEquiv
   have hLen : σLen = evmLen.accountMap := by
     simpa [σLen, σId, evmLen, evmId, clipperKickActiveLengthMap,
       clipperKickSourceActiveLengthState, storageStore_accountMap, henvId,
-      hlen] using accountMapEquiv_sstoreAccountMap I.codeOwner ⟨11⟩
-        (clipperKickActiveLengthWord σ I + ⟨1⟩) hId
+      hlen] using congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨11⟩
+        (clipperKickActiveLengthWord σ I + ⟨1⟩)) hId
   have helem : clipperKickSourceActiveElemSlot evm =
       clipperKickActiveElemSlot σ I := by
     simp only [clipperKickSourceActiveElemSlot, clipperKickActiveElemSlot, hlen]
@@ -134,13 +129,13 @@ theorem clipperKickInitializedState_accountMapEquiv
   have hActive : σActive = evmActive.accountMap := by
     simpa [σActive, σLen, evmActive, evmLen, clipperKickActiveMap,
       clipperKickSourceActiveState, storageStore_accountMap, henvLen,
-      helem, hid] using accountMapEquiv_sstoreAccountMap I.codeOwner
-        (clipperKickActiveElemSlot σ I) (clipperKickIdWord σ I) hLen
+      helem, hid] using congrArg (fun m => sstoreAccountMap I.codeOwner m
+        (clipperKickActiveElemSlot σ I) (clipperKickIdWord σ I)) hLen
   have hpostLen : clipperKickSourcePostPushLengthWord evm =
       clipperKickPostPushLengthWord σ I := by
     simpa [clipperKickSourcePostPushLengthWord, clipperKickPostPushLengthWord,
       evmActive, σActive, henvActive] using
-      (clipperKickSlotWord_eq_of_accountMapEquiv evmActive I ⟨11⟩
+      (clipperKickSlotWord_eq_of_accounts_eq evmActive I ⟨11⟩
         henvActive hActive).symm
   have hpos : clipperKickSourceActivePosWord evm =
       clipperKickActivePosWord σ I := by
@@ -155,8 +150,8 @@ theorem clipperKickInitializedState_accountMapEquiv
   have hPos : σPos = evmPos.accountMap := by
     simpa [σPos, σActive, evmPos, evmActive, clipperKickSalesPosMap,
       clipperKickSourceSalesPosState, storageStore_accountMap, henvActive,
-      hbase, hpos] using accountMapEquiv_sstoreAccountMap I.codeOwner
-        (clipperKickSalesBaseSlot σ I) (clipperKickActivePosWord σ I) hActive
+      hbase, hpos] using congrArg (fun m => sstoreAccountMap I.codeOwner m
+        (clipperKickSalesBaseSlot σ I) (clipperKickActivePosWord σ I)) hActive
   have henvTab : evmTab.executionEnv = I := by
     dsimp only [evmTab]
     rw [clipperKickSourceSalesTabState, storageStore_executionEnv]
@@ -164,8 +159,8 @@ theorem clipperKickInitializedState_accountMapEquiv
   have hTab : σTab = evmTab.accountMap := by
     simpa [σTab, σPos, evmTab, evmPos, clipperKickSalesTabMap,
       clipperKickSourceSalesTabState, storageStore_accountMap, henvPos,
-      hbase] using accountMapEquiv_sstoreAccountMap I.codeOwner
-        (clipperKickSalesBaseSlot σ I + ⟨1⟩) (clipperKickTabWord I) hPos
+      hbase] using congrArg (fun m => sstoreAccountMap I.codeOwner m
+        (clipperKickSalesBaseSlot σ I + ⟨1⟩) (clipperKickTabWord I)) hPos
   have henvLot : evmLot.executionEnv = I := by
     dsimp only [evmLot]
     rw [clipperKickSourceSalesLotState, storageStore_executionEnv]
@@ -173,8 +168,8 @@ theorem clipperKickInitializedState_accountMapEquiv
   have hLot : σLot = evmLot.accountMap := by
     simpa [σLot, σTab, evmLot, evmTab, clipperKickSalesLotMap,
       clipperKickSourceSalesLotState, storageStore_accountMap, henvTab,
-      hbase] using accountMapEquiv_sstoreAccountMap I.codeOwner
-        (clipperKickSalesBaseSlot σ I + ⟨2⟩) (clipperKickLotWord I) hTab
+      hbase] using congrArg (fun m => sstoreAccountMap I.codeOwner m
+        (clipperKickSalesBaseSlot σ I + ⟨2⟩) (clipperKickLotWord I)) hTab
   obtain ⟨acc0, hacc0⟩ := hpresent
   have hacc0' : evm.accountMap.find? evm.executionEnv.codeOwner = some acc0 := by
     simpa [howner] using hacc0
@@ -212,7 +207,7 @@ theorem clipperKickInitializedState_accountMapEquiv
     simp [slot, clipperKickPackedSlot, hbase, u256_add_comm]
   have hold : Solm.EVM.storageLoad evmLot evmLot.executionEnv.codeOwner
       (clipperKickSourceSalesBaseSlot evm + ⟨3⟩) = old := by
-    have hread := clipperKickSlotWord_eq_of_accountMapEquiv evmLot I slot henvLot hLot
+    have hread := clipperKickSlotWord_eq_of_accounts_eq evmLot I slot henvLot hLot
     simpa [old, hsourceSlot] using hread.symm
   have hold' : Solm.EVM.storageLoad evmLot I.codeOwner slot = old := by
     simpa [henvLot, hsourceSlot] using hold
@@ -224,7 +219,7 @@ theorem clipperKickInitializedState_accountMapEquiv
     dsimp only [σUsr, evmUsr]
     rw [clipperKickSourceSalesUsrState, storageStore_accountMap, henvLot,
       hsourceSlot, hold']
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner slot usrVal hLot
+    exact congrArg (fun m => sstoreAccountMap I.codeOwner m slot usrVal) hLot
   have haccLot' : evmLot.accountMap.find? evmLot.executionEnv.codeOwner = some accLot := by
     dsimp only [evmLot]
     rw [clipperKickSourceSalesLotState, storageStore_executionEnv]
@@ -276,19 +271,19 @@ theorem clipperKickInitializedState_accountMapEquiv
       = (clipperKickSourceInitializedState evm I).accountMap := by
     rw [clipperKickSourceInitializedState]
     rw [storageStore_accountMap, henvUsr, hsourceSlot, hpacked']
-    exact accountMapEquiv_sstoreAccountMap I.codeOwner slot
-      (clipperKickPackedWord σ I) hUsr
+    exact congrArg (fun m => sstoreAccountMap I.codeOwner m slot
+      (clipperKickPackedWord σ I)) hUsr
   have hOverwrite :
       (sstoreAccountMap I.codeOwner σLot slot (clipperKickPackedWord σ I))
       = (sstoreAccountMap I.codeOwner σUsr slot (clipperKickPackedWord σ I)) := by
-    simpa [σUsr] using accountMapEquiv_sstoreAccountMap_self_update
+    simpa [σUsr] using sstoreAccountMap_self_update
       σLot I.codeOwner slot usrVal (clipperKickPackedWord σ I)
   change
     (sstoreAccountMap I.codeOwner σLot slot (clipperKickPackedWord σ I))
     = (clipperKickSourceInitializedState evm I).accountMap
-  exact clipperKickAccountMapEquiv_trans hOverwrite hFinalFromUsr
+  exact hOverwrite.trans hFinalFromUsr
 
-theorem clipperKickTopState_accountMapEquiv
+theorem clipperKickTopState_accounts_eq
     {σ : AccountMap} (evmLock evm : EVM.State) (I : ExecutionEnv)
     (id top : UInt256)
     (henv : evm.executionEnv = I)
@@ -299,16 +294,16 @@ theorem clipperKickTopState_accountMapEquiv
       (clipperKickSourceTopState evmLock evm top).accountMap := by
   simpa [clipperKickTopMap, clipperKickSourceTopState,
     storageStore_accountMap, henv, hslot] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner (clipperKickTopSlot id) top
-      hAccounts
+    congrArg (fun m => sstoreAccountMap I.codeOwner m
+      (clipperKickTopSlot id) top) hAccounts
 
-theorem clipperKickUnlockedState_accountMapEquiv
+theorem clipperKickUnlockedState_accounts_eq
     {σ : AccountMap} (evm : EVM.State) (I : ExecutionEnv)
     (henv : evm.executionEnv = I)
     (hAccounts : σ = evm.accountMap) :
     sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨0⟩ =
       (Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨13⟩ ⟨0⟩).accountMap := by
   simpa [storageStore_accountMap, henv] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner ⟨13⟩ ⟨0⟩ hAccounts
+    congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨13⟩ ⟨0⟩) hAccounts
 
 end Benchmarks.Dss.Clipper

@@ -32,13 +32,13 @@ theorem burnFunctionFromBalanceWord_eq_runtime
     (hholder : holder = AccountAddress.ofNat holderWord.toNat) :
     burnFunctionFromBalanceWord evm holder = uniswapCodeOwnerStorageWord I σ
       (mapSlot (UInt256.land holderWord solcAddrMask) ⟨1⟩) := by
-  have hword := accountMapEquiv_storage_findD hAccounts I.codeOwner
-    (mapSlot (UInt256.land holderWord solcAddrMask) ⟨1⟩) ⟨0⟩
+  have hword := congrArg (fun accounts => uniswapCodeOwnerStorageWord I accounts
+    (mapSlot (UInt256.land holderWord solcAddrMask) ⟨1⟩)) hAccounts
   simpa [burnFunctionFromBalanceWord, uniswapCodeOwnerStorageWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage, henv,
     burnFunctionFromSlot_eq_runtime holder holderWord hholder] using hword.symm
 
-theorem accountMapEquiv_burnFunctionAfterBalanceState
+theorem burnRuntimeBalanceMap_eq_afterBalanceState
     {σ : AccountMap} {I : ExecutionEnv} {evm : EVM.State}
     {holder : AccountAddress} {holderWord value : UInt256}
     (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
@@ -51,10 +51,10 @@ theorem accountMapEquiv_burnFunctionAfterBalanceState
       UInt256.sub (burnFunctionFromBalanceWord evm holder) value := by
     unfold burnFunctionBalanceDebitWord
     rw [← usub_toNat hbalance, u256_ofNat_toNat]
-  have hstore := accountMapEquiv_sstoreAccountMap I.codeOwner
+  have hstore := congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
     (mapSlot (UInt256.land holderWord solcAddrMask) ⟨1⟩)
     (UInt256.sub (uniswapCodeOwnerStorageWord I σ
-      (mapSlot (UInt256.land holderWord solcAddrMask) ⟨1⟩)) value) hAccounts
+      (mapSlot (UInt256.land holderWord solcAddrMask) ⟨1⟩)) value)) hAccounts
   simpa [burnRuntimeBalanceMap, burnFunctionAfterBalanceState, storageStore_accountMap,
     henv, burnFunctionFromSlot_eq_runtime holder holderWord hholder, hdebit, hword] using hstore
 
@@ -66,12 +66,12 @@ theorem burnFunctionTotalSupplyWord_eq_runtime
     (hbalance : value.toNat ≤ (burnFunctionFromBalanceWord evm holder).toNat) :
     burnFunctionTotalSupplyWord evm holder value =
       uniswapCodeOwnerStorageWord I (burnRuntimeBalanceMap σ I holderWord value) ⟨0⟩ := by
-  have hpost := accountMapEquiv_burnFunctionAfterBalanceState hAccounts henv hholder hbalance
-  have hword := accountMapEquiv_storage_findD hpost I.codeOwner ⟨0⟩ ⟨0⟩
+  have hpost := burnRuntimeBalanceMap_eq_afterBalanceState hAccounts henv hholder hbalance
+  have hword := congrArg (fun accounts => uniswapCodeOwnerStorageWord I accounts ⟨0⟩) hpost
   simpa [burnFunctionTotalSupplyWord, uniswapCodeOwnerStorageWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage, henv] using hword.symm
 
-theorem accountMapEquiv_burnFunctionPostState
+theorem burnRuntimePostMap_eq_postState
     {σ : AccountMap} {I : ExecutionEnv} {evm : EVM.State}
     {holder : AccountAddress} {holderWord value : UInt256}
     (hAccounts : σ = evm.accountMap) (henv : evm.executionEnv = I)
@@ -80,15 +80,15 @@ theorem accountMapEquiv_burnFunctionPostState
     (hsupply : value.toNat ≤ (burnFunctionTotalSupplyWord evm holder value).toNat) :
     (burnRuntimePostMap σ I holderWord value) =
       (burnFunctionPostState evm holder value).accountMap := by
-  have hpost := accountMapEquiv_burnFunctionAfterBalanceState hAccounts henv hholder hbalance
+  have hpost := burnRuntimeBalanceMap_eq_afterBalanceState hAccounts henv hholder hbalance
   have hword := burnFunctionTotalSupplyWord_eq_runtime hAccounts henv hholder hbalance
   have hdebit : burnFunctionTotalSupplyDebitWord evm holder value =
       UInt256.sub (burnFunctionTotalSupplyWord evm holder value) value := by
     unfold burnFunctionTotalSupplyDebitWord
     rw [← usub_toNat hsupply, u256_ofNat_toNat]
-  have hstore := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩
+  have hstore := congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨0⟩
     (UInt256.sub (uniswapCodeOwnerStorageWord I (burnRuntimeBalanceMap σ I holderWord value)
-      ⟨0⟩) value) hpost
+      ⟨0⟩) value)) hpost
   simpa [burnRuntimePostMap, burnFunctionPostState, storageStore_accountMap, henv,
     hdebit, hword] using hstore
 
@@ -160,7 +160,7 @@ theorem uniswapInternalBurnCallRuntimeCasesWithMemory
           (uniswapInternalMintBalanceHashMem holderWord
             (uniswapInternalMintBalanceHashMem holderWord mem)), kRet, CRet,
         uniswapBurnFunctionCallSuccess hcontract hargs hbalance hsupply,
-        accountMapEquiv_burnFunctionPostState hAccounts henv hholder hbalance hsupply,
+        burnRuntimePostMap_eq_postState hAccounts henv hholder hbalance hsupply,
         ?_, ?_, ?_, ?_⟩
       · simpa only [burnRuntimePostMap, hsupplyEq] using rdRet
       · exact (uniswapInternalMintSuccessMem_size_of_ge160 holderWord value

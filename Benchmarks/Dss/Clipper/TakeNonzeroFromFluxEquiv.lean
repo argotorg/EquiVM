@@ -218,8 +218,9 @@ theorem clipperTakeFromFluxEquiv
       0 < (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-        hAccountsPost (clipperTakeVatTargetAddress v).symm hne
+      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+        (clipperTakeVatTargetAddress v).symm
+        (by simpa only [← hAccountsPost] using hne)
   have syncFlux {σVat : AccountMap} {AVat : Substate} {zVat : Bool} {outVat : ByteArray}
       (hcall : typedCallViaEVM (config v) evmPriceEvm
         (EVM.address v.vat) "flux" 0
@@ -250,11 +251,12 @@ theorem clipperTakeFromFluxEquiv
     have hnoCodeSolm : (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
-          hAccountsPost (clipperTakeVatTargetAddress v).symm hnoCode
+        clipperExtCodeSizeWord_zero_lookup_code_zero
+          (clipperTakeVatTargetAddress v).symm
+          (by simpa only [← hAccountsPost] using hnoCode)
     exact closeRevert hrev (hsourceVatNoCode hnoCodeSolm)
   · intro σVat outVat AVat hcall hvatCode hrev
-    obtain ⟨evmVat, hcallSolm, _, _, _, _, _, _⟩ := syncFlux (by simpa [evmPriceEvm] using hcall)
+    obtain ⟨evmVat, hcallSolm, _, _, _⟩ := syncFlux (by simpa [evmPriceEvm] using hcall)
     exact closeRevert hrev (hsourceVatFailure (hvatCodeSolmOf hvatCode)
       (by simpa [hevmPriceEnv] using hcallSolm))
   · intro σVat outVat AVat memVat awVat kVat CVat hcall hvatCode hskip hmem
@@ -280,7 +282,7 @@ theorem clipperTakeFromFluxEquiv
             clipperEvalDog v evmVat fluxLocals hfluxDogAbsent))
     have hdogWord : UInt256.land (solcSlotWord σVat I ⟨1⟩) solcAddrMask =
         clipperTakeDogEVMWord evmVat :=
-      clipperTakeDogWord_eq_of_accountMapEquiv hAccountsVat hevmVatEnv
+      clipperTakeDogWord_eq hAccountsVat (by simpa [initState] using hevmVatEnv)
     have hwhoLocal : dogLocals.get? "who" =
         some (.address (AccountAddress.ofNat who.toNat)) := by
       simpa [dogLocals, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]
@@ -349,7 +351,7 @@ theorem clipperTakeFromFluxEquiv
     · exact sourceReverted
     · exact sourceReturned
   · intro σVat outVat AVat hcall hvatCode hwhoVat hwhoDog hnoCode hrev
-    obtain ⟨evmVat, hcallSolm, hAccountsVat, _, _, _, _, hevmVatEnv⟩ :=
+    obtain ⟨evmVat, hcallSolm, hAccountsVat, hevmVatSigma0, hevmVatEnv⟩ :=
       syncFlux (by simpa [evmPriceEvm] using hcall)
     have hflux := hsourceFluxSuccess (hvatCodeSolmOf hvatCode)
       (by simpa [hevmPriceEnv] using hcallSolm)
@@ -368,13 +370,15 @@ theorem clipperTakeFromFluxEquiv
         ((evmVat.lookupAccount (AccountAddress.ofNat who.toNat)).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
       simpa [State.lookupAccount, hwhoClean] using
-        clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
-          hAccountsVat (by
+        clipperExtCodeSizeWord_zero_lookup_code_zero
+          (target := solcAddrMask.land who)
+          (by
             rw [accountAddress_ofUInt256_eq_ofNat_toNat, u256_land_comm,
-              hwhoClean]) hnoCode
+              hwhoClean])
+          (by simpa only [← hAccountsVat] using hnoCode)
     have hdogWord : UInt256.land (solcSlotWord σVat I ⟨1⟩) solcAddrMask =
         clipperTakeDogEVMWord evmVat :=
-      clipperTakeDogWord_eq_of_accountMapEquiv hAccountsVat hevmVatEnv
+      clipperTakeDogWord_eq hAccountsVat (by simpa [initState] using hevmVatEnv)
     have hdogClean : UInt256.land (clipperTakeDogEVMWord evmVat) solcAddrMask =
         clipperTakeDogEVMWord evmVat := by
       simpa [hdogWord] using solcAddrMask_clean
@@ -450,7 +454,7 @@ theorem clipperTakeFromFluxEquiv
         u256_land_comm] using hcallCbSolm
     have hdogWord : UInt256.land (solcSlotWord σVat I ⟨1⟩) solcAddrMask =
         clipperTakeDogEVMWord evmVat :=
-      clipperTakeDogWord_eq_of_accountMapEquiv hAccountsVat hevmVatEnv
+      clipperTakeDogWord_eq hAccountsVat (by simpa [initState] using hevmVatEnv)
     have hdogClean : UInt256.land (clipperTakeDogEVMWord evmVat) solcAddrMask =
         clipperTakeDogEVMWord evmVat := by
       simpa [hdogWord] using solcAddrMask_clean
@@ -483,10 +487,12 @@ theorem clipperTakeFromFluxEquiv
         ((evmVat.lookupAccount (AccountAddress.ofNat who.toNat)).option 0
           (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-          hAccountsVat (by
+        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+          (target := solcAddrMask.land who)
+          (by
             rw [accountAddress_ofUInt256_eq_ofNat_toNat, u256_land_comm,
-              hwhoClean]) hcallbackCode
+              hwhoClean])
+          (by simpa only [← hAccountsVat] using hcallbackCode)
     have hcodeEval : evalExpr? (config v) (Frame.mk (contract v) dogLocals) evmVat
         (.binary .gt (.extCodeSize (.var "who")) (.intLit 0)) = .ok (.bool true) := by
       simpa [hcallbackCodeSolm] using
@@ -545,7 +551,7 @@ theorem clipperTakeFromFluxEquiv
         u256_land_comm] using hcallCbSolm
     have hdogWord : UInt256.land (solcSlotWord σVat I ⟨1⟩) solcAddrMask =
         clipperTakeDogEVMWord evmVat :=
-      clipperTakeDogWord_eq_of_accountMapEquiv hAccountsVat hevmVatEnv
+      clipperTakeDogWord_eq hAccountsVat (by simpa [initState] using hevmVatEnv)
     have hdogClean : UInt256.land (clipperTakeDogEVMWord evmVat) solcAddrMask =
         clipperTakeDogEVMWord evmVat := by
       simpa [hdogWord] using solcAddrMask_clean
@@ -578,10 +584,12 @@ theorem clipperTakeFromFluxEquiv
         ((evmVat.lookupAccount (AccountAddress.ofNat who.toNat)).option 0
           (fun acc => acc.code.size))).toNat := by
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-          hAccountsVat (by
+        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+          (target := solcAddrMask.land who)
+          (by
             rw [accountAddress_ofUInt256_eq_ofNat_toNat, u256_land_comm,
-              hwhoClean]) hcallbackCode
+              hwhoClean])
+          (by simpa only [← hAccountsVat] using hcallbackCode)
     have hcodeEval : evalExpr? (config v) (Frame.mk (contract v) dogLocals) evmVat
         (.binary .gt (.extCodeSize (.var "who")) (.intLit 0)) = .ok (.bool true) := by
       simpa [hcallbackCodeSolm] using

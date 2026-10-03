@@ -61,7 +61,7 @@ theorem durationSourceRead {s0 I σ evm locals}
     evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm
       (.storage durationRef) = .ok (.int (Int.ofNat (storedWord σ I ⟨206⟩).toNat)) := by
   rw [durationRef, scalarRead evm locals "duration" (.int uint256Int) (auctionUint256Loc ⟨206⟩)
-    hd (by native_decide) rfl, loadUint256, storedWord_equiv hs.accounts, ← hs.env]
+    hd (by native_decide) rfl, loadUint256, hs.accounts, ← hs.env]
   rfl
 
 def createdLocals (locals : Store) (start finish : UInt256) : Store :=

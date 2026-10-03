@@ -860,7 +860,7 @@ theorem blindAuctionBidX_ok {σ σ₀ A I} {g : Sat256}
       (bidStructMem I) (UInt256.ofNat 6) ByteArray.empty
       (bidAfterLengthState evm0 I (bidLengthWord σ I)).accountMap k C := by
     exact ⟨_, _, by
-      simpa [evm0, bidAfterLengthState, initState, blindAuctionStorageStore_accountMap,
+      simpa [evm0, bidAfterLengthState, initState, storageStore_accountMap,
         u256_add_comm] using rd1510₀⟩
   have rd1516 := evm_run rd1510 with [
     swap6, dup6,
@@ -899,7 +899,7 @@ theorem blindAuctionBidX_ok {σ σ₀ A I} {g : Sat256}
   have rd276 := evm_run rd1533₀ with [jump (by jump_dest), jumpdest]
   simpa [evm0, bidPostState, bidAfterBlindedState, bidAfterLengthState, initState,
     storageStore_executionEnv,
-    blindAuctionStorageStore_accountMap]
+    storageStore_accountMap]
     using rd276.stop (by decide) (by evm_ov)
 
 /-- `bid(bytes32)` body (pc 449) refines its transition. -/
@@ -936,7 +936,7 @@ theorem blindAuctionBidBodyCore {σ σ₀ A I} {g : UInt256}
             htime hreach)
           |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
             (by simp [evmS, bidPostState, bidAfterBlindedState, bidAfterLengthState,
-              initState, storageStore_executionEnv, blindAuctionStorageStore_accountMap])
+              initState, storageStore_executionEnv, storageStore_accountMap])
             (returnEquiv.fallthrough rfl rfl (by native_decide))
       · have htimeLe : (biddingEndWord σ I).toNat ≤ (bidTimestampWord I).toNat := by
           omega

@@ -6,7 +6,7 @@ import Solm.SolidityLayout
 import Ethereum.Theory.StaticStorage
 
 /-!
-# Storage — EVM storage maps, Solidity storage layout, and account-map equivalences
+# Storage — EVM storage maps, Solidity storage layout, and account-map equality
 
 Contract-agnostic layers, bottom up:
 
@@ -1040,32 +1040,6 @@ theorem sstoreAccountMap_storage_findD_ne (σ : AccountMap) (a : AccountAddress)
       · simpa [hzero] using storage_findD_update_ne acc.storage readSlot writeSlot val default hne
       · simpa [hzero] using storage_findD_update_ne acc.storage readSlot writeSlot val default hne
 
-theorem accountMapEquiv_storage_findD {σ τ : AccountMap}
-    (hστ : σ = τ) (addr : AccountAddress) (slot default : UInt256) :
-    ((σ.find? addr).option default (fun acc => acc.storage.findD slot default)) =
-      ((τ.find? addr).option default (fun acc => acc.storage.findD slot default)) := by
-  subst τ
-  rfl
-
--- TODO: Replace uses of this equality-transport wrapper with `rw [hστ]`.
-
-theorem accountMapEquiv_code_size_word {σ τ : AccountMap}
-    (hστ : σ = τ) (addr : AccountAddress) :
-    ((σ.find? addr).option (⟨0⟩ : UInt256) (fun acc => EVM.Word.ofNat acc.code.size)) =
-      ((τ.find? addr).option (⟨0⟩ : UInt256) (fun acc => EVM.Word.ofNat acc.code.size)) := by
-  subst τ
-  rfl
-
--- TODO: Replace uses of this equality-transport wrapper with `rw [hστ]`.
-
-theorem extCodeSizeWord_accountMapEquiv {σ τ : AccountMap}
-    (hστ : σ = τ) (target : UInt256) :
-    extCodeSizeWord σ target = extCodeSizeWord τ target := by
-  subst τ
-  rfl
-
--- TODO: Replace uses of this equality-transport wrapper with `rw [hστ]`.
-
 theorem accountStorageStateEq_storage_findD {σ τ : AccountMap}
     (hστ : accountStorageStateEq σ τ) (addr : AccountAddress) (slot defaultValue : UInt256) :
     ((σ.find? addr).option defaultValue (fun acc => acc.storage.findD slot defaultValue)) =
@@ -1076,26 +1050,6 @@ theorem accountStorageStateEq_storage_findD {σ τ : AccountMap}
   all_goals
     have hstorage := congrArg (fun storage => storage.findD slot defaultValue) hστ.1
     simpa using hstorage
-
-theorem storageLoad_accountMapEquiv {evm1 evm2 : EVM.State}
-    (hAccounts : evm1.accountMap = evm2.accountMap)
-    (addr : AccountAddress) (slot : UInt256) :
-    Solm.EVM.storageLoad evm1 addr slot = Solm.EVM.storageLoad evm2 addr slot := by
-  simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-  exact accountMapEquiv_storage_findD hAccounts addr slot (default : UInt256)
-
--- TODO: Try rewriting `hAccounts` directly at call sites and remove this wrapper.
-
-theorem initState_codeOwner_storageLoad_ne_of_accountMapEquiv
-    {σ_evm σ_solm σ₀ A I} {g : Sat256}
-    (slot val : UInt256) (hAccounts : σ_evm = σ_solm)
-    (h :
-      (σ_evm.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD slot ⟨0⟩)) ≠ val) :
-    Solm.EVM.storageLoad (initState σ_solm σ₀ g A I)
-        (initState σ_solm σ₀ g A I).executionEnv.codeOwner slot ≠ val := by
-  rw [hAccounts] at h
-  simpa [initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage] using h
 
 /-- A final insert overwrites any earlier zero-aware write to the same slot. -/
 theorem storage_update_insert_self (storage : Storage) (slot val1 val2 : UInt256) :
@@ -1110,29 +1064,6 @@ theorem storage_update_insert_self (storage : Storage) (slot val1 val2 : UInt256
       (storage.insert slot val2).find? readSlot
   exact storage_find?_update_insert_self storage slot readSlot val1 val2
 
--- TODO: Replace callers with congrArg on sstoreAccountMap and remove this compatibility theorem.
-theorem accountMapEquiv_sstoreAccountMap_insert {σ τ : AccountMap}
-    (a : AccountAddress) (slot val : UInt256)
-    (hστ : σ = τ) (_hval : (val == (default : UInt256)) = false) :
-    sstoreAccountMap a σ slot val = sstoreAccountMap a τ slot val := by
-  subst τ
-  rfl
-
--- TODO: Replace callers with congrArg on sstoreAccountMap and remove this compatibility theorem.
-theorem accountMapEquiv_sstoreAccountMap_erase {σ τ : AccountMap}
-    (a : AccountAddress) (slot val : UInt256)
-    (hστ : σ = τ) (_hval : (val == (default : UInt256)) = true) :
-    sstoreAccountMap a σ slot val = sstoreAccountMap a τ slot val := by
-  subst τ
-  rfl
-
--- TODO: Replace callers with congrArg on sstoreAccountMap and remove this compatibility theorem.
-theorem accountMapEquiv_sstoreAccountMap {σ τ : AccountMap}
-    (a : AccountAddress) (slot val : UInt256) (hστ : σ = τ) :
-    sstoreAccountMap a σ slot val = sstoreAccountMap a τ slot val := by
-  subst τ
-  rfl
-
 theorem sstoreAccountMap_absent_same {owner : AccountAddress} {τ : AccountMap}
     {slot val : UInt256} (hmissing : τ.find? owner = none) :
     sstoreAccountMap owner τ slot val = τ := by
@@ -1140,21 +1071,28 @@ theorem sstoreAccountMap_absent_same {owner : AccountAddress} {τ : AccountMap}
   rw [hmissing]
   rfl
 
-theorem storageStore_accountMapEquiv {evm1 evm2 : EVM.State}
-    (hAccounts : evm1.accountMap = evm2.accountMap)
-    (addr : AccountAddress) (slot val : UInt256) :
-    (Solm.EVM.storageStore evm1 addr slot val).accountMap =
-      (Solm.EVM.storageStore evm2 addr slot val).accountMap := by
-  simp [storageStore_accountMap]
-  exact accountMapEquiv_sstoreAccountMap addr slot val hAccounts
-
--- TODO: Try rewriting hAccounts directly at call sites and remove this wrapper.
-
 theorem storageStore_executionEnv (evm : EVM.State) (addr : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).executionEnv = evm.executionEnv := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
   cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
+
+theorem storageStore_eq_accountMap_update (evm : EVM.State) (addr : AccountAddress)
+    (slot val : UInt256) :
+    {evm with accountMap := (Solm.EVM.storageStore evm addr slot val).accountMap} =
+      Solm.EVM.storageStore evm addr slot val := by
+  unfold Solm.EVM.storageStore
+  cases evm.lookupAccount addr <;> simp [Option.option, State.setAccount]
+
+theorem stateAccountMapUpdate_trans {a b c : EVM.State}
+    (hab : {a with accountMap := b.accountMap} = b)
+    (hbc : {b with accountMap := c.accountMap} = c) :
+    {a with accountMap := c.accountMap} = c := by
+  calc
+    {a with accountMap := c.accountMap} =
+        {{a with accountMap := b.accountMap} with accountMap := c.accountMap} := rfl
+    _ = {b with accountMap := c.accountMap} := by rw [hab]
+    _ = c := hbc
 
 theorem storageStore_absent (evm : EVM.State) (addr : AccountAddress)
     (hmissing : evm.accountMap.find? addr = none) (slot val : UInt256) :
@@ -1228,15 +1166,6 @@ theorem solidityDataWordsForwardFrom_append
         baseSlot bytes (idx + 1) fuel tail
       simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using ih
 
--- TODO: Replace uses with congrArg on solidityDataWordsForwardFrom and remove this wrapper.
-theorem accountMapEquiv_solidityDataWordsForwardFrom
-    {owner : AccountAddress} {τ σ : AccountMap} {baseSlot : UInt256}
-    {bytes : ByteArray} {idx : Nat} (fuel : Nat) (h : τ = σ) :
-    solidityDataWordsForwardFrom owner τ baseSlot bytes idx fuel =
-      solidityDataWordsForwardFrom owner σ baseSlot bytes idx fuel := by
-  subst σ
-  rfl
-
 def clearDataWordsForwardFrom (owner : AccountAddress) (τ : AccountMap)
     (base idx : UInt256) : Nat → AccountMap
   | 0 => τ
@@ -1272,14 +1201,6 @@ theorem clearSolidityBytesDataWordsFrom_accountMap
   | succ n ih =>
       simp [clearSolidityBytesDataWordsFrom, clearDataWordsForwardFrom, solidityBytesDataSlot,
         storageStore_accountMap, storageStore_executionEnv, ih, u256_one_add_ofNat]
-
--- TODO: Replace uses with congrArg on clearDataWordsForwardFrom and remove this wrapper.
-theorem accountMapEquiv_clearDataWordsForwardFrom {σ τ : AccountMap}
-    (owner : AccountAddress) (base idx : UInt256) (fuel : Nat) (hAccounts : σ = τ) :
-    clearDataWordsForwardFrom owner σ base idx fuel =
-      clearDataWordsForwardFrom owner τ base idx fuel := by
-  subst τ
-  rfl
 
 theorem solidityBytesBaseSlotAndLength?_ok_of_layout
     {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
@@ -1889,14 +1810,14 @@ theorem storageLoad {evm₁ evm₂ : EVM.State} (h : EVMStateEquiv evm₁ evm₂
     {addr₁ addr₂ : AccountAddress} (haddr : addr₁ = addr₂) (slot : UInt256) :
     Solm.EVM.storageLoad evm₁ addr₁ slot = Solm.EVM.storageLoad evm₂ addr₂ slot := by
   subst addr₂
-  exact storageLoad_accountMapEquiv h.accountMap addr₁ slot
+  simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, h.accountMap]
 
 theorem storageLoad_codeOwner {evm₁ evm₂ : EVM.State} (h : EVMStateEquiv evm₁ evm₂)
     (slot : UInt256) :
     Solm.EVM.storageLoad evm₁ evm₁.executionEnv.codeOwner slot =
       Solm.EVM.storageLoad evm₂ evm₂.executionEnv.codeOwner slot := by
   rw [h.executionEnv]
-  exact storageLoad_accountMapEquiv h.accountMap evm₂.executionEnv.codeOwner slot
+  simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, h.accountMap]
 
 theorem storageStore {evm₁ evm₂ : EVM.State} (h : EVMStateEquiv evm₁ evm₂)
     {addr₁ addr₂ : AccountAddress} (haddr : addr₁ = addr₂) (slot : UInt256)
@@ -1908,7 +1829,8 @@ theorem storageStore {evm₁ evm₂ : EVM.State} (h : EVMStateEquiv evm₁ evm�
   refine ⟨?_, ?_⟩
   · rw [storageStore_executionEnv, storageStore_executionEnv]
     exact h.executionEnv
-  · exact storageStore_accountMapEquiv h.accountMap addr₁ slot val₁
+  · simpa [storageStore_accountMap] using
+      congrArg (fun accounts => sstoreAccountMap addr₁ accounts slot val₁) h.accountMap
 
 theorem storageStore_codeOwner {evm₁ evm₂ : EVM.State} (h : EVMStateEquiv evm₁ evm₂)
     (slot : UInt256) {val₁ val₂ : UInt256} (hval : val₁ = val₂) :
@@ -1918,28 +1840,6 @@ theorem storageStore_codeOwner {evm₁ evm₂ : EVM.State} (h : EVMStateEquiv ev
   h.storageStore (congrArg ExecutionEnv.codeOwner h.executionEnv) slot hval
 
 end EVMStateEquiv
-
-theorem accountMapEquiv_sstoreAccountMap_two {σ τ : AccountMap}
-    (a1 a2 : AccountAddress) (slot1 val1 slot2 val2 : UInt256)
-    (hστ : σ = τ) :
-    sstoreAccountMap a2 (sstoreAccountMap a1 σ slot1 val1) slot2 val2 =
-      sstoreAccountMap a2 (sstoreAccountMap a1 τ slot1 val1) slot2 val2 := by
-  subst τ
-  rfl
-
--- TODO: Replace uses with congrArg on the composed writes and remove this wrapper.
-
-theorem accountMapEquiv_sstoreAccountMap_three {σ τ : AccountMap}
-    (a1 a2 a3 : AccountAddress) (slot1 val1 slot2 val2 slot3 val3 : UInt256)
-    (hστ : σ = τ) :
-    sstoreAccountMap a3
-        (sstoreAccountMap a2 (sstoreAccountMap a1 σ slot1 val1) slot2 val2) slot3 val3 =
-      sstoreAccountMap a3
-        (sstoreAccountMap a2 (sstoreAccountMap a1 τ slot1 val1) slot2 val2) slot3 val3 := by
-  subst τ
-  rfl
-
--- TODO: Replace uses with congrArg on the composed writes and remove this wrapper.
 
 private theorem u256_val_ne_of_ne {x y : UInt256} (h : x ≠ y) : x.val ≠ y.val := by
   intro hv
@@ -1993,21 +1893,6 @@ theorem sstoreAccountMap_self_update
         | simpa [hzero1] using (storage_update_erase_self acc.storage slot val1).symm
         | simpa [hzero1] using (storage_update_insert_self acc.storage slot val1 val2).symm
 
--- TODO: Replace uses of this legacy name with sstoreAccountMap_self_update and remove.
-theorem accountMapEquiv_sstoreAccountMap_self_update
-    (σ : AccountMap) (a : AccountAddress) (slot val1 val2 : UInt256) :
-    sstoreAccountMap a σ slot val2 =
-      sstoreAccountMap a (sstoreAccountMap a σ slot val1) slot val2 :=
-  sstoreAccountMap_self_update σ a slot val1 val2
-
--- TODO: Replace uses of this specialization with sstoreAccountMap_self_update and remove.
-theorem accountMapEquiv_sstoreAccountMap_self_update_insert
-    (σ : AccountMap) (a : AccountAddress) (slot val1 val2 : UInt256)
-    (_hfinal : (val2 == (default : UInt256)) = false) :
-    sstoreAccountMap a σ slot val2 =
-      sstoreAccountMap a (sstoreAccountMap a σ slot val1) slot val2 :=
-  sstoreAccountMap_self_update σ a slot val1 val2
-
 /-- Writes to distinct slots of one account commute as extensional map equalities. -/
 theorem sstoreAccountMap_comm
     (σ : AccountMap) (a : AccountAddress) (slot1 val1 slot2 val2 : UInt256)
@@ -2050,47 +1935,5 @@ theorem sstoreAccountMap_comm
     cases hσ : σ.find? a <;>
       simp [hσ, Option.option,
         accountMap_find?_insert_ne, haddr]
-
--- TODO: Replace uses of this legacy name with sstoreAccountMap_comm and remove.
-theorem accountMapEquiv_sstoreAccountMap_comm
-    (σ : AccountMap) (a : AccountAddress) (slot1 val1 slot2 val2 : UInt256)
-    (hne : slot1 ≠ slot2) :
-    sstoreAccountMap a (sstoreAccountMap a σ slot1 val1) slot2 val2 =
-      sstoreAccountMap a (sstoreAccountMap a σ slot2 val2) slot1 val1 :=
-  sstoreAccountMap_comm σ a slot1 val1 slot2 val2 hne
-
--- TODO: Derive this specialization at call sites from commutation and remove.
-theorem accountMapEquiv_sstoreAccountMap_zero_comm
-    (σ : AccountMap) (a : AccountAddress) (slot1 slot2 : UInt256) :
-    sstoreAccountMap a (sstoreAccountMap a σ slot2 ⟨0⟩) slot1 ⟨0⟩ =
-      sstoreAccountMap a (sstoreAccountMap a σ slot1 ⟨0⟩) slot2 ⟨0⟩ := by
-  by_cases hne : slot1 ≠ slot2
-  · exact (sstoreAccountMap_comm σ a slot1 ⟨0⟩ slot2 ⟨0⟩ hne).symm
-  · have heq : slot1 = slot2 := by exact Classical.not_not.mp hne
-    subst slot2
-    rfl
-
--- TODO: Derive this specialization at call sites from commutation and remove.
-theorem accountMapEquiv_sstoreAccountMap_erase_comm
-    (σ : AccountMap) (a : AccountAddress) (slot val eraseSlot : UInt256)
-    (hne : slot ≠ eraseSlot) :
-    sstoreAccountMap a (sstoreAccountMap a σ eraseSlot ⟨0⟩) slot val =
-      sstoreAccountMap a (sstoreAccountMap a σ slot val) eraseSlot ⟨0⟩ :=
-  (sstoreAccountMap_comm σ a slot val eraseSlot ⟨0⟩ hne).symm
-
-/-- Same-slot overwrite at the lookup level, derived from account-map equality.
-TODO: Replace uses with congrArg on sstoreAccountMap_self_update and remove this wrapper. -/
-theorem sstoreAccountMap_self_storage_findD_update_insert_self
-    (σ : AccountMap) (a : AccountAddress) (writeSlot readSlot val1 val2 : UInt256)
-    (_hfinal : (val2 == (default : UInt256)) = false) :
-    (((sstoreAccountMap a (sstoreAccountMap a σ writeSlot val1) writeSlot val2).find? a).option
-        (default : UInt256) (fun acc => acc.storage.findD readSlot default)) =
-      (((sstoreAccountMap a σ writeSlot val2).find? a).option
-        (default : UInt256) (fun acc => acc.storage.findD readSlot default)) := by
-  exact congrArg
-    (fun m : AccountMap =>
-      (m.find? a).option (default : UInt256)
-        (fun acc => acc.storage.findD readSlot default))
-    (sstoreAccountMap_self_update σ a writeSlot val1 val2).symm
 
 end Reasoning.Theory

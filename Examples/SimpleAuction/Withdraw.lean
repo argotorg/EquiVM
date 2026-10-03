@@ -2411,7 +2411,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
             hperm hwv hreach hnonzero hdepthEq)
           |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
             (by simpa [evmSFail, evmSZero, withdrawRestoreState, withdrawRestoreMap,
-              withdrawZeroState, withdrawZeroMap, evmS, initState, simpleAuctionStorageStore_accountMap,
+              withdrawZeroState, withdrawZeroMap, evmS, initState, storageStore_accountMap,
               storageStore_executionEnv])
             (returnEquiv_of_encode (by simpa [boolTy] using boolFalseReturnEncoding))
       · have hdepthLt : I.depth.val < 1024 := by
@@ -2461,27 +2461,27 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                   hAddressId]
           have hValueEq : valueE = Int.ofNat (withdrawAmountWord σ I).toNat := by
             simp [valueE, hword]
-          obtain ⟨σ'_solm, A'_solm, hcallSRaw, hPostAccounts⟩ :=
-            callViaEVM_accountMapEquiv (evm_solm := evmSZero) hcallE
-              (by
-                simpa [evmEZero, evmSZero, evmS, initState, withdrawZeroMap,
-                  withdrawZeroState] using
-                  (simpleAuctionStorageStore_accountMap evmS I.codeOwner
-                    (withdrawPendingSlot I) ⟨0⟩).symm)
-              (by
-                simpa [evmEZero, evmSZero, evmS, initState] using
-                  (withdrawZeroState_originalMap evmS).symm)
-              (by
-                simpa [evmEZero, evmSZero, evmS, initState, withdrawZeroState] using
-                  (storageStore_executionEnv evmS I.codeOwner
-                    (withdrawPendingSlot I) ⟨0⟩).symm)
+          have hZeroState : evmEZero = evmSZero := by
+            have hMap : evmEZero.accountMap = evmSZero.accountMap := by
+              simpa [evmEZero, evmSZero, evmS, initState, withdrawZeroMap,
+                withdrawZeroState] using
+                (storageStore_accountMap evmS I.codeOwner
+                  (withdrawPendingSlot I) ⟨0⟩).symm
+            calc
+              evmEZero = {evmS with accountMap := evmEZero.accountMap} := by rfl
+              _ = {evmS with accountMap := evmSZero.accountMap} := by
+                exact congrArg (fun accounts => {evmS with accountMap := accounts}) hMap
+              _ = evmSZero := by
+                unfold evmSZero withdrawZeroState Solm.EVM.storageStore
+                cases evmS.lookupAccount evmS.executionEnv.codeOwner <;>
+                  simp [Option.option, State.setAccount]
           let evmSCall : EVM.State :=
-            { evmSZero with accountMap := σ'_solm, substate := A'_solm }
+            { evmSZero with accountMap := σ', substate := A' }
           have hcallS :
               callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
                 (Int.ofNat (withdrawAmountWord σ I).toNat) ByteArray.empty
                 (z, evmSCall, out) := by
-            simpa [evmSCall, hTargetEq, hValueEq] using hcallSRaw
+            simpa [evmSCall, hTargetEq, hValueEq, ← hZeroState, evmECall] using hcallE
           by_cases hout0 : out.size = 0
           · have houtEmpty : out = ByteArray.empty :=
               byteArray_eq_empty_of_size_eq_zero out hout0
@@ -2508,18 +2508,9 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                   (UInt256.toByteArray (⟨0⟩ : UInt256)) :=
                 simpleAuctionX_withdraw_failureEmpty_return (g := Sat256.ofUInt256 g) hperm
                   (by simpa using rd918)
-              have hPostRestore :
-                  sstoreAccountMap I.codeOwner σ' (withdrawPendingSlot I)
-                    (withdrawAmountWord σ I) =
-                  sstoreAccountMap I.codeOwner σ'_solm (withdrawPendingSlot I)
-                    (withdrawAmountWord σ I) := by
-                simpa [evmECall] using congrArg
-                  (fun τ => sstoreAccountMap I.codeOwner τ (withdrawPendingSlot I)
-                    (withdrawAmountWord σ I)) hPostAccounts
               exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-                (by simpa [evmSCall, withdrawRestoreState, evmSZero, withdrawZeroState, evmS,
-                  initState, simpleAuctionStorageStore_accountMap, storageStore_executionEnv]
-                  using hPostRestore)
+                (by simp [evmSCall, withdrawRestoreState, evmSZero, withdrawZeroState, evmS,
+                  initState, storageStore_accountMap, storageStore_executionEnv])
                 (returnEquiv_of_encode (by simpa [boolTy] using boolFalseReturnEncoding))
             · have hbody :
                   ExecTransitionBody simpleAuctionConfig simpleAuctionContract evmS ∅
@@ -2539,7 +2530,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                 simpleAuctionX_withdraw_successEmpty_return (g := Sat256.ofUInt256 g)
                   (by simpa using rd918)
               exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-                (by simpa [evmSCall] using hPostAccounts)
+                (by simp [evmSCall])
                 (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
           · by_cases hout255 : out.size < 2 ^ 255
             · obtain ⟨_, _, rd918⟩ :=
@@ -2565,18 +2556,10 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                     (UInt256.toByteArray (⟨0⟩ : UInt256)) :=
                   simpleAuctionX_withdraw_failureNonempty_return (g := Sat256.ofUInt256 g)
                     hperm hout0 hout255 (by simpa using rd918)
-                have hPostRestore :
-                    sstoreAccountMap I.codeOwner σ' (withdrawPendingSlot I)
-                      (withdrawAmountWord σ I) =
-                    sstoreAccountMap I.codeOwner σ'_solm (withdrawPendingSlot I)
-                      (withdrawAmountWord σ I) := by
-                  simpa [evmECall] using congrArg
-                    (fun τ => sstoreAccountMap I.codeOwner τ (withdrawPendingSlot I)
-                      (withdrawAmountWord σ I)) hPostAccounts
                 exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-                  (by simpa [evmSCall, withdrawRestoreState, evmSZero, withdrawZeroState, evmS,
-                    initState, simpleAuctionStorageStore_accountMap, storageStore_executionEnv]
-                    using hPostRestore)
+                  (by simp [evmSCall, withdrawRestoreState, evmSZero, withdrawZeroState,
+                    evmS, initState, storageStore_accountMap,
+                    storageStore_executionEnv])
                   (returnEquiv_of_encode (by simpa [boolTy] using boolFalseReturnEncoding))
               · have hbody :
                     ExecTransitionBody simpleAuctionConfig simpleAuctionContract evmS ∅
@@ -2595,7 +2578,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                   simpleAuctionX_withdraw_successNonempty_return (g := Sat256.ofUInt256 g)
                     hout0 hout255 (by simpa using rd918)
                 exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-                  (by simpa [evmSCall] using hPostAccounts)
+                  (by simp [evmSCall])
                   (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
             · have hhuge : 2 ^ 255 ≤ out.size := by omega
               have hoog : X ((Sat256.ofUInt256 g).toNat + 1) (D_J simpleAuctionBytecode 0)
@@ -2630,7 +2613,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                       (withdrawZeroMap σ I |>.find? I.codeOwner |>.elim ⟨0⟩
                         (·.balance)) := by
                   simpa [evmSZero, withdrawZeroState, evmS, initState, withdrawZeroMap,
-                    simpleAuctionStorageStore_accountMap, storageStore_executionEnv] using hvalueBal
+                    storageStore_accountMap, storageStore_executionEnv] using hvalueBal
               have hvalueBalE :
                   withdrawAmountWord σ I ≤
                     (withdrawZeroMap σ I |>.find? I.codeOwner |>.elim ⟨0⟩
@@ -2653,7 +2636,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
               hperm hwv hreach hzero hbalance hdepthLt)
             |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
               (by simpa [evmSFail, evmSZero, withdrawRestoreState, withdrawRestoreMap,
-                withdrawZeroState, withdrawZeroMap, evmS, initState, simpleAuctionStorageStore_accountMap,
+                withdrawZeroState, withdrawZeroMap, evmS, initState, storageStore_accountMap,
                 storageStore_executionEnv])
               (returnEquiv_of_encode (by simpa [boolTy] using boolFalseReturnEncoding))
   · have hrev := simpleAuctionX_withdraw_nonpayable (g := Sat256.ofUInt256 g) hwv hreach

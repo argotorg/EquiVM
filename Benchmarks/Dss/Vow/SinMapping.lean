@@ -177,10 +177,6 @@ theorem vowSinMappingBodyCore
           (solcMappingHashMem_size ⟨4⟩ key))
       (by simp)
     simpa [slot, vowSlotWord] using hret'
-  have hval :
-      some [Value.int (Int.ofNat (vowSlotWord (sinMappingSlotFor I) σ I).toNat)] =
-        some [Value.int (Int.ofNat (vowSlotWord slot σ I).toNat)] := by
-    rw [hslot]
   have henc :
       returnEquiv (UInt256.toByteArray (vowSlotWord slot σ I))
         (some [(.int (Int.ofNat (vowSlotWord slot σ I).toNat))])
@@ -188,6 +184,7 @@ theorem vowSinMappingBodyCore
     rw [show sinTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
       (by simpa [uint256] using uint256ReturnEncoding (vowSlotWord slot σ I))
+  rw [hslot] at hbody
   exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem vowSinMappingBody {σ σ₀ A I} {g : UInt256}

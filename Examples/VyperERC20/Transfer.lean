@@ -862,7 +862,7 @@ theorem transferToBalanceRawAfterDebit_initState {σ σ₀ A I} {g : Sat256} :
       transferToBalanceWord (initState σ σ₀ g A I) I := by
   simpa [transferToBalanceRawAfterDebit, transferToBalanceWord_afterSenderStore_initState,
     Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-    vyperERC20StorageStore_accountMap]
+    storageStore_accountMap]
     using (transferToBalanceWord_afterSenderStore_initState
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g))
 
@@ -1672,8 +1672,8 @@ theorem erc20TransferBodyCore
             |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
               (by simp [evmE, evmS, initState, transferPostState, transferAfterDebitState,
                 transferSenderSlot, transferSenderSlotI, transferToSlot,
-                vyperERC20StorageStore_accountMap])
-              (returnEquiv_of_encode ERC20.erc20BoolTrueReturnEncoding)
+                storageStore_accountMap])
+              (returnEquiv_of_encode Reasoning.Theory.boolTrueReturnEncoding)
         · have hover : UInt256.size ≤ transferNewToNat evmE I := by omega
           have henoughS : (transferValueWord I).toNat ≤ (transferFromBalanceWord evmS).toNat := by
             simpa [hFromBalance] using henough

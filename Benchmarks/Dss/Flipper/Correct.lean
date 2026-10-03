@@ -83,57 +83,57 @@ theorem flipperCorrect :
   intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbeg : selIs I (flipperSelBytes 0)
-    · exact flipperBegBodyCore hcode hsize hperm hwv hbeg hAccounts
+    · exact flipperBegBodyCore hcode hsize hperm hwv hbeg
     · by_cases hbids : selIs I (flipperSelBytes 1)
-      · exact flipperBidsBodyCore hcode hsize hperm hwv hbids hAccounts
+      · exact flipperBidsBodyCore hcode hsize hperm hwv hbids
       · by_cases hcat : selIs I (flipperSelBytes 2)
-        · exact flipperCatBodyCore hcode hsize hperm hwv hcat hAccounts
+        · exact flipperCatBodyCore hcode hsize hperm hwv hcat
         · by_cases hdeal : selIs I (flipperSelBytes 3)
-          · exact flipperDealBodyCore hcode hsize hperm hwv hdeal hAccounts
+          · exact flipperDealBodyCore hcode hsize hperm hwv hdeal
           · by_cases hdent : selIs I (flipperSelBytes 4)
-            · exact flipperDentBodyCore hcode hsize hperm hwv hdent hAccounts
+            · exact flipperDentBodyCore hcode hsize hperm hwv hdent
             · by_cases hdeny : selIs I (flipperSelBytes 5)
-              · exact flipperDenyBodyCore hcode hsize hperm hwv hdeny hAccounts
+              · exact flipperDenyBodyCore hcode hsize hperm hwv hdeny
               · by_cases hfileAddress : selIs I (flipperSelBytes 6)
                 · exact flipperFileAddressBodyCore hcode hsize hperm hwv hfileAddress
-                    hAccounts
+
                 · by_cases hfileUint : selIs I (flipperSelBytes 7)
                   · exact flipperFileUintBodyCore hcode hsize hperm hwv hfileUint
-                      hAccounts
+
                   · by_cases hilk : selIs I (flipperSelBytes 8)
-                    · exact flipperIlkBodyCore hcode hsize hperm hwv hilk hAccounts
+                    · exact flipperIlkBodyCore hcode hsize hperm hwv hilk
                     · by_cases hkick : selIs I (flipperSelBytes 9)
-                      · exact flipperKickBodyCore hcode hsize hperm hwv hkick hAccounts
+                      · exact flipperKickBodyCore hcode hsize hperm hwv hkick
                       · by_cases hkicks : selIs I (flipperSelBytes 10)
-                        · exact flipperKicksBodyCore hcode hsize hperm hwv hkicks hAccounts
+                        · exact flipperKicksBodyCore hcode hsize hperm hwv hkicks
                         · by_cases hrely : selIs I (flipperSelBytes 11)
-                          · exact flipperRelyBodyCore hcode hsize hperm hwv hrely hAccounts
+                          · exact flipperRelyBodyCore hcode hsize hperm hwv hrely
                           · by_cases htau : selIs I (flipperSelBytes 12)
-                            · exact flipperTauBodyCore hcode hsize hperm hwv htau hAccounts
+                            · exact flipperTauBodyCore hcode hsize hperm hwv htau
                             · by_cases htend : selIs I (flipperSelBytes 13)
                               · exact flipperTendBodyCore hcode hsize hperm hwv htend
-                                  hAccounts
+
                               · by_cases htick : selIs I (flipperSelBytes 14)
                                 · exact flipperTickBodyCore hcode hsize hperm hwv htick
-                                    hAccounts
+
                                 · by_cases httl : selIs I (flipperSelBytes 15)
                                   · exact flipperTtlBodyCore hcode hsize hperm hwv httl
-                                      hAccounts
+
                                   · by_cases hvat : selIs I (flipperSelBytes 16)
                                     · exact flipperVatBodyCore hcode hsize hperm hwv hvat
-                                        hAccounts
+
                                     · by_cases hwards : selIs I (flipperSelBytes 17)
                                       · exact flipperWardsBodyCore hcode hsize hperm hwv
-                                          hwards hAccounts
+                                          hwards
                                       · by_cases hyank : selIs I (flipperSelBytes 18)
                                         · exact flipperYankBodyCore hcode hsize hperm hwv
-                                            hyank hAccounts
+                                            hyank
                                         · exact flipperNoDispatch hcode hsize hperm hwv
                                             (flipperNoSelectorMatches hbeg hbids hcat
                                               hdeal hdent hdeny hfileAddress hfileUint
                                               hilk hkick hkicks hrely htau htend htick httl
                                               hvat hwards hyank)
-                                            hAccounts
+
   · exact flipperNonPayable hcode hwv
 
 theorem flipperContractCorrect :

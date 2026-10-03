@@ -18,12 +18,6 @@ theorem erc20StorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
       = .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
   simpa [erc20Uint256Loc, uint256Loc] using storageLocLoad_uint256 evm slot
 
-/-- ABI-encoding a Solm `uint256` return value produces exactly the EVM's returned word bytes.
-    Re-export of `Reasoning.Theory.uint256ReturnEncoding` (`uint256 ≡ .elem (.int (.uint 256))`). -/
-theorem erc20Uint256ReturnEncoding (v : UInt256) :
-    encodeReturnValue? uint256 (.int (Int.ofNat v.toNat)) =
-      some (UInt256.toByteArray v) := uint256ReturnEncoding v
-
 /-- The shared solc return wrapper computes the fixed one-word return length. -/
 theorem erc20SubRet32_toNat :
     (UInt256.sub ((⟨128⟩ : UInt256) + ⟨32⟩) ⟨128⟩).toNat = 32 := by
@@ -32,36 +26,10 @@ theorem erc20SubRet32_toNat :
 /-- ERC20 jump-destination proof macro. -/
 macro "erc20_jd" : term => `(by jump_dest)
 
-/-! ## Address canonicality helpers
-
-These moved to the library — `solcAddrMask` / `solcAddrCanon_eq` / `solcAddrCanonical_of_clean` in
-`Reasoning.Solc`, and `uInt256_eq_self` / `uInt256_eq_zero_of_ne` / `land_mask160` in
-`Reasoning.EVMWord`.  The `erc20*` names are kept as thin re-exports so ERC20's call sites are
-unchanged. -/
+/-! ## Address mask in the ERC20 bytecode proof -/
 
 /-- Address-mask literal (`PUSH20 0xff…ff`) used by solc address cleanup.  See `solcAddrMask`. -/
 def erc20AddrMask : UInt256 := solcAddrMask
-
-theorem erc20Ueq_self (a : UInt256) : UInt256.eq a a = ⟨1⟩ := uInt256_eq_self a
-
-theorem erc20Ueq_zero_of_ne {a b : UInt256} (h : ¬ UInt256.eq a b = ⟨1⟩) :
-    UInt256.eq a b = ⟨0⟩ := uInt256_eq_zero_of_ne h
-
-theorem erc20Land_mask160 (n : ℕ) (h : n < 2 ^ 160) : Nat.land n (2 ^ 160 - 1) = n :=
-  land_mask160 n h
-
-theorem erc20Canon_eq {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
-    UInt256.eq w (UInt256.land w erc20AddrMask) = ⟨1⟩ := solcAddrCanon_eq hcanon
-
-theorem erc20Word_canonical_of_clean {w : UInt256}
-    (hclean : UInt256.eq w (UInt256.land w erc20AddrMask) = ⟨1⟩) :
-    w.toNat < EVM.addressModulus := solcAddrCanonical_of_clean hclean
-
-theorem erc20AddrMask_clean {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
-    UInt256.land w erc20AddrMask = w := solcAddrMask_clean hcanon
-
-theorem erc20AddrMask_clean_left {w : UInt256} (hcanon : w.toNat < EVM.addressModulus) :
-    UInt256.land erc20AddrMask w = w := solcAddrMask_clean_left hcanon
 
 end ERC20
 
@@ -160,7 +128,7 @@ theorem RD.erc20DecodeAddrOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C 
   have hclean : UInt256.eq (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
       (UInt256.land (uInt256OfByteArray (ee.calldata.readBytes off.toNat 32))
         ERC20.erc20AddrMask) = ⟨1⟩ :=
-    ERC20.erc20Canon_eq hcanon
+    Reasoning.Theory.solcAddrCanon_eq hcanon
   exact ⟨_, _, evm_run rd with [
     jumpdest, dup2, eq, push2 ⟨1871⟩, jumpiT (by rw [hclean]; decide) (by jump_dest),
     jumpdest, pop, jump (by jump_dest),

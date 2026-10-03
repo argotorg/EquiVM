@@ -57,9 +57,9 @@ theorem uniswapAddressAtSlot_eq_runtime
     (hAccounts : Eq σ evm.accountMap) (henv : evm.executionEnv = I) :
     uniswapAddressAtSlot evm slot =
       AccountAddress.ofUInt256 (UInt256.land solcAddrMask (uniswapSlotWord slot σ I)) := by
-  have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
+  subst σ
   simp only [uniswapAddressAtSlot, Solm.EVM.storageLoad, State.lookupAccount,
-    Account.lookupStorage, henv, uniswapSlotWord, ← hslot,
+    Account.lookupStorage, henv, uniswapSlotWord,
     accountAddress_ofUInt256_eq_ofNat_toNat, u256_land_comm]
 
 -- LIBRARY CANDIDATE: evaluating a code-existence guard from coupled accounts and an address value.
@@ -74,7 +74,7 @@ theorem evalExpr_uniswap_codeGuard
   have hword : EVM.Word.ofNat
       ((evm.lookupAccount addr).option 0 (fun acc => acc.code.size)) =
       extCodeSizeWord σ target := by
-    rw [extCodeSizeWord_accountMapEquiv hAccounts]
+    rw [congrArg (fun accounts => extCodeSizeWord accounts target) hAccounts]
     cases hacc : evm.accountMap.find? addr <;>
       simp [State.lookupAccount, extCodeSizeWord, ← haddr, hacc, Option.option] <;> rfl
   simp [evalExpr?, hreceiver, EvalResult.bind, bind, pure, evalBinaryOp?, hword]

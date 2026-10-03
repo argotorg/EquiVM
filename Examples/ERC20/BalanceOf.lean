@@ -498,11 +498,11 @@ theorem erc20BalanceOfBodyCore
               (by simp only [initState]; exact hwv)
         exact (erc20X_balanceOf (g := Sat256.ofUInt256 g) hsz36 hsize hbig hcanon hreach)
           |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody (by rfl)
-            (returnEquiv_of_encode (erc20Uint256ReturnEncoding (balanceOfWord σ I)))
+            (returnEquiv_of_encode (uint256ReturnEncoding (balanceOfWord σ I)))
       · have hdec := erc20Decode_balanceOf_none_noncanon (I := I) hsz36 hbig hcanon
         have hnc : UInt256.eq (balanceOfOwnerWord I)
             (UInt256.land (balanceOfOwnerWord I) erc20AddrMask) = ⟨0⟩ :=
-          erc20Ueq_zero_of_ne (fun he => hcanon (erc20Word_canonical_of_clean he))
+          uInt256_eq_zero_of_ne (fun he => hcanon (solcAddrCanonical_of_clean he))
         exact (erc20BalanceOfX_noncanon (g := Sat256.ofUInt256 g) hsz36 hsize hbig hnc hreach)
           |>.reEquivDecodingFailed hcode hd hdec
     · have hbigge : 2 ^ 255 + 4 ≤ I.calldata.size := by omega

@@ -23,11 +23,10 @@ theorem clipperKickVowAddress_eq_of_aligned
     (halign : ClipperKickCallAligned s0 σ I evm) :
     clipperKickSourceVowAddress evm =
       AccountAddress.ofNat (clipperRedoVowTarget σ I).toNat := by
-  have hslot := accountMapEquiv_storage_findD halign.accounts I.codeOwner ⟨2⟩ ⟨0⟩
   have hword : solcSlotWord σ I ⟨2⟩ =
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩ := by
     simpa [solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, halign.executionEnv] using hslot
+      Account.lookupStorage, halign.executionEnv, halign.accounts]
   simp only [clipperKickSourceVowAddress, clipperRedoVowTarget]
   rw [← hword]
   rw [u256_land_comm]
@@ -130,11 +129,11 @@ theorem clipperKickFinishActive
       evmLock sourceInit id := by
   have htip : clipperKickTipWord σTop I = clipperRedoTipSolmWord evmTop := by
     simpa [clipperKickTipWord, clipperRedoTipWord] using
-      clipperRedoTipWord_eq_of_accountMapEquiv evmTop I
+      clipperRedoTipWord_eq_of_accounts_eq evmTop I
         halignTop.executionEnv halignTop.accounts
   have hchip : clipperKickChipWord σTop I = clipperRedoChipSolmWord evmTop := by
     simpa [clipperKickChipWord, clipperRedoChipWord] using
-      clipperRedoChipWord_eq_of_accountMapEquiv evmTop I
+      clipperRedoChipWord_eq_of_accounts_eq evmTop I
         halignTop.executionEnv halignTop.accounts
   have hactiveSource : clipperRedoTipSolmWord evmTop ≠ ⟨0⟩ ∨
       clipperRedoChipSolmWord evmTop ≠ ⟨0⟩ := by
@@ -263,7 +262,7 @@ theorem clipperKickFinishActive
               hwmulSource haddSource hsuck
           let sourceFinal := Solm.EVM.storageStore evmSuck
             evmSuck.executionEnv.codeOwner ⟨13⟩ ⟨0⟩
-          have hFinalAccounts := clipperKickUnlockedState_accountMapEquiv
+          have hFinalAccounts := clipperKickUnlockedState_accounts_eq
             evmSuck I halignSuck.executionEnv halignSuck.accounts
           exact .returned
             (sstoreAccountMap I.codeOwner σSuck ⟨13⟩ ⟨0⟩) sourceFinal _
@@ -303,7 +302,7 @@ theorem clipperKickFinishAfterFeedPrice
       hread64 =>
     obtain ⟨k9233, C9233, rd9233⟩ := RD.clipperKickGetFeedPriceToRmul
       v hpatch hrd (by omega)
-    have hbuf := clipperKickSlotWord_eq_of_accountMapEquiv sourceAfter I ⟨5⟩
+    have hbuf := clipperKickSlotWord_eq_of_accounts_eq sourceAfter I ⟨5⟩
       halign.executionEnv halign.accounts
     by_cases hoverRmul : UInt256.size ≤
         (solcSlotWord σ I ⟨5⟩).toNat * feedPrice.toNat
@@ -352,7 +351,7 @@ theorem clipperKickFinishAfterFeedPrice
             (by omega)
         let evmTop := clipperKickSourceTopState evmLock sourceAfter top
         have hTopAccounts : σTop = evmTop.accountMap := by
-          exact clipperKickTopState_accountMapEquiv evmLock sourceAfter I id top
+          exact clipperKickTopState_accounts_eq evmLock sourceAfter I id top
             halign.executionEnv hslot halign.accounts
         have halignTop : ClipperKickCallAligned s0 σTop I evmTop :=
           { accounts := hTopAccounts
@@ -369,11 +368,11 @@ theorem clipperKickFinishAfterFeedPrice
                 _ = I := halign.executionEnv }
         have htip : clipperKickTipWord σTop I = clipperRedoTipSolmWord evmTop := by
           simpa [clipperKickTipWord, clipperRedoTipWord] using
-            clipperRedoTipWord_eq_of_accountMapEquiv evmTop I
+            clipperRedoTipWord_eq_of_accounts_eq evmTop I
               halignTop.executionEnv halignTop.accounts
         have hchip : clipperKickChipWord σTop I = clipperRedoChipSolmWord evmTop := by
           simpa [clipperKickChipWord, clipperRedoChipWord] using
-            clipperRedoChipWord_eq_of_accountMapEquiv evmTop I
+            clipperRedoChipWord_eq_of_accounts_eq evmTop I
               halignTop.executionEnv halignTop.accounts
         let memTop := twoWordHashMem id ⟨12⟩ mem
         have hmemTop : memTop.size = 192 := by
@@ -407,7 +406,7 @@ theorem clipperKickFinishAfterFeedPrice
             have hsource := hprefix htail
             let sourceFinal := Solm.EVM.storageStore evmTop
               evmTop.executionEnv.codeOwner ⟨13⟩ ⟨0⟩
-            have hFinalAccounts := clipperKickUnlockedState_accountMapEquiv
+            have hFinalAccounts := clipperKickUnlockedState_accounts_eq
               evmTop I halignTop.executionEnv halignTop.accounts
             exact .returned
               (sstoreAccountMap I.codeOwner σTop ⟨13⟩ ⟨0⟩) sourceFinal _

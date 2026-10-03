@@ -1466,7 +1466,7 @@ theorem erc20TransferFromX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, push2 ⟨1912⟩, dup2, push2 ⟨1894⟩, jump erc20_jd ]
   have rd1912 := rd1894.erc20Routine0766 erc20_jd (by evm_ov)
   have hclean : UInt256.eq (transferFromValueWord I) (transferFromValueWord I) = ⟨1⟩ :=
-    erc20Ueq_self (transferFromValueWord I)
+    uInt256_eq_self (transferFromValueWord I)
   have rd1939 := evm_run rd1912 with [
     jumpdest, dup2, eq, push2 ⟨1922⟩, jumpiT (by rw [hclean]; decide) erc20_jd,
     jumpdest, pop, jump erc20_jd ]
@@ -1496,10 +1496,10 @@ theorem erc20TransferFromX_afterAllowance {σ σ₀ A I} {g : Sat256} {sel : UIn
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hcanonTo hreach
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) = transferFromFromWord I :=
-    erc20AddrMask_clean_left hcanonFrom
+    solcAddrMask_clean_left hcanonFrom
   have hsenderCleanL :
       UInt256.land erc20AddrMask (transferFromSenderWord I) = transferFromSenderWord I :=
-    erc20AddrMask_clean_left (transferFromSenderWord_canonical I)
+    solcAddrMask_clean_left (transferFromSenderWord_canonical I)
   have hslot := transferFromAllowanceKeccakSlot I hcanonFrom
   have rd663₀ := evm_run rd613 with [
     jumpdest, push0, push0, push1 ⟨1⟩, push0, dup7, push20 erc20AddrMask, and,
@@ -1555,7 +1555,7 @@ theorem erc20TransferFromX_afterBalance {σ σ₀ A I} {g : Sat256} {sel : UInt2
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hcanonTo hallowance hreach
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) = transferFromFromWord I :=
-    erc20AddrMask_clean_left hcanonFrom
+    solcAddrMask_clean_left hcanonFrom
   have hslot := transferFromFromKeccakSlot I hcanonFrom
   have rd854₀ := evm_run rd805 with [
     jumpdest, dup3, push0, push0, dup8, push20 erc20AddrMask, and,
@@ -1625,10 +1625,10 @@ theorem erc20TransferFromX_afterAllowanceStore {σ σ₀ A I}
   have rd944 := rd944₀
   rw [hdebit] at rd944
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) = transferFromFromWord I :=
-    erc20AddrMask_clean_left hcanonFrom
+    solcAddrMask_clean_left hcanonFrom
   have hsenderCleanL :
       UInt256.land erc20AddrMask (transferFromSenderWord I) = transferFromSenderWord I :=
-    erc20AddrMask_clean_left (transferFromSenderWord_canonical I)
+    solcAddrMask_clean_left (transferFromSenderWord_canonical I)
   have hslot := transferFromAllowanceKeccakSlot I hcanonFrom
   have rd993₀ := evm_run rd944 with [
     jumpdest, push1 ⟨1⟩, push0, dup8, push20 erc20AddrMask, and,
@@ -1680,7 +1680,7 @@ theorem erc20TransferFromX_afterFromStore {σ σ₀ A I}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hperm hcanonFrom hcanonTo hallowance hbalance hreach
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) = transferFromFromWord I :=
-    erc20AddrMask_clean_left hcanonFrom
+    solcAddrMask_clean_left hcanonFrom
   have hslot := transferFromFromKeccakSlot I hcanonFrom
   have rd1117₀ := evm_run rd1069 with [
     dup3, push0, push0, dup8, push20 erc20AddrMask, and,
@@ -1706,7 +1706,7 @@ theorem erc20TransferFromX_afterFromStore {σ σ₀ A I}
     rw [transferFromAfterAllowance_codeOwner (initState σ σ₀ g A I) I]
     simpa [transferFromFromSlot, transferFromAfterAllowanceState,
       transferFromAllowanceSlot, transferFromAllowanceSlotI, initState, Solm.EVM.storageLoad,
-      State.lookupAccount, Account.lookupStorage, erc20StorageStore_accountMap]
+      State.lookupAccount, Account.lookupStorage, storageStore_accountMap]
       using rd1134₀
   have rd2552 := evm_run rd1134 with [
     push2 ⟨1143⟩, swap2, swap1, push2 ⟨2552⟩, jump erc20_jd ]
@@ -1757,7 +1757,7 @@ theorem erc20TransferFromX_balanceDebitUnderflow {σ σ₀ A I}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hperm hcanonFrom hcanonTo hallowance hbalance hreach
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) = transferFromFromWord I :=
-    erc20AddrMask_clean_left hcanonFrom
+    solcAddrMask_clean_left hcanonFrom
   have hslot := transferFromFromKeccakSlot I hcanonFrom
   have rd1117₀ := evm_run rd1069 with [
     dup3, push0, push0, dup8, push20 erc20AddrMask, and,
@@ -1783,7 +1783,7 @@ theorem erc20TransferFromX_balanceDebitUnderflow {σ σ₀ A I}
     rw [transferFromAfterAllowance_codeOwner (initState σ σ₀ g A I) I]
     simpa [transferFromFromSlot, transferFromAfterAllowanceState,
       transferFromAllowanceSlot, transferFromAllowanceSlotI, initState, Solm.EVM.storageLoad,
-      State.lookupAccount, Account.lookupStorage, erc20StorageStore_accountMap]
+      State.lookupAccount, Account.lookupStorage, storageStore_accountMap]
       using rd1134₀
   have rd2552 := evm_run rd1134 with [
     push2 ⟨1143⟩, swap2, swap1, push2 ⟨2552⟩, jump erc20_jd ]
@@ -1824,7 +1824,7 @@ theorem erc20TransferFromX_afterToStore {σ σ₀ A I}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hperm hcanonFrom hcanonTo hallowance hbalance hbalanceDebit hreach
   have htoCleanL : UInt256.land erc20AddrMask (transferFromToWord I) = transferFromToWord I :=
-    erc20AddrMask_clean_left hcanonTo
+    solcAddrMask_clean_left hcanonTo
   have hslot := transferFromToKeccakSlot I hcanonTo
   have rd1199₀ := evm_run rd1151 with [
     dup3, push0, push0, dup7, push20 erc20AddrMask, and,
@@ -1851,7 +1851,7 @@ theorem erc20TransferFromX_afterToStore {σ σ₀ A I}
     simpa [transferFromToBalanceWord, transferFromAfterBalanceState,
       transferFromAfterAllowanceState, transferFromAllowanceSlot, transferFromAllowanceSlotI,
       initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-      erc20StorageStore_accountMap, transferFromAfterAllowance_codeOwner]
+      storageStore_accountMap, transferFromAfterAllowance_codeOwner]
       using rd1216₀
   have rd2603 := evm_run rd1216 with [
     push2 ⟨1225⟩, swap2, swap1, push2 ⟨2603⟩, jump erc20_jd ]
@@ -1905,10 +1905,10 @@ theorem erc20X_transferFrom {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     hsz100 hsize hszhi hperm hcanonFrom hcanonTo hallowance hbalance hbalanceDebit hfit hreach
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) =
       transferFromFromWord I :=
-    erc20AddrMask_clean_left hcanonFrom
+    solcAddrMask_clean_left hcanonFrom
   have htoCleanL : UInt256.land erc20AddrMask (transferFromToWord I) =
       transferFromToWord I :=
-    erc20AddrMask_clean_left hcanonTo
+    solcAddrMask_clean_left hcanonTo
   have rd1279₀ := evm_run rd1233 with [
     dup4, push20 erc20AddrMask, and, dup6, push20 erc20AddrMask, and ]
   have rd1279 := rd1279₀
@@ -1987,7 +1987,7 @@ theorem erc20TransferFromX_overflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hperm hcanonFrom hcanonTo hallowance hbalance hbalanceDebit hreach
   have htoCleanL : UInt256.land erc20AddrMask (transferFromToWord I) = transferFromToWord I :=
-    erc20AddrMask_clean_left hcanonTo
+    solcAddrMask_clean_left hcanonTo
   have hslot := transferFromToKeccakSlot I hcanonTo
   have rd1199₀ := evm_run rd1151 with [
     dup3, push0, push0, dup7, push20 erc20AddrMask, and,
@@ -2014,7 +2014,7 @@ theorem erc20TransferFromX_overflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     simpa [transferFromToBalanceWord, transferFromAfterBalanceState,
       transferFromAfterAllowanceState, transferFromAllowanceSlot, transferFromAllowanceSlotI,
       initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-      erc20StorageStore_accountMap, transferFromAfterAllowance_codeOwner]
+      storageStore_accountMap, transferFromAfterAllowance_codeOwner]
       using rd1216₀
   have rd2603 := evm_run rd1216 with [
     push2 ⟨1225⟩, swap2, swap1, push2 ⟨2603⟩, jump erc20_jd ]
@@ -2123,10 +2123,10 @@ theorem erc20TransferFromX_insufficientAllowance {σ σ₀ A I}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hcanonTo hreach
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) = transferFromFromWord I :=
-    erc20AddrMask_clean_left hcanonFrom
+    solcAddrMask_clean_left hcanonFrom
   have hsenderCleanL :
       UInt256.land erc20AddrMask (transferFromSenderWord I) = transferFromSenderWord I :=
-    erc20AddrMask_clean_left (transferFromSenderWord_canonical I)
+    solcAddrMask_clean_left (transferFromSenderWord_canonical I)
   have hslot := transferFromAllowanceKeccakSlot I hcanonFrom
   have rd663₀ := evm_run rd613 with [
     jumpdest, push0, push0, push1 ⟨1⟩, push0, dup7, push20 erc20AddrMask, and,
@@ -2249,7 +2249,7 @@ theorem erc20TransferFromX_insufficientBalance {σ σ₀ A I}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz100 hsize hszhi hcanonFrom hcanonTo hallowance hreach
   have hfromCleanL : UInt256.land erc20AddrMask (transferFromFromWord I) = transferFromFromWord I :=
-    erc20AddrMask_clean_left hcanonFrom
+    solcAddrMask_clean_left hcanonFrom
   have hslot := transferFromFromKeccakSlot I hcanonFrom
   have rd854₀ := evm_run rd805 with [
     jumpdest, dup3, push0, push0, dup8, push20 erc20AddrMask, and,
@@ -2386,8 +2386,8 @@ theorem erc20TransferFromBodyCore
                   |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
                     (by simp [evmS, transferFromPostState, transferFromAfterBalanceState,
                       transferFromAfterAllowanceState, transferFromAllowanceSlot,
-                      transferFromAllowanceSlotI, initState, erc20StorageStore_accountMap])
-                    (returnEquiv_of_encode erc20BoolTrueReturnEncoding)
+                      transferFromAllowanceSlotI, initState, storageStore_accountMap])
+                    (returnEquiv_of_encode boolTrueReturnEncoding)
                 · have hover :
                     UInt256.size ≤
                       transferFromNewToNat
@@ -2446,7 +2446,7 @@ theorem erc20TransferFromBodyCore
             hsz100 hbig hcanonFrom hcanonTo
           have hnc : UInt256.eq (transferFromToWord I)
               (UInt256.land (transferFromToWord I) erc20AddrMask) = ⟨0⟩ :=
-            erc20Ueq_zero_of_ne (fun he => hcanonTo (erc20Word_canonical_of_clean he))
+            uInt256_eq_zero_of_ne (fun he => hcanonTo (solcAddrCanonical_of_clean he))
           exact (erc20TransferFromX_noncanon_to (g := Sat256.ofUInt256 g)
               hsz100 hsize hbig hcanonFrom hnc hreach)
             |>.reEquivDecodingFailed hcode hd hdec
@@ -2454,7 +2454,7 @@ theorem erc20TransferFromBodyCore
           hsz100 hbig hcanonFrom
         have hnc : UInt256.eq (transferFromFromWord I)
             (UInt256.land (transferFromFromWord I) erc20AddrMask) = ⟨0⟩ :=
-          erc20Ueq_zero_of_ne (fun he => hcanonFrom (erc20Word_canonical_of_clean he))
+          uInt256_eq_zero_of_ne (fun he => hcanonFrom (solcAddrCanonical_of_clean he))
         exact (erc20TransferFromX_noncanon_from (g := Sat256.ofUInt256 g)
             hsz100 hsize hbig hnc hreach)
           |>.reEquivDecodingFailed hcode hd hdec

@@ -179,7 +179,7 @@ theorem uniswapInternalMintBalanceHashSlot_eq_mapSlot
   rw [uniswapInternalMintBalanceHashMem_read0_64_of_ge64 recipient hlo]
   exact mappingSlot_single (UInt256.land recipient solcAddrMask) ⟨1⟩
 
-theorem accountMapEquiv_mintFunctionPostState_of_runtimeMintRecipient
+theorem mintFunctionPostState_accountMap_eq_of_runtimeMintRecipient
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv} {mem : ByteArray}
     {liquidity recipientWord : UInt256} {recipient : AccountAddress}
     (hPost : σ = evm.accountMap)
@@ -198,7 +198,7 @@ theorem accountMapEquiv_mintFunctionPostState_of_runtimeMintRecipient
           (uniswapInternalMintBalanceHashSlot recipientWord mem) + liquidity))
       (mintFunctionPostState evm recipient liquidity).accountMap := by
   have htotalEq : mintFunctionTotalSupplyWord evm = uniswapSlotWord ⟨0⟩ σ I :=
-    mintFunctionTotalSupplyWord_eq_slot_of_accountMapEquiv hPost henv
+    mintFunctionTotalSupplyWord_eq_slot hPost henv
   have hnewSupply :
       mintFunctionTotalSupplyNewWord evm liquidity =
         uniswapSlotWord ⟨0⟩ σ I + liquidity := by
@@ -209,8 +209,9 @@ theorem accountMapEquiv_mintFunctionPostState_of_runtimeMintRecipient
       Eq
         (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + liquidity))
         (mintFunctionAfterTotalSupplyState evm liquidity).accountMap := by
-    have hstore := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩
-      (uniswapSlotWord ⟨0⟩ σ I + liquidity) hPost
+    have hstore := congrArg
+      (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨0⟩
+        (uniswapSlotWord ⟨0⟩ σ I + liquidity)) hPost
     simpa [mintFunctionAfterTotalSupplyState, henv, storageStore_accountMap, hnewSupply]
       using hstore
   have henvAfter : (mintFunctionAfterTotalSupplyState evm liquidity).executionEnv = I := by
@@ -239,8 +240,9 @@ theorem accountMapEquiv_mintFunctionPostState_of_runtimeMintRecipient
         uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + liquidity))
           (uniswapInternalMintBalanceHashSlot recipientWord mem) := by
-    have hword := accountMapEquiv_storage_findD hafterTotal I.codeOwner
-      (mapSlot (UInt256.land recipientWord solcAddrMask) ⟨1⟩) ⟨0⟩
+    have hword := congrArg
+      (fun m => uniswapCodeOwnerStorageWord I m
+        (mapSlot (UInt256.land recipientWord solcAddrMask) ⟨1⟩)) hafterTotal
     simpa [mintFunctionToBalanceWord, uniswapCodeOwnerStorageWord, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, henv, henvAfter, hslotSource, hslotRuntime]
       using hword.symm
@@ -255,16 +257,16 @@ theorem accountMapEquiv_mintFunctionPostState_of_runtimeMintRecipient
           (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + liquidity))
           (uniswapInternalMintBalanceHashSlot recipientWord mem)) liquidity
         (by simpa [mintFunctionToBalanceNewNat, hbalanceEq] using hfitBalance)
-  have hstoreBalance := accountMapEquiv_sstoreAccountMap I.codeOwner
-    (mapSlot (UInt256.land recipientWord solcAddrMask) ⟨1⟩)
-    (uniswapCodeOwnerStorageWord I
-      (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + liquidity))
-      (uniswapInternalMintBalanceHashSlot recipientWord mem) + liquidity)
-    hafterTotal
+  have hstoreBalance := congrArg
+    (fun accounts => sstoreAccountMap I.codeOwner accounts
+      (mapSlot (UInt256.land recipientWord solcAddrMask) ⟨1⟩)
+      (uniswapCodeOwnerStorageWord I
+        (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + liquidity))
+        (uniswapInternalMintBalanceHashSlot recipientWord mem) + liquidity)) hafterTotal
   simpa [mintFunctionPostState, storageStore_accountMap, henv, henvAfter, hslotSource,
     hslotRuntimeStore, hnewBalance] using hstoreBalance
 
-theorem accountMapEquiv_mintFunctionPostState_of_runtimeMint
+theorem mintFunctionPostState_accountMap_eq_of_runtimeMint
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv} {mem : ByteArray}
     {liquidity : UInt256}
     (hPost : σ = evm.accountMap)
@@ -286,7 +288,7 @@ theorem accountMapEquiv_mintFunctionPostState_of_runtimeMint
         liquidity).accountMap := by
   let recipient := AccountAddress.ofNat (mintToWord I).toNat
   have htotalEq : mintFunctionTotalSupplyWord evm = uniswapSlotWord ⟨0⟩ σ I :=
-    mintFunctionTotalSupplyWord_eq_slot_of_accountMapEquiv hPost henv
+    mintFunctionTotalSupplyWord_eq_slot hPost henv
   have hnewSupply :
       mintFunctionTotalSupplyNewWord evm liquidity =
         uniswapSlotWord ⟨0⟩ σ I + liquidity := by
@@ -297,8 +299,9 @@ theorem accountMapEquiv_mintFunctionPostState_of_runtimeMint
       Eq
         (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + liquidity))
         (mintFunctionAfterTotalSupplyState evm liquidity).accountMap := by
-    have hstore := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩
-      (uniswapSlotWord ⟨0⟩ σ I + liquidity) hPost
+    have hstore := congrArg
+      (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨0⟩
+        (uniswapSlotWord ⟨0⟩ σ I + liquidity)) hPost
     simpa [mintFunctionAfterTotalSupplyState, henv, storageStore_accountMap, hnewSupply]
       using hstore
   have henvAfter : (mintFunctionAfterTotalSupplyState evm liquidity).executionEnv = I := by
@@ -333,8 +336,9 @@ theorem accountMapEquiv_mintFunctionPostState_of_runtimeMint
         uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + liquidity))
           (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) mem) := by
-    have hword := accountMapEquiv_storage_findD hafterTotal I.codeOwner
-      (mapSlot (mintToMaskedWord I) ⟨1⟩) ⟨0⟩
+    have hword := congrArg
+      (fun m => uniswapCodeOwnerStorageWord I m (mapSlot (mintToMaskedWord I) ⟨1⟩))
+      hafterTotal
     simpa [mintFunctionToBalanceWord, uniswapCodeOwnerStorageWord, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, henv, henvAfter, hslotSource, hslotRuntime]
       using hword.symm
@@ -349,11 +353,12 @@ theorem accountMapEquiv_mintFunctionPostState_of_runtimeMint
           (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + liquidity))
           (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) mem)) liquidity
         (by simpa [mintFunctionToBalanceNewNat, recipient, hbalanceEq] using hfitBalance)
-  have hstoreBalance := accountMapEquiv_sstoreAccountMap I.codeOwner
-    (mapSlot (mintToMaskedWord I) ⟨1⟩)
-    (uniswapCodeOwnerStorageWord I
-      (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + liquidity))
-      (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) mem) + liquidity)
+  have hstoreBalance := congrArg
+    (fun accounts => sstoreAccountMap I.codeOwner accounts
+      (mapSlot (mintToMaskedWord I) ⟨1⟩)
+      (uniswapCodeOwnerStorageWord I
+        (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + liquidity))
+        (uniswapInternalMintBalanceHashSlot (mintToMaskedWord I) mem) + liquidity))
     hafterTotal
   simpa [mintFunctionPostState, storageStore_accountMap, henv, henvAfter, recipient,
     hslotSource, hslotRuntimeStore, hnewBalance] using hstoreBalance

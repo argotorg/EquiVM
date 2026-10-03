@@ -94,7 +94,7 @@ theorem bidPercentageSource {s0 I σ evm locals s noun}
   rw [minBidIncRef, scalarRead evm locals "minBidIncrementPercentage"
     (.int uint8Int) (auctionUint8LocAt ⟨205⟩ 0) (hv.storage _ (by decide))
       (by native_decide) rfl, loadUint8]
-  rw [bidPercentage, storedWord_equiv hs.accounts, ← hs.env]
+  rw [bidPercentage, hs.accounts, ← hs.env]
   rfl
 
 theorem bidMinimumSource {s0 I σ evm locals s noun}

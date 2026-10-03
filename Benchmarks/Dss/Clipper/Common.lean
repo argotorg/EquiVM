@@ -86,39 +86,21 @@ theorem clipperExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target :
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [hacc] using hword
--- TODO: Replace these equality wrappers with direct rewriting at call sites as their modules migrate.
--- LIBRARY CANDIDATE: account-map transport for zero-code-size lookup facts.
-theorem clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
-    {σ τ : AccountMap} {target : UInt256} {addr : AccountAddress}
-    (hAccounts : σ = τ)
-    (haddr : addr = AccountAddress.ofUInt256 target)
-    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
-    (UInt256.ofNat ((τ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
-  have hzeroτ : Reasoning.Theory.extCodeSizeWord τ target = ⟨0⟩ := by
-    rwa [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts target]
-  exact clipperExtCodeSizeWord_zero_lookup_code_zero haddr hzeroτ
--- LIBRARY CANDIDATE: account-map transport for nonzero-code-size lookup facts.
-theorem clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-    {σ τ : AccountMap} {target : UInt256} {addr : AccountAddress}
-    (hAccounts : σ = τ)
+theorem clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+    {σ : AccountMap} {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
-    0 < (UInt256.ofNat ((τ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+    0 < (UInt256.ofNat ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
-  have hneτ : Reasoning.Theory.extCodeSizeWord τ target ≠ ⟨0⟩ := by
-    intro hzero
-    exact hne (by
-      rw [Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts target]
-      exact hzero)
-  unfold Reasoning.Theory.extCodeSizeWord at hneτ
-  cases hacc : τ.find? (AccountAddress.ofUInt256 target) with
+  unfold Reasoning.Theory.extCodeSizeWord at hne
+  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
-      exact hneτ (by simp [hacc, Option.option])
+      exact hne (by simp [hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hneτ (by simpa [hacc] using hzero)
+        exact hne (by simpa [hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe

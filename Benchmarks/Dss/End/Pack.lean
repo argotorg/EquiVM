@@ -1735,38 +1735,6 @@ theorem endPackTailReturns (evm : EVM.State) (I : ExecutionEnv)
   refine ExecBlock.consNormal haddStmt ?_
   exact ExecBlock.consNormal (ExecStmt.assign hbagNew hassign) ExecBlock.nil
 
-theorem endPackVatWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    endPackVatWord σ I = endPackVatWord τ I := by
-  simp [endPackVatWord, endSlotWord, solcSlotWord,
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩]
-
-theorem endPackVatCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ)
-    (hne : Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endPackVatWord τ I) ≠ ⟨0⟩ := by
-  intro hzero
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endPackVatWord σ I)
-  have htarget : endPackVatWord σ I = endPackVatWord τ I :=
-    endPackVatWord_accountMapEquiv hAccounts
-  rw [hsame, htarget]
-  exact hzero
-
-theorem endPackVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ)
-    (hzero : Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endPackVatWord τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endPackVatWord σ I)
-  have htarget : endPackVatWord σ I = endPackVatWord τ I :=
-    endPackVatWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame]
-  exact hzero
-
 theorem endPackVatAddr_eq_ofUInt256 (σ : AccountMap) (I : ExecutionEnv) :
     endPackVatAddr σ I = AccountAddress.ofUInt256 (endPackVatWord σ I) := by
   simpa [endPackVatAddr] using
@@ -2549,24 +2517,18 @@ theorem endPackBody {σ σ₀ A I} {g : UInt256}
     obtain ⟨_, _, hbodyReach⟩ :=
       endPackX_decoded (g := Sat256.ofUInt256 g) hsz36 hsize hreach
     let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hdebtCouple : endPackDebtWord σ I = endPackDebtWord σ I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨11⟩ ⟨0⟩
     by_cases hdebt : endPackDebtWord σ I = ⟨0⟩
-    · have hdebtSolm : endPackDebtWord σ I = ⟨0⟩ := by
-        rw [← hdebtCouple]
-        exact hdebt
+    ·
       have hbody :
           ExecTransitionBody config contract evmSolm (endPackStore I)
             packTransition.body .reverted := by
         simpa [evmSolm] using
           endPackBodyReverts_debtZero
             (σ := σ) (σ₀ := σ₀)
-            (A := A) (I := I) (g := g) hwv hdebtSolm
+            (A := A) (I := I) (g := g) hwv hdebt
       exact (endPackX_debtZero (g := Sat256.ofUInt256 g) hdebt hbodyReach)
         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hdebtSolm : endPackDebtWord σ I ≠ ⟨0⟩ := by
-        intro hbad
-        exact hdebt (by rw [hdebtCouple, hbad])
+    ·
       obtain ⟨_, _, hmulEntry⟩ :=
         endPackX_mulEntry (g := Sat256.ofUInt256 g) hdebt hbodyReach
       by_cases hover : UInt256.size ≤ (endPackWadWord I).toNat * endPackRayWord.toNat
@@ -2576,7 +2538,7 @@ theorem endPackBody {σ σ₀ A I} {g : UInt256}
           simpa [evmSolm] using
             endPackBodyReverts_mulOverflow
               (σ := σ) (σ₀ := σ₀)
-              (A := A) (I := I) (g := g) hwv hdebtSolm hover
+              (A := A) (I := I) (g := g) hwv hdebt hover
         exact (endPackX_mulOverflow (g := Sat256.ofUInt256 g) hover hmulEntry)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hfit : (endPackWadWord I).toNat * endPackRayWord.toNat < UInt256.size :=
@@ -2586,26 +2548,19 @@ theorem endPackBody {σ σ₀ A I} {g : UInt256}
         by_cases hvatCode :
             Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) =
               ⟨0⟩
-        · have hvatCodeSolm :
-              Reasoning.Theory.extCodeSizeWord σ
-                (endPackVatWord σ I) = ⟨0⟩ :=
-            endPackVatCodeSize_zero_accountMapEquiv hAccounts hvatCode
+        ·
           have hbody :
               ExecTransitionBody config contract evmSolm (endPackStore I)
                 packTransition.body .reverted := by
             simpa [evmSolm] using
               endPackBodyReverts_moveNoCode
                 (σ := σ) (σ₀ := σ₀)
-                (A := A) (I := I) (g := g) hwv hdebtSolm hfit hvatCodeSolm
+                (A := A) (I := I) (g := g) hwv hdebt hfit hvatCode
           exact (endPackX_moveNoCode (g := Sat256.ofUInt256 g) hmoveStart hvatCode)
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
         · have hvatCodeNE :
               Reasoning.Theory.extCodeSizeWord σ
                 (endPackVatWord σ I) ≠ ⟨0⟩ := hvatCode
-          have hvatCodeSolmNE :
-              Reasoning.Theory.extCodeSizeWord σ
-                (endPackVatWord σ I) ≠ ⟨0⟩ :=
-            endPackVatCodeSize_ne_accountMapEquiv hAccounts hvatCodeNE
           obtain ⟨gasWord, _, _, hcallReady⟩ :=
             endPackX_moveCallReady (g := Sat256.ofUInt256 g) hmoveStart hvatCodeNE
           by_cases hdepthLt : I.depth.val < 1024
@@ -2662,16 +2617,6 @@ theorem endPackBody {σ σ₀ A I} {g : UInt256}
                 hdepthNe htgt
                 (endPackMoveEncode_eq σ I (endPackAmtWord I) solcFreePtrMem_size)
                 (by simpa [initState, hperm] using hΘeq)
-            obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hStateCall⟩ :=
-              typedCallViaEVM_initState_EVMStateEquiv (hcall := hcallEvm)
-                (by simp [initState]) hAccounts
-            have hVatAddr : endPackVatAddr σ I = endPackVatAddr σ I := by
-              simp [endPackVatAddr, endPackVatWord_accountMapEquiv hAccounts]
-            have hVowWord : endPackVowWord σ I = endPackVowWord σ I := by
-              simp [endPackVowWord, endSlotWord, solcSlotWord,
-                accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨4⟩ ⟨0⟩]
-            have hVowAddr : endPackVowAddr σ I = endPackVowAddr σ I := by
-              simp [endPackVowAddr, hVowWord]
             have hcallSolm :
                 typedCallViaEVM config evmSolm
                   (EVM.address (endPackVatAddr σ I)) "move" 0
@@ -2679,10 +2624,10 @@ theorem endPackBody {σ σ₀ A I} {g : UInt256}
                     .int (Int.ofNat (endPackAmtWord I).toNat)]
                   (z,
                     { evmSolm with
-                      accountMap := σ'_solm
-                      substate := A'_solm },
-                    out) true := by
-              simpa [evmSolm, hVatAddr, hVowAddr] using hcallSolmRaw
+                      accountMap := σ'
+                      substate := A' },
+                  out) true := by
+              simpa [evmSolm] using hcallEvm
             cases z
             · have hbody :
                   ExecTransitionBody config contract evmSolm (endPackStore I)
@@ -2693,10 +2638,10 @@ theorem endPackBody {σ σ₀ A I} {g : UInt256}
                     (A := A) (I := I) (g := g)
                     (evmMove :=
                       { evmSolm with
-                        accountMap := σ'_solm
-                        substate := A'_solm })
+                        accountMap := σ'
+                        substate := A' })
                     (out := out)
-                    hwv hdebtSolm hfit hvatCodeSolmNE (by simpa [evmSolm] using hcallSolm)
+                    hwv hdebt hfit hvatCodeNE (by simpa [evmSolm] using hcallSolm)
               exact (endPackX_moveCallFailed (g := g) rd6552 hout)
                 |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
             · let evmMoveEvm :=
@@ -2705,17 +2650,17 @@ theorem endPackBody {σ σ₀ A I} {g : UInt256}
                   substate := A' }
               let evmMoveSolm :=
                 { evmSolm with
-                  accountMap := σ'_solm
-                  substate := A'_solm }
+                  accountMap := σ'
+                  substate := A' }
               have hsrcMove : evmMoveSolm.executionEnv.source = I.source := by
                 simp [evmMoveSolm, evmSolm, initState]
               have hbagCouple :
                   endPackBagWord σ' I =
                     Solm.EVM.storageLoad evmMoveSolm evmMoveSolm.executionEnv.codeOwner
                       (endPackBagSlot I) := by
-                have hload := hStateCall.storageLoad_codeOwner (endPackBagSlot I)
-                simpa [evmMoveEvm, evmMoveSolm, initState, Solm.EVM.storageLoad,
-                  State.lookupAccount, endPackBagWord, endSlotWord, solcSlotWord] using hload
+                simp [evmMoveSolm, evmSolm, initState, Solm.EVM.storageLoad,
+                  State.lookupAccount, Account.lookupStorage, endPackBagWord,
+                  endSlotWord, solcSlotWord]
               obtain ⟨_, _, rdAddEntry⟩ := endPackX_bagAddEntry (g := g) rd6552
               by_cases hoverAdd :
                   UInt256.size ≤
@@ -2735,7 +2680,7 @@ theorem endPackBody {σ σ₀ A I} {g : UInt256}
                       (σ := σ) (σ₀ := σ₀)
                       (A := A) (I := I) (g := g)
                       (evmMove := evmMoveSolm) (out := out)
-                      hwv hdebtSolm hfit hvatCodeSolmNE
+                      hwv hdebt hfit hvatCodeNE
                       (by simpa [evmMoveSolm, evmSolm] using hcallSolm)
                       hsrcMove hoverSolm
                 exact (endPackX_bagAddOverflow hoverAdd rdAddEntry)
@@ -2753,12 +2698,6 @@ theorem endPackBody {σ σ₀ A I} {g : UInt256}
                   exact hfitAdd
                 obtain ⟨_, _, rdBagStore⟩ := endPackX_bagAddSuccess hfitAdd rdAddEntry
                 have hret := endPackX_bagStoreReturn hperm rdBagStore
-                have hbagNewCouple :
-                    endPackBagWord σ' I + endPackWadWord I =
-                      Solm.EVM.storageLoad evmMoveSolm evmMoveSolm.executionEnv.codeOwner
-                          (endPackBagSlot I) +
-                        endPackWadWord I := by
-                  rw [hbagCouple]
                 have hbody :
                     ExecTransitionBody config contract evmSolm (endPackStore I)
                       packTransition.body
@@ -2779,28 +2718,24 @@ theorem endPackBody {σ σ₀ A I} {g : UInt256}
                       (σ := σ) (σ₀ := σ₀)
                       (A := A) (I := I) (g := g)
                       (evmMove := evmMoveSolm) (out := out)
-                      hwv hdebtSolm hfit hvatCodeSolmNE
+                      hwv hdebt hfit hvatCodeNE
                       (by simpa [evmMoveSolm, evmSolm] using hcallSolm)
                       hsrcMove hfitAddSolm
-                exact hret.reEquivExecutionGenEVMStateEquiv
-                  (evm'_evm :=
-                    endPackPostState evmMoveEvm I (endPackBagWord σ' I + endPackWadWord I))
-                  (evm'_solm :=
-                    endPackPostState evmMoveSolm I
-                      (Solm.EVM.storageLoad evmMoveSolm evmMoveSolm.executionEnv.codeOwner
-                          (endPackBagSlot I) +
-                        endPackWadWord I))
-                  hcode hdispatch hdecode hbody
-                  (by
-                    simp [evmMoveEvm, endPackPostState, initState])
-                  (by
-                    simpa [evmMoveEvm, endPackPostState, initState, storageStore_accountMap] using
-                      Eq.refl
-                        (sstoreAccountMap I.codeOwner σ' (endPackBagSlot I)
-                          (endPackBagWord σ' I + endPackWadWord I)))
-                  (by
-                    simpa [evmMoveEvm, evmMoveSolm, endPackPostState, hbagNewCouple] using
-                      hStateCall.storageStore_codeOwner (endPackBagSlot I) hbagNewCouple)
+                rw [← hbagCouple] at hbody
+                have hbody' :
+                    ExecTransitionBody config contract evmSolm (endPackStore I)
+                      packTransition.body
+                      (.returned
+                        { contract := contract,
+                          locals := endPackStoreBagNew I
+                            (endPackBagWord σ' I + endPackWadWord I) }
+                        (endPackPostState evmMoveEvm I
+                          (endPackBagWord σ' I + endPackWadWord I)) none) := by
+                  simpa [evmMoveEvm, evmMoveSolm, evmSolm] using hbody
+                exact hret.reEquivExecutionGenAccountMapEquiv
+                  hcode hdispatch hdecode hbody'
+                  (by simp [evmMoveEvm, endPackPostState, initState,
+                    storageStore_accountMap])
                   (by
                     simpa [packTransition] using
                       (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
@@ -2836,7 +2771,7 @@ theorem endPackBody {σ σ₀ A I} {g : UInt256}
                   (A := A) (I := I) (g := g)
                   (evmMove := { evmSolm with substate := A_move })
                   (out := ByteArray.empty)
-                  hwv hdebtSolm hfit hvatCodeSolmNE (by simpa [evmSolm] using hcallSolm)
+                  hwv hdebt hfit hvatCodeNE (by simpa [evmSolm] using hcallSolm)
             exact (endPackX_moveCallFailed (g := g) rd6552 (by native_decide))
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · exact endPackBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach

@@ -4391,46 +4391,31 @@ theorem endFlowBody {σ σ₀ A I} {g : UInt256}
     obtain ⟨_, _, hbodyReach⟩ :=
       endFlowX_decoded (g := Sat256.ofUInt256 g) hsz36 hsize hreach
     let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hdebtCouple : endFlowDebtWord σ I = endFlowDebtWord σ I := by
-      simpa [endFlowDebtWord, endSlotWord] using
-        accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨11⟩ ⟨0⟩
     by_cases hdebt : endFlowDebtWord σ I = ⟨0⟩
-    · have hdebtSolm : endFlowDebtWord σ I = ⟨0⟩ := by
-        rw [← hdebtCouple]
-        exact hdebt
+    ·
       have hbody :
           ExecTransitionBody config contract evmSolm (endFlowStore I)
             flowTransition.body .reverted := by
         simpa [evmSolm] using
           endFlowBodyReverts_debtZero
             (σ := σ) (σ₀ := σ₀)
-            (A := A) (I := I) (g := g) hwv hdebtSolm
+            (A := A) (I := I) (g := g) hwv hdebt
       exact (endFlowX_debtZero (g := Sat256.ofUInt256 g) hdebt hbodyReach)
         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hdebtSolm : endFlowDebtWord σ I ≠ ⟨0⟩ := by
-        intro hbad
-        exact hdebt (by rw [hdebtCouple, hbad])
-      have hfixCouple : endFlowFixWord σ I = endFlowFixWord σ I := by
-        simpa [endFlowFixWord, endSlotWord] using
-          accountMapEquiv_storage_findD hAccounts I.codeOwner (endFlowFixSlot I) ⟨0⟩
+    ·
       by_cases hfix : endFlowFixWord σ I = ⟨0⟩
-      · have hfixSolm : endFlowFixWord σ I = ⟨0⟩ := by
-          rw [← hfixCouple]
-          exact hfix
+      ·
         by_cases hvatCode :
             Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) =
               ⟨0⟩
-        · have hvatCodeSolm :
-              Reasoning.Theory.extCodeSizeWord σ
-                (endPackVatWord σ I) = ⟨0⟩ :=
-            endPackVatCodeSize_zero_accountMapEquiv hAccounts hvatCode
+        ·
           have hbody :
               ExecTransitionBody config contract evmSolm (endFlowStore I)
                 flowTransition.body .reverted := by
             simpa [evmSolm] using
               endFlowBodyReverts_vatIlksNoCode
                 (σ := σ) (σ₀ := σ₀)
-                (A := A) (I := I) (g := g) hwv hsz36 hdebtSolm hfixSolm hvatCodeSolm
+                (A := A) (I := I) (g := g) hwv hsz36 hdebt hfix hvatCode
           exact
             (endFlowX_vatIlksNoCode
               (g := Sat256.ofUInt256 g) hsz36 hdebt hfix hbodyReach hvatCode)
@@ -4438,10 +4423,6 @@ theorem endFlowBody {σ σ₀ A I} {g : UInt256}
         · have hvatCodeNE :
               Reasoning.Theory.extCodeSizeWord σ
                 (endPackVatWord σ I) ≠ ⟨0⟩ := hvatCode
-          have hvatCodeSolmNE :
-              Reasoning.Theory.extCodeSizeWord σ
-                (endPackVatWord σ I) ≠ ⟨0⟩ :=
-            endPackVatCodeSize_ne_accountMapEquiv hAccounts hvatCodeNE
           obtain ⟨gasWord, _, _, hcallReady⟩ :=
             endFlowX_vatIlksCallReady
               (g := Sat256.ofUInt256 g) hsz36 hdebt hfix hbodyReach hvatCodeNE
@@ -4497,21 +4478,16 @@ theorem endFlowBody {σ σ₀ A I} {g : UInt256}
                 (endFlowVatIlksEncode_eq I hsz36
                   (twoWordHashMem_size_96 (endFlowIlkWord I) ⟨15⟩ solcFreePtrMem_size))
                 (by simpa [initState, hperm] using hΘeq)
-            obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hStateCall⟩ :=
-              typedCallViaEVM_initState_EVMStateEquiv (hcall := hcallEvm)
-                (by simp [initState]) hAccounts
-            have hVatAddr : endPackVatAddr σ I = endPackVatAddr σ I := by
-              simp [endPackVatAddr, endPackVatWord_accountMapEquiv hAccounts]
             have hcallSolm :
                 typedCallViaEVM config evmSolm
                   (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
                   [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
                   (z,
                     { evmSolm with
-                      accountMap := σ'_solm
-                      substate := A'_solm },
-                    out) true := by
-              simpa [evmSolm, hVatAddr] using hcallSolmRaw
+                      accountMap := σ'
+                      substate := A' },
+                  out) true := by
+              simpa [evmSolm] using hcallEvm
             cases z
             · have hbody :
                   ExecTransitionBody config contract evmSolm (endFlowStore I)
@@ -4522,21 +4498,17 @@ theorem endFlowBody {σ σ₀ A I} {g : UInt256}
                     (A := A) (I := I) (g := g)
                     (evmVat :=
                       { evmSolm with
-                        accountMap := σ'_solm
-                        substate := A'_solm })
+                        accountMap := σ'
+                        substate := A' })
                     (out := out)
-                    hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
+                    hwv hsz36 hdebt hfix hvatCodeNE
                     (by simpa [evmSolm] using hcallSolm)
               exact (endFlowX_vatIlksCallFailed (g := Sat256.ofUInt256 g) rd2964 hout)
                 |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-            · let evmVatEvm :=
-                { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+            · let evmVatSolm :=
+                { evmSolm with
                   accountMap := σ'
                   substate := A' }
-              let evmVatSolm :=
-                { evmSolm with
-                  accountMap := σ'_solm
-                  substate := A'_solm }
               obtain ⟨_, _, rd2982⟩ :=
                 endFlowX_vatIlksCallSucceeded (g := Sat256.ofUInt256 g) rd2964
               by_cases hshortOut : out.size < 160
@@ -4548,7 +4520,7 @@ theorem endFlowBody {σ σ₀ A I} {g : UInt256}
                       (σ := σ) (σ₀ := σ₀)
                       (A := A) (I := I) (g := g)
                       (evmVat := evmVatSolm) (out := out)
-                      hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
+                      hwv hsz36 hdebt hfix hvatCodeNE
                       (by simpa [evmVatSolm, evmSolm] using hcallSolm)
                       hshortOut
                 exact (endFlowX_vatIlksReturnDecodeShort rd2982 hshortOut hout)
@@ -4560,33 +4532,29 @@ theorem endFlowBody {σ σ₀ A I} {g : UInt256}
                     Solm.EVM.storageLoad evmVatSolm evmVatSolm.executionEnv.codeOwner
                         (endFlowArtSlot I) =
                       endFlowArtWord σ' I := by
-                  have hload := hStateCall.storageLoad_codeOwner (endFlowArtSlot I)
-                  simpa [evmVatEvm, evmVatSolm, initState, Solm.EVM.storageLoad,
-                    State.lookupAccount, endFlowArtWord, endSlotWord, solcSlotWord]
-                    using hload.symm
+                  simp [evmVatSolm, evmSolm, initState, Solm.EVM.storageLoad,
+                    State.lookupAccount, Account.lookupStorage, endFlowArtWord,
+                    endSlotWord, solcSlotWord]
                 have hTagLoad :
                     Solm.EVM.storageLoad evmVatSolm evmVatSolm.executionEnv.codeOwner
                         (endFlowTagSlot I) =
                       endFlowTagWord σ' I := by
-                  have hload := hStateCall.storageLoad_codeOwner (endFlowTagSlot I)
-                  simpa [evmVatEvm, evmVatSolm, initState, Solm.EVM.storageLoad,
-                    State.lookupAccount, endFlowTagWord, endSlotWord, solcSlotWord]
-                    using hload.symm
+                  simp [evmVatSolm, evmSolm, initState, Solm.EVM.storageLoad,
+                    State.lookupAccount, Account.lookupStorage, endFlowTagWord,
+                    endSlotWord, solcSlotWord]
                 have hGapLoad :
                     Solm.EVM.storageLoad evmVatSolm evmVatSolm.executionEnv.codeOwner
                         (endFlowGapSlot I) =
                       endFlowGapWord σ' I := by
-                  have hload := hStateCall.storageLoad_codeOwner (endFlowGapSlot I)
-                  simpa [evmVatEvm, evmVatSolm, initState, Solm.EVM.storageLoad,
-                    State.lookupAccount, endFlowGapWord, endSlotWord, solcSlotWord]
-                    using hload.symm
+                  simp [evmVatSolm, evmSolm, initState, Solm.EVM.storageLoad,
+                    State.lookupAccount, Account.lookupStorage, endFlowGapWord,
+                    endSlotWord, solcSlotWord]
                 have hDebtLoad :
                     Solm.EVM.storageLoad evmVatSolm evmVatSolm.executionEnv.codeOwner ⟨11⟩ =
                       endFlowDebtWord σ' I := by
-                  have hload := hStateCall.storageLoad_codeOwner ⟨11⟩
-                  simpa [evmVatEvm, evmVatSolm, initState, Solm.EVM.storageLoad,
-                    State.lookupAccount, endFlowDebtWord, endSlotWord, solcSlotWord]
-                    using hload.symm
+                  simp [evmVatSolm, evmSolm, initState, Solm.EVM.storageLoad,
+                    State.lookupAccount, Account.lookupStorage, endFlowDebtWord,
+                    endSlotWord, solcSlotWord]
                 obtain ⟨_, _, rdWad0Entry⟩ :=
                   endFlowX_wad0RmulEntry (g := Sat256.ofUInt256 g) hsz36 hlo rd3010
                 by_cases hoverWad0 :
@@ -4603,7 +4571,7 @@ theorem endFlowBody {σ σ₀ A I} {g : UInt256}
                         (σ := σ) (σ₀ := σ₀)
                         (A := A) (I := I) (g := g)
                         (evmVat := evmVatSolm) (out := out)
-                        hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
+                        hwv hsz36 hdebt hfix hvatCodeNE
                         (by simpa [evmVatSolm, evmSolm] using hcallSolm)
                         hlo htail
                   exact
@@ -4663,7 +4631,7 @@ theorem endFlowBody {σ σ₀ A I} {g : UInt256}
                           (σ := σ) (σ₀ := σ₀)
                           (A := A) (I := I) (g := g)
                           (evmVat := evmVatSolm) (out := out)
-                          hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
+                          hwv hsz36 hdebt hfix hvatCodeNE
                           (by simpa [evmVatSolm, evmSolm] using hcallSolm)
                           hlo htail
                     exact
@@ -4723,7 +4691,7 @@ theorem endFlowBody {σ σ₀ A I} {g : UInt256}
                             (σ := σ) (σ₀ := σ₀)
                             (A := A) (I := I) (g := g)
                             (evmVat := evmVatSolm) (out := out)
-                            hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
+                            hwv hsz36 hdebt hfix hvatCodeNE
                             (by simpa [evmVatSolm, evmSolm] using hcallSolm)
                             hlo htail
                       exact (endFlowX_tailSubUnderflow hsz36 hlo hsubUnder rd3061)
@@ -4746,7 +4714,7 @@ theorem endFlowBody {σ σ₀ A I} {g : UInt256}
                               (σ := σ) (σ₀ := σ₀)
                               (A := A) (I := I) (g := g)
                               (evmVat := evmVatSolm) (out := out)
-                              hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
+                              hwv hsz36 hdebt hfix hvatCodeNE
                               (by simpa [evmVatSolm, evmSolm] using hcallSolm)
                               hlo htail
                         exact (endFlowX_tailMulOverflow hsz36 hlo hleSub hoverMul rd3061)
@@ -4768,7 +4736,7 @@ theorem endFlowBody {σ σ₀ A I} {g : UInt256}
                                 (σ := σ)
                                 (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                 (evmVat := evmVatSolm) (out := out)
-                                hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
+                                hwv hsz36 hdebt hfix hvatCodeNE
                                 (by simpa [evmVatSolm, evmSolm] using hcallSolm)
                                 hlo htail
                           have hinvalidOr :=
@@ -4804,36 +4772,17 @@ theorem endFlowBody {σ σ₀ A I} {g : UInt256}
                                 (σ := σ)
                                 (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                 (evmVat := evmVatSolm) (out := out)
-                                hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
+                                hwv hsz36 hdebt hfix hvatCodeNE
                                 (by simpa [evmVatSolm, evmSolm] using hcallSolm)
                                 hlo htail
                           have hret :=
                             endFlowX_tailReturns
                               (g := Sat256.ofUInt256 g) hperm hsz36 hlo hleSub hfitMul
                               hdenZero rd3061
-                          have hStatePost :
-                              EVMStateEquiv
-                                (endFlowPostState evmVatEvm I (endFlowFixVWord σ' I out))
-                                (endFlowPostState evmVatSolm I (endFlowFixVWord σ' I out)) := by
-                            simpa [endFlowPostState] using
-                              hStateCall.storageStore_codeOwner (endFlowFixSlot I)
-                                (val₁ := endFlowFixVWord σ' I out)
-                                (val₂ := endFlowFixVWord σ' I out) rfl
-                          exact hret.reEquivExecutionGenEVMStateEquiv
-                            (evm'_evm :=
-                              endFlowPostState evmVatEvm I (endFlowFixVWord σ' I out))
-                            (evm'_solm :=
-                              endFlowPostState evmVatSolm I (endFlowFixVWord σ' I out))
+                          exact hret.reEquivExecutionGenAccountMapEquiv
                             hcode hdispatch hdecode hbody
-                            (by
-                              simp [evmVatEvm, endFlowPostState, initState,
-                                ])
-                            (by
-                              simpa [evmVatEvm, endFlowPostState, initState,
-                                storageStore_accountMap, endFlowPostAccountMap] using
-                                Eq.refl
-                                  (endFlowPostAccountMap σ' I (endFlowFixVWord σ' I out)))
-                            hStatePost
+                            (by simp [evmVatSolm, evmSolm, endFlowPostState,
+                              storageStore_accountMap, endFlowPostAccountMap, initState])
                             (by
                               simpa [flowTransition] using
                                 (returnEquiv.fallthrough (o := ByteArray.empty) (r := none)
@@ -4869,21 +4818,19 @@ theorem endFlowBody {σ σ₀ A I} {g : UInt256}
                   (A := A) (I := I) (g := g)
                   (evmVat := { evmSolm with substate := A_vat })
                   (out := ByteArray.empty)
-                  hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
+                  hwv hsz36 hdebt hfix hvatCodeNE
                   (by simpa [evmSolm] using hcallSolm)
             exact (endFlowX_vatIlksCallFailed (g := Sat256.ofUInt256 g) rd2964
               (by native_decide))
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-      · have hfixSolm : endFlowFixWord σ I ≠ ⟨0⟩ := by
-          intro hbad
-          exact hfix (by rw [hfixCouple, hbad])
+      ·
         have hbody :
             ExecTransitionBody config contract evmSolm (endFlowStore I)
               flowTransition.body .reverted := by
           simpa [evmSolm] using
             endFlowBodyReverts_fixNonzero
               (σ := σ) (σ₀ := σ₀)
-              (A := A) (I := I) (g := g) hwv hsz36 hdebtSolm hfixSolm
+              (A := A) (I := I) (g := g) hwv hsz36 hdebt hfix
         exact (endFlowX_fixNonzero (g := Sat256.ofUInt256 g) hsz36 hdebt hfix hbodyReach)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · exact endFlowBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach

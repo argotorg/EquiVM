@@ -1,5 +1,5 @@
 import Benchmarks.Dss.Flipper.DentTail
-import Benchmarks.Dss.Flipper.ExternalCallTransport
+import Reasoning.ExternalCall
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -159,7 +159,7 @@ theorem flipperDentBodyFrom4733SameCaller
             (dentFluxArgValsOf evm0Evm I) (zFlux, evmFluxEvm, outFlux) true := by
         simpa [evm0Evm, evmFluxEvm] using hcallFluxEvmRaw
       obtain ⟨σ_flux_solm, A_flux_solm, hcallFluxSolmRaw, hFluxStateEquiv⟩ :=
-        flipper_typedCallViaEVM_sameInputs
+        typedCallViaEVM_sameInputs_stateEquiv
           (evm_solm := evm0Solm) hcallFluxEvm
           rfl
           (by simp [evm0Evm, evm0Solm, initState])
@@ -239,8 +239,8 @@ theorem flipperDentBodyFrom4733SameCaller
             initState]
         have httlEq :
             tendTtlWord evmLotEvm.accountMap I = tendTtlWord evmLotSolm.accountMap I := by
-          unfold tendTtlWord flipperUint48Offset0Word flipperSlotWord solcSlotWord
-          rw [accountMapEquiv_storage_findD hLotStateEquiv.accountMap I.codeOwner ⟨5⟩ ⟨0⟩]
+          exact congrArg (fun accounts => tendTtlWord accounts I)
+            hLotStateEquiv.accountMap
         have httlEvmMap :
             tendTtlWord evmLotEvm.accountMap I = tendTtlWord (dentAfterLotMap σ_flux I) I := by
           simpa [hmapLotEvm]
@@ -323,13 +323,12 @@ theorem flipperDentBodyFrom4733SameCaller
               simp [evmLotEvm, evmFluxEvm, evm0Evm, storageStore_executionEnv, initState]
             simpa [evmTicEvm, hmapLotEvm, hownerLot, tendStoreTicMap, tendStoredTicWord,
               flipperSlotWord, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
-              Account.lookupStorage, storageStore_accountMap, dentId, tendId]
-              rfl
+              Account.lookupStorage, storageStore_accountMap, dentId, tendId] using rfl
           have henc : returnEquiv ByteArray.empty none dentTransition.returnType := by
             rw [show dentTransition.returnType = [] by rfl]
             exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-          exact hret.reEquivExecutionGenEVMStateEquiv hcode hdispatch hdecode hbody
-            hAccountsRet hTicStateEquiv henc
+          exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+            (hAccountsRet.trans hTicStateEquiv.accountMap) henc
         · have hoverTicEvm :
               2 ^ 48 ≤
                 (tendNow48 I).toNat +

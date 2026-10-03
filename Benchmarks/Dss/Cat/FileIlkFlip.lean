@@ -1093,7 +1093,7 @@ theorem catFileIlkFlipBody {σ σ₀ A I} {g : UInt256}
                 simp [hevmStoreSolmBase, hevmStoreSolm, hevmNopeSolm, storageStore_executionEnv,
                   initState]
               obtain ⟨σ_hope_solm, A_hope_solm0, hcallHopeSolmBase, hAccountsHope⟩ :=
-                typedCallViaEVM_accountMapEquiv (evm_solm := evmStoreSolmBase) hcallHope_evm
+                typedCallViaEVM_sameInputs (evm_solm := evmStoreSolmBase) hcallHope_evm
                   hAccountsStore
                   (by simp [hevmStoreSolmBase, hevmStoreSolm, hevmNopeSolm, storageStore_σ₀, initState])
                   hcallEnv.symm

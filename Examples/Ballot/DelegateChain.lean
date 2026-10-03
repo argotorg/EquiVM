@@ -65,42 +65,6 @@ def delegateChainExitsAt (σ : AccountMap) (I : ExecutionEnv) (n : Nat) : Prop :
 def delegateChainHitsSenderAt (σ : AccountMap) (I : ExecutionEnv) (n : Nat) : Prop :=
   delegateVoterDelegateWord σ I (delegateChainWord σ I n) = delegateSourceWord I
 
-theorem delegateChainWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : σ = τ) :
-    ∀ n, delegateChainWord σ I n = delegateChainWord τ I n
-  | 0 => rfl
-  | n + 1 => by
-      rw [delegateChainWord_succ, delegateChainWord_succ,
-        ← delegateChainWord_accountMapEquiv hστ n]
-      exact delegateVoterDelegateWord_accountMapEquiv hστ (delegateChainWord σ I n)
-
-theorem delegateChainContinuesAt_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : σ = τ) {n : Nat} :
-    delegateChainContinuesAt σ I n → delegateChainContinuesAt τ I n := by
-  intro h
-  have hword := delegateChainWord_accountMapEquiv (I := I) hστ n
-  constructor
-  · simpa [delegateChainContinuesAt, ← hword,
-      ← delegateVoterDelegateWord_accountMapEquiv hστ (delegateChainWord σ I n)] using h.1
-  · simpa [delegateChainContinuesAt, ← hword,
-      ← delegateVoterDelegateWord_accountMapEquiv hστ (delegateChainWord σ I n)] using h.2
-
-theorem delegateChainHitsSenderAt_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : σ = τ) {n : Nat} :
-    delegateChainHitsSenderAt σ I n → delegateChainHitsSenderAt τ I n := by
-  intro h
-  have hword := delegateChainWord_accountMapEquiv (I := I) hστ n
-  simpa [delegateChainHitsSenderAt, ← hword,
-    ← delegateVoterDelegateWord_accountMapEquiv hστ (delegateChainWord σ I n)] using h
-
-theorem delegateChainExitsAt_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hστ : σ = τ) {n : Nat} :
-    delegateChainExitsAt σ I n → delegateChainExitsAt τ I n := by
-  intro h
-  have hword := delegateChainWord_accountMapEquiv (I := I) hστ n
-  simpa [delegateChainExitsAt, ← hword,
-    ← delegateVoterDelegateWord_accountMapEquiv hστ (delegateChainWord σ I n)] using h
-
 theorem delegateChainContinuesAt_zero {σ : AccountMap} {I : ExecutionEnv}
     (hnext : delegateVoterDelegateWord σ I (delegateToWord I) ≠ ⟨0⟩)
     (hcycle : delegateVoterDelegateWord σ I (delegateToWord I) ≠ delegateSourceWord I) :

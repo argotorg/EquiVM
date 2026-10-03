@@ -333,6 +333,6 @@ theorem dogVatBodyCore {v : DogImmutables} {code : ByteArray}
     exact returnEquiv_of_encode
       (solcAddressReturnEncoding (addrTy := addr) rfl (EVM.Word.ofNat v.vat.toNat))
   exact hret.reEquivExecutionTransport _hcode (dogDispatchVat _hsel)
-    (dogDecode_vat (v := v) hsz) hbody (dogAddressValueTransport v.vat) _hAccounts henc
+    (dogDecode_vat (v := v) hsz) hbody (dogAddressValueTransport v.vat) henc
 
 end Benchmarks.Dss.Dog

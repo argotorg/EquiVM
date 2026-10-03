@@ -295,7 +295,7 @@ theorem dogRelyBodyCoreOk
   have hslot : relySlotFor I = slot := by
     simp [slot, key, relySlotFor_eq]
   have hcallerWord : dogSlotWord callerSlot σ I = dogSlotWord callerSlot σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
+    rfl
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := code) (sel := sel) (entry := ⟨394⟩) (ret := ⟨313⟩)
     (decoded := ⟨416⟩) hreach
@@ -427,8 +427,7 @@ theorem dogRelyBodyCoreOk
     have haccounts :
         Eq (sstoreAccountMap I.codeOwner σ slot ⟨1⟩)
           evm1.accountMap := by
-      simpa [evm1, evm0, initState, storageStore_accountMap, hslot] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner slot ⟨1⟩ hAccounts
+      simp [evm1, evm0, initState, storageStore_accountMap, hslot]
     have henc : returnEquiv ByteArray.empty none relyTransition.returnType := by
       rw [show relyTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
@@ -531,7 +530,7 @@ theorem dogRelyBodyCore {v : DogImmutables} {code : ByteArray}
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact dogRelyBodyCoreOk hpatch hcode hwv hperm hsz36 hsize hdispatch
-      (dogDecode_rely_ok (v := v) hsz36) hreach hAccounts
+      (dogDecode_rely_ok (v := v) hsz36) hreach
   · exact dogRelyBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach
 

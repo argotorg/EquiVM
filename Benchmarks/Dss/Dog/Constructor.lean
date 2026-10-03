@@ -43,12 +43,12 @@ theorem dogConstructorBodyCore (v : DogImmutables) :
       have hslot : wardsSlot (.address I.source) = dogCtorCallerWardsSlot I := by
         simpa [dogCtorCallerWardsSlot] using dogCtorCallerWardsSlot_eq I
       have hAccountsLive : Eq σLive evm1s.accountMap := by
-        simpa [σLive, evm1s, evm0s, dogCtorAfterLiveState, initState,
-          storageStore_accountMap, storageStore_executionEnv] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner ⟨3⟩ ⟨1⟩ hAccounts
+        simp [σLive, evm1s, evm0s, dogCtorAfterLiveState, initState,
+          storageStore_accountMap, storageStore_executionEnv]
       have hAccountsWards : Eq σWards evm2s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner (dogCtorCallerWardsSlot I)
-          ⟨1⟩ hAccountsLive
+        have hbase := congrArg
+          (fun m => sstoreAccountMap I.codeOwner m (dogCtorCallerWardsSlot I) ⟨1⟩)
+          hAccountsLive
         simpa [σWards, evm2s, evm1s, evm0s, dogCtorAfterWardsState,
           dogCtorAfterLiveState, initState, storageStore_accountMap, storageStore_executionEnv,
           hslot] using hbase

@@ -7000,13 +7000,9 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
     obtain ⟨_, _, hbodyReach⟩ :=
       endSkimX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
     let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have htagCouple : endSkimTagWord σ I = endSkimTagWord σ I := by
-      simpa [endSkimTagWord, endSlotWord] using
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (endSkimTagSlot I) ⟨0⟩
+    have htagCouple : endSkimTagWord σ I = endSkimTagWord σ I := rfl
     by_cases htag : endSkimTagWord σ I = ⟨0⟩
-    · have htagSolm : endSkimTagWord σ I = ⟨0⟩ := by
-        rw [← htagCouple]
-        exact htag
+    · have htagSolm : endSkimTagWord σ I = ⟨0⟩ := htag
       have hbody :
           ExecTransitionBody config contract evmSolm (endSkimStore I)
             skimTransition.body .reverted := by
@@ -7017,9 +7013,7 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
       exact (endSkimX_tagZero (g := Sat256.ofUInt256 g) hsz68 htag hbodyReach)
         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have htagNE : endSkimTagWord σ I ≠ ⟨0⟩ := htag
-      have htagSolmNE : endSkimTagWord σ I ≠ ⟨0⟩ := by
-        intro hbad
-        exact htagNE (by rw [htagCouple, hbad])
+      have htagSolmNE : endSkimTagWord σ I ≠ ⟨0⟩ := htagNE
       obtain ⟨kTag, CTag, htagPcRaw⟩ :=
         endSkimX_tagNonzero (g := Sat256.ofUInt256 g) hsz68 htagNE hbodyReach
       have htagPc :
@@ -7034,7 +7028,7 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
       · have hvatCodeSolm :
             Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) =
               ⟨0⟩ :=
-          endPackVatCodeSize_zero_accountMapEquiv hAccounts hvatCode
+          hvatCode
         have hbody :
             ExecTransitionBody config contract evmSolm (endSkimStore I)
               skimTransition.body .reverted := by
@@ -7050,7 +7044,7 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
         have hvatCodeSolmNE :
             Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠
               ⟨0⟩ :=
-          endPackVatCodeSize_ne_accountMapEquiv hAccounts hvatCodeNE
+          hvatCodeNE
         obtain ⟨gasWord, _, _, hcallReady⟩ :=
           endSkimX_vatIlksCallReady
             (g := Sat256.ofUInt256 g) htagPc hvatCodeNE
@@ -7081,27 +7075,30 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
                   rw [endPackVatAddr_eq_ofUInt256]
               _ = AccountAddress.ofUInt256 (endPackVatWord σ I) :=
                   hAddressId (AccountAddress.ofUInt256 (endPackVatWord σ I))
-          obtain ⟨σ_vat_solm, A_vat_solm, hcallSolmRaw, hAccountsVat, hSubstateVat⟩ :=
-            endCallMade_accountMapEq_with_substate
-              (cfg := config)
-              (evm_evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
-              (evm_solm := evmSolm)
-              (tgt := EVM.address (endPackVatAddr σ I))
-              (targetWord := endPackVatWord σ I)
-              (name := "vatIlks")
-              (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I)]) (σ' := σ_vat) (A' := AVat) (A_in := AinVat)
-              (z := zVat) (out := vatOut) (g'' := gVat'') (callGas := callGasVat)
-              (mem := endSkimVatIlksCalldataMem I)
-              (inOff := endFlowVatIlksOutPtr) (inSize := endFlowVatIlksInSize)
-              (callPerm := true)
-              hdepthNe htgtVat
-              (endSkimVatIlksEncode_eq I hsz68)
-              (by simpa [initState, hperm] using hΘVatEq)
-              (by simpa [initState] using hAccounts)
-              (by simp [evmSolm, initState])
-              (by simp [evmSolm, initState])
-          have hVatAddr : endPackVatAddr σ I = endPackVatAddr σ I := by
-            simp [endPackVatAddr, endPackVatWord_accountMapEquiv hAccounts]
+          let σ_vat_solm := σ_vat
+          let A_vat_solm := AVat
+          let evmVatSolmCall : EVM.State := { evmSolm with
+            accountMap := σ_vat_solm
+            substate := A_vat_solm }
+          have hcallSolmRaw :
+              typedCallViaEVM config evmSolm
+                (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
+                [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
+                (zVat, evmVatSolmCall, vatOut) true := by
+            simpa [evmSolm, σ_vat_solm, A_vat_solm, evmVatSolmCall] using
+              (callCoincides (cfg := config) (evm := evmSolm)
+                (tgt := EVM.address (endPackVatAddr σ I))
+                (targetWord := endPackVatWord σ I)
+                (name := "vatIlks")
+                (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I)])
+                (σ' := σ_vat) (A' := AVat) (A_in := AinVat)
+                (z := zVat) (o := vatOut) (g'' := gVat'') (callGas := callGasVat)
+                (mem := endSkimVatIlksCalldataMem I)
+                (inOff := endFlowVatIlksOutPtr) (inSize := endFlowVatIlksInSize)
+                (callPerm := true) hdepthNe htgtVat
+                (endSkimVatIlksEncode_eq I hsz68)
+                (by simpa [evmSolm, initState, hperm] using hΘVatEq))
+          have hVatAddr : endPackVatAddr σ I = endPackVatAddr σ I := rfl
           have hcallSolm :
               typedCallViaEVM config evmSolm
               (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
@@ -7184,8 +7181,8 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
                     (endPackVatWord σ_vat I) = ⟨0⟩
               · have hurnsCodeSolm :
                     Reasoning.Theory.extCodeSizeWord σ_vat_solm
-                      (endPackVatWord σ_vat_solm I) = ⟨0⟩ :=
-                  endPackVatCodeSize_zero_accountMapEquiv hAccountsVat hurnsCode
+                      (endPackVatWord σ_vat_solm I) = ⟨0⟩ := by
+                  simpa [σ_vat_solm] using hurnsCode
                 have hurnsBlock :
                     ExecBlock config
                       { contract := contract, locals := endSkimStoreRate I vatOut }
@@ -7208,8 +7205,8 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
                       (endPackVatWord σ_vat I) ≠ ⟨0⟩ := hurnsCode
                 have hurnsCodeSolmNE :
                     Reasoning.Theory.extCodeSizeWord σ_vat_solm
-                      (endPackVatWord σ_vat_solm I) ≠ ⟨0⟩ :=
-                  endPackVatCodeSize_ne_accountMapEquiv hAccountsVat hurnsCodeNE
+                      (endPackVatWord σ_vat_solm I) ≠ ⟨0⟩ := by
+                  simpa [σ_vat_solm] using hurnsCodeNE
                 obtain ⟨gasWordUrns, _, _, hurnsReady⟩ :=
                   endSkimX_urnsCallReady rd6920 hloVat hurnsCodeNE
                 obtain ⟨σ_urns, zUrns, urnOut, AinUrns, callGasUrns, _, _,
@@ -7230,32 +7227,40 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
                           rw [endPackVatAddr_eq_ofUInt256]
                     _ = AccountAddress.ofUInt256 (endPackVatWord σ_vat I) :=
                           hAddressId (AccountAddress.ofUInt256 (endPackVatWord σ_vat I))
-                obtain ⟨σ_urns_solm, A_urns_solm, hcallUrnsSolmRaw, hAccountsUrns,
-                    hSubstateUrns⟩ :=
-                  endCallMade_accountMapEq_with_substate
-                    (cfg := config)
-                    (evm_evm := evmVatEvm)
-                    (evm_solm := evmVatSolm)
-                    (tgt := EVM.address (endPackVatAddr σ_vat I))
-                    (targetWord := endPackVatWord σ_vat I)
-                    (name := "urns")
-                    (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I),
-                      .address (endSkimUrnAddr I)]) (σ' := σ_urns) (A' := AUrns) (A_in := AinUrns)
-                    (z := zUrns) (out := urnOut) (g'' := gUrns'')
-                    (callGas := callGasUrns)
-                    (mem := endSkimUrnsCalldataMem I vatOut)
-                    (inOff := endFreeUrnsOutPtr) (inSize := endFreeUrnsInSize)
-                    (callPerm := true)
-                    (by simpa [evmVatEvm, initState] using hdepthNe)
-                    htgtUrns
-                    (endSkimUrnsEncode_eq I vatOut hsz68 hloVat)
-                    (by simpa [evmVatEvm, initState, hperm] using hΘUrnsEq)
-                    (by simpa [evmVatEvm, evmVatSolm] using hAccountsVat)
-                    (by simp [evmVatEvm, evmVatSolm, evmSolm, initState])
-                    (by simp [evmVatEvm, evmVatSolm, evmSolm, initState])
+                let σ_urns_solm := σ_urns
+                let A_urns_solm := AUrns
+                let evmUrnsSolmCall : EVM.State := { evmVatSolm with
+                  accountMap := σ_urns_solm
+                  substate := A_urns_solm }
+                have hcallUrnsSolmRaw :
+                    typedCallViaEVM config evmVatSolm
+                      (EVM.address (endPackVatAddr σ_vat I)) "urns" 0
+                      [.fixedBytes bytes32Width (endBytes32ArgBytes I),
+                        .address (endSkimUrnAddr I)]
+                      (zUrns, evmUrnsSolmCall, urnOut) true := by
+                  simpa [evmVatEvm, evmVatSolm, evmSolm, σ_vat_solm,
+                    A_vat_solm, σ_urns_solm, A_urns_solm, evmUrnsSolmCall,
+                    initState] using
+                    (callCoincides (cfg := config) (evm := evmVatSolm)
+                      (tgt := EVM.address (endPackVatAddr σ_vat I))
+                      (targetWord := endPackVatWord σ_vat I)
+                      (name := "urns")
+                      (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I),
+                        .address (endSkimUrnAddr I)])
+                      (σ' := σ_urns) (A' := AUrns) (A_in := AinUrns)
+                      (z := zUrns) (o := urnOut) (g'' := gUrns'')
+                      (callGas := callGasUrns)
+                      (mem := endSkimUrnsCalldataMem I vatOut)
+                      (inOff := endFreeUrnsOutPtr) (inSize := endFreeUrnsInSize)
+                      (callPerm := true)
+                      (by simpa [evmVatEvm, evmVatSolm, evmSolm, initState] using hdepthNe)
+                      htgtUrns
+                      (endSkimUrnsEncode_eq I vatOut hsz68 hloVat)
+                      (by simpa [evmVatEvm, evmVatSolm, evmSolm, initState, hperm]
+                        using hΘUrnsEq))
                 have hVatAddrUrns :
                     endPackVatAddr σ_vat I = endPackVatAddr σ_vat_solm I := by
-                  simp [endPackVatAddr, endPackVatWord_accountMapEquiv hAccountsVat]
+                  rfl
                 have hcallUrnsSolm :
                     typedCallViaEVM config evmVatSolm
                       (EVM.address (endPackVatAddr σ_vat_solm I)) "urns" 0
@@ -7386,15 +7391,9 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
                       simpa [List.append_assoc] using
                        execBlock_append hprefix hurnsInkArt
                     have hTagCoupleUrns :
-                        endSkimTagWord σ_urns I = endSkimTagWord σ_urns_solm I := by
-                      simpa [endSkimTagWord, endSlotWord] using
-                        accountMapEquiv_storage_findD hAccountsUrns I.codeOwner
-                          (endSkimTagSlot I) ⟨0⟩
+                        endSkimTagWord σ_urns I = endSkimTagWord σ_urns_solm I := rfl
                     have hGapCoupleUrns :
-                        endSkimGapWord σ_urns I = endSkimGapWord σ_urns_solm I := by
-                      simpa [endSkimGapWord, endSlotWord] using
-                        accountMapEquiv_storage_findD hAccountsUrns I.codeOwner
-                          (endSkimGapSlot I) ⟨0⟩
+                        endSkimGapWord σ_urns I = endSkimGapWord σ_urns_solm I := rfl
                     have hTagLoadSolm :
                         Solm.EVM.storageLoad evmUrnsSolm evmUrnsSolm.executionEnv.codeOwner
                           (endSkimTagSlot I) = endSkimTagWord σ_urns_solm I := by
@@ -7631,235 +7630,238 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
                                 { evmVatEvm with
                                   accountMap := σ_urns
                                   substate := AUrns
- }
+                                }
                               let σ_post :=
                                 endSkimPostGapAccountMap σ_urns I
                                   (endSkimGapNewWord σ_urns I vatOut urnOut)
-                              let σ_post_solm :=
-                                endSkimPostGapAccountMap σ_urns_solm I
-                                  (endSkimGapNewWord σ_urns_solm I vatOut urnOut)
+                              let σ_post_solm := σ_post
                               let evmPostEvm :=
                                 endSkimPostGapState evmUrnsEvm I
                                   (endSkimGapNewWord σ_urns I vatOut urnOut)
-                              let evmPostSolm :=
-                                endSkimPostGapState evmUrnsSolm I
-                                  (endSkimGapNewWord σ_urns_solm I vatOut urnOut)
+                              let evmPostSolm := evmPostEvm
+                              have hStatePost : EVMStateEquiv evmPostEvm evmPostSolm := by
+                                constructor <;> rfl
                               have hStateUrns : EVMStateEquiv evmUrnsEvm evmUrnsSolm := by
-                                refine ⟨?_, ?_⟩
-                                · simp [evmUrnsEvm, evmUrnsSolm, evmVatEvm, evmVatSolm,
-                                    evmSolm, initState]
-                                · simpa [evmUrnsEvm, evmUrnsSolm] using hAccountsUrns
+                                constructor <;>
+                                  simp [evmUrnsEvm, evmUrnsSolm, evmVatEvm, evmVatSolm,
+                                    evmSolm, σ_vat_solm, A_vat_solm, σ_urns_solm,
+                                    A_urns_solm, initState]
                               have hGapNewCouple :
                                   endSkimGapNewWord σ_urns I vatOut urnOut =
                                     endSkimGapNewWord σ_urns_solm I vatOut urnOut := by
                                 simp [endSkimGapNewWord, endSkimDiffWord, endSkimWadWord,
                                   endSkimOweWord, hGapCoupleUrns, hTagCoupleUrns]
-                              have hAccountsPost :
-                                  Eq σ_post σ_post_solm := by
-                                have hStatePost :
-                                    EVMStateEquiv evmPostEvm evmPostSolm := by
-                                  simpa [evmPostEvm, evmPostSolm, endSkimPostGapState] using
-                                    hStateUrns.storageStore_codeOwner (endSkimGapSlot I)
-                                      hGapNewCouple
-                                simpa [evmPostEvm, evmPostSolm, σ_post, σ_post_solm,
+                              have hVatWordGrab :
+                                  endPackVatWord σ_post I =
+                                        endPackVatWord σ_post_solm I := rfl
+                              have hVatAddrGrab :
+                                  endPackVatAddr σ_post I =
+                                    endPackVatAddr σ_post_solm I := by
+                                simp [endPackVatAddr, hVatWordGrab]
+                              have hVowWordGrab :
+                                  endPackVowWord σ_post I =
+                                    endPackVowWord σ_post_solm I := rfl
+                              have hVowAddrGrab :
+                                  endPackVowAddr σ_post I =
+                                    endPackVowAddr σ_post_solm I := by
+                                simp [endPackVowAddr, hVowWordGrab]
+                              have hWadWordGrab :
+                                  endSkimWadWord σ_urns I vatOut urnOut =
+                                    endSkimWadWord σ_urns_solm I vatOut urnOut := rfl
+                              have hmapPostSolm : evmPostSolm.accountMap = σ_post_solm := by
+                                simp [evmPostSolm, evmPostEvm, σ_post_solm, σ_post,
                                   endSkimPostGapState, endSkimPostGapAccountMap,
-                                  storageStore_accountMap] using hStatePost.accountMap
-                                      (by simp [evmPostEvm, evmPostSolm, endSkimPostGapState, endSkim_storageStore_σ₀, evmUrnsEvm, evmUrnsSolm, evmVatEvm, evmVatSolm, evmSolm, initState])
-                                      (by simpa [evmPostEvm, evmPostSolm] using hStatePost.executionEnv.symm)
-                                  have hVatWordGrab :
-                                      endPackVatWord σ_post I =
-                                        endPackVatWord σ_post_solm I :=
-                                    endPackVatWord_accountMapEquiv hAccountsPost
-                                  have hVatAddrGrab :
-                                      endPackVatAddr σ_post I =
-                                        endPackVatAddr σ_post_solm I := by
-                                    simp [endPackVatAddr, hVatWordGrab]
-                                  have hVowWordGrab :
-                                      endPackVowWord σ_post I =
-                                        endPackVowWord σ_post_solm I := by
-                                    have hslot :
-                                        endSlotWord ⟨4⟩ σ_post I =
-                                          endSlotWord ⟨4⟩ σ_post_solm I := by
-                                      simpa [endSlotWord, solcSlotWord] using
-                                        accountMapEquiv_storage_findD hAccountsPost
-                                          I.codeOwner ⟨4⟩ ⟨0⟩
-                                    simpa [endPackVowWord] using
-                                      congrArg (fun w => UInt256.land w solcAddrMask) hslot
-                                  have hVowAddrGrab :
-                                      endPackVowAddr σ_post I =
-                                        endPackVowAddr σ_post_solm I := by
-                                    simp [endPackVowAddr, hVowWordGrab]
-                                  have hWadWordGrab :
-                                      endSkimWadWord σ_urns I vatOut urnOut =
-                                        endSkimWadWord σ_urns_solm I vatOut urnOut := by
-                                    simp [endSkimWadWord, endSkimOweWord, hTagCoupleUrns]
+                                  storageStore_accountMap, evmUrnsEvm, evmUrnsSolm,
+                                  evmVatEvm, evmVatSolm, evmSolm, initState]
+                              have hownerPostSolm :
+                                  evmPostSolm.executionEnv.codeOwner = I.codeOwner := by
+                                simp [evmPostSolm, evmPostEvm, endSkimPostGapState,
+                                  storageStore_executionEnv, evmUrnsEvm, evmUrnsSolm,
+                                  evmVatEvm, evmVatSolm, evmSolm, initState]
+                              by_cases hgrabCode :
+                                  Reasoning.Theory.extCodeSizeWord σ_post
+                                    (endPackVatWord σ_post I) = ⟨0⟩
+                              · have hgrab := endSkimGrabTailReverts_noCodeFor
+                                  (σCall := σ_post) (σLoc := σ_urns) (I := I)
+                                  (vatOut := vatOut) (urnOut := urnOut)
+                                  (evm := evmPostSolm) hmapPostSolm hownerPostSolm hgrabCode
+                                have hbody :
+                                    ExecTransitionBody config contract evmSolm
+                                      (endSkimStore I) skimTransition.body .reverted := by
+                                  exact endSkimBodyReverts_afterArtTailGrabReverted
+                                    hprefixArt htailOk hgrab
+                                exact (endSkimX_grabNoCode (g := Sat256.ofUInt256 g)
+                                  (σCall := σ_post) (σLoc := σ_urns) hloVat rd7253 hgrabCode)
+                                  |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
+                              · have hgrabCodeNE :
+                                  Reasoning.Theory.extCodeSizeWord σ_post
+                                    (endPackVatWord σ_post I) ≠ ⟨0⟩ := hgrabCode
+                                obtain ⟨gasWordGrab, _, _, rdGrabReady⟩ :=
+                                  endSkimX_grabCallReady (g := Sat256.ofUInt256 g)
+                                    (σCall := σ_post) (σLoc := σ_urns) hloVat rd7253 hgrabCodeNE
+                                by_cases hgrabDepthLt : I.depth.val < 1024
+                                · obtain ⟨σ_grab, zGrab, ret, AinGrab, callGasGrab,
+                                    _, _, hΘGrab, rd7373, hretSize⟩ :=
+                                    endSkimX_grabPostCall (g := Sat256.ofUInt256 g)
+                                      (σCall := σ_post) (σLoc := σ_urns) rdGrabReady
+                                      hgrabDepthLt
+                                  rcases hΘGrab with ⟨gGrab'', AGrab, hΘGrabEq⟩
+                                  have hdepthNeGrab : evmPostSolm.executionEnv.depth ≠ 1024 := by
+                                    intro hbad
+                                    have hbadI : I.depth = 1024 := by
+                                      simpa [evmPostSolm, evmPostEvm, endSkimPostGapState,
+                                        storageStore_executionEnv,
+                                        evmUrnsEvm, evmUrnsSolm, evmVatEvm, evmVatSolm,
+                                        evmSolm, initState] using hbad
+                                    have hbadVal : I.depth.val = 1024 := congrArg Fin.val hbadI
+                                    omega
+                                  have htgtGrab :
+                                      EVM.address (endPackVatAddr σ_post I) =
+                                        AccountAddress.ofUInt256 (endPackVatWord σ_post I) := by
+                                    rw [endPackVatAddr_eq_ofUInt256]
+                                    apply Fin.ext
+                                    show ↑(AccountAddress.ofUInt256
+                                      (endPackVatWord σ_post I)) % EVM.twoPow 160 = _
+                                    rw [Nat.mod_eq_of_lt]
+                                    exact (AccountAddress.ofUInt256 (endPackVatWord σ_post I)).isLt
                                   have hgrabCallSolm :
                                       typedCallViaEVM config evmPostSolm
-                                        (EVM.address (endPackVatAddr σ_post_solm I))
-                                        "grab" 0
+                                        (EVM.address (endPackVatAddr σ_post I)) "grab" 0
                                         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
-                                          .address (endSkimUrnAddr I),
-                                          .address I.codeOwner,
-                                          .address (endPackVowAddr σ_post_solm I),
+                                          .address (endSkimUrnAddr I), .address I.codeOwner,
+                                          .address (endPackVowAddr σ_post I),
                                           .int (-(Int.ofNat
-                                            (endSkimWadWord σ_urns_solm I vatOut urnOut).toNat)),
+                                            (endSkimWadWord σ_urns I vatOut urnOut).toNat)),
+                                          .int (-(Int.ofNat (endFreeUrnArtWord urnOut).toNat))]
+                                        (zGrab, { evmPostSolm with
+                                          accountMap := σ_grab
+                                          substate := AGrab }, ret) true := by
+                                    simpa [evmPostSolm, evmPostEvm, σ_post, σ_post_solm,
+                                      evmUrnsEvm, evmUrnsSolm, evmVatEvm, evmVatSolm,
+                                      evmSolm, initState] using
+                                      (callCoincides (cfg := config) (evm := evmPostSolm)
+                                        (tgt := EVM.address (endPackVatAddr σ_post I))
+                                        (targetWord := endPackVatWord σ_post I) (name := "grab")
+                                        (args := [.fixedBytes bytes32Width (endBytes32ArgBytes I),
+                                          .address (endSkimUrnAddr I), .address I.codeOwner,
+                                          .address (endPackVowAddr σ_post I),
                                           .int (-(Int.ofNat
-                                            (endFreeUrnArtWord urnOut).toNat))]
-                                        (zGrab,
-                                          { evmPostSolm with
-                                            accountMap := σ_grab_solm
-                                            substate := A_grab_solm
- },
-                                          ret) true := by
-                                    simpa [hVatAddrGrab, hVowAddrGrab, hWadWordGrab] using
-                                      hgrabCallSolmRaw
+                                            (endSkimWadWord σ_urns I vatOut urnOut).toNat)),
+                                          .int (-(Int.ofNat (endFreeUrnArtWord urnOut).toNat))])
+                                        (σ' := σ_grab) (A' := AGrab) (A_in := AinGrab)
+                                        (z := zGrab) (o := ret) (g'' := gGrab'')
+                                        (callGas := callGasGrab)
+                                        (mem := endSkimGrabCalldataMemFor σ_post σ_urns I
+                                          vatOut urnOut)
+                                        (inOff := endFreeGrabOutPtr)
+                                        (inSize := endFreeGrabInSize) (callPerm := true)
+                                        hdepthNeGrab htgtGrab
+                                        (endSkimGrabEncodeFor_eq σ_post σ_urns I vatOut urnOut
+                                          hsz68 hloVat hwadLimitSolm hartLimit)
+                                        (by simpa [evmPostSolm, evmPostEvm, σ_post,
+                                          endSkimPostGapState, endSkimPostGapAccountMap,
+                                          storageStore_accountMap, storageStore_executionEnv,
+                                          endSkim_storageStore_σ₀,
+                                          evmUrnsEvm, evmUrnsSolm, evmVatEvm, evmVatSolm,
+                                          evmSolm, initState, hperm] using hΘGrabEq))
                                   cases zGrab
-                                  · have hgrab :=
-                                      endSkimGrabTailReverts_callFailedFor
-                                        (σCall := σ_post_solm) (σLoc := σ_urns_solm)
-                                        (I := I) (vatOut := vatOut) (urnOut := urnOut)
-                                        (grabOut := ret) (evm := evmPostSolm)
-                                        (evmGrab :=
-                                          { evmPostSolm with
-                                            accountMap := σ_grab_solm
-                                            substate := A_grab_solm
- })
-                                        hmapPostSolm hownerPostSolm hgrabCodeSolmNE
-                                        hwadLimitSolm hartLimit
-                                        (by simpa using hgrabCallSolm)
+                                  · have hgrab := endSkimGrabTailReverts_callFailedFor
+                                      (σCall := σ_post) (σLoc := σ_urns) (I := I)
+                                      (vatOut := vatOut) (urnOut := urnOut) (grabOut := ret)
+                                      (evm := evmPostSolm)
+                                      (evmGrab := { evmPostSolm with
+                                        accountMap := σ_grab
+                                        substate := AGrab })
+                                      hmapPostSolm hownerPostSolm hgrabCodeNE
+                                      hwadLimitSolm hartLimit (by simpa using hgrabCallSolm)
                                     have hbody :
                                         ExecTransitionBody config contract evmSolm
-                                          (endSkimStore I) skimTransition.body
-                                          .reverted := by
+                                          (endSkimStore I) skimTransition.body .reverted := by
                                       exact endSkimBodyReverts_afterArtTailGrabReverted
                                         hprefixArt htailOk hgrab
                                     have rd7373Fail := rd7373
                                     simp at rd7373Fail
-                                    exact
-                                      (endSkimX_grabCallFailed rd7373Fail hretSize)
-                                        |>.reEquivExecutionRevert hcode hdispatch hdecode
-                                          hbody
-                                  · let evmGrabEvm :=
-                                      { evmPostEvm with
-                                        accountMap := σ_grab
-                                        substate := AGrab
- }
-                                    let evmGrabSolm :=
-                                      { evmPostSolm with
-                                        accountMap := σ_grab_solm
-                                        substate := A_grab_solm
- }
-                                    have hStateGrab :
-                                        EVMStateEquiv evmGrabEvm evmGrabSolm := by
-                                      refine ⟨?_, ?_⟩
-                                      · simpa [evmGrabEvm, evmGrabSolm] using
-                                          hStatePost.executionEnv
-                                      · simpa [evmGrabEvm, evmGrabSolm] using hAccountsGrab
+                                    exact (endSkimX_grabCallFailed rd7373Fail hretSize)
+                                      |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
+                                  · let evmGrabSolm := { evmPostSolm with
+                                      accountMap := σ_grab
+                                      substate := AGrab }
                                     have rd7373Succ := rd7373
                                     simp at rd7373Succ
                                     obtain ⟨_, _, rd7391⟩ :=
                                       endSkimX_grabCallSucceeded rd7373Succ
-                                    have hretEvm :=
-                                      endSkimX_grabLogReturn
-                                        (σCall := σ_post) (σLoc := σ_urns)
-                                        (vatOut := vatOut) (urnOut := urnOut)
-                                        (ret := ret) hperm hloVat rd7391
-                                    have hgrab :=
-                                      endSkimGrabTailReturns_successFor
-                                        (σCall := σ_post_solm) (σLoc := σ_urns_solm)
-                                        (I := I) (vatOut := vatOut) (urnOut := urnOut)
-                                        (grabOut := ret) (evm := evmPostSolm)
-                                        (evmGrab := evmGrabSolm)
-                                        hmapPostSolm hownerPostSolm hgrabCodeSolmNE
-                                        hwadLimitSolm hartLimit
-                                        (by simpa [evmGrabSolm] using hgrabCallSolm)
+                                    have hretEvm := endSkimX_grabLogReturn
+                                      (σCall := σ_post) (σLoc := σ_urns)
+                                      (vatOut := vatOut) (urnOut := urnOut)
+                                      (ret := ret) hperm hloVat rd7391
+                                    have hgrab := endSkimGrabTailReturns_successFor
+                                      (σCall := σ_post) (σLoc := σ_urns) (I := I)
+                                      (vatOut := vatOut) (urnOut := urnOut) (grabOut := ret)
+                                      (evm := evmPostSolm) (evmGrab := evmGrabSolm)
+                                      hmapPostSolm hownerPostSolm hgrabCodeNE
+                                      hwadLimitSolm hartLimit
+                                      (by simpa [evmGrabSolm] using hgrabCallSolm)
+                                    let csGrab : Solm.Frame :=
+                                      ⟨contract, endSkimStoreGrab σ_urns I vatOut urnOut⟩
                                     have hbody :
                                         ExecTransitionBody config contract evmSolm
                                           (endSkimStore I) skimTransition.body
-                                          (.returned
-                                            { contract := contract,
-                                              locals :=
-                                                endSkimStoreGrab σ_urns_solm I vatOut
-                                                  urnOut }
-                                            evmGrabSolm none) := by
+                                          (.returned csGrab evmGrabSolm none) := by
                                       exact endSkimBodyReturns_afterArtTailGrabSuccess
                                         hprefixArt htailOk hgrab
-                                    exact hretEvm.reEquivExecutionGenEVMStateEquiv
-                                      (evm'_evm := evmGrabEvm)
-                                      (evm'_solm := evmGrabSolm)
+                                    exact hretEvm.reEquivExecutionGenAccountMapEquiv
                                       hcode hdispatch hdecode hbody
-                                      (by simp [evmGrabEvm])
-                                      (by
-                                        simpa [evmGrabEvm] using
-                                          Eq.refl σ_grab)
-                                      hStateGrab
-                                      (by
-                                        simpa [skimTransition] using
-                                          (returnEquiv.fallthrough
-                                            (o := ByteArray.empty) (r := none)
-                                            (t := []) (dvs := []) rfl
-                                            (by native_decide) (by native_decide)))
+                                      (by simp [evmGrabSolm])
+                                      (by simpa [skimTransition] using
+                                        (returnEquiv.fallthrough (o := ByteArray.empty)
+                                          (r := none) (t := []) (dvs := []) rfl
+                                          (by native_decide) (by native_decide)))
                                 · rw [not_lt] at hgrabDepthLt
                                   have hgrabDepthEq : I.depth = 1024 :=
                                     Fin.ext (by have := I.depth.isLt; omega)
                                   obtain ⟨_, _, rd7373⟩ :=
-                                    endSkimX_grabCallDepthLimit
-                                      (g := Sat256.ofUInt256 g) (σCall := σ_post)
-                                      (σLoc := σ_urns) rdGrabReady hgrabDepthEq
-                                  let A_grab :=
-                                    (evmPostSolm.addAccessedAccount
-                                      (EVM.address (endPackVatAddr σ_post_solm I))).substate
+                                    endSkimX_grabCallDepthLimit rdGrabReady hgrabDepthEq
+                                  let A_grab := (evmPostSolm.addAccessedAccount
+                                    (EVM.address (endPackVatAddr σ_post I))).substate
                                   have hgrabCallSolm :
                                       typedCallViaEVM config evmPostSolm
-                                        (EVM.address (endPackVatAddr σ_post_solm I))
-                                        "grab" 0
+                                        (EVM.address (endPackVatAddr σ_post I)) "grab" 0
                                         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
-                                          .address (endSkimUrnAddr I),
-                                          .address I.codeOwner,
-                                          .address (endPackVowAddr σ_post_solm I),
+                                          .address (endSkimUrnAddr I), .address I.codeOwner,
+                                          .address (endPackVowAddr σ_post I),
                                           .int (-(Int.ofNat
-                                            (endSkimWadWord σ_urns_solm I vatOut urnOut).toNat)),
-                                          .int (-(Int.ofNat
-                                            (endFreeUrnArtWord urnOut).toNat))]
+                                            (endSkimWadWord σ_urns I vatOut urnOut).toNat)),
+                                          .int (-(Int.ofNat (endFreeUrnArtWord urnOut).toNat))]
                                         (false, { evmPostSolm with substate := A_grab },
                                           ByteArray.empty) true := by
                                     simpa [A_grab] using
                                       (callNotMade_depthLimit (cfg := config)
                                         (evm := evmPostSolm)
-                                        (tgt :=
-                                          EVM.address (endPackVatAddr σ_post_solm I))
+                                        (tgt := EVM.address (endPackVatAddr σ_post I))
                                         (name := "grab")
-                                        (args :=
-                                          [.fixedBytes bytes32Width (endBytes32ArgBytes I),
-                                            .address (endSkimUrnAddr I),
-                                            .address I.codeOwner,
-                                            .address (endPackVowAddr σ_post_solm I),
-                                            .int (-(Int.ofNat
-                                              (endSkimWadWord σ_urns_solm I vatOut
-                                                urnOut).toNat)),
-                                            .int (-(Int.ofNat
-                                              (endFreeUrnArtWord urnOut).toNat))])
+                                        (args := [.fixedBytes bytes32Width
+                                          (endBytes32ArgBytes I), .address (endSkimUrnAddr I),
+                                          .address I.codeOwner, .address (endPackVowAddr σ_post I),
+                                          .int (-(Int.ofNat
+                                            (endSkimWadWord σ_urns I vatOut urnOut).toNat)),
+                                          .int (-(Int.ofNat (endFreeUrnArtWord urnOut).toNat))])
                                         (callPerm := true)
-                                        (endSkimGrabEncodeFor_eq σ_post_solm
-                                          σ_urns_solm I vatOut urnOut hsz68 hloVat
-                                          hwadLimitSolm hartLimit)
-                                        (by simpa [evmPostSolm, endSkimPostGapState,
+                                        (endSkimGrabEncodeFor_eq σ_post σ_urns I vatOut urnOut
+                                          hsz68 hloVat hwadLimitSolm hartLimit)
+                                        (by simpa [evmPostSolm, evmPostEvm, endSkimPostGapState,
                                           storageStore_executionEnv,
                                           evmUrnsSolm, evmVatSolm, evmSolm, initState]
                                           using hgrabDepthEq))
-                                  have hgrab :=
-                                    endSkimGrabTailReverts_callFailedFor
-                                      (σCall := σ_post_solm) (σLoc := σ_urns_solm)
-                                      (I := I) (vatOut := vatOut) (urnOut := urnOut)
-                                      (grabOut := ByteArray.empty) (evm := evmPostSolm)
-                                      (evmGrab := { evmPostSolm with substate := A_grab })
-                                      hmapPostSolm hownerPostSolm hgrabCodeSolmNE
-                                      hwadLimitSolm hartLimit
-                                      (by simpa using hgrabCallSolm)
+                                  have hgrab := endSkimGrabTailReverts_callFailedFor
+                                    (σCall := σ_post) (σLoc := σ_urns) (I := I)
+                                    (vatOut := vatOut) (urnOut := urnOut)
+                                    (grabOut := ByteArray.empty) (evm := evmPostSolm)
+                                    (evmGrab := { evmPostSolm with substate := A_grab })
+                                    hmapPostSolm hownerPostSolm hgrabCodeNE
+                                    hwadLimitSolm hartLimit (by simpa using hgrabCallSolm)
                                   have hbody :
                                       ExecTransitionBody config contract evmSolm
-                                        (endSkimStore I) skimTransition.body
-                                        .reverted := by
+                                        (endSkimStore I) skimTransition.body .reverted := by
                                     exact endSkimBodyReverts_afterArtTailGrabReverted
                                       hprefixArt htailOk hgrab
                                   exact (endSkimX_grabCallFailed rd7373 (by native_decide))

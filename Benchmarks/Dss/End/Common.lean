@@ -53,31 +53,6 @@ theorem endStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
   simpa [wordLoc, uint256Loc] using storageLocStore_uint256 evm slot val
 
-theorem endCallMade_accountMapEquiv_with_substate {cfg : Config}
-    {evm : EVM.State}
-    {tgt : EVM.Address} {targetWord : UInt256} {name : Ident} {args : List Value}
-    {σ' : AccountMap} {A' A_in : Substate}
-    {z : Bool} {out : ByteArray} {g'' callGas : UInt256}
-    {mem : ByteArray} {inOff inSize : UInt256} {callPerm : Bool}
-    (hdepth : evm.executionEnv.depth ≠ 1024)
-    (htgt : tgt = AccountAddress.ofUInt256 targetWord)
-    (hcd : cfg.externalABI.encode? name args =
-      some (mem.readWithPadding inOff.toNat inSize.toNat))
-    (hΘ : (σ', g'', A', z, out) =
-        Ethereum.EVM.Θ evm.accountMap evm.σ₀ A_in
-          (AccountAddress.ofUInt256 (UInt256.ofNat evm.executionEnv.codeOwner))
-          evm.executionEnv.sender (AccountAddress.ofUInt256 targetWord)
-          (toExecute evm.accountMap (AccountAddress.ofUInt256 targetWord))
-          callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
-          (mem.readWithPadding inOff.toNat inSize.toNat)
-          (evm.executionEnv.depth + 1) evm.executionEnv.header
-          evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks callPerm) :
-    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
-      typedCallViaEVM cfg evm tgt name 0 args
-        (z, { evm with accountMap := σ'_solm, substate := A'_solm }, out) callPerm ∧
-      σ' = σ'_solm ∧ A' = A'_solm := by
-  refine ⟨σ', A', callCoincides hdepth htgt hcd hΘ, rfl, rfl⟩
-
 theorem endCallMade_accountMapEq_with_substate {cfg : Config}
     {evm_evm evm_solm : EVM.State}
     {tgt : EVM.Address} {targetWord : UInt256} {name : Ident} {args : List Value}
@@ -109,12 +84,13 @@ theorem endCallMade_accountMapEq_with_substate {cfg : Config}
       (σ', g'', A', z, out) =
         Ethereum.EVM.Θ evm_solm.accountMap evm_solm.σ₀ A_in
           (AccountAddress.ofUInt256 (UInt256.ofNat evm_solm.executionEnv.codeOwner))
-          evm_solm.executionEnv.sender tgt (toExecute evm_solm.accountMap tgt)
+          evm_solm.executionEnv.sender (AccountAddress.ofUInt256 targetWord)
+          (toExecute evm_solm.accountMap (AccountAddress.ofUInt256 targetWord))
           callGas (UInt256.ofNat evm_solm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
           (mem.readWithPadding inOff.toNat inSize.toNat)
           (evm_solm.executionEnv.depth + 1) evm_solm.executionEnv.header
           evm_solm.executionEnv.blobVersionedHashes evm_solm.executionEnv.blocks callPerm := by
-    rw [← hAccounts, ← hOriginalAccounts, hEnv, ← htgt]
+    rw [← hAccounts, ← hOriginalAccounts, hEnv]
     exact hΘ
   have hdepthSolm : evm_solm.executionEnv.depth ≠ 1024 := by
     rw [hEnv]

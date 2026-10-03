@@ -266,12 +266,6 @@ theorem dogChopBodyCoreOk
           (twoWordHashMem_size_96 key ⟨1⟩ solcFreePtrMem_size))
       (by simp)
     simpa [slot, dogSlotWord] using hret'
-  have hword : dogSlotWord slot σ I = dogSlotWord slot σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (dogSlotWord (chopSlotFor I) σ I).toNat)] =
-        some [Value.int (Int.ofNat (dogSlotWord slot σ I).toNat)] := by
-    rw [hslot, hword]
   have henc :
       returnEquiv (UInt256.toByteArray (dogSlotWord slot σ I))
         (some [(.int (Int.ofNat (dogSlotWord slot σ I).toNat))])
@@ -279,7 +273,8 @@ theorem dogChopBodyCoreOk
     rw [show chopTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
       (by simpa [uint256] using uint256ReturnEncoding (dogSlotWord slot σ I))
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  rw [hslot] at hbody
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem dogChopBodyCoreDecodeFailed_short
     {v : DogImmutables} {code : ByteArray}
@@ -338,7 +333,7 @@ theorem dogChopBodyCore {v : DogImmutables} {code : ByteArray}
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact dogChopBodyCoreOk hpatch hcode hwv hsz36 hsize hdispatch
-      (dogDecode_chop_ok (v := v) hsz36) hreach hAccounts
+      (dogDecode_chop_ok (v := v) hsz36) hreach
   · exact dogChopBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach
 

@@ -531,11 +531,10 @@ theorem clipperStorageStore_executionEnv
   simp only [Solm.EVM.storageStore, State.lookupAccount]
   cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
 
-theorem clipperRedoPostTicAccountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
-    (hevmAcct : evm.accountMap = τ)
-    (hevmEnv : evm.executionEnv = I)
-    (hAccounts : σ = τ) :
+theorem clipperRedoPostTicAccountMap_eq
+    {σ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
+    (hevmAcct : evm.accountMap = σ)
+    (hevmEnv : evm.executionEnv = I) :
       sstoreAccountMap I.codeOwner σ (clipperRedoSalesPackedSlot I)
         (UInt256.lor
           (UInt256.mul
@@ -544,18 +543,16 @@ theorem clipperRedoPostTicAccountMapEquiv
           (UInt256.land solcAddrMask
             (solcSlotWord σ I (clipperRedoSalesPackedSlot I)))) =
         (clipperRedoPostTicState evm I).accountMap := by
-  subst τ
   subst I
   subst σ
   simp [clipperRedoPostTicState, clipperRedoPostTicPackedWord,
     storageStore_accountMap, solcSlotWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
 
-theorem clipperRedoPostTicSpotterAddress_eq_of_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
-    (hevmAcct : evm.accountMap = τ)
-    (hevmEnv : evm.executionEnv = I)
-    (hAccounts : σ = τ) :
+theorem clipperRedoPostTicSpotterAddress_eq_of_accountMap_eq
+    {σ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
+    (hevmAcct : evm.accountMap = σ)
+    (hevmEnv : evm.executionEnv = I) :
       clipperGetFeedPriceSpotterAddress (clipperRedoPostTicState evm I) =
         AccountAddress.ofUInt256
           (clipperSpotterTarget
@@ -566,7 +563,6 @@ theorem clipperRedoPostTicSpotterAddress_eq_of_accountMapEquiv
                   (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
                 (UInt256.land solcAddrMask
                   (solcSlotWord σ I (clipperRedoSalesPackedSlot I))))) I) := by
-  subst τ
   subst I
   subst σ
   simp [clipperGetFeedPriceSpotterAddress, clipperRedoPostTicState,
@@ -574,11 +570,10 @@ theorem clipperRedoPostTicSpotterAddress_eq_of_accountMapEquiv
     solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
     clipperStorageStore_executionEnv]
 
-theorem clipperRedoPostTicNoCode_of_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
-    (hevmAcct : evm.accountMap = τ)
+theorem clipperRedoPostTicNoCode_of_accountMap_eq
+    {σ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
+    (hevmAcct : evm.accountMap = σ)
     (hevmEnv : evm.executionEnv = I)
-    (hAccounts : σ = τ)
     (hzero :
       Reasoning.Theory.extCodeSizeWord
         (sstoreAccountMap I.codeOwner σ (clipperRedoSalesPackedSlot I)
@@ -600,7 +595,6 @@ theorem clipperRedoPostTicNoCode_of_accountMapEquiv
         (((clipperRedoPostTicState evm I).lookupAccount
           (clipperGetFeedPriceSpotterAddress (clipperRedoPostTicState evm I))).option 0
             (fun acc => acc.code.size))).toNat = 0 := by
-  subst τ
   subst I
   subst σ
   have haddr :
@@ -623,11 +617,10 @@ theorem clipperRedoPostTicNoCode_of_accountMapEquiv
   simpa [State.lookupAccount, haddr] using
     clipperExtCodeSizeWord_zero_lookup_code_zero rfl hzero'
 
-theorem clipperRedoPostTicCode_of_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
-    (hevmAcct : evm.accountMap = τ)
+theorem clipperRedoPostTicCode_of_accountMap_eq
+    {σ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)
+    (hevmAcct : evm.accountMap = σ)
     (hevmEnv : evm.executionEnv = I)
-    (hAccounts : σ = τ)
     (hcode :
       Reasoning.Theory.extCodeSizeWord
         (sstoreAccountMap I.codeOwner σ (clipperRedoSalesPackedSlot I)
@@ -649,7 +642,6 @@ theorem clipperRedoPostTicCode_of_accountMapEquiv
         (((clipperRedoPostTicState evm I).lookupAccount
           (clipperGetFeedPriceSpotterAddress (clipperRedoPostTicState evm I))).option 0
             (fun acc => acc.code.size))).toNat := by
-  subst τ
   subst I
   subst σ
   have haddr :
@@ -670,13 +662,11 @@ theorem clipperRedoPostTicCode_of_accountMapEquiv
       storageStore_accountMap, solcSlotWord, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage] using hcode
   simpa [State.lookupAccount, haddr] using
-    clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-      (σ := (clipperRedoPostTicState evm evm.executionEnv).accountMap)
-      (τ := (clipperRedoPostTicState evm evm.executionEnv).accountMap)
+    clipperExtCodeSizeWord_ne_zero_lookup_code_pos
       (target := clipperSpotterTarget
         (clipperRedoPostTicState evm evm.executionEnv).accountMap evm.executionEnv)
       (addr := clipperGetFeedPriceSpotterAddress (clipperRedoPostTicState evm evm.executionEnv))
-      rfl haddr hcode'
+      haddr hcode'
 
 theorem clipperRedoAssignSalesTicTimestampExact (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv) (price : UInt256) :

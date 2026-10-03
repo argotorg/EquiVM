@@ -37,7 +37,7 @@ theorem clipperKickCallAligned_transport {v : ClipperImmutables}
   have hInputEnv : ({s0 with accountMap := σ, executionEnv := I} : EVM.State).executionEnv =
       evm.executionEnv := by simpa [halign.executionEnv]
   obtain ⟨σSolm, ASolm, hcallSolm, hAccounts⟩ :=
-    typedCallViaEVM_accountMapEquiv hcall hInputAccounts hInputOriginal hInputEnv
+    typedCallViaEVM_sameInputs hcall hInputAccounts hInputOriginal hInputEnv
   let evm' : EVM.State := { evm with accountMap := σSolm, substate := ASolm }
   refine ⟨σSolm, ASolm, evm', rfl, ?_, ?_⟩
   · simpa [evm'] using hcallSolm
@@ -61,9 +61,10 @@ theorem clipperKickNoCode_of_aligned
     (hzero : extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat ((evm.lookupAccount addr).option 0
       (fun acc => acc.code.size))).toNat = 0 := by
+  have hzeroEvm : extCodeSizeWord evm.accountMap target = ⟨0⟩ := by
+    simpa only [← halign.accounts] using hzero
   simpa [State.lookupAccount] using
-    clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
-      halign.accounts haddr hzero
+    clipperExtCodeSizeWord_zero_lookup_code_zero haddr hzeroEvm
 
 theorem clipperKickHasCode_of_aligned
     {s0 evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv} {target : UInt256}
@@ -73,8 +74,9 @@ theorem clipperKickHasCode_of_aligned
     (hne : extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat ((evm.lookupAccount addr).option 0
       (fun acc => acc.code.size))).toNat := by
+  have hneEvm : extCodeSizeWord evm.accountMap target ≠ ⟨0⟩ := by
+    simpa only [← halign.accounts] using hne
   simpa [State.lookupAccount] using
-    clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-      halign.accounts haddr hne
+    clipperExtCodeSizeWord_ne_zero_lookup_code_pos haddr hneEvm
 
 end Benchmarks.Dss.Clipper

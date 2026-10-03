@@ -764,7 +764,7 @@ theorem test_flipperKickX_vatPostCall
         have hEq : I.depth = (1024 : Fin 1025) := by
           simpa [initState] using hdepthEq
         exact absurd hdepth (by rw [hEq]; decide))
-      (flipperVatEvmAddress_eq_target_of_accountMapEquiv (Eq.refl σcall))
+      (flipperVatEvmAddress_eq_target σcall I)
       ?_ ?_
     · simpa [σcall, kickFluxArgValsOf, initState, flipperSlotWord, solcSlotWord,
         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage] using

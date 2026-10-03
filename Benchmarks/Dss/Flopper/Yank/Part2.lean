@@ -199,11 +199,7 @@ theorem flopperYankBodyCoreStillLive
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I ≠ ⟨0⟩ := by
-    intro hzero
-    exact hlive (by
-      have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-      rw [hword, hzero])
+  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I ≠ ⟨0⟩ := hlive
   have hbody :
       ExecTransitionBody config contract evmSolm (yankLocals I)
         yankTransition.body .reverted := by
@@ -232,17 +228,9 @@ theorem flopperYankBodyCoreGuyNotSet
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨0⟩ := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    rw [← hword]
-    exact hlive
+  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨0⟩ := hlive
   have hguySolm :
-      flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I = ⟨0⟩ := by
-    have hword :=
-      flopperAddressReturnWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-        (auctionPackedSlot (yankIdWord I))
-    rw [← hword]
-    exact hguy
+      flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I = ⟨0⟩ := hguy
   have hbody :
       ExecTransitionBody config contract evmSolm (yankLocals I)
         yankTransition.body .reverted := by
@@ -275,22 +263,13 @@ theorem flopperYankBodyCoreSuckNoCode
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨0⟩ := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    rw [← hword]
-    exact hlive
+  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨0⟩ := hlive
   have hguySolm :
-      flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩ := by
-    intro hzero
-    exact hguy (by
-      have hword :=
-        flopperAddressReturnWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-          (auctionPackedSlot (yankIdWord I))
-      rw [hword, hzero])
+      flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩ := hguy
   have hnoCodeSolm :
       Reasoning.Theory.extCodeSizeWord σ
         (flopperAddressReturnWord ⟨2⟩ σ I) = ⟨0⟩ :=
-    flopperCodeSize_zero_accountMapEquiv_addressSlot (σ := σ) (τ := σ) rfl ⟨2⟩ hnoCode
+    hnoCode
   have hbody :
       ExecTransitionBody config contract evmSolm (yankLocals I)
         yankTransition.body .reverted := by
@@ -352,26 +331,8 @@ theorem flopperYankBodyCoreSuckCallFailure
         (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, _hpostAccounts⟩ :=
-    typedCallViaEVM_accountMapEquiv hcall rfl rfl rfl
   let evmCallSolm : EVM.State :=
-    { evmSolm with accountMap := σ'_solm, substate := A'_solm }
-  have hvatEq :
-      flopperAddressReturnWord ⟨2⟩ σ I =
-        flopperAddressReturnWord ⟨2⟩ σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl ⟨2⟩
-  have hvowEq :
-      flopperAddressReturnWord ⟨9⟩ σ I =
-        flopperAddressReturnWord ⟨9⟩ σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl ⟨9⟩
-  have hguyEq :
-      flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I =
-        flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl (auctionPackedSlot (yankIdWord I))
-  have hbidEq :
-      flopperSlotWord (auctionBidSlot (yankIdWord I)) σ I =
-        flopperSlotWord (auctionBidSlot (yankIdWord I)) σ I :=
-    flopperSlotWord_accountMapEquiv (σ := σ) (τ := σ) rfl (auctionBidSlot (yankIdWord I))
+    { evmSolm with accountMap := σ', substate := A' }
   have hcallSolm :
       typedCallViaEVM config evmSolm
         (EVM.address (AccountAddress.ofNat
@@ -384,19 +345,14 @@ theorem flopperYankBodyCoreSuckCallFailure
         .int (Int.ofNat
           (flopperSlotWord (auctionBidSlot (yankIdWord I)) σ I).toNat)]
         (false, evmCallSolm, out) true := by
-    simpa [evmSolm, evmCallSolm, hvatEq, hvowEq, hguyEq, hbidEq] using hcallSolmRaw
-  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨0⟩ := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    rw [← hword]
-    exact hlive
+    simpa [evmSolm, evmCallSolm] using hcall
+  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨0⟩ := hlive
   have hguySolm :
-      flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩ := by
-    intro hzero
-    exact hguy (by rw [hguyEq, hzero])
+      flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩ := hguy
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
         (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
-    flopperCodeSize_ne_accountMapEquiv_addressSlot (σ := σ) (τ := σ) rfl ⟨2⟩ hcodeSize
+    hcodeSize
   have hbody :
       ExecTransitionBody config contract evmSolm (yankLocals I)
         yankTransition.body .reverted := by
@@ -468,22 +424,13 @@ theorem flopperYankBodyCoreSuckCallDepthLimit
           yankSuckOutPtr.toNat yankSuckInSize.toNat)
         (yankSuckEncode_eq vow guy bid hmemMap hvowCanon hguyCanon)
         hdepthInit)
-  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨0⟩ := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    rw [← hword]
-    exact hlive
+  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨0⟩ := hlive
   have hguySolm :
-      flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩ := by
-    intro hzero
-    exact hguy (by
-      have hword :=
-        flopperAddressReturnWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-          (auctionPackedSlot (yankIdWord I))
-      rw [hword, hzero])
+      flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩ := hguy
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
         (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
-    flopperCodeSize_ne_accountMapEquiv_addressSlot (σ := σ) (τ := σ) rfl ⟨2⟩ hcodeSize
+    hcodeSize
   have hbody :
       ExecTransitionBody config contract evmSolm (yankLocals I)
         yankTransition.body .reverted := by
@@ -548,26 +495,8 @@ theorem flopperYankBodyCoreSuckCallSuccess
         (transitionSignature yankTransition).paramTypes I.calldata = some (yankLocals I)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hpostCallAccounts⟩ :=
-    typedCallViaEVM_accountMapEquiv hcall rfl rfl rfl
   let evmCallSolm : EVM.State :=
-    { evmSolm with accountMap := σ'_solm, substate := A'_solm }
-  have hvatEq :
-      flopperAddressReturnWord ⟨2⟩ σ I =
-        flopperAddressReturnWord ⟨2⟩ σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl ⟨2⟩
-  have hvowEq :
-      flopperAddressReturnWord ⟨9⟩ σ I =
-        flopperAddressReturnWord ⟨9⟩ σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl ⟨9⟩
-  have hguyEq :
-      flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I =
-        flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl (auctionPackedSlot (yankIdWord I))
-  have hbidEq :
-      flopperSlotWord (auctionBidSlot (yankIdWord I)) σ I =
-        flopperSlotWord (auctionBidSlot (yankIdWord I)) σ I :=
-    flopperSlotWord_accountMapEquiv (σ := σ) (τ := σ) rfl (auctionBidSlot (yankIdWord I))
+    { evmSolm with accountMap := σ', substate := A' }
   have hcallSolm :
       typedCallViaEVM config evmSolm
         (EVM.address (AccountAddress.ofNat
@@ -580,19 +509,14 @@ theorem flopperYankBodyCoreSuckCallSuccess
         .int (Int.ofNat
           (flopperSlotWord (auctionBidSlot (yankIdWord I)) σ I).toNat)]
         (true, evmCallSolm, out) true := by
-    simpa [evmSolm, evmCallSolm, hvatEq, hvowEq, hguyEq, hbidEq] using hcallSolmRaw
-  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨0⟩ := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    rw [← hword]
-    exact hlive
+    simpa [evmSolm, evmCallSolm] using hcall
+  have hliveSolmWord : flopperSlotWord ⟨8⟩ σ I = ⟨0⟩ := hlive
   have hguySolm :
-      flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩ := by
-    intro hzero
-    exact hguy (by rw [hguyEq, hzero])
+      flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ I ≠ ⟨0⟩ := hguy
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
         (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
-    flopperCodeSize_ne_accountMapEquiv_addressSlot (σ := σ) (τ := σ) rfl ⟨2⟩ hcodeSize
+    hcodeSize
   have hbody :
       ExecTransitionBody config contract evmSolm (yankLocals I)
         yankTransition.body
@@ -610,25 +534,12 @@ theorem flopperYankBodyCoreSuckCallSuccess
     flopperYankX_suckCallSuccessDelete
       (g := Sat256.ofUInt256 g) (σ := σ) (sel := sel) hperm
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) rd1164
-  have hRuntimeDeleteEquiv :
-      Eq (yankRuntimeDeleteAccountMap I σ')
-        (yankRuntimeDeleteAccountMap I σ'_solm) := by
-    unfold yankRuntimeDeleteAccountMap
-    exact accountMapEquiv_sstoreAccountMap_three I.codeOwner I.codeOwner I.codeOwner
-      (auctionBidSlot (yankIdWord I)) ⟨0⟩
-      (auctionLotSlot (yankIdWord I)) ⟨0⟩
-      (auctionPackedSlot (yankIdWord I)) ⟨0⟩
-      hpostCallAccounts
-  have hDeleteSolm :
-      Eq (yankRuntimeDeleteAccountMap I σ'_solm)
-        (yankDeletePostState evmCallSolm I).accountMap := by
-    simpa [evmCallSolm] using
-      yankDeletePostState_accountMapEquiv evmCallSolm I
-        (by simp [evmCallSolm, evmSolm, initState])
   have hFinalAccounts :
       Eq (yankRuntimeDeleteAccountMap I σ')
-        (yankDeletePostState evmCallSolm I).accountMap :=
-    Eq.trans hRuntimeDeleteEquiv hDeleteSolm
+        (yankDeletePostState evmCallSolm I).accountMap := by
+    simpa [evmCallSolm] using
+      yankRuntimeDeleteAccountMap_eq_postState evmCallSolm I
+        (by simp [evmCallSolm, evmSolm, initState])
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     (by simpa [yankRuntimeDeleteAccountMap] using hFinalAccounts)
     (by

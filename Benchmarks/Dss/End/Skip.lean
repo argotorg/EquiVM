@@ -7185,42 +7185,10 @@ theorem evalExpr_endSkip_tag_ne_true (evm : EVM.State) (I : ExecutionEnv)
   intro hbad
   exact htag (uint256_toNat_eq_zero (Int.ofNat.inj hbad))
 
-theorem endSkipCatWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    endSkipCatWord σ I = endSkipCatWord τ I := by
-  simp [endSkipCatWord, endSlotWord, solcSlotWord,
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩]
-
 theorem endSkipCatAddr_eq_ofUInt256 (σ : AccountMap) (I : ExecutionEnv) :
     endSkipCatAddr σ I = AccountAddress.ofUInt256 (endSkipCatWord σ I) := by
   simpa [endSkipCatAddr] using
     (accountAddress_ofUInt256_eq_ofNat_toNat (endSkipCatWord σ I)).symm
-
-theorem endSkipCatCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ)
-    (hne : Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endSkipCatWord τ I) ≠ ⟨0⟩ := by
-  intro hzero
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endSkipCatWord σ I)
-  have htarget : endSkipCatWord σ I = endSkipCatWord τ I :=
-    endSkipCatWord_accountMapEquiv hAccounts
-  rw [hsame, htarget]
-  exact hzero
-
-theorem endSkipCatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ)
-    (hzero : Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endSkipCatWord τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endSkipCatWord σ I)
-  have htarget : endSkipCatWord σ I = endSkipCatWord τ I :=
-    endSkipCatWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame]
-  exact hzero
 
 theorem endSkipCatCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
     (hzero : Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
@@ -8063,29 +8031,6 @@ theorem endSkipBidsCode_pos_afterRate {σ : AccountMap} {catOut : ByteArray}
       (σ := σ) (target := endSkipCatIlkFlipTargetWord catOut)
       (addr := endSkipCatIlkFlipAddr catOut)
       (endSkipCatIlkFlipAddr_eq_ofUInt256 catOut) hne
-
-theorem endSkipBidsCodeSize_zero_accountMapEquiv {σ τ : AccountMap}
-    (hAccounts : Eq σ τ) (catOut : ByteArray)
-    (hcode :
-      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) =
-        ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endSkipCatIlkFlipTargetWord catOut) =
-      ⟨0⟩ := by
-  rw [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-    (endSkipCatIlkFlipTargetWord catOut)]
-  exact hcode
-
-theorem endSkipBidsCodeSize_ne_accountMapEquiv {σ τ : AccountMap}
-    (hAccounts : Eq σ τ) (catOut : ByteArray)
-    (hcode :
-      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
-        ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endSkipCatIlkFlipTargetWord catOut) ≠
-      ⟨0⟩ := by
-  intro hbad
-  rw [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-    (endSkipCatIlkFlipTargetWord catOut)] at hbad
-  exact hcode hbad
 
 theorem evalExprs_endSkip_bidsArgs_afterRate (evm : EVM.State)
     (I : ExecutionEnv) (catOut vatOut : ByteArray) :
@@ -10331,13 +10276,8 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
     obtain ⟨_, _, hbodyReach⟩ :=
       endSkipX_decoded (g := Sat256.ofUInt256 g) hsz68 hsize hreach
     let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have htagCouple : endSkipTagWord σ I = endSkipTagWord σ I := by
-      simpa [endSkipTagWord, endSlotWord] using
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (endSkipTagSlot I) ⟨0⟩
     by_cases htag : endSkipTagWord σ I = ⟨0⟩
-    · have htagSolm : endSkipTagWord σ I = ⟨0⟩ := by
-        rw [← htagCouple]
-        exact htag
+    · have htagSolm : endSkipTagWord σ I = ⟨0⟩ := htag
       have hbody :
           ExecTransitionBody config contract evmSolm (endSkipStore I)
             skipTransition.body .reverted := by
@@ -10348,9 +10288,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
       exact (endSkipX_tagZero (g := Sat256.ofUInt256 g) hsz68 htag hbodyReach)
         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have htagNE : endSkipTagWord σ I ≠ ⟨0⟩ := htag
-      have htagSolmNE : endSkipTagWord σ I ≠ ⟨0⟩ := by
-        intro hbad
-        exact htagNE (by rw [htagCouple, hbad])
+      have htagSolmNE : endSkipTagWord σ I ≠ ⟨0⟩ := htagNE
       obtain ⟨kTag, CTag, htagPcRaw⟩ :=
         endSkipX_tagNonzero (g := Sat256.ofUInt256 g) hsz68 htagNE hbodyReach
       have htagPc :
@@ -10371,7 +10309,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
       · have hcatCodeSolm :
             Reasoning.Theory.extCodeSizeWord σ
               (endSkipCatWord σ I) = ⟨0⟩ :=
-          endSkipCatCodeSize_zero_accountMapEquiv hAccounts hcatCode
+          hcatCode
         have hbody :
             ExecTransitionBody config contract evmSolm (endSkipStore I)
               skipTransition.body .reverted := by
@@ -10387,7 +10325,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
         have hcatCodeSolmNE :
             Reasoning.Theory.extCodeSizeWord σ
               (endSkipCatWord σ I) ≠ ⟨0⟩ :=
-          endSkipCatCodeSize_ne_accountMapEquiv hAccounts hcatCodeNE
+          hcatCodeNE
         obtain ⟨catGasWord, _, _, hcatReady⟩ :=
           endSkipX_catIlksCallReady
             (g := Sat256.ofUInt256 g) htagPc hcatCodeNE
@@ -10432,11 +10370,10 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
               hdepthNe htgtCat
               (endSkipCatIlksEncode_eq I hsz68 (endSkipCatIlksBaseMem_size I))
               (by simpa [initState, hperm] using hΘCatEq)
-              (by simpa [initState] using hAccounts)
+              rfl
               (by simp [evmSolm, initState])
               (by simp [evmSolm, initState])
-          have hCatAddr : endSkipCatAddr σ I = endSkipCatAddr σ I := by
-            simp [endSkipCatAddr, endSkipCatWord_accountMapEquiv hAccounts]
+          have hCatAddr : endSkipCatAddr σ I = endSkipCatAddr σ I := rfl
           have hcallCatSolm :
               typedCallViaEVM config evmSolm
               (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
@@ -10523,7 +10460,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
               · have hvatCodeSolm :
                     Reasoning.Theory.extCodeSizeWord σ_cat_solm
                       (endPackVatWord σ_cat_solm I) = ⟨0⟩ :=
-                  endPackVatCodeSize_zero_accountMapEquiv hAccountsCat hvatCode
+                  (by simpa only [hAccountsCat] using hvatCode)
                 have hvatBlock :
                     ExecBlock config
                       { contract := contract, locals := endSkipStoreFlip I catOut }
@@ -10547,7 +10484,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                 have hvatCodeSolmNE :
                     Reasoning.Theory.extCodeSizeWord σ_cat_solm
                       (endPackVatWord σ_cat_solm I) ≠ ⟨0⟩ :=
-                  endPackVatCodeSize_ne_accountMapEquiv hAccountsCat hvatCodeNE
+                  (by simpa only [hAccountsCat] using hvatCodeNE)
                 obtain ⟨gasWordVat, _, _, hvatReady⟩ :=
                   endSkipX_vatIlksCallReady rd3436 hloCat hvatCodeNE
                 obtain ⟨σ_vat, zVat, vatOut, AinVat, callGasVat, _, _,
@@ -10585,11 +10522,9 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                     (by simpa [evmCatEvm, initState, hperm] using hΘVatEq)
                     (by simpa [evmCatEvm, evmCatSolm] using hAccountsCat)
                     (by rfl)
-                    (by rfl)
-                    (by rfl)
                     (by simpa using hStateCat.executionEnv.symm)
                 have hVatAddr : endPackVatAddr σ_cat I = endPackVatAddr σ_cat_solm I := by
-                  simp [endPackVatAddr, endPackVatWord_accountMapEquiv hAccountsCat]
+                  simp [endPackVatAddr, hAccountsCat]
                 have hcallVatSolm :
                     typedCallViaEVM config evmCatSolm
                     (EVM.address (endPackVatAddr σ_cat_solm I)) "vatIlks" 0
@@ -10696,9 +10631,8 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                           (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩
                     · have hbidsCodeSolm :
                           Reasoning.Theory.extCodeSizeWord σ_vat_solm
-                            (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩ :=
-                        endSkipBidsCodeSize_zero_accountMapEquiv
-                          hAccountsVat catOut hbidsCode
+                            (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩ := by
+                        simpa only [hAccountsVat] using hbidsCode
                       have hbidsBlock :
                           ExecBlock config
                             { contract := contract,
@@ -10722,9 +10656,8 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                             (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩ := hbidsCode
                       have hbidsCodeSolmNE :
                           Reasoning.Theory.extCodeSizeWord σ_vat_solm
-                            (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩ :=
-                        endSkipBidsCodeSize_ne_accountMapEquiv
-                          hAccountsVat catOut hbidsCodeNE
+                            (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩ := by
+                        simpa only [hAccountsVat] using hbidsCodeNE
                       obtain ⟨gasWordBids, _, _, hbidsReady⟩ :=
                         endSkipX_bidsCallReady rd3565 hloCat hloVat hbidsCodeNE
                       obtain ⟨σ_bids, zBids, bidOut, AinBids,
@@ -10766,8 +10699,6 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                           (endSkipBidsEncode_eq I catOut vatOut hloCat hloVat)
                           (by simpa [evmVatEvm, evmCatEvm, initState] using hΘBidsEq)
                           (by simpa [evmVatEvm, evmVatSolm] using hAccountsVat)
-                          (by rfl)
-                          (by rfl)
                           (by rfl)
                           (by simpa using hStateVat.executionEnv.symm)
                       let evmBidsSolm :=
@@ -10885,8 +10816,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                           · have hsuck1CodeSolm :
                                 Reasoning.Theory.extCodeSizeWord σ_bids_solm
                                   (endPackVatWord σ_bids_solm I) = ⟨0⟩ :=
-                              endPackVatCodeSize_zero_accountMapEquiv hAccountsBids
-                                hsuck1Code
+                              (by simpa only [hAccountsBids] using hsuck1Code)
                             have hsuck1Block :=
                               endSkipCheckedSuck1NoCode
                                 (σ := σ_bids_solm) (I := I) (catOut := catOut)
@@ -10910,8 +10840,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                             have hsuck1CodeSolmNE :
                                 Reasoning.Theory.extCodeSizeWord σ_bids_solm
                                   (endPackVatWord σ_bids_solm I) ≠ ⟨0⟩ :=
-                              endPackVatCodeSize_ne_accountMapEquiv hAccountsBids
-                                hsuck1CodeNE
+                              (by simpa only [hAccountsBids] using hsuck1CodeNE)
                             obtain ⟨suck1GasWord, _, _, rdSuck1Ready⟩ :=
                               endSkipX_suck1CallReady
                                 (g := Sat256.ofUInt256 g) hloCat hloVat hloBid
@@ -10966,13 +10895,11 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                   hperm] using hΘSuck1Eq)
                                 (by simpa [evmBidsEvm, evmBidsSolm] using hAccountsBids)
                                 (by rfl)
-                                (by rfl)
-                                (by rfl)
                                 (by simpa using hStateBids.executionEnv.symm)
                             have hVatWordSuck1 :
                                 endPackVatWord σ_bids I =
                                   endPackVatWord σ_bids_solm I :=
-                              endPackVatWord_accountMapEquiv hAccountsBids
+                              congrArg (fun m => endPackVatWord m I) hAccountsBids
                             have hVatAddrSuck1 :
                                 endPackVatAddr σ_bids I =
                                   endPackVatAddr σ_bids_solm I := by
@@ -10980,7 +10907,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                             have hVowWordSuck1 :
                                 endPackVowWord σ_bids I =
                                   endPackVowWord σ_bids_solm I :=
-                              endPackVowWord_accountMapEquiv hAccountsBids
+                              (congrArg (fun m => endPackVowWord m I) hAccountsBids)
                             have hVowAddrSuck1 :
                                 endPackVowAddr σ_bids I =
                                   endPackVowAddr σ_bids_solm I := by
@@ -11061,8 +10988,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                               · have hsuck2CodeSolm :
                                     Reasoning.Theory.extCodeSizeWord σ_suck1_solm
                                       (endPackVatWord σ_suck1_solm I) = ⟨0⟩ :=
-                                  endPackVatCodeSize_zero_accountMapEquiv hAccountsSuck1
-                                    hsuck2Code
+                                  (by simpa only [hAccountsSuck1] using hsuck2Code)
                                 have hsuck2Block :=
                                   endSkipCheckedSuck2NoCode
                                     (σ := σ_suck1_solm) (I := I) (catOut := catOut)
@@ -11087,8 +11013,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                 have hsuck2CodeSolmNE :
                                     Reasoning.Theory.extCodeSizeWord σ_suck1_solm
                                       (endPackVatWord σ_suck1_solm I) ≠ ⟨0⟩ :=
-                                  endPackVatCodeSize_ne_accountMapEquiv hAccountsSuck1
-                                    hsuck2CodeNE
+                                  (by simpa only [hAccountsSuck1] using hsuck2CodeNE)
                                 obtain ⟨suck2GasWord, _, _, rdSuck2Ready⟩ :=
                                   endSkipX_suck2CallReady
                                     (g := Sat256.ofUInt256 g)
@@ -11152,13 +11077,11 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                     (by simpa [evmSuck1Evm, evmSuck1Solm] using
                                       hAccountsSuck1)
                                     (by rfl)
-                                    (by rfl)
-                                    (by rfl)
                                     (by simpa using hStateSuck1.executionEnv.symm)
                                 have hVatWordSuck2 :
                                     endPackVatWord σ_suck1 I =
                                       endPackVatWord σ_suck1_solm I :=
-                                  endPackVatWord_accountMapEquiv hAccountsSuck1
+                                  congrArg (fun m => endPackVatWord m I) hAccountsSuck1
                                 have hVatAddrSuck2 :
                                     endPackVatAddr σ_suck1 I =
                                       endPackVatAddr σ_suck1_solm I := by
@@ -11166,7 +11089,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                 have hVowWordSuck2 :
                                     endPackVowWord σ_suck1 I =
                                       endPackVowWord σ_suck1_solm I :=
-                                  endPackVowWord_accountMapEquiv hAccountsSuck1
+                                  (congrArg (fun m => endPackVowWord m I) hAccountsSuck1)
                                 have hVowAddrSuck2 :
                                     endPackVowAddr σ_suck1 I =
                                       endPackVowAddr σ_suck1_solm I := by
@@ -11256,8 +11179,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                         Reasoning.Theory.extCodeSizeWord
                                           σ_suck2_solm
                                           (endPackVatWord σ_suck2_solm I) = ⟨0⟩ :=
-                                      endPackVatCodeSize_zero_accountMapEquiv
-                                        hAccountsSuck2 hhopeCode
+                                      (by simpa only [hAccountsSuck2] using hhopeCode)
                                     have hhopeBlock :=
                                       endSkipCheckedHopeNoCode
                                         (σ := σ_suck2_solm) (I := I) (catOut := catOut)
@@ -11288,8 +11210,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                         Reasoning.Theory.extCodeSizeWord
                                           σ_suck2_solm
                                           (endPackVatWord σ_suck2_solm I) ≠ ⟨0⟩ :=
-                                      endPackVatCodeSize_ne_accountMapEquiv
-                                        hAccountsSuck2 hhopeCodeNE
+                                      (by simpa only [hAccountsSuck2] using hhopeCodeNE)
                                     obtain ⟨hopeGasWord, _, _, rdHopeReady⟩ :=
                                       endSkipX_hopeCallReady
                                         (g := Sat256.ofUInt256 g)
@@ -11352,13 +11273,11 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                         (by simpa [evmSuck2Evm, evmSuck2Solm] using
                                           hAccountsSuck2)
                                         (by rfl)
-                                        (by rfl)
-                                        (by rfl)
                                         (by simpa using hStateSuck2.executionEnv.symm)
                                     have hVatWordHope :
                                         endPackVatWord σ_suck2 I =
                                           endPackVatWord σ_suck2_solm I :=
-                                      endPackVatWord_accountMapEquiv hAccountsSuck2
+                                      congrArg (fun m => endPackVatWord m I) hAccountsSuck2
                                     have hVatAddrHope :
                                         endPackVatAddr σ_suck2 I =
                                           endPackVatAddr σ_suck2_solm I := by
@@ -11442,9 +11361,8 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                       · have hyankCodeSolm :
                                             Reasoning.Theory.extCodeSizeWord
                                               σ_hope_solm
-                                              (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩ :=
-                                          endSkipBidsCodeSize_zero_accountMapEquiv
-                                            hAccountsHope catOut hyankCode
+                                              (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩ := by
+                                          simpa only [hAccountsHope] using hyankCode
                                         have hyankBlock :=
                                           endSkipCheckedYankNoCode
                                             (σ := σ_hope_solm) (I := I) (catOut := catOut)
@@ -11475,9 +11393,8 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                         have hyankCodeSolmNE :
                                             Reasoning.Theory.extCodeSizeWord
                                               σ_hope_solm
-                                              (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩ :=
-                                          endSkipBidsCodeSize_ne_accountMapEquiv
-                                            hAccountsHope catOut hyankCodeNE
+                                              (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩ := by
+                                          simpa only [hAccountsHope] using hyankCodeNE
                                         obtain ⟨yankGasWord, _, _, rdYankReady⟩ :=
                                           endSkipX_yankCallReady
                                             (g := Sat256.ofUInt256 g)
@@ -11527,8 +11444,6 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                               hΘYankEq)
                                             (by simpa [evmHopeEvm, evmHopeSolm] using
                                               hAccountsHope)
-                                            (by rfl)
-                                            (by rfl)
                                             (by rfl)
                                             (by simpa using hStateHope.executionEnv.symm)
                                         let evmYankSolm :=
@@ -11604,9 +11519,8 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                           have hArtCoupleYank :
                                               endSkipArtOldWord σ_yank I =
                                                 endSkipArtOldWord σ_yank_solm I := by
-                                            simpa [endSkipArtOldWord, endSlotWord] using
-                                              accountMapEquiv_storage_findD hAccountsYank
-                                                I.codeOwner (endSkipArtSlot I) ⟨0⟩
+                                            exact congrArg (fun m => endSkipArtOldWord m I)
+                                              hAccountsYank
                                           have hArtLoadSolm :
                                               Solm.EVM.storageLoad evmYankSolm
                                                 evmYankSolm.executionEnv.codeOwner
@@ -11759,73 +11673,220 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                                       endSkipPostArtAccountMap,
                                                       storageStore_accountMap] using
                                                       hStatePost.accountMap
-                                      (by simp [evmPostEvm, evmPostSolm, endSkipPostArtState, endSkip_storageStore_σ₀, evmYankEvm, evmYankSolm, evmHopeEvm, evmHopeSolm, evmSuck2Evm, evmSuck2Solm, evmSuck1Evm, evmSuck1Solm, evmBidsEvm, evmBidsSolm, evmVatEvm, evmVatSolm, evmCatEvm, evmCatSolm, evmSolm, initState])
-                                      (by simpa [evmPostEvm, evmPostSolm] using hStatePost.executionEnv.symm)
-                                  have hVatWordGrab :
-                                                        endPackVatWord σ_post I =
-                                                          endPackVatWord σ_post_solm I :=
-                                                      endPackVatWord_accountMapEquiv
-                                                        hAccountsPost
+                                                  have hmapPostSolm :
+                                                      evmPostSolm.accountMap = σ_post_solm := by
+                                                    calc
+                                                      evmPostSolm.accountMap =
+                                                          evmPostEvm.accountMap :=
+                                                        hStatePost.accountMap.symm
+                                                      _ = σ_post := by
+                                                        simp [evmPostEvm, endSkipPostArtState,
+                                                          endSkipPostArtAccountMap, σ_post,
+                                                          evmYankEvm, evmHopeEvm, evmSuck2Evm,
+                                                          evmSuck1Evm, evmBidsEvm, evmVatEvm,
+                                                          evmCatEvm, evmSolm, initState,
+                                                          storageStore_accountMap]
+                                                      _ = σ_post_solm := hAccountsPost
+                                                  have hownerPostSolm :
+                                                      evmPostSolm.executionEnv.codeOwner =
+                                                        I.codeOwner := by
+                                                    simp [evmPostSolm, endSkipPostArtState,
+                                                      evmYankSolm, evmHopeSolm, evmSuck2Solm,
+                                                      evmSuck1Solm, evmBidsSolm, evmVatSolm,
+                                                      evmCatSolm, evmSolm, initState,
+                                                      storageStore_executionEnv]
+                                                  by_cases hgrabCode :
+                                                      Reasoning.Theory.extCodeSizeWord σ_post
+                                                        (endPackVatWord σ_post I) = ⟨0⟩
+                                                  · have hgrabCodeSolm :
+                                                        Reasoning.Theory.extCodeSizeWord
+                                                          σ_post_solm
+                                                          (endPackVatWord σ_post_solm I) =
+                                                            ⟨0⟩ := by
+                                                      exact (by simpa only [hAccountsPost] using hgrabCode)
+                                                    have hgrabBlock :=
+                                                      endSkipGrabTailReverts_noCodeFor
+                                                        (σCall := σ_post_solm)
+                                                        (σLoc := σ_yank_solm) (I := I)
+                                                        (catOut := catOut) (vatOut := vatOut)
+                                                        (bidOut := bidOut) (evm := evmPostSolm)
+                                                        hmapPostSolm hownerPostSolm hgrabCodeSolm
+                                                    have hbody :
+                                                        ExecTransitionBody config contract evmSolm
+                                                          (endSkipStore I) skipTransition.body
+                                                          .reverted := by
+                                                      exact
+                                                          endSkipBodyReverts_afterTabTailGrabReverted
+                                                          hprefixTab htailOk hgrabBlock
+                                                    exact
+                                                      (endSkipX_grabNoCode hloCat hloVat hloBid
+                                                        rd4295 hgrabCode)
+                                                        |>.reEquivExecutionRevert hcode hdispatch
+                                                          hdecode hbody
+                                                  · have hgrabCodeNE :
+                                                        Reasoning.Theory.extCodeSizeWord σ_post
+                                                          (endPackVatWord σ_post I) ≠ ⟨0⟩ :=
+                                                      hgrabCode
+                                                    have hgrabCodeSolmNE :
+                                                        Reasoning.Theory.extCodeSizeWord
+                                                          σ_post_solm
+                                                          (endPackVatWord σ_post_solm I) ≠
+                                                            ⟨0⟩ := by
+                                                      exact (by simpa only [hAccountsPost] using hgrabCodeNE)
+                                                    obtain ⟨_, _, _, rd4412⟩ :=
+                                                      endSkipX_grabCallReady hloCat hloVat hloBid
+                                                        rd4295 hgrabCodeNE
+                                                    obtain ⟨σ_grab, zGrab, ret, AinGrab,
+                                                        callGasGrab, _, _, hΘGrab, rd4413,
+                                                        hretSize⟩ :=
+                                                      endSkipX_grabPostCall rd4412 hdepthLt
+                                                    rcases hΘGrab with
+                                                      ⟨gGrab'', AGrab, hΘGrabEq⟩
+                                                    have hdepthNeGrab :
+                                                        evmPostEvm.executionEnv.depth ≠ 1024 := by
+                                                      simpa [evmPostEvm, endSkipPostArtState,
+                                                        evmYankEvm, evmHopeEvm, evmSuck2Evm,
+                                                        evmSuck1Evm, evmBidsEvm, evmVatEvm,
+                                                        evmCatEvm, evmSolm, initState,
+                                                        storageStore_executionEnv] using hdepthNe
+                                                    have htgtGrab :
+                                                        EVM.address (endPackVatAddr σ_post I) =
+                                                          AccountAddress.ofUInt256
+                                                            (endPackVatWord σ_post I) := by
+                                                      calc
+                                                        EVM.address (endPackVatAddr σ_post I) =
+                                                            EVM.address
+                                                              (AccountAddress.ofUInt256
+                                                                (endPackVatWord σ_post I)) := by
+                                                          rw [endPackVatAddr_eq_ofUInt256]
+                                                        _ = AccountAddress.ofUInt256
+                                                              (endPackVatWord σ_post I) :=
+                                                          hAddressId _
+                                                    have hVatWordGrab :
+                                                          endPackVatWord σ_post I =
+                                                            endPackVatWord σ_post_solm I :=
+                                                        congrArg (fun m => endPackVatWord m I) hAccountsPost
                                                     have hVatAddrGrab :
-                                                        endPackVatAddr σ_post I =
-                                                          endPackVatAddr σ_post_solm I := by
-                                                      simp [endPackVatAddr, hVatWordGrab]
+                                                          endPackVatAddr σ_post I =
+                                                            endPackVatAddr σ_post_solm I := by
+                                                        simp [endPackVatAddr, hVatWordGrab]
                                                     have hVowWordGrab :
-                                                        endPackVowWord σ_post I =
-                                                          endPackVowWord σ_post_solm I :=
-                                                      endPackVowWord_accountMapEquiv
-                                                        hAccountsPost
+                                                          endPackVowWord σ_post I =
+                                                            endPackVowWord σ_post_solm I :=
+                                                        (congrArg (fun m => endPackVowWord m I) hAccountsPost)
                                                     have hVowAddrGrab :
-                                                        endPackVowAddr σ_post I =
-                                                          endPackVowAddr σ_post_solm I := by
-                                                      simp [endPackVowAddr, hVowWordGrab]
-                                                    have hgrabCallSolm :
-                                                        typedCallViaEVM config evmPostSolm
-                                                          (EVM.address
-                                                            (endPackVatAddr σ_post_solm I))
-                                                          "grab" 0
+                                                          endPackVowAddr σ_post I =
+                                                            endPackVowAddr σ_post_solm I := by
+                                                        simp [endPackVowAddr, hVowWordGrab]
+                                                    obtain ⟨σ_grab_solm, A_grab_solm,
+                                                        hgrabCallSolmRaw, hAccountsGrab,
+                                                        hSubstateGrab⟩ :=
+                                                      endCallMade_accountMapEq_with_substate
+                                                        (cfg := config)
+                                                        (evm_evm := evmPostEvm)
+                                                        (evm_solm := evmPostSolm)
+                                                        (tgt := EVM.address
+                                                          (endPackVatAddr σ_post I))
+                                                        (targetWord := endPackVatWord σ_post I)
+                                                        (name := "grab")
+                                                        (args :=
                                                           [.fixedBytes bytes32Width
                                                               (endBytes32ArgBytes I),
                                                             .address (endSkipUsrAddr bidOut),
                                                             .address I.codeOwner,
-                                                            .address
-                                                              (endPackVowAddr σ_post_solm I),
+                                                            .address (endPackVowAddr σ_post I),
                                                             .int (Int.ofNat
                                                               (endSkipLotWord bidOut).toNat),
                                                             .int (Int.ofNat
-                                                              (endSkipArtWord vatOut bidOut).toNat)]
-                                                          (zGrab,
-                                                            { evmPostSolm with
-                                                              accountMap := σ_grab_solm
-                                                              substate := A_grab_solm
- },
-                                                            ret) true := by
-                                                      simpa [hVatAddrGrab, hVowAddrGrab] using
-                                                        hgrabCallSolmRaw
+                                                              (endSkipArtWord vatOut bidOut).toNat)])
+                                                        (σ' := σ_grab) (A' := AGrab)
+                                                        (A_in := AinGrab) (z := zGrab)
+                                                        (out := ret) (g'' := gGrab'')
+                                                        (callGas := callGasGrab)
+                                                        (mem := endSkipGrabCalldataMemForTrace
+                                                          σ_post σ_bids σ_suck1 I catOut vatOut
+                                                          bidOut)
+                                                        (inOff := endFreeGrabOutPtr)
+                                                        (inSize := endFreeGrabInSize)
+                                                        (callPerm := true)
+                                                        hdepthNeGrab htgtGrab
+                                                        (endSkipGrabEncodeForTrace_eq σ_post
+                                                          σ_bids σ_suck1 I catOut vatOut bidOut
+                                                          hsz68 hloCat hloVat hloBid hlot hart)
+                                                        (by simpa [evmPostEvm, evmPostSolm,
+                                                          endSkipPostArtState,
+                                                          endSkipPostArtAccountMap, evmYankEvm,
+                                                          evmYankSolm, evmHopeEvm, evmHopeSolm,
+                                                          evmSuck2Evm, evmSuck2Solm,
+                                                          evmSuck1Evm, evmSuck1Solm,
+                                                          evmBidsEvm, evmBidsSolm, evmVatEvm,
+                                                          evmVatSolm, evmCatEvm, evmCatSolm,
+                                                          evmSolm, initState, σ_post, hperm,
+                                                          storageStore_accountMap,
+                                                          storageStore_executionEnv,
+                                                          endSkip_storageStore_σ₀] using
+                                                          hΘGrabEq)
+                                                        (by simpa [evmPostEvm, evmPostSolm] using
+                                                          hStatePost.accountMap)
+                                                        (by simp [evmPostEvm, evmPostSolm,
+                                                          endSkipPostArtState,
+                                                          evmYankEvm, evmYankSolm,
+                                                          evmHopeEvm, evmHopeSolm,
+                                                          evmSuck2Evm, evmSuck2Solm,
+                                                          evmSuck1Evm, evmSuck1Solm,
+                                                          evmBidsEvm, evmBidsSolm, evmVatEvm,
+                                                          evmVatSolm, evmCatEvm, evmCatSolm,
+                                                          evmSolm, initState,
+                                                          endSkip_storageStore_σ₀])
+                                                        (by simpa [evmPostEvm, evmPostSolm] using
+                                                          hStatePost.executionEnv.symm)
+                                                    have hgrabCallSolm :
+                                                          typedCallViaEVM config evmPostSolm
+                                                            (EVM.address
+                                                              (endPackVatAddr σ_post_solm I))
+                                                            "grab" 0
+                                                            [.fixedBytes bytes32Width
+                                                                (endBytes32ArgBytes I),
+                                                              .address (endSkipUsrAddr bidOut),
+                                                              .address I.codeOwner,
+                                                              .address
+                                                                (endPackVowAddr σ_post_solm I),
+                                                              .int (Int.ofNat
+                                                                (endSkipLotWord bidOut).toNat),
+                                                              .int (Int.ofNat
+                                                                (endSkipArtWord vatOut bidOut).toNat)]
+                                                            (zGrab,
+                                                              { evmPostSolm with
+                                                                accountMap := σ_grab_solm
+                                                                substate := A_grab_solm
+   },
+                                                              ret) true := by
+                                                        simpa [hVatAddrGrab, hVowAddrGrab] using
+                                                          hgrabCallSolmRaw
                                                     cases zGrab
                                                     · have hgrab :=
-                                                        endSkipGrabTailReverts_callFailedFor
-                                                          (σCall := σ_post_solm)
-                                                          (σLoc := σ_yank_solm) (I := I)
-                                                          (catOut := catOut) (vatOut := vatOut)
-                                                          (bidOut := bidOut) (grabOut := ret)
-                                                          (evm := evmPostSolm)
-                                                          (evmGrab :=
-                                                            { evmPostSolm with
-                                                              accountMap := σ_grab_solm
-                                                              substate := A_grab_solm
- })
-                                                          hmapPostSolm hownerPostSolm
-                                                          hlot hart
-                                                          hgrabCodeSolmNE
-                                                          (by simpa using hgrabCallSolm)
+                                                          endSkipGrabTailReverts_callFailedFor
+                                                            (σCall := σ_post_solm)
+                                                            (σLoc := σ_yank_solm) (I := I)
+                                                            (catOut := catOut) (vatOut := vatOut)
+                                                            (bidOut := bidOut) (grabOut := ret)
+                                                            (evm := evmPostSolm)
+                                                            (evmGrab :=
+                                                              { evmPostSolm with
+                                                                accountMap := σ_grab_solm
+                                                                substate := A_grab_solm
+   })
+                                                            hmapPostSolm hownerPostSolm
+                                                            hlot hart
+                                                            hgrabCodeSolmNE
+                                                            (by simpa using hgrabCallSolm)
                                                       have hbody :
-                                                          ExecTransitionBody config contract
-                                                            evmSolm (endSkipStore I)
-                                                            skipTransition.body .reverted := by
+                                                        ExecTransitionBody config contract
+                                                          evmSolm (endSkipStore I)
+                                                          skipTransition.body .reverted := by
                                                         exact
-                                                          endSkipBodyReverts_afterTabTailGrabReverted
-                                                            hprefixTab htailOk hgrab
+                                                        endSkipBodyReverts_afterTabTailGrabReverted
+                                                          hprefixTab htailOk hgrab
                                                       have rd4413Fail := by
                                                         simpa only [if_false] using rd4413
                                                       exact
@@ -11889,15 +11950,14 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                                         exact
                                                           endSkipBodyReturns_afterTabTailGrabSuccess
                                                             hprefixTab htailOk hgrab
-                                                      exact hretEvm.reEquivExecutionGenEVMStateEquiv
-                                                        (evm'_evm := evmGrabEvm)
-                                                        (evm'_solm := evmGrabSolm)
+                                                      exact hretEvm.reEquivExecutionGenAccountMapEquiv
                                                         hcode hdispatch hdecode hbody
-                                                        (by simp [evmGrabEvm])
                                                         (by
-                                                          simpa [evmGrabEvm] using
-                                                            Eq.refl σ_grab)
-                                                        hStateGrab
+                                                          calc
+                                                            _ = evmGrabEvm.accountMap := by
+                                                              simp [evmGrabEvm]
+                                                            _ = evmGrabSolm.accountMap :=
+                                                              hStateGrab.accountMap)
                                                         (by
                                                           simpa [skipTransition] using
                                                             (returnEquiv.fallthrough

@@ -114,9 +114,8 @@ theorem uniswapSkimBodyDecoded
         let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hunlockedSolm :
             Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
-          have hword := accountMapEquiv_storage_findD (rfl : σ = σ) I.codeOwner ⟨12⟩ ⟨0⟩
           simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
-            Account.lookupStorage] using (hword ▸ hunlocked)
+            Account.lookupStorage] using hunlocked
         have hguard0 : skimToken0GuardTrue evmS I :=
           skimToken0GuardTrue_initState_of_code htoken0NoCode
         by_cases hz : z = false
@@ -331,7 +330,7 @@ theorem uniswapSkimBodyDecoded
                   rw [hdepthEq] at hdepthLt
                   exact absurd hdepthLt (by decide)
               obtain ⟨σ1S, A1S, htransfer0Raw, hPostTransferAccounts0⟩ :=
-                callViaEVM_accountMapEquiv
+                callViaEVM_sameInputs
                   (evm_evm := evm0E) (evm_solm := evm0S) hcallE
                   (by simpa [evm0E] using hPostAccounts0)
                   (by simp [evm0E, hσ0])
@@ -354,7 +353,10 @@ theorem uniswapSkimBodyDecoded
                 have hLockAccounts : σLockS = (uniswapLockEnteredState evmS).accountMap := by
                   simp [σLockS, evmS, uniswapLockEnteredState, uniswapUnlockedState,
                     initState, storageStore_accountMap]
-                have hslot := accountMapEquiv_storage_findD hLockAccounts I.codeOwner ⟨6⟩ ⟨0⟩
+                have hslot := congrArg
+                  (fun accounts : AccountMap =>
+                    (accounts.find? I.codeOwner).option (⟨0⟩ : UInt256)
+                      (fun acc => acc.storage.findD ⟨6⟩ ⟨0⟩)) hLockAccounts
                 have hcanonClean : token0CleanE.toNat < EVM.addressModulus := by
                   simpa [token0CleanE, token0WordE, u256_land_comm] using
                     solcAddrMask_result_canonical token0WordE
@@ -454,7 +456,10 @@ theorem uniswapSkimBodyDecoded
                   have hLockState : σLockS = (uniswapLockEnteredState evmS).accountMap := by
                     simp [σLockS, evmS, uniswapLockEnteredState, uniswapUnlockedState,
                       initState, storageStore_accountMap]
-                  have hslot := accountMapEquiv_storage_findD hLockState I.codeOwner ⟨7⟩ ⟨0⟩
+                  have hslot := congrArg
+                    (fun accounts : AccountMap =>
+                      (accounts.find? I.codeOwner).option (⟨0⟩ : UInt256)
+                        (fun acc => acc.storage.findD ⟨7⟩ ⟨0⟩)) hLockState
                   have hcanonClean : token1CleanE.toNat < EVM.addressModulus := by
                     simpa [token1CleanE, token1WordE, u256_land_comm] using
                       solcAddrMask_result_canonical token1WordE
@@ -803,7 +808,7 @@ theorem uniswapSkimBodyDecoded
                               rw [hdepthEq] at hdepthLt
                               exact absurd hdepthLt (by decide)
                           obtain ⟨σ3S, A3S, htransfer1Raw, hPostTransferAccounts2⟩ :=
-                            callViaEVM_accountMapEquiv
+                            callViaEVM_sameInputs
                               (evm_evm := evm2E) (evm_solm := evm2S)
                               hcallE1
                               (by simpa [evm2E] using hPost2)
@@ -1549,7 +1554,7 @@ theorem uniswapSkimBodyDecoded
                                     rw [hdepthEq] at hdepthLt
                                     exact absurd hdepthLt (by decide)
                                 obtain ⟨σ3S, A3S, htransfer1Raw, hPostTransferAccounts2⟩ :=
-                                    callViaEVM_accountMapEquiv
+                                    callViaEVM_sameInputs
                                     (evm_evm := evm2E) (evm_solm := evm2S)
                                     hcallE1
                                     (by simpa [evm2E] using hPost2)

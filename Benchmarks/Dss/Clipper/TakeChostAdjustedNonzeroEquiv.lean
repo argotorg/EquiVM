@@ -96,7 +96,7 @@ theorem clipperTakeChostAdjustEquiv
     ((clipperTakeSalesTabEVMWord evmPrice I).sub owe)
     ((clipperTakeSalesLotEVMWord evmPrice I).sub sliceAdjusted)
   have hchostEq : chost = solcSlotWord σPost I ⟨9⟩ := by
-    have hslot := accountMapEquiv_storage_findD hAccountsPost I.codeOwner ⟨9⟩ ⟨0⟩
+    have hslot := congrArg (fun m => solcSlotWord m I ⟨9⟩) hAccountsPost
     simp [chost, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       solcSlotWord, hevmPriceEnv, hslot]
   have hmul' : (UInt256.mul slice price).toNat ≤
@@ -471,7 +471,7 @@ theorem clipperTakeChostAdjustNonzeroEquiv
     change lot.toNat - sliceAdjusted.toNat = 0 at hnat
     omega
   have hcontinue : ClipperTakeStoreContinuationEquiv v code σ
-      σ σ₀ A I g
+      σ₀ A I g
       ((UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)).div price)
       (UInt256.sub tab (solcSlotWord σPost I ⟨9⟩))
       (UInt256.sub tab (UInt256.sub tab (solcSlotWord σPost I ⟨9⟩)))

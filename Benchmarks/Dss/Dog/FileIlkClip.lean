@@ -750,30 +750,6 @@ theorem fileIlkClipClip_eq_clipKey (I : ExecutionEnv) :
   rw [accountAddress_ofUInt256_eq_ofNat_toNat]
   exact Value.address.inj (fileIlkClipClip_value_masked I)
 
-theorem fileIlkClipCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ)
-    (hzero :
-      Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (fileIlkClipClipKey I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (fileIlkClipClipKey I)
-  rw [← hsame]
-  exact hzero
-
-theorem fileIlkClipCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ)
-    (hne :
-      Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (fileIlkClipClipKey I) ≠ ⟨0⟩ := by
-  intro hzero
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (fileIlkClipClipKey I)
-  rw [hsame]
-  exact hzero
-
 theorem fileIlkClipCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
     (hzero :
       Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) = ⟨0⟩) :
@@ -3224,15 +3200,11 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
   let callerSlot := dogCallerWardsSlot I
   let locals := fileIlkClipLocals I
-  have hcallerWord : dogSlotWord callerSlot σ I = dogSlotWord callerSlot σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
   have henc : returnEquiv ByteArray.empty none fileIlkClipTransition.returnType := by
     rw [show fileIlkClipTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
   by_cases hauthEvm : dogSlotWord callerSlot σ I = ⟨1⟩
-  · have hauthSolm : dogSlotWord callerSlot σ I = ⟨1⟩ := by
-      rw [← hcallerWord]
-      exact hauthEvm
+  · have hauthSolm : dogSlotWord callerSlot σ I = ⟨1⟩ := hauthEvm
     have hauthSolc :
         solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
       simpa [callerSlot, dogCallerWardsSlot, dogSlotWord] using hauthEvm
@@ -3255,15 +3227,12 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
       · have hrev := RD.dogFileIlkClipNoCodeRevert
           (v := v) (code := code) (ret := ⟨313⟩) (sel := sel) (R := [])
           hpatch hswitch hwordClip hmemAuth hread64Auth hcodeSize (by simp)
-        have hcodeSizeSolm :
-            Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) = ⟨0⟩ :=
-          fileIlkClipCodeSize_zero_accountMapEquiv hAccounts hcodeSize
         have hclipNoCode :
             (UInt256.ofNat
               (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
                 (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat = 0 :=
           fileIlkClipCode_zero_of_codeSize_zero
-            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcodeSizeSolm
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcodeSize
         let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
             ExecTransitionBody (config v) (contract v) evm0 locals
@@ -3277,16 +3246,12 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
             Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) ≠
               ⟨0⟩ :=
           hcodeSize
-        have hcodeSizeSolmNe :
-            Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) ≠
-              ⟨0⟩ :=
-          fileIlkClipCodeSize_ne_accountMapEquiv hAccounts hcodeSizeNe
         have hclipCode :
             0 < (UInt256.ofNat
               (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
                 (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat :=
           fileIlkClipCode_pos_of_codeSize_ne
-            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcodeSizeSolmNe
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcodeSizeNe
         by_cases hdepthLt : I.depth.val < 1024
         · obtain ⟨σ', z, out, A', _k', _C', rd2582, hcallEvmRaw, hosz⟩ :=
             RD.dogFileIlkClipPostStaticcall
@@ -3301,18 +3266,12 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
               typedCallViaEVM (config v) evmEvm (EVM.address (fileIlkClipClip I))
                 "ilk" 0 [] (z, evmPostEvm, out) false := by
             simpa [evmEvm, evmPostEvm] using hcallEvmRaw
-          obtain ⟨σSolmPost, ASolmPost, hcallSolmRaw, hStateCallRaw⟩ :=
-            typedCallViaEVM_initState_EVMStateEquiv hcallEvm
-              (by simp [evmEvm, evmSolm, evmPostEvm, initState]) hAccounts
-          let evmPostSolm :=
-            { evmSolm with
-              accountMap := σSolmPost, substate := ASolmPost }
+          let evmPostSolm := evmPostEvm
           have hcallSolm :
               typedCallViaEVM (config v) evmSolm (EVM.address (fileIlkClipClip I))
                 "ilk" 0 [] (z, evmPostSolm, out) false := by
-            simpa [evmPostSolm] using hcallSolmRaw
-          have hStateCall : EVMStateEquiv evmPostEvm evmPostSolm := by
-            simpa [evmPostEvm, evmPostSolm] using hStateCallRaw
+            simpa [evmSolm, evmEvm, evmPostSolm] using hcallEvm
+          have hStateCall : EVMStateEquiv evmPostEvm evmPostSolm := ⟨rfl, rfl⟩
           cases z
           · simp only [Bool.false_eq_true, if_false] at rd2582 hcallSolm
             have hrev := RD.dogFileIlkClipCallFailure hpatch rd2582 hosz (by simp)
@@ -3497,7 +3456,7 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hauthSolm : dogSlotWord callerSlot σ I ≠ ⟨1⟩ := by
       intro hsolm
-      exact hauthEvm (by rw [hcallerWord, hsolm])
+      exact hauthEvm hsolm
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbody :
         ExecTransitionBody (config v) (contract v) evm0 locals fileIlkClipTransition.body
@@ -3545,7 +3504,7 @@ theorem dogFileIlkClipBodyCore {v : DogImmutables} {code : ByteArray}
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
   · exact dogFileIlkClipBodyCoreOk hpatch hcode hwv hperm hsz100 hsize hdispatch
-      (dogDecode_fileIlkClip_ok (v := v) hsz100) hreach hAccounts
+      (dogDecode_fileIlkClip_ok (v := v) hsz100) hreach
   · exact dogFileIlkClipBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach
 

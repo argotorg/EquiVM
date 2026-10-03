@@ -389,7 +389,8 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroArithmeticFromFactoryCases
     rw [← hkLastEq]
     exact uint256_toNat_eq_zero hzero
   have hPostCleared : Eq σCleared evmAfterFee.accountMap := by
-    have hstore := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨11⟩ ⟨0⟩
+    have hstore := congrArg
+      (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨11⟩ ⟨0⟩)
       hPostAccountsFee
     simpa [← hcleared, evmAfterFee, mintFeeKLastClearedState, henvFeeI,
       storageStore_accountMap] using hstore
@@ -397,7 +398,7 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroArithmeticFromFactoryCases
     simp [evmAfterFee, mintFeeKLastClearedState, henvFeeI, storageStore_executionEnv]
   have htotalEq :
       mintFunctionTotalSupplyWord evmAfterFee = totalSupply := by
-    have hword := mintFunctionTotalSupplyWord_eq_slot_of_accountMapEquiv
+    have hword := mintFunctionTotalSupplyWord_eq_slot
       hPostCleared henvCleared
     simpa [htotalSlot] using hword
   obtain ⟨_, _, rd3701⟩ :=

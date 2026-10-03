@@ -1124,20 +1124,23 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeRevertEquivFromPo
       0 <
         (UInt256.ofNat
           ((evmPriceSolm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat := by
+    have hcode :
+        Reasoning.Theory.extCodeSizeWord σPostSolm (clipperTakeVatTarget v) ≠ ⟨0⟩ := by
+      simpa only [← hAccountsPost] using hvatCodeEvm
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-        (σ := σPost) (τ := σPostSolm) (target := clipperTakeVatTarget v)
-        (addr := v.vat) hAccountsPost (clipperTakeVatTargetAddress v).symm hvatCodeEvm
+      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+        (σ := σPostSolm) (target := clipperTakeVatTarget v)
+        (addr := v.vat) (clipperTakeVatTargetAddress v).symm hcode
   let evmPostEvm : EVM.State :=
     { initState σ σ₀ (Sat256.ofUInt256 g) A I with
       accountMap := σPost }
   have hAccountsState : Eq evmPostEvm.accountMap evmPriceSolm.accountMap := by
     simpa [evmPostEvm, hevmPriceAccounts] using hAccountsPost
   obtain ⟨σVatSolm, AVatSolm, hcallVatSolmRaw, hAccountsVat⟩ :=
-    typedCallViaEVM_accountMapEquiv_noSubstate
+    Reasoning.Theory.typedCallViaEVM_sameInputs
       (evm_solm := evmPriceSolm) (hcall := hcallVatEvm) hAccountsState
       (by simpa [evmPostEvm, initState] using hevmPriceSigma0.symm)
-      (by simpa [evmPostEvm, initState] using hevmPriceEnv)
+      (by simpa [evmPostEvm, initState] using hevmPriceEnv.symm)
   let evmVatSolm : EVM.State :=
     { evmPriceSolm with
       accountMap := σVatSolm
@@ -1156,11 +1159,13 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeRevertEquivFromPo
       (UInt256.ofNat
         ((evmVatSolm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0 := by
+    have hnoCode :
+        Reasoning.Theory.extCodeSizeWord σVatSolm (clipperTakeVatTarget v) = ⟨0⟩ := by
+      simpa only [← hAccountsVat] using hvatMoveNoCodeEvm
     simpa [evmVatSolm, State.lookupAccount] using
-      clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
-        (σ := σVat) (τ := σVatSolm) (target := clipperTakeVatTarget v)
-        (addr := v.vat) hAccountsVat (clipperTakeVatTargetAddress v).symm
-        hvatMoveNoCodeEvm
+      clipperExtCodeSizeWord_zero_lookup_code_zero
+        (σ := σVatSolm) (target := clipperTakeVatTarget v)
+        (addr := v.vat) (clipperTakeVatTargetAddress v).symm hnoCode
   exact
     clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeRevertEquivFromPostWords
       (v := v) (code := code)
@@ -1277,20 +1282,23 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
         0 <
           (UInt256.ofNat
             ((evmPriceSolm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat := by
+      have hcode :
+          Reasoning.Theory.extCodeSizeWord σPostSolm (clipperTakeVatTarget v) ≠ ⟨0⟩ := by
+        simpa only [← hAccountsPost] using hvatCodeEvm
       simpa [State.lookupAccount, hevmPriceAccounts] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-          (σ := σPost) (τ := σPostSolm) (target := clipperTakeVatTarget v)
-          (addr := v.vat) hAccountsPost (clipperTakeVatTargetAddress v).symm hvatCodeEvm
+        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+          (σ := σPostSolm) (target := clipperTakeVatTarget v)
+          (addr := v.vat) (clipperTakeVatTargetAddress v).symm hcode
     let evmPostEvm : EVM.State :=
       { initState σ σ₀ (Sat256.ofUInt256 g) A I with
         accountMap := σPost }
     have hAccountsState : Eq evmPostEvm.accountMap evmPriceSolm.accountMap := by
       simpa [evmPostEvm, hevmPriceAccounts] using hAccountsPost
     obtain ⟨σVatSolm, AVatSolm, hcallVatSolmRaw, hAccountsVat⟩ :=
-      typedCallViaEVM_accountMapEquiv_noSubstate
+      Reasoning.Theory.typedCallViaEVM_sameInputs
         (evm_solm := evmPriceSolm) (hcall := hcallVatEvm) hAccountsState
         (by simpa [evmPostEvm, initState] using hevmPriceSigma0.symm)
-        (by simpa [evmPostEvm, initState] using hevmPriceEnv)
+        (by simpa [evmPostEvm, initState] using hevmPriceEnv.symm)
     let evmVatSolm : EVM.State :=
       { evmPriceSolm with
         accountMap := σVatSolm
@@ -1309,14 +1317,16 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
         0 <
           (UInt256.ofNat
             ((evmVatSolm.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat := by
+      have hcode :
+          Reasoning.Theory.extCodeSizeWord σVatSolm (clipperTakeVatTarget v) ≠ ⟨0⟩ := by
+        simpa only [← hAccountsVat] using hvatMoveCodeEvm
       simpa [evmVatSolm, State.lookupAccount] using
-        clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-          (σ := σVat) (τ := σVatSolm) (target := clipperTakeVatTarget v)
-          (addr := v.vat) hAccountsVat (clipperTakeVatTargetAddress v).symm
-          hvatMoveCodeEvm
+        clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+          (σ := σVatSolm) (target := clipperTakeVatTarget v)
+          (addr := v.vat) (clipperTakeVatTargetAddress v).symm hcode
     have hvow :
         clipperTakeVowTarget σVat I = clipperTakeVowEVMWord evmVatSolm := by
-      have hslot := accountMapEquiv_storage_findD hAccountsVat I.codeOwner ⟨2⟩ ⟨0⟩
+      have hslot := congrArg (fun m => solcSlotWord m I ⟨2⟩) hAccountsVat
       simp [clipperTakeVowTarget, clipperTakeVowEVMWord, evmVatSolm, hevmPriceEnv,
         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, solcSlotWord, hslot]
     let evmVatEvm : EVM.State :=
@@ -1325,11 +1335,10 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
     have hAccountsMoveState : Eq evmVatEvm.accountMap evmVatSolm.accountMap := by
       simpa [evmVatEvm, evmVatSolm] using hAccountsVat
     obtain ⟨σMoveSolm, AMoveSolm, hcallMoveSolmRaw, _hAccountsMove⟩ :=
-      typedCallViaEVM_accountMapEquiv_noSubstate
+      Reasoning.Theory.typedCallViaEVM_sameInputs
         (evm_solm := evmVatSolm) (hcall := hcallMoveEvm) hAccountsMoveState
         (by simpa [evmVatEvm, evmVatSolm, initState] using hevmPriceSigma0.symm)
-        (by simp [evmVatSolm])
-        (by simpa [evmVatEvm, evmVatSolm, initState] using hevmPriceEnv)
+        (by simpa [evmVatEvm, evmVatSolm, initState] using hevmPriceEnv.symm)
     let evmMoveSolm : EVM.State :=
       { evmVatSolm with
         accountMap := σMoveSolm

@@ -256,8 +256,7 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                     obtain ⟨σus, Aus, hUrnsSolm, hEqUrn⟩ :=
                       catBiteMapCall (A_x_solm := As) hUrnsCall' hdepthNe
                     have hslot3 : catSlotWord ⟨3⟩ σ' I = catSlotWord ⟨3⟩ σs I := by
-                      simp only [catSlotWord, solcSlotWord]
-                      rw [accountMapEquiv_storage_findD hEqIlk I.codeOwner ⟨3⟩ ⟨0⟩]
+                      exact congrArg (fun accounts => catSlotWord ⟨3⟩ accounts I) hEqIlk
                     set eI := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                       accountMap := σs, substate := As } with heIdef
                     have heIam : eI.accountMap = σs := rfl
@@ -279,7 +278,7 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                       rw [heIam, show catBiteVatTargetWord σs I
                             = (catSlotWord ⟨3⟩ σs I).land biteAddrMaskWord from by
                           simp only [catBiteVatTargetWord, catAddressReturnWord, hmask],
-                        ← hslot3, ← extCodeSizeWord_accountMapEquiv hEqIlk]
+                        ← hslot3, ← hEqIlk]
                       exact hUrnsVatCode
                     refine catBiteUrnsFailLeaf hcode hdispatch hdecode rd1399 hoszu
                       (by simp only [List.length_cons, List.length_nil]; omega) ?_

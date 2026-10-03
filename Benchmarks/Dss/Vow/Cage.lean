@@ -33,12 +33,6 @@ abbrev vowCageClearedAccountMap (owner : AccountAddress) (σ : AccountMap) : Acc
     (sstoreAccountMap owner (sstoreAccountMap owner σ ⟨12⟩ ⟨0⟩) ⟨5⟩ ⟨0⟩)
     ⟨6⟩ ⟨0⟩
 
-theorem accountMapEquiv_vowCageCleared {σ τ : AccountMap} (owner : AccountAddress)
-    (hστ : Eq σ τ) :
-    Eq (vowCageClearedAccountMap owner σ) (vowCageClearedAccountMap owner τ) := by
-  exact accountMapEquiv_sstoreAccountMap_three owner owner owner
-    ⟨12⟩ ⟨0⟩ ⟨5⟩ ⟨0⟩ ⟨6⟩ ⟨0⟩ hστ
-
 abbrev flapCageSelectorWord : UInt256 :=
   ⟨2734234354⟩
 
@@ -1158,7 +1152,7 @@ theorem RD.vowCageFlapperCageCall
         (flapCageCalldataMem rad mem) (UInt256.ofNat 6) out σ' k' C'
     ∧ typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σCall
+          accountMap := σCall }
         (EVM.address (AccountAddress.ofNat target.toNat)) "cage" 0
         [.int (Int.ofNat rad.toNat)]
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1174,7 +1168,7 @@ theorem RD.vowCageFlapperCageCall
       (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   let evmCall := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-    accountMap := σCall
+    accountMap := σCall }
   refine ⟨σ', z, out, A', k2860, C2860, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
@@ -1430,7 +1424,7 @@ theorem RD.vowCageFlopperCageCall
         (flopCageCalldataMem mem) (UInt256.ofNat 6) out σ' k' C'
     ∧ typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σCall
+          accountMap := σCall }
         (EVM.address (AccountAddress.ofNat target.toNat)) "cage" 0 []
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
               accountMap := σ'
@@ -1446,7 +1440,7 @@ theorem RD.vowCageFlopperCageCall
       (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   let evmCall := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-    accountMap := σCall
+    accountMap := σCall }
   refine ⟨σ', z, out, A', k2964, C2964, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
@@ -1520,8 +1514,7 @@ theorem vowCageAuthRevert {σ σ₀ A I} {g : UInt256}
   let locals : Store := ∅
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩ rfl hsel
-  have hcallerWord : vowSlotWord callerSlot σ I = vowSlotWord callerSlot σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
+  have hcallerWord : vowSlotWord callerSlot σ I = vowSlotWord callerSlot σ I := rfl
   have hauthSolm : vowSlotWord callerSlot σ I ≠ ⟨1⟩ := by
     intro hsolm
     exact hauthEvm (by rw [hcallerWord, hsolm])
@@ -1579,10 +1572,8 @@ theorem vowCageLiveRevert {σ σ₀ A I} {g : UInt256}
   let locals : Store := ∅
   have hsz : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩ rfl hsel
-  have hcallerWord : vowSlotWord callerSlot σ I = vowSlotWord callerSlot σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
-  have hliveWord : vowSlotWord ⟨12⟩ σ I = vowSlotWord ⟨12⟩ σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨12⟩ ⟨0⟩
+  have hcallerWord : vowSlotWord callerSlot σ I = vowSlotWord callerSlot σ I := rfl
+  have hliveWord : vowSlotWord ⟨12⟩ σ I = vowSlotWord ⟨12⟩ σ I := rfl
   have hauthSolm : vowSlotWord callerSlot σ I = ⟨1⟩ := by
     rw [← hcallerWord]
     exact hauthEvm

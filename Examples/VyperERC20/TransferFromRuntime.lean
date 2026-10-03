@@ -319,8 +319,8 @@ theorem erc20TransferFromBodyCore
                     (by simp [evmE, evmS, initState, transferFromPostState,
                       transferFromAfterBalanceState, transferFromAfterAllowanceState,
                       transferFromAllowanceSlot, transferFromAllowanceSlotI,
-                      vyperERC20StorageStore_accountMap])
-                    (returnEquiv_of_encode ERC20.erc20BoolTrueReturnEncoding)
+                      storageStore_accountMap])
+                    (returnEquiv_of_encode Reasoning.Theory.boolTrueReturnEncoding)
               · have hover : UInt256.size ≤ transferFromNewToNat evmE I := by
                   omega
                 have hallowanceS :

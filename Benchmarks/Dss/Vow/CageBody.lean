@@ -1008,7 +1008,7 @@ theorem RD.vowCageSecondDaiStaticcall
         (UInt256.ofNat 6) outDai σ' k' C'
     ∧ typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σCall
+          accountMap := σCall }
         (EVM.address (kissVatAddress σCall I)) "dai" 0 [.address I.codeOwner]
         (z,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1023,7 +1023,7 @@ theorem RD.vowCageSecondDaiStaticcall
     RD.solcStaticcall rd3073 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   let evmDaiIn := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-    accountMap := σCall
+    accountMap := σCall }
   refine ⟨σ', z, outDai, A', k3074, C3074, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
@@ -1300,7 +1300,7 @@ theorem RD.vowCageVatSinStaticcall
         (UInt256.ofNat 6) outSin σ' k' C'
     ∧ typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σCall
+          accountMap := σCall }
         (EVM.address (kissVatAddress σCall I)) "sin" 0 [.address I.codeOwner]
         (z,
           { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1316,7 +1316,7 @@ theorem RD.vowCageVatSinStaticcall
     RD.solcStaticcall rd3192 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   let evmSinIn := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-    accountMap := σCall
+    accountMap := σCall }
   refine ⟨σ', z, outSin, A', k3193, C3193, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
@@ -1648,7 +1648,7 @@ theorem RD.vowCageHealPostCall
         (cageHealCalldataMem healRad mem) (UInt256.ofNat 6) out σ' k' C'
     ∧ typedCallViaEVM config
         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σCall
+          accountMap := σCall }
         (EVM.address (kissVatAddress σCall I)) "heal" 0
         [.int (Int.ofNat healRad.toNat)]
         (z, { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1670,7 +1670,7 @@ theorem RD.vowCageHealPostCall
     RD.call rd3295 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   let evmCall := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-    accountMap := σCall
+    accountMap := σCall }
   refine ⟨σ', z, out, A', k3296, C3296, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat

@@ -62,17 +62,6 @@ theorem tend_storageStore_machineState (evm : EVM.State) (addr : AccountAddress)
   simp only [Solm.EVM.storageStore, State.lookupAccount]
   cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
 
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).blocks = evm.blocks := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
-
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm addr slot val).genesisBlockHeader =
-      evm.genesisBlockHeader := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
-
 theorem evalExpr_tendCallerNeGuy_true {σ σ₀ A I} {g : Sat256}
     (hcaller : solcSourceWord I ≠ bidGuyWord (tendId I) σ I) :
     evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I }
@@ -2737,7 +2726,7 @@ theorem flipperTendBodyFrom3486Refund
             true := by
         simpa [evm0Evm, evmRefundEvm] using hcallRefundEvmRaw
       obtain ⟨σ_ref_solm, A_ref_solm, hcallRefundSolmRaw, hRefundStateEquiv⟩ :=
-        flipper_typedCallViaEVM_sameInputs
+        typedCallViaEVM_sameInputs_stateEquiv
           (evm_solm := evm0Solm) hcallRefundEvm
           rfl
           (by simp [evm0Evm, evm0Solm, initState])
@@ -2878,7 +2867,7 @@ theorem flipperTendBodyFrom3486Refund
           have hpayZeroSolm :
               Reasoning.Theory.extCodeSizeWord evmGuySolm.accountMap
                 (flipperVatTargetWord evmGuySolm.accountMap I) = ⟨0⟩ :=
-            flipperVatCodeSize_zero_accountMapEquiv hGuyStateEquiv.accountMap hpayZeroEvm
+            by rw [← hGuyStateEquiv.accountMap]; exact hpayZeroEvm
           have hpayNoCodeSolm :
               (UInt256.ofNat
                 ((evmGuySolm.lookupAccount
@@ -2912,7 +2901,7 @@ theorem flipperTendBodyFrom3486Refund
           have hpayNeSolm :
               Reasoning.Theory.extCodeSizeWord evmGuySolm.accountMap
                 (flipperVatTargetWord evmGuySolm.accountMap I) ≠ ⟨0⟩ :=
-            flipperVatCodeSize_ne_zero_accountMapEquiv hGuyStateEquiv.accountMap hpayNeEvm
+            by rw [← hGuyStateEquiv.accountMap]; exact hpayNeEvm
           have hpayCodeSolm :
               0 <
                 (UInt256.ofNat
@@ -2933,10 +2922,9 @@ theorem flipperTendBodyFrom3486Refund
               substate := A_ref
               }
           have hGuyCallStateEquiv : EVMStateEquiv evmGuyCallEvm evmGuySolm := by
-            refine ⟨?_, ?_, ?_⟩
+            refine ⟨?_, ?_⟩
             · simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Evm, evm0Solm,
                 storageStore_executionEnv, initState]
-            · simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Solm,
             · simpa [evmGuyCallEvm, hmapGuyEvm] using hGuyStateEquiv.accountMap
           obtain ⟨σ_pay, zPay, outPay, A_pay, k3800, C3800, rd3800,
               hcallPayEvmRaw, houtPay⟩ :=
@@ -2955,11 +2943,11 @@ theorem flipperTendBodyFrom3486Refund
                 (zPay, evmPayEvm, outPay) true := by
             simpa [evmPayEvm, evmGuyCallEvm, evm0Evm] using hcallPayEvmRaw
           obtain ⟨σ_pay_solm, A_pay_solm, hcallPaySolmRaw, hPayStateEquiv⟩ :=
-            flipper_typedCallViaEVM_sameInputs
+            typedCallViaEVM_sameInputs_stateEquiv
               (evm_solm := evmGuySolm) hcallPayEvm hGuyCallStateEquiv.accountMap
               (by simp [evmGuyCallEvm, evmGuySolm, evmRefundSolm, evm0Evm, evm0Solm,
                 tend_storageStore_sigma0, initState])
-              (by simpa using hGuyCallStateEquiv.executionEnv.symm)
+              hGuyCallStateEquiv.executionEnv
           let evmPaySolm : EVM.State :=
             { evmGuySolm with
               accountMap := σ_pay_solm
@@ -2970,8 +2958,7 @@ theorem flipperTendBodyFrom3486Refund
                   (flipperVatAddress evmGuyCallEvm.accountMap evmGuyCallEvm.executionEnv) =
                 EVM.address
                   (flipperVatAddress evmGuySolm.accountMap evmGuySolm.executionEnv) := by
-            rw [hGuyCallStateEquiv.executionEnv]
-            rw [flipperVatAddress_accountMapEquiv hGuyCallStateEquiv.accountMap]
+            rw [hGuyCallStateEquiv.executionEnv, hGuyCallStateEquiv.accountMap]
           have hpayArgsEq :
               tendPayMoveArgValsOf evmGuyCallEvm I = tendPayMoveArgValsOf evmGuySolm I := by
             have hloadGal :
@@ -3066,8 +3053,8 @@ theorem flipperTendBodyFrom3486Refund
                 storageStore_accountMap, storageStore_executionEnv, hownerCall, initState]
             have httlEq :
                 tendTtlWord evmBidEvm.accountMap I = tendTtlWord evmBidSolm.accountMap I := by
-              unfold tendTtlWord flipperUint48Offset0Word flipperSlotWord solcSlotWord
-              rw [accountMapEquiv_storage_findD hBidStateEquiv.accountMap I.codeOwner ⟨5⟩ ⟨0⟩]
+              exact congrArg (fun accounts => tendTtlWord accounts I)
+                hBidStateEquiv.accountMap
             have httlEvmMap :
                 tendTtlWord evmBidEvm.accountMap I =
                   tendTtlWord (tendAfterBidMap σ_pay I) I := by
@@ -3157,13 +3144,12 @@ theorem flipperTendBodyFrom3486Refund
                     storageStore_executionEnv, initState]
                 simpa [evmTicEvm, hmapBidEvm, hownerBid, tendStoreTicMap,
                   tendStoredTicWord, flipperSlotWord, solcSlotWord, Solm.EVM.storageLoad,
-                  State.lookupAccount, Account.lookupStorage, storageStore_accountMap]
-                  rfl
+                  State.lookupAccount, Account.lookupStorage, storageStore_accountMap] using rfl
               have henc : returnEquiv ByteArray.empty none tendTransition.returnType := by
                 rw [show tendTransition.returnType = [] by rfl]
                 exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-              exact hret.reEquivExecutionGenEVMStateEquiv hcode hdispatch hdecode hbody
-                hAccountsRet hTicStateEquiv henc
+              exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+                (hAccountsRet.trans hTicStateEquiv.accountMap) henc
             · have hoverTicEvm :
                   2 ^ 48 ≤
                     (tendNow48 I).toNat +

@@ -130,8 +130,9 @@ theorem typedCallViaEVM_static_accountCodeStateEq {cfg : Config} {evm evm' : EVM
   obtain ⟨_calldata, _hencode, hraw⟩ := hcall
   exact callViaEVM_static_accountCodeStateEq hraw
 
--- TODO: Rename this legacy accountMapEquiv lemma when its call sites migrate to map equality.
-theorem typedCallViaEVM_static_storage_findD_of_accountMapEquiv {cfg : Config}
+/-- A static typed call preserves the caller's storage value when the input
+account map is equal to the source map. -/
+theorem typedCallViaEVM_static_storage_findD_of_accounts_eq {cfg : Config}
     {σ : AccountMap} {evm evm' : EVM.State}
     {target : EVM.Address} {name : Ident} {args : List Value}
     {z : Bool} {out : ByteArray} (slot default : UInt256)
@@ -155,8 +156,7 @@ theorem typedCallViaEVM_static_storage_findD_of_accountMapEquiv {cfg : Config}
 /-- A raw call can be replayed from a state with the same inputs to the EVM call relation.
 Only the account map, original account map, and execution environment affect the call.
 The resulting state keeps the other fields of the new starting state. -/
--- TODO: Rename the legacy accountMapEquiv suffix when downstream call sites migrate.
-theorem callViaEVM_accountMapEquiv
+theorem callViaEVM_sameInputs
     {evm_evm evm_solm evm'_evm : EVM.State}
     {tgt : EVM.Address} {value : ℤ} {calldata : ByteArray}
     {z : Bool} {out : ByteArray} {callPerm : Bool}
@@ -188,8 +188,7 @@ theorem callViaEVM_accountMapEquiv
       · simpa [hevm'] using hAccounts
 
 /-- The typed call transports through the same equal EVM call inputs. -/
--- TODO: Rename the legacy accountMapEquiv suffix when downstream call sites migrate.
-theorem typedCallViaEVM_accountMapEquiv
+theorem typedCallViaEVM_sameInputs
     {cfg : Config} {evm_evm evm_solm evm'_evm : EVM.State}
     {tgt : EVM.Address} {name : Ident} {value : ℤ} {args : List Value}
     {z : Bool} {out : ByteArray} {callPerm : Bool}
@@ -204,12 +203,30 @@ theorem typedCallViaEVM_accountMapEquiv
       evm'_evm.accountMap = σ'_solm := by
   obtain ⟨calldata, hencode, hraw⟩ := hcall
   obtain ⟨σ', A', hraw', hσ'⟩ :=
-    callViaEVM_accountMapEquiv hraw hAccounts hOriginalAccounts hEnv
+    callViaEVM_sameInputs hraw hAccounts hOriginalAccounts hEnv
   exact ⟨σ', A', ⟨calldata, hencode, hraw'⟩, hσ'⟩
 
+/-- Replay a typed call from equal call inputs and relate the resulting EVM states. -/
+theorem typedCallViaEVM_sameInputs_stateEquiv
+    {cfg : Config} {evm_evm evm_solm evm'_evm : EVM.State}
+    {tgt : EVM.Address} {name : Ident} {value : ℤ} {args : List Value}
+    {z : Bool} {out : ByteArray} {callPerm : Bool}
+    (hcall : typedCallViaEVM cfg evm_evm tgt name value args (z, evm'_evm, out) callPerm)
+    (hAccounts : evm_evm.accountMap = evm_solm.accountMap)
+    (hOriginalAccounts : evm_evm.σ₀ = evm_solm.σ₀)
+    (hEnv : evm_evm.executionEnv = evm_solm.executionEnv) :
+    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
+      typedCallViaEVM cfg evm_solm tgt name value args
+        (z, { evm_solm with accountMap := σ'_solm, substate := A'_solm }, out)
+        callPerm ∧
+      EVMStateEquiv evm'_evm
+        { evm_solm with accountMap := σ'_solm, substate := A'_solm } := by
+  obtain ⟨σ', A', hcall', hσ'⟩ :=
+    typedCallViaEVM_sameInputs hcall hAccounts hOriginalAccounts hEnv
+  exact ⟨σ', A', hcall', ⟨(typedCallViaEVM_executionEnv_eq hcall).trans hEnv, hσ'⟩⟩
+
 /-- Couple the EVM call trace to a typed call, then replay it from equal call inputs. -/
--- TODO: Rename the legacy accountMapEquiv suffix when downstream call sites migrate.
-theorem typedCallViaEVM_callMade_accountMapEquiv {cfg : Config}
+theorem typedCallViaEVM_callMade_sameInputs {cfg : Config}
     {evm_evm evm_solm : EVM.State}
     {tgt : EVM.Address} {targetWord : UInt256} {name : Ident} {args : List Value}
     {σ' : AccountMap} {A' A_in : Substate}
@@ -240,48 +257,7 @@ theorem typedCallViaEVM_callMade_accountMapEquiv {cfg : Config}
       (z, { evm_evm with accountMap := σ', substate := A' }, out) callPerm :=
     callCoincides hdepth htgt hcd hΘ
   simpa using
-    typedCallViaEVM_accountMapEquiv hcall hAccounts hOriginalAccounts hEnv
-
-/-- An initState call is replayed by rewriting its one account-map argument. -/
--- TODO: Replace call sites with a rewrite by hAccounts, then remove this wrapper.
-theorem typedCallViaEVM_initState_accountMapEquiv {cfg : Config}
-    {σ_evm σ_solm σ₀ A I} {g : Sat256}
-    {evm'_evm : EVM.State} {tgt : EVM.Address} {name : Ident} {value : ℤ}
-    {args : List Value} {z : Bool} {out : ByteArray} {callPerm : Bool}
-    (hcall : typedCallViaEVM cfg (initState σ_evm σ₀ g A I) tgt name value
-      args (z, evm'_evm, out) callPerm)
-    (hAccounts : σ_evm = σ_solm) :
-    typedCallViaEVM cfg (initState σ_solm σ₀ g A I) tgt name value
-      args (z, evm'_evm, out) callPerm := by
-  subst σ_solm
-  exact hcall
-
-/-- The same direct rewrite, packaged with the state relation used by storage proofs. -/
--- TODO: Replace call sites with the rewritten call and EVMStateEquiv reflexivity, then remove.
-theorem typedCallViaEVM_initState_EVMStateEquiv {cfg : Config}
-    {σ_evm σ_solm σ₀ A I} {g : Sat256}
-    {evm'_evm : EVM.State} {tgt : EVM.Address} {name : Ident} {value : ℤ}
-    {args : List Value} {z : Bool} {out : ByteArray} {callPerm : Bool}
-    (hcall : typedCallViaEVM cfg (initState σ_evm σ₀ g A I) tgt name value args
-      (z, evm'_evm, out) callPerm)
-    (hAccounts : σ_evm = σ_solm) :
-    typedCallViaEVM cfg (initState σ_solm σ₀ g A I) tgt name value args
-      (z, evm'_evm, out) callPerm ∧ EVMStateEquiv evm'_evm evm'_evm := by
-  exact ⟨typedCallViaEVM_initState_accountMapEquiv hcall hAccounts, rfl, rfl⟩
-
-/-- A raw initState call likewise reuses exactly the original call result. -/
--- TODO: Replace call sites with a rewrite by hAccounts, then remove this wrapper.
-theorem callViaEVM_initState_accountMapEquiv
-    {σ_evm σ_solm σ₀ A I} {g : Sat256}
-    {evm'_evm : EVM.State} {tgt : EVM.Address} {value : ℤ}
-    {calldata : ByteArray} {z : Bool} {out : ByteArray} {callPerm : Bool}
-    (hcall : callViaEVM (initState σ_evm σ₀ g A I) tgt value calldata
-      (z, evm'_evm, out) callPerm)
-    (hAccounts : σ_evm = σ_solm) :
-    callViaEVM (initState σ_solm σ₀ g A I) tgt value calldata
-      (z, evm'_evm, out) callPerm := by
-  subst σ_solm
-  exact hcall
+    typedCallViaEVM_sameInputs hcall hAccounts hOriginalAccounts hEnv
 
 /-- **Coincidence (call not made).**  At the call-depth limit (`evm.depth = 1024`) the EVM `CALL`
     returns `0` *without* invoking `Θ`; the Solm `typedCallViaEVM` takes the matching

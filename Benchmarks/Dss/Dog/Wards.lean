@@ -260,12 +260,6 @@ theorem dogWardsBodyCoreOk
           (solcMappingHashMem_size ⟨0⟩ key))
       (by simp)
     simpa [slot, dogSlotWord] using hret'
-  have hword : dogSlotWord slot σ I = dogSlotWord slot σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
-  have hval :
-      some [Value.int (Int.ofNat (dogSlotWord (wardsMappingSlotFor I) σ I).toNat)] =
-        some [Value.int (Int.ofNat (dogSlotWord slot σ I).toNat)] := by
-    rw [hslot, hword]
   have henc :
       returnEquiv (UInt256.toByteArray (dogSlotWord slot σ I))
         (some [(.int (Int.ofNat (dogSlotWord slot σ I).toNat))])
@@ -273,7 +267,8 @@ theorem dogWardsBodyCoreOk
     rw [show wardsTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
       (by simpa [uint256] using uint256ReturnEncoding (dogSlotWord slot σ I))
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  rw [hslot] at hbody
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem dogWardsBodyCoreDecodeFailed_short
     {v : DogImmutables} {code : ByteArray}
@@ -332,7 +327,7 @@ theorem dogWardsBodyCore {v : DogImmutables} {code : ByteArray}
     _hpatch _hcode _hwv hsz4 _hsize _hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact dogWardsBodyCoreOk _hpatch _hcode _hwv hsz36 _hsize hdispatch
-      (dogDecode_wards_ok (v := v) hsz36) hreach _hAccounts
+      (dogDecode_wards_ok (v := v) hsz36) hreach
   · exact dogWardsBodyCoreDecodeFailed_short _hpatch _hcode _hsize hsz4 (by omega)
       hdispatch hreach
 

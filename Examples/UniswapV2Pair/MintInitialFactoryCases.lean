@@ -274,7 +274,8 @@ theorem uniswapMintInitialSmallRootRevertsFromFactoryCases
       have hPostCleared :
           Eq (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩)
             (mintFeeKLastClearedState evmFeeS).accountMap := by
-        have hstore := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨11⟩ ⟨0⟩
+        have hstore := congrArg
+          (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨11⟩ ⟨0⟩)
           hPostAccountsFee
         simpa [mintFeeKLastClearedState, henvFeeI, storageStore_accountMap] using hstore
       have henvCleared : (mintFeeKLastClearedState evmFeeS).executionEnv = I := by
@@ -282,7 +283,7 @@ theorem uniswapMintInitialSmallRootRevertsFromFactoryCases
       have htotalEqCleared :
           mintFunctionTotalSupplyWord (mintFeeKLastClearedState evmFeeS) =
             uniswapSlotWord ⟨0⟩ (sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) I :=
-        mintFunctionTotalSupplyWord_eq_slot_of_accountMapEquiv hPostCleared henvCleared
+        mintFunctionTotalSupplyWord_eq_slot hPostCleared henvCleared
       have htotalSource : mintFunctionTotalSupplyWord (mintFeeKLastClearedState evmFeeS) =
           ⟨0⟩ := by
         rw [htotalEqCleared, htotalZero]

@@ -9,12 +9,6 @@ namespace Auction
 def storedWord (σ : AccountMap) (I : ExecutionEnv) (slot : UInt256) : UInt256 :=
   σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)
 
--- TODO: Replace uses of this legacy name with a rewrite by the map equality, then remove it.
-theorem storedWord_equiv {σ₁ σ₂ : AccountMap} (h : σ₁ = σ₂)
-    (I : ExecutionEnv) (slot : UInt256) : storedWord σ₁ I slot = storedWord σ₂ I slot := by
-  subst σ₂
-  rfl
-
 theorem scalarRead (evm : EVM.State) (locals : Store) (name : Ident)
     (ty : ABI.ElemType) (loc : StorageLoc)
     (hbase : locals.get? name = none)

@@ -82,7 +82,7 @@ theorem uniswapMintInitialBranchRuntimeCases
         refine Or.inr ⟨root, liquidity, _, _,
           uniswapMintInitialLiquidityBranchStmtPrefix evm root liquidity htotal hsqrt hge
             hfitSub rfl hfitSupply hfitBalance,
-          accountMapEquiv_mintFunctionPostState_of_runtimeMintRecipient
+          mintFunctionPostState_accountMap_eq_of_runtimeMintRecipient
             hAccounts henv rfl (by rw [hmem]; omega) hfitSupply hfitBalance,
           rd3841, ?_, ?_⟩
         · exact (uniswapInternalMintSuccessMem_size_of_ge160 ⟨0⟩ ⟨1000⟩

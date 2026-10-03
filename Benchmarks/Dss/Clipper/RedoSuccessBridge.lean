@@ -10,7 +10,7 @@ theorem clipperRedoTopSlotWord_eq (I : ExecutionEnv) :
   simp [clipperRedoTopSlotWord, clipperRedoSalesTopSlot,
     clipperRedoSalesBaseSlot_eq]
 
-theorem clipperRedoTopState_accountMapEquiv
+theorem clipperRedoTopState_accounts_eq
     {σ τ : AccountMap} (evm : EVM.State) (I : ExecutionEnv) (topNew : UInt256)
     (hevmAccount : evm.accountMap = τ)
     (hevmEnv : evm.executionEnv = I)
@@ -18,31 +18,30 @@ theorem clipperRedoTopState_accountMapEquiv
     sstoreAccountMap I.codeOwner σ
         (clipperRedoTopSlotWord (clipperRedoIdWord I)) topNew =
       (clipperRedoTopState evm I topNew).accountMap := by
-  subst τ
+  have hMaps : σ = evm.accountMap := hAccounts.trans hevmAccount.symm
   simpa [clipperRedoTopState, storageStore_accountMap, hevmEnv,
     clipperRedoTopSlotWord_eq] using
-    (accountMapEquiv_sstoreAccountMap I.codeOwner
-      (clipperRedoSalesTopSlot I) topNew hAccounts)
+    congrArg (fun m => sstoreAccountMap I.codeOwner m
+      (clipperRedoSalesTopSlot I) topNew) hMaps
 
-theorem clipperRedoTipWord_eq_of_accountMapEquiv
+theorem clipperRedoTipWord_eq_of_accounts_eq
     {σ : AccountMap} (evm : EVM.State) (I : ExecutionEnv)
     (hevmEnv : evm.executionEnv = I)
     (hAccounts : σ = evm.accountMap) :
     clipperRedoTipWord σ I = clipperRedoTipSolmWord evm := by
-  have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
-  rw [clipperRedoTipWord, clipperRedoTipSolmWord, hevmEnv]
-  simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-    solcSlotWord] using congrArg
-      (fun w => UInt256.land
-        (UInt256.div w (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨64⟩))
-        (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩)) hslot
+  rw [hAccounts]
+  simp [clipperRedoTipWord, clipperRedoTipSolmWord, Solm.EVM.storageLoad,
+    State.lookupAccount, Account.lookupStorage, solcSlotWord, hevmEnv]
 
-theorem clipperRedoChipWord_eq_of_accountMapEquiv
+theorem clipperRedoChipWord_eq_of_accounts_eq
     {σ : AccountMap} (evm : EVM.State) (I : ExecutionEnv)
     (hevmEnv : evm.executionEnv = I)
     (hAccounts : σ = evm.accountMap) :
     clipperRedoChipWord σ I = clipperRedoChipSolmWord evm := by
-  have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
+  have hslot := congrArg
+    (fun m : AccountMap =>
+      (m.find? I.codeOwner).option (⟨0⟩ : UInt256)
+        (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) hAccounts
   rw [clipperRedoChipWord, clipperRedoChipSolmWord, hevmEnv]
   simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
     solcSlotWord] using congrArg

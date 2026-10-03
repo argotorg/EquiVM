@@ -1026,27 +1026,34 @@ theorem uniswapPermitEcrecoverTypedCall_source
     change permitAfterNonceAccountMap σ I =
       (permitAfterNonceState (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).accountMap
     rw [permitAfterNonceState_init_accountMap]
-  obtain ⟨σS, AS, hcallSolm, hPost⟩ :=
-    typedCallViaEVM_callMade_accountMapEquiv
-      (cfg := config) (evm_evm := evmE) (evm_solm := evmNonceS)
-      (tgt := AccountAddress.ofNat 1) (targetWord := (⟨1⟩ : UInt256))
-      (name := "ecrecover")
-      (args := [permitDigestValue σ I, permitVValue I, permitRValue I, permitSValue I])
-      (σ' := σ') (A' := A'_evm) (A_in := A_in)
-      (z := z) (out := o) (g'' := g'') (callGas := callGas)
+  have hStateEq : evmE = evmNonceS := by
+    have hMap : permitAfterNonceAccountMap σ I = evmNonceS.accountMap := by
+      simpa [evmE] using hStateAccounts
+    have hOriginal : evmNonceS.σ₀ = σ₀ := by
+      simp [evmNonceS, evmS, permitAfterNonceState, permitStorageStore_sigma0,
+        initState]
+    have hEnv : evmNonceS.executionEnv = I := by
+      simp [evmNonceS, evmS, permitAfterNonceState, storageStore_executionEnv,
+        initState]
+    change ({evmNonceS with
+      accountMap := permitAfterNonceAccountMap σ I
+      σ₀ := σ₀
+      executionEnv := I} : EVM.State) = evmNonceS
+    rw [hMap, ← hOriginal, ← hEnv]
+  have hcallE :
+      typedCallViaEVM config evmE (AccountAddress.ofNat 1) "ecrecover" 0
+        [permitDigestValue σ I, permitVValue I, permitRValue I, permitSValue I]
+        (z, {evmE with accountMap := σ', substate := A'_evm}, o) false := by
+    exact callCoincides (targetWord := (⟨1⟩ : UInt256))
       (mem := permitEcrecoverInputMem σ I) (inOff := ⟨482⟩) (inSize := ⟨128⟩)
-      (callPerm := false)
       hdepthNe rfl hcdE hΘE
-      hStateAccounts
-      (by simp [evmE, evmNonceS, evmS, permitAfterNonceState, permitStorageStore_sigma0,
-        initState])
-      (by simp [evmE, evmNonceS, evmS, permitAfterNonceState, storageStore_executionEnv,
-        initState])
   let evmCallS : EVM.State :=
-    { evmNonceS with accountMap := σS, substate := AS }
+    { evmNonceS with accountMap := σ', substate := A'_evm }
   refine ⟨evmCallS, ?_, ?_, ?_, ?_⟩
-  · simpa [evmCallS] using hcallSolm
-  · simpa [evmCallS] using hPost
+  · have hcallS := hcallE
+    rw [hStateEq] at hcallS
+    simpa [evmCallS] using hcallS
+  · simp [evmCallS]
   · simp [evmCallS, evmNonceS, evmS, permitAfterNonceState,
       permitStorageStore_sigma0, initState]
   · simp [evmCallS, evmNonceS, evmS, permitAfterNonceState, storageStore_executionEnv,

@@ -1566,15 +1566,11 @@ theorem dogFileIlkUintBodyCoreOk
   let data := fileIlkUintData I
   let callerSlot := dogCallerWardsSlot I
   let locals := fileIlkUintLocals I
-  have hcallerWord : dogSlotWord callerSlot σ I = dogSlotWord callerSlot σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
   have henc : returnEquiv ByteArray.empty none fileIlkUintTransition.returnType := by
     rw [show fileIlkUintTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
   by_cases hauthEvm : dogSlotWord callerSlot σ I = ⟨1⟩
-  · have hauthSolm : dogSlotWord callerSlot σ I = ⟨1⟩ := by
-      rw [← hcallerWord]
-      exact hauthEvm
+  · have hauthSolm : dogSlotWord callerSlot σ I = ⟨1⟩ := hauthEvm
     have hauthSolc :
         solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
       simpa [callerSlot, dogCallerWardsSlot, dogSlotWord] using hauthEvm
@@ -1647,9 +1643,8 @@ theorem dogFileIlkUintBodyCoreOk
         have haccounts :
             Eq (sstoreAccountMap I.codeOwner σ actualSlot data)
               evm1.accountMap := by
-          have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner sourceSlot data hAccounts
           simpa [evm1, evm0, initState, storageStore_accountMap, actualSlot, sourceSlot,
-            hslotEq] using hbase
+            hslotEq]
         exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
           haccounts henc
     · have hnotChopWord :
@@ -1699,9 +1694,8 @@ theorem dogFileIlkUintBodyCoreOk
         have haccounts :
             Eq (sstoreAccountMap I.codeOwner σ actualSlot data)
               evm1.accountMap := by
-          have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner sourceSlot data hAccounts
           simpa [evm1, evm0, initState, storageStore_accountMap, actualSlot, sourceSlot,
-            hslotEq] using hbase
+            hslotEq]
         exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
           haccounts henc
       · have hnotHoleWord :
@@ -1723,7 +1717,7 @@ theorem dogFileIlkUintBodyCoreOk
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hauthSolm : dogSlotWord callerSlot σ I ≠ ⟨1⟩ := by
       intro hsolm
-      exact hauthEvm (by rw [hcallerWord, hsolm])
+      exact hauthEvm hsolm
     let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
     have hbody :
         ExecTransitionBody (config v) (contract v) evm0 locals fileIlkUintTransition.body
@@ -1812,7 +1806,7 @@ theorem dogFileIlkUintBodyCore {v : DogImmutables} {code : ByteArray}
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz100 : 100 ≤ I.calldata.size
   · exact dogFileIlkUintBodyCoreOk hpatch hcode hwv hperm hsz100 hsize hdispatch
-      (dogDecode_fileIlkUint_ok (v := v) hsz100) hreach hAccounts
+      (dogDecode_fileIlkUint_ok (v := v) hsz100) hreach
   · exact dogFileIlkUintBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach
 

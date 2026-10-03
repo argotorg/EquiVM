@@ -153,7 +153,6 @@ theorem vowCorrectWith
         I.perm = true →
         I.weiValue = ⟨0⟩ →
         selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩ →
-        Eq σ →
         runtimeEquivalenceFor config contract σ σ₀ g A I)
     (flapBody :
       ∀ {σ σ₀ A I} {g : UInt256},
@@ -162,7 +161,6 @@ theorem vowCorrectWith
         I.perm = true →
         I.weiValue = ⟨0⟩ →
         selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩ →
-        Eq σ →
         runtimeEquivalenceFor config contract σ σ₀ g A I)
     (flopBody :
       ∀ {σ σ₀ A I} {g : UInt256},
@@ -171,93 +169,89 @@ theorem vowCorrectWith
         I.perm = true →
         I.weiValue = ⟨0⟩ →
         selIs I ⟨#[0xbb, 0xbb, 0x0d, 0x7b]⟩ →
-        Eq σ →
         runtimeEquivalenceFor config contract σ σ₀ g A I) :
     runtimeEquivalence config vowBytecode contract := by
   refine runtimeEquivalence.intro ?_
   intro σ σ₀ g A I hcode hsize hperm
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hAsh : selIs I ⟨#[0x2a, 0x1d, 0x2b, 0x3c]⟩
-    · exact vowAshBody hcode hsize hperm hwv hAsh hAccounts
+    · exact vowAshBody hcode hsize hperm hwv hAsh
     · by_cases hSinCap : selIs I ⟨#[0xd0, 0xad, 0xc3, 0x5f]⟩
-      · exact vowSinBody hcode hsize hperm hwv hSinCap hAccounts
+      · exact vowSinBody hcode hsize hperm hwv hSinCap
       · by_cases hbump : selIs I ⟨#[0x68, 0x11, 0x0b, 0x2f]⟩
-        · exact vowBumpBody hcode hsize hperm hwv hbump hAccounts
+        · exact vowBumpBody hcode hsize hperm hwv hbump
         · by_cases hcage : selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩
-          · exact cageBody hcode hsize hperm hwv hcage hAccounts
+          · exact cageBody hcode hsize hperm hwv hcage
           · by_cases hdeny : selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩
             · have hsz4 : 4 ≤ I.calldata.size :=
                 calldata_size_ge_of_selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩ rfl hdeny
               by_cases hshort : I.calldata.size < 36
-              · exact vowDenyShort hcode hsize hperm hwv hsz4 hshort hdeny hAccounts
-              · exact vowDenyBody hcode hsize hperm hwv (by omega) hdeny hAccounts
+              · exact vowDenyShort hcode hsize hperm hwv hsz4 hshort hdeny
+              · exact vowDenyBody hcode hsize hperm hwv (by omega) hdeny
             · by_cases hdump : selIs I ⟨#[0xe4, 0x33, 0x05, 0x45]⟩
-              · exact vowDumpBody hcode hsize hperm hwv hdump hAccounts
+              · exact vowDumpBody hcode hsize hperm hwv hdump
               · by_cases hfess : selIs I ⟨#[0x69, 0x7e, 0xfb, 0x78]⟩
                 · have hsz4 : 4 ≤ I.calldata.size :=
                     calldata_size_ge_of_selIs I ⟨#[0x69, 0x7e, 0xfb, 0x78]⟩ rfl hfess
                   by_cases hshort : I.calldata.size < 36
-                  · exact vowFessShort hcode hsize hperm hwv hsz4 hshort hfess hAccounts
-                  · exact vowFessBody hcode hsize hperm hwv (by omega) hfess hAccounts
+                  · exact vowFessShort hcode hsize hperm hwv hsz4 hshort hfess
+                  · exact vowFessBody hcode hsize hperm hwv (by omega) hfess
                 · by_cases hfileUint : selIs I ⟨#[0x29, 0xae, 0x81, 0x14]⟩
                   · have hsz4 : 4 ≤ I.calldata.size :=
                       calldata_size_ge_of_selIs I ⟨#[0x29, 0xae, 0x81, 0x14]⟩ rfl
                         hfileUint
                     by_cases hshort : I.calldata.size < 68
                     · exact vowFileUintShort hcode hsize hperm hwv hsz4 hshort hfileUint
-                        hAccounts
                     · exact vowFileUintBody hcode hsize hperm hwv (by omega) hfileUint
-                        hAccounts
                   · by_cases hfileAddress : selIs I ⟨#[0xd4, 0xe8, 0xbe, 0x83]⟩
-                    · exact vowFileAddressBody hcode hsize hperm hwv hfileAddress hAccounts
+                    · exact vowFileAddressBody hcode hsize hperm hwv hfileAddress
                     · by_cases hflap : selIs I ⟨#[0x0e, 0x01, 0x19, 0x8b]⟩
-                      · exact flapBody hcode hsize hperm hwv hflap hAccounts
+                      · exact flapBody hcode hsize hperm hwv hflap
                       · by_cases hflapper : selIs I ⟨#[0x5c, 0xa0, 0xd7, 0x23]⟩
-                        · exact vowFlapperBody hcode hsize hperm hwv hflapper hAccounts
+                        · exact vowFlapperBody hcode hsize hperm hwv hflapper
                         · by_cases hflog : selIs I ⟨#[0xd7, 0xee, 0x67, 0x4b]⟩
                           · have hsz4 : 4 ≤ I.calldata.size :=
                               calldata_size_ge_of_selIs I ⟨#[0xd7, 0xee, 0x67, 0x4b]⟩
                                 rfl hflog
                             by_cases hshort : I.calldata.size < 36
                             · exact vowFlogShort hcode hsize hperm hwv hsz4 hshort hflog
-                                hAccounts
-                            · exact vowFlogBody hcode hsize hperm hwv (by omega) hflog hAccounts
+                            · exact vowFlogBody hcode hsize hperm hwv (by omega) hflog
                           · by_cases hflop : selIs I ⟨#[0xbb, 0xbb, 0x0d, 0x7b]⟩
-                            · exact flopBody hcode hsize hperm hwv hflop hAccounts
+                            · exact flopBody hcode hsize hperm hwv hflop
                             · by_cases hflopper : selIs I ⟨#[0x40, 0x81, 0xd7, 0x3a]⟩
-                              · exact vowFlopperBody hcode hsize hperm hwv hflopper hAccounts
+                              · exact vowFlopperBody hcode hsize hperm hwv hflopper
                               · by_cases hheal : selIs I ⟨#[0xf3, 0x7a, 0xc6, 0x1c]⟩
-                                · exact vowHealBody hcode hsize hperm hwv hheal hAccounts
+                                · exact vowHealBody hcode hsize hperm hwv hheal
                                 · by_cases hhump : selIs I ⟨#[0x1b, 0x8e, 0x8c, 0xfa]⟩
-                                  · exact vowHumpBody hcode hsize hperm hwv hhump hAccounts
+                                  · exact vowHumpBody hcode hsize hperm hwv hhump
                                   · by_cases hkiss : selIs I ⟨#[0x25, 0x06, 0x85, 0x5a]⟩
-                                    · exact vowKissBody hcode hsize hperm hwv hkiss hAccounts
+                                    · exact vowKissBody hcode hsize hperm hwv hkiss
                                     · by_cases hlive : selIs I ⟨#[0x95, 0x7a, 0xa5, 0x8c]⟩
-                                      · exact vowLiveBody hcode hsize hperm hwv hlive hAccounts
+                                      · exact vowLiveBody hcode hsize hperm hwv hlive
                                       · by_cases hrely : selIs I ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩
                                         · have hsz4 : 4 ≤ I.calldata.size :=
                                             calldata_size_ge_of_selIs I
                                               ⟨#[0x65, 0xfa, 0xe3, 0x5e]⟩ rfl hrely
                                           by_cases hshort : I.calldata.size < 36
                                           · exact vowRelyShort hcode hsize hperm hwv hsz4
-                                              hshort hrely hAccounts
+                                              hshort hrely
                                           · exact vowRelyBody hcode hsize hperm hwv (by omega)
-                                              hrely hAccounts
+                                              hrely
                                         · by_cases hsin : selIs I ⟨#[0xcb, 0x5c, 0xc1, 0x09]⟩
                                           · have hsz4 : 4 ≤ I.calldata.size :=
                                               calldata_size_ge_of_selIs I
                                                 ⟨#[0xcb, 0x5c, 0xc1, 0x09]⟩ rfl hsin
                                             by_cases hshort : I.calldata.size < 36
                                             · exact vowSinMappingShort hcode hsize hperm hwv
-                                                hsz4 hshort hsin hAccounts
+                                                hsz4 hshort hsin
                                             · exact vowSinMappingBody hcode hsize hperm hwv
-                                                (by omega) hsin hAccounts
+                                                (by omega) hsin
                                           · by_cases hsump : selIs I ⟨#[0xc3, 0x49, 0xd3, 0x62]⟩
-                                            · exact vowSumpBody hcode hsize hperm hwv hsump hAccounts
+                                            · exact vowSumpBody hcode hsize hperm hwv hsump
                                             · by_cases hvat : selIs I ⟨#[0x36, 0x56, 0x9e, 0x77]⟩
-                                              · exact vowVatBody hcode hsize hperm hwv hvat hAccounts
+                                              · exact vowVatBody hcode hsize hperm hwv hvat
                                               · by_cases hwait : selIs I ⟨#[0x64, 0xbd, 0x70, 0x13]⟩
-                                                · exact vowWaitBody hcode hsize hperm hwv hwait hAccounts
+                                                · exact vowWaitBody hcode hsize hperm hwv hwait
                                                 · by_cases hwards :
                                                     selIs I ⟨#[0xbf, 0x35, 0x3d, 0xbb]⟩
                                                   · have hsz4 : 4 ≤ I.calldata.size :=
@@ -266,9 +260,9 @@ theorem vowCorrectWith
                                                         hwards
                                                     by_cases hshort : I.calldata.size < 36
                                                     · exact vowWardsShort hcode hsize hperm hwv
-                                                        hsz4 hshort hwards hAccounts
+                                                        hsz4 hshort hwards
                                                     · exact vowWardsBody hcode hsize hperm hwv
-                                                        (by omega) hwards hAccounts
+                                                        (by omega) hwards
                                                   · exact vowNoDispatch hcode hsize hperm hwv
                                                       (vowNoSelectorMatches hAsh hSinCap hbump
                                                         hcage hdeny hdump hfess hfileUint

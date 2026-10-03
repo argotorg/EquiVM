@@ -182,9 +182,6 @@ theorem allowanceInnerKeccakSlot_word (owner : UInt256)
   rw [keyValueToWord_address_of_canonical _ hcanonOwner]
   exact mappingSlot_single owner ⟨1⟩
 
--- `erc20AddrMask_clean` / `erc20AddrMask_clean_left` moved to `Reasoning.Solc`
--- (`solcAddrMask_clean` / `_left`); the `erc20*` wrappers now live in `Examples.ERC20.Common`.
-
 /-- Approve stores the owner key at scratch offset `0x00` before it stores the allowance base slot. -/
 def approveInnerOwnerMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray owner).write 0 solcFreePtrMem 0 32
@@ -579,7 +576,7 @@ theorem erc20ApproveX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, push2 ⟨1912⟩, dup2, push2 ⟨1894⟩, jump erc20_jd ]
   have rd1912 := rd1894.erc20Routine0766 erc20_jd (by evm_ov)
   have hclean : UInt256.eq (approveValueWord I) (approveValueWord I) = ⟨1⟩ :=
-    erc20Ueq_self (approveValueWord I)
+    uInt256_eq_self (approveValueWord I)
   have rd1939 := evm_run rd1912 with [
     jumpdest, dup2, eq, push2 ⟨1922⟩, jumpiT (by rw [hclean]; decide) erc20_jd,
     jumpdest, pop, jump erc20_jd ]
@@ -604,10 +601,10 @@ theorem erc20ApproveX_stored {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hcanonSpender hreach
   have hownerCleanL : UInt256.land erc20AddrMask (approveOwnerWord I) = approveOwnerWord I :=
-    erc20AddrMask_clean_left (approveOwnerWord_canonical I)
+    solcAddrMask_clean_left (approveOwnerWord_canonical I)
   have hspenderCleanL :
       UInt256.land erc20AddrMask (approveSpenderWord I) = approveSpenderWord I :=
-    erc20AddrMask_clean_left hcanonSpender
+    solcAddrMask_clean_left hcanonSpender
   have hslot := approveOuterKeccakSlot I hcanonSpender
   have rd421₀ := evm_run rd370 with [
     jumpdest, push0, dup2, push1 ⟨1⟩, push0, caller, push20 erc20AddrMask, and,
@@ -641,10 +638,10 @@ theorem erc20X_approve {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hperm hcanonSpender hreach
   have hownerCleanL : UInt256.land erc20AddrMask (approveOwnerWord I) = approveOwnerWord I :=
-    erc20AddrMask_clean_left (approveOwnerWord_canonical I)
+    solcAddrMask_clean_left (approveOwnerWord_canonical I)
   have hspenderCleanL :
       UInt256.land erc20AddrMask (approveSpenderWord I) = approveSpenderWord I :=
-    erc20AddrMask_clean_left hcanonSpender
+    solcAddrMask_clean_left hcanonSpender
   have rd576₀ := evm_run rd496 with [
     pop, dup3, push20 erc20AddrMask, and, caller, push20 erc20AddrMask, and ]
   have rd543₀ := rd576₀.pushConst approveApprovalTopic (width := 32) (op := .PUSH32)
@@ -791,12 +788,12 @@ theorem erc20ApproveBodyCore
             hsz68 hsize hbig hperm hcanonSpender hreach)
           |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
             (by simp [evmS, approvePostState, approveSlot, approveSlotI, initState,
-              erc20StorageStore_accountMap])
-            (returnEquiv_of_encode erc20BoolTrueReturnEncoding)
+              storageStore_accountMap])
+            (returnEquiv_of_encode boolTrueReturnEncoding)
       · have hdec := erc20Decode_approve_none_noncanon (I := I) hsz68 hbig hcanonSpender
         have hnc : UInt256.eq (approveSpenderWord I)
             (UInt256.land (approveSpenderWord I) erc20AddrMask) = ⟨0⟩ :=
-          erc20Ueq_zero_of_ne (fun he => hcanonSpender (erc20Word_canonical_of_clean he))
+          uInt256_eq_zero_of_ne (fun he => hcanonSpender (solcAddrCanonical_of_clean he))
         exact (erc20ApproveX_noncanon_spender (g := Sat256.ofUInt256 g)
             hsz68 hsize hbig hnc hreach)
           |>.reEquivDecodingFailed hcode hd hdec

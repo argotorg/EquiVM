@@ -21,10 +21,10 @@ theorem vatFrobBodyCore : VatBodyTheorem 11 := by
       (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hsz196 hsize hreach
     by_cases hlive : vatSlotWord ⟨10⟩ σ I = ⟨1⟩
-    · exact vatFrobBodyCoreLive hcode hsize hperm hwv hsel hAccounts hsz196 hdecode
+    · exact vatFrobBodyCoreLive hcode hsize hperm hwv hsel hsz196 hdecode
         ⟨_, _, hdecoded⟩ hlive
     · exact vatFrobBodyCoreNotLive hcode hsize hwv hsz196 hlive
-        (vatDispatchFrob hsel) hdecode hreach hAccounts
+        (vatDispatchFrob hsel) hdecode hreach
   · have hshort : I.calldata.size < 196 := by omega
     exact vatFrobBodyCoreDecodeFailed_short hcode hsize hsz4 hshort hsel hreach
 

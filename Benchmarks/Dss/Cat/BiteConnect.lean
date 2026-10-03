@@ -648,10 +648,9 @@ theorem catBiteSuccessLeaf {σ σ₀ A I} {g : UInt256}
     hFessDec hLitStore hflipCode hKickCall hKickDec
   exact catBiteSuccessBodyCore hcode hret hdispatch hdecode hbody hAccountsFinal
 
-/-! ## σ → σ call-mapping lemmas -/
+/-! ## Call-state lemmas -/
 
-/-- Shift the caller substate of a value-`0` typed call (local copy of the Vow lemma, needed to
-reconcile `typedCallViaEVM_accountMapEquiv`'s equal-substate requirement with the σ state). -/
+/-- Replay a value-`0` typed call after changing the caller substate. -/
 theorem biteTypedCallZeroSetSubstate {cfg : Config} {evm evm' : EVM.State}
     {tgt : EVM.Address} {name : Ident} {args : List Value}
     {z : Bool} {out : ByteArray} {perm : Bool}
@@ -681,8 +680,7 @@ theorem biteTypedCallZeroSetSubstate {cfg : Config} {evm evm' : EVM.State}
       exfalso
       exact hfail ⟨(by show (⟨0⟩ : UInt256) ≤ _; exact Fin.zero_le _), hdepth⟩
 
-/-- Map the ilks `STATICCALL` (from `initState`) to the σ side, producing the σ-side call
-and the `EVMStateEquiv` coupling for the next call. -/
+/-- Expose the post-call account map and substate of the ilks `STATICCALL`. -/
 theorem catBiteMapIlksCall {σ σ₀ A I} {g : UInt256}
     {tgt : EVM.Address} {args : List Value} {evmIlk : EVM.State} {ilksOut : ByteArray} {name : Ident}
     {z : Bool} {perm : Bool}
@@ -694,12 +692,18 @@ theorem catBiteMapIlksCall {σ σ₀ A I} {g : UInt256}
               accountMap := σ', substate := A_solm' },
           ilksOut) perm
     ∧ evmIlk.accountMap = σ' := by
-  obtain ⟨σ', A_solm', hcall', hmap⟩ :=
-    typedCallViaEVM_accountMapEquiv hcall rfl rfl rfl
-  exact ⟨σ', A_solm', by simpa using hcall', hmap⟩
+  have hOutput :
+      evmIlk = { initState σ σ₀ (Sat256.ofUInt256 g) A I with
+        accountMap := evmIlk.accountMap, substate := evmIlk.substate } := by
+    obtain ⟨_, _, hraw⟩ := hcall
+    cases hraw with
+    | callMade _ _ hevm' _ _ => simp [hevm']
+    | callNotMade _ hevm' _ => simp [hevm']
+  refine ⟨evmIlk.accountMap, evmIlk.substate, ?_, rfl⟩
+  simpa only [← hOutput] using hcall
 
-/-- Map an intermediate-state (post-ilks) value-`0` call to the σ side, preserving
-account-map equality. Serves the urns/grab/fess/kick calls (all from `{initState … with …}`). -/
+/-- Replay an intermediate-state value-`0` call after changing only the caller substate.
+Serves the urns/grab/fess/kick calls (all from `{initState … with …}`). -/
 theorem catBiteMapCall {σ σ₀ A I} {g : UInt256}
     {σx : AccountMap} {A_x_evm A_x_solm : Substate}
     {tgt : EVM.Address} {name : Ident} {args : List Value} {z perm : Bool}
@@ -721,13 +725,8 @@ theorem catBiteMapCall {σ σ₀ A I} {g : UInt256}
       ({ initState σ σ₀ (Sat256.ofUInt256 g) A I with
           accountMap := σx, substate := A_x_evm } : EVM.State).executionEnv.depth ≠ 1024 := by
     simpa [initState] using hdepthNe
-  obtain ⟨σ'_solm, A'_solm0, hcallBase, hAcc'⟩ :=
-    typedCallViaEVM_accountMapEquiv
-      (evm_solm := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-          accountMap := σx, substate := A_x_evm })
-      hcall rfl rfl rfl
-  obtain ⟨A'_solm, hcallSolm⟩ := biteTypedCallZeroSetSubstate hcallBase hdepthNeBase A_x_solm
-  exact ⟨σ'_solm, A'_solm, by simpa using hcallSolm, hAcc'⟩
+  obtain ⟨A'_solm, hcallSolm⟩ := biteTypedCallZeroSetSubstate hcall hdepthNeBase A_x_solm
+  exact ⟨evm'_evm.accountMap, A'_solm, by simpa using hcallSolm, rfl⟩
 
 /-! ## Short-calldata revert (`size < 68`) -/
 

@@ -76,7 +76,7 @@ set_option maxHeartbeats 1000000 in
 theorem RD.solcErrorStringFullWordRevertTail {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc len word : UInt256}
     {stk : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {acc : AccountMap}
     (h : RD code ee g s0 pc stk mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcErrorStringFullWordRevertTailWf code pc len word)
     (hmem : mem.size = 96)

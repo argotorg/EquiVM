@@ -216,12 +216,11 @@ theorem endOutBodyCoreOk
           (solcNestedMappingHashMem_size ⟨17⟩ owner spender))
       (by simp)
     simpa [slot, endSlotWord] using hret'
-  have hword : endSlotWord slot σ I = endSlotWord slot σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
   have hval :
       some [Value.int (Int.ofNat (endSlotWord (endOutSlotFor I) σ I).toNat)] =
         some [Value.int (Int.ofNat (endSlotWord slot σ I).toNat)] := by
-    rw [hslot, hword]
+    rw [hslot]
+  rw [hval] at hbody
   have henc :
       returnEquiv (UInt256.toByteArray (endSlotWord slot σ I))
         (some [(.int (Int.ofNat (endSlotWord slot σ I).toNat))])
@@ -229,7 +228,7 @@ theorem endOutBodyCoreOk
     rw [show outTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
       (by simpa [uint256] using uint256ReturnEncoding (endSlotWord slot σ I))
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem endOutBodyCoreDecodeFailed_short
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -272,7 +271,7 @@ theorem endOutBody {σ σ₀ A I} {g : UInt256}
     hcode hwv hsz4 hsize hsel'
   by_cases hsz68 : 68 ≤ I.calldata.size
   · exact endOutBodyCoreOk hcode hwv hsz68 hsize hdispatch
-      (endDecode_out_ok hsz68) hreach hAccounts
+      (endDecode_out_ok hsz68) hreach
   · exact endOutBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 
 end Benchmarks.Dss.End

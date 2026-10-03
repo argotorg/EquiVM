@@ -126,7 +126,7 @@ theorem clipperTakeOweGtTabEquiv
     simpa [hevmPriceAccounts] using hPostAccounts
   have hAccountsLock : Eq σLockEvm evmLock.accountMap := by
     simpa [σLockEvm, evmLock, evm0, initState, storageStore_accountMap] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner ⟨13⟩ ⟨1⟩ hAccounts
+      congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨13⟩ ⟨1⟩) hAccounts
   have htab : tab = clipperTakeSalesTabEVMWord evmPrice I := by
     exact clipperTakePostTabWord_eq (I := I) hPostAccounts hevmPriceAccounts
       (congrArg (fun env => env.codeOwner) hevmPriceEnv)
@@ -134,8 +134,7 @@ theorem clipperTakeOweGtTabEquiv
     exact clipperTakePostLotWord_eq (I := I) hPostAccounts hevmPriceAccounts
       (congrArg (fun env => env.codeOwner) hevmPriceEnv)
   have hpackedWord : packed = clipperTakeSalesUsrEVMWord evmLock I := by
-    have hslot := accountMapEquiv_storage_findD hAccountsLock I.codeOwner
-      (clipperTakeSalesPackedSlot I) ⟨0⟩
+    have hslot := congrArg (fun m => solcSlotWord m I (clipperTakeSalesPackedSlot I)) hAccountsLock
     simp [packed, clipperTakeSalesUsrEVMWord, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, solcSlotWord, evmLock, evm0,
       initState, storageStore_executionEnv, hslot]
@@ -563,7 +562,7 @@ theorem clipperTakeOweGtTabEquiv
       (A := A) (I := I) (g := g) (evmPrice := evmPrice)
       v price hwv hlocked hstopped husr hmax hstatus htail'
   have hcontinue : ClipperTakeStoreContinuationEquiv v code σ
-      σ σ₀ A I g slice owe tabNew lotNew price
+      σ₀ A I g slice owe tabNew lotNew price
       (clipperTakeSalesTicStackWord σLockEvm I) packed ⟨3⟩ dataLen dataStart
       who (clipperTakeMaxWord I) (clipperTakeAmtWord I) (clipperTakeIdWord I)
       (clipperSelWord I) := by

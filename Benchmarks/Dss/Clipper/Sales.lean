@@ -1325,7 +1325,6 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
     (_hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hsel : selIs I (clipperSelBytes 18)) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I := by
-  have hAccounts : σ = σ := rfl
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (clipperSelBytes 18) (by native_decide) hsel
   have hdispatch : dispatchMsg (contract v) I.calldata = some salesTransition :=
@@ -1404,19 +1403,15 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
           (by simp only [initState]; exact hwv)
     have hposWord : posE = solcSlotWord σ I base := by
-      simpa [posE] using accountMapEquiv_storage_findD hAccounts I.codeOwner base ⟨0⟩
+      rfl
     have htabWord : tabE = solcSlotWord σ I (base + ⟨1⟩) := by
-      simpa [tabE] using
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (base + ⟨1⟩) ⟨0⟩
+      rfl
     have hlotWord : lotE = solcSlotWord σ I (base + ⟨2⟩) := by
-      simpa [lotE] using
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (base + ⟨2⟩) ⟨0⟩
+      rfl
     have hpackedWord : packedE = solcSlotWord σ I (base + ⟨3⟩) := by
-      simpa [packedE] using
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (base + ⟨3⟩) ⟨0⟩
+      rfl
     have htopWord : topE = solcSlotWord σ I (base + ⟨4⟩) := by
-      simpa [topE] using
-        accountMapEquiv_storage_findD hAccounts I.codeOwner (base + ⟨4⟩) ⟨0⟩
+      rfl
     have hval :
         some [
           Value.int (Int.ofNat (solcSlotWord σ I base).toNat),

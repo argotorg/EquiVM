@@ -41,7 +41,7 @@ theorem clipperTypedCallSyncFromState {cfg : Config}
       evmSolm'.executionEnv = evmEvm'.executionEnv := by
   have hbase := clipperTypedCallViaEVM_preservesBase hcall
   obtain ⟨σSolm', ASolm', hcallSolm, hAccounts'⟩ :=
-    typedCallViaEVM_accountMapEquiv_noSubstate hcall hAccounts hSigma0.symm hEnv.symm
+    Reasoning.Theory.typedCallViaEVM_sameInputs hcall hAccounts hSigma0.symm hEnv.symm
   let evmSolm' : EVM.State :=
     { evmSolm with accountMap := σSolm', substate := ASolm' }
   refine ⟨evmSolm', ?_, ?_⟩
@@ -49,7 +49,7 @@ theorem clipperTypedCallSyncFromState {cfg : Config}
   · refine ⟨?_, ?_, ?_⟩
     · simpa [evmSolm'] using hAccounts'
     · simpa [evmSolm'] using hSigma0.trans hbase.1.symm
-    · simpa [evmSolm'] using hbase.2.trans hEnv.symm
+    · simpa [evmSolm'] using (hbase.2.trans hEnv.symm).symm
 
 set_option maxHeartbeats 1000000 in
 theorem clipperTakeOweGtTabCallbackTailRevertEquivFromPostWords

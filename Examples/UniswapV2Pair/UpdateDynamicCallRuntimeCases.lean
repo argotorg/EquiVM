@@ -54,7 +54,7 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
         (by simp only [List.length_cons]; omega)
       have hslot8 : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ =
           uniswapSlotWord ⟨8⟩ σ I := by
-        have h := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
+        have h := congrArg (fun accounts => uniswapSlotWord ⟨8⟩ accounts I) hAccounts
         simpa only [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
           uniswapSlotWord, henv] using h.symm
       have htime : syncTimeElapsedInt evm = Int.ofNat
@@ -79,7 +79,7 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
         refine Or.inr ⟨syncUpdatePackedReserveState evm balance0 balance1, _, _, _, _,
           uniswapUpdateCallReturnsConditionFalse evm balance0 balance1
             reserve0 reserve1 hargs hb0S hb1S hskipS,
-          accountMapEquiv_syncUpdatePackedReserveState hAccounts henv hslot8 rfl,
+          syncUpdatePackedReserveState_accountMap_eq hAccounts henv hslot8 rfl,
           ?_, rdRet, ?_, ?_⟩
         · simp only [syncUpdatePackedReserveState, storageStore_executionEnv, henv]
         · exact (pairDynamicMem_sizes ptr _ _ hgap (by omega)).2
@@ -111,7 +111,7 @@ theorem uniswapUpdateCallRuntimeCases_dynamic
           uniswapUpdateCumulativePackedWordWith σ I balance0 balance1 reserve0 reserve1, kRet, CRet,
           uniswapUpdateCallReturnsConditionTrue evm balance0 balance1
             reserve0 reserve1 hargs hb0S hb1S htS hr0S hr1S,
-          accountMapEquiv_syncUpdateCumulativePackedMapWith hAccounts henv hslot8
+          syncUpdateCumulativePackedMapWith_accounts_eq hAccounts henv hslot8
             (by rw [← hclean0]; exact reserve112Word_lt _)
             (by rw [← hclean1]; exact reserve112Word_lt _), ?_, ?_, ?_, ?_⟩
         · simp only [syncUpdateCumulativePackedReserveStateWith,

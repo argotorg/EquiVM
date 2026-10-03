@@ -170,6 +170,7 @@ theorem endFixBodyCoreOk
       some [Value.int (Int.ofNat (endSlotWord (endFixSlotFor I) σ I).toNat)] =
         some [Value.int (Int.ofNat (endSlotWord slot σ I).toNat)] := by
     rw [hslot]
+  rw [hval] at hbody
   have henc :
       returnEquiv (UInt256.toByteArray (endSlotWord slot σ I))
         (some [(.int (Int.ofNat (endSlotWord slot σ I).toNat))])
@@ -177,8 +178,7 @@ theorem endFixBodyCoreOk
     rw [show fixTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
       (by simpa [uint256] using uint256ReturnEncoding (endSlotWord slot σ I))
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-    (by simp [initState]) henc
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem endFixBodyCoreDecodeFailed_short
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}

@@ -725,133 +725,6 @@ theorem frobDinkSubGuardPosFailCond {I : ExecutionEnv} {old new : UInt256}
       intro hlt
       exact h (Or.inr hlt))
 
-theorem accountMapEquiv_frobAfterDebt {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    Eq (frobAfterDebt σ I) (frobAfterDebt τ I) := by
-  have hDebtOld :
-      solcSlotWord σ I foldDebtSlot = solcSlotWord τ I foldDebtSlot :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner foldDebtSlot ⟨0⟩
-  have hRateOld :
-      solcSlotWord σ I (frobIlkRateSlot I) =
-        solcSlotWord τ I (frobIlkRateSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkRateSlot I) ⟨0⟩
-  have hDebtNew : frobDebtNew σ I = frobDebtNew τ I := by
-    simp [frobDebtNew, frobDtabWord, hRateOld, hDebtOld]
-  simp [frobAfterDebt, hDebtNew,
-    accountMapEquiv_sstoreAccountMap I.codeOwner foldDebtSlot (frobDebtNew τ I)
-      hAccounts]
-
-theorem accountMapEquiv_frobAfterGem {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    Eq (frobAfterGem σ I) (frobAfterGem τ I) := by
-  have hDebt := accountMapEquiv_frobAfterDebt (I := I) hAccounts
-  have hGemOld :
-      solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I) =
-        solcSlotWord (frobAfterDebt τ I) I (frobGemVSlot I) :=
-    accountMapEquiv_storage_findD hDebt I.codeOwner (frobGemVSlot I) ⟨0⟩
-  have hGemNew : frobGemNew σ I = frobGemNew τ I := by
-    simp [frobGemNew, hGemOld]
-  simp [frobAfterGem, hGemNew,
-    accountMapEquiv_sstoreAccountMap I.codeOwner (frobGemVSlot I)
-      (frobGemNew τ I) hDebt]
-
-set_option maxHeartbeats 0 in
-theorem accountMapEquiv_frobAfterRuntimeFinal {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    Eq (frobAfterRuntimeFinal σ I) (frobAfterRuntimeFinal τ I) := by
-  have hDebtOld :
-      solcSlotWord σ I foldDebtSlot = solcSlotWord τ I foldDebtSlot :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner foldDebtSlot ⟨0⟩
-  have hRateOld :
-      solcSlotWord σ I (frobIlkRateSlot I) =
-        solcSlotWord τ I (frobIlkRateSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkRateSlot I) ⟨0⟩
-  have hDebtNew : frobDebtNew σ I = frobDebtNew τ I := by
-    simp [frobDebtNew, frobDtabWord, hRateOld, hDebtOld]
-  have hDebt :
-      Eq (frobAfterDebt σ I) (frobAfterDebt τ I) := by
-    simp [frobAfterDebt, hDebtNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner foldDebtSlot (frobDebtNew τ I)
-        hAccounts]
-  have hGemOld :
-      solcSlotWord (frobAfterDebt σ I) I (frobGemVSlot I) =
-        solcSlotWord (frobAfterDebt τ I) I (frobGemVSlot I) :=
-    accountMapEquiv_storage_findD hDebt I.codeOwner (frobGemVSlot I) ⟨0⟩
-  have hGemNew : frobGemNew σ I = frobGemNew τ I := by
-    simp [frobGemNew, hGemOld]
-  have hGem :
-      Eq (frobAfterGem σ I) (frobAfterGem τ I) := by
-    simp [frobAfterGem, hGemNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (frobGemVSlot I)
-        (frobGemNew τ I) hDebt]
-  have hDaiOld :
-      solcSlotWord (frobAfterGem σ I) I (frobDaiWSlot I) =
-        solcSlotWord (frobAfterGem τ I) I (frobDaiWSlot I) :=
-    accountMapEquiv_storage_findD hGem I.codeOwner (frobDaiWSlot I) ⟨0⟩
-  have hDtab : frobDtabWord σ I = frobDtabWord τ I := by
-    simp [frobDtabWord, hRateOld]
-  have hDaiOldInline :
-      solcSlotWord
-          (sstoreAccountMap I.codeOwner (frobAfterDebt σ I) (frobGemVSlot I)
-            (frobGemNew σ I)) I (frobDaiWSlot I) =
-        solcSlotWord
-          (sstoreAccountMap I.codeOwner (frobAfterDebt τ I) (frobGemVSlot I)
-            (frobGemNew τ I)) I (frobDaiWSlot I) := by
-    simpa [frobAfterGem] using hDaiOld
-  have hDaiNew : frobDaiNew σ I = frobDaiNew τ I := by
-    simp [frobDaiNew, hDtab, hDaiOldInline]
-  have hDai :
-      Eq (frobAfterDai σ I) (frobAfterDai τ I) := by
-    simp [frobAfterDai, hDaiNew,
-      accountMapEquiv_sstoreAccountMap I.codeOwner (frobDaiWSlot I)
-        (frobDaiNew τ I) hGem]
-  have hInkOld :
-      solcSlotWord σ I (frobUrnInkSlot I) =
-        solcSlotWord τ I (frobUrnInkSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (frobUrnInkSlot I) ⟨0⟩
-  have hArtOld :
-      solcSlotWord σ I (frobUrnArtSlot I) =
-        solcSlotWord τ I (frobUrnArtSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (frobUrnArtSlot I) ⟨0⟩
-  have hIlkArtOld :
-      solcSlotWord σ I (frobIlkArtSlot I) =
-        solcSlotWord τ I (frobIlkArtSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkArtSlot I) ⟨0⟩
-  have hInkNew : frobUrnInkNew σ I = frobUrnInkNew τ I := by
-    simp [frobUrnInkNew, hInkOld]
-  have hArtNew : frobUrnArtNew σ I = frobUrnArtNew τ I := by
-    simp [frobUrnArtNew, hArtOld]
-  have hIlkArtNew : frobIlkArtNew σ I = frobIlkArtNew τ I := by
-    simp [frobIlkArtNew, hIlkArtOld]
-  have hSource :
-      Eq (frobAfterSourceFinal σ I) (frobAfterSourceFinal τ I) := by
-    simpa [frobAfterSourceFinal, hInkNew, hArtNew, hIlkArtNew] using
-      accountMapEquiv_sstoreAccountMap_three I.codeOwner I.codeOwner I.codeOwner
-        (frobUrnInkSlot I) (frobUrnInkNew τ I)
-        (frobUrnArtSlot I) (frobUrnArtNew τ I)
-        (frobIlkArtSlot I) (frobIlkArtNew τ I) hDai
-  have hSpotOld :
-      solcSlotWord σ I (frobIlkSpotSlot I) =
-        solcSlotWord τ I (frobIlkSpotSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkSpotSlot I) ⟨0⟩
-  have hLineOld :
-      solcSlotWord σ I (frobIlkLineSlot I) =
-        solcSlotWord τ I (frobIlkLineSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkLineSlot I) ⟨0⟩
-  have hDustOld :
-      solcSlotWord σ I (frobIlkDustSlot I) =
-        solcSlotWord τ I (frobIlkDustSlot I) :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (frobIlkDustSlot I) ⟨0⟩
-  simpa [frobAfterRuntimeFinal, hRateOld, hSpotOld, hLineOld, hDustOld] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner (frobIlkDustSlot I)
-      (solcSlotWord τ I (frobIlkDustSlot I))
-      (accountMapEquiv_sstoreAccountMap I.codeOwner (frobIlkLineSlot I)
-        (solcSlotWord τ I (frobIlkLineSlot I))
-        (accountMapEquiv_sstoreAccountMap I.codeOwner (frobIlkSpotSlot I)
-          (solcSlotWord τ I (frobIlkSpotSlot I))
-          (accountMapEquiv_sstoreAccountMap I.codeOwner (frobIlkRateSlot I)
-            (solcSlotWord τ I (frobIlkRateSlot I)) hSource)))
-
 theorem frobUWishSourceSlot_eq (I : ExecutionEnv) :
     canSlot (frobUKey I) (frobSourceKey I) = frobUWishSlot I := by
   unfold canSlot canOwnerSlot frobUKey frobSourceKey frobUWishSlot frobUMaskedWord
@@ -1352,7 +1225,7 @@ theorem frobDaiWSourceSlot_eq (I : ExecutionEnv) :
   rw [keyValueToWord_address_ofNat_mask]
 
 set_option maxHeartbeats 1000000 in
-theorem accountMapEquiv_frobSourceFinal
+theorem frobSourceFinal_accountMap_eq
     {σ σ₀ A I} {g : UInt256}
     (hsz196 : 196 ≤ I.calldata.size)
     (urnInkNew urnArtNew ilkArtNew gemNew daiNew : UInt256)
@@ -1386,19 +1259,18 @@ theorem accountMapEquiv_frobSourceFinal
   intro evm0 evmDebt evmGem evmDai evmInk evmArt evmIlk evmRate evmSpot evmLine evmDust
   have h0 : Eq (frobAfterDebt σ I) evmDebt.accountMap := by
     simpa [evmDebt, evm0, initState, storageStore_accountMap, frobAfterDebt] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner foldDebtSlot (frobDebtNew σ I)
-        (rfl)
+      (rfl : σ = σ)
   have hGemMap : Eq (frobAfterGem σ I) evmGem.accountMap := by
     simpa [evmGem, evmDebt, evm0, initState, storageStore_accountMap,
       storageStore_executionEnv, frobAfterGem,
       frobGemVSourceSlot_eq I hsz196, hGem] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (frobGemVSlot I)
-        (frobGemNew σ I) h0
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (frobGemVSlot I) (frobGemNew σ I)) h0
   have hDaiMap : Eq (frobAfterDai σ I) evmDai.accountMap := by
     simpa [evmDai, evmGem, evmDebt, evm0, initState, storageStore_accountMap,
       storageStore_executionEnv, frobAfterDai, frobDaiWSourceSlot_eq I, hDai] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (frobDaiWSlot I)
-        (frobDaiNew σ I) hGemMap
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (frobDaiWSlot I) (frobDaiNew σ I)) hGemMap
   have hInkMap :
       Eq
         (sstoreAccountMap I.codeOwner (frobAfterDai σ I)
@@ -1406,8 +1278,8 @@ theorem accountMapEquiv_frobSourceFinal
         evmInk.accountMap := by
     simpa [evmInk, evmDai, evmGem, evmDebt, evm0, initState, storageStore_accountMap,
       storageStore_executionEnv, frobUrnInkSourceSlot_eq I hsz196, hInk] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (frobUrnInkSlot I)
-        (frobUrnInkNew σ I) hDaiMap
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (frobUrnInkSlot I) (frobUrnInkNew σ I)) hDaiMap
   have hArtMap :
       Eq
         (sstoreAccountMap I.codeOwner
@@ -1418,14 +1290,14 @@ theorem accountMapEquiv_frobSourceFinal
     simpa [evmArt, evmInk, evmDai, evmGem, evmDebt, evm0, initState,
       storageStore_accountMap,
       storageStore_executionEnv, frobUrnArtSourceSlot_eq I hsz196, hArt] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (frobUrnArtSlot I)
-        (frobUrnArtNew σ I) hInkMap
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (frobUrnArtSlot I) (frobUrnArtNew σ I)) hInkMap
   have hIlkMap : Eq (frobAfterSourceFinal σ I) evmIlk.accountMap := by
     simpa [evmIlk, evmArt, evmInk, evmDai, evmGem, evmDebt, evm0, initState,
       storageStore_accountMap, storageStore_executionEnv, frobAfterSourceFinal,
       frobIlkArtSourceSlot_eq I hsz196, hIlk] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (frobIlkArtSlot I)
-        (frobIlkArtNew σ I) hArtMap
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (frobIlkArtSlot I) (frobIlkArtNew σ I)) hArtMap
   have hRateMap :
       Eq
         (sstoreAccountMap I.codeOwner (frobAfterSourceFinal σ I)
@@ -1434,8 +1306,8 @@ theorem accountMapEquiv_frobSourceFinal
     simpa [evmRate, evmIlk, evmArt, evmInk, evmDai, evmGem, evmDebt, evm0, initState,
       storageStore_accountMap, storageStore_executionEnv,
       frobIlkRateSourceSlot_eq I hsz196] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (frobIlkRateSlot I)
-        (solcSlotWord σ I (frobIlkRateSlot I)) hIlkMap
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (frobIlkRateSlot I) (solcSlotWord σ I (frobIlkRateSlot I))) hIlkMap
   have hSpotMap :
       Eq
         (sstoreAccountMap I.codeOwner
@@ -1446,8 +1318,8 @@ theorem accountMapEquiv_frobSourceFinal
     simpa [evmSpot, evmRate, evmIlk, evmArt, evmInk, evmDai, evmGem, evmDebt, evm0,
       initState, storageStore_accountMap, storageStore_executionEnv,
       frobIlkSpotSourceSlot_eq I hsz196] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (frobIlkSpotSlot I)
-        (solcSlotWord σ I (frobIlkSpotSlot I)) hRateMap
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (frobIlkSpotSlot I) (solcSlotWord σ I (frobIlkSpotSlot I))) hRateMap
   have hLineMap :
       Eq
         (sstoreAccountMap I.codeOwner
@@ -1460,15 +1332,15 @@ theorem accountMapEquiv_frobSourceFinal
     simpa [evmLine, evmSpot, evmRate, evmIlk, evmArt, evmInk, evmDai, evmGem, evmDebt,
       evm0, initState, storageStore_accountMap, storageStore_executionEnv,
       frobIlkLineSourceSlot_eq I hsz196] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (frobIlkLineSlot I)
-        (solcSlotWord σ I (frobIlkLineSlot I)) hSpotMap
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (frobIlkLineSlot I) (solcSlotWord σ I (frobIlkLineSlot I))) hSpotMap
   simpa [evmDust, evmLine, evmSpot, evmRate, evmIlk, evmArt, evmInk, evmDai,
     evmGem, evmDebt, evm0, initState, storageStore_accountMap, storageStore_executionEnv,
     frobAfterRuntimeFinal, frobIlkDustSourceSlot_eq I hsz196] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner (frobIlkDustSlot I)
-      (solcSlotWord σ I (frobIlkDustSlot I)) hLineMap
+    congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+      (frobIlkDustSlot I) (solcSlotWord σ I (frobIlkDustSlot I))) hLineMap
 
-theorem accountMapEquiv_frobSourceFinalState
+theorem frobSourceFinalState_accountMap_eq
     {σ σ₀ A I} {g : UInt256}
     (hsz196 : 196 ≤ I.calldata.size)
     (urnInkNew urnArtNew ilkArtNew gemNew daiNew : UInt256)
@@ -1481,7 +1353,7 @@ theorem accountMapEquiv_frobSourceFinalState
       (frobSourceFinalState σ σ₀ A I g
         urnInkNew urnArtNew ilkArtNew gemNew daiNew).accountMap := by
   unfold frobSourceFinalState
-  exact accountMapEquiv_frobSourceFinal
+  exact frobSourceFinal_accountMap_eq
     (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g)
     hsz196 urnInkNew urnArtNew ilkArtNew gemNew daiNew
@@ -10125,16 +9997,6 @@ theorem frobDustSourceCond_of_evm {urnArtNew tab ilkDust : UInt256}
       u256_eq_ne_zero_to_eq hzero
     exact Or.inl (by rw [← heq]; rfl)
 
-theorem vatSlotWord_debtStore_accountMapEquiv {σ : AccountMap}
-    {I : ExecutionEnv} (hAccounts : Eq σ σ)
-    (slot debtNew : UInt256) :
-    vatSlotWord slot (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I =
-      vatSlotWord slot (sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew) I := by
-  simpa [vatSlotWord] using
-    accountMapEquiv_storage_findD
-      (accountMapEquiv_sstoreAccountMap I.codeOwner foldDebtSlot debtNew hAccounts)
-      I.codeOwner slot ⟨0⟩
-
 theorem evalExpr_frob_dust_req_true {evm : EVM.State} {locals : Store}
     (urnArtNew tab ilkDust : UInt256)
     (hurnArtNew :
@@ -14853,16 +14715,11 @@ theorem vatFrobBodyCoreNotLive
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let locals := frobStore I
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hliveWord : vatSlotWord ⟨10⟩ σ I = vatSlotWord ⟨10⟩ σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨10⟩ ⟨0⟩
-  have hliveSolm : vatSlotWord ⟨10⟩ σ I ≠ ⟨1⟩ := by
-    intro hbad
-    exact hlive (by rw [hliveWord, hbad])
   have hbody :
       ExecTransitionBody config contract evm0 locals frobTransition.body .reverted := by
     simpa [evm0, locals] using
       (vatFrobSourceBodyNotLive
-        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hliveSolm)
+        (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hlive)
   obtain ⟨_, _, hdecoded⟩ := vatFrobX_decoded (g := Sat256.ofUInt256 g)
     hsz196 hsize hreach
   have hliveSolc : solcSlotWord σ I ⟨10⟩ ≠ ⟨1⟩ := by

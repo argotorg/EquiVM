@@ -108,9 +108,13 @@ theorem clipperTakeFromFluxDataEmptyEquiv
       (hne : Reasoning.Theory.extCodeSizeWord σPost (clipperTakeVatTarget v) ≠ ⟨0⟩) :
       0 < (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat := by
+    have hneEvm :
+        Reasoning.Theory.extCodeSizeWord evmPrice.accountMap (clipperTakeVatTarget v) ≠
+          ⟨0⟩ := by
+      simpa only [← hAccountsPost] using hne
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-        hAccountsPost (clipperTakeVatTargetAddress v).symm hne
+      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+        (clipperTakeVatTargetAddress v).symm hneEvm
   have syncFlux {σVat : AccountMap} {AVat : Substate} {zVat : Bool} {outVat : ByteArray}
       (hcall : typedCallViaEVM (config v) evmPriceEvm
         (EVM.address v.vat) "flux" 0
@@ -140,9 +144,13 @@ theorem clipperTakeFromFluxDataEmptyEquiv
   · intro hnoCode hrev
     have hnoCodeSolm : (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
+      have hnoCodeEvm :
+          Reasoning.Theory.extCodeSizeWord evmPrice.accountMap
+            (clipperTakeVatTarget v) = ⟨0⟩ := by
+        simpa only [← hAccountsPost] using hnoCode
       simpa [State.lookupAccount] using
-        clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
-          hAccountsPost (clipperTakeVatTargetAddress v).symm hnoCode
+        clipperExtCodeSizeWord_zero_lookup_code_zero
+          (clipperTakeVatTargetAddress v).symm hnoCodeEvm
     exact closeRevert hrev (hsourceVatNoCode hnoCodeSolm)
   · intro σVat outVat AVat hcall hvatCode hrev
     obtain ⟨evmVat, hcallSolm, _, _, _, _, _, _⟩ :=
@@ -174,7 +182,7 @@ theorem clipperTakeFromFluxDataEmptyEquiv
             clipperEvalDog v evmVat fluxLocals hfluxDogAbsent))
     have hdogWord : UInt256.land (solcSlotWord σVat I ⟨1⟩) solcAddrMask =
         clipperTakeDogEVMWord evmVat :=
-      clipperTakeDogWord_eq_of_accountMapEquiv hAccountsVat hevmVatEnv
+      clipperTakeDogWord_eq hAccountsVat hevmVatEnv
     have hwhoLocal : dogLocals.get? "who" =
         some (.address (AccountAddress.ofNat who.toNat)) := by
       simpa [dogLocals, Std.HashMap.get?_eq_getElem?,

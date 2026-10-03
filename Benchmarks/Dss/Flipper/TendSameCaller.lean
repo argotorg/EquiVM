@@ -1,5 +1,5 @@
 import Benchmarks.Dss.Flipper.TendSourceTail
-import Benchmarks.Dss.Flipper.ExternalCallTransport
+import Reasoning.ExternalCall
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -164,7 +164,7 @@ theorem flipperTendBodyFrom3486SameCaller
             (tendPayMoveArgValsOf evm0Evm I) (zPay, evmPayEvm, outPay) true := by
         simpa [evm0Evm, evmPayEvm] using hcallPayEvmRaw
       obtain ⟨σ_pay_solm, A_pay_solm, hcallPaySolmRaw, hPayStateEquiv⟩ :=
-        flipper_typedCallViaEVM_sameInputs
+        typedCallViaEVM_sameInputs_stateEquiv
           (evm_solm := evm0Solm) hcallPayEvm
           rfl
           (by simp [evm0Evm, evm0Solm, initState])
@@ -244,8 +244,8 @@ theorem flipperTendBodyFrom3486SameCaller
             initState]
         have httlEq :
             tendTtlWord evmBidEvm.accountMap I = tendTtlWord evmBidSolm.accountMap I := by
-          unfold tendTtlWord flipperUint48Offset0Word flipperSlotWord solcSlotWord
-          rw [accountMapEquiv_storage_findD hBidStateEquiv.accountMap I.codeOwner ⟨5⟩ ⟨0⟩]
+          exact congrArg (fun accounts => tendTtlWord accounts I)
+            hBidStateEquiv.accountMap
         have httlEvmMap :
             tendTtlWord evmBidEvm.accountMap I = tendTtlWord (tendAfterBidMap σ_pay I) I := by
           simpa [hmapBidEvm]
@@ -327,13 +327,12 @@ theorem flipperTendBodyFrom3486SameCaller
               simp [evmBidEvm, evmPayEvm, evm0Evm, storageStore_executionEnv, initState]
             simpa [evmTicEvm, hmapBidEvm, hownerBid, tendStoreTicMap, tendStoredTicWord,
               flipperSlotWord, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
-              Account.lookupStorage, storageStore_accountMap]
-              rfl
+              Account.lookupStorage, storageStore_accountMap] using rfl
           have henc : returnEquiv ByteArray.empty none tendTransition.returnType := by
             rw [show tendTransition.returnType = [] by rfl]
             exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-          exact hret.reEquivExecutionGenEVMStateEquiv hcode hdispatch hdecode hbody
-            hAccountsRet hTicStateEquiv henc
+          exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+            (hAccountsRet.trans hTicStateEquiv.accountMap) henc
         · have hoverTicEvm :
               2 ^ 48 ≤
                 (tendNow48 I).toNat +

@@ -716,38 +716,6 @@ theorem endExecSubFunctionRevert (evm : EVM.State) {x y : UInt256}
     exact ExecBlock.consRevert (ExecStmt.letDeclRevert hSubRev)
   simpa [subFunction, locals] using ExecFuncBody.execBlockRevert hblock
 
-theorem endThawVatWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    endThawVatWord σ I = endThawVatWord τ I := by
-  simp [endThawVatWord, endSlotWord, solcSlotWord,
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩]
-
-theorem endThawVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ)
-    (hzero : Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endThawVatWord τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endThawVatWord σ I)
-  have htarget : endThawVatWord σ I = endThawVatWord τ I :=
-    endThawVatWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame]
-  exact hzero
-
-theorem endThawVatCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ)
-    (hne : Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endThawVatWord τ I) ≠ ⟨0⟩ := by
-  intro hbad
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endThawVatWord σ I)
-  have htarget : endThawVatWord σ I = endThawVatWord τ I :=
-    endThawVatWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame] at hbad
-  exact hbad
-
 theorem endThawVatAddr_eq_ofUInt256 (σ : AccountMap) (I : ExecutionEnv) :
     endThawVatAddr σ I = AccountAddress.ofUInt256 (endThawVatWord σ I) := by
   simpa [endThawVatAddr] using
@@ -772,38 +740,6 @@ theorem endThawVatCode_pos_of_codeSize_ne {σ σ₀ A I} {g : UInt256}
     endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos
       (σ := σ) (target := endThawVatWord σ I) (addr := endThawVatAddr σ I)
       (endThawVatAddr_eq_ofUInt256 σ I) hne
-
-theorem endThawCureWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    endThawCureWord σ I = endThawCureWord τ I := by
-  simp [endThawCureWord, endSlotWord, solcSlotWord,
-    accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨7⟩ ⟨0⟩]
-
-theorem endThawCureCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ)
-    (hzero : Reasoning.Theory.extCodeSizeWord σ (endThawCureWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endThawCureWord τ I) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endThawCureWord σ I)
-  have htarget : endThawCureWord σ I = endThawCureWord τ I :=
-    endThawCureWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame]
-  exact hzero
-
-theorem endThawCureCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ)
-    (hne : Reasoning.Theory.extCodeSizeWord σ (endThawCureWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endThawCureWord τ I) ≠ ⟨0⟩ := by
-  intro hbad
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-      (endThawCureWord σ I)
-  have htarget : endThawCureWord σ I = endThawCureWord τ I :=
-    endThawCureWord_accountMapEquiv hAccounts
-  rw [← htarget, ← hsame] at hbad
-  exact hbad
 
 theorem endThawCureAddr_eq_ofUInt256 (σ : AccountMap) (I : ExecutionEnv) :
     endThawCureAddr σ I = AccountAddress.ofUInt256 (endThawCureWord σ I) := by
@@ -4693,19 +4629,13 @@ theorem endThaw_EVM_address_id (a : AccountAddress) : EVM.address a = a := by
 theorem endThawVatAddr_source_eq_evmWord {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : Eq σ τ) :
     EVM.address (endThawVatAddr τ I) = AccountAddress.ofUInt256 (endThawVatWord σ I) := by
-  have hword : endThawVatWord σ I = endThawVatWord τ I :=
-    endThawVatWord_accountMapEquiv hAccounts
-  rw [hword]
-  rw [endThawVatAddr_eq_ofUInt256]
+  rw [hAccounts, endThawVatAddr_eq_ofUInt256]
   exact endThaw_EVM_address_id (AccountAddress.ofUInt256 (endThawVatWord τ I))
 
 theorem endThawCureAddr_source_eq_evmWord {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : Eq σ τ) :
     EVM.address (endThawCureAddr τ I) = AccountAddress.ofUInt256 (endThawCureWord σ I) := by
-  have hword : endThawCureWord σ I = endThawCureWord τ I :=
-    endThawCureWord_accountMapEquiv hAccounts
-  rw [hword]
-  rw [endThawCureAddr_eq_ofUInt256]
+  rw [hAccounts, endThawCureAddr_eq_ofUInt256]
   exact endThaw_EVM_address_id (AccountAddress.ofUInt256 (endThawCureWord τ I))
 
 theorem endThawDebtCallMadeBridge {evmE evmS : EVM.State}
@@ -4756,8 +4686,19 @@ theorem endThawDebtCallMadeBridge {evmE evmS : EVM.State}
           (evmS.executionEnv.depth + 1) evmS.executionEnv.header
           evmS.executionEnv.blobVersionedHashes evmS.executionEnv.blocks true := by
     simpa [hState.executionEnv, hState.accountMap, hOriginalAccounts] using hΘ
+  have hdepthS : evmS.executionEnv.depth ≠ 1024 := by
+    intro hbad
+    apply hdepth
+    rw [hState.executionEnv]
+    exact hbad
+  have htgtS :
+      EVM.address (endThawVatAddr evmS.accountMap evmS.executionEnv) =
+        AccountAddress.ofUInt256 (endThawVatWord evmS.accountMap evmS.executionEnv) :=
+    endThawVatAddr_source_eq_evmWord rfl
   refine ⟨σ', A', ?_, ?_⟩
-  · exact callCoincides hdepth htgt (endThawDebtEncode_eq hmem) hΘS
+  · exact callCoincides (evm := evmS)
+      (targetWord := endThawVatWord evmS.accountMap evmS.executionEnv)
+      hdepthS htgtS (endThawDebtEncode_eq hmem) hΘS
   · constructor
     · simp [hState.executionEnv]
     · rfl
@@ -4810,8 +4751,19 @@ theorem endThawTellCallMadeBridge {evmE evmS : EVM.State}
           (evmS.executionEnv.depth + 1) evmS.executionEnv.header
           evmS.executionEnv.blobVersionedHashes evmS.executionEnv.blocks false := by
     simpa [hState.executionEnv, hState.accountMap, hOriginalAccounts] using hΘ
+  have hdepthS : evmS.executionEnv.depth ≠ 1024 := by
+    intro hbad
+    apply hdepth
+    rw [hState.executionEnv]
+    exact hbad
+  have htgtS :
+      EVM.address (endThawCureAddr evmS.accountMap evmS.executionEnv) =
+        AccountAddress.ofUInt256 (endThawCureWord evmS.accountMap evmS.executionEnv) :=
+    endThawCureAddr_source_eq_evmWord rfl
   refine ⟨σ', A', ?_, ?_⟩
-  · exact callCoincides hdepth htgt (endThawTellEncode_eq hmem) hΘS
+  · exact callCoincides (evm := evmS)
+      (targetWord := endThawCureWord evmS.accountMap evmS.executionEnv)
+      hdepthS htgtS (endThawTellEncode_eq hmem) hΘS
   · constructor
     · simp [hState.executionEnv]
     · rfl
@@ -5035,16 +4987,12 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
     hcode hwv hsz4 hsize hsel'
   obtain ⟨_, _, hbodyReach⟩ := endThawX_entry hreach
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  have hliveCouple : endThawLiveWord σ I = endThawLiveWord σ I := by
-    simpa [endThawLiveWord, endSlotWord] using
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
+  have hliveCouple : endThawLiveWord σ I = endThawLiveWord σ I := rfl
   by_cases hlive : endThawLiveWord σ I = ⟨0⟩
   · have hliveSolm : endThawLiveWord σ I = ⟨0⟩ := by
       rw [← hliveCouple]
       exact hlive
-    have hdebtCouple : endThawDebtWord σ I = endThawDebtWord σ I := by
-      simpa [endThawDebtWord, endSlotWord] using
-        accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨11⟩ ⟨0⟩
+    have hdebtCouple : endThawDebtWord σ I = endThawDebtWord σ I := rfl
     by_cases hdebt : endThawDebtWord σ I = ⟨0⟩
     · have hdebtSolm : endThawDebtWord σ I = ⟨0⟩ := by
         rw [← hdebtCouple]
@@ -5055,7 +5003,7 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
       · have hvatCodeSolm :
             Reasoning.Theory.extCodeSizeWord σ
               (endThawVatWord σ I) = ⟨0⟩ :=
-          endThawVatCodeSize_zero_accountMapEquiv hAccounts hvatCode
+          hvatCode
         have hbody :
             ExecTransitionBody config contract evmSolm (∅ : Store) thawTransition.body
               .reverted := by
@@ -5071,7 +5019,7 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
         have hvatCodeSolmNE :
             Reasoning.Theory.extCodeSizeWord σ
               (endThawVatWord σ I) ≠ ⟨0⟩ :=
-          endThawVatCodeSize_ne_accountMapEquiv hAccounts hvatCodeNE
+          hvatCodeNE
         obtain ⟨gasWord, _, _, hdaiReady⟩ :=
           endThawX_daiCallReady (g := Sat256.ofUInt256 g) hlive hdebt hvatCodeNE hbodyReach
         by_cases hdepthLt : I.depth.val < 1024
@@ -5124,16 +5072,8 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                 (callPerm := false)
                 hdepthNe htgt (endThawDaiEncode_eq σ I solcFreePtrMem_size)
                 (by simpa [initState] using hΘeq)
-          obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hStateCall⟩ :=
-            typedCallViaEVM_initState_EVMStateEquiv (hcall := hcallEvm)
-              (by simp [initState]) hAccounts
-          have hVatAddr : endThawVatAddr σ I = endThawVatAddr σ I := by
-            simp [endThawVatAddr, endThawVatWord_accountMapEquiv hAccounts]
-          have hVowWord : endThawVowWord σ I = endThawVowWord σ I := by
-            simp [endThawVowWord, endSlotWord, solcSlotWord,
-              accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨4⟩ ⟨0⟩]
-          have hVowAddr : endThawVowAddr σ I = endThawVowAddr σ I := by
-            simp [endThawVowAddr, hVowWord]
+          let σ'_solm : AccountMap := σ'
+          let A'_solm : Substate := A'
           have hcallSolm :
               typedCallViaEVM config evmSolm
                 (EVM.address (endThawVatAddr σ I)) "dai" 0
@@ -5143,7 +5083,7 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                     accountMap := σ'_solm
                     substate := A'_solm },
                   out) false := by
-              simpa [evmSolm, hVatAddr, hVowAddr] using hcallSolmRaw
+              simpa [evmSolm] using hcallEvm
           cases z
           · have hbody :
                 ExecTransitionBody config contract evmSolm (∅ : Store) thawTransition.body
@@ -5168,6 +5108,7 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                 { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                   accountMap := σ'
                   substate := A' }
+            have hStateCall : EVMStateEquiv evmDaiEvm evmDaiSolm := ⟨rfl, rfl⟩
             obtain ⟨_, _, rd4771⟩ := endThawX_daiCallSucceeded (g := g) rd4753
             by_cases hshort : out.size < 32
             · have hbody :
@@ -5190,16 +5131,14 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                     endThawWhenWord σ' I =
                       Solm.EVM.storageLoad evmDaiSolm evmDaiSolm.executionEnv.codeOwner
                         ⟨9⟩ := by
-                    have hload := hStateCall.storageLoad_codeOwner ⟨9⟩
-                    simpa [evmDaiEvm, evmDaiSolm, initState, Solm.EVM.storageLoad,
-                      State.lookupAccount, endThawWhenWord, endSlotWord, solcSlotWord] using hload
+                    simp [evmDaiSolm, evmSolm, σ'_solm, initState, Solm.EVM.storageLoad,
+                      State.lookupAccount, Account.lookupStorage, endThawWhenWord, endSlotWord, solcSlotWord]
                 have hwaitCouple :
                     endThawWaitWord σ' I =
                       Solm.EVM.storageLoad evmDaiSolm evmDaiSolm.executionEnv.codeOwner
                         ⟨10⟩ := by
-                    have hload := hStateCall.storageLoad_codeOwner ⟨10⟩
-                    simpa [evmDaiEvm, evmDaiSolm, initState, Solm.EVM.storageLoad,
-                      State.lookupAccount, endThawWaitWord, endSlotWord, solcSlotWord] using hload
+                    simp [evmDaiSolm, evmSolm, σ'_solm, initState, Solm.EVM.storageLoad,
+                      State.lookupAccount, Account.lookupStorage, endThawWaitWord, endSlotWord, solcSlotWord]
                 by_cases hoverDeadline :
                     UInt256.size ≤
                       (endThawWhenWord σ' I).toNat + (endThawWaitWord σ' I).toNat
@@ -5328,10 +5267,7 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                           Reasoning.Theory.extCodeSizeWord evmDaiSolm.accountMap
                             (endThawVatWord evmDaiSolm.accountMap
                               evmDaiSolm.executionEnv) = ⟨0⟩ := by
-                          have htmp :=
-                            endThawVatCodeSize_zero_accountMapEquiv
-                              hStateCall.accountMap hvatCodeDebt
-                          simpa [evmDaiSolm, evmSolm, initState] using htmp
+                          simpa [evmDaiSolm, evmSolm, initState] using hvatCodeDebt
                       have hdebtBlock :
                           ExecBlock config
                             { contract := contract,
@@ -5381,10 +5317,7 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                           Reasoning.Theory.extCodeSizeWord evmDaiSolm.accountMap
                             (endThawVatWord evmDaiSolm.accountMap
                               evmDaiSolm.executionEnv) ≠ ⟨0⟩ := by
-                          have htmp :=
-                            endThawVatCodeSize_ne_accountMapEquiv
-                              hStateCall.accountMap hvatCodeDebtNE
-                          simpa [evmDaiSolm, evmSolm, initState] using htmp
+                          simpa [evmDaiSolm, evmSolm, initState] using hvatCodeDebtNE
                       obtain ⟨gasDebt, _, _, rd5031⟩ :=
                         endThawX_debtCallReady hmemDai hreadDai
                           hvatCodeDebtNE rd4956
@@ -5556,9 +5489,10 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                                   evmDebtSolm.accountMap
                                   (endThawCureWord evmDebtSolm.accountMap
                                     evmDebtSolm.executionEnv) = ⟨0⟩ := by
-                                have htmp :=
-                                  endThawCureCodeSize_zero_accountMapEquiv
-                                    hStateDebt.accountMap hcureCode
+                                have htmp := hcureCode
+                                have hMap : σDebt = evmDebtSolm.accountMap := by
+                                  simpa [evmDebtEvm] using hStateDebt.accountMap
+                                rw [hMap] at htmp
                                 simpa [evmDebtEvm, evmDebtSolm, evmDaiEvm, evmDaiSolm,
                                   evmSolm, initState] using htmp
                             have htellBlock :
@@ -5633,9 +5567,10 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                                   evmDebtSolm.accountMap
                                   (endThawCureWord evmDebtSolm.accountMap
                                     evmDebtSolm.executionEnv) ≠ ⟨0⟩ := by
-                                have htmp :=
-                                  endThawCureCodeSize_ne_accountMapEquiv
-                                    hStateDebt.accountMap hcureCodeNE
+                                have htmp := hcureCodeNE
+                                have hMap : σDebt = evmDebtSolm.accountMap := by
+                                  simpa [evmDebtEvm] using hStateDebt.accountMap
+                                rw [hMap] at htmp
                                 simpa [evmDebtEvm, evmDebtSolm, evmDaiEvm, evmDaiSolm,
                                   evmSolm, initState] using htmp
                             obtain ⟨gasTell, _, _, rd5144⟩ :=
@@ -5950,22 +5885,16 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                                       simpa [endThawPostState] using
                                       hStateTell.storageStore_codeOwner ⟨11⟩
                                         (rfl : debtNew = debtNew)
-                                  exact hret.reEquivExecutionGenEVMStateEquiv
-                                    (evm'_evm := endThawPostState evmTellEvm debtNew)
-                                    (evm'_solm := endThawPostState evmTellSolm debtNew)
+                                  exact hret.reEquivExecutionGenAccountMapEquiv
                                     hcode hdispatch hdecode hbody
                                     (by
-                                      simp [evmTellEvm, evmDebtEvm, evmDaiEvm,
-                                        endThawPostState, initState,
-                                        ])
-                                    (by
-                                      simpa [evmTellEvm, evmDebtEvm, evmDaiEvm,
-                                        endThawPostState, initState,
-                                        storageStore_accountMap] using
-                                        Eq.refl
-                                          (sstoreAccountMap I.codeOwner σTell
-                                            ⟨11⟩ debtNew))
-                                    hStatePost
+                                      calc
+                                        _ = (endThawPostState evmTellEvm debtNew).accountMap := by
+                                          simp [evmTellEvm, evmDebtEvm, evmDaiEvm,
+                                            endThawPostState, initState, storageStore_accountMap,
+                                            debtNew]
+                                        _ = (endThawPostState evmTellSolm debtNew).accountMap :=
+                                          hStatePost.accountMap)
                                     (by
                                       simpa [thawTransition] using
                                         (returnEquiv.fallthrough

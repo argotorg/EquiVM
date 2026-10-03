@@ -23,11 +23,4 @@ theorem vyperERC20StorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256)
   simpa [vyperUint256Loc, vyperWordLoc, uint256Loc] using
     storageLocStore_uint256 evm slot val
 
-/-- `EVM.storageStore`'s account map is exactly the map carried by `RD.sstore`. -/
-theorem vyperERC20StorageStore_accountMap (evm : EVM.State) (a : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).accountMap =
-      sstoreAccountMap a evm.accountMap slot val := by
-  exact storageStore_accountMap evm a slot val
-
 end VyperERC20

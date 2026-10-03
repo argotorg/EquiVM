@@ -59,7 +59,7 @@ theorem uniswapMintFeeFunctionBodyRuntimeCasesWithMemory
       · have hout32 : 32 ≤ outFee.size := by omega
         obtain ⟨_, _, rd7825⟩ := hcont hz hout32
         have heFeeI := heFee.trans henv
-        rw [← mintFeeKLastWord_eq_slot_of_accountMapEquiv hpost heFeeI] at rd7825
+        rw [← mintFeeKLastWord_eq_slot hpost heFeeI] at rd7825
         have hrecipient : AccountAddress.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)) =
             AccountAddress.ofNat (UInt256.ofNat
               (fromByteArrayBigEndian (outFee.extract 0 32))).toNat := by

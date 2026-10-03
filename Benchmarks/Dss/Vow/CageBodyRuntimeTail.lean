@@ -177,14 +177,14 @@ theorem vowCageBodyToMinHeal
           {flapperDai} {vatDai} rd3115 hmemDai2 hread64Dai2 hvatCode hcallDai
           hdecDai hauthSolm hliveSolm hflapperCode hcallFlap hflopperCode hcallFlop
           hvatCode2 hcallDai2 hdecDai2 hdepthLt hσ0Dai2 henvDai2 hAccountsDai2 => ?_)
-      hcode hsize hperm hwv hsel hAccounts
+      hcode hsize hperm hwv hsel
   by_cases hcodeSizeVatSin :
       Reasoning.Theory.extCodeSizeWord σ_dai2 (kissDaiTargetWord σ_dai2 I) =
         ⟨0⟩
   · have hcodeSizeVatSinSolm :
         Reasoning.Theory.extCodeSizeWord evmDai2.accountMap
-            (kissDaiTargetWord evmDai2.accountMap I) = ⟨0⟩ :=
-      cageVatCodeSize_zero_accountMapEquiv hAccountsDai2 hcodeSizeVatSin
+            (kissDaiTargetWord evmDai2.accountMap I) = ⟨0⟩ := by
+      simpa only [← hAccountsDai2] using hcodeSizeVatSin
     have hownerDai2 : evmDai2.executionEnv.codeOwner = I.codeOwner := by
       simp [henvDai2]
     have hvatNoCode :
@@ -206,8 +206,8 @@ theorem vowCageBodyToMinHeal
     hcodeSizeVatSin
   have hcodeSizeVatSinSolmNE :
       Reasoning.Theory.extCodeSizeWord evmDai2.accountMap
-          (kissDaiTargetWord evmDai2.accountMap I) ≠ ⟨0⟩ :=
-    cageVatCodeSize_ne_accountMapEquiv hAccountsDai2 hcodeSizeVatSinNE
+          (kissDaiTargetWord evmDai2.accountMap I) ≠ ⟨0⟩ := by
+    simpa only [← hAccountsDai2] using hcodeSizeVatSinNE
   have hownerDai2 : evmDai2.executionEnv.codeOwner = I.codeOwner := by
     simp [henvDai2]
   have hvatCodeSin :
@@ -236,17 +236,17 @@ theorem vowCageBodyToMinHeal
     simpa [evmSinEvmIn, evmSinEvmOut] using hcallSinEvmRaw
   have hSinTargetPostEvm : kissDaiTargetWord σ_sin I = kissDaiTargetWord σ_dai2 I := by
     have hslot :=
-      typedCallViaEVM_static_storage_findD_of_accountMapEquiv
+      typedCallViaEVM_static_storage_findD_of_accounts_eq
         (cfg := config) (σ := σ_dai2) (evm := evmSinEvmIn)
         (evm' := evmSinEvmOut) (target := EVM.address (kissVatAddress σ_dai2 I))
         (name := "sin") (args := [.address I.codeOwner]) (z := zSin)
         (out := outSin) (slot := ⟨1⟩) (default := ⟨0⟩)
-        (by simpa [evmSinEvmIn] using accountMapEquiv_refl σ_dai2)
+        (by simp [evmSinEvmIn])
         hcallSinEvm
     simpa [kissDaiTargetWord, vowSlotWord, evmSinEvmIn, evmSinEvmOut, initState] using
       congrArg (fun word => UInt256.land word solcAddrMask) hslot
   have hVatAddrMap : kissVatAddress σ_dai2 I = kissVatAddress evmDai2.accountMap I :=
-    cageVatAddress_accountMapEquiv hAccountsDai2
+    congrArg (fun accounts => kissVatAddress accounts I) hAccountsDai2
   have hVatAddrSolm : cageVatAddressOf evmDai2 = kissVatAddress evmDai2.accountMap I :=
     cageVatAddressOf_eq_kissVatAddress evmDai2 I hownerDai2
   have hVatTargetAddr :
@@ -257,26 +257,22 @@ theorem vowCageBodyToMinHeal
       EVM.address (kissVatAddress σ_dai2 evmDai2.executionEnv) =
         EVM.address (cageVatAddressOf evmDai2) := by
     simpa [← henvDai2] using hVatTargetAddr
-  let evmSinSolmBase := { evmDai2 with substate := evmSinEvmIn.substate }
-  have hcallEnvSin :
-      evmSinSolmBase.executionEnv = evmSinEvmIn.executionEnv := by
-    simpa [evmSinSolmBase, evmSinEvmIn, initState] using henvDai2
   obtain ⟨σ_sin_solm, A_sin_solm0, hcallSinSolmBase, hAccountsSin⟩ :=
-    typedCallViaEVM_accountMapEquiv (evm_solm := evmSinSolmBase)
+    typedCallViaEVM_sameInputs (evm_solm := evmDai2)
       hcallSinEvm hAccountsDai2
-      (by simpa [evmSinEvmIn, evmSinSolmBase, initState] using hσ0Dai2.symm)
-      hcallEnvSin
+      (by simpa [evmSinEvmIn, initState] using hσ0Dai2.symm)
+      (by simpa [evmSinEvmIn, initState] using henvDai2.symm)
   let evmSinSolm :=
     { evmDai2 with
       accountMap := σ_sin_solm
-      substate := A_sin_solm
+      substate := A_sin_solm0
     }
   have hcallSinSolm :
       typedCallViaEVM config evmDai2 (EVM.address (cageVatAddressOf evmDai2))
         "sin" 0 [.address evmDai2.executionEnv.codeOwner]
         (zSin, evmSinSolm, outSin) false := by
-    simpa [evmSinSolm, evmSinSolmBase, evmSinEvmOut, hVatTargetAddrDai2, ← henvDai2]
-      using hcallSinSolmRaw
+    simpa [evmSinSolm, evmSinEvmOut, hVatTargetAddrDai2, ← henvDai2]
+      using hcallSinSolmBase
   cases zSin
   · exact vowCageVatSinCallFailureBodyCore (acc := σ_sin)
       (evmDai := evmDai) (evmFlap := evmFlap) (evmFlop := evmFlop)
@@ -399,7 +395,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
           hread64Sin hvatCode hcallDai hdecDai hauthSolm hliveSolm hflapperCode
           hcallFlap hflopperCode hcallFlop hvatCode2 hcallDai2 hdecDai2
           hvatCodeSin hcallSin hdecSin hdepthLt hσ0Sin henvSin hAccountsSin => ?_)
-      hcode hsize hperm hwv hsel hAccounts
+      hcode hsize hperm hwv hsel
   have hownerSin : evmSin.executionEnv.codeOwner = I.codeOwner := by
     simp [henvSin]
   by_cases hle : vatDai.toNat ≤ vatSin.toNat
@@ -408,8 +404,8 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
           ⟨0⟩
     · have hcodeSizeHealSolm :
           Reasoning.Theory.extCodeSizeWord evmSin.accountMap
-              (kissDaiTargetWord evmSin.accountMap I) = ⟨0⟩ :=
-        cageVatCodeSize_zero_accountMapEquiv hAccountsSin hcodeSizeHeal
+              (kissDaiTargetWord evmSin.accountMap I) = ⟨0⟩ := by
+        simpa only [← hAccountsSin] using hcodeSizeHeal
       have hvatNoCode :
           (UInt256.ofNat
             ((evmSin.lookupAccount (cageVatAddressOf evmSin)).option 0
@@ -430,8 +426,8 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
       hcodeSizeHeal
     have hcodeSizeHealSolmNE :
         Reasoning.Theory.extCodeSizeWord evmSin.accountMap
-            (kissDaiTargetWord evmSin.accountMap I) ≠ ⟨0⟩ :=
-      cageVatCodeSize_ne_accountMapEquiv hAccountsSin hcodeSizeHealNE
+            (kissDaiTargetWord evmSin.accountMap I) ≠ ⟨0⟩ := by
+      simpa only [← hAccountsSin] using hcodeSizeHealNE
     have hvatCodeHeal :
         0 < (UInt256.ofNat
           ((evmSin.lookupAccount (cageVatAddressOf evmSin)).option 0
@@ -460,7 +456,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
           (zHeal, evmHealEvmOut, outHeal) true := by
       simpa [evmHealEvmIn, evmHealEvmOut] using hcallHealEvmRaw
     have hVatAddrMap : kissVatAddress σ_sin I = kissVatAddress evmSin.accountMap I :=
-      cageVatAddress_accountMapEquiv hAccountsSin
+      congrArg (fun accounts => kissVatAddress accounts I) hAccountsSin
     have hVatAddrSolm : cageVatAddressOf evmSin = kissVatAddress evmSin.accountMap I :=
       cageVatAddressOf_eq_kissVatAddress evmSin I hownerSin
     have hVatTargetAddr :
@@ -471,26 +467,22 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
         EVM.address (kissVatAddress σ_sin evmSin.executionEnv) =
           EVM.address (cageVatAddressOf evmSin) := by
       simpa [← henvSin] using hVatTargetAddr
-    let evmHealSolmBase := { evmSin with substate := evmHealEvmIn.substate }
-    have hcallEnvHeal :
-        evmHealSolmBase.executionEnv = evmHealEvmIn.executionEnv := by
-      simpa [evmHealSolmBase, evmHealEvmIn, initState] using henvSin
     obtain ⟨σ_heal_solm, A_heal_solm0, hcallHealSolmBase, hAccountsHeal⟩ :=
-      typedCallViaEVM_accountMapEquiv (evm_solm := evmHealSolmBase)
+      typedCallViaEVM_sameInputs (evm_solm := evmSin)
         hcallHealEvm hAccountsSin
-        (by simpa [evmHealEvmIn, evmHealSolmBase, initState] using hσ0Sin.symm)
-        hcallEnvHeal
+        (by simpa [evmHealEvmIn, initState] using hσ0Sin.symm)
+        (by simpa [evmHealEvmIn, initState] using henvSin.symm)
     let evmHealSolm :=
       { evmSin with
         accountMap := σ_heal_solm
-        substate := A_heal_solm
+        substate := A_heal_solm0
       }
     have hcallHealSolm :
         typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
           "heal" 0 [.int (Int.ofNat vatDai.toNat)]
           (zHeal, evmHealSolm, outHeal) true := by
-      simpa [evmHealSolm, evmHealSolmBase, evmHealEvmOut, hVatTargetAddrSin,
-        ← henvSin] using hcallHealSolmRaw
+      simpa [evmHealSolm, evmHealEvmOut, hVatTargetAddrSin,
+        ← henvSin] using hcallHealSolmBase
     cases zHeal
     · exact vowCageMinHealLeftCallFailureBodyCore (acc := σ_heal)
         (evmDai := evmDai) (evmFlap := evmFlap) (evmFlop := evmFlop)
@@ -516,7 +508,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
         hcode hwv hauthSolm hliveSolm hdispatch hdecode (by simpa using rd3296)
         hvatCode hcallDai hdecDai hflapperCode hcallFlap hflopperCode hcallFlop
         hvatCode2 hcallDai2 hdecDai2 hvatCodeSin hcallSin hdecSin hle
-        hvatCodeHeal hcallHealSolmTrue (by simp [evmHealSolm])
+        hvatCodeHeal hcallHealSolmTrue
         (by simpa [evmHealEvmOut, evmHealSolm] using hAccountsHeal)
   · have hlt : vatSin.toNat < vatDai.toNat := by
       omega
@@ -525,8 +517,8 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
           ⟨0⟩
     · have hcodeSizeHealSolm :
           Reasoning.Theory.extCodeSizeWord evmSin.accountMap
-              (kissDaiTargetWord evmSin.accountMap I) = ⟨0⟩ :=
-        cageVatCodeSize_zero_accountMapEquiv hAccountsSin hcodeSizeHeal
+              (kissDaiTargetWord evmSin.accountMap I) = ⟨0⟩ := by
+        simpa only [← hAccountsSin] using hcodeSizeHeal
       have hvatNoCode :
           (UInt256.ofNat
             ((evmSin.lookupAccount (cageVatAddressOf evmSin)).option 0
@@ -547,8 +539,8 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
       hcodeSizeHeal
     have hcodeSizeHealSolmNE :
         Reasoning.Theory.extCodeSizeWord evmSin.accountMap
-            (kissDaiTargetWord evmSin.accountMap I) ≠ ⟨0⟩ :=
-      cageVatCodeSize_ne_accountMapEquiv hAccountsSin hcodeSizeHealNE
+            (kissDaiTargetWord evmSin.accountMap I) ≠ ⟨0⟩ := by
+      simpa only [← hAccountsSin] using hcodeSizeHealNE
     have hvatCodeHeal :
         0 < (UInt256.ofNat
           ((evmSin.lookupAccount (cageVatAddressOf evmSin)).option 0
@@ -577,7 +569,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
           (zHeal, evmHealEvmOut, outHeal) true := by
       simpa [evmHealEvmIn, evmHealEvmOut] using hcallHealEvmRaw
     have hVatAddrMap : kissVatAddress σ_sin I = kissVatAddress evmSin.accountMap I :=
-      cageVatAddress_accountMapEquiv hAccountsSin
+      congrArg (fun accounts => kissVatAddress accounts I) hAccountsSin
     have hVatAddrSolm : cageVatAddressOf evmSin = kissVatAddress evmSin.accountMap I :=
       cageVatAddressOf_eq_kissVatAddress evmSin I hownerSin
     have hVatTargetAddr :
@@ -588,35 +580,22 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
         EVM.address (kissVatAddress σ_sin evmSin.executionEnv) =
           EVM.address (cageVatAddressOf evmSin) := by
       simpa [← henvSin] using hVatTargetAddr
-    let evmHealSolmBase := { evmSin with substate := evmHealEvmIn.substate }
-    have hcallEnvHeal :
-        evmHealSolmBase.executionEnv = evmHealEvmIn.executionEnv := by
-      simpa [evmHealSolmBase, evmHealEvmIn, initState] using henvSin
     obtain ⟨σ_heal_solm, A_heal_solm0, hcallHealSolmBase, hAccountsHeal⟩ :=
-      typedCallViaEVM_accountMapEquiv (evm_solm := evmHealSolmBase)
+      typedCallViaEVM_sameInputs (evm_solm := evmSin)
         hcallHealEvm hAccountsSin
-        (by simpa [evmHealEvmIn, evmHealSolmBase, initState] using hσ0Sin.symm)
-        hcallEnvHeal
-    have hdepthNeI : I.depth ≠ 1024 := by
-      intro hdepthEq
-      rw [hdepthEq] at hdepthLt
-      norm_num at hdepthLt
-    have hdepthNeBaseHeal : evmHealSolmBase.executionEnv.depth ≠ 1024 := by
-      simpa [evmHealSolmBase, henvSin] using hdepthNeI
-    obtain ⟨A_heal_solm, hcallHealSolmRaw⟩ :=
-      typedCallViaEVM_zero_setSubstate hcallHealSolmBase hdepthNeBaseHeal
-        evmSin.substate
+        (by simpa [evmHealEvmIn, initState] using hσ0Sin.symm)
+        (by simpa [evmHealEvmIn, initState] using henvSin.symm)
     let evmHealSolm :=
       { evmSin with
         accountMap := σ_heal_solm
-        substate := A_heal_solm
+        substate := A_heal_solm0
       }
     have hcallHealSolm :
         typedCallViaEVM config evmSin (EVM.address (cageVatAddressOf evmSin))
           "heal" 0 [.int (Int.ofNat vatSin.toNat)]
           (zHeal, evmHealSolm, outHeal) true := by
-      simpa [evmHealSolm, evmHealSolmBase, evmHealEvmOut, hVatTargetAddrSin,
-        ← henvSin] using hcallHealSolmRaw
+      simpa [evmHealSolm, evmHealEvmOut, hVatTargetAddrSin,
+        ← henvSin] using hcallHealSolmBase
     cases zHeal
     · exact vowCageMinHealRightCallFailureBodyCore (acc := σ_heal)
         (evmDai := evmDai) (evmFlap := evmFlap) (evmFlop := evmFlop)
@@ -642,7 +621,7 @@ theorem vowCageBody {σ σ₀ A I} {g : UInt256}
         hcode hwv hauthSolm hliveSolm hdispatch hdecode (by simpa using rd3296)
         hvatCode hcallDai hdecDai hflapperCode hcallFlap hflopperCode hcallFlop
         hvatCode2 hcallDai2 hdecDai2 hvatCodeSin hcallSin hdecSin hlt
-        hvatCodeHeal hcallHealSolmTrue (by simp [evmHealSolm])
+        hvatCodeHeal hcallHealSolmTrue
         (by simpa [evmHealEvmOut, evmHealSolm] using hAccountsHeal)
 
 end Benchmarks.Dss.Vow

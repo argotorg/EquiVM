@@ -136,22 +136,6 @@ theorem cureStorageWF_returnBound {σ : AccountMap} {I : ExecutionEnv}
     224 + 64 * (cureSlotWord ⟨2⟩ σ I).toNat < 2 ^ 64 :=
   hwf
 
-theorem cureStorageWF_mapEq {σ τ : AccountMap} {I : ExecutionEnv}
-    (hMap : σ = τ) :
-    cureStorageWF σ I ↔ cureStorageWF τ I := by
-  have hword : cureSlotWord ⟨2⟩ σ I = cureSlotWord ⟨2⟩ τ I := by
-    rw [hMap]
-  constructor
-  · intro h
-    simpa [cureStorageWF, ← hword] using h
-  · intro h
-    simpa [cureStorageWF, hword] using h
-
-theorem cureStorageWF_of_mapEq {σ τ : AccountMap} {I : ExecutionEnv}
-    (hMap : σ = τ) (hwf : cureStorageWF σ I) :
-    cureStorageWF τ I :=
-  (cureStorageWF_mapEq hMap).mp hwf
-
 theorem cureStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (wordLoc slot) =
       .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by

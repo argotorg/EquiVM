@@ -179,24 +179,6 @@ theorem tickRuntimeEndStoredRawWord_eq_setUint48Offset26Word (old data : UInt256
     omega
   exact Nat.mod_eq_of_lt hsumLt
 
-theorem tickRuntimeLotPostWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    tickRuntimeLotPostWord σ I = tickRuntimeLotPostWord τ I := by
-  have hpad := flopperSlotWord_accountMapEquiv (I := I) hAccounts ⟨5⟩
-  have hlot := flopperSlotWord_accountMapEquiv (I := I) hAccounts
-    (auctionLotSlot (tickIdWord I))
-  simp [tickRuntimeLotPostWord, tickRuntimeLotBaseWord, hpad, hlot]
-
-theorem tickRuntimeAfterLotMap_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (owner : AccountAddress) (hAccounts : Eq σ τ) :
-    Eq (tickRuntimeAfterLotMap owner σ I)
-      (tickRuntimeAfterLotMap owner τ I) := by
-  have hpost := tickRuntimeLotPostWord_accountMapEquiv (I := I) hAccounts
-  unfold tickRuntimeAfterLotMap
-  rw [hpost]
-  exact accountMapEquiv_sstoreAccountMap owner (auctionLotSlot (tickIdWord I))
-    (tickRuntimeLotPostWord τ I) hAccounts
-
 theorem tickLocals_get_id (I : ExecutionEnv) :
     (tickLocals I).get? "id" = some (tickIdValue I) := by
   simp [tickLocals]

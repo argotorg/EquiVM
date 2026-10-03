@@ -64,47 +64,6 @@ def delegateTailTrueSuccessMap (σ : AccountMap) (I : ExecutionEnv)
   sstoreAccountMap I.codeOwner (delegateTailAfterSenderMap σ I w)
     (delegateTailProposalCountSlot σ I w) (delegateTailUpdatedProposalCount σ I w)
 
-theorem delegateTailSenderPackedStoreWord_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : σ = τ) (w : UInt256) :
-    delegateTailSenderPackedStoreWord σ I w = delegateTailSenderPackedStoreWord τ I w := by
-  unfold delegateTailSenderPackedStoreWord
-  rw [delegateSenderPackedWord_accountMapEquiv hστ]
-
-theorem delegateTailAfterSenderMap_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : σ = τ) (w : UInt256) :
-    delegateTailAfterSenderMap σ I w = delegateTailAfterSenderMap τ I w := by
-  rw [delegateTailAfterSenderMap, delegateTailAfterSenderMap,
-    delegateTailSenderPackedStoreWord_accountMapEquiv hστ w]
-  exact accountMapEquiv_sstoreAccountMap I.codeOwner (delegateSenderPackedSlot I)
-    (delegateTailSenderPackedStoreWord τ I w) hστ
-
--- `delegateTailUpdatedVoterWeight_accountMapEquiv` / `delegateTailFalseSuccessMap_accountMapEquiv`
--- were retired when the tail false-success connect moved to `delegateTailFalseSuccessState_EVMStateEquiv`.
-
-theorem delegateTailProposalsLengthWord_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : σ = τ) (w : UInt256) :
-    delegateTailProposalsLengthWord σ I w = delegateTailProposalsLengthWord τ I w := by
-  exact accountMapEquiv_storage_findD (delegateTailAfterSenderMap_accountMapEquiv (I := I) hστ w)
-    I.codeOwner ⟨2⟩ ⟨0⟩
-
-theorem delegateTailProposalCountSlot_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : σ = τ) (w : UInt256) :
-    delegateTailProposalCountSlot σ I w = delegateTailProposalCountSlot τ I w := by
-  unfold delegateTailProposalCountSlot
-  rw [delegateVoterVoteWord_accountMapEquiv
-    (delegateTailAfterSenderMap_accountMapEquiv (I := I) hστ w) w]
-
-theorem delegateTailProposalCountWord_accountMapEquiv
-    {σ τ : AccountMap} {I : ExecutionEnv} (hστ : σ = τ) (w : UInt256) :
-    delegateTailProposalCountWord σ I w = delegateTailProposalCountWord τ I w := by
-  unfold delegateTailProposalCountWord
-  rw [delegateTailProposalCountSlot_accountMapEquiv hστ w]
-  exact accountMapEquiv_storage_findD (delegateTailAfterSenderMap_accountMapEquiv (I := I) hστ w)
-    I.codeOwner (delegateTailProposalCountSlot τ I w) ⟨0⟩
-
--- `delegateTailUpdatedProposalCount_accountMapEquiv` / `delegateTailTrueSuccessMap_accountMapEquiv`
--- were retired when the tail true-success connect moved to `delegateTailTrueSuccessState_EVMStateEquiv`.
-
 def delegateTailVoterWeightCurrent (evm : EVM.State) (w : UInt256) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (delegateVoterSlot w)
 
@@ -1301,11 +1260,11 @@ theorem ballotDelegateTailWeightRevertEquiv
   have hd := ballotDispatch_delegate (cd := I.calldata) hsel
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
   have hweightSolm : delegateSenderWeightWord σ I ≠ ⟨0⟩ := by
-    simpa [← delegateSenderWeightWord_accountMapEquiv rfl] using hweight
+    exact hweight
   have hvotedSolm : delegateSenderVotedByte σ I = ⟨0⟩ := by
-    simpa [← delegateSenderVotedByte_accountMapEquiv rfl] using hvoted
+    exact hvoted
   have hdelegateWeightSolm : delegateVoterWeightWord σ I w = ⟨0⟩ := by
-    simpa [← delegateVoterWeightWord_accountMapEquiv rfl w] using hdelegateWeight
+    exact hdelegateWeight
   have hbody := ballotDelegateBodyReverts_tailDelegateWeight
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) I w
     (by simp only [initState]; exact hwv)
@@ -2259,12 +2218,6 @@ theorem ballotDelegateX_tailVotedOverflowFrom1211 {σ σ₀ A I}
   exact RD.ballotPanic11Revert1847 rd1847
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem delegateTailSenderPackedStoreWord_ne_zero (σ : AccountMap) (I : ExecutionEnv)
-    (w : UInt256) :
-    delegateTailSenderPackedStoreWord σ I w ≠ ⟨0⟩ := by
-  unfold delegateTailSenderPackedStoreWord
-  exact u256_lor_one_ne_zero _
-
 theorem delegateTailAfterSenderState_findD_init {σ σ₀ A I} {g : Sat256}
     (w readSlot : UInt256) :
     (((delegateTailAfterSenderState (initState σ σ₀ g A I) I w).accountMap.find?
@@ -2273,12 +2226,13 @@ theorem delegateTailAfterSenderState_findD_init {σ σ₀ A I} {g : Sat256}
         (fun acc => acc.storage.findD readSlot default)) =
       (((delegateTailAfterSenderMap σ I w).find? I.codeOwner).option (default : UInt256)
         (fun acc => acc.storage.findD readSlot default)) := by
-  have hfinal : (delegateTailSenderPackedStoreWord σ I w == (default : UInt256)) = false := by
-    simpa using delegateTailSenderPackedStoreWord_ne_zero σ I w
-  have hlookup := sstoreAccountMap_self_storage_findD_update_insert_self
-    σ I.codeOwner (delegateSenderPackedSlot I) readSlot
-    (delegateSenderVotedStoreCurrent (initState σ σ₀ g A I) I)
-    (delegateTailSenderPackedStoreWord σ I w) hfinal
+  have hlookup := congrArg
+    (fun accounts : AccountMap =>
+      (accounts.find? I.codeOwner).option (default : UInt256)
+        (fun acc => acc.storage.findD readSlot default))
+    (sstoreAccountMap_self_update σ I.codeOwner (delegateSenderPackedSlot I)
+      (delegateSenderVotedStoreCurrent (initState σ σ₀ g A I) I)
+      (delegateTailSenderPackedStoreWord σ I w)).symm
   simpa [delegateTailAfterSenderState, delegateAfterVotedState, delegateTailAfterSenderMap,
     delegateTailSenderPackedStoreCurrent, delegateTailSenderPackedStoreWord,
     delegateSenderVotedStoreCurrent, delegateSenderPackedCurrent, delegateSenderPackedWord,
@@ -2385,60 +2339,44 @@ theorem delegateTailUpdatedProposalCount_ne_zero (σ : AccountMap) (I : Executio
   · simpa [delegateTailSenderWeightWord_afterSenderMap] using hweight
   · exact hfit
 
-theorem delegateTailAfterSenderState_accountMapEquiv_init {σ σ₀ A I}
+theorem delegateTailAfterSenderState_accountMap_eq_init {σ σ₀ A I}
     {g : Sat256} (w : UInt256) :
     delegateTailAfterSenderMap σ I w =
       (delegateTailAfterSenderState (initState σ σ₀ g A I) I w).accountMap := by
-  have hfinal : (delegateTailSenderPackedStoreWord σ I w == (default : UInt256)) = false := by
-    simpa using delegateTailSenderPackedStoreWord_ne_zero σ I w
-  have h := accountMapEquiv_sstoreAccountMap_self_update_insert
+  have h := sstoreAccountMap_self_update
     σ I.codeOwner (delegateSenderPackedSlot I)
     (delegateSenderVotedStoreCurrent (initState σ σ₀ g A I) I)
-    (delegateTailSenderPackedStoreWord σ I w) hfinal
+    (delegateTailSenderPackedStoreWord σ I w)
   simpa [delegateTailAfterSenderState, delegateAfterVotedState, delegateTailAfterSenderMap,
     delegateTailSenderPackedStoreCurrent, delegateTailSenderPackedStoreWord,
     delegateSenderVotedStoreCurrent, delegateSenderPackedCurrent, delegateSenderPackedWord,
     initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
     storageStore_accountMap, voteStorageStore_executionEnv] using h
 
-theorem delegateTailFalseSuccessState_accountMapEquiv_init {σ σ₀ A I}
-    {g : Sat256} (w : UInt256)
-    (hweight : delegateSenderWeightWord σ I ≠ ⟨0⟩)
-    (hfit :
-      (delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w).toNat +
-          (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat <
-        UInt256.size) :
+theorem delegateTailFalseSuccessState_accountMap_eq_init {σ σ₀ A I}
+    {g : Sat256} (w : UInt256) :
     delegateTailFalseSuccessMap σ I w =
       (delegateTailFalseSuccessState (initState σ σ₀ g A I) I w).accountMap := by
-  have hfinal : (delegateTailUpdatedVoterWeight σ I w == (default : UInt256)) = false := by
-    simpa using delegateTailUpdatedVoterWeight_ne_zero σ I w hweight hfit
-  have hbase := delegateTailAfterSenderState_accountMapEquiv_init
+  have hbase := delegateTailAfterSenderState_accountMap_eq_init
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) w
-  have h := accountMapEquiv_sstoreAccountMap_insert I.codeOwner
-    (delegateVoterSlot w) (delegateTailUpdatedVoterWeight σ I w) hbase hfinal
+  have h := congrArg (fun map => sstoreAccountMap I.codeOwner map
+    (delegateVoterSlot w) (delegateTailUpdatedVoterWeight σ I w)) hbase
   simpa [delegateTailFalseSuccessState, delegateTailFalseSuccessMap,
     delegateTailUpdatedVoterWeightCurrent, delegateTailUpdatedVoterWeight,
     delegateTailVoterWeightCurrent_afterSenderState_init,
     delegateTailSenderWeightCurrent_afterSenderState_init, storageStore_accountMap,
     voteStorageStore_executionEnv] using h
 
-theorem delegateTailTrueSuccessState_accountMapEquiv_init {σ σ₀ A I}
-    {g : Sat256} (w : UInt256)
-    (hweight : delegateSenderWeightWord σ I ≠ ⟨0⟩)
-    (hfit :
-      (delegateTailProposalCountWord σ I w).toNat +
-          (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat <
-        UInt256.size) :
+theorem delegateTailTrueSuccessState_accountMap_eq_init {σ σ₀ A I}
+    {g : Sat256} (w : UInt256) :
     delegateTailTrueSuccessMap σ I w =
       (delegateTailTrueSuccessState (initState σ σ₀ g A I) I w).accountMap := by
-  have hfinal : (delegateTailUpdatedProposalCount σ I w == (default : UInt256)) = false := by
-    simpa using delegateTailUpdatedProposalCount_ne_zero σ I w hweight hfit
-  have hbase := delegateTailAfterSenderState_accountMapEquiv_init
+  have hbase := delegateTailAfterSenderState_accountMap_eq_init
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
     (g := g) w
-  have h := accountMapEquiv_sstoreAccountMap_insert I.codeOwner
-    (delegateTailProposalCountSlot σ I w) (delegateTailUpdatedProposalCount σ I w) hbase hfinal
+  have h := congrArg (fun map => sstoreAccountMap I.codeOwner map
+    (delegateTailProposalCountSlot σ I w) (delegateTailUpdatedProposalCount σ I w)) hbase
   simpa [delegateTailTrueSuccessState, delegateTailTrueSuccessMap,
     delegateTailUpdatedProposalCountCurrent, delegateTailUpdatedProposalCount,
     delegateTailProposalCountCurrent_init, delegateTailSenderWeightCurrent_afterSenderState_init,
@@ -2509,20 +2447,19 @@ theorem ballotDelegateTailNotVotedSuccessEquiv
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
   have htail : delegateTailAfterSenderMap σ I w = delegateTailAfterSenderMap σ I w := rfl
   have hweightSolm : delegateSenderWeightWord σ I ≠ ⟨0⟩ := by
-    simpa [← delegateSenderWeightWord_accountMapEquiv rfl] using hweight
+    exact hweight
   have hvotedSolm : delegateSenderVotedByte σ I = ⟨0⟩ := by
-    simpa [← delegateSenderVotedByte_accountMapEquiv rfl] using hvoted
+    exact hvoted
   have hdelegateWeightSolm : delegateVoterWeightWord σ I w ≠ ⟨0⟩ := by
-    simpa [← delegateVoterWeightWord_accountMapEquiv rfl w] using hdelegateWeight
+    exact hdelegateWeight
   have hdelegateNotVotedSolm :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w = ⟨0⟩ := by
-    simpa [← delegateVoterVotedByte_accountMapEquiv htail w] using hdelegateNotVoted
+    exact hdelegateNotVoted
   have hfitSolm :
       (delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w).toNat +
           (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat <
         UInt256.size := by
-    simpa [← delegateVoterWeightWord_accountMapEquiv htail w,
-      ← delegateSenderWeightWord_accountMapEquiv htail] using hfit
+    exact hfit
   have hbody := ballotDelegateBodyReturns_tailNotVoted
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) I w
     (by simp only [initState]; exact hwv)
@@ -2546,9 +2483,9 @@ theorem ballotDelegateTailNotVotedSuccessEquiv
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hperm hdelegateNotVoted hfit hreach1211)
     |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-      (delegateTailFalseSuccessState_accountMapEquiv_init
+      (delegateTailFalseSuccessState_accountMap_eq_init
         (σ := σ) (σ₀ := σ₀)
-        (A := A) (I := I) (g := Sat256.ofUInt256 g) w hweight hfit)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g) w)
       (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 theorem ballotDelegateTailNotVotedOverflowEquiv
@@ -2587,19 +2524,18 @@ theorem ballotDelegateTailNotVotedOverflowEquiv
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
   have htail : delegateTailAfterSenderMap σ I w = delegateTailAfterSenderMap σ I w := rfl
   have hweightSolm : delegateSenderWeightWord σ I ≠ ⟨0⟩ := by
-    simpa [← delegateSenderWeightWord_accountMapEquiv rfl] using hweight
+    exact hweight
   have hvotedSolm : delegateSenderVotedByte σ I = ⟨0⟩ := by
-    simpa [← delegateSenderVotedByte_accountMapEquiv rfl] using hvoted
+    exact hvoted
   have hdelegateWeightSolm : delegateVoterWeightWord σ I w ≠ ⟨0⟩ := by
-    simpa [← delegateVoterWeightWord_accountMapEquiv rfl w] using hdelegateWeight
+    exact hdelegateWeight
   have hdelegateNotVotedSolm :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w = ⟨0⟩ := by
-    simpa [← delegateVoterVotedByte_accountMapEquiv htail w] using hdelegateNotVoted
+    exact hdelegateNotVoted
   have hoverSolm : UInt256.size ≤
       (delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w).toNat +
         (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat := by
-    simpa [← delegateVoterWeightWord_accountMapEquiv htail w,
-      ← delegateSenderWeightWord_accountMapEquiv htail] using hover
+    exact hover
   have hbody := ballotDelegateBodyReverts_tailNotVotedOverflow
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) I w
     (by simp only [initState]; exact hwv)
@@ -2664,25 +2600,21 @@ theorem ballotDelegateTailVotedSuccessEquiv
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
   have htail : delegateTailAfterSenderMap σ I w = delegateTailAfterSenderMap σ I w := rfl
   have hweightSolm : delegateSenderWeightWord σ I ≠ ⟨0⟩ := by
-    simpa [← delegateSenderWeightWord_accountMapEquiv rfl] using hweight
+    exact hweight
   have hvotedSolm : delegateSenderVotedByte σ I = ⟨0⟩ := by
-    simpa [← delegateSenderVotedByte_accountMapEquiv rfl] using hvoted
+    exact hvoted
   have hdelegateWeightSolm : delegateVoterWeightWord σ I w ≠ ⟨0⟩ := by
-    simpa [← delegateVoterWeightWord_accountMapEquiv rfl w] using hdelegateWeight
+    exact hdelegateWeight
   have hdelegateVotedSolm :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩ := by
-    simpa [← delegateVoterVotedByte_accountMapEquiv htail w] using hdelegateVoted
+    exact hdelegateVoted
   have hboundSolm :
       (delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w).toNat <
-        (delegateTailProposalsLengthWord σ I w).toNat := by
-    simpa [← delegateVoterVoteWord_accountMapEquiv htail w,
-      ← delegateTailProposalsLengthWord_accountMapEquiv rfl w] using hbound
+        (delegateTailProposalsLengthWord σ I w).toNat := hbound
   have hfitSolm :
       (delegateTailProposalCountWord σ I w).toNat +
           (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat <
-        UInt256.size := by
-    simpa [← delegateTailProposalCountWord_accountMapEquiv rfl w,
-      ← delegateSenderWeightWord_accountMapEquiv htail] using hfit
+        UInt256.size := hfit
   have hbody := ballotDelegateBodyReturns_tailVoted
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) I w
     (by simp only [initState]; exact hwv)
@@ -2710,9 +2642,9 @@ theorem ballotDelegateTailVotedSuccessEquiv
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hperm hdelegateVoted hbound hfit hreach1211)
     |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-      (delegateTailTrueSuccessState_accountMapEquiv_init
+      (delegateTailTrueSuccessState_accountMap_eq_init
         (σ := σ) (σ₀ := σ₀)
-        (A := A) (I := I) (g := Sat256.ofUInt256 g) w hweight hfit)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g) w)
       (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 theorem ballotDelegateTailVotedOobEquiv
@@ -2751,19 +2683,17 @@ theorem ballotDelegateTailVotedOobEquiv
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
   have htail : delegateTailAfterSenderMap σ I w = delegateTailAfterSenderMap σ I w := rfl
   have hweightSolm : delegateSenderWeightWord σ I ≠ ⟨0⟩ := by
-    simpa [← delegateSenderWeightWord_accountMapEquiv rfl] using hweight
+    exact hweight
   have hvotedSolm : delegateSenderVotedByte σ I = ⟨0⟩ := by
-    simpa [← delegateSenderVotedByte_accountMapEquiv rfl] using hvoted
+    exact hvoted
   have hdelegateWeightSolm : delegateVoterWeightWord σ I w ≠ ⟨0⟩ := by
-    simpa [← delegateVoterWeightWord_accountMapEquiv rfl w] using hdelegateWeight
+    exact hdelegateWeight
   have hdelegateVotedSolm :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩ := by
-    simpa [← delegateVoterVotedByte_accountMapEquiv htail w] using hdelegateVoted
+    exact hdelegateVoted
   have hboundSolm : ¬
       (delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w).toNat <
-        (delegateTailProposalsLengthWord σ I w).toNat := by
-    simpa [← delegateVoterVoteWord_accountMapEquiv htail w,
-      ← delegateTailProposalsLengthWord_accountMapEquiv rfl w] using hbound
+        (delegateTailProposalsLengthWord σ I w).toNat := hbound
   have hbody := ballotDelegateBodyReverts_tailVotedOob
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) I w
     (by simp only [initState]; exact hwv)
@@ -2827,24 +2757,20 @@ theorem ballotDelegateTailVotedOverflowEquiv
   have hdec := ballotDecode_delegate_ok (I := I) hsz36 hbig hcanonInit
   have htail : delegateTailAfterSenderMap σ I w = delegateTailAfterSenderMap σ I w := rfl
   have hweightSolm : delegateSenderWeightWord σ I ≠ ⟨0⟩ := by
-    simpa [← delegateSenderWeightWord_accountMapEquiv rfl] using hweight
+    exact hweight
   have hvotedSolm : delegateSenderVotedByte σ I = ⟨0⟩ := by
-    simpa [← delegateSenderVotedByte_accountMapEquiv rfl] using hvoted
+    exact hvoted
   have hdelegateWeightSolm : delegateVoterWeightWord σ I w ≠ ⟨0⟩ := by
-    simpa [← delegateVoterWeightWord_accountMapEquiv rfl w] using hdelegateWeight
+    exact hdelegateWeight
   have hdelegateVotedSolm :
       delegateVoterVotedByte (delegateTailAfterSenderMap σ I w) I w ≠ ⟨0⟩ := by
-    simpa [← delegateVoterVotedByte_accountMapEquiv htail w] using hdelegateVoted
+    exact hdelegateVoted
   have hboundSolm :
       (delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w).toNat <
-        (delegateTailProposalsLengthWord σ I w).toNat := by
-    simpa [← delegateVoterVoteWord_accountMapEquiv htail w,
-      ← delegateTailProposalsLengthWord_accountMapEquiv rfl w] using hbound
+        (delegateTailProposalsLengthWord σ I w).toNat := hbound
   have hoverSolm : UInt256.size ≤
       (delegateTailProposalCountWord σ I w).toNat +
-        (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat := by
-    simpa [← delegateTailProposalCountWord_accountMapEquiv rfl w,
-      ← delegateSenderWeightWord_accountMapEquiv htail] using hover
+        (delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I).toNat := hover
   have hbody := ballotDelegateBodyReverts_tailVotedOverflow
     (initState σ σ₀ (Sat256.ofUInt256 g) A I) I w
     (by simp only [initState]; exact hwv)

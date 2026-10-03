@@ -8,7 +8,7 @@ namespace Benchmarks.Dss.Clipper
 
 /- Synchronize the successful `vat.flux` call once, before splitting on the
    optional callback.  The callback, `vat.move`, and later dog calls all need
-   the same post-flux account equivalence, so keeping it existentially packaged
+   the same post-flux account-map equality, so keeping it existentially packaged
    avoids repeating the state reconstruction in every callback outcome. -/
 theorem clipperTakeVatFluxCallSyncFromPostAccounts
     (v : ClipperImmutables)
@@ -47,10 +47,10 @@ theorem clipperTakeVatFluxCallSyncFromPostAccounts
   have hAccountsState : evmPostEvm.accountMap = evmPriceSolm.accountMap := by
     simpa [evmPostEvm, hevmPriceAccounts] using hAccountsPost
   obtain ⟨σVatSolm, AVatSolm, hcallVatSolmRaw, hAccountsVat⟩ :=
-    typedCallViaEVM_accountMapEquiv_noSubstate
+    Reasoning.Theory.typedCallViaEVM_sameInputs
       (evm_solm := evmPriceSolm) (hcall := hcallVatEvm) hAccountsState
       (by simpa [evmPostEvm, initState] using hevmPriceSigma0.symm)
-      (by simpa [evmPostEvm, initState] using hevmPriceEnv)
+      (by simpa [evmPostEvm, initState] using hevmPriceEnv.symm)
   let evmVatSolm : EVM.State :=
     { evmPriceSolm with accountMap := σVatSolm, substate := AVatSolm }
   refine ⟨evmVatSolm, ?_, ?_, ?_, ?_⟩
@@ -59,15 +59,16 @@ theorem clipperTakeVatFluxCallSyncFromPostAccounts
   · simp [evmVatSolm, hevmPriceSigma0]
   · simp [evmVatSolm, hevmPriceEnv]
 
-theorem clipperTakeDogWord_eq_of_accountMapEquiv
+theorem clipperTakeDogWord_eq
     {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
-    (hAccounts : Eq σ evm.accountMap)
+    (hAccounts : σ = evm.accountMap)
     (henv : evm.executionEnv = I) :
     UInt256.land (solcSlotWord σ I ⟨1⟩) solcAddrMask =
       clipperTakeDogEVMWord evm := by
-  have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
+  subst σ
+  subst I
   simp [clipperTakeDogEVMWord, solcSlotWord, Solm.EVM.storageLoad,
-    State.lookupAccount, Account.lookupStorage, henv, hslot]
+    State.lookupAccount, Account.lookupStorage]
 
 theorem clipperTakeCallbackSkipStmtOfEvmWords
     (v : ClipperImmutables) (evmLoc evmRead evmVat : EVM.State)
@@ -101,7 +102,7 @@ theorem clipperTakeCallbackSkipStmtOfEvmWords
   · exact clipperTakeCallbackSkipWhoVatStmt v evmLoc evmRead evmVat I
       price slice owe0 owe slice' tabNew lotNew hvat
   · have hdogWord :=
-      clipperTakeDogWord_eq_of_accountMapEquiv hAccounts henv
+      clipperTakeDogWord_eq hAccounts henv
     have hdogClean :
         UInt256.land (clipperTakeDogEVMWord evmVat) solcAddrMask =
           clipperTakeDogEVMWord evmVat := by
@@ -439,11 +440,12 @@ theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
         ((evmPriceSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
+      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
-        hAccountsPost (clipperTakeVatTargetAddress v).symm hvatCodeEvm
+        (clipperTakeVatTargetAddress v).symm
+        (by simpa only [← hAccountsPost] using hvatCodeEvm)
   have hdogWord :=
-    clipperTakeDogWord_eq_of_accountMapEquiv hAccountsVat hevmVatEnv
+    clipperTakeDogWord_eq hAccountsVat hevmVatEnv
   have hdogClean :
       UInt256.land (clipperTakeDogEVMWord evmVatSolm) solcAddrMask =
         clipperTakeDogEVMWord evmVatSolm := by
@@ -486,8 +488,8 @@ theorem clipperTakeOweGtTabCallbackNoCodeRevertEquivFromPostCallAccounts
           (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
-        hAccountsVat haddr hcallbackNoCode
+      clipperExtCodeSizeWord_zero_lookup_code_zero haddr
+        (by simpa only [← hAccountsVat] using hcallbackNoCode)
   have hcallback :=
     clipperTakeCallbackNoCodeStmt v
       (Solm.EVM.storageStore
@@ -589,9 +591,10 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveNoCodeRevertEquivFromPostCallAccou
         ((evmPriceSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
+      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
-        hAccountsPost (clipperTakeVatTargetAddress v).symm hvatCodeEvm
+        (clipperTakeVatTargetAddress v).symm
+        (by simpa only [← hAccountsPost] using hvatCodeEvm)
   have hcallback :=
     clipperTakeCallbackSkipStmtOfEvmWords v
       (Solm.EVM.storageStore
@@ -617,9 +620,10 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveNoCodeRevertEquivFromPostCallAccou
         ((evmVatSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
+      clipperExtCodeSizeWord_zero_lookup_code_zero
         (target := clipperTakeVatTarget v) (addr := v.vat)
-        hAccountsVat (clipperTakeVatTargetAddress v).symm hvatMoveNoCodeEvm
+        (clipperTakeVatTargetAddress v).symm
+        (by simpa only [← hAccountsVat] using hvatMoveNoCodeEvm)
   exact
     clipperTakeOweGtTabVatFluxSuccessCallbackFalseVatMoveNoCodeRevertEquivFromPostWords
       v hcode hwv hdispatch hdec hlockedSolm hstoppedSolmLt husrSolm
@@ -720,11 +724,12 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
         ((evmPriceSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
+      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
-        hAccountsPost (clipperTakeVatTargetAddress v).symm hvatCodeEvm
+        (clipperTakeVatTargetAddress v).symm
+        (by simpa only [← hAccountsPost] using hvatCodeEvm)
   have hdogWord :=
-    clipperTakeDogWord_eq_of_accountMapEquiv hAccountsVat hevmVatEnv
+    clipperTakeDogWord_eq hAccountsVat hevmVatEnv
   have hdogClean :
       UInt256.land (clipperTakeDogEVMWord evmVatSolm) solcAddrMask =
         clipperTakeDogEVMWord evmVatSolm := by
@@ -767,8 +772,9 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
           (AccountAddress.ofNat (clipperTakeWhoWord I).toNat)).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-        hAccountsVat haddr hcallbackCode
+      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+        haddr
+        (by simpa only [← hAccountsVat] using hcallbackCode)
   let evmVatEvm : EVM.State :=
     { initState σ σ₀ (Sat256.ofUInt256 g) A I with
       accountMap := σVat, substate := AVat }
@@ -776,10 +782,10 @@ theorem clipperTakeOweGtTabCallbackFailureRevertEquivFromPostCallAccounts
       Eq evmVatEvm.accountMap evmVatSolm.accountMap := by
     simpa [evmVatEvm] using hAccountsVat
   obtain ⟨σCbSolm, ACbSolm, hcallCbSolmRaw, _hAccountsCb⟩ :=
-    typedCallViaEVM_accountMapEquiv_noSubstate
+    Reasoning.Theory.typedCallViaEVM_sameInputs
       (evm_solm := evmVatSolm) (hcall := hcallCbEvm) hAccountsState
       (by simpa [evmVatEvm, initState] using hevmVatSigma0.symm)
-      (by simpa [evmVatEvm, initState] using hevmVatEnv)
+      (by simpa [evmVatEvm, initState] using hevmVatEnv.symm)
   let evmCbSolm : EVM.State :=
     { evmVatSolm with
       accountMap := σCbSolm
@@ -916,9 +922,10 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAcco
         ((evmPriceSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount, hevmPriceAccounts] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
+      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
-        hAccountsPost (clipperTakeVatTargetAddress v).symm hvatCodeEvm
+        (clipperTakeVatTargetAddress v).symm
+        (by simpa only [← hAccountsPost] using hvatCodeEvm)
   have hcallback :=
     clipperTakeCallbackSkipStmtOfEvmWords v
       (Solm.EVM.storageStore
@@ -944,13 +951,13 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAcco
         ((evmVatSolm.lookupAccount v.vat).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
+      clipperExtCodeSizeWord_ne_zero_lookup_code_pos
         (target := clipperTakeVatTarget v) (addr := v.vat)
-        hAccountsVat (clipperTakeVatTargetAddress v).symm hvatMoveCodeEvm
+        (clipperTakeVatTargetAddress v).symm
+        (by simpa only [← hAccountsVat] using hvatMoveCodeEvm)
   have hvow : clipperTakeVowTarget σVat I =
       clipperTakeVowEVMWord evmVatSolm := by
-    have hslot := accountMapEquiv_storage_findD
-      hAccountsVat I.codeOwner ⟨2⟩ ⟨0⟩
+    have hslot := congrArg (fun m => solcSlotWord m I ⟨2⟩) hAccountsVat
     simp [clipperTakeVowTarget, clipperTakeVowEVMWord, hevmVatEnv,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       solcSlotWord, hslot]
@@ -961,12 +968,11 @@ theorem clipperTakeOweGtTabCallbackSkipVatMoveFailureRevertEquivFromPostCallAcco
       Eq evmVatEvm.accountMap evmVatSolm.accountMap := by
     simpa [evmVatEvm] using hAccountsVat
   obtain ⟨σMoveSolm, AMoveSolm, hcallMoveSolmRaw, _hAccountsMove⟩ :=
-    typedCallViaEVM_accountMapEquiv_noSubstate
+    Reasoning.Theory.typedCallViaEVM_sameInputs
       (evm_solm := evmVatSolm) (hcall := hcallMoveEvm)
       hAccountsMoveState
       (by simpa [evmVatEvm, initState] using hevmVatSigma0.symm)
-      (by simp [evmVatEvm, initState])
-      (by simpa [evmVatEvm, initState] using hevmVatEnv)
+      (by simpa [evmVatEvm, initState] using hevmVatEnv.symm)
   let evmMoveSolm : EVM.State :=
     { evmVatSolm with
       accountMap := σMoveSolm

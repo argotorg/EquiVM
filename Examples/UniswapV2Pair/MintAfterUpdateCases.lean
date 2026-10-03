@@ -48,13 +48,13 @@ theorem uniswapMintAfterUpdateRuntimeReturns
       uniswapMintAfterUpdateFeeOffReturn evm liquidity hfee hliq hunlocked, ?_,
       uniswapMintRuntimeAfterUpdateFeeOffReturns rd3926 hflag hmem hmem64 hperm⟩
     · simpa only [uniswapLockExitedState, uniswapUnlockedState, storageStore_accountMap,
-        henv] using accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩ hAccounts
+        henv] using congrArg
+          (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨12⟩ ⟨1⟩) hAccounts
   | true =>
     have hslot8 : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩ =
         uniswapSlotWord ⟨8⟩ σUpd I := by
-      have h := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
       simpa only [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-        uniswapSlotWord, henv] using h.symm
+        uniswapSlotWord, henv, ← hAccounts]
     have hkLastValue :
         mintFeeReserveProductWord (uniswapReserve0Word evm) (uniswapReserve1Word evm) =
           UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Mask)
@@ -62,8 +62,10 @@ theorem uniswapMintAfterUpdateRuntimeReturns
               reserve112Mask) := by
       rw [mintFeeReserveProductWord_eq_mul _ _ (mintFeeReserveProductNat_source_lt evm)]
       simp only [uniswapReserve0Word, uniswapReserve1Word, hslot8]
-    have hKLastAccounts := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨11⟩
-      (mintFeeReserveProductWord (uniswapReserve0Word evm) (uniswapReserve1Word evm)) hAccounts
+    have hKLastAccounts := congrArg
+      (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨11⟩
+        (mintFeeReserveProductWord (uniswapReserve0Word evm) (uniswapReserve1Word evm)))
+      hAccounts
     have hAfterKLast : Eq
         (sstoreAccountMap I.codeOwner σUpd ⟨11⟩
           (UInt256.mul (UInt256.land (uniswapSlotWord ⟨8⟩ σUpd I) reserve112Mask)
@@ -78,6 +80,7 @@ theorem uniswapMintAfterUpdateRuntimeReturns
         (by rw [hflag]; native_decide) (mintFeeReserveProductNat_masked_lt _) hmem hmem64 hperm⟩
     · simpa only [uniswapLockExitedState, uniswapUnlockedState, storageStore_accountMap,
         storageStore_executionEnv, mintKLastUpdatedState, henv]
-        using accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩ hAfterKLast
+        using congrArg
+          (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨12⟩ ⟨1⟩) hAfterKLast
 
 end UniswapV2Pair

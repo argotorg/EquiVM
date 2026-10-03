@@ -322,7 +322,7 @@ theorem clipperTakeNoAdjustEquiv
       hmax hstatus
     simpa [evm0, evmLock, hslice] using htail
   have hcontinue' : ClipperTakeStoreContinuationEquiv v code σ
-      σ σ₀ A I g slice owe tabNew lotNew price tic packed stopped dataLen
+      σ₀ A I g slice owe tabNew lotNew price tic packed stopped dataLen
       dataStart who max amt id sel := by
     dsimp only [owe, tabNew, lotNew]
     exact hcontinue

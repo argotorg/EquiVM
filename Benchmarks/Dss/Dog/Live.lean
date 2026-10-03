@@ -186,7 +186,6 @@ theorem dogLiveBodyCore {v : DogImmutables} {code : ByteArray}
     (routine := ⟨1749⟩) (slot := ⟨3⟩)
     _hcode (dogDispatchLive _hsel) (dogDecode_live (v := v) hsz)
     (dogReachLiveBody (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv hsz _hsize _hsel)
-    _hAccounts
     (by
       unfold solcGetterEntryWf
       repeat' first

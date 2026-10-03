@@ -337,7 +337,7 @@ theorem dogDenyBodyCoreOk
   have hslot : denySlotFor I = slot := by
     simp [slot, key, denySlotFor_eq]
   have hcallerWord : dogSlotWord callerSlot σ I = dogSlotWord callerSlot σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
+    rfl
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := code) (sel := sel) (entry := ⟨466⟩) (ret := ⟨313⟩)
     (decoded := ⟨488⟩) hreach
@@ -467,8 +467,7 @@ theorem dogDenyBodyCoreOk
     have haccounts :
         Eq (sstoreAccountMap I.codeOwner σ slot ⟨0⟩)
           evm1.accountMap := by
-      simpa [evm1, evm0, initState, storageStore_accountMap, hslot] using
-        accountMapEquiv_sstoreAccountMap I.codeOwner slot ⟨0⟩ hAccounts
+      simp [evm1, evm0, initState, storageStore_accountMap, hslot]
     have henc : returnEquiv ByteArray.empty none denyTransition.returnType := by
       rw [show denyTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
@@ -571,7 +570,7 @@ theorem dogDenyBodyCore {v : DogImmutables} {code : ByteArray}
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact dogDenyBodyCoreOk hpatch hcode hwv hperm hsz36 hsize hdispatch
-      (dogDecode_deny_ok (v := v) hsz36) hreach hAccounts
+      (dogDecode_deny_ok (v := v) hsz36) hreach
   · exact dogDenyBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach
 

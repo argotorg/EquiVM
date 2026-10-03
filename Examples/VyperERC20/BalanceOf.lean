@@ -514,7 +514,7 @@ theorem erc20BalanceOfBodyCore
         simpa [vyperERC20Config] using hdec0
       exact (erc20X_balanceOfFromEntry (g := Sat256.ofUInt256 g) hwv hsz36 hsize hcanon hreach)
         |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody (by rfl)
-          (returnEquiv_of_encode (ERC20.erc20Uint256ReturnEncoding (balanceOfWord σ I)))
+          (returnEquiv_of_encode (Reasoning.Theory.uint256ReturnEncoding (balanceOfWord σ I)))
     · have hdec0 := erc20Decode_balanceOf_none_noncanon (I := I) hsz36 hcanon
       have hdec :
           decodeCalldataWithMode vyperERC20Config.abiDecodeMode

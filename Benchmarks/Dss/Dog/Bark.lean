@@ -1601,12 +1601,6 @@ theorem barkBinaryLocals_get_y (x y : UInt256) :
     (barkBinaryLocals x y).get? "y" = some (.int (Int.ofNat y.toNat)) := by
   rw [barkBinaryLocals, store_get_ne _ _ (by decide), store_get_self]
 
-theorem dogSlotWord_eq_of_accountMapEquiv {σ τ : AccountMap}
-    (h : Eq σ τ) (I : ExecutionEnv) (slot : UInt256) :
-    dogSlotWord slot σ I = dogSlotWord slot τ I := by
-  have hslot := accountMapEquiv_storage_findD h I.codeOwner slot (⟨0⟩ : UInt256)
-  simpa [dogSlotWord, solcSlotWord] using hslot
-
 theorem barkVatWord_canonical (v : DogImmutables) :
     (barkVatWord v).toNat < EVM.addressModulus := by
   change (UInt256.ofNat v.vat.toNat).toNat < EVM.addressModulus
@@ -6362,28 +6356,6 @@ theorem barkVat_eq_vatKey (v : DogImmutables) :
     exact lt_of_lt_of_le v.vat.isLt (show AccountAddress.size ≤ UInt256.size from by decide)
   rw [hword]
 
-theorem barkVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {v : DogImmutables}
-    (hAccounts : Eq σ τ)
-    (hzero :
-      Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (barkVatWord v) = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts (barkVatWord v)
-  rw [← hsame]
-  exact hzero
-
-theorem barkVatCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {v : DogImmutables}
-    (hAccounts : Eq σ τ)
-    (hne :
-      Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (barkVatWord v) ≠ ⟨0⟩ := by
-  intro hzero
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts (barkVatWord v)
-  rw [hsame]
-  exact hzero
-
 theorem barkVatCode_zero_of_codeSize_zero {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256}
     (hzero :
@@ -6511,43 +6483,6 @@ theorem dogCode_pos_of_state_codeSize_ne {evm : EVM.State} {targetWord : UInt256
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
       simpa [State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
-
-theorem dogCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {targetWord : UInt256}
-    (hAccounts : Eq σ τ)
-    (hzero :
-      Reasoning.Theory.extCodeSizeWord σ targetWord = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ targetWord = ⟨0⟩ := by
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts targetWord
-  rw [← hsame]
-  exact hzero
-
-theorem dogCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {targetWord : UInt256}
-    (hAccounts : Eq σ τ)
-    (hne :
-      Reasoning.Theory.extCodeSizeWord σ targetWord ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ targetWord ≠ ⟨0⟩ := by
-  intro hzero
-  apply hne
-  have hsame :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts targetWord
-  rw [hsame]
-  exact hzero
-
-theorem dogTypedCallViaEVM_accountMapEquiv_noSubstate {cfg : Config}
-    {evm_evm evm_solm evm'_evm : EVM.State}
-    {tgt : EVM.Address} {name : Ident} {value : ℤ} {args : List Value} {z : Bool}
-    {out : ByteArray} {callPerm : Bool}
-    (hcall : typedCallViaEVM cfg evm_evm tgt name value args (z, evm'_evm, out) callPerm)
-    (hAccounts : evm_evm.accountMap = evm_solm.accountMap)
-    (hOriginalAccounts : evm_evm.σ₀ = evm_solm.σ₀)
-    (hEnv : evm_evm.executionEnv = evm_solm.executionEnv) :
-    ∃ (σ'_solm : AccountMap) (A'_solm : Substate),
-      typedCallViaEVM cfg evm_solm tgt name value args
-        (z, { evm_solm with accountMap := σ'_solm, substate := A'_solm }, out)
-        callPerm ∧
-      evm'_evm.accountMap = σ'_solm := by
-  exact typedCallViaEVM_accountMapEquiv hcall hAccounts hOriginalAccounts hEnv
 
 theorem dogBarkVatUrnsNoCodeSourceBody {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256}
@@ -20762,7 +20697,8 @@ theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
             callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
             ((barkVatGrabCallMem σ σMem I mem dink dart).readWithPadding
               barkVatGrabOutPtr.toNat barkVatGrabInSize.toNat)
-            (evm.executionEnv.depth + 1) evm.executionEnv.header true := by
+            (evm.executionEnv.depth + 1) evm.executionEnv.header
+            evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks true := by
       simpa [hevmEnv, hevmMap, hevmOrig, hperm] using hΘ
     exact Reasoning.Theory.callCoincides
       (cfg := config v) (evm := evm) (name := "grab")
@@ -21628,7 +21564,8 @@ theorem RD.dogBarkFessPostCall {v : DogImmutables} {code : ByteArray}
             callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
             ((barkVowFessDueMem mem due).readWithPadding
               barkVowFessOutPtr.toNat barkVowFessInSize.toNat)
-            (evm.executionEnv.depth + 1) evm.executionEnv.header true := by
+            (evm.executionEnv.depth + 1) evm.executionEnv.header
+            evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks true := by
       simpa [hevmEnv, hevmMap, hevmOrig, hperm] using hΘ
     exact Reasoning.Theory.callCoincides
       (cfg := config v) (evm := evm) (name := "fess")
@@ -23188,7 +23125,8 @@ theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
             callGas (UInt256.ofNat evm.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
             ((barkKickCalldataMem I mem tab dink).readWithPadding
               barkKickOutPtr.toNat barkKickInSize.toNat)
-            (evm.executionEnv.depth + 1) evm.executionEnv.header true := by
+            (evm.executionEnv.depth + 1) evm.executionEnv.header
+            evm.executionEnv.blobVersionedHashes evm.executionEnv.blocks true := by
       simpa [hevmEnv, hevmMap, hevmOrig, hperm] using hΘ
     exact Reasoning.Theory.callCoincides
       (cfg := config v) (evm := evm) (name := "kick")
@@ -24666,7 +24604,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
     by_cases hliveEvm : dogSlotWord ⟨3⟩ σ I = ⟨1⟩
     · have hslotWord :
           dogSlotWord ⟨3⟩ σ I = dogSlotWord ⟨3⟩ σ I :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨3⟩ ⟨0⟩
+        rfl
       have hliveSolm : dogSlotWord ⟨3⟩ σ I = ⟨1⟩ := by
         rw [← hslotWord]
         exact hliveEvm
@@ -24682,7 +24620,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
           (by simp)
         have hvatCodeSizeSolm :
             Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) = ⟨0⟩ :=
-          barkVatCodeSize_zero_accountMapEquiv hAccounts hvatCodeSize
+          hvatCodeSize
         have hvatNoCode :
             (UInt256.ofNat
               (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -24704,7 +24642,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
           hvatCodeSize
         have hvatCodeSizeSolmNe :
             Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩ :=
-          barkVatCodeSize_ne_accountMapEquiv hAccounts hvatCodeSizeNe
+          hvatCodeSizeNe
         have hvatCode :
             0 < (UInt256.ofNat
               (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -24728,18 +24666,15 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                 [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
                 (z, evmPostEvm, out) false := by
             simpa [evmEvm, evmPostEvm] using hcallEvmRaw
-          obtain ⟨σSolmPost, ASolmPost, hcallSolmRaw, hStateCallRaw⟩ :=
-            typedCallViaEVM_initState_EVMStateEquiv hcallEvm
-              (by simp [evmEvm, evmSolm, evmPostEvm, initState]) hAccounts
           let evmPostSolm :=
             { evmSolm with
-              accountMap := σSolmPost, substate := ASolmPost }
+              accountMap := evmPostEvm.accountMap, substate := evmPostEvm.substate }
           have hcallSolm :
               typedCallViaEVM (config v) evmSolm
                 (EVM.address (AccountAddress.ofNat v.vat.toNat)) "urns" 0
                 [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I)]
                 (z, evmPostSolm, out) false := by
-            simpa [evmPostSolm] using hcallSolmRaw
+            simpa [evmPostSolm, evmSolm, evmEvm] using hcallEvm
           cases z
           · simp only [Bool.false_eq_true, if_false] at rd3008 hcallSolm
             have hrev := RD.dogBarkVatUrnsCallFailure hpatch rd3008 hosz (by simp)
@@ -24773,8 +24708,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                 RD.dogBarkLoadIlkFields hpatch rd3070
                   solcFreePtrMem_size hretLong hosz
                   (by simp only [List.length_cons, List.length_nil]; omega)
-              have hStateCall : EVMStateEquiv evmPostEvm evmPostSolm := by
-                simpa [evmPostEvm, evmPostSolm] using hStateCallRaw
+              have hStateCall : EVMStateEquiv evmPostEvm evmPostSolm := ⟨rfl, rfl⟩
               by_cases hvatIlksCodeSize :
                   Reasoning.Theory.extCodeSizeWord σ' (barkVatWord v) = ⟨0⟩
               · have hrev := RD.dogBarkVatIlksNoCodeRevert hpatch rd3139
@@ -24787,8 +24721,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                 have hvatIlksCodeSizeSolm :
                     Reasoning.Theory.extCodeSizeWord evmPostSolm.accountMap
                       (barkVatWord v) = ⟨0⟩ :=
-                  barkVatCodeSize_zero_accountMapEquiv hStateCall.accountMap
-                    hvatIlksCodeSizeEvm
+                  hStateCall.accountMap ▸ hvatIlksCodeSizeEvm
                 have hvatNoCode :
                     (UInt256.ofNat
                       ((evmPostSolm.lookupAccount
@@ -24828,7 +24761,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                   simpa [evmIlksPostEvm] using hcallIlksEvmRaw
                 obtain ⟨σIlksSolmPost, AIlksSolmPost, hcallIlksSolmRaw,
                     hAccountsIlks⟩ :=
-                  dogTypedCallViaEVM_accountMapEquiv_noSubstate
+                  Reasoning.Theory.typedCallViaEVM_sameInputs
                     (evm_solm := evmPostSolm) hcallIlksEvm
                     hStateCall.accountMap
                     (by simp [evmPostEvm, evmPostSolm, evmEvm, evmSolm, initState])
@@ -24854,8 +24787,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                   have hvatIlksCodeSizeSolmNe :
                       Reasoning.Theory.extCodeSizeWord evmPostSolm.accountMap
                         (barkVatWord v) ≠ ⟨0⟩ :=
-                    barkVatCodeSize_ne_accountMapEquiv hStateCall.accountMap
-                      hvatIlksCodeSizeEvmNe
+                    hStateCall.accountMap ▸ hvatIlksCodeSizeEvmNe
                   have hvatIlksCode :
                       0 < (UInt256.ofNat
                         ((evmPostSolm.lookupAccount
@@ -24886,8 +24818,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                   have hvatIlksCodeSizeSolmNe :
                       Reasoning.Theory.extCodeSizeWord evmPostSolm.accountMap
                         (barkVatWord v) ≠ ⟨0⟩ :=
-                    barkVatCodeSize_ne_accountMapEquiv hStateCall.accountMap
-                      hvatIlksCodeSizeEvmNe
+                    hStateCall.accountMap ▸ hvatIlksCodeSizeEvmNe
                   have hvatIlksCode :
                       0 < (UInt256.ofNat
                         ((evmPostSolm.lookupAccount
@@ -25318,7 +25249,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                           evmIlksPostSolm.executionEnv =
                                         dogSlotWord ⟨5⟩ σ'' I := by
                                     have h :=
-                                      dogSlotWord_eq_of_accountMapEquiv hAccountsIlks I ⟨5⟩
+                                      congrArg (fun m => dogSlotWord ⟨5⟩ m I) hAccountsIlks
                                     simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                       using h.symm
                                   have hslot4 :
@@ -25326,7 +25257,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                           evmIlksPostSolm.executionEnv =
                                         dogSlotWord ⟨4⟩ σ'' I := by
                                     have h :=
-                                      dogSlotWord_eq_of_accountMapEquiv hAccountsIlks I ⟨4⟩
+                                      congrArg (fun m => dogSlotWord ⟨4⟩ m I) hAccountsIlks
                                     simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                       using h.symm
                                   have hAccountsUrns :
@@ -25337,8 +25268,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         barkIlksDirtWord σ' I := by
                                     have h :=
-                                      dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
-                                        (barkIlksDirtSlotFor I)
+                                      congrArg (fun m => dogSlotWord (barkIlksDirtSlotFor I) m I) hAccountsUrns
                                     rw [barkIlksDirtWord_eq_slotFor (σ := σ') (I := I)
                                       hsz100]
                                     simpa [evmPostSolm, evmSolm, initState] using h.symm
@@ -25347,8 +25277,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         barkIlksHoleWord σ' I := by
                                     have h :=
-                                      dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
-                                        (barkIlksHoleSlotFor I)
+                                      congrArg (fun m => dogSlotWord (barkIlksHoleSlotFor I) m I) hAccountsUrns
                                     rw [barkIlksHoleWord_eq_slotFor (σ := σ') (I := I)
                                       hsz100]
                                     simpa [evmPostSolm, evmSolm, initState] using h.symm
@@ -25357,8 +25286,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         barkIlksChopWord σ' I := by
                                     have h :=
-                                      dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
-                                        (barkIlksChopSlotFor I)
+                                      congrArg (fun m => dogSlotWord (barkIlksChopSlotFor I) m I) hAccountsUrns
                                     rw [barkIlksChopWord_eq_slotFor (σ := σ') (I := I)
                                       hsz100]
                                     simpa [evmPostSolm, evmSolm, initState] using h.symm
@@ -25367,8 +25295,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         barkIlksClipWord σ' I := by
                                     have h :=
-                                      dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
-                                        (barkIlksClipSlotFor I)
+                                      congrArg (fun m => dogSlotWord (barkIlksClipSlotFor I) m I) hAccountsUrns
                                     rw [barkIlksClipWord_eq_slotFor (σ := σ') (I := I)
                                       hsz100]
                                     simpa [dogAddressReturnWord, evmPostSolm, evmSolm,
@@ -25919,9 +25846,9 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                               have hvatGrabZeroSolm :
                                                   Reasoning.Theory.extCodeSizeWord
                                                     evmIlksPostSolm.accountMap
-                                                    (barkVatWord v) = ⟨0⟩ :=
-                                                barkVatCodeSize_zero_accountMapEquiv
-                                                  hAccountsIlks hvatGrabCodeZero
+                                                    (barkVatWord v) = ⟨0⟩ := by
+                                                simpa [evmIlksPostEvm, evmIlksPostSolm,
+                                                  ← hAccountsIlks] using hvatGrabCodeZero
                                               have hvatNoCode :
                                                   (UInt256.ofNat
                                                     ((evmIlksPostSolm.lookupAccount
@@ -26014,8 +25941,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                       evmIlksPostSolm.executionEnv =
                                                     barkVowWord σ'' I := by
                                                 have hslot :=
-                                                  dogSlotWord_eq_of_accountMapEquiv
-                                                    hAccountsIlks I ⟨2⟩
+                                                  congrArg (fun m => dogSlotWord ⟨2⟩ m I) hAccountsIlks
                                                 simpa [barkVowWord, evmIlksPostSolm,
                                                   evmPostSolm, evmSolm, initState] using
                                                   congrArg
@@ -26023,7 +25949,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                     hslot.symm
                                               obtain ⟨σGrabSolm, AGrabSolm,
                                                   hcallGrabSolmRaw, hAccountsGrabRaw⟩ :=
-                                                dogTypedCallViaEVM_accountMapEquiv_noSubstate
+                                                Reasoning.Theory.typedCallViaEVM_sameInputs
                                                   (evm_solm := evmIlksPostSolm)
                                                   hcallGrabEvm
                                                   (by simpa [evmIlksPostEvm] using
@@ -26058,9 +25984,9 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                               have hvatGrabNonzeroSolm :
                                                   Reasoning.Theory.extCodeSizeWord
                                                     evmIlksPostSolm.accountMap
-                                                    (barkVatWord v) ≠ ⟨0⟩ :=
-                                                barkVatCodeSize_ne_accountMapEquiv
-                                                  hAccountsIlks hvatGrabCodeZero
+                                                    (barkVatWord v) ≠ ⟨0⟩ := by
+                                                simpa [evmIlksPostEvm, evmIlksPostSolm,
+                                                  ← hAccountsIlks] using hvatGrabCodeZero
                                               have hvatCodePosSolm :
                                                   0 < (UInt256.ofNat
                                                     ((evmIlksPostSolm.lookupAccount
@@ -26231,8 +26157,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                         evmGrabSolm.executionEnv =
                                                       barkVowWord σGrab I := by
                                                   have hslot :=
-                                                    dogSlotWord_eq_of_accountMapEquiv
-                                                      hAccountsGrab I ⟨2⟩
+                                                    congrArg (fun m => dogSlotWord ⟨2⟩ m I) hAccountsGrab
                                                   simpa [barkVowWord, evmGrabSolm,
                                                     evmIlksPostSolm, evmPostSolm, evmSolm,
                                                     initState] using
@@ -26295,9 +26220,12 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                         evmGrabSolm.accountMap
                                                         (barkVowWord evmGrabSolm.accountMap
                                                           evmGrabSolm.executionEnv) = ⟨0⟩ := by
-                                                    have hzero :=
-                                                      dogCodeSize_zero_accountMapEquiv
-                                                        hAccountsGrab hvowCodeZero
+                                                    have hzero :
+                                                        Reasoning.Theory.extCodeSizeWord
+                                                          evmGrabSolm.accountMap
+                                                          (barkVowWord σGrab I) = ⟨0⟩ := by
+                                                      simpa only [← hAccountsGrab] using
+                                                        hvowCodeZero
                                                     simpa [hvowWordGrab] using hzero
                                                   have hvowNoCode :
                                                       (UInt256.ofNat
@@ -26382,7 +26310,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                   obtain ⟨σFessSolm, AFessSolm,
                                                       hcallFessSolmRaw,
                                                       hAccountsFessRaw⟩ :=
-                                                    dogTypedCallViaEVM_accountMapEquiv_noSubstate
+                                                    Reasoning.Theory.typedCallViaEVM_sameInputs
                                                       (evm_solm := evmGrabSolm)
                                                       hcallFessEvm
                                                       (by simpa [evmGrabEvm, evmGrabSolm] using
@@ -26424,9 +26352,12 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                           evmGrabSolm.accountMap
                                                           evmGrabSolm.executionEnv) ≠
                                                           ⟨0⟩ := by
-                                                    have hne :=
-                                                      dogCodeSize_ne_accountMapEquiv
-                                                        hAccountsGrab hvowCodeZero
+                                                    have hne :
+                                                        Reasoning.Theory.extCodeSizeWord
+                                                          evmGrabSolm.accountMap
+                                                          (barkVowWord σGrab I) ≠ ⟨0⟩ := by
+                                                      simpa only [← hAccountsGrab] using
+                                                        hvowCodeZero
                                                     simpa [hvowWordGrab] using hne
                                                   have hvowCodePosSolm :
                                                       0 < (UInt256.ofNat
@@ -26841,8 +26772,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                               evmFessSolm.executionEnv =
                                                             dogSlotWord ⟨5⟩ σFess I := by
                                                         have hslot :=
-                                                          dogSlotWord_eq_of_accountMapEquiv
-                                                            hAccountsFess I ⟨5⟩
+                                                          congrArg (fun m => dogSlotWord ⟨5⟩ m I) hAccountsFess
                                                         simpa [evmFessSolm, evmGrabSolm,
                                                           evmIlksPostSolm, evmPostSolm,
                                                           evmSolm, initState] using hslot.symm
@@ -26969,8 +26899,9 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                             evmSolm, initState,
                                                             storageStore_accountMap,
                                                             storageStore_executionEnv] using
-                                                            accountMapEquiv_sstoreAccountMap
-                                                              I.codeOwner ⟨5⟩ dirtNewEvm
+                                                            congrArg
+                                                              (fun m => sstoreAccountMap
+                                                                I.codeOwner m ⟨5⟩ dirtNewEvm)
                                                               hAccountsFess
                                                         have hmilkDirtDirtNew :
                                                             localsDirtNew.get? "milkDirt" =
@@ -27238,10 +27169,12 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                             simpa [σIlkDirt, evmIlkDirtSolm,
                                                               storageStore_accountMap,
                                                               hDirtCodeOwner] using
-                                                              accountMapEquiv_sstoreAccountMap
-                                                                I.codeOwner
-                                                                (barkIlksDirtSlotFor I)
-                                                                ilkDirtNew hAccountsDirt
+                                                              congrArg
+                                                                (fun m => sstoreAccountMap
+                                                                  I.codeOwner m
+                                                                  (barkIlksDirtSlotFor I)
+                                                                  ilkDirtNew)
+                                                                hAccountsDirt
                                                           let memFess :=
                                                             barkVowFessPostCallMem
                                                               (barkVatGrabPostCallMem σ'' σ' I
@@ -27456,8 +27389,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 Reasoning.Theory.extCodeSizeWord
                                                                   evmIlkDirtSolm.accountMap
                                                                   (barkIlksClipWord σ' I) = ⟨0⟩ :=
-                                                              dogCodeSize_zero_accountMapEquiv
-                                                                hAccountsIlkDirt hclipCodeZero
+                                                              hAccountsIlkDirt ▸ hclipCodeZero
                                                             have hclipNoCode :
                                                                 (UInt256.ofNat
                                                                   ((evmIlkDirtSolm.lookupAccount
@@ -27521,8 +27453,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 Reasoning.Theory.extCodeSizeWord
                                                                   evmIlkDirtSolm.accountMap
                                                                   (barkIlksClipWord σ' I) ≠ ⟨0⟩ :=
-                                                              dogCodeSize_ne_accountMapEquiv
-                                                                hAccountsIlkDirt hclipCodeZero
+                                                              hAccountsIlkDirt ▸ hclipCodeZero
                                                             have hclipCodePosSolm :
                                                                 0 < (UInt256.ofNat
                                                                   ((evmIlkDirtSolm.lookupAccount
@@ -27555,8 +27486,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                             have hIlkDirtAccounts :
                                                                 evmIlkDirtEvm.accountMap =
                                                                   evmIlkDirtSolm.accountMap := by
-                                                              simpa [evmIlkDirtEvm] using
-                                                                hAccountsIlkDirt.symm
+                                                              exact hIlkDirtEvmMap.trans
+                                                                hAccountsIlkDirt
                                                             have hIlkDirtEvmOrig :
                                                                 evmIlkDirtEvm.σ₀ = evmEvm.σ₀ := by
                                                               simp [evmIlkDirtEvm, evmDirtEvm,
@@ -27595,15 +27526,50 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 evmIlkDirtSolm.executionEnv =
                                                                   evmIlkDirtEvm.executionEnv := by
                                                               rw [hIlkDirtSolmEnv, hIlkDirtEvmEnv]
+                                                            obtain ⟨σKick, zKick, outKick, AKick,
+                                                                _, _, rd4386, hcallKickEvmRaw,
+                                                                houtKickSize⟩ :=
+                                                              RD.dogBarkKickPostCall
+                                                                (v := v) (code := code)
+                                                                (s0 := evmEvm)
+                                                                (evm := evmIlkDirtEvm)
+                                                                (ret := ⟨448⟩)
+                                                                (sel := solcSelectorWord I)
+                                                                (R := []) (σ := σIlkDirt)
+                                                                (σMem := σ') hpatch rd4267
+                                                                hmemKickPreSize hmemKickPreRead64
+                                                                hmload256KickPre
+                                                                hclipCodeZero
+                                                                hIlkDirtEvmEnv hIlkDirtEvmMap
+                                                                hIlkDirtEvmOrig _hperm hdepthLt
+                                                                (by simp)
+                                                            let evmKickEvm :=
+                                                              { evmIlkDirtEvm with
+                                                                accountMap := σKick,
+                                                                substate := AKick }
+                                                            have hcallKickEvm :
+                                                                typedCallViaEVM (config v)
+                                                                  evmIlkDirtEvm
+                                                                  (EVM.address
+                                                                    (AccountAddress.ofNat
+                                                                      (barkIlksClipWord σ' I).toNat))
+                                                                  "kick" 0
+                                                                  [.int (Int.ofNat tab.toNat),
+                                                                    .int (Int.ofNat dink.toNat),
+                                                                    .address (barkUrn I),
+                                                                    .address (barkKpr I)]
+                                                                  (zKick, evmKickEvm, outKick)
+                                                                  true := by
+                                                              simpa [evmKickEvm] using hcallKickEvmRaw
                                                             obtain ⟨σKickSolm, AKickSolm,
                                                                 hcallKickSolmRaw,
                                                                 hAccountsKickRaw⟩ :=
-                                                              dogTypedCallViaEVM_accountMapEquiv_noSubstate
+                                                              Reasoning.Theory.typedCallViaEVM_sameInputs
                                                                 (evm_solm := evmIlkDirtSolm)
                                                                 hcallKickEvm
-                                                                hIlkDirtEvmMap
+                                                                hIlkDirtAccounts
                                                                 hIlkDirtOriginalAccounts
-                                                                hIlkDirtEnvEq
+                                                                hIlkDirtEnvEq.symm
                                                             let evmKickSolm :=
                                                               { evmIlkDirtSolm with
                                                                 accountMap := σKickSolm,
@@ -28807,7 +28773,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                           evmIlksPostSolm.executionEnv =
                                         dogSlotWord ⟨5⟩ σ'' I := by
                                     have h :=
-                                      dogSlotWord_eq_of_accountMapEquiv hAccountsIlks I ⟨5⟩
+                                      congrArg (fun m => dogSlotWord ⟨5⟩ m I) hAccountsIlks
                                     simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                       using h.symm
                                   have hslot4 :
@@ -28815,7 +28781,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                           evmIlksPostSolm.executionEnv =
                                         dogSlotWord ⟨4⟩ σ'' I := by
                                     have h :=
-                                      dogSlotWord_eq_of_accountMapEquiv hAccountsIlks I ⟨4⟩
+                                      congrArg (fun m => dogSlotWord ⟨4⟩ m I) hAccountsIlks
                                     simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                       using h.symm
                                   have hAccountsUrns :
@@ -28826,8 +28792,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         barkIlksDirtWord σ' I := by
                                     have h :=
-                                      dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
-                                        (barkIlksDirtSlotFor I)
+                                      congrArg (fun m => dogSlotWord (barkIlksDirtSlotFor I) m I) hAccountsUrns
                                     rw [barkIlksDirtWord_eq_slotFor (σ := σ') (I := I)
                                       hsz100]
                                     simpa [evmPostSolm, evmSolm, initState] using h.symm
@@ -28836,8 +28801,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         barkIlksHoleWord σ' I := by
                                     have h :=
-                                      dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
-                                        (barkIlksHoleSlotFor I)
+                                      congrArg (fun m => dogSlotWord (barkIlksHoleSlotFor I) m I) hAccountsUrns
                                     rw [barkIlksHoleWord_eq_slotFor (σ := σ') (I := I)
                                       hsz100]
                                     simpa [evmPostSolm, evmSolm, initState] using h.symm
@@ -28846,8 +28810,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                           evmPostSolm.accountMap evmPostSolm.executionEnv =
                                         barkIlksChopWord σ' I := by
                                     have h :=
-                                      dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
-                                        (barkIlksChopSlotFor I)
+                                      congrArg (fun m => dogSlotWord (barkIlksChopSlotFor I) m I) hAccountsUrns
                                     rw [barkIlksChopWord_eq_slotFor (σ := σ') (I := I)
                                       hsz100]
                                     simpa [evmPostSolm, evmSolm, initState] using h.symm
@@ -28929,7 +28892,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                         evmIlksPostSolm.executionEnv =
                                       dogSlotWord ⟨5⟩ σ'' I := by
                                   have h :=
-                                    dogSlotWord_eq_of_accountMapEquiv hAccountsIlks I ⟨5⟩
+                                    congrArg (fun m => dogSlotWord ⟨5⟩ m I) hAccountsIlks
                                   simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                     using h.symm
                                 have hslot4 :
@@ -28937,7 +28900,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                         evmIlksPostSolm.executionEnv =
                                       dogSlotWord ⟨4⟩ σ'' I := by
                                   have h :=
-                                    dogSlotWord_eq_of_accountMapEquiv hAccountsIlks I ⟨4⟩
+                                    congrArg (fun m => dogSlotWord ⟨4⟩ m I) hAccountsIlks
                                   simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                     using h.symm
                                 have hAccountsUrns :
@@ -28948,8 +28911,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                         evmPostSolm.accountMap evmPostSolm.executionEnv =
                                       barkIlksDirtWord σ' I := by
                                   have h :=
-                                    dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
-                                      (barkIlksDirtSlotFor I)
+                                    congrArg (fun m => dogSlotWord (barkIlksDirtSlotFor I) m I) hAccountsUrns
                                   rw [barkIlksDirtWord_eq_slotFor (σ := σ') (I := I)
                                     hsz100]
                                   simpa [evmPostSolm, evmSolm, initState] using h.symm
@@ -28958,8 +28920,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                         evmPostSolm.accountMap evmPostSolm.executionEnv =
                                       barkIlksHoleWord σ' I := by
                                   have h :=
-                                    dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
-                                      (barkIlksHoleSlotFor I)
+                                    congrArg (fun m => dogSlotWord (barkIlksHoleSlotFor I) m I) hAccountsUrns
                                   rw [barkIlksHoleWord_eq_slotFor (σ := σ') (I := I)
                                     hsz100]
                                   simpa [evmPostSolm, evmSolm, initState] using h.symm
@@ -29029,7 +28990,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                       evmIlksPostSolm.executionEnv =
                                     dogSlotWord ⟨5⟩ σ'' I := by
                                 have h :=
-                                  dogSlotWord_eq_of_accountMapEquiv hAccountsIlks I ⟨5⟩
+                                  congrArg (fun m => dogSlotWord ⟨5⟩ m I) hAccountsIlks
                                 simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                   using h.symm
                               have hslot4 :
@@ -29037,7 +28998,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                       evmIlksPostSolm.executionEnv =
                                     dogSlotWord ⟨4⟩ σ'' I := by
                                 have h :=
-                                  dogSlotWord_eq_of_accountMapEquiv hAccountsIlks I ⟨4⟩
+                                  congrArg (fun m => dogSlotWord ⟨4⟩ m I) hAccountsIlks
                                 simpa [evmIlksPostSolm, evmPostSolm, evmSolm, initState]
                                   using h.symm
                               have hAccountsUrns :
@@ -29048,8 +29009,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                       evmPostSolm.accountMap evmPostSolm.executionEnv =
                                     barkIlksDirtWord σ' I := by
                                 have h :=
-                                  dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
-                                    (barkIlksDirtSlotFor I)
+                                  congrArg (fun m => dogSlotWord (barkIlksDirtSlotFor I) m I) hAccountsUrns
                                 rw [barkIlksDirtWord_eq_slotFor (σ := σ') (I := I)
                                   hsz100]
                                 simpa [evmPostSolm, evmSolm, initState] using h.symm
@@ -29058,8 +29018,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                       evmPostSolm.accountMap evmPostSolm.executionEnv =
                                     barkIlksHoleWord σ' I := by
                                 have h :=
-                                  dogSlotWord_eq_of_accountMapEquiv hAccountsUrns I
-                                    (barkIlksHoleSlotFor I)
+                                  congrArg (fun m => dogSlotWord (barkIlksHoleSlotFor I) m I) hAccountsUrns
                                 rw [barkIlksHoleWord_eq_slotFor (σ := σ') (I := I)
                                   hsz100]
                                 simpa [evmPostSolm, evmSolm, initState] using h.symm
@@ -29213,7 +29172,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
           exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hslotWord :
           dogSlotWord ⟨3⟩ σ I = dogSlotWord ⟨3⟩ σ I :=
-        accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨3⟩ ⟨0⟩
+        rfl
       have hliveSolm : dogSlotWord ⟨3⟩ σ I ≠ ⟨1⟩ := by
         intro hsolm
         exact hliveEvm (by rw [hslotWord, hsolm])

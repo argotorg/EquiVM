@@ -87,7 +87,7 @@ theorem uniswapMintTailMintCases
       exact Or.inr ⟨_, _,
         uniswapMintLiquidityMintPrefix evm recipient liquidity hto hliq hz
           hfitSupply hfitBalance,
-        accountMapEquiv_mintFunctionPostState_of_runtimeMintRecipient
+        mintFunctionPostState_accountMap_eq_of_runtimeMintRecipient
           hAccounts henv hrecipient (by rw [hmem]; omega) hfitSupply hfitBalance,
         rd3914,
         (uniswapInternalMintSuccessMem_size_of_ge160 toWord liquidity

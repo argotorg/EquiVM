@@ -325,35 +325,6 @@ theorem RDret.reEquivExecutionGenAccountMapEquiv {cfg : Config} {contract : Cont
       exact hAccounts
     exact execResultsEquiv.success rfl rfl haccounts (.abi henc)
 
-/-- Successful execution when the post-states are related by `EVMStateEquiv`. Only its account-map
-    equality is needed to connect the EVM result to the Solm post-state. -/
--- TODO: At call sites, compose hAccounts with hState.accountMap and use
--- reEquivExecutionGenAccountMapEquiv directly; then remove this wrapper.
-theorem RDret.reEquivExecutionGenEVMStateEquiv {cfg : Config} {contract : ContractDecl}
-    {t : TransitionDecl}
-    {σ σ₀ A I} {g : Sat256}
-    {code o : ByteArray} {callargs cs retVal}
-    {acc : AccountMap}
-    {evm'_evm evm'_solm : EVM.State}
-    (hcode : I.code = code)
-    (h : RDret code g (initState σ σ₀ g A I) acc o)
-    (hd : dispatchMsg contract I.calldata = some t)
-    (hdec : decodeCalldataWithMode cfg.abiDecodeMode (t.params.map Param.name)
-              (transitionSignature t).paramTypes I.calldata = some callargs)
-    (hbody : ExecTransitionBody cfg contract
-              (initState σ σ₀ g A I) callargs t.body
-              (.returned cs evm'_solm retVal))
-    (hAccounts : acc = evm'_evm.accountMap)
-    (hState : EVMStateEquiv evm'_evm evm'_solm)
-    (henc : returnEquiv o retVal t.returnType)
-    (hfallback : contract.fallback = none := by rfl)
-    (hreceive : contract.receive = none := by rfl) :
-    runtimeEquivalenceFor cfg contract σ σ₀
-      g.toUInt256 A I :=
-  h.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-    (hAccounts.trans hState.accountMap)
-    henc hfallback hreceive
-
 /-- Successful execution with the initial account map as the Solm post-state. -/
 -- TODO: Try replacing uses with reEquivExecutionGenAccountMapEquiv and remove this wrapper.
 theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}

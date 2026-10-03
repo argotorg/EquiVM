@@ -208,21 +208,13 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
                   (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
                   (len.toNat / 32))
                 ⟨0⟩ header) := by
-          dsimp [evmPostMap]
-          simpa [hheaderEq] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
-              (accountMapEquiv_longDataWordsForwardFrom
-                (owner := I.codeOwner) (slot := clearCurrentBaseWord)
-                (stride := (⟨32⟩ : UInt256)) (ptr := (⟨128⟩ : UInt256))
-                (aw := clearCurrentHashAw (setHelperEntryAw len))
-                (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-                (fuel := len.toNat / 32) rfl)
+          simp [evmPostMap, hheaderEq]
         have hdataFuelEq : dataFuel = len.toNat / 32 := by
           dsimp [dataFuel]
           rw [hsizeDecoded]
           have hdiv := Nat.div_add_mod len.toNat 32
           omega
-        have hdataBridge := accountMapEquiv_solidityDataWordsForwardFrom_longDataWordsForwardFrom_full
+        have hdataBridge := solidityDataWordsForwardFrom_eq_longDataWordsForwardFrom_full
           (I := I) (len := len) (payloadStart := payloadStart) (owner := I.codeOwner)
           hnz hlenMaxLen hsrc hsizeDecoded hlenAbi rfl hoffMax
           (τ := σ) (i := 0) (fuel := len.toNat / 32) (by omega)
@@ -241,8 +233,8 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
             native_decide
           rw [hsolmMap]
           simpa [hdataFuelEq, hbase0, hstride] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
-              (Eq.symm hdataBridge)
+            congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨0⟩ header)
+              hdataBridge.symm
         simpa [evmEvm1] using Eq.trans hgenAccounts hsolmTarget
     · simpa [evmEvm1, evmPostMap, hretWord] using hret
   · let wordTail : UInt256 :=
@@ -327,25 +319,14 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
                   (longDataWordsLoopSlot clearCurrentBaseWord (len.toNat / 32))
                   (longDataTailMaskedWord wordTail len))
                 ⟨0⟩ header) := by
-          dsimp [evmPostMap]
-          simpa [hheaderEq] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
-              (accountMapEquiv_sstoreAccountMap I.codeOwner
-                (longDataWordsLoopSlot clearCurrentBaseWord (len.toNat / 32))
-                (longDataTailMaskedWord wordTail len)
-                (accountMapEquiv_longDataWordsForwardFrom
-                  (owner := I.codeOwner) (slot := clearCurrentBaseWord)
-                  (stride := (⟨32⟩ : UInt256)) (ptr := (⟨128⟩ : UInt256))
-                  (aw := clearCurrentHashAw (setHelperEntryAw len))
-                  (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-                  (fuel := len.toNat / 32) rfl))
+          simp [evmPostMap, hheaderEq]
         have hdataFuelEq : dataFuel = len.toNat / 32 + 1 := by
           dsimp [dataFuel]
           rw [hsizeDecoded]
           have hdiv := Nat.div_add_mod len.toNat 32
           have hremLt := Nat.mod_lt len.toNat (by decide : 0 < 32)
           omega
-        have hdataBridge := accountMapEquiv_solidityDataWordsForwardFrom_longDataWordsForwardFrom_tail
+        have hdataBridge := solidityDataWordsForwardFrom_eq_longDataWordsForwardFrom_tail
           (I := I) (len := len) (payloadStart := payloadStart) (wordTail := wordTail)
           (owner := I.codeOwner)
           hnz hlenMaxLen hsrc hsizeDecoded hlong hlenAbi rfl hoffMax hmod (by rfl) σ
@@ -367,8 +348,8 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
             native_decide
           rw [hsolmMap]
           simpa [hdataFuelEq, hbase0, hstride] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
-              (Eq.symm hdataBridge)
+            congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨0⟩ header)
+              hdataBridge.symm
         simpa [evmEvm1] using Eq.trans hgenAccounts hsolmTarget
     · simpa [evmEvm1, evmPostMap, hretWord] using hret
 

@@ -860,7 +860,7 @@ theorem dogFileUintBodyCoreOk
   let callerSlot := dogCallerWardsSlot I
   let locals := fileUintLocals I
   have hcallerWord : dogSlotWord callerSlot σ I = dogSlotWord callerSlot σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
+    rfl
   have henc : returnEquiv ByteArray.empty none fileUintTransition.returnType := by
     rw [show fileUintTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
@@ -885,8 +885,7 @@ theorem dogFileUintBodyCoreOk
       have haccounts :
           Eq (sstoreAccountMap I.codeOwner σ ⟨4⟩ data)
             evm1.accountMap := by
-        simpa [evm1, evm0, initState, storageStore_accountMap, data] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner ⟨4⟩ data hAccounts
+        simp [evm1, evm0, initState, storageStore_accountMap, data]
       exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
         haccounts henc
     · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -987,7 +986,7 @@ theorem dogFileUintBodyCore {v : DogImmutables} {code : ByteArray}
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz68 : 68 ≤ I.calldata.size
   · exact dogFileUintBodyCoreOk hpatch hcode hwv hperm hsz68 hsize hdispatch
-      (dogDecode_fileUint_ok (v := v) hsz68) hreach hAccounts
+      (dogDecode_fileUint_ok (v := v) hsz68) hreach
   · exact dogFileUintBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach
 

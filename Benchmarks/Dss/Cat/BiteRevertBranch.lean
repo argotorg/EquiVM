@@ -20,9 +20,7 @@ this prefix. -/
 /-- `catSlotWord` transports across `EVMStateEquiv` (same codeOwner storage view). -/
 theorem biteSlotEqOfEquiv {a b : EVM.State} (h : EVMStateEquiv a b) (s : UInt256) :
     catSlotWord s a.accountMap a.executionEnv = catSlotWord s b.accountMap b.executionEnv := by
-  simp only [catSlotWord, solcSlotWord]
-  rw [h.executionEnv]
-  exact accountMapEquiv_storage_findD h.accountMap b.executionEnv.codeOwner s ⟨0⟩
+  rw [h.executionEnv, h.accountMap]
 
 theorem biteBoxW_eq_of_equiv {a b : EVM.State} (h : EVMStateEquiv a b) :
     biteBoxW a = biteBoxW b := by simp only [biteBoxW, biteSlotEqOfEquiv h]
@@ -83,10 +81,7 @@ theorem biteFlipAddrV_eq_of_equiv {I} {a b : EVM.State} (h : EVMStateEquiv a b) 
 theorem biteCodeW_eq_of_equiv {a b : EVM.State} (addr : AccountAddress) (h : EVMStateEquiv a b) :
     UInt256.ofNat ((a.lookupAccount addr).option 0 (fun acc => acc.code.size)) =
       UInt256.ofNat ((b.lookupAccount addr).option 0 (fun acc => acc.code.size)) := by
-  have hw := accountMapEquiv_code_size_word h.accountMap addr
-  simp only [State.lookupAccount]
-  cases ha : a.accountMap.find? addr <;> cases hb : b.accountMap.find? addr <;>
-    rw [ha, hb] at hw <;> simpa [Option.option, EVM.Word.ofNat] using hw
+  simpa only [State.lookupAccount, h.accountMap]
 
 /-- **Map the `ilks`+`urns` STATICCALLs to the σ side.**  Takes the EVM-side calls in the walk's
 shapes (both `false`-perm STATICCALLs), returns the two σ calls in the `EVM.address (biteVatAddr …)`
@@ -165,8 +160,7 @@ theorem catBiteMapUrns {σ σ₀ A I} {g : UInt256}
     biteTypedCallZeroSetSubstate hUrnsCall (by simpa [initState] using hdepthNe) A'
   obtain ⟨σus, Aus, hUrnsSolm, hEqUrn⟩ := catBiteMapCall (A_x_solm := As) hUrnsCall' hdepthNe
   have hslot3 : catSlotWord ⟨3⟩ σ' I = catSlotWord ⟨3⟩ σs I := by
-    simp only [catSlotWord, solcSlotWord]
-    rw [accountMapEquiv_storage_findD hEqIlk I.codeOwner ⟨3⟩ ⟨0⟩]
+    exact congrArg (fun accounts => catSlotWord ⟨3⟩ accounts I) hEqIlk
   set eI := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σs, substate := As } with heIdef
   have heIam : eI.accountMap = σs := rfl
@@ -185,7 +179,7 @@ theorem catBiteMapUrns {σ σ₀ A I} {g : UInt256}
     refine codePos eI (catBiteVatTargetWord σs I) ?_
     rw [heIam, show catBiteVatTargetWord σs I = (catSlotWord ⟨3⟩ σs I).land biteAddrMaskWord from by
         simp only [catBiteVatTargetWord, catAddressReturnWord, hmask],
-      ← hslot3, ← extCodeSizeWord_accountMapEquiv hEqIlk]
+      ← hslot3, ← hEqIlk]
     exact hUrnsVatCode
   exact ⟨σs, As, σus, Aus, hIlksSolm, hUrnsSolm, hEqUrn, hvatCodeIlk⟩
 
@@ -342,7 +336,7 @@ theorem catBiteRevertGrabFail {σ σ₀ A I} {g : UInt256}
     catBiteMapUrns hdepthNe hUrnsVatCode hIlksCall hUrnsCall
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   set eUrnE := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σu, substate := Au } with heUrnEdef
   set eUrnS := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -436,7 +430,7 @@ theorem catBiteRevertGrabFail {σ σ₀ A I} {g : UInt256}
   have hGrabCodeS :
       ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
   -- reshape the mapped grab call to the source-revert form.
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
@@ -649,7 +643,7 @@ theorem catBiteRevertFessFail {σ σ₀ A I} {g : UInt256}
     catBiteMapUrns hdepthNe hUrnsVatCode hIlksCall hUrnsCall
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   set eUrnE := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σu, substate := Au } with heUrnEdef
   set eUrnS := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -751,7 +745,7 @@ theorem catBiteRevertFessFail {σ σ₀ A I} {g : UInt256}
   have hGrabCodeS :
       ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
@@ -1012,7 +1006,7 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
     catBiteMapUrns hdepthNe hUrnsVatCode hIlksCall hUrnsCall
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   set eUrnE := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σu, substate := Au } with heUrnEdef
   set eUrnS := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1120,7 +1114,7 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
   have hGrabCodeS :
       ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
@@ -1180,8 +1174,8 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
       { initState σ σ₀ (Sat256.ofUInt256 g) A I with
         accountMap := sstoreAccountMap I.codeOwner σfs ⟨6⟩ hLitVal,
         substate := Afs } :=
-    ⟨rfl,
-      accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩ hLitVal hEqFess⟩
+    ⟨rfl, congrArg
+      (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨6⟩ hLitVal) hEqFess⟩
   obtain ⟨σks, Aks, hKickSolm, _hEqKick⟩ :=
     catBiteMapCall (A_x_solm := Afs) hKickCall' hdepthNe
   set eLitS := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1217,10 +1211,10 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
   have hslot4 :
       solcSlotWord (sstoreAccountMap I.codeOwner σfs ⟨6⟩ hLitVal) I ⟨4⟩ =
       solcSlotWord (sstoreAccountMap I.codeOwner σf ⟨6⟩ hLitVal) I ⟨4⟩ := by
-    simp only [solcSlotWord]
-    exact (accountMapEquiv_storage_findD
-      (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩ hLitVal hEqFess)
-      I.codeOwner ⟨4⟩ ⟨0⟩).symm
+    exact (congrArg
+      (fun accounts => solcSlotWord
+        (sstoreAccountMap I.codeOwner accounts ⟨6⟩ hLitVal) I ⟨4⟩)
+      hEqFess).symm
   have hvowLit : biteVowAddrV eLitS =
       AccountAddress.ofNat
         (seg8VowM (sstoreAccountMap I.codeOwner σf ⟨6⟩ hLitVal) I).toNat := by
@@ -1233,9 +1227,7 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
         (fun acc => acc.code.size))).toNat := by
     rw [hflipAddrS]
     refine codePos eLitS (biteAddrMaskWord.land flipW) ?_
-    rw [heLSam, ← extCodeSizeWord_accountMapEquiv
-        (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩ hLitVal
-          hEqFess), ← hLitValEq]
+    rw [heLSam, ← hEqFess, ← hLitValEq]
     exact hKickCode
   have hlive' : catSlotWord ⟨2⟩ eUrnS.accountMap eUrnS.executionEnv = ⟨1⟩ := by
     rw [← biteSlotEqOfEquiv hEqU ⟨2⟩]; exact hlive
@@ -1484,7 +1476,7 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
     catBiteMapUrns hdepthNe hUrnsVatCode hIlksCall hUrnsCall
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   set eUrnE := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σu, substate := Au } with heUrnEdef
   set eUrnS := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1592,7 +1584,7 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
   have hGrabCodeS :
       ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
@@ -1652,8 +1644,8 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
       { initState σ σ₀ (Sat256.ofUInt256 g) A I with
         accountMap := sstoreAccountMap I.codeOwner σfs ⟨6⟩ hLitVal,
         substate := Afs } :=
-    ⟨rfl,
-      accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩ hLitVal hEqFess⟩
+    ⟨rfl, congrArg
+      (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨6⟩ hLitVal) hEqFess⟩
   obtain ⟨σks, Aks, hKickSolm, _hEqKick⟩ :=
     catBiteMapCall (A_x_solm := Afs) hKickCall' hdepthNe
   set eLitS := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -1689,10 +1681,10 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
   have hslot4 :
       solcSlotWord (sstoreAccountMap I.codeOwner σfs ⟨6⟩ hLitVal) I ⟨4⟩ =
       solcSlotWord (sstoreAccountMap I.codeOwner σf ⟨6⟩ hLitVal) I ⟨4⟩ := by
-    simp only [solcSlotWord]
-    exact (accountMapEquiv_storage_findD
-      (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩ hLitVal hEqFess)
-      I.codeOwner ⟨4⟩ ⟨0⟩).symm
+    exact (congrArg
+      (fun accounts => solcSlotWord
+        (sstoreAccountMap I.codeOwner accounts ⟨6⟩ hLitVal) I ⟨4⟩)
+      hEqFess).symm
   have hvowLit : biteVowAddrV eLitS =
       AccountAddress.ofNat
         (seg8VowM (sstoreAccountMap I.codeOwner σf ⟨6⟩ hLitVal) I).toNat := by
@@ -1705,9 +1697,7 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
         (fun acc => acc.code.size))).toNat := by
     rw [hflipAddrS]
     refine codePos eLitS (biteAddrMaskWord.land flipW) ?_
-    rw [heLSam, ← extCodeSizeWord_accountMapEquiv
-        (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩ hLitVal
-          hEqFess), ← hLitValEq]
+    rw [heLSam, ← hEqFess, ← hLitValEq]
     exact hKickCode
   have hlive' : catSlotWord ⟨2⟩ eUrnS.accountMap eUrnS.executionEnv = ⟨1⟩ := by
     rw [← biteSlotEqOfEquiv hEqU ⟨2⟩]; exact hlive
@@ -2254,7 +2244,7 @@ theorem catBiteRevertRoomSub {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
       ABI.bytesToWord ((o.toList.drop k).take 32) =
         UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
@@ -2386,7 +2376,7 @@ theorem catBiteRevertDunkRoomWad {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have uminEq : ∀ a b : UInt256, (if UInt256.gt a b = ⟨0⟩ then a else b) = umin a b := by
     intro a b; unfold umin
     by_cases h : a.toNat ≤ b.toNat
@@ -2541,7 +2531,7 @@ theorem catBiteRevertMilkChopZero {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have uminEq : ∀ a b : UInt256, (if UInt256.gt a b = ⟨0⟩ then a else b) = umin a b := by
     intro a b; unfold umin
     by_cases h : a.toNat ≤ b.toNat
@@ -2669,7 +2659,7 @@ theorem catBiteRevertInkSpot {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
       ABI.bytesToWord ((o.toList.drop k).take 32) =
         UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
@@ -2822,7 +2812,7 @@ theorem catBiteRevertLive {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
       ABI.bytesToWord ((o.toList.drop k).take 32) =
         UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
@@ -2940,7 +2930,7 @@ theorem catBiteRevertUnsafe {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
       ABI.bytesToWord ((o.toList.drop k).take 32) =
         UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
@@ -3065,7 +3055,7 @@ theorem catBiteRevertSpotZero {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
       ABI.bytesToWord ((o.toList.drop k).take 32) =
         UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
@@ -3169,7 +3159,7 @@ theorem catBiteRevertArtRate {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
       ABI.bytesToWord ((o.toList.drop k).take 32) =
         UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
@@ -3344,7 +3334,7 @@ theorem catBiteRevertInkDart {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have uminEq : ∀ a b : UInt256, (if UInt256.gt a b = ⟨0⟩ then a else b) = umin a b := by
     intro a b; unfold umin
     by_cases h : a.toNat ≤ b.toNat
@@ -3589,7 +3579,7 @@ theorem catBiteRevertTabBase {σ σ₀ A I} {g : UInt256}
     catBiteMapUrns hdepthNe hUrnsVatCode hIlksCall hUrnsCall
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   set eUrnE := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σu, substate := Au } with heUrnEdef
   set eUrnS := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -3691,7 +3681,7 @@ theorem catBiteRevertTabBase {σ σ₀ A I} {g : UInt256}
   have hGrabCodeS :
       ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
@@ -4084,7 +4074,7 @@ theorem catBiteRevertDartZero {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have uminEq : ∀ a b : UInt256, (if UInt256.gt a b = ⟨0⟩ then a else b) = umin a b := by
     intro a b; unfold umin
     by_cases h : a.toNat ≤ b.toNat
@@ -4270,7 +4260,7 @@ theorem catBiteRevertDinkZero {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have uminEq : ∀ a b : UInt256, (if UInt256.gt a b = ⟨0⟩ then a else b) = umin a b := by
     intro a b; unfold umin
     by_cases h : a.toNat ≤ b.toNat
@@ -4470,7 +4460,7 @@ theorem catBiteRevertDartLimit {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have uminEq : ∀ a b : UInt256, (if UInt256.gt a b = ⟨0⟩ then a else b) = umin a b := by
     intro a b; unfold umin
     by_cases h : a.toNat ≤ b.toNat
@@ -4669,7 +4659,7 @@ theorem catBiteRevertDinkLimit {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have uminEq : ∀ a b : UInt256, (if UInt256.gt a b = ⟨0⟩ then a else b) = umin a b := by
     intro a b; unfold umin
     by_cases h : a.toNat ≤ b.toNat
@@ -5005,7 +4995,7 @@ theorem catBiteRevertLitterGeBox {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
       ABI.bytesToWord ((o.toList.drop k).take 32) =
         UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
@@ -5122,7 +5112,7 @@ theorem catBiteRevertRoomDust {σ σ₀ A I} {g : UInt256}
   have heUSee : eUrnS.executionEnv = I := rfl
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
       ABI.bytesToWord ((o.toList.drop k).take 32) =
         UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
@@ -5332,7 +5322,7 @@ theorem catBiteRevertFessNoCode {σ σ₀ A I} {g : UInt256}
     catBiteMapUrns hdepthNe hUrnsVatCode hIlksCall hUrnsCall
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   set eUrnE := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σu, substate := Au } with heUrnEdef
   set eUrnS := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -5434,7 +5424,7 @@ theorem catBiteRevertFessNoCode {σ σ₀ A I} {g : UInt256}
   have hGrabCodeS :
       ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
@@ -5697,7 +5687,7 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
     catBiteMapUrns hdepthNe hUrnsVatCode hIlksCall hUrnsCall
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   set eUrnE := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σu, substate := Au } with heUrnEdef
   set eUrnS := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -5805,7 +5795,7 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
   have hGrabCodeS :
       ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
@@ -5886,9 +5876,7 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
         (fun acc => acc.code.size))).toNat = 0 := by
     rw [hflipAddrS]
     refine codeZero eLitS (biteAddrMaskWord.land flipW) ?_
-    rw [heLSam, ← extCodeSizeWord_accountMapEquiv
-        (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩ hLitVal
-          hEqFess), ← hLitValEq]
+    rw [heLSam, ← hEqFess, ← hLitValEq]
     exact hKickCode
   have hlive' : catSlotWord ⟨2⟩ eUrnS.accountMap eUrnS.executionEnv = ⟨1⟩ := by
     rw [← biteSlotEqOfEquiv hEqU ⟨2⟩]; exact hlive
@@ -6165,7 +6153,7 @@ theorem catBiteRevertLitterAdd {σ σ₀ A I} {g : UInt256}
     catBiteMapUrns hdepthNe hUrnsVatCode hIlksCall hUrnsCall
   have slotEqUS : ∀ s : UInt256, solcSlotWord σus I s = solcSlotWord σu I s := by
     intro s; simp only [solcSlotWord]
-    rw [accountMapEquiv_storage_findD hAmEq I.codeOwner s ⟨0⟩]
+    rw [hAmEq]
   set eUrnE := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σu, substate := Au } with heUrnEdef
   set eUrnS := { initState σ σ₀ (Sat256.ofUInt256 g) A I with
@@ -6273,7 +6261,7 @@ theorem catBiteRevertLitterAdd {σ σ₀ A I} {g : UInt256}
   have hGrabCodeS :
       ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← hAmEq]
     exact hGrabCode
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm

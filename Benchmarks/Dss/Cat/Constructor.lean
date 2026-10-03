@@ -7,7 +7,7 @@ import Benchmarks.Dss.Cat.ConstructorTraceReturn
 The Cat constructor stores three slots — `wards[sender] = 1`, `vat = vat_` (address slot 3),
 `live = 1` (scalar slot 2) — matching the optimized creation bytecode's store order.  The EVM trace
 lives in `ConstructorTrace*`, the Solm source semantics in `ConstructorSource`, and this file
-assembles the two through the account-map-equivalence chain.
+assembles the two through equal account maps.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -53,29 +53,30 @@ theorem catConstructorCorrect :
         catCtorCallerWardsSlot_eq I
       have hAccountsWards : Eq σWards evm1s.accountMap := by
         simpa [σWards, evm1s, evm0s, catCtorAfterWardsState, initState,
-          storageStore_accountMap, storageStore_executionEnv, hslot] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner (catCtorCallerWardsSlot I) ⟨1⟩
-            (Eq.refl σ)
+          storageStore_accountMap, storageStore_executionEnv, hslot]
       have hOldVat :
           solcSlotWord σWards I ⟨3⟩ =
             Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨3⟩ := by
         simpa [evm1s, evm0s, catCtorAfterWardsState, initState, Solm.EVM.storageLoad,
-          State.lookupAccount, Account.lookupStorage, solcSlotWord, storageStore_executionEnv] using
-          accountMapEquiv_storage_findD hAccountsWards I.codeOwner ⟨3⟩ ⟨0⟩
+          State.lookupAccount, Account.lookupStorage, solcSlotWord, storageStore_executionEnv,
+          hAccountsWards]
       have hee1 : evm1s.executionEnv = I := by
         simp only [evm1s, evm0s, catCtorAfterWardsState, storageStore_executionEnv, initState]
       have hee2 : evm2s.executionEnv = I := by
         simp only [evm2s, catCtorAfterVatState, storageStore_executionEnv, hee1]
       have hAccountsVat : Eq σVat evm2s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨3⟩
-          (setAddressOffset0Word
-            (Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨3⟩)
-            (EVM.word vat.val))
+        have hbase := congrArg
+          (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨3⟩
+            (setAddressOffset0Word
+              (Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨3⟩)
+              (EVM.word vat.val)))
           hAccountsWards
         simpa [σVat, evm2s, catCtorAfterVatState, storageStore_accountMap,
           hee1, catCtorVatStored, hOldVat] using hbase
       have hAccountsLive : Eq σLive evm3s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨2⟩ ⟨1⟩ hAccountsVat
+        have hbase := congrArg
+          (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨2⟩ ⟨1⟩)
+          hAccountsVat
         simpa [σLive, evm3s, catCtorAfterLiveState, storageStore_accountMap, hee2] using hbase
       refine constructorEquivalenceFor.execution hsuccess
         (by

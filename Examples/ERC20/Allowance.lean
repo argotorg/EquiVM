@@ -779,19 +779,19 @@ theorem erc20AllowanceBodyCore
           exact (erc20X_allowance (g := Sat256.ofUInt256 g)
               hsz68 hsize hbig hcanonOwner hcanonSpender hreach)
             |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody (by rfl)
-              (returnEquiv_of_encode (erc20Uint256ReturnEncoding (allowanceWord σ I)))
+              (returnEquiv_of_encode (uint256ReturnEncoding (allowanceWord σ I)))
         · have hdec := erc20Decode_allowance_none_noncanon_spender
             (I := I) hsz68 hbig hcanonOwner hcanonSpender
           have hnc : UInt256.eq (allowanceSpenderWord I)
               (UInt256.land (allowanceSpenderWord I) erc20AddrMask) = ⟨0⟩ :=
-            erc20Ueq_zero_of_ne (fun he => hcanonSpender (erc20Word_canonical_of_clean he))
+            uInt256_eq_zero_of_ne (fun he => hcanonSpender (solcAddrCanonical_of_clean he))
           exact (erc20AllowanceX_noncanon_spender (g := Sat256.ofUInt256 g)
               hsz68 hsize hbig hcanonOwner hnc hreach)
             |>.reEquivDecodingFailed hcode hd hdec
       · have hdec := erc20Decode_allowance_none_noncanon_owner (I := I) hsz68 hbig hcanonOwner
         have hnc : UInt256.eq (allowanceOwnerWord I)
             (UInt256.land (allowanceOwnerWord I) erc20AddrMask) = ⟨0⟩ :=
-          erc20Ueq_zero_of_ne (fun he => hcanonOwner (erc20Word_canonical_of_clean he))
+          uInt256_eq_zero_of_ne (fun he => hcanonOwner (solcAddrCanonical_of_clean he))
         exact (erc20AllowanceX_noncanon_owner (g := Sat256.ofUInt256 g)
             hsz68 hsize hbig hnc hreach)
           |>.reEquivDecodingFailed hcode hd hdec

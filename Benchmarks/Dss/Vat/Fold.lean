@@ -322,8 +322,7 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
         have hrateSlotEq : rateSlotS = rateSlotE := by
           simpa [rateSlotS, rateSlotE] using foldRateSlot_eq I hsz100
         have hrateWord : rateOldE = rateOldS := by
-          simpa [rateOldE, rateOldS, rateSlotS, hrateSlotEq] using
-            accountMapEquiv_storage_findD hAccounts I.codeOwner rateSlotE ⟨0⟩
+          simp [rateOldE, rateOldS, rateSlotS, hrateSlotEq]
         have hloadRateS :
             Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner rateSlotS = rateOldS := by
           simp [evm0, rateOldS, rateSlotS, vatSlotWord, solcSlotWord, initState,
@@ -449,14 +448,13 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                 Eq
                   (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
                   evmRate.accountMap := by
-              simpa [evmRate, evm0, initState, storageStore_accountMap,
-                rateSlotS, hrateSlotEq, hrateNewWord] using
-                accountMapEquiv_sstoreAccountMap I.codeOwner rateSlotE rateNewE hAccounts
+              simp [evmRate, evm0, initState, storageStore_accountMap,
+                rateSlotS, hrateSlotEq, hrateNewWord]
             have hartSlotEq : foldArtSlot I = artSlotE := by
               simpa [artSlotE] using foldArtSlot_eq I hsz100
             have hArtWord : artOldE = artOldS := by
-              have h := accountMapEquiv_storage_findD hAccountsRate I.codeOwner
-                (foldArtSlot I) ⟨0⟩
+              have h := congrArg (fun accounts =>
+                solcSlotWord accounts I (foldArtSlot I)) hAccountsRate
               simpa [artOldE, artOldS, artSlotE, hartSlotEq, evmRate, vatSlotWord,
                 solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
                 Account.lookupStorage, storageStore_executionEnv] using h
@@ -510,8 +508,8 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                   have hdaiSlotEq : foldDaiSlot I = daiSlotE := by
                     simpa [daiSlotE] using foldDaiSlot_eq I
                   have hDaiWord : daiOldE = daiOldS := by
-                    have h := accountMapEquiv_storage_findD hAccountsRate I.codeOwner
-                      (foldDaiSlot I) ⟨0⟩
+                    have h := congrArg (fun accounts =>
+                      solcSlotWord accounts I (foldDaiSlot I)) hAccountsRate
                     simpa [daiOldE, daiOldS, daiSlotE, hdaiSlotEq, evmRate,
                       vatSlotWord, solcSlotWord, Solm.EVM.storageLoad,
                       State.lookupAccount, Account.lookupStorage, storageStore_executionEnv]
@@ -562,7 +560,8 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                     simpa [evmDai, evmRate, evm0, initState, storageStore_accountMap,
                       storageStore_executionEnv, daiSlotE, daiOldE, hdaiSlotEq, hDaiWord,
                       u256_zero_add] using
-                      accountMapEquiv_sstoreAccountMap I.codeOwner daiSlotE daiOldE
+                      congrArg (fun accounts =>
+                        sstoreAccountMap I.codeOwner accounts daiSlotE daiOldE)
                         hAccountsRate
                   let debtOldE := solcSlotWord
                     (sstoreAccountMap I.codeOwner
@@ -576,8 +575,8 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                   let debtOldS :=
                     Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner foldDebtSlot
                   have hDebtWord : debtOldE = debtOldS := by
-                    have h := accountMapEquiv_storage_findD hAccountsDai I.codeOwner
-                      foldDebtSlot ⟨0⟩
+                    have h := congrArg (fun accounts =>
+                      solcSlotWord accounts I foldDebtSlot) hAccountsDai
                     simpa [debtOldE, debtOldS, evmDai, evmRate, evm0, initState,
                       foldDebtSlot, vatSlotWord, solcSlotWord, Solm.EVM.storageLoad,
                       State.lookupAccount,
@@ -651,7 +650,8 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                     simpa [evmDebt, evmDai, evmRate, evm0, initState,
                       storageStore_accountMap, foldDebtSlot, storageStore_executionEnv,
                       daiSlotE, hdaiSlotEq, daiOldE, hDaiWord, u256_zero_add] using
-                      accountMapEquiv_sstoreAccountMap I.codeOwner foldDebtSlot debtOldS
+                      congrArg (fun accounts =>
+                        sstoreAccountMap I.codeOwner accounts foldDebtSlot debtOldS)
                         hAccountsDai
                   have hArtMaxS : UInt256.slt artOldS ⟨0⟩ = ⟨0⟩ := by
                     simpa [hArtWord] using hArtMaxE
@@ -945,8 +945,8 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                   have hdaiSlotEq : foldDaiSlot I = daiSlotE := by
                     simpa [daiSlotE] using foldDaiSlot_eq I
                   have hDaiWord : daiOldE = daiOldS := by
-                    have h := accountMapEquiv_storage_findD hAccountsRate I.codeOwner
-                      (foldDaiSlot I) ⟨0⟩
+                    have h := congrArg (fun accounts =>
+                      solcSlotWord accounts I (foldDaiSlot I)) hAccountsRate
                     simpa [daiOldE, daiOldS, evmRate, evm0, initState, daiSlotE,
                       hdaiSlotEq, vatSlotWord, solcSlotWord, Solm.EVM.storageLoad,
                       State.lookupAccount, Account.lookupStorage,
@@ -993,8 +993,9 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                         simpa [evmDai, evmRate, evm0, initState,
                           storageStore_accountMap, storageStore_executionEnv,
                           daiSlotE, hdaiSlotEq, daiOldE, daiNewE, daiNewS, hDaiWord]
-                          using accountMapEquiv_sstoreAccountMap I.codeOwner
-                            daiSlotE daiNewE hAccountsRate
+                          using congrArg (fun accounts =>
+                            sstoreAccountMap I.codeOwner accounts daiSlotE daiNewE)
+                            hAccountsRate
                       let debtOldE := solcSlotWord
                         (sstoreAccountMap I.codeOwner
                           (sstoreAccountMap I.codeOwner σ rateSlotE rateNewE)
@@ -1003,8 +1004,8 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                         Solm.EVM.storageLoad evmDai evmDai.executionEnv.codeOwner
                           foldDebtSlot
                       have hDebtWord : debtOldE = debtOldS := by
-                        have h := accountMapEquiv_storage_findD hAccountsDai I.codeOwner
-                          foldDebtSlot ⟨0⟩
+                        have h := congrArg (fun accounts =>
+                          solcSlotWord accounts I foldDebtSlot) hAccountsDai
                         simpa [debtOldE, debtOldS, evmDai, evmRate, evm0, initState,
                           foldDebtSlot, vatSlotWord, solcSlotWord,
                           Solm.EVM.storageLoad, State.lookupAccount,
@@ -1063,8 +1064,9 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                               storageStore_accountMap, foldDebtSlot,
                               storageStore_executionEnv, debtOldE, debtNewE, debtNewS,
                               hDebtWord] using
-                              accountMapEquiv_sstoreAccountMap I.codeOwner foldDebtSlot
-                                debtNewE hAccountsDai
+                              congrArg (fun accounts =>
+                                sstoreAccountMap I.codeOwner accounts foldDebtSlot debtNewE)
+                                hAccountsDai
                           have hloadDaiS :
                               Solm.EVM.storageLoad
                                   (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner

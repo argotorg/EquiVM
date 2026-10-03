@@ -234,15 +234,7 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
                   (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
                   (len.toNat / 32))
                 ⟨0⟩ header) := by
-          dsimp [evmPostMap]
-          simpa [hheaderEq] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
-              (accountMapEquiv_longDataWordsForwardFrom
-                (owner := I.codeOwner) (slot := clearCurrentBaseWord)
-                (stride := (⟨32⟩ : UInt256)) (ptr := (⟨128⟩ : UInt256))
-                (aw := clearCurrentHashAw (setHelperEntryAw len))
-                (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-                (fuel := len.toNat / 32) rfl)
+          simp [evmPostMap, hheaderEq]
         have hclearFuelEq : clearFuel = len.toNat / 32 := by
           dsimp [clearFuel]
           rw [hsizeDecoded]
@@ -255,7 +247,7 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
           omega
         have htailClearZero' : oldFuel - len.toNat / 32 = 0 := by
           omega
-        have hdataBridge := accountMapEquiv_solidityDataWordsForwardFrom_longDataWordsForwardFrom_full
+        have hdataBridge := solidityDataWordsForwardFrom_eq_longDataWordsForwardFrom_full
           (I := I) (len := len) (payloadStart := payloadStart) (owner := I.codeOwner)
           hnz hlenMaxLen hsrc hsizeDecoded hlenAbi rfl hoffMax
           (τ := σ) (i := 0) (fuel := len.toNat / 32) (by omega)
@@ -275,8 +267,8 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
           rw [hsolmMap]
           simpa [hclearFuelEq, htailClearZero, htailClearZero', hbase0, hstride,
             clearDataWordsForwardFrom] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
-              (Eq.symm hdataBridge)
+            congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨0⟩ header)
+              hdataBridge.symm
         simpa [evmEvm1] using Eq.trans hgenAccounts hsolmTarget
     · simpa [evmEvm1, evmPostMap, hretWord] using hret
   · let wordTail : UInt256 :=
@@ -352,18 +344,7 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
                   (longDataWordsLoopSlot clearCurrentBaseWord (len.toNat / 32))
                   (longDataTailMaskedWord wordTail len))
                 ⟨0⟩ header) := by
-          dsimp [evmPostMap]
-          simpa [hheaderEq] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
-              (accountMapEquiv_sstoreAccountMap I.codeOwner
-                (longDataWordsLoopSlot clearCurrentBaseWord (len.toNat / 32))
-                (longDataTailMaskedWord wordTail len)
-                (accountMapEquiv_longDataWordsForwardFrom
-                  (owner := I.codeOwner) (slot := clearCurrentBaseWord)
-                  (stride := (⟨32⟩ : UInt256)) (ptr := (⟨128⟩ : UInt256))
-                  (aw := clearCurrentHashAw (setHelperEntryAw len))
-                  (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-                  (fuel := len.toNat / 32) rfl))
+          simp [evmPostMap, hheaderEq]
         have hclearFuelEq : clearFuel = (len.toNat + 31) / 32 := by
           dsimp [clearFuel]
           rw [hsizeDecoded]
@@ -380,7 +361,7 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
           omega
         have htailClearZero'' : oldFuel - (len.toNat / 32 + 1) = 0 := by
           omega
-        have hdataBridge := accountMapEquiv_solidityDataWordsForwardFrom_longDataWordsForwardFrom_tail
+        have hdataBridge := solidityDataWordsForwardFrom_eq_longDataWordsForwardFrom_tail
           (I := I) (len := len) (payloadStart := payloadStart) (wordTail := wordTail)
           (owner := I.codeOwner)
           hnz hlenMaxLen hsrc hsizeDecoded hlong hlenAbi rfl hoffMax hmod hwordTail σ
@@ -403,8 +384,8 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
           rw [hsolmMap]
           simpa [hclearFuelEq, htailClearZero, htailClearZero', htailClearZero'', hceilTail,
             hbase0, hstride, clearDataWordsForwardFrom] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
-              (Eq.symm hdataBridge)
+            congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨0⟩ header)
+              hdataBridge.symm
         simpa [evmEvm1] using Eq.trans hgenAccounts hsolmTarget
     · simpa [evmEvm1, evmPostMap, hretWord] using hret
 
@@ -685,9 +666,9 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
                 (UInt256.ofNat 0) tailFuel)
               (clearDataWordsForwardFrom I.codeOwner σ (bytesLikeDataBase ⟨0⟩)
                 (UInt256.ofNat clearFuel) tailFuel) :=
-          accountMapEquiv_clearDataWordsForwardFrom_shift_clearCurrentBase
+          clearDataWordsForwardFrom_shift_clearCurrentBase
             (owner := I.codeOwner) clearFuel tailFuel
-            (by simpa [htailSum] using holdFuelLt) rfl
+            (by simpa [htailSum] using holdFuelLt)
         have htailShiftCount :
             Eq
               (clearDataWordsForwardFrom I.codeOwner σ
@@ -710,21 +691,19 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
                   (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
                   (len.toNat / 32))
                 ⟨0⟩ header) := by
-          dsimp [evmPostMap]
-          simpa [hheaderEq, hclearFuelEq] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
-              (accountMapEquiv_longDataWordsForwardFrom
-                (owner := I.codeOwner) (slot := clearCurrentBaseWord)
-                (stride := (⟨32⟩ : UInt256)) (ptr := (⟨128⟩ : UInt256))
-                (aw := clearCurrentHashAw (setHelperEntryAw len))
-                (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-                (fuel := len.toNat / 32) htailShiftCount)
+          have htransport := congrArg
+            (fun accounts => sstoreAccountMap I.codeOwner
+              (longDataWordsForwardFrom I.codeOwner accounts clearCurrentBaseWord ⟨32⟩ ⟨128⟩
+                (clearCurrentHashAw (setHelperEntryAw len))
+                (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
+                (len.toNat / 32)) ⟨0⟩ header) htailShiftCount
+          simpa [evmPostMap, hheaderEq, hclearFuelEq] using htransport
         have hsumNoTail : len.toNat / 32 + tailFuel = oldFuel := by
           simpa [hclearFuelEq] using htailSum
         let tailBase :=
           clearDataWordsForwardFrom I.codeOwner σ (bytesLikeDataBase ⟨0⟩)
             (UInt256.ofNat (len.toNat / 32)) tailFuel
-        have hdataBridge := accountMapEquiv_solidityDataWordsForwardFrom_longDataWordsForwardFrom_full
+        have hdataBridge := solidityDataWordsForwardFrom_eq_longDataWordsForwardFrom_full
           (I := I) (len := len) (payloadStart := payloadStart) (owner := I.codeOwner)
           hnz hlenMaxLen hsrc hsizeDecoded hlenAbi rfl hoffMax
           (τ := tailBase) (i := 0) (fuel := len.toNat / 32) (by omega)
@@ -748,8 +727,8 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
             native_decide
           rw [hsolmMap]
           simpa [hclearFuelEq, htailSub, tailBase, hbase0, hstride] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
-              (Eq.symm hdataBridge)
+            congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨0⟩ header)
+              hdataBridge.symm
         simpa [evmEvm1] using Eq.trans hgenAccounts hsolmTarget
     · simpa [evmEvm1, evmPostMap, hretWord] using hret
   · let wordTail : UInt256 :=
@@ -826,9 +805,9 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
                 (UInt256.ofNat 0) tailFuel)
               (clearDataWordsForwardFrom I.codeOwner σ (bytesLikeDataBase ⟨0⟩)
                 (UInt256.ofNat clearFuel) tailFuel) :=
-          accountMapEquiv_clearDataWordsForwardFrom_shift_clearCurrentBase
+          clearDataWordsForwardFrom_shift_clearCurrentBase
             (owner := I.codeOwner) clearFuel tailFuel
-            (by simpa [htailSum] using holdFuelLt) rfl
+            (by simpa [htailSum] using holdFuelLt)
         have htailShiftCount :
             Eq
               (clearDataWordsForwardFrom I.codeOwner σ
@@ -854,18 +833,16 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
                   (longDataWordsLoopSlot clearCurrentBaseWord (len.toNat / 32))
                   (longDataTailMaskedWord wordTail len))
                 ⟨0⟩ header) := by
-          dsimp [evmPostMap]
-          simpa [hheaderEq, hclearFuelEq] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
-              (accountMapEquiv_sstoreAccountMap I.codeOwner
+          have htransport := congrArg
+            (fun accounts => sstoreAccountMap I.codeOwner
+              (sstoreAccountMap I.codeOwner
+                (longDataWordsForwardFrom I.codeOwner accounts clearCurrentBaseWord ⟨32⟩ ⟨128⟩
+                  (clearCurrentHashAw (setHelperEntryAw len))
+                  (clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
+                  (len.toNat / 32))
                 (longDataWordsLoopSlot clearCurrentBaseWord (len.toNat / 32))
-                (longDataTailMaskedWord wordTail len)
-                (accountMapEquiv_longDataWordsForwardFrom
-                  (owner := I.codeOwner) (slot := clearCurrentBaseWord)
-                  (stride := (⟨32⟩ : UInt256)) (ptr := (⟨128⟩ : UInt256))
-                  (aw := clearCurrentHashAw (setHelperEntryAw len))
-                  (mem := clearCurrentBaseMemFrom (setPaddedMem I.calldata len payloadStart))
-                  (fuel := len.toNat / 32) htailShiftCount))
+                (longDataTailMaskedWord wordTail len)) ⟨0⟩ header) htailShiftCount
+          simpa [evmPostMap, hheaderEq, hclearFuelEq] using htransport
         have htailBound : (len.toNat + 31) / 32 + tailFuel < 2 ^ 251 := by
           omega
         have htailSub : oldFuel - (len.toNat + 31) / 32 = tailFuel := by
@@ -873,7 +850,7 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
         let tailBase :=
           clearDataWordsForwardFrom I.codeOwner σ (bytesLikeDataBase ⟨0⟩)
             (UInt256.ofNat ((len.toNat + 31) / 32)) tailFuel
-        have hdataBridge := accountMapEquiv_solidityDataWordsForwardFrom_longDataWordsForwardFrom_tail
+        have hdataBridge := solidityDataWordsForwardFrom_eq_longDataWordsForwardFrom_tail
           (I := I) (len := len) (payloadStart := payloadStart) (wordTail := wordTail)
           (owner := I.codeOwner)
           hnz hlenMaxLen hsrc hsizeDecoded hlong hlenAbi rfl hoffMax hmod hwordTail tailBase
@@ -904,8 +881,8 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
             native_decide
           rw [hsolmMap]
           simpa [hclearFuelEq, htailSub, htailSubTail, tailBase, hceilTail, hbase0, hstride] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
-              (Eq.symm hdataBridge)
+            congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨0⟩ header)
+              hdataBridge.symm
         simpa [evmEvm1] using Eq.trans hgenAccounts hsolmTarget
     · simpa [evmEvm1, evmPostMap, hretWord] using hret
 

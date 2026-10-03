@@ -1198,31 +1198,28 @@ theorem blindAuctionWithdrawBodyCore {σ σ₀ A I}
                   storageStore_executionEnv, hAddressId]
           have hValueEq : valueE = Int.ofNat (withdrawAmountWord σ I).toNat := by
             rfl
-          obtain ⟨σ'_solm, A'_solm, hcallSRaw, hPostAccounts⟩ :=
-            callViaEVM_accountMapEquiv hcallE
-              (by
-                change withdrawZeroMap σ I =
-                  (Solm.EVM.storageStore (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-                    I.codeOwner (withdrawAmountSlot I) ⟨0⟩).accountMap
-                rw [withdrawZeroMap, blindAuctionStorageStore_accountMap]
-                rfl)
-              (by
-                simpa [evmEZero, evmSZero, evmS, initState] using
-                  (withdrawZeroState_originalMap
-                    (initState σ σ₀ (Sat256.ofUInt256 g) A I)).symm)
-              (by
-                change I =
-                  (Solm.EVM.storageStore (initState σ σ₀ (Sat256.ofUInt256 g) A I)
-                    I.codeOwner (withdrawAmountSlot I) ⟨0⟩).executionEnv
-                rw [storageStore_executionEnv]
-                rfl)
+          have hZeroState : evmEZero = evmSZero := by
+            have hMap : evmEZero.accountMap = evmSZero.accountMap := by
+              change withdrawZeroMap σ I =
+                (Solm.EVM.storageStore (initState σ σ₀ (Sat256.ofUInt256 g) A I)
+                  I.codeOwner (withdrawAmountSlot I) ⟨0⟩).accountMap
+              rw [withdrawZeroMap, storageStore_accountMap]
+              rfl
+            calc
+              evmEZero = {evmS with accountMap := evmEZero.accountMap} := by rfl
+              _ = {evmS with accountMap := evmSZero.accountMap} := by
+                exact congrArg (fun accounts => {evmS with accountMap := accounts}) hMap
+              _ = evmSZero := by
+                unfold evmSZero withdrawZeroState withdrawClearedState Solm.EVM.storageStore
+                cases evmS.lookupAccount evmS.executionEnv.codeOwner <;>
+                  simp [Option.option, State.setAccount]
           let evmSCall : EVM.State :=
-            { evmSZero with accountMap := σ'_solm, substate := A'_solm }
+            { evmSZero with accountMap := σ', substate := A' }
           have hcallS :
               callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
                 (Int.ofNat (withdrawAmountWord σ I).toNat) ByteArray.empty
                 (z, evmSCall, out) := by
-            simpa [evmSCall, hTargetEq, hValueEq] using hcallSRaw
+            simpa [evmSCall, hTargetEq, hValueEq, ← hZeroState, evmECall] using hcallE
           cases z
           · have hbody :
                 ExecTransitionBody blindAuctionConfig blindAuctionContract evmS ∅
@@ -1251,7 +1248,7 @@ theorem blindAuctionWithdrawBodyCore {σ σ₀ A I}
               blindAuctionX_withdraw_afterCall_return (g := Sat256.ofUInt256 g)
                 (by simpa using rd767) houtsz
             exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-              (by simpa [evmSCall, evmECall] using hPostAccounts)
+              (by simp [evmSCall])
               (returnEquiv.fallthrough rfl rfl (by native_decide))
         · let evmSFail : EVM.State :=
             { evmSZero with
@@ -1275,7 +1272,7 @@ theorem blindAuctionWithdrawBodyCore {σ σ₀ A I}
                       (withdrawZeroMap σ I |>.find? I.codeOwner |>.elim ⟨0⟩
                         (·.balance)) := by
                 simpa [evmSZero, withdrawZeroState, withdrawClearedState, evmS, initState,
-                  withdrawZeroMap, blindAuctionStorageStore_accountMap,
+                  withdrawZeroMap, storageStore_accountMap,
                   storageStore_executionEnv] using hvalueBal
               exact hbalance (by simpa using hvalueBalS)
           have hbody :

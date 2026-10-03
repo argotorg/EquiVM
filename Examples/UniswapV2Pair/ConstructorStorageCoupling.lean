@@ -7,7 +7,7 @@ namespace UniswapV2Pair
 
 set_option maxRecDepth 2000
 
-theorem constructorStoredAccountMap_equiv {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
+theorem constructorStoredAccountMap_eq {σ : AccountMap} {evm : EVM.State} {I : ExecutionEnv}
     (he : evm.executionEnv = I) (ha : Eq σ evm.accountMap) :
     Eq (constructorStoredAccountMap σ I
       (constructorDomainHashWord (UInt256.ofNat I.codeOwner.val)))
@@ -16,20 +16,19 @@ theorem constructorStoredAccountMap_equiv {σ : AccountMap} {evm : EVM.State} {I
     (constructorDomainHashWord (UInt256.ofNat I.codeOwner.val))
   have haD : Eq σD (constructorDomainState evm).accountMap := by
     simpa only [constructorDomainState, storageStore_accountMap, he] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner ⟨3⟩
-        (constructorDomainHashWord (UInt256.ofNat I.codeOwner.val)) ha
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨3⟩
+        (constructorDomainHashWord (UInt256.ofNat I.codeOwner.val))) ha
   have heD : (constructorDomainState evm).executionEnv = I := by
     simp only [constructorDomainState, storageStore_executionEnv, he]
   have hslot : uniswapSlotWord ⟨5⟩ σD I =
       Solm.EVM.storageLoad (constructorDomainState evm) I.codeOwner ⟨5⟩ := by
     simpa only [uniswapSlotWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-      using
-      accountMapEquiv_storage_findD haD I.codeOwner ⟨5⟩ ⟨0⟩
+      using congrArg (fun accounts => uniswapSlotWord ⟨5⟩ accounts I) haD
   unfold constructorStoredAccountMap constructorFactoryState
   rw [storageStore_accountMap, heD]
   change Eq (sstoreAccountMap I.codeOwner σD ⟨5⟩ _)
     (sstoreAccountMap I.codeOwner (constructorDomainState evm).accountMap ⟨5⟩ _)
   rw [← hslot]
-  exact accountMapEquiv_sstoreAccountMap I.codeOwner ⟨5⟩ _ haD
+  rw [← haD]
 
 end UniswapV2Pair

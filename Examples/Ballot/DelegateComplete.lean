@@ -126,9 +126,9 @@ theorem ballotDelegateTailNotVotedSuccessEquiv_general
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hperm hdelegateNotVoted hfit hreach1211)
     |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-      (delegateTailFalseSuccessState_accountMapEquiv_init
+      (delegateTailFalseSuccessState_accountMap_eq_init
         (σ := σ) (σ₀ := σ₀)
-        (A := A) (I := I) (g := Sat256.ofUInt256 g) w hweight hfit)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g) w)
       (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 theorem ballotDelegateTailNotVotedOverflowEquiv_general
@@ -279,9 +279,9 @@ theorem ballotDelegateTailVotedSuccessEquiv_general
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hperm hdelegateVoted hbound hfit hreach1211)
     |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
-      (delegateTailTrueSuccessState_accountMapEquiv_init
+      (delegateTailTrueSuccessState_accountMap_eq_init
         (σ := σ) (σ₀ := σ₀)
-        (A := A) (I := I) (g := Sat256.ofUInt256 g) w hweight hfit)
+        (A := A) (I := I) (g := Sat256.ofUInt256 g) w)
       (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 theorem ballotDelegateTailVotedOobEquiv_general

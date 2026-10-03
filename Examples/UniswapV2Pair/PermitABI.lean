@@ -599,22 +599,19 @@ theorem permitRecoveredPaddedAddress_ne_owner_of_mask_ne {I : ExecutionEnv} {o :
   rw [Nat.mod_eq_of_lt hcanonRecovered, Nat.mod_eq_of_lt hcanonOwner] at hval
   exact hval
 
-theorem permitApprovePostState_accountMap_equiv {evm : EVM.State} {I : ExecutionEnv}
+theorem permitApprovePostState_accountMap_eq {evm : EVM.State} {I : ExecutionEnv}
     {σ : AccountMap}
     (henv : evm.executionEnv = I)
-    (hAccounts : Eq σ evm.accountMap) :
-    Eq
-      (sstoreAccountMap I.codeOwner σ
+    (hAccounts : σ = evm.accountMap) :
+    sstoreAccountMap I.codeOwner σ
         (mapSlot (permitSpenderMaskedWord I) (mapSlot (permitOwnerMaskedWord I) ⟨2⟩))
-        (permitValueWord I))
+        (permitValueWord I) =
       (permitApprovePostState evm I).accountMap := by
   unfold permitApprovePostState
   rw [storageStore_accountMap]
   rw [show evm.executionEnv.codeOwner = I.codeOwner by rw [henv]]
   rw [permitApproveStorageSlot_eq_mapSlot_masked]
-  exact accountMapEquiv_sstoreAccountMap I.codeOwner
-    (mapSlot (permitSpenderMaskedWord I) (mapSlot (permitOwnerMaskedWord I) ⟨2⟩))
-    (permitValueWord I) hAccounts
+  rw [hAccounts]
 
 abbrev permitApproveCallStore (I : ExecutionEnv) : Store :=
   let s0 : Store := ∅

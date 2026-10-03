@@ -293,7 +293,7 @@ theorem uniswapMintFeeOnKLastNonzeroCompleteFromFactoryCases
       hcode hdispatch hsz36 hwv hunlockedSolm hguard0 hguard1 hcall0 hdec0 hcall1 hdec1
       hle0Source hle1Source hfee rd3701
       hbase hamount0Get hamount1Get hreserve0Get hreserve1Get
-      (mintFunctionTotalSupplyWord_eq_slot_of_accountMapEquiv hAfterAccounts henvAfter) rfl
+      (mintFunctionTotalSupplyWord_eq_slot hAfterAccounts henvAfter) rfl
       hclean0 hclean1 hmemAfter hmemAfter64 hAfterAccounts henvAfter
       hrecipient
       (mintAfterMintFeeCallStore_to evmL I balance0 balance1 true) rfl

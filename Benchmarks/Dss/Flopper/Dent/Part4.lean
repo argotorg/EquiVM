@@ -724,21 +724,14 @@ theorem flopperDentBodyReturns_success_callerEq (evm : EVM.State) (I : Execution
         (ExecStmt.requireTrue (evalExpr_dent_decrease_true evm I hsuff)) <|
       htail)
 
-theorem flopperUint48Offset0Word_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) (slot : UInt256) :
-    flopperUint48Offset0Word slot σ I = flopperUint48Offset0Word slot τ I := by
-  simp [flopperUint48Offset0Word, flopperSlotWord_accountMapEquiv hAccounts slot]
-
-theorem dentRuntimeAfterLotMap_source_accountMapEquiv
+theorem dentRuntimeAfterLotMap_source_eq
     {σ σ₀ A I} {g : UInt256} :
     Eq (dentRuntimeAfterLotMap I.codeOwner σ I)
       (dentAfterLotStore (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         I).accountMap := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  simpa [evmSolm, dentRuntimeAfterLotMap, dentAfterLotStore, storageStore_accountMap,
-    initState] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner (auctionLotSlot (dentIdWord I))
-      (dentLotWord I) rfl
+  simp [evmSolm, dentRuntimeAfterLotMap, dentAfterLotStore, storageStore_accountMap,
+    initState]
 
 theorem dentRuntimeTtlWord_source_eq
     {σ σ₀ A I} {g : UInt256} :
@@ -748,14 +741,14 @@ theorem dentRuntimeTtlWord_source_eq
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) I) := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hAfter :=
-    dentRuntimeAfterLotMap_source_accountMapEquiv
+    dentRuntimeAfterLotMap_source_eq
       (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g)
-  have h := flopperUint48Offset0Word_accountMapEquiv (I := I) hAfter ⟨6⟩
+  have h := congrArg (fun accounts => flopperUint48Offset0Word ⟨6⟩ accounts I) hAfter
   simpa [evmSolm, dentRuntimeTtlWord, dentTtlWord, dentAfterLotStore_executionEnv,
     initState] using h
 
-theorem dentRuntimeTailSuccessAccountMap_accountMapEquiv
+theorem dentRuntimeTailSuccessAccountMap_eq_postState
     {σ σ₀ A I} {g : UInt256}
     (haddFit :
       (UInt256.land (UInt256.ofNat I.header.timestamp) flopperUint48Mask).toNat +
@@ -768,7 +761,7 @@ theorem dentRuntimeTailSuccessAccountMap_accountMapEquiv
   let runtimeOld := solcSlotWord (dentRuntimeAfterLotMap I.codeOwner σ I) I packedSlot
   let runtimeAdd := dentRuntimeTicAddWord I.codeOwner σ I
   have hAfter :=
-    dentRuntimeAfterLotMap_source_accountMapEquiv
+    dentRuntimeAfterLotMap_source_eq
       (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g)
   have httl :=
@@ -800,7 +793,7 @@ theorem dentRuntimeTailSuccessAccountMap_accountMapEquiv
       runtimeOld =
         Solm.EVM.storageLoad (dentAfterLotStore evmSolm I)
           (dentAfterLotStore evmSolm I).executionEnv.codeOwner packedSlot := by
-    have hslot := flopperSlotWord_accountMapEquiv (I := I) hAfter packedSlot
+    have hslot := congrArg (fun accounts => flopperSlotWord packedSlot accounts I) hAfter
     simpa [runtimeOld, packedSlot, flopperSlotWord, solcSlotWord, evmSolm,
       initState, dentAfterLotStore_executionEnv] using hslot
   have hstored :
@@ -825,10 +818,10 @@ theorem dentRuntimeTailSuccessAccountMap_accountMapEquiv
   simpa [evmSolm, initState, storageStore_accountMap, dentAfterLotStore_executionEnv,
     packedSlot, runtimeOld, runtimeAdd, dentRuntimeTailSuccessAccountMap, dentAfterTicStore,
     dentPostState, hstored] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner packedSlot (dentTicStoredWord evmSolm I)
-      hAfter
+    congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts packedSlot
+      (dentTicStoredWord evmSolm I)) hAfter
 
-theorem dentRuntimeAfterGuyMap_accountMapEquiv
+theorem dentRuntimeAfterGuyMap_eq_afterGuyStore
     {σ : AccountMap} {evmSolm : EVM.State} {I : ExecutionEnv}
     (hAccounts : Eq σ evmSolm.accountMap)
     (hEnv : evmSolm.executionEnv = I) :
@@ -838,7 +831,7 @@ theorem dentRuntimeAfterGuyMap_accountMapEquiv
   have hold :
       solcSlotWord σ I packedSlot =
         Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner packedSlot := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) hAccounts packedSlot
+    have hword := congrArg (fun accounts => flopperSlotWord packedSlot accounts I) hAccounts
     simpa [flopperSlotWord, solcSlotWord, hEnv] using hword
   have hstored :
       setAddressOffset0Word (solcSlotWord σ I packedSlot) (UInt256.ofNat I.source.val) =
@@ -848,11 +841,10 @@ theorem dentRuntimeAfterGuyMap_accountMapEquiv
     simp [hold, hEnv]
   simpa [dentRuntimeAfterGuyMap, dentAfterGuyStore, storageStore_accountMap, hEnv,
     packedSlot, hstored] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner packedSlot
+    congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts packedSlot
       (setAddressOffset0Word
         (Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner packedSlot)
-        (UInt256.ofNat evmSolm.executionEnv.source.val))
-      hAccounts
+        (UInt256.ofNat evmSolm.executionEnv.source.val))) hAccounts
 
 theorem dentRuntimeTtlWord_afterGuy_eq
     {σ : AccountMap} {evmSolm : EVM.State} {I : ExecutionEnv}
@@ -868,13 +860,13 @@ theorem dentRuntimeTtlWord_afterGuy_eq
         (dentAfterLotStore (dentAfterGuyStore evmSolm I) I).accountMap := by
     simpa [dentRuntimeAfterLotMap, dentAfterLotStore, storageStore_accountMap,
       dentAfterGuyStore, storageStore_executionEnv, hEnv] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (auctionLotSlot (dentIdWord I))
-        (dentLotWord I) hAfterGuy
-  have h := flopperUint48Offset0Word_accountMapEquiv (I := I) hAfterLot ⟨6⟩
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (auctionLotSlot (dentIdWord I)) (dentLotWord I)) hAfterGuy
+  have h := congrArg (fun accounts => flopperUint48Offset0Word ⟨6⟩ accounts I) hAfterLot
   simpa [dentRuntimeTtlWord, dentTtlWord, dentAfterLotStore_executionEnv,
     dentAfterGuyStore, storageStore_executionEnv, hEnv] using h
 
-theorem dentRuntimeTailSuccessAccountMap_afterGuy_accountMapEquiv
+theorem dentRuntimeTailSuccessAccountMap_afterGuy_eq_postState
     {σ : AccountMap} {evmSolm : EVM.State} {I : ExecutionEnv}
     (hAfterGuy :
       Eq (dentRuntimeAfterGuyMap I.codeOwner σ I)
@@ -898,8 +890,8 @@ theorem dentRuntimeTailSuccessAccountMap_afterGuy_accountMapEquiv
         (dentAfterLotStore evmGuy I).accountMap := by
     simpa [σGuy, evmGuy, dentRuntimeAfterLotMap, dentAfterLotStore,
       storageStore_accountMap, dentAfterGuyStore, storageStore_executionEnv, hEnv] using
-      accountMapEquiv_sstoreAccountMap I.codeOwner (auctionLotSlot (dentIdWord I))
-        (dentLotWord I) hAfterGuy
+      congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts
+        (auctionLotSlot (dentIdWord I)) (dentLotWord I)) hAfterGuy
   have httl :
       dentRuntimeTtlWord I.codeOwner σGuy I =
         dentTtlWord (dentAfterLotStore evmGuy I) := by
@@ -933,7 +925,7 @@ theorem dentRuntimeTailSuccessAccountMap_afterGuy_accountMapEquiv
       runtimeOld =
         Solm.EVM.storageLoad (dentAfterLotStore evmGuy I)
           (dentAfterLotStore evmGuy I).executionEnv.codeOwner packedSlot := by
-    have hslot := flopperSlotWord_accountMapEquiv (I := I) hAfterLot packedSlot
+    have hslot := congrArg (fun accounts => flopperSlotWord packedSlot accounts I) hAfterLot
     simpa [runtimeOld, packedSlot, flopperSlotWord, solcSlotWord,
       dentAfterLotStore_executionEnv, evmGuy, dentAfterGuyStore, storageStore_executionEnv,
       hEnv] using hslot
@@ -959,8 +951,8 @@ theorem dentRuntimeTailSuccessAccountMap_afterGuy_accountMapEquiv
   simpa [σGuy, evmGuy, storageStore_accountMap, dentAfterLotStore_executionEnv,
     dentAfterGuyStore, storageStore_executionEnv, hEnv, packedSlot, runtimeOld, runtimeAdd,
     dentRuntimeTailSuccessAccountMap, dentAfterTicStore, dentPostState, hstored] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner packedSlot (dentTicStoredWord evmGuy I)
-      hAfterLot
+    congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts packedSlot
+      (dentTicStoredWord evmGuy I)) hAfterLot
 
 theorem flopperDentBodyCoreRevert
     {σ σ₀ A I} {g : UInt256}

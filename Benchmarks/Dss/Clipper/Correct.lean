@@ -54,27 +54,27 @@ theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
   · by_cases hactive : selIs I (clipperSelBytes 0)
     · exact clipperActiveBody v hcode hIcode hsize hperm hwv hactive
     · by_cases hbuf : selIs I (clipperSelBytes 1)
-      · exact clipperBufBody v hcode hIcode hsize hperm hwv hbuf hAccounts
+      · exact clipperBufBody v hcode hIcode hsize hperm hwv hbuf
       · by_cases hcalc : selIs I (clipperSelBytes 2)
-        · exact clipperCalcBody v hcode hIcode hsize hperm hwv hcalc hAccounts
+        · exact clipperCalcBody v hcode hIcode hsize hperm hwv hcalc
         · by_cases hchip : selIs I (clipperSelBytes 3)
           · exact clipperChipBody v hcode hIcode hsize hperm hwv hchip
           · by_cases hchost : selIs I (clipperSelBytes 4)
-            · exact clipperChostBody v hcode hIcode hsize hperm hwv hchost hAccounts
+            · exact clipperChostBody v hcode hIcode hsize hperm hwv hchost
             · by_cases hcount : selIs I (clipperSelBytes 5)
               · exact clipperCountBody v hcode hIcode hsize hperm hwv hcount
               · by_cases hcusp : selIs I (clipperSelBytes 6)
-                · exact clipperCuspBody v hcode hIcode hsize hperm hwv hcusp hAccounts
+                · exact clipperCuspBody v hcode hIcode hsize hperm hwv hcusp
                 · by_cases hdeny : selIs I (clipperSelBytes 7)
-                  · exact clipperDenyBody v hcode hIcode hsize hperm hwv hdeny hAccounts
+                  · exact clipperDenyBody v hcode hIcode hsize hperm hwv hdeny
                   · by_cases hdog : selIs I (clipperSelBytes 8)
                     · exact clipperDogBody v hcode hIcode hsize hperm hwv hdog
                     · by_cases hfileUint : selIs I (clipperSelBytes 9)
                       · exact clipperFileUintBody v hcode hIcode hsize hperm hwv hfileUint
-                          hAccounts
+
                       · by_cases hfileAddress : selIs I (clipperSelBytes 10)
                         · exact clipperFileAddressBody v hcode hIcode hsize hperm hwv
-                            hfileAddress hAccounts
+                            hfileAddress
                         · by_cases hgetStatus : selIs I (clipperSelBytes 11)
                           · exact clipperGetStatusBody v hcode hIcode hsize hperm hwv
                               hgetStatus
@@ -82,19 +82,19 @@ theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
                             · exact clipperIlkBody v hcode hIcode hsize hperm hwv hilk
                             · by_cases hkick : selIs I (clipperSelBytes 13)
                               · exact clipperKickBody v hcode hIcode hsize hperm hwv hkick
-                                  hAccounts hStorageWF
+                                  hStorageWF
                               · by_cases hkicks : selIs I (clipperSelBytes 14)
                                 · exact clipperKicksBody v hcode hIcode hsize hperm hwv
-                                    hkicks hAccounts
+                                    hkicks
                                 · by_cases hlist : selIs I (clipperSelBytes 15)
                                   · exact clipperListBody v hcode hIcode hsize hperm hwv
                                       hlist hStorageWF
                                   · by_cases hredo : selIs I (clipperSelBytes 16)
                                     · exact clipperRedoBody v hcode hIcode hsize hperm hwv
-                                        hredo hAccounts
+                                        hredo
                                     · by_cases hrely : selIs I (clipperSelBytes 17)
                                       · exact clipperRelyBody v hcode hIcode hsize hperm
-                                          hwv hrely hAccounts
+                                          hwv hrely
                                       · by_cases hsales : selIs I (clipperSelBytes 18)
                                         · exact clipperSalesBody v hcode hIcode hsize hperm
                                             hwv hsales
@@ -103,20 +103,20 @@ theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
                                               hperm hwv hspotter
                                           · by_cases hstopped : selIs I (clipperSelBytes 20)
                                             · exact clipperStoppedBody v hcode hIcode hsize
-                                                hperm hwv hstopped hAccounts
+                                                hperm hwv hstopped
                                             · by_cases htail : selIs I (clipperSelBytes 21)
                                               · exact clipperTailBody v hcode hIcode hsize
                                                   hperm hwv htail
                                               · by_cases htake : selIs I (clipperSelBytes 22)
                                                 · exact clipperTakeBody v hcode hIcode hsize
-                                                    hperm hwv htake hAccounts hStorageWF
+                                                    hperm hwv htake hStorageWF
                                                 · by_cases htip : selIs I (clipperSelBytes 23)
                                                   · exact clipperTipBody v hcode hIcode hsize
                                                       hperm hwv htip
                                                   · by_cases hupchost :
                                                         selIs I (clipperSelBytes 24)
                                                     · exact clipperUpchostBody v hcode hIcode
-                                                        hsize hperm hwv hupchost hAccounts
+                                                        hsize hperm hwv hupchost
                                                     · by_cases hvat :
                                                           selIs I (clipperSelBytes 25)
                                                       · exact clipperVatBody v hcode hIcode
@@ -133,7 +133,7 @@ theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
                                                                 selIs I (clipperSelBytes 28)
                                                             · exact clipperYankBody v hcode
                                                                 hIcode hsize hperm hwv hyank
-                                                                hAccounts
+
                                                             · exact clipperNoDispatch v hcode
                                                                 hIcode hsize hperm hwv
                                                                 (clipperNoSelectorMatches

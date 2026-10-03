@@ -98,9 +98,7 @@ theorem stringStoreLiteClearCurrentLongValid
       simp [evmSolm1, evmSolmLen, evmSolm0, clearSolidityBytesDataWordsFrom_accountMap,
         storageStore_accountMap, storageStore_executionEnv, initState, hcountNat,
         clearCurrentBaseWord_eq_solidityBytesDataBaseSlot]
-      exact accountMapEquiv_clearDataWordsForwardFrom I.codeOwner
-        (solidityBytesDataBaseSlot ⟨0⟩) ⟨0⟩ ((len.toNat + 31) / 32)
-        (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ ⟨0⟩ rfl))
+      rfl)
     (returnEquiv_of_encode (uint256ReturnEncoding len))
 
 /-! ## Branch routers -/

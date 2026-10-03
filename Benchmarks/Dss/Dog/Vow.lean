@@ -215,7 +215,6 @@ theorem dogVowBodyCore {v : DogImmutables} {code : ByteArray}
     (routine := ⟨1439⟩) (slot := ⟨2⟩)
     _hcode (dogDispatchVow _hsel) (dogDecode_vow (v := v) hsz)
     (dogReachVowBody (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv hsz _hsize _hsel)
-    _hAccounts
     (by
       unfold solcGetterEntryWf
       repeat' first

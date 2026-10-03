@@ -208,7 +208,7 @@ theorem transferFromFromBalanceRawAfterAllowance_initState
   rw [hcodeOwner]
   simpa [evm0, transferFromFromBalanceRawAfterAllowance, transferFromAfterAllowanceState,
     transferFromAllowanceSlot, transferFromAllowanceSlotI, initState, State.lookupAccount,
-    Account.lookupStorage, vyperERC20StorageStore_accountMap]
+    Account.lookupStorage, storageStore_accountMap]
 
 theorem transferFromToBalanceRawAfterBalance_initState
     {σ σ₀ A I} {g : Sat256} :
@@ -221,7 +221,7 @@ theorem transferFromToBalanceRawAfterBalance_initState
     transferFromAfterBalanceState, transferFromAfterAllowanceState,
     transferFromAfterBalance_codeOwner, transferFromAfterAllowance_codeOwner,
     transferFromAllowanceSlot, transferFromAllowanceSlotI, initState, Solm.EVM.storageLoad,
-    State.lookupAccount, Account.lookupStorage, vyperERC20StorageStore_accountMap]
+    State.lookupAccount, Account.lookupStorage, storageStore_accountMap]
 
 theorem decodeScalarWords_address_address_uint256_ok {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32)

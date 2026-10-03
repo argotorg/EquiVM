@@ -1,5 +1,5 @@
 import Benchmarks.Dss.Clipper.Arithmetic
-import Benchmarks.Dss.Clipper.ExternalCall
+import Reasoning.ExternalCall
 import Benchmarks.Dss.Clipper.GetStatusEVM
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach

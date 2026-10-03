@@ -24,6 +24,23 @@ def cageLivePostState (evm : EVM.State) : EVM.State :=
 def cageLivePostAccountMap (I : ExecutionEnv) (σ : AccountMap) : AccountMap :=
   sstoreAccountMap I.codeOwner σ ⟨7⟩ ⟨0⟩
 
+theorem cageLivePostState_initState_eq
+    (σ σ₀ : AccountMap) (A : Substate) (I : ExecutionEnv) (g : Sat256) :
+    ({initState σ σ₀ g A I with accountMap := cageLivePostAccountMap I σ} : EVM.State) =
+      cageLivePostState (initState σ σ₀ g A I) := by
+  let evm := initState σ σ₀ g A I
+  let evmLive := cageLivePostState evm
+  have hMap : cageLivePostAccountMap I σ = evmLive.accountMap := by
+    simp [evmLive, evm, cageLivePostState, cageLivePostAccountMap, initState,
+      storageStore_accountMap]
+  calc
+    _ = {evm with accountMap := cageLivePostAccountMap I σ} := by rfl
+    _ = {evm with accountMap := evmLive.accountMap} := by
+      exact congrArg (fun accounts => {evm with accountMap := accounts}) hMap
+    _ = evmLive := by
+      simpa [evmLive, cageLivePostState] using
+        storageStore_eq_accountMap_update evm evm.executionEnv.codeOwner ⟨7⟩ ⟨0⟩
+
 abbrev cageVatWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   flapperAddressReturnWord ⟨2⟩ σ I
 
@@ -737,20 +754,6 @@ theorem cageStorageStore_sigma0 (evm : EVM.State) (a : AccountAddress)
   cases h : evm.accountMap.find? a <;>
     simp [Option.option, State.setAccount, Account.updateStorage, h]
 
-theorem cageStorageStore_genesisBlockHeader (evm : EVM.State) (a : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).genesisBlockHeader = evm.genesisBlockHeader := by
-  unfold Solm.EVM.storageStore State.lookupAccount
-  cases h : evm.accountMap.find? a <;>
-    simp [Option.option, State.setAccount, Account.updateStorage, h]
-
-theorem cageStorageStore_blocks (evm : EVM.State) (a : AccountAddress)
-    (slot val : UInt256) :
-    (Solm.EVM.storageStore evm a slot val).blocks = evm.blocks := by
-  unfold Solm.EVM.storageStore State.lookupAccount
-  cases h : evm.accountMap.find? a <;>
-    simp [Option.option, State.setAccount, Account.updateStorage, h]
-
 theorem cageStorageStore_substate (evm : EVM.State) (a : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).substate = evm.substate := by
@@ -1263,20 +1266,10 @@ theorem flapperCageBodyCoreMoveCallFailure
       accountMap := cageLivePostAccountMap I σ }
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLiveSolm := cageLivePostState evmSolm
-  have hMapLive :
-      cageLivePostAccountMap I σ = cageLivePostAccountMap I σ :=
-    rfl
-  have hLiveMap : evmEvm.accountMap = evmLiveSolm.accountMap := by
-    simpa [evmEvm, evmLiveSolm, evmSolm, cageLivePostState, cageLivePostAccountMap,
-      initState, storageStore_accountMap] using hMapLive
-  obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, _hpostAccounts⟩ :=
-    typedCallViaEVM_accountMapEquiv (hcall := hcall) hLiveMap
-      (by simp [evmLiveSolm, evmSolm, cageLivePostState, initState,
-        cageStorageStore_sigma0])
-      (by simp [evmLiveSolm, evmSolm, cageLivePostState, initState,
-        storageStore_executionEnv])
+  have hLiveState : evmEvm = evmLiveSolm :=
+    cageLivePostState_initState_eq σ σ₀ A I (Sat256.ofUInt256 g)
   let evmCallSolm : EVM.State :=
-    { evmLiveSolm with accountMap := σ'_solm, substate := A'_solm }
+    { evmLiveSolm with accountMap := σ', substate := A' }
   have hvatEq :
       cageVatWord (cageLivePostAccountMap I σ) I =
         flapperAddressReturnWord ⟨2⟩ evmLiveSolm.accountMap evmLiveSolm.executionEnv := by
@@ -1292,9 +1285,8 @@ theorem flapperCageBodyCoreMoveCallFailure
         [.address evmLiveSolm.executionEnv.codeOwner,
           .address evmLiveSolm.executionEnv.source, cageRadValue I]
         (false, evmCallSolm, out) true := by
-    simpa [evmEvm, evmLiveSolm, evmSolm, evmCallSolm, cageLivePostState,
-      initState, storageStore_executionEnv, cageRadValue, cageRadWord, hvatEq]
-      using hcallSolmRaw
+    simpa [← hLiveState, evmEvm, evmCallSolm, cageRadValue, cageRadWord,
+      hvatEq] using hcall
   have hauthSolmWord : relyAuthWord σ I = ⟨1⟩ := by
     exact hauth
   have hcodeSizeSolm :
@@ -1360,20 +1352,10 @@ theorem flapperCageBodyCoreMoveCallSuccess
       accountMap := cageLivePostAccountMap I σ }
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLiveSolm := cageLivePostState evmSolm
-  have hMapLive :
-      cageLivePostAccountMap I σ = cageLivePostAccountMap I σ :=
-    rfl
-  have hLiveMap : evmEvm.accountMap = evmLiveSolm.accountMap := by
-    simpa [evmEvm, evmLiveSolm, evmSolm, cageLivePostState, cageLivePostAccountMap,
-      initState, storageStore_accountMap] using hMapLive
-  obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hpostAccounts⟩ :=
-    typedCallViaEVM_accountMapEquiv (hcall := hcall) hLiveMap
-      (by simp [evmLiveSolm, evmSolm, cageLivePostState, initState,
-        cageStorageStore_sigma0])
-      (by simp [evmLiveSolm, evmSolm, cageLivePostState, initState,
-        storageStore_executionEnv])
+  have hLiveState : evmEvm = evmLiveSolm :=
+    cageLivePostState_initState_eq σ σ₀ A I (Sat256.ofUInt256 g)
   let evmCallSolm : EVM.State :=
-    { evmLiveSolm with accountMap := σ'_solm, substate := A'_solm }
+    { evmLiveSolm with accountMap := σ', substate := A' }
   have hvatEq :
       cageVatWord (cageLivePostAccountMap I σ) I =
         flapperAddressReturnWord ⟨2⟩ evmLiveSolm.accountMap evmLiveSolm.executionEnv := by
@@ -1389,9 +1371,8 @@ theorem flapperCageBodyCoreMoveCallSuccess
         [.address evmLiveSolm.executionEnv.codeOwner,
           .address evmLiveSolm.executionEnv.source, cageRadValue I]
         (true, evmCallSolm, out) true := by
-    simpa [evmEvm, evmLiveSolm, evmSolm, evmCallSolm, cageLivePostState,
-      initState, storageStore_executionEnv, cageRadValue, cageRadWord, hvatEq]
-      using hcallSolmRaw
+    simpa [← hLiveState, evmEvm, evmCallSolm, cageRadValue, cageRadWord,
+      hvatEq] using hcall
   have hauthSolmWord : relyAuthWord σ I = ⟨1⟩ := by
     exact hauth
   have hcodeSizeSolm :
@@ -1419,7 +1400,7 @@ theorem flapperCageBodyCoreMoveCallSuccess
         hcodeSizeSolm hcallSolm
   exact (flapperCageX_moveCallSuccess rd3293)
     |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-      (by simpa [evmCallSolm] using hpostAccounts)
+      (by simp [evmCallSolm])
       (by
         simpa [cageTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])

@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Clipper.ExternalCall
+import Reasoning.ExternalCall
 import Benchmarks.Dss.Clipper.YankSuccessSource
 import Benchmarks.Dss.Clipper.YankVatEVM
 
@@ -28,106 +28,56 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (v := v) hpatch hsz36 hsize hreachEntry
     let locals := clipperYankStore I
-    have hauthWord : clipperRelyAuthWord σ I = clipperRelyAuthWord σ I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (clipperRelyAuthStorageSlot I) ⟨0⟩
-    have hlockWord : solcSlotWord σ I ⟨13⟩ = solcSlotWord σ I ⟨13⟩ :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨13⟩ ⟨0⟩
     by_cases hauthEvm : clipperRelyAuthWord σ I = ⟨1⟩
-    · have hauthSolm : clipperRelyAuthWord σ I = ⟨1⟩ := by
-        rw [← hauthWord]
-        exact hauthEvm
-      by_cases hlockedEvm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩
-      · have hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩ := by
-          rw [← hlockWord]
-          exact hlockedEvm
-        let σEvmLock := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
-        let σSolmLock := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
-        have hAccountsLock : Eq σEvmLock σSolmLock := by
-          simpa [σEvmLock, σSolmLock] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨13⟩ ⟨1⟩ hAccounts
-        have hUsrWord :
-            clipperYankSalesUsrWord σEvmLock I = clipperYankSalesUsrWord σSolmLock I := by
-          unfold clipperYankSalesUsrWord solcSlotWord
-          rw [accountMapEquiv_storage_findD hAccountsLock I.codeOwner
-            (clipperYankSalesUsrSlot I) ⟨0⟩]
+    · by_cases hlockedEvm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩
+      · let σLocked := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
         obtain ⟨_, _, rd1912⟩ := hreachBody
         obtain ⟨_, _, rd1994⟩ := clipperYankX_authorized (v := v) hpatch hauthEvm rd1912
         obtain ⟨_, _, rd2071⟩ := clipperYankX_lockOpen (v := v) hpatch hlockedEvm rd1994
         obtain ⟨_, _, rd2077⟩ := clipperYankX_lockStore (v := v) hpatch hperm rd2071
-        by_cases husrEvm : clipperYankSalesUsrWord σEvmLock I = ⟨0⟩
-        · have husrSolm : clipperYankSalesUsrWord σSolmLock I = ⟨0⟩ := by
-            rw [← hUsrWord]
-            exact husrEvm
-          let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+        by_cases husrEvm : clipperYankSalesUsrWord σLocked I = ⟨0⟩
+        · let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
           have hbody :
               ExecTransitionBody (config v) (contract v) evmSolm locals
                 (yankTransition v).body .reverted := by
             simpa [evmSolm, locals] using
               (clipperYankInactiveSourceReverts
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
-                hauthSolm hlockedSolm (by simpa [σSolmLock] using husrSolm))
+                hauthEvm hlockedEvm (by simpa [σLocked] using husrEvm))
           have hrev := clipperYankX_usrZero (v := v) hpatch
-            (by simpa [σEvmLock] using husrEvm) (by simpa [σEvmLock] using rd2077)
+            (by simpa [σLocked] using husrEvm) (by simpa [σLocked] using rd2077)
           exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-        · have husrSolm : clipperYankSalesUsrWord σSolmLock I ≠ ⟨0⟩ := by
-            intro hzero
-            exact husrEvm (by rw [hUsrWord, hzero])
-          obtain ⟨_, _, rd2184⟩ := clipperYankX_usrNonzero (v := v) hpatch
-            (by simpa [σEvmLock] using husrEvm) (by simpa [σEvmLock] using rd2077)
+        · obtain ⟨_, _, rd2184⟩ := clipperYankX_usrNonzero (v := v) hpatch
+            (by simpa [σLocked] using husrEvm) (by simpa [σLocked] using rd2077)
           obtain ⟨_, _, rd2208⟩ := clipperYankX_loadDogAndTab (v := v) hpatch
             (by simpa [clipperYankSalesHashMem] using rd2184)
           obtain ⟨_, _, rd2279⟩ := clipperYankX_dogDigsCallSetup (v := v) hpatch
             rd2208
           obtain ⟨_, _, rd2301⟩ := clipperYankX_dogDigsExtcodesizeGuard (v := v)
             hpatch rd2279
-          have hDogTarget :
-              clipperYankDogTarget σEvmLock I = clipperYankDogTarget σSolmLock I := by
-            unfold clipperYankDogTarget clipperYankDogWord solcSlotWord
-            rw [accountMapEquiv_storage_findD hAccountsLock I.codeOwner ⟨1⟩ ⟨0⟩]
           by_cases hcodeSizeDog :
-              Reasoning.Theory.extCodeSizeWord σEvmLock
-                (clipperYankDogTarget σEvmLock I) = ⟨0⟩
-          · have hcodeSizeDogSolm :
-                Reasoning.Theory.extCodeSizeWord σSolmLock
-                  (clipperYankDogTarget σSolmLock I) = ⟨0⟩ := by
-              rw [← hDogTarget]
-              rw [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccountsLock
-                (clipperYankDogTarget σEvmLock I)]
-              exact hcodeSizeDog
-            let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+              Reasoning.Theory.extCodeSizeWord σLocked
+                (clipperYankDogTarget σLocked I) = ⟨0⟩
+          · let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
             have hbody :
                 ExecTransitionBody (config v) (contract v) evmSolm locals
                   (yankTransition v).body .reverted := by
-              simpa [evmSolm, locals, σSolmLock] using
+              simpa [evmSolm, locals, σLocked] using
                 (clipperYankDogDigsNoCodeSourceReverts
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-                  v hwv hauthSolm hlockedSolm (by simpa [σSolmLock] using husrSolm)
-                  (by simpa [σSolmLock] using hcodeSizeDogSolm))
+                  v hwv hauthEvm hlockedEvm (by simpa [σLocked] using husrEvm)
+                  (by simpa [σLocked] using hcodeSizeDog))
             have hrev := clipperYankX_dogDigsNoCode
-              (v := v) (tab := clipperYankSalesTabWord σEvmLock I)
-              (target := clipperYankDogTarget σEvmLock I) hpatch
+              (v := v) (tab := clipperYankSalesTabWord σLocked I)
+              (target := clipperYankDogTarget σLocked I) hpatch
               (by
-                simpa [σEvmLock, clipperYankDogTarget, clipperYankDogWord,
+                simpa [σLocked, clipperYankDogTarget, clipperYankDogWord,
                   u256_land_comm] using rd2301)
               hcodeSizeDog
             exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
           · have hcodeSizeDogNE :
-                Reasoning.Theory.extCodeSizeWord σEvmLock
-                  (clipperYankDogTarget σEvmLock I) ≠ ⟨0⟩ := hcodeSizeDog
-            have hTabWord :
-                clipperYankSalesTabWord σEvmLock I =
-                  clipperYankSalesTabWord σSolmLock I := by
-              unfold clipperYankSalesTabWord solcSlotWord
-              rw [accountMapEquiv_storage_findD hAccountsLock I.codeOwner
-                (clipperYankSalesTabSlot I) ⟨0⟩]
-            have hcodeSizeDogSolmNE :
-                Reasoning.Theory.extCodeSizeWord σSolmLock
-                  (clipperYankDogTarget σSolmLock I) ≠ ⟨0⟩ := by
-              intro hzero
-              exact hcodeSizeDogNE (by
-                rw [Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccountsLock
-                  (clipperYankDogTarget σEvmLock I), hDogTarget]
-                exact hzero)
+                Reasoning.Theory.extCodeSizeWord σLocked
+                  (clipperYankDogTarget σLocked I) ≠ ⟨0⟩ := hcodeSizeDog
             have hdogCodeSolm :
                 0 < (UInt256.ofNat
                   (((Solm.EVM.storageStore
@@ -135,26 +85,26 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
                     ⟨13⟩ ⟨1⟩).lookupAccount
                       (AccountAddress.ofUInt256
-                        (clipperYankDogTarget σSolmLock I))).option
+                        (clipperYankDogTarget σLocked I))).option
                     0 (fun acc => acc.code.size))).toNat := by
-              let σLock := σSolmLock
-              let target := clipperYankDogTarget σSolmLock I
+              let σLock := σLocked
+              let target := clipperYankDogTarget σLocked I
               suffices hlookup :
                   0 < (UInt256.ofNat
                     ((σLock.find? (AccountAddress.ofUInt256 target)).option
                       0 (fun acc => acc.code.size))).toNat by
-                simpa [σLock, target, σSolmLock, initState, storageStore_accountMap,
+                simpa [σLock, target, σLocked, initState, storageStore_accountMap,
                   storageStore_executionEnv, State.lookupAccount] using hlookup
-              unfold Reasoning.Theory.extCodeSizeWord at hcodeSizeDogSolmNE
+              unfold Reasoning.Theory.extCodeSizeWord at hcodeSizeDogNE
               cases hacc : σLock.find? (AccountAddress.ofUInt256 target) with
               | none =>
                   exfalso
-                  exact hcodeSizeDogSolmNE (by simp [σLock, target, hacc, Option.option])
+                  exact hcodeSizeDogNE (by simp [σLock, target, hacc, Option.option])
               | some acc =>
                   have hwordNe :
                       UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
                     intro hzero
-                    exact hcodeSizeDogSolmNE (by simpa [σLock, target, hacc] using hzero)
+                    exact hcodeSizeDogNE (by simpa [σLock, target, hacc] using hzero)
                   have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
                     intro hzeroNat
                     apply hwordNe
@@ -170,26 +120,26 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                 clipperYankX_dogDigsPostCall
                   (code := code)
                   (σStart := σ) (σ₀ := σ₀) (A := A) (I := I)
-                  (g := Sat256.ofUInt256 g) (σ := σEvmLock)
+                  (g := Sat256.ofUInt256 g) (σ := σLocked)
                   (sel := clipperSelWord I)
-                  (target := clipperYankDogTarget σEvmLock I)
-                  (tab := clipperYankSalesTabWord σEvmLock I)
+                  (target := clipperYankDogTarget σLocked I)
+                  (tab := clipperYankSalesTabWord σLocked I)
                   v hpatch
                   (by
-                    simpa [σEvmLock, clipperYankDogTarget, clipperYankDogWord,
+                    simpa [σLocked, clipperYankDogTarget, clipperYankDogWord,
                       u256_land_comm] using rd2301)
                   hcodeSizeDogNE hdepthLt hperm
               cases zDog
               · have hcallDogEvm :
                     typedCallViaEVM (config v)
                       { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                        accountMap := σEvmLock }
+                        accountMap := σLocked }
                       (EVM.address (AccountAddress.ofUInt256
-                        (clipperYankDogTarget σEvmLock I)))
+                        (clipperYankDogTarget σLocked I)))
                       "digs" 0
                       [v.ilk,
                         .int (Int.ofNat
-                          (clipperYankSalesTabWord σEvmLock I).toNat)]
+                          (clipperYankSalesTabWord σLocked I).toNat)]
                       (false,
                         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                           accountMap := σ_dog
@@ -201,16 +151,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                   (by simpa using rd2317) houtDogSize (by simp)
                 let evmDogEvm : EVM.State :=
                   { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                    accountMap := σEvmLock }
+                    accountMap := σLocked }
                 let evmDogSolmStart : EVM.State :=
                   { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                    accountMap := σSolmLock }
+                    accountMap := σLocked }
                 obtain ⟨σ_dog_solm, A_dog_solm, hcallDogSolmRaw, _hAccountsDog⟩ :=
-                  typedCallViaEVM_accountMapEquiv_noSubstate
-                    (evm_solm := evmDogSolmStart) hcallDogEvm hAccountsLock
-                    (by simp [evmDogSolmStart, initState])
-                    (by simp [evmDogSolmStart, initState])
-                    (by simp [evmDogSolmStart, initState])
+                  Reasoning.Theory.typedCallViaEVM_sameInputs
+                    (evm_solm := evmDogSolmStart) hcallDogEvm rfl
                     (by simp [evmDogSolmStart, initState])
                     (by simp [evmDogSolmStart, initState])
                 let evmDogSolm : EVM.State :=
@@ -224,8 +171,8 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
                         ⟨13⟩ ⟨1⟩ =
                       { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                        accountMap := σSolmLock } := by
-                  simp [σSolmLock, initState, Solm.EVM.storageStore, sstoreAccountMap,
+                        accountMap := σLocked } := by
+                  simp [σLocked, initState, Solm.EVM.storageStore, sstoreAccountMap,
                     State.lookupAccount, State.setAccount, Account.updateStorage]
                   cases σ.find? I.codeOwner <;> rfl
                 have hcallDogSolm :
@@ -235,25 +182,24 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
                         ⟨13⟩ ⟨1⟩)
                       (EVM.address (AccountAddress.ofUInt256
-                        (clipperYankDogTarget σSolmLock I)))
+                        (clipperYankDogTarget σLocked I)))
                       "digs" 0
                       [v.ilk,
                         .int (Int.ofNat
-                          (clipperYankSalesTabWord σSolmLock I).toNat)]
+                          (clipperYankSalesTabWord σLocked I).toNat)]
                       (false, evmDogSolm, outDog) true := by
-                  simpa [evmDogSolm, evmDogSolmStart, evmDogEvm, hlockStateEq, σSolmLock,
-                    storageStore_accountMap, storageStore_executionEnv, hDogTarget,
-                    hTabWord] using hcallDogSolmRaw
+                  simpa [evmDogSolm, evmDogSolmStart, evmDogEvm, hlockStateEq, σLocked,
+                    storageStore_accountMap, storageStore_executionEnv] using hcallDogSolmRaw
                 let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                 have hbody :
                     ExecTransitionBody (config v) (contract v) evmSolm locals
                       (yankTransition v).body .reverted := by
-                  simpa [evmSolm, locals, σSolmLock] using
+                  simpa [evmSolm, locals, σLocked] using
                     (clipperYankDogDigsCallFailureSourceReverts
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                       (evmDog := evmDogSolm) (outDog := outDog)
-                      v hwv hauthSolm hlockedSolm
-                      (by simpa [σSolmLock] using husrSolm)
+                      v hwv hauthEvm hlockedEvm
+                      (by simpa [σLocked] using husrEvm)
                       hdogCodeSolm hcallDogSolm)
                 exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
               · obtain ⟨k2335, C2335, rd2335raw⟩ :=
@@ -262,9 +208,9 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                 have rd2335 : RD code I (Sat256.ofUInt256 g)
                     (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2335⟩
                     (⟨196⟩ :: clipperDogDigsSelectorWord ::
-                      clipperYankDogTarget σEvmLock I :: clipperYankArgWord I ::
+                      clipperYankDogTarget σLocked I :: clipperYankArgWord I ::
                       ⟨502⟩ :: [clipperSelWord I])
-                    (clipperDogDigsCalldataMem v (clipperYankSalesTabWord σEvmLock I)
+                    (clipperDogDigsCalldataMem v (clipperYankSalesTabWord σLocked I)
                       (clipperYankSalesHashMemRefresh I))
                     (UInt256.ofNat 7) outDog σ_dog k2335 C2335 := by
                   have hmin :
@@ -284,19 +230,19 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                     (ee := I) (g := Sat256.ofUInt256 g)
                     (s0 := initState σ σ₀ (Sat256.ofUInt256 g) A I)
                     (sel := clipperSelWord I)
-                    (dogTarget := clipperYankDogTarget σEvmLock I)
-                    (tab := clipperYankSalesTabWord σEvmLock I)
+                    (dogTarget := clipperYankDogTarget σLocked I)
+                    (tab := clipperYankSalesTabWord σLocked I)
                     (rdata := outDog) v hpatch rd2335
                 have hcallDogEvm :
                     typedCallViaEVM (config v)
                       { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                        accountMap := σEvmLock }
+                        accountMap := σLocked }
                       (EVM.address (AccountAddress.ofUInt256
-                        (clipperYankDogTarget σEvmLock I)))
+                        (clipperYankDogTarget σLocked I)))
                       "digs" 0
                       [v.ilk,
                         .int (Int.ofNat
-                          (clipperYankSalesTabWord σEvmLock I).toNat)]
+                          (clipperYankSalesTabWord σLocked I).toNat)]
                       (true,
                         { initState σ σ₀ (Sat256.ofUInt256 g) A I with
                           accountMap := σ_dog
@@ -306,16 +252,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                   simpa using hcallDogEvmRaw
                 let evmDogEvm : EVM.State :=
                   { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                    accountMap := σEvmLock }
+                    accountMap := σLocked }
                 let evmDogSolmStart : EVM.State :=
                   { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                    accountMap := σSolmLock }
+                    accountMap := σLocked }
                 obtain ⟨σ_dog_solm, A_dog_solm, hcallDogSolmRaw, hAccountsDog⟩ :=
-                  typedCallViaEVM_accountMapEquiv_noSubstate
-                    (evm_solm := evmDogSolmStart) hcallDogEvm hAccountsLock
-                    (by simp [evmDogSolmStart, initState])
-                    (by simp [evmDogSolmStart, initState])
-                    (by simp [evmDogSolmStart, initState])
+                  Reasoning.Theory.typedCallViaEVM_sameInputs
+                    (evm_solm := evmDogSolmStart) hcallDogEvm rfl
                     (by simp [evmDogSolmStart, initState])
                     (by simp [evmDogSolmStart, initState])
                 let evmDogSolm : EVM.State :=
@@ -329,8 +272,8 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
                         ⟨13⟩ ⟨1⟩ =
                       { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-                        accountMap := σSolmLock } := by
-                  simp [σSolmLock, initState, Solm.EVM.storageStore, sstoreAccountMap,
+                        accountMap := σLocked } := by
+                  simp [σLocked, initState, Solm.EVM.storageStore, sstoreAccountMap,
                     State.lookupAccount, State.setAccount, Account.updateStorage]
                   cases σ.find? I.codeOwner <;> rfl
                 have hcallDogSolm :
@@ -340,30 +283,25 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
                         ⟨13⟩ ⟨1⟩)
                       (EVM.address (AccountAddress.ofUInt256
-                        (clipperYankDogTarget σSolmLock I)))
+                        (clipperYankDogTarget σLocked I)))
                       "digs" 0
                       [v.ilk,
                         .int (Int.ofNat
-                          (clipperYankSalesTabWord σSolmLock I).toNat)]
+                          (clipperYankSalesTabWord σLocked I).toNat)]
                       (true, evmDogSolm, outDog) true := by
-                  simpa [evmDogSolm, evmDogSolmStart, evmDogEvm, hlockStateEq, σSolmLock,
-                    storageStore_accountMap, storageStore_executionEnv, hDogTarget,
-                    hTabWord] using hcallDogSolmRaw
+                  simpa [evmDogSolm, evmDogSolmStart, evmDogEvm, hlockStateEq, σLocked,
+                    storageStore_accountMap, storageStore_executionEnv] using hcallDogSolmRaw
                 have hLotWord :
                     clipperYankSalesLotWord σ_dog I =
-                      clipperYankSalesLotWord σ_dog_solm I := by
-                  unfold clipperYankSalesLotWord solcSlotWord
-                  rw [accountMapEquiv_storage_findD hAccountsDog I.codeOwner
-                    (clipperYankSalesLotSlot I) ⟨0⟩]
+                      clipperYankSalesLotWord σ_dog_solm I :=
+                  congrArg (fun m => clipperYankSalesLotWord m I) hAccountsDog
                 by_cases hcodeSizeVat :
                     Reasoning.Theory.extCodeSizeWord σ_dog
                       (clipperYankVatTarget v) = ⟨0⟩
                 · have hcodeSizeVatSolm :
                       Reasoning.Theory.extCodeSizeWord σ_dog_solm
                         (clipperYankVatTarget v) = ⟨0⟩ := by
-                    rw [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv
-                      hAccountsDog (clipperYankVatTarget v)]
-                    exact hcodeSizeVat
+                    simpa only [← hAccountsDog] using hcodeSizeVat
                   have hvatNoCode :
                       (UInt256.ofNat ((evmDogSolm.lookupAccount v.vat).option 0
                         (fun acc => acc.code.size))).toNat = 0 := by
@@ -379,18 +317,18 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         simpa [evmDogSolm, evmDogSolmStart, State.lookupAccount, hacc] using
                           congrArg UInt256.toNat hword
                   have hrev := clipperYankX_vatFluxNoCode
-                    (v := v) (tab := clipperYankSalesTabWord σEvmLock I)
+                    (v := v) (tab := clipperYankSalesTabWord σLocked I)
                     hpatch rd2495 hcodeSizeVat
                   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
                   have hbody :
                       ExecTransitionBody (config v) (contract v) evmSolm locals
                         (yankTransition v).body .reverted := by
-                    simpa [evmSolm, locals, σSolmLock] using
+                    simpa [evmSolm, locals, σLocked] using
                       (clipperYankVatFluxNoCodeSourceReverts
                         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                         (evmDog := evmDogSolm) (outDog := outDog)
-                        v hwv hauthSolm hlockedSolm
-                        (by simpa [σSolmLock] using husrSolm)
+                        v hwv hauthEvm hlockedEvm
+                        (by simpa [σLocked] using husrEvm)
                         hdogCodeSolm hcallDogSolm hvatNoCode)
                   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
                 · have hcodeSizeVatNE :
@@ -399,11 +337,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                   have hcodeSizeVatSolmNE :
                       Reasoning.Theory.extCodeSizeWord σ_dog_solm
                         (clipperYankVatTarget v) ≠ ⟨0⟩ := by
-                    intro hzero
-                    exact hcodeSizeVatNE (by
-                      rw [Reasoning.Theory.extCodeSizeWord_accountMapEquiv
-                        hAccountsDog (clipperYankVatTarget v)]
-                      exact hzero)
+                    simpa only [← hAccountsDog] using hcodeSizeVatNE
                   have hvatCodeSolm :
                       0 < (UInt256.ofNat ((evmDogSolm.lookupAccount v.vat).option 0
                         (fun acc => acc.code.size))).toNat := by
@@ -435,7 +369,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                       (σStart := σ) (σ₀ := σ₀)
                       (σ := σ_dog) (I := I) (g := Sat256.ofUInt256 g) (A := A)
                       (sel := clipperSelWord I)
-                      (tab := clipperYankSalesTabWord σEvmLock I)
+                      (tab := clipperYankSalesTabWord σLocked I)
                       (rdata := outDog) v hpatch rd2495 hcodeSizeVatNE hdepthLt hperm
                   cases zVat
                   · have hcallVatEvm :
@@ -460,11 +394,8 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         accountMap := σ_dog
                          }
                     obtain ⟨σ_vat_solm, A_vat_solm, hcallVatSolmRaw, _hAccountsVat⟩ :=
-                      typedCallViaEVM_accountMapEquiv_noSubstate
+                      Reasoning.Theory.typedCallViaEVM_sameInputs
                         (evm_solm := evmDogSolm) hcallVatEvm hAccountsDog
-                        (by simp [evmVatEvmStart, evmDogSolm, evmDogSolmStart, initState])
-                        (by simp [evmVatEvmStart, evmDogSolm, evmDogSolmStart, initState])
-                        (by simp [evmVatEvmStart, evmDogSolm, evmDogSolmStart, initState])
                         (by simp [evmVatEvmStart, evmDogSolm, evmDogSolmStart, initState])
                         (by simp [evmVatEvmStart, evmDogSolm, evmDogSolmStart, initState])
                     let evmVatSolm : EVM.State :=
@@ -494,13 +425,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                     have hbody :
                         ExecTransitionBody (config v) (contract v) evmSolm locals
                           (yankTransition v).body .reverted := by
-                      simpa [evmSolm, locals, σSolmLock] using
+                      simpa [evmSolm, locals, σLocked] using
                         (clipperYankVatFluxCallFailureSourceReverts
                           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                           (evmDog := evmDogSolm) (evmVat := evmVatSolm)
                           (outDog := outDog) (outVat := outVat)
-                          v hwv hauthSolm hlockedSolm
-                          (by simpa [σSolmLock] using husrSolm)
+                          v hwv hauthEvm hlockedEvm
+                          (by simpa [σLocked] using husrEvm)
                           hdogCodeSolm hcallDogSolm hvatCodeSolm hcallVatSolm)
                     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
                   · have hcallVatEvm :
@@ -523,11 +454,8 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         accountMap := σ_dog
                          }
                     obtain ⟨σ_vat_solm, A_vat_solm, hcallVatSolmRaw, hAccountsVatRaw⟩ :=
-                      typedCallViaEVM_accountMapEquiv_noSubstate
+                      Reasoning.Theory.typedCallViaEVM_sameInputs
                         (evm_solm := evmDogSolm) hcallVatEvm hAccountsDog
-                        (by simp [evmVatEvmStart, evmDogSolm, evmDogSolmStart, initState])
-                        (by simp [evmVatEvmStart, evmDogSolm, evmDogSolmStart, initState])
-                        (by simp [evmVatEvmStart, evmDogSolm, evmDogSolmStart, initState])
                         (by simp [evmVatEvmStart, evmDogSolm, evmDogSolmStart, initState])
                         (by simp [evmVatEvmStart, evmDogSolm, evmDogSolmStart, initState])
                     let evmVatSolm : EVM.State :=
@@ -564,9 +492,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         Benchmarks.Dss.Clipper.RD.clipperYankRemoveEmptyInvalid
                           v hpatch rd8274 hactiveLenEvm
                       have hactiveLenSolmWord : solcSlotWord σ_vat_solm I ⟨11⟩ = ⟨0⟩ := by
-                        simpa [solcSlotWord] using
-                          (accountMapEquiv_storage_findD hAccountsVat I.codeOwner ⟨11⟩ ⟨0⟩).symm.trans
-                            hactiveLenEvm
+                        simpa only [hAccountsVat] using hactiveLenEvm
                       have hactiveLenSolm :
                           Solm.EVM.storageLoad evmVatSolm evmVatSolm.executionEnv.codeOwner
                             ⟨11⟩ = ⟨0⟩ := by
@@ -577,13 +503,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                       have hbody :
                           ExecTransitionBody (config v) (contract v) evmSolm locals
                             (yankTransition v).body .reverted := by
-                        simpa [evmSolm, locals, σSolmLock] using
+                        simpa [evmSolm, locals, σLocked] using
                           (clipperYankRemoveEmptyAfterVatSourceReverts
                             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                             (evmDog := evmDogSolm) (evmVat := evmVatSolm)
                             (outDog := outDog) (outVat := outVat)
-                            v hwv hauthSolm hlockedSolm
-                            (by simpa [σSolmLock] using husrSolm)
+                            v hwv hauthEvm hlockedEvm
+                            (by simpa [σLocked] using husrEvm)
                             hdogCodeSolm hcallDogSolm hvatCodeSolm hcallVatSolm
                             hactiveLenSolm)
                       exact RDinvalid.reEquivExecutionInvalid hcode hinv hdispatch hdecode hbody
@@ -591,7 +517,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                         outVat.write 0
                           (clipperVatFluxCalldataMem v I (clipperYankSalesLotWord σ_dog I)
                             (clipperYankVatFluxBaseMem v I
-                              (clipperYankSalesTabWord σEvmLock I)))
+                              (clipperYankSalesTabWord σLocked I)))
                           128 ((⟨0⟩ : UInt256) ⊓ UInt256.ofNat outVat.size).toNat
                       let lastIndexEvm := solcSlotWord σ_vat I ⟨11⟩ + UInt256.lnot ⟨0⟩
                       have hremoveMemSize :
@@ -603,38 +529,38 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                             removeMem =
                               clipperVatFluxCalldataMem v I (clipperYankSalesLotWord σ_dog I)
                                 (clipperYankVatFluxBaseMem v I
-                                  (clipperYankSalesTabWord σEvmLock I)) := by
+                                  (clipperYankSalesTabWord σLocked I)) := by
                           simp [removeMem, hminVat, byteArray_write_len_zero]
                         rw [hremoveMemEq]
                         have hcalldataSize :
                             (clipperVatFluxCalldataMem v I (clipperYankSalesLotWord σ_dog I)
                               (clipperYankVatFluxBaseMem v I
-                                (clipperYankSalesTabWord σEvmLock I))).size = 260 :=
+                                (clipperYankSalesTabWord σLocked I))).size = 260 :=
                           clipperVatFluxCalldataMem_size v I (clipperYankSalesLotWord σ_dog I)
                             (clipperYankVatFluxBaseMem_size v I
-                              (clipperYankSalesTabWord σEvmLock I))
+                              (clipperYankSalesTabWord σLocked I))
                         have hwordSize :
                             (wordAt0Mem (⟨11⟩ : UInt256)
                               (clipperVatFluxCalldataMem v I (clipperYankSalesLotWord σ_dog I)
                                 (clipperYankVatFluxBaseMem v I
-                                  (clipperYankSalesTabWord σEvmLock I)))).size =
+                                  (clipperYankSalesTabWord σLocked I)))).size =
                               max
                                 (clipperVatFluxCalldataMem v I
                                   (clipperYankSalesLotWord σ_dog I)
                                   (clipperYankVatFluxBaseMem v I
-                                    (clipperYankSalesTabWord σEvmLock I))).size (0 + 32) := by
+                                    (clipperYankSalesTabWord σLocked I))).size (0 + 32) := by
                           simpa [wordAt0Mem, Reasoning.Theory.writeWord] using
                             (Reasoning.Theory.writeWord_size
                               (clipperVatFluxCalldataMem v I (clipperYankSalesLotWord σ_dog I)
                                 (clipperYankVatFluxBaseMem v I
-                                  (clipperYankSalesTabWord σEvmLock I)))
+                                  (clipperYankSalesTabWord σLocked I)))
                               0 (⟨11⟩ : UInt256) (by
                                 simpa using lt_usize 0 (by norm_num)))
                         rw [hwordSize, hcalldataSize]
                         norm_num
                       have hactiveLenEq :
                           solcSlotWord σ_vat I ⟨11⟩ = solcSlotWord σ_vat_solm I ⟨11⟩ :=
-                        accountMapEquiv_storage_findD hAccountsVat I.codeOwner ⟨11⟩ ⟨0⟩
+                        congrArg (fun m => solcSlotWord m I ⟨11⟩) hAccountsVat
                       have hactiveLenSolmWord :
                           solcSlotWord σ_vat_solm I ⟨11⟩ ≠ ⟨0⟩ := by
                         intro hzero
@@ -716,8 +642,9 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                             solcSlotWord σ_vat I (clipperYankActiveSlot lastIndexEvm) =
                               solcSlotWord σ_vat_solm I
                                 (clipperYankActiveSlot lastIndexEvm) :=
-                          accountMapEquiv_storage_findD hAccountsVat I.codeOwner
-                            (clipperYankActiveSlot lastIndexEvm) ⟨0⟩
+                          congrArg
+                            (fun m => solcSlotWord m I (clipperYankActiveSlot lastIndexEvm))
+                            hAccountsVat
                         have hloadMoveSolm :
                             Solm.EVM.storageLoad evmVatSolm
                               evmVatSolm.executionEnv.codeOwner
@@ -762,13 +689,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                           evmVatSolm.executionEnv.codeOwner ⟨11⟩) ⟨1⟩))
                                     I).executionEnv.codeOwner ⟨13⟩ ⟨0⟩)
                                 none) := by
-                          simpa [evmSolm, locals, σSolmLock] using
+                          simpa [evmSolm, locals, σLocked] using
                             (clipperYankAfterVatSourceOk
                               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                               (evmDog := evmDogSolm) (evmVat := evmVatSolm)
                               (outDog := outDog) (outVat := outVat)
-                              v hwv hauthSolm hlockedSolm
-                              (by simpa [σSolmLock] using husrSolm)
+                              v hwv hauthEvm hlockedEvm
+                              (by simpa [σLocked] using husrEvm)
                               hdogCodeSolm hcallDogSolm hvatCodeSolm hcallVatSolm
                               hafter)
                         have hAccountsFinal :
@@ -788,14 +715,11 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                         evmVatSolm.executionEnv.codeOwner ⟨11⟩) ⟨1⟩))
                                   I).executionEnv.codeOwner ⟨13⟩ ⟨0⟩).accountMap := by
                           have hbase :=
-                            clipperYankSuccessAccountMap_state_accountMapEquiv
+                            clipperYankSuccessAccountMap_state_accounts_eq
                               (σ := σ_vat) (τ := σ_vat_solm) evmVatSolm I lastIndexEvm
                               hAccountsVat (by rfl) hownerVatSolm
                           simpa [hlastIndexEq] using hbase
                         exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
-                          (by
-                            simp [evmVatSolm, clipperYankDeleteSaleState,
-                              clipperYankRemovePopState])
                           hAccountsFinal
                           (by
                             simpa [yankTransition] using
@@ -809,8 +733,9 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                               solcSlotWord σ_vat_solm I
                                 (clipperYankActiveSlot lastIndexEvm) := by
                           simpa [moveEvm] using
-                            accountMapEquiv_storage_findD hAccountsVat I.codeOwner
-                              (clipperYankActiveSlot lastIndexEvm) ⟨0⟩
+                            congrArg
+                              (fun m => solcSlotWord m I (clipperYankActiveSlot lastIndexEvm))
+                              hAccountsVat
                         have hloadMoveSolm :
                             Solm.EVM.storageLoad evmVatSolm
                               evmVatSolm.executionEnv.codeOwner
@@ -836,8 +761,9 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                             idxEvm =
                               solcSlotWord σ_vat_solm I (clipperYankSalesPosSlot I) := by
                           simpa [idxEvm] using
-                            accountMapEquiv_storage_findD hAccountsVat I.codeOwner
-                              (clipperYankSalesPosSlot I) ⟨0⟩
+                            congrArg
+                              (fun m => solcSlotWord m I (clipperYankSalesPosSlot I))
+                              hAccountsVat
                         have hloadIdxSolm :
                             Solm.EVM.storageLoad evmVatSolm
                               evmVatSolm.executionEnv.codeOwner
@@ -872,7 +798,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                 (clipperYankMoveAccountMap σ_vat I idxEvm moveEvm)
                                 evmMovePosSolm.accountMap := by
                             simpa [evmIndexSolm, evmMovePosSolm] using
-                              clipperYankMoveAccountMap_state_accountMapEquiv
+                              clipperYankMoveAccountMap_state_accounts_eq
                                 (σ := σ_vat) (τ := σ_vat_solm) evmVatSolm I
                                 idxEvm moveEvm hAccountsVat (by rfl) hownerVatSolm
                           have hownerMovePosSolm :
@@ -891,7 +817,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                   (clipperYankMoveAccountMap σ_vat I idxEvm moveEvm)
                                   I ⟨11⟩ =
                                 solcSlotWord evmMovePosSolm.accountMap I ⟨11⟩ :=
-                            accountMapEquiv_storage_findD hmoveAccounts I.codeOwner ⟨11⟩ ⟨0⟩
+                            congrArg (fun m => solcSlotWord m I ⟨11⟩) hmoveAccounts
                           have hidxBoundSolm :
                               (Solm.EVM.storageLoad evmVatSolm
                                 evmVatSolm.executionEnv.codeOwner
@@ -952,13 +878,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                             have hbody :
                                 ExecTransitionBody (config v) (contract v) evmSolm locals
                                   (yankTransition v).body .reverted := by
-                              simpa [evmSolm, locals, σSolmLock] using
+                              simpa [evmSolm, locals, σLocked] using
                                 (clipperYankAfterVatSourceReverts
                                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                   (evmDog := evmDogSolm) (evmVat := evmVatSolm)
                                   (outDog := outDog) (outVat := outVat)
-                                  v hwv hauthSolm hlockedSolm
-                                  (by simpa [σSolmLock] using husrSolm)
+                                  v hwv hauthEvm hlockedEvm
+                                  (by simpa [σLocked] using husrEvm)
                                   hdogCodeSolm hcallDogSolm hvatCodeSolm hcallVatSolm
                                   hafter)
                             exact RDinvalid.reEquivExecutionInvalid hcode hinv hdispatch hdecode hbody
@@ -1049,13 +975,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                               evmMovePosSolm.executionEnv.codeOwner ⟨11⟩) ⟨1⟩))
                                         I).executionEnv.codeOwner ⟨13⟩ ⟨0⟩)
                                     none) := by
-                              simpa [evmSolm, locals, σSolmLock] using
+                              simpa [evmSolm, locals, σLocked] using
                                 (clipperYankAfterVatSourceOk
                                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                   (evmDog := evmDogSolm) (evmVat := evmVatSolm)
                                   (outDog := outDog) (outVat := outVat)
-                                  v hwv hauthSolm hlockedSolm
-                                  (by simpa [σSolmLock] using husrSolm)
+                                  v hwv hauthEvm hlockedEvm
+                                  (by simpa [σLocked] using husrEvm)
                                   hdogCodeSolm hcallDogSolm hvatCodeSolm hcallVatSolm
                                   hafter)
                             have hAccountsFinal :
@@ -1079,19 +1005,14 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                           ⟨1⟩))
                                       I).executionEnv.codeOwner ⟨13⟩ ⟨0⟩).accountMap := by
                               have hbase :=
-                                clipperYankSuccessAccountMap_state_accountMapEquiv
+                                clipperYankSuccessAccountMap_state_accounts_eq
                                   (σ := clipperYankMoveAccountMap σ_vat I idxEvm moveEvm)
                                   (τ := evmMovePosSolm.accountMap)
                                   evmMovePosSolm I lastIndexAfterEvm
                                   hmoveAccounts (by rfl) hownerMovePosSolm
                               simpa [hlastAfterEq] using hbase
                             exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode
-                              hbody
-                              (by
-                                simp [evmVatSolm, evmMovePosSolm, evmIndexSolm,
-                                  clipperYankDeleteSaleState, clipperYankRemovePopState,
-                                  ])
-                              hAccountsFinal
+                              hbody hAccountsFinal
                               (by
                                 simpa [yankTransition] using
                                   (returnEquiv.fallthrough (o := ByteArray.empty) (r := none)
@@ -1148,13 +1069,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                           have hbody :
                               ExecTransitionBody (config v) (contract v) evmSolm locals
                                 (yankTransition v).body .reverted := by
-                            simpa [evmSolm, locals, σSolmLock] using
+                            simpa [evmSolm, locals, σLocked] using
                               (clipperYankAfterVatSourceReverts
                                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                                 (evmDog := evmDogSolm) (evmVat := evmVatSolm)
                                 (outDog := outDog) (outVat := outVat)
-                                v hwv hauthSolm hlockedSolm
-                                (by simpa [σSolmLock] using husrSolm)
+                                v hwv hauthEvm hlockedEvm
+                                (by simpa [σLocked] using husrEvm)
                                 hdogCodeSolm hcallDogSolm hvatCodeSolm hcallVatSolm
                                 hafter)
                           exact RDinvalid.reEquivExecutionInvalid hcode hinv hdispatch hdecode hbody
@@ -1168,13 +1089,13 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                 RD.clipperYankDogDigsCallDepthLimit
                   (code := code)
                   (σStart := σ) (σ₀ := σ₀) (A := A) (I := I)
-                  (g := Sat256.ofUInt256 g) (σ := σEvmLock)
+                  (g := Sat256.ofUInt256 g) (σ := σLocked)
                   (sel := clipperSelWord I)
-                  (target := clipperYankDogTarget σEvmLock I)
-                  (tab := clipperYankSalesTabWord σEvmLock I)
+                  (target := clipperYankDogTarget σLocked I)
+                  (tab := clipperYankSalesTabWord σLocked I)
                   v hpatch
                   (by
-                    simpa [σEvmLock, clipperYankDogTarget, clipperYankDogWord,
+                    simpa [σLocked, clipperYankDogTarget, clipperYankDogWord,
                       u256_land_comm] using rd2301)
                   hcodeSizeDogNE hdepthEq
               have hrev := RD.clipperYankDogDigsCallFailure v hpatch
@@ -1185,7 +1106,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
               let A_dog :=
                 (evmSolmLock.addAccessedAccount
                   (EVM.address (AccountAddress.ofUInt256
-                    (clipperYankDogTarget σSolmLock I)))).substate
+                    (clipperYankDogTarget σLocked I)))).substate
               let evmDogSolm : EVM.State := { evmSolmLock with substate := A_dog }
               have hdepthLock : evmSolmLock.executionEnv.depth = 1024 := by
                 simpa [evmSolmLock, evmSolm, initState, storageStore_executionEnv]
@@ -1197,68 +1118,62 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                       (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
                       ⟨13⟩ ⟨1⟩)
                     (EVM.address (AccountAddress.ofUInt256
-                      (clipperYankDogTarget σSolmLock I)))
+                      (clipperYankDogTarget σLocked I)))
                     "digs" 0
                     [v.ilk,
                       .int (Int.ofNat
-                        (clipperYankSalesTabWord σSolmLock I).toNat)]
+                        (clipperYankSalesTabWord σLocked I).toNat)]
                     (false, evmDogSolm, ByteArray.empty) true := by
-                simpa [evmDogSolm, A_dog, evmSolmLock, evmSolm, σSolmLock, initState,
+                simpa [evmDogSolm, A_dog, evmSolmLock, evmSolm, σLocked, initState,
                   storageStore_accountMap, storageStore_executionEnv] using
                   (callNotMade_depthLimit (cfg := config v) (evm := evmSolmLock)
                     (tgt := EVM.address (AccountAddress.ofUInt256
-                      (clipperYankDogTarget σSolmLock I)))
+                      (clipperYankDogTarget σLocked I)))
                     (name := "digs")
                     (args := [v.ilk,
                       .int (Int.ofNat
-                        (clipperYankSalesTabWord σSolmLock I).toNat)])
+                        (clipperYankSalesTabWord σLocked I).toNat)])
                     (callPerm := true)
                     (calldata :=
                       (clipperDogDigsCalldataMem v
-                        (clipperYankSalesTabWord σSolmLock I)
+                        (clipperYankSalesTabWord σLocked I)
                         (clipperYankSalesHashMemRefresh I)).readWithPadding 128 68)
                     (by
                       simpa [clipperYankSalesHashMemRefresh_size I] using
                         clipperDogDigsEncode_eq v
-                          (clipperYankSalesTabWord σSolmLock I)
+                          (clipperYankSalesTabWord σLocked I)
                           (clipperYankSalesHashMemRefresh_size I))
                     hdepthLock)
               have hbody :
                   ExecTransitionBody (config v) (contract v) evmSolm locals
                     (yankTransition v).body .reverted := by
-                simpa [evmSolm, locals, σSolmLock] using
+                simpa [evmSolm, locals, σLocked] using
                   (clipperYankDogDigsCallFailureSourceReverts
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                     (evmDog := evmDogSolm) (outDog := ByteArray.empty)
-                    v hwv hauthSolm hlockedSolm
-                    (by simpa [σSolmLock] using husrSolm)
+                    v hwv hauthEvm hlockedEvm
+                    (by simpa [σLocked] using husrEvm)
                     hdogCodeSolm hcallDogSolm)
               exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-      · have hlockedSolm : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩ := by
-          intro hsolm
-          exact hlockedEvm (by rw [hlockWord, hsolm])
-        let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+      · let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
             ExecTransitionBody (config v) (contract v) evmSolm locals
               (yankTransition v).body .reverted := by
           simpa [evmSolm, locals] using
             (clipperYankLockedSourceReverts
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
-              hauthSolm hlockedSolm)
+              hauthEvm hlockedEvm)
         obtain ⟨_, _, rd1912⟩ := hreachBody
         obtain ⟨_, _, rd1994⟩ := clipperYankX_authorized (v := v) hpatch hauthEvm rd1912
         have hrev := clipperYankX_locked (v := v) hpatch hlockedEvm rd1994
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hauthSolm : clipperRelyAuthWord σ I ≠ ⟨1⟩ := by
-        intro hsolm
-        exact hauthEvm (by rw [hauthWord, hsolm])
-      let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    · let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
           ExecTransitionBody (config v) (contract v) evmSolm locals
             (yankTransition v).body .reverted := by
         simpa [evmSolm, locals] using
           (clipperYankAuthSourceReverts
-            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv hauthSolm)
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv hauthEvm)
       obtain ⟨_, _, rd1912⟩ := hreachBody
       have hrev := clipperYankX_unauthorized (v := v) hpatch hauthEvm rd1912
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody

@@ -170,10 +170,8 @@ theorem uniswapBurnBodyCoreRevert_locked
   let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
   have hlockedSolm :
       Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ ≠ ⟨1⟩ := by
-    simpa [evmS] using
-      (initState_codeOwner_storageLoad_ne_of_accountMapEquiv
-        (σ_evm := σ) (σ_solm := σ) (σ₀ := σ₀) (A := A) (I := I)
-        (g := Sat256.ofUInt256 g) (slot := ⟨12⟩) (val := ⟨1⟩) rfl hlocked)
+    simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount,
+      Account.lookupStorage] using hlocked
   have hbody :
       ExecTransitionBody config contract evmS (burnStore I) burnTransition.body .reverted := by
     exact uniswapBurnBodyReverts_locked evmS I

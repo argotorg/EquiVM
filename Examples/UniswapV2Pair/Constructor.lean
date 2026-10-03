@@ -34,7 +34,7 @@ theorem uniswapConstructorBodyCore
       simp only [uniswapLockExitedState, uniswapUnlockedState, storageStore_executionEnv,
         evmS, initState]
     exact RDret.constructorEquivalenceEmptyParams rdRet hcode rfl hbody
-      (constructorStoredAccountMap_equiv heL haL)
+      (constructorStoredAccountMap_eq heL haL)
 
 theorem uniswapV2PairConstructorCorrect :
     constructorEquivalence config uniswapV2PairInitcode contract uniswapV2PairBytecode := by

@@ -3616,69 +3616,6 @@ theorem endCageIlkAddress_ofUInt256 (w : UInt256) :
   rw [Nat.mod_eq_of_lt]
   exact (AccountAddress.ofUInt256 w).isLt
 
-theorem endCageIlkSpotWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
-    (hAccounts : Eq σ τ) :
-    endCageIlkSpotWord σ I = endCageIlkSpotWord τ I := by
-  have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨6⟩ ⟨0⟩
-  simpa [endCageIlkSpotWord, endAddressReturnWord, endSlotWord, solcSlotWord] using
-    congrArg (fun w => UInt256.land w solcAddrMask) hslot
-
-theorem endCageIlkSpotCodeSize_zero_EVMStateEquiv {evm₁ evm₂ : EVM.State}
-    (hState : EVMStateEquiv evm₁ evm₂)
-    (hcode :
-      Reasoning.Theory.extCodeSizeWord evm₁.accountMap
-        (endCageIlkSpotWord evm₁.accountMap evm₁.executionEnv) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord evm₂.accountMap
-        (endCageIlkSpotWord evm₂.accountMap evm₂.executionEnv) = ⟨0⟩ := by
-  have htarget :
-      endCageIlkSpotWord evm₁.accountMap evm₁.executionEnv =
-        endCageIlkSpotWord evm₂.accountMap evm₂.executionEnv := by
-    rw [← hState.executionEnv]
-    exact endCageIlkSpotWord_accountMapEquiv hState.accountMap
-  have hcodeEq :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hState.accountMap
-      (endCageIlkSpotWord evm₁.accountMap evm₁.executionEnv)
-  rw [← htarget, ← hcodeEq]
-  exact hcode
-
-theorem endCageIlkSpotCodeSize_ne_EVMStateEquiv {evm₁ evm₂ : EVM.State}
-    (hState : EVMStateEquiv evm₁ evm₂)
-    (hcode :
-      Reasoning.Theory.extCodeSizeWord evm₁.accountMap
-        (endCageIlkSpotWord evm₁.accountMap evm₁.executionEnv) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord evm₂.accountMap
-        (endCageIlkSpotWord evm₂.accountMap evm₂.executionEnv) ≠ ⟨0⟩ := by
-  intro hbad
-  have htarget :
-      endCageIlkSpotWord evm₁.accountMap evm₁.executionEnv =
-        endCageIlkSpotWord evm₂.accountMap evm₂.executionEnv := by
-    rw [← hState.executionEnv]
-    exact endCageIlkSpotWord_accountMapEquiv hState.accountMap
-  have hcodeEq :=
-    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hState.accountMap
-      (endCageIlkSpotWord evm₁.accountMap evm₁.executionEnv)
-  rw [← htarget, ← hcodeEq] at hbad
-  exact hcode hbad
-
-theorem endCageIlkPipCodeSize_zero_accountMapEquiv {σ τ : AccountMap}
-    (hAccounts : Eq σ τ) (spotOut : ByteArray)
-    (hcode :
-      Reasoning.Theory.extCodeSizeWord σ (endCageIlkPipCallWord spotOut) = ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endCageIlkPipCallWord spotOut) = ⟨0⟩ := by
-  rw [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-    (endCageIlkPipCallWord spotOut)]
-  exact hcode
-
-theorem endCageIlkPipCodeSize_ne_accountMapEquiv {σ τ : AccountMap}
-    (hAccounts : Eq σ τ) (spotOut : ByteArray)
-    (hcode :
-      Reasoning.Theory.extCodeSizeWord σ (endCageIlkPipCallWord spotOut) ≠ ⟨0⟩) :
-    Reasoning.Theory.extCodeSizeWord τ (endCageIlkPipCallWord spotOut) ≠ ⟨0⟩ := by
-  intro hbad
-  rw [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
-    (endCageIlkPipCallWord spotOut)] at hbad
-  exact hcode hbad
-
 theorem endCageIlkCheckedVatIlksNoCode {σ σ₀ A I} {g : UInt256}
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
@@ -5783,27 +5720,17 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
     obtain ⟨_, _, hbodyReach⟩ :=
       endCageIlkX_decoded (g := Sat256.ofUInt256 g) hsz36 hsize hreach
     let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-    have hliveCouple : endCageIlkLiveWord σ I = endCageIlkLiveWord σ I := by
-      simpa [endCageIlkLiveWord, endSlotWord] using
-        accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨8⟩ ⟨0⟩
     by_cases hlive : endCageIlkLiveWord σ I = ⟨0⟩
-    · have hliveSolm : endCageIlkLiveWord σ I = ⟨0⟩ := by
-        rw [← hliveCouple]
-        exact hlive
-      have htagCouple : endCageIlkTagWord σ I = endCageIlkTagWord σ I := by
-        simpa [endCageIlkTagWord, endSlotWord] using
-          accountMapEquiv_storage_findD hAccounts I.codeOwner (endCageIlkTagSlot I) ⟨0⟩
+    · have hliveSolm : endCageIlkLiveWord σ I = ⟨0⟩ := hlive
       by_cases htag : endCageIlkTagWord σ I = ⟨0⟩
-      · have htagSolm : endCageIlkTagWord σ I = ⟨0⟩ := by
-          rw [← htagCouple]
-          exact htag
+      · have htagSolm : endCageIlkTagWord σ I = ⟨0⟩ := htag
         by_cases hvatCode :
             Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) =
               ⟨0⟩
         · have hvatCodeSolm :
               Reasoning.Theory.extCodeSizeWord σ
                 (endPackVatWord σ I) = ⟨0⟩ :=
-            endPackVatCodeSize_zero_accountMapEquiv hAccounts hvatCode
+            hvatCode
           have hbody :
               ExecTransitionBody config contract evmSolm (endCageIlkStore I)
                 cageIlkTransition.body .reverted := by
@@ -5822,7 +5749,7 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
           have hvatCodeSolmNE :
               Reasoning.Theory.extCodeSizeWord σ
                 (endPackVatWord σ I) ≠ ⟨0⟩ :=
-            endPackVatCodeSize_ne_accountMapEquiv hAccounts hvatCodeNE
+            hvatCodeNE
           obtain ⟨gasWord, _, _, hcallReady⟩ :=
             endCageIlkX_vatIlksCallReady
               (g := Sat256.ofUInt256 g) hsz36 hlive htag hbodyReach hvatCodeNE
@@ -5867,11 +5794,9 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                 (endFlowVatIlksEncode_eq I hsz36
                   (twoWordHashMem_size_96 (endCageIlkIlkWord I) ⟨12⟩ solcFreePtrMem_size))
                 (by simpa [initState, hperm] using hΘVatEq)
-                (by simpa [initState] using hAccounts)
+                rfl
                 (by simp [evmSolm, initState])
                 (by simp [evmSolm, initState])
-            have hVatAddr : endPackVatAddr σ I = endPackVatAddr σ I := by
-              simp [endPackVatAddr, endPackVatWord_accountMapEquiv hAccounts]
             have hcallSolm :
                 typedCallViaEVM config evmSolm
                   (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
@@ -5881,7 +5806,7 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                       accountMap := σ_vat_solm
                       substate := A_vat_solm },
                     vatOut) true := by
-              simpa [evmSolm, hVatAddr] using hcallSolmRaw
+              simpa [evmSolm] using hcallSolmRaw
             cases zVat
             · have hbody :
                   ExecTransitionBody config contract evmSolm (endCageIlkStore I)
@@ -5951,8 +5876,9 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                   have hspotCodeSolm :
                       Reasoning.Theory.extCodeSizeWord evmArtSolm.accountMap
                         (endCageIlkSpotWord evmArtSolm.accountMap evmArtSolm.executionEnv) =
-                          ⟨0⟩ :=
-                    endCageIlkSpotCodeSize_zero_EVMStateEquiv hStateArt hspotCodeState
+                          ⟨0⟩ := by
+                    simpa only [hStateArt.accountMap, hStateArt.executionEnv] using
+                      hspotCodeState
                   have htail :
                       ExecBlock config
                         { contract := contract, locals := endCageIlkStoreVatIlk I vatOut }
@@ -6000,8 +5926,9 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                   have hspotCodeSolmNE :
                       Reasoning.Theory.extCodeSizeWord evmArtSolm.accountMap
                         (endCageIlkSpotWord evmArtSolm.accountMap evmArtSolm.executionEnv) ≠
-                          ⟨0⟩ :=
-                    endCageIlkSpotCodeSize_ne_EVMStateEquiv hStateArt hspotCodeStateNE
+                          ⟨0⟩ := by
+                    simpa only [hStateArt.accountMap, hStateArt.executionEnv] using
+                      hspotCodeStateNE
                   obtain ⟨spotGasWord, _, _, hspotReady⟩ :=
                     endCageIlkX_spotIlksCallReady
                       (g := Sat256.ofUInt256 g) hsz36 hperm hloVat rd9122 hspotCodeNE
@@ -6065,12 +5992,11 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                         hStateArt.accountMap
                         (by simp [evmArtEvm, evmArtSolm, evmVatEvm, evmVatSolm, evmSolm,
                           endCageIlkPostArtState, initState])
-hStateArt.executionEnv.symm
+                        hStateArt.executionEnv.symm
                     have hSpotWordEq :
                         endCageIlkSpotWord evmArtEvm.accountMap evmArtEvm.executionEnv =
                           endCageIlkSpotWord evmArtSolm.accountMap evmArtSolm.executionEnv := by
-                      rw [← hStateArt.executionEnv]
-                      exact endCageIlkSpotWord_accountMapEquiv hStateArt.accountMap
+                      simp only [hStateArt.accountMap, hStateArt.executionEnv]
                     have hSpotTargetEq :
                         spotTargetEvm =
                           EVM.address
@@ -6208,8 +6134,9 @@ hStateArt.executionEnv.symm
                           have hparCodeSolm :
                               Reasoning.Theory.extCodeSizeWord evmSpotSolm.accountMap
                                 (endCageIlkSpotWord evmSpotSolm.accountMap
-                                  evmSpotSolm.executionEnv) = ⟨0⟩ :=
-                            endCageIlkSpotCodeSize_zero_EVMStateEquiv hStateSpot hparCodeState
+                                  evmSpotSolm.executionEnv) = ⟨0⟩ := by
+                            simpa only [hStateSpot.accountMap, hStateSpot.executionEnv] using
+                              hparCodeState
                           have htailPip :=
                             endCageIlkTailAfterSpotReverts_parNoCode
                               evmSpotSolm I vatOut spotOut hparCodeSolm
@@ -6262,8 +6189,9 @@ hStateArt.executionEnv.symm
                           have hparCodeSolmNE :
                               Reasoning.Theory.extCodeSizeWord evmSpotSolm.accountMap
                                 (endCageIlkSpotWord evmSpotSolm.accountMap
-                                  evmSpotSolm.executionEnv) ≠ ⟨0⟩ :=
-                            endCageIlkSpotCodeSize_ne_EVMStateEquiv hStateSpot hparCodeStateNE
+                                  evmSpotSolm.executionEnv) ≠ ⟨0⟩ := by
+                            simpa only [hStateSpot.accountMap, hStateSpot.executionEnv] using
+                              hparCodeStateNE
                           obtain ⟨parGasWord, _, _, hparReady⟩ :=
                             endCageIlkX_parCallReady hloVat hspotOutSize rd9258 hparCodeNE
                           by_cases hdepthLtPar : I.depth.val < 1024
@@ -6330,13 +6258,12 @@ hStateArt.executionEnv.symm
                                 (by simp [evmSpotEvm, evmSpotSolm, evmArtEvm, evmArtSolm,
                                   evmVatEvm, evmVatSolm, evmSolm, endCageIlkPostArtState,
                                   initState])
-hStateSpot.executionEnv.symm
+                                hStateSpot.executionEnv.symm
                             have hParWordEq :
                                 endCageIlkSpotWord evmSpotEvm.accountMap evmSpotEvm.executionEnv =
                                   endCageIlkSpotWord evmSpotSolm.accountMap
                                     evmSpotSolm.executionEnv := by
-                              rw [← hStateSpot.executionEnv]
-                              exact endCageIlkSpotWord_accountMapEquiv hStateSpot.accountMap
+                              simp only [hStateSpot.accountMap, hStateSpot.executionEnv]
                             have hParTargetEq :
                                 parTargetEvm =
                                   EVM.address
@@ -6639,9 +6566,8 @@ hStateSpot.executionEnv.symm
                                   have hreadCodeSolm :
                                       Reasoning.Theory.extCodeSizeWord
                                         evmParSolm.accountMap
-                                        (endCageIlkPipCallWord spotOut) = ⟨0⟩ :=
-                                    endCageIlkPipCodeSize_zero_accountMapEquiv
-                                      hStatePar.accountMap spotOut hreadCodeState
+                                        (endCageIlkPipCallWord spotOut) = ⟨0⟩ := by
+                                    simpa only [hStatePar.accountMap] using hreadCodeState
                                   have htailRead :=
                                     endCageIlkTailAfterParReverts_readNoCode
                                       evmParSolm I vatOut spotOut parOut hreadCodeSolm
@@ -6662,9 +6588,8 @@ hStateSpot.executionEnv.symm
                                   have hreadCodeSolmNE :
                                       Reasoning.Theory.extCodeSizeWord
                                         evmParSolm.accountMap
-                                        (endCageIlkPipCallWord spotOut) ≠ ⟨0⟩ :=
-                                    endCageIlkPipCodeSize_ne_accountMapEquiv
-                                      hStatePar.accountMap spotOut hreadCodeStateNE
+                                        (endCageIlkPipCallWord spotOut) ≠ ⟨0⟩ := by
+                                    simpa only [hStatePar.accountMap] using hreadCodeStateNE
                                   obtain ⟨readGasWord, _, _, hreadReady⟩ :=
                                     endCageIlkX_readCallReady hloVat hspotOutSize
                                       hparOutSize rd9378 hreadCodeNE
@@ -6733,7 +6658,7 @@ hStateSpot.executionEnv.symm
                                             evmSpotSolm, evmArtEvm, evmArtSolm, evmVatEvm,
                                             evmVatSolm, evmSolm, endCageIlkPostArtState,
                                             initState])
-hStatePar.executionEnv.symm
+                                        hStatePar.executionEnv.symm
                                     have hcallReadSolm :
                                         typedCallViaEVM config evmParSolm
                                           (EVM.address (endCageIlkSpotIlkPipAddr spotOut))
@@ -6903,28 +6828,21 @@ hStatePar.executionEnv.symm
                                                     endCageIlkTagVWord parOut readOut)
                                                   (val₂ :=
                                                     endCageIlkTagVWord parOut readOut) rfl
-                                            exact hret.reEquivExecutionGenEVMStateEquiv
-                                              (evm'_evm :=
-                                                endCageIlkPostTagState evmReadEvm I
-                                                  (endCageIlkTagVWord parOut readOut))
-                                              (evm'_solm :=
-                                                endCageIlkPostTagState evmReadSolm I
-                                                  (endCageIlkTagVWord parOut readOut))
+                                            exact hret.reEquivExecutionGenAccountMapEquiv
                                               hcode hdispatch hdecode hbody
                                               (by
-                                                simp [evmReadEvm, endCageIlkPostTagState,
-                                                  ])
-                                              (by
-                                                simpa [evmReadEvm, endCageIlkPostTagState,
-                                                  evmParEvm, evmSpotEvm, evmArtEvm,
-                                                  evmVatEvm, endCageIlkPostArtState,
-                                                  initState, storageStore_executionEnv,
-                                                  storageStore_accountMap,
-                                                  endCageIlkPostTagAccountMap] using
-                                                  Eq.refl
-                                                    (endCageIlkPostTagAccountMap σ_read I
-                                                      (endCageIlkTagVWord parOut readOut)))
-                                              hStatePost
+                                                calc
+                                                  _ = (endCageIlkPostTagState evmReadEvm I
+                                                      (endCageIlkTagVWord parOut readOut)).accountMap := by
+                                                    simp [evmReadEvm, evmParEvm, evmSpotEvm,
+                                                      evmArtEvm, evmVatEvm, endCageIlkPostArtState,
+                                                      endCageIlkPostTagState,
+                                                      endCageIlkPostTagAccountMap, initState,
+                                                      storageStore_executionEnv,
+                                                      storageStore_accountMap]
+                                                  _ = (endCageIlkPostTagState evmReadSolm I
+                                                      (endCageIlkTagVWord parOut readOut)).accountMap :=
+                                                    hStatePost.accountMap)
                                               (by
                                                 simpa [cageIlkTransition] using
                                                   (returnEquiv.fallthrough
@@ -7141,9 +7059,7 @@ hStatePar.executionEnv.symm
                   hwv hsz36 hliveSolm htagSolm hvatCodeSolmNE hcallSolm
             exact (endCageIlkX_vatIlksCallFailed rd9081 (by native_decide))
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-      · have htagSolm : endCageIlkTagWord σ I ≠ ⟨0⟩ := by
-          intro hbad
-          exact htag (by rw [htagCouple, hbad])
+      · have htagSolm : endCageIlkTagWord σ I ≠ ⟨0⟩ := htag
         have hbody :
             ExecTransitionBody config contract evmSolm (endCageIlkStore I)
               cageIlkTransition.body .reverted := by
@@ -7153,9 +7069,7 @@ hStatePar.executionEnv.symm
               (A := A) (I := I) (g := g) hwv hsz36 hliveSolm htagSolm
         exact (endCageIlkX_tagNonzero (g := Sat256.ofUInt256 g) hsz36 hlive htag hbodyReach)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
-    · have hliveSolm : endCageIlkLiveWord σ I ≠ ⟨0⟩ := by
-        intro hbad
-        exact hlive (by rw [hliveCouple, hbad])
+    · have hliveSolm : endCageIlkLiveWord σ I ≠ ⟨0⟩ := hlive
       have hbody :
           ExecTransitionBody config contract evmSolm (endCageIlkStore I)
             cageIlkTransition.body .reverted := by

@@ -166,12 +166,11 @@ theorem endTagBodyCoreOk
           (solcMappingHashMem_size ⟨12⟩ key))
       (by simp)
     simpa [slot, endSlotWord] using hret'
-  have hword : endSlotWord slot σ I = endSlotWord slot σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
   have hval :
       some [Value.int (Int.ofNat (endSlotWord (endTagSlotFor I) σ I).toNat)] =
         some [Value.int (Int.ofNat (endSlotWord slot σ I).toNat)] := by
-    rw [hslot, hword]
+    rw [hslot]
+  rw [hval] at hbody
   have henc :
       returnEquiv (UInt256.toByteArray (endSlotWord slot σ I))
         (some [(.int (Int.ofNat (endSlotWord slot σ I).toNat))])
@@ -179,7 +178,7 @@ theorem endTagBodyCoreOk
     rw [show tagTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
       (by simpa [uint256] using uint256ReturnEncoding (endSlotWord slot σ I))
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem endTagBodyCoreDecodeFailed_short
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -222,7 +221,7 @@ theorem endTagBody {σ σ₀ A I} {g : UInt256}
     hcode hwv hsz4 hsize hsel'
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact endTagBodyCoreOk hcode hwv hsz36 hsize hdispatch
-      (endDecode_tag_ok hsz36) hreach hAccounts
+      (endDecode_tag_ok hsz36) hreach
   · exact endTagBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 
 end Benchmarks.Dss.End

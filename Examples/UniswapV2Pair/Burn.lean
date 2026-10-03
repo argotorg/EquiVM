@@ -50,8 +50,8 @@ theorem uniswapBurnBody
       obtain ⟨_, _, rd4267⟩ := uniswapBurnRuntimeFirstBalanceOfExtcodesize rd4179
       have hpost : sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩ =
           (uniswapLockEnteredState evmS).accountMap := by
-        simpa only [uniswapLockEnteredState, uniswapUnlockedState, storageStore_accountMap,
-          evmS, initState] using accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨0⟩ rfl
+        simp only [uniswapLockEnteredState, uniswapUnlockedState, storageStore_accountMap,
+          evmS, initState]
       have he : (uniswapLockEnteredState evmS).executionEnv = I := by
         simp only [uniswapLockEnteredState, uniswapUnlockedState, storageStore_executionEnv,
           evmS, initState]
@@ -267,7 +267,7 @@ theorem uniswapBurnBody
                             (UInt256.ofNat I.codeOwner.val) out out1 hout32 houtSize hout132 hout1Size))
                       obtain ⟨_, _, rd4479⟩ := uniswapBurnRuntimeTotalSupplyLoaded rd4472
                         (by simp only [List.length_cons, List.length_nil]; omega)
-                      have htotalEq := mintFunctionTotalSupplyWord_eq_slot_of_accountMapEquiv haFee heFee
+                      have htotalEq := mintFunctionTotalSupplyWord_eq_slot haFee heFee
                       rw [← htotalEq] at rd4479
                       have hbeforeAmounts := uniswapBurnBeforeAmountsPrefix evmS evm1 evmFee I
                         balance0 balance1 feeOn hprefix hfee

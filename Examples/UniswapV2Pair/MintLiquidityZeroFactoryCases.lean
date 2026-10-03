@@ -545,14 +545,16 @@ theorem uniswapMintProportionalFeeOffKLastNonzeroLiquidityZeroFromFactoryCase
     exact uint256_toNat_eq_zero hzero
   have hPostCleared :
       Eq σCleared (mintFeeKLastClearedState evmFeeS).accountMap := by
-    have hstore := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨11⟩ ⟨0⟩ hPostAccountsFee
+    have hstore := congrArg
+      (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨11⟩ ⟨0⟩)
+      hPostAccountsFee
     simpa [← hcleared, mintFeeKLastClearedState, henvFeeI, storageStore_accountMap] using
       hstore
   have henvCleared : (mintFeeKLastClearedState evmFeeS).executionEnv = I := by
     simp [mintFeeKLastClearedState, henvFeeI, storageStore_executionEnv]
   have htotalEq :
       mintFunctionTotalSupplyWord (mintFeeKLastClearedState evmFeeS) = totalSupply := by
-    have hword := mintFunctionTotalSupplyWord_eq_slot_of_accountMapEquiv hPostCleared henvCleared
+    have hword := mintFunctionTotalSupplyWord_eq_slot hPostCleared henvCleared
     simpa [htotalSlot] using hword
   have hclean0 : UInt256.land reserve0 reserve112Mask = reserve0 :=
     reserve112Mask_clean_of_lt _ (by

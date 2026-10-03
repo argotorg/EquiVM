@@ -81,7 +81,7 @@ theorem clipperTakeChostNoAdjustNonzeroEquiv
   let fluxLocals := clipperTakeLocalsPostFluxBuyerRet arithmeticLocals
     (UInt256.sub tab owe) (UInt256.sub lot slice)
   have hchostEq : chost = solcSlotWord σPost I ⟨9⟩ := by
-    have hslot := accountMapEquiv_storage_findD hAccountsPost I.codeOwner ⟨9⟩ ⟨0⟩
+    have hslot := congrArg (fun m => solcSlotWord m I ⟨9⟩) hAccountsPost
     simp [chost, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       solcSlotWord, hevmPriceEnv, hslot]
   have hmul' : (UInt256.mul slice price).toNat ≤
@@ -368,7 +368,7 @@ theorem clipperTakeChostNoAdjustNonzeroEquiv
       hmax hstatus
     simpa [evm0, evmLock, sourceSlice, hslice] using htail
   have hcontinue : ClipperTakeStoreContinuationEquiv v code σ
-      σ σ₀ A I g slice (UInt256.mul slice price)
+      σ₀ A I g slice (UInt256.mul slice price)
       (UInt256.sub tab (UInt256.mul slice price)) (UInt256.sub lot slice)
       price tic packed stopped dataLen dataStart who max amt id sel := by
     exact clipperTakeNonzeroStoreContinuation v hpatch hcode hdispatch hdec

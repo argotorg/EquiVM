@@ -57,7 +57,7 @@ theorem clipperTakeRemoveEquiv
   have hstorage (slot : UInt256) :
       solcSlotWord σCont I slot =
         Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner slot := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner slot ⟨0⟩
+    have hslot := congrArg (fun m => solcSlotWord m I slot) hAccounts
     simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       solcSlotWord, hevmEnv, hslot]
   apply RD.clipperTakeRemoveContinuationElim v hpatch rd8274 hidWord hmem hperm
@@ -112,13 +112,10 @@ theorem clipperTakeRemoveEquiv
         clipperYankRemoveIdEqMoveSource v evmCont I hacc hlenSolm hidEqSolm
     obtain ⟨finalFrame, hbody⟩ := hsourceReturned hremove
     have hAccountsFinal :=
-      clipperYankSuccessAccountMap_state_accountMapEquiv
+      clipperYankSuccessAccountMap_state_accounts_eq
         (σ := σCont) (τ := evmCont.accountMap) evmCont I lastIndex
         hAccounts rfl howner
     exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdec hbody
-      (by
-        simp [evmRemove, sourceLastIndex, clipperYankDeleteSaleState,
-          clipperYankRemovePopState])
       (by
         simpa [lastIndex, sourceLastIndex, hlastIndexEq, evmRemove,
           clipperYankSuccessAccountMap] using hAccountsFinal)
@@ -169,7 +166,7 @@ theorem clipperTakeRemoveEquiv
     have hmoveAccounts : Eq
         (clipperYankMoveAccountMap σCont I idx move) evmMovePos.accountMap := by
       simpa [evmIndex, evmMovePos] using
-        clipperYankMoveAccountMap_state_accountMapEquiv
+        clipperYankMoveAccountMap_state_accounts_eq
           (σ := σCont) (τ := evmCont.accountMap) evmCont I idx move
           hAccounts rfl howner
     have hownerMovePos : evmMovePos.executionEnv.codeOwner = I.codeOwner := by
@@ -177,7 +174,7 @@ theorem clipperTakeRemoveEquiv
     have hstorageMove (slot : UInt256) :
         solcSlotWord (clipperYankMoveAccountMap σCont I idx move) I slot =
           Solm.EVM.storageLoad evmMovePos evmMovePos.executionEnv.codeOwner slot := by
-      have hslot := accountMapEquiv_storage_findD hmoveAccounts I.codeOwner slot ⟨0⟩
+      have hslot := congrArg (fun m => solcSlotWord m I slot) hmoveAccounts
       simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         solcSlotWord, hownerMovePos, hslot]
     have hlenAfterSolm : Solm.EVM.storageLoad evmMovePos
@@ -234,7 +231,7 @@ theorem clipperTakeRemoveEquiv
       simpa [idx] using hidxBound
     have hmoveAccounts : Eq σMove evmMovePos.accountMap := by
       simpa [σMove, evmIndex, evmMovePos] using
-        clipperYankMoveAccountMap_state_accountMapEquiv
+        clipperYankMoveAccountMap_state_accounts_eq
           (σ := σCont) (τ := evmCont.accountMap) evmCont I idx move
           hAccounts rfl howner
     have hownerMovePos : evmMovePos.executionEnv.codeOwner = I.codeOwner := by
@@ -242,7 +239,7 @@ theorem clipperTakeRemoveEquiv
     have hstorageMove (slot : UInt256) :
         solcSlotWord σMove I slot =
           Solm.EVM.storageLoad evmMovePos evmMovePos.executionEnv.codeOwner slot := by
-      have hslot := accountMapEquiv_storage_findD hmoveAccounts I.codeOwner slot ⟨0⟩
+      have hslot := congrArg (fun m => solcSlotWord m I slot) hmoveAccounts
       simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         solcSlotWord, hownerMovePos, σMove, hslot]
     have hlenAfterSolm : Solm.EVM.storageLoad evmMovePos
@@ -289,14 +286,10 @@ theorem clipperTakeRemoveEquiv
         UInt256.lnot ⟨0⟩ from rfl]
       rw [clipperYankLenAddLnotZero_eq_subOne, hstorageMove]
     have hAccountsFinal :=
-      clipperYankSuccessAccountMap_state_accountMapEquiv
+      clipperYankSuccessAccountMap_state_accounts_eq
         (σ := σMove) (τ := evmMovePos.accountMap) evmMovePos I lastIndexAfter
         hmoveAccounts rfl hownerMovePos
     exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdec hbody
-      (by
-        simp [evmRemove, popLastIndex, evmMovePos, evmIndex,
-          clipperYankDeleteSaleState, clipperYankRemovePopState,
-          ])
       (by
         simpa [lastIndex, move, idx, σMove, lastIndexAfter,
           hlastIndexAfterEq, evmRemove, popLastIndex,

@@ -1482,7 +1482,8 @@ theorem tickRuntimeSuccessAccountMap_eq
   have hold :
       runtimeOld =
         Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner packedSlot := by
-    simp [runtimeOld, packedSlot, flapperSlotWord, solcSlotWord, evmSolm, initState]
+    simp [runtimeOld, packedSlot, flapperSlotWord, solcSlotWord, evmSolm, initState,
+      Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
   have hstored :
       tickRuntimeEndStoredRawWord runtimeOld runtimeAdd = tickEndStoredWord evmSolm I := by
     rw [tickRuntimeEndStoredRawWord_eq_setUint48Offset26Word]

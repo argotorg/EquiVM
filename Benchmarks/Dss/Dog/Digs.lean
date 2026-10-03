@@ -1888,10 +1888,10 @@ theorem dogDigsBodyCore {v : DogImmutables} {code : ByteArray}
       simp [actualSlot, sourceSlot, digsDirtSlotFor_eq hsz68, u256_add_comm]
     have hcallerWord :
         dogSlotWord callerSlot σ I = dogSlotWord callerSlot σ I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
+      rfl
     have hDirtWord :
         dogSlotWord ⟨5⟩ σ I = dogSlotWord ⟨5⟩ σ I :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
+      rfl
     have henc : returnEquiv ByteArray.empty none digsTransition.returnType := by
       rw [show digsTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
@@ -1926,15 +1926,9 @@ theorem dogDigsBodyCore {v : DogImmutables} {code : ByteArray}
         let dirtNewSolm := UInt256.sub (dogSlotWord ⟨5⟩ σ I) rad
         let σ1_evm := sstoreAccountMap I.codeOwner σ ⟨5⟩ dirtNewEvm
         let σ1_solm := sstoreAccountMap I.codeOwner σ ⟨5⟩ dirtNewSolm
-        have hdirtNewEq : dirtNewEvm = dirtNewSolm := by
-          simp [dirtNewEvm, dirtNewSolm, hDirtWord]
-        have hAccounts1 : Eq σ1_evm σ1_solm := by
-          simpa [σ1_evm, σ1_solm, dirtNewEvm, dirtNewSolm, hDirtWord] using
-            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨5⟩ dirtNewEvm hAccounts
         have hIlkWord :
             dogSlotWord actualSlot σ1_evm I = dogSlotWord sourceSlot σ1_solm I := by
-          rw [hslotEq]
-          exact accountMapEquiv_storage_findD hAccounts1 I.codeOwner sourceSlot ⟨0⟩
+          simpa [hslotEq, σ1_evm, σ1_solm, dirtNewEvm, dirtNewSolm]
         by_cases hIlkLtEvm : (dogSlotWord actualSlot σ1_evm I).toNat < rad.toNat
         · have hIlkLtSolm : (dogSlotWord sourceSlot σ1_solm I).toNat < rad.toNat := by
             rw [← hIlkWord]
@@ -1990,8 +1984,6 @@ theorem dogDigsBodyCore {v : DogImmutables} {code : ByteArray}
                 (sstoreAccountMap I.codeOwner σ1_solm sourceSlot
                   (UInt256.sub (dogSlotWord sourceSlot σ1_solm I) rad)) := by
             rw [hIlkWord]
-            exact accountMapEquiv_sstoreAccountMap I.codeOwner sourceSlot
-              (UInt256.sub (dogSlotWord sourceSlot σ1_solm I) rad) hAccounts1
           have haccounts :
               Eq
                 (sstoreAccountMap I.codeOwner σ1_evm actualSlot

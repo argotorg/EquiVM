@@ -400,12 +400,12 @@ theorem uniswapMintBody
                               have hkLastEq :
                                   mintFeeKLastWord evmFeeS =
                                     mintFeeKLastSlotWord σFee I :=
-                                mintFeeKLastWord_eq_slot_of_accountMapEquiv
+                                mintFeeKLastWord_eq_slot
                                   hPostAccountsFee henvFeeI
                               have htotalEq :
                                   mintFunctionTotalSupplyWord evmFeeS =
                                     uniswapSlotWord ⟨0⟩ σFee I :=
-                                mintFunctionTotalSupplyWord_eq_slot_of_accountMapEquiv
+                                mintFunctionTotalSupplyWord_eq_slot
                                   hPostAccountsFee henvFeeI
                               have hamount0Eq := congrArg (balance0.sub ·) hreserve0Eq
                               have hamount1Eq := congrArg (balance1.sub ·) hreserve1Eq

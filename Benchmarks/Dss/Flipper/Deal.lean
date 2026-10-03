@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Flipper.ExternalCallTransport
+import Reasoning.ExternalCall
 import Benchmarks.Dss.Flipper.DealTicEVM
 import Benchmarks.Dss.Flipper.Dispatch
 

@@ -1072,7 +1072,7 @@ theorem erc20TransferX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, push2 ⟨1912⟩, dup2, push2 ⟨1894⟩, jump erc20_jd ]
   have rd1912 := rd1894.erc20Routine0766 erc20_jd (by evm_ov)
   have hclean : UInt256.eq (transferValueWord I) (transferValueWord I) = ⟨1⟩ :=
-    erc20Ueq_self (transferValueWord I)
+    uInt256_eq_self (transferValueWord I)
   have rd1939 := evm_run rd1912 with [
     jumpdest, dup2, eq, push2 ⟨1922⟩, jumpiT (by rw [hclean]; decide) erc20_jd,
     jumpdest, pop, jump erc20_jd ]
@@ -1099,7 +1099,7 @@ theorem erc20TransferX_afterRequire {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hcanonTo hreach
   have hsenderCleanL : UInt256.land erc20AddrMask (transferSenderWord I) = transferSenderWord I :=
-    erc20AddrMask_clean_left (approveOwnerWord_canonical I)
+    solcAddrMask_clean_left (approveOwnerWord_canonical I)
   have hslot := transferSenderKeccakSlot I
   have rd1415₀ := evm_run rd1365 with [
     jumpdest, push0, dup2, push0, push0, caller, push20 erc20AddrMask, and,
@@ -1134,7 +1134,7 @@ theorem erc20TransferX_insufficient {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hcanonTo hreach
   have hsenderCleanL : UInt256.land erc20AddrMask (transferSenderWord I) = transferSenderWord I :=
-    erc20AddrMask_clean_left (approveOwnerWord_canonical I)
+    solcAddrMask_clean_left (approveOwnerWord_canonical I)
   have hslot := transferSenderKeccakSlot I
   have rd1415₀ := evm_run rd1365 with [
     jumpdest, push0, dup2, push0, push0, caller, push20 erc20AddrMask, and,
@@ -1379,7 +1379,7 @@ theorem erc20TransferX_afterDebit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hcanonTo henough hreach
   have hsenderCleanL : UInt256.land erc20AddrMask (transferSenderWord I) = transferSenderWord I :=
-    erc20AddrMask_clean_left (approveOwnerWord_canonical I)
+    solcAddrMask_clean_left (approveOwnerWord_canonical I)
   have hslot := transferSenderKeccakSlot I
   have rd1517₀ := evm_run rd1493 with [
     jumpdest, dup2, push0, push0, caller, push20 erc20AddrMask, and,
@@ -1444,7 +1444,7 @@ theorem erc20TransferX_afterCredit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hperm hcanonTo henough hreach
   have htoCleanL : UInt256.land erc20AddrMask (transferToWord I) = transferToWord I :=
-    erc20AddrMask_clean_left hcanonTo
+    solcAddrMask_clean_left hcanonTo
   have hslot := transferToKeccakSlot I hcanonTo
   have rd1624₀ := evm_run rd1576 with [
     dup2, push0, push0, dup6, push20 erc20AddrMask, and,
@@ -1465,7 +1465,7 @@ theorem erc20TransferX_afterCredit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
         (transferDebitWord (initState σ σ₀ g A I) I)) k1 C1 := by
     simpa [transferToBalanceWord, transferAfterDebitState, transferSenderSlot,
       transferSenderSlotI, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, erc20StorageStore_accountMap]
+      Account.lookupStorage, storageStore_accountMap]
       using rd1641₀
   have rd2603 := evm_run rd1641 with [
     push2 ⟨1650⟩, swap2, swap1, push2 ⟨2603⟩, jump erc20_jd ]
@@ -1502,7 +1502,7 @@ theorem erc20TransferX_overflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hperm hcanonTo henough hreach
   have htoCleanL : UInt256.land erc20AddrMask (transferToWord I) = transferToWord I :=
-    erc20AddrMask_clean_left hcanonTo
+    solcAddrMask_clean_left hcanonTo
   have hslot := transferToKeccakSlot I hcanonTo
   have rd1624₀ := evm_run rd1576 with [
     dup2, push0, push0, dup6, push20 erc20AddrMask, and,
@@ -1523,7 +1523,7 @@ theorem erc20TransferX_overflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
         (transferDebitWord (initState σ σ₀ g A I) I)) k1 C1 := by
     simpa [transferToBalanceWord, transferAfterDebitState, transferSenderSlot,
       transferSenderSlotI, initState, Solm.EVM.storageLoad, State.lookupAccount,
-      Account.lookupStorage, erc20StorageStore_accountMap]
+      Account.lookupStorage, storageStore_accountMap]
       using rd1641₀
   have rd2603 := evm_run rd1641 with [
     push2 ⟨1650⟩, swap2, swap1, push2 ⟨2603⟩, jump erc20_jd ]
@@ -1551,9 +1551,9 @@ theorem erc20X_transfer {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (σ := σ) (σ₀ := σ₀) (A := A) (g := g) (sel := sel)
     hsz68 hsize hszhi hperm hcanonTo henough hfit hreach
   have hsenderCleanL : UInt256.land erc20AddrMask (transferSenderWord I) = transferSenderWord I :=
-    erc20AddrMask_clean_left (approveOwnerWord_canonical I)
+    solcAddrMask_clean_left (approveOwnerWord_canonical I)
   have htoCleanL : UInt256.land erc20AddrMask (transferToWord I) = transferToWord I :=
-    erc20AddrMask_clean_left hcanonTo
+    solcAddrMask_clean_left hcanonTo
   have rd1704₀ := evm_run rd1658 with [
     dup3, push20 erc20AddrMask, and, caller, push20 erc20AddrMask, and ]
   have rd1704 := rd1704₀
@@ -1713,8 +1713,8 @@ theorem erc20TransferBodyCore
                 hsz68 hsize hbig hperm hcanonTo henough hfit hreach)
               |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
                 (by simp [evmS, initState, transferPostState, transferAfterDebitState,
-                  transferSenderSlot, transferSenderSlotI, erc20StorageStore_accountMap])
-                (returnEquiv_of_encode erc20BoolTrueReturnEncoding)
+                  transferSenderSlot, transferSenderSlotI, storageStore_accountMap])
+                (returnEquiv_of_encode boolTrueReturnEncoding)
           · have hover :
               UInt256.size ≤
                 transferNewToNat
@@ -1744,7 +1744,7 @@ theorem erc20TransferBodyCore
       · have hdec := erc20Decode_transfer_none_noncanon (I := I) hsz68 hbig hcanonTo
         have hnc : UInt256.eq (transferToWord I)
             (UInt256.land (transferToWord I) erc20AddrMask) = ⟨0⟩ :=
-          erc20Ueq_zero_of_ne (fun he => hcanonTo (erc20Word_canonical_of_clean he))
+          uInt256_eq_zero_of_ne (fun he => hcanonTo (solcAddrCanonical_of_clean he))
         exact (erc20TransferX_noncanon_to (g := Sat256.ofUInt256 g)
             hsz68 hsize hbig hnc hreach)
           |>.reEquivDecodingFailed hcode hd hdec

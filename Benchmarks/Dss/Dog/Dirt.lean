@@ -216,7 +216,6 @@ theorem dogDirtBodyCore {v : DogImmutables} {code : ByteArray}
     (routine := ⟨4536⟩) (slot := ⟨5⟩)
     _hcode (dogDispatchDirt _hsel) (dogDecode_Dirt (v := v) hsz)
     (dogReachDirtBody (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv hsz _hsize _hsel)
-    _hAccounts
     (by
       unfold solcGetterEntryWf
       repeat' first

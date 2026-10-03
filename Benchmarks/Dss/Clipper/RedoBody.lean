@@ -634,64 +634,33 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
         (v := v) hpatch hlockedEvm hreachBody
       obtain ⟨_, _, hreachLocked⟩ := clipperRedoX_lockStore
         (v := v) hpatch hperm hreachOpen
-      have hlockWord : solcSlotWord σ I ⟨13⟩ = solcSlotWord σ I ⟨13⟩ := by
-        simpa [solcSlotWord] using
-          accountMapEquiv_storage_findD rfl I.codeOwner (⟨13⟩ : UInt256) ⟨0⟩
-      have hlockedSolm : solcSlotWord σ I ⟨13⟩ = ⟨0⟩ := by
-        rw [← hlockWord]
-        exact hlockedEvm
-      let σLockEvm := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
-      let σLockSolm := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
-      have hAccountsLock : Eq σLockEvm σLockSolm := by
-        simpa [σLockEvm, σLockSolm] using
-          accountMapEquiv_sstoreAccountMap I.codeOwner ⟨13⟩ ⟨1⟩ rfl
-      have hstoppedWord :
-          solcSlotWord σLockEvm I ⟨14⟩ = solcSlotWord σLockSolm I ⟨14⟩ := by
-        simpa [solcSlotWord] using
-          accountMapEquiv_storage_findD hAccountsLock I.codeOwner (⟨14⟩ : UInt256) ⟨0⟩
-      by_cases hstoppedLt : (solcSlotWord σLockEvm I ⟨14⟩).toNat < 2
-      · have hstoppedSolmLt : (solcSlotWord σLockSolm I ⟨14⟩).toNat < 2 := by
-          rw [← hstoppedWord]
-          exact hstoppedLt
-        obtain ⟨_, _, _hreachStopped⟩ := clipperRedoX_stoppedOpen (v := v)
-          (σ := σLockEvm) hpatch (by simpa [σLockEvm] using hstoppedLt)
-          (by simpa [σLockEvm] using hreachLocked)
-        have husrWord :
-            clipperRedoSalesUsrWord σLockEvm I = clipperRedoSalesUsrWord σLockSolm I := by
-          unfold clipperRedoSalesUsrWord solcSlotWord
-          rw [accountMapEquiv_storage_findD hAccountsLock I.codeOwner
-            (clipperRedoSalesPackedSlot I) ⟨0⟩]
-        by_cases husrEvm : clipperRedoSalesUsrWord σLockEvm I = ⟨0⟩
-        · have husrSolm : clipperRedoSalesUsrWord σLockSolm I = ⟨0⟩ := by
-            rw [← husrWord]
-            exact husrEvm
-          let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+      let σLock := sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩
+      by_cases hstoppedLt : (solcSlotWord σLock I ⟨14⟩).toNat < 2
+      · obtain ⟨_, _, _hreachStopped⟩ := clipperRedoX_stoppedOpen (v := v)
+          (σ := σLock) hpatch (by simpa [σLock] using hstoppedLt)
+          (by simpa [σLock] using hreachLocked)
+        by_cases husrEvm : clipperRedoSalesUsrWord σLock I = ⟨0⟩
+        · let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
           have hbody :
               ExecTransitionBody (config v) (contract v) evmSolm (clipperRedoStore I)
                 (redoTransition v).body .reverted := by
-            simpa [evmSolm, σLockSolm] using
+            simpa [evmSolm, σLock] using
               (clipperRedoInactiveSourceReverts
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
-                hlockedSolm hstoppedSolmLt husrSolm)
-          have hrev := clipperRedoX_usrZero (v := v) (σ := σLockEvm)
-            hpatch husrEvm (by simpa [σLockEvm] using _hreachStopped)
+                hlockedEvm hstoppedLt husrEvm)
+          have hrev := clipperRedoX_usrZero (v := v) (σ := σLock)
+            hpatch husrEvm (by simpa [σLock] using _hreachStopped)
           exact hrev.reEquivExecutionRevert hcode hdispatch (clipperDecode_redo_ok v hsz68)
             hbody
-        · have husrSolm : clipperRedoSalesUsrWord σLockSolm I ≠ ⟨0⟩ := by
-            intro hzero
-            exact husrEvm (by rw [husrWord, hzero])
-          obtain ⟨_, _, _hreachUsr⟩ := clipperRedoX_usrNonzero (v := v)
-            (σ := σLockEvm) hpatch husrEvm (by simpa [σLockEvm] using _hreachStopped)
+        · obtain ⟨_, _, _hreachUsr⟩ := clipperRedoX_usrNonzero (v := v)
+            (σ := σLock) hpatch husrEvm (by simpa [σLock] using _hreachStopped)
           obtain ⟨_, _, _hreachStatus⟩ := clipperRedoX_enterStatus (v := v)
-            (σ := σLockEvm) hpatch _hreachUsr
+            (σ := σLock) hpatch _hreachUsr
           have hpackedWord :
-              solcSlotWord σLockEvm I (clipperRedoSalesPackedSlot I) =
-                solcSlotWord σLockSolm I (clipperRedoSalesPackedSlot I) := by
-            simpa [solcSlotWord] using
-              accountMapEquiv_storage_findD hAccountsLock I.codeOwner
-                (clipperRedoSalesPackedSlot I) ⟨0⟩
+              solcSlotWord σLock I (clipperRedoSalesPackedSlot I) =
+                solcSlotWord σLock I (clipperRedoSalesPackedSlot I) := rfl
           have hticWord :
-              clipperRedoSalesTicWord σLockEvm I = clipperRedoSalesTicWord σLockSolm I := by
+              clipperRedoSalesTicWord σLock I = clipperRedoSalesTicWord σLock I := by
             simpa [clipperRedoSalesTicWord] using congrArg
               (fun w =>
                 UInt256.land
@@ -700,26 +669,26 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
               hpackedWord
           have hmask96 : clipperSalesUint96Mask.toNat = 2 ^ 96 - 1 := by
             native_decide
-          have hticLt : (clipperRedoSalesTicWord σLockEvm I).toNat < EVM.twoPow 96 := by
+          have hticLt : (clipperRedoSalesTicWord σLock I).toNat < EVM.twoPow 96 := by
             simpa [clipperRedoSalesTicWord, clipperSalesUint96Mask] using
               u256LandMaskToNatLtOfToNat
-                (UInt256.div (solcSlotWord σLockEvm I (clipperRedoSalesPackedSlot I))
+                (UInt256.div (solcSlotWord σLock I (clipperRedoSalesPackedSlot I))
                   (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
                 clipperSalesUint96Mask hmask96
           have hticClean :
-              UInt256.land (clipperRedoSalesTicWord σLockEvm I) clipperSalesUint96Mask =
-                clipperRedoSalesTicWord σLockEvm I := by
+              UInt256.land (clipperRedoSalesTicWord σLock I) clipperSalesUint96Mask =
+                clipperRedoSalesTicWord σLock I := by
             exact u256LandMaskCleanOfToNat
-              (clipperRedoSalesTicWord σLockEvm I) clipperSalesUint96Mask hmask96 hticLt
+              (clipperRedoSalesTicWord σLock I) clipperSalesUint96Mask hmask96 hticLt
           have hticCleanSolm :
-              UInt256.land (clipperRedoSalesTicWord σLockSolm I) clipperSalesUint96Mask =
-                clipperRedoSalesTicWord σLockSolm I := by
+              UInt256.land (clipperRedoSalesTicWord σLock I) clipperSalesUint96Mask =
+                clipperRedoSalesTicWord σLock I := by
             rw [← hticWord]
             exact hticClean
           by_cases hlePrice :
-              (clipperRedoSalesTicWord σLockEvm I).toNat ≤
+              (clipperRedoSalesTicWord σLock I).toNat ≤
                 (UInt256.ofNat I.header.timestamp).toNat
-          · let calcAddr : UInt256 := UInt256.land (solcSlotWord σLockEvm I ⟨4⟩) solcAddrMask
+          · let calcAddr : UInt256 := UInt256.land (solcSlotWord σLock I ⟨4⟩) solcAddrMask
             obtain ⟨_, _, rd8502⟩ :=
               Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperStatusAgeForPrice
                 (v := v) hpatch _hreachStatus
@@ -735,13 +704,11 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
             let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
             let evmLockSolm := clipperRedoLockedState evmSolm
             have hcalcSlotSolm :
-                solcSlotWord σLockEvm I ⟨4⟩ = solcSlotWord σLockSolm I ⟨4⟩ := by
-              exact accountMapEquiv_storage_findD (σ := σLockEvm) (τ := σLockSolm)
-                hAccountsLock I.codeOwner ⟨4⟩ (⟨0⟩ : UInt256)
+                solcSlotWord σLock I ⟨4⟩ = solcSlotWord σLock I ⟨4⟩ := rfl
             have hticSolmLoad :
                 clipperRedoSalesTicEVMWord evmLockSolm I =
-                  clipperRedoSalesTicWord σLockSolm I := by
-              simp [σLockSolm, evmLockSolm, evmSolm, clipperRedoLockedState, initState,
+                  clipperRedoSalesTicWord σLock I := by
+              simp [σLock, evmLockSolm, evmSolm, clipperRedoLockedState, initState,
                 clipperRedoSalesTicEVMWord, clipperRedoSalesTicWord, Solm.EVM.storageLoad,
                 State.lookupAccount, Account.lookupStorage, solcSlotWord,
                 storageStore_accountMap, storageStore_executionEnv]
@@ -754,49 +721,42 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                   (clipperTimestampWord evmLockSolm).toNat := by
               simpa [hticSolmLoad, htimestampSolm, hticWord] using hlePrice
             by_cases hcalcCode :
-                Reasoning.Theory.extCodeSizeWord σLockEvm calcAddr ≠ ⟨0⟩
+                Reasoning.Theory.extCodeSizeWord σLock calcAddr ≠ ⟨0⟩
             · have htopWord :
-                  clipperRedoSalesTopWord σLockEvm I =
-                    clipperRedoSalesTopWord σLockSolm I := by
-                simpa [clipperRedoSalesTopWord, solcSlotWord] using
-                  accountMapEquiv_storage_findD hAccountsLock I.codeOwner
-                    (clipperRedoSalesTopSlot I) (⟨0⟩ : UInt256)
+                  clipperRedoSalesTopWord σLock I =
+                    clipperRedoSalesTopWord σLock I := rfl
               have htopSolmLoad :
                   clipperRedoSalesTopEVMWord evmLockSolm I =
-                    clipperRedoSalesTopWord σLockSolm I := by
-                simp [σLockSolm, evmLockSolm, evmSolm, clipperRedoLockedState, initState,
+                    clipperRedoSalesTopWord σLock I := by
+                simp [σLock, evmLockSolm, evmSolm, clipperRedoLockedState, initState,
                   clipperRedoSalesTopEVMWord, clipperRedoSalesTopWord, Solm.EVM.storageLoad,
                   State.lookupAccount, Account.lookupStorage, solcSlotWord,
                   storageStore_accountMap, storageStore_executionEnv]
               have hcalcAddrSolm :
                   clipperStatusCalcAddress evmLockSolm = AccountAddress.ofUInt256 calcAddr := by
-                simp [σLockSolm, evmLockSolm, evmSolm, clipperRedoLockedState,
+                simp [σLock, evmLockSolm, evmSolm, clipperRedoLockedState,
                   clipperStatusCalcAddress, clipperStatusCalcWord, calcAddr, initState,
                   Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                   solcSlotWord, storageStore_accountMap, storageStore_executionEnv,
                   hcalcSlotSolm]
               have hcalcCodeSolmNE :
-                  Reasoning.Theory.extCodeSizeWord σLockSolm calcAddr ≠ ⟨0⟩ := by
-                intro hzero
-                exact hcalcCode (by
-                  rw [Reasoning.Theory.extCodeSizeWord_accountMapEquiv
-                    hAccountsLock calcAddr]
-                  exact hzero)
+                  Reasoning.Theory.extCodeSizeWord σLock calcAddr ≠ ⟨0⟩ := by
+                exact hcalcCode
               have hcalcCodeSolm :
                   0 < (UInt256.ofNat
                     ((evmLockSolm.lookupAccount (clipperStatusCalcAddress evmLockSolm)).option 0
                       (fun acc => acc.code.size))).toNat := by
-                simpa [σLockSolm, evmLockSolm, evmSolm, clipperRedoLockedState,
+                simpa [σLock, evmLockSolm, evmSolm, clipperRedoLockedState,
                   State.lookupAccount, initState, storageStore_accountMap] using
                   clipperGetStatusExtCodeSizeWord_ne_zero_lookup_code_pos
-                    (σ := σLockSolm) (target := calcAddr)
+                    (σ := σLock) (target := calcAddr)
                     (addr := clipperStatusCalcAddress evmLockSolm)
                     hcalcAddrSolm hcalcCodeSolmNE
               by_cases hdepth : I.depth.val < 1024
               · obtain ⟨σ', z, o, A', k8565, C8565, rd8565, hcallPrice, hout⟩ :=
                   RD.clipperStatusPricePostStaticcallFromCurrent
                     (v := v)
-                    (σ := σLockEvm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+                    (σ := σLock) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                     hpatch rd8549
                     (by simp [initState])
                     (by simpa [calcAddr] using hcalcCode)
@@ -812,8 +772,8 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                     { evmLockSolm with accountMap := σ', substate := A' }
                   have hlockStateSolm :
                       evmLockSolm =
-                        initState σLockSolm σ₀ (Sat256.ofUInt256 g) A I := by
-                    unfold evmLockSolm evmSolm clipperRedoLockedState σLockSolm
+                        initState σLock σ₀ (Sat256.ofUInt256 g) A I := by
+                    unfold evmLockSolm evmSolm clipperRedoLockedState σLock
                     have hOne : ({ val := 1 } : UInt256) ≠ default := by native_decide
                     cases hacc : σ.find? I.codeOwner <;>
                       simp [initState, Solm.EVM.storageStore, State.lookupAccount,
@@ -828,7 +788,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                               (clipperRedoSalesTicEVMWord evmLockSolm I)).toNat)]
                         (false, evmPriceSolm, o) false := by
                     simpa [evmPriceSolm, hlockStateSolm,
-                      σLockSolm, initState, clipperStatusCalcAddress, clipperStatusCalcWord,
+                      σLock, initState, clipperStatusCalcAddress, clipperStatusCalcWord,
                       clipperRedoSalesTopEVMWord, clipperRedoSalesTopWord,
                       clipperRedoSalesTicEVMWord, clipperRedoSalesTicWord, clipperTimestampWord,
                       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
@@ -851,10 +811,10 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                   have hbody :
                       ExecTransitionBody (config v) (contract v) evmSolm0 (clipperRedoStore I)
                         (redoTransition v).body .reverted := by
-                    simpa [evmSolm0, σLockSolm] using
+                    simpa [evmSolm0, σLock] using
                       (clipperRedoStatusSourceRevertsOfStatus
                         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
-                        hlockedSolm hstoppedSolmLt husrSolm hstatus)
+                        hlockedEvm hstoppedLt husrEvm hstatus)
                   exact hrev.reEquivExecutionRevert hcode hdispatch
                     (clipperDecode_redo_ok v hsz68) hbody
                 · obtain ⟨_, _, rd8583⟩ :=
@@ -876,8 +836,8 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                       { evmLockSolm with accountMap := σ', substate := A' }
                     have hlockStateSolm :
                         evmLockSolm =
-                          initState σLockSolm σ₀ (Sat256.ofUInt256 g) A I := by
-                      unfold evmLockSolm evmSolm clipperRedoLockedState σLockSolm
+                          initState σLock σ₀ (Sat256.ofUInt256 g) A I := by
+                      unfold evmLockSolm evmSolm clipperRedoLockedState σLock
                       have hOne : ({ val := 1 } : UInt256) ≠ default := by native_decide
                       cases hacc : σ.find? I.codeOwner <;>
                         simp [initState, Solm.EVM.storageStore, State.lookupAccount,
@@ -892,7 +852,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                 (clipperRedoSalesTicEVMWord evmLockSolm I)).toNat)]
                           (true, evmPriceSolm, o) false := by
                       simpa [evmPriceSolm, hlockStateSolm,
-                        σLockSolm, initState, clipperStatusCalcAddress, clipperStatusCalcWord,
+                        σLock, initState, clipperStatusCalcAddress, clipperStatusCalcWord,
                         clipperRedoSalesTopEVMWord, clipperRedoSalesTopWord,
                         clipperRedoSalesTicEVMWord, clipperRedoSalesTicWord, clipperTimestampWord,
                         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
@@ -915,10 +875,10 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                     have hbody :
                         ExecTransitionBody (config v) (contract v) evmSolm0 (clipperRedoStore I)
                           (redoTransition v).body .reverted := by
-                      simpa [evmSolm0, σLockSolm] using
+                      simpa [evmSolm0, σLock] using
                         (clipperRedoStatusSourceRevertsOfStatus
                           (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
-                          hlockedSolm hstoppedSolmLt husrSolm hstatus)
+                          hlockedEvm hstoppedLt husrEvm hstatus)
                     exact hrev.reEquivExecutionRevert hcode hdispatch
                       (clipperDecode_redo_ok v hsz68) hbody
                   · have hloOut : 32 ≤ o.size := by omega
@@ -938,8 +898,8 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                       { evmLockSolm with accountMap := σ', substate := A' }
                     have hlockStateSolm :
                         evmLockSolm =
-                          initState σLockSolm σ₀ (Sat256.ofUInt256 g) A I := by
-                      unfold evmLockSolm evmSolm clipperRedoLockedState σLockSolm
+                          initState σLock σ₀ (Sat256.ofUInt256 g) A I := by
+                      unfold evmLockSolm evmSolm clipperRedoLockedState σLock
                       have hOne : ({ val := 1 } : UInt256) ≠ default := by native_decide
                       cases hacc : σ.find? I.codeOwner <;>
                         simp [initState, Solm.EVM.storageStore, State.lookupAccount,
@@ -954,7 +914,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                 (clipperRedoSalesTicEVMWord evmLockSolm I)).toNat)]
                           (true, evmPriceSolm, o) false := by
                       simpa [evmPriceSolm, hlockStateSolm,
-                        σLockSolm, initState, clipperStatusCalcAddress, clipperStatusCalcWord,
+                        σLock, initState, clipperStatusCalcAddress, clipperStatusCalcWord,
                         clipperRedoSalesTopEVMWord, clipperRedoSalesTopWord,
                         clipperRedoSalesTicEVMWord, clipperRedoSalesTicWord, clipperTimestampWord,
                         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
@@ -973,7 +933,6 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                     let σTicEvm : AccountMap :=
                       sstoreAccountMap I.codeOwner σ' (clipperRedoSalesPackedSlot I)
                         updatedTicPacked
-                    have hPostAccountsPlain : Eq σ' σ' := rfl
                     have hredoDoneTrueNoCodeRuntime
                         (hstatus :
                           let evm0 := initState σ σ₀
@@ -1001,16 +960,16 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                 (solcMappingSlot ⟨12⟩ (clipperRedoIdWord I) + ⟨2⟩),
                               solcSlotWord σ' I
                                 (solcMappingSlot ⟨12⟩ (clipperRedoIdWord I) + ⟨1⟩),
-                              ⟨1⟩, clipperRedoSalesTopWord σLockEvm I,
-                              clipperRedoSalesTicWord σLockEvm I,
-                              clipperRedoSalesUsrWord σLockEvm I, ⟨2⟩,
+                              ⟨1⟩, clipperRedoSalesTopWord σLock I,
+                              clipperRedoSalesTicWord σLock I,
+                              clipperRedoSalesUsrWord σLock I, ⟨2⟩,
                               clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩,
                               clipperSelWord I]
                             (twoWordHashMem (clipperRedoIdWord I) ⟨12⟩
                               (clipperStatusPricePostCallMem
-                                (clipperRedoSalesTopWord σLockEvm I)
+                                (clipperRedoSalesTopWord σLock I)
                                 (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                  (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                  (UInt256.land (clipperRedoSalesTicWord σLock I)
                                     clipperSalesUint96Mask))
                                 (clipperRedoSalesHashMem I) o))
                             (UInt256.ofNat 7) o σTicEvm krd Crd) :
@@ -1021,16 +980,16 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                           (v := v) (hpatch := hpatch) rd8728 hspotterZero
                           (clipperGetFeedPriceHashPostMem_size_ge_164
                             (clipperRedoIdWord I)
-                            (clipperRedoSalesTopWord σLockEvm I)
+                            (clipperRedoSalesTopWord σLock I)
                             (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                              (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                              (UInt256.land (clipperRedoSalesTicWord σLock I)
                                 clipperSalesUint96Mask))
                             (clipperRedoSalesHashMem_size I) hout)
                           (clipperGetFeedPriceHashPostMem_read64
                             (clipperRedoIdWord I)
-                            (clipperRedoSalesTopWord σLockEvm I)
+                            (clipperRedoSalesTopWord σLock I)
                             (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                              (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                              (UInt256.land (clipperRedoSalesTicWord σLock I)
                                 clipperSalesUint96Mask))
                             (clipperRedoSalesHashMem_size I)
                             (clipperRedoSalesHashMem_read64 I) hout)
@@ -1042,12 +1001,11 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                 (clipperRedoPostTicState evmPriceSolm I))).option 0
                                 (fun acc => acc.code.size))).toNat = 0 := by
                         exact
-                          clipperRedoPostTicNoCode_of_accountMapEquiv
-                            (σ := σ') (τ := σ') (I := I)
+                          clipperRedoPostTicNoCode_of_accountMap_eq
+                            (σ := σ') (I := I)
                             (evm := evmPriceSolm)
                             (by simp [evmPriceSolm])
                             (by simp [evmPriceSolm, hlockStateSolm, initState])
-                            hPostAccountsPlain
                             (by
                               simpa [σTicEvm, updatedTicPacked] using hspotterZero)
                       let evmSolm0 :=
@@ -1055,11 +1013,11 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                       have hbody :
                           ExecTransitionBody (config v) (contract v) evmSolm0
                             (clipperRedoStore I) (redoTransition v).body .reverted := by
-                        simpa [evmSolm0, σLockSolm] using
+                        simpa [evmSolm0, σLock] using
                           (clipperRedoDoneTrueGetFeedPriceNoCodeSourceReverts
                             (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                             (g := g) (evmPrice := evmPriceSolm) v hwv
-                            hlockedSolm hstoppedSolmLt husrSolm priceWord hstatus
+                            hlockedEvm hstoppedLt husrEvm priceWord hstatus
                             hnoCodeSolm)
                       exact hrev.reEquivExecutionRevert hcode hdispatch
                         (clipperDecode_redo_ok v hsz68) hbody
@@ -1090,16 +1048,16 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                 (solcMappingSlot ⟨12⟩ (clipperRedoIdWord I) + ⟨2⟩),
                               solcSlotWord σ' I
                                 (solcMappingSlot ⟨12⟩ (clipperRedoIdWord I) + ⟨1⟩),
-                              ⟨1⟩, clipperRedoSalesTopWord σLockEvm I,
-                              clipperRedoSalesTicWord σLockEvm I,
-                              clipperRedoSalesUsrWord σLockEvm I, ⟨2⟩,
+                              ⟨1⟩, clipperRedoSalesTopWord σLock I,
+                              clipperRedoSalesTicWord σLock I,
+                              clipperRedoSalesUsrWord σLock I, ⟨2⟩,
                               clipperRedoKprMaskedWord I, clipperRedoIdWord I, ⟨502⟩,
                               clipperSelWord I]
                             (twoWordHashMem (clipperRedoIdWord I) ⟨12⟩
                               (clipperStatusPricePostCallMem
-                                (clipperRedoSalesTopWord σLockEvm I)
+                                (clipperRedoSalesTopWord σLock I)
                                 (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                  (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                  (UInt256.land (clipperRedoSalesTicWord σLock I)
                                     clipperSalesUint96Mask))
                                 (clipperRedoSalesHashMem I) o))
                             (UInt256.ofNat 7) o σTicEvm krd Crd) :
@@ -1111,16 +1069,16 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                           (v := v) (hpatch := hpatch) rd8728 hspotterCode hdepth hperm
                           (clipperGetFeedPriceHashPostMem_size_ge_164
                             (clipperRedoIdWord I)
-                            (clipperRedoSalesTopWord σLockEvm I)
+                            (clipperRedoSalesTopWord σLock I)
                             (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                              (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                              (UInt256.land (clipperRedoSalesTicWord σLock I)
                                 clipperSalesUint96Mask))
                             (clipperRedoSalesHashMem_size I) hout)
                           (clipperGetFeedPriceHashPostMem_read64
                             (clipperRedoIdWord I)
-                            (clipperRedoSalesTopWord σLockEvm I)
+                            (clipperRedoSalesTopWord σLock I)
                             (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                              (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                              (UInt256.land (clipperRedoSalesTicWord σLock I)
                                 clipperSalesUint96Mask))
                             (clipperRedoSalesHashMem_size I)
                             (clipperRedoSalesHashMem_read64 I) hout)
@@ -1135,24 +1093,22 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                             Eq σTicEvm
                               (clipperRedoPostTicState evmPriceSolm I).accountMap := by
                           simpa [σTicEvm, updatedTicPacked] using
-                            clipperRedoPostTicAccountMapEquiv
-                              (σ := σ') (τ := σ') (I := I) (evm := evmPriceSolm)
+                            clipperRedoPostTicAccountMap_eq
+                              (σ := σ') (I := I) (evm := evmPriceSolm)
                               (by simp [evmPriceSolm])
                               (by simp [evmPriceSolm, hlockStateSolm, initState])
-                              hPostAccountsPlain
                         have htargetSolm :
                             clipperGetFeedPriceSpotterAddress
                                 (clipperRedoPostTicState evmPriceSolm I) =
                               AccountAddress.ofUInt256
                                 (clipperSpotterTarget σTicEvm I) := by
                           simpa [σTicEvm, updatedTicPacked] using
-                            clipperRedoPostTicSpotterAddress_eq_of_accountMapEquiv
-                              (σ := σ') (τ := σ') (I := I) (evm := evmPriceSolm)
+                            clipperRedoPostTicSpotterAddress_eq_of_accountMap_eq
+                              (σ := σ') (I := I) (evm := evmPriceSolm)
                               (by simp [evmPriceSolm])
                               (by simp [evmPriceSolm, hlockStateSolm, initState])
-                              hPostAccountsPlain
                         obtain ⟨σIlksSolm, AIlksSolm, hcallIlksSolmRaw, _hIlksAccounts⟩ :=
-                          typedCallViaEVM_accountMapEquiv_noSubstate
+                          Reasoning.Theory.typedCallViaEVM_sameInputs
                             (cfg := config v) hcallIlks hPostTicAccounts
                             (by simp [clipperRedoPostTicState, clipperStorageStore_σ₀,
                               evmPriceSolm, hlockStateSolm, initState])
@@ -1182,23 +1138,22 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                   (clipperRedoPostTicState evmPriceSolm I))).option 0
                                   (fun acc => acc.code.size))).toNat := by
                           exact
-                            clipperRedoPostTicCode_of_accountMapEquiv
-                              (σ := σ') (τ := σ') (I := I)
+                            clipperRedoPostTicCode_of_accountMap_eq
+                              (σ := σ') (I := I)
                               (evm := evmPriceSolm)
                               (by simp [evmPriceSolm])
                               (by simp [evmPriceSolm, hlockStateSolm, initState])
-                              hPostAccountsPlain
                               (by simpa [σTicEvm, updatedTicPacked] using hspotterCode)
                         let evmSolm0 :=
                           initState σ σ₀ (Sat256.ofUInt256 g) A I
                         have hbody :
                             ExecTransitionBody (config v) (contract v) evmSolm0
                               (clipperRedoStore I) (redoTransition v).body .reverted := by
-                          simpa [evmSolm0, σLockSolm] using
+                          simpa [evmSolm0, σLock] using
                             (clipperRedoDoneTrueGetFeedPriceCallFailureSourceReverts
                               (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                               (g := g) (evmPrice := evmPriceSolm) v hwv
-                              hlockedSolm hstoppedSolmLt husrSolm priceWord hstatus
+                              hlockedEvm hstoppedLt husrEvm priceWord hstatus
                               hcodeSolm hcallIlksSolm)
                         exact hrev.reEquivExecutionRevert hcode hdispatch
                           (clipperDecode_redo_ok v hsz68) hbody
@@ -1211,39 +1166,39 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                         · have hbaseSize196 :
                               (twoWordHashMem (clipperRedoIdWord I) ⟨12⟩
                                 (clipperStatusPricePostCallMem
-                                  (clipperRedoSalesTopWord σLockEvm I)
+                                  (clipperRedoSalesTopWord σLock I)
                                   (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                    (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                    (UInt256.land (clipperRedoSalesTicWord σLock I)
                                       clipperSalesUint96Mask))
                                   (clipperRedoSalesHashMem I) o)).size = 196 := by
                             rw [twoWordHashMem_size_of_ge_64]
                             · rw [clipperStatusPricePostCallMem_size
-                                (clipperRedoSalesTopWord σLockEvm I)
+                                (clipperRedoSalesTopWord σLock I)
                                 (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                  (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                  (UInt256.land (clipperRedoSalesTicWord σLock I)
                                     clipperSalesUint96Mask))
                                 (clipperRedoSalesHashMem_size I) hout]
                             · rw [clipperStatusPricePostCallMem_size
-                                (clipperRedoSalesTopWord σLockEvm I)
+                                (clipperRedoSalesTopWord σLock I)
                                 (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                  (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                  (UInt256.land (clipperRedoSalesTicWord σLock I)
                                     clipperSalesUint96Mask))
                                 (clipperRedoSalesHashMem_size I) hout]
                               omega
                           have hbaseRead64 :
                               (twoWordHashMem (clipperRedoIdWord I) ⟨12⟩
                                 (clipperStatusPricePostCallMem
-                                  (clipperRedoSalesTopWord σLockEvm I)
+                                  (clipperRedoSalesTopWord σLock I)
                                   (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                    (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                    (UInt256.land (clipperRedoSalesTicWord σLock I)
                                       clipperSalesUint96Mask))
                                   (clipperRedoSalesHashMem I) o)).readWithPadding 64 32 =
                                 UInt256.toByteArray ⟨128⟩ :=
                             clipperGetFeedPriceHashPostMem_read64
                               (clipperRedoIdWord I)
-                              (clipperRedoSalesTopWord σLockEvm I)
+                              (clipperRedoSalesTopWord σLock I)
                               (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                (UInt256.land (clipperRedoSalesTicWord σLock I)
                                   clipperSalesUint96Mask))
                               (clipperRedoSalesHashMem_size I)
                               (clipperRedoSalesHashMem_read64 I) hout
@@ -1256,25 +1211,23 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                               Eq σTicEvm
                                 (clipperRedoPostTicState evmPriceSolm I).accountMap := by
                             simpa [σTicEvm, updatedTicPacked] using
-                              clipperRedoPostTicAccountMapEquiv
-                                (σ := σ') (τ := σ') (I := I) (evm := evmPriceSolm)
+                              clipperRedoPostTicAccountMap_eq
+                                (σ := σ') (I := I) (evm := evmPriceSolm)
                                 (by simp [evmPriceSolm])
                                 (by simp [evmPriceSolm, hlockStateSolm, initState])
-                                hPostAccountsPlain
                           have htargetSolm :
                               clipperGetFeedPriceSpotterAddress
                                   (clipperRedoPostTicState evmPriceSolm I) =
                                 AccountAddress.ofUInt256
                                   (clipperSpotterTarget σTicEvm I) := by
                             simpa [σTicEvm, updatedTicPacked] using
-                              clipperRedoPostTicSpotterAddress_eq_of_accountMapEquiv
-                                (σ := σ') (τ := σ') (I := I) (evm := evmPriceSolm)
+                              clipperRedoPostTicSpotterAddress_eq_of_accountMap_eq
+                                (σ := σ') (I := I) (evm := evmPriceSolm)
                                 (by simp [evmPriceSolm])
                                 (by simp [evmPriceSolm, hlockStateSolm, initState])
-                                hPostAccountsPlain
                           obtain ⟨σIlksSolm, AIlksSolm, hcallIlksSolmRaw,
                               _hIlksAccounts⟩ :=
-                            typedCallViaEVM_accountMapEquiv_noSubstate
+                            Reasoning.Theory.typedCallViaEVM_sameInputs
                               (cfg := config v) hcallIlks hPostTicAccounts
                               (by simp [clipperRedoPostTicState, clipperStorageStore_σ₀,
                                 evmPriceSolm, hlockStateSolm, initState])
@@ -1305,12 +1258,11 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                     (clipperRedoPostTicState evmPriceSolm I))).option 0
                                     (fun acc => acc.code.size))).toNat := by
                             exact
-                              clipperRedoPostTicCode_of_accountMapEquiv
-                                (σ := σ') (τ := σ') (I := I)
+                              clipperRedoPostTicCode_of_accountMap_eq
+                                (σ := σ') (I := I)
                                 (evm := evmPriceSolm)
                                 (by simp [evmPriceSolm])
                                 (by simp [evmPriceSolm, hlockStateSolm, initState])
-                                hPostAccountsPlain
                                 (by simpa [σTicEvm, updatedTicPacked] using hspotterCode)
                           have hdecIlks :
                               (config v).externalABI.decode? "spotterIlks" outIlks = none :=
@@ -1320,11 +1272,11 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                           have hbody :
                               ExecTransitionBody (config v) (contract v) evmSolm0
                                 (clipperRedoStore I) (redoTransition v).body .reverted := by
-                            simpa [evmSolm0, σLockSolm] using
+                            simpa [evmSolm0, σLock] using
                               (clipperRedoDoneTrueGetFeedPriceDecodeSourceReverts
                                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                                 (g := g) (evmPrice := evmPriceSolm) v hwv
-                                hlockedSolm hstoppedSolmLt husrSolm priceWord hstatus
+                                hlockedEvm hstoppedLt husrEvm priceWord hstatus
                                 hcodeSolm hcallIlksSolm hdecIlks)
                           exact hrev.reEquivExecutionRevert hcode hdispatch
                             (clipperDecode_redo_ok v hsz68) hbody
@@ -1332,39 +1284,39 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                           have hbaseSize196 :
                               (twoWordHashMem (clipperRedoIdWord I) ⟨12⟩
                                 (clipperStatusPricePostCallMem
-                                  (clipperRedoSalesTopWord σLockEvm I)
+                                  (clipperRedoSalesTopWord σLock I)
                                   (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                    (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                    (UInt256.land (clipperRedoSalesTicWord σLock I)
                                       clipperSalesUint96Mask))
                                   (clipperRedoSalesHashMem I) o)).size = 196 := by
                             rw [twoWordHashMem_size_of_ge_64]
                             · rw [clipperStatusPricePostCallMem_size
-                                (clipperRedoSalesTopWord σLockEvm I)
+                                (clipperRedoSalesTopWord σLock I)
                                 (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                  (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                  (UInt256.land (clipperRedoSalesTicWord σLock I)
                                     clipperSalesUint96Mask))
                                 (clipperRedoSalesHashMem_size I) hout]
                             · rw [clipperStatusPricePostCallMem_size
-                                (clipperRedoSalesTopWord σLockEvm I)
+                                (clipperRedoSalesTopWord σLock I)
                                 (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                  (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                  (UInt256.land (clipperRedoSalesTicWord σLock I)
                                     clipperSalesUint96Mask))
                                 (clipperRedoSalesHashMem_size I) hout]
                               omega
                           have hbaseRead64 :
                               (twoWordHashMem (clipperRedoIdWord I) ⟨12⟩
                                 (clipperStatusPricePostCallMem
-                                  (clipperRedoSalesTopWord σLockEvm I)
+                                  (clipperRedoSalesTopWord σLock I)
                                   (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                    (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                    (UInt256.land (clipperRedoSalesTicWord σLock I)
                                       clipperSalesUint96Mask))
                                   (clipperRedoSalesHashMem I) o)).readWithPadding 64 32 =
                                 UInt256.toByteArray ⟨128⟩ :=
                             clipperGetFeedPriceHashPostMem_read64
                               (clipperRedoIdWord I)
-                              (clipperRedoSalesTopWord σLockEvm I)
+                              (clipperRedoSalesTopWord σLock I)
                               (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                (UInt256.land (clipperRedoSalesTicWord σLock I)
                                   clipperSalesUint96Mask))
                               (clipperRedoSalesHashMem_size I)
                               (clipperRedoSalesHashMem_read64 I) hout
@@ -1384,25 +1336,23 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                 Eq σTicEvm
                                   (clipperRedoPostTicState evmPriceSolm I).accountMap := by
                               simpa [σTicEvm, updatedTicPacked] using
-                                clipperRedoPostTicAccountMapEquiv
-                                  (σ := σ') (τ := σ') (I := I) (evm := evmPriceSolm)
+                                clipperRedoPostTicAccountMap_eq
+                                  (σ := σ') (I := I) (evm := evmPriceSolm)
                                   (by simp [evmPriceSolm])
                                   (by simp [evmPriceSolm, hlockStateSolm, initState])
-                                  hPostAccountsPlain
                             have htargetSolm :
                                 clipperGetFeedPriceSpotterAddress
                                     (clipperRedoPostTicState evmPriceSolm I) =
                                   AccountAddress.ofUInt256
                                     (clipperSpotterTarget σTicEvm I) := by
                               simpa [σTicEvm, updatedTicPacked] using
-                                clipperRedoPostTicSpotterAddress_eq_of_accountMapEquiv
-                                  (σ := σ') (τ := σ') (I := I) (evm := evmPriceSolm)
+                                clipperRedoPostTicSpotterAddress_eq_of_accountMap_eq
+                                  (σ := σ') (I := I) (evm := evmPriceSolm)
                                   (by simp [evmPriceSolm])
                                   (by simp [evmPriceSolm, hlockStateSolm, initState])
-                                  hPostAccountsPlain
                             obtain ⟨σIlksSolm, AIlksSolm, hcallIlksSolmRaw,
                                 hIlksAccountsRaw⟩ :=
-                              typedCallViaEVM_accountMapEquiv_noSubstate
+                              Reasoning.Theory.typedCallViaEVM_sameInputs
                                 (cfg := config v) hcallIlks hPostTicAccounts
                                 (by simp [clipperRedoPostTicState, clipperStorageStore_σ₀,
                                   evmPriceSolm, hlockStateSolm, initState])
@@ -1435,12 +1385,11 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                       (clipperRedoPostTicState evmPriceSolm I))).option 0
                                       (fun acc => acc.code.size))).toNat := by
                               exact
-                                clipperRedoPostTicCode_of_accountMapEquiv
-                                  (σ := σ') (τ := σ') (I := I)
+                                clipperRedoPostTicCode_of_accountMap_eq
+                                  (σ := σ') (I := I)
                                   (evm := evmPriceSolm)
                                   (by simp [evmPriceSolm])
                                   (by simp [evmPriceSolm, hlockStateSolm, initState])
-                                  hPostAccountsPlain
                                   (by simpa [σTicEvm, updatedTicPacked] using hspotterCode)
                             have hdecIlks :
                                 (config v).externalABI.decode? "spotterIlks" outIlks =
@@ -1451,19 +1400,18 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                   ((σIlksSolm.find? (clipperSpotterIlksPipAddress outIlks))
                                     |>.option 0 (fun acc => acc.code.size))).toNat = 0 := by
                               exact
-                                clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
-                                  (σ := σIlks) (τ := σIlksSolm)
+                                clipperExtCodeSizeWord_zero_lookup_code_zero
+                                  (σ := σIlksSolm)
                                   (target := clipperSpotterIlksPipTarget outIlks)
                                   (addr := clipperSpotterIlksPipAddress outIlks)
-                                  hIlksAccounts
                                   (clipperSpotterIlksPipAddress_eq_target outIlks)
-                                  hpipNoCode
+                                  (by simpa only [← hIlksAccounts] using hpipNoCode)
                             let evmSolm0 :=
                               initState σ σ₀ (Sat256.ofUInt256 g) A I
                             have hbody :
                                 ExecTransitionBody (config v) (contract v) evmSolm0
                                   (clipperRedoStore I) (redoTransition v).body .reverted := by
-                              simpa [evmSolm0, σLockSolm] using
+                              simpa [evmSolm0, σLock] using
                                 (clipperRedoDoneTrueGetFeedPricePipNoCodeSourceReverts
                                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                                   (g := g) (evmPrice := evmPriceSolm)
@@ -1472,7 +1420,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                       accountMap := σIlksSolm
                                       substate := AIlksSolm
                                        })
-                                  v hwv hlockedSolm hstoppedSolmLt husrSolm priceWord hstatus
+                                  v hwv hlockedEvm hstoppedLt husrEvm priceWord hstatus
                                   hcodeSolm hcallIlksSolm hdecIlks
                                   (by simpa using hnoCodePipSolm))
                             exact hrev.reEquivExecutionRevert hcode hdispatch
@@ -1481,9 +1429,9 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                 (clipperSpotterIlksPostCallMem v
                                   (twoWordHashMem (clipperRedoIdWord I) ⟨12⟩
                                     (clipperStatusPricePostCallMem
-                                      (clipperRedoSalesTopWord σLockEvm I)
+                                      (clipperRedoSalesTopWord σLock I)
                                       (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                        (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                        (UInt256.land (clipperRedoSalesTicWord σLock I)
                                           clipperSalesUint96Mask))
                                       (clipperRedoSalesHashMem I) o))
                                   outIlks).size = 196 :=
@@ -1493,9 +1441,9 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                 (clipperSpotterIlksPostCallMem v
                                   (twoWordHashMem (clipperRedoIdWord I) ⟨12⟩
                                     (clipperStatusPricePostCallMem
-                                      (clipperRedoSalesTopWord σLockEvm I)
+                                      (clipperRedoSalesTopWord σLock I)
                                       (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                        (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                        (UInt256.land (clipperRedoSalesTicWord σLock I)
                                           clipperSalesUint96Mask))
                                       (clipperRedoSalesHashMem I) o))
                                   outIlks).readWithPadding 64 32 =
@@ -1507,9 +1455,9 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                   (clipperSpotterIlksPostCallMem v
                                     (twoWordHashMem (clipperRedoIdWord I) ⟨12⟩
                                       (clipperStatusPricePostCallMem
-                                        (clipperRedoSalesTopWord σLockEvm I)
+                                        (clipperRedoSalesTopWord σLock I)
                                         (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                          (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                          (UInt256.land (clipperRedoSalesTicWord σLock I)
                                             clipperSalesUint96Mask))
                                         (clipperRedoSalesHashMem I) o))
                                     outIlks)).size = 196 := by
@@ -1520,9 +1468,9 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                   (clipperSpotterIlksPostCallMem v
                                     (twoWordHashMem (clipperRedoIdWord I) ⟨12⟩
                                       (clipperStatusPricePostCallMem
-                                        (clipperRedoSalesTopWord σLockEvm I)
+                                        (clipperRedoSalesTopWord σLock I)
                                         (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                          (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                          (UInt256.land (clipperRedoSalesTicWord σLock I)
                                             clipperSalesUint96Mask))
                                         (clipperRedoSalesHashMem I) o))
                                     outIlks)).readWithPadding 64 32 =
@@ -1539,9 +1487,9 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                       (mem := clipperSpotterIlksPostCallMem v
                                         (twoWordHashMem (clipperRedoIdWord I) ⟨12⟩
                                           (clipperStatusPricePostCallMem
-                                            (clipperRedoSalesTopWord σLockEvm I)
+                                            (clipperRedoSalesTopWord σLock I)
                                             (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                              (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                              (UInt256.land (clipperRedoSalesTicWord σLock I)
                                                 clipperSalesUint96Mask))
                                             (clipperRedoSalesHashMem I) o))
                                         outIlks)
@@ -1552,25 +1500,23 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                 Eq σTicEvm
                                   (clipperRedoPostTicState evmPriceSolm I).accountMap := by
                               simpa [σTicEvm, updatedTicPacked] using
-                                clipperRedoPostTicAccountMapEquiv
-                                  (σ := σ') (τ := σ') (I := I) (evm := evmPriceSolm)
+                                clipperRedoPostTicAccountMap_eq
+                                  (σ := σ') (I := I) (evm := evmPriceSolm)
                                   (by simp [evmPriceSolm])
                                   (by simp [evmPriceSolm, hlockStateSolm, initState])
-                                  hPostAccountsPlain
                             have htargetSolm :
                                 clipperGetFeedPriceSpotterAddress
                                     (clipperRedoPostTicState evmPriceSolm I) =
                                   AccountAddress.ofUInt256
                                     (clipperSpotterTarget σTicEvm I) := by
                               simpa [σTicEvm, updatedTicPacked] using
-                                clipperRedoPostTicSpotterAddress_eq_of_accountMapEquiv
-                                  (σ := σ') (τ := σ') (I := I) (evm := evmPriceSolm)
+                                clipperRedoPostTicSpotterAddress_eq_of_accountMap_eq
+                                  (σ := σ') (I := I) (evm := evmPriceSolm)
                                   (by simp [evmPriceSolm])
                                   (by simp [evmPriceSolm, hlockStateSolm, initState])
-                                  hPostAccountsPlain
                             obtain ⟨σIlksSolm, AIlksSolm, hcallIlksSolmRaw,
                                 hIlksAccountsRaw⟩ :=
-                              typedCallViaEVM_accountMapEquiv_noSubstate
+                              Reasoning.Theory.typedCallViaEVM_sameInputs
                                 (cfg := config v) hcallIlks hPostTicAccounts
                                 (by simp [clipperRedoPostTicState, clipperStorageStore_σ₀,
                                   evmPriceSolm, hlockStateSolm, initState])
@@ -1605,12 +1551,11 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                       (clipperRedoPostTicState evmPriceSolm I))).option 0
                                       (fun acc => acc.code.size))).toNat := by
                               exact
-                                clipperRedoPostTicCode_of_accountMapEquiv
-                                  (σ := σ') (τ := σ') (I := I)
+                                clipperRedoPostTicCode_of_accountMap_eq
+                                  (σ := σ') (I := I)
                                   (evm := evmPriceSolm)
                                   (by simp [evmPriceSolm])
                                   (by simp [evmPriceSolm, hlockStateSolm, initState])
-                                  hPostAccountsPlain
                                   (by simpa [σTicEvm, updatedTicPacked] using hspotterCode)
                             have hdecIlks :
                                 (config v).externalABI.decode? "spotterIlks" outIlks =
@@ -1622,13 +1567,12 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                     (clipperSpotterIlksPipAddress outIlks)).option 0
                                       (fun acc => acc.code.size))).toNat := by
                               simpa [evmIlksSolm, State.lookupAccount] using
-                                clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-                                  (σ := σIlks) (τ := σIlksSolm)
+                                clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+                                  (σ := σIlksSolm)
                                   (target := clipperSpotterIlksPipTarget outIlks)
                                   (addr := clipperSpotterIlksPipAddress outIlks)
-                                  hIlksAccounts
                                   (clipperSpotterIlksPipAddress_eq_target outIlks)
-                                  hpipNoCode
+                                  (by simpa only [← hIlksAccounts] using hpipNoCode)
                             cases zPeek
                             · have hrev :=
                                 _root_.Benchmarks.Dss.Clipper.RD.clipperGetFeedPricePipPeekCallFailure
@@ -1637,7 +1581,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                   (by simp only [List.length_cons, List.length_nil]; omega)
                               obtain ⟨σPeekSolm, APeekSolm, hcallPeekSolmRaw,
                                   _hPeekAccounts⟩ :=
-                                typedCallViaEVM_accountMapEquiv_noSubstate
+                                Reasoning.Theory.typedCallViaEVM_sameInputs
                                   (cfg := config v) (evm_solm := evmIlksSolm)
                                   hcallPeek hIlksAccounts
                                   (by simp [evmIlksSolm, clipperRedoPostTicState,
@@ -1665,7 +1609,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                               have hbody :
                                   ExecTransitionBody (config v) (contract v) evmSolm0
                                     (clipperRedoStore I) (redoTransition v).body .reverted := by
-                                simpa [evmSolm0, σLockSolm, evmIlksSolm] using
+                                simpa [evmSolm0, σLock, evmIlksSolm] using
                                   (clipperRedoDoneTrueGetFeedPricePipCallFailureSourceReverts
                                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                                     (g := g) (evmPrice := evmPriceSolm)
@@ -1675,7 +1619,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                         accountMap := σPeekSolm
                                         substate := APeekSolm
                                          })
-                                    v hwv hlockedSolm hstoppedSolmLt husrSolm priceWord hstatus
+                                    v hwv hlockedEvm hstoppedLt husrEvm priceWord hstatus
                                     hcodeSolm hcallIlksSolm hdecIlks hcodePipSolm
                                     hcallPeekSolm)
                               exact hrev.reEquivExecutionRevert hcode hdispatch
@@ -1695,7 +1639,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                     (by simp only [List.length_cons, List.length_nil]; omega)
                                 obtain ⟨σPeekSolm, APeekSolm, hcallPeekSolmRaw,
                                     _hPeekAccounts⟩ :=
-                                  typedCallViaEVM_accountMapEquiv_noSubstate
+                                  Reasoning.Theory.typedCallViaEVM_sameInputs
                                     (cfg := config v) (evm_solm := evmIlksSolm)
                                     hcallPeek hIlksAccounts
                                     (by simp [evmIlksSolm, clipperRedoPostTicState,
@@ -1726,7 +1670,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                 have hbody :
                                     ExecTransitionBody (config v) (contract v) evmSolm0
                                       (clipperRedoStore I) (redoTransition v).body .reverted := by
-                                  simpa [evmSolm0, σLockSolm, evmIlksSolm] using
+                                  simpa [evmSolm0, σLock, evmIlksSolm] using
                                     (clipperRedoDoneTrueGetFeedPricePipDecodeSourceReverts
                                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                                       (g := g) (evmPrice := evmPriceSolm)
@@ -1736,7 +1680,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                           accountMap := σPeekSolm
                                           substate := APeekSolm
                                            })
-                                      v hwv hlockedSolm hstoppedSolmLt husrSolm priceWord hstatus
+                                      v hwv hlockedEvm hstoppedLt husrEvm priceWord hstatus
                                       hcodeSolm hcallIlksSolm hdecIlks hcodePipSolm
                                       hcallPeekSolm hdecPeek)
                                 exact hrev.reEquivExecutionRevert hcode hdispatch
@@ -1757,7 +1701,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                       (by simp only [List.length_cons, List.length_nil]; omega)
                                   obtain ⟨σPeekSolm, APeekSolm, hcallPeekSolmRaw,
                                       _hPeekAccounts⟩ :=
-                                    typedCallViaEVM_accountMapEquiv_noSubstate
+                                    Reasoning.Theory.typedCallViaEVM_sameInputs
                                       (cfg := config v) (evm_solm := evmIlksSolm)
                                       hcallPeek hIlksAccounts
                                       (by simp [evmIlksSolm, clipperRedoPostTicState,
@@ -1789,7 +1733,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                   have hbody :
                                       ExecTransitionBody (config v) (contract v) evmSolm0
                                         (clipperRedoStore I) (redoTransition v).body .reverted := by
-                                    simpa [evmSolm0, σLockSolm, evmIlksSolm] using
+                                    simpa [evmSolm0, σLock, evmIlksSolm] using
                                       (clipperRedoDoneTrueGetFeedPricePipHasFalseSourceReverts
                                         (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                                         (g := g) (evmPrice := evmPriceSolm)
@@ -1799,14 +1743,14 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                             accountMap := σPeekSolm
                                             substate := APeekSolm
                                              })
-                                        v hwv hlockedSolm hstoppedSolmLt husrSolm priceWord hstatus
+                                        v hwv hlockedEvm hstoppedLt husrEvm priceWord hstatus
                                         hcodeSolm hcallIlksSolm hdecIlks hcodePipSolm
                                         hcallPeekSolm hdecPeek hhasFalse)
                                   exact hrev.reEquivExecutionRevert hcode hdispatch
                                     (clipperDecode_redo_ok v hsz68) hbody
                                 · obtain ⟨σPeekSolm, APeekSolm, hcallPeekSolmRaw,
                                     hPeekAccountsRaw⟩ :=
-                                    typedCallViaEVM_accountMapEquiv_noSubstate
+                                    Reasoning.Theory.typedCallViaEVM_sameInputs
                                       (cfg := config v) (evm_solm := evmIlksSolm)
                                       hcallPeek hIlksAccounts
                                       (by simp [evmIlksSolm, clipperRedoPostTicState,
@@ -1872,7 +1816,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                       simpa [evmSolm0, hlockStateSolm] using
                                         (clipperRedoDoneTrueSourceRevertsOfAfterTic
                                           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-                                          (g := g) v hwv hlockedSolm hstoppedSolmLt husrSolm
+                                          (g := g) v hwv hlockedEvm hstoppedLt husrEvm
                                           priceWord hstatus hafter)
                                     exact hrev.reEquivExecutionRevert hcode hdispatch
                                       (clipperDecode_redo_ok v hsz68) hbody
@@ -1910,7 +1854,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                       simpa [evmSolm0, hlockStateSolm] using
                                         (clipperRedoDoneTrueSourceRevertsOfAfterTic
                                           (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-                                          (g := g) v hwv hlockedSolm hstoppedSolmLt husrSolm
+                                          (g := g) v hwv hlockedEvm hstoppedLt husrEvm
                                           priceWord hstatus hafter)
                                     exact RDinvalid.reEquivExecutionInvalid hcode hinv hdispatch
                                       (clipperDecode_redo_ok v hsz68) hbody
@@ -1953,8 +1897,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                     have hspotterSlot :
                                         solcSlotWord σPeek I ⟨3⟩ =
                                           solcSlotWord σPeekSolm I ⟨3⟩ :=
-                                      accountMapEquiv_storage_findD hPeekAccounts
-                                        I.codeOwner ⟨3⟩ ⟨0⟩
+                                      congrArg (fun m => solcSlotWord m I ⟨3⟩) hPeekAccounts
                                     have hspotterAddr :
                                         clipperGetFeedPriceSpotterAddress evmPeekSolm =
                                           AccountAddress.ofUInt256
@@ -1978,12 +1921,13 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                             (clipperGetFeedPriceSpotterAddress evmPeekSolm))
                                               |>.option 0 (fun acc => acc.code.size))).toNat = 0 := by
                                         simpa [State.lookupAccount, evmPeekSolm] using
-                                          (clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
-                                            (σ := σPeek) (τ := σPeekSolm)
+                                          (clipperExtCodeSizeWord_zero_lookup_code_zero
+                                            (σ := σPeekSolm)
                                             (target := clipperSpotterTarget σPeek I)
                                             (addr := clipperGetFeedPriceSpotterAddress
                                               evmPeekSolm)
-                                            hPeekAccounts hspotterAddr hparNoCode)
+                                            hspotterAddr
+                                            (by simpa only [← hPeekAccounts] using hparNoCode))
                                       have hfeedTail :=
                                         clipperGetFeedPriceTailRevertsParNoCode v evmPeekSolm
                                           outIlks outPeek (by omega) hvalMulOk hnoCodeSolm
@@ -2000,7 +1944,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                             omega)
                                       obtain ⟨σParSolm, AParSolm, hcallParSolmRaw,
                                           hParAccountsRaw⟩ :=
-                                        typedCallViaEVM_accountMapEquiv_noSubstate
+                                        Reasoning.Theory.typedCallViaEVM_sameInputs
                                           (cfg := config v) (evm_solm := evmPeekSolm)
                                           hcallPar hPeekAccounts
                                           (by simp [evmPeekSolm, evmIlksSolm,
@@ -2032,12 +1976,13 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                             (clipperGetFeedPriceSpotterAddress evmPeekSolm))
                                               |>.option 0 (fun acc => acc.code.size))).toNat := by
                                         simpa [State.lookupAccount, evmPeekSolm] using
-                                          (clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-                                            (σ := σPeek) (τ := σPeekSolm)
+                                          (clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+                                            (σ := σPeekSolm)
                                             (target := clipperSpotterTarget σPeek I)
                                             (addr := clipperGetFeedPriceSpotterAddress
                                               evmPeekSolm)
-                                            hPeekAccounts hspotterAddr hparNoCode)
+                                            hspotterAddr
+                                            (by simpa only [← hPeekAccounts] using hparNoCode))
                                       cases zPar
                                       · have hrev := RD.clipperGetFeedPriceParCallFailure
                                           (v := v) (hpatch := hpatch) (by simpa using rd9180)
@@ -2207,8 +2152,8 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                   simpa [evmSolm0, hlockStateSolm] using
                                                     (clipperRedoDoneTrueSourceRevertsOfAfterTic
                                                       (σ := σ) (σ₀ := σ₀) (A := A)
-                                                      (I := I) (g := g) v hwv hlockedSolm
-                                                      hstoppedSolmLt husrSolm priceWord hstatus
+                                                      (I := I) (g := g) v hwv hlockedEvm
+                                                      hstoppedLt husrEvm priceWord hstatus
                                                       hafter)
                                                 exact hrev.reEquivExecutionRevert hcode hdispatch
                                                   (clipperDecode_redo_ok v hsz68) hbody
@@ -2242,8 +2187,8 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                   simpa [evmSolm0, hlockStateSolm] using
                                                     (clipperRedoDoneTrueSourceOkOfAfterTic
                                                       (σ := σ) (σ₀ := σ₀) (A := A)
-                                                      (I := I) (g := g) v hwv hlockedSolm
-                                                      hstoppedSolmLt husrSolm priceWord hstatus
+                                                      (I := I) (g := g) v hwv hlockedEvm
+                                                      hstoppedLt husrEvm priceWord hstatus
                                                       hafter)
                                                 exact hret.reEquivExecutionGenAccountMapEquiv
                                                   hcode hdispatch (clipperDecode_redo_ok v hsz68)
@@ -2268,8 +2213,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                     Solm.EVM.storageLoad evmParSolm
                                                       evmParSolm.executionEnv.codeOwner ⟨5⟩ := by
                                                 rw [hParEnv]
-                                                have hslot := accountMapEquiv_storage_findD
-                                                  hParAccounts I.codeOwner ⟨5⟩ ⟨0⟩
+                                                have hslot := congrArg (fun m => solcSlotWord m I ⟨5⟩) hParAccounts
                                                 simpa [Solm.EVM.storageLoad, State.lookupAccount,
                                                   Account.lookupStorage, solcSlotWord,
                                                   evmParSolm] using hslot
@@ -2413,18 +2357,18 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                         evmTop.accountMap := by
                                                     simpa [σTop, topSlot, htopValueEq, evmTop]
                                                       using
-                                                        (clipperRedoTopState_accountMapEquiv
+                                                        (clipperRedoTopState_accounts_eq
                                                           evmParSolm I topNew rfl hParEnv
                                                           hParAccounts)
                                                   have htipEq :
                                                       clipperRedoTipWord σTop I =
                                                         clipperRedoTipSolmWord evmTop :=
-                                                    clipperRedoTipWord_eq_of_accountMapEquiv
+                                                    clipperRedoTipWord_eq_of_accounts_eq
                                                       evmTop I hTopEnv hTopAccounts
                                                   have hchipEq :
                                                       clipperRedoChipWord σTop I =
                                                         clipperRedoChipSolmWord evmTop :=
-                                                    clipperRedoChipWord_eq_of_accountMapEquiv
+                                                    clipperRedoChipWord_eq_of_accounts_eq
                                                       evmTop I hTopEnv hTopAccounts
                                                   have finishActive
                                                       (hactiveEvm :
@@ -2465,10 +2409,9 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                               (clipperRedoIdWord I) + ⟨1⟩) =
                                                           clipperRedoSalesTabEVMWord
                                                             evmPriceSolm I := by
-                                                      have hslot :=
-                                                        accountMapEquiv_storage_findD
-                                                          hPostAccountsPlain I.codeOwner
-                                                          (clipperRedoSalesTabSlot I) ⟨0⟩
+                                                      have hslot :
+                                                          solcSlotWord σ' I (clipperRedoSalesTabSlot I) =
+                                                            solcSlotWord σ' I (clipperRedoSalesTabSlot I) := rfl
                                                       rw [clipperRedoSalesTabEVMWord,
                                                         hPriceOwner]
                                                       simpa [
@@ -2484,10 +2427,9 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                               (clipperRedoIdWord I) + ⟨2⟩) =
                                                           clipperRedoSalesLotEVMWord
                                                             evmPriceSolm I := by
-                                                      have hslot :=
-                                                        accountMapEquiv_storage_findD
-                                                          hPostAccountsPlain I.codeOwner
-                                                          (clipperRedoSalesLotSlot I) ⟨0⟩
+                                                      have hslot :
+                                                          solcSlotWord σ' I (clipperRedoSalesLotSlot I) =
+                                                            solcSlotWord σ' I (clipperRedoSalesLotSlot I) := rfl
                                                       rw [clipperRedoSalesLotEVMWord,
                                                         hPriceOwner]
                                                       simpa [
@@ -2500,9 +2442,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                     have hchostEq :
                                                         clipperRedoChostWord σTop I =
                                                           clipperRedoChostWordSource evmTop := by
-                                                      have hslot :=
-                                                        accountMapEquiv_storage_findD hTopAccounts
-                                                          I.codeOwner ⟨9⟩ ⟨0⟩
+                                                      have hslot := congrArg (fun m => solcSlotWord m I ⟨9⟩) hTopAccounts
                                                       simpa [clipperRedoChostWord,
                                                         clipperRedoChostWordSource, hTopEnv,
                                                         Solm.EVM.storageLoad,
@@ -2576,9 +2516,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                           simpa [evmFinal,
                                                             storageStore_accountMap, hTopEnv]
                                                             using
-                                                              (accountMapEquiv_sstoreAccountMap
-                                                                I.codeOwner ⟨13⟩ ⟨0⟩
-                                                                hTopAccounts))
+                                                              (congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨13⟩ ⟨0⟩) hTopAccounts))
                                                     · have htabAtLeast :
                                                           (clipperRedoChostWord σTop I).toNat ≤
                                                             (solcSlotWord σ' I
@@ -2740,9 +2678,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                               simpa [evmFinal,
                                                                 storageStore_accountMap, hTopEnv]
                                                                 using
-                                                                  (accountMapEquiv_sstoreAccountMap
-                                                                    I.codeOwner ⟨13⟩ ⟨0⟩
-                                                                    hTopAccounts))
+                                                                  (congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨13⟩ ⟨0⟩) hTopAccounts))
                                                         · have hlotAtLeast :
                                                               (clipperRedoChostWord σTop I).toNat ≤
                                                                 lotFeed.toNat := by
@@ -3058,15 +2994,13 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                                             acc.code.size))).toNat =
                                                                       0 := by
                                                                   simpa [State.lookupAccount] using
-                                                                    (clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
-                                                                      (σ := σTop)
-                                                                      (τ := evmTop.accountMap)
+                                                                    (clipperExtCodeSizeWord_zero_lookup_code_zero
+                                                                      (σ := evmTop.accountMap)
                                                                       (target :=
                                                                         clipperRedoVatTarget v)
                                                                       (addr := v.vat)
-                                                                      hTopAccounts
                                                                       (clipperRedoVatTargetAddress v).symm
-                                                                      hvatNoCode)
+                                                                      (by simpa only [← hTopAccounts] using hvatNoCode))
                                                                 have hsuck :=
                                                                   clipperRedoSuckNoCodeSource v
                                                                     evmLockSolm evmPriceSolm evmTop I
@@ -3118,7 +3052,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                                 obtain ⟨σSuckSolm, ASuckSolm,
                                                                     hcallSuckSolmRaw,
                                                                     hSuckAccountsRaw⟩ :=
-                                                                  typedCallViaEVM_accountMapEquiv_noSubstate
+                                                                  Reasoning.Theory.typedCallViaEVM_sameInputs
                                                                     (cfg := config v)
                                                                     (evm_solm := evmTop) hcallSuck
                                                                     hTopStateAccounts
@@ -3153,8 +3087,9 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                                     substate := ASuckSolm
                                                                      }
                                                                 have hvowSlot :=
-                                                                  accountMapEquiv_storage_findD
-                                                                    hTopAccounts I.codeOwner ⟨2⟩ ⟨0⟩
+                                                                  congrArg
+                                                                    (fun m => solcSlotWord m I ⟨2⟩)
+                                                                    hTopAccounts
                                                                 have hvowEq :
                                                                     AccountAddress.ofNat
                                                                         (clipperRedoVowTarget
@@ -3200,15 +3135,13 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                                           (fun acc ↦
                                                                             acc.code.size))).toNat := by
                                                                   simpa [State.lookupAccount] using
-                                                                    (clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
-                                                                      (σ := σTop)
-                                                                      (τ := evmTop.accountMap)
+                                                                    (clipperExtCodeSizeWord_ne_zero_lookup_code_pos
+                                                                      (σ := evmTop.accountMap)
                                                                       (target :=
                                                                         clipperRedoVatTarget v)
                                                                       (addr := v.vat)
-                                                                      hTopAccounts
                                                                       (clipperRedoVatTargetAddress v).symm
-                                                                      hvatNoCode)
+                                                                      (by simpa only [← hTopAccounts] using hvatNoCode))
                                                                 have hcallSuckSolm :
                                                                     typedCallViaEVM (config v) evmTop
                                                                       (EVM.address v.vat) "suck" 0
@@ -3346,9 +3279,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                                       simpa [evmFinal,
                                                                         storageStore_accountMap,
                                                                         hSuckEnv] using
-                                                                        (accountMapEquiv_sstoreAccountMap
-                                                                          I.codeOwner ⟨13⟩ ⟨0⟩
-                                                                          hSuckAccounts))
+                                                                        (congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨13⟩ ⟨0⟩) hSuckAccounts))
                                                   by_cases htipZero :
                                                       clipperRedoTipWord σTop I = ⟨0⟩
                                                   · by_cases hchipZero :
@@ -3413,13 +3344,11 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                           simpa [evmFinal,
                                                             storageStore_accountMap, hTopEnv]
                                                             using
-                                                              (accountMapEquiv_sstoreAccountMap
-                                                                I.codeOwner ⟨13⟩ ⟨0⟩
-                                                                hTopAccounts))
+                                                              (congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨13⟩ ⟨0⟩) hTopAccounts))
                                                     · exact finishActive (Or.inr hchipZero)
                                                   · exact finishActive (Or.inl htipZero)
                     by_cases hleDone :
-                        (clipperRedoSalesTicWord σLockEvm I).toNat ≤
+                        (clipperRedoSalesTicWord σLock I).toNat ≤
                           (UInt256.ofNat I.header.timestamp).toNat
                     · have hleDoneSolm :
                         (clipperRedoSalesTicEVMWord evmLockSolm I).toNat ≤
@@ -3429,7 +3358,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                       by_cases htailLt :
                           (solcSlotWord σ' I ⟨6⟩).toNat <
                             (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                              (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                              (UInt256.land (clipperRedoSalesTicWord σLock I)
                                 clipperSalesUint96Mask)).toNat
                       · obtain ⟨_, _, rd7575⟩ :=
                           Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperStatusAfterPriceDoneTailTrue
@@ -3445,9 +3374,9 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                             rd7651 hperm
                             (by
                               rw [clipperStatusPricePostCallMem_size
-                                (clipperRedoSalesTopWord σLockEvm I)
+                                (clipperRedoSalesTopWord σLock I)
                                 (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                  (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                  (UInt256.land (clipperRedoSalesTicWord σLock I)
                                     clipperSalesUint96Mask))
                                 (clipperRedoSalesHashMem_size I) hout]
                               omega)
@@ -3456,16 +3385,16 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                             (v := v) (hpatch := hpatch) rd8728
                             (clipperGetFeedPriceHashPostMem_size_ge_164
                               (clipperRedoIdWord I)
-                              (clipperRedoSalesTopWord σLockEvm I)
+                              (clipperRedoSalesTopWord σLock I)
                               (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                (UInt256.land (clipperRedoSalesTicWord σLock I)
                                   clipperSalesUint96Mask))
                               (clipperRedoSalesHashMem_size I) hout)
                             (clipperGetFeedPriceHashPostMem_read64
                               (clipperRedoIdWord I)
-                              (clipperRedoSalesTopWord σLockEvm I)
+                              (clipperRedoSalesTopWord σLock I)
                               (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                (UInt256.land (clipperRedoSalesTicWord σLock I)
                                   clipperSalesUint96Mask))
                               (clipperRedoSalesHashMem_size I)
                               (clipperRedoSalesHashMem_read64 I) hout)
@@ -3519,7 +3448,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                 clipperRedoSalesBaseSlot_eq] using rd8728)
                       · have htailLe :
                           (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                              (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                              (UInt256.land (clipperRedoSalesTicWord σLock I)
                                 clipperSalesUint96Mask)).toNat ≤
                             (solcSlotWord σ' I ⟨6⟩).toNat := by
                           exact Nat.le_of_not_gt htailLt
@@ -3539,7 +3468,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                             htimestampSolm, hticSolmLoad, ← hticWord, hticClean, hlockOwner]
                             using htailLe
                         by_cases hmul : priceWord.toNat * clipperRayWord.toNat < UInt256.size
-                        · by_cases htopZero : clipperRedoSalesTopWord σLockEvm I = ⟨0⟩
+                        · by_cases htopZero : clipperRedoSalesTopWord σLock I = ⟨0⟩
                           · have hinv :=
                               Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperStatusAfterPriceRdivDivZeroInvalid
                                 (v := v) (hpatch := hpatch) rd8606
@@ -3570,10 +3499,10 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                             have hbody :
                                 ExecTransitionBody (config v) (contract v) evmSolm0
                                   (clipperRedoStore I) (redoTransition v).body .reverted := by
-                              simpa [evmSolm0, σLockSolm] using
+                              simpa [evmSolm0, σLock] using
                                 (clipperRedoStatusSourceRevertsOfStatus
                                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-                                  (g := g) v hwv hlockedSolm hstoppedSolmLt husrSolm
+                                  (g := g) v hwv hlockedEvm hstoppedLt husrEvm
                                   hstatus)
                             exact RDinvalid.reEquivExecutionInvalid hcode hinv hdispatch
                               (clipperDecode_redo_ok v hsz68) hbody
@@ -3586,7 +3515,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                 (by simp only [List.length_cons, List.length_nil]; omega)
                             let ratioWord : UInt256 :=
                               UInt256.div (UInt256.mul priceWord clipperRayWord)
-                                (clipperRedoSalesTopWord σLockEvm I)
+                                (clipperRedoSalesTopWord σLock I)
                             let cuspWord : UInt256 := solcSlotWord σ' I ⟨7⟩
                             let doneWord : UInt256 := UInt256.lt ratioWord cuspWord
                             have hcuspWordSolm :
@@ -3618,9 +3547,9 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                   (hpatch := hpatch) rd7651 hperm
                                   (by
                                     rw [clipperStatusPricePostCallMem_size
-                                      (clipperRedoSalesTopWord σLockEvm I)
+                                      (clipperRedoSalesTopWord σLock I)
                                       (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                        (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                        (UInt256.land (clipperRedoSalesTicWord σLock I)
                                           clipperSalesUint96Mask))
                                       (clipperRedoSalesHashMem_size I) hout]
                                     omega)
@@ -3629,16 +3558,16 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                   (v := v) (hpatch := hpatch) rd8728
                                   (clipperGetFeedPriceHashPostMem_size_ge_164
                                     (clipperRedoIdWord I)
-                                    (clipperRedoSalesTopWord σLockEvm I)
+                                    (clipperRedoSalesTopWord σLock I)
                                     (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                      (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                      (UInt256.land (clipperRedoSalesTicWord σLock I)
                                         clipperSalesUint96Mask))
                                     (clipperRedoSalesHashMem_size I) hout)
                                   (clipperGetFeedPriceHashPostMem_read64
                                     (clipperRedoIdWord I)
-                                    (clipperRedoSalesTopWord σLockEvm I)
+                                    (clipperRedoSalesTopWord σLock I)
                                     (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                      (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                      (UInt256.land (clipperRedoSalesTicWord σLock I)
                                         clipperSalesUint96Mask))
                                     (clipperRedoSalesHashMem_size I)
                                     (clipperRedoSalesHashMem_read64 I) hout)
@@ -3753,15 +3682,15 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                     simpa [priceWord, ratioWord, cuspWord, doneWord,
                                       hdoneWordZero] using rd7575)
                                   (clipperStatusPricePostCallMem_size
-                                    (clipperRedoSalesTopWord σLockEvm I)
+                                    (clipperRedoSalesTopWord σLock I)
                                     (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                      (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                      (UInt256.land (clipperRedoSalesTicWord σLock I)
                                         clipperSalesUint96Mask))
                                     (clipperRedoSalesHashMem_size I) hout)
                                   (clipperStatusPricePostCallMem_read64
-                                    (clipperRedoSalesTopWord σLockEvm I)
+                                    (clipperRedoSalesTopWord σLock I)
                                     (UInt256.sub (UInt256.ofNat I.header.timestamp)
-                                      (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                                      (UInt256.land (clipperRedoSalesTicWord σLock I)
                                         clipperSalesUint96Mask))
                                     (clipperRedoSalesHashMem_size I)
                                     (clipperRedoSalesHashMem_read64 I) hout)
@@ -3796,10 +3725,10 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                               have hbody :
                                   ExecTransitionBody (config v) (contract v) evmSolm0
                                     (clipperRedoStore I) (redoTransition v).body .reverted := by
-                                simpa [evmSolm0, σLockSolm] using
+                                simpa [evmSolm0, σLock] using
                                   (clipperRedoStatusFalseSourceReverts
                                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-                                    (g := g) v hwv hlockedSolm hstoppedSolmLt husrSolm
+                                    (g := g) v hwv hlockedEvm hstoppedLt husrEvm
                                     priceWord hstatus)
                               exact hrev.reEquivExecutionRevert hcode hdispatch
                                 (clipperDecode_redo_ok v hsz68) hbody
@@ -3832,16 +3761,16 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                           have hbody :
                               ExecTransitionBody (config v) (contract v) evmSolm0
                                 (clipperRedoStore I) (redoTransition v).body .reverted := by
-                            simpa [evmSolm0, σLockSolm] using
+                            simpa [evmSolm0, σLock] using
                               (clipperRedoStatusSourceRevertsOfStatus
                                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
-                                (g := g) v hwv hlockedSolm hstoppedSolmLt husrSolm
+                                (g := g) v hwv hlockedEvm hstoppedLt husrEvm
                                 hstatus)
                           exact hrev.reEquivExecutionRevert hcode hdispatch
                             (clipperDecode_redo_ok v hsz68) hbody
                     · have hltDone :
                           (UInt256.ofNat I.header.timestamp).toNat <
-                            (UInt256.land (clipperRedoSalesTicWord σLockEvm I)
+                            (UInt256.land (clipperRedoSalesTicWord σLock I)
                               clipperSalesUint96Mask).toNat := by
                         simpa [hticClean] using Nat.lt_of_not_ge hleDone
                       have hrev :=
@@ -3872,10 +3801,10 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                       have hbody :
                           ExecTransitionBody (config v) (contract v) evmSolm0
                             (clipperRedoStore I) (redoTransition v).body .reverted := by
-                        simpa [evmSolm0, σLockSolm] using
+                        simpa [evmSolm0, σLock] using
                           (clipperRedoStatusSourceRevertsOfStatus
                             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
-                            hlockedSolm hstoppedSolmLt husrSolm hstatus)
+                            hlockedEvm hstoppedLt husrEvm hstatus)
                       exact hrev.reEquivExecutionRevert hcode hdispatch
                         (clipperDecode_redo_ok v hsz68) hbody
               · have hdepthEq : I.depth = (1024 : Fin 1025) := by
@@ -3897,7 +3826,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                     (by simp only [List.length_cons, List.length_nil]; omega)
                 let ageForPrice : UInt256 :=
                   UInt256.sub (UInt256.ofNat I.header.timestamp)
-                    (UInt256.land (clipperRedoSalesTicWord σLockEvm I) clipperSalesUint96Mask)
+                    (UInt256.land (clipperRedoSalesTicWord σLock I) clipperSalesUint96Mask)
                 have hdepthInit : evmLockSolm.executionEnv.depth = 1024 := by
                   simpa [evmLockSolm, evmSolm, clipperRedoLockedState, initState,
                     storageStore_executionEnv] using hdepthEq
@@ -3913,22 +3842,22 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                           (UInt256.sub (clipperTimestampWord evmLockSolm)
                             (clipperRedoSalesTicEVMWord evmLockSolm I)).toNat)] =
                       some ((clipperStatusPriceCalldataMem
-                        (clipperRedoSalesTopWord σLockEvm I) ageForPrice
+                        (clipperRedoSalesTopWord σLock I) ageForPrice
                         (clipperRedoSalesHashMem I)).readWithPadding 128 68) := by
                   have hcdRaw :
                       (config v).externalABI.encode? "price"
-                        [.int (Int.ofNat (clipperRedoSalesTopWord σLockEvm I).toNat),
+                        [.int (Int.ofNat (clipperRedoSalesTopWord σLock I).toNat),
                           .int (Int.ofNat ageForPrice.toNat)] =
                         some ((clipperStatusPriceCalldataMem
-                          (clipperRedoSalesTopWord σLockEvm I) ageForPrice
+                          (clipperRedoSalesTopWord σLock I) ageForPrice
                           (clipperRedoSalesHashMem I)).readWithPadding 128 68) := by
                     simpa using
                       clipperStatusPriceEncode_eq v
-                        (clipperRedoSalesTopWord σLockEvm I) ageForPrice
+                        (clipperRedoSalesTopWord σLock I) ageForPrice
                         (clipperRedoSalesHashMem_size I)
                   have htopEvmSolm :
                       clipperRedoSalesTopEVMWord evmLockSolm I =
-                        clipperRedoSalesTopWord σLockEvm I := by
+                        clipperRedoSalesTopWord σLock I := by
                     rw [htopSolmLoad, ← htopWord]
                   have hageForPriceSolm :
                       UInt256.sub (clipperTimestampWord evmLockSolm)
@@ -3957,7 +3886,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                       (callPerm := false)
                       (calldata :=
                         (clipperStatusPriceCalldataMem
-                          (clipperRedoSalesTopWord σLockEvm I) ageForPrice
+                          (clipperRedoSalesTopWord σLock I) ageForPrice
                           (clipperRedoSalesHashMem I)).readWithPadding 128 68)
                       hcd hdepthInit)
                 have hstatus :
@@ -3975,14 +3904,14 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                 have hbody :
                     ExecTransitionBody (config v) (contract v) evmSolm0 (clipperRedoStore I)
                       (redoTransition v).body .reverted := by
-                  simpa [evmSolm0, σLockSolm] using
+                  simpa [evmSolm0, σLock] using
                     (clipperRedoStatusSourceRevertsOfStatus
                       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
-                      hlockedSolm hstoppedSolmLt husrSolm hstatus)
+                      hlockedEvm hstoppedLt husrEvm hstatus)
                 exact hrev.reEquivExecutionRevert hcode hdispatch
                   (clipperDecode_redo_ok v hsz68) hbody
             · have hcalcZero :
-                  Reasoning.Theory.extCodeSizeWord σLockEvm calcAddr = ⟨0⟩ :=
+                  Reasoning.Theory.extCodeSizeWord σLock calcAddr = ⟨0⟩ :=
                 not_ne_iff.mp hcalcCode
               have hrev :=
                 Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperStatusPriceNoCode
@@ -3991,15 +3920,13 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                   (by simp only [List.length_cons, List.length_nil]; omega)
               have hcalcAddrSolm :
                   clipperStatusCalcAddress evmLockSolm = AccountAddress.ofUInt256 calcAddr := by
-                simp [σLockSolm, evmLockSolm, evmSolm, clipperRedoLockedState,
+                simp [σLock, evmLockSolm, evmSolm, clipperRedoLockedState,
                   clipperStatusCalcAddress,
                   clipperStatusCalcWord, calcAddr, initState, Solm.EVM.storageLoad,
                   State.lookupAccount, Account.lookupStorage, solcSlotWord,
                   storageStore_accountMap, storageStore_executionEnv, hcalcSlotSolm]
               have hcalcZeroSolm :
-                  Reasoning.Theory.extCodeSizeWord σLockSolm calcAddr = ⟨0⟩ := by
-                rw [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv
-                  hAccountsLock calcAddr]
+                  Reasoning.Theory.extCodeSizeWord σLock calcAddr = ⟨0⟩ := by
                 exact hcalcZero
               have hnoCodeSolm :
                   (UInt256.ofNat
@@ -4009,7 +3936,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                 unfold Reasoning.Theory.extCodeSizeWord at hcalcZeroSolm
                 simp [evmLockSolm, evmSolm, clipperRedoLockedState, State.lookupAccount,
                   initState, storageStore_accountMap] at hcalcZeroSolm ⊢
-                cases hacc : σLockSolm.find? (AccountAddress.ofUInt256 calcAddr) with
+                cases hacc : σLock.find? (AccountAddress.ofUInt256 calcAddr) with
                 | none =>
                     native_decide
                 | some acc =>
@@ -4029,29 +3956,29 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
               have hbody :
                   ExecTransitionBody (config v) (contract v) evmSolm0 (clipperRedoStore I)
                     (redoTransition v).body .reverted := by
-                simpa [evmSolm0, σLockSolm] using
+                simpa [evmSolm0, σLock] using
                   (clipperRedoStatusSourceRevertsOfStatus
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
-                    hlockedSolm hstoppedSolmLt husrSolm hstatus)
+                    hlockedEvm hstoppedLt husrEvm hstatus)
               exact hrev.reEquivExecutionRevert hcode hdispatch
                 (clipperDecode_redo_ok v hsz68) hbody
           · have hltEvm :
                 (UInt256.ofNat I.header.timestamp).toNat <
-                  (clipperRedoSalesTicWord σLockEvm I).toNat := by
+                  (clipperRedoSalesTicWord σLock I).toNat := by
               omega
             have hltSolm :
                 (UInt256.ofNat I.header.timestamp).toNat <
-                  (clipperRedoSalesTicWord σLockSolm I).toNat := by
+                  (clipperRedoSalesTicWord σLock I).toNat := by
               rw [← hticWord]
               exact hltEvm
             let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
             have hbody :
                 ExecTransitionBody (config v) (contract v) evmSolm (clipperRedoStore I)
                   (redoTransition v).body .reverted := by
-              simpa [evmSolm, σLockSolm] using
+              simpa [evmSolm, σLock] using
                 (clipperRedoStatusAgeForPriceSourceReverts
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
-                  hlockedSolm hstoppedSolmLt husrSolm hltSolm)
+                  hlockedEvm hstoppedLt husrEvm hltSolm)
             have hrev :=
               Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperStatusAgeForPriceRevert
                 (v := v) hpatch _hreachStatus
@@ -4059,37 +3986,28 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                 (by simp only [List.length_cons, List.length_nil]; omega)
             exact hrev.reEquivExecutionRevert hcode hdispatch (clipperDecode_redo_ok v hsz68)
               hbody
-      · have hstoppedEvmGe : 2 ≤ (solcSlotWord σLockEvm I ⟨14⟩).toNat := by
+      · have hstoppedEvmGe : 2 ≤ (solcSlotWord σLock I ⟨14⟩).toNat := by
           omega
-        have hstoppedSolmGe : 2 ≤ (solcSlotWord σLockSolm I ⟨14⟩).toNat := by
-          rw [← hstoppedWord]
-          exact hstoppedEvmGe
         let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
         have hbody :
             ExecTransitionBody (config v) (contract v) evmSolm (clipperRedoStore I)
               (redoTransition v).body .reverted := by
-          simpa [evmSolm, σLockSolm] using
+          simpa [evmSolm, σLock] using
             (clipperRedoStoppedSourceReverts
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv
-              hlockedSolm hstoppedSolmGe)
-        have hrev := clipperRedoX_stoppedClosed (v := v) (σ := σLockEvm)
-          hpatch (by simpa [σLockEvm] using hstoppedEvmGe)
-          (by simpa [σLockEvm] using hreachLocked)
+              hlockedEvm hstoppedEvmGe)
+        have hrev := clipperRedoX_stoppedClosed (v := v) (σ := σLock)
+          hpatch (by simpa [σLock] using hstoppedEvmGe)
+          (by simpa [σLock] using hreachLocked)
         exact hrev.reEquivExecutionRevert hcode hdispatch (clipperDecode_redo_ok v hsz68)
           hbody
-    · have hlockWord : solcSlotWord σ I ⟨13⟩ = solcSlotWord σ I ⟨13⟩ := by
-        simpa [solcSlotWord] using
-          accountMapEquiv_storage_findD rfl I.codeOwner (⟨13⟩ : UInt256) ⟨0⟩
-      have hlockedSolm : solcSlotWord σ I ⟨13⟩ ≠ ⟨0⟩ := by
-        intro hsolm
-        exact hlockedEvm (by rw [hlockWord, hsolm])
-      let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
+    · let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :
           ExecTransitionBody (config v) (contract v) evmSolm (clipperRedoStore I)
             (redoTransition v).body .reverted := by
         simpa [evmSolm] using
           (clipperRedoLockedSourceReverts
-            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv hlockedSolm)
+            (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hwv hlockedEvm)
       have hrev := clipperRedoX_locked (v := v) hpatch hlockedEvm hreachBody
       exact hrev.reEquivExecutionRevert hcode hdispatch (clipperDecode_redo_ok v hsz68)
         hbody

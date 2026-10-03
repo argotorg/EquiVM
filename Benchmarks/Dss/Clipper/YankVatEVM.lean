@@ -901,7 +901,7 @@ abbrev clipperYankMoveAccountMap (σ : AccountMap) (I : ExecutionEnv)
     (sstoreAccountMap I.codeOwner σ (clipperYankActiveSlot idx) move)
     (clipperYankSalesMovePosSlot move) idx
 
-theorem clipperYankMoveAccountMap_state_accountMapEquiv
+theorem clipperYankMoveAccountMap_state_accounts_eq
     {σ τ : AccountMap} (evm : EVM.State) (I : ExecutionEnv)
     (idx move : UInt256)
     (hAccounts : Eq σ τ)
@@ -1097,7 +1097,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8331pre := rd8330pre.keccak256 (Cₘ aw5 - Cₘ aw4) (clipperYankSalesBaseSlot ee) aw5
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, clipperYankU256_32_toNat, aw5])
+    (by simp [M, MachineState.M, clipperYankU256_64_toNat, aw5])
     hsalesBase (by rfl) (by evm_ov)
   obtain ⟨_, _, rd8332raw⟩ := rd8331pre.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8332, C8332, rd8332⟩ :
@@ -1235,7 +1235,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
   have rd8378pre := rd8377pre.keccak256 (Cₘ aw10 - Cₘ aw9)
     (clipperYankSalesMovePosSlot move) aw10
     (by clipper_yank_remove_decode)
-    (by simp [M, MachineState.M, clipperYankU256_32_toNat, aw10])
+    (by simp [M, MachineState.M, clipperYankU256_64_toNat, aw10])
     hmoveBase (by rfl) (by evm_ov)
   obtain ⟨k8379, C8379, rd8379raw⟩ :
       ∃ k C, RD code ee g s0 ⟨8379⟩
@@ -1471,20 +1471,6 @@ abbrev clipperYankSuccessAccountMap (σ : AccountMap) (I : ExecutionEnv)
     (lastIndex : UInt256) : AccountMap :=
   sstoreAccountMap I.codeOwner (clipperYankRemoveAccountMap σ I lastIndex) ⟨13⟩ ⟨0⟩
 
-theorem clipperAccountEquiv_trans {a b c : Account}
-    (hab : accountEquiv a b) (hbc : accountEquiv b c) :
-    accountEquiv a c := by
-  rcases hab with ⟨hn1, hb1, hc1, hs1, ht1⟩
-  rcases hbc with ⟨hn2, hb2, hc2, hs2, ht2⟩
-  exact ⟨hn1.trans hn2, hb1.trans hb2, hc1.trans hc2,
-    fun slot => (hs1 slot).trans (hs2 slot),
-    fun slot => (ht1 slot).trans (ht2 slot)⟩
-
-theorem clipperAccountMapEquiv_trans {σ τ υ : AccountMap}
-    (hστ : Eq σ τ) (hτυ : Eq τ υ) :
-    Eq σ υ := by
-  exact hστ.trans hτυ
-
 theorem clipperYankRemovePopState_accountMap (evm : EVM.State)
     (I : ExecutionEnv) (lastIndex : UInt256)
     (howner : evm.executionEnv.codeOwner = I.codeOwner) :
@@ -1493,26 +1479,29 @@ theorem clipperYankRemovePopState_accountMap (evm : EVM.State)
   simp [clipperYankRemovePopState, clipperYankPopAccountMap, storageStore_accountMap,
     howner]
 
-theorem clipperYankPopAccountMap_accountMapEquiv {σ τ : AccountMap}
-    (I : ExecutionEnv) (lastIndex : UInt256)
-    (hAccounts : Eq σ τ) :
-    Eq (clipperYankPopAccountMap σ I lastIndex)
-      (clipperYankPopAccountMap τ I lastIndex) := by
-  subst τ
-  rfl
-
 set_option maxHeartbeats 2000000 in
-theorem clipperYankDeleteSaleState_accountMapEquiv
+theorem clipperYankDeleteSaleState_accounts_eq
     {σ : AccountMap} (evm : EVM.State) (I : ExecutionEnv)
     (hAccounts : Eq σ evm.accountMap)
     (howner : evm.executionEnv.codeOwner = I.codeOwner) :
     Eq (clipperYankDeleteSaleAccountMap σ I)
       (clipperYankDeleteSaleState evm I).accountMap := by
+  subst σ
+  let σ2 := sstoreAccountMap I.codeOwner
+    (sstoreAccountMap I.codeOwner
+      (sstoreAccountMap I.codeOwner evm.accountMap (clipperYankSalesBaseSlot I) ⟨0⟩)
+      (clipperYankSalesBaseSlot I + ⟨1⟩) ⟨0⟩)
+    (clipperYankSalesBaseSlot I + ⟨2⟩) ⟨0⟩
+  let slot3 := clipperYankSalesBaseSlot I + ⟨3⟩
+  let masked := UInt256.land (solcSlotWord σ2 I slot3) (UInt256.lnot solcAddrMask)
+  have hupdate := sstoreAccountMap_self_update σ2 I.codeOwner slot3 masked ⟨0⟩
   simp [clipperYankDeleteSaleAccountMap, clipperYankDeleteSaleState,
-    storageStore_accountMap, storageStore_executionEnv, hAccounts, howner]
+    storageStore_accountMap, storageStore_executionEnv, howner,
+    Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, solcSlotWord]
+  rw [hupdate]
 
 set_option maxHeartbeats 1000000 in
-theorem clipperYankSuccessAccountMap_state_accountMapEquiv
+theorem clipperYankSuccessAccountMap_state_accounts_eq
     {σ τ : AccountMap} (evm : EVM.State) (I : ExecutionEnv) (lastIndex : UInt256)
     (hAccounts : Eq σ τ)
     (hevm : evm.accountMap = τ)
@@ -1525,16 +1514,17 @@ theorem clipperYankSuccessAccountMap_state_accountMapEquiv
       Eq (clipperYankPopAccountMap σ I lastIndex)
         (clipperYankRemovePopState evm lastIndex).accountMap := by
     rw [clipperYankRemovePopState_accountMap evm I lastIndex howner]
-    exact clipperYankPopAccountMap_accountMapEquiv I lastIndex (by simpa [hevm] using hAccounts)
+    exact congrArg (fun m => clipperYankPopAccountMap m I lastIndex)
+      (hAccounts.trans hevm.symm)
   have hpopOwner :
       (clipperYankRemovePopState evm lastIndex).executionEnv.codeOwner = I.codeOwner := by
     simp [clipperYankRemovePopState, storageStore_executionEnv, howner]
   have hdel :=
-    clipperYankDeleteSaleState_accountMapEquiv (clipperYankRemovePopState evm lastIndex) I
+    clipperYankDeleteSaleState_accounts_eq (clipperYankRemovePopState evm lastIndex) I
       hpop hpopOwner
   simpa [clipperYankSuccessAccountMap, clipperYankRemoveAccountMap,
     storageStore_accountMap, storageStore_executionEnv, howner] using
-    accountMapEquiv_sstoreAccountMap I.codeOwner ⟨13⟩ ⟨0⟩ hdel
+    congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨13⟩ ⟨0⟩) hdel
 
 set_option maxHeartbeats 1000000 in
 theorem RD.clipperYankRemoveJoinSuccess

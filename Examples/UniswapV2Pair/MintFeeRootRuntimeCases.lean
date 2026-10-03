@@ -46,7 +46,7 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail
       mem'.size = 164 ∧ mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
       mem'.readWithPadding 96 32 = mem.readWithPadding 96 32 ∧
       evm'.σ₀ = s0.σ₀) := by
-  have htotalEq := mintFunctionTotalSupplyWord_eq_slot_of_accountMapEquiv hAccounts henv
+  have htotalEq := mintFunctionTotalSupplyWord_eq_slot hAccounts henv
   by_cases hroot : rootK > rootKLast
   · rcases uniswapMintFeeActualRootArithmeticCasesOfTail (hov := hov) rd7899 htotalEq hroot hrootKNonneg
       hrootKSize hrootKLastNonneg hrootKLastSize hmem hmem64 with
@@ -99,7 +99,7 @@ theorem uniswapMintFeeActualRootRuntimeCasesWithMemoryOfTail
                 hnumFit hrootFiveFit hdenFit hdenom hliq hliqFit hfitSupply hfitBalance,
               evalExpr_mintFee_afterFeeMint_feeOn evmFeeS _ reserve0 reserve1 feeTo
                 kLast rootK rootKLast,
-              accountMapEquiv_mintFunctionPostState_of_runtimeMintRecipient hAccounts henv
+              mintFunctionPostState_accountMap_eq_of_runtimeMintRecipient hAccounts henv
                 hrecipient (by rw [hmem]; omega) hfitSupply hfitBalance,
               ?_, rdRet, ?_, ?_, ?_, ?_⟩
             · simp only [mintFunctionPostState, mintFunctionAfterTotalSupplyState,

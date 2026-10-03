@@ -125,7 +125,6 @@ theorem dogHoleBodyCore {v : DogImmutables} {code : ByteArray}
     (routine := ⟨1912⟩) (slot := ⟨4⟩)
     _hcode (dogDispatchHole _hsel) (dogDecode_Hole (v := v) hsz)
     (dogReachHoleBody (g := Sat256.ofUInt256 g) _hpatch _hcode _hwv hsz _hsize _hsel)
-    _hAccounts
     (by
       unfold solcGetterEntryWf
       repeat' first

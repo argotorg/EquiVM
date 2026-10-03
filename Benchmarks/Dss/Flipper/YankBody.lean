@@ -166,7 +166,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                     (zCat, evmCatEvm, outCat) true := by
                 simpa [evm0Evm, evmCatEvm] using hcallCatEvmRaw
               obtain ⟨σ_cat_solm, A_cat_solm, hcallCatSolmRaw, hCatStateEquiv⟩ :=
-                flipper_typedCallViaEVM_sameInputs
+                typedCallViaEVM_sameInputs_stateEquiv
                   (evm_solm := evm0Solm) hcallCatEvm
                   rfl
                   (by simp [evm0Evm, evm0Solm, initState])
@@ -179,16 +179,12 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
               have hcatTargetEq :
                   EVM.address (flipperCatAddress σ I) =
                     EVM.address (flipperCatAddress σ I) := rfl
-              have hcatArgsEqRaw :
-                  [Value.int (Int.ofNat (bidTabWord (yankId I) σ I).toNat)] =
-                    [Value.int (Int.ofNat (bidTabWord (yankId I) σ I).toNat)] := by
-                rw [htabEq]
               have hcatArgsEq :
                   [Value.int (Int.ofNat (bidTabWord (yankId I) σ I).toNat)] =
                     yankClawArgVals evm0Solm := by
-                simpa [yankClawArgVals, yankClawArgValsOf, evm0Solm, initState,
+                simp [yankClawArgVals, yankClawArgValsOf, evm0Solm, initState,
                   Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
-                  bidTabWord] using hcatArgsEqRaw
+                  bidTabWord, flipperSlotWord, solcSlotWord]
               have hcallCatSolm :
                   typedCallViaEVM config evm0Solm
                     (EVM.address (flipperCatAddress σ I)) "claw" 0
@@ -240,7 +236,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                 · have hvatZeroSolm :
                       Reasoning.Theory.extCodeSizeWord σ_cat_solm
                           (flipperVatTargetWord σ_cat_solm I) = ⟨0⟩ :=
-                    flipperVatCodeSize_zero_accountMapEquiv hAccountsCat hvatZero
+                    by rw [← hAccountsCat]; exact hvatZero
                   have hvatNoCode :
                       (UInt256.ofNat
                         ((evmCatSolm.lookupAccount
@@ -266,7 +262,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                 · have hvatNeSolm :
                       Reasoning.Theory.extCodeSizeWord σ_cat_solm
                           (flipperVatTargetWord σ_cat_solm I) ≠ ⟨0⟩ :=
-                    flipperVatCodeSize_ne_zero_accountMapEquiv hAccountsCat hvatZero
+                    by rw [← hAccountsCat]; exact hvatZero
                   have hvatCodeSolm :
                       0 <
                         (UInt256.ofNat
@@ -294,10 +290,10 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                         (zVat, evmVatEvm, outVat) true := by
                     simpa [evmCatEvm, evmVatEvm] using hcallVatEvmRaw
                   obtain ⟨σ_vat_solm, A_vat_solm, hcallVatSolmRaw, hVatStateEquiv⟩ :=
-                    flipper_typedCallViaEVM_sameInputs
+                    typedCallViaEVM_sameInputs_stateEquiv
                       (evm_solm := evmCatSolm) hcallVatEvm hCatStateEquiv'.accountMap
                       (by simp [evmCatEvm, evmCatSolm, evm0Evm, evm0Solm, initState])
-                      (by simpa using hCatStateEquiv'.executionEnv.symm)
+                      hCatStateEquiv'.executionEnv
                   let evmVatSolm : EVM.State :=
                     { evmCatSolm with
                       accountMap := σ_vat_solm
@@ -309,31 +305,15 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                           (flipperVatAddress evmCatSolm.accountMap
                             evmCatSolm.executionEnv) := by
                     have haddr : flipperVatAddress σ_cat I =
-                        flipperVatAddress σ_cat_solm I :=
-                      flipperVatAddress_accountMapEquiv hAccountsCat
+                        flipperVatAddress σ_cat_solm I := by rw [← hAccountsCat]
                     rw [haddr]
                     simp [evmCatSolm, evm0Solm, initState]
                   have hfluxArgsEq :
                       yankFluxArgValsOf evmCatEvm (yankId I) =
                         yankFluxArgValsOf evmCatSolm (yankId I) := by
-                    have hloadIlk :
-                        Solm.EVM.storageLoad evmCatEvm
-                            evmCatSolm.executionEnv.codeOwner ⟨3⟩ =
-                          Solm.EVM.storageLoad evmCatSolm
-                            evmCatSolm.executionEnv.codeOwner ⟨3⟩ :=
-                      storageLoad_accountMapEquiv hCatStateEquiv'.accountMap
-                        evmCatSolm.executionEnv.codeOwner ⟨3⟩
-                    have hloadLot :
-                        Solm.EVM.storageLoad evmCatEvm
-                            evmCatSolm.executionEnv.codeOwner
-                            (bidSlotOfWord (yankId I) ⟨1⟩) =
-                          Solm.EVM.storageLoad evmCatSolm
-                            evmCatSolm.executionEnv.codeOwner
-                            (bidSlotOfWord (yankId I) ⟨1⟩) :=
-                      storageLoad_accountMapEquiv hCatStateEquiv'.accountMap
-                        evmCatSolm.executionEnv.codeOwner (bidSlotOfWord (yankId I) ⟨1⟩)
-                    simp [yankFluxArgValsOf, hCatStateEquiv'.executionEnv, hloadIlk,
-                      hloadLot]
+                    simp [yankFluxArgValsOf, Solm.EVM.storageLoad, State.lookupAccount,
+                      Account.lookupStorage, hCatStateEquiv'.executionEnv,
+                      hCatStateEquiv'.accountMap]
                   have hcallVatSolm :
                       typedCallViaEVM config evmCatSolm
                         (EVM.address
@@ -406,7 +386,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                     · have hmoveZeroSolm :
                           Reasoning.Theory.extCodeSizeWord σ_vat_solm
                               (flipperVatTargetWord σ_vat_solm I) = ⟨0⟩ :=
-                        flipperVatCodeSize_zero_accountMapEquiv hAccountsVat hmoveZero
+                        by rw [← hAccountsVat]; exact hmoveZero
                       have hmoveNoCode :
                           (UInt256.ofNat
                             ((evmVatSolm.lookupAccount
@@ -435,7 +415,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                     · have hmoveNeSolm :
                           Reasoning.Theory.extCodeSizeWord σ_vat_solm
                               (flipperVatTargetWord σ_vat_solm I) ≠ ⟨0⟩ :=
-                        flipperVatCodeSize_ne_zero_accountMapEquiv hAccountsVat hmoveZero
+                        by rw [← hAccountsVat]; exact hmoveZero
                       have hmoveCodeSolm :
                           0 <
                             (UInt256.ofNat
@@ -467,12 +447,12 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                         simpa [evmVatEvm, evmMoveEvm] using hcallMoveEvmRaw
                       obtain ⟨σ_move_solm, A_move_solm, hcallMoveSolmRaw,
                           hMoveStateEquiv⟩ :=
-                        flipper_typedCallViaEVM_sameInputs
+                        typedCallViaEVM_sameInputs_stateEquiv
                           (evm_solm := evmVatSolm) hcallMoveEvm hVatStateEquiv'.accountMap
                           (by
                             simp [evmVatEvm, evmVatSolm, evmCatEvm, evmCatSolm,
                               evm0Evm, evm0Solm, initState])
-                          (by simpa using hVatStateEquiv'.executionEnv.symm)
+                          hVatStateEquiv'.executionEnv
                       let evmMoveSolm : EVM.State :=
                         { evmVatSolm with
                           accountMap := σ_move_solm
@@ -485,33 +465,15 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                                 evmVatSolm.executionEnv) := by
                         have haddr : flipperVatAddress σ_vat I =
                             flipperVatAddress σ_vat_solm I :=
-                          flipperVatAddress_accountMapEquiv hAccountsVat
+                          by rw [← hAccountsVat]
                         rw [haddr]
                         simp [evmVatSolm, evmCatSolm, evm0Solm, initState]
                       have hmoveArgsEq :
                           yankMoveArgValsOf evmVatEvm (yankId I) =
                             yankMoveArgValsOf evmVatSolm (yankId I) := by
-                        have hloadPacked :
-                            Solm.EVM.storageLoad evmVatEvm
-                                evmVatSolm.executionEnv.codeOwner
-                                (bidPackedSlotOfWord (yankId I)) =
-                              Solm.EVM.storageLoad evmVatSolm
-                                evmVatSolm.executionEnv.codeOwner
-                                (bidPackedSlotOfWord (yankId I)) :=
-                          storageLoad_accountMapEquiv hVatStateEquiv'.accountMap
-                            evmVatSolm.executionEnv.codeOwner
-                            (bidPackedSlotOfWord (yankId I))
-                        have hloadBid :
-                            Solm.EVM.storageLoad evmVatEvm
-                                evmVatSolm.executionEnv.codeOwner
-                                (bidBaseOfWord (yankId I)) =
-                              Solm.EVM.storageLoad evmVatSolm
-                                evmVatSolm.executionEnv.codeOwner
-                                (bidBaseOfWord (yankId I)) :=
-                          storageLoad_accountMapEquiv hVatStateEquiv'.accountMap
-                            evmVatSolm.executionEnv.codeOwner (bidBaseOfWord (yankId I))
-                        simp [yankMoveArgValsOf, hVatStateEquiv'.executionEnv,
-                          hloadPacked, hloadBid]
+                        simp [yankMoveArgValsOf, Solm.EVM.storageLoad, State.lookupAccount,
+                          Account.lookupStorage, hVatStateEquiv'.executionEnv,
+                          hVatStateEquiv'.accountMap]
                       have hcallMoveSolm :
                           typedCallViaEVM config evmVatSolm
                             (EVM.address
@@ -612,17 +574,15 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                               (bidDeleteCollapsedAccountMap I.codeOwner σ_move_solm
                                 (yankId I)) := by
                           simpa [yankBidDeleteAccountMap] using
-                            (bidDeleteCollapsedAccountMap_accountMapEquiv
-                              (owner := I.codeOwner) (id := yankId I) hMoveAccounts)
+                            congrArg (fun m => bidDeleteCollapsedAccountMap I.codeOwner m
+                              (yankId I)) hMoveAccounts
                         have hdeleted :
                             Eq
                               (bidDeleteCollapsedAccountMap I.codeOwner σ_move_solm
                                 (yankId I))
                               (bidDeletedEVM evmMoveSolm (yankId I)).accountMap := by
-                          have h := bidDeleteCollapsedAccountMap_accountMapEquiv_bidDeletedEVM
+                          exact bidDeleteCollapsedAccountMap_eq_bidDeletedEVM
                             evmMoveSolm (yankId I)
-                          simpa [evmMoveSolm, evmVatSolm, evmCatSolm, evm0Solm, initState]
-                            using h
                         have haccounts :
                             Eq (yankBidDeleteAccountMap I σ_move (yankId I))
                               (bidDeletedEVM evmMoveSolm (yankId I)).accountMap :=

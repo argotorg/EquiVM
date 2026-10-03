@@ -91,17 +91,26 @@ theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
                 (by rw [hevmEZero]; simp only [initState]; exact hdepthEq)
               rw [hevmEZero]
               simpa [initState, accountAddress_roundtrip, hperm] using hΘeq
-            obtain ⟨σ'_solm, A'_solm, hcallSRaw, hPostAccounts⟩ :=
-              callViaEVM_accountMapEquiv (evm_solm := evmSZero) hcallE
-                (by simpa [hevmEZero] using hStoreMap)
-                (by simp [hevmEZero, hevmSZero, hevmS, withdrawStoreState_originalMap, initState])
-                (by rw [hevmEZero, hZeroEnv]; rfl)
+            have hZeroState : evmEZero = evmSZero := by
+              have hMap : evmEZero.accountMap = evmSZero.accountMap := by
+                simpa [hevmEZero] using hStoreMap
+              calc
+                evmEZero = {evmS with accountMap := evmEZero.accountMap} := by
+                  simp [hevmEZero, hevmS]
+                _ = {evmS with accountMap := evmSZero.accountMap} := by
+                  exact congrArg (fun accounts => {evmS with accountMap := accounts}) hMap
+                _ = evmSZero := by
+                  rw [hevmSZero]
+                  unfold withdrawStoreState Solm.EVM.storageStore
+                  cases evmS.lookupAccount evmS.executionEnv.codeOwner <;>
+                    simp [Option.option, State.setAccount]
             set evmSCall : EVM.State :=
-              { evmSZero with accountMap := σ'_solm, substate := A'_solm }
+              { evmSZero with accountMap := σ', substate := A' }
               with hevmSCall
             have hcallS : callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
                 (Int.ofNat (withdrawWadWord I).toNat) ByteArray.empty (z, evmSCall, o) := by
-              rw [hTargetEq]; exact hcallSRaw
+              rw [hTargetEq]
+              simpa [← hZeroState, hevmSCall, hevmECall] using hcallE
             cases z
             · -- call failed: revert
               have hbody := weth9WithdrawBodyReverts_callFailure evmS evmSCall I o
@@ -112,7 +121,7 @@ theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
                 hsrcS (by rw [hwvS']; exact hwv) hleLoadS (by rw [← hevmSZero]; exact hcallS)
               refine weth9ReEquivExecGen hcode (weth9WithdrawSuccessTail hperm rd1470) hdisp hdec
                 hbody ?_ (returnEquiv.fallthrough (dvs := []) rfl rfl (by native_decide))
-              simpa [hevmSCall, hevmECall] using hPostAccounts
+              simp [hevmSCall]
           · -- insufficient balance: the call fails, `require(success)` reverts
             have hrev := weth9WithdrawCallInsufficientRev (g := gs) hperm hle hbalance hdepthLt h1395
             set evmSFail : EVM.State := { evmSZero with

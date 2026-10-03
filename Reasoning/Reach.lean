@@ -3667,8 +3667,7 @@ theorem reEquiv_decodingFailed
     rfl hdec h
 
 /-- The Solm transition executes (to `actRes`) and `Ξ`'s result matches ⇒ the `execution` case.
-    The EVM runs from `σ`, the Solm body from `σ` (genuinely distinct maps); `hequiv`
-    carries the up-to-`accountMapEquiv` coupling of their results. -/
+    Both executions start from `σ`; `hequiv` relates their results using account-map equality. -/
 theorem reEquiv_execution
     {cfg contract σ σ₀ A I} {t callargs actRes}
     {g : UInt256}

@@ -636,8 +636,8 @@ theorem erc20ApproveBodyCore
           hwv hperm hsz68 hsize hcanonSpender hreach)
         |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
           (by simp [evm, approvePostState, approveSlot, approveSlotI, initState,
-            vyperERC20StorageStore_accountMap])
-          (returnEquiv_of_encode ERC20.erc20BoolTrueReturnEncoding)
+            storageStore_accountMap])
+          (returnEquiv_of_encode Reasoning.Theory.boolTrueReturnEncoding)
     · have hdec0 := erc20Decode_approve_none_noncanon (I := I) hsz68 hcanonSpender
       have hdec :
           decodeCalldataWithMode vyperERC20Config.abiDecodeMode

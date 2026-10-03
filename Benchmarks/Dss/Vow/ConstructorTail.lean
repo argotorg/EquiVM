@@ -61,7 +61,7 @@ theorem vowCtorHopeCallSuccessToReturnStart
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
         (initState σ σ₀ g A I) ⟨246⟩
         [] mem aw out
-        sstoreAccountMap I.codeOwner σFinal ⟨12⟩ ⟨1⟩ k' C' := by
+        (sstoreAccountMap I.codeOwner σFinal ⟨12⟩ ⟨1⟩) k' C' := by
   obtain ⟨_, _, rd235⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨217⟩) (okPc := ⟨233⟩) rd217
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
@@ -396,6 +396,12 @@ theorem vowCtorPrefixAccountMapEquiv
     storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage, solcSlotWord, hslot] using hmap
 
+private theorem vowCtorStorageStore_sigma0 (evm : EVM.State) (addr : AccountAddress)
+    (slot val : UInt256) :
+    (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
+  cases h : evm.accountMap.find? addr <;>
+    simp [Solm.EVM.storageStore, State.lookupAccount, h, Option.option, State.setAccount]
+
 set_option maxHeartbeats 0 in
 theorem vowConstructorCorrect :
     constructorEquivalence config vowCreationBytecode contract vowBytecode := by
@@ -458,8 +464,7 @@ theorem vowConstructorCorrect :
       rcases hrev.xiResult hcodeTail with hOOG | ⟨g', out, hRev⟩
       · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
       · have hcodeSizeSolm : extCodeSizeWord evm4s.accountMap targetWord = ⟨0⟩ := by
-          have hEq := extCodeSizeWord_accountMapEquiv hAccounts4 targetWord
-          exact hEq ▸ hcodeSize
+          simpa [hAccounts4] using hcodeSize
         have haddr : vat = AccountAddress.ofUInt256 targetWord := by
           rw [htargetWord, accountAddress_of_word_val_tail]
         have hvatNoCode :
@@ -475,9 +480,7 @@ theorem vowConstructorCorrect :
           ?_
         exact ctorResultEquiv.revert rfl rfl
     · have hcodeSizeSolmNe : extCodeSizeWord evm4s.accountMap targetWord ≠ ⟨0⟩ := by
-        intro hzero
-        have hEq := extCodeSizeWord_accountMapEquiv hAccounts4 targetWord
-        exact hcodeSize (hEq.trans hzero)
+        simpa [hAccounts4] using hcodeSize
       have haddr : vat = AccountAddress.ofUInt256 targetWord := by
         rw [htargetWord, accountAddress_of_word_val_tail]
       have hvatCode :
@@ -503,6 +506,16 @@ theorem vowConstructorCorrect :
               (σ := σ)
                (σ₀ := σ₀) (A := A) (I := I)
               (g := Sat256.ofUInt256 g) vat flapper flopper)
+        have hmap : evm4e.accountMap = σFlopper := hAccounts4e.trans hAccounts4.symm
+        have hSigma0 :
+            evm4e.σ₀ = (initState σ σ₀ (Sat256.ofUInt256 g) A I).σ₀ := by
+          simp [evm4e, evm3e, evm2e, evm1e, evm0e, vowCtorAfterFlopperState,
+            vowCtorAfterFlapperState, vowCtorAfterVatState, vowCtorAfterWardsState,
+            vowCtorStorageStore_sigma0, initState]
+        have hEnv4 : evm4e.executionEnv = I := by
+          simp [evm4e, evm3e, evm2e, evm1e, evm0e, vowCtorAfterFlopperState,
+            vowCtorAfterFlapperState, vowCtorAfterVatState, vowCtorAfterWardsState,
+            storageStore_executionEnv, initState]
         have htgt : EVM.address vat = AccountAddress.ofUInt256 targetWord := by
           rw [htargetWord, accountAddress_of_word_val_tail, evmAddress_accountAddress_tail]
         have hslot : wardsSlot (.address I.source) = vowCtorCallerWardsSlot I :=
@@ -535,11 +548,30 @@ theorem vowConstructorCorrect :
           · simpa [vowCtorCallOutPtr, vowCtorCallInSize] using
               (vowCtorHopeEncode_eq flapper
                 (vowCtorWardsHashMem_size I vat flapper flopper))
-          · simpa [evm4e, evm3e, evm2e, evm1e, evm0e, σFlopper, targetWord,
-              evmCallEvm, storageStore_accountMap, storageStore_executionEnv,
-              State.lookupAccount, Account.lookupStorage, solcSlotWord, hslot, hperm] using hTheta
+          · calc
+              (σCall, gTheta, ATheta, z, out) =
+                  Θ σFlopper (initState σ σ₀ (Sat256.ofUInt256 g) A I).σ₀ Ain
+                    (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
+                    (AccountAddress.ofUInt256 targetWord)
+                    (toExecute σFlopper (AccountAddress.ofUInt256 targetWord)) callGas
+                    (UInt256.ofNat I.gasPrice) ⟨0⟩ ⟨0⟩
+                    ((vowCtorHopeCalldataMem (EVM.word flapper.val)
+                      (vowCtorWardsHashMem I vat flapper flopper)).readWithPadding
+                      vowCtorCallOutPtr.toNat vowCtorCallInSize.toNat)
+                    (I.depth + 1) I.header I.blobVersionedHashes I.blocks I.perm := hTheta
+              _ = Θ evm4e.accountMap evm4e.σ₀ Ain
+                    (AccountAddress.ofUInt256 (UInt256.ofNat evm4e.executionEnv.codeOwner))
+                    evm4e.executionEnv.sender (AccountAddress.ofUInt256 targetWord)
+                    (toExecute evm4e.accountMap (AccountAddress.ofUInt256 targetWord)) callGas
+                    (UInt256.ofNat evm4e.executionEnv.gasPrice) ⟨0⟩ ⟨0⟩
+                    ((vowCtorHopeCalldataMem (EVM.word flapper.val)
+                      (vowCtorWardsHashMem I vat flapper flopper)).readWithPadding
+                      vowCtorCallOutPtr.toNat vowCtorCallInSize.toNat)
+                    (evm4e.executionEnv.depth + 1) evm4e.executionEnv.header
+                    evm4e.executionEnv.blobVersionedHashes evm4e.executionEnv.blocks true := by
+                simp only [hmap, hSigma0, hEnv4, hperm]
         obtain ⟨σSolmCall, ASolmCall, hcallSolm, hPostAccounts⟩ :=
-          typedCallViaEVM_accountMapEquiv (evm_solm := evm4s) hcallEvm hAccounts4e
+          typedCallViaEVM_sameInputs (evm_solm := evm4s) hcallEvm hAccounts4e
             (by simp [evm4e, evm4s, evm3e, evm3s, evm2e, evm2s, evm1e, evm1s,
               evm0e, evm0s, vowCtorAfterFlopperState, vowCtorAfterFlapperState,
               vowCtorAfterVatState, vowCtorAfterWardsState, initState])
@@ -574,7 +606,9 @@ theorem vowConstructorCorrect :
           · have hAccountsLive :
                 Eq (sstoreAccountMap I.codeOwner σCall ⟨12⟩ ⟨1⟩)
                   (vowCtorAfterLiveState evmHopeSolm).accountMap := by
-              have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩ hPostAccounts
+              have hbase := congrArg
+                (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨12⟩ ⟨1⟩)
+                hPostAccounts
               simpa [evmHopeSolm, evm4s, evm3s, evm2s, evm1s, evm0s, vowCtorAfterLiveState,
                 storageStore_accountMap, storageStore_executionEnv, vowCtorAfterFlopperState,
                 vowCtorAfterFlapperState, vowCtorAfterVatState, vowCtorAfterWardsState, initState]
@@ -602,7 +636,6 @@ theorem vowConstructorCorrect :
           have hcallDepth :
               typedCallViaEVM config evm4s (EVM.address vat) "hope" 0 [.address flapper]
                 (false, { evm4s with substate := A_hope }, ByteArray.empty) true := by
-                }
             simpa [A_hope, evm4s, evm3s, evm2s, evm1s, evm0s, storageStore_executionEnv,
               vowCtorAfterFlopperState, vowCtorAfterFlapperState, vowCtorAfterVatState,
               vowCtorAfterWardsState, initState] using
@@ -623,7 +656,6 @@ theorem vowConstructorCorrect :
             (vowCtorSolmExecReverts_callFailure
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               (evmHope := { evm4s with substate := A_hope }) (out := ByteArray.empty)
-              }
               vat flapper flopper hwv
               (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using hvatCode)
               (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using hcallDepth))

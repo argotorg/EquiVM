@@ -39,10 +39,13 @@ theorem rawZeroCall_source_of_theta
       change I.depth = 1024 at h
       rw [h] at hlt
       exact absurd hlt (by decide)
-  obtain ⟨σSolm, ASolm, hcall, hpost⟩ := callViaEVM_accountMapEquiv
-    (evm_solm := evm) hcallE hAccounts hσ0.symm henv.symm
-  exact ⟨{ evm with accountMap := σSolm, substate := ASolm },
-    hcall, hpost, hσ0, henv⟩
+  have hevmE : evmE = evm := by
+    cases evm
+    simp_all [evmE]
+  refine ⟨{ evm with accountMap := σ', substate := A' }, ?_, rfl, ?_, ?_⟩
+  · simpa [hevmE] using hcallE
+  · exact hσ0
+  · exact henv
 
 -- LIBRARY CANDIDATE: normalization is identity on an already bounded address.
 theorem uniswapAddress_self (a : AccountAddress) : EVM.address a.val = a := by

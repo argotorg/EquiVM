@@ -827,12 +827,10 @@ abbrev flipperCtorAfterWardsState (evm : EVM.State) : EVM.State :=
     (wardsSlot (.address evm.executionEnv.source)) ⟨1⟩
 
 theorem flipperCtorSolmExecSuccess
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat cat : AccountAddress) (ilk : List UInt8)
     (hilk : ilk.length = 32) (hwv : I.weiValue = ⟨0⟩) :
-    let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    let evm0 := initState σ σ₀
       (Sat256.ofUInt256 g) A I
     let evm1 := flipperCtorAfterBegState evm0
     let evm2 := flipperCtorAfterTtlState evm1
@@ -844,7 +842,7 @@ theorem flipperCtorSolmExecSuccess
     let evm8 := flipperCtorAfterWardsState evm7
     solmCtorExec config contract
       [.address vat, .address cat, .fixedBytes bytes32Width ilk]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I
+      σ σ₀ g A I
       (.returned { contract := contract, locals := flipperCtorLocals vat cat ilk } evm8 none) := by
   intro evm0 evm1 evm2 evm3 evm4 evm5 evm6 evm7 evm8
   let locals := flipperCtorLocals vat cat ilk
@@ -924,16 +922,14 @@ theorem flipperCtorSolmExecSuccess
       ExecFuncBody.execBlockOK hblock
 
 theorem flipperSolmCtorExecReverts_nonpayable
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ : AccountMap} {σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : UInt256} (vat cat : AccountAddress) (ilk : List UInt8)
     (hwv : I.weiValue ≠ ⟨0⟩) :
     solmCtorExec config contract
       [.address vat, .address cat, .fixedBytes bytes32Width ilk]
-      createdAccounts genesisBlockHeader blocks σ σ₀ g A I .reverted := by
+      σ σ₀ g A I .reverted := by
   refine solmCtorExec.intro
-    (evmState := initState createdAccounts genesisBlockHeader blocks σ σ₀
+    (evmState := initState σ σ₀
       (Sat256.ofUInt256 g) A I)
     (argsStore := flipperCtorLocals vat cat ilk)
     ?_ rfl ?_ ?_
@@ -941,22 +937,20 @@ theorem flipperSolmCtorExecReverts_nonpayable
   · rfl
   · simpa [ExecTransitionBody, contract, constructorDecl, nonpayable] using
       bodyReverts_nonPayable (cfg := config) (contract := contract)
-        (evm := initState createdAccounts genesisBlockHeader blocks σ σ₀
+        (evm := initState σ σ₀
           (Sat256.ofUInt256 g) A I)
         (locals := flipperCtorLocals vat cat ilk) hwv
 
 theorem flipperCtorNonpayableRDrev
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8)
     (hcode : I.code = flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk)
     (hperm : I.perm = true) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
+      (initState σ σ₀ g A I) := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  have rd0 : RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-      ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 := by
+  have rd0 : RD code I g (initState σ σ₀ g A I) ⟨0⟩ []
+      ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 := by
     simpa [code] using RD.initState hcode
   have rd5 := evm_run rd0 with [
     raw push1 ⟨128⟩ (by flipper_ctor_decode) (by evm_ov),
@@ -1035,7 +1029,7 @@ theorem flipperCtorNonpayableRDrev
     (by simp only [List.length_cons, List.length_nil]; omega)
   simpa [code] using
     RD.solcPush1Dup1Revert0 (code := code) (ee := I) (g := g)
-      (s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) rd73
+      (s0 := initState σ σ₀ g A I) rd73
       (by flipper_ctor_decode) (by flipper_ctor_decode) (by flipper_ctor_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -1067,9 +1061,9 @@ theorem flipperCtorCallerWardsSlot_eq (I : ExecutionEnv) :
   unfold wardsSlot mapSlot flipperCtorCallerWardsSlot solcMappingSlot solcSourceWord
   rw [keyValueToWord_address]
 
-theorem flipperCtorPackedAccountMapEquiv {σBeg : AccountMap} {evm1s : EVM.State}
+theorem flipperCtorPacked_accountMap_eq {σBeg : AccountMap} {evm1s : EVM.State}
     {I : ExecutionEnv}
-    (hAccountsBeg : accountMapEquiv σBeg evm1s.accountMap)
+    (hAccountsBeg : Eq σBeg evm1s.accountMap)
     (hExec : evm1s.executionEnv = I) :
     let slot5Old := solcSlotWord σBeg I ⟨5⟩
     let slot5New :=
@@ -1081,11 +1075,11 @@ theorem flipperCtorPackedAccountMapEquiv {σBeg : AccountMap} {evm1s : EVM.State
     let σPacked := sstoreAccountMap I.codeOwner σBeg ⟨5⟩ slot5New
     let evm2s := flipperCtorAfterTtlState evm1s
     let evm3s := flipperCtorAfterTauState evm2s
-    accountMapEquiv σPacked evm3s.accountMap := by
+    Eq σPacked evm3s.accountMap := by
   intro slot5Old slot5New σPacked evm2s evm3s
   by_cases hmissing : σBeg.find? I.codeOwner = none
   · have hmissingSolm : evm1s.accountMap.find? I.codeOwner = none :=
-      accountMapEquiv_find?_none hAccountsBeg hmissing
+      by rw [← hAccountsBeg]; exact hmissing
     have hmissingSolmOwner :
         evm1s.accountMap.find? evm1s.executionEnv.codeOwner = none := by
       rw [hExec]
@@ -1099,17 +1093,17 @@ theorem flipperCtorPackedAccountMapEquiv {σBeg : AccountMap} {evm1s : EVM.State
   · cases hfind : σBeg.find? I.codeOwner with
     | none => exact False.elim (hmissing hfind)
     | some acc =>
-        obtain ⟨accSolm, hfindSolm⟩ :=
-          accountMapEquiv_find?_some_exists hAccountsBeg hfind
+        have hfindSolm : evm1s.accountMap.find? I.codeOwner = some acc := by
+          rw [← hAccountsBeg]
+          exact hfind
         have hfindSolmOwner :
-            evm1s.accountMap.find? evm1s.executionEnv.codeOwner = some accSolm := by
+            evm1s.accountMap.find? evm1s.executionEnv.codeOwner = some acc := by
           rw [hExec]
           exact hfindSolm
         have hOld5 :
             slot5Old = Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨5⟩ := by
           simpa [slot5Old, solcSlotWord, Solm.EVM.storageLoad, State.lookupAccount,
-            Account.lookupStorage, hExec] using
-            accountMapEquiv_storage_findD hAccountsBeg I.codeOwner ⟨5⟩ ⟨0⟩
+            Account.lookupStorage, hExec, hAccountsBeg]
         let ttlWord :=
           setUint48Offset0Word
             (Solm.EVM.storageLoad evm1s evm1s.executionEnv.codeOwner ⟨5⟩)
@@ -1128,20 +1122,19 @@ theorem flipperCtorPackedAccountMapEquiv {σBeg : AccountMap} {evm1s : EVM.State
                 (⟨172800⟩ : UInt256) := by
           rw [hTtlLoad]
           exact flipperCtorPackedWord_eq slot5Old
-        have hbase :=
-          accountMapEquiv_sstoreAccountMap I.codeOwner ⟨5⟩ slot5New hAccountsBeg
+        have hbase := congrArg
+          (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨5⟩ slot5New)
+          hAccountsBeg
         have hself :=
-          accountMapEquiv_sstoreAccountMap_self_update evm1s.accountMap I.codeOwner ⟨5⟩
+          sstoreAccountMap_self_update evm1s.accountMap I.codeOwner ⟨5⟩
             ttlWord slot5New
-        have hpacked := accountMapEquiv.trans hbase hself
+        have hpacked := Eq.trans hbase hself
         simpa [σPacked, evm2s, evm3s, flipperCtorAfterTtlState,
           flipperCtorAfterTauState, ttlWord, hPackedVal, hExec, storageStore_accountMap,
           storageStore_executionEnv] using hpacked
 
 set_option maxHeartbeats 1000000 in
 theorem flipperCtorInitReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8)
     (hcode : I.code = flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk)
@@ -1158,12 +1151,12 @@ theorem flipperCtorInitReach
     let σKicks := sstoreAccountMap I.codeOwner σPacked ⟨6⟩ ⟨0⟩
     ∃ k C,
       RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨66⟩ []
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σKicks) k C := by
+        (initState σ σ₀ g A I) ⟨66⟩ []
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σKicks k C := by
   intro σBeg slot5Old slot5New σPacked σKicks
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  have rd0 : RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨0⟩ []
-      ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (createdAccounts, σ) 0 0 := by
+  have rd0 : RD code I g (initState σ σ₀ g A I) ⟨0⟩ []
+      ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 := by
     simpa [code] using RD.initState hcode
   have rd5 := evm_run rd0 with [
     raw push1 ⟨128⟩ (by flipper_ctor_decode) (by evm_ov),
@@ -1227,21 +1220,19 @@ theorem flipperCtorInitReach
 
 set_option maxHeartbeats 1000000 in
 private theorem flipperCtorValueGuardReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ σKicks : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) {k C : ℕ}
     (hwv : I.weiValue = ⟨0⟩)
     (rd66 :
       RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨66⟩ []
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σKicks) k C) :
+        (initState σ σ₀ g A I) ⟨66⟩ []
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σKicks k C) :
     ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨79⟩ []
-      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σKicks) k' C' := by
+      (initState σ σ₀ g A I) ⟨79⟩ []
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σKicks k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-    ⟨66⟩ [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σKicks)
+  change RD code I g (initState σ σ₀ g A I)
+    ⟨66⟩ [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σKicks
     k C at rd66
   have rd72 := evm_run rd66 with [
     raw callvalue (by flipper_ctor_decode) (by evm_ov),
@@ -1257,21 +1248,19 @@ private theorem flipperCtorValueGuardReach
 
 set_option maxHeartbeats 1000000 in
 private theorem flipperCtorArgsSizeReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ σKicks : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) {k C : ℕ}
     (rd79 :
       RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨79⟩ []
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σKicks) k C) :
+        (initState σ σ₀ g A I) ⟨79⟩ []
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σKicks k C) :
     ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨87⟩
+      (initState σ σ₀ g A I) ⟨87⟩
       [⟨96⟩, ⟨128⟩] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-      (createdAccounts, σKicks) k' C' := by
+      σKicks k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-    ⟨79⟩ [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σKicks)
+  change RD code I g (initState σ σ₀ g A I)
+    ⟨79⟩ [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σKicks
     k C at rd79
   have rd87 := evm_run rd79 with [
     raw push1 ⟨64⟩ (by flipper_ctor_decode) (by evm_ov),
@@ -1286,23 +1275,21 @@ private theorem flipperCtorArgsSizeReach
 
 set_option maxHeartbeats 1000000 in
 private theorem flipperCtorArgsCodecopyReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ σKicks : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) {k C : ℕ}
     (rd87 :
       RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨87⟩
+        (initState σ σ₀ g A I) ⟨87⟩
         [⟨96⟩, ⟨128⟩] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-        (createdAccounts, σKicks) k C) :
+        σKicks k C) :
     ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨93⟩
+      (initState σ σ₀ g A I) ⟨93⟩
       [⟨96⟩, ⟨128⟩] (flipperCtorCopiedMem vat cat ilk) (UInt256.ofNat 7)
-      ByteArray.empty (createdAccounts, σKicks) k' C' := by
+      ByteArray.empty σKicks k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
+  change RD code I g (initState σ σ₀ g A I)
     ⟨87⟩ [⟨96⟩, ⟨128⟩] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
-    (createdAccounts, σKicks) k C at rd87
+    σKicks k C at rd87
   have hcopy : code.write 6596 solcFreePtrMem 128 96 = flipperCtorCopiedMem vat cat ilk := by
     rfl
   have rd93 := evm_run rd87 with [
@@ -1318,23 +1305,21 @@ private theorem flipperCtorArgsCodecopyReach
 
 set_option maxHeartbeats 1000000 in
 private theorem flipperCtorArgsFreePtrReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ σKicks : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) {k C : ℕ}
     (rd93 :
       RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨93⟩
+        (initState σ σ₀ g A I) ⟨93⟩
         [⟨96⟩, ⟨128⟩] (flipperCtorCopiedMem vat cat ilk) (UInt256.ofNat 7)
-        ByteArray.empty (createdAccounts, σKicks) k C) :
+        ByteArray.empty σKicks k C) :
     ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨99⟩
+      (initState σ σ₀ g A I) ⟨99⟩
       [⟨96⟩, ⟨128⟩] (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7)
-      ByteArray.empty (createdAccounts, σKicks) k' C' := by
+      ByteArray.empty σKicks k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
+  change RD code I g (initState σ σ₀ g A I)
     ⟨93⟩ [⟨96⟩, ⟨128⟩] (flipperCtorCopiedMem vat cat ilk) (UInt256.ofNat 7)
-    ByteArray.empty (createdAccounts, σKicks) k C at rd93
+    ByteArray.empty σKicks k C at rd93
   have hmstore :
       (UInt256.toByteArray ⟨224⟩).write 0 (flipperCtorCopiedMem vat cat ilk) 64 32 =
         flipperCtorArgsMem vat cat ilk := by
@@ -1350,24 +1335,22 @@ private theorem flipperCtorArgsFreePtrReach
 
 set_option maxHeartbeats 1000000 in
 private theorem flipperCtorArgsGuardReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ σKicks : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) {k C : ℕ}
     (rd99 :
       RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨99⟩
+        (initState σ σ₀ g A I) ⟨99⟩
         [⟨96⟩, ⟨128⟩] (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7)
-        ByteArray.empty (createdAccounts, σKicks) k C) :
+        ByteArray.empty σKicks k C) :
     ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨107⟩
+      (initState σ σ₀ g A I) ⟨107⟩
       [⟨112⟩, ⟨1⟩, ⟨96⟩, ⟨128⟩]
       (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts, σKicks) k' C' := by
+      σKicks k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
+  change RD code I g (initState σ σ₀ g A I)
     ⟨99⟩ [⟨96⟩, ⟨128⟩] (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7)
-    ByteArray.empty (createdAccounts, σKicks) k C at rd99
+    ByteArray.empty σKicks k C at rd99
   have rd107 := evm_run rd99 with [
     raw push1 ⟨96⟩ (by flipper_ctor_decode) (by evm_ov),
     raw dup2 (by flipper_ctor_decode) (by evm_ov),
@@ -1383,24 +1366,22 @@ private theorem flipperCtorArgsGuardReach
 
 set_option maxHeartbeats 1000000 in
 private theorem flipperCtorArgsLoadReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ σKicks : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) {k C : ℕ}
     (rd112 :
       RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨112⟩
+        (initState σ σ₀ g A I) ⟨112⟩
         [⟨96⟩, ⟨128⟩] (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7)
-        ByteArray.empty (createdAccounts, σKicks) k C) :
+        ByteArray.empty σKicks k C) :
     ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨128⟩
+      (initState σ σ₀ g A I) ⟨128⟩
       [flipperIlkWord ilk, EVM.word cat.val, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
       (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts, σKicks) k' C' := by
+      σKicks k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
+  change RD code I g (initState σ σ₀ g A I)
     ⟨112⟩ [⟨96⟩, ⟨128⟩] (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7)
-    ByteArray.empty (createdAccounts, σKicks) k C at rd112
+    ByteArray.empty σKicks k C at rd112
   have hmloadVat := flipperCtorArgsMem_mload_vat vat cat ilk hilk
   have hmloadCat := flipperCtorArgsMem_mload_cat vat cat ilk hilk
   have hmloadIlk := flipperCtorArgsMem_mload_ilk vat cat ilk hilk
@@ -1426,20 +1407,18 @@ private theorem flipperCtorArgsLoadReach
 
 set_option maxHeartbeats 1000000 in
 theorem flipperCtorArgsReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ σKicks : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     (hwv : I.weiValue = ⟨0⟩) {k C : ℕ}
     (rd66 :
       RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨66⟩ []
-        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σKicks) k C) :
+        (initState σ σ₀ g A I) ⟨66⟩ []
+        solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σKicks k C) :
     ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨128⟩
+      (initState σ σ₀ g A I) ⟨128⟩
       [flipperIlkWord ilk, EVM.word cat.val, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
       (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts, σKicks) k' C' := by
+      σKicks k' C' := by
   obtain ⟨_, _, rd79⟩ := flipperCtorValueGuardReach vat cat ilk hwv rd66
   obtain ⟨_, _, rd87⟩ := flipperCtorArgsSizeReach vat cat ilk hilk rd79
   obtain ⟨_, _, rd93⟩ := flipperCtorArgsCodecopyReach vat cat ilk rd87
@@ -1451,30 +1430,27 @@ theorem flipperCtorArgsReach
 
 set_option maxHeartbeats 1000000 in
 theorem flipperCtorVatStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σKicks σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) {k C : ℕ}
     (hperm : I.perm = true)
     (rd128 :
       RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨128⟩
+        (initState σ σ₀ g A I) ⟨128⟩
         [flipperIlkWord ilk, EVM.word cat.val, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σKicks) k C) :
+        σKicks k C) :
     ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨159⟩
+      (initState σ σ₀ g A I) ⟨159⟩
       [UInt256.lnot solcAddrMask, flipperIlkWord ilk, EVM.word cat.val, ⟨32⟩,
         solcAddrMask, ⟨64⟩]
       (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner σKicks ⟨2⟩
+      (sstoreAccountMap I.codeOwner σKicks ⟨2⟩
           (setAddressOffset0Word (solcSlotWord σKicks I ⟨2⟩) (EVM.word vat.val))) k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨128⟩
+  change RD code I g (initState σ σ₀ g A I) ⟨128⟩
         [flipperIlkWord ilk, EVM.word cat.val, ⟨32⟩, EVM.word vat.val, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σKicks) k C at rd128
+        σKicks k C at rd128
   have rdBeforeSload := evm_run rd128 with [
     raw push1 ⟨2⟩ (by flipper_ctor_decode) (by evm_ov),
     raw dup1 (by flipper_ctor_decode) (by evm_ov)]
@@ -1556,32 +1532,29 @@ theorem flipperCtorVatStoreReach
 
 set_option maxHeartbeats 1000000 in
 theorem flipperCtorCatStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σVat σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) {k C : ℕ}
     (hperm : I.perm = true)
     (rd159 :
       RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨159⟩
+        (initState σ σ₀ g A I) ⟨159⟩
         [UInt256.lnot solcAddrMask, flipperIlkWord ilk, EVM.word cat.val, ⟨32⟩,
           solcAddrMask, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σVat) k C) :
+        σVat k C) :
     ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨175⟩
+      (initState σ σ₀ g A I) ⟨175⟩
       [⟨32⟩, flipperIlkWord ilk, ⟨64⟩]
       (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts,
-        sstoreAccountMap I.codeOwner σVat ⟨7⟩
+      (sstoreAccountMap I.codeOwner σVat ⟨7⟩
           (setAddressOffset0Word (solcSlotWord σVat I ⟨7⟩) (EVM.word cat.val)))
       k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨159⟩
+  change RD code I g (initState σ σ₀ g A I) ⟨159⟩
         [UInt256.lnot solcAddrMask, flipperIlkWord ilk, EVM.word cat.val, ⟨32⟩,
           solcAddrMask, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σVat) k C at rd159
+        σVat k C at rd159
   have rdBeforeSload := evm_run rd159 with [
     raw push1 ⟨7⟩ (by flipper_ctor_decode) (by evm_ov),
     raw dup1 (by flipper_ctor_decode) (by evm_ov)]
@@ -1616,28 +1589,26 @@ theorem flipperCtorCatStoreReach
 
 set_option maxHeartbeats 1000000 in
 theorem flipperCtorIlkStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σCat σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) {k C : ℕ}
     (hperm : I.perm = true)
     (rd175 :
       RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨175⟩
+        (initState σ σ₀ g A I) ⟨175⟩
         [⟨32⟩, flipperIlkWord ilk, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σCat) k C) :
+        σCat k C) :
     ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨181⟩
+      (initState σ σ₀ g A I) ⟨181⟩
       [⟨32⟩, ⟨64⟩]
       (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts, sstoreAccountMap I.codeOwner σCat ⟨3⟩ (flipperIlkWord ilk))
+      (sstoreAccountMap I.codeOwner σCat ⟨3⟩ (flipperIlkWord ilk))
       k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨175⟩
+  change RD code I g (initState σ σ₀ g A I) ⟨175⟩
         [⟨32⟩, flipperIlkWord ilk, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σCat) k C at rd175
+        σCat k C at rd175
   have rdBeforeStore := evm_run rd175 with [
     raw push1 ⟨3⟩ (by flipper_ctor_decode) (by evm_ov),
     raw swap2 (by flipper_ctor_decode) (by evm_ov),
@@ -1648,27 +1619,25 @@ theorem flipperCtorIlkStoreReach
 
 set_option maxHeartbeats 1000000 in
 theorem flipperCtorWardsStoreReach
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σIlk σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) {k C : ℕ}
     (hperm : I.perm = true)
     (rd181 :
       RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨181⟩
+        (initState σ σ₀ g A I) ⟨181⟩
         [⟨32⟩, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σIlk) k C) :
+        σIlk k C) :
     ∃ k' C', RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨196⟩ []
+      (initState σ σ₀ g A I) ⟨196⟩ []
       (flipperCtorWardsHashMem I vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-      (createdAccounts, sstoreAccountMap I.codeOwner σIlk (flipperCtorCallerWardsSlot I) ⟨1⟩)
+      (sstoreAccountMap I.codeOwner σIlk (flipperCtorCallerWardsSlot I) ⟨1⟩)
       k' C' := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨181⟩
+  change RD code I g (initState σ σ₀ g A I) ⟨181⟩
         [⟨32⟩, ⟨64⟩]
         (flipperCtorArgsMem vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σIlk) k C at rd181
+        σIlk k C at rd181
   have rdBeforeHash := evm_run rd181 with [
     raw caller (by flipper_ctor_decode) (by evm_ov),
     raw push1 ⟨0⟩ (by flipper_ctor_decode) (by evm_ov),
@@ -1694,23 +1663,21 @@ theorem flipperCtorWardsStoreReach
 
 set_option maxHeartbeats 1000000 in
 theorem flipperCtorReturnRuntime
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ σFinal : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     {k C : ℕ}
     (vat cat : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32)
     (rd196 :
       RD (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) I g
-        (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨196⟩ []
+        (initState σ σ₀ g A I) ⟨196⟩ []
         (flipperCtorWardsHashMem I vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σFinal) k C) :
+        σFinal k C) :
     RDret (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-      (createdAccounts, σFinal) flipperBytecode := by
+      (initState σ σ₀ g A I)
+      σFinal flipperBytecode := by
   let code := flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk
-  change RD code I g (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨196⟩ []
+  change RD code I g (initState σ σ₀ g A I) ⟨196⟩ []
         (flipperCtorWardsHashMem I vat cat ilk) (UInt256.ofNat 7) ByteArray.empty
-        (createdAccounts, σFinal) k C at rd196
+        σFinal k C at rd196
   have hcopy :
       code.write 210 (flipperCtorWardsHashMem I vat cat ilk) 0 6386 =
         flipperCtorRuntimeMem vat cat ilk (flipperCtorWardsHashMem I vat cat ilk) := by
@@ -1732,30 +1699,26 @@ theorem flipperCtorReturnRuntime
     (flipperCtorRuntimeMem_read vat cat ilk hilk (flipperCtorWardsHashMem I vat cat ilk))
     (by evm_ov)
 
-theorem RDret.xiResultAcc {cA gh bl σ σ₀ A I} {g : Sat256} {code o : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+theorem RDret.xiResultAcc {σ σ₀ A I} {g : Sat256} {code o : ByteArray}
+    {acc : AccountMap}
     (hcode : I.code = code)
-    (h : RDret code g (initState cA gh bl σ σ₀ g A I) acc o) :
-    Ξ cA gh bl σ σ₀ g.toUInt256 A I = .error .OutOfGass
+    (h : RDret code g (initState σ σ₀ g A I) acc o) :
+    Ξ σ σ₀ g.toUInt256 A I = .error .OutOfGass
     ∨ ∃ (g' : UInt256) (A' : Substate),
-        Ξ cA gh bl σ σ₀ g.toUInt256 A I =
-          .ok (.success (acc.1, acc.2, g', A') o) := by
+        Ξ σ σ₀ g.toUInt256 A I = .ok (.success (acc, g', A') o) := by
   rcases h with hoog | ⟨s, hX, hacc⟩
   · exact Or.inl (Xi_error_of_X (g := g.toUInt256) (by
       rw [← hcode] at hoog
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hoog))
-  · have hcA : s.createdAccounts = acc.1 := congrArg Prod.fst hacc
-    have hσ : s.accountMap = acc.2 := congrArg Prod.snd hacc
+  · have hσ : s.accountMap = acc := hacc
     have hxi := Xi_success_of_X (g := g.toUInt256) (by
       rw [← hcode] at hX
       simpa [initState, Sat256.ofUInt256, Sat256.toUInt256] using hX)
-    rw [hcA, hσ] at hxi
+    rw [hσ] at hxi
     exact Or.inr ⟨_, _, hxi⟩
 
 set_option maxHeartbeats 1000000 in
 theorem flipperCtorSuccessRDret
-    {createdAccounts : Batteries.RBSet AccountAddress compare}
-    {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : Sat256}
     (vat cat : AccountAddress) (ilk : List UInt8)
     (hcode : I.code = flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk)
@@ -1777,60 +1740,53 @@ theorem flipperCtorSuccessRDret
     let σIlk := sstoreAccountMap I.codeOwner σCat ⟨3⟩ (flipperIlkWord ilk)
     let σWards := sstoreAccountMap I.codeOwner σIlk (flipperCtorCallerWardsSlot I) ⟨1⟩
     RDret (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk) g
-      (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I)
-      (createdAccounts, σWards) flipperBytecode := by
+      (initState σ σ₀ g A I)
+      σWards flipperBytecode := by
   intro σBeg slot5Old slot5New σPacked σKicks vatStored σVat catStored σCat σIlk σWards
   obtain ⟨_, _, rd66⟩ := flipperCtorInitReach
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     vat cat ilk hcode hperm
   have rd66' := by
     simpa [σBeg, slot5Old, slot5New, σPacked, σKicks] using rd66
   obtain ⟨_, _, rd128⟩ := flipperCtorArgsReach
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (σKicks := σKicks) vat cat ilk hilk hwv rd66'
   obtain ⟨_, _, rd159⟩ := flipperCtorVatStoreReach
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     vat cat ilk hperm rd128
   have rd159' := by
     simpa [vatStored, σVat] using rd159
   obtain ⟨_, _, rd175⟩ := flipperCtorCatStoreReach
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     vat cat ilk hperm rd159'
   have rd175' := by
     simpa [catStored, σCat] using rd175
   obtain ⟨_, _, rd181⟩ := flipperCtorIlkStoreReach
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     vat cat ilk hperm rd175'
   have rd181' := by
     simpa [σIlk] using rd181
   obtain ⟨_, _, rd196⟩ := flipperCtorWardsStoreReach
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     vat cat ilk hilk hperm rd181'
   have rd196' := by
     simpa [σWards] using rd196
   exact flipperCtorReturnRuntime
-    (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-    (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     vat cat ilk hilk rd196'
 
 set_option maxHeartbeats 1000000 in
 theorem flipperConstructorCorrect :
     constructorEquivalence config flipperCreationBytecode contract flipperBytecode := by
   refine constructorEquivalence.intro ?_
-  intro createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I args deployedInitcode
-    hdeploy hcode _hcalldata hperm hAccounts
+  intro σ σ₀ g A I args deployedInitcode
+    hdeploy hcode _hcalldata hperm
   rcases flipperCtorDeployment_shape hdeploy with ⟨vat, cat, ilk, hargs, hilk, hdeployed⟩
   subst args
   have hcodeTail : I.code = flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk := by
     simpa [hdeployed] using hcode
   by_cases hwv : I.weiValue = ⟨0⟩
-  · let σBeg := sstoreAccountMap I.codeOwner σ_evm ⟨4⟩ ⟨1050000000000000000⟩
+  · let σBeg := sstoreAccountMap I.codeOwner σ ⟨4⟩ ⟨1050000000000000000⟩
     let slot5Old := solcSlotWord σBeg I ⟨5⟩
     let slot5New :=
       UInt256.lor (⟨0x02a300000000000000⟩ : UInt256)
@@ -1847,21 +1803,20 @@ theorem flipperConstructorCorrect :
     let σIlk := sstoreAccountMap I.codeOwner σCat ⟨3⟩ (flipperIlkWord ilk)
     let σWards := sstoreAccountMap I.codeOwner σIlk (flipperCtorCallerWardsSlot I) ⟨1⟩
     have hrd0 := flipperCtorSuccessRDret
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat cat ilk hcodeTail hperm hilk hwv
     have hrd :
         RDret (flipperCreationBytecode ++ flipperCtorArgsTail vat cat ilk)
           (Sat256.ofUInt256 g)
-          (initState createdAccounts genesisBlockHeader blocks σ_evm σ₀
+          (initState σ σ₀
             (Sat256.ofUInt256 g) A I)
-          (createdAccounts, σWards) flipperBytecode := by
+          σWards flipperBytecode := by
       simpa [σBeg, slot5Old, slot5New, σPacked, σKicks, vatStored, σVat, catStored,
         σCat, σIlk, σWards] using hrd0
     rcases RDret.xiResultAcc hcodeTail hrd with hOOG | ⟨g', A', hsuccess⟩
     · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
     · let evm0s :=
-        initState createdAccounts genesisBlockHeader blocks σ_solm σ₀
+        initState σ σ₀
           (Sat256.ofUInt256 g) A I
       let evm1s := flipperCtorAfterBegState evm0s
       let evm2s := flipperCtorAfterTtlState evm1s
@@ -1871,26 +1826,24 @@ theorem flipperConstructorCorrect :
       let evm6s := flipperCtorAfterCatState evm5s cat
       let evm7s := flipperCtorAfterIlkState evm6s ilk
       let evm8s := flipperCtorAfterWardsState evm7s
-      have hAccountsBeg : accountMapEquiv σBeg evm1s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨4⟩
-          (⟨1050000000000000000⟩ : UInt256) hAccounts
-        simpa [σBeg, evm1s, evm0s, flipperCtorAfterBegState, initState,
-          storageStore_accountMap, storageStore_executionEnv] using hbase
+      have hAccountsBeg : Eq σBeg evm1s.accountMap := by
+        simp [σBeg, evm1s, evm0s, flipperCtorAfterBegState, initState,
+          storageStore_accountMap, storageStore_executionEnv]
       have hEvm1Exec : evm1s.executionEnv = I := by
         simp [evm1s, evm0s, flipperCtorAfterBegState, initState, storageStore_executionEnv]
       have hEvm2Exec : evm2s.executionEnv = I := by
         simpa [evm2s, flipperCtorAfterTtlState, storageStore_executionEnv] using hEvm1Exec
-      have hAccountsPacked : accountMapEquiv σPacked evm3s.accountMap := by
+      have hAccountsPacked : Eq σPacked evm3s.accountMap := by
         have hpacked :=
-          flipperCtorPackedAccountMapEquiv
+          flipperCtorPacked_accountMap_eq
             (σBeg := σBeg) (evm1s := evm1s) (I := I) hAccountsBeg hEvm1Exec
         simpa [slot5Old, slot5New, σPacked, evm2s, evm3s] using hpacked
       have hEvm3Exec : evm3s.executionEnv = I := by
         simpa [evm3s, flipperCtorAfterTauState, storageStore_executionEnv] using hEvm2Exec
-      have hAccountsKicks : accountMapEquiv σKicks evm4s.accountMap := by
-        have hbase :=
-          accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩ (⟨0⟩ : UInt256)
-            hAccountsPacked
+      have hAccountsKicks : Eq σKicks evm4s.accountMap := by
+        have hbase := congrArg
+          (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨6⟩ (⟨0⟩ : UInt256))
+          hAccountsPacked
         simpa [σKicks, evm4s, evm3s, flipperCtorAfterKicksState,
           storageStore_accountMap, storageStore_executionEnv, hEvm2Exec, hEvm3Exec] using hbase
       have hEvm4Exec : evm4s.executionEnv = I := by
@@ -1899,13 +1852,13 @@ theorem flipperConstructorCorrect :
           solcSlotWord σKicks I ⟨2⟩ =
             Solm.EVM.storageLoad evm4s evm4s.executionEnv.codeOwner ⟨2⟩ := by
         simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, solcSlotWord,
-          hEvm4Exec] using
-          accountMapEquiv_storage_findD hAccountsKicks I.codeOwner ⟨2⟩ ⟨0⟩
-      have hAccountsVat : accountMapEquiv σVat evm5s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨2⟩
-          (setAddressOffset0Word
-            (Solm.EVM.storageLoad evm4s evm4s.executionEnv.codeOwner ⟨2⟩)
-            (EVM.word vat.val))
+          hEvm4Exec, hAccountsKicks]
+      have hAccountsVat : Eq σVat evm5s.accountMap := by
+        have hbase := congrArg
+          (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨2⟩
+            (setAddressOffset0Word
+              (Solm.EVM.storageLoad evm4s evm4s.executionEnv.codeOwner ⟨2⟩)
+              (EVM.word vat.val)))
           hAccountsKicks
         simpa [σVat, vatStored, evm5s, evm4s, flipperCtorAfterVatState,
           storageStore_accountMap, storageStore_executionEnv, hEvm3Exec, hEvm4Exec, hOldVat]
@@ -1916,32 +1869,34 @@ theorem flipperConstructorCorrect :
           solcSlotWord σVat I ⟨7⟩ =
             Solm.EVM.storageLoad evm5s evm5s.executionEnv.codeOwner ⟨7⟩ := by
         simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, solcSlotWord,
-          hEvm5Exec] using
-          accountMapEquiv_storage_findD hAccountsVat I.codeOwner ⟨7⟩ ⟨0⟩
-      have hAccountsCat : accountMapEquiv σCat evm6s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner ⟨7⟩
-          (setAddressOffset0Word
-            (Solm.EVM.storageLoad evm5s evm5s.executionEnv.codeOwner ⟨7⟩)
-            (EVM.word cat.val))
+          hEvm5Exec, hAccountsVat]
+      have hAccountsCat : Eq σCat evm6s.accountMap := by
+        have hbase := congrArg
+          (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨7⟩
+            (setAddressOffset0Word
+              (Solm.EVM.storageLoad evm5s evm5s.executionEnv.codeOwner ⟨7⟩)
+              (EVM.word cat.val)))
           hAccountsVat
         simpa [σCat, catStored, evm6s, evm5s, flipperCtorAfterCatState,
           storageStore_accountMap, storageStore_executionEnv, hEvm4Exec, hEvm5Exec, hOldCat]
           using hbase
       have hEvm6Exec : evm6s.executionEnv = I := by
         simpa [evm6s, flipperCtorAfterCatState, storageStore_executionEnv] using hEvm5Exec
-      have hAccountsIlk : accountMapEquiv σIlk evm7s.accountMap := by
-        have hbase :=
-          accountMapEquiv_sstoreAccountMap I.codeOwner ⟨3⟩ (flipperIlkWord ilk)
-            hAccountsCat
+      have hAccountsIlk : Eq σIlk evm7s.accountMap := by
+        have hbase := congrArg
+          (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨3⟩ (flipperIlkWord ilk))
+          hAccountsCat
         simpa [σIlk, evm7s, evm6s, flipperCtorAfterIlkState, storageStore_accountMap,
           storageStore_executionEnv, hEvm5Exec, hEvm6Exec] using hbase
       have hEvm7Exec : evm7s.executionEnv = I := by
         simpa [evm7s, flipperCtorAfterIlkState, storageStore_executionEnv] using hEvm6Exec
       have hslot : wardsSlot (.address I.source) = flipperCtorCallerWardsSlot I :=
         flipperCtorCallerWardsSlot_eq I
-      have hAccountsWards : accountMapEquiv σWards evm8s.accountMap := by
-        have hbase := accountMapEquiv_sstoreAccountMap I.codeOwner
-          (flipperCtorCallerWardsSlot I) ⟨1⟩ hAccountsIlk
+      have hAccountsWards : Eq σWards evm8s.accountMap := by
+        have hbase := congrArg
+          (fun accounts => sstoreAccountMap I.codeOwner accounts
+            (flipperCtorCallerWardsSlot I) ⟨1⟩)
+          hAccountsIlk
         simpa [σWards, evm8s, evm7s, flipperCtorAfterWardsState, storageStore_accountMap,
           storageStore_executionEnv, hEvm6Exec, hEvm7Exec, hslot] using hbase
       refine constructorEquivalenceFor.execution
@@ -1949,27 +1904,18 @@ theorem flipperConstructorCorrect :
         (by
           simpa [evm0s, evm1s, evm2s, evm3s, evm4s, evm5s, evm6s, evm7s, evm8s]
             using flipperCtorSolmExecSuccess
-              (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-              (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+              (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
               (g := g) vat cat ilk hilk hwv)
         ?_
-      refine ctorResultEquiv.success rfl rfl ?_ ?_ rfl
-      · simp [evm8s, evm7s, evm6s, evm5s, evm4s, evm3s, evm2s, evm1s, evm0s,
-          flipperCtorAfterWardsState, flipperCtorAfterIlkState, flipperCtorAfterCatState,
-          flipperCtorAfterVatState, flipperCtorAfterKicksState, flipperCtorAfterTauState,
-          flipperCtorAfterTtlState, flipperCtorAfterBegState, storageStore_createdAccounts,
-          initState]
-      · simpa [evm8s] using hAccountsWards
+      exact ctorResultEquiv.success rfl rfl hAccountsWards rfl
   · have hrd := flipperCtorNonpayableRDrev
-      (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-      (blocks := blocks) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
+      (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
       (g := Sat256.ofUInt256 g) vat cat ilk hcodeTail hperm hwv
     rcases hrd.xiResult hcodeTail with hOOG | ⟨g', o, hrev⟩
     · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
     · refine constructorEquivalenceFor.execution (by simpa [Sat256.ofUInt256] using hrev)
         (flipperSolmCtorExecReverts_nonpayable
-          (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
-          (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
+          (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
           (g := g) vat cat ilk hwv) ?_
       exact ctorResultEquiv.revert rfl rfl
 

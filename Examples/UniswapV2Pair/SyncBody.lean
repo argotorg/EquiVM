@@ -514,19 +514,11 @@ theorem syncToken1GuardFalse_of_noCode {σ : AccountMap}
     evalExpr? config { contract := contract, locals := (∅ : Store).insert "balance0" balance0 }
       evm0 (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
         .ok (.bool false) := by
-  let token1WordS := uniswapSlotWord ⟨7⟩ σ I
   let token1WordE := uniswapSlotWord ⟨7⟩ evm0.accountMap evm0.executionEnv
-  have hslot : token1WordS = token1WordE := by
-    have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨7⟩ ⟨0⟩
-    simpa [token1WordS, token1WordE, uniswapSlotWord, henv] using hword
   have hcodeEvm :
       extCodeSizeWord evm0.accountMap (UInt256.land solcAddrMask token1WordE) =
         ⟨0⟩ := by
-    have hsame :=
-      extCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask token1WordS)
-    rw [← hslot]
-    rw [← hsame]
-    simpa [token1WordS] using htoken1NoCode
+    simpa only [token1WordE, hPost, henv] using htoken1NoCode
   have hstorage :
       evalExpr? config { contract := contract, locals := (∅ : Store).insert "balance0" balance0 }
         evm0 (.storage token1Ref) = .ok (.address (uniswapAddressAtSlot evm0 ⟨7⟩)) := by
@@ -570,20 +562,11 @@ theorem syncToken1GuardTrue_of_code {σ : AccountMap}
       extCodeSizeWord σ (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) ≠
         ⟨0⟩) :
     syncToken1GuardTrue evm0 balance0 := by
-  let token1WordS := uniswapSlotWord ⟨7⟩ σ I
   let token1WordE := uniswapSlotWord ⟨7⟩ evm0.accountMap evm0.executionEnv
-  have hslot : token1WordS = token1WordE := by
-    have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨7⟩ ⟨0⟩
-    simpa [token1WordS, token1WordE, uniswapSlotWord, henv] using hword
   have hcodeEvm :
       extCodeSizeWord evm0.accountMap (UInt256.land solcAddrMask token1WordE) ≠
         ⟨0⟩ := by
-    intro hzero
-    have hsame :=
-      extCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask token1WordS)
-    rw [← hslot] at hzero
-    rw [← hsame] at hzero
-    exact htoken1Code (by simpa [token1WordS] using hzero)
+    simpa only [token1WordE, hPost, henv] using htoken1Code
   have hstorage :
       evalExpr? config { contract := contract, locals := (∅ : Store).insert "balance0" balance0 }
         evm0 (.storage token1Ref) = .ok (.address (uniswapAddressAtSlot evm0 ⟨7⟩)) := by
@@ -961,7 +944,7 @@ theorem uniswapSyncBody
                           Solm.EVM.storageLoad evm1S evm1S.executionEnv.codeOwner ⟨8⟩ =
                             uniswapSlotWord ⟨8⟩ σ'' I := by
                         have hslot :=
-                          accountMapEquiv_storage_findD hPostAccounts1 I.codeOwner ⟨8⟩ ⟨0⟩
+                          congrArg (fun m => uniswapSlotWord ⟨8⟩ m I) hPostAccounts1
                         simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                           uniswapSlotWord, henv1I] using hslot.symm
                       by_cases helapsed0 :
@@ -1100,15 +1083,14 @@ theorem uniswapSyncBody
                                 Eq
                                   (sstoreAccountMap I.codeOwner σ'' ⟨8⟩ packed)
                                   (sstoreAccountMap I.codeOwner evm1S.accountMap ⟨8⟩ packed) :=
-                              accountMapEquiv_sstoreAccountMap I.codeOwner ⟨8⟩ packed
-                                hPostAccounts1
+                              congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨8⟩ packed) hPostAccounts1
                             have hsingle :
                                 Eq
                                   (sstoreAccountMap I.codeOwner evm1S.accountMap ⟨8⟩ packed)
                                   (sstoreAccountMap I.codeOwner
                                     (sstoreAccountMap I.codeOwner evm1S.accountMap ⟨8⟩ v1)
                                     ⟨8⟩ packed) :=
-                              accountMapEquiv_sstoreAccountMap_self_update evm1S.accountMap
+                              sstoreAccountMap_self_update evm1S.accountMap
                                 I.codeOwner ⟨8⟩ v1 packed
                             have hupdate01 :
                                 Eq
@@ -1116,7 +1098,7 @@ theorem uniswapSyncBody
                                   (sstoreAccountMap I.codeOwner
                                     (sstoreAccountMap I.codeOwner evm1S.accountMap ⟨8⟩ v0)
                                     ⟨8⟩ v1) :=
-                              accountMapEquiv_sstoreAccountMap_self_update evm1S.accountMap
+                              sstoreAccountMap_self_update evm1S.accountMap
                                 I.codeOwner ⟨8⟩ v0 v1
                             have hdouble :
                                 Eq
@@ -1128,7 +1110,7 @@ theorem uniswapSyncBody
                                       (sstoreAccountMap I.codeOwner evm1S.accountMap ⟨8⟩ v0)
                                       ⟨8⟩ v1)
                                     ⟨8⟩ packed) :=
-                              accountMapEquiv_sstoreAccountMap I.codeOwner ⟨8⟩ packed hupdate01
+                              congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨8⟩ packed) hupdate01
                             have hchain := (hbase.trans hsingle).trans hdouble
                             simpa [syncUpdatePackedReserveState, storageStore_accountMap,
                               storageStore_executionEnv, hload0, hload1, hload2, henv1I,
@@ -1161,8 +1143,7 @@ theorem uniswapSyncBody
                               (uniswapLockExitedState
                                 (syncUpdatePackedReserveState evm1S balance0 balance1)).accountMap := by
                           have hs :=
-                            accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩
-                              hPackedAccounts
+                            congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨12⟩ ⟨1⟩) hPackedAccounts
                           simpa [uniswapLockExitedState, uniswapUnlockedState,
                             storageStore_accountMap, storageStore_executionEnv,
                             syncUpdatePackedReserveState, henv1I] using hs
@@ -1260,7 +1241,7 @@ theorem uniswapSyncBody
                               Eq
                                 (sstoreAccountMap I.codeOwner σ'' ⟨8⟩ packed)
                                 (syncUpdatePackedReserveState evm1S balance0 balance1).accountMap :=
-                            accountMapEquiv_syncUpdatePackedReserveState hPostAccounts1 henv1I
+                            syncUpdatePackedReserveState_accountMap_eq hPostAccounts1 henv1I
                               hslotWordSource (by rfl)
                           have hAccountsRet :
                               Eq
@@ -1269,8 +1250,7 @@ theorem uniswapSyncBody
                                 (uniswapLockExitedState
                                   (syncUpdatePackedReserveState evm1S balance0 balance1)).accountMap := by
                             have hs :=
-                              accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩
-                                hPackedAccounts
+                              congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨12⟩ ⟨1⟩) hPackedAccounts
                             simpa [uniswapLockExitedState, uniswapUnlockedState,
                               storageStore_accountMap, storageStore_executionEnv,
                               syncUpdatePackedReserveState, henv1I] using hs
@@ -1568,8 +1548,7 @@ theorem uniswapSyncBody
                                 exact uniswapUint112Masked_lt _
                             have hP0Accounts : Eq σP0 evmP0.accountMap := by
                               have hs :=
-                                accountMapEquiv_sstoreAccountMap I.codeOwner ⟨9⟩
-                                  price0Word hPostAccounts1
+                                congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨9⟩ price0Word) hPostAccounts1
                               simpa [σP0, evmP0, storageStore_accountMap, hprice0Eq]
                                 using hs
                             have henvP0 : evmP0.executionEnv = I := by
@@ -1611,8 +1590,7 @@ theorem uniswapSyncBody
                                 exact uniswapUint112Masked_lt _
                             have hP1Accounts : Eq σP1 evmP1.accountMap := by
                               have hs :=
-                                accountMapEquiv_sstoreAccountMap I.codeOwner ⟨10⟩
-                                  price1Word hP0Accounts
+                                congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨10⟩ price1Word) hP0Accounts
                               simpa [σP1, evmP1, storageStore_accountMap, hprice1Eq]
                                 using hs
                             have henvP1 : evmP1.executionEnv = I := by
@@ -1621,8 +1599,7 @@ theorem uniswapSyncBody
                                 Solm.EVM.storageLoad evmP1 evmP1.executionEnv.codeOwner ⟨8⟩ =
                                   uniswapSlotWord ⟨8⟩ σP1 I := by
                               have h :=
-                                accountMapEquiv_storage_findD hP1Accounts I.codeOwner ⟨8⟩
-                                  ⟨0⟩
+                                congrArg (fun m => uniswapSlotWord ⟨8⟩ m I) hP1Accounts
                               simp [Solm.EVM.storageLoad, State.lookupAccount,
                                 Account.lookupStorage, uniswapSlotWord, henvP1] at h ⊢
                               exact h.symm
@@ -1630,7 +1607,7 @@ theorem uniswapSyncBody
                                 Eq
                                   (sstoreAccountMap I.codeOwner σP1 ⟨8⟩ packedCumulative)
                                   (syncUpdatePackedReserveState evmP1 balance0 balance1).accountMap :=
-                              accountMapEquiv_syncUpdatePackedReserveState hP1Accounts henvP1
+                              syncUpdatePackedReserveState_accountMap_eq hP1Accounts henvP1
                                 hslot8P1 (by rfl)
                             have hPackedAccountsCumulative :
                                 Eq
@@ -1657,8 +1634,7 @@ theorem uniswapSyncBody
                                     (syncUpdateCumulativePackedReserveState evm1S
                                       balance0 balance1)).accountMap := by
                               have hs :=
-                                accountMapEquiv_sstoreAccountMap I.codeOwner ⟨12⟩ ⟨1⟩
-                                  hPackedAccountsCumulative
+                                congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨12⟩ ⟨1⟩) hPackedAccountsCumulative
                               simpa [uniswapLockExitedState, uniswapUnlockedState,
                                 storageStore_accountMap, storageStore_executionEnv,
                                 syncUpdateCumulativePackedReserveState, henv1I] using hs

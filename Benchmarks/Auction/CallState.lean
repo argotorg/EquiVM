@@ -32,9 +32,15 @@ theorem SourceState.callTransport {s0 I σ evm} (hs : SourceState s0 I σ evm)
     (hcall : callViaEVM (callState evm σ) target value calldata (z, evm', out)) :
     ∃ evmS', callViaEVM evm target value calldata (z, evmS', out) ∧
       SourceState s0 I evm'.accountMap evmS' := by
-  obtain ⟨σS', AS', hcallS, haccounts⟩ := callViaEVM_accountMapEquiv
-    (evm_solm := evm) hcall hs.accounts rfl rfl
-  exact ⟨_, hcallS, ⟨hs.world, hs.env, haccounts⟩⟩
+  have hstate : callState evm σ = evm := by
+    cases evm
+    simpa [callState] using hs.accounts
+  rw [hstate] at hcall
+  have hpost : evm'.σ₀ = evm.σ₀ ∧ evm'.executionEnv = evm.executionEnv := by
+    cases hcall with
+    | callMade _ _ hevm' _ _ => simp [hevm']
+    | callNotMade _ hevm' _ => simp [hevm']
+  exact ⟨evm', hcall, ⟨hpost.1.trans hs.world, hpost.2.trans hs.env, rfl⟩⟩
 
 theorem callStateMade {s0 I σ evm} (hs : SourceState s0 I σ evm)
     {target value : UInt256} {calldata : ByteArray}

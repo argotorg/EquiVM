@@ -1117,28 +1117,10 @@ theorem vowCageFirstDaiNoCodeBodyCore {σ σ₀ A I} {g : UInt256}
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.vowCageFirstDaiNoCode (R := [vowSelWord I]) rdLoads hmemAuth hread64
       (by simpa [σClearedEvm] using hcodeSizeRaw) (by simp)
-  have hauthSolm : vowSlotWord (vowCallerWardsSlot I) σ I = ⟨1⟩ := by
-    have hslot :=
-      accountMapEquiv_storage_findD hAccounts I.codeOwner (vowCallerWardsSlot I) ⟨0⟩
-    exact (by simpa [vowSlotWord] using hslot.symm.trans hauthEvm)
-  have hliveSolm : vowSlotWord ⟨12⟩ σ I = ⟨1⟩ := by
-    have hslot := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨12⟩ ⟨0⟩
-    exact (by simpa [vowSlotWord] using hslot.symm.trans hliveEvm)
-  have hClearedAccounts : Eq σClearedEvm σClearedSolm := by
-    simpa [σClearedEvm, σClearedSolm] using
-      accountMapEquiv_vowCageCleared I.codeOwner hAccounts
-  have hTargetCleared :
-      kissDaiTargetWord σClearedEvm I = kissDaiTargetWord σClearedSolm I := by
-    have hslot := accountMapEquiv_storage_findD hClearedAccounts I.codeOwner ⟨1⟩ ⟨0⟩
-    simp [kissDaiTargetWord, vowSlotWord, hslot]
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σClearedSolm
         (kissDaiTargetWord σClearedSolm I) = ⟨0⟩ := by
-    have hsame :=
-      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hClearedAccounts
-        (kissDaiTargetWord σClearedEvm I)
-    rw [← hTargetCleared, ← hsame]
-    simpa [σClearedEvm] using hcodeSize
+    simpa [σClearedSolm] using hcodeSize
   let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let evmLive := Solm.EVM.storageStore evm0 I.codeOwner ⟨12⟩ ⟨0⟩
   let evmSin := Solm.EVM.storageStore evmLive I.codeOwner ⟨5⟩ ⟨0⟩
@@ -1171,7 +1153,7 @@ theorem vowCageFirstDaiNoCodeBodyCore {σ σ₀ A I} {g : UInt256}
       storageStore_accountMap, σClearedSolm, vowCageClearedAccountMap] using hzero
   have hbody := cageSourceFirstDaiNoCode
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-    hwv hauthSolm hliveSolm
+    hwv hauthEvm hliveEvm
     (by simpa [evm0, evmLive, evmSin, evmAsh] using hvatNoCode)
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 

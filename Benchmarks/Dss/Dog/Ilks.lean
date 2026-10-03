@@ -754,35 +754,6 @@ theorem dogIlksBodyReturns {v : DogImmutables} {I : ExecutionEnv}
       ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
         ExecBlock.consReturn (ExecStmt.return hreturns))
 
-theorem dogIlksReturnValuesEquiv {I : ExecutionEnv} {σ : AccountMap} :
-    some [Value.address (AccountAddress.ofNat
-        (dogAddressReturnWord (ilksClipSlotFor I) σ I).toNat),
-      Value.int (Int.ofNat (dogSlotWord (ilksChopSlotFor I) σ I).toNat),
-      Value.int (Int.ofNat (dogSlotWord (ilksHoleSlotFor I) σ I).toNat),
-      Value.int (Int.ofNat (dogSlotWord (ilksDirtSlotFor I) σ I).toNat)] =
-    some [Value.address (AccountAddress.ofNat
-        (dogAddressReturnWord (ilksClipSlotFor I) σ I).toNat),
-      Value.int (Int.ofNat (dogSlotWord (ilksChopSlotFor I) σ I).toNat),
-      Value.int (Int.ofNat (dogSlotWord (ilksHoleSlotFor I) σ I).toNat),
-      Value.int (Int.ofNat (dogSlotWord (ilksDirtSlotFor I) σ I).toNat)] := by
-  have hclip :
-      dogSlotWord (ilksClipSlotFor I) σ I =
-        dogSlotWord (ilksClipSlotFor I) σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (ilksClipSlotFor I) ⟨0⟩
-  have hchop :
-      dogSlotWord (ilksChopSlotFor I) σ I =
-        dogSlotWord (ilksChopSlotFor I) σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (ilksChopSlotFor I) ⟨0⟩
-  have hhole :
-      dogSlotWord (ilksHoleSlotFor I) σ I =
-        dogSlotWord (ilksHoleSlotFor I) σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (ilksHoleSlotFor I) ⟨0⟩
-  have hdirt :
-      dogSlotWord (ilksDirtSlotFor I) σ I =
-        dogSlotWord (ilksDirtSlotFor I) σ I :=
-    accountMapEquiv_storage_findD hAccounts I.codeOwner (ilksDirtSlotFor I) ⟨0⟩
-  simp [dogAddressReturnWord, hclip, hchop, hhole, hdirt]
-
 theorem dogIlksReturnEquiv (clip chop hole dirt : UInt256) :
     returnEquiv
       (UInt256.toByteArray (UInt256.land clip solcAddrMask) ++ UInt256.toByteArray chop ++
@@ -932,10 +903,8 @@ theorem dogIlksBodyCoreOk
       some [Value.address (AccountAddress.ofNat (UInt256.land clipWord solcAddrMask).toNat),
         Value.int (Int.ofNat chopWord.toNat), Value.int (Int.ofNat holeWord.toNat),
         Value.int (Int.ofNat dirtWord.toNat)] := by
-    simpa [hclipSlot, hchopSlot, hholeSlot, hdirtSlot, clipWord, chopWord, holeWord,
-      dirtWord, dogAddressReturnWord] using
-      (dogIlksReturnValuesEquiv (I := I) (σ := σ)
-        hAccounts)
+    simp [hclipSlot, hchopSlot, hholeSlot, hdirtSlot, clipWord, chopWord, holeWord,
+      dirtWord, dogAddressReturnWord]
   have henc := dogIlksReturnEquiv clipWord chopWord holeWord dirtWord
   have hbody :
       ExecTransitionBody (config v) (contract v)
@@ -1024,7 +993,8 @@ theorem dogIlksBodyCoreOk
           UInt256.land clipWord solcAddrMask := by
       exact solcAddrMask_clean (solcAddrMask_result_canonical clipWord)
     simpa [hclean] using hret'
-  exact hret.reEquivExecutionTransport hcode hdispatch hdecode hbody hval hAccounts henc
+  rw [hval] at hbody
+  exact hret.reEquivExecution hcode hdispatch hdecode hbody henc
 
 theorem dogIlksBodyCoreDecodeFailed_short
     {v : DogImmutables} {code : ByteArray}
@@ -1083,7 +1053,7 @@ theorem dogIlksBodyCore {v : DogImmutables} {code : ByteArray}
     hpatch hcode hwv hsz4 hsize hsel
   by_cases hsz36 : 36 ≤ I.calldata.size
   · exact dogIlksBodyCoreOk hpatch hcode hwv hsz36 hsize hdispatch
-      (dogDecode_ilks_ok (v := v) hsz36) hreach hAccounts
+      (dogDecode_ilks_ok (v := v) hsz36) hreach
   · exact dogIlksBodyCoreDecodeFailed_short hpatch hcode hsize hsz4 (by omega)
       hdispatch hreach
 

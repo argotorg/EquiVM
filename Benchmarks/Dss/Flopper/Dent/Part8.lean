@@ -100,22 +100,13 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  let evmCallEvm : EVM.State :=
-    { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-        accountMap := σ', substate := A' }
-  obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hpostAccountsCall⟩ :=
-    typedCallViaEVM_accountMapEquiv hcall rfl rfl rfl
+  let σ'_solm := σ'
+  let A'_solm := A'
+  have hcallSolmRaw := hcall
+  have hpostAccountsCall : σ' = σ'_solm := rfl
   let evmCallSolm : EVM.State :=
     { evmSolm with accountMap := σ'_solm, substate := A'_solm }
   let packedSlot := auctionPackedSlot (dentIdWord I)
-  have hvatEq :
-      flopperAddressReturnWord ⟨2⟩ σ I =
-        flopperAddressReturnWord ⟨2⟩ σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl ⟨2⟩
-  have hguyEq :
-      flopperAddressReturnWord packedSlot σ I =
-        flopperAddressReturnWord packedSlot σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl packedSlot
   have hsrcEq : AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat = I.source := by
     simpa [solcSourceWord] using solcSource_ofNat I
   have hcallSolm :
@@ -128,20 +119,16 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
             (flopperAddressReturnWord packedSlot σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true, evmCallSolm, outMove) true := by
-    simpa [evmSolm, evmCallSolm, packedSlot, hvatEq, hguyEq, hsrcEq] using
+    simpa [evmSolm, evmCallSolm, packedSlot, hsrcEq] using
       hcallSolmRaw
   have hcallEnv : evmCallSolm.executionEnv = I := by
     have h := typedCallViaEVM_executionEnv_eq hcallSolm
     simpa [evmSolm, initState] using h
   let evmCallSolmBase : EVM.State := { evmCallSolm with substate := A' }
-  have hcallAshEnv : evmCallSolmBase.executionEnv = evmCallEvm.executionEnv := by
-    simp [evmCallSolmBase, evmCallSolm, evmCallEvm, evmSolm, initState, hcallEnv]
-  obtain ⟨σAshSolm, AAshSolm0, hcallAshSolmBase, hpostAsrfl⟩ :=
-    typedCallViaEVM_accountMapEquiv (evm_solm := evmCallSolmBase)
-      hashCall
-      (by simpa [evmCallEvm, evmCallSolmBase, evmCallSolm] using hpostAccountsCall)
-      (by simp [evmCallEvm, evmCallSolmBase, evmCallSolm, evmSolm, initState])
-      hcallAshEnv
+  let σAshSolm := σAsh
+  let AAshSolm0 := AAsh
+  have hcallAshSolmBase := hashCall
+  have hpostAsrfl : σAsh = σAshSolm := rfl
   have hdepthNeI : I.depth ≠ 1024 := by
     intro hdepthEq
     rw [hdepthEq] at hdepth
@@ -157,28 +144,17 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
   have hguyMoveEq :
       flopperAddressReturnWord packedSlot σ' I =
         flopperAddressReturnWord packedSlot σ'_solm I :=
-    flopperAddressReturnWord_accountMapEquiv hpostAccountsCall packedSlot
+    congrArg (fun accounts => flopperAddressReturnWord packedSlot accounts I) hpostAccountsCall
   have hcallAshSolm :
       typedCallViaEVM config evmCallSolm
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmCallSolm I).toNat)) "Ash" 0 []
         (true, evmAshSolm, outAsh) true := by
     simpa [evmAshSolm, evmCallSolmBase, evmCallSolm, dentGuyWord, packedSlot, hcallEnv,
       hguyMoveEq] using hcallAshSolmRaw
-  let evmAshEvmBase : EVM.State :=
-    { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-        accountMap := σAsh, substate := Ain }
   let evmAshSolmBase : EVM.State := { evmAshSolm with substate := Ain }
-  have hcallKissEnv : evmAshSolmBase.executionEnv = evmAshEvmBase.executionEnv := by
-    simp [evmAshSolmBase, evmAshSolm, evmAshEvmBase, evmCallSolm, evmSolm, initState,
-      hcallEnv]
-  obtain ⟨σKissSolm, AKissSolm0, hkissCallSolmBase, _hpostKissAccounts⟩ :=
-    typedCallViaEVM_accountMapEquiv (evm_solm := evmAshSolmBase)
-      hkissCall
-      (by simpa [evmAshEvmBase, evmAshSolmBase, evmAshSolm] using hpostAsrfl)
-      (by
-        simp [evmAshEvmBase, evmAshSolmBase, evmAshSolm, evmCallSolm, evmSolm,
-          initState, hcallEnv])
-      hcallKissEnv
+  let σKissSolm := σKiss
+  let AKissSolm0 := AKiss
+  have hkissCallSolmBase := hkissCall
   have hdepthNeKissBase : evmAshSolmBase.executionEnv.depth ≠ 1024 := by
     simpa [evmAshSolmBase, evmAshSolm, evmCallSolm, evmSolm, initState, hcallEnv]
       using hdepthNeI
@@ -191,7 +167,7 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
   have hguyAshEq :
       flopperAddressReturnWord packedSlot σAsh I =
         flopperAddressReturnWord packedSlot σAshSolm I :=
-    flopperAddressReturnWord_accountMapEquiv hpostAsrfl packedSlot
+    congrArg (fun accounts => flopperAddressReturnWord packedSlot accounts I) hpostAsrfl
   have hkissCallSolm :
       typedCallViaEVM config evmAshSolm
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAshSolm I).toNat))
@@ -202,81 +178,61 @@ theorem flopperDentBodyCoreKissCallFailureMoveCallerNeTicZero
     simpa only [evmKissSolm, evmAshSolmBase, evmAshSolm, dentGuyWord, packedSlot,
       hcallEnv] using hraw
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    simpa [evmSolm, dentLiveWord, initState, hword] using hlive
+    simpa [evmSolm, dentLiveWord, initState] using hlive
   have hguySolm : dentGuyWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     apply hguy
-    rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using hzero
   have hticOkSolm :
       (dentTimestampWord evmSolm).toNat < (dentTicWord evmSolm I).toNat ∨
         dentTicWord evmSolm I = ⟨0⟩ := by
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
     cases hticOk with
     | inl hgt =>
         left
-        simpa [evmSolm, dentTimestampWord, dentTicWord, initState, packedSlot, hword]
+        simpa [evmSolm, dentTimestampWord, dentTicWord, initState, packedSlot]
           using hgt
     | inr hzero =>
         right
-        simpa [evmSolm, dentTicWord, initState, packedSlot, hword] using hzero
+        simpa [evmSolm, dentTicWord, initState, packedSlot] using hzero
   have hendGtSolm : (dentTimestampWord evmSolm).toNat < (dentEndWord evmSolm I).toNat := by
-    have hword := flopperUint48Offset26Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
-    simpa [evmSolm, dentTimestampWord, dentEndWord, initState, packedSlot, hword] using hendGt
+    simpa [evmSolm, dentTimestampWord, dentEndWord, initState, packedSlot] using hendGt
   have hbidSolm : dentBidWord I = dentBidStoredWord evmSolm I := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionBidSlot (dentIdWord I))
-    simpa [evmSolm, dentBidStoredWord, initState, hword] using hbid
+    simpa [evmSolm, dentBidStoredWord, initState] using hbid
   have hlotLtSolm :
       (dentLotWord I).toNat < (dentLotStoredWord evmSolm I).toNat := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
-    simpa [evmSolm, dentLotStoredWord, initState, hword] using hlotLt
+    simpa [evmSolm, dentLotStoredWord, initState] using hlotLt
   have hbegFitSolm :
       (dentBegWord evmSolm).toNat * (dentLotWord I).toNat < UInt256.size := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨4⟩
-    simpa [evmSolm, dentBegWord, initState, hword] using hbegFit
+    simpa [evmSolm, dentBegWord, initState] using hbegFit
   have hlotOneFitSolm :
       (dentLotStoredWord evmSolm I).toNat * dentOneWord.toNat < UInt256.size := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
-    simpa [evmSolm, dentLotStoredWord, initState, hword] using hlotOneFit
+    simpa [evmSolm, dentLotStoredWord, initState] using hlotOneFit
   have hsuffSolm :
       (dentBegLotWord evmSolm I).toNat ≤ (dentLotOneWord evmSolm I).toNat := by
-    have hbeg := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨4⟩
-    have hlot := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
     simpa [evmSolm, dentBegLotWord, dentBegWord, dentLotOneWord, dentLotStoredWord,
-      initState, hbeg, hlot] using hsuff
+      initState] using hsuff
   have hcallerSolm :
       UInt256.ofNat evmSolm.executionEnv.source.val ≠ dentGuyWord evmSolm I := by
     intro heq
     apply hcaller
-    rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
         (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
-    flopperCodeSize_ne_accountMapEquiv_addressSlot (σ := σ) (τ := σ) rfl ⟨2⟩ hcodeSize
+    hcodeSize
   have hticMoveSolm : dentTicWord evmCallSolm I = ⟨0⟩ := by
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I)
-      hpostAccountsCall packedSlot
+    have hword := congrArg (fun accounts => flopperUint48Offset20Word packedSlot accounts I) hpostAccountsCall
     simpa [evmCallSolm, dentTicWord, packedSlot, hcallEnv, hword] using hticMove
   have hashCodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord evmCallSolm.accountMap
         (dentGuyWord evmCallSolm I) ≠ ⟨0⟩ := by
-    have hne :=
-      flopperCodeSize_ne_accountMapEquiv_addressSlot
-        hpostAccountsCall packedSlot hashCodeSize
-    simpa [evmCallSolm, dentGuyWord, packedSlot, hcallEnv] using hne
+    simpa [evmCallSolm, dentGuyWord, packedSlot, hcallEnv,
+      ← hpostAccountsCall] using hashCodeSize
   have hkissCodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord evmAshSolm.accountMap
         (dentGuyWord evmAshSolm I) ≠ ⟨0⟩ := by
-    have hne :=
-      flopperCodeSize_ne_accountMapEquiv_addressSlot
-        hpostAsrfl packedSlot hkissCodeSize
-    simpa [evmAshSolm, dentGuyWord, packedSlot, hcallEnv] using hne
+    simpa [evmAshSolm, dentGuyWord, packedSlot, hcallEnv,
+      ← hpostAsrfl] using hkissCodeSize
   have hbody :
       ExecTransitionBody config contract evmSolm (dentLocals I) dentTransition.body
         .reverted := by
@@ -388,22 +344,13 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  let evmCallEvm : EVM.State :=
-    { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-        accountMap := σ', substate := A' }
-  obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hpostAccountsCall⟩ :=
-    typedCallViaEVM_accountMapEquiv hcall rfl rfl rfl
+  let σ'_solm := σ'
+  let A'_solm := A'
+  have hcallSolmRaw := hcall
+  have hpostAccountsCall : σ' = σ'_solm := rfl
   let evmCallSolm : EVM.State :=
     { evmSolm with accountMap := σ'_solm, substate := A'_solm }
   let packedSlot := auctionPackedSlot (dentIdWord I)
-  have hvatEq :
-      flopperAddressReturnWord ⟨2⟩ σ I =
-        flopperAddressReturnWord ⟨2⟩ σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl ⟨2⟩
-  have hguyEq :
-      flopperAddressReturnWord packedSlot σ I =
-        flopperAddressReturnWord packedSlot σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl packedSlot
   have hsrcEq : AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat = I.source := by
     simpa [solcSourceWord] using solcSource_ofNat I
   have hcallSolm :
@@ -416,20 +363,16 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
             (flopperAddressReturnWord packedSlot σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true, evmCallSolm, outMove) true := by
-    simpa [evmSolm, evmCallSolm, packedSlot, hvatEq, hguyEq, hsrcEq] using
+    simpa [evmSolm, evmCallSolm, packedSlot, hsrcEq] using
       hcallSolmRaw
   have hcallEnv : evmCallSolm.executionEnv = I := by
     have h := typedCallViaEVM_executionEnv_eq hcallSolm
     simpa [evmSolm, initState] using h
   let evmCallSolmBase : EVM.State := { evmCallSolm with substate := A' }
-  have hcallAshEnv : evmCallSolmBase.executionEnv = evmCallEvm.executionEnv := by
-    simp [evmCallSolmBase, evmCallSolm, evmCallEvm, evmSolm, initState, hcallEnv]
-  obtain ⟨σAshSolm, AAshSolm0, hcallAshSolmBase, hpostAsrfl⟩ :=
-    typedCallViaEVM_accountMapEquiv (evm_solm := evmCallSolmBase)
-      hashCall
-      (by simpa [evmCallEvm, evmCallSolmBase, evmCallSolm] using hpostAccountsCall)
-      (by simp [evmCallEvm, evmCallSolmBase, evmCallSolm, evmSolm, initState])
-      hcallAshEnv
+  let σAshSolm := σAsh
+  let AAshSolm0 := AAsh
+  have hcallAshSolmBase := hashCall
+  have hpostAsrfl : σAsh = σAshSolm := rfl
   have hdepthNeI : I.depth ≠ 1024 := by
     intro hdepthEq
     rw [hdepthEq] at hdepth
@@ -445,28 +388,18 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
   have hguyMoveEq :
       flopperAddressReturnWord packedSlot σ' I =
         flopperAddressReturnWord packedSlot σ'_solm I :=
-    flopperAddressReturnWord_accountMapEquiv hpostAccountsCall packedSlot
+    congrArg (fun accounts => flopperAddressReturnWord packedSlot accounts I) hpostAccountsCall
   have hcallAshSolm :
       typedCallViaEVM config evmCallSolm
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmCallSolm I).toNat)) "Ash" 0 []
         (true, evmAshSolm, outAsh) true := by
     simpa [evmAshSolm, evmCallSolmBase, evmCallSolm, dentGuyWord, packedSlot, hcallEnv,
       hguyMoveEq] using hcallAshSolmRaw
-  let evmAshEvmBase : EVM.State :=
-    { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-        accountMap := σAsh, substate := Ain }
   let evmAshSolmBase : EVM.State := { evmAshSolm with substate := Ain }
-  have hcallKissEnv : evmAshSolmBase.executionEnv = evmAshEvmBase.executionEnv := by
-    simp [evmAshSolmBase, evmAshSolm, evmAshEvmBase, evmCallSolm, evmSolm, initState,
-      hcallEnv]
-  obtain ⟨σKissSolm, AKissSolm0, hkissCallSolmBase, hpostKissAccounts⟩ :=
-    typedCallViaEVM_accountMapEquiv (evm_solm := evmAshSolmBase)
-      hkissCall
-      (by simpa [evmAshEvmBase, evmAshSolmBase, evmAshSolm] using hpostAsrfl)
-      (by
-        simp [evmAshEvmBase, evmAshSolmBase, evmAshSolm, evmCallSolm, evmSolm,
-          initState, hcallEnv])
-      hcallKissEnv
+  let σKissSolm := σKiss
+  let AKissSolm0 := AKiss
+  have hkissCallSolmBase := hkissCall
+  have hpostKissAccounts : σKiss = σKissSolm := rfl
   have hdepthNeKissBase : evmAshSolmBase.executionEnv.depth ≠ 1024 := by
     simpa [evmAshSolmBase, evmAshSolm, evmCallSolm, evmSolm, initState, hcallEnv]
       using hdepthNeI
@@ -479,7 +412,7 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
   have hguyAshEq :
       flopperAddressReturnWord packedSlot σAsh I =
         flopperAddressReturnWord packedSlot σAshSolm I :=
-    flopperAddressReturnWord_accountMapEquiv hpostAsrfl packedSlot
+    congrArg (fun accounts => flopperAddressReturnWord packedSlot accounts I) hpostAsrfl
   have hkissCallSolm :
       typedCallViaEVM config evmAshSolm
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAshSolm I).toNat))
@@ -493,87 +426,67 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicZeroKissSuccess
     have h := typedCallViaEVM_executionEnv_eq hkissCallSolm
     simpa [evmKissSolm, evmAshSolm, evmCallSolm, evmSolm, initState, hcallEnv] using h
   have hAfterGuy :=
-    dentRuntimeAfterGuyMap_accountMapEquiv
+    dentRuntimeAfterGuyMap_eq_afterGuyStore
       (I := I) (σ := σKiss) (evmSolm := evmKissSolm)
       (by simpa [evmKissSolm] using hpostKissAccounts) hkissEnv
   have httl :=
     dentRuntimeTtlWord_afterGuy_eq (I := I) hAfterGuy hkissEnv
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    simpa [evmSolm, dentLiveWord, initState, hword] using hlive
+    simpa [evmSolm, dentLiveWord, initState] using hlive
   have hguySolm : dentGuyWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     apply hguy
-    rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using hzero
   have hticOkSolm :
       (dentTimestampWord evmSolm).toNat < (dentTicWord evmSolm I).toNat ∨
         dentTicWord evmSolm I = ⟨0⟩ := by
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
     cases hticOk with
     | inl hgt =>
         left
-        simpa [evmSolm, dentTimestampWord, dentTicWord, initState, packedSlot, hword]
+        simpa [evmSolm, dentTimestampWord, dentTicWord, initState, packedSlot]
           using hgt
     | inr hzero =>
         right
-        simpa [evmSolm, dentTicWord, initState, packedSlot, hword] using hzero
+        simpa [evmSolm, dentTicWord, initState, packedSlot] using hzero
   have hendGtSolm : (dentTimestampWord evmSolm).toNat < (dentEndWord evmSolm I).toNat := by
-    have hword := flopperUint48Offset26Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
-    simpa [evmSolm, dentTimestampWord, dentEndWord, initState, packedSlot, hword] using hendGt
+    simpa [evmSolm, dentTimestampWord, dentEndWord, initState, packedSlot] using hendGt
   have hbidSolm : dentBidWord I = dentBidStoredWord evmSolm I := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionBidSlot (dentIdWord I))
-    simpa [evmSolm, dentBidStoredWord, initState, hword] using hbid
+    simpa [evmSolm, dentBidStoredWord, initState] using hbid
   have hlotLtSolm :
       (dentLotWord I).toNat < (dentLotStoredWord evmSolm I).toNat := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
-    simpa [evmSolm, dentLotStoredWord, initState, hword] using hlotLt
+    simpa [evmSolm, dentLotStoredWord, initState] using hlotLt
   have hbegFitSolm :
       (dentBegWord evmSolm).toNat * (dentLotWord I).toNat < UInt256.size := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨4⟩
-    simpa [evmSolm, dentBegWord, initState, hword] using hbegFit
+    simpa [evmSolm, dentBegWord, initState] using hbegFit
   have hlotOneFitSolm :
       (dentLotStoredWord evmSolm I).toNat * dentOneWord.toNat < UInt256.size := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
-    simpa [evmSolm, dentLotStoredWord, initState, hword] using hlotOneFit
+    simpa [evmSolm, dentLotStoredWord, initState] using hlotOneFit
   have hsuffSolm :
       (dentBegLotWord evmSolm I).toNat ≤ (dentLotOneWord evmSolm I).toNat := by
-    have hbeg := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨4⟩
-    have hlot := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
     simpa [evmSolm, dentBegLotWord, dentBegWord, dentLotOneWord, dentLotStoredWord,
-      initState, hbeg, hlot] using hsuff
+      initState] using hsuff
   have hcallerSolm :
       UInt256.ofNat evmSolm.executionEnv.source.val ≠ dentGuyWord evmSolm I := by
     intro heq
     apply hcaller
-    rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
         (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
-    flopperCodeSize_ne_accountMapEquiv_addressSlot (σ := σ) (τ := σ) rfl ⟨2⟩ hcodeSize
+    hcodeSize
   have hticMoveSolm : dentTicWord evmCallSolm I = ⟨0⟩ := by
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I)
-      hpostAccountsCall packedSlot
+    have hword := congrArg (fun accounts => flopperUint48Offset20Word packedSlot accounts I) hpostAccountsCall
     simpa [evmCallSolm, dentTicWord, packedSlot, hcallEnv, hword] using hticMove
   have hashCodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord evmCallSolm.accountMap
         (dentGuyWord evmCallSolm I) ≠ ⟨0⟩ := by
-    have hne :=
-      flopperCodeSize_ne_accountMapEquiv_addressSlot
-        hpostAccountsCall packedSlot hashCodeSize
-    simpa [evmCallSolm, dentGuyWord, packedSlot, hcallEnv] using hne
+    simpa [evmCallSolm, dentGuyWord, packedSlot, hcallEnv,
+      ← hpostAccountsCall] using hashCodeSize
   have hkissCodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord evmAshSolm.accountMap
         (dentGuyWord evmAshSolm I) ≠ ⟨0⟩ := by
-    have hne :=
-      flopperCodeSize_ne_accountMapEquiv_addressSlot
-        hpostAsrfl packedSlot hkissCodeSize
-    simpa [evmAshSolm, dentGuyWord, packedSlot, hcallEnv] using hne
+    simpa [evmAshSolm, dentGuyWord, packedSlot, hcallEnv,
+      ← hpostAsrfl] using hkissCodeSize
   have haddOverflowSolm :
       2 ^ 48 ≤
         (dentNow48Word (dentAfterGuyStore evmKissSolm I)).toNat +
@@ -695,22 +608,13 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  let evmCallEvm : EVM.State :=
-    { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-        accountMap := σ', substate := A' }
-  obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hpostAccountsCall⟩ :=
-    typedCallViaEVM_accountMapEquiv hcall rfl rfl rfl
+  let σ'_solm := σ'
+  let A'_solm := A'
+  have hcallSolmRaw := hcall
+  have hpostAccountsCall : σ' = σ'_solm := rfl
   let evmCallSolm : EVM.State :=
     { evmSolm with accountMap := σ'_solm, substate := A'_solm }
   let packedSlot := auctionPackedSlot (dentIdWord I)
-  have hvatEq :
-      flopperAddressReturnWord ⟨2⟩ σ I =
-        flopperAddressReturnWord ⟨2⟩ σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl ⟨2⟩
-  have hguyEq :
-      flopperAddressReturnWord packedSlot σ I =
-        flopperAddressReturnWord packedSlot σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl packedSlot
   have hsrcEq : AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat = I.source := by
     simpa [solcSourceWord] using solcSource_ofNat I
   have hcallSolm :
@@ -723,20 +627,16 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
             (flopperAddressReturnWord packedSlot σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true, evmCallSolm, outMove) true := by
-    simpa [evmSolm, evmCallSolm, packedSlot, hvatEq, hguyEq, hsrcEq] using
+    simpa [evmSolm, evmCallSolm, packedSlot, hsrcEq] using
       hcallSolmRaw
   have hcallEnv : evmCallSolm.executionEnv = I := by
     have h := typedCallViaEVM_executionEnv_eq hcallSolm
     simpa [evmSolm, initState] using h
   let evmCallSolmBase : EVM.State := { evmCallSolm with substate := A' }
-  have hcallAshEnv : evmCallSolmBase.executionEnv = evmCallEvm.executionEnv := by
-    simp [evmCallSolmBase, evmCallSolm, evmCallEvm, evmSolm, initState, hcallEnv]
-  obtain ⟨σAshSolm, AAshSolm0, hcallAshSolmBase, hpostAsrfl⟩ :=
-    typedCallViaEVM_accountMapEquiv (evm_solm := evmCallSolmBase)
-      hashCall
-      (by simpa [evmCallEvm, evmCallSolmBase, evmCallSolm] using hpostAccountsCall)
-      (by simp [evmCallEvm, evmCallSolmBase, evmCallSolm, evmSolm, initState])
-      hcallAshEnv
+  let σAshSolm := σAsh
+  let AAshSolm0 := AAsh
+  have hcallAshSolmBase := hashCall
+  have hpostAsrfl : σAsh = σAshSolm := rfl
   have hdepthNeI : I.depth ≠ 1024 := by
     intro hdepthEq
     rw [hdepthEq] at hdepth
@@ -752,28 +652,18 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
   have hguyMoveEq :
       flopperAddressReturnWord packedSlot σ' I =
         flopperAddressReturnWord packedSlot σ'_solm I :=
-    flopperAddressReturnWord_accountMapEquiv hpostAccountsCall packedSlot
+    congrArg (fun accounts => flopperAddressReturnWord packedSlot accounts I) hpostAccountsCall
   have hcallAshSolm :
       typedCallViaEVM config evmCallSolm
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmCallSolm I).toNat)) "Ash" 0 []
         (true, evmAshSolm, outAsh) true := by
     simpa [evmAshSolm, evmCallSolmBase, evmCallSolm, dentGuyWord, packedSlot, hcallEnv,
       hguyMoveEq] using hcallAshSolmRaw
-  let evmAshEvmBase : EVM.State :=
-    { initState σ σ₀ (Sat256.ofUInt256 g) A I with
-        accountMap := σAsh, substate := Ain }
   let evmAshSolmBase : EVM.State := { evmAshSolm with substate := Ain }
-  have hcallKissEnv : evmAshSolmBase.executionEnv = evmAshEvmBase.executionEnv := by
-    simp [evmAshSolmBase, evmAshSolm, evmAshEvmBase, evmCallSolm, evmSolm, initState,
-      hcallEnv]
-  obtain ⟨σKissSolm, AKissSolm0, hkissCallSolmBase, hpostKissAccounts⟩ :=
-    typedCallViaEVM_accountMapEquiv (evm_solm := evmAshSolmBase)
-      hkissCall
-      (by simpa [evmAshEvmBase, evmAshSolmBase, evmAshSolm] using hpostAsrfl)
-      (by
-        simp [evmAshEvmBase, evmAshSolmBase, evmAshSolm, evmCallSolm, evmSolm,
-          initState, hcallEnv])
-      hcallKissEnv
+  let σKissSolm := σKiss
+  let AKissSolm0 := AKiss
+  have hkissCallSolmBase := hkissCall
+  have hpostKissAccounts : σKiss = σKissSolm := rfl
   have hdepthNeKissBase : evmAshSolmBase.executionEnv.depth ≠ 1024 := by
     simpa [evmAshSolmBase, evmAshSolm, evmCallSolm, evmSolm, initState, hcallEnv]
       using hdepthNeI
@@ -786,7 +676,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
   have hguyAshEq :
       flopperAddressReturnWord packedSlot σAsh I =
         flopperAddressReturnWord packedSlot σAshSolm I :=
-    flopperAddressReturnWord_accountMapEquiv hpostAsrfl packedSlot
+    congrArg (fun accounts => flopperAddressReturnWord packedSlot accounts I) hpostAsrfl
   have hkissCallSolm :
       typedCallViaEVM config evmAshSolm
         (EVM.address (AccountAddress.ofNat (dentGuyWord evmAshSolm I).toNat))
@@ -800,87 +690,67 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
     have h := typedCallViaEVM_executionEnv_eq hkissCallSolm
     simpa [evmKissSolm, evmAshSolm, evmCallSolm, evmSolm, initState, hcallEnv] using h
   have hAfterGuy :=
-    dentRuntimeAfterGuyMap_accountMapEquiv
+    dentRuntimeAfterGuyMap_eq_afterGuyStore
       (I := I) (σ := σKiss) (evmSolm := evmKissSolm)
       (by simpa [evmKissSolm] using hpostKissAccounts) hkissEnv
   have httl :=
     dentRuntimeTtlWord_afterGuy_eq (I := I) hAfterGuy hkissEnv
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    simpa [evmSolm, dentLiveWord, initState, hword] using hlive
+    simpa [evmSolm, dentLiveWord, initState] using hlive
   have hguySolm : dentGuyWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     apply hguy
-    rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using hzero
   have hticOkSolm :
       (dentTimestampWord evmSolm).toNat < (dentTicWord evmSolm I).toNat ∨
         dentTicWord evmSolm I = ⟨0⟩ := by
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
     cases hticOk with
     | inl hgt =>
         left
-        simpa [evmSolm, dentTimestampWord, dentTicWord, initState, packedSlot, hword]
+        simpa [evmSolm, dentTimestampWord, dentTicWord, initState, packedSlot]
           using hgt
     | inr hzero =>
         right
-        simpa [evmSolm, dentTicWord, initState, packedSlot, hword] using hzero
+        simpa [evmSolm, dentTicWord, initState, packedSlot] using hzero
   have hendGtSolm : (dentTimestampWord evmSolm).toNat < (dentEndWord evmSolm I).toNat := by
-    have hword := flopperUint48Offset26Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
-    simpa [evmSolm, dentTimestampWord, dentEndWord, initState, packedSlot, hword] using hendGt
+    simpa [evmSolm, dentTimestampWord, dentEndWord, initState, packedSlot] using hendGt
   have hbidSolm : dentBidWord I = dentBidStoredWord evmSolm I := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionBidSlot (dentIdWord I))
-    simpa [evmSolm, dentBidStoredWord, initState, hword] using hbid
+    simpa [evmSolm, dentBidStoredWord, initState] using hbid
   have hlotLtSolm :
       (dentLotWord I).toNat < (dentLotStoredWord evmSolm I).toNat := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
-    simpa [evmSolm, dentLotStoredWord, initState, hword] using hlotLt
+    simpa [evmSolm, dentLotStoredWord, initState] using hlotLt
   have hbegFitSolm :
       (dentBegWord evmSolm).toNat * (dentLotWord I).toNat < UInt256.size := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨4⟩
-    simpa [evmSolm, dentBegWord, initState, hword] using hbegFit
+    simpa [evmSolm, dentBegWord, initState] using hbegFit
   have hlotOneFitSolm :
       (dentLotStoredWord evmSolm I).toNat * dentOneWord.toNat < UInt256.size := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
-    simpa [evmSolm, dentLotStoredWord, initState, hword] using hlotOneFit
+    simpa [evmSolm, dentLotStoredWord, initState] using hlotOneFit
   have hsuffSolm :
       (dentBegLotWord evmSolm I).toNat ≤ (dentLotOneWord evmSolm I).toNat := by
-    have hbeg := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨4⟩
-    have hlot := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
     simpa [evmSolm, dentBegLotWord, dentBegWord, dentLotOneWord, dentLotStoredWord,
-      initState, hbeg, hlot] using hsuff
+      initState] using hsuff
   have hcallerSolm :
       UInt256.ofNat evmSolm.executionEnv.source.val ≠ dentGuyWord evmSolm I := by
     intro heq
     apply hcaller
-    rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
         (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
-    flopperCodeSize_ne_accountMapEquiv_addressSlot (σ := σ) (τ := σ) rfl ⟨2⟩ hcodeSize
+    hcodeSize
   have hticMoveSolm : dentTicWord evmCallSolm I = ⟨0⟩ := by
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I)
-      hpostAccountsCall packedSlot
+    have hword := congrArg (fun accounts => flopperUint48Offset20Word packedSlot accounts I) hpostAccountsCall
     simpa [evmCallSolm, dentTicWord, packedSlot, hcallEnv, hword] using hticMove
   have hashCodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord evmCallSolm.accountMap
         (dentGuyWord evmCallSolm I) ≠ ⟨0⟩ := by
-    have hne :=
-      flopperCodeSize_ne_accountMapEquiv_addressSlot
-        hpostAccountsCall packedSlot hashCodeSize
-    simpa [evmCallSolm, dentGuyWord, packedSlot, hcallEnv] using hne
+    simpa [evmCallSolm, dentGuyWord, packedSlot, hcallEnv,
+      ← hpostAccountsCall] using hashCodeSize
   have hkissCodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord evmAshSolm.accountMap
         (dentGuyWord evmAshSolm I) ≠ ⟨0⟩ := by
-    have hne :=
-      flopperCodeSize_ne_accountMapEquiv_addressSlot
-        hpostAsrfl packedSlot hkissCodeSize
-    simpa [evmAshSolm, dentGuyWord, packedSlot, hcallEnv] using hne
+    simpa [evmAshSolm, dentGuyWord, packedSlot, hcallEnv,
+      ← hpostAsrfl] using hkissCodeSize
   have haddFitSolm :
       (dentNow48Word (dentAfterGuyStore evmKissSolm I)).toNat +
           (dentTtlWord (dentAfterLotStore (dentAfterGuyStore evmKissSolm I) I)).toNat <
@@ -909,7 +779,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
     flopperDentX_successFromTailAw8
       (g := Sat256.ofUInt256 g) hperm haddFit rd2889
   have hpostAccounts :=
-    dentRuntimeTailSuccessAccountMap_afterGuy_accountMapEquiv
+    dentRuntimeTailSuccessAccountMap_afterGuy_eq_postState
       (I := I) hAfterGuy hkissEnv haddFit
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     (by simpa [evmKissSolm] using hpostAccounts)
@@ -981,19 +851,13 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicNonzero
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hpostAccountsCall⟩ :=
-    typedCallViaEVM_accountMapEquiv hcall rfl rfl rfl
+  let σ'_solm := σ'
+  let A'_solm := A'
+  have hcallSolmRaw := hcall
+  have hpostAccountsCall : σ' = σ'_solm := rfl
   let evmCallSolm : EVM.State :=
     { evmSolm with accountMap := σ'_solm, substate := A'_solm }
   let packedSlot := auctionPackedSlot (dentIdWord I)
-  have hvatEq :
-      flopperAddressReturnWord ⟨2⟩ σ I =
-        flopperAddressReturnWord ⟨2⟩ σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl ⟨2⟩
-  have hguyEq :
-      flopperAddressReturnWord packedSlot σ I =
-        flopperAddressReturnWord packedSlot σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl packedSlot
   have hsrcEq : AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat = I.source := by
     simpa [solcSourceWord] using solcSource_ofNat I
   have hcallSolm :
@@ -1006,80 +870,64 @@ theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicNonzero
             (flopperAddressReturnWord packedSlot σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true, evmCallSolm, out) true := by
-    simpa [evmSolm, evmCallSolm, packedSlot, hvatEq, hguyEq, hsrcEq] using
+    simpa [evmSolm, evmCallSolm, packedSlot, hsrcEq] using
       hcallSolmRaw
   have hcallEnv : evmCallSolm.executionEnv = I := by
     have h := typedCallViaEVM_executionEnv_eq hcallSolm
     simpa [evmSolm, initState] using h
   have hAfterGuy :=
-    dentRuntimeAfterGuyMap_accountMapEquiv
+    dentRuntimeAfterGuyMap_eq_afterGuyStore
       (I := I) hpostAccountsCall hcallEnv
   have httl :=
     dentRuntimeTtlWord_afterGuy_eq (I := I) hAfterGuy hcallEnv
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    simpa [evmSolm, dentLiveWord, initState, hword] using hlive
+    simpa [evmSolm, dentLiveWord, initState] using hlive
   have hguySolm : dentGuyWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     apply hguy
-    rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using hzero
   have hticOkSolm :
       (dentTimestampWord evmSolm).toNat < (dentTicWord evmSolm I).toNat ∨
         dentTicWord evmSolm I = ⟨0⟩ := by
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
     cases hticOk with
     | inl hgt =>
         left
-        simpa [evmSolm, dentTimestampWord, dentTicWord, initState, packedSlot, hword]
+        simpa [evmSolm, dentTimestampWord, dentTicWord, initState, packedSlot]
           using hgt
     | inr hzero =>
         right
-        simpa [evmSolm, dentTicWord, initState, packedSlot, hword] using hzero
+        simpa [evmSolm, dentTicWord, initState, packedSlot] using hzero
   have hendGtSolm : (dentTimestampWord evmSolm).toNat < (dentEndWord evmSolm I).toNat := by
-    have hword := flopperUint48Offset26Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
-    simpa [evmSolm, dentTimestampWord, dentEndWord, initState, packedSlot, hword] using hendGt
+    simpa [evmSolm, dentTimestampWord, dentEndWord, initState, packedSlot] using hendGt
   have hbidSolm : dentBidWord I = dentBidStoredWord evmSolm I := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionBidSlot (dentIdWord I))
-    simpa [evmSolm, dentBidStoredWord, initState, hword] using hbid
+    simpa [evmSolm, dentBidStoredWord, initState] using hbid
   have hlotLtSolm :
       (dentLotWord I).toNat < (dentLotStoredWord evmSolm I).toNat := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
-    simpa [evmSolm, dentLotStoredWord, initState, hword] using hlotLt
+    simpa [evmSolm, dentLotStoredWord, initState] using hlotLt
   have hbegFitSolm :
       (dentBegWord evmSolm).toNat * (dentLotWord I).toNat < UInt256.size := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨4⟩
-    simpa [evmSolm, dentBegWord, initState, hword] using hbegFit
+    simpa [evmSolm, dentBegWord, initState] using hbegFit
   have hlotOneFitSolm :
       (dentLotStoredWord evmSolm I).toNat * dentOneWord.toNat < UInt256.size := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
-    simpa [evmSolm, dentLotStoredWord, initState, hword] using hlotOneFit
+    simpa [evmSolm, dentLotStoredWord, initState] using hlotOneFit
   have hsuffSolm :
       (dentBegLotWord evmSolm I).toNat ≤ (dentLotOneWord evmSolm I).toNat := by
-    have hbeg := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨4⟩
-    have hlot := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
     simpa [evmSolm, dentBegLotWord, dentBegWord, dentLotOneWord, dentLotStoredWord,
-      initState, hbeg, hlot] using hsuff
+      initState] using hsuff
   have hcallerSolm :
       UInt256.ofNat evmSolm.executionEnv.source.val ≠ dentGuyWord evmSolm I := by
     intro heq
     apply hcaller
-    rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
         (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
-    flopperCodeSize_ne_accountMapEquiv_addressSlot (σ := σ) (τ := σ) rfl ⟨2⟩ hcodeSize
+    hcodeSize
   have hticMoveSolm : dentTicWord evmCallSolm I ≠ ⟨0⟩ := by
     intro hzero
     apply hticMove
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I)
-      hpostAccountsCall packedSlot
-    rw [hword]
+    have hmap : σ' = σ'_solm := by simpa [initState] using hpostAccountsCall
+    rw [hmap]
     simpa [evmCallSolm, dentTicWord, packedSlot, hcallEnv] using hzero
   have haddOverflowSolm :
       2 ^ 48 ≤
@@ -1169,19 +1017,13 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicNonzero
         (transitionSignature dentTransition).paramTypes I.calldata = some (dentLocals I)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  obtain ⟨σ'_solm, A'_solm, hcallSolmRaw, hpostAccountsCall⟩ :=
-    typedCallViaEVM_accountMapEquiv hcall rfl rfl rfl
+  let σ'_solm := σ'
+  let A'_solm := A'
+  have hcallSolmRaw := hcall
+  have hpostAccountsCall : σ' = σ'_solm := rfl
   let evmCallSolm : EVM.State :=
     { evmSolm with accountMap := σ'_solm, substate := A'_solm }
   let packedSlot := auctionPackedSlot (dentIdWord I)
-  have hvatEq :
-      flopperAddressReturnWord ⟨2⟩ σ I =
-        flopperAddressReturnWord ⟨2⟩ σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl ⟨2⟩
-  have hguyEq :
-      flopperAddressReturnWord packedSlot σ I =
-        flopperAddressReturnWord packedSlot σ I :=
-    flopperAddressReturnWord_accountMapEquiv (σ := σ) (τ := σ) rfl packedSlot
   have hsrcEq : AccountAddress.ofNat (UInt256.ofNat I.source.val).toNat = I.source := by
     simpa [solcSourceWord] using solcSource_ofNat I
   have hcallSolm :
@@ -1194,80 +1036,64 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicNonzero
             (flopperAddressReturnWord packedSlot σ I).toNat),
           .int (Int.ofNat (dentBidWord I).toNat)]
         (true, evmCallSolm, out) true := by
-    simpa [evmSolm, evmCallSolm, packedSlot, hvatEq, hguyEq, hsrcEq] using
+    simpa [evmSolm, evmCallSolm, packedSlot, hsrcEq] using
       hcallSolmRaw
   have hcallEnv : evmCallSolm.executionEnv = I := by
     have h := typedCallViaEVM_executionEnv_eq hcallSolm
     simpa [evmSolm, initState] using h
   have hAfterGuy :=
-    dentRuntimeAfterGuyMap_accountMapEquiv
+    dentRuntimeAfterGuyMap_eq_afterGuyStore
       (I := I) hpostAccountsCall hcallEnv
   have httl :=
     dentRuntimeTtlWord_afterGuy_eq (I := I) hAfterGuy hcallEnv
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    simpa [evmSolm, dentLiveWord, initState, hword] using hlive
+    simpa [evmSolm, dentLiveWord, initState] using hlive
   have hguySolm : dentGuyWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     apply hguy
-    rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using hzero
   have hticOkSolm :
       (dentTimestampWord evmSolm).toNat < (dentTicWord evmSolm I).toNat ∨
         dentTicWord evmSolm I = ⟨0⟩ := by
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
     cases hticOk with
     | inl hgt =>
         left
-        simpa [evmSolm, dentTimestampWord, dentTicWord, initState, packedSlot, hword]
+        simpa [evmSolm, dentTimestampWord, dentTicWord, initState, packedSlot]
           using hgt
     | inr hzero =>
         right
-        simpa [evmSolm, dentTicWord, initState, packedSlot, hword] using hzero
+        simpa [evmSolm, dentTicWord, initState, packedSlot] using hzero
   have hendGtSolm : (dentTimestampWord evmSolm).toNat < (dentEndWord evmSolm I).toNat := by
-    have hword := flopperUint48Offset26Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
-    simpa [evmSolm, dentTimestampWord, dentEndWord, initState, packedSlot, hword] using hendGt
+    simpa [evmSolm, dentTimestampWord, dentEndWord, initState, packedSlot] using hendGt
   have hbidSolm : dentBidWord I = dentBidStoredWord evmSolm I := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionBidSlot (dentIdWord I))
-    simpa [evmSolm, dentBidStoredWord, initState, hword] using hbid
+    simpa [evmSolm, dentBidStoredWord, initState] using hbid
   have hlotLtSolm :
       (dentLotWord I).toNat < (dentLotStoredWord evmSolm I).toNat := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
-    simpa [evmSolm, dentLotStoredWord, initState, hword] using hlotLt
+    simpa [evmSolm, dentLotStoredWord, initState] using hlotLt
   have hbegFitSolm :
       (dentBegWord evmSolm).toNat * (dentLotWord I).toNat < UInt256.size := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨4⟩
-    simpa [evmSolm, dentBegWord, initState, hword] using hbegFit
+    simpa [evmSolm, dentBegWord, initState] using hbegFit
   have hlotOneFitSolm :
       (dentLotStoredWord evmSolm I).toNat * dentOneWord.toNat < UInt256.size := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
-    simpa [evmSolm, dentLotStoredWord, initState, hword] using hlotOneFit
+    simpa [evmSolm, dentLotStoredWord, initState] using hlotOneFit
   have hsuffSolm :
       (dentBegLotWord evmSolm I).toNat ≤ (dentLotOneWord evmSolm I).toNat := by
-    have hbeg := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨4⟩
-    have hlot := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionLotSlot (dentIdWord I))
     simpa [evmSolm, dentBegLotWord, dentBegWord, dentLotOneWord, dentLotStoredWord,
-      initState, hbeg, hlot] using hsuff
+      initState] using hsuff
   have hcallerSolm :
       UInt256.ofNat evmSolm.executionEnv.source.val ≠ dentGuyWord evmSolm I := by
     intro heq
     apply hcaller
-    rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
       Reasoning.Theory.extCodeSizeWord σ
         (flopperAddressReturnWord ⟨2⟩ σ I) ≠ ⟨0⟩ :=
-    flopperCodeSize_ne_accountMapEquiv_addressSlot (σ := σ) (τ := σ) rfl ⟨2⟩ hcodeSize
+    hcodeSize
   have hticMoveSolm : dentTicWord evmCallSolm I ≠ ⟨0⟩ := by
     intro hzero
     apply hticMove
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I)
-      hpostAccountsCall packedSlot
-    rw [hword]
+    have hmap : σ' = σ'_solm := by simpa [initState] using hpostAccountsCall
+    rw [hmap]
     simpa [evmCallSolm, dentTicWord, packedSlot, hcallEnv] using hzero
   have haddFitSolm :
       (dentNow48Word (dentAfterGuyStore evmCallSolm I)).toNat +
@@ -1296,7 +1122,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicNonzero
     flopperDentX_successFromTailAw8
       (g := Sat256.ofUInt256 g) hperm haddFit rd2889
   have hpostAccounts :=
-    dentRuntimeTailSuccessAccountMap_afterGuy_accountMapEquiv
+    dentRuntimeTailSuccessAccountMap_afterGuy_eq_postState
       (I := I) hAfterGuy hcallEnv haddFit
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     (by simpa [evmCallSolm] using hpostAccounts)
@@ -1335,8 +1161,6 @@ theorem flopperDentBodyCoreNotLive
   have hliveSolm : dentLiveWord evmSolm ≠ ⟨1⟩ := by
     intro hbad
     apply hlive
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    rw [hword]
     simpa [evmSolm, dentLiveWord, initState] using hbad
   have hbody :
       ExecTransitionBody config contract evmSolm (dentLocals I) dentTransition.body
@@ -1366,11 +1190,9 @@ theorem flopperDentBodyCoreGuyNotSet
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let packedSlot := auctionPackedSlot (dentIdWord I)
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    simpa [evmSolm, dentLiveWord, initState, hword] using hlive
+    simpa [evmSolm, dentLiveWord, initState] using hlive
   have hguySolm : dentGuyWord evmSolm I = ⟨0⟩ := by
-    have hword := flopperAddressReturnWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
-    simpa [evmSolm, dentGuyWord, initState, packedSlot, hword] using hguy
+    simpa [evmSolm, dentGuyWord, initState, packedSlot] using hguy
   have hbody :
       ExecTransitionBody config contract evmSolm (dentLocals I) dentTransition.body
         .reverted := by
@@ -1403,23 +1225,17 @@ theorem flopperDentBodyCoreTicFinished
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let packedSlot := auctionPackedSlot (dentIdWord I)
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    simpa [evmSolm, dentLiveWord, initState, hword] using hlive
+    simpa [evmSolm, dentLiveWord, initState] using hlive
   have hguySolm : dentGuyWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     apply hguy
-    have hword := flopperAddressReturnWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
-    rw [hword]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using hzero
   have hticNeSolm : dentTicWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     apply hticNe
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
-    rw [hword]
     simpa [evmSolm, dentTicWord, initState, packedSlot] using hzero
   have hticLeSolm : (dentTicWord evmSolm I).toNat ≤ (dentTimestampWord evmSolm).toNat := by
-    have hword := flopperUint48Offset20Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
-    simpa [evmSolm, dentTicWord, dentTimestampWord, initState, packedSlot, hword]
+    simpa [evmSolm, dentTicWord, dentTimestampWord, initState, packedSlot]
       using hticLe
   have hbody :
       ExecTransitionBody config contract evmSolm (dentLocals I) dentTransition.body
@@ -1459,37 +1275,24 @@ theorem flopperDentBodyCoreEndFinished
   let id := dentIdWord I
   let packedSlot := auctionPackedSlot id
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    simpa [evmSolm, dentLiveWord, initState, hword] using hlive
+    simpa [evmSolm, dentLiveWord, initState] using hlive
   have hguySolm : dentGuyWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     apply hguy
-    have hword := flopperAddressReturnWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
-    rw [hword]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using hzero
   have hticOkSolm :
       (dentTimestampWord evmSolm).toNat < (dentTicWord evmSolm I).toNat ∨
         dentTicWord evmSolm I = ⟨0⟩ := by
-    have hword :
-        flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I =
-          flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I :=
-      (flopperUint48Offset20Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-        (auctionPackedSlot (dentIdWord I))).symm
     cases hticOk with
     | inl hgt =>
         left
-        simpa [evmSolm, dentTimestampWord, dentTicWord, initState, hword]
+        simpa [evmSolm, dentTimestampWord, dentTicWord, initState]
           using hgt
     | inr hzero =>
         right
-        simpa [evmSolm, dentTicWord, initState, hword] using hzero
+        simpa [evmSolm, dentTicWord, initState] using hzero
   have hendLeSolm : (dentEndWord evmSolm I).toNat ≤ (dentTimestampWord evmSolm).toNat := by
-    have hword :
-        flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I =
-          flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I :=
-      (flopperUint48Offset26Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-        (auctionPackedSlot (dentIdWord I))).symm
-    simpa [evmSolm, dentEndWord, dentTimestampWord, initState, hword]
+    simpa [evmSolm, dentEndWord, dentTimestampWord, initState]
       using hendLe
   have hbody :
       ExecTransitionBody config contract evmSolm (dentLocals I) dentTransition.body
@@ -1591,42 +1394,26 @@ theorem flopperDentBodyCoreBidMismatch
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
   let packedSlot := auctionPackedSlot (dentIdWord I)
   have hliveSolm : dentLiveWord evmSolm = ⟨1⟩ := by
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl ⟨8⟩
-    simpa [evmSolm, dentLiveWord, initState, hword] using hlive
+    simpa [evmSolm, dentLiveWord, initState] using hlive
   have hguySolm : dentGuyWord evmSolm I ≠ ⟨0⟩ := by
     intro hzero
     apply hguy
-    have hword := flopperAddressReturnWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl packedSlot
-    rw [hword]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using hzero
   have hticOkSolm :
       (dentTimestampWord evmSolm).toNat < (dentTicWord evmSolm I).toNat ∨
         dentTicWord evmSolm I = ⟨0⟩ := by
-    have hword :
-        flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I =
-          flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ I :=
-      (flopperUint48Offset20Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-        (auctionPackedSlot (dentIdWord I))).symm
     cases hticOk with
     | inl hgt =>
         left
-        simpa [evmSolm, dentTimestampWord, dentTicWord, initState, hword] using hgt
+        simpa [evmSolm, dentTimestampWord, dentTicWord, initState] using hgt
     | inr hzero =>
         right
-        simpa [evmSolm, dentTicWord, initState, hword] using hzero
+        simpa [evmSolm, dentTicWord, initState] using hzero
   have hendGtSolm : (dentTimestampWord evmSolm).toNat < (dentEndWord evmSolm I).toNat := by
-    have hword :
-        flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I =
-          flopperUint48Offset26Word (auctionPackedSlot (dentIdWord I)) σ I :=
-      (flopperUint48Offset26Word_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-        (auctionPackedSlot (dentIdWord I))).symm
-    simpa [evmSolm, dentEndWord, dentTimestampWord, initState, hword] using hendGt
+    simpa [evmSolm, dentEndWord, dentTimestampWord, initState] using hendGt
   have hbidSolm : dentBidWord I ≠ dentBidStoredWord evmSolm I := by
     intro heq
     apply hbid
-    have hword := flopperSlotWord_accountMapEquiv (I := I) (σ := σ) (τ := σ) rfl
-      (auctionBidSlot (dentIdWord I))
-    rw [hword]
     simpa [evmSolm, dentBidStoredWord, initState] using heq
   have hbody :
       ExecTransitionBody config contract evmSolm (dentLocals I) dentTransition.body

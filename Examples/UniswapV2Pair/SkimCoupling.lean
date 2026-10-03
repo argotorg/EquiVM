@@ -95,7 +95,7 @@ theorem uniswapSkimBalanceTypedCallFromState_source
         evmE.executionEnv.blobVersionedHashes evmE.executionEnv.blocks false := by
     simpa [evmE, target] using hΘeq
   obtain ⟨σ2S, A2S, hcallSolm, hPost2⟩ :=
-    typedCallViaEVM_callMade_accountMapEquiv
+    typedCallViaEVM_callMade_sameInputs
       (cfg := config) (evm_evm := evmE) (evm_solm := evm1S)
       (tgt := target) (targetWord := targetWord) (name := "balanceOf")
       (args := [.address evmE.executionEnv.codeOwner])
@@ -257,7 +257,7 @@ theorem uniswapSkimFirstBalanceStaticReserve0
     simpa [evmL, evmS, σLockE, uniswapLockEnteredState, uniswapUnlockedState, initState,
       storageStore_accountMap]
   have hslot :=
-    typedCallViaEVM_static_storage_findD_of_accountMapEquiv
+    typedCallViaEVM_static_storage_findD_of_accounts_eq
       (cfg := config) (σ := σLockE) (evm := evmL) (evm' := evm0S)
       (slot := ⟨8⟩) (default := ⟨0⟩) hLockStateAccounts hcall0
   simpa [uniswapReserve0Word, Solm.EVM.storageLoad, State.lookupAccount,
@@ -342,7 +342,7 @@ theorem uniswapSkimSecondBalanceStaticReserve1 {σ1 : AccountMap}
         (UInt256.div (uniswapSlotWord ⟨8⟩ σ1 I) reserve112Shift)
         reserve112Mask := by
   have hslot :=
-    typedCallViaEVM_static_storage_findD_of_accountMapEquiv
+    typedCallViaEVM_static_storage_findD_of_accounts_eq
       (cfg := config) (σ := σ1) (evm := evm1S) (evm' := evm2S)
       (slot := ⟨8⟩) (default := ⟨0⟩) hPost hcall1
   simpa [uniswapReserve1Word, Solm.EVM.storageLoad, State.lookupAccount,
@@ -458,10 +458,8 @@ theorem skimToken1GuardAfterFirstTransfer_false {σ : AccountMap}
       (.binary .gt (.extCodeSize (.var "_token1")) (.intLit 0)) = .ok (.bool false) := by
   let target := UInt256.land token1 solcAddrMask
   let addr := uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩
-  have hsame := extCodeSizeWord_accountMapEquiv hPost target
   have hnoEvm : extCodeSizeWord evm1.accountMap target = ⟨0⟩ := by
-    rw [← hsame]
-    exact hnoCode
+    simpa only [← hPost] using hnoCode
   have hcodeWord :
       EVM.Word.ofNat ((evm1.lookupAccount addr).option 0 (fun acc => acc.code.size)) = ⟨0⟩ := by
     change EVM.Word.ofNat
@@ -497,12 +495,8 @@ theorem skimToken1GuardAfterFirstTransfer_true {σ : AccountMap}
       (.binary .gt (.extCodeSize (.var "_token1")) (.intLit 0)) = .ok (.bool true) := by
   let target := UInt256.land token1 solcAddrMask
   let addr := uniswapAddressAtSlot (uniswapLockEnteredState evm) ⟨7⟩
-  have hsame := extCodeSizeWord_accountMapEquiv hPost target
   have hcodeEvm : extCodeSizeWord evm1.accountMap target ≠ ⟨0⟩ := by
-    intro hzero
-    apply hcode
-    rw [hsame]
-    exact hzero
+    simpa only [← hPost] using hcode
   have hcodeWord :
       EVM.Word.ofNat ((evm1.lookupAccount addr).option 0 (fun acc => acc.code.size)) ≠ ⟨0⟩ := by
     change EVM.Word.ofNat
@@ -548,26 +542,11 @@ theorem skimToken0GuardFalse_initState_of_noCode
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩) :
     skimToken0GuardFalse (initState σ σ₀ g A I) I := by
-  let σLockE := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
   let σLockS := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0WordE := uniswapSlotWord ⟨6⟩ σLockE I
   let token0WordS := uniswapSlotWord ⟨6⟩ σLockS I
-  have hLockAccounts : σLockE = σLockS := by
-    rfl
-  have hslot : token0WordE = token0WordS := by
-    simpa [σLockE, σLockS, token0WordE, token0WordS] using
-      accountMapEquiv_storage_findD hLockAccounts I.codeOwner ⟨6⟩ ⟨0⟩
   have hnoSolm :
       extCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) = ⟨0⟩ := by
-    have hsame :=
-      extCodeSizeWord_accountMapEquiv hLockAccounts
-        (UInt256.land solcAddrMask token0WordE)
-    have hnoE :
-        extCodeSizeWord σLockE (UInt256.land solcAddrMask token0WordE) = ⟨0⟩ := by
-      simpa [σLockE, token0WordE] using htoken0NoCode
-    rw [← hslot]
-    rw [← hsame]
-    exact hnoE
+    simpa [σLockS, token0WordS] using htoken0NoCode
   unfold skimToken0GuardFalse
   let evmS := initState σ σ₀ g A I
   let evmL := uniswapLockEnteredState evmS
@@ -614,27 +593,11 @@ theorem skimToken0GuardTrue_initState_of_code
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
     skimToken0GuardTrue (initState σ σ₀ g A I) I := by
-  let σLockE := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
   let σLockS := sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩
-  let token0WordE := uniswapSlotWord ⟨6⟩ σLockE I
   let token0WordS := uniswapSlotWord ⟨6⟩ σLockS I
-  have hLockAccounts : σLockE = σLockS := by
-    rfl
-  have hslot : token0WordE = token0WordS := by
-    simpa [σLockE, σLockS, token0WordE, token0WordS] using
-      accountMapEquiv_storage_findD hLockAccounts I.codeOwner ⟨6⟩ ⟨0⟩
   have hcodeSolm :
       extCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) ≠ ⟨0⟩ := by
-    have hsame :=
-      extCodeSizeWord_accountMapEquiv hLockAccounts
-        (UInt256.land solcAddrMask token0WordE)
-    have hcodeE :
-        extCodeSizeWord σLockE (UInt256.land solcAddrMask token0WordE) ≠ ⟨0⟩ := by
-      simpa [σLockE, token0WordE] using htoken0Code
-    intro hzero
-    apply hcodeE
-    rw [hsame]
-    rwa [hslot]
+    simpa [σLockS, token0WordS] using htoken0Code
   unfold skimToken0GuardTrue
   let evmS := initState σ σ₀ g A I
   let evmL := uniswapLockEnteredState evmS
@@ -762,9 +725,8 @@ theorem uniswapSkimBodyCoreRevert_firstNoCode
   let _toWord := maskFn (skimToWord I)
   have hunlockedSolm :
       Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
-    have hword := accountMapEquiv_storage_findD (rfl : σ = σ) I.codeOwner ⟨12⟩ ⟨0⟩
     simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-      using (hword ▸ hunlocked)
+      using hunlocked
   have hguard0 : skimToken0GuardFalse evmS I :=
     skimToken0GuardFalse_initState_of_noCode htoken0NoCode
   have hbody :
@@ -801,9 +763,8 @@ theorem uniswapSkimBodyCoreRevert_firstCallDepth
   let _toWord := maskFn (skimToWord I)
   have hunlockedSolm :
       Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩ := by
-    have hword := accountMapEquiv_storage_findD (rfl : σ = σ) I.codeOwner ⟨12⟩ ⟨0⟩
     simpa [evmS, initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-      using (hword ▸ hunlocked)
+      using hunlocked
   have hguard0 : skimToken0GuardTrue evmS I :=
     skimToken0GuardTrue_initState_of_code htoken0Code
   have hdepthSolm : evmL.executionEnv.depth = 1024 := by
