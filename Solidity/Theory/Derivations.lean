@@ -2144,11 +2144,24 @@ theorem EvalExpr.enumConst {fr : Frame} {m : Machine} {t f : Ident} {e : EnumInf
     EvalExpr cfg o fc fr m (.member (.ident t) f) (.ok (.enum t i) fr m) :=
   EvalExpr.enumMember henv hx he hi
 
-/-- A `constant` state variable: its initializer is evaluated in place. -/
-theorem EvalExpr.constVarVal {fr : Frame} {m : Machine} {x : Ident} {v : FlatVar} {e : Expr} {r : Res Value}
+/-- A `constant`: its initializer is evaluated in place and converted to the declared type. -/
+theorem EvalExpr.constVarVal {fr fr1 : Frame} {m m1 m2 : Machine} {x : Ident} {v : FlatVar} {e : Expr}
+    {val val' : Value}
     (hx : fr.get? x = none) (hv : fc.var? x = some v) (hconst : v.mutability = .constant) (hinit : v.init = some e)
-    (he : EvalExpr cfg o fc fr m e r) : EvalExpr cfg o fc fr m (.ident x) r :=
-  EvalExpr.constVar hx hv hconst hinit he
+    (he : EvalExpr cfg o fc fr m e (.ok val fr1 m1))
+    (hco : coerce cfg fc.types m1 val v.ty (some .memory) = some (.ok (val', m2))) :
+    EvalExpr cfg o fc fr m (.ident x) (.ok val' fr1 m2) :=
+  EvalExpr.constVar hx hv hconst hinit he hco
+
+/-- A `uint256 constant` whose initializer is a number literal. -/
+theorem EvalExpr.constVarLitU256 {fr : Frame} {m : Machine} {x : Ident} {v : FlatVar} {e : Expr} {k : ℕ}
+    {hd : Option Nat}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hconst : v.mutability = .constant) (hinit : v.init = some e)
+    (hty : v.ty = u256Ty) (he : EvalExpr cfg o fc fr m e (.ok (.literal k hd) fr m)) (hk : k < 2 ^ 256) :
+    EvalExpr cfg o fc fr m (.ident x) (.ok (u256Val k) fr m) := by
+  refine EvalExpr.constVar hx hv hconst hinit he ?_
+  rw [hty]
+  simp [coerce, implicitConv_literal_u256 fc.types m.heap k hd (Int.natCast_nonneg k) (by exact_mod_cast hk)]
 
 /-- `IFoo(addr)`: an address cast to a contract type by name. -/
 theorem EvalExpr.contractCast {fr fr1 : Frame} {m m1 : Machine} {c : Ident} {a : Expr} {addr : EVM.Address}

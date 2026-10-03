@@ -108,7 +108,9 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
           match v.mutability with
           | .constant => do
             let some e := v.init | failure
-            evalExpr fuel fr m e
+            let (val, fr1, m1) ← evalExpr fuel fr m e
+            let (val', m2) ← liftOp (coerce cfg fc.types m1 val v.ty (some .memory))
+            pure (val', fr1, m2)
           | .immutable => do let val ← liftOpt (immutableValue cfg fc.types fr v); pure (val, fr, m)
           | .mutable => do let val ← liftOpt (loadIfScalar cfg fc.types m.evm ⟨v.key, []⟩ v.ty); pure (val, fr, m)
         | none => failure

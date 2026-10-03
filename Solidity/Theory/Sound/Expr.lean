@@ -30,7 +30,12 @@ theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
         · rename_i hmut
           split at h
           · rename_i e he
-            exact .constVar hx hv hmut he (ih.expr _ _ _ _ h)
+            rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨val, fr1, m1⟩, hval, h⟩ <;> try dsimp only at h
+            · exact .constVarRevert hx hv hmut he (ih.expr _ _ _ _ hd)
+            · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨val', m2⟩, hc, h⟩ <;> try dsimp only at h
+              · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+                exact .constVarPanic hx hv hmut he (ih.expr _ _ _ _ hval) hp
+              · rw [IM.pure_some h]; exact .constVar hx hv hmut he (ih.expr _ _ _ _ hval) (liftOp_ok hc)
           · simp at h
         · rename_i hmut
           rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨val, hval, h⟩ <;> try dsimp only at h

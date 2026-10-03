@@ -527,8 +527,15 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | lit : literalValue l = some v → EvalExpr fr m (.lit l) (.ok v fr m)
   | thisRef : EvalExpr fr m .this (.ok (.contract fc.name m.this) fr m)
   | local : fr.get? x = some l → EvalExpr fr m (.ident x) (.ok l.val fr m)
+  -- a constant: its initializer, evaluated in place and converted to the declared type
   | constVar : fr.get? x = none → fc.var? x = some v → v.mutability = .constant → v.init = some e →
-      EvalExpr fr m e r → EvalExpr fr m (.ident x) r
+      EvalExpr fr m e (.ok val fr1 m1) → coerce cfg fc.types m1 val v.ty (some .memory) = some (.ok (val', m2)) →
+      EvalExpr fr m (.ident x) (.ok val' fr1 m2)
+  | constVarRevert : fr.get? x = none → fc.var? x = some v → v.mutability = .constant → v.init = some e →
+      EvalExpr fr m e (.reverted d) → EvalExpr fr m (.ident x) (.reverted d)
+  | constVarPanic : fr.get? x = none → fc.var? x = some v → v.mutability = .constant → v.init = some e →
+      EvalExpr fr m e (.ok val fr1 m1) → coerce cfg fc.types m1 val v.ty (some .memory) = some (.error p) →
+      EvalExpr fr m (.ident x) (.reverted p.data)
   | immutableVar : fr.get? x = none → fc.var? x = some v → v.mutability = .immutable →
       immutableValue cfg fc.types fr v = some val → EvalExpr fr m (.ident x) (.ok val fr m)
   | stateVar : fr.get? x = none → fc.var? x = some v → v.mutability = .mutable →

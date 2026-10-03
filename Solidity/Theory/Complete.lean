@@ -160,11 +160,21 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     refine ⟨1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add hk
     interp_simp [p1]
-  | .constVar p1 p2 p3 p4 p5 => by
+  | .constVar p1 p2 p3 p4 p5 p6 => by
+    obtain ⟨n5, ih5⟩ := evalExpr_complete p5
+    refine ⟨n5 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p1, p2, p3, p4, p6, ih5 k' (by omega)]
+  | .constVarRevert p1 p2 p3 p4 p5 => by
     obtain ⟨n5, ih5⟩ := evalExpr_complete p5
     refine ⟨n5 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     interp_simp [p1, p2, p3, p4, ih5 k' (by omega)]
+  | .constVarPanic p1 p2 p3 p4 p5 p6 => by
+    obtain ⟨n5, ih5⟩ := evalExpr_complete p5
+    refine ⟨n5 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p1, p2, p3, p4, p6, ih5 k' (by omega)]
   | .immutableVar p1 p2 p3 p4 => by
     refine ⟨1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add hk

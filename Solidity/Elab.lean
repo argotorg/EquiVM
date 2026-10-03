@@ -302,6 +302,18 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
     match sigOf env e.name (tysOfParams e.params) with
     | some sig => pure ({ declaredIn := d.name, decl := e, sig := sig, sigStr := ABI.printSignature sig } : ErrorInfo)
     | none => throw s!"error `{e.name}` has a parameter type without ABI encoding"
+  -- File-level events, errors and constants (after the hierarchy's own, which shadow them).
+  let fileEvents ← (p.filterMap fun | .event e => some e | _ => none).mapM fun e =>
+    match sigOf env e.name (eventTys e) with
+    | some sig => pure ({ declaredIn := "", decl := e, sig := sig, sigStr := ABI.printSignature sig } : EventInfo)
+    | none => throw s!"event `{e.name}` has a parameter type without ABI encoding"
+  let fileErrors ← (p.filterMap fun | .error e => some e | _ => none).mapM fun e =>
+    match sigOf env e.name (tysOfParams e.params) with
+    | some sig => pure ({ declaredIn := "", decl := e, sig := sig, sigStr := ABI.printSignature sig } : ErrorInfo)
+    | none => throw s!"error `{e.name}` has a parameter type without ABI encoding"
+  let fileConsts : List FlatVar := (p.filterMap fun | .constant v => some v | _ => none).map fun v =>
+    { key := v.name, name := v.name, declaredIn := "", ty := v.ty, visibility := .internal,
+      mutability := .constant, init := v.init }
   let usingFor := hier.flatMap fun d => d.usings.map fun u => (d.name, u)
   let libraries := contracts.filter (·.kind == .library)
   let interfaceSigs := contracts.map fun d =>
@@ -314,10 +326,10 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
     vtable.any fun e => (fns[e.2]!).decl.body.isNone
   pure
     { name := target, kind := root.kind, linearization := lin, types := env,
-      stateVars := stateVars, fns := fns, vtable := vtable, superTable := superTable, baseTable := baseTable,
+      stateVars := stateVars ++ fileConsts, fns := fns, vtable := vtable, superTable := superTable, baseTable := baseTable,
       modifiers := modifiers, modVtable := modVtable, modSuper := modSuper,
       ctorChain := ctorChain, entries := entries, receive? := receive?, fallback? := fallback?,
-      events := events, errors := errors, usingFor := usingFor, libraries := libraries,
+      events := events ++ fileEvents, errors := errors ++ fileErrors, usingFor := usingFor, libraries := libraries,
       interfaceSigs := interfaceSigs, contractFns := contractFns, contractCtors := contractCtors,
       freeFns := freeDefs.map fun f => (fnKeyOf f.decl, f.id), isAbstract := isAbstract }
 

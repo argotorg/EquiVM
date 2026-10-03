@@ -1038,9 +1038,8 @@ theorem explicitConv_bytes32_u256 (env : TypeEnv) (h : Heap) (bs : List UInt8) :
 theorem explicitConv_literal_address (env : TypeEnv) (h : Heap) (i : Int) (hd : Option Nat) (p : Bool)
     (h0 : 0 ≤ i) (hi : i < 2 ^ 160) :
     explicitConv env h (.literal i hd) (.address p) = some (.ok (.address (EVM.address i.toNat), h)) := by
-  simp [explicitConv, implicitConv, h0]
-  intro hbad
-  omega
+  have hi' : i < 1461501637330902918203684832716283019655932542976 := by omega
+  by_cases h40 : hd = some 40 <;> simp [explicitConv, implicitConv, h0, h40, hi'] <;> rfl
 
 /-! ## Shifts, bitwise operators, exponentiation on `uint256` -/
 
@@ -2176,5 +2175,11 @@ theorem explicitConv_bytes_fixedBytes (env : TypeEnv) (h : Heap) (id : ℕ) (d :
       some (.ok (.fixedBytes k (d.toList.take (k.val + 1) ++
         List.replicate (k.val + 1 - (d.toList.take (k.val + 1)).length) 0), h)) := by
   simp [explicitConv, hobj]
+
+/-- An address literal (40 hex digits) converts implicitly to `address`. -/
+theorem implicitConv_addrLit (env : TypeEnv) (h : Heap) (i : ℕ) (pay : Bool) (hi : i < 2 ^ 160) :
+    implicitConv env h (.literal i (some 40)) (.address pay) = some (.address (EVM.address i), h) := by
+  have hi' : i < 1461501637330902918203684832716283019655932542976 := by omega
+  simp [implicitConv, hi']
 
 end Solidity

@@ -94,6 +94,11 @@ empty revert data, or `Panic(0x41)` when the dispatched function decodes a dynam
 memory (`hasDynamicMemoryParam`, `decodeFailureData`); bridges `Reverted.specDecodingFailed`
 (empty) and `Reverted.specDecodingPanic`.
 
+Changed 2026-10-04: a `constant` is converted to its declared type where it is read (rules
+`constVar`/`constVarRevert`/`constVarPanic`; `EvalExpr.constVarVal`, `EvalExpr.constVarLitU256`);
+a hex literal with 40 digits converts implicitly to `address` (`implicitConv_addrLit`); the
+elaborator includes file-level errors, events and constants (after the hierarchy's own).
+
 ## Deferred language features
 
 `mapping(string => …)` / `mapping(bytes => …)` keys (decided 2026-10-03, to do after the branch is

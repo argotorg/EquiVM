@@ -270,6 +270,9 @@ def implicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Option (Valu
   | .uint w n, .int w' => if w.val < w'.val then some (.sint w' n, h) else none
   | .bool b, .bool => some (.bool b, h)
   | .address a, .address _ => some (.address a, h)
+  -- an address literal: a hex literal with exactly 40 digits (the checksum is not modelled)
+  | .literal i hd, .address _ =>
+    if hd = some 40 ∧ 0 ≤ i ∧ i < 2 ^ 160 then some (.address (EVM.address i.toNat), h) else none
   | .contract c a, .user _ n => if c == n then some (.contract c a, h) else none
   | .enum e i, .user _ n => if e == n then some (.enum e i, h) else none
   | .fixedBytes n bs, .fixedBytes n' =>
