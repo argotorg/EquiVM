@@ -165,7 +165,7 @@ inductive ExecInits : Frame → Machine → List FlatVar → Res Unit → Prop w
 inductive CtorArgs (frP : Frame) (topArgs : List Value) : Machine → CtorStep → Res (List Value) → Prop where
   | top : step.contract = fc.name → CtorArgs frP topArgs m step (.ok topArgs frP m)
   | none : step.contract ≠ fc.name → step.args = none → CtorArgs frP topArgs m step (.ok [] frP m)
-  | some : step.contract ≠ fc.name → step.args = some (w, args) → argExprsAny args = some es →
+  | some : step.contract ≠ fc.name → step.args = some (w, args) → callArgs (fc.ctorParamss step.contract) args = some es →
       EvalExprs cfg o fc frP m es r → CtorArgs frP topArgs m step r
 
 /-- The constructor chain, base-first; `imm_` locals are threaded from step to step. -/

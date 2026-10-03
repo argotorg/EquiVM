@@ -73,6 +73,15 @@ theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
         rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨v, hv, h⟩ <;> try dsimp only at h
         · exact (liftOpt_error hd).elim
         · rw [IM.pure_some h]; exact .typeMember (liftOpt_ok hv)
+      · -- C.f.selector / this.f.selector
+        split at h
+        · rename_i hf
+          rw [beq_iff_eq] at hf
+          subst hf
+          rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨v, hv, h⟩ <;> try dsimp only at h
+          · exact (liftOpt_error hd).elim
+          · rw [IM.pure_some h]; exact .memberSelector (liftOpt_ok hv)
+        · simp at h
       · simp at h
     · rename_i hdm
       exact ih.member _ _ _ _ _ (by simpa using hdm) h
@@ -104,6 +113,10 @@ theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
             · rename_i hraw
               rw [IM.pure_some h]
               exact .indexMem hb' hi' (liftOp_ok hv) (by simpa using hraw)
+        · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨v, hv, h⟩ <;> try dsimp only at h
+          · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+            exact .indexFixedBytesPanic hb' hi' hp
+          · rw [IM.pure_some h]; exact .indexFixedBytes hb' hi' (liftOp_ok hv)
         · simp at h
   · -- calls
     exact ih.call _ _ _ _ _ _ h
@@ -256,6 +269,23 @@ theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
       · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
         exact .arrayLitPanic (ih.exprs _ _ _ _ hvs) hp
       · rw [IM.pure_some h]; exact .arrayLit (ih.exprs _ _ _ _ hvs) (liftOp_ok hobj)
+  · -- e[lo:hi]
+    rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨base, fr1, m1⟩, hb, h⟩ <;> try dsimp only at h
+    · exact .sliceBaseRevert (ih.expr _ _ _ _ hd)
+    · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨l, fr2, m2⟩, hl, h⟩ <;> try dsimp only at h
+      · exact .sliceLoRevert (ih.expr _ _ _ _ hb) (ih.gasOpt _ _ _ _ hd)
+      · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨u, fr3, m3⟩, hu, h⟩ <;> try dsimp only at h
+        · exact .sliceHiRevert (ih.expr _ _ _ _ hb) (ih.gasOpt _ _ _ _ hl) (ih.gasOpt _ _ _ _ hd)
+        · split at h
+          · split at h
+            · rename_i hs
+              rw [IM.pure_some h]
+              exact .slice (ih.expr _ _ _ _ hb) (ih.gasOpt _ _ _ _ hl) (ih.gasOpt _ _ _ _ hu) hs
+            · rename_i hs
+              rw [IM.throw_some h]
+              exact .sliceBounds (ih.expr _ _ _ _ hb) (ih.gasOpt _ _ _ _ hl) (ih.gasOpt _ _ _ _ hu) hs
+            · simp at h
+          · simp at h
   · simp at h
 
 end Solidity

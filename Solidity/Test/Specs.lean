@@ -20,3 +20,4 @@ import Solidity.Test.Specs.TryCatch
 import Solidity.Test.Specs.BaseCall
 import Solidity.Test.Specs.Ecrecover
 import Solidity.Test.Specs.Fixes
+import Solidity.Test.Specs.Features

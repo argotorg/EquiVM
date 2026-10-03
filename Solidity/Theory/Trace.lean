@@ -769,6 +769,20 @@ theorem abiArgs_static_fold (cfg : Config) (env : TypeEnv) : ∀ (xs : List LogA
     rw [List.map_cons, List.map_cons, List.zip_cons_cons, List.foldlM_cons, abiArgStep_static, Op.bind_ok,
       abiArgs_static_fold cfg env xs (acc ++ [x.val.value]) m, List.map_cons, List.append_assoc, List.singleton_append]
 
+theorem eventArgFits_static (env : TypeEnv) (hp : Heap) (v : LogVal) :
+    eventArgFits env hp v.solValue v.ty = true := by
+  cases v <;> simp [eventArgFits, LogVal.ty, LogVal.solValue, implicitConv]
+
+/-- Static arguments fit the event they were built for (overload resolution). -/
+theorem eventFits_static (env : TypeEnv) (hp : Heap) (ei : EventInfo) (xs : List LogArg)
+    (hparams : ei.decl.params = xs.map LogArg.param) :
+    eventFits env hp ei (xs.map (·.val.solValue)) = true := by
+  simp only [eventFits, hparams, List.length_map, beq_self_eq_true, Bool.true_and, List.all_eq_true]
+  intro pv hpv
+  rw [List.zip_map'] at hpv
+  obtain ⟨x, _, rfl⟩ := List.mem_map.mp hpv
+  exact eventArgFits_static env hp x.val
+
 theorem abiArgs_static (cfg : Config) (env : TypeEnv) (m : Machine) (xs : List LogArg) :
     abiArgs cfg env m (xs.map (·.val.ty)) (xs.map (·.val.solValue)) = some (.ok (xs.map (·.val.value), m)) := by
   rw [abiArgs_eq_foldlM _ _ _ _ _ (by simp), abiArgs_static_fold, List.nil_append]
@@ -848,6 +862,108 @@ theorem mkLogEntry_addr_indexed_string (this : EVM.Address) (ev : EventInfo) (a 
       some { address := this, topics := #[hashWord ev.sigStr.toUTF8, UInt256.ofNat a.toNat],
              data := (ABI.natBytes 32 ++ (ABI.natBytes b.size ++ ABI.padRightToWord b.toList)).toByteArray } := by
   simp [mkLogEntry, hparams, htys, hanon, topicOf, topicWordOf, ABI.valueToWord, EVM.Word.ofNat, encodeABIValues_string]
+
+/-! ## Arrays of static elements in the ABI (events, `abi.encode`) -/
+
+theorem encodeABIStaticArrayElems?_of_encs (t : ABI.ElemType) :
+    ∀ (xs : List (ABI.ABIValue × List UInt8)), (∀ x ∈ xs, ABI.encodeABIValue? (.elem t) x.1 = some x.2) →
+    ABI.encodeABIStaticArrayElems? (.elem t) (xs.map (·.1)) = some (xs.flatMap (·.2))
+  | [], _ => by simp [ABI.encodeABIStaticArrayElems?]
+  | x :: xs, h => by
+    rw [List.map_cons, ABI.encodeABIStaticArrayElems?, h x (by simp),
+      encodeABIStaticArrayElems?_of_encs t xs (fun y hy => h y (by simp [hy]))]
+    simp
+
+theorem encodeABIArrayElems?_static (t : ABI.ElemType) (xs : List (ABI.ABIValue × List UInt8))
+    (h : ∀ x ∈ xs, ABI.encodeABIValue? (.elem t) x.1 = some x.2) :
+    ABI.encodeABIArrayElems? (.elem t) (xs.map (·.1)) = some (xs.flatMap (·.2)) := by
+  rw [ABI.encodeABIArrayElems?]
+  simp only [ABI.isDynamicABIType, Bool.false_eq_true, if_false]
+  exact encodeABIStaticArrayElems?_of_encs t xs h
+
+/-- `T[]` with static `T`: the length word, then the elements. -/
+theorem encodeABIValue?_dynArray_static (t : ABI.ElemType) (xs : List (ABI.ABIValue × List UInt8))
+    (h : ∀ x ∈ xs, ABI.encodeABIValue? (.elem t) x.1 = some x.2) :
+    ABI.encodeABIValue? (.dynamicArray (.elem t)) (.array (xs.map (·.1))) =
+      some (ABI.natBytes xs.length ++ xs.flatMap (·.2)) := by
+  rw [ABI.encodeABIValue?, encodeABIArrayElems?_static t xs h]
+  simp
+
+/-- `T[n]` with static `T`: just the elements. -/
+theorem encodeABIValue?_array_static (t : ABI.ElemType) (n : ℕ) (xs : List (ABI.ABIValue × List UInt8))
+    (hn : xs.length = n) (h : ∀ x ∈ xs, ABI.encodeABIValue? (.elem t) x.1 = some x.2) :
+    ABI.encodeABIValue? (.array (.elem t) n) (.array (xs.map (·.1))) = some (xs.flatMap (·.2)) := by
+  rw [ABI.encodeABIValue?]
+  simp only [List.length_map, hn, if_true]
+  exact encodeABIArrayElems?_static t xs h
+
+/-- The topic of an indexed `T[]` argument: the hash of the in-place element encoding. -/
+theorem topicOf_dynArray_static (t : ABI.ElemType) (xs : List (ABI.ABIValue × List UInt8))
+    (h : ∀ x ∈ xs, ABI.encodeABIValue? (.elem t) x.1 = some x.2) :
+    topicOf (.dynamicArray (.elem t)) (.array (xs.map (·.1))) = some (hashWord (xs.flatMap (·.2)).toByteArray) := by
+  simp [topicOf, encodeABIArrayElems?_static t xs h]
+
+theorem encodeABIValue?_u256 (n : ℕ) (hn : n < 2 ^ 256) :
+    ABI.encodeABIValue? (.elem (.int (.uint ⟨256, by decide⟩))) (.int n) = some (EVM.Word.toBytesBE (UInt256.ofNat n)) := by
+  have hn' : n < EVM.twoPow 256 := hn
+  simp [ABI.encodeABIValue?, ABI.encodeABIWord?, hn']
+  rfl
+
+theorem encodeABIValue?_address (a : EVM.Address) :
+    ABI.encodeABIValue? (.elem .address) (.address a) = some (EVM.Word.toBytesBE (UInt256.ofNat a.toNat)) := by
+  simp [ABI.encodeABIValue?, ABI.encodeABIWord?]
+  rfl
+
+theorem mapM_toAbi_u256 (h : Heap) (fuel : ℕ) : ∀ (ns : List ℕ),
+    (ns.map u256Val).mapM (toAbi h (fuel + 1)) = some (ns.map fun (n : ℕ) => ABI.ABIValue.int n)
+  | [] => rfl
+  | n :: ns => by simp [List.mapM_cons, toAbi_uint, mapM_toAbi_u256 h fuel ns]
+
+/-- A memory `uint256[]` as an ABI argument. -/
+theorem toAbi_memArray_u256 {h : Heap} {id : ℕ} {ety : Ty} {ns : List ℕ} (fuel : ℕ)
+    (hget : h.get? id = some (.array ety (ns.map u256Val))) :
+    toAbi h (fuel + 2) (.memRef id) = some (.array (ns.map fun (n : ℕ) => ABI.ABIValue.int n)) := by
+  rw [toAbi]
+  simp only [hget]
+  rw [mapM_toAbi_u256 h fuel ns]
+  rfl
+
+theorem abiArgs_memArray_u256 {cfg : Config} {env : TypeEnv} {m : Machine} {id : ℕ} {ety : Ty} {ns : List ℕ}
+    (hget : m.heap.get? id = some (.array ety (ns.map u256Val))) :
+    abiArgs cfg env m [.dynArray u256Ty] [.memRef id] = some (.ok ([.array (ns.map fun (n : ℕ) => ABI.ABIValue.int n)], m)) := by
+  simp [abiArgs, coerce, implicitConv, fuelDefault, toAbi_memArray_u256 1022 hget]
+
+theorem encodeABIStaticArrayElems?_u256 : ∀ (ns : List ℕ), (∀ n ∈ ns, n < 2 ^ 256) →
+    ABI.encodeABIStaticArrayElems? (.elem (.int (.uint ⟨256, by decide⟩))) (ns.map fun (n : ℕ) => ABI.ABIValue.int n) =
+      some (ns.flatMap fun (n : ℕ) => EVM.Word.toBytesBE (UInt256.ofNat n))
+  | [], _ => by simp [ABI.encodeABIStaticArrayElems?]
+  | n :: ns, h => by
+    rw [List.map_cons, ABI.encodeABIStaticArrayElems?, encodeABIValue?_u256 n (h n (by simp)),
+      encodeABIStaticArrayElems?_u256 ns (fun x hx => h x (by simp [hx]))]
+    simp
+
+/-- `uint256[]`: the length word, then the words. -/
+theorem encodeABIValue?_dynArray_u256 (ns : List ℕ) (hns : ∀ n ∈ ns, n < 2 ^ 256) :
+    ABI.encodeABIValue? (.dynamicArray (.elem (.int (.uint ⟨256, by decide⟩)))) (.array (ns.map fun (n : ℕ) => ABI.ABIValue.int n)) =
+      some (ABI.natBytes ns.length ++ ns.flatMap fun (n : ℕ) => EVM.Word.toBytesBE (UInt256.ofNat n)) := by
+  rw [ABI.encodeABIValue?, ABI.encodeABIArrayElems?]
+  simp [ABI.isDynamicABIType, encodeABIStaticArrayElems?_u256 ns hns]
+
+/-- The log entry of an event with one non-indexed `uint256[]` argument. -/
+theorem mkLogEntry_u256Array (this : EVM.Address) (ev : EventInfo) (ns : List ℕ) {n1 : Option Ident}
+    (hparams : ev.decl.params = [{ ty := .dynArray u256Ty, indexed := false, name := n1 }])
+    (htys : ev.sig.paramTypes = [.dynamicArray (.elem (.int (.uint ⟨256, by decide⟩)))])
+    (hanon : ev.decl.anonymous = false) (hns : ∀ n ∈ ns, n < 2 ^ 256) :
+    mkLogEntry this ev [.array (ns.map fun (n : ℕ) => ABI.ABIValue.int n)] =
+      some { address := this, topics := #[hashWord ev.sigStr.toUTF8],
+             data := (ABI.natBytes 32 ++ (ABI.natBytes ns.length ++
+               ns.flatMap fun (n : ℕ) => EVM.Word.toBytesBE (UInt256.ofNat n))).toByteArray } := by
+  have hall : ABI.encodeABIValues? [.dynamicArray (.elem (.int (.uint ⟨256, by decide⟩)))]
+      [.array (ns.map fun (n : ℕ) => ABI.ABIValue.int n)] =
+      some (ABI.natBytes 32 ++ (ABI.natBytes ns.length ++ ns.flatMap fun (n : ℕ) => EVM.Word.toBytesBE (UInt256.ofNat n))) := by
+    rw [ABI.encodeABIValues?]
+    simp [ABI.abiTupleHeadSize?, ABI.encodeABIValuesFrom?, ABI.isDynamicABIType, encodeABIValue?_dynArray_u256 ns hns]
+  simp [mkLogEntry, hparams, htys, hanon, hall]
 
 /-! ## Dispatch -/
 

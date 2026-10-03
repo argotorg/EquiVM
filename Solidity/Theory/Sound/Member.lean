@@ -56,7 +56,13 @@ theorem evalMember_sound_step {n} (ih : SoundAt cfg o fc n) :
         rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨a, ha, h⟩ <;> try dsimp only at h
         · exact (liftOpt_error hd).elim
         · rw [IM.pure_some h, hf']; exact .memberBalance hdm he (liftOpt_ok ha)
-      · simp at h
+      · split at h
+        · rename_i hf
+          have hf' : f = "code" := by simpa using hf
+          rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨a, ha, h⟩ <;> try dsimp only at h
+          · exact (liftOpt_error hd).elim
+          · rw [IM.pure_some h, hf']; exact .memberCode hdm he (liftOpt_ok ha) rfl
+        · simp at h
 
 theorem evalAbi_sound_step {n} (ih : SoundAt cfg o fc n) :
     ∀ fr m f es r, (evalAbi cfg o fc (n+1) fr m f es).run = some r →

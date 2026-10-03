@@ -1211,8 +1211,20 @@ theorem storageIndex_mapping_u256_lit (cfg : Config) (env : TypeEnv) (evm : EVM.
   simp [storageIndex, implicitConv_literal_u256 env h k hd (Int.natCast_nonneg k) (by exact_mod_cast hk), keyOf]
 
 theorem directMember_index (fc : FlatContract) (fr : Frame) (e i : Expr) : directMember fc fr (.index e i) = false := rfl
-theorem directMember_member (fc : FlatContract) (fr : Frame) (e : Expr) (f : Ident) :
-    directMember fc fr (.member e f) = false := rfl
+theorem directMember_member (fc : FlatContract) (fr : Frame) (e : Expr) (f : Ident)
+    (h : fnRefContract fc fr e = none) : directMember fc fr (.member e f) = false := by
+  simp [directMember, h]
+@[simp] theorem fnRefContract_index (fc : FlatContract) (fr : Frame) (e i : Expr) : fnRefContract fc fr (.index e i) = none := rfl
+@[simp] theorem fnRefContract_member (fc : FlatContract) (fr : Frame) (e : Expr) (f : Ident) :
+    fnRefContract fc fr (.member e f) = none := rfl
+@[simp] theorem fnRefContract_call (fc : FlatContract) (fr : Frame) (c : Expr) (opts : List CallOpt) (args : Args) :
+    fnRefContract fc fr (.call c opts args) = none := rfl
+theorem fnRefContract_ident_local (fc : FlatContract) (fr : Frame) (x : Ident) (l : Local) (hl : fr.get? x = some l) :
+    fnRefContract fc fr (.ident x) = none := by simp [fnRefContract, hl]
+theorem fnRefContract_ident_env (fc : FlatContract) (fr : Frame) (x : Ident) (h : isEnvObj x = true) :
+    fnRefContract fc fr (.ident x) = none := by simp [fnRefContract, h]
+theorem fnRefContract_ident_noContract (fc : FlatContract) (fr : Frame) (x : Ident) (h : fc.types.contractKind? x = none) :
+    fnRefContract fc fr (.ident x) = none := by simp [fnRefContract, h]
 theorem directMember_ident (fc : FlatContract) (fr : Frame) (x : Ident) (henv : isEnvObj x = false)
     (hx : (fr.get? x).isNone = false ∨ (fc.types.enum? none x).isSome = false) :
     directMember fc fr (.ident x) = false := by
@@ -1810,5 +1822,359 @@ theorem writeScalar_sint_packed {cfg : Config} {evm : EVM.State} {er : Solm.Eval
         (UInt256.ofNat (setPackedWordNat (Storage.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat
           offset.val size.val (EVM.wordOfInt i).toNat))) :=
   writeScalar_of_loc hl rfl (storageLocStore_int_packed evm slot offset size _ i)
+
+/-! ## Declarations of value-type locals (the `declare` facts behind `varDecl*`) -/
+
+theorem declare_u256 (cfg : Config) (env : TypeEnv) (fr : Frame) (m : Machine) (loc : Option DataLoc) (x : Ident) (n : ℕ) :
+    declare cfg env fr m u256Ty loc x (some (u256Val n)) = some (.ok (fr.bind x u256Ty loc (u256Val n), m)) := by
+  simp [declare, coerce]
+
+theorem declare_bool (cfg : Config) (env : TypeEnv) (fr : Frame) (m : Machine) (loc : Option DataLoc) (x : Ident) (b : Bool) :
+    declare cfg env fr m .bool loc x (some (.bool b)) = some (.ok (fr.bind x .bool loc (.bool b), m)) := by
+  simp [declare, coerce]
+
+theorem declare_address (cfg : Config) (env : TypeEnv) (fr : Frame) (m : Machine) (loc : Option DataLoc) (x : Ident)
+    (a : EVM.Address) :
+    declare cfg env fr m (.address false) loc x (some (.address a)) = some (.ok (fr.bind x (.address false) loc (.address a), m)) := by
+  simp [declare, coerce]
+
+theorem declare_bytes32 (cfg : Config) (env : TypeEnv) (fr : Frame) (m : Machine) (loc : Option DataLoc) (x : Ident)
+    (bs : List UInt8) :
+    declare cfg env fr m (.fixedBytes ⟨31, by decide⟩) loc x (some (.fixedBytes ⟨31, by decide⟩ bs)) =
+      some (.ok (fr.bind x (.fixedBytes ⟨31, by decide⟩) loc (.fixedBytes ⟨31, by decide⟩ bs), m)) := by
+  simp [declare, coerce]
+
+/-- Assigning a `bool` into a return slot or local. -/
+theorem assign_local_bool {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machine} {x : Ident} (l : Local)
+    (hx : fr.get? x = some l) (hty : l.ty = .bool) (b : Bool) :
+    assign cfg env fr m (.local x) (.bool b) = some (.ok (fr.setVal x (.bool b), m)) := by
+  simp [assign, coerce, hx, hty]
+
+theorem assign_local_address {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machine} {x : Ident} (l : Local)
+    (hx : fr.get? x = some l) (hty : l.ty = .address false) (a : EVM.Address) :
+    assign cfg env fr m (.local x) (.address a) = some (.ok (fr.setVal x (.address a), m)) := by
+  simp [assign, coerce, hx, hty]
+
+/-! ## Two decoded return values -/
+
+theorem decodeRets_two {cfg : Config} {env : TypeEnv} {m : Machine} {p1 p2 : Param} {rtys : List ABI.ABIType}
+    {out : ByteArray} {sv1 sv2 : ABI.ABIValue} {v1 v2 : Value} {h1 h2 : Heap}
+    (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some [sv1, sv2])
+    (hof1 : ofAbi env fuelDefault p1.ty sv1 m.heap = some (v1, h1)) (hof2 : ofAbi env fuelDefault p2.ty sv2 h1 = some (v2, h2)) :
+    decodeRets cfg env m [p1, p2] rtys out = some ([v1, v2], { m with heap := h2 }) := by
+  simp [decodeRets, hdec, hof1, hof2]
+
+theorem tryRets_two {cfg : Config} {env : TypeEnv} {m : Machine} {p1 p2 : Param} {rtys : List ABI.ABIType}
+    {out : ByteArray} {sv1 sv2 : ABI.ABIValue} {v1 v2 : Value} {h1 h2 : Heap}
+    (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some [sv1, sv2])
+    (hof1 : ofAbi env fuelDefault p1.ty sv1 m.heap = some (v1, h1)) (hof2 : ofAbi env fuelDefault p2.ty sv2 h1 = some (v2, h2)) :
+    tryRets cfg env m [p1, p2] rtys out = some ([v1, v2], { m with heap := h2 }) := by
+  simp [tryRets, decodeRets_two hdec hof1 hof2]
+
+theorem bindTryParams_two {cfg : Config} {env : TypeEnv} {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {p1 p2 : Param}
+    {x1 x2 : Ident} {v1 v2 : Value} (hn1 : p1.name = some x1) (hn2 : p2.name = some x2)
+    (hd1 : declare cfg env fr m p1.ty (some (p1.loc.getD .memory)) x1 (some v1) = some (.ok (fr1, m1)))
+    (hd2 : declare cfg env fr1 m1 p2.ty (some (p2.loc.getD .memory)) x2 (some v2) = some (.ok (fr2, m2))) :
+    bindTryParams cfg env fr m [p1, p2] [v1, v2] = some (.ok (fr2, m2)) := by
+  simp [bindTryParams, hn1, hn2, hd1, hd2]
+
+/-! ## Integers of any width -/
+
+theorem settle_uint_ok (w : ABI.BitWidth) (r : Int) (h0 : 0 ≤ r) (hr : r < (2 : Int) ^ w.val) :
+    settle (.uint w) true r = .ok r := by
+  simp [settle, IntTy.inRange, IntTy.min, IntTy.max]
+  omega
+
+theorem settle_uint_overflow_hi (w : ABI.BitWidth) (r : Int) (h : (2 : Int) ^ w.val ≤ r) :
+    settle (.uint w) true r = .error .overflow := by
+  simp [settle, IntTy.inRange, IntTy.min, IntTy.max]
+  omega
+
+theorem settle_uint_overflow_lo (w : ABI.BitWidth) (r : Int) (h : r < 0) :
+    settle (.uint w) true r = .error .overflow := by
+  simp [settle, IntTy.inRange, IntTy.min, IntTy.max]
+  omega
+
+theorem settle_sint_ok (w : ABI.BitWidth) (r : Int) (hlo : -(2 : Int) ^ (w.val - 1) ≤ r)
+    (hhi : r < (2 : Int) ^ (w.val - 1)) : settle (.sint w) true r = .ok r := by
+  simp [settle, IntTy.inRange, IntTy.min, IntTy.max]
+  omega
+
+theorem settle_sint_overflow (w : ABI.BitWidth) (r : Int)
+    (h : ¬ (-(2 : Int) ^ (w.val - 1) ≤ r ∧ r < (2 : Int) ^ (w.val - 1))) :
+    settle (.sint w) true r = .error .overflow := by
+  simp [settle, IntTy.inRange, IntTy.min, IntTy.max]
+  omega
+
+theorem unifyInts_uint_uint (w : ABI.BitWidth) (a b : ℕ) :
+    unifyInts (.uint w a) (.uint w b) = some (some (ABI.IntType.uint w), (a : Int), (b : Int)) := by
+  simp [unifyInts, Value.int?, commonIntType, implicitIntConv]
+
+/-- Mixed widths: the narrower operand is widened to the wider type. -/
+theorem unifyInts_uint_widen (w w' : ABI.BitWidth) (a b : ℕ) (hle : w.val ≤ w'.val) :
+    unifyInts (.uint w a) (.uint w' b) = some (some (ABI.IntType.uint w'), (a : Int), (b : Int)) := by
+  simp [unifyInts, Value.int?, commonIntType, implicitIntConv, hle, -Subtype.coe_le_coe, -Subtype.coe_lt_coe]
+
+theorem unifyInts_uint_widen' (w w' : ABI.BitWidth) (a b : ℕ) (hlt : w'.val < w.val) :
+    unifyInts (.uint w a) (.uint w' b) = some (some (ABI.IntType.uint w), (a : Int), (b : Int)) := by
+  simp [unifyInts, Value.int?, commonIntType, implicitIntConv, Nat.not_le.mpr hlt, Nat.le_of_lt hlt,
+    -Subtype.coe_le_coe, -Subtype.coe_lt_coe]
+
+theorem unifyInts_uint_lit (w : ABI.BitWidth) (n : ℕ) (k : Int) (hd : Option Nat) (h0 : 0 ≤ k)
+    (hk : k < (2 : Int) ^ w.val) :
+    unifyInts (.uint w n) (.literal k hd) = some (some (ABI.IntType.uint w), (n : Int), k) := by
+  simp [unifyInts, Value.int?, IntTy.inRange, IntTy.min, IntTy.max]
+  omega
+
+theorem unifyInts_sint_sint (w : ABI.BitWidth) (a b : Int) :
+    unifyInts (.sint w a) (.sint w b) = some (some (ABI.IntType.sint w), a, b) := by
+  simp [unifyInts, Value.int?, commonIntType, implicitIntConv]
+
+theorem binop_add_uint (w : ABI.BitWidth) (a b : ℕ) (hfit : a + b < 2 ^ w.val) :
+    binop true .add (.uint w a) (.uint w b) = some (.ok (.uint w (a + b))) := by
+  rw [binop_add_uint_of_unify true _ a _ (unifyInts_uint_uint w a b), add,
+    settle_uint_ok w _ (by omega) (by exact_mod_cast hfit), liftArith_ok]
+  simp [mkInt, toNat_natCast_add]
+
+theorem binop_add_uint_overflow (w : ABI.BitWidth) (a b : ℕ) (hbig : 2 ^ w.val ≤ a + b) :
+    binop true .add (.uint w a) (.uint w b) = some (.error .overflow) := by
+  rw [binop_add_uint_of_unify true _ a _ (unifyInts_uint_uint w a b), add,
+    settle_uint_overflow_hi w _ (by exact_mod_cast hbig), liftArith_error]
+
+theorem binop_sub_uint (w : ABI.BitWidth) (a b : ℕ) (ha : a < 2 ^ w.val) (hle : b ≤ a) :
+    binop true .sub (.uint w a) (.uint w b) = some (.ok (.uint w (a - b))) := by
+  rw [binop_sub_uint_of_unify true _ a _ (unifyInts_uint_uint w a b), sub,
+    settle_uint_ok w _ (by omega) (by rw [← Nat.cast_sub hle]; exact_mod_cast lt_of_le_of_lt (Nat.sub_le a b) ha),
+    liftArith_ok]
+  simp [mkInt, toNat_natCast_sub a b hle]
+
+theorem binop_sub_uint_underflow (w : ABI.BitWidth) (a b : ℕ) (hlt : a < b) :
+    binop true .sub (.uint w a) (.uint w b) = some (.error .overflow) := by
+  rw [binop_sub_uint_of_unify true _ a _ (unifyInts_uint_uint w a b), sub,
+    settle_uint_overflow_lo w _ (by omega), liftArith_error]
+
+theorem binop_mul_uint (w : ABI.BitWidth) (a b : ℕ) (hfit : a * b < 2 ^ w.val) :
+    binop true .mul (.uint w a) (.uint w b) = some (.ok (.uint w (a * b))) := by
+  rw [binop_mul_uint_of_unify true _ a _ (unifyInts_uint_uint w a b), mul,
+    settle_uint_ok w _ (by positivity) (by exact_mod_cast hfit), liftArith_ok]
+  simp [mkInt, toNat_natCast_mul]
+
+theorem binop_mul_uint_overflow (w : ABI.BitWidth) (a b : ℕ) (hbig : 2 ^ w.val ≤ a * b) :
+    binop true .mul (.uint w a) (.uint w b) = some (.error .overflow) := by
+  rw [binop_mul_uint_of_unify true _ a _ (unifyInts_uint_uint w a b), mul,
+    settle_uint_overflow_hi w _ (by exact_mod_cast hbig), liftArith_error]
+
+theorem binop_div_uint (c : Bool) (w : ABI.BitWidth) (a b : ℕ) (ha : a < 2 ^ w.val) (hb : b ≠ 0) :
+    binop c .div (.uint w a) (.uint w b) = some (.ok (.uint w (a / b))) := by
+  have hnn : (0 : Int) ≤ ((a / b : ℕ) : Int) := Int.natCast_nonneg _
+  have hlt : ((a / b : ℕ) : Int) < (2 : Int) ^ w.val := by exact_mod_cast lt_of_le_of_lt (Nat.div_le_self a b) ha
+  rw [binop_div_uint_of_unify c _ a _ (unifyInts_uint_uint w a b), div, if_neg (by exact_mod_cast hb),
+    Int.tdiv_eq_ediv_of_nonneg (by omega), ← Int.natCast_ediv]
+  cases c
+  · rw [settle_unchecked, liftArith_ok]
+    simp only [mkInt, IntTy.wrap, IntTy.isSigned, IntTy.width, Bool.false_and, Bool.false_eq_true, if_false]
+    rw [Int.emod_eq_of_lt hnn (by exact_mod_cast hlt), Int.toNat_natCast]
+  · rw [settle_uint_ok w _ hnn hlt, liftArith_ok]
+    simp only [mkInt, Int.toNat_natCast]
+
+theorem binop_mod_uint (c : Bool) (w : ABI.BitWidth) (a b : ℕ) (hb : b ≠ 0) :
+    binop c .mod (.uint w a) (.uint w b) = some (.ok (.uint w (a % b))) := by
+  rw [binop_mod_uint_of_unify c _ a _ (unifyInts_uint_uint w a b), mod, if_neg (by exact_mod_cast hb),
+    Int.tmod_eq_emod_of_nonneg (by omega), ← Int.natCast_emod, liftArith_ok]
+  simp only [mkInt, Int.toNat_natCast]
+
+theorem binop_cmp_uint_of_unify (c : Bool) (op : BinOp) (hop : isCmp op = true) (w : ABI.BitWidth) (n : ℕ) (b : Value)
+    {t : IntTy} {x y : Int} (hu : unifyInts (.uint w n) b = some (some t, x, y)) :
+    binop c op (.uint w n) b = Op.ofOpt (cmpInt op x y) := by
+  cases op <;> simp [binop, adoptBytes, toBool, addrNat, hu, isCmp, cmpInt] at hop ⊢
+
+theorem binop_lt_uint (c : Bool) (w : ABI.BitWidth) (a b : ℕ) :
+    binop c .lt (.uint w a) (.uint w b) = some (.ok (.bool (decide (a < b)))) := by
+  rw [binop_cmp_uint_of_unify c .lt rfl w a _ (unifyInts_uint_uint w a b)]; simp [cmpInt]
+theorem binop_le_uint (c : Bool) (w : ABI.BitWidth) (a b : ℕ) :
+    binop c .le (.uint w a) (.uint w b) = some (.ok (.bool (decide (a ≤ b)))) := by
+  rw [binop_cmp_uint_of_unify c .le rfl w a _ (unifyInts_uint_uint w a b)]; simp [cmpInt]
+theorem binop_gt_uint (c : Bool) (w : ABI.BitWidth) (a b : ℕ) :
+    binop c .gt (.uint w a) (.uint w b) = some (.ok (.bool (decide (b < a)))) := by
+  rw [binop_cmp_uint_of_unify c .gt rfl w a _ (unifyInts_uint_uint w a b)]; simp [cmpInt]
+theorem binop_ge_uint (c : Bool) (w : ABI.BitWidth) (a b : ℕ) :
+    binop c .ge (.uint w a) (.uint w b) = some (.ok (.bool (decide (b ≤ a)))) := by
+  rw [binop_cmp_uint_of_unify c .ge rfl w a _ (unifyInts_uint_uint w a b)]; simp [cmpInt]
+theorem binop_eq_uint (c : Bool) (w : ABI.BitWidth) (a b : ℕ) :
+    binop c .eq (.uint w a) (.uint w b) = some (.ok (.bool (decide (a = b)))) := by
+  rw [binop_cmp_uint_of_unify c .eq rfl w a _ (unifyInts_uint_uint w a b)]; simp [cmpInt]
+theorem binop_ne_uint (c : Bool) (w : ABI.BitWidth) (a b : ℕ) :
+    binop c .ne (.uint w a) (.uint w b) = some (.ok (.bool (decide (a ≠ b)))) := by
+  rw [binop_cmp_uint_of_unify c .ne rfl w a _ (unifyInts_uint_uint w a b)]; simp [cmpInt]
+
+theorem binop_add_sint (w : ABI.BitWidth) (a b : Int) (hlo : -(2 : Int) ^ (w.val - 1) ≤ a + b)
+    (hhi : a + b < (2 : Int) ^ (w.val - 1)) :
+    binop true .add (.sint w a) (.sint w b) = some (.ok (.sint w (a + b))) := by
+  rw [binop_add_sint_of_unify true _ a _ (unifyInts_sint_sint w a b), add, settle_sint_ok w _ hlo hhi, liftArith_ok]
+  rfl
+
+theorem binop_sub_sint (w : ABI.BitWidth) (a b : Int) (hlo : -(2 : Int) ^ (w.val - 1) ≤ a - b)
+    (hhi : a - b < (2 : Int) ^ (w.val - 1)) :
+    binop true .sub (.sint w a) (.sint w b) = some (.ok (.sint w (a - b))) := by
+  rw [binop_sub_sint_of_unify true _ a _ (unifyInts_sint_sint w a b), sub, settle_sint_ok w _ hlo hhi, liftArith_ok]
+  rfl
+
+theorem binop_mul_sint (w : ABI.BitWidth) (a b : Int) (hlo : -(2 : Int) ^ (w.val - 1) ≤ a * b)
+    (hhi : a * b < (2 : Int) ^ (w.val - 1)) :
+    binop true .mul (.sint w a) (.sint w b) = some (.ok (.sint w (a * b))) := by
+  rw [binop_mul_sint_of_unify true _ a _ (unifyInts_sint_sint w a b), mul, settle_sint_ok w _ hlo hhi, liftArith_ok]
+  rfl
+
+theorem binop_lt_sint (c : Bool) (w : ABI.BitWidth) (a b : Int) :
+    binop c .lt (.sint w a) (.sint w b) = some (.ok (.bool (decide (a < b)))) := by
+  rw [binop_cmp_sint_of_unify c .lt rfl w a _ (unifyInts_sint_sint w a b)]; rfl
+
+/-- `uint8 n` and friends as a typed value. -/
+abbrev uintVal (w : ABI.BitWidth) (n : ℕ) : Value := .uint w n
+
+theorem scalarOfAbi_uint_lt (env : TypeEnv) (w : ABI.BitWidth) (n : ℕ) (hn : n < 2 ^ w.val) :
+    scalarOfAbi env (.uint w) (.int n) = some (.uint w n) := by
+  simp [scalarOfAbi]; exact_mod_cast hn
+
+theorem assign_local_uint {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machine} {x : Ident} (l : Local) (w : ABI.BitWidth)
+    (hx : fr.get? x = some l) (hty : l.ty = .uint w) (n : ℕ) :
+    assign cfg env fr m (.local x) (.uint w n) = some (.ok (fr.setVal x (.uint w n), m)) := by
+  simp [assign, coerce, implicitConv, hx, hty]
+
+/-! ## `try … returns (…)` for any number of returns -/
+
+/-- The reconstruction fold of `decodeRets` is `ofAbiList` on the parameter types. -/
+theorem decodeRets_eq_ofAbiList (cfg : Config) (env : TypeEnv) (m : Machine) (rets : List Param) (rtys : List ABI.ABIType)
+    (out : ByteArray) (svs : List ABI.ABIValue)
+    (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some svs) (hlen : svs.length = rets.length) :
+    decodeRets cfg env m rets rtys out =
+      (ofAbiList env (rets.map (·.ty)) svs m.heap).map fun r => (r.1, { m with heap := r.2 }) := by
+  rw [ofAbiList_eq_foldlM env _ _ _ (by simp [hlen])]
+  simp only [decodeRets, hdec, Opt.some_bind, hlen, ne_eq, not_true_eq_false, if_false]
+  have hzip : (rets.map (·.ty)).zip svs = (rets.zip svs).map fun p => (p.1.ty, p.2) := by
+    rw [List.zip_map_left]; rfl
+  rw [hzip, List.foldlM_map]
+  simp [ofAbiStep, Option.map_eq_bind, Function.comp_def]
+
+theorem decodeRets_of_ofAbiList {cfg : Config} {env : TypeEnv} {m : Machine} {rets : List Param} {rtys : List ABI.ABIType}
+    {out : ByteArray} {svs : List ABI.ABIValue} {vs : List Value} {h' : Heap}
+    (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some svs) (hlen : svs.length = rets.length)
+    (hof : ofAbiList env (rets.map (·.ty)) svs m.heap = some (vs, h')) :
+    decodeRets cfg env m rets rtys out = some (vs, { m with heap := h' }) := by
+  rw [decodeRets_eq_ofAbiList cfg env m rets rtys out svs hdec hlen, hof]; rfl
+
+theorem tryRets_of_ofAbiList {cfg : Config} {env : TypeEnv} {m : Machine} {rets : List Param} {rtys : List ABI.ABIType}
+    {out : ByteArray} {svs : List ABI.ABIValue} {vs : List Value} {h' : Heap} (hne : rets ≠ [])
+    (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some svs) (hlen : svs.length = rets.length)
+    (hof : ofAbiList env (rets.map (·.ty)) svs m.heap = some (vs, h')) :
+    tryRets cfg env m rets rtys out = some (vs, { m with heap := h' }) := by
+  simp only [tryRets, List.isEmpty_eq_false_iff.mpr hne, if_false]
+  exact decodeRets_of_ofAbiList hdec hlen hof
+
+/-- `bindTryParams` one parameter at a time. -/
+theorem bindTryParams_cons {cfg : Config} {env : TypeEnv} {fr fr1 fr' : Frame} {m m1 m' : Machine} {p : Param} {ps : List Param}
+    {x : Ident} {v : Value} {vs : List Value} (hlen : ps.length = vs.length) (hname : p.name = some x)
+    (hdecl : declare cfg env fr m p.ty (some (p.loc.getD .memory)) x (some v) = some (.ok (fr1, m1)))
+    (hrest : bindTryParams cfg env fr1 m1 ps vs = some (.ok (fr', m'))) :
+    bindTryParams cfg env fr m (p :: ps) (v :: vs) = some (.ok (fr', m')) := by
+  have hloc : (p.loc <|> some DataLoc.memory) = some (p.loc.getD .memory) := by cases p.loc <;> rfl
+  simp only [bindTryParams, List.length_cons, hlen, ne_eq, not_true_eq_false, if_false, List.zip_cons_cons,
+    List.foldlM_cons] at hrest ⊢
+  simp only [hname, hloc, hdecl, Opt.some_bind]
+  simpa using hrest
+
+/-! ## Named arguments, free functions, `C.f.selector`, `address.code` -/
+
+@[simp] theorem callArgs_positional (paramss : List (List Param)) (es : List Expr) :
+    callArgs paramss (.positional es) = some es := rfl
+
+theorem callArgs_named (paramss : List (List Param)) (fs : List (Ident × Expr)) (ps : List Param)
+    (h : paramss.filter (fun ps => ps.length == fs.length && ps.all fun p => fs.any (p.name == some ·.1)) = [ps]) :
+    callArgs paramss (.named fs) = namedArgs (ps.map (·.name.getD "")) fs := by
+  simp [callArgs, h]
+
+theorem FlatContract.fnsNamed_vtable (fc : FlatContract) (f : Ident) (c : FnKey × FnId) (cs : List (FnKey × FnId))
+    (h : fc.vtable.filter (·.1.name == f) = c :: cs) : fc.fnsNamed f = c :: cs := by
+  simp [FlatContract.fnsNamed, h]
+
+theorem FlatContract.fnsNamed_free (fc : FlatContract) (f : Ident) (h : fc.vtable.filter (·.1.name == f) = []) :
+    fc.fnsNamed f = fc.freeFns.filter (·.1.name == f) := by
+  simp [FlatContract.fnsNamed, h]
+
+theorem fnRefContract_this (fc : FlatContract) (fr : Frame) : fnRefContract fc fr .this = some fc.name := rfl
+
+theorem fnRefContract_ident (fc : FlatContract) (fr : Frame) (c : Ident) (hl : fr.get? c = none)
+    (henv : isEnvObj c = false) (hk : (fc.types.contractKind? c).isSome) :
+    fnRefContract fc fr (.ident c) = some c := by
+  simp [fnRefContract, hl, henv, hk]
+
+theorem selectorMember_of_unique {fc : FlatContract} {fr : Frame} {recv : Expr} {f c : Ident} {s : String}
+    (hc : fnRefContract fc fr recv = some c)
+    (hs : ((fc.contractFnsNamed c f).filter fun d => d.visibility == some .external || d.visibility == some .pub).filterMap
+        (fun d => sigStrOf fc.types f (d.params.map (·.ty))) = [s]) :
+    selectorMember fc fr recv f = some (.fixedBytes ⟨3, by decide⟩ (selectorOf s).toList) := by
+  simp [selectorMember, hc, hs]
+
+theorem codeSize_eq (evm : EVM.State) (a : EVM.Address) : codeSize evm a = (codeOf evm a).size := rfl
+
+theorem allocBytes_eq (m : Machine) (s : Bool) (d : ByteArray) :
+    allocBytes m s d = (.memRef (m.heap.alloc (.bytes s d)).2, { m with heap := (m.heap.alloc (.bytes s d)).1 }) := rfl
+
+theorem memLength_allocBytes (m : Machine) (s : Bool) (d : ByteArray) :
+    memLength (allocBytes m s d).2.heap (m.heap.alloc (.bytes s d)).2 = some d.size := by
+  simp [allocBytes, memLength]
+
+/-! ## Overloaded events, slices, `bytesN` indexing, `bytesN(bytes)` -/
+
+theorem eventArgs_positional (cands : List EventInfo) (es : List Expr) (h : cands ≠ []) :
+    eventArgs cands (.positional es) = some es := by
+  cases cands with
+  | nil => exact absurd rfl h
+  | cons c cs => rfl
+
+/-- An event with a single declaration resolves to it when the arguments fit. -/
+theorem resolveEvent_single {env : TypeEnv} {hp : Heap} {ei : EventInfo} {vs : List Value}
+    (h : eventFits env hp ei vs = true) : resolveEvent env hp [ei] vs = some ei := by
+  simp [resolveEvent, h]
+
+theorem eventFits_addr_addr_u256 (env : TypeEnv) (hp : Heap) (ei : EventInfo) (a b : EVM.Address) (n : ℕ)
+    {i1 i2 i3 : Bool} {n1 n2 n3 : Option Ident}
+    (hparams : ei.decl.params = [{ ty := .address false, indexed := i1, name := n1 },
+      { ty := .address false, indexed := i2, name := n2 }, { ty := u256Ty, indexed := i3, name := n3 }]) :
+    eventFits env hp ei [.address a, .address b, u256Val n] = true := by
+  simp [eventFits, eventArgFits, hparams, implicitConv]
+
+theorem fixedBytesIndex_ok (bs : List UInt8) (iv : Value) (i : ℕ) (b : UInt8)
+    (hi : natOperand iv = some i) (hb : bs[i]? = some b) :
+    fixedBytesIndex bs iv = some (.ok (.fixedBytes ⟨0, by decide⟩ [b])) := by
+  simp [fixedBytesIndex, hi, hb]
+
+theorem fixedBytesIndex_oob (bs : List UInt8) (iv : Value) (i : ℕ)
+    (hi : natOperand iv = some i) (hb : bs.length ≤ i) :
+    fixedBytesIndex bs iv = some (.error .outOfBounds) := by
+  simp [fixedBytesIndex, hi, List.getElem?_eq_none hb, Op.panic]
+  rfl
+
+/-- `d[lo:hi]` on a byte array within bounds. -/
+theorem sliceObj_bytes (h : Heap) (obj : ℕ) (s : Bool) (d : ByteArray) (lo hi : Option ℕ)
+    (hobj : h.get? obj = some (.bytes s d)) (hab : lo.getD 0 ≤ hi.getD d.size) (hb : hi.getD d.size ≤ d.size) :
+    sliceObj h obj lo hi = some (.ok (.memRef (h.alloc (.bytes s (d.extract (lo.getD 0) (hi.getD d.size)))).2,
+      (h.alloc (.bytes s (d.extract (lo.getD 0) (hi.getD d.size)))).1)) := by
+  simp [sliceObj, hobj, hab, hb]
+
+/-- `d[lo:hi]` on a byte array with bad bounds: empty revert data. -/
+theorem sliceObj_bytes_bounds (h : Heap) (obj : ℕ) (s : Bool) (d : ByteArray) (lo hi : Option ℕ)
+    (hobj : h.get? obj = some (.bytes s d)) (hbad : ¬ (lo.getD 0 ≤ hi.getD d.size ∧ hi.getD d.size ≤ d.size)) :
+    sliceObj h obj lo hi = some (.error ByteArray.empty) := by
+  simp only [sliceObj, hobj]
+  rw [if_neg hbad]
+
+/-- `bytesN(b)` on a byte array: the first `N` bytes, zero-padded on the right. -/
+theorem explicitConv_bytes_fixedBytes (env : TypeEnv) (h : Heap) (id : ℕ) (d : ByteArray) (k : Fin 32)
+    (hobj : h.get? id = some (.bytes false d)) :
+    explicitConv env h (.memRef id) (.fixedBytes k) =
+      some (.ok (.fixedBytes k (d.toList.take (k.val + 1) ++
+        List.replicate (k.val + 1 - (d.toList.take (k.val + 1)).length) 0), h)) := by
+  simp [explicitConv, hobj]
 
 end Solidity

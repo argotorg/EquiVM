@@ -192,6 +192,8 @@ syntax (name := solidityErrorUnit) "error " ident "(" solidityParam,* ")" ";" : 
 syntax (name := solidityEventUnit)
   "event " ident "(" solidityEventParam,* ")" (&"anonymous")? ";" : solidityUnit
 syntax (name := solidityConstUnit) solidityTy &" constant " ident " = " solidityExpr ";" : solidityUnit
+syntax (name := solidityFreeFn)
+  "function " ident "(" solidityParam,* ")" solidityFnAttr* solidityBody : solidityUnit
 
 syntax:max "sol% " solidityUnit : term
 
@@ -823,6 +825,13 @@ def elabUnit (stx : TSyntax `solidityUnit) : MacroM Term := do
       { name := $(strLit (nameStr raw[2].getId)), ty := $(← elabTy ⟨raw[0]⟩),
         visibility := Solidity.Visibility.internal, mutability := Solidity.VarMutability.constant,
         overrides := none, init := some $(← elabExpr ⟨raw[4]⟩) : Solidity.StateVarDecl })
+  else if raw.isOfKind ``solidityFreeFn then
+    -- function ident ( params ) attrs* body
+    let name := nameStr raw[1].getId
+    let params ← elabParams (raw[3].getSepArgs.map (⟨·⟩))
+    let attrs ← foldFnAttrs raw[5].getArgs
+    let body ← elabBody raw[6]
+    `(Solidity.SourceUnit.function $(← fnDeclTerm (← `(Solidity.FnKind.function)) name params attrs body))
   else Macro.throwErrorAt stx s!"unsupported unit syntax ({stx.raw.getKind})"
 
 macro_rules

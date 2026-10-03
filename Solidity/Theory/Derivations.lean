@@ -207,7 +207,7 @@ theorem ExecStmt.addAssignU256Overflow {fr : Frame} {m : Machine} {lhs rhs : Exp
 /-- `emit E(a, b, n)` for `event E(address indexed, address indexed, uint256)`. -/
 theorem ExecStmt.emitAddrAddrU256 {fr fr1 : Frame} {m m1 : Machine} {ev : Ident} {ei : EventInfo} {es : List Expr}
     {a b : EVM.Address} {n : UInt256} {n1 n2 n3 : Option Ident}
-    (hev : fc.event? ev = some ei)
+    (hev : fc.eventsNamed ev = [ei])
     (hparams : ei.decl.params = [{ ty := .address false, indexed := true, name := n1 },
       { ty := .address false, indexed := true, name := n2 }, { ty := u256Ty, indexed := false, name := n3 }])
     (htys : ei.sig.paramTypes = [.elem .address, .elem .address, .elem (.int (.uint ⟨256, by decide⟩))])
@@ -223,7 +223,8 @@ theorem ExecStmt.emitAddrAddrU256 {fr fr1 : Frame} {m m1 : Machine} {ev : Ident}
     rw [hparams]; exact abiArgs_addr_addr_u256 ..
   have hle := mkLogEntry_addr_addr_u256 m1.this ei a b n.toNat hparams htys hanon n.val.isLt
   rw [u256_ofNat_toNat] at hle
-  exact ExecStmt.emit hev rfl hargs habi hle
+  exact ExecStmt.emit (by rw [hev]; rfl) hargs
+    (by rw [hev]; exact resolveEvent_single (eventFits_addr_addr_u256 _ _ ei a b n.toNat hparams)) habi hle
 
 /-- `return e` for a `bool` return slot `r` (its current binding `l` is given explicitly). -/
 theorem ExecStmt.returnBool {fr fr1 : Frame} {m m1 : Machine} {r : Ident} {e : Expr} {b : Bool} (l : Local)
@@ -1466,7 +1467,7 @@ theorem ExecPost.postIncLocalU256Unchecked {fr : Frame} {m : Machine} {x : Ident
 
 /-- `emit E(args)` for an event whose parameters are all value types (see `mkLogEntry_static`). -/
 theorem ExecStmt.emitStatic {fr fr1 : Frame} {m m1 : Machine} {ev : Ident} {ei : EventInfo} {es : List Expr}
-    (xs : List LogArg) (hev : fc.event? ev = some ei) (hparams : ei.decl.params = xs.map LogArg.param)
+    (xs : List LogArg) (hev : fc.eventsNamed ev = [ei]) (hparams : ei.decl.params = xs.map LogArg.param)
     (htys : ei.sig.paramTypes = xs.map (·.val.abiTy)) (hanon : ei.decl.anonymous = false) (hwf : ∀ x ∈ xs, x.val.wf)
     (hargs : EvalExprs cfg o fc fr m es (.ok (xs.map (·.val.solValue)) fr1 m1)) :
     ExecStmt cfg o fc fr m (.emit (.ident ev) (.positional es))
@@ -1478,7 +1479,9 @@ theorem ExecStmt.emitStatic {fr fr1 : Frame} {m m1 : Machine} {ev : Ident} {ei :
       some (.ok (xs.map (·.val.value), m1)) := by
     rw [hparams, List.map_map]
     exact abiArgs_static ..
-  exact ExecStmt.emit hev rfl hargs habi (mkLogEntry_static m1.this ei xs hparams htys hanon hwf)
+  exact ExecStmt.emit (by rw [hev]; rfl) hargs
+    (by rw [hev]; exact resolveEvent_single (eventFits_static _ _ ei xs hparams)) habi
+    (mkLogEntry_static m1.this ei xs hparams htys hanon hwf)
 
 /-! ## Environment reads, `assert`, `revert("msg")`, tuples, multiple returns, `bool` mappings -/
 
@@ -1945,5 +1948,579 @@ theorem EvalExpr.abiDecodeMemBytes {fr fr1 : Frame} {m m1 : Machine} {d tyArg : 
     EvalExpr cfg o fc fr m (.call (.member (.ident "abi") "decode") [] (.positional [d, tyArg]))
       (.ok (retValue vs) fr1 { m1 with heap := h' }) :=
   EvalExpr.abiDecode hd (by simp [bytesArg, hget]) htys hatys hdec hof
+
+/-! ## Tuple declarations `(T₁ x₁, …) = rhs` -/
+
+/-- `(T₁ x₁, T₂ x₂) = rhs`, each binder declared with the given `declare` facts. -/
+theorem ExecStmt.tupleDeclTwo {fr fr1 fr2 fr3 : Frame} {m m1 m2 m3 : Machine} {rhs : Expr} {p1 p2 : Param} {x1 x2 : Ident}
+    {v1 v2 : Value}
+    (hrhs : EvalExpr cfg o fc fr m rhs (.ok (.tuple [v1, v2]) fr1 m1))
+    (hn1 : p1.name = some x1) (hd1 : declare cfg fc.types fr1 m1 p1.ty p1.loc x1 (some v1) = some (.ok (fr2, m2)))
+    (hn2 : p2.name = some x2) (hd2 : declare cfg fc.types fr2 m2 p2.ty p2.loc x2 (some v2) = some (.ok (fr3, m3))) :
+    ExecStmt cfg o fc fr m (.tupleDecl [some p1, some p2] rhs) (.normal fr3 m3) :=
+  ExecStmt.tupleDecl hrhs (DeclareTuple.cons hn1 hd1 (DeclareTuple.cons hn2 hd2 DeclareTuple.nil))
+
+/-- `(T₁ x₁, , T₃ x₃) = rhs`: the middle component is dropped. -/
+theorem ExecStmt.tupleDeclSkipMiddle {fr fr1 fr2 fr3 : Frame} {m m1 m2 m3 : Machine} {rhs : Expr} {p1 p3 : Param}
+    {x1 x3 : Ident} {v1 v2 v3 : Value}
+    (hrhs : EvalExpr cfg o fc fr m rhs (.ok (.tuple [v1, v2, v3]) fr1 m1))
+    (hn1 : p1.name = some x1) (hd1 : declare cfg fc.types fr1 m1 p1.ty p1.loc x1 (some v1) = some (.ok (fr2, m2)))
+    (hn3 : p3.name = some x3) (hd3 : declare cfg fc.types fr2 m2 p3.ty p3.loc x3 (some v3) = some (.ok (fr3, m3))) :
+    ExecStmt cfg o fc fr m (.tupleDecl [some p1, none, some p3] rhs) (.normal fr3 m3) :=
+  ExecStmt.tupleDecl hrhs (DeclareTuple.cons hn1 hd1 (DeclareTuple.skip (DeclareTuple.cons hn3 hd3 DeclareTuple.nil)))
+
+/-- `(T₁ x₁, T₂ x₂, T₃ x₃) = rhs`. -/
+theorem ExecStmt.tupleDeclThree {fr fr1 fr2 fr3 fr4 : Frame} {m m1 m2 m3 m4 : Machine} {rhs : Expr} {p1 p2 p3 : Param}
+    {x1 x2 x3 : Ident} {v1 v2 v3 : Value}
+    (hrhs : EvalExpr cfg o fc fr m rhs (.ok (.tuple [v1, v2, v3]) fr1 m1))
+    (hn1 : p1.name = some x1) (hd1 : declare cfg fc.types fr1 m1 p1.ty p1.loc x1 (some v1) = some (.ok (fr2, m2)))
+    (hn2 : p2.name = some x2) (hd2 : declare cfg fc.types fr2 m2 p2.ty p2.loc x2 (some v2) = some (.ok (fr3, m3)))
+    (hn3 : p3.name = some x3) (hd3 : declare cfg fc.types fr3 m3 p3.ty p3.loc x3 (some v3) = some (.ok (fr4, m4))) :
+    ExecStmt cfg o fc fr m (.tupleDecl [some p1, some p2, some p3] rhs) (.normal fr4 m4) :=
+  ExecStmt.tupleDecl hrhs
+    (DeclareTuple.cons hn1 hd1 (DeclareTuple.cons hn2 hd2 (DeclareTuple.cons hn3 hd3 DeclareTuple.nil)))
+
+/-- `(uint256 a, uint256 b) = rhs` (memory binders). -/
+theorem ExecStmt.tupleDeclTwoU256 {fr fr1 : Frame} {m m1 : Machine} {rhs : Expr} {x1 x2 : Ident} {n1 n2 : ℕ}
+    {l1 l2 : Option DataLoc}
+    (hrhs : EvalExpr cfg o fc fr m rhs (.ok (.tuple [u256Val n1, u256Val n2]) fr1 m1)) :
+    ExecStmt cfg o fc fr m (.tupleDecl [some { ty := u256Ty, loc := l1, name := some x1 },
+      some { ty := u256Ty, loc := l2, name := some x2 }] rhs)
+      (.normal ((fr1.bind x1 u256Ty l1 (u256Val n1)).bind x2 u256Ty l2 (u256Val n2)) m1) :=
+  ExecStmt.tupleDeclTwo hrhs rfl (declare_u256 ..) rfl (declare_u256 ..)
+
+/-! ## Tuple assignments `(a, …) = rhs` -/
+
+/-- `(a₁, a₂) = rhs`. -/
+theorem EvalExpr.assignTupleTwo {fr fr1 fr2 fr3 fr4 fr5 : Frame} {m m1 m2 m3 m4 m5 : Machine} {l1 l2 rhs : Expr}
+    {lv1 lv2 : LValue} {v1 v2 : Value}
+    (hrhs : EvalExpr cfg o fc fr m rhs (.ok (.tuple [v1, v2]) fr1 m1))
+    (hl1 : EvalLValue cfg o fc fr1 m1 l1 (.ok lv1 fr2 m2)) (ha1 : assign cfg fc.types fr2 m2 lv1 v1 = some (.ok (fr3, m3)))
+    (hl2 : EvalLValue cfg o fc fr3 m3 l2 (.ok lv2 fr4 m4)) (ha2 : assign cfg fc.types fr4 m4 lv2 v2 = some (.ok (fr5, m5))) :
+    EvalExpr cfg o fc fr m (.assign .assign (.tuple [some l1, some l2]) rhs) (.ok (.tuple [v1, v2]) fr5 m5) :=
+  EvalExpr.assignTuple hrhs (AssignTuple.cons hl1 ha1 (AssignTuple.cons hl2 ha2 AssignTuple.nil))
+
+theorem ExecStmt.assignTupleTwo {fr fr1 fr2 fr3 fr4 fr5 : Frame} {m m1 m2 m3 m4 m5 : Machine} {l1 l2 rhs : Expr}
+    {lv1 lv2 : LValue} {v1 v2 : Value}
+    (hrhs : EvalExpr cfg o fc fr m rhs (.ok (.tuple [v1, v2]) fr1 m1))
+    (hl1 : EvalLValue cfg o fc fr1 m1 l1 (.ok lv1 fr2 m2)) (ha1 : assign cfg fc.types fr2 m2 lv1 v1 = some (.ok (fr3, m3)))
+    (hl2 : EvalLValue cfg o fc fr3 m3 l2 (.ok lv2 fr4 m4)) (ha2 : assign cfg fc.types fr4 m4 lv2 v2 = some (.ok (fr5, m5))) :
+    ExecStmt cfg o fc fr m (.exprStmt (.assign .assign (.tuple [some l1, some l2]) rhs)) (.normal fr5 m5) :=
+  ExecStmt.exprStmt (EvalExpr.assignTupleTwo hrhs hl1 ha1 hl2 ha2)
+
+/-- `(a, ) = rhs`: only the first component is assigned. -/
+theorem ExecStmt.assignTupleFirst {fr fr1 fr2 fr3 : Frame} {m m1 m2 m3 : Machine} {l1 rhs : Expr} {lv1 : LValue}
+    {v1 v2 : Value}
+    (hrhs : EvalExpr cfg o fc fr m rhs (.ok (.tuple [v1, v2]) fr1 m1))
+    (hl1 : EvalLValue cfg o fc fr1 m1 l1 (.ok lv1 fr2 m2)) (ha1 : assign cfg fc.types fr2 m2 lv1 v1 = some (.ok (fr3, m3))) :
+    ExecStmt cfg o fc fr m (.exprStmt (.assign .assign (.tuple [some l1, none]) rhs)) (.normal fr3 m3) :=
+  ExecStmt.exprStmt (EvalExpr.assignTuple hrhs (AssignTuple.cons hl1 ha1 (AssignTuple.skip AssignTuple.nil)))
+
+/-- `(a, b) = (b, a)`-style swaps and other two-local assignments of `uint256`s. -/
+theorem ExecStmt.assignTupleTwoLocalsU256 {fr fr1 : Frame} {m m1 : Machine} {rhs : Expr} {x1 x2 : Ident} {n1 n2 : ℕ}
+    (l1 l2 : Local) (hrhs : EvalExpr cfg o fc fr m rhs (.ok (.tuple [u256Val n1, u256Val n2]) fr1 m1))
+    (hx1 : fr1.get? x1 = some l1) (ht1 : l1.ty = u256Ty)
+    (hx2 : (fr1.setVal x1 (u256Val n1)).get? x2 = some l2) (ht2 : l2.ty = u256Ty) :
+    ExecStmt cfg o fc fr m (.exprStmt (.assign .assign (.tuple [some (.ident x1), some (.ident x2)]) rhs))
+      (.normal ((fr1.setVal x1 (u256Val n1)).setVal x2 (u256Val n2)) m1) :=
+  ExecStmt.assignTupleTwo hrhs (EvalLValue.local (m := m1) hx1) (assign_local_u256 l1 hx1 ht1 n1)
+    (EvalLValue.local (m := m1) hx2) (assign_local_u256 l2 hx2 ht2 n2)
+
+/-! ## Multiple return values -/
+
+/-- `return (e₁, e₂)` into two return slots with the given `assign` facts. -/
+theorem ExecStmt.returnTwo {fr fr1 fr2 fr3 : Frame} {m m1 m2 m3 : Machine} {e : Expr} {r1 r2 : Ident} {v1 v2 : Value}
+    (hret : fr.retVars = [r1, r2]) (he : EvalExpr cfg o fc fr m e (.ok (.tuple [v1, v2]) fr1 m1))
+    (ha1 : assign cfg fc.types fr1 m1 (.local r1) v1 = some (.ok (fr2, m2)))
+    (ha2 : assign cfg fc.types fr2 m2 (.local r2) v2 = some (.ok (fr3, m3))) (l1 l2 : Local)
+    (hr1 : fr1.get? r1 = some l1) (hr2 : fr2.get? r2 = some l2) :
+    ExecStmt cfg o fc fr m (.return (some e)) (.returned fr3 m3) := by
+  refine ExecStmt.returnMulti (by simp [hret]) he ?_
+  rw [hret]
+  exact AssignTuple.cons (EvalLValue.local (m := m1) hr1) ha1
+    (AssignTuple.cons (EvalLValue.local (m := m2) hr2) ha2 AssignTuple.nil)
+
+/-- `return (e₁, e₂, e₃)` into three return slots. -/
+theorem ExecStmt.returnThree {fr fr1 fr2 fr3 fr4 : Frame} {m m1 m2 m3 m4 : Machine} {e : Expr} {r1 r2 r3 : Ident}
+    {v1 v2 v3 : Value}
+    (hret : fr.retVars = [r1, r2, r3]) (he : EvalExpr cfg o fc fr m e (.ok (.tuple [v1, v2, v3]) fr1 m1))
+    (ha1 : assign cfg fc.types fr1 m1 (.local r1) v1 = some (.ok (fr2, m2)))
+    (ha2 : assign cfg fc.types fr2 m2 (.local r2) v2 = some (.ok (fr3, m3)))
+    (ha3 : assign cfg fc.types fr3 m3 (.local r3) v3 = some (.ok (fr4, m4))) (l1 l2 l3 : Local)
+    (hr1 : fr1.get? r1 = some l1) (hr2 : fr2.get? r2 = some l2) (hr3 : fr3.get? r3 = some l3) :
+    ExecStmt cfg o fc fr m (.return (some e)) (.returned fr4 m4) := by
+  refine ExecStmt.returnMulti (by simp [hret]) he ?_
+  rw [hret]
+  exact AssignTuple.cons (EvalLValue.local (m := m1) hr1) ha1
+    (AssignTuple.cons (EvalLValue.local (m := m2) hr2) ha2
+      (AssignTuple.cons (EvalLValue.local (m := m3) hr3) ha3 AssignTuple.nil))
+
+theorem EvalExpr.tupleThree {fr fr1 fr2 fr3 : Frame} {m m1 m2 m3 : Machine} {e1 e2 e3 : Expr} {v1 v2 v3 : Value}
+    (h1 : EvalExpr cfg o fc fr m e1 (.ok v1 fr1 m1)) (h2 : EvalExpr cfg o fc fr1 m1 e2 (.ok v2 fr2 m2))
+    (h3 : EvalExpr cfg o fc fr2 m2 e3 (.ok v3 fr3 m3)) :
+    EvalExpr cfg o fc fr m (.tuple [some e1, some e2, some e3]) (.ok (.tuple [v1, v2, v3]) fr3 m3) :=
+  EvalExpr.tuple rfl (EvalExprs.three h1 h2 h3)
+
+/-! ## `try` with two returns -/
+
+/-- `try recv.f(args) returns (T₁ x₁, T₂ x₂) { … }`, the call succeeding with two value-type returns. -/
+theorem ExecStmt.tryCallOkTwoRets {fr fr1 fr4 fr5 fr6 : Frame} {m m1 m4 m5 m6 m7 m8 : Machine} {recv : Expr} {f : Ident}
+    {es : List Expr} {c : Ident} {a : EVM.Address} {vs : List Value} {d : FnDecl} {sigStr : String}
+    {ptys rtys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8} {out : ByteArray} {body : List Stmt}
+    {cs : List CatchClause} {r : ExecResult} {p1 p2 : Param} {x1 x2 : Ident} {sv1 sv2 : ABI.ABIValue} {v1 v2 : Value}
+    {h1 h2 : Heap}
+    (hdirect : memberCallDirect fc fr recv = false)
+    (hrecv : EvalExpr cfg o fc fr m recv (.ok (.contract c a) fr1 m1))
+    (hargs : EvalExprs cfg o fc fr1 m1 es (.ok vs fr4 m4))
+    (hres : resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d)
+    (hsig : externalSig fc.types d = some (sigStr, ptys, rtys))
+    (habi : abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.ok (svs, m5)))
+    (henc : ABI.encodeABIValues? ptys svs = some bs)
+    (hcode : d.returns = [] → codeSize m4.evm a ≠ 0)
+    (hcall : callViaEVM o m5 a 0 (selectorOf sigStr ++ bs.toByteArray)
+      (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 none 0)
+      (true, m6, out))
+    (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some [sv1, sv2])
+    (hof1 : ofAbi fc.types fuelDefault p1.ty sv1 m6.heap = some (v1, h1))
+    (hof2 : ofAbi fc.types fuelDefault p2.ty sv2 h1 = some (v2, h2))
+    (hn1 : p1.name = some x1) (hn2 : p2.name = some x2)
+    (hd1 : declare cfg fc.types fr4 { m6 with heap := h2 } p1.ty (some (p1.loc.getD .memory)) x1 (some v1) =
+      some (.ok (fr5, m7)))
+    (hd2 : declare cfg fc.types fr5 m7 p2.ty (some (p2.loc.getD .memory)) x2 (some v2) = some (.ok (fr6, m8)))
+    (hbody : ExecBlock cfg o fc fr6 m8 body r) :
+    ExecStmt cfg o fc fr m (.tryCatch (.call (.member recv f) [] (.positional es)) [p1, p2] body cs) (exitBlock fr r) :=
+  ExecStmt.tryCallOk hdirect hrecv EvalValueOpt.none EvalGasOpt.none rfl hargs hres hsig habi henc hcode hcall
+    (tryRets_two hdec hof1 hof2) (bindTryParams_two hn1 hn2 hd1 hd2) hbody
+
+/-! ## Builtins -/
+
+theorem EvalExpr.addmodU256 {fr fr1 : Frame} {m m1 : Machine} {x y k : Expr} {a b c : ℕ}
+    (hargs : EvalExprs cfg o fc fr m [x, y, k] (.ok [u256Val a, u256Val b, u256Val c] fr1 m1)) (hc : c ≠ 0) :
+    EvalExpr cfg o fc fr m (.call (.ident "addmod") [] (.positional [x, y, k])) (.ok (wordNat ((a + b) % c)) fr1 m1) :=
+  EvalExpr.addmod hargs rfl rfl rfl hc
+
+theorem EvalExpr.mulmodU256 {fr fr1 : Frame} {m m1 : Machine} {x y k : Expr} {a b c : ℕ}
+    (hargs : EvalExprs cfg o fc fr m [x, y, k] (.ok [u256Val a, u256Val b, u256Val c] fr1 m1)) (hc : c ≠ 0) :
+    EvalExpr cfg o fc fr m (.call (.ident "mulmod") [] (.positional [x, y, k])) (.ok (wordNat ((a * b) % c)) fr1 m1) :=
+  EvalExpr.mulmod hargs rfl rfl rfl hc
+
+/-- `gasleft()`: the oracle's value at the current tick. -/
+theorem EvalExpr.gasleftVal {fr : Frame} {m : Machine} :
+    EvalExpr cfg o fc fr m (.call (.ident "gasleft") [] (.positional []))
+      (.ok (u256Val (o.gasleft m.tick).toNat) fr { m with tick := m.tick + 1 }) :=
+  EvalExpr.gasleft
+
+/-- `msg.data`: a fresh memory `bytes` holding the calldata. -/
+theorem EvalExpr.msgDataVal {fr : Frame} {m : Machine} :
+    EvalExpr cfg o fc fr m (.member (.ident "msg") "data")
+      (.ok (allocBytes m false m.evm.executionEnv.calldata).1 fr (allocBytes m false m.evm.executionEnv.calldata).2) :=
+  EvalExpr.msgData rfl
+
+/-- `a.balance` for an `address` expression. -/
+theorem EvalExpr.addressBalance {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {a : EVM.Address}
+    (hdm : directMember fc fr e = false) (he : EvalExpr cfg o fc fr m e (.ok (.address a) fr1 m1)) :
+    EvalExpr cfg o fc fr m (.member e "balance") (.ok (wordNat (balanceOf m1.evm a)) fr1 m1) := by
+  have h := EvalExpr.memberBalance (cfg := cfg) (o := o) (fc := fc) hdm he (a := a.toNat) rfl
+  rwa [address_toNat] at h
+
+/-- `b.length` for a `bytesN` value. -/
+theorem EvalExpr.bytesNLength {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {n : Fin 32} {bs : List UInt8}
+    (hdm : directMember fc fr e = false) (he : EvalExpr cfg o fc fr m e (.ok (.fixedBytes n bs) fr1 m1)) :
+    EvalExpr cfg o fc fr m (.member e "length") (.ok (wordNat (n.val + 1)) fr1 m1) :=
+  EvalExpr.memberBytesLength hdm he
+
+/-- `arr.length` for a storage dynamic array. -/
+theorem EvalExpr.storageArrayLength {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {er : Solm.EvaledStorageRef} {ety : Ty}
+    {n : ℕ} (hdm : directMember fc fr e = false)
+    (he : EvalExpr cfg o fc fr m e (.ok (.storageRef er (.dynArray ety)) fr1 m1))
+    (hlen : dynArrayLength cfg m1.evm er = some n) :
+    EvalExpr cfg o fc fr m (.member e "length") (.ok (wordNat n) fr1 m1) :=
+  EvalExpr.memberStorageLength hdm he (storageLength_dynArray hlen)
+
+/-- An enum constant `E.member`. -/
+theorem EvalExpr.enumConst {fr : Frame} {m : Machine} {t f : Ident} {e : EnumInfo} {i : ℕ}
+    (henv : isEnvObj t = false) (hx : fr.get? t = none) (he : fc.types.enum? none t = some e)
+    (hi : indexOf e.members f = some i) :
+    EvalExpr cfg o fc fr m (.member (.ident t) f) (.ok (.enum t i) fr m) :=
+  EvalExpr.enumMember henv hx he hi
+
+/-- A `constant` state variable: its initializer is evaluated in place. -/
+theorem EvalExpr.constVarVal {fr : Frame} {m : Machine} {x : Ident} {v : FlatVar} {e : Expr} {r : Res Value}
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hconst : v.mutability = .constant) (hinit : v.init = some e)
+    (he : EvalExpr cfg o fc fr m e r) : EvalExpr cfg o fc fr m (.ident x) r :=
+  EvalExpr.constVar hx hv hconst hinit he
+
+/-- `IFoo(addr)`: an address cast to a contract type by name. -/
+theorem EvalExpr.contractCast {fr fr1 : Frame} {m m1 : Machine} {c : Ident} {a : Expr} {addr : EVM.Address}
+    (hbuiltin : isBuiltinFn c = false) (hx : fr.get? c = none) (hvar : fc.var? c = none) (hfns : fc.fnsNamed c = [])
+    (hstruct : fc.types.struct? none c = none) (hkind : (fc.types.contractKind? c).isSome = true)
+    (henum : (fc.types.enum? none c).isNone = true)
+    (ha : EvalExpr cfg o fc fr m a (.ok (.address addr) fr1 m1)) :
+    EvalExpr cfg o fc fr m (.call (.ident c) [] (.positional [a])) (.ok (.contract c addr) fr1 m1) :=
+  EvalExpr.convertUser hbuiltin hx hvar hfns hstruct (Or.inl hkind)
+    (EvalExpr.convertPlain ha (explicitConv_address_contract _ _ addr none c hkind henum))
+
+theorem EvalExpr.arrayLitPlain {fr fr1 : Frame} {m m1 m2 : Machine} {es : List Expr} {vs : List Value} {v : Value}
+    (hes : EvalExprs cfg o fc fr m es (.ok vs fr1 m1)) (hobj : arrayLitObj fc.types m1 vs = some (.ok (v, m2))) :
+    EvalExpr cfg o fc fr m (.arrayLit es) (.ok v fr1 m2) :=
+  EvalExpr.arrayLit hes hobj
+
+/-- `new T[](n)`. -/
+theorem EvalExpr.newArrayPlain {fr fr1 : Frame} {m m1 : Machine} {ty : Ty} {n : Expr} {len : ℕ} {v : Value} {h' : Heap}
+    (hnew : newContract? fc ty = none) (hn : EvalExpr cfg o fc fr m n (.ok (u256Val len) fr1 m1))
+    (hnv : isValueType fc.types ty = false) (hz : zeroObj fc.types fuelDefault ty len m1.heap = some (v, h')) :
+    EvalExpr cfg o fc fr m (.call (.new ty) [] (.positional [n])) (.ok v fr1 { m1 with heap := h' }) :=
+  EvalExpr.newArray hnew hn rfl hnv hz
+
+/-! ## Storage arrays: `push()` and `pop()` -/
+
+/-- `arr.push()`: a zero element appended, the length incremented. -/
+theorem EvalExpr.pushEmpty {fr fr1 : Frame} {m m1 : Machine} {recv : Expr} {er : Solm.EvaledStorageRef} {e : Ty} {n : ℕ}
+    {slot : UInt256} (hdm : memberCallDirect fc fr recv = false)
+    (he : EvalExpr cfg o fc fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1))
+    (hlen : dynArrayLength cfg m1.evm er = some n) (hl : cfg.storage.layout (lengthRef er) m1.evm = some (uint256Loc slot))
+    (hn : n + 1 < UInt256.size) :
+    EvalExpr cfg o fc fr m (.call (.member recv "push") [] (.positional []))
+      (.ok .unit fr1 (storeU256 m1 slot (UInt256.ofNat (n + 1)))) :=
+  EvalExpr.push0 hdm he (storagePush_none hlen hl hn)
+
+/-- `arr.pop()` on a non-empty array: the last element cleared, the length decremented. -/
+theorem EvalExpr.popLast {fr fr1 : Frame} {m m1 : Machine} {recv : Expr} {er : Solm.EvaledStorageRef} {e : Ty} {n : ℕ}
+    {slot : UInt256} {evm₁ : EVM.State} (hdm : memberCallDirect fc fr recv = false)
+    (he : EvalExpr cfg o fc fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1))
+    (hlen : dynArrayLength cfg m1.evm er = some (n + 1))
+    (hclear : clearStorage cfg fc.types fuelDefault m1.evm (elemRef er n) e = some (.ok evm₁))
+    (hl : cfg.storage.layout (lengthRef er) evm₁ = some (uint256Loc slot)) (hn : n < UInt256.size) :
+    EvalExpr cfg o fc fr m (.call (.member recv "pop") [] (.positional []))
+      (.ok .unit fr1 { m1 with evm := Storage.EVM.storageStore evm₁ evm₁.executionEnv.codeOwner slot (UInt256.ofNat n) }) :=
+  EvalExpr.pop hdm he (storagePop_succ hlen hclear hl hn)
+
+/-- `arr.pop()` on an empty array: `Panic(0x31)`. -/
+theorem EvalExpr.popEmptyPanic {fr fr1 : Frame} {m m1 : Machine} {recv : Expr} {er : Solm.EvaledStorageRef} {e : Ty}
+    (hdm : memberCallDirect fc fr recv = false)
+    (he : EvalExpr cfg o fc fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1))
+    (hlen : dynArrayLength cfg m1.evm er = some 0) :
+    EvalExpr cfg o fc fr m (.call (.member recv "pop") [] (.positional [])) (.reverted (panicData 0x31)) := by
+  have h := EvalExpr.popPanic (cfg := cfg) (o := o) (fc := fc) hdm he (storagePop_empty hlen)
+  exact h
+
+/-! ## `require(c, Err())`, `revert()`, `return;` -/
+
+theorem ExecStmt.requireCustomNoArgs {fr fr1 : Frame} {m m1 : Machine} {c : Expr} {err : Ident} {ei : ErrorInfo}
+    (hc : EvalExpr cfg o fc fr m c (.ok (.bool false) fr1 m1)) (hei : fc.error? err = some ei)
+    (hparams : ei.decl.params = []) (htys : ei.sig.paramTypes = []) :
+    ExecStmt cfg o fc fr m (.exprStmt (.call (.ident "require") [] (.positional [c, .call (.ident err) [] (.positional [])])))
+      (.reverted (selectorOf ei.sigStr)) := by
+  refine ExecStmt.exprStmtRevert (EvalExpr.requireCustom (es := []) (vs := []) (svs := []) (fr2 := fr1) (m2 := m1)
+    (m3 := m1) hc hei ?_ EvalExprs.nil ?_ ?_)
+  · rw [hparams]; rfl
+  · rw [hparams]; rfl
+  · rw [htys]; exact customErrorData_nil _
+
+theorem ExecStmt.revertEmptyStmt {fr : Frame} {m : Machine} :
+    ExecStmt cfg o fc fr m (.exprStmt (.call (.ident "revert") [] (.positional []))) (.reverted ByteArray.empty) :=
+  ExecStmt.exprStmtRevert EvalExpr.revertEmpty
+
+theorem ExecStmt.returnNoneStmt {fr : Frame} {m : Machine} : ExecStmt cfg o fc fr m (.return none) (.returned fr m) :=
+  ExecStmt.returnNone
+
+/-! ## Loops: `do … while`, `continue`, `for` without initializer -/
+
+theorem ExecStmt.doWhileNormal {fr fr1 fr' : Frame} {m m1 m' : Machine} {body : Stmt} {c : Expr}
+    (hbody : ExecStmt cfg o fc fr m body (.normal fr1 m1))
+    (hloop : ExecLoop cfg o fc fr1 m1 (some c) none body (.normal fr' m')) :
+    ExecStmt cfg o fc fr m (.doWhile body c) (.normal fr' m') :=
+  ExecStmt.doWhile hbody hloop
+
+theorem ExecStmt.continueStmt {fr : Frame} {m : Machine} : ExecStmt cfg o fc fr m .continue (.continue fr m) :=
+  ExecStmt.continue
+
+theorem ExecStmt.forNoInitNormal {fr fr' : Frame} {m m' : Machine} {c post : Option Expr} {body : Stmt}
+    (hloop : ExecLoop cfg o fc fr m c post body (.normal fr' m')) :
+    ExecStmt cfg o fc fr m (.for none c post body) (.normal fr' m') :=
+  ExecStmt.forNoInit hloop
+
+/-- A loop iteration whose body ends in `continue`. -/
+theorem ExecLoop.stepContinue {fr fr1 fr2 fr3 : Frame} {m m1 m2 m3 : Machine} {c : Expr} {post : Option Expr} {body : Stmt}
+    {r : ExecResult} (hc : EvalExpr cfg o fc fr m c (.ok (.bool true) fr1 m1))
+    (hb : ExecStmt cfg o fc fr1 m1 body (.continue fr2 m2)) (hp : ExecPost cfg o fc fr2 m2 post (.ok () fr3 m3))
+    (hrest : ExecLoop cfg o fc fr3 m3 (some c) post body r) : ExecLoop cfg o fc fr m (some c) post body r :=
+  ExecLoop.iterateContinue (EvalCond.some hc) hb hp hrest
+
+/-! ## Calls through `super`, a base, a library, `using for`, `delegatecall` -/
+
+theorem EvalExpr.superCallPlain {fr fr1 : Frame} {m m1 m2 : Machine} {f : Ident} {es : List Expr} {vs rets : List Value}
+    {fn : FnDef} (hargs : EvalExprs cfg o fc fr m es (.ok vs fr1 m1))
+    (hres : resolveOverload fc.types m1.heap fc (superCands fc fr.here f) vs = some fn)
+    (hcall : CallFn cfg o fc fr1 m1 fn vs (.ok rets m2)) :
+    EvalExpr cfg o fc fr m (.call (.member .super f) [] (.positional es)) (.ok (retValue rets) fr1 m2) :=
+  EvalExpr.superCall rfl hargs hres hcall
+
+theorem EvalExpr.baseCallPlain {fr fr1 : Frame} {m m1 m2 : Machine} {b f : Ident} {es : List Expr} {vs rets : List Value}
+    {fn : FnDef} (henv : isEnvObj b = false) (hx : fr.get? b = none) (hlib : fc.library? b = none)
+    (hlin : fc.linearization.contains b = true) (hargs : EvalExprs cfg o fc fr m es (.ok vs fr1 m1))
+    (hres : resolveOverload fc.types m1.heap fc (baseCands fc b f) vs = some fn)
+    (hcall : CallFn cfg o fc fr1 m1 fn vs (.ok rets m2)) :
+    EvalExpr cfg o fc fr m (.call (.member (.ident b) f) [] (.positional es)) (.ok (retValue rets) fr1 m2) :=
+  EvalExpr.baseCall henv hx hlib hlin rfl hargs hres hcall
+
+theorem EvalExpr.libraryCallPlain {fr fr1 : Frame} {m m1 m2 : Machine} {l f : Ident} {lib : ContractDecl} {es : List Expr}
+    {vs rets : List Value} {d : FnDecl} (henv : isEnvObj l = false) (hx : fr.get? l = none)
+    (hlib : fc.library? l = some lib) (hargs : EvalExprs cfg o fc fr m es (.ok vs fr1 m1))
+    (hres : resolveDecl fc.types m1.heap (lib.functions.filter (·.name == f)) vs = some d)
+    (hcall : CallFn cfg o fc fr1 m1 ⟨0, l, d⟩ vs (.ok rets m2)) :
+    EvalExpr cfg o fc fr m (.call (.member (.ident l) f) [] (.positional es)) (.ok (retValue rets) fr1 m2) :=
+  EvalExpr.libraryCall henv hx hlib rfl hargs hres hcall
+
+theorem EvalExpr.usingForCallPlain {fr fr1 fr2 : Frame} {m m1 m2 m3 : Machine} {recv : Expr} {f : Ident} {rv : Value}
+    {lib : ContractDecl} {es : List Expr} {vs rets : List Value} {d : FnDecl}
+    (hdm : memberCallDirect fc fr recv = false) (hrecv : EvalExpr cfg o fc fr m recv (.ok rv fr1 m1))
+    (hspecial : specialMemberCall rv f = false) (hlib : usingLibrary fc fr.here (receiverTy m1.heap rv) = [lib])
+    (hargs : EvalExprs cfg o fc fr1 m1 es (.ok vs fr2 m2))
+    (hres : resolveDecl fc.types m2.heap (lib.functions.filter (·.name == f)) (rv :: vs) = some d)
+    (hcall : CallFn cfg o fc fr2 m2 ⟨0, lib.name, d⟩ (rv :: vs) (.ok rets m3)) :
+    EvalExpr cfg o fc fr m (.call (.member recv f) [] (.positional es)) (.ok (retValue rets) fr2 m3) :=
+  EvalExpr.usingForCall hdm hrecv hspecial hlib rfl hargs hres hcall
+
+/-- `a.delegatecall(data)` with `data` a memory `bytes`: the EVM result is `hcall`. -/
+theorem EvalExpr.delegateCallPlain {fr fr1 fr3 : Frame} {m m1 m3 m4 : Machine} {recv dataE : Expr} {a : EVM.Address}
+    {id : ℕ} {s : Bool} {data out : ByteArray} {z : Bool}
+    (hdm : memberCallDirect fc fr recv = false) (hrecv : EvalExpr cfg o fc fr m recv (.ok (.address a) fr1 m1))
+    (hdata : EvalExpr cfg o fc fr1 m1 dataE (.ok (.memRef id) fr3 m3)) (hget : m3.heap.get? id = some (.bytes s data))
+    (hcall : delegateCallViaEVM o m3 (EVM.address a.toNat) data (calleeGas o m3 none 0) (z, m4, out)) :
+    EvalExpr cfg o fc fr m (.call (.member recv "delegatecall") [] (.positional [dataE]))
+      (.ok (.tuple [.bool z, (allocBytes m4 false out).1]) fr3 (allocBytes m4 false out).2) :=
+  EvalExpr.delegateCall hdm hrecv rfl rfl EvalGasOpt.none hdata (by simp [bytesArg, hget]) hcall rfl
+
+/-- `recv.f(args)` on an address without code and no return values: empty revert (solc's extcodesize check). -/
+theorem EvalExpr.externalCallNoCodePlain {fr fr1 fr4 : Frame} {m m1 m4 : Machine} {recv : Expr} {f c : Ident}
+    {a : EVM.Address} {es : List Expr} {vs : List Value} {d : FnDecl}
+    (hdm : memberCallDirect fc fr recv = false) (hrecv : EvalExpr cfg o fc fr m recv (.ok (.contract c a) fr1 m1))
+    (hargs : EvalExprs cfg o fc fr1 m1 es (.ok vs fr4 m4))
+    (hres : resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d) (hret : d.returns = [])
+    (hcode : codeSize m4.evm a = 0) :
+    EvalExpr cfg o fc fr m (.call (.member recv f) [] (.positional es)) (.reverted ByteArray.empty) :=
+  EvalExpr.externalCallNoCode hdm hrecv EvalValueOpt.none EvalGasOpt.none rfl hargs hres hret hcode
+
+/-! ## `try new C(args)` and uncaught reverts -/
+
+theorem ExecStmt.tryNewOkNoRets {fr fr3 : Frame} {m m3 m4 m5 : Machine} {ty : Ty} {es : List Expr} {c : Ident}
+    {tys : List Ty} {vs : List Value} {svs : List ABI.ABIValue} {a : EVM.Address} {out : EVM.Bytes} {body : List Stmt}
+    {cs : List CatchClause} {r : ExecResult}
+    (hnew : newContract? fc ty = some (c, tys)) (hargs : EvalExprs cfg o fc fr m es (.ok vs fr3 m3))
+    (habi : abiArgs cfg fc.types m3 tys vs = some (.ok (svs, m4)))
+    (hcreate : newViaEVM cfg o m4 c 0 svs none (a, m5, true, out)) (hbody : ExecBlock cfg o fc fr3 m5 body r) :
+    ExecStmt cfg o fc fr m (.tryCatch (.call (.new ty) [] (.positional es)) [] body cs) (exitBlock fr r) :=
+  ExecStmt.tryNewOk hnew EvalValueOpt.none EvalSaltOpt.none rfl hargs habi hcreate (bindTryParams_nil _ _) hbody
+
+theorem ExecStmt.tryNewCaughtGeneric {fr fr3 : Frame} {m m3 m4 m5 : Machine} {ty : Ty} {es : List Expr} {c : Ident}
+    {tys : List Ty} {vs : List Value} {svs : List ABI.ABIValue} {a : EVM.Address} {out : EVM.Bytes} {ps : List Param}
+    {body cbody : List Stmt} {r : ExecResult}
+    (hnew : newContract? fc ty = some (c, tys)) (hargs : EvalExprs cfg o fc fr m es (.ok vs fr3 m3))
+    (habi : abiArgs cfg fc.types m3 tys vs = some (.ok (svs, m4)))
+    (hcreate : newViaEVM cfg o m4 c 0 svs none (a, m5, false, out)) (hcatch : ExecBlock cfg o fc fr3 m5 cbody r) :
+    ExecStmt cfg o fc fr m (.tryCatch (.call (.new ty) [] (.positional es)) ps body [.mk none [] cbody]) (exitBlock fr r) :=
+  ExecStmt.tryNewCaught hnew EvalValueOpt.none EvalSaltOpt.none rfl hargs habi hcreate
+    (selectCatch_generic_noParams cfg m5 cbody out) (bindTryParams_nil _ _) hcatch
+
+/-- The tried call reverts and no clause matches: the revert bubbles up. -/
+theorem ExecStmt.tryCallUncaughtPlain {fr fr1 fr4 : Frame} {m m1 m4 m5 m6 : Machine} {recv : Expr} {f : Ident}
+    {es : List Expr} {c : Ident} {a : EVM.Address} {vs : List Value} {d : FnDecl} {sigStr : String}
+    {ptys rtys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8} {out : ByteArray} {ps : List Param}
+    {body : List Stmt} {cs : List CatchClause}
+    (hdirect : memberCallDirect fc fr recv = false)
+    (hrecv : EvalExpr cfg o fc fr m recv (.ok (.contract c a) fr1 m1))
+    (hargs : EvalExprs cfg o fc fr1 m1 es (.ok vs fr4 m4))
+    (hres : resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d)
+    (hsig : externalSig fc.types d = some (sigStr, ptys, rtys))
+    (habi : abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.ok (svs, m5)))
+    (henc : ABI.encodeABIValues? ptys svs = some bs)
+    (hcode : d.returns = [] → codeSize m4.evm a ≠ 0)
+    (hcall : callViaEVM o m5 a 0 (selectorOf sigStr ++ bs.toByteArray)
+      (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 none 0)
+      (false, m6, out))
+    (hsel : selectCatch cfg m6 cs out = none) :
+    ExecStmt cfg o fc fr m (.tryCatch (.call (.member recv f) [] (.positional es)) ps body cs) (.reverted out) :=
+  ExecStmt.tryCallUncaught hdirect hrecv EvalValueOpt.none EvalGasOpt.none rfl hargs hres hsig habi henc hcode hcall hsel
+
+/-! ## `abi.encodeWithSignature`, `delete` of a local -/
+
+theorem EvalExpr.abiEncodeWithSignaturePlain {fr fr1 : Frame} {m m1 : Machine} {sig : String} {es : List Expr}
+    {vs : List Value} {tys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8}
+    (hes : EvalExprs cfg o fc fr m (.lit (.str sig) :: es) (.ok (.strLit sig.toUTF8 :: vs) fr1 m1))
+    (htys : vs.mapM (abiTyOfValue fc.types m1.heap) = some tys)
+    (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs) (henc : ABI.encodeABIValues? tys svs = some bs) :
+    EvalExpr cfg o fc fr m (.call (.member (.ident "abi") "encodeWithSignature") [] (.positional (.lit (.str sig) :: es)))
+      (.ok (allocBytes m1 false ((ffi.KEC sig.toUTF8).extract 0 4 ++ bs.toByteArray)).1 fr1
+        (allocBytes m1 false ((ffi.KEC sig.toUTF8).extract 0 4 ++ bs.toByteArray)).2) :=
+  EvalExpr.abiEncodeWithSignature hes rfl htys (abiArgsAbi_of_mapM hsvs) henc rfl
+
+/-- `delete x` for a `uint256` local. -/
+theorem ExecStmt.deleteLocalU256 {fr : Frame} {m : Machine} {x : Ident} (l : Local) (hx : fr.get? x = some l)
+    (hty : l.ty = u256Ty) :
+    ExecStmt cfg o fc fr m (.exprStmt (.unary .delete (.ident x))) (.normal (fr.setVal x (u256Val 0)) m) :=
+  ExecStmt.exprStmt (EvalExpr.deleteLocal (EvalLValue.local (m := m) hx) hx (by rw [hty]; simp [fuelDefault]))
+
+/-! ## Integers of any width: builders -/
+
+/-! ### Builders -/
+
+theorem EvalExpr.addUint {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {w : ABI.BitWidth} {x y : ℕ}
+    (hb : EvalExpr cfg o fc fr m b (.ok (.uint w y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (.uint w x) fr2 m2))
+    (hunch : fr2.unchecked = false) (hfit : x + y < 2 ^ w.val) :
+    EvalExpr cfg o fc fr m (.binary .add a b) (.ok (.uint w (x + y)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (by rw [hunch]; exact binop_add_uint w x y hfit)
+
+theorem EvalExpr.addUintOverflow {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {w : ABI.BitWidth} {x y : ℕ}
+    (hb : EvalExpr cfg o fc fr m b (.ok (.uint w y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (.uint w x) fr2 m2))
+    (hunch : fr2.unchecked = false) (hbig : 2 ^ w.val ≤ x + y) :
+    EvalExpr cfg o fc fr m (.binary .add a b) (.reverted (panicData 0x11)) :=
+  EvalExpr.binaryPanic (p := .overflow) (by decide) (by decide) hb ha
+    (by rw [hunch]; exact binop_add_uint_overflow w x y hbig)
+
+theorem EvalExpr.subUint {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {w : ABI.BitWidth} {x y : ℕ}
+    (hb : EvalExpr cfg o fc fr m b (.ok (.uint w y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (.uint w x) fr2 m2))
+    (hunch : fr2.unchecked = false) (hx : x < 2 ^ w.val) (hle : y ≤ x) :
+    EvalExpr cfg o fc fr m (.binary .sub a b) (.ok (.uint w (x - y)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (by rw [hunch]; exact binop_sub_uint w x y hx hle)
+
+theorem EvalExpr.mulUint {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {w : ABI.BitWidth} {x y : ℕ}
+    (hb : EvalExpr cfg o fc fr m b (.ok (.uint w y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (.uint w x) fr2 m2))
+    (hunch : fr2.unchecked = false) (hfit : x * y < 2 ^ w.val) :
+    EvalExpr cfg o fc fr m (.binary .mul a b) (.ok (.uint w (x * y)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (by rw [hunch]; exact binop_mul_uint w x y hfit)
+
+theorem EvalExpr.divUint {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {w : ABI.BitWidth} {x y : ℕ}
+    (hb : EvalExpr cfg o fc fr m b (.ok (.uint w y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (.uint w x) fr2 m2))
+    (hx : x < 2 ^ w.val) (hy : y ≠ 0) :
+    EvalExpr cfg o fc fr m (.binary .div a b) (.ok (.uint w (x / y)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (binop_div_uint _ w x y hx hy)
+
+theorem EvalExpr.ltUint {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {w : ABI.BitWidth} {x y : ℕ}
+    (hb : EvalExpr cfg o fc fr m b (.ok (.uint w y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (.uint w x) fr2 m2)) :
+    EvalExpr cfg o fc fr m (.binary .lt a b) (.ok (.bool (decide (x < y))) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (binop_lt_uint _ w x y)
+
+theorem EvalExpr.eqUint {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {w : ABI.BitWidth} {x y : ℕ}
+    (hb : EvalExpr cfg o fc fr m b (.ok (.uint w y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (.uint w x) fr2 m2)) :
+    EvalExpr cfg o fc fr m (.binary .eq a b) (.ok (.bool (decide (x = y))) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (binop_eq_uint _ w x y)
+
+theorem EvalExpr.addSint {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {a b : Expr} {w : ABI.BitWidth} {x y : Int}
+    (hb : EvalExpr cfg o fc fr m b (.ok (.sint w y) fr1 m1)) (ha : EvalExpr cfg o fc fr1 m1 a (.ok (.sint w x) fr2 m2))
+    (hunch : fr2.unchecked = false) (hlo : -(2 : Int) ^ (w.val - 1) ≤ x + y) (hhi : x + y < (2 : Int) ^ (w.val - 1)) :
+    EvalExpr cfg o fc fr m (.binary .add a b) (.ok (.sint w (x + y)) fr2 m2) :=
+  EvalExpr.binary (by decide) (by decide) hb ha (by rw [hunch]; exact binop_add_sint w x y hlo hhi)
+
+/-- `uintN(x)` narrowing a `uint256`: the low `N` bits. -/
+theorem EvalExpr.convertNarrow {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {w w' : ABI.BitWidth} {n : ℕ}
+    (ha : EvalExpr cfg o fc fr m a (.ok (.uint w n) fr1 m1)) (hlt : w'.val < w.val) :
+    EvalExpr cfg o fc fr m (.call (.typeExpr (.uint w')) [] (.positional [a])) (.ok (.uint w' (n % 2 ^ w'.val)) fr1 m1) :=
+  EvalExpr.convertPlain ha (explicitConv_uint_narrow _ _ w w' n hlt)
+
+/-- `uint256(x)` widening a `uintN`. -/
+theorem EvalExpr.convertWiden {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {w w' : ABI.BitWidth} {n : ℕ}
+    (ha : EvalExpr cfg o fc fr m a (.ok (.uint w n) fr1 m1)) (hle : w.val ≤ w'.val) :
+    EvalExpr cfg o fc fr m (.call (.typeExpr (.uint w')) [] (.positional [a])) (.ok (.uint w' n) fr1 m1) :=
+  EvalExpr.convertPlain ha (explicitConv_uint_widen _ _ w w' n hle)
+
+/-! ## Immutables in constructors -/
+
+/-- `x = e;` for an immutable `x` inside the constructor: the `imm_x` local is updated. -/
+theorem ExecStmt.assignImmutableU256 {fr fr1 : Frame} {m m1 : Machine} {x : Ident} {v : FlatVar} {rhs : Expr} {n : ℕ}
+    (l : Local) (hrhs : EvalExpr cfg o fc fr m rhs (.ok (u256Val n) fr1 m1))
+    (hx : fr1.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .immutable)
+    (hl : fr1.get? (immName x) = some l) (hty : l.ty = u256Ty) :
+    ExecStmt cfg o fc fr m (.exprStmt (.assign .assign (.ident x) rhs))
+      (.normal (fr1.setVal (immName x) (u256Val n)) m1) :=
+  ExecStmt.exprStmt (EvalExpr.assignPlain rfl hrhs (EvalLValue.immutableVar (m := m1) hx hv hmut)
+    (assign_local_u256 l hl hty n))
+
+theorem ExecStmt.assignImmutableAddress {fr fr1 : Frame} {m m1 : Machine} {x : Ident} {v : FlatVar} {rhs : Expr}
+    {a : EVM.Address} (l : Local) (hrhs : EvalExpr cfg o fc fr m rhs (.ok (.address a) fr1 m1))
+    (hx : fr1.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .immutable)
+    (hl : fr1.get? (immName x) = some l) (hty : l.ty = .address false) :
+    ExecStmt cfg o fc fr m (.exprStmt (.assign .assign (.ident x) rhs))
+      (.normal (fr1.setVal (immName x) (.address a)) m1) :=
+  ExecStmt.exprStmt (EvalExpr.assignPlain rfl hrhs (EvalLValue.immutableVar (m := m1) hx hv hmut)
+    (by simp [assign, coerce, hl, hty]))
+
+/-- Reading an immutable inside the constructor after it was set. -/
+theorem EvalExpr.immutableLocalVal {fr : Frame} {m : Machine} {x : Ident} {v : FlatVar} {val : Value} (l : Local)
+    (hx : fr.get? x = none) (hv : fc.var? x = some v) (hmut : v.mutability = .immutable)
+    (hl : fr.get? (immName v.name) = some l) (hval : l.val = val) :
+    EvalExpr cfg o fc fr m (.ident x) (.ok val fr m) :=
+  EvalExpr.immutableVar hx hv hmut (by simp [immutableValue, hl, hval])
+
+/-- `try recv.f(args) returns (ps) { … }`: the call succeeds, the returns are reconstructed (`hof`) and bound (`hbind`). -/
+theorem ExecStmt.tryCallOkRets {fr fr1 fr4 fr5 : Frame} {m m1 m4 m5 m6 m8 : Machine} {recv : Expr} {f : Ident}
+    {es : List Expr} {c : Ident} {a : EVM.Address} {vs : List Value} {d : FnDecl} {sigStr : String}
+    {ptys rtys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8} {out : ByteArray} {body : List Stmt}
+    {cs : List CatchClause} {r : ExecResult} {ps : List Param} {rsvs : List ABI.ABIValue} {rets : List Value} {h' : Heap}
+    (hdirect : memberCallDirect fc fr recv = false)
+    (hrecv : EvalExpr cfg o fc fr m recv (.ok (.contract c a) fr1 m1))
+    (hargs : EvalExprs cfg o fc fr1 m1 es (.ok vs fr4 m4))
+    (hres : resolveDecl fc.types m4.heap (fc.contractFnsNamed c f) vs = some d)
+    (hsig : externalSig fc.types d = some (sigStr, ptys, rtys))
+    (habi : abiArgs cfg fc.types m4 (d.params.map (·.ty)) vs = some (.ok (svs, m5)))
+    (henc : ABI.encodeABIValues? ptys svs = some bs)
+    (hcode : d.returns = [] → codeSize m4.evm a ≠ 0)
+    (hcall : callViaEVM o m5 a 0 (selectorOf sigStr ++ bs.toByteArray)
+      (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 none 0)
+      (true, m6, out))
+    (hne : ps ≠ []) (hdec : ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode rtys out = some rsvs)
+    (hlen : rsvs.length = ps.length) (hof : ofAbiList fc.types (ps.map (·.ty)) rsvs m6.heap = some (rets, h'))
+    (hbind : bindTryParams cfg fc.types fr4 { m6 with heap := h' } ps rets = some (.ok (fr5, m8)))
+    (hbody : ExecBlock cfg o fc fr5 m8 body r) :
+    ExecStmt cfg o fc fr m (.tryCatch (.call (.member recv f) [] (.positional es)) ps body cs) (exitBlock fr r) :=
+  ExecStmt.tryCallOk hdirect hrecv EvalValueOpt.none EvalGasOpt.none rfl hargs hres hsig habi henc hcode hcall
+    (tryRets_of_ofAbiList hne hdec hlen hof) hbind hbody
+
+/-- `C.f.selector` / `this.f.selector`. -/
+theorem EvalExpr.selectorVal {fr : Frame} {m : Machine} {recv : Expr} {g : Ident} {v : Value}
+    (h : selectorMember fc fr recv g = some v) :
+    EvalExpr cfg o fc fr m (.member (.member recv g) "selector") (.ok v fr m) :=
+  EvalExpr.memberSelector h
+
+/-- `a.code.length` on an address: `codeSize`, with the code bytes allocated in memory. -/
+theorem EvalExpr.codeLength {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {v : Value} {a : ℕ}
+    (hdm : directMember fc fr e = false) (hnf : fnRefContract fc fr e = none)
+    (he : EvalExpr cfg o fc fr m e (.ok v fr1 m1)) (ha : addrNat v = some a) :
+    EvalExpr cfg o fc fr m (.member (.member e "code") "length")
+      (.ok (wordNat (codeSize m1.evm (EVM.address a))) fr1
+        { m1 with heap := (m1.heap.alloc (.bytes false (codeOf m1.evm (EVM.address a)))).1 }) :=
+  EvalExpr.memberMemLength (directMember_member fc fr e "code" hnf)
+    (EvalExpr.memberCode hdm he ha (allocBytes_eq m1 false _)) (memLength_allocBytes m1 false _)
+
+/-- `emit ev(args)` for an event with a single declaration. -/
+theorem ExecStmt.emitSingle {fr fr1 : Frame} {m m1 m2 : Machine} {ev : Ident} {ei : EventInfo} {es : List Expr}
+    {vs : List Value} {svs : List ABI.ABIValue} {le : Ethereum.LogEntry}
+    (hev : fc.eventsNamed ev = [ei]) (hfit : eventFits fc.types m1.heap ei vs = true)
+    (hargs : EvalExprs cfg o fc fr m es (.ok vs fr1 m1))
+    (habi : abiArgs cfg fc.types m1 (ei.decl.params.map (·.ty)) vs = some (.ok (svs, m2)))
+    (hle : mkLogEntry m2.this ei svs = some le) :
+    ExecStmt cfg o fc fr m (.emit (.ident ev) (.positional es)) (.normal fr1 (m2.pushLog le)) :=
+  ExecStmt.emit (by rw [hev]; rfl) hargs (by rw [hev]; exact resolveEvent_single hfit) habi hle
+
+/-- `x[i]` on a `bytesN` value. -/
+theorem EvalExpr.indexFixedBytesNat {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {e i : Expr} {n : Fin 32}
+    {bs : List UInt8} {iv : Value} {k : ℕ} {b : UInt8}
+    (he : EvalExpr cfg o fc fr m e (.ok (.fixedBytes n bs) fr1 m1)) (hi : EvalExpr cfg o fc fr1 m1 i (.ok iv fr2 m2))
+    (hk : natOperand iv = some k) (hb : bs[k]? = some b) :
+    EvalExpr cfg o fc fr m (.index e i) (.ok (.fixedBytes ⟨0, by decide⟩ [b]) fr2 m2) :=
+  EvalExpr.indexFixedBytes he hi (fixedBytesIndex_ok bs iv k b hk hb)
+
+/-- `d[lo:hi]` on a byte array, both bounds given and in range. -/
+theorem EvalExpr.sliceBytes {fr fr1 fr2 fr3 : Frame} {m m1 m2 m3 : Machine} {e lo hi : Expr} {obj a b : ℕ}
+    {s : Bool} {d : ByteArray} {lv hv : Value}
+    (he : EvalExpr cfg o fc fr m e (.ok (.memRef obj) fr1 m1))
+    (hlo : EvalExpr cfg o fc fr1 m1 lo (.ok lv fr2 m2)) (hla : natValue lv = some a)
+    (hhi : EvalExpr cfg o fc fr2 m2 hi (.ok hv fr3 m3)) (hhb : natValue hv = some b)
+    (hobj : m3.heap.get? obj = some (.bytes s d)) (hab : a ≤ b) (hbd : b ≤ d.size) :
+    EvalExpr cfg o fc fr m (.slice e (some lo) (some hi))
+      (.ok (.memRef (m3.heap.alloc (.bytes s (d.extract a b))).2) fr3
+        { m3 with heap := (m3.heap.alloc (.bytes s (d.extract a b))).1 }) :=
+  EvalExpr.slice he (EvalGasOpt.some hlo hla) (EvalGasOpt.some hhi hhb)
+    (sliceObj_bytes m3.heap obj s d (some a) (some b) hobj hab hbd)
 
 end Solidity

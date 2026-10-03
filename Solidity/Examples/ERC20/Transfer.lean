@@ -173,7 +173,7 @@ theorem trBodyOk (o : Oracle) (m : Machine) (a : EVM.Address) (w : UInt256)
       (ExecBlock.cons (fr1 := trFr a w) (m1 := trCredited m a w) (trCredit o m a w hfit)
         (ExecBlock.cons (fr1 := trFr a w) (m1 := (trCredited m a w).pushLog le) ?_ (ExecBlock.consReturn ?_))))⟩
   · refine ExecStmt.emit (vs := [.address m.evm.executionEnv.source, .address a, u256Val w.toNat])
-      (fr1 := trFr a w) (m1 := trCredited m a w) erc20Flat_event_Transfer rfl ?_ (abiArgs_addr_addr_u256 ..) ?_
+      (fr1 := trFr a w) (m1 := trCredited m a w) (erc20_eventArgs_Transfer _) ?_ (erc20_resolve_Transfer ..) (abiArgs_addr_addr_u256 ..) ?_
     · refine EvalExprs.cons (EvalExpr.envMember rfl ?_) (EvalExprs.cons (EvalExpr.localVal addrTy (some .memory) ?_)
         (EvalExprs.cons (EvalExpr.localVal u256 (some .memory) ?_) EvalExprs.nil))
       · rw [envMember_sender]; simp [trCredited, trDebited, storageStore_executionEnv]

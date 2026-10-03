@@ -222,7 +222,7 @@ def binop (checked : Bool) (op : BinOp) (a b : Value) : Op Value := do
       | .add => return .literal (x + y)
       | .sub => return .literal (x - y)
       | .mul => return .literal (x * y)
-      | .div => if y = 0 then Op.stuck else return .literal (Int.tdiv x y)
+      | .div => if y = 0 ∨ x % y ≠ 0 then Op.stuck else return .literal (Int.tdiv x y)   -- rational results are not modelled
       | .mod => if y = 0 then Op.stuck else return .literal (Int.tmod x y)
       | .bitAnd => if x ≥ 0 ∧ y ≥ 0 then return .literal (x.toNat &&& y.toNat) else Op.stuck
       | .bitOr => if x ≥ 0 ∧ y ≥ 0 then return .literal (x.toNat ||| y.toNat) else Op.stuck
@@ -287,6 +287,13 @@ def implicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Option (Valu
 
 /-- Explicit conversion `T(v)` (0.8 rules; `none` = not allowed). -/
 def explicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Op (Value × Heap) := do
+  -- `bytesN(b)` on a byte array: the first `N` bytes, zero-padded on the right when shorter
+  if let (.memRef id, .fixedBytes k) := (v, ty) then
+    match h.get? id with
+    | some (.bytes false d) =>
+      let bs := d.toList.take (k.val + 1)
+      return (.fixedBytes k (bs ++ List.replicate (k.val + 1 - bs.length) 0), h)
+    | _ => Op.stuck
   if let some r := implicitConv env h v ty then return r
   match v, ty with
   -- integer width / sign changes (one attribute at a time)
@@ -563,6 +570,33 @@ def memLength (h : Heap) (obj : Nat) : Option Nat :=
   match h.get? obj with
   | some (.array _ elems) => some elems.length
   | some (.bytes _ d) => some d.size
+  | _ => none
+
+/-- `b[i]` on a `bytesN` value: one byte, `Panic(0x32)` out of range. -/
+def fixedBytesIndex (bs : List UInt8) (idx : Value) : Op Value := do
+  let some i := natOperand idx | Op.stuck
+  match bs[i]? with
+  | some b => pure (.fixedBytes ⟨0, by decide⟩ [b])
+  | none => Op.panic .outOfBounds
+
+/-- `x[lo:hi]` on a byte array or array: a fresh object holding the sub-range (`lo` defaults to 0,
+    `hi` to the length).  Bad bounds revert with empty data (solc: `lo > hi` or `hi > length`). -/
+def sliceObj (h : Heap) (obj : Nat) (lo hi : Option Nat) : Option (Except ByteArray (Value × Heap)) :=
+  match h.get? obj with
+  | some (.bytes s d) =>
+    let a := lo.getD 0
+    let b := hi.getD d.size
+    if a ≤ b ∧ b ≤ d.size then
+      let (h', id) := h.alloc (.bytes s (d.extract a b))
+      some (.ok (.memRef id, h'))
+    else some (.error ByteArray.empty)
+  | some (.array e elems) =>
+    let a := lo.getD 0
+    let b := hi.getD elems.length
+    if a ≤ b ∧ b ≤ elems.length then
+      let (h', id) := h.alloc (.array e ((elems.drop a).take (b - a)))
+      some (.ok (.memRef id, h'))
+    else some (.error ByteArray.empty)
   | _ => none
 
 /-- Element / field type of a memory object. -/

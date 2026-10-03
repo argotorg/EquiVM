@@ -104,8 +104,10 @@ structure FlatContract where
   /-- Every function (own and inherited) of every contract-like unit, for external calls through
       contract / interface types. -/
   contractFns : List (Ident × List FnDecl)
-  /-- Constructor parameter types of every contract-like unit, for `new C(args)`. -/
-  contractCtors : List (Ident × List Ty)
+  /-- Constructor parameters of every contract-like unit, for `new C(args)` and base arguments. -/
+  contractCtors : List (Ident × List Param)
+  /-- File-level functions (shadowed by contract functions of the same name). -/
+  freeFns : List (FnKey × FnId) := []
   isAbstract : Bool
   deriving Repr, Inhabited
 
@@ -266,7 +268,9 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
   let publicVars := stateVars.filter (·.visibility == .pub)
   let getterDefs : List FnDef := publicVars.zipIdx.map fun (v, i) =>
     { id := fns0.size + i, declaredIn := v.declaredIn, decl := synthGetter env v }
-  let fns := fns0 ++ getterDefs.toArray
+  let freeDefs : List FnDef := (p.filterMap fun | .function d => some d | _ => none).zipIdx.map fun (f, i) =>
+    { id := fns0.size + getterDefs.length + i, declaredIn := "", decl := f }
+  let fns := fns0 ++ getterDefs.toArray ++ freeDefs.toArray
   let vtable := getterDefs.foldl (fun vt g =>
       let k := fnKeyOf g.decl
       (k, g.id) :: vt.filter (·.1 != k)) vtable0
@@ -305,7 +309,7 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
   let contractFns := contracts.map fun d =>
     let hierOf := (linearize (fun c => (find c).map (·.bases.map (·.name))) (contracts.length + 1) d.name).getD [d.name]
     (d.name, hierOf.flatMap fun c => ((find c).map (·.functions)).getD [])
-  let contractCtors := contracts.map fun d => (d.name, (d.ctor?.map fun f => f.params.map (·.ty)).getD [])
+  let contractCtors := contracts.map fun d => (d.name, (d.ctor?.map (·.params)).getD [])
   let isAbstract := root.kind == .abstractContract || root.kind == .interface ||
     vtable.any fun e => (fns[e.2]!).decl.body.isNone
   pure
@@ -315,7 +319,7 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
       ctorChain := ctorChain, entries := entries, receive? := receive?, fallback? := fallback?,
       events := events, errors := errors, usingFor := usingFor, libraries := libraries,
       interfaceSigs := interfaceSigs, contractFns := contractFns, contractCtors := contractCtors,
-      isAbstract := isAbstract }
+      freeFns := freeDefs.map fun f => (fnKeyOf f.decl, f.id), isAbstract := isAbstract }
 
 /-! ## Queries -/
 
@@ -326,9 +330,15 @@ def fn? (fc : FlatContract) (id : FnId) : Option FnDef := fc.fns[id]?
 def var? (fc : FlatContract) (name : Ident) : Option FlatVar :=
   fc.stateVars.find? (·.name == name)
 
-/-- Vtable candidates named `name` (overloads). -/
+/-- Candidates named `name` (overloads): the vtable's, else the free functions'. -/
 def fnsNamed (fc : FlatContract) (name : Ident) : List (FnKey × FnId) :=
-  fc.vtable.filter (·.1.name == name)
+  match fc.vtable.filter (·.1.name == name) with
+  | [] => fc.freeFns.filter (·.1.name == name)
+  | cs => cs
+
+/-- Parameter lists of candidate functions (named-argument matching). -/
+def candParams (fc : FlatContract) (cands : List (FnKey × FnId)) : List (List Param) :=
+  cands.filterMap fun c => (fc.fns[c.2]?).map (·.decl.params)
 
 def superFn? (fc : FlatContract) (from_ : Ident) (k : FnKey) : Option FnId :=
   (fc.superTable.find? (·.1 == (from_, k))).map (·.2)
@@ -339,6 +349,10 @@ def modifier? (fc : FlatContract) (name : Ident) : Option ModDef :=
 def event? (fc : FlatContract) (name : Ident) : Option EventInfo :=
   fc.events.find? (·.decl.name == name)
 
+/-- Events named `name` (overloads). -/
+def eventsNamed (fc : FlatContract) (name : Ident) : List EventInfo :=
+  fc.events.filter (·.decl.name == name)
+
 def error? (fc : FlatContract) (name : Ident) : Option ErrorInfo :=
   fc.errors.find? (·.decl.name == name)
 
@@ -348,9 +362,16 @@ def sigStrs (fc : FlatContract) : List String := fc.entries.map (·.sigStr)
 def contractFnsNamed (fc : FlatContract) (c name : Ident) : List FnDecl :=
   ((fc.contractFns.find? (·.1 == c)).map (·.2)).getD [] |>.filter (·.name == name)
 
-/-- Constructor parameter types of contract-like unit `c`. -/
-def ctorTys? (fc : FlatContract) (c : Ident) : Option (List Ty) :=
+/-- Constructor parameters of contract-like unit `c`. -/
+def ctorParams? (fc : FlatContract) (c : Ident) : Option (List Param) :=
   (fc.contractCtors.find? (·.1 == c)).map (·.2)
+
+def ctorTys? (fc : FlatContract) (c : Ident) : Option (List Ty) :=
+  (fc.ctorParams? c).map (·.map (·.ty))
+
+/-- The constructor of `c` as a candidate list (named-argument matching). -/
+def ctorParamss (fc : FlatContract) (c : Ident) : List (List Param) :=
+  (fc.ctorParams? c).toList
 
 def library? (fc : FlatContract) (name : Ident) : Option ContractDecl :=
   fc.libraries.find? (·.name == name)

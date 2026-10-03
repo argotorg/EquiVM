@@ -173,6 +173,24 @@ def evApproval : EventInfo :=
 
 @[simp] theorem erc20Flat_event_Transfer : erc20Flat.event? "Transfer" = some evTransfer := rfl
 @[simp] theorem erc20Flat_event_Approval : erc20Flat.event? "Approval" = some evApproval := rfl
+@[simp] theorem erc20Flat_eventsNamed_Transfer : erc20Flat.eventsNamed "Transfer" = [evTransfer] := rfl
+@[simp] theorem erc20Flat_eventsNamed_Approval : erc20Flat.eventsNamed "Approval" = [evApproval] := rfl
+
+theorem erc20_eventArgs_Transfer (es : List Expr) :
+    eventArgs (erc20Flat.eventsNamed "Transfer") (.positional es) = some es := rfl
+theorem erc20_eventArgs_Approval (es : List Expr) :
+    eventArgs (erc20Flat.eventsNamed "Approval") (.positional es) = some es := rfl
+
+theorem erc20_resolve_Transfer (hp : Heap) (a b : EVM.Address) (n : ℕ) :
+    resolveEvent erc20Flat.types hp (erc20Flat.eventsNamed "Transfer") [.address a, .address b, u256Val n] =
+      some evTransfer := by
+  rw [erc20Flat_eventsNamed_Transfer]
+  exact resolveEvent_single (eventFits_addr_addr_u256 _ _ evTransfer a b n rfl)
+theorem erc20_resolve_Approval (hp : Heap) (a b : EVM.Address) (n : ℕ) :
+    resolveEvent erc20Flat.types hp (erc20Flat.eventsNamed "Approval") [.address a, .address b, u256Val n] =
+      some evApproval := by
+  rw [erc20Flat_eventsNamed_Approval]
+  exact resolveEvent_single (eventFits_addr_addr_u256 _ _ evApproval a b n rfl)
 
 /-! ## Dispatch table and selectors -/
 

@@ -312,7 +312,7 @@ theorem tfBodyOk (o : Oracle) (m : Machine) (f t : EVM.Address) (w : UInt256)
               (ExecBlock.cons (fr1 := tfFr2 f t w m) (m1 := (tfM3 m f t w).pushLog le) ?_
                 (ExecBlock.consReturn ?_)))))))⟩
   · refine ExecStmt.emit (vs := [.address f, .address t, u256Val w.toNat]) (fr1 := tfFr2 f t w m) (m1 := tfM3 m f t w)
-      erc20Flat_event_Transfer rfl ?_ (abiArgs_addr_addr_u256 ..) hle
+      (erc20_eventArgs_Transfer _) ?_ (erc20_resolve_Transfer ..) (abiArgs_addr_addr_u256 ..) hle
     refine EvalExprs.cons (EvalExpr.localVal addrTy (some .memory) ?_)
       (EvalExprs.cons (EvalExpr.localVal addrTy (some .memory) ?_)
         (EvalExprs.cons (EvalExpr.localVal u256 (some .memory) ?_) EvalExprs.nil))

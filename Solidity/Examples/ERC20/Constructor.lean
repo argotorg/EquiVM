@@ -127,7 +127,7 @@ theorem ctorBody (o : Oracle) (m : Machine) (w : UInt256) :
         erc20Flat_var_totalSupply rfl) ?_)
     exact assign_storage_u256 (erc20Layout_totalSupply (ctorM1 m w).evm) w
   · refine ExecStmt.emit (vs := [.address (EVM.address 0), .address m.evm.executionEnv.source, u256Val w.toNat])
-      (fr1 := ctorFr w) (m1 := ctorM2 m w) erc20Flat_event_Transfer rfl ?_ (abiArgs_addr_addr_u256 ..) hle
+      (fr1 := ctorFr w) (m1 := ctorM2 m w) (erc20_eventArgs_Transfer _) ?_ (erc20_resolve_Transfer ..) (abiArgs_addr_addr_u256 ..) hle
     refine EvalExprs.cons (fr1 := ctorFr w) (m1 := ctorM2 m w)
       (EvalExpr.convert (v := .literal 0) (fr1 := ctorFr w) (m1 := ctorM2 m w) (EvalExpr.lit rfl)
         (explicitConv_lit0_address ..))

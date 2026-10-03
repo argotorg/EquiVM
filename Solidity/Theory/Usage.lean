@@ -87,7 +87,7 @@ example (fr : Frame) (m : Machine) (v : FlatVar) (slot : UInt256)
 /-- `emit Sync(r0, r1);` with two plain `uint256` arguments. -/
 example (fr fr1 : Frame) (m m1 : Machine) (ei : EventInfo) (e0 e1 : Expr) (r0 r1 : ℕ)
     (hr0 : r0 < 2 ^ 256) (hr1 : r1 < 2 ^ 256)
-    (hev : fc.event? "Sync" = some ei)
+    (hev : fc.eventsNamed "Sync" = [ei])
     (hparams : ei.decl.params = [{ ty := u256Ty, indexed := false, name := some "reserve0" },
       { ty := u256Ty, indexed := false, name := some "reserve1" }])
     (htys : ei.sig.paramTypes = [.elem (.int (.uint ⟨256, by decide⟩)), .elem (.int (.uint ⟨256, by decide⟩))])
@@ -137,7 +137,7 @@ example (fr : Frame) (m : Machine)
     (hmBid : vBid.mutability = .mutable) (htBid : vBid.ty = u256Ty)
     (hfrPend : fr.get? "pendingReturns" = none) (hvPend : fc.var? "pendingReturns" = some vPend)
     (hmPend : vPend.mutability = .mutable) (htPend : vPend.ty = .mapping (.address false) u256Ty)
-    (hev : fc.event? "HighestBidIncreased" = some ei)
+    (hev : fc.eventsNamed "HighestBidIncreased" = [ei])
     (hparams : ei.decl.params = [{ ty := .address false, indexed := false, name := some "bidder" },
       { ty := u256Ty, indexed := false, name := some "amount" }])
     (htys : ei.sig.paramTypes = [.elem .address, .elem (.int (.uint ⟨256, by decide⟩))])

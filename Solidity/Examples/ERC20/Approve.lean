@@ -82,8 +82,8 @@ theorem apBody (o : Oracle) (m : Machine) (a : EVM.Address) (w : UInt256) :
       ?_)
     exact assign_storage_u256 (erc20Layout_allowance m.evm.executionEnv.source a m.evm) w
   · refine ExecStmt.emit (vs := [.address m.evm.executionEnv.source, .address a, u256Val w.toNat])
-      (fr1 := bodyFrame (apFrame a w) apStmts) (m1 := apStored m a w) erc20Flat_event_Approval rfl ?_
-      (abiArgs_addr_addr_u256 ..) ?_
+      (fr1 := bodyFrame (apFrame a w) apStmts) (m1 := apStored m a w) (erc20_eventArgs_Approval _) ?_
+      (erc20_resolve_Approval ..) (abiArgs_addr_addr_u256 ..) ?_
     · refine EvalExprs.cons (EvalExpr.envMember rfl ?_) (EvalExprs.cons (EvalExpr.localVal addrTy (some .memory) ?_)
         (EvalExprs.cons (EvalExpr.localVal u256 (some .memory) ?_) EvalExprs.nil))
       · rw [envMember_sender]; simp [apStored, storageStore_executionEnv]

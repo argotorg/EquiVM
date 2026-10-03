@@ -137,6 +137,11 @@ theorem noCode_false {d : FnDecl} {evm : EVM.State} {a : EVM.Address} (h : d.ret
 /-- `k = k' + c` for `k ≥ c`. -/
 theorem exists_add {k c : Nat} (h : c ≤ k) : ∃ k', k = k' + c := ⟨k - c, by omega⟩
 
+theorem directMember_of_selectorMember {fr : Frame} {recv : Expr} {g : Ident} {v : Value}
+    (h : selectorMember fc fr recv g = some v) : directMember fc fr (.member recv g) = true := by
+  unfold selectorMember at h
+  cases hc : fnRefContract fc fr recv <;> simp [directMember, hc] at h ⊢
+
 
 mutual
 
@@ -215,6 +220,15 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     refine ⟨n2 + 2, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
     cases v <;> simp [addrNat] at p3 <;> subst p3 <;> interp_simp [p1, addrNat, ih2 k' (by omega)]
+  | .memberCode (v := v) p1 p2 p3 p4 => by
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    refine ⟨n2 + 2, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
+    cases v <;> simp [addrNat] at p3 <;> subst p3 <;> interp_simp [p1, addrNat, p4, ih2 k' (by omega)]
+  | .memberSelector p1 => by
+    refine ⟨1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add hk
+    interp_simp [directMember_of_selectorMember p1, p1]
   | .memberBytesLength p1 p2 => by
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     refine ⟨n2 + 2, fun k hk => ?_⟩
@@ -272,6 +286,50 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     refine ⟨n1 + n2 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     interp_simp [ih1 k' (by omega), ih2 k' (by omega)]
+  | .indexFixedBytes p1 p2 p3 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    refine ⟨n1 + n2 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p3, ih1 k' (by omega), ih2 k' (by omega)]
+  | .indexFixedBytesPanic p1 p2 p3 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    refine ⟨n1 + n2 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p3, ih1 k' (by omega), ih2 k' (by omega)]
+  | .slice p1 p2 p3 p4 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    obtain ⟨n2, ih2⟩ := evalGasOpt_complete p2
+    obtain ⟨n3, ih3⟩ := evalGasOpt_complete p3
+    refine ⟨n1 + n2 + n3 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p4, ih1 k' (by omega), ih2 k' (by omega), ih3 k' (by omega)]
+  | .sliceBounds p1 p2 p3 p4 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    obtain ⟨n2, ih2⟩ := evalGasOpt_complete p2
+    obtain ⟨n3, ih3⟩ := evalGasOpt_complete p3
+    refine ⟨n1 + n2 + n3 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p4, ih1 k' (by omega), ih2 k' (by omega), ih3 k' (by omega)]
+  | .sliceBaseRevert p1 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    refine ⟨n1 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [ih1 k' (by omega)]
+  | .sliceLoRevert p1 p2 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    obtain ⟨n2, ih2⟩ := evalGasOpt_complete p2
+    refine ⟨n1 + n2 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [ih1 k' (by omega), ih2 k' (by omega)]
+  | .sliceHiRevert p1 p2 p3 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    obtain ⟨n2, ih2⟩ := evalGasOpt_complete p2
+    obtain ⟨n3, ih3⟩ := evalGasOpt_complete p3
+    refine ⟨n1 + n2 + n3 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [ih1 k' (by omega), ih2 k' (by omega), ih3 k' (by omega)]
   | .convert p1 p2 => by
     obtain ⟨n1, ih1⟩ := evalExpr_complete p1
     refine ⟨n1 + 2, fun k hk => ?_⟩
@@ -1458,20 +1516,20 @@ theorem execStmt_complete {fr m s r} (h : ExecStmt cfg o fc fr m s r) :
       have hlen : (r1 :: r2 :: rs).length ≥ 2 := by simp
       interp_simp [hrv, hlen, ih2 k' (by omega), ih3 k' (by omega)]
   | .emit p1 p2 p3 p4 p5 => by
-    obtain ⟨n3, ih3⟩ := evalExprs_complete p3
-    refine ⟨n3 + 1, fun k hk => ?_⟩
+    obtain ⟨n2, ih2⟩ := evalExprs_complete p2
+    refine ⟨n2 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [p1, p2, p4, p5, ih3 k' (by omega)]
-  | .emitRevert p1 p2 p3 => by
-    obtain ⟨n3, ih3⟩ := evalExprs_complete p3
-    refine ⟨n3 + 1, fun k hk => ?_⟩
+    interp_simp [p1, p3, p4, p5, ih2 k' (by omega)]
+  | .emitRevert p1 p2 => by
+    obtain ⟨n2, ih2⟩ := evalExprs_complete p2
+    refine ⟨n2 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [p1, p2, ih3 k' (by omega)]
+    interp_simp [p1, ih2 k' (by omega)]
   | .emitPanic p1 p2 p3 p4 => by
-    obtain ⟨n3, ih3⟩ := evalExprs_complete p3
-    refine ⟨n3 + 1, fun k hk => ?_⟩
+    obtain ⟨n2, ih2⟩ := evalExprs_complete p2
+    refine ⟨n2 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [p1, p2, p4, ih3 k' (by omega)]
+    interp_simp [p1, p3, p4, ih2 k' (by omega)]
   | .revertError p1 p2 p3 p4 p5 => by
     obtain ⟨n3, ih3⟩ := evalExprs_complete p3
     refine ⟨n3 + 1, fun k hk => ?_⟩

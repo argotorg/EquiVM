@@ -295,6 +295,8 @@ inductive SourceUnit where
   | error (d : ErrorDecl)
   | event (d : EventDecl)
   | constant (d : StateVarDecl)
+  /-- A free (file-level) function. -/
+  | function (d : FnDecl)
   deriving Repr, Inhabited
 
 abbrev Program := List SourceUnit
