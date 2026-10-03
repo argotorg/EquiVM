@@ -149,6 +149,67 @@ def popArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
       | _ => .error .storageError
   | _ => .error .storageError
 
+/-- `arr.push` against a transient array.  Mirrors `pushArray?`, on `cfg.transient`. -/
+def pushTransientArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
+    (value : Option Value) : EvalResult EVM.State := do
+  let (er, ty) <- resolveTransientStorageRef? cfg solm evm ref
+  match ty with
+  | .dynamicArray elemTy => do
+      let lenLoc <- EvalResult.ofOption .storageError
+        (cfg.transient.layout { er with steps := er.steps ++ [.length] } evm)
+      match transientLocLoad evm lenLoc with
+      | .int len => do
+          let evmLen <- EvalResult.ofOption .storageError
+            (transientLocStore evm lenLoc (.int (len + 1)))
+          match value with
+          | some v =>
+              writeTransientStorage? cfg evmLen
+                { er with steps := er.steps ++ [.aindex (.int len)] } elemTy v
+          | none => pure evmLen
+      | _ => .error .storageError
+  | .bytes | .string => do
+      match (← readTransientStorage? cfg evm er ty) with
+      | .bytes ba =>
+          match value with
+          | none => writeTransientStorage? cfg evm er ty (.bytes (ba.push 0))
+          | some (.fixedBytes n bs) =>
+              if n.val = 0 ∧ bs.length = 1 then
+                writeTransientStorage? cfg evm er ty (.bytes (ba ++ ByteArray.mk bs.toArray))
+              else .error .typeError
+          | some _ => .error .typeError
+      | _ => .error .storageError
+  | _ => .error .storageError
+
+/-- `arr.pop` against a transient array. -/
+def popTransientArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef) :
+    EvalResult EVM.State := do
+  let (er, ty) <- resolveTransientStorageRef? cfg solm evm ref
+  match ty with
+  | .dynamicArray elemTy => do
+      let lenLoc <- EvalResult.ofOption .storageError
+        (cfg.transient.layout { er with steps := er.steps ++ [.length] } evm)
+      match transientLocLoad evm lenLoc with
+      | .int len =>
+          if len ≤ 0 then .revert
+          else do
+            let evm1 <- clearTransientStorage? cfg evm
+              { er with steps := er.steps ++ [.aindex (.int (len - 1))] } elemTy
+            EvalResult.ofOption .storageError (transientLocStore evm1 lenLoc (.int (len - 1)))
+      | _ => .error .storageError
+  | .bytes | .string => do
+      match (← readTransientStorage? cfg evm er ty) with
+      | .bytes ba =>
+          if ba.size = 0 then .revert
+          else writeTransientStorage? cfg evm er ty (.bytes (ba.extract 0 (ba.size - 1)))
+      | _ => .error .storageError
+  | _ => .error .storageError
+
+/-- `delete` against transient storage. -/
+def deleteTransient? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef) :
+    EvalResult EVM.State := do
+  let (er, ty) <- resolveTransientStorageRef? cfg solm evm ref
+  clearTransientStorage? cfg evm er ty
+
 /-- `delete x`: reset the storage at `ref` to its zero value, recursively per its declared type
     (`clearStorage?` — a dynamic array becomes empty, a struct/array is fully zeroed).  `.revert`s
     only if evaluating the ref does; `.error`s on an ill-formed layout/type. -/
@@ -166,6 +227,12 @@ def evalSalt? (cfg : Config) (solm : Frame) (evm : EVM.State) :
       match saltBytes? v with
       | some b => .ok (some b)
       | none => .error .typeError
+
+/-- `true` when `name` is a local persistent-storage alias (`Value.storageRef`). -/
+def localStorageAlias (solm : Frame) (name : Ident) : Bool :=
+  match solm.locals.get? name with
+  | some (.storageRef _ _) => true
+  | _ => false
 
 mutual
 
@@ -185,6 +252,8 @@ inductive ExecStmt (cfg : Config) :
   | letStorageRevert :
       resolveStorageRef? cfg solm evm ref = .revert ->
       ExecStmt cfg solm evm (.letStorage name ref) .reverted
+  -- A `storage` alias of a transient path is rejected by the surface syntax.  `letStorage`
+  -- resolves only through persistent storage, so a transient-only base has no derivation.
   /-- `gasleft()`: Solm tracks no gas, so any word `w` is a legal result.  A proof picks the `w`
       matching the EVM's actual gas at the corresponding `GAS` opcode. -/
   | letGas (w : EVM.Word) :
@@ -201,34 +270,129 @@ inductive ExecStmt (cfg : Config) :
       evalExpr? cfg solm evm expr = .ok value ->
       assignStorageRef? cfg solm evm origin slot value = .revert ->
       ExecStmt cfg solm evm (.assign origin slot expr) .reverted
-  | pushVal :
-      evalExpr? cfg solm evm expr = .ok value ->
-      pushArray? cfg solm evm ref (some value) = .ok evm' ->
+  | pushVal
+      (hev : evalExpr? cfg solm evm expr = .ok value)
+      (hpush : pushArray? cfg solm evm ref (some value) = .ok evm')
+      (hpers : declaredTransient solm.contract ref.base = false := by first | rfl | decide) :
       ExecStmt cfg solm evm (.push ref (some expr)) (.ok solm evm')
+  /-- The value expression reverted.  Both maps yield `.reverted`, so this rule is not
+      split on `declaredTransient`. -/
   | pushValExprRevert :
       evalExpr? cfg solm evm expr = .revert ->
       ExecStmt cfg solm evm (.push ref (some expr)) .reverted
-  | pushValStoreRevert :
+  | pushValStoreRevert
+      (hev : evalExpr? cfg solm evm expr = .ok value)
+      (hpush : pushArray? cfg solm evm ref (some value) = .revert)
+      (hpers : declaredTransient solm.contract ref.base = false := by first | rfl | decide) :
+      ExecStmt cfg solm evm (.push ref (some expr)) .reverted
+  | pushGrow
+      (hpush : pushArray? cfg solm evm ref none = .ok evm')
+      (hpers : declaredTransient solm.contract ref.base = false := by first | rfl | decide) :
+      ExecStmt cfg solm evm (.push ref none) (.ok solm evm')
+  | pushGrowRevert
+      (hpush : pushArray? cfg solm evm ref none = .revert)
+      (hpers : declaredTransient solm.contract ref.base = false := by first | rfl | decide) :
+      ExecStmt cfg solm evm (.push ref none) .reverted
+  /-- A local alias whose name is also a transient state variable still updates persistent storage. -/
+  | pushValStorageAlias :
+      localStorageAlias solm ref.base = true ->
+      declaredTransient solm.contract ref.base = true ->
+      evalExpr? cfg solm evm expr = .ok value ->
+      pushArray? cfg solm evm ref (some value) = .ok evm' ->
+      ExecStmt cfg solm evm (.push ref (some expr)) (.ok solm evm')
+  | pushValStorageAliasRevert :
+      localStorageAlias solm ref.base = true ->
+      declaredTransient solm.contract ref.base = true ->
       evalExpr? cfg solm evm expr = .ok value ->
       pushArray? cfg solm evm ref (some value) = .revert ->
       ExecStmt cfg solm evm (.push ref (some expr)) .reverted
-  | pushGrow :
+  | pushGrowStorageAlias :
+      localStorageAlias solm ref.base = true ->
+      declaredTransient solm.contract ref.base = true ->
       pushArray? cfg solm evm ref none = .ok evm' ->
       ExecStmt cfg solm evm (.push ref none) (.ok solm evm')
-  | pushGrowRevert :
+  | pushGrowStorageAliasRevert :
+      localStorageAlias solm ref.base = true ->
+      declaredTransient solm.contract ref.base = true ->
       pushArray? cfg solm evm ref none = .revert ->
       ExecStmt cfg solm evm (.push ref none) .reverted
-  | pop :
+  | pushValTransient :
+      localStorageAlias solm ref.base = false ->
+      declaredTransient solm.contract ref.base = true ->
+      evalExpr? cfg solm evm expr = .ok value ->
+      pushTransientArray? cfg solm evm ref (some value) = .ok evm' ->
+      ExecStmt cfg solm evm (.push ref (some expr)) (.ok solm evm')
+  | pushValTransientRevert :
+      localStorageAlias solm ref.base = false ->
+      declaredTransient solm.contract ref.base = true ->
+      evalExpr? cfg solm evm expr = .ok value ->
+      pushTransientArray? cfg solm evm ref (some value) = .revert ->
+      ExecStmt cfg solm evm (.push ref (some expr)) .reverted
+  | pushGrowTransient :
+      localStorageAlias solm ref.base = false ->
+      declaredTransient solm.contract ref.base = true ->
+      pushTransientArray? cfg solm evm ref none = .ok evm' ->
+      ExecStmt cfg solm evm (.push ref none) (.ok solm evm')
+  | pushGrowTransientRevert :
+      localStorageAlias solm ref.base = false ->
+      declaredTransient solm.contract ref.base = true ->
+      pushTransientArray? cfg solm evm ref none = .revert ->
+      ExecStmt cfg solm evm (.push ref none) .reverted
+  | pop
+      (hpop : popArray? cfg solm evm ref = .ok evm')
+      (hpers : declaredTransient solm.contract ref.base = false := by first | rfl | decide) :
+      ExecStmt cfg solm evm (.pop ref) (.ok solm evm')
+  | popRevert
+      (hpop : popArray? cfg solm evm ref = .revert)
+      (hpers : declaredTransient solm.contract ref.base = false := by first | rfl | decide) :
+      ExecStmt cfg solm evm (.pop ref) .reverted
+  | popStorageAlias :
+      localStorageAlias solm ref.base = true ->
+      declaredTransient solm.contract ref.base = true ->
       popArray? cfg solm evm ref = .ok evm' ->
       ExecStmt cfg solm evm (.pop ref) (.ok solm evm')
-  | popRevert :
+  | popStorageAliasRevert :
+      localStorageAlias solm ref.base = true ->
+      declaredTransient solm.contract ref.base = true ->
       popArray? cfg solm evm ref = .revert ->
       ExecStmt cfg solm evm (.pop ref) .reverted
-  | delete :
+  | popTransient :
+      localStorageAlias solm ref.base = false ->
+      declaredTransient solm.contract ref.base = true ->
+      popTransientArray? cfg solm evm ref = .ok evm' ->
+      ExecStmt cfg solm evm (.pop ref) (.ok solm evm')
+  | popTransientRevert :
+      localStorageAlias solm ref.base = false ->
+      declaredTransient solm.contract ref.base = true ->
+      popTransientArray? cfg solm evm ref = .revert ->
+      ExecStmt cfg solm evm (.pop ref) .reverted
+  | delete
+      (hok : deleteStorage? cfg solm evm ref = .ok evm')
+      (hpers : declaredTransient solm.contract ref.base = false := by first | rfl | decide) :
+      ExecStmt cfg solm evm (.delete ref) (.ok solm evm')
+  | deleteRevert
+      (hrev : deleteStorage? cfg solm evm ref = .revert)
+      (hpers : declaredTransient solm.contract ref.base = false := by first | rfl | decide) :
+      ExecStmt cfg solm evm (.delete ref) .reverted
+  | deleteStorageAlias :
+      localStorageAlias solm ref.base = true ->
+      declaredTransient solm.contract ref.base = true ->
       deleteStorage? cfg solm evm ref = .ok evm' ->
       ExecStmt cfg solm evm (.delete ref) (.ok solm evm')
-  | deleteRevert :
+  | deleteStorageAliasRevert :
+      localStorageAlias solm ref.base = true ->
+      declaredTransient solm.contract ref.base = true ->
       deleteStorage? cfg solm evm ref = .revert ->
+      ExecStmt cfg solm evm (.delete ref) .reverted
+  | deleteTransient :
+      localStorageAlias solm ref.base = false ->
+      declaredTransient solm.contract ref.base = true ->
+      deleteTransient? cfg solm evm ref = .ok evm' ->
+      ExecStmt cfg solm evm (.delete ref) (.ok solm evm')
+  | deleteTransientRevert :
+      localStorageAlias solm ref.base = false ->
+      declaredTransient solm.contract ref.base = true ->
+      deleteTransient? cfg solm evm ref = .revert ->
       ExecStmt cfg solm evm (.delete ref) .reverted
   | requireTrue {condExpr} :
       evalExpr? cfg solm evm condExpr = .ok (.bool true) ->
@@ -659,5 +823,40 @@ inductive solmCtorExec
     argsStore = Std.HashMap.ofList (List.zip (contract.ctor.params.map Param.name) args) →
     ExecTransitionBody conf contract evmState argsStore contract.ctor.body solmRes →
     solmCtorExec conf contract args σ σ₀ g A I solmRes
+
+/-! The persistent `delete` / `push` / `pop` rules carry `declaredTransient = false`.
+    The default proof is `rfl` when `contract.transient` is `[]`, and `decide` when the
+    list is concrete and does not contain `ref.base`.  A declared transient name has no
+    persistent derivation. -/
+
+private def uint256Storage : StorageType := .elem (.int (.uint ⟨256, by decide⟩))
+
+private def noTransientContract : ContractDecl where
+  name := "NoTransient"
+  storage := [{ name := "slot", ty := uint256Storage }]
+  ctor := { params := [], body := [] }
+
+private def mixedMapContract : ContractDecl where
+  name := "Mixed"
+  storage := [{ name := "slot", ty := uint256Storage }]
+  ctor := { params := [], body := [] }
+  transient := [{ name := "lock", ty := uint256Storage }]
+
+private def frameOf (c : ContractDecl) : Frame :=
+  { contract := c, locals := {} }
+
+example (cfg : Config) (evm evm' : EVM.State)
+    (h : deleteStorage? cfg (frameOf noTransientContract) evm { base := "slot" } = .ok evm') :
+    ExecStmt cfg (frameOf noTransientContract) evm
+      (.delete { base := "slot" })
+      (.ok (frameOf noTransientContract) evm') :=
+  ExecStmt.delete h
+
+example (cfg : Config) (evm evm' : EVM.State)
+    (h : deleteStorage? cfg (frameOf mixedMapContract) evm { base := "slot" } = .ok evm') :
+    ExecStmt cfg (frameOf mixedMapContract) evm
+      (.delete { base := "slot" })
+      (.ok (frameOf mixedMapContract) evm') :=
+  ExecStmt.delete h
 
 end Solm

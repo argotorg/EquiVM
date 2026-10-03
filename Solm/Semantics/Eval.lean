@@ -1,5 +1,6 @@
 import ABI.Decode
 import Solm.Semantics.StorageOps
+import Solm.Semantics.TransientOps
 
 /-! The expression evaluator: termination measures and the `evalExpr?` mutual block. -/
 
@@ -24,6 +25,7 @@ mutual
     | .var _ => 1
     | .env _ => 1
     | .storage slot => slotEvalSize slot + 1
+    | .transient slot => slotEvalSize slot + 1
     | .arrayLength _ slot => slotEvalSize slot + 1
     | .field base _ => exprEvalSize base + 1
     | .cast expr _ => exprEvalSize expr + 1
@@ -179,6 +181,82 @@ def resolveStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
     all_goals simp [slotEvalSize]
     all_goals omega
 
+/-- Evaluate one step of a transient-storage path, bounds-checking `.aindex` against
+    `cfg.transient` and `contract.transient`. -/
+def evalTransientStorageRefStep (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (base : Ident) (pre : List EvaledStorageRefStep) (step : StorageRefStep) :
+    EvalResult EvaledStorageRefStep :=
+  match step with
+  | .field name => pure (.field name)
+  | .mindex expr => do
+      let index <- evalExpr? cfg solm evm expr
+      let indexKey <- EvalResult.ofOption .typeError (valueToKey? index)
+      pure (.mindex indexKey)
+  | .aindex expr => do
+      let index <- evalExpr? cfg solm evm expr
+      let indexKey <- EvalResult.ofOption .typeError (valueToKey? index)
+      let _ <- transientArrayIndexInBounds? cfg evm solm.contract.transient base pre indexKey
+      pure (.aindex indexKey)
+  termination_by (slotStepEvalSize step, 0)
+  decreasing_by
+    all_goals simp [slotStepEvalSize]
+    all_goals omega
+
+def evalTransientStorageRefSteps (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (base : Ident) (pre : List EvaledStorageRefStep) :
+    List StorageRefStep -> EvalResult (List EvaledStorageRefStep)
+  | [] => pure []
+  | step :: rest => do
+      let estep <- evalTransientStorageRefStep cfg solm evm base pre step
+      let erest <- evalTransientStorageRefSteps cfg solm evm base (pre ++ [estep]) rest
+      pure (estep :: erest)
+  termination_by steps => (slotStepsEvalSize steps, 0)
+  decreasing_by
+    all_goals simp [slotStepsEvalSize]
+    all_goals omega
+
+def evalTransientStorageRef (cfg : Config) (solm : Frame) (evm : EVM.State) (slot : StorageRef) :
+    EvalResult EvaledStorageRef := do
+  let steps <- evalTransientStorageRefSteps cfg solm evm slot.base [] slot.steps
+  pure { base := slot.base, steps := steps }
+  termination_by (slotEvalSize slot, 0)
+  decreasing_by
+    simp [slotEvalSize]
+    apply Prod.Lex.left
+    omega
+
+def evalTransientStorageRefFrom? (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (er : EvaledStorageRef) (ty : StorageType) :
+    List StorageRefStep -> EvalResult (EvaledStorageRef × StorageType)
+  | [] => pure (er, ty)
+  | step :: rest => do
+      let estep <- evalTransientStorageRefStep cfg solm evm er.base er.steps step
+      let ty' <- EvalResult.ofOption .typeError (storageTypeStep? ty estep)
+      evalTransientStorageRefFrom? cfg solm evm { er with steps := er.steps ++ [estep] } ty' rest
+  termination_by steps => (slotStepsEvalSize steps, 0)
+  decreasing_by
+    all_goals simp [slotStepsEvalSize]
+    all_goals omega
+
+/-- Resolve a transient lvalue.  A local `storageRef` alias is followed first; otherwise the base
+    must be declared in `contract.transient`. -/
+def resolveTransientStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (slot : StorageRef) : EvalResult (EvaledStorageRef × StorageType) :=
+  match solm.locals.get? slot.base with
+  | some (.storageRef er ty) => evalTransientStorageRefFrom? cfg solm evm er ty slot.steps
+  | _ =>
+      match evalTransientStorageRef cfg solm evm slot with
+      | .ok er => do
+          let ty <- EvalResult.ofOption .storageError
+            (storageTypeAt? solm.contract.transient er)
+          pure (er, ty)
+      | .revert => .revert
+      | .error e => .error e
+  termination_by (slotEvalSize slot, 1)
+  decreasing_by
+    all_goals simp [slotEvalSize]
+    all_goals omega
+
 def resolveDynamicArrayRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
     (ref : StorageRef) : EvalResult (EvaledStorageRef × StorageType) := do
   let (er, ty) <- resolveStorageRef? cfg solm evm ref
@@ -277,6 +355,19 @@ def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
       let loc <- EvalResult.ofOption .storageError (cfg.storage.layout evaledStorageRef evm)
       let evm' <- EvalResult.ofOption .storageError (storageLocStore evm loc value)
       pure (solm, evm')
+  | .transient => do
+      -- Same permission story as persistent `.storage`: refinement assumes `perm = true`.
+      -- `TSTORE` in a static call is an EVM exception, not a Sol⁻ revert.
+      let (evaledStorageRef, ty) <- resolveTransientStorageRef? cfg solm evm slot
+      match value with
+      | .struct _ _ | .array _ | .bytes _ => do
+          let evm' <- writeTransientStorage? cfg evm evaledStorageRef ty value
+          pure (solm, evm')
+      | _ => do
+          let loc <- EvalResult.ofOption .storageError
+            (cfg.transient.layout evaledStorageRef evm)
+          let evm' <- EvalResult.ofOption .storageError (transientLocStore evm loc value)
+          pure (solm, evm')
 
 def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
     Expr -> EvalResult Value
@@ -319,11 +410,17 @@ def evalExpr? (cfg : Config) (solm : Frame) (evm : EVM.State) :
   | .storage slot => do
       let (evaledStorageRef, ty) <- resolveStorageRef? cfg solm evm slot
       readStorage? cfg evm evaledStorageRef ty
+  | .transient slot => do
+      let (evaledStorageRef, ty) <- resolveTransientStorageRef? cfg solm evm slot
+      readTransientStorage? cfg evm evaledStorageRef ty
   | .arrayLength origin slot => do
       match origin with
       | .storage => do
           let (er, ty) <- resolveStorageRef? cfg solm evm slot
           readStorageArrayLength? cfg evm er ty
+      | .transient => do
+          let (er, ty) <- resolveTransientStorageRef? cfg solm evm slot
+          readTransientArrayLength? cfg evm er ty
       | .localVar =>
           match solm.locals.get? slot.base with
           | some root => do

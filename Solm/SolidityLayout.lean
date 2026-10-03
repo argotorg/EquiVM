@@ -504,6 +504,30 @@ def genSolidityStorageLayout (structs : List StructDecl) (decls : List StorageDe
   let layout <- genSolidityLayout structs decls
   pure (solidityStorageLayout layout)
 
+/-- Same slot assignment as `solidityStorageLayout`, but bytes/string hooks run against
+    `Account.tstorage`.  Scalar layouts ignore the hooks; use this wrapper whenever a transient
+    variable has `bytes` or `string` type. -/
+def transientStorageLayout
+    (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc) : StorageLayout where
+  layout := fun er evm => layout er (EVM.swapCodeOwnerMaps evm)
+  readValue? := fun er ty evm =>
+    solidityReadValue? layout er ty (EVM.swapCodeOwnerMaps evm)
+  writeValue? := fun er ty value evm =>
+    match solidityWriteValue? layout er ty value (EVM.swapCodeOwnerMaps evm) with
+    | some (.ok evm') => some (.ok (EVM.swapCodeOwnerMaps evm'))
+    | other => other
+  clearValue? := fun er ty evm =>
+    match solidityClearValue? layout er ty (EVM.swapCodeOwnerMaps evm) with
+    | some (.ok evm') => some (.ok (EVM.swapCodeOwnerMaps evm'))
+    | other => other
+  readBytesLength := fun er evm =>
+    solidityReadBytesLength? layout er (EVM.swapCodeOwnerMaps evm)
+
+def genSolidityTransientLayout (structs : List StructDecl) (decls : List StorageDecl) :
+    Option StorageLayout := do
+  let layout <- genSolidityLayout structs decls
+  pure (transientStorageLayout layout)
+
 -- TODO Maybe move this, or make the file be for general solidity specific components
 def genSolidityConstructorDeployment (params : List Param) (pureInit : EVM.Bytes) (values : List Value) : Option EVM.Bytes := do
   let args ← ABI.encodeABIValues? (params.map Param.ty) values

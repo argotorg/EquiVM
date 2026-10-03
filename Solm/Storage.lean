@@ -36,6 +36,27 @@ def storageStore (self : EVM.State) (a : EVM.Address) (key value : EVM.Word) : E
   self.lookupAccount a |>.option self λ acc ↦
     self.setAccount a (Ethereum.Account.updateStorage acc key value)
 
+/-- EIP-1153 transient storage.  Same word map as persistent storage, but the
+    `Account.tstorage` field, which the transaction executor clears when the
+    transaction finishes.  A Sol⁻ call may observe a nonzero map left by an
+    earlier call in the same transaction. -/
+def transientLoad (self : EVM.State) (a : EVM.Address) (key : EVM.Word) : EVM.Word :=
+  self.lookupAccount a |>.option ⟨0⟩ (Ethereum.Account.lookupTransientStorage (k := key))
+
+def transientStore (self : EVM.State) (a : EVM.Address) (key value : EVM.Word) : EVM.State :=
+  self.lookupAccount a |>.option self λ acc ↦
+    self.setAccount a (Ethereum.Account.updateTransientStorage acc key value)
+
+/-- Exchange the code owner's persistent and transient maps.
+    Bytes/string helpers are written against `storageLoad`/`storageStore`; running them on a
+    swapped state makes those helpers hit `tstorage`, and swapping back restores persistent
+    storage.  The helpers never read `tstorage` themselves, so the parked persistent map is
+    untouched until the swap back. -/
+def swapCodeOwnerMaps (self : EVM.State) : EVM.State :=
+  let a := self.executionEnv.codeOwner
+  self.lookupAccount a |>.option self fun acc =>
+    self.setAccount a { acc with storage := acc.tstorage, tstorage := acc.storage }
+
 end EVM
 
 
@@ -145,6 +166,16 @@ def storageLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Opti
   let resUInt256 : Ethereum.UInt256 := ⟨Ethereum.fromBytes' resList, hresSize⟩
   EVM.storageStore self self.executionEnv.codeOwner loc.slot resUInt256
 
+/-- `storageLocLoad` against `Account.tstorage`.  Swapping the code owner's maps makes the
+    persistent packer read `tstorage`.  A load does not write, so the swapped state is discarded. -/
+def transientLocLoad (self : EVM.State) (loc : StorageLoc) : Value :=
+  storageLocLoad (EVM.swapCodeOwnerMaps self) loc
+
+/-- `storageLocStore` against `Account.tstorage`.  The packer writes the swapped `storage`
+    field, which holds the original `tstorage`; swapping back restores persistent storage. -/
+def transientLocStore (self : EVM.State) (loc : StorageLoc) (value : Value) : Option EVM.State :=
+  (storageLocStore (EVM.swapCodeOwnerMaps self) loc value).map EVM.swapCodeOwnerMaps
+
 structure StorageLayout where
   layout : EvaledStorageRef -> EVM.State -> Option StorageLoc
   -- Optional high-level storage read hook. Keep ordinary scalar/structured storage on `layout`;
@@ -179,3 +210,7 @@ def fixedTypeSize (t : FixedType) : Fin 33 :=
   match t with
   | .ufixed ⟨bw,hbw⟩ _ => ⟨bw/8, by apply Nat.lt_succ_of_le; apply Nat.div_le_of_le_mul; simp; omega⟩
   | .fixed ⟨bw,hbw⟩ _ => ⟨bw/8,  by apply Nat.lt_succ_of_le; apply Nat.div_le_of_le_mul; simp; omega⟩
+
+/-- Layout that answers no slot.  Default for contracts that declare no transient storage. -/
+def emptyStorageLayout : StorageLayout where
+  layout := fun _ _ => none

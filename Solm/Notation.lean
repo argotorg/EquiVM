@@ -74,6 +74,8 @@ private inductive STy where
 /-- Translation environment: declared names of the enclosing contract plus the local scope. -/
 private structure Env where
   storage : List (String × STy) := []
+  /-- EIP-1153 transient state variables.  Separate slot space from `storage`. -/
+  transient : List (String × STy) := []
   structs : List (String × List (String × STy)) := []
   /-- internal function names -/
   fns : List String := []
@@ -83,6 +85,8 @@ private structure Env where
 private def Env.isLocal (env : Env) (s : String) : Bool := env.locals.contains s
 private def Env.storageTy? (env : Env) (s : String) : Option STy :=
   if env.isLocal s then none else env.storage.lookup s
+private def Env.transientTy? (env : Env) (s : String) : Option STy :=
+  if env.isLocal s then none else env.transient.lookup s
 
 /-! ## Scalar type names -/
 
@@ -358,6 +362,7 @@ private def refTerm (r : RefInfo) : MacroM Term := do
 private def originTerm : VarOrigin → MacroM Term
   | .storage => `(Solm.VarOrigin.storage)
   | .localVar => `(Solm.VarOrigin.localVar)
+  | .transient => `(Solm.VarOrigin.transient)
 
 mutual
 
@@ -404,6 +409,27 @@ private partial def resolveRef (env : Env) (stx : Syntax) (comps : List String)
             ty := t
         | _, _ => Macro.throwErrorAt stx s!"solm: cannot resolve path step on '{c0}'"
       return some { origin := .storage, base := c0, steps := out, ty := some ty, isLength := isLen }
+    else if let some ty0 := env.transientTy? c0 then
+      let mut out : Array Term := #[]
+      let mut ty := ty0
+      for s in steps do
+        match s, ty with
+        | .field f, .named sname =>
+            let some fields := env.structs.lookup sname
+              | Macro.throwErrorAt stx s!"solm: '{sname}' has no fields"
+            let some fty := fields.lookup f
+              | Macro.throwErrorAt stx s!"solm: struct '{sname}' has no field '{f}'"
+            out := out.push (← `(Solm.StorageRefStep.field $(quote f)))
+            ty := fty
+        | .index k, .mapping _ v =>
+            out := out.push (← `(Solm.StorageRefStep.mindex $(← elabExpr env k)))
+            ty := v
+        | .index k, .array t _ =>
+            out := out.push (← `(Solm.StorageRefStep.aindex $(← elabExpr env k)))
+            ty := t
+        | _, _ => Macro.throwErrorAt stx s!"solm: cannot resolve path step on '{c0}'"
+      return some { origin := .transient, base := c0, steps := out, ty := some ty,
+                    isLength := isLen }
     else
       return none
 
@@ -421,6 +447,8 @@ private partial def elabExpr (env : Env) (stx : TSyntax `solExpr) : MacroM Term 
         if env.isLocal x then return some (← `(Solm.Expr.var $(quote x)))
         else if env.storageTy? x == some (.named "address") then
           return some (← `(Solm.Expr.storage ({ base := $(quote x) } : Solm.StorageRef)))
+        else if env.transientTy? x == some (.named "address") then
+          return some (← `(Solm.Expr.transient ({ base := $(quote x) } : Solm.StorageRef)))
         else return none
       match full with
       | [x, "code", "length"] =>
@@ -435,6 +463,7 @@ private partial def elabExpr (env : Env) (stx : TSyntax `solExpr) : MacroM Term 
         return ← `(Solm.Expr.arrayLength $(← originTerm r.origin) $(← refTerm r))
       match r.origin with
       | .storage => return ← `(Solm.Expr.storage $(← refTerm r))
+      | .transient => return ← `(Solm.Expr.transient $(← refTerm r))
       | .localVar =>
           -- Fold a local path into pure expression forms.
           let mut e ← `(Solm.Expr.var $(quote r.base))
@@ -645,7 +674,7 @@ private partial def elabCall (env : Env) (stx : Syntax) (f : LIdent)
       else
         Macro.throwErrorAt f.raw s!"solm: unknown function or type '{tn}'"
   | x :: _ =>
-      if env.isLocal x || (env.storageTy? x).isSome then
+      if env.isLocal x || (env.storageTy? x).isSome || (env.transientTy? x).isSome then
         Macro.throwErrorAt stx
           s!"solm: external call must be bound: 'var r = …;'"
       else Macro.throwErrorAt f.raw s!"solm: unknown call '{".".intercalate comps}'"
@@ -691,6 +720,7 @@ private def splitMethodCall (env : Env) (stx : TSyntax `solExpr) :
     | some r =>
       match r.origin with
       | .storage => `(Solm.Expr.storage $(← refTerm r))
+      | .transient => `(Solm.Expr.transient $(← refTerm r))
       | .localVar => do
           let mut e ← `(Solm.Expr.var $(quote r.base))
           for c in baseComps.tail do
@@ -844,7 +874,7 @@ private partial def elabStmt (env : Env) (stx : TSyntax `solStmt) : MacroM (Term
   | `(solStmt| continue ;) => return (← `(Solm.Stmt.continue), env)
   | `(solStmt| delete $p:solExpr ;) => do
       let r ← resolveRefOrThrow env p
-      unless r.origin matches .storage do
+      unless r.origin matches .storage || r.origin matches .transient do
         Macro.throwErrorAt p "solm: delete expects a storage path"
       return (← `(Solm.Stmt.delete $(← refTerm r)), env)
   | `(solStmt| try $call:solExpr $rkw:ident ($ret:ident) { $onOk:solStmt* }
@@ -870,7 +900,7 @@ private partial def elabPushPop (env : Env) (stx : Syntax) (comps : List String)
   let resolve : MacroM RefInfo := do
     let some r ← resolveRef env stx comps steps
       | Macro.throwErrorAt stx "solm: unknown push/pop target"
-    unless r.origin matches .storage do
+    unless r.origin matches .storage || r.origin matches .transient do
       Macro.throwErrorAt stx "solm: push/pop target must be a storage array"
     pure r
   match method with
@@ -898,9 +928,11 @@ private partial def elabDecl (env : Env) (t : TSyntax `solTy)
     if ls == "storage" then
       let r ← resolveRefOrThrow env rhs
       unless r.origin matches .storage do
-        Macro.throwErrorAt rhs "solm: storage alias must reference storage"
+        Macro.throwErrorAt rhs "solm: storage alias must reference persistent storage"
       let some aliasTy := r.ty
         | Macro.throwErrorAt rhs "solm: cannot type the storage alias"
+      if env.storage.any (·.1 == name) || env.transient.any (·.1 == name) then
+        Macro.throwErrorAt x.raw s!"solm: '{name}' is already a state variable"
       let envA := { env with
         storage := (name, aliasTy) :: env.storage
         locals := env.locals.filter (· != name) }
@@ -1088,14 +1120,24 @@ macro_rules
       Macro.throwErrorAt kw.raw "solm: expected 'contract'"
     -- Pass 1: collect declared names.
     let mut storage : List (String × STy) := []
+    let mut transient : List (String × STy) := []
     let mut structs : List (String × List (String × STy)) := []
     let mut fnNames : List String := []
     for item in items do
       match item with
-      | `(solItem| $t:solTy $x:ident ;) =>
-          storage := storage ++ [(x.getId.toString, ← parseTy t)]
-      | `(solItem| $t:solTy $_:ident $x:ident ;) =>
-          storage := storage ++ [(x.getId.toString, ← parseTy t)]
+      | `(solItem| $t:solTy $x:ident ;) => do
+          let nm := x.getId.toString
+          if storage.any (·.1 == nm) || transient.any (·.1 == nm) then
+            Macro.throwErrorAt x.raw s!"solm: '{nm}' is declared twice"
+          storage := storage ++ [(nm, ← parseTy t)]
+      | `(solItem| $t:solTy $vis:ident $x:ident ;) => do
+          let nm := x.getId.toString
+          if storage.any (·.1 == nm) || transient.any (·.1 == nm) then
+            Macro.throwErrorAt x.raw s!"solm: '{nm}' is declared twice"
+          if vis.getId.toString == "transient" then
+            transient := transient ++ [(nm, ← parseTy t)]
+          else
+            storage := storage ++ [(nm, ← parseTy t)]
       | `(solItem| $skw:ident $s:ident { $members:solStructMember* }) => do
           unless skw.getId.toString == "struct" do
             Macro.throwErrorAt skw.raw "solm: expected 'struct'"
@@ -1114,9 +1156,11 @@ macro_rules
           if let some (fkw, f, _, _, _, _) := destructFnRets item then
             if fkw.getId.toString == "function" then
               fnNames := fnNames ++ [f.getId.toString]
-    let env : Env := { storage := storage, structs := structs, fns := fnNames }
+    let env : Env :=
+      { storage := storage, transient := transient, structs := structs, fns := fnNames }
     -- Pass 2: translate items.
     let mut storageTerms : Array Term := #[]
+    let mut transientTerms : Array Term := #[]
     let mut structTerms : Array Term := #[]
     let mut fnTerms : Array Term := #[]
     let mut transitionTerms : Array Term := #[]
@@ -1129,10 +1173,13 @@ macro_rules
           let ty ← storageTypeTerm env t (← parseTy t)
           storageTerms := storageTerms.push
             (← `(({ name := $(quote x.getId.toString), ty := $ty } : Solm.StorageDecl)))
-      | `(solItem| $t:solTy $_:ident $x:ident ;) => do
+      | `(solItem| $t:solTy $vis:ident $x:ident ;) => do
           let ty ← storageTypeTerm env t (← parseTy t)
-          storageTerms := storageTerms.push
-            (← `(({ name := $(quote x.getId.toString), ty := $ty } : Solm.StorageDecl)))
+          let decl ← `(({ name := $(quote x.getId.toString), ty := $ty } : Solm.StorageDecl))
+          if vis.getId.toString == "transient" then
+            transientTerms := transientTerms.push decl
+          else
+            storageTerms := storageTerms.push decl
       | `(solItem| $_:ident $s:ident { $members:solStructMember* }) => do
           let fieldTerms ← members.mapM fun m => do
             match m with
@@ -1217,6 +1264,37 @@ macro_rules
          functions := [$fnTerms,*],
          transitions := [$transitionTerms,*],
          receive := $recvT,
-         fallback := $fbT } : Solm.ContractDecl))
+         fallback := $fbT,
+         transient := [$transientTerms,*] } : Solm.ContractDecl))
 
 end Solm.Notation
+
+/-- Elaboration smoke test: a transient state variable is a `ContractDecl.transient` entry,
+    and reads and writes of it use the transient origin. -/
+private def transientSyntaxSmoke : Solm.ContractDecl := solidity% contract TransientSmoke {
+  uint256 persistentSlot;
+  uint256 transient lock;
+  function set(uint256 v) external {
+    lock = v;
+    require(lock == v);
+  }
+}
+
+/-- `true` when `set` assigns `lock` and reads it back through `Expr.transient`. -/
+private def transientSmokeOriginsOk : Bool :=
+  match transientSyntaxSmoke.transitions with
+  | [t] =>
+    match t.body with
+    | [.require _, .assign .transient slot rhs, .require cond] =>
+      slot.base == "lock" && slot.steps == [] &&
+        match rhs, cond with
+        | .var "v", .binary .eq (.transient r) (.var "v") =>
+          r.base == "lock" && r.steps == []
+        | _, _ => false
+    | _ => false
+  | _ => false
+
+#guard transientSyntaxSmoke.storage.length = 1
+#guard transientSyntaxSmoke.transient.length = 1
+#guard transientSyntaxSmoke.transitions.length = 1
+#guard transientSmokeOriginsOk

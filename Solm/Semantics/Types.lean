@@ -14,6 +14,11 @@ structure ExternalCallABI where
 
 structure Config where
   storage : StorageLayout
+  /-- Layout of `ContractDecl.transient`.  Slot numbers are independent of `storage`.
+      Bytes and string leaves must be a layout whose hooks read `Account.tstorage`
+      (`transientStorageLayout`); a persistent `solidityStorageLayout` would hit the wrong map.
+      Defaults to the empty layout. -/
+  transient : StorageLayout := emptyStorageLayout
   externalABI : ExternalCallABI
   abiDecodeMode : ABI.DecodeMode := ABI.DecodeMode.modern
   /-- Initialisation code (creation bytecode ++ ABI-encoded constructor args) for a
