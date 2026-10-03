@@ -1202,7 +1202,7 @@ theorem potFileDsrBodyCoreOk
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileDsrBytes :=
     fileDsrWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := potFileDsrX_storeAuthorized hperm hmatch hrhod
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, storageStore_accountMap, data])
     (by
       simpa [fileDsrTransition] using

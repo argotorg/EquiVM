@@ -2482,7 +2482,7 @@ theorem ballotDelegateTailNotVotedSuccessEquiv
   exact (ballotDelegateX_tailNotVotedSuccessFrom1211
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hperm hdelegateNotVoted hfit hreach1211)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+    |>.reEquivExecutionGen hcode hd hdec hbody
       (delegateTailFalseSuccessState_accountMap_eq_init
         (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) w)
@@ -2641,7 +2641,7 @@ theorem ballotDelegateTailVotedSuccessEquiv
   exact (ballotDelegateX_tailVotedSuccessFrom1211
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := sel) (w := w) hperm hdelegateVoted hbound hfit hreach1211)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+    |>.reEquivExecutionGen hcode hd hdec hbody
       (delegateTailTrueSuccessState_accountMap_eq_init
         (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) w)

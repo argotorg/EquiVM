@@ -780,7 +780,7 @@ theorem vatInitBodyCoreOk
   have henc : returnEquiv ByteArray.empty none initTransition.returnType := by
     rw [show initTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     haccounts henc
 
 theorem vatInitBodyCoreUnauthorized

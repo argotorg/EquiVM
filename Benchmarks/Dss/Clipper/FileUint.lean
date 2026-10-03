@@ -1439,7 +1439,7 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
                     (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) ⟨5⟩ data)
                   ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
             simp [clipperFileUintPostState, clipperFileUintLockedState, clipperFileUintWordPostState, clipperFileUintChipPostState, clipperFileUintTipPostState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Ethereum.Account.lookupStorage, solcSlotWord]
-          exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody haccounts henc
+          exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
         · have hnotBufWord :
               calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintBufBytes :=
             clipperFileUintWhatWord_ne_of_bytes_ne (I := I)
@@ -1466,7 +1466,7 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
                       (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) ⟨6⟩ data)
                     ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
               simp [clipperFileUintPostState, clipperFileUintLockedState, clipperFileUintWordPostState, clipperFileUintChipPostState, clipperFileUintTipPostState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Ethereum.Account.lookupStorage, solcSlotWord]
-            exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody haccounts henc
+            exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
 
           · have hnotTailWord :
                 calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintTailBytes :=
@@ -1494,7 +1494,7 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
                         (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩) ⟨7⟩ data)
                       ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
                 simp [clipperFileUintPostState, clipperFileUintLockedState, clipperFileUintWordPostState, clipperFileUintChipPostState, clipperFileUintTipPostState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Ethereum.Account.lookupStorage, solcSlotWord]
-              exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody haccounts henc
+              exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
 
             · have hnotCuspWord :
                   calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintCuspBytes :=
@@ -1526,7 +1526,7 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
                                 I ⟨8⟩) data))
                         ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
                   simp [clipperFileUintPostState, clipperFileUintLockedState, clipperFileUintWordPostState, clipperFileUintChipPostState, clipperFileUintTipPostState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Ethereum.Account.lookupStorage, solcSlotWord]
-                exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody haccounts henc
+                exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
 
               · have hnotChipWord :
                     calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintChipBytes :=
@@ -1559,7 +1559,7 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
                                   I ⟨8⟩) data))
                           ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
                     simp [clipperFileUintPostState, clipperFileUintLockedState, clipperFileUintWordPostState, clipperFileUintChipPostState, clipperFileUintTipPostState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Ethereum.Account.lookupStorage, solcSlotWord]
-                  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody haccounts henc
+                  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
                 · have hnotTipWord :
                       calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileUintTipBytes :=
                     clipperFileUintWhatWord_ne_of_bytes_ne (I := I)
@@ -1590,7 +1590,7 @@ theorem clipperFileUintBody (v : ClipperImmutables) {code : ByteArray}
                                 ⟨14⟩ data)
                             ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
                       simp [clipperFileUintPostState, clipperFileUintLockedState, clipperFileUintWordPostState, clipperFileUintChipPostState, clipperFileUintTipPostState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Ethereum.Account.lookupStorage, solcSlotWord]
-                    exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody haccounts henc
+                    exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
                   · have hnotStoppedWord :
                         calldataWord I.calldata 4 ≠
                           ABI.bytesToWord clipperFileUintStoppedBytes :=

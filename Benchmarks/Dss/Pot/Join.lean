@@ -2107,7 +2107,7 @@ theorem potJoinBody {σ σ₀ A I} {g : UInt256}
                           (_hperm ▸ hcall)))))
                 · -- CALL succeeded ⇒ both return (void)
                   simp only [if_true] at rd943
-                  refine (potJoinX_successTailGen rd943).reEquivExecutionGenAccountMapEquiv hcode
+                  refine (potJoinX_successTailGen rd943).reEquivExecutionGen hcode
                     hdispatch (potDecode_join_ok hsz36)
                     (ExecFuncBody.execBlockOK (potJoinSolmDriverPie hwv (hrho.trans hrhoB.symm)
                       (by rw [hpieB]; exact not_le.mp hpieOvf)

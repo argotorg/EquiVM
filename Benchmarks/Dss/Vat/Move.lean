@@ -1848,7 +1848,7 @@ theorem vatMoveAuthorizedPath
       have henc : returnEquiv ByteArray.empty none moveTransition.returnType := by
         rw [show moveTransition.returnType = [] by rfl]
         exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-      exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+      exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
         haccountsFinal henc
 
 theorem vatMoveBodyCoreDecodeFailed_short

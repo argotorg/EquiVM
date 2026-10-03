@@ -1648,7 +1648,7 @@ theorem vowFileAddressFlapperHopeSuccessBodyCore
   have henc : returnEquiv ByteArray.empty none fileAddressTransition.returnType := by
     rw [show fileAddressTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     hfinal henc
 
 end Benchmarks.Dss.Vow

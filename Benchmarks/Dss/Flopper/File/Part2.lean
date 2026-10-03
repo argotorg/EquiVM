@@ -136,7 +136,7 @@ theorem flopperFileBodyCoreBeg
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileBegBytes :=
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := flopperFileX_storeBegAuthorized hperm hmatch hswitch
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, fileBegPostState, storageStore_accountMap, data])
     (by
       simpa [fileTransition] using
@@ -178,7 +178,7 @@ theorem flopperFileBodyCorePad
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord filePadBytes :=
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := flopperFileX_storePadAuthorized hperm hbegWord hmatch hswitch
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, filePadPostState, storageStore_accountMap, data])
     (by
       simpa [fileTransition] using
@@ -222,7 +222,7 @@ theorem flopperFileBodyCoreTtl
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileTtlBytes :=
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := flopperFileX_storeTtlAuthorized hperm hbegWord hpadWord hmatch hswitch
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by
       simp [evm1, evm0, initState, fileTtlPostState, fileTtlPostAccountMap,
         fileTtlStoredWord, fileTtlStoredWordMap, storageStore_accountMap,
@@ -273,7 +273,7 @@ theorem flopperFileBodyCoreTau
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := flopperFileX_storeTauAuthorized hperm hbegWord hpadWord httlWord hmatch
     hswitch
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by
       simp [evm1, evm0, initState, fileTauPostState, fileTauPostAccountMap,
         fileTauStoredWord, fileTauStoredWordMap, storageStore_accountMap,

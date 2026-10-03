@@ -785,7 +785,7 @@ theorem vatFileLineBodyCoreOk
   have henc : returnEquiv ByteArray.empty none fileLineTransition.returnType := by
     rw [show fileLineTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     haccounts henc
 
 theorem vatFileLineBodyCoreUnauthorized

@@ -841,7 +841,7 @@ theorem spotFileParBodyCoreOk
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileParBytes :=
     fileParWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := spotFileParX_storeAuthorized hperm hmatch hlivez
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, storageStore_accountMap, data])
     (by
       simpa [fileParTransition] using

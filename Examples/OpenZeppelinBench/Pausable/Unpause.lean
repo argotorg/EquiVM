@@ -215,7 +215,7 @@ theorem pausableUnpauseBody {σ σ₀ A I}
         simpa [pausedWord, pausedRawWord, initState, Solm.EVM.storageLoad, State.lookupAccount]
           using hzero)
     exact (pausableX_unpause_success (g := Sat256.ofUInt256 g) hperm hreach hzero)
-      |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+      |>.reEquivExecutionGen hcode hd hdec hbody
         (by
           rw [unpausePostState_accountMap]
           simp [unpausePostMap, initState, pausedRawWord, Solm.EVM.storageLoad,

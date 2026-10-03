@@ -379,7 +379,7 @@ theorem flopperCageBodyCoreOk
         (by simp [evmSolm, initState])
         hauthWord
   exact (flopperX_cage_ok (g := Sat256.ofUInt256 g) hperm hauth hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by
         simpa [cagePostState, cageLivePostState, cagePostAccountMap,
           cageLivePostAccountMap, cageVowStoredWord, evmSolm, initState,

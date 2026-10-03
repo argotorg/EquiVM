@@ -1711,7 +1711,7 @@ theorem erc20TransferBodyCore
               (by simpa [evmS] using hfit)
             exact (erc20X_transfer (g := Sat256.ofUInt256 g)
                 hsz68 hsize hbig hperm hcanonTo henough hfit hreach)
-              |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+              |>.reEquivExecutionGen hcode hd hdec hbody
                 (by simp [evmS, initState, transferPostState, transferAfterDebitState,
                   transferSenderSlot, transferSenderSlotI, storageStore_accountMap])
                 (returnEquiv_of_encode boolTrueReturnEncoding)

@@ -42,7 +42,7 @@ theorem renounceOwnershipBodyCore {σ σ₀ A I} {g : UInt256}
       obtain ⟨_, _, rd413⟩ := auctionInternalReturn rd1163 (by jump_dest) (by evm_ov)
       have hbody := renounceOwnershipBody
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv ho
-      exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGenAccountMapEquiv
+      exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
         hcode hd hdec hbody (by
           rw [storageStore_accountMap]
           rfl)

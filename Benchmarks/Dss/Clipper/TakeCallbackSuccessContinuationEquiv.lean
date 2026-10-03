@@ -719,7 +719,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
           clipperYankSuccessAccountMap_state_accounts_eq
             (σ := σFlux) (τ := evmFlux.accountMap) evmFlux I lastIndex
             hAccountsFlux rfl hownerFlux
-        exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdec
+        exact hret.reEquivExecutionGen hcode hdispatch hdec
           (sourceReturned (tailOfPostDog (by
             simpa [postDogFrame] using hpostDog)))
           (by
@@ -900,7 +900,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
           clipperYankSuccessAccountMap_state_accounts_eq
             (σ := σMove) (τ := evmMovePos.accountMap) evmMovePos I lastIndexAfter
             hmoveAccounts rfl hownerMovePos
-        exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdec
+        exact hret.reEquivExecutionGen hcode hdispatch hdec
           (sourceReturned (tailOfPostDog (by
             simpa [postDogFrame] using hpostDog)))
           (by

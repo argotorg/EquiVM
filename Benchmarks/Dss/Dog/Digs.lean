@@ -1992,7 +1992,7 @@ theorem dogDigsBodyCore {v : DogImmutables} {code : ByteArray}
             simpa [evm2, evm1, evm0, initState, storageStore_accountMap,
               storageStore_executionEnv, actualSlot, sourceSlot, hslotEq, hIlkWord,
               σ1_solm, ilkDirt0Solm, ilkDirtNewSolm] using haccountsBase
-          exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+          exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
             haccounts henc
     · have hauthSolm : dogSlotWord callerSlot σ I ≠ ⟨1⟩ := by
         intro hsolm

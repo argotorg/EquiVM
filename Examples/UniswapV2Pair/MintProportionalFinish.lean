@@ -237,7 +237,7 @@ theorem uniswapMintFinishProportionalFeeOffCumulative
         (liquidity := liquidity) rd3701 htotal htotalNonzero hclean0 hclean1
         hmulFit0 hmulFit1 hreserve0Nonzero hreserve1Nonzero hliquidity hliqNonzero
         hperm htotalFit hbalanceFit hbound0 hbound1 helapsedNe hfeeOff hmem hmem64
-  exact rdRet.reEquivExecutionGenAccountMapEquiv
+  exact rdRet.reEquivExecutionGen
     hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody hAccountsRet
     (returnEquiv_of_encode (by simpa [uint256] using uint256ReturnEncoding liquidity))
 
@@ -466,7 +466,7 @@ theorem uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
         hmulFit0 hmulFit1 hreserve0Nonzero hreserve1Nonzero hliquidity hliqNonzero
         hperm htotalFit hbalanceFit hbound0 hbound1 helapsedNe
         (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) hfitKLast hmem hmem64
-  exact rdRet.reEquivExecutionGenAccountMapEquiv
+  exact rdRet.reEquivExecutionGen
     hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody hAccountsRet
     (returnEquiv_of_encode (by simpa [uint256] using uint256ReturnEncoding liquidity))
 
@@ -648,7 +648,7 @@ theorem uniswapMintFinishProportionalFeeOnKLastUpdated
         hmulFit0 hmulFit1 hreserve0Nonzero hreserve1Nonzero hliquidity hliqNonzero hperm
         htotalFit hbalanceFit hbound0 hbound1 helapsed0
         (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) hfitKLast hmem hmem64
-  exact rdRet.reEquivExecutionGenAccountMapEquiv
+  exact rdRet.reEquivExecutionGen
     hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody hAccountsRet
     (returnEquiv_of_encode (by simpa [uint256] using uint256ReturnEncoding liquidity))
 

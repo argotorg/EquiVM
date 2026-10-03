@@ -1381,7 +1381,7 @@ theorem daiMintBodyCore {σ σ₀ A I} {g : UInt256}
                 hfitUsrBody'
                 hfitSupplyBody
           exact (daiMintX_success (g := Sat256.ofUInt256 g) hperm hfitUsr hfitSupply rd2100)
-            |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+            |>.reEquivExecutionGen hcode hdispatch hdecode hbody
               hfinal
               (by
                 simpa [mintTransition] using

@@ -738,7 +738,7 @@ theorem jugFileBaseBodyCoreOk
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileBaseBytes :=
     fileBaseWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := jugFileBaseX_storeAuthorized hperm hmatch hswitch
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, storageStore_accountMap, data])
     (by
       simpa [fileBaseTransition] using

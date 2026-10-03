@@ -1046,7 +1046,7 @@ theorem dogFileAddressBodyCoreOk
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (sstoreAccountMap I.codeOwner σ ⟨2⟩ stored) ByteArray.empty := by
         simpa [stored, dataKey, dogSlotWord] using hret
-      exact hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+      exact hret'.reEquivExecutionGen hcode hdispatch hdecode hbody
         haccounts henc
     · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :

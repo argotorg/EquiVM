@@ -497,7 +497,7 @@ theorem erc20BalanceOfBodyCore
               (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
               (by simp only [initState]; exact hwv)
         exact (erc20X_balanceOf (g := Sat256.ofUInt256 g) hsz36 hsize hbig hcanon hreach)
-          |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody (by rfl)
+          |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
             (returnEquiv_of_encode (uint256ReturnEncoding (balanceOfWord σ I)))
       · have hdec := erc20Decode_balanceOf_none_noncanon (I := I) hsz36 hbig hcanon
         have hnc : UInt256.eq (balanceOfOwnerWord I)

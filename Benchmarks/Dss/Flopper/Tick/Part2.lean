@@ -834,7 +834,7 @@ theorem flopperTickBodyCoreSuccess
     tickRuntimeSuccessAccountMap_eq_postState
       (σ₀ := σ₀) (A := A)
       (I := I) (g := g) haddFit
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simpa [evmSolm, tickPostState, tickAfterLotStore, initState] using hpostAccounts)
     (by
       simpa [tickTransition] using

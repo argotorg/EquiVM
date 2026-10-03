@@ -543,7 +543,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_success
         jumpdest, pop, pop, pop, pop, pop, pop, pop, pop, pop, pop, pop,
         jump (by jump_dest), jumpdest]
       exact rd276.stop (by decide) (by evm_ov)
-    exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec
+    exact hret.reEquivExecutionGen hcode hd hdec
       (by
         rw [hevmSolm] at hbody
         exact hbody)
@@ -567,7 +567,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_success
         jumpdest, pop, pop, pop, pop, pop, pop, pop, pop, pop, pop, pop,
         jump (by jump_dest), jumpdest]
       exact rd276.stop (by decide) (by evm_ov)
-    exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec
+    exact hret.reEquivExecutionGen hcode hd hdec
       (by
         rw [hevmSolm] at hbody
         exact hbody)

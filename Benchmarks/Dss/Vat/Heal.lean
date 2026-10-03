@@ -781,7 +781,7 @@ theorem vatHealFinishSuccess
   have henc : returnEquiv ByteArray.empty none healTransition.returnType := by
     rw [show healTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     haccountsFinal henc
 
 theorem vatHealAllSuccess

@@ -78,7 +78,7 @@ theorem settleAuctionBodyCore {σ σ₀ A I} {g : UInt256}
                   (ExecBlock.consNormal hstore (ExecBlock.consNormal hcall
                     (ExecBlock.consNormal hexit ExecBlock.nil)))))
           have hsFinal := hs'.status ⟨1⟩
-          exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGenAccountMapEquiv
+          exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
             hcode hd hdec hbody hsFinal.accounts
             (.fallthrough rfl rfl (by native_decide))
         · have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅

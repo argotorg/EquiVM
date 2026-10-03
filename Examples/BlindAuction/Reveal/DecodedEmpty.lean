@@ -261,7 +261,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
             σ' ByteArray.empty :=
           blindAuctionRevealX_postCallEmpty_success_stop
             (by simpa [houtEmpty] using rd1350)
-        exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec
+        exact hret.reEquivExecutionGen hcode hd hdec
           hbody
           (by rfl)
           (returnEquiv.fallthrough rfl rfl (by native_decide))
@@ -275,7 +275,7 @@ theorem scratch_blindAuctionReveal_decoded_empty_bids
             σ' ByteArray.empty :=
           blindAuctionRevealX_postCallRequire_success_stop
             (by simpa using rd1405)
-        exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec
+        exact hret.reEquivExecutionGen hcode hd hdec
           hbody
           (by rfl)
           (returnEquiv.fallthrough rfl rfl (by native_decide))

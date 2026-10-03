@@ -634,7 +634,7 @@ theorem erc20ApproveBodyCore
         simpa [vyperERC20Config] using hdec0
       exact (erc20X_approveFromEntry (g := Sat256.ofUInt256 g)
           hwv hperm hsz68 hsize hcanonSpender hreach)
-        |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+        |>.reEquivExecutionGen hcode hd hdec hbody
           (by simp [evm, approvePostState, approveSlot, approveSlotI, initState,
             storageStore_accountMap])
           (returnEquiv_of_encode Reasoning.Theory.boolTrueReturnEncoding)

@@ -32,7 +32,7 @@ theorem settleCurrentAndCreateNewAuctionBodyCore {σ σ₀ A I} {g : UInt256}
           (.returned { contract := auctionContract, locals := locals' } evm' none) :=
         ExecFuncBody.execBlockOK (ExecBlock.consNormal
           (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) hsrc)
-      exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGenAccountMapEquiv
+      exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
         hcode hd hdec hbody hs'.accounts
         (.fallthrough rfl rfl (by native_decide))
     · have hbody : ExecTransitionBody auctionConfig auctionContract evm0 ∅

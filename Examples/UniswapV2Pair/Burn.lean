@@ -492,7 +492,7 @@ theorem uniswapBurnBody
                                         hawUpdate hcoverUpdate h64Update hperm (by simp only [List.length_cons, List.length_nil]; omega)
                                     have hbody := uniswapBurnBodyReturns_afterUpdate evmS evmBalance3 evmUpdate I _ _ _
                                       hbeforeUpdate hupdate htail
-                                    exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
+                                    exact rdRet.reEquivExecutionGen hcode hdispatch
                                       (uniswapDecode_burn_ok hsz36) hbody haFinal
                                       (returnEquiv.returned rfl (uniswapUint256PairReturnEncoding _ _))
         · have hdepth1024 : I.depth = 1024 := Fin.ext (by have := I.depth.isLt; omega)

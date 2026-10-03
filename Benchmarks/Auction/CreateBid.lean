@@ -30,7 +30,7 @@ theorem createBidBodyCore {σ σ₀ A I} {g : UInt256}
           I σ evm0 := SourceState.init
       rcases bidRoutine rd1165 hs0 hperm freshHeapMemory (by jump_dest) (by evm_ov) with
         ⟨evm', σ', locals', mem', aw', out, _, _, hbody, hs', rd413⟩ | ⟨hbody, hr⟩
-      · exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGenAccountMapEquiv
+      · exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
           hcode hd hdec (ExecFuncBody.execBlockOK hbody) hs'.accounts
           (.fallthrough rfl rfl (by native_decide))
       · exact hr.reEquivExecutionRevert hcode hd hdec (ExecFuncBody.execBlockRevert hbody)

@@ -1123,7 +1123,7 @@ theorem flopperBidsBodyCoreOk
     rw [show bidsTransition.returnType = [uint256, uint256, addr, uint48, uint48] by rfl]
     exact returnEquiv.returned rfl
       (flopperBidsReturnEncoding bidWord lotWord packedWord ticRaw endRaw)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody (by rfl) henc
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody (by rfl) henc
 
 theorem flopperBidsBodyCoreDecodeFailed_short
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}

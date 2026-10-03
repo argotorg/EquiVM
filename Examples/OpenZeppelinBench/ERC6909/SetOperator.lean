@@ -1194,7 +1194,7 @@ theorem erc6909SetOperatorBodyCore
                   (by simpa [evmS, initState] using hspender)
               exact (erc6909X_setOperator (g := Sat256.ofUInt256 g)
                   hsz68 hsize hbig hperm hcanonSpender hbool hsource hspender hreach)
-                |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                |>.reEquivExecutionGen hcode hd hdec hbody
                   (by simp [evmS, setOperatorPostState, setOperatorSlot, setOperatorSlotI,
                     setOperatorStoredWord, setOperatorStorageWord, initState,
                     Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,

@@ -781,7 +781,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
   have hpostAccounts :=
     dentRuntimeTailSuccessAccountMap_afterGuy_eq_postState
       (I := I) hAfterGuy hkissEnv haddFit
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simpa [evmKissSolm] using hpostAccounts)
     (by
       simpa [dentTransition] using
@@ -1124,7 +1124,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicNonzero
   have hpostAccounts :=
     dentRuntimeTailSuccessAccountMap_afterGuy_eq_postState
       (I := I) hAfterGuy hcallEnv haddFit
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simpa [evmCallSolm] using hpostAccounts)
     (by
       simpa [dentTransition] using

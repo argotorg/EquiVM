@@ -5885,7 +5885,7 @@ theorem endThawBody {σ σ₀ A I} {g : UInt256}
                                       simpa [endThawPostState] using
                                       hStateTell.storageStore_codeOwner ⟨11⟩
                                         (rfl : debtNew = debtNew)
-                                  exact hret.reEquivExecutionGenAccountMapEquiv
+                                  exact hret.reEquivExecutionGen
                                     hcode hdispatch hdecode hbody
                                     (by
                                       calc

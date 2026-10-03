@@ -315,7 +315,7 @@ theorem erc20TransferFromBodyCore
                     (by simpa [evmE] using hbalance)
                     (by simpa [evmE] using hbalanceDebit)
                     (by simpa [evmE] using hfit) hreach)
-                  |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                  |>.reEquivExecutionGen hcode hd hdec hbody
                     (by simp [evmE, evmS, initState, transferFromPostState,
                       transferFromAfterBalanceState, transferFromAfterAllowanceState,
                       transferFromAllowanceSlot, transferFromAllowanceSlotI,

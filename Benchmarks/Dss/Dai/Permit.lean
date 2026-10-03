@@ -6406,7 +6406,7 @@ theorem daiPermitBodyCore {σ σ₀ A I} {g : UInt256}
                   exact
                     (daiPermitX_successAfter2957
                     (g := Sat256.ofUInt256 g) hperm hmemRet hread64 hnonce rd2957)
-                    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+                    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
                       hAccountsPost
                       (by
                         simpa [permitTransition] using

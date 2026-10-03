@@ -679,7 +679,7 @@ theorem jugInitBodyCoreOk
         (sstoreAccountMap I.codeOwner σ dutySlot initOne) rhoSlot timestamp =
         evm2.accountMap := by
     simp [evm2, evm1, evm0, initState, storageStore_accountMap, dutySlot, rhoSlot, timestamp]
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     hAccounts2
     (by
       simpa [initTransition] using

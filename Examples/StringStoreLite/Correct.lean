@@ -93,7 +93,7 @@ theorem stringStoreLiteClearCurrentLongValid
             locals := (∅ : Store).insert "copy" (.bytes copy) }
           evmSolm1 (some [(.int len.toNat)])) := by
     simpa [hcopySize] using hbodyBytes
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+  exact hret.reEquivExecutionGen hcode hd hdec hbody
     (by
       simp [evmSolm1, evmSolmLen, evmSolm0, clearSolidityBytesDataWordsFrom_accountMap,
         storageStore_accountMap, storageStore_executionEnv, initState, hcountNat,

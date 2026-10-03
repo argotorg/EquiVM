@@ -172,7 +172,7 @@ theorem endAddressGetterBodyCore
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (endAddressReturnWord slot σ I)) := by
     simpa [endAddressReturnWord, endSlotWord] using hret
-  exact hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret'.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simp [initState]) henc
 
 theorem endUint256GetterBodyCore
@@ -215,7 +215,7 @@ theorem endUint256GetterBodyCore
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) σ
         (UInt256.toByteArray (endSlotWord slot σ I)) := by
     simpa [endSlotWord] using hret
-  exact hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret'.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simp [initState]) henc
 
 /-! ## One-word calldata arguments -/

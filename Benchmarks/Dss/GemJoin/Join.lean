@@ -4154,7 +4154,7 @@ theorem gemJoinJoinBodyCoreTransferReturnTrueSmall
   have henc : returnEquiv ByteArray.empty none joinTransition.returnType := by
     rw [show joinTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  exact hretFinal.reEquivExecutionGenAccountMapEquiv
+  exact hretFinal.reEquivExecutionGen
     (hcode := hcode) (hd := hdispatch) (hdec := hdecode) (hbody := hbody)
     (hAccounts := rfl) (henc := henc)
 

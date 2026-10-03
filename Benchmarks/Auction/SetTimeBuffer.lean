@@ -50,7 +50,7 @@ theorem setTimeBufferBodyCore {σ σ₀ A I} {g : UInt256}
           have hbody := setTimeBufferBody
             (initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (calldataWord I.calldata 4) hwv ho
-          exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGenAccountMapEquiv
+          exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
             hcode hd hdec hbody (by simp [storageStore_accountMap, initState, setterSlot])
             (.fallthrough rfl rfl (by native_decide))
         · have hbody : ExecTransitionBody auctionConfig auctionContract

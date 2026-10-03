@@ -121,7 +121,7 @@ theorem uniswapPermitBodyCoreOk_afterNonce
         (permitApprovePostState evmCallS I).accountMap :=
     permitApprovePostState_accountMap_eq (evm := evmCallS) (I := I) (σ := σ')
       henvCall hAccountsCall
-  exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
+  exact rdRet.reEquivExecutionGen hcode hdispatch
     (uniswapDecode_permit_ok hsz228) hbody hAccountsPost
     (returnEquiv.fallthrough rfl rfl (by native_decide))
 
@@ -242,7 +242,7 @@ theorem uniswapPermitBodyCoreOk_afterNonce_short
         (permitApprovePostState evmCallS I).accountMap :=
     permitApprovePostState_accountMap_eq (evm := evmCallS) (I := I) (σ := σ')
       henvCall hAccountsCall
-  exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
+  exact rdRet.reEquivExecutionGen hcode hdispatch
     (uniswapDecode_permit_ok hsz228) hbody hAccountsPost
     (returnEquiv.fallthrough rfl rfl (by native_decide))
 

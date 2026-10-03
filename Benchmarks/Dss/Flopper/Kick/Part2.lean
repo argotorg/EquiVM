@@ -822,7 +822,7 @@ theorem flopperKickBodyCoreSuccess
     kickRuntimeSuccessAccountMap_eq_postState
       (σ := σ) (σ₀ := σ₀) (A := A)
       (I := I) (g := g) haddFit
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simpa [evmSolm] using hpostAccounts)
     (by
       rw [hid]

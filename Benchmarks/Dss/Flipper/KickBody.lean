@@ -1584,7 +1584,7 @@ theorem flipperKickBodyCore {σ σ₀ A I} {g : UInt256}
                     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                     (evmVat := evmVatSolm) (outVat := outVat)
                     hwv hauthSolm hkicksLtSolm hfitSolm hvatCodeSolm hcallVatSolmTrue
-                exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+                exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
                   (by rfl)
                   (by
                     rw [show kickTransition.returnType = [uint256] by rfl]

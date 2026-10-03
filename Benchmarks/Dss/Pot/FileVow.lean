@@ -834,7 +834,7 @@ theorem potFileVowBodyCoreOk
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (sstoreAccountMap I.codeOwner σ ⟨6⟩ stored) ByteArray.empty := by
     simpa [stored, data] using hret
-  exact hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret'.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, storageStore_accountMap, stored, data,
       solcSlotWord])
     (by

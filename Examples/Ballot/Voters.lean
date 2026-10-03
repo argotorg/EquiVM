@@ -904,7 +904,7 @@ theorem ballotVotersBodyCore
             (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
             (by simp only [initState]; exact hwv) (by simp [initState]) hcanon
         exact (ballotX_voters_ok (g := Sat256.ofUInt256 g) hsz36 hsize hbig hcanon hreach)
-          |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody (by rfl)
+          |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
             (returnEquiv.returned rfl
               (ballotVotersReturnEncoding (votersWeightWord σ I)
                 (votersPackedWord σ I) (votersVoteWord σ I)))

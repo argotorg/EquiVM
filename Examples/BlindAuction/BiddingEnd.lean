@@ -135,7 +135,7 @@ theorem blindAuctionBiddingEndBodyCore {σ σ₀ A I}
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
           (by simp only [initState]; exact hwv) (by simp)
     exact (blindAuctionX_biddingEnd (g := Sat256.ofUInt256 g) hwv hreach)
-      |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody (by rfl)
+      |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
         (returnEquiv_of_encode (uint256ReturnEncoding (biddingEndWord σ I)))
   · have hbody :
         ExecTransitionBody blindAuctionConfig blindAuctionContract

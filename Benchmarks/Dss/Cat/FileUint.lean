@@ -695,7 +695,7 @@ theorem catFileUintBodyCore
       have haccounts :
           sstoreAccountMap I.codeOwner σ ⟨5⟩ data = evm1.accountMap := by
         simp [evm1, evm0, initState, storageStore_accountMap, data]
-      exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+      exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
         haccounts henc
     · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :

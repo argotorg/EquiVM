@@ -374,7 +374,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
       simpa [takeTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
           rfl rfl (by native_decide))
-    exact RDret.reEquivExecutionGenAccountMapEquiv
+    exact RDret.reEquivExecutionGen
       hcode hret hdispatch hdec hbody hAccountsFinal henc
 
 end Benchmarks.Dss.Clipper

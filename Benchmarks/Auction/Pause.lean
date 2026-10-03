@@ -52,7 +52,7 @@ theorem pauseBodyCore {σ σ₀ A I} {g : UInt256}
         obtain ⟨_, _, rd413⟩ := auctionInternalReturn rd1163 (by jump_dest) (by evm_ov)
         have hbody := pauseBody
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) hwv ho hp
-        exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGenAccountMapEquiv
+        exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
           hcode hd hdec hbody (by simp [storageStore_accountMap, initState,
             storedWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage])
           (.fallthrough rfl rfl (by native_decide))

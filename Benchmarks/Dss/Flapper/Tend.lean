@@ -7773,7 +7773,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
             have hpostAccounts :=
               tendRuntimeTailSuccessAccountMap_accountMap_eq
                 (σ := σPay) (evmSolm := evmPaySolm) (I := I) rfl hpayEnv haddFit
-            exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+            exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
               (by simpa [evmPaySolm] using hpostAccounts)
               (by
                 simpa [tendTransition] using
@@ -8230,7 +8230,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                 have hpostAccounts :=
                   tendRuntimeTailSuccessAccountMap_accountMap_eq
                     (σ := σPay) (evmSolm := evmPaySolm) (I := I) rfl hpayEnv haddFit
-                exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+                exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
                   (by simpa [evmPaySolm] using hpostAccounts)
                   (by
                     simpa [tendTransition] using

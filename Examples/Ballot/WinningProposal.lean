@@ -1214,7 +1214,7 @@ theorem ballotWinningProposalBodyCore
         winningProposalResultWord σ I := by
     exact winningProposalResultCurrent_init
   exact (ballotX_winningProposal_ok (g := Sat256.ofUInt256 g) hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody (by rfl)
+    |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
       (by simpa [hresult] using
         (returnEquiv_of_encode (uint256ReturnEncoding (winningProposalResultWord σ I))))
 

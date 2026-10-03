@@ -4554,7 +4554,7 @@ theorem flapperDealBodyCoreMoveCallSuccess
           simpa [storageStore_accountMap, evmDeleteSolm, hdiff, hDeleteOwner] using
             congrArg (fun accounts => sstoreAccountMap I.codeOwner accounts ⟨9⟩
               diffRuntime) hDeleteAccounts
-        exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
           (by
             simpa [id, σDel, fillRuntime, lotRuntime, diffRuntime] using hFinalAccounts)
           (by

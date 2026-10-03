@@ -1138,7 +1138,7 @@ theorem erc6909ApproveBodyCore
                 (by simpa [evmS, initState] using hspender)
             exact (erc6909X_approve (g := Sat256.ofUInt256 g)
                 hsz100 hsize hbig hperm hcanonSpender hsource hspender hreach)
-              |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+              |>.reEquivExecutionGen hcode hd hdec hbody
                 (by simp [evmS, approvePostState, approveSlot, approveSlotI, initState,
                   storageStore_accountMap])
                 (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))

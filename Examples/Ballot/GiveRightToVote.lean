@@ -1462,7 +1462,7 @@ theorem ballotGiveRightToVoteBodyCore
                   simpa [giveRightWeightWord, giveRightVoterSlot, initState] using hweight)
               exact (ballotGiveRightToVoteX_success (g := Sat256.ofUInt256 g)
                   hsz36 hsize hbig hperm hcanon hchair hvoted hweight hreach)
-                |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                |>.reEquivExecutionGen hcode hd hdec hbody
                 (by
                   simp [giveRightPostState, giveRightVoterSlot, initState,
                     storageStore_accountMap])

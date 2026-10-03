@@ -11950,7 +11950,7 @@ theorem endSkipBody {σ σ₀ A I} {g : UInt256}
                                                         exact
                                                           endSkipBodyReturns_afterTabTailGrabSuccess
                                                             hprefixTab htailOk hgrab
-                                                      exact hretEvm.reEquivExecutionGenAccountMapEquiv
+                                                      exact hretEvm.reEquivExecutionGen
                                                         hcode hdispatch hdecode hbody
                                                         (by
                                                           calc

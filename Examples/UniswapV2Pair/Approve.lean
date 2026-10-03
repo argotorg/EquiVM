@@ -404,7 +404,7 @@ theorem uniswapApproveBodyCoreOk
         Account.updateStorage]
   exact (uniswapApproveX_success (g := Sat256.ofUInt256 g)
       hperm hsz68 hsize hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by rw [hstate]; rfl) (returnEquiv_of_encode boolTrueReturnEncoding)
 
 /-- Short-calldata decode-failure refinement slice for `approve(address,uint256)`.

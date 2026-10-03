@@ -409,7 +409,7 @@ theorem daiJoinCageBodyCoreOk
         (by simp [evmSolm, initState])
         hauth
   exact (daiJoinX_cage_ok (g := Sat256.ofUInt256 g) hperm hauth hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by simp [cagePostState, evmSolm, initState, storageStore_accountMap])
       (by
         simpa [cageTransition] using

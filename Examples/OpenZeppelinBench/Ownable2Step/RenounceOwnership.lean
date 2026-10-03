@@ -422,7 +422,7 @@ theorem ownable2StepRenounceOwnershipBody {σ σ₀ A I}
       (by simp only [evmS, initState]; exact hwv) hownerSolm
     exact (ownable2StepX_renounceOwnership_success (g := Sat256.ofUInt256 g)
         hperm howner hreach)
-      |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+      |>.reEquivExecutionGen hcode hd hdec hbody
         (by
           rw [renounceOwnershipAfterOwnerState_accountMap,
             renounceOwnershipAfterPendingState_accountMap]

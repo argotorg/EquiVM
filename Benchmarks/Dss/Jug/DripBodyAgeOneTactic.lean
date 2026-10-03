@@ -1024,7 +1024,7 @@ by_cases hageOne : age = ⟨1⟩
             have hret := RD.jugDripVatFoldStoreRhoReturns
               (targetWord := dripVatTargetWord σ' I)
               hsz36 hperm hfoldCallMemSize hfoldCallMemRead64 rd1669
-            exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch
+            exact hret.reEquivExecutionGen hcode hdispatch
               (jugDecode_drip_ok hsz36) hbody
               (by
                 simp [evmRhoS, evmFoldS, evmVatS, evm, σ''_solm,

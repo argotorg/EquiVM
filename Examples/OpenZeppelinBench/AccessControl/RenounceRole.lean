@@ -1064,7 +1064,7 @@ theorem accessControlRenounceRoleBody {σ σ₀ A I}
               (by simp only [evmS, initState]; exact hwv) hcallerSolm htargetSolm
             exact (accessControlRenounceRoleX_revoke_write (g := Sat256.ofUInt256 g)
                 hperm hsz68 hcanon htargetNonzero rd436)
-              |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+              |>.reEquivExecutionGen hcode hd hdec hbody
                 (by
                   simp [renounceRolePostState, renounceRolePostMap, evmS, initState,
                     storageStore_accountMap, Solm.EVM.storageLoad, State.lookupAccount,

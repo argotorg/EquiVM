@@ -254,7 +254,7 @@ theorem vatNopeBodyCoreOk
   obtain ⟨_, _, rd6131⟩ := vatNopeX_decoded (g := Sat256.ofUInt256 g)
     hsz36 hsize hreach
   exact (vatNopeX_storeOk (I := I) hperm rd6131)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by simp [nopePostState, evmSolm, initState, storageStore_accountMap])
       (by
         simpa [nopeTransition] using

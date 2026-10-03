@@ -348,7 +348,7 @@ theorem vatHopeBodyCoreOk
   obtain ⟨_, _, rd5540⟩ := vatHopeX_decoded (g := Sat256.ofUInt256 g)
     hsz36 hsize hreach
   exact (vatHopeX_storeOk (I := I) hperm rd5540)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by simp [hopePostState, evmSolm, initState, storageStore_accountMap])
       (by
         simpa [hopeTransition] using

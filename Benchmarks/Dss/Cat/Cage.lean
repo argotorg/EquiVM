@@ -169,7 +169,7 @@ theorem catCageBodyCore
     have henc : returnEquiv ByteArray.empty none cageTransition.returnType := by
       rw [show cageTransition.returnType = [] by rfl]
       exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-    exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
       haccounts henc
   · have hauthSolm : catSlotWord callerSlot σ I ≠ ⟨1⟩ := by
       exact hauthEvm

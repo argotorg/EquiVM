@@ -1396,7 +1396,7 @@ theorem clipperRelyBodyCoreOk
         hauthWord
   exact (clipperX_rely_ok (v := v) (g := Sat256.ofUInt256 g) hpatch hsz36 hsize
       hperm hauth hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by simp [clipperRelyPostState, evmSolm, initState, storageStore_accountMap])
       (by
         simpa [relyTransition] using

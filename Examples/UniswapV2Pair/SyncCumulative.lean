@@ -1834,7 +1834,7 @@ theorem uniswapSyncBodyCumulativeSuccess
         (syncUpdateCumulativeReturnMap_accounts_eq
           (balance0 := balance0) (balance1 := balance1)
           hPostAccounts1 henv1I hslotWordSource)
-  exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
+  exact rdRet.reEquivExecutionGen hcode hdispatch
     (uniswapDecode_sync hsz4) hbody hAccountsRet
     (returnEquiv.fallthrough rfl rfl (by native_decide))
 

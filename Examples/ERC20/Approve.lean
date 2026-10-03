@@ -786,7 +786,7 @@ theorem erc20ApproveBodyCore
         have hbody := erc20ApproveBodyReturns evmS I (by simp only [evmS, initState]; exact hwv)
         exact (erc20X_approve (g := Sat256.ofUInt256 g)
             hsz68 hsize hbig hperm hcanonSpender hreach)
-          |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+          |>.reEquivExecutionGen hcode hd hdec hbody
             (by simp [evmS, approvePostState, approveSlot, approveSlotI, initState,
               storageStore_accountMap])
             (returnEquiv_of_encode boolTrueReturnEncoding)

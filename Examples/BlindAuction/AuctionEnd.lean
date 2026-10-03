@@ -1341,7 +1341,7 @@ theorem blindAuctionAuctionEndBodyCore {σ σ₀ A I}
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                   (g := Sat256.ofUInt256 g)
                   (rd := by simpa using rd767) houtsz
-              exact hret.reEquivExecutionGenAccountMapEquiv
+              exact hret.reEquivExecutionGen
                 (hcode := hcode) (hd := hd) (hdec := hdec) (hbody := hbody)
                 (hAccounts := rfl)
                 (henc := returnEquiv.fallthrough rfl rfl (by native_decide))

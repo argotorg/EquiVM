@@ -934,7 +934,7 @@ theorem cureCageBodyCore {σ σ₀ A I} {g : UInt256}
         have henc : returnEquiv ByteArray.empty none cageTransition.returnType := by
           rw [show cageTransition.returnType = [] by rfl]
           exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-        exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
           haccounts henc
       · have hoverEvm :
             UInt256.size ≤ (cageTimestampWord I).toNat + (cageWaitWord σ I).toNat :=

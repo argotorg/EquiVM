@@ -7809,7 +7809,7 @@ theorem endSkimBody {σ σ₀ A I} {g : UInt256}
                                           (.returned csGrab evmGrabSolm none) := by
                                       exact endSkimBodyReturns_afterArtTailGrabSuccess
                                         hprefixArt htailOk hgrab
-                                    exact hretEvm.reEquivExecutionGenAccountMapEquiv
+                                    exact hretEvm.reEquivExecutionGen
                                       hcode hdispatch hdecode hbody
                                       (by simp [evmGrabSolm])
                                       (by simpa [skimTransition] using

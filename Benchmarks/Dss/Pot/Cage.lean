@@ -412,7 +412,7 @@ theorem potCageBodyCoreOk
         (by simp [evmSolm, initState])
         hauthWord
   exact (potX_cage_ok (g := Sat256.ofUInt256 g) hperm hauth hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by simp [cagePostState, evmSolm, initState, storageStore_accountMap,
         storageStore_executionEnv])
       (by

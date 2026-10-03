@@ -1675,7 +1675,7 @@ theorem vowFileUintBodyCore
       have haccounts :
           sstoreAccountMap I.codeOwner σ ⟨7⟩ data = evm1.accountMap := by
         simp [evm1, evm0, initState, storageStore_accountMap, data]
-      exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+      exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
         haccounts henc
     · by_cases hbump : fileUintWhat I = fileUintBumpBytes
       · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1691,7 +1691,7 @@ theorem vowFileUintBodyCore
         have haccounts :
             sstoreAccountMap I.codeOwner σ ⟨10⟩ data = evm1.accountMap := by
           simp [evm1, evm0, initState, storageStore_accountMap, data]
-        exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
           haccounts henc
       · by_cases hsump : fileUintWhat I = fileUintSumpBytes
         · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1708,7 +1708,7 @@ theorem vowFileUintBodyCore
           have haccounts :
               sstoreAccountMap I.codeOwner σ ⟨9⟩ data = evm1.accountMap := by
             simp [evm1, evm0, initState, storageStore_accountMap, data]
-          exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+          exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
             haccounts henc
         · by_cases hdump : fileUintWhat I = fileUintDumpBytes
           · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1725,7 +1725,7 @@ theorem vowFileUintBodyCore
             have haccounts :
                 sstoreAccountMap I.codeOwner σ ⟨8⟩ data = evm1.accountMap := by
               simp [evm1, evm0, initState, storageStore_accountMap, data]
-            exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+            exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
               haccounts henc
           · by_cases hhump : fileUintWhat I = fileUintHumpBytes
             · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
@@ -1742,7 +1742,7 @@ theorem vowFileUintBodyCore
               have haccounts :
                   sstoreAccountMap I.codeOwner σ ⟨11⟩ data = evm1.accountMap := by
                 simp [evm1, evm0, initState, storageStore_accountMap, data]
-              exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+              exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
                 haccounts henc
             · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
               have hbody :

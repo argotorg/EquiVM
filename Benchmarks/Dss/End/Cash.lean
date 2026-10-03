@@ -4004,7 +4004,7 @@ theorem endCashBody {σ σ₀ A I} {g : UInt256}
                         (endCashPostState evmFluxEvm I outNew).accountMap := by
                     simp [endCashPostAccountMap, evmFluxEvm, endCashPostState,
                       initState, storageStore_accountMap]
-                  exact hret.reEquivExecutionGenAccountMapEquiv
+                  exact hret.reEquivExecutionGen
                     hcode hdispatch hdecode hbody
                     (hAccountsPost.trans hStatePost.accountMap)
                     (by

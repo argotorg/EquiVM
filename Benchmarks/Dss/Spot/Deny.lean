@@ -369,7 +369,7 @@ theorem spotDenyBodyCoreOk
         (by simp [evmSolm, initState])
         hauth
   exact (spotX_deny_ok (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by
         simpa [denyPostState, evmSolm, initState, storageStore_accountMap,
           storageStore_executionEnv, sstoreAccountMap])

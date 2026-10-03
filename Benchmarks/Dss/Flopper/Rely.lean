@@ -655,7 +655,7 @@ theorem flopperRelyBodyCoreOk
         (by simp [evmSolm, initState])
         hauthWord
   exact (flopperX_rely_ok (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by
         simp [relyPostState, evmSolm, initState, storageStore_accountMap])
       (by

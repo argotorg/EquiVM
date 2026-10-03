@@ -3258,7 +3258,7 @@ theorem clipperUpchostDogChopSuccessBodyCore (v : ClipperImmutables) {code : Byt
       (initState σ σ₀ (Sat256.ofUInt256 g) A I)
       evmVatSolm evmDogSolm out outDog (by simp only [initState]; exact hwv)
       hvatCodeSolm hcallVatSolm hdecVat hdogCodeSolm hcallDogSolm hdecDog hloDog hmul
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by
       simpa [evmDogSolm, evmVatSolm, initState, storageStore_accountMap] using
         congrArg

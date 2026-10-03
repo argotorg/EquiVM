@@ -8466,7 +8466,7 @@ theorem vatGrabSuccessEquivFromFinalState
   have henc : returnEquiv ByteArray.empty none grabTransition.returnType := by
     rw [show grabTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody' haccounts henc
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody' haccounts henc
 
 theorem vatGrabAuthOk {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hauth : vatSlotWord (vatCallerWardsSlot I) σ I = ⟨1⟩)

@@ -912,7 +912,7 @@ theorem daiJoinExitDaiMintSuccessCore
         (by simpa [evmS, evmVatS, initState] using hcallMoveSolm)
         (by simpa [evmVatS, evmS, initState] using hdaiCodeSize)
         hcallMintAligned)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by rfl)
     (by
       simpa [exitTransition] using

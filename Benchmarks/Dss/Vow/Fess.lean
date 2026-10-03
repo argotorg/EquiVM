@@ -982,7 +982,7 @@ theorem vowFessBodyCore
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (sstoreAccountMap I.codeOwner σ1_evm ⟨5⟩ SinNew) ByteArray.empty := by
           simpa [σ1_evm, sinNew, SinNew, tab, eraSlot, slot, hslot, vowSlotWord] using hret
-        exact hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+        exact hret'.reEquivExecutionGen hcode hdispatch hdecode hbody
           haccounts henc
       · have hoverSinEvm :
             UInt256.size ≤ (vowSlotWord ⟨5⟩ σ1_evm I).toNat + tab.toNat := by

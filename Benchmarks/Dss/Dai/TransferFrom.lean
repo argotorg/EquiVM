@@ -5025,7 +5025,7 @@ theorem daiTransferFromInternalCallRuntimeCore
             (transferFromTailDstStoreMem_read64 I (transferFromSrcHashMem_size I)
               (transferFromSrcHashMem_read64 I))
             rdret
-        exact hrdret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+        exact hrdret.reEquivExecutionGen hcode hdispatch hdecode hbody
           hfinal
           henc
       · have hover :
@@ -5095,7 +5095,7 @@ theorem daiTransferFromInternalCallRuntimeCore
               (transferFromTailDstStoreMem_read64 I (transferFromAllowanceHashMem_size I)
                 (transferFromAllowanceHashMem_read64 I))
               rdret
-          exact hrdret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+          exact hrdret.reEquivExecutionGen hcode hdispatch hdecode hbody
             hfinal
             henc
         · have hover :
@@ -5184,7 +5184,7 @@ theorem daiTransferFromInternalCallRuntimeCore
                     (transferFromAllowancePostStoreHashMem_size I)
                     (transferFromAllowancePostStoreHashMem_read64 I))
                   rdret
-              exact hrdret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+              exact hrdret.reEquivExecutionGen hcode hdispatch hdecode hbody
                 hfinal
                 henc
             · have hover :
@@ -5358,7 +5358,7 @@ theorem daiTransferFromBodyCore {σ σ₀ A I} {g : UInt256}
                 (by simpa [evmSolm, initState] using hsrcIsSender)
                 hfitBody
           exact (daiTransferFromX_skipSenderSuccess hperm heqWord hsrcEnough hfit rd1515)
-            |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+            |>.reEquivExecutionGen hcode hdispatch hdecode hbody
               hfinal
               (returnEquiv_of_encode
                 (by simpa [boolTy] using boolTrueReturnEncoding))
@@ -5416,7 +5416,7 @@ theorem daiTransferFromBodyCore {σ σ₀ A I} {g : UInt256}
                   hmaxBody
                   hfitBody
             exact (daiTransferFromX_skipMaxSuccess hperm hneWord hmax hsrcEnough hfit rd1515)
-              |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+              |>.reEquivExecutionGen hcode hdispatch hdecode hbody
                 hfinal
                 (returnEquiv_of_encode
                   (by simpa [boolTy] using boolTrueReturnEncoding))
@@ -5492,7 +5492,7 @@ theorem daiTransferFromBodyCore {σ σ₀ A I} {g : UInt256}
                       hfitBody
                 exact (daiTransferFromX_spendSuccess hperm hneWord hmax hallowEnough
                     hsrcDebitEnough hfit rd1515)
-                  |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+                  |>.reEquivExecutionGen hcode hdispatch hdecode hbody
                     hfinal
                     (returnEquiv_of_encode
                       (by simpa [boolTy] using boolTrueReturnEncoding))

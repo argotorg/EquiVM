@@ -1704,7 +1704,7 @@ theorem ballotVoteBodyCore_success
     (A := A) (I := I) (g := Sat256.ofUInt256 g)
   exact (ballotVoteX_success (g := Sat256.ofUInt256 g)
       hsz36 hsize hbig hperm hweight hvoted hbound hfit hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody hacc
+    |>.reEquivExecutionGen hcode hd hdec hbody hacc
       (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 theorem ballotVoteBodyCore_overflow

@@ -1061,7 +1061,7 @@ theorem catFileIlkUintBodyCore
           (fileIlkUintChopSourceBody (σ := σ)
             (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv (by omega) hauthSolm hchop)
       have hret := RD.catFileIlkChopSuccess hreach hperm hsz100 hsize hauthSolc hchop
-      exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+      exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
         (by simp [evm1, evm0, initState, storageStore_accountMap])
         henc
     · by_cases hdunk : fileIlkUintWhat I = fileIlkDunkBytes
@@ -1075,7 +1075,7 @@ theorem catFileIlkUintBodyCore
             (fileIlkUintDunkSourceBody (σ := σ)
               (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv (by omega) hauthSolm hchop hdunk)
         have hret := RD.catFileIlkDunkSuccess hreach hperm hsz100 hsize hauthSolc hchop hdunk
-        exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
           (by simp [evm1, evm0, initState, storageStore_accountMap])
           henc
       · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I

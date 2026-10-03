@@ -364,7 +364,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                     simpa [pokeTransition] using
                       (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
                         (dvs := []) rfl (by native_decide) (by native_decide))
-                  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+                  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
                     (by simpa using hMap'') henc
             ·
               have hhasNe : pokePeekHasWord out ≠ ⟨0⟩ := hhasZero
@@ -776,7 +776,7 @@ theorem spotPokeBodyCore {σ σ₀ A I} {g : UInt256}
                                   (o := ByteArray.empty) (r := none) (t := [])
                                   (dvs := []) rfl (by native_decide)
                                   (by native_decide))
-                            exact hret.reEquivExecutionGenAccountMapEquiv
+                            exact hret.reEquivExecutionGen
                               hcode hdispatch hdecode hbody
                               (by simpa using hMap'')
                               henc

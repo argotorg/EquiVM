@@ -780,7 +780,7 @@ theorem catFileAddressBodyCore
           rw [storageStore_accountMap, hsl]
           simp [evm0, initState]
         exact hEq.symm
-      exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+      exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
         haccounts henc
     · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
       have hbody :

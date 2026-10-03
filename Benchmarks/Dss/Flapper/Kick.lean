@@ -4148,7 +4148,7 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                       have hid := kickRuntimeIdWord_source_eq
                         (σ := σ) (σ₀ := σ₀) (A := A)
                         (I := I) (g := g)
-                      exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+                      exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
                         (by simp [evmCallSolm])
                         (by
                           rw [hid]

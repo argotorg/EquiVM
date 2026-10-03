@@ -8,7 +8,7 @@ namespace Auction
 -- LIBRARY CANDIDATE: the source state paired with an RD cursor across external calls.
 structure SourceState (s0 : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (evm : EVM.State) : Prop where
-  world : RDWorld s0 evm
+  world : evm.σ₀ = s0.σ₀
   env : evm.executionEnv = I
   accounts : σ = evm.accountMap
 

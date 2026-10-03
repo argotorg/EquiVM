@@ -619,7 +619,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                       have henc : returnEquiv ByteArray.empty none loadTransition.returnType := by
                         rw [show loadTransition.returnType = [] by rfl]
                         exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-                      exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+                      exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
                         haccounts henc
                     · let evm0 := initState σ σ₀ (Sat256.ofUInt256 g) A I
                       let oldAmtSolm :=
@@ -698,7 +698,7 @@ theorem cureLoadBodyCore {σ σ₀ A I} {g : UInt256}
                       have henc : returnEquiv ByteArray.empty none loadTransition.returnType := by
                         rw [show loadTransition.returnType = [] by rfl]
                         exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-                      exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+                      exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
                         haccounts henc
                   · have hoverEvm : UInt256.size ≤ withoutOld.toNat + newAmt.toNat :=
                         Nat.le_of_not_lt haddOk

@@ -996,7 +996,7 @@ theorem flopperDentBodyCoreSuccessCallerEqBridge
           (initState σ σ₀ (Sat256.ofUInt256 g) A I) I).accountMap) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   let evmSolm := initState σ σ₀ (Sat256.ofUInt256 g) A I
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simpa [evmSolm, dentPostState, dentAfterTicStore, dentAfterLotStore,
         initState] using hAccountsPost)
     (by

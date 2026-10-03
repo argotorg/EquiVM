@@ -3752,7 +3752,7 @@ theorem endFreeBody {σ σ₀ A I} {g : UInt256}
                               (by simpa [evmSolm, evmUrnsSolm] using hcallSolm)
                               hlo hsrcUrns hownerUrns hartZero hinkOk hgrabCodeSolmNE
                               (by simpa [evmUrnsSolm, evmGrabSolm] using hgrabCallSolm)
-                        exact hretEvm.reEquivExecutionGenAccountMapEquiv
+                        exact hretEvm.reEquivExecutionGen
                           hcode hdispatch hdecode hbody
                           (by simp [evmGrabSolm])
                           (by

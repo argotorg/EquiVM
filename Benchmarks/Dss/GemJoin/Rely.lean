@@ -468,7 +468,7 @@ theorem gemJoinRelyBodyCoreOk
         (by simp [evmSolm, initState])
         hauthWord
   exact (gemJoinX_rely_ok (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by
         simpa [relyPostState, evmSolm, initState, storageStore_accountMap,
           storageStore_executionEnv, sstoreAccountMap])

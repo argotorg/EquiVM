@@ -2377,7 +2377,7 @@ theorem vatFluxAuthorizedPath
       have henc : returnEquiv ByteArray.empty none fluxTransition.returnType := by
         rw [show fluxTransition.returnType = [] by rfl]
         exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-      exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+      exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
         haccountsFinal henc
 
 set_option maxHeartbeats 1000000 in

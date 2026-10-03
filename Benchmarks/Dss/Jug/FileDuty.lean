@@ -1102,7 +1102,7 @@ theorem jugFileDutyBodyCoreOk
   have hmatch : fileDutyWhatWord I = ABI.bytesToWord fileDutyBytes :=
     fileDutyWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := jugFileDutyX_storeAuthorized (I := I) (by omega) hperm hmatch htimeOk
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, storageStore_accountMap, dutySlot, data])
     (by
       simpa [fileDutyTransition] using

@@ -547,7 +547,7 @@ theorem ownable2StepTransferOwnershipBody {σ σ₀ A I}
             (by simp only [evmS, initState]; exact hwv) hownerSolm hcanon
           exact (ownable2StepX_transferOwnership_success (g := Sat256.ofUInt256 g)
               hperm hsz36 hsize hbig hcanon howner hreach)
-            |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+            |>.reEquivExecutionGen hcode hd hdec hbody
               (by
                 rw [transferOwnershipAfterPendingState_accountMap]
                 simp [evmS, initState, transferOwnershipAfterPendingMap,

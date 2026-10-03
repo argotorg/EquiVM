@@ -99,7 +99,7 @@ WETH9 has a payable fallback (`contract.fallback = some fallbackTransition`), so
 `reEquiv*` bridges — which require `contract.fallback = none` to convert a `dispatchMsg` fact into a
 `selectorDispatchMsg` one — do not apply on the selector-match path.  When a named selector matches,
 `selectorDispatchMsg contract I.calldata = some t` holds directly; these lemmas consume that,
-mirroring `RDret.reEquivExecutionGenAccountMapEquiv` / `RDrev.reEquivExecutionRevert`. -/
+mirroring `RDret.reEquivExecutionGen` / `RDrev.reEquivExecutionRevert`. -/
 
 /-- `RDret ⇒ execution` for a directly-matched selector. -/
 theorem weth9ReEquivExecGen {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}

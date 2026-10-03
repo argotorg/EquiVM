@@ -1091,7 +1091,7 @@ theorem endFileUintBody {σ σ₀ A I} {g : UInt256}
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 hwv hauthSolm hliveSolm hwait
           exact (endFileUintX_wait_ok hperm hwaitWord hswitch)
-            |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+            |>.reEquivExecutionGen hcode hdispatch hdecode hbody
               (by simp [endFileUintPostState, evmSolm, initState, storageStore_accountMap])
               (by
                 simpa [fileUintTransition] using

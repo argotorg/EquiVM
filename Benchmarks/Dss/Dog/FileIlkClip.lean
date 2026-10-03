@@ -3366,7 +3366,7 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
                   simpa [evmPostStoreEvm, evmPostEvm, evm1, actualSlot, sourceSlot,
                     hslotEq, storageStore_accountMap, solcSlotWord, Solm.EVM.storageLoad,
                     State.lookupAccount, Account.lookupStorage, initState] using hacc
-                exact hrdret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode
+                exact hrdret.reEquivExecutionGen hcode hdispatch hdecode
                   hbody haccounts henc
               · have hrev := RD.dogFileIlkClipMismatchRevert hpatch rd2623 hretMatch
                   hpostMemSize hpostRead64 (by simp)

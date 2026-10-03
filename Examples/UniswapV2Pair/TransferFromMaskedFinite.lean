@@ -708,7 +708,7 @@ theorem uniswapTransferFromBodyCoreOk_finiteAllowance_masked
     simp only [evmE, initState]
   exact (uniswapX_transferFrom_finiteAllowance_masked (g := Sat256.ofUInt256 g)
       hsz100 hsize hperm hnotMax hallowance hbalance hfit hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       hPostMap (returnEquiv_of_encode boolTrueReturnEncoding)
 
 theorem uniswapTransferFromBodyOk_finiteAllowance_masked

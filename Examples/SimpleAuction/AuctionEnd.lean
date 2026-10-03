@@ -1251,7 +1251,7 @@ theorem simpleAuctionAuctionEndBody {σ σ₀ A I}
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                   (g := Sat256.ofUInt256 g)
                   (rd := by simpa using rd743) houtsz
-              exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+              exact hret.reEquivExecutionGen hcode hd hdec hbody
                 (by rfl)
                 (returnEquiv.fallthrough rfl rfl (by native_decide))
           · let evmSFail : EVM.State :=

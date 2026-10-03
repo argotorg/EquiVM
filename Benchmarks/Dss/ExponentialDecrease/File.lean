@@ -1101,7 +1101,7 @@ theorem stairstepFileBody {σ σ₀ A I} {g : UInt256}
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 hwv hauth hcut hle
           exact (stairstepFileX_cut_ok hperm hcutWord hle rd428)
-            |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+            |>.reEquivExecutionGen hcode hdispatch hdecode hbody
               (by simp [fileCutPostState, evmSolm, initState, storageStore_accountMap])
               (by
                 simpa [fileTransition] using

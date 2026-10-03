@@ -1418,7 +1418,7 @@ theorem clipperFileAddressBody (v : ClipperImmutables) {code : ByteArray}
                           I ⟨3⟩) data))
                   ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
             simp [clipperFileAddressPostState, clipperFileAddressLockedState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, solcSlotWord]
-          exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody haccounts henc
+          exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
         · have hnotSpotterWord :
               calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileAddressSpotterBytes :=
             clipperFileAddressWhatWord_ne_of_bytes_ne (I := I)
@@ -1448,7 +1448,7 @@ theorem clipperFileAddressBody (v : ClipperImmutables) {code : ByteArray}
                             I ⟨1⟩) data))
                     ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
               simp [clipperFileAddressPostState, clipperFileAddressLockedState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, solcSlotWord]
-            exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody haccounts henc
+            exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
 
           · have hnotDogWord :
                 calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileAddressDogBytes :=
@@ -1480,7 +1480,7 @@ theorem clipperFileAddressBody (v : ClipperImmutables) {code : ByteArray}
                             data))
                       ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
                 simp [clipperFileAddressPostState, clipperFileAddressLockedState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, solcSlotWord]
-              exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody haccounts henc
+              exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
 
             · have hnotVowWord :
                   calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileAddressVowBytes :=
@@ -1512,7 +1512,7 @@ theorem clipperFileAddressBody (v : ClipperImmutables) {code : ByteArray}
                               data))
                         ⟨13⟩ ⟨0⟩)) = evm2.accountMap := by
                   simp [clipperFileAddressPostState, clipperFileAddressLockedState, evm2, evmSolm, data, initState, storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, solcSlotWord]
-                exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody haccounts henc
+                exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody haccounts henc
               · have hnotCalcWord :
                     calldataWord I.calldata 4 ≠ ABI.bytesToWord clipperFileAddressCalcBytes :=
                   clipperFileAddressWhatWord_ne_of_bytes_ne (I := I)

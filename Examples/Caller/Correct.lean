@@ -1197,7 +1197,7 @@ theorem callerExec_canonical {σ σ₀ A I} {g : Sat256}
         have hbody := callerBodySuccess (initState σ σ₀ g A I)
           (callerDecStore I) (by exact hwv) (callerStore_t I) (callerStore_n I)
           hcoin hdecv hassign
-        exact RDret.reEquivExecutionGenAccountMapEquiv hcode hrd hd hdec hbody
+        exact RDret.reEquivExecutionGen hcode hrd hd hdec hbody
           (by rw [storageStore_accountMap]; simp [evmP, initState])
           (returnEquiv.fallthrough rfl rfl (by native_decide))
       · -- `|o| < 32`: decode reverts

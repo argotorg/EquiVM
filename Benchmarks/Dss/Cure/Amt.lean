@@ -135,7 +135,7 @@ theorem cureAmtBodyCoreOk
     rw [show amtTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
       (by simpa [uint256] using uint256ReturnEncoding (cureSlotWord slot σ I))
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody rfl henc
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody rfl henc
 
 theorem cureAmtBodyCoreDecodeFailed_short
     {σ σ₀ A I} {g : UInt256} {sel : UInt256}

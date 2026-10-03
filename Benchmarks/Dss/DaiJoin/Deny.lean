@@ -430,7 +430,7 @@ theorem daiJoinDenyBodyCoreOk
         (by simp [evmSolm, initState])
         hauth
   exact (daiJoinX_deny_ok (g := Sat256.ofUInt256 g) hsz36 hsize hperm hauth hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by simp [denyPostState, evmSolm, initState, storageStore_accountMap])
       (by
         simpa [denyTransition] using

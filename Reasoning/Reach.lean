@@ -43,14 +43,10 @@ abbrev M (aw off len : UInt256) : UInt256 :=
 
 set_option maxRecDepth 10000
 
-/-- The original account map `σ₀` shared by a cursor and the initial state. `Θ` reads it
-    during an external call, so `RD.call` recovers it from the hidden cursor. -/
-def RDWorld (s0 s : State) : Prop :=
-  s.σ₀ = s0.σ₀
-
 /-- The reached-or-out-of-gas segment invariant.  `mem`/`aw`/`acc` are carried as
     absolute values (initialised at `start` to the input state's), so a relative
-    preservation clause like `s'.memory = s.memory` falls out at `conclude`. -/
+    preservation clause like `s'.memory = s.memory` falls out at `conclude`.
+    The cursor keeps the initial account map `σ₀`, which `Θ` reads during a call. -/
 def RD (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (pc : UInt256) (stk : List UInt256) (mem : ByteArray) (aw : UInt256) (rdata : ByteArray)
     (acc : AccountMap) (k C : ℕ) : Prop :=
@@ -65,7 +61,7 @@ def RD (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     ∧ s.machineState.memory = mem ∧ s.machineState.activeWords = aw ∧ s.machineState.returnData = rdata
     ∧ s.accountMap = acc
     ∧ s.executionEnv = ee
-    ∧ RDWorld s0 s
+    ∧ s.σ₀ = s0.σ₀
 
 /-- The EVM **reach-cursor**: the six fields `RD` pins on the underlying `State` at a program point —
     the transient machine state `pc`/`stack`/`mem`/`aw`/`rdata`, plus the account map.  `RDc` below is `RD` indexed by a
@@ -92,7 +88,7 @@ theorem RD.start {code : ByteArray} {g : Sat256} {s0 s : State} {k C : ℕ}
     (hpc : s.machineState.pc = pc) (hstk : s.machineState.stack = stk)
     (hgas : s.machineState.gasAvailable = g.subNat C) (hk : k ≤ C) (hC : C ≤ g.toNat)
     (hX : X (g.toNat + 1) (D_J code 0) s0 = X (g.toNat + 1 - k) (D_J code 0) s)
-    (hworld : RDWorld s0 s) :
+    (hworld : s.σ₀ = s0.σ₀) :
     RD code s.executionEnv g s0 pc stk s.machineState.memory s.machineState.activeWords
        s.machineState.returnData s.accountMap k C := by
   unfold RD
@@ -114,7 +110,7 @@ theorem RD.startWith {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 s :
     (haw : s.machineState.activeWords = aw)
     (hrdata : s.machineState.returnData = rdata)
     (hacc : s.accountMap = acc)
-    (hee : s.executionEnv = ee) (hworld : RDWorld s0 s) :
+    (hee : s.executionEnv = ee) (hworld : s.σ₀ = s0.σ₀) :
     RD code ee g s0 pc stk mem aw rdata acc k C := by
   unfold RD
   exact Or.inr ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
@@ -137,7 +133,7 @@ theorem RD.initState {code : ByteArray}
   · omega
   · omega
   · simp
-  · simp [RDWorld]
+  · rfl
 
 /-- Repackage the invariant into the `∃ k' C' s'` conclusion the segment lemmas
     state (the explicit step/gas indices become the existential witnesses). -/
@@ -2868,7 +2864,7 @@ private theorem RD.callNoCallMade {code : ByteArray} {ee : ExecutionEnv} {g : Sa
     (hrdata' : s'.machineState.returnData = ByteArray.empty)
     (hacc' : s'.accountMap = σ)
     (hee' : s'.executionEnv = ee)
-    (hworld' : RDWorld s0 s') :
+    (hworld' : s'.σ₀ = s0.σ₀) :
     ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
         (ByteArray.empty.write 0 mem outOffset.toNat
           (min outSize (UInt256.ofNat ByteArray.empty.size)).toNat)

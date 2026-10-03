@@ -757,7 +757,7 @@ theorem jugFileVowBodyCoreOk
     simpa [stored, data] using hret
   have hMap : sstoreAccountMap I.codeOwner σ ⟨3⟩ stored = evm1.accountMap := by
     simp [evm1, evm0, initState, storageStore_accountMap]
-  exact hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody hMap
+  exact hret'.reEquivExecutionGen hcode hdispatch hdecode hbody hMap
     (by
       simpa [fileVowTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])

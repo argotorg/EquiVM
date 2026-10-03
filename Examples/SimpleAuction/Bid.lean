@@ -1427,7 +1427,7 @@ theorem simpleAuctionBidBody {σ σ₀ A I} {g : UInt256}
                 State.lookupAccount] using hzeroS')
         exact (simpleAuctionX_bid_successNoPending (g := Sat256.ofUInt256 g) hperm hreach
             htimeLe hbidLt hzero)
-          |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+          |>.reEquivExecutionGen hcode hd hdec hbody
             (by simp [evmS, bidPostStateNoPending, bidAfterHighestBidderState, initState,
                 bidFinalMapNoPending, bidWriteHighestBidMap, bidWriteHighestBidderMap,
                 bidHighestBidderRawWord, bidPackedSenderWord_eq_setAddress,
@@ -1474,7 +1474,7 @@ theorem simpleAuctionBidBody {σ σ₀ A I} {g : UInt256}
               hfitSState
           exact (simpleAuctionX_bid_successWithPending (g := Sat256.ofUInt256 g) hperm hreach
               htimeLe hbidLt hnzE hfit)
-            |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+            |>.reEquivExecutionGen hcode hd hdec hbody
               (by simp [evmS, bidPostStateWithPending, bidPostStateNoPending,
                   bidAfterHighestBidderState, bidAfterPendingState, initState,
                   bidFinalMapWithPending, bidWriteHighestBidMap, bidWriteHighestBidderMap,

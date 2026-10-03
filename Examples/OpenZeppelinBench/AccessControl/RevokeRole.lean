@@ -1745,7 +1745,7 @@ theorem accessControlRevokeRoleBody {σ σ₀ A I}
               (by simp only [evmS, initState]; exact hwv) hsz68 hadminSolm htargetSolm
             exact (accessControlRevokeRoleX_revoke_write (g := Sat256.ofUInt256 g)
                 hperm hsz68 hcanonAccount htargetNonzero rd517)
-              |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+              |>.reEquivExecutionGen hcode hd hdec hbody
                 (by
                   simp [revokeRolePostState, revokeRolePostMap, evmS, initState,
                     storageStore_accountMap,

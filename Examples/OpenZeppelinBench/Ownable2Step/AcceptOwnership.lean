@@ -523,7 +523,7 @@ theorem ownable2StepAcceptOwnershipBody {σ σ₀ A I}
       (by simp only [evmS, initState]; exact hwv) hpendingSolm
     exact (ownable2StepX_acceptOwnership_success (g := Sat256.ofUInt256 g)
         hperm hpending hreach)
-      |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+      |>.reEquivExecutionGen hcode hd hdec hbody
         (by
           rw [acceptOwnershipAfterOwnerState_accountMap, acceptOwnershipAfterPendingState_accountMap]
           simp [evmS, initState, acceptOwnershipAfterOwnerMap, acceptOwnershipAfterPendingMap,

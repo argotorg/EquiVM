@@ -1399,7 +1399,7 @@ theorem flapperCageBodyCoreMoveCallSuccess
             State.lookupAccount] using hauthSolmWord)
         hcodeSizeSolm hcallSolm
   exact (flapperCageX_moveCallSuccess rd3293)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by simp [evmCallSolm])
       (by
         simpa [cageTransition] using

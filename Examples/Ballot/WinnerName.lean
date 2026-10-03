@@ -407,7 +407,7 @@ theorem ballotWinnerNameBodyCore
           winnerNameNameWord σ I := by
       exact winnerNameNameCurrent_init
     exact (ballotX_winnerName_ok (g := Sat256.ofUInt256 g) hbound hreach)
-      |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody (by rfl)
+      |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
         (by simpa [hname] using (returnEquiv_of_encode (abit := bytes32)
           (rv := .fixedBytes ⟨31, by decide⟩
             (EVM.Word.toBytesBE (winnerNameNameWord σ I)))

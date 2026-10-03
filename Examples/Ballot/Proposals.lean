@@ -622,7 +622,7 @@ theorem ballotProposalsBodyCore
           (by simp only [initState]; exact hwv)
           (by rw [hlen]; exact hbound)
         exact (ballotX_proposals_ok (g := Sat256.ofUInt256 g) hsz36 hsize hbig hbound hreach)
-          |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody (by rfl)
+          |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
             (returnEquiv.returned rfl
               (ballotProposalReturnEncoding (proposalNameWord σ I)
                 (proposalCountWord σ I)))

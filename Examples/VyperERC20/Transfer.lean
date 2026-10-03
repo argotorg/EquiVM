@@ -1669,7 +1669,7 @@ theorem erc20TransferBodyCore
               hwv hperm hsz68 hsize hcanonTo
               (by simpa [evmE] using henough)
               (by simpa [evmE] using hfit) hreach)
-            |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+            |>.reEquivExecutionGen hcode hd hdec hbody
               (by simp [evmE, evmS, initState, transferPostState, transferAfterDebitState,
                 transferSenderSlot, transferSenderSlotI, transferToSlot,
                 storageStore_accountMap])

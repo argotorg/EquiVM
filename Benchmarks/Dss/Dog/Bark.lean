@@ -27911,7 +27911,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                       simpa [uint256] using
                                                                         uint256ReturnEncoding id)
                                                                 exact
-                                                                  hret.reEquivExecutionGenAccountMapEquiv
+                                                                  hret.reEquivExecutionGen
                                                                     hcode hdispatch hdecode
                                                                     htailBody haccounts henc
                                                               · have hshort :

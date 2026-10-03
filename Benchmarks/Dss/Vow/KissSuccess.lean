@@ -1136,7 +1136,7 @@ theorem vowKissHealSuccessBodyCore
   have henc : returnEquiv ByteArray.empty none kissTransition.returnType := by
     rw [show kissTransition.returnType = [] by rfl]
     exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     hAccountsFinal henc
 
 set_option maxHeartbeats 0 in

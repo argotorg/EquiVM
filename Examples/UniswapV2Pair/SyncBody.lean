@@ -1147,7 +1147,7 @@ theorem uniswapSyncBody
                           simpa [uniswapLockExitedState, uniswapUnlockedState,
                             storageStore_accountMap, storageStore_executionEnv,
                             syncUpdatePackedReserveState, henv1I] using hs
-                        exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
+                        exact rdRet.reEquivExecutionGen hcode hdispatch
                           (uniswapDecode_sync hsz4) hbody hAccountsRet
                           (returnEquiv.fallthrough rfl rfl (by native_decide))
                       · have helapsedNe :
@@ -1254,7 +1254,7 @@ theorem uniswapSyncBody
                             simpa [uniswapLockExitedState, uniswapUnlockedState,
                               storageStore_accountMap, storageStore_executionEnv,
                               syncUpdatePackedReserveState, henv1I] using hs
-                          exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
+                          exact rdRet.reEquivExecutionGen hcode hdispatch
                             (uniswapDecode_sync hsz4) hbody hAccountsRet
                             (returnEquiv.fallthrough rfl rfl (by native_decide))
                         let reserve0Word : UInt256 :=
@@ -1638,7 +1638,7 @@ theorem uniswapSyncBody
                               simpa [uniswapLockExitedState, uniswapUnlockedState,
                                 storageStore_accountMap, storageStore_executionEnv,
                                 syncUpdateCumulativePackedReserveState, henv1I] using hs
-                            exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
+                            exact rdRet.reEquivExecutionGen hcode hdispatch
                               (uniswapDecode_sync hsz4) hbody hCreatedRet hAccountsRet
                               (returnEquiv.fallthrough rfl rfl (by native_decide))
 -/

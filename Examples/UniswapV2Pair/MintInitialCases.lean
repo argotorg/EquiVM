@@ -1155,7 +1155,7 @@ theorem uniswapMintFinishInitialFeeOff
         (liquidity := liquidity) rd2531 hliquidity hrootGeMin hliqNonzero hperm
         htotalFitMin hbalanceFitMin htotalFit hbalanceFit hfit0 hfit1 helapsed0 hfeeOff
         hmem hmem64
-  exact rdRet.reEquivExecutionGenAccountMapEquiv
+  exact rdRet.reEquivExecutionGen
     hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody hAccountsRet
     (returnEquiv_of_encode (by simpa [uint256] using uint256ReturnEncoding liquidity))
 
@@ -1439,7 +1439,7 @@ theorem uniswapMintFinishInitialFeeOn
         (liquidity := liquidity) rd2531 hliquidity hrootGeMin hliqNonzero hperm
         htotalFitMin hbalanceFitMin htotalFit hbalanceFit hfit0 hfit1 helapsed0
         hfeeOn hfitKLast hmem hmem64
-  exact rdRet.reEquivExecutionGenAccountMapEquiv
+  exact rdRet.reEquivExecutionGen
     hcode hdispatch (uniswapDecode_mint_ok hsz36) hbody hAccountsRet
     (returnEquiv_of_encode (by simpa [uint256] using uint256ReturnEncoding liquidity))
 

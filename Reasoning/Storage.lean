@@ -37,8 +37,8 @@ theorem codeOwnerStorageWord_initState {σ σ₀ A I} {g : Sat256}
   simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
     codeOwnerStorageWord]
 
--- TODO: Replace uses of the legacy findD API with getD and Std.ExtTreeMap.getD_insert,
--- then remove this compatibility wrapper.
+-- `findD` is the API used by the EVM storage model. The corresponding Std theorem is about
+-- `getD`, so this lemma also converts the lookup API and a key inequality to a comparison fact.
 theorem storage_findD_insert_ne (storage : Storage) (readSlot writeSlot val default : UInt256)
     (hne : readSlot ≠ writeSlot) :
     (storage.insert writeSlot val).findD readSlot default =
@@ -859,9 +859,8 @@ theorem storageLocStore_bool_word_offset0 (evm : EVM.State) (slot word : UInt256
     simp only [wordToElem, hbeq, Bool.false_eq_true, ↓reduceIte]
     simpa [setBoolOffset0Word, hiszero] using storageLocStore_bool_true_offset0 evm slot
 
--- The standard ExtTreeMap lookup lemmas cover insert and erase directly.
--- TODO: Replace uses of these legacy findD/find? wrappers with Std.ExtTreeMap
--- getD_erase, getD_insert_self, getElem?_insert, and getElem?_erase at call sites.
+-- These `findD`/`find?` facts adapt the standard `getD`/`getElem?` lemmas to the lookup API
+-- used by EVM storage and its callers.
 theorem storage_findD_erase_ne (storage : Storage) (readSlot writeSlot default : UInt256)
     (hne : readSlot ≠ writeSlot) :
     (storage.erase writeSlot).findD readSlot default =
@@ -956,15 +955,6 @@ theorem extTreeMap_insert_insert_self {α β : Type} {cmp : α → α → Orderi
   intro read
   exact extTreeMap_get?_insert_insert_self m key read v1 v2
 
-/-- Storage-slot lookup after two same-slot writes is the same as after the final write. -/
-theorem storage_findD_insert_insert_self (storage : Storage)
-    (writeSlot readSlot val1 val2 default : UInt256) :
-    ((storage.insert writeSlot val1).insert writeSlot val2).findD readSlot default =
-      (storage.insert writeSlot val2).findD readSlot default := by
-  rw [extTreeMap_insert_insert_self]
-
--- TODO: Replace uses with a rewrite by extTreeMap_insert_insert_self and remove this wrapper.
-
 /-- Reading after an arbitrary zero-aware storage update followed by a same-slot nonzero insert is
     the same as reading after just the final insert. -/
 theorem storage_findD_update_insert_self (storage : Storage)
@@ -983,7 +973,7 @@ theorem storage_findD_update_insert_self (storage : Storage)
       rw [storage_findD_insert_ne storage readSlot writeSlot val2 default hread]
       rw [storage_findD_erase_ne storage readSlot writeSlot default hread]
     · simp only [hzero, if_false]
-      rw [storage_findD_insert_insert_self]
+      rw [extTreeMap_insert_insert_self]
 
 /-- `find?` after an arbitrary zero-aware storage update followed by a same-slot nonzero insert is
     the same as `find?` after just the final insert. -/
@@ -1003,8 +993,8 @@ theorem storage_find?_update_insert_self (storage : Storage)
     · simp only [hzero, if_false]
       exact extTreeMap_get?_insert_insert_self storage writeSlot readSlot val1 val2
 
-/-- Inserting one account preserves lookup at a different address.
-TODO: Replace uses with Std.ExtTreeMap.getElem?_insert and remove this wrapper. -/
+/-- Inserting one account preserves lookup at a different address. This adapts
+    `Std.ExtTreeMap.getElem?_insert` to `find?` and an address inequality. -/
 theorem accountMap_find?_insert_ne (σ : AccountMap) (read write : AccountAddress)
     (acc : Account) (hne : read ≠ write) :
     (σ.insert write acc).find? read = σ.find? read := by
@@ -1016,7 +1006,7 @@ theorem accountMap_find?_insert_ne (σ : AccountMap) (read write : AccountAddres
   rw [if_neg hcmp]
 
 /-- Looking up the account just inserted at its own address returns that account.
-TODO: Replace uses with Std.ExtTreeMap.getElem?_insert_self and remove this wrapper. -/
+    This adapts `Std.ExtTreeMap.getElem?_insert_self` to `find?`. -/
 theorem accountMap_find_insert_self (σ : AccountMap) (a : AccountAddress) (acc : Account) :
     (σ.insert a acc).find? a = some acc := by
   change (σ.insert a acc)[a]? = some acc

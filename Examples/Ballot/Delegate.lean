@@ -3830,7 +3830,7 @@ theorem ballotDelegateNotVotedSuccessEquiv
   exact (ballotDelegateX_delegateNotVotedSuccess (g := Sat256.ofUInt256 g)
       hsz36 hsize hbig hperm hcanon hweight hvoted hnotself hdelegate hdelegateWeight
       hdelegateNotVoted hfit hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+    |>.reEquivExecutionGen hcode hd hdec hbody
       (delegateFalseSuccessState_accountMap_eq_init
         (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g))
@@ -3905,7 +3905,7 @@ theorem ballotDelegateVotedSuccessEquiv
   exact (ballotDelegateX_delegateVotedSuccess (g := Sat256.ofUInt256 g)
       hsz36 hsize hbig hperm hcanon hweight hvoted hnotself hdelegate hdelegateWeight
       hdelegateVoted hbound hfit hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+    |>.reEquivExecutionGen hcode hd hdec hbody
       (delegateTrueSuccessState_accountMap_eq_init
         (σ := σ) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g))

@@ -286,8 +286,7 @@ theorem RDrev.reEquivNonPayable {cfg : Config} {contract : ContractDecl} {transi
 
 /-- Successful execution with a possibly changed account map. The EVM result map and the Solm
     post-state map must be equal as extensional `ExtTreeMap`s. -/
--- TODO: Rename the legacy AccountMapEquiv suffix when downstream call sites migrate.
-theorem RDret.reEquivExecutionGenAccountMapEquiv {cfg : Config} {contract : ContractDecl}
+theorem RDret.reEquivExecutionGen {cfg : Config} {contract : ContractDecl}
     {t : TransitionDecl}
     {σ σ₀ A I} {g : Sat256}
     {code o : ByteArray} {callargs cs retVal}
@@ -325,8 +324,8 @@ theorem RDret.reEquivExecutionGenAccountMapEquiv {cfg : Config} {contract : Cont
       exact hAccounts
     exact execResultsEquiv.success rfl rfl haccounts (.abi henc)
 
-/-- Successful execution with the initial account map as the Solm post-state. -/
--- TODO: Try replacing uses with reEquivExecutionGenAccountMapEquiv and remove this wrapper.
+/-- Common same-map case of `RDret.reEquivExecutionGen`. This avoids repeating the
+    `initState` account-map equality at each caller. -/
 theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {σ σ₀ A I} {g : Sat256}
     {code o : ByteArray} {callargs cs retVal}
@@ -343,11 +342,11 @@ theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : Tra
     (hreceive : contract.receive = none := by rfl) :
     runtimeEquivalenceFor cfg contract σ σ₀
       g.toUInt256 A I :=
-  h.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+  h.reEquivExecutionGen hcode hd hdec hbody
     (by simp [initState]) henc hfallback hreceive
 
-/-- A successful getter whose encoded value is expressed with an equal return-value term. -/
--- TODO: Rewrite hval at call sites and use reEquivExecution directly, then remove this wrapper.
+/-- A successful getter whose encoded value is expressed with an equal return-value term.
+    The transport remains explicit because callers often prove this equality separately. -/
 theorem RDret.reEquivExecutionTransport {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {σ σ₀ A I} {g : Sat256}
     {code o : ByteArray} {callargs cs rvSolm rvEvm}

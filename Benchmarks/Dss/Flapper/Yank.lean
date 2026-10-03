@@ -2532,7 +2532,7 @@ theorem flapperYankBodyCoreMoveCallSuccess
     simpa [evmCallSolm] using
       yankDeletePostState_eq evmCallSolm I
         (by simp [evmCallSolm, evmSolm, initState])
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simpa [yankRuntimeDeleteAccountMap] using hFinalMap)
     (by
       simpa [yankTransition] using

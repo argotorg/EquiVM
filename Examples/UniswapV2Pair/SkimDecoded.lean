@@ -893,7 +893,7 @@ theorem uniswapSkimBodyDecoded
                                 storageStore_accountMap, henv3] using
                                   congrArg (sstoreAccountMap I.codeOwner · ⟨12⟩ ⟨1⟩)
                                     hPostTransferAccounts3
-                            exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
+                            exact rdRet.reEquivExecutionGen hcode hdispatch
                               hdecode hbody hAccountsRet
                               (returnEquiv.fallthrough rfl rfl (by native_decide))
                           by_cases hz3False : z3 = false
@@ -1641,7 +1641,7 @@ theorem uniswapSkimBodyDecoded
                                       storageStore_accountMap, henv3] using
                                         congrArg (sstoreAccountMap I.codeOwner · ⟨12⟩ ⟨1⟩)
                                           hPostTransferAccounts3
-                                  exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
+                                  exact rdRet.reEquivExecutionGen hcode hdispatch
                                     hdecode hbody hAccountsRet
                                     (returnEquiv.fallthrough rfl rfl (by native_decide))
                                 by_cases hz3False : z3 = false

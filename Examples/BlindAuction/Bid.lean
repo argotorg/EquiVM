@@ -934,7 +934,7 @@ theorem blindAuctionBidBodyCore {σ σ₀ A I} {g : UInt256}
                 State.lookupAccount] using htimeS')
         exact (blindAuctionBidX_ok (g := Sat256.ofUInt256 g) hperm hsz36 hsize hbig
             htime hreach)
-          |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+          |>.reEquivExecutionGen hcode hd hdec hbody
             (by simp [evmS, bidPostState, bidAfterBlindedState, bidAfterLengthState,
               initState, storageStore_executionEnv, storageStore_accountMap])
             (returnEquiv.fallthrough rfl rfl (by native_decide))

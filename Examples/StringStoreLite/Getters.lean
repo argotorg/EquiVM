@@ -775,7 +775,7 @@ theorem setRuntimeOfWriteAccountMapEq
     (evm := evmSolm0) (evmCurrent := evmCurrent) (value := value)
     (by simp [evmSolm0, initState]; exact hwv)
     (by simpa [evmSolm0] using hwrite)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+  exact hret.reEquivExecutionGen hcode hd hdec hbody
     hAccounts henc
 
 theorem setRuntimeOfWriteEVMStateEq
@@ -804,7 +804,7 @@ theorem setRuntimeOfWriteEVMStateEq
     (evm := evmSolm0) (evmCurrent := evmCurrent) (value := value)
     (by simp [evmSolm0, initState]; exact hwv)
     (by simpa [evmSolm0] using hwrite)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+  exact hret.reEquivExecutionGen hcode hd hdec hbody
     (hAccounts.trans hPostAccounts) henc
 
 theorem setBodyRevertsOfWrite {evm : EVM.State} {value : ByteArray}
@@ -6221,7 +6221,7 @@ theorem stringStoreLiteClearCurrentShortZeroRuntime {σ σ₀ A I}
           evmSolm1 (some [(.int 0)])) := by
     exact clearCurrentBodyReturnsZero (evm := evmSolm0) (evm' := evmSolm1)
       (by simp [evmSolm0, initState]; exact hwv) hread hdel
-  exact hret.reEquivExecutionGenAccountMapEquiv
+  exact hret.reEquivExecutionGen
     (cfg := stringStoreLiteConfig) hcode hd hdec hbody
     (by
       simp [evmSolm1, evmSolm0, initState, storageStore_accountMap])
@@ -6291,7 +6291,7 @@ theorem stringStoreLiteClearCurrentShortDecodedZeroRuntime {σ σ₀ A I}
             locals := (∅ : Store).insert "copy" (.bytes copy) }
           evmSolm1 (some [(.int 0)])) := by
     simpa [hcopySize] using hbodyBytes
-  exact hret.reEquivExecutionGenAccountMapEquiv
+  exact hret.reEquivExecutionGen
     (cfg := stringStoreLiteConfig) hcode hd hdec hbody
     (by
       simp [evmSolm1, evmSolm0, initState, storageStore_accountMap])
@@ -6357,7 +6357,7 @@ theorem stringStoreLiteClearCurrentShortNonzeroRuntime {σ σ₀ A I}
             locals := (∅ : Store).insert "copy" (.bytes copy) }
           evmSolm1 (some [(.int len.toNat)])) := by
     simpa [hcopySize] using hbodyBytes
-  exact hret.reEquivExecutionGenAccountMapEquiv
+  exact hret.reEquivExecutionGen
     (cfg := stringStoreLiteConfig) hcode hd hdec hbody
     (by
       simp [evmSolm1, evmSolm0, initState, storageStore_accountMap])

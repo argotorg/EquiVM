@@ -6828,7 +6828,7 @@ theorem endCageIlkBody {σ σ₀ A I} {g : UInt256}
                                                     endCageIlkTagVWord parOut readOut)
                                                   (val₂ :=
                                                     endCageIlkTagVWord parOut readOut) rfl
-                                            exact hret.reEquivExecutionGenAccountMapEquiv
+                                            exact hret.reEquivExecutionGen
                                               hcode hdispatch hdecode hbody
                                               (by
                                                 calc

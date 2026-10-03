@@ -16,8 +16,6 @@ construction** — no assumption about the callee's code.
 proof only supplies the trace **couplings** (the target address it masked, and the calldata it built
 in memory = the ABI encoding) — exactly as the dispatcher consumes a per-contract selector fact.
 `callNotMade_depthLimit` is the call-depth-limit counterpart (the `CALL` returns `0` without `Θ`).
-The initState call bridges now reuse one account map, so their call result is the same by rewriting
-the map equality. The generic bridge only transports the fields that the call relation reads.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM

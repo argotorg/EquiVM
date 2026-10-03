@@ -1093,7 +1093,7 @@ theorem cReEquiv_callvalueZero {σ σ₀ A I} {g : UInt256}
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv) hbound
               exact (cX_g_success (g := Sat256.ofUInt256 g) hcode hwv hsz36 hbig hsize
-                  hperm hf hg hbound).reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                  hperm hf hg hbound).reEquivExecutionGen hcode hd hdec hbody
                 (by rw [storageStore_accountMap]; simp [initState])
                 (returnEquiv.fallthrough rfl rfl (by native_decide))
             · have hover : UInt256.size ≤ 2 * (cArgWord I).toNat + 1 := by omega

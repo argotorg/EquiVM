@@ -540,7 +540,7 @@ theorem flopperYankBodyCoreSuckCallSuccess
     simpa [evmCallSolm] using
       yankRuntimeDeleteAccountMap_eq_postState evmCallSolm I
         (by simp [evmCallSolm, evmSolm, initState])
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simpa [yankRuntimeDeleteAccountMap] using hFinalAccounts)
     (by
       simpa [yankTransition] using

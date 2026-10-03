@@ -900,7 +900,7 @@ theorem uniswapTransferFromBodyCoreOk_maxAllowance_masked
     simp only [evmE, initState]
   exact (uniswapX_transferFrom_maxAllowance_masked (g := Sat256.ofUInt256 g)
       hsz100 hsize hperm hmax hbalance hfit hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       hPostMap (returnEquiv_of_encode boolTrueReturnEncoding)
 
 /-- Selector-packaged max-allowance success refinement slice for calldata whose address words are

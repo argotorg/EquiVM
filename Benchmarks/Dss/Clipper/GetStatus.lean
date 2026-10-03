@@ -335,7 +335,7 @@ theorem clipperGetStatusPostCallReturnRuntime
     (hAccountsPost : σ' = evmPrice.accountMap)
     (henc : returnEquiv retBytes retVal getStatusTransition.returnType) :
     runtimeEquivalenceFor (config v) (contract v) σ σ₀ g A I :=
-  hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdec hbody
+  hret.reEquivExecutionGen hcode hdispatch hdec hbody
     hAccountsPost henc
 
 set_option maxHeartbeats 200000000 in

@@ -462,7 +462,7 @@ theorem daiApproveBodyCoreOk
         (by simp only [evmSolm, initState]; exact hwv)
         (by simp [evmSolm, initState])
   exact (daiX_approve_ok (g := Sat256.ofUInt256 g) hsz68 hsize hperm hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by
         simp [approvePostState, evmSolm, initState, storageStore_accountMap])
       (returnEquiv_of_encode

@@ -587,7 +587,7 @@ theorem flipperYankBodyCore {σ σ₀ A I} {g : UInt256}
                             Eq (yankBidDeleteAccountMap I σ_move (yankId I))
                               (bidDeletedEVM evmMoveSolm (yankId I)).accountMap :=
                           Eq.trans hcollapsed hdeleted
-                        exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode
+                        exact hret.reEquivExecutionGen hcode hdispatch hdecode
                           hbody
                           haccounts
                           (by

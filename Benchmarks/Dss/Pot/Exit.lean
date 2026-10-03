@@ -1186,7 +1186,7 @@ theorem potExitBody {σ σ₀ A I} {g : UInt256}
                           (exitVatReadB) hEcs)
                         (_hperm ▸ hcall)))))
               · simp only [if_true] at rd943
-                refine (potJoinX_successTailGen rd943).reEquivExecutionGenAccountMapEquiv hcode
+                refine (potJoinX_successTailGen rd943).reEquivExecutionGen hcode
                   hdispatch (potDecode_exit_ok hsz36)
                   (ExecFuncBody.execBlockOK (potExitSolmDriverPie hwv
                     (by rw [hpieB]; exact not_lt.mp hpieUf)

@@ -100,7 +100,7 @@ theorem cureTCountBodyCore {σ σ₀ A I} {g : UInt256}
     rw [show tCountTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode
       (by simpa [uint256] using uint256ReturnEncoding (tCountWord σ I))
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode (cureDispatchTCount hsel)
+  exact hret.reEquivExecutionGen hcode (cureDispatchTCount hsel)
     (cureDecode_tCount hsz) hbody rfl henc
 
 end Benchmarks.Dss.Cure

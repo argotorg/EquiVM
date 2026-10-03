@@ -311,7 +311,7 @@ theorem uniswapSwapBody
                                     simpa only [uniswapLockExitedState, uniswapUnlockedState,
                                       storageStore_accountMap, heU] using
                                       congrArg (fun m => sstoreAccountMap I.codeOwner m ⟨12⟩ ⟨1⟩) haU
-                                  exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
+                                  exact rdRet.reEquivExecutionGen hcode hdispatch
                                     (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload) hbody
                                     haFinal
                                     (returnEquiv.fallthrough rfl rfl (by native_decide))

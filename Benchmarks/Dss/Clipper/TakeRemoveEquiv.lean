@@ -115,7 +115,7 @@ theorem clipperTakeRemoveEquiv
       clipperYankSuccessAccountMap_state_accounts_eq
         (σ := σCont) (τ := evmCont.accountMap) evmCont I lastIndex
         hAccounts rfl howner
-    exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdec hbody
+    exact hret.reEquivExecutionGen hcode hdispatch hdec hbody
       (by
         simpa [lastIndex, sourceLastIndex, hlastIndexEq, evmRemove,
           clipperYankSuccessAccountMap] using hAccountsFinal)
@@ -289,7 +289,7 @@ theorem clipperTakeRemoveEquiv
       clipperYankSuccessAccountMap_state_accounts_eq
         (σ := σMove) (τ := evmMovePos.accountMap) evmMovePos I lastIndexAfter
         hmoveAccounts rfl hownerMovePos
-    exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdec hbody
+    exact hret.reEquivExecutionGen hcode hdispatch hdec hbody
       (by
         simpa [lastIndex, move, idx, σMove, lastIndexAfter,
           hlastIndexAfterEq, evmRemove, popLastIndex,

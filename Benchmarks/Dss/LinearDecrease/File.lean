@@ -847,7 +847,7 @@ theorem stairstepFileBody {σ σ₀ A I} {g : UInt256}
               (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               hwv hauth htau
         exact (stairstepFileX_tau_ok hperm htauWord rd428)
-          |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+          |>.reEquivExecutionGen hcode hdispatch hdecode hbody
             (by
               simp [fileTauPostState, evmSolm, initState, storageStore_accountMap])
             (by

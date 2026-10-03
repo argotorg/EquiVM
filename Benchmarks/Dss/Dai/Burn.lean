@@ -2957,7 +2957,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
                 hsupplyEnoughBody
           exact (daiBurnX_tailSuccess hperm (burnUsrHashMem_size I)
               (burnUsrHashMem_read64 I) husrEnough hsupplyEnough rd3710)
-            |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+            |>.reEquivExecutionGen hcode hdispatch hdecode hbody
               hfinal
               (by
                 simpa [burnTransition] using
@@ -3017,7 +3017,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
                   hsupplyEnoughBody
             exact (daiBurnX_tailSuccess hperm (burnAllowanceHashMem_size I)
                 (burnAllowanceHashMem_read64 I) husrEnough hsupplyEnough rd3710)
-              |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+              |>.reEquivExecutionGen hcode hdispatch hdecode hbody
                 hfinal
                 (by
                   simpa [burnTransition] using
@@ -3096,7 +3096,7 @@ theorem daiBurnBodyCore {σ σ₀ A I} {g : UInt256}
                 exact (daiBurnX_tailSuccess hperm (burnAllowancePostStoreHashMem_size I)
                     (burnAllowancePostStoreHashMem_read64 I) husrDebitEnough
                     hsupplyEnough rd3710)
-                  |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+                  |>.reEquivExecutionGen hcode hdispatch hdecode hbody
                     hfinal
                     (by
                       simpa [burnTransition] using

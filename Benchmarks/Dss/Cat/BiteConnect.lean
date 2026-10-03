@@ -555,7 +555,7 @@ theorem catBiteSuccessBodyCore {σ σ₀ A I} {g : UInt256}
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   have henc : returnEquiv (UInt256.toByteArray id) (some [bw id]) biteTransition.returnType :=
     returnEquiv_of_encode (uint256ReturnEncoding id)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     hAccountsFinal henc
 
 /-- The full `bite` SUCCESS leaf: the chained-spine `RDret` (returning `id`, on `σ`) refines the

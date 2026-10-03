@@ -1230,7 +1230,7 @@ theorem accessControlGrantRoleBody {σ σ₀ A I}
               (by simp only [evmS, initState]; exact hwv) hadminSolm htargetSolm
             exact (accessControlGrantRoleX_grant_write (g := Sat256.ofUInt256 g)
                 hperm hsz68 hcanonAccount htarget rd379)
-              |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+              |>.reEquivExecutionGen hcode hd hdec hbody
                 (by
                   simp [grantRolePostState, grantRolePostMap, evmS, initState,
                     storageStore_accountMap,

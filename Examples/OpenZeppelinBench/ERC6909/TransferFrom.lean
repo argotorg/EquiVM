@@ -130,7 +130,7 @@ theorem erc6909TransferFromBodyCore
                         (g := Sat256.ofUInt256 g) hsz132 hsize hbig hperm hcanonSender
                         hcanonReceiver hsenderCaller hsenderZero hreceiverZero henough
                         hfit hreach)
-                      |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                      |>.reEquivExecutionGen hcode hd hdec hbody
                         (by simp [evmS, initState, transferFromTailPostState,
                           transferFromTailAfterSenderBalanceState, storageStore_accountMap])
                         (returnEquiv_of_encode
@@ -246,7 +246,7 @@ theorem erc6909TransferFromBodyCore
                             (g := Sat256.ofUInt256 g) hsz132 hsize hbig hperm
                             hcanonSender hcanonReceiver hsenderCaller hopZero hallowanceMax
                             hsenderZero hreceiverZero henough hfit hreach)
-                          |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                          |>.reEquivExecutionGen hcode hd hdec hbody
                             (by simp [evmS, initState, transferFromTailPostState,
                               transferFromTailAfterSenderBalanceState, storageStore_accountMap])
                               (returnEquiv_of_encode
@@ -437,7 +437,7 @@ theorem erc6909TransferFromBodyCore
                                   transferFromSenderDebitWord,
                                   transferFromTailSenderDebitWord] using hfit)
                               rd1323)
-                            |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                            |>.reEquivExecutionGen hcode hd hdec hbody
                               (by
                                 rw [hPostAsTail]
                                 simp [evmS, initState, transferFromTailPostState,
@@ -570,7 +570,7 @@ theorem erc6909TransferFromBodyCore
                           (g := Sat256.ofUInt256 g) hsz132 hsize hbig hperm
                           hcanonSender hcanonReceiver hsenderCaller hopZero hsenderZero
                           hreceiverZero henough hfit hreach)
-                        |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                        |>.reEquivExecutionGen hcode hd hdec hbody
                           (by simp [evmS, initState, transferFromTailPostState,
                             transferFromTailAfterSenderBalanceState, storageStore_accountMap])
                           (returnEquiv_of_encode

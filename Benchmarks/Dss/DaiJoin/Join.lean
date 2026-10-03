@@ -1224,7 +1224,7 @@ theorem daiJoinJoinDaiBurnSuccessCore
         (by simpa [evmS, evmVatS, initState] using hcallMoveSolm)
         (by simpa [evmVatS, evmS, initState] using hdaiCodeSizeSolm)
         hcallBurnSolm)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by rfl)
     (by
       simpa [joinTransition] using

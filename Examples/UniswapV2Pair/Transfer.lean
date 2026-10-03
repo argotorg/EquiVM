@@ -854,7 +854,7 @@ theorem uniswapTransferBodyCoreOk
     simp only [evmE, initState]
   exact (uniswapX_transfer (g := Sat256.ofUInt256 g)
       hsz68 hsize hperm henough hfit hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by simpa [evmE, evmS] using hAccountsPost)
       (returnEquiv_of_encode boolTrueReturnEncoding)
 

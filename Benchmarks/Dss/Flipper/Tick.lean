@@ -1457,7 +1457,7 @@ theorem flipperTickBodyCore {σ σ₀ A I} {g : UInt256}
                 (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 hwv hltEvm hticEvm hfitEvm)
           have hret := flipperTickX_storeEnd hperm rd6216
-          exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+          exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
             (by simp [evm1, evm0, initState, storageStore_accountMap])
             (by
               rw [show tickTransition.returnType = [] by rfl]

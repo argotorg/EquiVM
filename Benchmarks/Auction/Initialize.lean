@@ -40,7 +40,7 @@ theorem initializeBodyCore {σ σ₀ A I} {g : UInt256}
             have hbody := initializeBody
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (initializeArgs I.calldata) hwv hc hg
-            exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGenAccountMapEquiv
+            exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
               hcode hd hdec hbody
               (initializeFinalState_accounts (initializeArgs I.calldata)
                 (σ := σ) (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I) rfl)

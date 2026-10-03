@@ -4350,7 +4350,7 @@ theorem endCageBody {σ σ₀ A I} {g : UInt256}
                                       simpa [ExecTransitionBody] using
                                         ExecFuncBody.execBlockOK hblock
                                     have hret := endCageX_finish hperm rd6300
-                                    exact hret.reEquivExecutionGenAccountMapEquiv
+                                    exact hret.reEquivExecutionGen
                                       hcode hdispatch hdecode hbody
                                       (by
                                         calc

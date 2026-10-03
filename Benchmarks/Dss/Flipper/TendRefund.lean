@@ -3148,7 +3148,7 @@ theorem flipperTendBodyFrom3486Refund
               have henc : returnEquiv ByteArray.empty none tendTransition.returnType := by
                 rw [show tendTransition.returnType = [] by rfl]
                 exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
-              exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+              exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
                 (hAccountsRet.trans hTicStateEquiv.accountMap) henc
             · have hoverTicEvm :
                   2 ^ 48 ≤

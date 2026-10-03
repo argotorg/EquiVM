@@ -518,7 +518,7 @@ theorem flipperDealBodyCoreCatPostCall {σ σ₀ A I}
               (bidDeletedEVM evmVat (dealId I)).accountMap := by
           simpa [dealBidDeleteAccountMap, evmVat, evmCat, evm0, initState] using
             (bidDeleteCollapsedAccountMap_eq_bidDeletedEVM evmVat (dealId I))
-        exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
           haccounts
           (by
             rw [show dealTransition.returnType = [] by rfl]

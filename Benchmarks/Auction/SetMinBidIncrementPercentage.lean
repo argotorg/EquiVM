@@ -98,7 +98,7 @@ theorem setMinBidIncrementPercentageBodyCore {σ σ₀ A I} {g : UInt256}
             have hbody := setMinBidBody
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               (calldataWord I.calldata 4) hwv ho hc
-            exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGenAccountMapEquiv
+            exact (auctionStop rd413 (by evm_ov)).reEquivExecutionGen
               hcode hd hdec hbody (by simp [storageStore_accountMap, initState, storedWord, Solm.EVM.storageLoad,
                 State.lookupAccount, Account.lookupStorage])
               (.fallthrough rfl rfl (by native_decide))

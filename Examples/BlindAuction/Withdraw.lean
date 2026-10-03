@@ -1247,7 +1247,7 @@ theorem blindAuctionWithdrawBodyCore {σ σ₀ A I}
                 σ' ByteArray.empty :=
               blindAuctionX_withdraw_afterCall_return (g := Sat256.ofUInt256 g)
                 (by simpa using rd767) houtsz
-            exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+            exact hret.reEquivExecutionGen hcode hd hdec hbody
               (by simp [evmSCall])
               (returnEquiv.fallthrough rfl rfl (by native_decide))
         · let evmSFail : EVM.State :=

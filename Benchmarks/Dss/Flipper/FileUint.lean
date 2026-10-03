@@ -1250,7 +1250,7 @@ theorem flipperFileUintBodyCoreOkBeg
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileUintBegBytes :=
     fileUintWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := flipperFileUintX_storeBeg hperm hmatch hswitch
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, storageStore_accountMap])
     (by
       rw [show fileUintTransition.returnType = [] by rfl]
@@ -1298,7 +1298,7 @@ theorem flipperFileUintBodyCoreOkTtl
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (sstoreAccountMap I.codeOwner σ ⟨5⟩ stored) ByteArray.empty := by
     simpa [stored, data] using hret
-  exact hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret'.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, storageStore_accountMap])
     (by
       rw [show fileUintTransition.returnType = [] by rfl]
@@ -1349,7 +1349,7 @@ theorem flipperFileUintBodyCoreOkTau
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (sstoreAccountMap I.codeOwner σ ⟨5⟩ stored) ByteArray.empty := by
     simpa [stored, data] using hret
-  exact hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret'.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, storageStore_accountMap])
     (by
       rw [show fileUintTransition.returnType = [] by rfl]

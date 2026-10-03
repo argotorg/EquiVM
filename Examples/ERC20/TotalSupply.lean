@@ -119,7 +119,7 @@ theorem erc20TotalSupplyBodyCore
       erc20TotalSupplyBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv) (by simp)
-  exact (erc20X_totalSupply (g := Sat256.ofUInt256 g) hreach).reEquivExecutionGenAccountMapEquiv
+  exact (erc20X_totalSupply (g := Sat256.ofUInt256 g) hreach).reEquivExecutionGen
     hcode hd hdec hbody (by rfl)
     (returnEquiv_of_encode (uint256ReturnEncoding (totalSupplyWord σ I)))
 

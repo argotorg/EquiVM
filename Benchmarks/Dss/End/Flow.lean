@@ -4779,7 +4779,7 @@ theorem endFlowBody {σ σ₀ A I} {g : UInt256}
                             endFlowX_tailReturns
                               (g := Sat256.ofUInt256 g) hperm hsz36 hlo hleSub hfitMul
                               hdenZero rd3061
-                          exact hret.reEquivExecutionGenAccountMapEquiv
+                          exact hret.reEquivExecutionGen
                             hcode hdispatch hdecode hbody
                             (by simp [evmVatSolm, evmSolm, endFlowPostState,
                               storageStore_accountMap, endFlowPostAccountMap, initState])

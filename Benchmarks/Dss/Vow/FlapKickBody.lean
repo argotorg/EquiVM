@@ -829,7 +829,7 @@ theorem vowFlapKickSuccessBodyCore
         (some [.int (Int.ofNat id.toNat)]) flapTransition.returnType := by
     rw [show flapTransition.returnType = [uint256] by rfl]
     exact returnEquiv_of_encode (by simpa [uint256] using uint256ReturnEncoding id)
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     hAccountsFinal henc
 
 end Benchmarks.Dss.Vow

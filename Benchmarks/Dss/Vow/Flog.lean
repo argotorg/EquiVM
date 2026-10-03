@@ -1192,7 +1192,7 @@ theorem vowFlogBodyCore
               (initState σ σ₀ (Sat256.ofUInt256 g) A I)
               σ2_evm ByteArray.empty := by
           simpa [σ2_evm, σ1_evm, SinNew, SinVal, sinVal] using hret
-        exact hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+        exact hret'.reEquivExecutionGen hcode hdispatch hdecode hbody
           haccounts henc
       · have hlt : (vowSlotWord ⟨5⟩ σ I).toNat <
             (vowSlotWord (flogEraSlot I) σ I).toNat := by

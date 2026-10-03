@@ -2732,7 +2732,7 @@ theorem endPackBody {σ σ₀ A I} {g : UInt256}
                         (endPackPostState evmMoveEvm I
                           (endPackBagWord σ' I + endPackWadWord I)) none) := by
                   simpa [evmMoveEvm, evmMoveSolm, evmSolm] using hbody
-                exact hret.reEquivExecutionGenAccountMapEquiv
+                exact hret.reEquivExecutionGen
                   hcode hdispatch hdecode hbody'
                   (by simp [evmMoveEvm, endPackPostState, initState,
                     storageStore_accountMap])

@@ -2190,7 +2190,7 @@ theorem clipperRedoBody (v : ClipperImmutables) {code : ByteArray}
                                                       (I := I) (g := g) v hwv hlockedEvm
                                                       hstoppedLt husrEvm priceWord hstatus
                                                       hafter)
-                                                exact hret.reEquivExecutionGenAccountMapEquiv
+                                                exact hret.reEquivExecutionGen
                                                   hcode hdispatch (clipperDecode_redo_ok v hsz68)
                                                   hbody hFinalAccounts
                                                   (by

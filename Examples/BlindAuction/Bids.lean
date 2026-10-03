@@ -938,7 +938,7 @@ theorem blindAuctionBidsBodyCore {σ σ₀ A I} {g : UInt256}
               (by rw [hlen]; exact hbound)
             exact (blindAuctionBidsX_ok (g := Sat256.ofUInt256 g) hwv hsz68 hsize hbig
                 hcanon hbound hreach)
-              |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+              |>.reEquivExecutionGen hcode hd hdec hbody
                 (by rfl)
                 (returnEquiv.returned rfl
                   (blindAuctionBidsReturnEncoding (bidsBlindedWord σ I)

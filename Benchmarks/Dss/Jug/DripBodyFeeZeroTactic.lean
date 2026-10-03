@@ -679,7 +679,7 @@ by_cases hprevMaxNot :
       have hret := RD.jugDripVatFoldStoreRhoReturns
         (targetWord := dripVatTargetWord σ' I)
         hsz36 hperm hfoldCallMemSize hfoldCallMemRead64 rd1669
-      exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch
+      exact hret.reEquivExecutionGen hcode hdispatch
         (jugDecode_drip_ok hsz36) hbody
         (by simp [evmRhoS, evmFoldS, evmVat, evm, initState,
           storageStore_accountMap])

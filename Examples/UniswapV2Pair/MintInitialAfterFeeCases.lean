@@ -148,7 +148,7 @@ theorem uniswapMintInitialAfterMintFeeCases
       have hthrough := execBlock_append hprefix (by
         simpa only [locals, htotalEq, htotalZero] using htail)
       simpa only [mintTransition, mintAfterLiquidityTailStmts, List.append_assoc] using hthrough
-    exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch (uniswapDecode_mint_ok hsz36)
+    exact rdRet.reEquivExecutionGen hcode hdispatch (uniswapDecode_mint_ok hsz36)
       hbody hRetAccounts
       (returnEquiv_of_encode (by simpa only [uint256] using uint256ReturnEncoding liquidity))
 

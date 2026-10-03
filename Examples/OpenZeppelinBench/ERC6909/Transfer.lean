@@ -2384,7 +2384,7 @@ theorem erc6909TransferBodyCore
                 exact (erc6909X_transfer (g := Sat256.ofUInt256 g)
                     hsz100 hsize hbig hperm hcanonReceiver hsource hreceiver henough hfit
                     hreach)
-                  |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                  |>.reEquivExecutionGen hcode hd hdec hbody
                     (by simp [evmS, initState, transferPostState, transferAfterDebitState,
                       transferFromBalanceWord, transferDebitWord, transferNewToWord,
                       transferFromSlot, transferToSlot, transferFromSlotI,

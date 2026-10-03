@@ -2383,7 +2383,7 @@ theorem erc20TransferFromBodyCore
                     hsz100 hsize hbig hperm hcanonFrom hcanonTo hallowance hbalance
                     hbalanceDebit hfit
                     hreach)
-                  |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                  |>.reEquivExecutionGen hcode hd hdec hbody
                     (by simp [evmS, transferFromPostState, transferFromAfterBalanceState,
                       transferFromAfterAllowanceState, transferFromAllowanceSlot,
                       transferFromAllowanceSlotI, initState, storageStore_accountMap])

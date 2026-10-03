@@ -1481,7 +1481,7 @@ theorem potDripBodyAfterRpow {σ σ₀ A I} {g pow : UInt256} {rpowLocals : Stor
                 (dripPieWord σ2 I * dripChiDeltaVal σ I pow) solcFreePtrMem).size = 228 :=
               potSuckCalldataMem_size σ2 I _ solcFreePtrMem_size
             have rdRet := potDripX_successTail hmemSize hread64 rd2095
-            refine (potDripX_successTail hmemSize hread64 rd2095).reEquivExecutionGenAccountMapEquiv
+            refine (potDripX_successTail hmemSize hread64 rd2095).reEquivExecutionGen
               hcode hdispatch hdecode
               (potDripSolmBody_callSucc hwv hleSolm hrpow hfitRmul hleSub hfitMul hcodePos
                 hcallSolm' (by rfl)) ?_ ?_

@@ -273,7 +273,7 @@ theorem spotCageBodyCoreOk
         (by simp [evmSolm, initState])
         hauth
   exact (spotX_cage_ok (g := Sat256.ofUInt256 g) hperm hauth hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       (by
         simpa [cagePostState, evmSolm, initState, storageStore_accountMap,
           storageStore_executionEnv, sstoreAccountMap])

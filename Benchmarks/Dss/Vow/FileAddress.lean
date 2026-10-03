@@ -1542,7 +1542,7 @@ theorem vowFileAddressFlopperAuthorizedBodyCore
         (initState σ σ₀ (Sat256.ofUInt256 g) A I)
         (sstoreAccountMap I.codeOwner σ ⟨3⟩ stored) ByteArray.empty := by
     simpa [stored, dataKey] using hret
-  exact hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret'.reEquivExecutionGen hcode hdispatch hdecode hbody
     haccounts henc
 
 theorem vowFileAddressUnrecognizedAuthorizedBodyCore

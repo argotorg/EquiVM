@@ -2409,7 +2409,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
             (by simpa [evmSZero] using hcall)
         exact (simpleAuctionX_withdraw_callDepth_returnFalse (g := Sat256.ofUInt256 g)
             hperm hwv hreach hnonzero hdepthEq)
-          |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+          |>.reEquivExecutionGen hcode hd hdec hbody
             (by simpa [evmSFail, evmSZero, withdrawRestoreState, withdrawRestoreMap,
               withdrawZeroState, withdrawZeroMap, evmS, initState, storageStore_accountMap,
               storageStore_executionEnv])
@@ -2508,7 +2508,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                   (UInt256.toByteArray (⟨0⟩ : UInt256)) :=
                 simpleAuctionX_withdraw_failureEmpty_return (g := Sat256.ofUInt256 g) hperm
                   (by simpa using rd918)
-              exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+              exact hret.reEquivExecutionGen hcode hd hdec hbody
                 (by simp [evmSCall, withdrawRestoreState, evmSZero, withdrawZeroState, evmS,
                   initState, storageStore_accountMap, storageStore_executionEnv])
                 (returnEquiv_of_encode (by simpa [boolTy] using boolFalseReturnEncoding))
@@ -2529,7 +2529,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                   σ' (UInt256.toByteArray (⟨1⟩ : UInt256)) :=
                 simpleAuctionX_withdraw_successEmpty_return (g := Sat256.ofUInt256 g)
                   (by simpa using rd918)
-              exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+              exact hret.reEquivExecutionGen hcode hd hdec hbody
                 (by simp [evmSCall])
                 (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
           · by_cases hout255 : out.size < 2 ^ 255
@@ -2556,7 +2556,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                     (UInt256.toByteArray (⟨0⟩ : UInt256)) :=
                   simpleAuctionX_withdraw_failureNonempty_return (g := Sat256.ofUInt256 g)
                     hperm hout0 hout255 (by simpa using rd918)
-                exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                exact hret.reEquivExecutionGen hcode hd hdec hbody
                   (by simp [evmSCall, withdrawRestoreState, evmSZero, withdrawZeroState,
                     evmS, initState, storageStore_accountMap,
                     storageStore_executionEnv])
@@ -2577,7 +2577,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
                     σ' (UInt256.toByteArray (⟨1⟩ : UInt256)) :=
                   simpleAuctionX_withdraw_successNonempty_return (g := Sat256.ofUInt256 g)
                     hout0 hout255 (by simpa using rd918)
-                exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+                exact hret.reEquivExecutionGen hcode hd hdec hbody
                   (by simp [evmSCall])
                   (returnEquiv_of_encode (by simpa [boolTy] using boolTrueReturnEncoding))
             · have hhuge : 2 ^ 255 ≤ out.size := by omega
@@ -2634,7 +2634,7 @@ theorem simpleAuctionWithdrawBody {σ σ₀ A I} {g : UInt256}
               (by simpa [evmSZero] using hcall)
           exact (simpleAuctionX_withdraw_callInsufficient_returnFalse (g := Sat256.ofUInt256 g)
               hperm hwv hreach hzero hbalance hdepthLt)
-            |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
+            |>.reEquivExecutionGen hcode hd hdec hbody
               (by simpa [evmSFail, evmSZero, withdrawRestoreState, withdrawRestoreMap,
                 withdrawZeroState, withdrawZeroMap, evmS, initState, storageStore_accountMap,
                 storageStore_executionEnv])

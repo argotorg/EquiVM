@@ -2383,7 +2383,7 @@ theorem endFileAddressBodyCoreStore
         (sstoreAccountMap I.codeOwner σ slot stored) ByteArray.empty := by
     simpa [stored] using hret
   simpa [evmSolm] using
-    hret'.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode
+    hret'.reEquivExecutionGen hcode hdispatch hdecode
       (by simpa [evmSolm] using hbody)
       (by simp [endFileAddressPostState, evmSolm, initState, storageStore_accountMap,
         stored, solcSlotWord, endSlotWord, Solm.EVM.storageLoad,

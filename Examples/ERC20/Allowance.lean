@@ -778,7 +778,7 @@ theorem erc20AllowanceBodyCore
                 (by simp only [initState]; exact hwv)
           exact (erc20X_allowance (g := Sat256.ofUInt256 g)
               hsz68 hsize hbig hcanonOwner hcanonSpender hreach)
-            |>.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody (by rfl)
+            |>.reEquivExecutionGen hcode hd hdec hbody (by rfl)
               (returnEquiv_of_encode (uint256ReturnEncoding (allowanceWord σ I)))
         · have hdec := erc20Decode_allowance_none_noncanon_spender
             (I := I) hsz68 hbig hcanonOwner hcanonSpender

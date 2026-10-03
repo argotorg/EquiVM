@@ -1126,7 +1126,7 @@ theorem catFileIlkFlipBody {σ σ₀ A I} {g : UInt256}
                 have henc : returnEquiv ByteArray.empty none fileIlkFlipTransition.returnType := by
                   rw [show fileIlkFlipTransition.returnType = [] by rfl]
                   exact returnEquiv.fallthrough rfl rfl (by native_decide)
-                exact (RD.catFileIlkFlipHopeCallSuccess (by simpa [hAccountsHope] using rd3695)).reEquivExecutionGenAccountMapEquiv
+                exact (RD.catFileIlkFlipHopeCallSuccess (by simpa [hAccountsHope] using rd3695)).reEquivExecutionGen
                   hcode hdispatch hdecode hbody hAccountsHope henc
         · -- depth = 1024: nope CALL returns 0 → both sides revert
           have hdepthEq : I.depth = 1024 := by

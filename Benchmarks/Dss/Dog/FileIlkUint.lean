@@ -1645,7 +1645,7 @@ theorem dogFileIlkUintBodyCoreOk
               evm1.accountMap := by
           simpa [evm1, evm0, initState, storageStore_accountMap, actualSlot, sourceSlot,
             hslotEq]
-        exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
           haccounts henc
     · have hnotChopWord :
           fileIlkUintWhatWord I ≠ ABI.bytesToWord fileIlkUintChopBytes :=
@@ -1696,7 +1696,7 @@ theorem dogFileIlkUintBodyCoreOk
               evm1.accountMap := by
           simpa [evm1, evm0, initState, storageStore_accountMap, actualSlot, sourceSlot,
             hslotEq]
-        exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
           haccounts henc
       · have hnotHoleWord :
             fileIlkUintWhatWord I ≠ ABI.bytesToWord fileIlkUintHoleBytes :=

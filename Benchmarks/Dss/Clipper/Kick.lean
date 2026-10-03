@@ -65,7 +65,7 @@ private theorem clipperKickConnectOutcome
         rw [show (kickTransition v).returnType = [uint256] from rfl]
         exact returnEquiv_of_encode
           (by simpa [uint256] using uint256ReturnEncoding id)
-      exact hevm.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode
+      exact hevm.reEquivExecutionGen hcode hdispatch hdecode
         hbody haccounts henc
 
 private theorem clipperKickStore_originalAccounts (evm : EVM.State)

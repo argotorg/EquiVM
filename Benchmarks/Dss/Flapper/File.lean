@@ -1847,7 +1847,7 @@ theorem flapperFileBodyCoreBeg
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileBegBytes :=
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := flapperFileX_storeBegAuthorized hperm hmatch hswitch
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by
       simp [evm1, evm0, initState, fileBegPostState, storageStore_accountMap, data])
     (by
@@ -1901,7 +1901,7 @@ theorem flapperFileBodyCoreLid
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := flapperFileX_storeLidAuthorized hperm hbegWord httlWord htauWord hmatch
     hswitch
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by
       simp [evm1, evm0, initState, fileLidPostState, storageStore_accountMap, data])
     (by
@@ -1947,7 +1947,7 @@ theorem flapperFileBodyCoreTtl
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileTtlBytes :=
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := flapperFileX_storeTtlAuthorized hperm hbegWord hmatch hswitch
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by
       simpa [evm1, evm0, initState, fileTtlPostState, fileTtlStoredWord,
         fileTtlPostAccountMap, fileTtlStoredWordMap, storageStore_accountMap,
@@ -1999,7 +1999,7 @@ theorem flapperFileBodyCoreTau
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileTauBytes :=
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := flapperFileX_storeTauAuthorized hperm hbegWord httlWord hmatch hswitch
-  exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+  exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
     (by
       simpa [evm1, evm0, initState, fileTauPostState, fileTauStoredWord,
         fileTauPostAccountMap, fileTauStoredWordMap, storageStore_accountMap,

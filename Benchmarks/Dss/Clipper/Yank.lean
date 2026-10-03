@@ -719,7 +719,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                               (σ := σ_vat) (τ := σ_vat_solm) evmVatSolm I lastIndexEvm
                               hAccountsVat (by rfl) hownerVatSolm
                           simpa [hlastIndexEq] using hbase
-                        exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+                        exact hret.reEquivExecutionGen hcode hdispatch hdecode hbody
                           hAccountsFinal
                           (by
                             simpa [yankTransition] using
@@ -1011,7 +1011,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                                   evmMovePosSolm I lastIndexAfterEvm
                                   hmoveAccounts (by rfl) hownerMovePosSolm
                               simpa [hlastAfterEq] using hbase
-                            exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode
+                            exact hret.reEquivExecutionGen hcode hdispatch hdecode
                               hbody hAccountsFinal
                               (by
                                 simpa [yankTransition] using

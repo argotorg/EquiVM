@@ -592,7 +592,7 @@ theorem uniswapInitializeBodyCoreOk
       State.lookupAccount, Account.lookupStorage, uniswapSlotWord]
   exact (uniswapX_initialize_success (g := Sat256.ofUInt256 g)
       hperm hsz68 hsize hfactory hreach)
-    |>.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
+    |>.reEquivExecutionGen hcode hdispatch hdecode hbody
       hAccountsPost (returnEquiv.fallthrough rfl rfl (by native_decide))
 
 theorem uniswapInitializeBodyCoreRevert_forbidden

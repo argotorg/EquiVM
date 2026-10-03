@@ -111,7 +111,7 @@ theorem ballotChairpersonBodyCore
       State.lookupAccount] using ballotChairpersonBodyReturns
         (initState σ σ₀ (Sat256.ofUInt256 g) A I) ∅
         (by simp only [initState]; exact hwv) (by simp)
-  exact (ballotX_chairperson (g := Sat256.ofUInt256 g) hreach).reEquivExecutionGenAccountMapEquiv
+  exact (ballotX_chairperson (g := Sat256.ofUInt256 g) hreach).reEquivExecutionGen
     hcode hd hdec hbody (by rfl)
     (returnEquiv_of_encode (solcAddressReturnEncoding (addrTy := addr) rfl (chairpersonWord σ I)))
 
