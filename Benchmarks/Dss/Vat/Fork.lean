@@ -10365,7 +10365,8 @@ theorem RD.vatCheckedMulUintRevert {g : Sat256} {s0 : State}
   have rdRev := evm_run rd6783 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
-  exact RD.rev 0 rdRev (by native_decide) (fun s _ hstk => memExpRevert0 s hstk)
+  exact RD.rev 0 rdRev (by native_decide)
+    (by simp [M, MachineState.M, u256_ofNat_toNat])
     (by evm_ov)
 
 set_option maxHeartbeats 1000000 in

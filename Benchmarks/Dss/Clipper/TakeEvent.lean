@@ -159,13 +159,12 @@ theorem RD.clipperTakeEventTailSuccess {code : ByteArray} (v : ClipperImmutables
   let eventTopic : UInt256 :=
     ⟨2662707474673484271508566864567884168301912169458095775925153504702713661105⟩
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨
-          (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (mem := mem) (aw := UInt256.ofNat 9)
-      (by rw [hmem]; norm_num) (by native_decide) hread64
+    mloadFreePtrValue (mem := mem)
+      (by rw [hmem]; norm_num) hread64
   have rd5255 := evm_run rd with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -220,16 +219,14 @@ theorem RD.clipperTakeEventTailSuccess {code : ByteArray} (v : ClipperImmutables
       (by clipper_runtime_decode) mem_cost (by rfl) (by native_decide) (by evm_ov)]
   have hmloadEvent64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (clipperTakeEventMem mem max price owe tabNew lotNew).size ∨
-          (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+            (clipperTakeEventMem mem max price owe tabNew lotNew).size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           ((clipperTakeEventMem mem max price owe tabNew lotNew).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
     exact mloadFreePtrValue
-      (mem := clipperTakeEventMem mem max price owe tabNew lotNew) (aw := UInt256.ofNat 9)
+      (mem := clipperTakeEventMem mem max price owe tabNew lotNew)
       (by rw [clipperTakeEventMem_size max price owe tabNew lotNew hmem]; norm_num)
-      (by native_decide)
       (clipperTakeEventMem_read64 max price owe tabNew lotNew hmem hread64)
   have rd5298pre := evm_run rd5285 with [
     raw swap1 (by clipper_runtime_decode) (by evm_ov),
@@ -266,10 +263,7 @@ theorem RD.clipperTakeEventTailSuccess {code : ByteArray} (v : ClipperImmutables
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
   have rd5342 := RD.log3 0 (UInt256.ofNat 9) rd5341pre
     (by clipper_runtime_decode) hperm
-    (by
-      intro s hawEq hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hawEq, hstk]
-      native_decide)
+    (by norm_num [M, MachineState.M, Cₘ] <;> native_decide)
     (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd5348pre := evm_run rd5342 with [

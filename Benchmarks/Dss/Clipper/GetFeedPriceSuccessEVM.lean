@@ -77,14 +77,12 @@ theorem clipperSpotterParSelectorMem_read64 {mem : ByteArray}
 theorem clipperSpotterParSelectorMem_mload64 {mem : ByteArray}
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperSpotterParSelectorMem mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperSpotterParSelectorMem mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperSpotterParSelectorMem mem).readWithPadding 64 32))) = ⟨128⟩ := by
   exact mloadFreePtrValue
-    (by rw [clipperSpotterParSelectorMem_size hmem]; omega)
-    (by decide) (clipperSpotterParSelectorMem_read64 hmem hread64)
+    (by rw [clipperSpotterParSelectorMem_size hmem]; omega) (clipperSpotterParSelectorMem_read64 hmem hread64)
 
 theorem clipperSpotterParSelectorMem_read128_4 {mem : ByteArray}
     (hmem : mem.size = 196) :
@@ -125,16 +123,14 @@ theorem RD.clipperGetFeedPricePipPeekHasTrueToValBln
         ret :: scratch :: lot :: tab :: R)
       mem (UInt256.ofNat 7) o acc k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ := by
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hmem, hread64]
     native_decide
   have hmload128 :
-      (if (⟨128⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨128⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding 128 32))) =
         clipperPipPeekValueWord o := by
@@ -142,8 +138,7 @@ theorem RD.clipperGetFeedPricePipPeekHasTrueToValBln
     rw [if_neg (by native_decide)]
     rw [hread128]
   have hmload160 :
-      (if (⟨160⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨160⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding 160 32))) =
         clipperPipPeekHasWord o := by
@@ -253,8 +248,7 @@ theorem RD.clipperGetFeedPriceValBlnToParExtcodesizeGuard
     (by simpa [Nat.mul_comm] using hmul) (clipperGetFeedPriceJumpDest9096 v hpatch)
     (by evm_ov)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding 64 32))) = ⟨128⟩ := by
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hmem, hread64]
@@ -619,8 +613,7 @@ theorem RD.clipperGetFeedPriceParDecodeShortReverts
     (hov : R.length + 30 ≤ 1024) :
     RDrev code g s0 := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 64 32))) =
         ⟨128⟩ := by
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hmem, hread64]
@@ -671,15 +664,13 @@ theorem RD.clipperGetFeedPriceParDecodeOkToRdiv
         ret :: scratch :: lot :: tab :: R)
       mem (UInt256.ofNat 7) o acc k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 64 32))) =
         ⟨128⟩ := by
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hmem, hread64]
     native_decide
   have hmload128 :
-      (if (⟨128⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨128⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 128 32))) =
         clipperSpotterParWord o := by
     rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, hmem]

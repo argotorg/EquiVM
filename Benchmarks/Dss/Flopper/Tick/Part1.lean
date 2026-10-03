@@ -1280,8 +1280,7 @@ theorem flopperTickX_toEndLtGuard
   have rd4298 := rd4297pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -1291,8 +1290,7 @@ theorem flopperTickX_toEndLtGuard
   have rd4303 := rd4302pre.mstore 0 memMap (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memMap, id, twoWordHashMem, wordAt32Mem])
@@ -1308,11 +1306,7 @@ theorem flopperTickX_toEndLtGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id solcFreePtrMem
   have rd4307 := rd4306pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -1436,8 +1430,7 @@ theorem flopperTickX_toTicZeroGuard
   have rd4406 := rd4405pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, memEnd, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -1447,8 +1440,7 @@ theorem flopperTickX_toTicZeroGuard
   have rd4411 := rd4410pre.mstore 0 memTic (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memTic, memEnd, id, twoWordHashMem, wordAt32Mem])
@@ -1464,11 +1456,7 @@ theorem flopperTickX_toTicZeroGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memEnd
   have rd4415 := rd4414pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -1593,7 +1581,7 @@ theorem solcErrorStringRevertTailFullWord {code : ByteArray} {g : Sat256}
     raw dup1 hd2 (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd3
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4 (by simp only [List.length_cons]; omega)

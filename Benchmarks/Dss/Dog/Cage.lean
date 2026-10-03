@@ -203,7 +203,7 @@ theorem RD.dogCageStoreLiveZero {code : ByteArray} {g : Sat256} {s0 : State}
   have rdMload := evm_run rdStore with [
     raw push1 ⟨64⟩ hd8 (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd10 mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by native_decide) (by evm_ov)]
   have rdTopic := rdMload.pushConst dogCageLogTopic
     (width := 32) (op := .PUSH32) (by decide) hd11 (by evm_ov)

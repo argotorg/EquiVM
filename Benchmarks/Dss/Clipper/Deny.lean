@@ -520,8 +520,7 @@ theorem clipperDenyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     raw push1 ⟨64⟩ (by clipper_deny_decode) (by evm_ov),
     raw dup1 (by clipper_deny_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by clipper_deny_decode) mem_cost
-      (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide)
-        (by decide) (clipperRelyAuthHashMem_read64 I))
+      (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide) (clipperRelyAuthHashMem_read64 I))
       (by native_decide) (by evm_ov)]
   have rd6550 := rd6546.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_deny_decode) (by evm_ov)

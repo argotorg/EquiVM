@@ -127,8 +127,7 @@ theorem RD.clipperKickGetFeedPriceToSpotterIlksExtcodesizeGuard {code : ByteArra
   rcases v.ilk_wf with ⟨ilkBs, hilk, hlen⟩
   let ilkWord : UInt256 := EVM.Word.ofNat (fromBytesBigEndian ilkBs)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding 64 32))) = ⟨128⟩ := by
     rw [hmem, hread64]
@@ -144,15 +143,13 @@ theorem RD.clipperKickGetFeedPriceToSpotterIlksExtcodesizeGuard {code : ByteArra
         UInt256.toByteArray ⟨128⟩ := by
     simpa [ilkWord] using clipperKickSpotterIlksCalldataMem_read64 ilkWord hmem hread64
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (clipperSpotterIlksCalldataMem ilkWord mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (clipperSpotterIlksCalldataMem ilkWord mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((clipperSpotterIlksCalldataMem ilkWord mem).readWithPadding 64 32))) =
         ⟨128⟩ := by
     exact mloadFreePtrValue
-      (by rw [clipperKickSpotterIlksCalldataMem_size ilkWord hmem]; omega)
-      (by decide) hcallRead64
+      (by rw [clipperKickSpotterIlksCalldataMem_size ilkWord hmem]; omega) hcallRead64
   obtain ⟨_, _, rdSpotter⟩ := (evm_run h with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨3⟩ (by clipper_runtime_decode) (by evm_ov)]).sload
@@ -396,13 +393,11 @@ theorem clipperKickSpotterIlksPostCallMem_mload64
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperSpotterIlksPostCallMem v mem out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperSpotterIlksPostCallMem v mem out).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
         ((clipperSpotterIlksPostCallMem v mem out).readWithPadding 64 32))) = ⟨128⟩ := by
   exact mloadFreePtrValue
-    (by have := clipperKickSpotterIlksPostCallMem_size_ge v hmem hout; omega)
-    (by decide) (clipperKickSpotterIlksPostCallMem_read64 v hmem hread64 hout)
+    (by have := clipperKickSpotterIlksPostCallMem_size_ge v hmem hout; omega) (clipperKickSpotterIlksPostCallMem_read64 v hmem hread64 hout)
 
 theorem clipperKickSpotterIlksPostCallMem_size_long
     (v : ClipperImmutables) {mem out : ByteArray}
@@ -468,8 +463,7 @@ theorem clipperKickSpotterIlksPostCallMem_read128_long
 theorem clipperKickSpotterIlksPostCallMem_mload128_long
     (v : ClipperImmutables) {mem out : ByteArray}
     (hmem : mem.size = 96) (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (clipperSpotterIlksPostCallMem v mem out).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (clipperSpotterIlksPostCallMem v mem out).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
         ((clipperSpotterIlksPostCallMem v mem out).readWithPadding 128 32))) =
       clipperSpotterIlksPipWord out := by

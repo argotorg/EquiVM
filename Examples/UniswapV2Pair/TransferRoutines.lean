@@ -52,8 +52,7 @@ theorem uniswapErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
 theorem uniswapErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapErrorStringMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapErrorStringMem3 len word mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapErrorStringMem3 len word mem).readWithPadding
@@ -89,8 +88,7 @@ theorem uniswapErrorStringMem3_read64_of_size164 (len word : UInt256) {mem : Byt
 theorem uniswapErrorStringMem3_mload64_of_size164 (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapErrorStringMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapErrorStringMem3 len word mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapErrorStringMem3 len word mem).readWithPadding
@@ -167,7 +165,7 @@ theorem RD.uniswapSafeMathSubUnderflow_aw6_size164 {g : Sat256} {s0 : State}
     push1 ⟨64⟩, dup1,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rd6899 := rd6895.pushConst (⟨4594637⟩ : UInt256) (width := 3) (op := .PUSH3)
     (by decide) (by decide) (by evm_ov)
@@ -320,15 +318,13 @@ theorem uniswapTransferCreditHashMemOf_read64 (src toWord : UInt256) {mem : Byte
 theorem uniswapTransferCreditHashMemOf_mload64 (src toWord : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapTransferCreditHashMemOf src toWord mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapTransferCreditHashMemOf src toWord mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapTransferCreditHashMemOf src toWord mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [uniswapTransferCreditHashMemOf_size src toWord hmem]; decide)
-    (by decide) (uniswapTransferCreditHashMemOf_read64 src toWord hmem hmem64)
+  mloadFreePtrValue (by rw [uniswapTransferCreditHashMemOf_size src toWord hmem]; decide) (uniswapTransferCreditHashMemOf_read64 src toWord hmem hmem64)
 
 def uniswapTransferLogMemOf
     (src toWord value : UInt256) (mem : ByteArray) : ByteArray :=
@@ -367,15 +363,13 @@ theorem uniswapTransferLogMemOf_read64 (src toWord value : UInt256) {mem : ByteA
 theorem uniswapTransferLogMemOf_mload64 (src toWord value : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapTransferLogMemOf src toWord value mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapTransferLogMemOf src toWord value mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapTransferLogMemOf src toWord value mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [uniswapTransferLogMemOf_size src toWord value hmem]; decide)
-    (by decide) (uniswapTransferLogMemOf_read64 src toWord value hmem hmem64)
+  mloadFreePtrValue (by rw [uniswapTransferLogMemOf_size src toWord value hmem]; decide) (uniswapTransferLogMemOf_read64 src toWord value hmem hmem64)
 
 def uniswapTransferReturnMemOf
     (src toWord logValue retValue : UInt256) (mem : ByteArray) : ByteArray :=
@@ -409,16 +403,14 @@ theorem uniswapTransferReturnMemOf_mload64
     (hmem : mem.size = 96)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (uniswapTransferReturnMemOf src toWord logValue retValue mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+          (uniswapTransferReturnMemOf src toWord logValue retValue mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapTransferReturnMemOf src toWord logValue retValue mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
   mloadFreePtrValue
-    (by rw [uniswapTransferReturnMemOf_size src toWord logValue retValue hmem]; decide)
-    (by decide) (uniswapTransferReturnMemOf_read64 src toWord logValue retValue hmem hmem64)
+    (by rw [uniswapTransferReturnMemOf_size src toWord logValue retValue hmem]; decide) (uniswapTransferReturnMemOf_read64 src toWord logValue retValue hmem hmem64)
 
 theorem uniswapTransferReturnMemOf_read128
     (src toWord logValue retValue : UInt256) {mem : ByteArray} (hmem : mem.size = 96) :

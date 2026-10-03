@@ -446,28 +446,24 @@ theorem endFlowVatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray) :
           solcFreePtrMem_read64)
 
 theorem endFlowVatIlksPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endFlowVatIlksPostCallMem I out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endFlowVatIlksPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endFlowVatIlksPostCallMem I out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by exact endFlowVatIlksPostCallMem_size_gt64 I out)
-    (by decide)
     (endFlowVatIlksPostCallMem_read64 I out)
 
 theorem endFlowVatIlksPostCallMem_mload64_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 160 ≤ out.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endFlowVatIlksPostCallMem I out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endFlowVatIlksPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endFlowVatIlksPostCallMem I out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [endFlowVatIlksPostCallMem_size_long I out hlo]; decide)
-    (by decide)
     (endFlowVatIlksPostCallMem_read64_long I out hlo)
 
 theorem endFlowVatIlksPostCallMem_read160_long (I : ExecutionEnv) (out : ByteArray)
@@ -519,20 +515,21 @@ theorem endFlowVatIlksPostCallMem_read160_long (I : ExecutionEnv) (out : ByteArr
 
 theorem endFlowVatIlksPostCallMem_mload160_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 160 ≤ out.size) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (endFlowVatIlksPostCallMem I out).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (endFlowVatIlksPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endFlowVatIlksPostCallMem I out).readWithPadding (⟨160⟩ : UInt256).toNat 32))) =
       endFlowVatIlkRateWord out := by
   unfold endFlowVatIlkRateWord
-  rw [if_neg]
-  · change UInt256.ofNat
-      (fromByteArrayBigEndian ((endFlowVatIlksPostCallMem I out).readWithPadding 160 32)) =
-        UInt256.ofNat (fromByteArrayBigEndian (out.extract 32 64))
-    rw [endFlowVatIlksPostCallMem_read160_long I out hlo]
-  · exact not_or.mpr
-      ⟨by rw [endFlowVatIlksPostCallMem_size_long I out hlo]; decide, by native_decide⟩
+  have hnot :
+      ¬ ((⟨160⟩ : UInt256).toNat ≥ (endFlowVatIlksPostCallMem I out).size) := by
+    rw [endFlowVatIlksPostCallMem_size_long I out hlo]
+    decide
+  rw [if_neg hnot]
+  change UInt256.ofNat
+    (fromByteArrayBigEndian ((endFlowVatIlksPostCallMem I out).readWithPadding 160 32)) =
+      UInt256.ofNat (fromByteArrayBigEndian (out.extract 32 64))
+  rw [endFlowVatIlksPostCallMem_read160_long I out hlo]
 
 theorem endFlowVatIlksSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 96) :
     (endFlowVatIlksSelectorMem mem).extract 128 132 = ilksSelector := by
@@ -782,7 +779,7 @@ theorem RD.endFlowFixDefinedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide)
@@ -1043,13 +1040,12 @@ theorem endFlowX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
   have hslot : endFlowFixSlot I = solcMappingSlot ⟨15⟩ key := by
     simpa [key] using endFlowFixSlot_eq (I := I) hsz36
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             (solcFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide)
       solcFreePtrMem_read64
   have hcallMem :
       (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)).size = 164 :=
@@ -1063,14 +1059,13 @@ theorem endFlowX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
       (twoWordHashMem_read64 (endFlowIlkWord I) ⟨15⟩ solcFreePtrMem_size
         solcFreePtrMem_read64)
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endFlowVatIlksCalldataMem I (endFlowFixHashMem I)).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have hselectorShift :
       UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
         endFlowVatIlksSelectorShifted := by
@@ -1156,8 +1151,7 @@ theorem endFlowX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2887raw⟩
   obtain ⟨_, _, rd2887⟩ := rd2887
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endFlowFixHashMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endFlowFixHashMem I).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endFlowFixHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -1165,7 +1159,6 @@ theorem endFlowX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     mloadFreePtrValue
       (by rw [endFlowFixHashMem, twoWordHashMem_size_96 (endFlowIlkWord I) ⟨15⟩
         solcFreePtrMem_size]; decide)
-      (by decide)
       (by
         rw [endFlowFixHashMem]
         exact twoWordHashMem_read64 (endFlowIlkWord I) ⟨15⟩ solcFreePtrMem_size
@@ -1397,8 +1390,7 @@ theorem endFlowX_vatIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I} {g : Sat2
   have hmload160Raw := endFlowVatIlksPostCallMem_mload160_long I out hlo
   have hmload160 :
       (if ((⟨32⟩ : UInt256) + ⟨128⟩).toNat ≥
-            (endFlowVatIlksPostCallMem I out).size
-          ∨ (⟨32⟩ : UInt256) + ⟨128⟩ ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+            (endFlowVatIlksPostCallMem I out).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((endFlowVatIlksPostCallMem I out).readWithPadding
@@ -2499,14 +2491,12 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
         (cA', endFlowPostAccountMap σ' I (endFlowFixVWord σ' I out)) k' C' := by
     exact ⟨_, _, by simpa [endFlowPostAccountMap] using rd3167raw⟩
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem15.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem15.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem15.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
     mloadFreePtrValue
-      (by rw [hmem15Size, hmem13Size, hmem12Size, hmem14Size, hpostSize]; decide)
-      (by decide) hmem15Read64
+      (by rw [hmem15Size, hmem13Size, hmem12Size, hmem14Size, hpostSize]; decide) hmem15Read64
   have rd3168 := rd3167.mload 0 ⟨128⟩ (UInt256.ofNat 9)
     (by native_decide) mem_cost hmload64 (by native_decide) (by evm_ov)
   have rd3169 := evm_run rd3168 with [

@@ -22,9 +22,8 @@ theorem RD.solcErrorStringRevertTail_dynamic
       hdDup3, hdAdd, hdMstore3, hdSwap, hdMload, hdSwap2, hdDup2, hdSwap3,
       hdSub, hd100, hdAdd2, hdSwap4, hdRev⟩
   have h64cover : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := hawLo
-  have hload : memoryWordLoad mem aw ⟨64⟩ = ptr :=
-    mloadWordValue_of_readWithPadding (by change 64 < mem.size; omega)
-      (UInt256_mload_haw_of_cover aw ⟨64⟩ haw h64cover) hread
+  have hload : memoryWordLoad mem ⟨64⟩ = ptr :=
+    mloadWordValue_of_readWithPadding (by change 64 < mem.size; omega) hread
   have hw64 : memoryWordActiveWords aw ⟨64⟩ = aw := UInt256_M_same_of_cover aw ⟨64⟩ haw h64cover
   have rdLoad := evm_run rd with [raw push1 ⟨64⟩ hd0 (by evm_ov), raw dup1 hd2 (by evm_ov)]
   have rdSelector := RD.mloadWord rdLoad hd3 hload (by simp only [List.length_cons]; omega)
@@ -55,9 +54,7 @@ theorem RD.solcErrorStringRevertTail_dynamic
   have hcover := (solcErrorDynamicWords3_bounds aw ptr haw hfit).2
   have hwRev := UInt256_M_same_of_cover_len (solcErrorDynamicWords3 aw ptr) ptr 100 hcover
   exact RD.rev 0 rdRev hdRev (by
-    intro s haws hstk
-    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk, List.getElem!_cons_zero, List.getElem!_cons_succ]
-    change Cₘ (UInt256.ofNat (MachineState.M (solcErrorDynamicWords3 aw ptr).toNat ptr.toNat 100)) - Cₘ (solcErrorDynamicWords3 aw ptr) = 0
-    rw [hwRev, Nat.sub_self]) (by omega)
+    simpa only [M, show (⟨100⟩ : UInt256).toNat = 100 from by decide,
+      hwRev, Nat.sub_self]) (by omega)
 
 end UniswapV2Pair

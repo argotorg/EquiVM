@@ -35,22 +35,6 @@ theorem weth9AwMemPtr_eq (aw : UInt256) (memPtr : Nat)
     omega
   rw [hM]; exact congrArg UInt256.toNat (u256_ofNat_toNat aw)
 
-theorem weth9KeccakCost {aw off size : UInt256} {stk : List UInt256} :
-    ∀ s : State, s.machineState.activeWords = aw →
-      s.machineState.stack = off :: size :: stk →
-      memoryExpansionCost s .KECCAK256 =
-        Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat size.toNat)) - Cₘ aw := by
-  intro s haw hstk
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw, List.getElem!_cons_zero,
-    List.getElem!_cons_succ]
-
-theorem weth9MloadCost {aw off : UInt256} {stk : List UInt256} :
-    ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = off :: stk →
-      memoryExpansionCost s .MLOAD =
-        Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)) - Cₘ aw := by
-  intro s haw hstk
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw, List.getElem!_cons_zero]
-
 /-! ## The computed old-word count equals the Solm `solidityBytesDataWordCount` -/
 
 theorem weth9OldWordsWord_eq (S : UInt256) :
@@ -87,7 +71,6 @@ theorem weth9StringStoreSubroutine
     (hmemPtr32 : 32 ≤ memPtr.toNat)
     (hmemSize : memPtr.toNat + 32 ≤ mem.size)
     (hawMem : memPtr.toNat + 32 ≤ aw.toNat * 32)
-    (hawNoWrap : aw.toNat * 32 < UInt256.size)
     (haw1 : 1 ≤ aw.toNat)
     (hmemData : mem.readWithPadding memPtr.toNat 32 = UInt256.toByteArray dataword)
     (h : RD weth9CreationBytecode ee g s0 ⟨122⟩ [len, memPtr, slot, retAddr]
@@ -121,15 +104,13 @@ theorem weth9StringStoreSubroutine
   have hMstore := hB.mstore
     (Cₘ (UInt256.ofNat (MachineState.M aw.toNat 0 32)) - Cₘ aw) mem1 aw
     (by native_decide)
-    (fun s haws hstks => by
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-        List.getElem!_cons_zero, show (⟨0⟩ : UInt256).toNat = 0 from rfl])
+    (by rfl)
     rfl (weth9AwM0_eq aw haw1) (by evm_ov)
   -- Phase C: KECCAK256(0,32) = keccak(slot).
   have hC := evm_run hMstore with [push1 ⟨32⟩, push1 ⟨0⟩]
   have hKecc := hC.keccak256
     (Cₘ (UInt256.ofNat (MachineState.M aw.toNat 0 32)) - Cₘ aw) K aw
-    (by native_decide) weth9KeccakCost
+    (by native_decide) (by rfl)
     (by
       rw [show mem1.readWithPadding (⟨0⟩ : UInt256).toNat (⟨32⟩ : UInt256).toNat
             = UInt256.toByteArray slot from by
@@ -148,17 +129,12 @@ theorem weth9StringStoreSubroutine
     push2 ⟨187⟩, jumpiNT hcondBranch, dup1]
   have hMload := hD.mload
     (Cₘ (UInt256.ofNat (MachineState.M aw.toNat memPtr.toNat 32)) - Cₘ aw) dataword aw
-    (by native_decide) weth9MloadCost
+    (by native_decide) (by rfl)
     (by
-      refine mloadWordValue_of_readWithPadding (mem := mem1) (aw := aw) (off := memPtr)
-        (v := dataword) ?_ ?_ ?_
+      refine mloadWordValue_of_readWithPadding (mem := mem1) (off := memPtr)
+        (v := dataword) ?_ ?_
       · rw [hmem1def, toByteArray_write32_size_of_le mem slot 0 mem.size (max mem.size 32)
           rfl (by omega) rfl]
-        omega
-      · intro hbad
-        have hle : memPtr.toNat ≥ (aw * (⟨32⟩ : UInt256)).toNat := hbad
-        rw [show (aw * (⟨32⟩ : UInt256)).toNat = aw.toNat * 32 from by
-          simpa [show (⟨32⟩ : UInt256).toNat = 32 from rfl] using umul_toNat aw ⟨32⟩ hawNoWrap] at hle
         omega
       · rw [hmem1def, write32_read_above (UInt256.toByteArray slot) mem 0 memPtr.toNat
           (by rw [toByteArray_size]) (by omega) (by omega) (by omega)]

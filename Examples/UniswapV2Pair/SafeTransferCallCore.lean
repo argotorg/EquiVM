@@ -37,9 +37,8 @@ theorem uniswapSafeTransferDynamicCallRuntimeCases_of_zeroSlot
         (safeTransferDynamicFinalMem mem ptr toWord value out) (safeTransferDynamicFinalWords aw ptr out) out (cA', σ') k' C') := by
   have hnumeric : 2 ^ 255 + 1024 + 2 ^ 138 + 355 < UInt256.size := by native_decide
   have hc64 : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := by change 64 + 32 ≤ _; omega
-  have hmload : memoryWordLoad mem aw ⟨64⟩ = ptr := by
-    exact mloadWordValue_of_readWithPadding (by change 64 < _; omega)
-      (UInt256_mload_haw_of_cover _ _ haw hc64) h64
+  have hmload : memoryWordLoad mem ⟨64⟩ = ptr := by
+    exact mloadWordValue_of_readWithPadding (by change 64 < _; omega) h64
   have haw64 : memoryWordActiveWords aw ⟨64⟩ = aw := UInt256_M_same_of_cover _ _ haw hc64
   obtain ⟨cA', σ', z, out, A_in, callGas, _, _, hΘ, rd6595, hout⟩ :=
     RD.uniswapSafeTransferDynamicEntryToCallMadeBounded rd6370 hmload haw64 (by omega) hgap (by omega) hbase haw (by omega) hdepth hov

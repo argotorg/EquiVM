@@ -17,7 +17,7 @@ theorem settleUnsettled {I g s0 s ptr ret R mem aw rdata acc k C}
     (hm : SnapshotMemory s mem aw ptr) (hset : s.settledByte = ⟨0⟩)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨4313⟩ (ptr :: ret :: R) mem aw rdata acc k' C' := by
-  have hl : loadedWord mem aw (ptr + ⟨160⟩) = s.settledWord := by
+  have hl : loadedWord mem (ptr + ⟨160⟩) = s.settledWord := by
     set_option maxRecDepth 2048 in exact hm.load ⟨5, by decide⟩
   have ha : expandedWords aw (ptr + ⟨160⟩) ⟨32⟩ = aw := hm.expand_eq ⟨5, by decide⟩
   have rd4237 := evm_run h with [jumpdest, dup1, push1 ⟨160⟩, add,
@@ -32,7 +32,7 @@ theorem settleEnded {I g s0 s ptr ret R mem aw rdata acc k C}
     (htime : s.endTime.toNat ≤ (UInt256.ofNat I.header.timestamp).toNat)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ⟨4397⟩ (ptr :: ret :: R) mem aw rdata acc k' C' := by
-  have hl : loadedWord mem aw (ptr + ⟨96⟩) = s.endTime := hm.load ⟨3, by decide⟩
+  have hl : loadedWord mem (ptr + ⟨96⟩) = s.endTime := hm.load ⟨3, by decide⟩
   have ha : expandedWords aw (ptr + ⟨96⟩) ⟨32⟩ = aw := hm.expand_eq ⟨3, by decide⟩
   have rd4319 := evm_run h with [jumpdest, dup1, push1 ⟨96⟩, add,
     raw mloadSymbolic (by native_decide) (by evm_ov)]
@@ -98,7 +98,7 @@ theorem settleAlreadySettled {I g s0 s ptr ret R mem aw rdata acc k C}
     (h : RD auctionBytecode I g s0 ⟨4231⟩ (ptr :: ret :: R) mem aw rdata acc k C)
     (hm : SnapshotMemory s mem aw ptr) (hset : s.settledByte ≠ ⟨0⟩)
     (hov : R.length + 8 ≤ 1024) : RDrev auctionBytecode g s0 := by
-  have hl : loadedWord mem aw (ptr + ⟨160⟩) = s.settledWord := by
+  have hl : loadedWord mem (ptr + ⟨160⟩) = s.settledWord := by
     set_option maxRecDepth 2048 in exact hm.load ⟨5, by decide⟩
   have ha : expandedWords aw (ptr + ⟨160⟩) ⟨32⟩ = aw := hm.expand_eq ⟨5, by decide⟩
   have rd4237 := evm_run h with [jumpdest, dup1, push1 ⟨160⟩, add,
@@ -114,7 +114,7 @@ theorem settleNotEnded {I g s0 s ptr ret R mem aw rdata acc k C}
     (hm : SnapshotMemory s mem aw ptr)
     (htime : (UInt256.ofNat I.header.timestamp).toNat < s.endTime.toNat)
     (hov : R.length + 8 ≤ 1024) : RDrev auctionBytecode g s0 := by
-  have hl : loadedWord mem aw (ptr + ⟨96⟩) = s.endTime := hm.load ⟨3, by decide⟩
+  have hl : loadedWord mem (ptr + ⟨96⟩) = s.endTime := hm.load ⟨3, by decide⟩
   have ha : expandedWords aw (ptr + ⟨96⟩) ⟨32⟩ = aw := hm.expand_eq ⟨3, by decide⟩
   have rd4319 := evm_run h with [jumpdest, dup1, push1 ⟨96⟩, add,
     raw mloadSymbolic (by native_decide) (by evm_ov)]

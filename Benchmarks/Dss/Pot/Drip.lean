@@ -88,12 +88,12 @@ theorem potDripX_callGuard {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {se
       (UInt256.land (⟨4294967295⟩ : UInt256) potSuckSelectorWord) ⟨224⟩ =
       potSuckSelectorShifted := by native_decide
   have hmload0 :
-      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
           then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (solcFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide) solcFreePtrMem_read64
+    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) solcFreePtrMem_read64
   have rd2006 := h.jumpdest (by native_decide) (by evm_ov)
   have rd2008 := rd2006.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rd2009 := rd2008.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
@@ -144,8 +144,7 @@ theorem potDripX_callGuard {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {se
   have rd2057 := rdCd.mstore 3 (potSuckCalldataMem σ'' I rad solcFreePtrMem) (UInt256.ofNat 8)
     (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
   have hmload1 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (potSuckCalldataMem σ'' I rad solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (potSuckCalldataMem σ'' I rad solcFreePtrMem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((potSuckCalldataMem σ'' I rad solcFreePtrMem).readWithPadding
@@ -244,10 +243,10 @@ theorem potDripX_successTail {I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rd341 := rd2118.jump (by native_decide) (by jump_dest) (by evm_ov)
   set memout := potSuckReturnMem mem tmp with hmemoutdef
   have hmemoutSize : memout.size = 228 := potSuckReturnMem_size tmp hsize
-  have hval1 := mloadFreePtrValue (mem := mem) (aw := UInt256.ofNat 8)
-    (by rw [hsize]; decide) (by decide) hread64
-  have hval2 := mloadFreePtrValue (mem := memout) (aw := UInt256.ofNat 8)
-    (by rw [hmemoutSize]; decide) (by decide)
+  have hval1 := mloadFreePtrValue (mem := mem)
+    (by rw [hsize]; decide) hread64
+  have hval2 := mloadFreePtrValue (mem := memout)
+    (by rw [hmemoutSize]; decide)
     (potSuckReturnMem_read64 tmp hsize hread64)
   have hread128 : memout.readWithPadding 128 32 = UInt256.toByteArray tmp :=
     potSuckReturnMem_read128 tmp hsize

@@ -104,7 +104,7 @@ theorem uniswapInternalBurnRuntimeStoreSupplyEmitAndJump
   have rd8397 := evm_run rd8394 with [push1 ⟨64⟩, dup1]
   have rd8398 := rd8397.mload 0 ⟨128⟩ feeToStaticcallActiveWords
     (by native_decide) mem_cost
-    (mloadFreePtrValue (by omega) (by native_decide) hread64)
+    (mloadFreePtrValue (by omega) hread64)
     (by native_decide) (by evm_ov)
   have rd8400 := evm_run rd8398 with [dup4, dup2]
   have rd8401 := rd8400.mstore 0 (uniswapInternalMintLogMem value mem)
@@ -114,8 +114,7 @@ theorem uniswapInternalBurnRuntimeStoreSupplyEmitAndJump
   have rd8403 := rd8402.mload 0 ⟨128⟩ feeToStaticcallActiveWords
     (by native_decide) mem_cost
     (mloadFreePtrValue
-      (by rw [uniswapInternalMintLogMem_size_of_ge160 value hmem]; omega)
-      (by native_decide) (uniswapInternalMintLogMem_read64_of_ge160 value hmem hread64))
+      (by rw [uniswapInternalMintLogMem_size_of_ge160 value hmem]; omega) (uniswapInternalMintLogMem_read64_of_ge160 value hmem hread64))
     (by native_decide) (by evm_ov)
   have rd8414 := evm_run rd8403 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, and, swap2]

@@ -151,12 +151,11 @@ theorem balanceOfHashMem_read64 (owner : UInt256) :
     balanceOfBaseSlotMem_read64]
 
 theorem balanceOfHashMem_mload64 (owner : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfHashMem owner).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfHashMem owner).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((balanceOfHashMem owner).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [balanceOfHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [balanceOfHashMem_size]; decide)
     (balanceOfHashMem_read64 owner)
 
 theorem balanceOfHashMem_read0_64 (owner : UInt256) :
@@ -238,13 +237,12 @@ theorem balanceOfReturnMem_read64 (owner val : UInt256) :
     balanceOfHashMem_read64]
 
 theorem balanceOfReturnMem_mload64 (owner val : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfReturnMem owner val).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfReturnMem owner val).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((balanceOfReturnMem owner val).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [balanceOfReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [balanceOfReturnMem_size]; decide)
     (balanceOfReturnMem_read64 owner val)
 
 theorem balanceOfReturnMem_read128 (owner val : UInt256) :

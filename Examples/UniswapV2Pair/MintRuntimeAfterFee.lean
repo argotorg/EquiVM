@@ -443,9 +443,7 @@ theorem RD.uniswapLog2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 :
     {a b c d : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
     (h : RD code ee g s0 pc (a :: b :: c :: d :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG2, .none)) (hperm : ee.perm = true)
-    (hmc : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = a :: b :: c :: d :: t →
-        memoryExpansionCost s .LOG2 = mcost)
+    (hmc : Cₘ (M aw a b) - Cₘ aw = mcost)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
     (hov : t.length ≤ 1024) :
     RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
@@ -455,7 +453,9 @@ theorem RD.uniswapLog2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 :
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata,
       hacc, hee, hworld⟩
   · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .LOG2 = mcost := hmc s haw hstk
+  · have hmcS : memoryExpansionCost s .LOG2 = mcost := by
+      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have hperms : s.executionEnv.perm = true := by
       rw [hee]
       exact hperm
@@ -583,8 +583,7 @@ theorem uniswapMintRuntimeLiquidityMintReturn
     (hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
             (uniswapInternalMintBalanceHashMem toWord
-              (uniswapInternalMintBalanceHashMem toWord mem)).size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+              (uniswapInternalMintBalanceHashMem toWord mem)).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((uniswapInternalMintBalanceHashMem toWord
@@ -594,8 +593,7 @@ theorem uniswapMintRuntimeLiquidityMintReturn
       (if (⟨64⟩ : UInt256).toNat ≥
             (uniswapInternalMintLogMem liquidity
               (uniswapInternalMintBalanceHashMem toWord
-                (uniswapInternalMintBalanceHashMem toWord mem))).size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+                (uniswapInternalMintBalanceHashMem toWord mem))).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((uniswapInternalMintLogMem liquidity
@@ -707,57 +705,28 @@ theorem uniswapMintRuntimeUpdateEmitSyncReturn
         balance1, balance0, ⟨3926⟩, totalSupply, feeOn, amount1, amount0, balance1,
         balance0, reserve1, reserve0, liquidity, toWord, ⟨861⟩, sel]
       mem aw rdata (cAFee, σUpd) k C)
-    (hmcLoad : ∀ s : State, s.machineState.activeWords = aw →
-      s.machineState.stack = ⟨64⟩ :: ⟨64⟩ :: reserve112Shift :: reserve112Mask :: packed ::
-        elapsed :: timestamp :: reserve1 :: reserve0 :: balance1 :: balance0 :: ⟨3926⟩ ::
-        totalSupply :: feeOn :: amount1 :: amount0 :: balance1 :: balance0 :: reserve1 ::
-        reserve0 :: liquidity :: toWord :: ⟨861⟩ :: sel :: [] →
-      memoryExpansionCost s .MLOAD = mcostLoad)
+    (hmcLoad : Cₘ (M aw ⟨64⟩ ⟨32⟩) - Cₘ aw = mcostLoad)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hawLoad : UInt256.ofNat (MachineState.M aw.toNat 64 32) = awLoad)
-    (hmcStore0 : ∀ s : State, s.machineState.activeWords = awLoad →
-      s.machineState.stack = ⟨128⟩ :: uniswapSyncReserve0Word packed :: ⟨128⟩ ::
-        ⟨64⟩ :: reserve112Shift :: reserve112Mask :: packed :: elapsed :: timestamp ::
-        reserve1 :: reserve0 :: balance1 :: balance0 :: ⟨3926⟩ :: totalSupply :: feeOn ::
-        amount1 :: amount0 :: balance1 :: balance0 :: reserve1 :: reserve0 :: liquidity ::
-        toWord :: ⟨861⟩ :: sel :: [] →
-      memoryExpansionCost s .MSTORE = mcostStore0)
+    (hmcStore0 : Cₘ (M awLoad ⟨128⟩ ⟨32⟩) - Cₘ awLoad = mcostStore0)
     (hawStore0 : UInt256.ofNat (MachineState.M awLoad.toNat 128 32) = awLog)
-    (hmcStore1 : ∀ s : State, s.machineState.activeWords = awLog →
-      s.machineState.stack = ((⟨128⟩ : UInt256) + ⟨32⟩) ::
-        uniswapSyncReserve1Word packed :: ⟨128⟩ :: ⟨64⟩ :: elapsed :: timestamp ::
-        reserve1 :: reserve0 :: balance1 :: balance0 :: ⟨3926⟩ :: totalSupply :: feeOn ::
-        amount1 :: amount0 :: balance1 :: balance0 :: reserve1 :: reserve0 :: liquidity ::
-        toWord :: ⟨861⟩ :: sel :: [] →
-      memoryExpansionCost s .MSTORE = mcostStore1)
+    (hmcStore1 : Cₘ (M awLog (⟨128⟩ + ⟨32⟩) ⟨32⟩) - Cₘ awLog = mcostStore1)
     (hawStore1 :
       UInt256.ofNat (MachineState.M awLog.toNat (((⟨128⟩ : UInt256) + ⟨32⟩).toNat) 32) =
         awLog)
-    (hmcLoadLog : ∀ s : State, s.machineState.activeWords = awLog →
-      s.machineState.stack = ⟨64⟩ :: ⟨128⟩ :: ⟨64⟩ :: elapsed :: timestamp ::
-        reserve1 :: reserve0 :: balance1 :: balance0 :: ⟨3926⟩ :: totalSupply :: feeOn ::
-        amount1 :: amount0 :: balance1 :: balance0 :: reserve1 :: reserve0 :: liquidity ::
-        toWord :: ⟨861⟩ :: sel :: [] →
-      memoryExpansionCost s .MLOAD = mcostLoadLog)
+    (hmcLoadLog : Cₘ (M awLog ⟨64⟩ ⟨32⟩) - Cₘ awLog = mcostLoadLog)
     (hmload64Log :
-      (if (⟨64⟩ : UInt256).toNat ≥ (uniswapSyncLogMem packed mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ awLog * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (uniswapSyncLogMem packed mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((uniswapSyncLogMem packed mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hawLoadLog : UInt256.ofNat (MachineState.M awLog.toNat 64 32) = awLog)
-    (hmcLog : ∀ s : State, s.machineState.activeWords = awLog →
-      s.machineState.stack = ⟨128⟩ ::
-        ((⟨64⟩ : UInt256) + UInt256.sub ⟨128⟩ ⟨128⟩) :: uniswapSyncTopic ::
-        elapsed :: timestamp :: reserve1 :: reserve0 :: balance1 :: balance0 :: ⟨3926⟩ ::
-        totalSupply :: feeOn :: amount1 :: amount0 :: balance1 :: balance0 :: reserve1 ::
-        reserve0 :: liquidity :: toWord :: ⟨861⟩ :: sel :: [] →
-      memoryExpansionCost s .LOG1 = mcostLog)
+    (hmcLog : Cₘ (M awLog ⟨128⟩ (⟨64⟩ + UInt256.sub ⟨128⟩ ⟨128⟩)) - Cₘ awLog = mcostLog)
     (hawLog : UInt256.ofNat
       (MachineState.M awLog.toNat 128
         (((⟨64⟩ : UInt256) + UInt256.sub ⟨128⟩ ⟨128⟩).toNat)) = awLog)
@@ -908,8 +877,7 @@ theorem uniswapMintLogMem_mload64
     (amount0 amount1 : UInt256) {mem : ByteArray}
     (hmem : mem.size = 192)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMintLogMem amount0 amount1 mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMintLogMem amount0 amount1 mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapMintLogMem amount0 amount1 mem).readWithPadding (⟨64⟩ : UInt256).toNat
@@ -917,7 +885,6 @@ theorem uniswapMintLogMem_mload64
       ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [uniswapMintLogMem_size amount0 amount1 hmem]; decide)
-    (by native_decide)
     (uniswapMintLogMem_read64 amount0 amount1 hmem hmem64)
 
 theorem uniswapMintReturnMem_size
@@ -944,8 +911,7 @@ theorem uniswapMintReturnMem_mload64
     (liquidity amount0 amount1 : UInt256) {mem : ByteArray}
     (hmem : mem.size = 192)
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMintReturnMem liquidity amount0 amount1 mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMintReturnMem liquidity amount0 amount1 mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapMintReturnMem liquidity amount0 amount1 mem).readWithPadding
@@ -953,7 +919,6 @@ theorem uniswapMintReturnMem_mload64
       ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [uniswapMintReturnMem_size liquidity amount0 amount1 hmem]; decide)
-    (by native_decide)
     (uniswapMintReturnMem_read64 liquidity amount0 amount1 hmem hmem64)
 
 theorem uniswapMintReturnMem_read128
@@ -984,14 +949,12 @@ theorem uniswapMintRuntimeFinalizeToReturnWrapper
         liquidity, toWord, ⟨861⟩, sel]
       mem feeToStaticcallActiveWords rdata (cAFee, σPost) k C)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hlogMload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMintLogMem amount0 amount1 mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMintLogMem amount0 amount1 mem).size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           ((uniswapMintLogMem amount0 amount1 mem).readWithPadding
@@ -1043,15 +1006,13 @@ theorem RD.uniswapReturnWord861FromFeeMem {g : Sat256} {s0 : State} {ee : Execut
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨861⟩ (val :: ret :: R)
       mem feeToStaticcallActiveWords rdata acc k C)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
     (hmemout : (UInt256.toByteArray val).write 0 mem 128 32 = memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)
@@ -1100,22 +1061,19 @@ theorem uniswapMintRuntimeFinalizeReturns
         liquidity, toWord, ⟨861⟩, sel]
       mem feeToStaticcallActiveWords rdata (cAFee, σPost) k C)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hlogMload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMintLogMem amount0 amount1 mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMintLogMem amount0 amount1 mem).size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           ((uniswapMintLogMem amount0 amount1 mem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hretMload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMintReturnMem liquidity amount0 amount1 mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMintReturnMem liquidity amount0 amount1 mem).size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           ((uniswapMintReturnMem liquidity amount0 amount1 mem).readWithPadding
@@ -1160,12 +1118,11 @@ theorem uniswapMintRuntimeAfterUpdateFeeOffReturns
       (UInt256.toByteArray liquidity) := by
   obtain ⟨_, _, rd3974⟩ := uniswapMintRuntimeAfterUpdateFeeOff rd3926 hfeeOff
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by native_decide) hmem64
+    mloadFreePtrValue (by rw [hmem]; decide) hmem64
   exact uniswapMintRuntimeFinalizeReturns rd3974 hmload64
     (uniswapMintLogMem_mload64 amount0 amount1 hmem hmem64)
     (uniswapMintReturnMem_mload64 liquidity amount0 amount1 hmem hmem64)
@@ -1202,12 +1159,11 @@ theorem uniswapMintRuntimeAfterUpdateFeeOnReturns
       (UInt256.toByteArray liquidity) := by
   obtain ⟨_, _, rd3974⟩ := uniswapMintRuntimeAfterUpdateFeeOn rd3926 hfeeOn hfit hperm
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ feeToStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by native_decide) hmem64
+    mloadFreePtrValue (by rw [hmem]; decide) hmem64
   exact uniswapMintRuntimeFinalizeReturns rd3974 hmload64
     (uniswapMintLogMem_mload64 amount0 amount1 hmem hmem64)
     (uniswapMintReturnMem_mload64 liquidity amount0 amount1 hmem hmem64)

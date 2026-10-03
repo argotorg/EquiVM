@@ -26,7 +26,7 @@ theorem bidInitialChecks {I g s0 s noun ptr ret R mem aw rdata cA σ k C evm loc
     have rd1360 := evm_run rd1288 with [jumpiT (by rw [hn, uInt256_eq_self]; decide)
       (by jump_dest)]
     have ht := bidTimeGuardSource hs hv
-    have hl : loadedWord mem aw (ptr + ⟨96⟩) = s.endTime := hm.load ⟨3, by decide⟩
+    have hl : loadedWord mem (ptr + ⟨96⟩) = s.endTime := hm.load ⟨3, by decide⟩
     have ha : expandedWords aw (ptr + ⟨96⟩) ⟨32⟩ = aw := hm.expand_eq ⟨3, by decide⟩
     have rd1366 := evm_run rd1360 with [jumpdest, dup1, push1 ⟨96⟩, add,
       raw mloadSymbolic (by native_decide) (by evm_ov)]

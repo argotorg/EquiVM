@@ -251,21 +251,19 @@ theorem withdrawRehashMem_read64 (I : ExecutionEnv) :
   exact withdrawLoadHashMem_read64 I
 
 theorem withdrawLoadHashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawLoadHashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawLoadHashMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((withdrawLoadHashMem I).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [withdrawLoadHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [withdrawLoadHashMem_size]; decide)
     (withdrawLoadHashMem_read64 I)
 
 theorem withdrawRehashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawRehashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawRehashMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((withdrawRehashMem I).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [withdrawRehashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [withdrawRehashMem_size]; decide)
     (withdrawRehashMem_read64 I)
 
 set_option maxHeartbeats 2000000 in
@@ -919,8 +917,7 @@ theorem blindAuctionX_withdraw_postCallNonempty_toBranch {cA gh bl σ σ₀ A I}
     (rd : RD blindAuctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨767⟩
       [z, ⟨128⟩, amount, sender, ⟨0⟩, amount, ⟨276⟩, blindAuctionSelWord I]
       mem (UInt256.ofNat 3) o acc k C)
-    (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
@@ -955,8 +952,8 @@ theorem blindAuctionX_withdraw_postCallNonempty_toBranch {cA gh bl σ σ₀ A I}
     returndatasize, dup3,
     raw mstore (Cₘ (UInt256.ofNat 5) - Cₘ (UInt256.ofNat 3))
       mem3 (UInt256.ofNat 5) (by decide)
-      (fun s haw hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      (by
+        simp [M]
         decide)
       (by rfl) (by decide) (by evm_ov)]
   have rd807 := evm_run rd801 with [returndatasize, push0, push1 ⟨32⟩, dup5, add]
@@ -979,8 +976,7 @@ theorem blindAuctionX_withdraw_postCallNonempty_toBranch {cA gh bl σ σ₀ A I}
     rd807 (by decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, copyDest, copyLen,
+      simp [M, copyDest, copyLen,
         SimpleAuction.withdrawReturnDataActiveWords, hcopyDest_toNat, hcopyLen_toNat])
     (by rfl)
     haw4
@@ -1009,7 +1005,7 @@ theorem blindAuctionX_withdraw_requireSuccess_revert {cA gh bl σ σ₀ A I} {g 
     RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have rd827 := evm_run rd with [dup1, push2 ⟨830⟩, jumpiNT (by decide), push0, push0]
   exact RD.rev _ rd827 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by evm_ov)
 
 theorem blindAuctionX_withdraw_afterCall_revert {cA gh bl σ σ₀ A I} {g : Sat256}

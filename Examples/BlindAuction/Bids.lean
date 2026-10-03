@@ -432,12 +432,11 @@ theorem bidsHashMem_read0_64 (a : UInt256) :
   rw [htail]
 
 theorem bidsHashMem_mload64 (a : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (bidsHashMem a).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (bidsHashMem a).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((bidsHashMem a).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [bidsHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [bidsHashMem_size]; decide)
     (bidsHashMem_read64 a)
 
 theorem bidsMappingBaseKeccak (I : ExecutionEnv)
@@ -468,13 +467,12 @@ theorem bidsArrayDataMem_read64 (a base : UInt256) :
     bidsHashMem_read64]
 
 theorem bidsArrayDataMem_mload64 (a base : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (bidsArrayDataMem a base).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (bidsArrayDataMem a base).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((bidsArrayDataMem a base).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [bidsArrayDataMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [bidsArrayDataMem_size]; decide)
     (bidsArrayDataMem_read64 a base)
 
 theorem bidsArrayDataKeccak (I : ExecutionEnv) :
@@ -533,13 +531,12 @@ theorem bidsReturnMem_read64 (a base blinded deposit : UInt256) :
   exact bidsReturnBlindedMem_read64 a base blinded
 
 theorem bidsReturnMem_mload64 (a base blinded deposit : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (bidsReturnMem a base blinded deposit).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (bidsReturnMem a base blinded deposit).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((bidsReturnMem a base blinded deposit).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [bidsReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [bidsReturnMem_size]; decide)
     (bidsReturnMem_read64 a base blinded deposit)
 
 theorem bidsReturnMem_read128_64 (a base blinded deposit : UInt256) :

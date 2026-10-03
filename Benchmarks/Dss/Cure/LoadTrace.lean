@@ -290,13 +290,12 @@ theorem RD.cureLoadToCureExtcodesizeGuard {g : Sat256} {s0 : State}
       (twoWordHashMem key ⟨6⟩ mem) (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [solcSlotWord] using rdAmtLoadRaw⟩
   have hmload64Amt :
-      (if (⟨64⟩ : UInt256).toNat ≥ (twoWordHashMem key ⟨6⟩ mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (twoWordHashMem key ⟨6⟩ mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((twoWordHashMem key ⟨6⟩ mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hAmtMem]; decide) (by decide) hAmtRead64
+    mloadFreePtrValue (by rw [hAmtMem]; decide) hAmtRead64
   have rdSelectorPrefix := evm_run rdAmtLoad with [
     raw dup2 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
@@ -320,14 +319,13 @@ theorem RD.cureLoadToCureExtcodesizeGuard {g : Sat256} {s0 : State}
     loadCureSelectorMem_read64_of_size96 hAmtMem hAmtRead64
   have hmload64Sel :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (loadCureSelectorMem (twoWordHashMem key ⟨6⟩ mem)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+            (loadCureSelectorMem (twoWordHashMem key ⟨6⟩ mem)).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((loadCureSelectorMem (twoWordHashMem key ⟨6⟩ mem)).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hSelMem]; decide) (by decide) hSelRead64
+    mloadFreePtrValue (by rw [hSelMem]; decide) hSelRead64
   have rd1586 := evm_run rdSelectorMem with [
     raw swap2 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
@@ -551,8 +549,7 @@ theorem RD.cureLoadReturnDecodeShortReverts {g : Sat256} {s0 : State}
     (hshort : o.size < 32)
     (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
@@ -594,14 +591,12 @@ theorem RD.cureLoadReturnDecodeOk {g : Sat256} {s0 : State}
     (hlo : 32 ≤ o.size)
     (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hMload128Value :
-      (if (⟨128⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨128⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord)
@@ -777,7 +772,7 @@ theorem RD.cureLoadSubUnderflowRevert {g : Sat256} {s0 : State}
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide)
@@ -890,7 +885,7 @@ theorem RD.cureLoadAddOverflowRevert {g : Sat256} {s0 : State}
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide)
@@ -975,12 +970,11 @@ theorem RD.cureLoadEventReturn {g : Sat256} {s0 : State}
       solcAddrMask from by decide]
     exact solcAddrMask_clean_left hcanonKey
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have rdMload := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),

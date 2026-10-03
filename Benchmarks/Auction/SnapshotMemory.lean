@@ -172,7 +172,7 @@ theorem SnapshotMemory.transport {s mem mem' aw aw' ptr limit}
     (by have hs := h.size; omega), h.read i]
 
 theorem SnapshotMemory.load {s mem aw ptr} (h : SnapshotMemory s mem aw ptr) (i : Fin 6) :
-    loadedWord mem aw (ptr + UInt256.ofNat (32 * i.val)) = s.words[i.val] := by
+    loadedWord mem (ptr + UInt256.ofNat (32 * i.val)) = s.words[i.val] := by
   have hi := i.isLt
   have hb := h.bound
   have hoff : (ptr + UInt256.ofNat (32 * i.val)).toNat = ptr.toNat + 32 * i.val := by
@@ -180,12 +180,9 @@ theorem SnapshotMemory.load {s mem aw ptr} (h : SnapshotMemory s mem aw ptr) (i 
       ulit_toNat' _ (by change 32 * i.val < 2 ^ 256; omega)
     change (UInt256.add ptr _).toNat = _
     rw [addWord_toNat ptr _ (by rw [hn]; change _ < 2 ^ 256; omega), hn]
-  apply loadedWord_of_read h.active
+  apply loadedWord_of_read
   · rw [hoff]
     have hs := h.size
-    omega
-  · rw [hoff]
-    have hc := h.cover
     omega
   · rw [hoff]
     exact h.read i

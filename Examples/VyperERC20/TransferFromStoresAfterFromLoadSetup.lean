@@ -34,10 +34,8 @@ theorem erc20X_transferFromAfterFromLoadSetup {cA gh bl σ σ₀ A I} {g : Sat25
         exact mloadWordValue_of_readWithPadding
           (mem := transferFromAllowanceScratchMem
             (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
-            (transferFromCurrentAllowanceRaw σ I))
-          (aw := UInt256.ofNat 5) (off := ⟨64⟩) (v := transferFromFromWord I)
+            (transferFromCurrentAllowanceRaw σ I)) (off := ⟨64⟩) (v := transferFromFromWord I)
           (by rw [transferFromAllowanceScratchMem_size]; decide)
-          (by decide)
           (transferFromAllowanceScratchMem_read64
             (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
             (transferFromCurrentAllowanceRaw σ I)))

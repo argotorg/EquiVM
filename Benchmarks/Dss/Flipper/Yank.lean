@@ -1263,22 +1263,20 @@ theorem flipperYankX_toCatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1254 C1254 := by
     simpa [rawTarget, flipperSlotWord, solcSlotWord] using rd1254raw
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ (yankCatHashMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (yankCatHashMem I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((yankCatHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [yankCatHashMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [yankCatHashMem_size]; decide)
       (yankCatHashMem_read64 I)
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (yankCatCallMem σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (yankCatCallMem σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((yankCatCallMem σ I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [yankCatCallMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [yankCatCallMem_size]; decide)
       (yankCatCallMem_read64 σ I)
   have rd1272 := evm_run rd1254 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -1541,22 +1539,20 @@ theorem flipperYankX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : St
   have hvatClean : UInt256.land rawVat solcAddrMask = flipperVatTargetWord σ I := by
     simp [rawVat, flipperVatTargetWord, flipperAddressReturnWord]
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ (yankVatHashMem σmem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (yankVatHashMem σmem I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((yankVatHashMem σmem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [yankVatHashMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [yankVatHashMem_size]; decide)
       (yankVatHashMem_read64 σmem I)
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (yankVatFluxCallMem σmem σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (yankVatFluxCallMem σmem σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((yankVatFluxCallMem σmem σ I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [yankVatFluxCallMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [yankVatFluxCallMem_size]; decide)
       (yankVatFluxCallMem_read64 σmem σ I)
   have rd1367pre := h.push1 ⟨2⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1367, C1367, rd1367raw⟩ := rd1367pre.sload (by native_decide) (by evm_ov)
@@ -1761,7 +1757,7 @@ theorem flipperYankX_bidNotLt {cA σ I} {g : Sat256} {s0 : State}
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
-      mem_cost (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      mem_cost (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)

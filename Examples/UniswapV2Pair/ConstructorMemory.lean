@@ -31,7 +31,7 @@ theorem constructorTypeInputMem_read :
   native_decide
 
 theorem constructorTypeInputMem_mload64 :
-    memoryWordLoad constructorTypeInputMem ⟨7⟩ ⟨64⟩ = ⟨128⟩ := by
+    memoryWordLoad constructorTypeInputMem ⟨64⟩ = ⟨128⟩ := by
   unfold memoryWordLoad
   native_decide
 

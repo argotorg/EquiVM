@@ -230,15 +230,13 @@ theorem tinyCtorAbiFreeMem_size (owner : AccountAddress) (scale : UInt256) (useS
     exact lt_usize _ (by norm_num)
 
 theorem tinyCtorFreePtrMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ tinyCtorFreePtrMem.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ tinyCtorFreePtrMem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (tinyCtorFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨192⟩ := by
   apply mloadWordValue_of_readWithPadding
   · rw [tinyCtorFreePtrMem_size]
     decide
-  · decide
   · change tinyCtorFreePtrMem.readWithPadding 64 32 =
       UInt256.toByteArray (⟨192⟩ : UInt256)
     unfold tinyCtorFreePtrMem
@@ -400,8 +398,7 @@ theorem tinyCtorAbiFreeMem_read256 (owner : AccountAddress) (scale : UInt256)
 
 theorem tinyCtorAbiFreeMem_mload192 (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) :
-    (if (⟨192⟩ : UInt256).toNat ≥ (tinyCtorAbiFreeMem owner scale useScale).size
-        ∨ (⟨192⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨192⟩ : UInt256).toNat ≥ (tinyCtorAbiFreeMem owner scale useScale).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((tinyCtorAbiFreeMem owner scale useScale).readWithPadding
@@ -410,14 +407,12 @@ theorem tinyCtorAbiFreeMem_mload192 (owner : AccountAddress) (scale : UInt256)
   apply mloadWordValue_of_readWithPadding
   · rw [tinyCtorAbiFreeMem_size]
     decide
-  · decide
   · simpa [show (⟨192⟩ : UInt256).toNat = 192 from by decide] using
       tinyCtorAbiFreeMem_read192 owner scale useScale
 
 theorem tinyCtorAbiFreeMem_mload224 (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) :
-    (if (⟨224⟩ : UInt256).toNat ≥ (tinyCtorAbiFreeMem owner scale useScale).size
-        ∨ (⟨224⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨224⟩ : UInt256).toNat ≥ (tinyCtorAbiFreeMem owner scale useScale).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((tinyCtorAbiFreeMem owner scale useScale).readWithPadding
@@ -426,14 +421,12 @@ theorem tinyCtorAbiFreeMem_mload224 (owner : AccountAddress) (scale : UInt256)
   apply mloadWordValue_of_readWithPadding
   · rw [tinyCtorAbiFreeMem_size]
     decide
-  · decide
   · simpa [show (⟨224⟩ : UInt256).toNat = 224 from by decide] using
       tinyCtorAbiFreeMem_read224 owner scale useScale
 
 theorem tinyCtorAbiFreeMem_mload256 (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) :
-    (if (⟨256⟩ : UInt256).toNat ≥ (tinyCtorAbiFreeMem owner scale useScale).size
-        ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨256⟩ : UInt256).toNat ≥ (tinyCtorAbiFreeMem owner scale useScale).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((tinyCtorAbiFreeMem owner scale useScale).readWithPadding
@@ -442,7 +435,6 @@ theorem tinyCtorAbiFreeMem_mload256 (owner : AccountAddress) (scale : UInt256)
   apply mloadWordValue_of_readWithPadding
   · rw [tinyCtorAbiFreeMem_size]
     decide
-  · decide
   · simpa [show (⟨256⟩ : UInt256).toNat = 256 from by decide] using
       tinyCtorAbiFreeMem_read256 owner scale useScale
 
@@ -667,8 +659,7 @@ theorem tinyCtorDecodedMem_read160_false (owner : AccountAddress) (scale : UInt2
 
 theorem tinyCtorDecodedMem_mload128 (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (tinyCtorDecodedMem owner scale useScale).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (tinyCtorDecodedMem owner scale useScale).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((tinyCtorDecodedMem owner scale useScale).readWithPadding
@@ -677,13 +668,11 @@ theorem tinyCtorDecodedMem_mload128 (owner : AccountAddress) (scale : UInt256)
   apply mloadWordValue_of_readWithPadding
   · rw [tinyCtorDecodedMem_size]
     decide
-  · decide
   · simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
       tinyCtorDecodedMem_read128 owner scale useScale
 
 theorem tinyCtorDecodedMem_mload160_true (owner : AccountAddress) (scale : UInt256) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (tinyCtorDecodedMem owner scale true).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (tinyCtorDecodedMem owner scale true).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((tinyCtorDecodedMem owner scale true).readWithPadding
@@ -692,13 +681,11 @@ theorem tinyCtorDecodedMem_mload160_true (owner : AccountAddress) (scale : UInt2
   apply mloadWordValue_of_readWithPadding
   · rw [tinyCtorDecodedMem_size]
     decide
-  · decide
   · simpa [show (⟨160⟩ : UInt256).toNat = 160 from by decide] using
       tinyCtorDecodedMem_read160_true owner scale
 
 theorem tinyCtorDecodedMem_mload160_false (owner : AccountAddress) (scale : UInt256) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (tinyCtorDecodedMem owner scale false).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (tinyCtorDecodedMem owner scale false).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((tinyCtorDecodedMem owner scale false).readWithPadding
@@ -707,7 +694,6 @@ theorem tinyCtorDecodedMem_mload160_false (owner : AccountAddress) (scale : UInt
   apply mloadWordValue_of_readWithPadding
   · rw [tinyCtorDecodedMem_size]
     decide
-  · decide
   · simpa [show (⟨160⟩ : UInt256).toNat = 160 from by decide] using
       tinyCtorDecodedMem_read160_false owner scale
 
@@ -948,10 +934,8 @@ theorem tinyCtorInitcodeToBody
     push2 ⟨634⟩, codesize, sub, dup1, push2 ⟨634⟩, dup4,
     raw codecopy 18 (tinyCtorAbiMem owner scale useScale) (UInt256.ofNat 9)
       (by tiny_ctor_decode)
-      (fun s haws hstks => by
-        set_option linter.unusedSimpArgs false in
-          simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-            List.getElem!_cons_zero, List.getElem!_cons_succ]
+      (by
+        simp only [M]
         rw [tinyCtorCode_size]
         decide)
       (by

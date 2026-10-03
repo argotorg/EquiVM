@@ -1402,8 +1402,7 @@ theorem flopperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State} {k C 
   have rd3662 := rd3661pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -1414,8 +1413,7 @@ theorem flopperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State} {k C 
   have rd3668 := rd3667pre.mstore 0 memStore (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memStore, id, twoWordHashMem, wordAt32Mem])
@@ -1431,11 +1429,7 @@ theorem flopperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State} {k C 
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id (relyAuthHashMem I)
   have rd3672 := rd3671pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by norm_num [M, MachineState.M, Cₘ] <;> native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -1672,21 +1666,19 @@ theorem kickEventMem_read64 {mem : ByteArray} (id lot bid : UInt256)
 theorem kickEventMem_mload64 {mem : ByteArray} (id lot bid : UInt256)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (kickEventMem mem id lot bid).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (kickEventMem mem id lot bid).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((kickEventMem mem id lot bid).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [kickEventMem_size id lot bid hmem]; decide) (by decide)
+  mloadFreePtrValue (by rw [kickEventMem_size id lot bid hmem]; decide)
     (kickEventMem_read64 id lot bid hmem hread64)
 
 theorem kickEventReturnMem_mload64 {mem : ByteArray} (id lot bid : UInt256)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          ((UInt256.toByteArray id).write 0 (kickEventMem mem id lot bid) 128 32).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+          ((UInt256.toByteArray id).write 0 (kickEventMem mem id lot bid) 128 32).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         (((UInt256.toByteArray id).write 0 (kickEventMem mem id lot bid) 128 32).readWithPadding
@@ -1699,7 +1691,6 @@ theorem kickEventReturnMem_mload64 {mem : ByteArray} (id lot bid : UInt256)
     · rw [kickEventMem_size id lot bid hmem]
       omega
     · rfl
-  · decide
   · rw [toByteArray_write_read_below_of_gap id (kickEventMem mem id lot bid) 128 64
       (by rw [kickEventMem_size id lot bid hmem]; omega)
       (by omega)

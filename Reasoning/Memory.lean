@@ -29,22 +29,6 @@ theorem byteArray_zeroes_toList (n : Nat) :
 theorem keccak_size (b : ByteArray) : (KEC b).size = 32 := by
   exact Ethereum.Keccak256.hash_size_eq_32 b
 
-/-! ## 0. Memory expansion cost shorthands -/
-
-/-- Compute `MSTORE` memory expansion cost from the literal stack shape. -/
-theorem mstoreCost_of_stack {s : State} {aw off val : UInt256} {t : List UInt256}
-    {mcost : ℕ}
-    (haw : s.machineState.activeWords = aw)
-    (hstk : s.machineState.stack = off :: val :: t)
-    (hcost : Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)) - Cₘ aw = mcost) :
-    memoryExpansionCost s .MSTORE = mcost := by
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ']
-  have htop : s.machineState.stack[0]! = off := by
-    rw [hstk]
-    rfl
-  rw [htop, haw]
-  exact hcost
-
 /-! ## 1. Little-endian byte arithmetic (`fromBytes'` / `toBytes'`) -/
 
 theorem fromBytes'_replicate_zero (k : ℕ) : fromBytes' (List.replicate k (0 : UInt8)) = 0 := by
@@ -1318,25 +1302,22 @@ theorem selector_toNat (cd : ByteArray) (h : 4 ≤ cd.size) :
 
 /-! ## 7. Generic `MLOAD` word-value helper -/
 
-/-- Simplify the value pushed by `MLOAD` when the offset is in bounds and below the active-word
-    limit, leaving the byte read uninterpreted. -/
+/-- Simplify the value pushed by `MLOAD` when the offset is in bounds. -/
 theorem mloadValue_eq_readWithPadding_of_lt_size
-    (mem : ByteArray) (aw off : UInt256) (memSize : Nat)
-    (hsize : mem.size = memSize) (hmem : off.toNat < memSize)
-    (haw : ¬ off ≥ aw * ⟨32⟩) :
-    (if off.toNat ≥ mem.size ∨ off ≥ aw * ⟨32⟩ then ⟨0⟩
+    (mem : ByteArray) (off : UInt256) (memSize : Nat)
+    (hsize : mem.size = memSize) (hmem : off.toNat < memSize) :
+    (if off.toNat ≥ mem.size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding off.toNat 32))) =
       UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding off.toNat 32)) := by
-  rw [if_neg (not_or.mpr ⟨by rw [hsize]; omega, haw⟩)]
+  rw [if_neg (by rw [hsize]; omega)]
 
 /-- Simplify the value pushed by `MLOAD` when the 32-byte memory read is known. -/
-theorem mloadWordValue_of_readWithPadding {mem : ByteArray} {aw off v : UInt256}
+theorem mloadWordValue_of_readWithPadding {mem : ByteArray} {off v : UInt256}
     (hmem : off.toNat < mem.size)
-    (haw : ¬ off ≥ aw * ⟨32⟩)
     (hread : mem.readWithPadding off.toNat 32 = UInt256.toByteArray v) :
-    (if off.toNat ≥ mem.size ∨ off ≥ aw * ⟨32⟩ then ⟨0⟩
+    (if off.toNat ≥ mem.size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding off.toNat 32))) = v := by
-  rw [if_neg (not_or.mpr ⟨by omega, haw⟩), hread, fromByteArrayBigEndian_toByteArray,
+  rw [if_neg (by omega), hread, fromByteArrayBigEndian_toByteArray,
     u256_ofNat_toNat]
 
 /-! ## 8. ABI calldata decode coupling (shared by every contract with arguments) -/

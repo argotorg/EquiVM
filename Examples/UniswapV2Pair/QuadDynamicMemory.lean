@@ -51,7 +51,7 @@ theorem quadDynamicMem_mload64 {mem : ByteArray} (aw ptr word0 word1 word2 word3
     (hin : 96 ≤ mem.size) (hlo : 96 ≤ ptr.toNat) (hgap : ptr.toNat - mem.size < USize.size)
     (hfit : ptr.toNat + 159 < UInt256.size) (haw : aw.toNat * 32 < UInt256.size)
     (hread : mem.readWithPadding 64 32 = ptr.toByteArray) :
-    memoryWordLoad (quadDynamicMem mem ptr word0 word1 word2 word3) (quadDynamicWords aw ptr) ⟨64⟩ = ptr ∧
+    memoryWordLoad (quadDynamicMem mem ptr word0 word1 word2 word3) ⟨64⟩ = ptr ∧
     memoryWordActiveWords (quadDynamicWords aw ptr) ⟨64⟩ = quadDynamicWords aw ptr := by
   obtain ⟨hb, hc⟩ := quadDynamicWords_bounds aw ptr haw hfit
   have hcover : (⟨64⟩ : UInt256).toNat + 32 ≤ (quadDynamicWords aw ptr).toNat * 32 := by change 64 + 32 ≤ _; omega
@@ -59,7 +59,6 @@ theorem quadDynamicMem_mload64 {mem : ByteArray} (aw ptr word0 word1 word2 word3
   apply mloadWordValue_of_readWithPadding
   · change 64 < _
     rw [quadDynamicMem_size ptr word0 word1 word2 word3 hgap (by omega)]; omega
-  · exact UInt256_mload_haw_of_cover _ _ hb hcover
   · exact (quadDynamicMem_read_below ptr word0 word1 word2 word3 64 hin hlo hgap (by omega)).trans hread
 
 end UniswapV2Pair

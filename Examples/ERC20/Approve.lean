@@ -410,13 +410,12 @@ theorem approveReturnMem_read64 (owner spender value : UInt256) :
     allowanceReturnMem_read64]
 
 theorem approveReturnMem_mload64 (owner spender value : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (approveReturnMem owner spender value).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (approveReturnMem owner spender value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((approveReturnMem owner spender value).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [approveReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [approveReturnMem_size]; decide)
     (approveReturnMem_read64 owner spender value)
 
 theorem approveReturnMem_read128 (owner spender value : UInt256) :

@@ -110,14 +110,12 @@ theorem potMoveCalldataMem_read64 {fromW toW rad : UInt256} {mem : ByteArray} (h
 
 theorem potMoveCalldataMem_mload64 {fromW toW rad : UInt256} {mem : ByteArray} (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (potMoveCalldataMem fromW toW rad mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (potMoveCalldataMem fromW toW rad mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((potMoveCalldataMem fromW toW rad mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
-  exact mloadFreePtrValue (by rw [potMoveCalldataMem_size hmem]; decide)
-    (by decide) (potMoveCalldataMem_read64 hmem hread64)
+  exact mloadFreePtrValue (by rw [potMoveCalldataMem_size hmem]; decide) (potMoveCalldataMem_read64 hmem hread64)
 
 /-! ### The 100-byte calldata window reads back as `selector ++ from ++ to ++ rad` -/
 
@@ -797,10 +795,10 @@ theorem potJoinX_callGuard {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {se
       (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) (joinThisWord I) =
       joinThisWord I := by rw [hmask]; exact solcAddrMask_clean_left (joinThisWord_canonical I)
   have hmload0 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemSize]; decide) (by decide) hmemRead64
+    mloadFreePtrValue (by rw [hmemSize]; decide) hmemRead64
   have rd854 := h.jumpdest (by native_decide) (by evm_ov)
   have rd856 := rd854.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rd857 := rd856.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
@@ -852,8 +850,7 @@ theorem potJoinX_callGuard {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {se
     (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
   have hmload1 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (potMoveCalldataMem (joinCallerWord I) (joinThisWord I) rad mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+            (potMoveCalldataMem (joinCallerWord I) (joinThisWord I) rad mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((potMoveCalldataMem (joinCallerWord I) (joinThisWord I) rad mem).readWithPadding

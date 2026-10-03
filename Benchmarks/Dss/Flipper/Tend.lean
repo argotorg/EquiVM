@@ -1030,7 +1030,7 @@ theorem flipperTendX_alreadyFinishedTic {cA σ I} {g : Sat256} {s0 : State}
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [tendHashMem2_size I]; decide) (by decide)
+      (mloadFreePtrValue (by rw [tendHashMem2_size I]; decide)
         (tendHashMem2_read64 I))
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
@@ -1421,7 +1421,7 @@ theorem flipperTendX_alreadyFinishedEnd {cA σ I} {g : Sat256} {s0 : State}
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmemEndSize]; decide) (by decide) hmemEndRead64)
+      (mloadFreePtrValue (by rw [hmemEndSize]; decide) hmemEndRead64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
@@ -1588,7 +1588,7 @@ theorem flipperTendX_lotNotMatching {cA σ I} {g : Sat256} {s0 : State}
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmemLotSize]; decide) (by decide) hmemLotRead64)
+      (mloadFreePtrValue (by rw [hmemLotSize]; decide) hmemLotRead64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)

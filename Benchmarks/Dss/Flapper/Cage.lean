@@ -404,12 +404,11 @@ theorem flapperCageX_toMoveExtcodesizeGuard
   have hread64Mem0 : mem0.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     simpa [mem0] using relyAuthHashMem_read64 I
   have hmload64Mem0 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem0.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem0.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem0.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem0]; decide) (by decide) hread64Mem0
+    mloadFreePtrValue (by rw [hmem0]; decide) hread64Mem0
   have hcallMem :
       (cageMoveCalldataMem src guy rad mem0).size = 228 := by
     simpa [cageMoveCalldataMem, src, guy, rad, mem0] using
@@ -420,14 +419,13 @@ theorem flapperCageX_toMoveExtcodesizeGuard
     simpa [cageMoveCalldataMem, src, guy, rad, mem0] using
       Benchmarks.Dss.Flopper.dentMoveCalldataMem_read64 src guy rad hmem0 hread64Mem0
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (cageMoveCalldataMem src guy rad mem0).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (cageMoveCalldataMem src guy rad mem0).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((cageMoveCalldataMem src guy rad mem0).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have rd3209pre := evm_run h with [
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
   obtain ⟨k3210, C3210, rd3210raw⟩ :=

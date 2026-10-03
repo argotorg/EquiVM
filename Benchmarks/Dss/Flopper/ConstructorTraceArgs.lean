@@ -39,9 +39,7 @@ theorem flopperCtorArgCopyTrace
       9
       (flopperCtorCopiedMem vat gem) (UInt256.ofNat 6)
       (by flopper_ctor_decode)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, List.getElem!_cons_succ]
+      (by
         rw [flopperCtorArgLen_eq]
         decide)
       (by

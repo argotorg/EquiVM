@@ -334,13 +334,12 @@ theorem renounceRoleSlotHashMem_read64 (role account : UInt256) :
       solcFreePtrMem_read64
 
 theorem renounceRoleSlotHashMem_mload64 (role account : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (renounceRoleSlotHashMem role account).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (renounceRoleSlotHashMem role account).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((renounceRoleSlotHashMem role account).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [renounceRoleSlotHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [renounceRoleSlotHashMem_size]; decide)
     (renounceRoleSlotHashMem_read64 role account)
 
 theorem renounceRoleRoleKeyValueToWord {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
@@ -794,8 +793,7 @@ theorem accessControlRenounceRoleX_caller_revert {cA gh bl σ σ₀ A I} {g : Sa
   rw [hlen4] at rd435'
   exact rd435'.rev 0 (by decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      simp [M]
       native_decide)
     (by simp)
 
@@ -1008,8 +1006,7 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
   have rd780 := evm_run rd745 with [swap2, swap1]
   have rd781 := RD.log4 0 (UInt256.ofNat 3) rd780 (by decide) hperm
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      simp [M]
       native_decide)
     (by decide) (by simp)
   have rd233 := evm_run rd781 with [

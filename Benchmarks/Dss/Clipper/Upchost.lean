@@ -520,8 +520,7 @@ theorem clipperVatIlksPostCallMem_read64 (v : ClipperImmutables) (out : ByteArra
 
 theorem clipperVatIlksPostCallMem_mload64 (v : ClipperImmutables) (out : ByteArray)
     (hshort : out.size < 160) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperVatIlksPostCallMem v out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperVatIlksPostCallMem v out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperVatIlksPostCallMem v out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -530,7 +529,6 @@ theorem clipperVatIlksPostCallMem_mload64 (v : ClipperImmutables) (out : ByteArr
     (by
       have hgt := clipperVatIlksPostCallMem_size_gt64 v out hshort hout
       omega)
-    (by decide)
     (clipperVatIlksPostCallMem_read64 v out hshort hout)
 
 theorem clipperVatIlksPostCallMem_size_long (v : ClipperImmutables) (out : ByteArray)
@@ -575,15 +573,13 @@ theorem clipperVatIlksPostCallMem_read64_long (v : ClipperImmutables) (out : Byt
 
 theorem clipperVatIlksPostCallMem_mload64_long (v : ClipperImmutables) (out : ByteArray)
     (hlo : 160 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperVatIlksPostCallMem v out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperVatIlksPostCallMem v out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperVatIlksPostCallMem v out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [clipperVatIlksPostCallMem_size_long v out hlo hout]; decide)
-    (by decide)
     (clipperVatIlksPostCallMem_read64_long v out hlo hout)
 
 theorem clipperDogChopSelectorMem_size_long (v : ClipperImmutables) (out : ByteArray)
@@ -627,15 +623,13 @@ theorem clipperDogChopCalldataMem_read64_long (v : ClipperImmutables) (out : Byt
 
 theorem clipperDogChopCalldataMem_mload64_long (v : ClipperImmutables) (out : ByteArray)
     (hlo : 160 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperDogChopCalldataMem v out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperDogChopCalldataMem v out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperDogChopCalldataMem v out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [clipperDogChopCalldataMem_size_long v out hlo hout]; decide)
-    (by decide)
     (clipperDogChopCalldataMem_read64_long v out hlo hout)
 
 theorem clipperDogChopPostCallAw_eq :
@@ -710,17 +704,14 @@ theorem clipperDogChopPostCallMem_read64 (v : ClipperImmutables) (out outDog : B
 theorem clipperDogChopPostCallMem_mload64 (v : ClipperImmutables) (out outDog : ByteArray)
     (hlo : 160 ≤ out.size) (hout : out.size < UInt256.size)
     (houtDog : outDog.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperDogChopPostCallMem v out outDog).size
-        ∨ (⟨64⟩ : UInt256) ≥ clipperDogChopPostCallAw * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperDogChopPostCallMem v out outDog).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperDogChopPostCallMem v out outDog).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
-  rw [clipperDogChopPostCallAw_eq]
   exact mloadFreePtrValue
     (by rw [clipperDogChopPostCallMem_size v out outDog hlo hout houtDog]; decide)
-    (by decide)
     (clipperDogChopPostCallMem_read64 v out outDog hlo hout houtDog)
 
 theorem clipperDogChopPostCallMem_read128 (v : ClipperImmutables) (out outDog : ByteArray)
@@ -740,8 +731,7 @@ theorem clipperDogChopPostCallMem_read128 (v : ClipperImmutables) (out outDog : 
 theorem clipperDogChopPostCallMem_mload128 (v : ClipperImmutables) (out outDog : ByteArray)
     (hlo : 160 ≤ out.size) (hout : out.size < UInt256.size)
     (hloDog : 32 ≤ outDog.size) (houtDog : outDog.size < UInt256.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (clipperDogChopPostCallMem v out outDog).size
-        ∨ (⟨128⟩ : UInt256) ≥ clipperDogChopPostCallAw * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (clipperDogChopPostCallMem v out outDog).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperDogChopPostCallMem v out outDog).readWithPadding
@@ -749,10 +739,8 @@ theorem clipperDogChopPostCallMem_mload128 (v : ClipperImmutables) (out outDog :
       clipperDogChopWord outDog := by
   have hsize := clipperDogChopPostCallMem_size v out outDog hlo hout houtDog
   have hread := clipperDogChopPostCallMem_read128 v out outDog hlo hout hloDog houtDog
-  rw [clipperDogChopPostCallAw_eq]
   have hcond :
-      ¬ ((⟨128⟩ : UInt256).toNat ≥ (clipperDogChopPostCallMem v out outDog).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩) := by
+      ¬ ((⟨128⟩ : UInt256).toNat ≥ (clipperDogChopPostCallMem v out outDog).size) := by
     rw [hsize]
     decide
   rw [if_neg hcond]
@@ -897,8 +885,7 @@ theorem clipperVatIlksPostCallMem_read256_long (v : ClipperImmutables) (out : By
 
 theorem clipperVatIlksPostCallMem_mload256_long (v : ClipperImmutables) (out : ByteArray)
     (hlo : 160 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨256⟩ : UInt256).toNat ≥ (clipperVatIlksPostCallMem v out).size
-        ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨256⟩ : UInt256).toNat ≥ (clipperVatIlksPostCallMem v out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperVatIlksPostCallMem v out).readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
@@ -909,9 +896,8 @@ theorem clipperVatIlksPostCallMem_mload256_long (v : ClipperImmutables) (out : B
       (fromByteArrayBigEndian ((clipperVatIlksPostCallMem v out).readWithPadding 256 32)) =
         UInt256.ofNat (fromByteArrayBigEndian (out.extract 128 160))
     rw [clipperVatIlksPostCallMem_read256_long v out hlo hout]
-  · exact not_or.mpr
-      ⟨by rw [clipperVatIlksPostCallMem_size_long v out hlo hout]; decide,
-        by native_decide⟩
+  · rw [clipperVatIlksPostCallMem_size_long v out hlo hout]
+    decide
 
 theorem clipperVatIlksDecode_none_short_aux {out : ByteArray} (hshort : out.size < 160) :
     ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05
@@ -1286,13 +1272,12 @@ theorem RD.clipperUpchostToVatIlksExtcodesizeGuard
   let vatWord : UInt256 := EVM.Word.ofNat (↑v.vat : Nat)
   let ilkWord : UInt256 := EVM.Word.ofNat (fromBytesBigEndian ilkBs)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (solcFreePtrMem.readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide)
       solcFreePtrMem_read64
   have hcallMemSize :
       (clipperVatIlksCalldataMem ilkWord solcFreePtrMem).size = 164 := by
@@ -1302,14 +1287,13 @@ theorem RD.clipperUpchostToVatIlksExtcodesizeGuard
         UInt256.toByteArray ⟨128⟩ := by
     exact clipperVatIlksCalldataMem_read64 ilkWord solcFreePtrMem_size solcFreePtrMem_read64
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (clipperVatIlksCalldataMem ilkWord solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (clipperVatIlksCalldataMem ilkWord solcFreePtrMem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((clipperVatIlksCalldataMem ilkWord solcFreePtrMem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMemSize]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMemSize]; decide) hcallRead64
   have rd1459 := evm_run rd with [
     raw jumpdest (by clipper_upchost_decode) (by evm_ov),
     raw push2 ⟨502⟩ (by clipper_upchost_decode) (by evm_ov),

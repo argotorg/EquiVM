@@ -50,8 +50,7 @@ theorem uniswapMappingHashMem_read64 (baseSlot key : UInt256) :
   exact solcMappingHashMem_read64 baseSlot key
 
 theorem uniswapMappingHashMem_mload64 (baseSlot key : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMappingHashMem baseSlot key).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMappingHashMem baseSlot key).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapMappingHashMem baseSlot key).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -86,8 +85,7 @@ theorem uniswapMappingReturnMem_read64 (baseSlot key val : UInt256) :
     (uniswapMappingHashMem_read64 baseSlot key)
 
 theorem uniswapMappingReturnMem_mload64 (baseSlot key val : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMappingReturnMem baseSlot key val).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapMappingReturnMem baseSlot key val).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapMappingReturnMem baseSlot key val).readWithPadding
@@ -146,8 +144,7 @@ theorem uniswapNestedMappingHashMem_read64 (baseSlot owner spender : UInt256) :
   exact solcNestedMappingHashMem_read64 baseSlot owner spender
 
 theorem uniswapNestedMappingHashMem_mload64 (baseSlot owner spender : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapNestedMappingHashMem baseSlot owner spender).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapNestedMappingHashMem baseSlot owner spender).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapNestedMappingHashMem baseSlot owner spender).readWithPadding
@@ -188,8 +185,7 @@ theorem uniswapNestedMappingReturnMem_read64 (baseSlot owner spender val : UInt2
     (uniswapNestedMappingHashMem_read64 baseSlot owner spender)
 
 theorem uniswapNestedMappingReturnMem_mload64 (baseSlot owner spender val : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapNestedMappingReturnMem baseSlot owner spender val).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (uniswapNestedMappingReturnMem baseSlot owner spender val).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((uniswapNestedMappingReturnMem baseSlot owner spender val).readWithPadding

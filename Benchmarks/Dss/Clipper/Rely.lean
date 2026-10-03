@@ -715,15 +715,13 @@ theorem clipperRelyStoreHashMem_read64 (I : ExecutionEnv) :
     (clipperRelyAuthHashMem_size I) (clipperRelyAuthHashMem_read64 I)
 
 theorem clipperRelyStoreHashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperRelyStoreHashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ (UInt256.ofNat 3) * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperRelyStoreHashMem I).size then ⟨0⟩
       else
         UInt256.ofNat (fromByteArrayBigEndian
           ((clipperRelyStoreHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [clipperRelyStoreHashMem_size]; decide)
-    (by decide)
     (clipperRelyStoreHashMem_read64 I)
 
 abbrev clipperRelyErrorMem2 (I : ExecutionEnv) : ByteArray :=
@@ -803,14 +801,12 @@ theorem clipperRelyErrorMem2_read64 (I : ExecutionEnv) :
   exact clipperRelyAuthHashMem_read64 I
 
 theorem clipperRelyErrorMem2_mload0 (I : ExecutionEnv) :
-    (if (⟨0⟩ : UInt256).toNat ≥ (clipperRelyErrorMem2 I).size
-        ∨ (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 7) * ⟨32⟩ then ⟨0⟩
+    (if (⟨0⟩ : UInt256).toNat ≥ (clipperRelyErrorMem2 I).size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian
         ((clipperRelyErrorMem2 I).readWithPadding (⟨0⟩ : UInt256).toNat 32))) =
       clipperRelySourceWord I := by
   exact mloadWordValue_of_readWithPadding
     (by rw [clipperRelyErrorMem2_size]; decide)
-    (by decide)
     (clipperRelyErrorMem2_read0 I)
 
 theorem clipperRelyNotAuthorizedWord :
@@ -955,8 +951,7 @@ theorem clipperRelyCodecopyMload0 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) (I : ExecutionEnv) :
     (if (⟨0⟩ : UInt256).toNat ≥
           (code.write 9316 (solcErrorStringMem2 (⟨22⟩ : UInt256)
-            (clipperRelyAuthHashMem I)) 0 32).size
-        ∨ (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 7) * ⟨32⟩ then ⟨0⟩
+            (clipperRelyAuthHashMem I)) 0 32).size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian
         ((code.write 9316 (solcErrorStringMem2 (⟨22⟩ : UInt256)
           (clipperRelyAuthHashMem I)) 0 32).readWithPadding
@@ -970,7 +965,6 @@ theorem clipperRelyCodecopyMload0 (v : ClipperImmutables) {code : ByteArray}
       change 0 < (code.write 9316
         (solcErrorStringMem2 (⟨22⟩ : UInt256) (clipperRelyAuthHashMem I)) 0 32).size
       omega)
-    (by decide)
     (clipperRelyCodecopyRead0 v hpatch I)
 
 theorem clipperRelyErrorCopiedMem_size (v : ClipperImmutables) {code : ByteArray}
@@ -1041,15 +1035,13 @@ theorem clipperRelyErrorStringMem_read64 (v : ClipperImmutables) {code : ByteArr
 
 theorem clipperRelyErrorStringMem_mload64 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperRelyErrorStringMem code I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperRelyErrorStringMem code I).size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian
         ((clipperRelyErrorStringMem code I).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [clipperRelyErrorStringMem_size v hpatch I]; decide)
-    (by decide)
     (clipperRelyErrorStringMem_read64 v hpatch I)
 
 theorem clipperJumpDest3422 (v : ClipperImmutables) {code : ByteArray}
@@ -1180,8 +1172,7 @@ theorem clipperRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     raw push1 ⟨64⟩ (by clipper_rely_decode) (by evm_ov),
     raw dup1 (by clipper_rely_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost
-      (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide)
-        (by decide) (clipperRelyAuthHashMem_read64 I))
+      (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide) (clipperRelyAuthHashMem_read64 I))
       (by native_decide) (by evm_ov)]
   have rd3372 := rd3368.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_rely_decode) (by evm_ov)

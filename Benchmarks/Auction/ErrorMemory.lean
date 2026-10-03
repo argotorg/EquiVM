@@ -28,11 +28,9 @@ theorem errorStringMem4_read64 (len first second : UInt256) {mem : ByteArray}
 theorem errorStringMem4_mload64 (len first second : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96)
     (hread : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (errorStringMem4 len first second mem).size ∨
-        (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩ else
+    (if (⟨64⟩ : UInt256).toNat ≥ (errorStringMem4 len first second mem).size then ⟨0⟩ else
       UInt256.ofNat (fromByteArrayBigEndian
         ((errorStringMem4 len first second mem).readWithPadding 64 32))) = ⟨128⟩ := by
-  exact mloadFreePtrValue (by rw [errorStringMem4_size len first second hmem]; decide)
-    (by decide) (errorStringMem4_read64 len first second hmem hread)
+  exact mloadFreePtrValue (by rw [errorStringMem4_size len first second hmem]; decide) (errorStringMem4_read64 len first second hmem hread)
 
 end Auction

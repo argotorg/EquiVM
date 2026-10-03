@@ -127,7 +127,7 @@ theorem solcReturnDataMem_mload_size {mem : ByteArray} (aw ptr : UInt256) (out :
     (hin : 96 ≤ mem.size) (hptr : ptr.toNat + 32 ≤ mem.size)
     (hcover : ptr.toNat + 64 ≤ aw.toNat * 32)
     (haw : aw.toNat * 32 < UInt256.size) (hfit : ptr.toNat + out.size + 95 < UInt256.size) :
-    memoryWordLoad (solcReturnDataMem mem ptr out) (solcReturnDataActiveWords aw ptr out) ptr = UInt256.ofNat out.size ∧
+    memoryWordLoad (solcReturnDataMem mem ptr out) ptr = UInt256.ofNat out.size ∧
     memoryWordActiveWords (solcReturnDataActiveWords aw ptr out) ptr = solcReturnDataActiveWords aw ptr out := by
   obtain ⟨hb, hge⟩ := solcReturnDataActiveWords_bounds aw ptr out haw hfit
   have hc : ptr.toNat + 32 ≤ (solcReturnDataActiveWords aw ptr out).toNat * 32 := by omega
@@ -135,7 +135,6 @@ theorem solcReturnDataMem_mload_size {mem : ByteArray} (aw ptr : UInt256) (out :
   · apply mloadWordValue_of_readWithPadding
     · rw [solcReturnDataMem_size ptr out hin hptr (by omega)]
       omega
-    · exact UInt256_mload_haw_of_cover _ _ hb hc
     · exact solcReturnDataMem_read_size ptr out hin hptr (by omega)
   · exact UInt256_M_same_of_cover _ _ hb hc
 
@@ -144,7 +143,7 @@ theorem solcReturnDataMem_mload_word {mem : ByteArray} (aw ptr : UInt256) (out :
     (hcover : ptr.toNat + 64 ≤ aw.toNat * 32)
     (haw : aw.toNat * 32 < UInt256.size) (hfit : ptr.toNat + out.size + 95 < UInt256.size)
     (hout : 32 ≤ out.size) :
-    memoryWordLoad (solcReturnDataMem mem ptr out) (solcReturnDataActiveWords aw ptr out) (ptr + ⟨32⟩) =
+    memoryWordLoad (solcReturnDataMem mem ptr out) (ptr + ⟨32⟩) =
       UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) ∧
     memoryWordActiveWords (solcReturnDataActiveWords aw ptr out) (ptr + ⟨32⟩) = solcReturnDataActiveWords aw ptr out := by
   have h32 : (ptr + ⟨32⟩).toNat = ptr.toNat + 32 := uadd_word_ofNat_toNat ptr 32 (by omega)
@@ -152,9 +151,8 @@ theorem solcReturnDataMem_mload_word {mem : ByteArray} (aw ptr : UInt256) (out :
   have hc : (ptr + ⟨32⟩).toNat + 32 ≤ (solcReturnDataActiveWords aw ptr out).toNat * 32 := by rw [h32]; omega
   constructor
   · have hm := mloadValue_eq_readWithPadding_of_lt_size (solcReturnDataMem mem ptr out)
-      (solcReturnDataActiveWords aw ptr out) (ptr + ⟨32⟩) _
+      (ptr + ⟨32⟩) _
       (solcReturnDataMem_size ptr out hin hptr (by omega)) (by rw [h32]; omega)
-      (UInt256_mload_haw_of_cover _ _ hb hc)
     exact hm.trans (congrArg (fun bytes => UInt256.ofNat (fromByteArrayBigEndian bytes))
       (solcReturnDataMem_read_word ptr out hin hptr (by omega) hout))
   · exact UInt256_M_same_of_cover _ _ hb hc

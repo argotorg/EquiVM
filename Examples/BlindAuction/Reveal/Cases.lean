@@ -17,7 +17,7 @@ structure RevealLoopCursor where
   haw : 3 ≤ aw.toNat
   hawSmall : aw.toNat * 32 < UInt256.size
   hfpLoad :
-    (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ mem.size
      then ⟨0⟩
      else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp
@@ -250,7 +250,7 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
     (hread : mem.readWithPadding 64 32 = UInt256.toByteArray fp)
     (hmem96 : 96 ≤ mem.size) (hfp96 : 96 ≤ fp.toNat)
     (hfpPrefix :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -279,8 +279,7 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
         memPacked awPacked rdata (cA, σ) k' C' ∧
       3 ≤ awNext.toNat ∧
       awNext.toNat * 32 < UInt256.size ∧
-      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size ∨
-          (⟨64⟩ : UInt256) ≥ awNext * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memNext.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -290,8 +289,7 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
       memNext.size ≤ newFree.toNat + 32 ∧
       newFree.toNat + 32 - memNext.size < USize.size ∧
       newFree.toNat = fp.toNat + 97 ∧
-      (if (⟨64⟩ : UInt256).toNat ≥ memPacked.size ∨
-          (⟨64⟩ : UInt256) ≥ awPacked * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memPacked.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memPacked.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -300,11 +298,8 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
        let newFree := (⟨65⟩ : UInt256) + base
        let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
        let mem4 := scratch_revealPackedLenMem memPacked fp packedLen
-       let aw1 := UInt256.ofNat (MachineState.M awPacked.toNat (⟨64⟩ : UInt256).toNat 32)
-       let aw2 := UInt256.ofNat (MachineState.M aw1.toNat fp.toNat 32)
        let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
-       let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨64⟩ : UInt256).toNat 32)
-       if fp.toNat ≥ mem5.size ∨ fp ≥ aw3 * ⟨32⟩
+       if fp.toNat ≥ mem5.size
        then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem5.readWithPadding fp.toNat 32))) =
         UInt256.sub (UInt256.sub (((⟨65⟩ : UInt256) + ((⟨32⟩ : UInt256) + fp))) fp)
@@ -374,19 +369,17 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
       using scratch_revealPackedPrefix_size (mem := mem) (fp := fp) (value := value)
         (fakeWord := fakeWord) (secret := secret) hfit97 hmemle hgap
   have hfpPacked :
-      (if (⟨64⟩ : UInt256).toNat ≥ memP3.size ∨
-          (⟨64⟩ : UInt256) ≥ awP4 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memP3.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memP3.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         fp := by
     exact scratch_mload_of_read
-      (mem := memP3) (fp := (⟨64⟩ : UInt256)) (packedLen := fp) (aw := awP4)
+      (mem := memP3) (fp := (⟨64⟩ : UInt256)) (packedLen := fp)
       (by
         change 64 < memP3.size
         rw [hsizeP3]
         omega)
-      (by simpa [awP4] using scratch_not_mload64_oob_of_aw_ge3_small hawP4 hawP4Small)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide] using hreadP3)
   have hreadLen : memP5.readWithPadding fp.toNat 32 = UInt256.toByteArray packedLen := by
     simpa [base, fakeBase, secretBase, newFree, packedLen, memP1, memP2, memP3,
@@ -407,20 +400,13 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
        let aw2 := UInt256.ofNat (MachineState.M aw1.toNat fp.toNat 32)
        let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
        let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨64⟩ : UInt256).toNat 32)
-       if fp.toNat ≥ mem5.size ∨ fp ≥ aw3 * ⟨32⟩
+       if fp.toNat ≥ mem5.size
        then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem5.readWithPadding fp.toNat 32))) =
         packedLen := by
     exact scratch_mload_of_read
-      (mem := memP5) (fp := fp) (packedLen := packedLen) (aw := awS3)
+      (mem := memP5) (fp := fp) (packedLen := packedLen)
       (by rw [hsizeP5]; omega)
-      (by
-        have hnotS2 : ¬ (fp ≥ awS2 * ⟨32⟩) := by
-          simpa [awS2] using
-            scratch_not_mload_oob_after_M32 (aw := awS1) (off := fp) hawS2Small
-        have hS3eqS2 : awS3 = awS2 := by
-          simpa [awS3] using scratch_reveal_aw_mload64_of_ge3 hawS2
-        simpa [hS3eqS2] using hnotS2)
       hreadLen
   have hhashPacked :
       (let base := (⟨32⟩ : UInt256) + fp
@@ -443,19 +429,17 @@ theorem scratch_revealLoopBody_toPacked_fromElemSlot_cursor {I} {g : Sat256}
       using scratch_revealPackedMem_freePtr_read (mem := mem) (fp := fp) (value := value)
         (fakeWord := fakeWord) (secret := secret) hfit97 hmemle hgap
   have hfpFinal :
-      (if (⟨64⟩ : UInt256).toNat ≥ memP5.size ∨
-          (⟨64⟩ : UInt256) ≥ awS5 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memP5.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memP5.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         newFree := by
     exact scratch_mload_of_read
-      (mem := memP5) (fp := (⟨64⟩ : UInt256)) (packedLen := newFree) (aw := awS5)
+      (mem := memP5) (fp := (⟨64⟩ : UInt256)) (packedLen := newFree)
       (by
         change 64 < memP5.size
         rw [hsizeP5]
         omega)
-      (by simpa [awS5] using scratch_not_mload64_oob_of_aw_ge3_small hawS5 hawS5Small)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide] using hreadFree)
   obtain ⟨kLoad, CLoad, rd1987⟩ :=
     scratch_blindAuctionRevealX_loopBody_loads_toFakeDecoder
@@ -619,24 +603,23 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
   have rd1027 := evm_run rd' with [
     caller, push0, swap1, dup2,
     raw mstore 0 mem1 aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [haw0]
         simp)
       (by rfl) haw0 (by evm_ov)]
   have rd1033 := evm_run rd1027 with [
     push1 ⟨4⟩, push1 ⟨32⟩,
     raw mstore 0 mem2 aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
-        rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [haw32]
         simp)
       (by rfl) haw32 (by evm_ov),
     push1 ⟨64⟩, dup2,
     raw keccak256 0 (revealScratchBidsLengthSlot I) aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M]
         rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
         rw [haw64]
         simp)
@@ -669,8 +652,8 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
   have rd1062 := evm_run rd1054 with [
     swap1, push0,
     raw mstore 0 mem3 aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
         rw [haw0]
         simp)
       (by rfl) haw0 (by evm_ov),
@@ -678,8 +661,8 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
     raw keccak256 0
       (uInt256OfByteArray (KEC (UInt256.toByteArray (revealScratchBidsLengthSlot I))))
       aw (by decide)
-      (fun s haws hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
+      (by
+        simp [M]
         rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
         rw [haw0]
         simp)
@@ -853,7 +836,7 @@ theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256
         fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata (cA, σ) k C)
     (hfp :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -862,11 +845,8 @@ theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256
       let newFree := (⟨65⟩ : UInt256) + base
       let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
       let mem4 := scratch_revealPackedLenMem mem fp packedLen
-      let aw1 := UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32)
-      let aw2 := UInt256.ofNat (MachineState.M aw1.toNat fp.toNat 32)
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
-      let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨64⟩ : UInt256).toNat 32)
-      (if fp.toNat ≥ mem5.size ∨ fp ≥ aw3 * ⟨32⟩
+      (if fp.toNat ≥ mem5.size
        then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem5.readWithPadding fp.toNat 32))) =
         packedLen)
@@ -1075,7 +1055,7 @@ theorem scratch_revealLoopAdvance_refundAdded_zeroBlinded {I} {g : Sat256}
     (hawNext : 3 ≤ awNext.toNat)
     (hawNextSmall : awNext.toNat * 32 < UInt256.size)
     (hfpNext :
-      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size ∨ (⟨64⟩ : UInt256) ≥ awNext * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memNext.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -1301,7 +1281,7 @@ theorem scratch_revealLoopAdvance_of_get {I} {g : Sat256}
     (hawNext : 3 ≤ awNext.toNat)
     (hawNextSmall : awNext.toNat * 32 < UInt256.size)
     (hfpNext :
-      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size ∨ (⟨64⟩ : UInt256) ≥ awNext * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memNext.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -1436,7 +1416,7 @@ theorem scratch_revealLoopAdvance_refundAddedOk_zeroBlinded {I} {g : Sat256}
     (hawNext : 3 ≤ awNext.toNat)
     (hawNextSmall : awNext.toNat * 32 < UInt256.size)
     (hfpNext :
-      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size ∨ (⟨64⟩ : UInt256) ≥ awNext * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memNext.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -1599,7 +1579,7 @@ theorem scratch_revealLoopAdvance_refundPlaced_of_get {I} {g : Sat256}
     (hawNext : 3 ≤ awNext.toNat)
     (hawNextSmall : awNext.toNat * 32 < UInt256.size)
     (hfpNext :
-      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size ∨ (⟨64⟩ : UInt256) ≥ awNext * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memNext.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -1713,7 +1693,7 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidZero {I} {g :
     (hawNext : 3 ≤ awNext.toNat)
     (hawNextSmall : awNext.toNat * 32 < UInt256.size)
     (hfpNext :
-      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size ∨ (⟨64⟩ : UInt256) ≥ awNext * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memNext.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -1868,7 +1848,7 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero {I} {
     (hawNext : 3 ≤ awNext.toNat)
     (hawNextSmall : awNext.toNat * 32 < UInt256.size)
     (hfpNext :
-      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size ∨ (⟨64⟩ : UInt256) ≥ awNext * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memNext.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -2052,7 +2032,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
         fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata (cA, σ) k C)
     (hfp :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -2061,11 +2041,8 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
       let newFree := (⟨65⟩ : UInt256) + base
       let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
       let mem4 := scratch_revealPackedLenMem mem fp packedLen
-      let aw1 := UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32)
-      let aw2 := UInt256.ofNat (MachineState.M aw1.toNat fp.toNat 32)
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
-      let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨64⟩ : UInt256).toNat 32)
-      (if fp.toNat ≥ mem5.size ∨ fp ≥ aw3 * ⟨32⟩
+      (if fp.toNat ≥ mem5.size
        then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem5.readWithPadding fp.toNat 32))) =
         packedLen)
@@ -2230,7 +2207,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
         fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata (cA, σ) k C)
     (hfp :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -2239,11 +2216,8 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
       let newFree := (⟨65⟩ : UInt256) + base
       let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
       let mem4 := scratch_revealPackedLenMem mem fp packedLen
-      let aw1 := UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32)
-      let aw2 := UInt256.ofNat (MachineState.M aw1.toNat fp.toNat 32)
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
-      let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨64⟩ : UInt256).toNat 32)
-      (if fp.toNat ≥ mem5.size ∨ fp ≥ aw3 * ⟨32⟩
+      (if fp.toNat ≥ mem5.size
        then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem5.readWithPadding fp.toNat 32))) =
         packedLen)
@@ -2424,7 +2398,7 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
         fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata (cA, σ) k C)
     (hfp :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
        then ⟨0⟩
        else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = fp)
@@ -2433,11 +2407,8 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
       let newFree := (⟨65⟩ : UInt256) + base
       let packedLen := UInt256.sub (UInt256.sub newFree fp) ⟨32⟩
       let mem4 := scratch_revealPackedLenMem mem fp packedLen
-      let aw1 := UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32)
-      let aw2 := UInt256.ofNat (MachineState.M aw1.toNat fp.toNat 32)
       let mem5 := scratch_revealPackedFreePtrMem mem4 newFree
-      let aw3 := UInt256.ofNat (MachineState.M aw2.toNat (⟨64⟩ : UInt256).toNat 32)
-      (if fp.toNat ≥ mem5.size ∨ fp ≥ aw3 * ⟨32⟩
+      (if fp.toNat ≥ mem5.size
        then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem5.readWithPadding fp.toNat 32))) =
         packedLen)

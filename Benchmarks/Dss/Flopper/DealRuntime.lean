@@ -195,12 +195,11 @@ theorem flopperDealX_toMintExtcodesizeGuard
   have hread64Map : memMap.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     simpa [memMap, id] using twoWordHashMem_read64 id ⟨1⟩ hmemStart hread64Start
   have hmload64Map :
-      (if (⟨64⟩ : UInt256).toNat ≥ memMap.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memMap.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memMap.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemMap]; decide) (by decide) hread64Map
+    mloadFreePtrValue (by rw [hmemMap]; decide) hread64Map
   have hcallMem : (dealMintCalldataMem guy lot memMap).size = 196 :=
     dealMintCalldataMem_size guy lot hmemMap
   have hcallRead64 :
@@ -208,14 +207,13 @@ theorem flopperDealX_toMintExtcodesizeGuard
         UInt256.toByteArray ⟨128⟩ :=
     dealMintCalldataMem_read64 guy lot hmemMap hread64Map
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (dealMintCalldataMem guy lot memMap).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (dealMintCalldataMem guy lot memMap).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((dealMintCalldataMem guy lot memMap).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have rd4162pre := evm_run rd4159 with [
     raw jumpdest (by native_decide) (by evm_ov),
     raw push1 ⟨3⟩ (by native_decide) (by evm_ov)]
@@ -232,8 +230,7 @@ theorem flopperDealX_toMintExtcodesizeGuard
   have rd4167 := rd4166pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -245,8 +242,7 @@ theorem flopperDealX_toMintExtcodesizeGuard
   have rd4174 := rd4173pre.mstore 0 memMap (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memMap, id, twoWordHashMem, wordAt32Mem])
@@ -262,11 +258,7 @@ theorem flopperDealX_toMintExtcodesizeGuard
     simpa [base, memMap, id] using twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd4179 := rd4178pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)

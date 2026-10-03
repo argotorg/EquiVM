@@ -36,7 +36,7 @@ def kissDaiCalldataMem (I : ExecutionEnv) : ByteArray :=
 
 def kissDaiOutPtr (I : ExecutionEnv) : UInt256 :=
   if (⟨64⟩ : UInt256).toNat ≥ (kissDaiCalldataMem I).size
-      ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then
+ then
     ⟨0⟩
   else
     UInt256.ofNat
@@ -192,7 +192,7 @@ theorem kissDaiCalldataMem_read128_36 (I : ExecutionEnv) :
 theorem kissDaiOutPtr_eq (I : ExecutionEnv) :
     kissDaiOutPtr I = ⟨128⟩ := by
   unfold kissDaiOutPtr
-  exact mloadFreePtrValue (by rw [kissDaiCalldataMem_size]; decide) (by decide)
+  exact mloadFreePtrValue (by rw [kissDaiCalldataMem_size]; decide)
     (kissDaiCalldataMem_read64 I)
 
 theorem kissDaiInSize_eq (I : ExecutionEnv) :
@@ -813,14 +813,12 @@ theorem RD.vowKissDaiReturnDecodeOk
     (hlo : 32 ≤ o.size)
     (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hMload128Value :
-      (if (⟨128⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨128⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         retWord) :
@@ -830,7 +828,7 @@ theorem RD.vowKissDaiReturnDecodeOk
       mem (UInt256.ofNat 6) o acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨1722⟩) (okPc := ⟨1742⟩) rd
     hlo hhi
-    mem_cost (by decide) hMload64Value hMload128Value mem_cost (by decide)
+    (by native_decide) hMload64Value hMload128Value (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -847,8 +845,7 @@ theorem RD.vowKissDaiReturnDecodeShortReverts
     (hshort : o.size < 32)
     (hhi : o.size < UInt256.size)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩) :
@@ -856,7 +853,7 @@ theorem RD.vowKissDaiReturnDecodeShortReverts
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨1722⟩) (okPc := ⟨1742⟩) rd
     hshort hhi
-    mem_cost (by decide) hMload64Value
+    (by native_decide) hMload64Value
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -899,7 +896,7 @@ theorem RD.vowKissInsufficientSurplus
     dup1,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rd1760 := rd1756.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
@@ -1485,28 +1482,25 @@ theorem vowKissDaiSuccessInsufficientSurplusBodyCore
         UInt256.toByteArray ⟨128⟩ :=
     kissDaiWrite_read64 I o 32 (by omega) ho32
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (o.write 0 (kissDaiCalldataMem I) 128 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (o.write 0 (kissDaiCalldataMem I) 128 32).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((o.write 0 (kissDaiCalldataMem I) 128 32).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hmload128 :
-      (if (⟨128⟩ : UInt256).toNat ≥ (o.write 0 (kissDaiCalldataMem I) 128 32).size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨128⟩ : UInt256).toNat ≥ (o.write 0 (kissDaiCalldataMem I) 128 32).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((o.write 0 (kissDaiCalldataMem I) 128 32).readWithPadding
             (⟨128⟩ : UInt256).toNat 32))) =
         vatDai := by
     have hnot :
-        ¬ ((⟨128⟩ : UInt256).toNat ≥ (o.write 0 (kissDaiCalldataMem I) 128 32).size
-            ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
+        ¬ ((⟨128⟩ : UInt256).toNat ≥ (o.write 0 (kissDaiCalldataMem I) 128 32).size) := by
       rw [hmem]
       native_decide
-    rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+    rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by u256_toNat,
       kissDaiWrite_read128_32 I o ho32]
   obtain ⟨_, _, rd1745⟩ :=
     RD.vowKissDaiReturnDecodeOk (retWord := vatDai) rd1722 ho32 hosz hmload64 hmload128
@@ -1724,14 +1718,13 @@ theorem vowKissDaiDecodeShortBodyCore
         UInt256.toByteArray ⟨128⟩ :=
     kissDaiWrite_read64 I o o.size (by omega) (by omega)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (o.write 0 (kissDaiCalldataMem I) 128 o.size).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (o.write 0 (kissDaiCalldataMem I) 128 o.size).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((o.write 0 (kissDaiCalldataMem I) 128 o.size).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hrev := RD.vowKissDaiReturnDecodeShortReverts rd1722 hshort hosz hmload64
   have hAsh :
       vowSlotWord ⟨6⟩ σ_evm I = vowSlotWord ⟨6⟩ σ_solm I :=

@@ -1042,11 +1042,7 @@ theorem uniswapSyncBody
                             (by
                               simpa [packed, mem0, uniswapUpdateElapsedWord,
                                 uniswapUpdateTimestampWord, uniswapSlotWord] using rd7339)
-                            (by
-                              intro s haw hstk
-                              simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                hstk]
-                              native_decide)
+                            (by simp [M, Cₘ]; native_decide)
                             (by
                               simpa [mem0] using
                                 balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
@@ -1054,31 +1050,21 @@ theorem uniswapSyncBody
                                   ho1Size)
                             (by native_decide)
                             (by
-                              intro s haw hstk
-                              simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                hstk]
+                              simp [M, Cₘ]
                               native_decide)
                             (by native_decide)
                             (by
-                              intro s haw hstk
-                              simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                hstk]
+                              simp [M, Cₘ]
                               native_decide)
                             (by native_decide)
-                            (by
-                              intro s haw hstk
-                              simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                hstk]
-                              native_decide)
+                            (by simp [M, Cₘ]; native_decide)
                             (by
                               simpa [mem0] using
                                 uniswapSyncLogMem_mload64 packed mem0 hmemSize128
                                   hmemRead64Local)
                             (by native_decide)
                             (by
-                              intro s haw hstk
-                              simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                hstk]
+                              simp [M, Cₘ]
                               native_decide)
                             (by native_decide) hperm (by jump_dest)
                             (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1267,11 +1253,7 @@ theorem uniswapSyncBody
                               (by
                                 simpa [packed, mem0, uniswapUpdateElapsedWord,
                                   uniswapUpdateTimestampWord, uniswapSlotWord] using rd7339)
-                              (by
-                                intro s haw hstk
-                                simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                  hstk]
-                                native_decide)
+                              (by simp [M, Cₘ]; native_decide)
                               (by
                                 simpa [mem0] using
                                   balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
@@ -1279,31 +1261,21 @@ theorem uniswapSyncBody
                                     ho1Size)
                               (by native_decide)
                               (by
-                                intro s haw hstk
-                                simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                  hstk]
+                                simp [M, Cₘ]
                                 native_decide)
                               (by native_decide)
                               (by
-                                intro s haw hstk
-                                simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                  hstk]
+                                simp [M, Cₘ]
                                 native_decide)
                               (by native_decide)
-                              (by
-                                intro s haw hstk
-                                simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                  hstk]
-                                native_decide)
+                              (by simp [M, Cₘ]; native_decide)
                               (by
                                 simpa [mem0] using
                                   uniswapSyncLogMem_mload64 packed mem0 hmemSize128
                                     hmemRead64Local)
                               (by native_decide)
                               (by
-                                intro s haw hstk
-                                simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                  hstk]
+                                simp [M, Cₘ]
                                 native_decide)
                               (by native_decide) hperm (by jump_dest)
                               (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1563,11 +1535,7 @@ theorem uniswapSyncBody
                                     reserve1Word, mem0, uniswapUpdateElapsedFromStorage,
                                     uniswapUpdateElapsedWord, uniswapUpdateTimestampWord,
                                     uniswapSlotWord] using rd7339)
-                                (by
-                                  intro s haw hstk
-                                  simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                    hstk]
-                                  native_decide)
+                                (by simp [M, Cₘ]; native_decide)
                                 (by
                                   simpa [mem0] using
                                     balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
@@ -1575,31 +1543,21 @@ theorem uniswapSyncBody
                                       ho1Size)
                                 (by native_decide)
                                 (by
-                                  intro s haw hstk
-                                  simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                    hstk]
+                                  simp [M, Cₘ]
                                   native_decide)
                                 (by native_decide)
                                 (by
-                                  intro s haw hstk
-                                  simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                    hstk]
+                                  simp [M, Cₘ]
                                   native_decide)
                                 (by native_decide)
-                                (by
-                                  intro s haw hstk
-                                  simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                    hstk]
-                                  native_decide)
+                                (by simp [M, Cₘ]; native_decide)
                                 (by
                                   simpa [mem0] using
                                     uniswapSyncLogMem_mload64 packedCumulative mem0 hmemSize128
                                       hmemRead64Local)
                                 (by native_decide)
                                 (by
-                                  intro s haw hstk
-                                  simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
-                                    hstk]
+                                  simp [M, Cₘ]
                                   native_decide)
                                 (by native_decide) hperm (by jump_dest)
                                 (by simp only [List.length_cons, List.length_nil]; omega)

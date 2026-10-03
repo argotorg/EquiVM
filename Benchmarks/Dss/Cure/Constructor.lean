@@ -183,8 +183,7 @@ theorem cureCtorSuccessRDret
     exact twoWordHashMem_read64 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
       solcFreePtrMem_read64
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (cureCtorWardsHashMem I).size ∨
-          (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (cureCtorWardsHashMem I).size
         then ⟨0⟩ else UInt256.ofNat (fromByteArrayBigEndian
           ((cureCtorWardsHashMem I).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by

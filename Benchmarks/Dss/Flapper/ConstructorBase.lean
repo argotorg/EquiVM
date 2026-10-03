@@ -259,29 +259,25 @@ private theorem flapperCtorArgsMem_read_word (vat gem : AccountAddress)
   · norm_num
 
 theorem flapperCtorArgsMem_mload_vat (vat gem : AccountAddress) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (flapperCtorArgsMem vat gem).size ∨
-        (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (flapperCtorArgsMem vat gem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((flapperCtorArgsMem vat gem).readWithPadding 128 32))) =
       EVM.word vat.val := by
   apply mloadWordValue_of_readWithPadding
   · rw [flapperCtorArgsMem_size]
     decide
-  · decide
   · simpa using
       flapperCtorArgsMem_read_word vat gem 0 (by norm_num)
         (by simpa using flapperCtorArgsTail_extract_first vat gem)
 
 theorem flapperCtorArgsMem_mload_gem (vat gem : AccountAddress) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (flapperCtorArgsMem vat gem).size ∨
-        (⟨160⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (flapperCtorArgsMem vat gem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((flapperCtorArgsMem vat gem).readWithPadding 160 32))) =
       EVM.word gem.val := by
   apply mloadWordValue_of_readWithPadding
   · rw [flapperCtorArgsMem_size]
     decide
-  · decide
   · simpa using
       flapperCtorArgsMem_read_word vat gem 32 (by norm_num)
         (by simpa using flapperCtorArgsTail_extract_second vat gem)

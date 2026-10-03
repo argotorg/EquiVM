@@ -1232,8 +1232,7 @@ theorem flopperDentX_toGuyGuard
   have rd1714 := rd1713pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -1243,8 +1242,7 @@ theorem flopperDentX_toGuyGuard
   have rd1719 := rd1718pre.mstore 0 memMap (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memMap, id, twoWordHashMem, wordAt32Mem])
@@ -1260,11 +1258,7 @@ theorem flopperDentX_toGuyGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ (dentIdWord I) solcFreePtrMem
   have rd1723 := rd1722pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by norm_num [M, MachineState.M, Cₘ] <;> native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -1380,8 +1374,7 @@ theorem flopperDentX_toTicGtGuard
   have rd1812 := rd1811pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, memGuy, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -1391,8 +1384,7 @@ theorem flopperDentX_toTicGtGuard
   have rd1817 := rd1816pre.mstore 0 memTic (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memTic, memGuy, id, twoWordHashMem, wordAt32Mem])
@@ -1408,11 +1400,7 @@ theorem flopperDentX_toTicGtGuard
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memGuy
   have rd1821 := rd1820pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by norm_num [M, MachineState.M, Cₘ] <;> native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -1490,8 +1478,7 @@ theorem flopperDentX_ticFinished {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
   have rd1854 := rd1853pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, memTic, memGuy, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -1501,8 +1488,7 @@ theorem flopperDentX_ticFinished {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
   have rd1859 := rd1858pre.mstore 0 memTicZero (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memTicZero, memTic, id, twoWordHashMem, wordAt32Mem])
@@ -1518,11 +1504,7 @@ theorem flopperDentX_ticFinished {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd1863 := rd1862pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by norm_num [M, MachineState.M, Cₘ] <;> native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)

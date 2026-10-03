@@ -263,8 +263,7 @@ theorem cureLoadBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           (out.write 0
                             (loadCureSelectorMem
                               (twoWordHashMem key ⟨6⟩
-                                (twoWordHashMem key ⟨5⟩ solcFreePtrMem))) 128 out.size).size
-                        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+                                (twoWordHashMem key ⟨5⟩ solcFreePtrMem))) 128 out.size).size then ⟨0⟩
                      else UInt256.ofNat
                        (fromByteArrayBigEndian
                         ((out.write 0
@@ -273,7 +272,7 @@ theorem cureLoadBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               (twoWordHashMem key ⟨5⟩ solcFreePtrMem))) 128 out.size).readWithPadding
                           (⟨64⟩ : UInt256).toNat 32))) =
                       ⟨128⟩ :=
-                  mloadFreePtrValue (by rw [hmemWrite]; decide) (by decide) hread64Write
+                  mloadFreePtrValue (by rw [hmemWrite]; decide) hread64Write
                 have hrev := RD.cureLoadReturnDecodeShortReverts rd1623 hshort houtsz
                   hmload64 (by simp)
                 have hcallEvmInit :
@@ -362,8 +361,7 @@ theorem cureLoadBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           (out.write 0
                             (loadCureSelectorMem
                               (twoWordHashMem key ⟨6⟩
-                                (twoWordHashMem key ⟨5⟩ solcFreePtrMem))) 128 32).size
-                        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+                                (twoWordHashMem key ⟨5⟩ solcFreePtrMem))) 128 32).size then ⟨0⟩
                      else UInt256.ofNat
                        (fromByteArrayBigEndian
                         ((out.write 0
@@ -372,7 +370,7 @@ theorem cureLoadBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               (twoWordHashMem key ⟨5⟩ solcFreePtrMem))) 128 32).readWithPadding
                           (⟨64⟩ : UInt256).toNat 32))) =
                       ⟨128⟩ :=
-                  mloadFreePtrValue (by rw [hmemWrite]; decide) (by decide) hread64Write
+                  mloadFreePtrValue (by rw [hmemWrite]; decide) hread64Write
                 let newAmt : UInt256 :=
                   UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))
                 have hread128Write :
@@ -387,8 +385,7 @@ theorem cureLoadBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           (out.write 0
                             (loadCureSelectorMem
                               (twoWordHashMem key ⟨6⟩
-                                (twoWordHashMem key ⟨5⟩ solcFreePtrMem))) 128 32).size
-                        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+                                (twoWordHashMem key ⟨5⟩ solcFreePtrMem))) 128 32).size then ⟨0⟩
                      else UInt256.ofNat
                        (fromByteArrayBigEndian
                         ((out.write 0
@@ -402,10 +399,9 @@ theorem cureLoadBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             (out.write 0
                               (loadCureSelectorMem
                                 (twoWordHashMem key ⟨6⟩
-                                  (twoWordHashMem key ⟨5⟩ solcFreePtrMem))) 128 32).size
-                          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩) := by
+                                  (twoWordHashMem key ⟨5⟩ solcFreePtrMem))) 128 32).size) := by
                     rw [hmemWrite]
-                    native_decide
+                    decide
                   rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
                     hread128Write]
                 obtain ⟨_, _, rd1643⟩ :=

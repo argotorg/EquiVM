@@ -61,24 +61,14 @@ theorem clipperTakeMemoryWF_mstore_aw (mem : ByteArray) (aw off : UInt256)
 
 theorem clipperTakeMemoryWF_mload64 (mem : ByteArray) (aw : UInt256)
     (hmem : clipperTakeMemoryWF mem aw) :
-    (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨
-        (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
-  rcases hmem with ⟨hsize, hread64, hcover, hawSmall⟩
-  apply mloadFreePtrValue (mem := mem) (aw := aw)
+  have hsize := hmem.1
+  have hread64 := hmem.2.1
+  apply mloadFreePtrValue (mem := mem)
   · omega
-  · intro hbad
-    have hawNat : (aw * (⟨32⟩ : UInt256)).toNat = aw.toNat * 32 := by
-      simpa [show (⟨32⟩ : UInt256).toNat = 32 from by decide] using
-        umul_toNat (a := aw) (b := (⟨32⟩ : UInt256)) hawSmall
-    have hbadNat : (⟨64⟩ : UInt256).toNat ≥
-        (aw * (⟨32⟩ : UInt256)).toNat := hbad
-    rw [hawNat] at hbadNat
-    change 64 ≥ aw.toNat * 32 at hbadNat
-    have hawGe := clipperTakeMemoryWF_aw_ge mem aw ⟨hsize, hread64, hcover, hawSmall⟩
-    omega
   · simpa using hread64
 
 theorem clipperTakeMemoryWF_after_zero_output_call
@@ -97,22 +87,15 @@ theorem clipperTakeMemoryWF_after_zero_output_call
   rw [byteArray_write_len_zero, hawFinal]
   exact hmem
 
-theorem clipperTakeMstoreCostZero {aw off val : UInt256} {t : List UInt256}
+theorem clipperTakeMstoreCostZero {aw off : UInt256}
     (hawOff : UInt256.ofNat (MachineState.M aw.toNat off.toNat 32) = aw) :
-    ∀ s : State, s.machineState.activeWords = aw →
-      s.machineState.stack = off :: val :: t → memoryExpansionCost s .MSTORE = 0 := by
-  intro s haws hstks
-  exact mstoreCost_of_stack haws hstks (by rw [hawOff]; simp)
+    Cₘ (M aw off ⟨32⟩) - Cₘ aw = 0 :=
+  memoryExpansionCost_zero_of_aw_stable hawOff
 
-theorem clipperTakeMloadCostZero {aw off : UInt256} {t : List UInt256}
+theorem clipperTakeMloadCostZero {aw off : UInt256}
     (hawOff : UInt256.ofNat (MachineState.M aw.toNat off.toNat 32) = aw) :
-    ∀ s : State, s.machineState.activeWords = aw →
-      s.machineState.stack = off :: t → memoryExpansionCost s .MLOAD = 0 := by
-  intro s haws hstks
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-    List.getElem!_cons_zero]
-  rw [hawOff]
-  simp
+    Cₘ (M aw off ⟨32⟩) - Cₘ aw = 0 :=
+  memoryExpansionCost_zero_of_aw_stable hawOff
 
 theorem clipperTakeVatMoveSelectorMem_size_ge {mem : ByteArray}
     (hmem : 260 ≤ mem.size) :

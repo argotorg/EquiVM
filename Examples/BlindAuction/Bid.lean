@@ -350,12 +350,11 @@ theorem bidHashMemExec_read0_64 (I : ExecutionEnv) :
   rw [hprefix, hslot]
 
 theorem bidHashMemExec_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (bidHashMemExec I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (bidHashMemExec I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((bidHashMemExec I).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [bidHashMemExec_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [bidHashMemExec_size]; decide)
     (bidHashMemExec_read64 I)
 
 theorem bidElemBaseMemExec_read0 (I : ExecutionEnv) (lenSlot : UInt256) :
@@ -409,8 +408,7 @@ theorem bidElemBaseMemExec_read160 (I : ExecutionEnv) (lenSlot : UInt256) :
   exact bidStructMem_read160 I
 
 theorem bidElemBaseMemExec_blinded_mload (I : ExecutionEnv) (lenSlot : UInt256) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (bidElemBaseMemExec I lenSlot).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (bidElemBaseMemExec I lenSlot).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((bidElemBaseMemExec I lenSlot).readWithPadding
          (⟨128⟩ : UInt256).toNat 32))) = bidBlindedWord I := by
@@ -419,12 +417,10 @@ theorem bidElemBaseMemExec_blinded_mload (I : ExecutionEnv) (lenSlot : UInt256) 
     rw [bidElemBaseMemExec_read128, fromByteArrayBigEndian_toByteArray]
     exact u256_ofNat_toNat (bidBlindedWord I)
   · rw [bidElemBaseMemExec_size]
-    simp only [not_or]
-    constructor <;> decide
+    decide
 
 theorem bidElemBaseMemExec_deposit_mload (I : ExecutionEnv) (lenSlot : UInt256) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (bidElemBaseMemExec I lenSlot).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (bidElemBaseMemExec I lenSlot).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((bidElemBaseMemExec I lenSlot).readWithPadding
          (⟨160⟩ : UInt256).toNat 32))) = I.weiValue := by
@@ -433,8 +429,7 @@ theorem bidElemBaseMemExec_deposit_mload (I : ExecutionEnv) (lenSlot : UInt256) 
     rw [bidElemBaseMemExec_read160, fromByteArrayBigEndian_toByteArray]
     exact u256_ofNat_toNat I.weiValue
   · rw [bidElemBaseMemExec_size]
-    simp only [not_or]
-    constructor <;> decide
+    decide
 
 theorem bidMappingBaseKeccakExec (I : ExecutionEnv) :
     UInt256.ofNat
@@ -465,12 +460,11 @@ theorem bidTooLateMem_read64 (deadline : UInt256) :
   exact solcReturnMem_read64 bidTooLateSelector
 
 theorem bidTooLateMem_mload64 (deadline : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (bidTooLateMem deadline).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (bidTooLateMem deadline).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((bidTooLateMem deadline).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [bidTooLateMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [bidTooLateMem_size]; decide)
     (bidTooLateMem_read64 deadline)
 
 set_option maxHeartbeats 800000 in

@@ -25,8 +25,7 @@ theorem errorSelectorRoutine {I g s0 ret R mem aw ptr out acc k C}
     have rd5862 := evm_run rd5859 with [pop, push0,
       raw mloadSymbolic (by native_decide) (by evm_ov)]
     have rd5865 := evm_run rd5862 with [push1 ⟨224⟩, shr]
-    rw [copiedSelector hm.size
-      (activeWords_expand (off := ⟨0⟩) (size := ⟨4⟩) hm.active (by decide)) hl] at rd5865
+    rw [copiedSelector hm.size hl] at rd5865
     simpa only [returnSelector, errorSelectorMem, errorSelectorWords, if_pos hl] using
       (show ∃ k' C', RD auctionBytecode I g s0 ret
           (UInt256.shiftRight (calldataWord out 0) ⟨224⟩ :: R)

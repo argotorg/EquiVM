@@ -212,15 +212,13 @@ theorem solcScratchReturn2Mem_read64 {scratch : ByteArray} (first second : UInt2
 theorem solcScratchReturn2Mem_mload64 {scratch : ByteArray} (first second : UInt256)
     (hscratch : scratch.size = 96)
     (hread64 : scratch.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcScratchReturn2Mem scratch first second).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcScratchReturn2Mem scratch first second).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcScratchReturn2Mem scratch first second).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [solcScratchReturn2Mem_size first second hscratch]; decide)
-    (by decide) (solcScratchReturn2Mem_read64 first second hscratch hread64)
+  mloadFreePtrValue (by rw [solcScratchReturn2Mem_size first second hscratch]; decide) (solcScratchReturn2Mem_read64 first second hscratch hread64)
 
 theorem solcScratchReturn2Mem_read128_64 {scratch : ByteArray} (first second : UInt256)
     (hscratch : scratch.size = 96) :
@@ -302,8 +300,7 @@ theorem RD.solcTwoWordReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
         mem (UInt256.ofNat 3) rdata acc k C)
     (hwf : solcTwoWordReturnFromMemWf code pc)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩)

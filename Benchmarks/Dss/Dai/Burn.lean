@@ -280,8 +280,7 @@ theorem burnTailUsrStoreMem_read64 {mem : ByteArray} (I : ExecutionEnv)
 theorem burnTailLogMem_mload64 {mem : ByteArray} (I : ExecutionEnv)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (burnTailLogMem mem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (burnTailLogMem mem I).size then ⟨0⟩
      else UInt256.ofNat
       (fromByteArrayBigEndian
         ((burnTailLogMem mem I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -927,7 +926,7 @@ theorem daiBurnX_insufficientAllowanceTail {cA σ I} {g : Sat256} {s0 : State}
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide)
@@ -1353,12 +1352,11 @@ theorem daiBurnX_logAndJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       solcAddrMask from by decide]
     exact solcAddrMask_clean (burnUsrMaskedWord_canonical I)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ scratch.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ scratch.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian ((scratch.readWithPadding (⟨64⟩ : UInt256).toNat 32))))
         = ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hscratch]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hscratch]; decide) hread64
   have rd3791 := evm_run h with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),

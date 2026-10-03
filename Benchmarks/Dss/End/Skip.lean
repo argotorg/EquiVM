@@ -569,8 +569,7 @@ theorem endSkipCatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray) :
     exact endSkipCatIlksCalldataMem_read64 I
 
 theorem endSkipCatIlksPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endSkipCatIlksPostCallMem I out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endSkipCatIlksPostCallMem I out).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSkipCatIlksPostCallMem I out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -598,7 +597,6 @@ theorem endSkipCatIlksPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray) :
           have hle96 : min 96 out.size ≤ 96 := Nat.min_le_left _ _
           have hpos : 0 < min 96 out.size := Nat.pos_of_ne_zero hlen0
           omega)
-    (by decide)
     (endSkipCatIlksPostCallMem_read64 I out)
 
 theorem endSkipCatIlksPostCallMem_read128_long (I : ExecutionEnv) (out : ByteArray)
@@ -627,8 +625,7 @@ theorem endSkipCatIlksPostCallMem_read128_long (I : ExecutionEnv) (out : ByteArr
 
 theorem endSkipCatIlksPostCallMem_mload128_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 96 ≤ out.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (endSkipCatIlksPostCallMem I out).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (endSkipCatIlksPostCallMem I out).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSkipCatIlksPostCallMem I out).readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
@@ -939,8 +936,7 @@ theorem endSkipVatIlksPostCallMem_size_gt64 (I : ExecutionEnv)
 
 theorem endSkipVatIlksPostCallMem_mload64 (I : ExecutionEnv)
     (catOut vatOut : ByteArray) (hloCat : 96 ≤ catOut.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endSkipVatIlksPostCallMem I catOut vatOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endSkipVatIlksPostCallMem I catOut vatOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSkipVatIlksPostCallMem I catOut vatOut).readWithPadding
@@ -948,7 +944,6 @@ theorem endSkipVatIlksPostCallMem_mload64 (I : ExecutionEnv)
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (endSkipVatIlksPostCallMem_size_gt64 I catOut vatOut hloCat)
-    (by decide)
     (endSkipVatIlksPostCallMem_read64 I catOut vatOut hloCat)
 
 theorem endSkipVatIlksPostCallMem_read160_long (I : ExecutionEnv)
@@ -989,24 +984,19 @@ theorem endSkipVatIlksPostCallMem_read160_long (I : ExecutionEnv)
 theorem endSkipVatIlksPostCallMem_mload160_long (I : ExecutionEnv)
     (catOut vatOut : ByteArray) (hloCat : 96 ≤ catOut.size)
     (hloVat : 160 ≤ vatOut.size) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (endSkipVatIlksPostCallMem I catOut vatOut).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (endSkipVatIlksPostCallMem I catOut vatOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endSkipVatIlksPostCallMem I catOut vatOut).readWithPadding
           (⟨160⟩ : UInt256).toNat 32))) =
       endFlowVatIlkRateWord vatOut := by
   unfold endFlowVatIlkRateWord
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by rw [endSkipVatIlksPostCallMem_size_long I catOut vatOut hloCat hloVat]; decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian
         ((endSkipVatIlksPostCallMem I catOut vatOut).readWithPadding 160 32)) =
         UInt256.ofNat (fromByteArrayBigEndian (vatOut.extract 32 64))
-    rw [endSkipVatIlksPostCallMem_read160_long I catOut vatOut hloCat hloVat]
-  · exact not_or.mpr
-      ⟨by rw [endSkipVatIlksPostCallMem_size_long I catOut vatOut hloCat hloVat];
-          decide,
-        by native_decide⟩
+  rw [endSkipVatIlksPostCallMem_read160_long I catOut vatOut hloCat hloVat]
 
 theorem endSkipBidsSelectorMem_size_long (I : ExecutionEnv)
     (catOut vatOut : ByteArray) (hloCat : 96 ≤ catOut.size)
@@ -1147,8 +1137,7 @@ theorem endSkipBidsEncode_eq (I : ExecutionEnv) (catOut vatOut : ByteArray)
 theorem endSkipBidsCalldataMem_mload64_long (I : ExecutionEnv)
     (catOut vatOut : ByteArray) (hloCat : 96 ≤ catOut.size)
     (hloVat : 160 ≤ vatOut.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endSkipBidsCalldataMem I catOut vatOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endSkipBidsCalldataMem I catOut vatOut).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSkipBidsCalldataMem I catOut vatOut).readWithPadding
@@ -1156,7 +1145,6 @@ theorem endSkipBidsCalldataMem_mload64_long (I : ExecutionEnv)
       ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [endSkipBidsCalldataMem_size_long I catOut vatOut hloCat hloVat]; decide)
-    (by decide)
     (endSkipBidsCalldataMem_read64_long I catOut vatOut hloCat hloVat)
 
 theorem endSkipBidsWriteLen_eq {out : ByteArray} (hout : out.size < UInt256.size) :
@@ -1234,8 +1222,7 @@ theorem endSkipBidsPostCallMem_size_gt64 (I : ExecutionEnv)
 theorem endSkipBidsPostCallMem_mload64 (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) (hloCat : 96 ≤ catOut.size)
     (hloVat : 160 ≤ vatOut.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endSkipBidsPostCallMem I catOut vatOut bidOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endSkipBidsPostCallMem I catOut vatOut bidOut).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSkipBidsPostCallMem I catOut vatOut bidOut).readWithPadding
@@ -1243,7 +1230,6 @@ theorem endSkipBidsPostCallMem_mload64 (I : ExecutionEnv)
       ⟨128⟩ :=
   mloadFreePtrValue
     (endSkipBidsPostCallMem_size_gt64 I catOut vatOut bidOut hloCat hloVat)
-    (by decide)
     (endSkipBidsPostCallMem_read64 I catOut vatOut bidOut hloCat hloVat)
 
 theorem endSkipBidsPostCallMem_read_long (I : ExecutionEnv)
@@ -1290,90 +1276,70 @@ theorem endSkipBidsPostCallMem_read_long (I : ExecutionEnv)
 theorem endSkipBidsPostCallMem_mload128_long (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) (hloCat : 96 ≤ catOut.size)
     (hloVat : 160 ≤ vatOut.size) (hloBid : 256 ≤ bidOut.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (endSkipBidsPostCallMem I catOut vatOut bidOut).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (endSkipBidsPostCallMem I catOut vatOut bidOut).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSkipBidsPostCallMem I catOut vatOut bidOut).readWithPadding
             (⟨128⟩ : UInt256).toNat 32))) =
       endSkipBidWord bidOut := by
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat hloBid]; decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian
         ((endSkipBidsPostCallMem I catOut vatOut bidOut).readWithPadding 128 32)) =
         endSkipBidWord bidOut
-    rw [endSkipBidsPostCallMem_read_long I catOut vatOut bidOut hloCat hloVat
+  rw [endSkipBidsPostCallMem_read_long I catOut vatOut bidOut hloCat hloVat
       hloBid 0 (by omega)]
-  · exact not_or.mpr
-      ⟨by rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat
-          hloBid]; decide,
-        by native_decide⟩
 
 theorem endSkipBidsPostCallMem_mload160_long (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) (hloCat : 96 ≤ catOut.size)
     (hloVat : 160 ≤ vatOut.size) (hloBid : 256 ≤ bidOut.size) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (endSkipBidsPostCallMem I catOut vatOut bidOut).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (endSkipBidsPostCallMem I catOut vatOut bidOut).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSkipBidsPostCallMem I catOut vatOut bidOut).readWithPadding
             (⟨160⟩ : UInt256).toNat 32))) =
       endSkipLotWord bidOut := by
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat hloBid]; decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian
         ((endSkipBidsPostCallMem I catOut vatOut bidOut).readWithPadding 160 32)) =
         endSkipLotWord bidOut
-    rw [endSkipBidsPostCallMem_read_long I catOut vatOut bidOut hloCat hloVat
+  rw [endSkipBidsPostCallMem_read_long I catOut vatOut bidOut hloCat hloVat
       hloBid 32 (by omega)]
-  · exact not_or.mpr
-      ⟨by rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat
-          hloBid]; decide,
-        by native_decide⟩
 
 theorem endSkipBidsPostCallMem_mload288_long (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) (hloCat : 96 ≤ catOut.size)
     (hloVat : 160 ≤ vatOut.size) (hloBid : 256 ≤ bidOut.size) :
-    (if (⟨288⟩ : UInt256).toNat ≥ (endSkipBidsPostCallMem I catOut vatOut bidOut).size
-        ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+    (if (⟨288⟩ : UInt256).toNat ≥ (endSkipBidsPostCallMem I catOut vatOut bidOut).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSkipBidsPostCallMem I catOut vatOut bidOut).readWithPadding
             (⟨288⟩ : UInt256).toNat 32))) =
       endSkipUsrWord bidOut := by
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat hloBid]; decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian
         ((endSkipBidsPostCallMem I catOut vatOut bidOut).readWithPadding 288 32)) =
         endSkipUsrWord bidOut
-    rw [endSkipBidsPostCallMem_read_long I catOut vatOut bidOut hloCat hloVat
+  rw [endSkipBidsPostCallMem_read_long I catOut vatOut bidOut hloCat hloVat
       hloBid 160 (by omega)]
-  · exact not_or.mpr
-      ⟨by rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat
-          hloBid]; decide,
-        by native_decide⟩
 
 theorem endSkipBidsPostCallMem_mload352_long (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) (hloCat : 96 ≤ catOut.size)
     (hloVat : 160 ≤ vatOut.size) (hloBid : 256 ≤ bidOut.size) :
-    (if (⟨352⟩ : UInt256).toNat ≥ (endSkipBidsPostCallMem I catOut vatOut bidOut).size
-        ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+    (if (⟨352⟩ : UInt256).toNat ≥ (endSkipBidsPostCallMem I catOut vatOut bidOut).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSkipBidsPostCallMem I catOut vatOut bidOut).readWithPadding
             (⟨352⟩ : UInt256).toNat 32))) =
       endSkipTabWord bidOut := by
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat hloBid]; decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian
         ((endSkipBidsPostCallMem I catOut vatOut bidOut).readWithPadding 352 32)) =
         endSkipTabWord bidOut
-    rw [endSkipBidsPostCallMem_read_long I catOut vatOut bidOut hloCat hloVat
+  rw [endSkipBidsPostCallMem_read_long I catOut vatOut bidOut hloCat hloVat
       hloBid 224 (by omega)]
-  · exact not_or.mpr
-      ⟨by rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat
-          hloBid]; decide,
-        by native_decide⟩
 
 theorem decodeScalarWordWithMode_legacy_uint48_ok {bytes : List UInt8} {start : Nat}
     (hlen : ((bytes.drop start).take 32).length = 32) :
@@ -1568,8 +1534,7 @@ theorem endSkipSuck1CalldataMem_mload64 (σ : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) (hloCat : 96 ≤ catOut.size)
     (hloVat : 160 ≤ vatOut.size) (hloBid : 256 ≤ bidOut.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (endSkipSuck1CalldataMem σ I catOut vatOut bidOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+          (endSkipSuck1CalldataMem σ I catOut vatOut bidOut).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSkipSuck1CalldataMem σ I catOut vatOut bidOut).readWithPadding
@@ -1579,7 +1544,6 @@ theorem endSkipSuck1CalldataMem_mload64 (σ : AccountMap) (I : ExecutionEnv)
     (by
       rw [endSkipSuck1CalldataMem_size σ I catOut vatOut bidOut hloCat hloVat hloBid]
       decide)
-    (by decide)
     (endSkipSuck1CalldataMem_read64 σ I catOut vatOut bidOut hloCat hloVat hloBid)
 
 theorem endSkipSuck1PostCallMem_eq (σ : AccountMap) (I : ExecutionEnv)
@@ -1823,8 +1787,7 @@ theorem endSkipSuck2CalldataMem_mload64 (σ : AccountMap) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) (hloCat : 96 ≤ catOut.size)
     (hloVat : 160 ≤ vatOut.size) (hloBid : 256 ≤ bidOut.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (endSkipSuck2CalldataMem σ I catOut vatOut bidOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+          (endSkipSuck2CalldataMem σ I catOut vatOut bidOut).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSkipSuck2CalldataMem σ I catOut vatOut bidOut).readWithPadding
@@ -1834,7 +1797,6 @@ theorem endSkipSuck2CalldataMem_mload64 (σ : AccountMap) (I : ExecutionEnv)
     (by
       rw [endSkipSuck2CalldataMem_size σ I catOut vatOut bidOut hloCat hloVat hloBid]
       decide)
-    (by decide)
     (endSkipSuck2CalldataMem_read64 σ I catOut vatOut bidOut hloCat hloVat hloBid)
 
 theorem endSkipSuck2PostCallMem_eq (σ : AccountMap) (I : ExecutionEnv)
@@ -1895,8 +1857,7 @@ theorem endSkipSuck2CalldataMemFor_mload64 (σmem σcall : AccountMap)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (endSkipSuck2CalldataMemFor σmem σcall I catOut vatOut bidOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+          (endSkipSuck2CalldataMemFor σmem σcall I catOut vatOut bidOut).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSkipSuck2CalldataMemFor σmem σcall I catOut vatOut bidOut).readWithPadding
@@ -1907,7 +1868,6 @@ theorem endSkipSuck2CalldataMemFor_mload64 (σmem σcall : AccountMap)
       rw [endSkipSuck2CalldataMemFor_size σmem σcall I catOut vatOut bidOut
         hloCat hloVat hloBid]
       decide)
-    (by decide)
     (endSkipSuck2CalldataMemFor_read64 σmem σcall I catOut vatOut bidOut
       hloCat hloVat hloBid)
 
@@ -2150,8 +2110,7 @@ theorem endSkipHopeCalldataMemFor_mload64 (σmem σcall : AccountMap)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (endSkipHopeCalldataMemFor σmem σcall I catOut vatOut bidOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+          (endSkipHopeCalldataMemFor σmem σcall I catOut vatOut bidOut).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSkipHopeCalldataMemFor σmem σcall I catOut vatOut bidOut).readWithPadding
@@ -2162,7 +2121,6 @@ theorem endSkipHopeCalldataMemFor_mload64 (σmem σcall : AccountMap)
       rw [endSkipHopeCalldataMemFor_size σmem σcall I catOut vatOut bidOut
         hloCat hloVat hloBid]
       decide)
-    (by decide)
     (endSkipHopeCalldataMemFor_read64 σmem σcall I catOut vatOut bidOut
       hloCat hloVat hloBid)
 
@@ -2312,8 +2270,7 @@ theorem endSkipYankCalldataMemFor_mload64 (σmem σcall : AccountMap)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (endSkipYankCalldataMemFor σmem σcall I catOut vatOut bidOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+          (endSkipYankCalldataMemFor σmem σcall I catOut vatOut bidOut).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSkipYankCalldataMemFor σmem σcall I catOut vatOut bidOut).readWithPadding
@@ -2324,7 +2281,6 @@ theorem endSkipYankCalldataMemFor_mload64 (σmem σcall : AccountMap)
       rw [endSkipYankCalldataMemFor_size σmem σcall I catOut vatOut bidOut
         hloCat hloVat hloBid]
       decide)
-    (by decide)
     (endSkipYankCalldataMemFor_read64 σmem σcall I catOut vatOut bidOut
       hloCat hloVat hloBid)
 
@@ -2543,8 +2499,7 @@ theorem endSkipGrabCalldataMemForTrace_mload64
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hloBid : 256 ≤ bidOut.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (endSkipGrabCalldataMemForTrace σCall σmem σcall I catOut vatOut bidOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+          (endSkipGrabCalldataMemForTrace σCall σmem σcall I catOut vatOut bidOut).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endSkipGrabCalldataMemForTrace σCall σmem σcall I catOut vatOut bidOut)
@@ -2555,7 +2510,6 @@ theorem endSkipGrabCalldataMemForTrace_mload64
       rw [endSkipGrabCalldataMemForTrace_size σCall σmem σcall I catOut vatOut bidOut
         hloCat hloVat hloBid]
       decide)
-    (by decide)
     (endSkipGrabCalldataMemForTrace_read64 σCall σmem σcall I catOut vatOut bidOut
       hloCat hloVat hloBid)
 
@@ -3014,16 +2968,14 @@ theorem endSkip_solcErrorStringMem3_read64_of_size384 (len word : UInt256)
 theorem endSkip_solcErrorStringMem3_mload64_of_size384 (len word : UInt256)
     {mem : ByteArray} (hmem : mem.size = 384)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcErrorStringMem3 len word mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
   mloadFreePtrValue
-    (by rw [endSkip_solcErrorStringMem3_size_of_size384 len word hmem]; decide)
-    (by decide) (endSkip_solcErrorStringMem3_read64_of_size384 len word hmem hread64)
+    (by rw [endSkip_solcErrorStringMem3_size_of_size384 len word hmem]; decide) (endSkip_solcErrorStringMem3_read64_of_size384 len word hmem hread64)
 
 set_option maxHeartbeats 1000000 in
 theorem endSkip_solcErrorStringRevertTail_aw12 {code : ByteArray} {g : Sat256}
@@ -3048,7 +3000,7 @@ theorem endSkip_solcErrorStringRevertTail_aw12 {code : ByteArray} {g : Sat256}
     raw dup1 hd2 (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 12) hd3
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4
@@ -3459,25 +3411,21 @@ theorem endSkipX_catIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
       (endSkipCatIlksCalldataMem I) (UInt256.ofNat 6)
       ByteArray.empty (cA, σ) k' C' := by
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endSkipCatIlksBaseMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endSkipCatIlksBaseMem I).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkipCatIlksBaseMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
     mloadFreePtrValue
       (by rw [endSkipCatIlksBaseMem_size I]; decide)
-      (by decide)
       (endSkipCatIlksBaseMem_read64 I)
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endSkipCatIlksCalldataMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endSkipCatIlksCalldataMem I).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkipCatIlksCalldataMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endSkipCatIlksCalldataMem_size I]; decide)
-      (by decide) (endSkipCatIlksCalldataMem_read64 I)
+    mloadFreePtrValue (by rw [endSkipCatIlksCalldataMem_size I]; decide) (endSkipCatIlksCalldataMem_read64 I)
   have hselectorShift :
       UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
         endFlowVatIlksSelectorShifted := by
@@ -3809,8 +3757,7 @@ theorem endSkipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
       catOut (cA', σ') k' C' := by
   have hmload64Base := endSkipCatIlksPostCallMem_mload64 I catOut
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endSkipVatIlksCalldataMem I catOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endSkipVatIlksCalldataMem I catOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkipVatIlksCalldataMem I catOut).readWithPadding
@@ -3818,7 +3765,6 @@ theorem endSkipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         ⟨128⟩ := by
     exact mloadFreePtrValue
       (by rw [endSkipVatIlksCalldataMem_size_long I catOut hloCat]; decide)
-      (by decide)
       (endSkipVatIlksCalldataMem_read64_long I catOut hloCat)
   have hselectorShift :
       UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
@@ -4990,8 +4936,7 @@ theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
       (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
   have hmload64Base :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+            (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata)
@@ -5398,8 +5343,7 @@ theorem endSkipX_hopeExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀
       (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
   have hmload64Base :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSkipSuck2PostCallMemFor σmem σcall I catOut vatOut bidOut rdata).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+            (endSkipSuck2PostCallMemFor σmem σcall I catOut vatOut bidOut rdata).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkipSuck2PostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
@@ -5745,8 +5689,7 @@ theorem endSkipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀
       (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
   have hmload64Base :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSkipHopePostCallMemFor σmem σcall I catOut vatOut bidOut rdata).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+            (endSkipHopePostCallMemFor σmem σcall I catOut vatOut bidOut rdata).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkipHopePostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
@@ -6559,8 +6502,7 @@ theorem endSkipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σmem σcall σ₀
       (UInt256.ofNat 12) rdata (cA', σCall) k' C' := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+            (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut)
@@ -6568,13 +6510,11 @@ theorem endSkipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σmem σcall σ₀
         ⟨128⟩ :=
     mloadFreePtrValue
       (by rw [endSkipArtStoreHashMemFor_size σmem σcall I catOut vatOut bidOut
-        hloCat hloVat hloBid]; decide)
-      (by decide) (endSkipArtStoreHashMemFor_read64 σmem σcall I catOut vatOut bidOut
+        hloCat hloVat hloBid]; decide) (endSkipArtStoreHashMemFor_read64 σmem σcall I catOut vatOut bidOut
         hloCat hloVat hloBid)
   have hmload64Grab :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSkipGrabMem7Trace σCall σmem σcall I catOut vatOut bidOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+            (endSkipGrabMem7Trace σCall σmem σcall I catOut vatOut bidOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkipGrabMem7Trace σCall σmem σcall I catOut vatOut bidOut)
@@ -6987,8 +6927,7 @@ theorem endSkipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     RDret endBytecode g s0 acc ByteArray.empty := by
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSkipGrabPostCallMemForTrace σCall σmem σcall I catOut vatOut bidOut ret).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+            (endSkipGrabPostCallMemForTrace σCall σmem σcall I catOut vatOut bidOut ret).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkipGrabPostCallMemForTrace σCall σmem σcall I catOut vatOut bidOut ret)
@@ -6996,13 +6935,11 @@ theorem endSkipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
         ⟨128⟩ := by
     exact mloadFreePtrValue
       (by rw [endSkipGrabPostCallMemForTrace_size σCall σmem σcall I catOut vatOut
-        bidOut ret hloCat hloVat hloBid]; decide)
-      (by decide) (endSkipGrabPostCallMemForTrace_read64 σCall σmem σcall I catOut
+        bidOut ret hloCat hloVat hloBid]; decide) (endSkipGrabPostCallMemForTrace_read64 σCall σmem σcall I catOut
         vatOut bidOut ret hloCat hloVat hloBid)
   have hmload64Log :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endSkipLogDataMem3ForTrace σCall σmem σcall I catOut vatOut bidOut ret).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ then ⟨0⟩
+            (endSkipLogDataMem3ForTrace σCall σmem σcall I catOut vatOut bidOut ret).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endSkipLogDataMem3ForTrace σCall σmem σcall I catOut vatOut bidOut ret)
@@ -7010,8 +6947,7 @@ theorem endSkipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
         ⟨128⟩ := by
     exact mloadFreePtrValue
       (by rw [endSkipLogDataMem3ForTrace_size σCall σmem σcall I catOut vatOut bidOut
-        ret hloCat hloVat hloBid]; decide)
-      (by decide) (endSkipLogDataMem3ForTrace_read64 σCall σmem σcall I catOut vatOut
+        ret hloCat hloVat hloBid]; decide) (endSkipLogDataMem3ForTrace_read64 σCall σmem σcall I catOut vatOut
         bidOut ret hloCat hloVat hloBid)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by

@@ -77,7 +77,7 @@ theorem solcErrorDynamicMem3_mload64 {mem : ByteArray} (aw ptr len word : UInt25
     (hin : 96 ≤ mem.size) (hlo : 96 ≤ ptr.toNat) (hgap : ptr.toNat - mem.size < USize.size)
     (hfit : ptr.toNat + 131 < UInt256.size) (haw : aw.toNat * 32 < UInt256.size)
     (hread : mem.readWithPadding 64 32 = ptr.toByteArray) :
-    memoryWordLoad (solcErrorDynamicMem3 mem ptr len word) (solcErrorDynamicWords3 aw ptr) ⟨64⟩ = ptr ∧
+    memoryWordLoad (solcErrorDynamicMem3 mem ptr len word) ⟨64⟩ = ptr ∧
     memoryWordActiveWords (solcErrorDynamicWords3 aw ptr) ⟨64⟩ = solcErrorDynamicWords3 aw ptr := by
   obtain ⟨hb, hc⟩ := solcErrorDynamicWords3_bounds aw ptr haw hfit
   have hcover : (⟨64⟩ : UInt256).toNat + 32 ≤ (solcErrorDynamicWords3 aw ptr).toNat * 32 := by change 64 + 32 ≤ _; omega
@@ -85,7 +85,6 @@ theorem solcErrorDynamicMem3_mload64 {mem : ByteArray} (aw ptr len word : UInt25
   apply mloadWordValue_of_readWithPadding
   · change 64 < _
     rw [(solcErrorDynamicMem_sizes ptr len word hgap (by omega)).2.2.2]; omega
-  · exact UInt256_mload_haw_of_cover _ _ hb hcover
   · exact (solcErrorDynamicMem3_read64 ptr len word hin hlo hgap (by omega)).trans hread
 
 end UniswapV2Pair

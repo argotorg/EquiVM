@@ -356,13 +356,12 @@ theorem allowanceOuterHashMem_read64 (owner spender : UInt256) :
     allowanceOuterBaseMem_read64]
 
 theorem allowanceOuterHashMem_mload64 (owner spender : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (allowanceOuterHashMem owner spender).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (allowanceOuterHashMem owner spender).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((allowanceOuterHashMem owner spender).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [allowanceOuterHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [allowanceOuterHashMem_size]; decide)
     (allowanceOuterHashMem_read64 owner spender)
 
 theorem allowanceOuterHashMem_read0_64 (owner spender : UInt256) :
@@ -446,13 +445,12 @@ theorem allowanceReturnMem_read64 (owner spender val : UInt256) :
     allowanceOuterHashMem_read64]
 
 theorem allowanceReturnMem_mload64 (owner spender val : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (allowanceReturnMem owner spender val).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (allowanceReturnMem owner spender val).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((allowanceReturnMem owner spender val).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [allowanceReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [allowanceReturnMem_size]; decide)
     (allowanceReturnMem_read64 owner spender val)
 
 theorem allowanceReturnMem_read128 (owner spender val : UInt256) :

@@ -1374,13 +1374,12 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
       clipperTakeMemoryWF
         (clipperTakeCallbackCalldataMem ee owe slice dataLen dataStart mem) aw := by
   have hbaseMload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (mem := mem) (aw := UInt256.ofNat 9)
-      (by rw [hmem]; norm_num) (by native_decide) hread64
+    mloadFreePtrValue (mem := mem)
+      (by rw [hmem]; norm_num) hread64
   have rd4531 := RD.clipperDup12 rd (by clipper_runtime_decode)
     (by simp only [List.length_cons]; omega)
   have rd4548 := evm_run rd4531 with [
@@ -1499,10 +1498,7 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
     (Cₘ awCopy - Cₘ (UInt256.ofNat 10))
     (clipperTakeCallbackPayloadMem ee owe slice dataLen dataStart mem)
     awCopy rd4619pre (by clipper_runtime_decode)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, awCopy,
-        show (⟨292⟩ : UInt256).toNat = 292 by decide])
+    (by rfl)
     (by rfl)
     (by rfl)
     (by evm_ov)
@@ -1523,9 +1519,7 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
     (Cₘ awPad - Cₘ awCopy)
     (clipperTakeCallbackCalldataMem ee owe slice dataLen dataStart mem)
     awPad rd4625pre (by clipper_runtime_decode)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, awCopy, awPad])
+    (by rfl)
     (by
       rw [haddr]
       rfl)
@@ -1638,8 +1632,7 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
     exact congrArg UInt256.toNat (u256_ofNat_toNat awPad)
   have hcallMload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (clipperTakeCallbackCalldataMem ee owe slice dataLen dataStart mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ awPad * ⟨32⟩ then ⟨0⟩
+            (clipperTakeCallbackCalldataMem ee owe slice dataLen dataStart mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((clipperTakeCallbackCalldataMem ee owe slice dataLen dataStart mem).readWithPadding
@@ -1648,25 +1641,13 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
     · rw [clipperTakeCallbackCalldataMem_size ee owe slice dataLen dataStart hmem
         hdataLen hpayload]
       omega
-    ·
-      have hmul : (awPad * (⟨32⟩ : UInt256)).toNat = awPad.toNat * 32 := by
-        simpa [show (⟨32⟩ : UInt256).toNat = 32 by decide] using
-          umul_toNat (a := awPad) (b := (⟨32⟩ : UInt256)) hawPadSmall
-      intro hge
-      have h64 : (⟨64⟩ : UInt256).toNat ≥
-          (awPad * (⟨32⟩ : UInt256)).toNat := hge
-      rw [hmul] at h64
-      change 64 ≥ awPad.toNat * 32 at h64
-      nlinarith
     · exact clipperTakeCallbackCalldataMem_read64 ee owe slice dataLen dataStart hmem
         hread64 hdataLen hpayload
   have rd4655pre := evm_run rd4651 with [
     raw push1 ⟨0⟩ (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov)]
   have rd4656 := rd4655pre.mload 0 ⟨128⟩ awPad
-    (by clipper_runtime_decode) (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, hawMload64])
+    (by clipper_runtime_decode) (memoryExpansionCost_zero_of_aw_stable hawMload64)
     hcallMload64 hawMload64 (by evm_ov)
   have rd4664pre := evm_run rd4656 with [
     raw dup1 (by clipper_runtime_decode) (by evm_ov),

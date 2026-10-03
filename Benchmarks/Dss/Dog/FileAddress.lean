@@ -758,7 +758,7 @@ theorem RD.dogFileAddressStoreVowLog {v : DogImmutables} {code : ByteArray}
       rdMloadPrefix.mload 0 ⟨128⟩ (UInt256.ofNat 3)
         (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
         mem_cost
-        (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+        (mloadFreePtrValue (by rw [hmem]; decide) hread64)
         (by native_decide) (by evm_ov)
   have rdMstorePrefix := evm_run rdMload with [
     raw push1 ⟨1⟩
@@ -807,8 +807,7 @@ theorem RD.dogFileAddressStoreVowLog {v : DogImmutables} {code : ByteArray}
         have hsz := writeWord_size mem 128 (UInt256.land data solcAddrMask)
           (by rw [hmem]; native_decide)
         rw [hsz, hmem]
-        decide)
-      (by decide) hread64')
+        decide) hread64')
     (by native_decide) (by evm_ov)
   have rdTopicStack := evm_run rdMload2 with [
     raw dup4

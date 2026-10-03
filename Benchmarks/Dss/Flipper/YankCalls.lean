@@ -1315,24 +1315,22 @@ theorem flipperYankX_toMoveExtcodesizeGuard {cA σmem σflux σ I} {g : Sat256}
       UInt256.land solcAddrMask rawPacked = bidGuyWord (yankId I) σ I := by
     simpa [u256_land_comm] using hpackedClean
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ (yankMoveHashMem σmem σflux I (yankId I)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (yankMoveHashMem σmem σflux I (yankId I)).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((yankMoveHashMem σmem σflux I (yankId I)).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [yankMoveHashMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [yankMoveHashMem_size]; decide)
       (yankMoveHashMem_read64 σmem σflux I (yankId I))
   have hmload64Move :
-      (if (⟨64⟩ : UInt256).toNat ≥ (yankVatMoveCallMem σmem σflux σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (yankVatMoveCallMem σmem σflux σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((yankVatMoveCallMem σmem σflux σ I).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [yankVatMoveCallMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [yankVatMoveCallMem_size]; decide)
       (yankVatMoveCallMem_read64 σmem σflux σ I)
   have rd1504 := evm_run h with [
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),

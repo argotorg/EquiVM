@@ -633,7 +633,7 @@ theorem endRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rdStored := by
     simpa [endRelyUsrStorageSlot_eq_mapSlot_masked I] using rdStoredRaw
   have rdMload := rdStored.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
-    (mloadFreePtrValue (by rw [endRelyStoreHashMem_size I]; decide) (by decide)
+    (mloadFreePtrValue (by rw [endRelyStoreHashMem_size I]; decide)
       (endRelyStoreHashMem_read64 I))
     (by native_decide) (by evm_ov)
   have rdTopic := rdMload.pushConst

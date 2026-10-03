@@ -28,17 +28,17 @@ theorem transferReturnPrefix {I g s0 amount recipient ret R mem aw ptr out acc k
     swap1, push2 ⟨6062⟩, jump (by jump_dest)]⟩
 
 theorem returnReserve_load {mem aw ptr word} (hm : MemoryCursor mem aw ptr) (size : Nat)
-    (hin : ptr.toNat + 32 ≤ mem.size) (hcover : ptr.toNat < aw.toNat * 32)
+    (hin : ptr.toNat + 32 ≤ mem.size)
     (hread : mem.readWithPadding ptr.toNat 32 = word.toByteArray) :
-    loadedWord (returnReserveMem mem ptr size) aw ptr = word := by
-  apply loadedWord_of_read hm.active (by rw [returnReserveMem_size hm size]; exact hin) hcover
+    loadedWord (returnReserveMem mem ptr size) ptr = word := by
+  apply loadedWord_of_read (by rw [returnReserveMem_size hm size]; exact hin)
   rw [returnReserve_read_word hm size hin, hread]
 
 theorem transferReturnOk {I g s0 amount recipient ret R mem aw ptr out acc k C} {word : UInt256}
     (h : RD auctionBytecode I g s0 ⟨3537⟩ (amount :: recipient :: ret :: R)
       mem aw out acc k C)
     (hm : MemoryCursor mem aw ptr) (hlen : 32 ≤ out.size) (hhi : out.size < 2 ^ 255)
-    (hin : ptr.toNat + 32 ≤ mem.size) (hcover : ptr.toNat < aw.toNat * 32)
+    (hin : ptr.toNat + 32 ≤ mem.size)
     (hread : mem.readWithPadding ptr.toNat 32 = word.toByteArray)
     (hc : word = ⟨0⟩ ∨ word = ⟨1⟩)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 12 ≤ 1024) :
@@ -49,7 +49,7 @@ theorem transferReturnOk {I g s0 amount recipient ret R mem aw ptr out acc k C} 
     rw [word_add_sub_left]
     exact slt_ofNat_lit_zero (by decide) hlen hhi
   obtain ⟨_, _, rd3568⟩ := boolDecodeOk rd6062 hcheck
-    (returnReserve_load hm out.size hin hcover hread) hc (by jump_dest) (by evm_ov)
+    (returnReserve_load hm out.size hin hread) hc (by jump_dest) (by evm_ov)
   exact ⟨_, _, evm_run rd3568 with [jumpdest, pop, jumpdest, pop, pop, jump hret]⟩
 
 theorem transferReturnShort {I g s0 amount recipient ret R mem aw ptr out acc k C}
@@ -67,7 +67,7 @@ theorem transferReturnNoncanonical {I g s0 amount recipient ret R mem aw ptr out
     (h : RD auctionBytecode I g s0 ⟨3537⟩ (amount :: recipient :: ret :: R)
       mem aw out acc k C)
     (hm : MemoryCursor mem aw ptr) (hlen : 32 ≤ out.size) (hhi : out.size < 2 ^ 255)
-    (hin : ptr.toNat + 32 ≤ mem.size) (hcover : ptr.toNat < aw.toNat * 32)
+    (hin : ptr.toNat + 32 ≤ mem.size)
     (hread : mem.readWithPadding ptr.toNat 32 = word.toByteArray)
     (hc : ¬ (word = ⟨0⟩ ∨ word = ⟨1⟩)) (hov : R.length + 12 ≤ 1024) :
     RDrev auctionBytecode g s0 := by
@@ -75,7 +75,7 @@ theorem transferReturnNoncanonical {I g s0 amount recipient ret R mem aw ptr out
   have hcheck : UInt256.slt (UInt256.sub (ptr + UInt256.ofNat out.size) ptr) ⟨32⟩ = ⟨0⟩ := by
     rw [word_add_sub_left]
     exact slt_ofNat_lit_zero (by decide) hlen hhi
-  exact boolDecodeNoncanonical rd6062 hcheck (returnReserve_load hm out.size hin hcover hread) hc
+  exact boolDecodeNoncanonical rd6062 hcheck (returnReserve_load hm out.size hin hread) hc
     (by evm_ov)
 
 end Auction

@@ -168,7 +168,7 @@ theorem RD.clipperKickTopZeroReverts {code : ByteArray}
   rw [hgt] at rdGuard
   have rdFallthrough := rdGuard.jumpiNT (by clipper_runtime_decode) (by decide) (by evm_ov)
   have hmload64 := mloadFreePtrValue
-    (mem := mem) (aw := UInt256.ofNat 6) (by rw [hmem]; omega) (by decide) hread64
+    (mem := mem) (by rw [hmem]; omega) hread64
   have rdMload := evm_run rdFallthrough with [
     raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov),
     raw dup1 (by clipper_runtime_decode) (by evm_ov),

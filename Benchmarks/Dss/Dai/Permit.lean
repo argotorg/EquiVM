@@ -2757,13 +2757,12 @@ theorem permitStructMem6_read64 (I : ExecutionEnv) :
         (permitStructMem5_read64 I)
 
 theorem permitStructMem6_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (permitStructMem6 I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (permitStructMem6 I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitStructMem6 I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ := by
-  exact mloadFreePtrValue (by rw [permitStructMem6_size]; decide) (by decide)
+  exact mloadFreePtrValue (by rw [permitStructMem6_size]; decide)
     (permitStructMem6_read64 I)
 
 theorem permitDigestMem7_read128 (I : ExecutionEnv) :
@@ -2784,16 +2783,14 @@ theorem permitDigestMem8_read128 (I : ExecutionEnv) :
         (permitDigestMem7_read128 I)
 
 theorem permitDigestMem8_mload128 (I : ExecutionEnv) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (permitDigestMem8 I).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (permitDigestMem8 I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitDigestMem8 I).readWithPadding (⟨128⟩ : UInt256).toNat 32)))
       = ⟨192⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨128⟩ : UInt256)) (aw := UInt256.ofNat 11) (v := (⟨192⟩ : UInt256))
+    (off := (⟨128⟩ : UInt256)) (v := (⟨192⟩ : UInt256))
     (by rw [permitDigestMem8_size]; decide)
-    (by decide)
     (by simpa using permitDigestMem8_read128 I)
 
 theorem permitDigestMem8_read_structMem6 (I : ExecutionEnv) {read : Nat}
@@ -3068,16 +3065,14 @@ theorem permitDigestMem11_read64 (I : ExecutionEnv) (domainWord : UInt256) :
         (permitDigestMem10_read64 I domainWord)
 
 theorem permitDigestMem11_mload64 (I : ExecutionEnv) (domainWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (permitDigestMem11 I domainWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 15 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (permitDigestMem11 I domainWord).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitDigestMem11 I domainWord).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨352⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 15) (v := (⟨352⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨352⟩ : UInt256))
     (by rw [permitDigestMem11_size]; decide)
-    (by decide)
     (by simpa using permitDigestMem11_read64 I domainWord)
 
 theorem permitDigestMem12_read352 (I : ExecutionEnv) (domainWord : UInt256) :
@@ -3098,16 +3093,14 @@ theorem permitDigestMem13_read352 (I : ExecutionEnv) (domainWord : UInt256) :
         (permitDigestMem12_read352 I domainWord)
 
 theorem permitDigestMem13_mload352 (I : ExecutionEnv) (domainWord : UInt256) :
-    (if (⟨352⟩ : UInt256).toNat ≥ (permitDigestMem13 I domainWord).size
-        ∨ (⟨352⟩ : UInt256) ≥ UInt256.ofNat 15 * ⟨32⟩ then ⟨0⟩
+    (if (⟨352⟩ : UInt256).toNat ≥ (permitDigestMem13 I domainWord).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitDigestMem13 I domainWord).readWithPadding (⟨352⟩ : UInt256).toNat 32)))
       = ⟨66⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨352⟩ : UInt256)) (aw := UInt256.ofNat 15) (v := (⟨66⟩ : UInt256))
+    (off := (⟨352⟩ : UInt256)) (v := (⟨66⟩ : UInt256))
     (by rw [permitDigestMem13_size]; decide)
-    (by decide)
     (by simpa using permitDigestMem13_read352 I domainWord)
 
 theorem permitDigestMem13_read64 (I : ExecutionEnv) (domainWord : UInt256) :
@@ -3118,16 +3111,14 @@ theorem permitDigestMem13_read64 (I : ExecutionEnv) (domainWord : UInt256) :
       (by rw [permitDigestMem12_size]; native_decide)
 
 theorem permitDigestMem13_mload64 (I : ExecutionEnv) (domainWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (permitDigestMem13 I domainWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 15 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (permitDigestMem13 I domainWord).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitDigestMem13 I domainWord).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨450⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 15) (v := (⟨450⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨450⟩ : UInt256))
     (by rw [permitDigestMem13_size]; decide)
-    (by decide)
     (by simpa using permitDigestMem13_read64 I domainWord)
 
 theorem permitDigestMem12_read384_66 (I : ExecutionEnv) (domainWord : UInt256) :
@@ -3374,16 +3365,14 @@ theorem permitEcrecoverMem1_read64 (I : ExecutionEnv) (domainWord : UInt256) :
       (by rw [permitEcrecoverMem0_size]; norm_num)
 
 theorem permitEcrecoverMem1_mload64 (I : ExecutionEnv) (domainWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (permitEcrecoverMem1 I domainWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 16 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (permitEcrecoverMem1 I domainWord).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitEcrecoverMem1 I domainWord).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨482⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 16) (v := (⟨482⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨482⟩ : UInt256))
     (by rw [permitEcrecoverMem1_size]; decide)
-    (by decide)
     (by simpa using permitEcrecoverMem1_read64 I domainWord)
 
 theorem permitEcrecoverMem2_size
@@ -3463,17 +3452,15 @@ theorem permitEcrecoverMem5_read64
 
 theorem permitEcrecoverMem5_mload64
     (I : ExecutionEnv) (domainWord digestWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (permitEcrecoverMem5 I domainWord digestWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 20 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (permitEcrecoverMem5 I domainWord digestWord).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((permitEcrecoverMem5 I domainWord digestWord).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨482⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 20) (v := (⟨482⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨482⟩ : UInt256))
     (by rw [permitEcrecoverMem5_size]; decide)
-    (by decide)
     (by simpa using permitEcrecoverMem5_read64 I domainWord digestWord)
 
 theorem permitEcrecoverMem5_read482
@@ -3732,7 +3719,7 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
-      mem_cost (mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide)
+      mem_cost (mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide)
         solcFreePtrMem_read64) (by decide) (by evm_ov)]
   have rd2469 := rd2436pre.pushConst permitTypehashWordLit (width := 32) (op := .PUSH32)
     (by decide) (by native_decide) (by evm_ov)
@@ -4016,15 +4003,13 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
         (hoff := by norm_num)
         (hgap := by rw [herr2_size]; native_decide) |>.trans herr2_read64
   have herr3_mload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ err3.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ err3.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (err3.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨450⟩ := by
     exact mloadWordValue_of_readWithPadding
-      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 18) (v := (⟨450⟩ : UInt256))
+      (off := (⟨64⟩ : UInt256)) (v := (⟨450⟩ : UInt256))
       (by rw [herr3_size]; decide)
-      (by decide)
       (by simpa using herr3_read64)
   have rdErrMload := evm_run rd2616 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -4129,7 +4114,7 @@ theorem daiPermitX_nonzeroHolderReach2684 {cA gh bl σ σ₀ A I} {g : Sat256}
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
-      mem_cost (mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide)
+      mem_cost (mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide)
         solcFreePtrMem_read64) (by decide) (by evm_ov)]
   have rd2469 := rd2436pre.pushConst permitTypehashWordLit (width := 32) (op := .PUSH32)
     (by decide) (by native_decide) (by evm_ov)
@@ -4765,7 +4750,7 @@ abbrev permitEcrecoverReturnMem (mem o : ByteArray) : ByteArray :=
   o.write 0 mem 450 (permitEcrecoverReturnCopyLen o)
 
 abbrev permitMloadWord (mem : ByteArray) (aw off : UInt256) : UInt256 :=
-  if off.toNat ≥ mem.size ∨ off ≥ aw * ⟨32⟩ then ⟨0⟩
+  if off.toNat ≥ mem.size then ⟨0⟩
   else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding off.toNat 32))
 
 abbrev permitEcrecoverStaticcallAw : UInt256 :=
@@ -4835,10 +4820,9 @@ theorem permitEcrecoverMem5_mload450_zero
       permitEcrecoverStaticcallAw ⟨450⟩ = ⟨0⟩ := by
   unfold permitMloadWord
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨450⟩ : UInt256)) (aw := permitEcrecoverStaticcallAw)
+    (off := (⟨450⟩ : UInt256))
     (v := (⟨0⟩ : UInt256))
     (by rw [permitEcrecoverMem5_size]; native_decide)
-    (by native_decide)
     (by simpa using permitEcrecoverMem5_read450_zero I domainWord digestWord)
 
 theorem permitEcrecoverReturnCopyLen_le_size (o : ByteArray)
@@ -4961,7 +4945,6 @@ theorem permitEcrecoverReturnMem_mload64 {mem o : ByteArray}
   unfold permitMloadWord
   exact mloadWordValue_of_readWithPadding
     (by rw [permitEcrecoverReturnMem_size hmem hoSize, hmem]; native_decide)
-    (by native_decide)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
       rw [permitEcrecoverReturnMem_read64 (by rw [hmem]; norm_num) hoSize]
@@ -4973,10 +4956,9 @@ theorem permitEcrecoverReturnMem_mload450 {mem o : ByteArray}
       UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) := by
   unfold permitMloadWord
   rw [mloadValue_eq_readWithPadding_of_lt_size
-    (permitEcrecoverReturnMem mem o) permitEcrecoverStaticcallAw (⟨450⟩ : UInt256) mem.size
+    (permitEcrecoverReturnMem mem o) (⟨450⟩ : UInt256) mem.size
     (permitEcrecoverReturnMem_size hmem hoSize)
-    (by rw [show (⟨450⟩ : UInt256).toNat = 450 by native_decide, hmem]; norm_num)
-    (by native_decide)]
+    (by rw [show (⟨450⟩ : UInt256).toNat = 450 by native_decide, hmem]; norm_num)]
   rw [show (⟨450⟩ : UInt256).toNat = 450 by native_decide]
   rw [permitEcrecoverReturnMem,
     permitEcrecoverReturnCopyLen_eq_32 o ho32 hoSize]
@@ -4991,10 +4973,9 @@ theorem permitTwoWordHashMem_mload64 {mem : ByteArray} (key slot : UInt256)
   have hsize : (permitTwoWordHashMem mem key slot).size = 610 := by
     rw [permitTwoWordHashMem_size key slot (by rw [hmem]; norm_num), hmem]
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := permitEcrecoverStaticcallAw)
+    (off := (⟨64⟩ : UInt256))
     (v := (⟨482⟩ : UInt256))
     (by rw [hsize]; native_decide)
-    (by native_decide)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
       rw [permitTwoWordHashMem_read64 key slot (by rw [hmem]; norm_num)]
@@ -5009,10 +4990,9 @@ theorem permitApprovalLogMem_mload64 {mem : ByteArray} (I : ExecutionEnv)
   have hsize : (permitApprovalLogMem mem I).size = 610 :=
     permitApprovalLogMem_size I hmem
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := permitEcrecoverStaticcallAw)
+    (off := (⟨64⟩ : UInt256))
     (v := (⟨482⟩ : UInt256))
     (by rw [hsize]; native_decide)
-    (by native_decide)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
       unfold permitApprovalLogMem
@@ -5411,10 +5391,7 @@ theorem daiPermitX_nonzeroHolderExpiredAfter2874
       (((⟨100⟩ : UInt256) + UInt256.sub (⟨482⟩ : UInt256) free2).toNat))) -
       Cₘ permitEcrecoverStaticcallAw)
     (by native_decide)
-    (fun s haws hstks => by
-      set_option linter.unusedSimpArgs false in
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, List.getElem!_cons_succ])
+    (by rfl)
     (by simp only [List.length_cons, List.length_nil]; norm_num)
 
 set_option maxHeartbeats 1000000 in
@@ -5560,10 +5537,7 @@ theorem daiPermitX_nonzeroHolderBadRecoveredAfter2808
       (((⟨100⟩ : UInt256) + UInt256.sub (⟨482⟩ : UInt256) free2).toNat))) -
       Cₘ permitEcrecoverStaticcallAw)
     (by native_decide)
-    (fun s haws hstks => by
-      set_option linter.unusedSimpArgs false in
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, List.getElem!_cons_succ])
+    (by rfl)
     (by simp only [List.length_cons, List.length_nil]; norm_num)
 
 theorem daiPermitX_nonceBranchAfter2957
@@ -5753,10 +5727,7 @@ theorem daiPermitX_nonceMismatchAfter2957
       (((⟨100⟩ : UInt256) + UInt256.sub (⟨482⟩ : UInt256) free2).toNat))) -
       Cₘ permitEcrecoverStaticcallAw)
     (by native_decide)
-    (fun s haws hstks => by
-      set_option linter.unusedSimpArgs false in
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, List.getElem!_cons_succ])
+    (by rfl)
     (by simp only [List.length_cons, List.length_nil]; norm_num)
 
 set_option maxHeartbeats 1000000 in
@@ -5785,10 +5756,9 @@ theorem daiPermitX_successLogStopAfter3124
         (⟨482⟩ : UInt256) := by
     unfold permitMloadWord
     exact mloadWordValue_of_readWithPadding
-      (off := (⟨64⟩ : UInt256)) (aw := permitEcrecoverStaticcallAw)
+      (off := (⟨64⟩ : UInt256))
       (v := (⟨482⟩ : UInt256))
       (by rw [hmem]; native_decide)
-      (by native_decide)
       (by
         rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
         exact hread64)

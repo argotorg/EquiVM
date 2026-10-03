@@ -1174,22 +1174,20 @@ theorem flipperDealX_toCatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
       (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k5562 C5562 := by
     simpa [rawTarget, flipperSlotWord, solcSlotWord] using rd5562raw
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ (dealCatHashMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (dealCatHashMem I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((dealCatHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [dealCatHashMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [dealCatHashMem_size]; decide)
       (dealCatHashMem_read64 I)
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (dealCatCallMem σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (dealCatCallMem σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((dealCatCallMem σ I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [dealCatCallMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [dealCatCallMem_size]; decide)
       (dealCatCallMem_read64 σ I)
   have rd5580 := evm_run rd5562 with [
     raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
@@ -1458,22 +1456,20 @@ theorem flipperDealX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : St
       UInt256.land solcAddrMask rawPacked = bidGuyWord (dealId I) σ I := by
     simpa [u256_land_comm] using hpackedClean
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ (dealVatHashMem σmem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (dealVatHashMem σmem I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((dealVatHashMem σmem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [dealVatHashMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [dealVatHashMem_size]; decide)
       (dealVatHashMem_read64 σmem I)
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (dealVatFluxCallMem σmem σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (dealVatFluxCallMem σmem σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((dealVatFluxCallMem σmem σ I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [dealVatFluxCallMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [dealVatFluxCallMem_size]; decide)
       (dealVatFluxCallMem_read64 σmem σ I)
   have rd5676 := evm_run h with [
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),

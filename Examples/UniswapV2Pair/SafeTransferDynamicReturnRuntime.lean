@@ -35,7 +35,7 @@ theorem RD.uniswapSafeTransferNonemptyReturnStored
       (status :: callRet :: maskedToken :: ⟨96⟩ :: ⟨0⟩ :: value :: toWord :: token :: ret :: R)
       mem aw out acc k C)
     (houtNe : out.size ≠ 0) (hout : out.size < 2 ^ 255)
-    (hload : memoryWordLoad mem aw ⟨64⟩ = ptr)
+    (hload : memoryWordLoad mem ⟨64⟩ = ptr)
     (hptrLo : 96 ≤ ptr.toNat) (haw : aw.toNat * 32 < UInt256.size)
     (hcover : ptr.toNat + 64 ≤ aw.toNat * 32) (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6652⟩ (ptr :: status :: value :: toWord :: token :: ret :: R)
@@ -56,7 +56,7 @@ theorem uniswapSafeTransferNonemptyReturnRuntimeCases
       ((if z then ⟨1⟩ else ⟨0⟩) :: callRet :: maskedToken :: ⟨96⟩ :: ⟨0⟩ :: value :: toWord :: token :: ret :: R)
       mem aw out acc k C)
     (houtNe : out.size ≠ 0) (hout : out.size < 2 ^ 255)
-    (hload : memoryWordLoad mem aw ⟨64⟩ = ptr)
+    (hload : memoryWordLoad mem ⟨64⟩ = ptr)
     (hin : 96 ≤ mem.size) (hptr : ptr.toNat + 32 ≤ mem.size)
     (hptrLo : 96 ≤ ptr.toNat) (haw : aw.toNat * 32 < UInt256.size)
     (hcover : ptr.toNat + 64 ≤ aw.toNat * 32) (hfit : ptr.toNat + out.size + 95 < UInt256.size)

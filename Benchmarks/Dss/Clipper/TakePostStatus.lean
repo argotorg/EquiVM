@@ -411,16 +411,14 @@ theorem clipperTakeVatFluxCalldataMem_mload64 (v : ClipperImmutables)
     (I : ExecutionEnv) (who slice : UInt256) {mem : ByteArray}
     (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperTakeVatFluxCalldataMem v I who slice mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperTakeVatFluxCalldataMem v I who slice mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperTakeVatFluxCalldataMem v I who slice mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
   exact mloadFreePtrValue
-    (mem := clipperTakeVatFluxCalldataMem v I who slice mem) (aw := UInt256.ofNat 9)
+    (mem := clipperTakeVatFluxCalldataMem v I who slice mem)
     (by rw [clipperTakeVatFluxCalldataMem_size v I who slice hmem]; norm_num)
-    (by decide)
     (clipperTakeVatFluxCalldataMem_read64 v I who slice hmem hread64)
 
 theorem clipperTakeVatFluxSelectorMem_read128_4 {mem : ByteArray}
@@ -960,7 +958,7 @@ theorem RD.clipperTakeStatusDoneTrueReverts {code : ByteArray} (v : ClipperImmut
     raw dup1 (by clipper_runtime_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by clipper_runtime_decode)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_runtime_decode)
@@ -1066,7 +1064,7 @@ theorem RD.clipperTakeStatusFalseTooExpensiveReverts {code : ByteArray}
     raw dup1 (by clipper_runtime_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by clipper_runtime_decode)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_runtime_decode)
@@ -1497,18 +1495,16 @@ theorem RD.clipperTakeVatFluxExtcodesizeGuard {code : ByteArray}
   let ilkWord : UInt256 := EVM.Word.ofNat (fromBytesBigEndian ilkBs)
   let vatWord : UInt256 := EVM.Word.ofNat (↑v.vat : Nat)
   have hbaseMload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (mem := mem) (aw := UInt256.ofNat 7)
-      (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (mem := mem)
+      (by rw [hmem]; decide) hread64
   have hcallMload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (clipperTakeVatFluxCalldataMem v ee who slice mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+            (clipperTakeVatFluxCalldataMem v ee who slice mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((clipperTakeVatFluxCalldataMem v ee who slice mem).readWithPadding

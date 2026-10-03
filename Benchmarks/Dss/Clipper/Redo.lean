@@ -1449,8 +1449,7 @@ theorem clipperRedoX_inactiveAuctionTail {cA σ I} {g : Sat256} {s0 : State}
     raw dup1 (by clipper_runtime_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by clipper_runtime_decode)
       mem_cost
-      (mloadFreePtrValue (by rw [clipperRedoSalesHashMem_size I]; decide)
-        (by decide) (clipperRedoSalesHashMem_read64 I))
+      (mloadFreePtrValue (by rw [clipperRedoSalesHashMem_size I]; decide) (clipperRedoSalesHashMem_read64 I))
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_runtime_decode)

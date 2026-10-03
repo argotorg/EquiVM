@@ -174,12 +174,11 @@ theorem RD.catBiteIlksToStaticcallGuard
       UInt256.land (catSlotWord ⟨3⟩ σ I) solcAddrMask
     rw [u256_land_comm, hmask]
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (solcFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide) solcFreePtrMem_read64
+    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) solcFreePtrMem_read64
   have hcallMem : (catBiteIlksCalldataMem ilk solcFreePtrMem).size = 164 :=
     catBiteIlksCalldataMem_size ilk solcFreePtrMem_size
   have hcallRead64 :
@@ -187,14 +186,13 @@ theorem RD.catBiteIlksToStaticcallGuard
         UInt256.toByteArray ⟨128⟩ :=
     catBiteIlksCalldataMem_read64 ilk solcFreePtrMem_size solcFreePtrMem_read64
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (catBiteIlksCalldataMem ilk solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (catBiteIlksCalldataMem ilk solcFreePtrMem).size then ⟨0⟩
        else UInt256.ofNat
       (fromByteArrayBigEndian
           ((catBiteIlksCalldataMem ilk solcFreePtrMem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have rd1164 := rd1163.jumpdest (by native_decide) (by evm_ov)
   have rd1166 := rd1164.push1 ⟨3⟩ (by native_decide) (by evm_ov)
   obtain ⟨k1167, C1167, rd1167raw⟩ := rd1166.sload (by native_decide) (by evm_ov)

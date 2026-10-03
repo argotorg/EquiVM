@@ -1517,15 +1517,15 @@ theorem scratch_RD_placeBid_true_nonzero_anyMem {g : Sat256} {s0 : State} {I : E
   rw [hmask] at rd1587
   have rd1588 := evm_run rd1587 with [
     raw mstore (Cₘ aw1 - Cₘ aw) memKey aw1 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw1])
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw1])
       (by simp [memKey, scratch_placeBidPendingKeyMem, key])
       (by rfl) (by evm_ov)]
   have rd1593 := evm_run rd1588 with [
     push1 ⟨7⟩, push1 ⟨32⟩,
     raw mstore (Cₘ aw2 - Cₘ aw1) memHash aw2 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw2])
+      (by
+        simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw2])
       (by
         rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
         simp [memHash, scratch_placeBidPendingHashMem, memKey])
@@ -1536,8 +1536,8 @@ theorem scratch_RD_placeBid_true_nonzero_anyMem {g : Sat256} {s0 : State} {I : E
   have hslot := scratch_placeBidPendingKeccak_any mem key hkeyCanon
   have rd1597 := evm_run rd1593 with [
     raw keccak256 (Cₘ aw3 - Cₘ aw2) (scratch_placeBidPendingSlot σ I) aw3 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw3,
+      (by
+        simp [M, aw3,
           show (⟨64⟩ : UInt256).toNat = 64 by native_decide])
       (by simpa [memHash, key, scratch_placeBidPendingSlot] using hslot) (by rfl) (by evm_ov),
     dup1]

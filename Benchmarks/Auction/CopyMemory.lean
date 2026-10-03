@@ -85,10 +85,9 @@ theorem copyWindow_prefix (src mem : ByteArray) (srcOff dest len limit : Nat)
   · exact copyWindow_read_preserved src mem srcOff dest len read hpos hsrc hdest hin
       (hdisj.elim (fun hd ↦ Or.inl (by omega)) (fun hd ↦ Or.inr (by omega)))
 
-theorem loadedWord_zero {mem aw} (ha : ActiveWords aw) (hm : 32 ≤ mem.size) :
-    loadedWord mem aw ⟨0⟩ = calldataWord mem 0 := by
-  apply loadedWord_of_read (off := ⟨0⟩) ha (by change 0 + 32 ≤ mem.size; omega)
-    (by have hlo := ha.1; change 0 < _; omega)
+theorem loadedWord_zero {mem} (hm : 32 ≤ mem.size) :
+    loadedWord mem ⟨0⟩ = calldataWord mem 0 := by
+  apply loadedWord_of_read (off := ⟨0⟩) (by change 0 + 32 ≤ mem.size; omega)
   change mem.readWithPadding 0 32 = _
   rw [readWithPadding_eq_extract _ _ hm, calldataWord_bytes hm]
 

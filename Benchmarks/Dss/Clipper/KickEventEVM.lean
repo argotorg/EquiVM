@@ -72,13 +72,12 @@ theorem RD.clipperKickReturnWordFromMem8 {code : ByteArray}
     RDret code g s0 acc (UInt256.toByteArray val) := by
   let memout : ByteArray := val.toByteArray.write 0 mem 128 32
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨
-          (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (mem := mem) (aw := UInt256.ofNat 8)
-      (by rw [hmem]; norm_num) (by native_decide) hread64
+    mloadFreePtrValue (mem := mem)
+      (by rw [hmem]; norm_num) hread64
   have hmemoutSize : memout.size = 256 := by
     unfold memout
     exact toByteArray_write32_size_of_le mem val 128 256 256 hmem
@@ -89,13 +88,12 @@ theorem RD.clipperKickReturnWordFromMem8 {code : ByteArray}
       (by rw [hmem]; omega) (by omega) (by rw [hmem]; native_decide)]
     exact hread64
   have hmloadOut64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size ∨
-          (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (mem := memout) (aw := UInt256.ofNat 8)
-      (by rw [hmemoutSize]; norm_num) (by native_decide) hmemoutRead64
+    mloadFreePtrValue (mem := memout)
+      (by rw [hmemoutSize]; norm_num) hmemoutRead64
   have hread128 : memout.readWithPadding 128 32 = UInt256.toByteArray val := by
     unfold memout
     rw [toByteArray_write_read_back_of_gap val mem 128 (by rw [hmem]; native_decide)]
@@ -148,13 +146,12 @@ theorem RD.clipperKickEventUnlockReturnFrom228 {code : ByteArray}
   let eventTopic : UInt256 :=
     ⟨0x7c5bfdc0a5e8192f6cd4972f382cec69116862fb62e6abff8003874c58e064b8⟩
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨
-          (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (mem := mem) (aw := UInt256.ofNat 8)
-      (by rw [hmem]; norm_num) (by native_decide) hread64
+    mloadFreePtrValue (mem := mem)
+      (by rw [hmem]; norm_num) hread64
   have rdMemPre := evm_run rd with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -209,12 +206,10 @@ theorem RD.clipperKickEventUnlockReturnFrom228 {code : ByteArray}
         UInt256.toByteArray ⟨128⟩ :=
     clipperRedoEventMem_read64 top tab lot coin hmem hread64
   have hmloadEvent64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (clipperRedoEventMem mem top tab lot coin).size ∨
-          (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (clipperRedoEventMem mem top tab lot coin).size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian
           ((clipperRedoEventMem mem top tab lot coin).readWithPadding 64 32))) = ⟨128⟩ :=
-    mloadFreePtrValue (mem := clipperRedoEventMem mem top tab lot coin)
-      (aw := UInt256.ofNat 8) (by rw [hmemEvent]; norm_num) (by native_decide) hreadEvent
+    mloadFreePtrValue (mem := clipperRedoEventMem mem top tab lot coin) (by rw [hmemEvent]; norm_num) hreadEvent
   have rdMloadPre := rdCoin.swap1 (by clipper_runtime_decode) (by evm_ov)
   have rdMload := rdMloadPre.mload 0 ⟨128⟩ (UInt256.ofNat 8)
     (by clipper_runtime_decode) mem_cost hmloadEvent64 (by native_decide) (by evm_ov)
@@ -253,10 +248,7 @@ theorem RD.clipperKickEventUnlockReturnFrom228 {code : ByteArray}
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
   have rdLog := RD.log4 0 (UInt256.ofNat 8) rdLogPre
     (by clipper_runtime_decode) hperm
-    (by
-      intro s hawEq hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hawEq, hstk]
-      native_decide)
+    (by norm_num [M, MachineState.M, Cₘ] <;> native_decide)
     (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rdUnlockPre := evm_run rdLog with [
@@ -303,13 +295,12 @@ theorem RD.clipperKickEventUnlockReturnFrom192 {code : ByteArray}
   let eventTopic : UInt256 :=
     ⟨0x7c5bfdc0a5e8192f6cd4972f382cec69116862fb62e6abff8003874c58e064b8⟩
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨
-          (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (mem := mem) (aw := UInt256.ofNat 6)
-      (by rw [hmem]; norm_num) (by native_decide) hread64
+    mloadFreePtrValue (mem := mem)
+      (by rw [hmem]; norm_num) hread64
   have rdMemPre := evm_run rd with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),
     raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov),
@@ -360,12 +351,10 @@ theorem RD.clipperKickEventUnlockReturnFrom192 {code : ByteArray}
         UInt256.toByteArray ⟨128⟩ :=
     clipperKickEventMem_read64_192 top tab lot coin hmem hread64
   have hmloadEvent64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (clipperRedoEventMem mem top tab lot coin).size ∨
-          (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (clipperRedoEventMem mem top tab lot coin).size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian
           ((clipperRedoEventMem mem top tab lot coin).readWithPadding 64 32))) = ⟨128⟩ :=
-    mloadFreePtrValue (mem := clipperRedoEventMem mem top tab lot coin)
-      (aw := UInt256.ofNat 8) (by rw [hmemEvent]; norm_num) (by native_decide) hreadEvent
+    mloadFreePtrValue (mem := clipperRedoEventMem mem top tab lot coin) (by rw [hmemEvent]; norm_num) hreadEvent
   have rdMloadPre := rdCoin.swap1 (by clipper_runtime_decode) (by evm_ov)
   have rdMload := rdMloadPre.mload 0 ⟨128⟩ (UInt256.ofNat 8)
     (by clipper_runtime_decode) mem_cost hmloadEvent64 (by native_decide) (by evm_ov)
@@ -404,10 +393,7 @@ theorem RD.clipperKickEventUnlockReturnFrom192 {code : ByteArray}
     raw swap1 (by clipper_runtime_decode) (by evm_ov)]
   have rdLog := RD.log4 0 (UInt256.ofNat 8) rdLogPre
     (by clipper_runtime_decode) hperm
-    (by
-      intro s hawEq hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hawEq, hstk]
-      native_decide)
+    (by norm_num [M, MachineState.M, Cₘ] <;> native_decide)
     (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rdUnlockPre := evm_run rdLog with [

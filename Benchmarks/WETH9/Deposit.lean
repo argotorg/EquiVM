@@ -135,7 +135,7 @@ theorem weth9DepositLog {cA gh bl σ σ₀ A I acc} {R : List UInt256} {g : Sat2
     twoWordHashMem_read64 _ _ solcFreePtrMem_size solcFreePtrMem_read64
   set thm := twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem with hthm
   have hthmsize : thm.size = 96 := by rw [hthm, twoWordHashMem_size_96 _ _ solcFreePtrMem_size]
-  have hmload64 : (if (⟨64⟩ : UInt256).toNat ≥ thm.size ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩
+  have hmload64 : (if (⟨64⟩ : UInt256).toNat ≥ thm.size
       then ⟨0⟩ else UInt256.ofNat (fromByteArrayBigEndian (thm.readWithPadding
         (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
     rw [if_neg (by rw [hthmsize]; decide), show (⟨64⟩ : UInt256).toNat = 64 from rfl, hthm, hread64]
@@ -161,7 +161,7 @@ theorem weth9DepositLog {cA gh bl σ σ₀ A I acc} {R : List UInt256} {g : Sat2
     rw [h1, hgapeq, extract_append_left _ _ 64 (64 + 32) h2,
       extract_append_left _ _ 64 (64 + 32) h3,
       ← readWithPadding_eq_extract thm 64 h3, hthm, hread64]
-  have hdlm_mload64 : (if (⟨64⟩ : UInt256).toNat ≥ dlm.size ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩
+  have hdlm_mload64 : (if (⟨64⟩ : UInt256).toNat ≥ dlm.size
       then ⟨0⟩ else UInt256.ofNat (fromByteArrayBigEndian (dlm.readWithPadding
         (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
     rw [if_neg (by rw [hdlmsize]; decide), show (⟨64⟩ : UInt256).toNat = 64 from rfl, hdlmread64]

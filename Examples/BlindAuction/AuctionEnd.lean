@@ -99,12 +99,11 @@ theorem auctionEndEventMem_read64 (σ : AccountMap) (I : ExecutionEnv) :
     solcReturnMem_read64 (auctionEndWinnerWord σ I)
 
 theorem auctionEndEventMem_mload64 (σ : AccountMap) (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (auctionEndEventMem σ I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (auctionEndEventMem σ I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((auctionEndEventMem σ I).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [auctionEndEventMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [auctionEndEventMem_size]; decide)
     (auctionEndEventMem_read64 σ I)
 
 theorem auctionEndAddress_ofNat_toNat (w : UInt256) :
@@ -523,12 +522,11 @@ theorem auctionEndTimeRevertMem_size (arg errSel : UInt256) :
   omega
 
 theorem auctionEndTimeRevertMem_mload64 (arg errSel : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (auctionEndTimeRevertMem arg errSel).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (auctionEndTimeRevertMem arg errSel).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((auctionEndTimeRevertMem arg errSel).readWithPadding
          (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [auctionEndTimeRevertMem_size]; decide) (by decide) (by
+  mloadFreePtrValue (by rw [auctionEndTimeRevertMem_size]; decide) (by
     unfold auctionEndTimeRevertMem
     rw [write32_read_below _ _ 132 64 (by rw [toByteArray_size])
       (by rw [solcReturnMem_size]; omega) (by omega)]
@@ -746,8 +744,7 @@ theorem blindAuctionX_auctionEnd_afterStoreAndLog {cA gh bl σ σ₀ A I} {g : S
   rw [hlen64] at rd719'
   have rd720 := RD.log1 0 (UInt256.ofNat 6) rd719' (by decide) hperm
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      simp [M]
       native_decide)
     (by decide) (by evm_ov)
   have rd723 := evm_run rd720 with [push1 ⟨3⟩, dup1]
@@ -858,8 +855,7 @@ theorem blindAuctionX_auctionEnd_postCallNonempty_toRequire {cA gh bl σ σ₀ A
       [z, ⟨128⟩, high, benef, ⟨0⟩, auctionEndRevealEndWord σ I, ⟨276⟩,
         blindAuctionSelWord I]
       mem (UInt256.ofNat 6) o acc k C)
-    (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (hfp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
@@ -908,8 +904,7 @@ theorem blindAuctionX_auctionEnd_postCallNonempty_toRequire {cA gh bl σ σ₀ A
     rd807 (by decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, copyDest, copyLen])
+      simp [M, copyDest, copyLen])
     (by rfl)
     (by rfl)
     (by evm_ov)
@@ -937,7 +932,7 @@ theorem blindAuctionX_auctionEnd_requireSuccess_revert {cA gh bl σ σ₀ A I} {
     RDrev blindAuctionBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have rd827 := evm_run rd with [dup1, push2 ⟨830⟩, jumpiNT (by decide), push0, push0]
   exact RD.rev _ rd827 (by decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws])
+    (by rfl)
     (by evm_ov)
 
 theorem blindAuctionX_auctionEnd_callMade {cA gh bl σ σ₀ A I} {g : Sat256}

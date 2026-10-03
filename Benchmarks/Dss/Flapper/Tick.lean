@@ -903,8 +903,7 @@ theorem flapperTickX_toEndLtGuard
   have rd4592 := rd4591pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -914,8 +913,7 @@ theorem flapperTickX_toEndLtGuard
   have rd4597 := rd4596pre.mstore 0 memMap (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memMap, id, twoWordHashMem, wordAt32Mem])
@@ -931,11 +929,7 @@ theorem flapperTickX_toEndLtGuard
       Benchmarks.Dss.Flopper.twoWordHashMem_solcMappingSlot_any ⟨1⟩ id solcFreePtrMem
   have rd4601 := rd4600pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -1059,8 +1053,7 @@ theorem flapperTickX_toTicZeroGuard
   have rd4700 := rd4699pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, memEnd, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -1070,8 +1063,7 @@ theorem flapperTickX_toTicZeroGuard
   have rd4705 := rd4704pre.mstore 0 memTic (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memTic, memEnd, id, twoWordHashMem, wordAt32Mem])
@@ -1087,11 +1079,7 @@ theorem flapperTickX_toTicZeroGuard
       Benchmarks.Dss.Flopper.twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memEnd
   have rd4709 := rd4708pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -1392,8 +1380,7 @@ theorem flapperTickX_success
   have rd4844 := rd4843pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, memTic, memEnd, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -1403,8 +1390,7 @@ theorem flapperTickX_success
   have rd4849 := rd4848pre.mstore 0 memEndStore (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memEndStore, memTic, id, twoWordHashMem, wordAt32Mem])
@@ -1421,11 +1407,7 @@ theorem flapperTickX_success
       Benchmarks.Dss.Flopper.twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd4854 := rd4853pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)

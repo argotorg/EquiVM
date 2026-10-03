@@ -784,8 +784,7 @@ theorem endFreeUrnsPostCallMem_read160_32 (I : ExecutionEnv) (out : ByteArray)
 
 theorem endFreeUrnsPostCallMem_mload128 (I : ExecutionEnv) (out : ByteArray)
     (hlo : 64 ≤ out.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (endFreeUrnsPostCallMem I out).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (endFreeUrnsPostCallMem I out).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endFreeUrnsPostCallMem I out).readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
@@ -798,8 +797,7 @@ theorem endFreeUrnsPostCallMem_mload128 (I : ExecutionEnv) (out : ByteArray)
 
 theorem endFreeUrnsPostCallMem_mload160 (I : ExecutionEnv) (out : ByteArray)
     (hlo : 64 ≤ out.size) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (endFreeUrnsPostCallMem I out).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (endFreeUrnsPostCallMem I out).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((endFreeUrnsPostCallMem I out).readWithPadding (⟨160⟩ : UInt256).toNat 32))) =
@@ -1064,16 +1062,14 @@ theorem endFree_solcErrorStringMem3_read64_of_size196 (len word : UInt256)
 theorem endFree_solcErrorStringMem3_mload64_of_size196 (len word : UInt256)
     {mem : ByteArray} (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (solcErrorStringMem3 len word mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((solcErrorStringMem3 len word mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
   mloadFreePtrValue
-    (by rw [endFree_solcErrorStringMem3_size_of_size196 len word hmem]; decide)
-    (by decide) (endFree_solcErrorStringMem3_read64_of_size196 len word hmem hread64)
+    (by rw [endFree_solcErrorStringMem3_size_of_size196 len word hmem]; decide) (endFree_solcErrorStringMem3_read64_of_size196 len word hmem hread64)
 
 set_option maxHeartbeats 1000000 in
 theorem endFree_solcErrorStringRevertTail_aw7 {code : ByteArray} {g : Sat256}
@@ -1098,7 +1094,7 @@ theorem endFree_solcErrorStringRevertTail_aw7 {code : ByteArray} {g : Sat256}
     raw dup1 hd2 (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 7) hd3
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4
@@ -2417,13 +2413,12 @@ theorem endFreeX_urnsExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256} {sel 
       (endFreeUrnsCalldataMem I solcFreePtrMem) (UInt256.ofNat 7)
       ByteArray.empty (cA, σ) k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             (solcFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide)
       solcFreePtrMem_read64
   have hcallMem :
       (endFreeUrnsCalldataMem I solcFreePtrMem).size = 196 :=
@@ -2433,14 +2428,13 @@ theorem endFreeX_urnsExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256} {sel 
         UInt256.toByteArray ⟨128⟩ :=
     endFreeUrnsCalldataMem_read64 I solcFreePtrMem_size solcFreePtrMem_read64
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endFreeUrnsCalldataMem I solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endFreeUrnsCalldataMem I solcFreePtrMem).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endFreeUrnsCalldataMem I solcFreePtrMem).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have hselectorShift :
       UInt256.shiftLeft (⟨0x09092f97⟩ : UInt256) ⟨226⟩ =
         endFreeUrnsSelectorShifted := by
@@ -2679,15 +2673,13 @@ theorem endFreeX_urnsReturnDecodeOk {cA gh bl σ σ₀ A I} {g : Sat256}
         endFreeReturnPc :: sel :: [])
       (endFreeUrnsPostCallMem I out) (UInt256.ofNat 7) out acc k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endFreeUrnsPostCallMem I out).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endFreeUrnsPostCallMem I out).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endFreeUrnsPostCallMem I out).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endFreeUrnsPostCallMem_size I out]; decide)
-      (by decide) (endFreeUrnsPostCallMem_read64 I out)
+    mloadFreePtrValue (by rw [endFreeUrnsPostCallMem_size I out]; decide) (endFreeUrnsPostCallMem_read64 I out)
   have hmload128 := endFreeUrnsPostCallMem_mload128 I out hlo
   have hmload160 := endFreeUrnsPostCallMem_mload160 I out hlo
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨64⟩ : UInt256) = ⟨0⟩ := by
@@ -2742,15 +2734,13 @@ theorem endFreeX_urnsReturnDecodeShort {cA gh bl σ σ₀ A I} {g : Sat256}
     (hshort : out.size < 64) (hout : out.size < UInt256.size) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endFreeUrnsPostCallMem I out).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endFreeUrnsPostCallMem I out).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endFreeUrnsPostCallMem I out).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endFreeUrnsPostCallMem_size I out]; decide)
-      (by decide) (endFreeUrnsPostCallMem_read64 I out)
+    mloadFreePtrValue (by rw [endFreeUrnsPostCallMem_size I out]; decide) (endFreeUrnsPostCallMem_read64 I out)
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨64⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, ulit_toNat' out.size hout]
@@ -2919,25 +2909,21 @@ theorem endFreeX_grabExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I} {g : Sat25
         endFreeReturnPc :: sel :: [])
       (endFreeGrabCalldataMem σ' I out) (UInt256.ofNat 11) out (cA', σ') k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endFreeUrnsPostCallMem I out).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endFreeUrnsPostCallMem I out).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endFreeUrnsPostCallMem I out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endFreeUrnsPostCallMem_size I out]; decide)
-      (by decide) (endFreeUrnsPostCallMem_read64 I out)
+    mloadFreePtrValue (by rw [endFreeUrnsPostCallMem_size I out]; decide) (endFreeUrnsPostCallMem_read64 I out)
   have hmload64Grab :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endFreeGrabMem7 σ' I out).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endFreeGrabMem7 σ' I out).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endFreeGrabMem7 σ' I out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ := by
     simpa [endFreeGrabMem7_eq] using
       (mloadFreePtrValue
-        (by rw [endFreeGrabCalldataMem_size σ' I out]; decide)
-        (by decide) (endFreeGrabCalldataMem_read64 σ' I out))
+        (by rw [endFreeGrabCalldataMem_size σ' I out]; decide) (endFreeGrabCalldataMem_read64 σ' I out))
   have hselectorShift :
       UInt256.shiftLeft (⟨0x01eeacfd⟩ : UInt256) ⟨230⟩ =
         endFreeGrabSelectorShifted := by
@@ -3271,16 +3257,14 @@ theorem endFreeX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
       (endFreeGrabPostCallMem σ I out ret) (UInt256.ofNat 11) ret acc k C) :
     RDret endBytecode g s0 acc ByteArray.empty := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endFreeGrabPostCallMem σ I out ret).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endFreeGrabPostCallMem σ I out ret).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endFreeGrabPostCallMem σ I out ret).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ := by
     rw [endFreeGrabPostCallMem_eq]
-    exact mloadFreePtrValue (by rw [endFreeGrabCalldataMem_size σ I out]; decide)
-      (by decide) (endFreeGrabCalldataMem_read64 σ I out)
+    exact mloadFreePtrValue (by rw [endFreeGrabCalldataMem_size σ I out]; decide) (endFreeGrabCalldataMem_read64 σ I out)
   have rd8184pre := evm_run h with [
     raw pop (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -3293,15 +3277,13 @@ theorem endFreeX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     (endFreeLogDataMem σ I out ret) (UInt256.ofNat 11)
     (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
   have hmload64Log :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endFreeLogDataMem σ I out ret).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endFreeLogDataMem σ I out ret).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endFreeLogDataMem σ I out ret).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endFreeLogDataMem_size σ I out ret]; decide)
-      (by decide) (endFreeLogDataMem_read64 σ I out ret)
+    mloadFreePtrValue (by rw [endFreeLogDataMem_size σ I out ret]; decide) (endFreeLogDataMem_read64 σ I out ret)
   have rd8193 := evm_run rdLogMem with [
     raw swap1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 11) (by native_decide) mem_cost hmload64Log

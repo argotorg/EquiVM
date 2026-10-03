@@ -297,7 +297,7 @@ theorem endCtorInitcodeSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd42 := by
     simpa using rd42raw
   have rd43 := rd42.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
-    (mloadFreePtrValue (by rw [endCtorWardsHashMem_size I]; decide) (by decide)
+    (mloadFreePtrValue (by rw [endCtorWardsHashMem_size I]; decide)
       (endCtorWardsHashMem_read64 I))
     (by native_decide) (by evm_ov)
   have rd76 := rd43.pushConst

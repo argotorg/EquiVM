@@ -177,9 +177,9 @@ theorem catBiteReach2383to2532 {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2383⟩
       (tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o (cAx, σx) k C)
-    (hFlip : (if q.toNat ≥ mem.size ∨ q ≥ aw * ⟨32⟩ then ⟨0⟩
+    (hFlip : (if q.toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding q.toNat 32))) = milkFlip)
-    (hFree : (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+    (hFree : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 64 32))) = ⟨128⟩)
     (hawq : q.toNat + 32 ≤ aw.toNat * 32) (haw292 : 292 ≤ aw.toNat * 32)
     (hmemsize : 292 ≤ mem.size)
@@ -260,42 +260,27 @@ theorem catBiteKickPostCallMem_read128 (urn vow tab dink : UInt256) {mem : ByteA
 
 /-- The free-pointer `0x80` (if-form) survives the kick return copy — discharges `catBiteReach2532toRet`'s `hFree8`. -/
 theorem catBiteKickPostCallMem_mload64 (urn vow tab dink : UInt256) {mem : ByteArray} (o : ByteArray)
-    {aw8 : UInt256} (hmem : 292 ≤ mem.size)
+    (hmem : 292 ≤ mem.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (ho32 : 32 ≤ o.size) (hout : o.size < UInt256.size)
-    (haw : 288 ≤ aw8.toNat * 32) (hawsz : aw8.toNat * 32 < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (catBiteKickPostCallMem urn vow tab dink mem o).size
-        ∨ (⟨64⟩ : UInt256) ≥ aw8 * ⟨32⟩ then ⟨0⟩
+    (ho32 : 32 ≤ o.size) (hout : o.size < UInt256.size) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (catBiteKickPostCallMem urn vow tab dink mem o).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((catBiteKickPostCallMem urn vow tab dink mem o).readWithPadding 64 32))) = ⟨128⟩ :=
   mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨128⟩)
     (by rw [catBiteKickPostCallMem_size urn vow tab dink o hmem ho32 hout]; show (64 : ℕ) < mem.size; omega)
-    (by intro hh
-        have hle : (aw8 * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
-        rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-          Nat.mod_eq_of_lt hawsz, show (⟨64⟩ : UInt256).toNat = 64 from by decide] at hle
-        omega)
     (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
         exact catBiteKickPostCallMem_read64 urn vow tab dink o hmem hread64 ho32 hout)
 
 /-- `id` (if-form) = the kick return word `o.extract 0 32` — discharges `catBiteReach2532toRet`'s `hId8`. -/
 theorem catBiteKickPostCallMem_mload128 (urn vow tab dink : UInt256) {mem : ByteArray} (o : ByteArray)
-    {aw8 : UInt256} (hmem : 292 ≤ mem.size)
-    (ho32 : 32 ≤ o.size) (hout : o.size < UInt256.size)
-    (haw : 288 ≤ aw8.toNat * 32) (hawsz : aw8.toNat * 32 < UInt256.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (catBiteKickPostCallMem urn vow tab dink mem o).size
-        ∨ (⟨128⟩ : UInt256) ≥ aw8 * ⟨32⟩ then ⟨0⟩
+    (hmem : 292 ≤ mem.size) (ho32 : 32 ≤ o.size) (hout : o.size < UInt256.size) :
+    (if (⟨128⟩ : UInt256).toNat ≥ (catBiteKickPostCallMem urn vow tab dink mem o).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((catBiteKickPostCallMem urn vow tab dink mem o).readWithPadding 128 32))) =
       UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)) :=
   mloadWordValue_of_readWithPadding (off := ⟨128⟩)
     (v := UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32)))
     (by rw [catBiteKickPostCallMem_size urn vow tab dink o hmem ho32 hout]; show (128 : ℕ) < mem.size; omega)
-    (by intro hh
-        have hle : (aw8 * ⟨32⟩).toNat ≤ (⟨128⟩ : UInt256).toNat := hh
-        rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-          Nat.mod_eq_of_lt hawsz, show (⟨128⟩ : UInt256).toNat = 128 from by decide] at hle
-        omega)
     (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
         exact catBiteKickPostCallMem_read128 urn vow tab dink o hmem ho32 hout)
 
@@ -375,21 +360,15 @@ theorem catBiteScratchMem_read64 (mem : ByteArray) (fp ilk : UInt256)
   exact catBiteHelperMem_read64 mem fp hfp96 hfplo hfpsz
 
 /-- If-form of the free-pointer read `q := mem[0x40] = 96+fp` — discharges `catBiteTraceSeg6`'s `hQ`. -/
-theorem catBiteScratchMem_mload64 (mem : ByteArray) (fp ilk : UInt256) {aw : UInt256}
+theorem catBiteScratchMem_mload64 (mem : ByteArray) (fp ilk : UInt256)
     (hfp96 : fp.toNat + 96 ≤ mem.size) (hfplo : 96 ≤ fp.toNat)
-    (hfpsz : fp.toNat + 96 < UInt256.size)
-    (haw : fp.toNat + 96 ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (catBiteScratchMem mem fp ilk).size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+    (hfpsz : fp.toNat + 96 < UInt256.size) :
+    (if (⟨64⟩ : UInt256).toNat ≥ (catBiteScratchMem mem fp ilk).size
         then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((catBiteScratchMem mem fp ilk).readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨96⟩ + fp :=
   mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨96⟩ + fp)
     (by rw [catBiteScratchMem_size mem fp ilk hfp96 hfpsz]; show (64 : ℕ) < mem.size; omega)
-    (by intro hh
-        have hle : (aw * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
-        rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-          Nat.mod_eq_of_lt hawsz, show (⟨64⟩ : UInt256).toNat = 64 from by decide] at hle
-        omega)
     (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
         exact catBiteScratchMem_read64 mem fp ilk hfp96 hfplo hfpsz)
 
@@ -504,12 +483,10 @@ private theorem catBiteMilkMem_readdunk (mem : ByteArray) (fp ilk q flip chop du
   rw [toByteArray_write32_read_back _ dunk (q + ⟨64⟩).toNat (by rw [h3, eq64]; omega)]
 
 /-- If-form of the `milk.chop` field read — discharges `catBiteReach1708to2073`'s `hChop`. -/
-theorem catBiteMilkMem_mload_chop (mem : ByteArray) (fp ilk q flip chop dunk : UInt256) {aw : UInt256}
+theorem catBiteMilkMem_mload_chop (mem : ByteArray) (fp ilk q flip chop dunk : UInt256)
     (hfp96 : fp.toNat + 96 ≤ mem.size) (hqfp : q = ⟨96⟩ + fp)
-    (hfpsz : fp.toNat + 96 < UInt256.size) (hqsz : q.toNat + 96 < UInt256.size)
-    (haw : q.toNat + 96 ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size) :
-    (if (⟨32⟩ + q).toNat ≥ (catBiteMilkMem mem fp ilk q flip chop dunk).size
-        ∨ (⟨32⟩ + q) ≥ aw * ⟨32⟩ then ⟨0⟩
+    (hfpsz : fp.toNat + 96 < UInt256.size) (hqsz : q.toNat + 96 < UInt256.size) :
+    (if (⟨32⟩ + q).toNat ≥ (catBiteMilkMem mem fp ilk q flip chop dunk).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((catBiteMilkMem mem fp ilk q flip chop dunk).readWithPadding (⟨32⟩ + q).toNat 32))) = chop := by
   have eq32 : (q + ⟨32⟩).toNat = q.toNat + 32 := uadd_word_lit32_toNat q (by omega)
@@ -517,21 +494,14 @@ theorem catBiteMilkMem_mload_chop (mem : ByteArray) (fp ilk q flip chop dunk : U
   have hmsz := catBiteMilkMem_size mem fp ilk q flip chop dunk hfp96 hqfp hfpsz hqsz
   exact mloadWordValue_of_readWithPadding (off := ⟨32⟩ + q) (v := chop)
     (by rw [hmsz, ez32]; omega)
-    (by intro hh
-        have hle : (aw * ⟨32⟩).toNat ≤ (⟨32⟩ + q).toNat := hh
-        rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-          Nat.mod_eq_of_lt hawsz, ez32] at hle
-        omega)
     (by rw [ez32, ← eq32]
         exact catBiteMilkMem_readchop mem fp ilk q flip chop dunk hfp96 hqfp hfpsz hqsz)
 
 /-- If-form of the `milk.dunk` field read — discharges `catBiteReach1708to2073`'s `hDunk`. -/
-theorem catBiteMilkMem_mload_dunk (mem : ByteArray) (fp ilk q flip chop dunk : UInt256) {aw : UInt256}
+theorem catBiteMilkMem_mload_dunk (mem : ByteArray) (fp ilk q flip chop dunk : UInt256)
     (hfp96 : fp.toNat + 96 ≤ mem.size) (hqfp : q = ⟨96⟩ + fp)
-    (hfpsz : fp.toNat + 96 < UInt256.size) (hqsz : q.toNat + 96 < UInt256.size)
-    (haw : q.toNat + 96 ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size) :
-    (if (⟨64⟩ + q).toNat ≥ (catBiteMilkMem mem fp ilk q flip chop dunk).size
-        ∨ (⟨64⟩ + q) ≥ aw * ⟨32⟩ then ⟨0⟩
+    (hfpsz : fp.toNat + 96 < UInt256.size) (hqsz : q.toNat + 96 < UInt256.size) :
+    (if (⟨64⟩ + q).toNat ≥ (catBiteMilkMem mem fp ilk q flip chop dunk).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((catBiteMilkMem mem fp ilk q flip chop dunk).readWithPadding (⟨64⟩ + q).toNat 32))) = dunk := by
   have eq64 : (q + ⟨64⟩).toNat = q.toNat + 64 := by
@@ -542,11 +512,6 @@ theorem catBiteMilkMem_mload_dunk (mem : ByteArray) (fp ilk q flip chop dunk : U
   have hmsz := catBiteMilkMem_size mem fp ilk q flip chop dunk hfp96 hqfp hfpsz hqsz
   exact mloadWordValue_of_readWithPadding (off := ⟨64⟩ + q) (v := dunk)
     (by rw [hmsz, ez64]; omega)
-    (by intro hh
-        have hle : (aw * ⟨32⟩).toNat ≤ (⟨64⟩ + q).toNat := hh
-        rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-          Nat.mod_eq_of_lt hawsz, ez64] at hle
-        omega)
     (by rw [ez64, ← eq64]
         exact catBiteMilkMem_readdunk mem fp ilk q flip chop dunk hfp96 hqfp hfpsz hqsz)
 

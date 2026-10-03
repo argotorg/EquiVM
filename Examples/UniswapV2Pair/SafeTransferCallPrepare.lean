@@ -26,13 +26,11 @@ theorem RD.uniswapSafeTransferDynamicCallPrepared
   have hc64 : (⟨64⟩ : UInt256).toNat + 32 ≤ (safeTransferDynamicCallWords2 aw ptr).toNat * 32 := by
     change 64 + 32 ≤ _
     omega
-  have hload : memoryWordLoad (safeTransferDynamicCallMem2 base ptr toWord value)
-      (safeTransferDynamicCallWords2 aw ptr) ⟨64⟩ = ptr + ⟨164⟩ := by
+  have hload : memoryWordLoad (safeTransferDynamicCallMem2 base ptr toWord value) ⟨64⟩ = ptr + ⟨164⟩ := by
     apply mloadWordValue_of_readWithPadding
     · change 64 < _
       rw [safeTransferDynamicCallMem2_size ptr toWord value hin hgap (by omega)]
       omega
-    · exact UInt256_mload_haw_of_cover _ _ hb2 hc64
     · exact safeTransferDynamicCallMem2_read64 ptr toWord value hin hgap hptrLo (by omega)
   have haw64 : memoryWordActiveWords (safeTransferDynamicCallWords2 aw ptr) ⟨64⟩ =
       safeTransferDynamicCallWords2 aw ptr := UInt256_M_same_of_cover _ _ hb2 hc64
@@ -55,7 +53,7 @@ theorem RD.uniswapSafeTransferDynamicEntryToCallPrepared
     {base rdata : ByteArray} {ptr aw value toWord token ret : UInt256} {R : List UInt256} {k C : Nat}
     (rd6370 : RD uniswapV2PairBytecode I g s0 ⟨6370⟩ (value :: toWord :: token :: ret :: R)
       base aw rdata acc k C)
-    (hload : memoryWordLoad base aw ⟨64⟩ = ptr) (haw64 : memoryWordActiveWords aw ⟨64⟩ = aw)
+    (hload : memoryWordLoad base ⟨64⟩ = ptr) (haw64 : memoryWordActiveWords aw ⟨64⟩ = aw)
     (hin : 96 ≤ base.size) (hgap : ptr.toNat - base.size < USize.size) (hptrLo : 96 ≤ ptr.toNat)
     (hbase : base.size ≤ ptr.toNat + 228)
     (haw : aw.toNat * 32 < UInt256.size) (hptr : ptr.toNat + 291 < UInt256.size)

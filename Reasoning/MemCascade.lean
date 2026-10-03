@@ -208,20 +208,17 @@ theorem writeCascade_read_word_of_head_of_base
     (by simpa [hbase] using hlater)
 
 theorem writeCascade_mload_word_of_head
-    (mem : ByteArray) (off : Nat) (offWord aw word : UInt256) (rest : List (Nat × UInt256))
+    (mem : ByteArray) (off : Nat) (offWord word : UInt256) (rest : List (Nat × UInt256))
     (hgap : off - mem.size < USize.size)
     (hlater : WindowDisjointFromWrites (max mem.size (off + 32)) off 32 rest)
     (hoffWord : offWord.toNat = off)
-    (hmem : off < (writeCascade mem ((off, word) :: rest)).size)
-    (haw : ¬ offWord ≥ aw * ⟨32⟩) :
-    (if offWord.toNat ≥ (writeCascade mem ((off, word) :: rest)).size ∨
-        offWord ≥ aw * ⟨32⟩ then ⟨0⟩
+    (hmem : off < (writeCascade mem ((off, word) :: rest)).size) :
+    (if offWord.toNat ≥ (writeCascade mem ((off, word) :: rest)).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((writeCascade mem ((off, word) :: rest)).readWithPadding offWord.toNat 32))) = word := by
   apply mloadWordValue_of_readWithPadding
   · omega
-  · exact haw
   · rw [hoffWord]
     exact writeCascade_read_word_of_head mem off word rest hgap hlater
 

@@ -475,7 +475,7 @@ theorem RD.vatAuthCheckRevert {g : Sat256} {s0 : State}
     raw dup1 ht2 (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) ht3
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) ht4 (by evm_ov)
@@ -565,16 +565,14 @@ theorem RD.vatAuthCheckRevert {g : Sat256} {s0 : State}
         exact lt_usize _ (by norm_num))]
     exact hread64
   have hbaseMload0 :
-      (if (⟨0⟩ : UInt256).toNat ≥ baseMem.size
-          ∨ (⟨0⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨0⟩ : UInt256).toNat ≥ baseMem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (baseMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))
         = hopeSourceWord ee := by
     exact mloadWordValue_of_readWithPadding
-      (off := (⟨0⟩ : UInt256)) (aw := UInt256.ofNat 7)
+      (off := (⟨0⟩ : UInt256))
       (v := hopeSourceWord ee)
       (by rw [hbaseSize]; decide)
-      (by decide)
       (by simpa using hbaseRead0)
   let copiedMem : ByteArray :=
     (UInt256.toByteArray vatNotAuthorizedWord).write 0 baseMem 0 32
@@ -605,16 +603,14 @@ theorem RD.vatAuthCheckRevert {g : Sat256} {s0 : State}
       hbaseSize (by omega) (by omega)]
     norm_num
   have hcopyMload :
-      (if (⟨0⟩ : UInt256).toNat ≥ copiedMem.size
-          ∨ (⟨0⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨0⟩ : UInt256).toNat ≥ copiedMem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (copiedMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))
         = vatNotAuthorizedWord := by
     exact mloadWordValue_of_readWithPadding
-      (off := (⟨0⟩ : UInt256)) (aw := UInt256.ofNat 7)
+      (off := (⟨0⟩ : UInt256))
       (v := vatNotAuthorizedWord)
       (by simpa using hcopySize)
-      (by decide)
       (by simpa using hcopyRead)
   have hcopyRead64 :
       copiedMem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
@@ -649,19 +645,17 @@ theorem RD.vatAuthCheckRevert {g : Sat256} {s0 : State}
     · omega
     · rw [hrestoredSize]; exact lt_usize _ (by norm_num)
   have hfinalMload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ finalMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ finalMem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (finalMem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩ := by
     exact mloadWordValue_of_readWithPadding
-      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 8) (v := (⟨128⟩ : UInt256))
+      (off := (⟨64⟩ : UInt256)) (v := (⟨128⟩ : UInt256))
       (by
         dsimp [finalMem]
         rw [toByteArray_write32_size_of_le restoredMem vatNotAuthorizedWord 196 196 228
           hrestoredSize (by omega) (by omega)]
         decide)
-      (by decide)
       (by simpa using hfinalRead64)
   have rdCopied := evm_run rdPrefix with [
     raw push1 ⟨0⟩ ht27 (by evm_ov),

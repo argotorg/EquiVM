@@ -252,14 +252,12 @@ theorem clipperCtorFreePtrMem_size : clipperCtorFreePtrMem.size = 96 := by
   · exact lt_usize _ (by norm_num)
 
 theorem clipperCtorFreePtrMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ clipperCtorFreePtrMem.size ∨
-        (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ clipperCtorFreePtrMem.size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        (clipperCtorFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨192⟩ := by
   apply mloadWordValue_of_readWithPadding
   · rw [clipperCtorFreePtrMem_size]
     decide
-  · decide
   · change clipperCtorFreePtrMem.readWithPadding 64 32 =
       UInt256.toByteArray (⟨192⟩ : UInt256)
     unfold clipperCtorFreePtrMem
@@ -370,14 +368,12 @@ private theorem clipperCtorTail_extract96 (vat spotter dog : AccountAddress)
 
 theorem clipperCtorArgFreeMem_mload64 (vat spotter dog : AccountAddress)
     (ilk : List UInt8) (hilk : ilk.length = 32) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperCtorArgFreeMem vat spotter dog ilk).size ∨
-        (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperCtorArgFreeMem vat spotter dog ilk).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((clipperCtorArgFreeMem vat spotter dog ilk).readWithPadding 64 32))) = ⟨320⟩ := by
   apply mloadWordValue_of_readWithPadding
   · rw [clipperCtorArgFreeMem_size _ _ _ _ hilk]
     decide
-  · decide
   · unfold clipperCtorArgFreeMem
     simpa using writeWord_read_back (clipperCtorArgMem vat spotter dog ilk) 64
       (⟨320⟩ : UInt256) (by
@@ -404,15 +400,13 @@ private theorem clipperCtorArgFreeMem_readWord
 
 theorem clipperCtorArgFreeMem_mload192 (vat spotter dog : AccountAddress)
     (ilk : List UInt8) (hilk : ilk.length = 32) :
-    (if (⟨192⟩ : UInt256).toNat ≥ (clipperCtorArgFreeMem vat spotter dog ilk).size ∨
-        (⟨192⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨192⟩ : UInt256).toNat ≥ (clipperCtorArgFreeMem vat spotter dog ilk).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((clipperCtorArgFreeMem vat spotter dog ilk).readWithPadding 192 32))) =
       EVM.word vat.val := by
   apply mloadWordValue_of_readWithPadding
   · rw [clipperCtorArgFreeMem_size _ _ _ _ hilk]
     decide
-  · decide
   · apply clipperCtorArgFreeMem_readWord vat spotter dog ilk hilk 192 _ _ (by omega)
       (by omega)
     exact clipperCtorArgMem_readWord vat spotter dog ilk hilk 0 _
@@ -420,15 +414,13 @@ theorem clipperCtorArgFreeMem_mload192 (vat spotter dog : AccountAddress)
 
 theorem clipperCtorArgFreeMem_mload224 (vat spotter dog : AccountAddress)
     (ilk : List UInt8) (hilk : ilk.length = 32) :
-    (if (⟨224⟩ : UInt256).toNat ≥ (clipperCtorArgFreeMem vat spotter dog ilk).size ∨
-        (⟨224⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨224⟩ : UInt256).toNat ≥ (clipperCtorArgFreeMem vat spotter dog ilk).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((clipperCtorArgFreeMem vat spotter dog ilk).readWithPadding 224 32))) =
       EVM.word spotter.val := by
   apply mloadWordValue_of_readWithPadding
   · rw [clipperCtorArgFreeMem_size _ _ _ _ hilk]
     decide
-  · decide
   · apply clipperCtorArgFreeMem_readWord vat spotter dog ilk hilk 224 _ _ (by omega)
       (by omega)
     exact clipperCtorArgMem_readWord vat spotter dog ilk hilk 32 _
@@ -436,15 +428,13 @@ theorem clipperCtorArgFreeMem_mload224 (vat spotter dog : AccountAddress)
 
 theorem clipperCtorArgFreeMem_mload256 (vat spotter dog : AccountAddress)
     (ilk : List UInt8) (hilk : ilk.length = 32) :
-    (if (⟨256⟩ : UInt256).toNat ≥ (clipperCtorArgFreeMem vat spotter dog ilk).size ∨
-        (⟨256⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨256⟩ : UInt256).toNat ≥ (clipperCtorArgFreeMem vat spotter dog ilk).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((clipperCtorArgFreeMem vat spotter dog ilk).readWithPadding 256 32))) =
       EVM.word dog.val := by
   apply mloadWordValue_of_readWithPadding
   · rw [clipperCtorArgFreeMem_size _ _ _ _ hilk]
     decide
-  · decide
   · apply clipperCtorArgFreeMem_readWord vat spotter dog ilk hilk 256 _ _ (by omega)
       (by omega)
     exact clipperCtorArgMem_readWord vat spotter dog ilk hilk 64 _
@@ -452,15 +442,13 @@ theorem clipperCtorArgFreeMem_mload256 (vat spotter dog : AccountAddress)
 
 theorem clipperCtorArgFreeMem_mload288 (vat spotter dog : AccountAddress)
     (ilk : List UInt8) (hilk : ilk.length = 32) :
-    (if (⟨288⟩ : UInt256).toNat ≥ (clipperCtorArgFreeMem vat spotter dog ilk).size ∨
-        (⟨288⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨288⟩ : UInt256).toNat ≥ (clipperCtorArgFreeMem vat spotter dog ilk).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((clipperCtorArgFreeMem vat spotter dog ilk).readWithPadding 288 32))) =
       ABI.bytesToWord ilk := by
   apply mloadWordValue_of_readWithPadding
   · rw [clipperCtorArgFreeMem_size _ _ _ _ hilk]
     decide
-  · decide
   · apply clipperCtorArgFreeMem_readWord vat spotter dog ilk hilk 288 _ _ (by omega)
       (by omega)
     exact clipperCtorArgMem_readWord vat spotter dog ilk hilk 96 _
@@ -628,42 +616,38 @@ theorem clipperCtorIlkMem_read160 (vat spotter dog : AccountAddress)
 
 theorem clipperCtorIlkMem_mload64 (vat spotter dog : AccountAddress)
     (ilk : List UInt8) (hilk : ilk.length = 32) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperCtorIlkMem vat spotter dog ilk).size ∨
-        (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperCtorIlkMem vat spotter dog ilk).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((clipperCtorIlkMem vat spotter dog ilk).readWithPadding 64 32))) = ⟨320⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (by rw [clipperCtorIlkMem_size _ _ _ _ hilk]; decide) (by decide)
+    (by rw [clipperCtorIlkMem_size _ _ _ _ hilk]; decide)
     (clipperCtorIlkMem_read64 vat spotter dog ilk hilk)
 
 theorem clipperCtorIlkMem_mload128 (vat spotter dog : AccountAddress)
     (ilk : List UInt8) (hilk : ilk.length = 32) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (clipperCtorIlkMem vat spotter dog ilk).size ∨
-        (⟨128⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (clipperCtorIlkMem vat spotter dog ilk).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((clipperCtorIlkMem vat spotter dog ilk).readWithPadding 128 32))) =
       ABI.bytesToWord ilk := by
   exact mloadWordValue_of_readWithPadding
-    (by rw [clipperCtorIlkMem_size _ _ _ _ hilk]; decide) (by decide)
+    (by rw [clipperCtorIlkMem_size _ _ _ _ hilk]; decide)
     (clipperCtorIlkMem_read128 vat spotter dog ilk hilk)
 
 theorem clipperCtorIlkMem_mload160_shr96 (vat spotter dog : AccountAddress)
     (ilk : List UInt8) (hilk : ilk.length = 32) :
     UInt256.shiftRight
-      (if (⟨160⟩ : UInt256).toNat ≥ (clipperCtorIlkMem vat spotter dog ilk).size ∨
-          (⟨160⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+      (if (⟨160⟩ : UInt256).toNat ≥ (clipperCtorIlkMem vat spotter dog ilk).size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian
          ((clipperCtorIlkMem vat spotter dog ilk).readWithPadding 160 32))) ⟨96⟩ =
       EVM.word vat.val := by
   have hload := mloadWordValue_of_readWithPadding
-    (mem := clipperCtorIlkMem vat spotter dog ilk) (aw := UInt256.ofNat 10)
+    (mem := clipperCtorIlkMem vat spotter dog ilk)
     (off := (⟨160⟩ : UInt256))
     (v := UInt256.shiftLeft (EVM.word vat.val) ⟨96⟩)
-    (by rw [clipperCtorIlkMem_size _ _ _ _ hilk]; decide) (by decide)
+    (by rw [clipperCtorIlkMem_size _ _ _ _ hilk]; decide)
     (by simpa using clipperCtorIlkMem_read160 vat spotter dog ilk hilk)
   change UInt256.shiftRight
-    (if (⟨160⟩ : UInt256).toNat ≥ (clipperCtorIlkMem vat spotter dog ilk).size ∨
-        (⟨160⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (clipperCtorIlkMem vat spotter dog ilk).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((clipperCtorIlkMem vat spotter dog ilk).readWithPadding
          (⟨160⟩ : UInt256).toNat 32))) ⟨96⟩ = EVM.word vat.val
@@ -786,47 +770,41 @@ theorem clipperCtorWardsHashMem_read160 (I : ExecutionEnv)
 
 theorem clipperCtorWardsHashMem_mload64 (I : ExecutionEnv)
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperCtorWardsHashMem I vat spotter dog ilk).size ∨
-        (⟨64⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperCtorWardsHashMem I vat spotter dog ilk).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((clipperCtorWardsHashMem I vat spotter dog ilk).readWithPadding 64 32))) = ⟨320⟩ := by
   apply mloadWordValue_of_readWithPadding
   · rw [clipperCtorWardsHashMem_size _ _ _ _ _ hilk]
     decide
-  · decide
   · exact clipperCtorWardsHashMem_read64 I vat spotter dog ilk hilk
 
 theorem clipperCtorWardsHashMem_mload128 (I : ExecutionEnv)
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (clipperCtorWardsHashMem I vat spotter dog ilk).size ∨
-        (⟨128⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (clipperCtorWardsHashMem I vat spotter dog ilk).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((clipperCtorWardsHashMem I vat spotter dog ilk).readWithPadding 128 32))) =
       ABI.bytesToWord ilk := by
   apply mloadWordValue_of_readWithPadding
   · rw [clipperCtorWardsHashMem_size _ _ _ _ _ hilk]
     decide
-  · decide
   · exact clipperCtorWardsHashMem_read128 I vat spotter dog ilk hilk
 
 theorem clipperCtorWardsHashMem_mload160_shr96 (I : ExecutionEnv)
     (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) :
     UInt256.shiftRight
-      (if (⟨160⟩ : UInt256).toNat ≥ (clipperCtorWardsHashMem I vat spotter dog ilk).size ∨
-          (⟨160⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+      (if (⟨160⟩ : UInt256).toNat ≥ (clipperCtorWardsHashMem I vat spotter dog ilk).size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian
          ((clipperCtorWardsHashMem I vat spotter dog ilk).readWithPadding 160 32))) ⟨96⟩ =
       EVM.word vat.val := by
   have hload := mloadWordValue_of_readWithPadding
-    (mem := clipperCtorWardsHashMem I vat spotter dog ilk) (aw := UInt256.ofNat 10)
+    (mem := clipperCtorWardsHashMem I vat spotter dog ilk)
     (off := (⟨160⟩ : UInt256))
     (v := UInt256.shiftLeft (EVM.word vat.val) ⟨96⟩)
-    (by rw [clipperCtorWardsHashMem_size _ _ _ _ _ hilk]; decide) (by decide)
+    (by rw [clipperCtorWardsHashMem_size _ _ _ _ _ hilk]; decide)
     (by simpa using clipperCtorWardsHashMem_read160 I vat spotter dog ilk hilk)
   change UInt256.shiftRight
     (if (⟨160⟩ : UInt256).toNat ≥
-          (clipperCtorWardsHashMem I vat spotter dog ilk).size ∨
-        (⟨160⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+          (clipperCtorWardsHashMem I vat spotter dog ilk).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((clipperCtorWardsHashMem I vat spotter dog ilk).readWithPadding
          (⟨160⟩ : UInt256).toNat 32))) ⟨96⟩ = EVM.word vat.val

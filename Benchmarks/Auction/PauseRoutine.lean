@@ -23,7 +23,7 @@ theorem pauseStore {I g s0 ret R mem aw rdata cA σ k C}
     (h : RD auctionBytecode I g s0 ⟨3725⟩ (ret :: R) mem aw rdata (cA, σ) k C)
     (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R (addressEventMem mem aw (solcSourceWord I))
+    ∃ k' C', RD auctionBytecode I g s0 ret R (addressEventMem mem (solcSourceWord I))
       (addressEventWords mem aw (solcSourceWord I)) rdata
       (cA, sstoreAccountMap I.codeOwner σ ⟨51⟩ (pauseWord (storedWord σ I ⟨51⟩))) k' C' := by
   have rd3729 := evm_run h with [jumpdest, push1 ⟨51⟩, dup1]
@@ -44,7 +44,7 @@ theorem pauseRoutineOk {I g s0 ret R mem aw rdata cA σ k C}
     (h : RD auctionBytecode I g s0 ⟨3655⟩ (ret :: R) mem aw rdata (cA, σ) k C)
     (hp : pausedWord σ I = ⟨0⟩) (hperm : I.perm = true)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 7 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode I g s0 ret R (addressEventMem mem aw (solcSourceWord I))
+    ∃ k' C', RD auctionBytecode I g s0 ret R (addressEventMem mem (solcSourceWord I))
       (addressEventWords mem aw (solcSourceWord I)) rdata
       (cA, sstoreAccountMap I.codeOwner σ ⟨51⟩ (pauseWord (storedWord σ I ⟨51⟩))) k' C' := by
   obtain ⟨_, _, rd3663⟩ := pausePrefix h (by evm_ov)

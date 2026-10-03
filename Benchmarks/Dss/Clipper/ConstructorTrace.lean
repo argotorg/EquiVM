@@ -129,11 +129,9 @@ theorem clipperCtorArgsReach
     push2 ⟨9707⟩, codesize, sub, dup1, push2 ⟨9707⟩, dup4,
     raw codecopy 21 (clipperCtorArgMem vat spotter dog ilk) (UInt256.ofNat 10)
       (by clipper_ctor_decode)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, List.getElem!_cons_succ]
-        rw [clipperCtorArgLen_eq _ _ _ _ hilk]
-        decide)
+      (by
+        rw [clipperCtorCode_size _ _ _ _ hilk]
+        native_decide)
       (by
         rw [show ((UInt256.ofNat (clipperCtorCode vat spotter dog ilk).size).sub
           (⟨9707⟩ : UInt256)).toNat = 128 by
@@ -426,15 +424,13 @@ theorem clipperCtorReturnTrace
       (clipperCtorPatchedRuntime vat ilk) := by
   have hvatload :
       (if (⟨160⟩ : UInt256).toNat ≥
-            (clipperCtorWardsHashMem I vat spotter dog ilk).size ∨
-          (⟨160⟩ : UInt256) ≥ UInt256.ofNat 10 * ⟨32⟩ then ⟨0⟩
+            (clipperCtorWardsHashMem I vat spotter dog ilk).size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian
           ((clipperCtorWardsHashMem I vat spotter dog ilk).readWithPadding 160 32))) =
         UInt256.shiftLeft (EVM.word vat.val) ⟨96⟩ := by
     apply mloadWordValue_of_readWithPadding
     · rw [clipperCtorWardsHashMem_size _ _ _ _ _ hilk]
       decide
-    · decide
     · simpa using clipperCtorWardsHashMem_read160 I vat spotter dog ilk hilk
   have rdVatRaw := clipper_ctor_run h with [
     push1 ⟨128⟩,

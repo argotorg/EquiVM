@@ -29,15 +29,13 @@ theorem RD.uniswapPermitStructHash {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       (permitRuntimeStructHashMem baseMem owner spender value nonce deadline)
       (UInt256.ofNat 11) rdata (cA, σ) k' C' := by
   have hbaseMload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ baseMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ baseMem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (baseMem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩ :=
     mloadWordValue_of_readWithPadding
       (by rw [hbaseSize]; decide)
-      (by native_decide)
       hbaseRead64
   have rd5591 := evm_run h with [
     dup3,
@@ -650,8 +648,7 @@ theorem RD.uniswapPermitApproveEmitAndJump20 {g : Sat256} {s0 : State} {ee : Exe
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd40, hd41, hd42, hd43, hd44,
       hd45, hd46, hd47, hd48, hd49, hd50, hd51, hd52⟩
   have hmload :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 20 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨482⟩ := by
@@ -659,9 +656,8 @@ theorem RD.uniswapPermitApproveEmitAndJump20 {g : Sat256} {s0 : State} {ee : Exe
     · rw [show (⟨64⟩ : UInt256).toNat = 64 from by native_decide, hfree]
       rw [fromByteArrayBigEndian_toByteArray]
       exact u256_ofNat_toNat (⟨482⟩ : UInt256)
-    · rw [not_or]
-      exact ⟨by rw [show (⟨64⟩ : UInt256).toNat = 64 from by native_decide]; omega,
-        by native_decide⟩
+    · rw [show (⟨64⟩ : UInt256).toNat = 64 from by native_decide]
+      omega
   have hlogRead64 :
       ((UInt256.toByteArray value).write 0 mem 482 32).readWithPadding 64 32 =
         UInt256.toByteArray (⟨482⟩ : UInt256) := by
@@ -670,8 +666,7 @@ theorem RD.uniswapPermitApproveEmitAndJump20 {g : Sat256} {s0 : State} {ee : Exe
     exact hfree
   have hlogMload :
       (if (⟨64⟩ : UInt256).toNat ≥
-            ((UInt256.toByteArray value).write 0 mem 482 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 20 * ⟨32⟩ then ⟨0⟩
+            ((UInt256.toByteArray value).write 0 mem 482 32).size then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
           (((UInt256.toByteArray value).write 0 mem 482 32).readWithPadding
@@ -681,16 +676,13 @@ theorem RD.uniswapPermitApproveEmitAndJump20 {g : Sat256} {s0 : State} {ee : Exe
     · rw [show (⟨64⟩ : UInt256).toNat = 64 from by native_decide, hlogRead64]
       rw [fromByteArrayBigEndian_toByteArray]
       exact u256_ofNat_toNat (⟨482⟩ : UInt256)
-    · rw [not_or]
-      constructor
-      · have hsize :
-            ((UInt256.toByteArray value).write 0 mem 482 32).size = mem.size := by
-          exact toByteArray_write32_size_of_le mem value 482 mem.size mem.size rfl
-            (by omega) (by omega)
-        rw [hsize]
-        rw [show (⟨64⟩ : UInt256).toNat = 64 from by native_decide]
-        omega
-      · native_decide
+    · have hsize :
+          ((UInt256.toByteArray value).write 0 mem 482 32).size = mem.size := by
+        exact toByteArray_write32_size_of_le mem value 482 mem.size mem.size rfl
+          (by omega) (by omega)
+      rw [hsize]
+      rw [show (⟨64⟩ : UInt256).toNat = 64 from by native_decide]
+      omega
   have rd2 := evm_run h with [
     raw dup2 hd0 (by evm_ov),
     raw mload 0 ⟨482⟩ (UInt256.ofNat 20) hd1
@@ -880,7 +872,7 @@ theorem RD.uniswapPermitInvalidSignatureReverts {g : Sat256} {s0 : State}
     raw mload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
       mem_cost
       (mloadWordValue_of_readWithPadding
-        (by rw [hmem3]; decide) (by native_decide) hread64_mem3)
+        (by rw [hmem3]; decide) hread64_mem3)
       (by native_decide) (by evm_ov),
     swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]
@@ -984,7 +976,7 @@ theorem RD.uniswapPermitInvalidSignatureRevertsShort {g : Sat256} {s0 : State}
     raw mload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
       mem_cost
       (mloadWordValue_of_readWithPadding
-        (by rw [hmem3]; decide) (by native_decide) hread64_mem3)
+        (by rw [hmem3]; decide) hread64_mem3)
       (by native_decide) (by evm_ov),
     swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
     raw rev 0 (by native_decide) mem_cost (by evm_ov)]

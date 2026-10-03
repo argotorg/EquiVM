@@ -40,7 +40,7 @@ theorem bidRefundRoutine {I g s0 s noun ret R mem aw rdata cA σ k C evm locals}
     simp only [evalExpr?, locals1, store_get_self, EvalResult.ofOption]
   have hlet := ExecStmt.letDecl (ty := some addr) (name := "lastBidder")
     (snapshotBidderSource (evm := evm) hv.snapshot)
-  have hl : loadedWord mem aw (⟨128⟩ + ⟨128⟩) = s.bidderWord := hsm.load ⟨4, by decide⟩
+  have hl : loadedWord mem (⟨128⟩ + ⟨128⟩) = s.bidderWord := hsm.load ⟨4, by decide⟩
   have ha : expandedWords aw (⟨128⟩ + ⟨128⟩) ⟨32⟩ = aw := hsm.expand_eq ⟨4, by decide⟩
   have rd1687 := evm_run h with [jumpdest, push1 ⟨128⟩, dup2, add,
     raw mloadSymbolic (by native_decide) (by evm_ov)]
@@ -65,7 +65,7 @@ theorem bidRefundRoutine {I g s0 s noun ret R mem aw rdata cA σ k C evm locals}
     have rd1702 := evm_run rd1701 with [jumpiNT (isZero_eq_zero_of_ne hz)]
     have rd1711 := evm_run rd1702 with [push2 ⟨1715⟩, dup2, dup4, push1 ⟨32⟩, add,
       raw mloadSymbolic (by native_decide) (by evm_ov)]
-    have hl1 : loadedWord mem aw (⟨128⟩ + ⟨32⟩) = s.amount := hsm.load ⟨1, by decide⟩
+    have hl1 : loadedWord mem (⟨128⟩ + ⟨32⟩) = s.amount := hsm.load ⟨1, by decide⟩
     have ha1 : expandedWords aw (⟨128⟩ + ⟨32⟩) ⟨32⟩ = aw := hsm.expand_eq ⟨1, by decide⟩
     rw [show (⟨32⟩ : UInt256) + ⟨128⟩ = ⟨128⟩ + ⟨32⟩ by decide, hl1, ha1] at rd1711
     have rd3337 := evm_run rd1711 with [push2 ⟨3337⟩, jump (by jump_dest)]

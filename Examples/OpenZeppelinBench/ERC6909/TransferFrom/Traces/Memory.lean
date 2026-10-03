@@ -14,12 +14,11 @@ namespace OpenZeppelinBench.ERC6909
 theorem erc6909ScratchMem_mload64 {base : ByteArray}
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ base.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ base.size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian (base.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [hbase]; decide) (by decide) hread64
+  mloadFreePtrValue (by rw [hbase]; decide) hread64
 
 def solcReturnBaseMem (base : ByteArray) (selector : UInt256) : ByteArray :=
   (UInt256.toByteArray selector).write 0 base 128 32
@@ -82,15 +81,13 @@ theorem approveErrorBaseMem_read64 {base : ByteArray} (selector arg : UInt256)
 theorem approveErrorBaseMem_mload64 {base : ByteArray} (selector arg : UInt256)
     (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (approveErrorBaseMem base selector arg).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (approveErrorBaseMem base selector arg).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((approveErrorBaseMem base selector arg).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [approveErrorBaseMem_size selector arg hbase]; decide)
-    (by decide) (approveErrorBaseMem_read64 selector arg hbase hread64)
+  mloadFreePtrValue (by rw [approveErrorBaseMem_size selector arg hbase]; decide) (approveErrorBaseMem_read64 selector arg hbase hread64)
 
 def transferInsufficientBalanceSelectorBaseMem
     (base : ByteArray) : ByteArray :=
@@ -238,16 +235,14 @@ theorem transferInsufficientBalanceIdBaseMem_mload64 {base : ByteArray}
     (owner id balance amount : UInt256) (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (transferInsufficientBalanceIdBaseMem base owner id balance amount).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+          (transferInsufficientBalanceIdBaseMem base owner id balance amount).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((transferInsufficientBalanceIdBaseMem base owner id balance amount).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
   mloadFreePtrValue
-    (by rw [transferInsufficientBalanceIdBaseMem_size owner id balance amount hbase]; decide)
-    (by decide) (transferInsufficientBalanceIdBaseMem_read64 owner id balance amount hbase hread64)
+    (by rw [transferInsufficientBalanceIdBaseMem_size owner id balance amount hbase]; decide) (transferInsufficientBalanceIdBaseMem_read64 owner id balance amount hbase hread64)
 
 def transferFromInsufficientAllowanceSelectorWord : UInt256 :=
   UInt256.shiftLeft ⟨0x2c51fead⟩ ⟨225⟩
@@ -403,8 +398,7 @@ theorem transferFromInsufficientAllowanceIdBaseMem_mload64 {base : ByteArray}
     (sender id allowance amount : UInt256) (hbase : base.size = 96)
     (hread64 : base.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (transferFromInsufficientAllowanceIdBaseMem base sender id allowance amount).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+          (transferFromInsufficientAllowanceIdBaseMem base sender id allowance amount).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((transferFromInsufficientAllowanceIdBaseMem base sender id allowance amount).readWithPadding
@@ -412,7 +406,6 @@ theorem transferFromInsufficientAllowanceIdBaseMem_mload64 {base : ByteArray}
       = ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [transferFromInsufficientAllowanceIdBaseMem_size sender id allowance amount hbase]; decide)
-    (by decide)
     (transferFromInsufficientAllowanceIdBaseMem_read64 sender id allowance amount hbase hread64)
 
 /-! ## EVM ABI decode trace for `transferFrom(address,address,uint256,uint256)` -/

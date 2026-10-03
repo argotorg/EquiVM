@@ -7,7 +7,7 @@ namespace Auction
 theorem encodeEmptyBytes {I g s0 dest src ret R mem aw rdata acc k C}
     (h : RD auctionBytecode I g s0 ⟨6093⟩ (dest :: src :: ret :: R)
       mem aw rdata acc k C)
-    (hzero : loadedWord mem aw src = ⟨0⟩)
+    (hzero : loadedWord mem src = ⟨0⟩)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret (dest :: R)
       (writeWord mem dest.toNat ⟨0⟩)
@@ -49,7 +49,7 @@ theorem emptyHeader_heap {mem aw ptr} (h : HeapMemory mem aw ptr)
 
 theorem emptyHeader_zero {mem aw ptr} (h : HeapMemory mem aw ptr)
     (hb : ptr.toNat + 64 ≤ 2 ^ 200) :
-    loadedWord (emptyHeaderMem mem ptr) (emptyHeaderWords aw ptr) ptr = ⟨0⟩ := by
+    loadedWord (emptyHeaderMem mem ptr) ptr = ⟨0⟩ := by
   have hg : ptr.toNat - mem.size < USize.size := by
     have hu := lt_usize 32 (by decide)
     have hp := h.gap
@@ -58,10 +58,9 @@ theorem emptyHeader_zero {mem aw ptr} (h : HeapMemory mem aw ptr)
   have hh := emptyHeader_heap h hb
   have hs' := writeWord_size (writeWord mem ptr.toNat ⟨0⟩) 64 (nextEmptyPtr ptr)
     (by have hu := lt_usize 0 (by decide); have hp := h.lower; omega)
-  apply loadedWord_of_read hh.active (by
+  apply loadedWord_of_read (by
     change ptr.toNat + 32 ≤ (writeWord (writeWord mem ptr.toNat ⟨0⟩) 64 _).size
     omega)
-    (expandedWords32_cover h.active (by omega))
   unfold emptyHeaderMem
   rw [writeWord_read_preserved _ 64 ptr.toNat (nextEmptyPtr ptr)
     (by have hu := lt_usize 0 (by decide); have hp := h.lower; omega)

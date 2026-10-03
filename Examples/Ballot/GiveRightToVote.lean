@@ -631,13 +631,12 @@ theorem giveRightHashMem_writeBase (voter : UInt256) :
   rw [hkey0, hbaseFull]
 
 theorem giveRightHashMem_mload64 (voter : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (giveRightHashMem voter).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (giveRightHashMem voter).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((giveRightHashMem voter).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [giveRightHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [giveRightHashMem_size]; decide)
     (giveRightHashMem_read64 voter)
 
 theorem giveRightHashMem_read0_64 (voter : UInt256) :
@@ -821,12 +820,11 @@ theorem giveRightChairErrorMem4_read64 :
     giveRightChairErrorMem3_read64]
 
 theorem giveRightChairErrorMem4_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ giveRightChairErrorMem4.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ giveRightChairErrorMem4.size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian (giveRightChairErrorMem4.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [giveRightChairErrorMem4_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [giveRightChairErrorMem4_size]; decide)
     giveRightChairErrorMem4_read64
 
 theorem giveRightVotedErrorMem0_size (voter : UInt256) :
@@ -909,13 +907,12 @@ theorem giveRightVotedErrorMem3_read64 (voter : UInt256) :
     giveRightVotedErrorMem2_read64]
 
 theorem giveRightVotedErrorMem3_mload64 (voter : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (giveRightVotedErrorMem3 voter).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (giveRightVotedErrorMem3 voter).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((giveRightVotedErrorMem3 voter).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [giveRightVotedErrorMem3_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [giveRightVotedErrorMem3_size]; decide)
     (giveRightVotedErrorMem3_read64 voter)
 
 end Ballot

@@ -378,14 +378,13 @@ theorem clipperGetStatusBody (v : ClipperImmutables) {code : ByteArray}
       exact twoWordHashMem_read64 id ⟨12⟩ solcFreePtrMem_size solcFreePtrMem_read64
     have hhashMload64 :
         (if (⟨64⟩ : UInt256).toNat ≥
-              (twoWordHashMem id (⟨12⟩ : UInt256) solcFreePtrMem).size
-            ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+              (twoWordHashMem id (⟨12⟩ : UInt256) solcFreePtrMem).size then ⟨0⟩
          else UInt256.ofNat
             (fromByteArrayBigEndian
               ((twoWordHashMem id (⟨12⟩ : UInt256) solcFreePtrMem).readWithPadding
                 (⟨64⟩ : UInt256).toNat 32))) =
           ⟨128⟩ := by
-      exact mloadFreePtrValue (by rw [hhashMem]; native_decide) (by native_decide)
+      exact mloadFreePtrValue (by rw [hhashMem]; native_decide)
         hhashRead64
     let evmSolm : EVM.State :=
       initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I

@@ -1293,18 +1293,16 @@ theorem RD.vowFlopToKickStart
     vatDaiWrite_read64 I outDai 32 hmem hread64 (by omega) ho32
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outDai.write 0 (vatDaiCalldataMem I mem) 128 32).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemWrite]; decide) (by decide) hread64Write
+    mloadFreePtrValue (by rw [hmemWrite]; decide) hread64Write
   have hmload128 :
       (if (⟨128⟩ : UInt256).toNat ≥
-            (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outDai.write 0 (vatDaiCalldataMem I mem) 128 32).readWithPadding
@@ -1312,8 +1310,7 @@ theorem RD.vowFlopToKickStart
         UInt256.ofNat (fromByteArrayBigEndian (outDai.extract 0 32)) := by
     have hnot :
         ¬ ((⟨128⟩ : UInt256).toNat ≥
-              (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size
-            ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
+              (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size) := by
       rw [hmemWrite]
       native_decide
     rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -1580,8 +1577,7 @@ theorem vowFlopKickDecodeShortBodyCore
     (hshort : outKick.size < 32)
     (hosz : outKick.size < UInt256.size)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)

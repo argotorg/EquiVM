@@ -241,16 +241,14 @@ theorem catCtorArgFreeMem_read128 (vat : AccountAddress) :
   exact catCtorArgMem_read128 vat
 
 theorem catCtorArgFreeMem_mload128 (vat : AccountAddress) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (catCtorArgFreeMem vat).size ∨
-        (⟨128⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (catCtorArgFreeMem vat).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((catCtorArgFreeMem vat).readWithPadding 128 32))) =
       EVM.word vat.val := by
   exact mloadWordValue_of_readWithPadding
-    (mem := catCtorArgFreeMem vat) (aw := UInt256.ofNat 5) (off := ⟨128⟩)
+    (mem := catCtorArgFreeMem vat) (off := ⟨128⟩)
     (v := EVM.word vat.val)
     (by rw [catCtorArgFreeMem_size]; decide)
-    (by decide)
     (catCtorArgFreeMem_read128 vat)
 
 abbrev catCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=

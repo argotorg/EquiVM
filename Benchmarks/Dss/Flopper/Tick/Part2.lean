@@ -57,8 +57,7 @@ theorem flopperTickX_toCheckedMulStart
   have rd4538 := rd4537pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, memLot, memTic, memEnd, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -70,8 +69,7 @@ theorem flopperTickX_toCheckedMulStart
   have rd4544 := rd4543pre.mstore 0 memLot (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show ((⟨32⟩ : UInt256) + ⟨0⟩).toNat = 32 from by native_decide]
       simp [memKey, memLot, memTic, id, twoWordHashMem, wordAt32Mem])
@@ -88,11 +86,7 @@ theorem flopperTickX_toCheckedMulStart
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memTic
   have rd4550 := rd4549pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -210,8 +204,7 @@ theorem flopperTickX_toCheckedAddStart
   have rd4571 := rd4570pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, memLot, memTic, memEnd, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -223,8 +216,7 @@ theorem flopperTickX_toCheckedAddStart
   have rd4578 := rd4577pre.mstore 0 memStore (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memStore, memLot, id, twoWordHashMem, wordAt32Mem])
@@ -241,11 +233,7 @@ theorem flopperTickX_toCheckedAddStart
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memLot
   have rd4583 := rd4582pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -413,8 +401,7 @@ theorem flopperTickX_success
   have rd4624 := rd4623pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, memStore, memLot, memTic, memEnd, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -424,8 +411,7 @@ theorem flopperTickX_success
   have rd4629 := rd4628pre.mstore 0 memEndStore (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memEndStore, memStore, id, twoWordHashMem, wordAt32Mem])
@@ -442,11 +428,7 @@ theorem flopperTickX_success
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStore
   have rd4634 := rd4633pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)

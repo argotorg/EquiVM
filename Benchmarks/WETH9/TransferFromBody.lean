@@ -631,7 +631,7 @@ theorem weth9TFTail {ee g s0 rdata cA σ k C} {src dst wad ret : UInt256} {S : L
   have rdG := evm_run rdF2 with [
     dup4,
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
-      (mloadFreePtrValue (by rw [hM0size]; decide) (by decide) hM0read64) (by native_decide)
+      (mloadFreePtrValue (by rw [hM0size]; decide) hM0read64) (by native_decide)
       (by evm_ov),
     dup7, dup2,
     raw mstore 6 (solcScratchReturnMem (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)) wad)

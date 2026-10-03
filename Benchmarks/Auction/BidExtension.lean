@@ -52,7 +52,7 @@ theorem bidExtensionPrefix {I g s0 s bidder snap noun ret R mem aw rdata cA σ k
   obtain ⟨_, _, rd1741⟩ := rd1740.sload (by native_decide) (by evm_ov)
   have rd1746 := evm_run rd1741 with [push1 ⟨96⟩, dup4, add,
     raw mloadSymbolic (by native_decide) (by evm_ov)]
-  have hl : loadedWord mem aw (snap + ⟨96⟩) = s.endTime := hm.load ⟨3, by decide⟩
+  have hl : loadedWord mem (snap + ⟨96⟩) = s.endTime := hm.load ⟨3, by decide⟩
   have ha : expandedWords aw (snap + ⟨96⟩) ⟨32⟩ = aw := hm.expand_eq ⟨3, by decide⟩
   rw [hl, ha] at rd1746
   have rd5723 := evm_run rd1746 with [push0, swap2, swap1, push2 ⟨1759⟩, swap1,

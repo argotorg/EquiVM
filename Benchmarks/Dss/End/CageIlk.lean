@@ -241,15 +241,13 @@ theorem endCageIlkVatIlksPostCallMem_read64_long (I : ExecutionEnv) (out : ByteA
 
 theorem endCageIlkVatIlksPostCallMem_mload64_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 160 ≤ out.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkVatIlksPostCallMem I out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkVatIlksPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endCageIlkVatIlksPostCallMem I out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [endCageIlkVatIlksPostCallMem_size_long I out hlo]; decide)
-    (by decide)
     (endCageIlkVatIlksPostCallMem_read64_long I out hlo)
 
 theorem endCageIlkVatIlksPostCallMem_size_gt64 (I : ExecutionEnv) (out : ByteArray) :
@@ -337,15 +335,13 @@ theorem endCageIlkVatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray)
         solcFreePtrMem_read64)
 
 theorem endCageIlkVatIlksPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkVatIlksPostCallMem I out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkVatIlksPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endCageIlkVatIlksPostCallMem I out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by exact endCageIlkVatIlksPostCallMem_size_gt64 I out)
-    (by decide)
     (endCageIlkVatIlksPostCallMem_read64 I out)
 
 theorem endCageIlkVatIlksPostCallMem_read128_long (I : ExecutionEnv) (out : ByteArray)
@@ -395,21 +391,18 @@ theorem endCageIlkVatIlksPostCallMem_read128_long (I : ExecutionEnv) (out : Byte
 
 theorem endCageIlkVatIlksPostCallMem_mload128_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 160 ≤ out.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (endCageIlkVatIlksPostCallMem I out).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (endCageIlkVatIlksPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endCageIlkVatIlksPostCallMem I out).readWithPadding
           (⟨128⟩ : UInt256).toNat 32))) =
       endFlowVatIlkArtWord out := by
   unfold endFlowVatIlkArtWord
-  rw [if_neg]
-  · change UInt256.ofNat
+  rw [if_neg (by rw [endCageIlkVatIlksPostCallMem_size_long I out hlo]; decide)]
+  change UInt256.ofNat
       (fromByteArrayBigEndian ((endCageIlkVatIlksPostCallMem I out).readWithPadding
         128 32)) = UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))
-    rw [endCageIlkVatIlksPostCallMem_read128_long I out hlo]
-  · exact not_or.mpr
-      ⟨by rw [endCageIlkVatIlksPostCallMem_size_long I out hlo]; decide, by native_decide⟩
+  rw [endCageIlkVatIlksPostCallMem_read128_long I out hlo]
 
 theorem endCageIlkArtHashMem_size_long (I : ExecutionEnv) (vatOut : ByteArray)
     (hlo : 160 ≤ vatOut.size) :
@@ -526,8 +519,7 @@ theorem endCageIlkSpotIlksCalldataMem_read128_36
 
 theorem endCageIlkSpotIlksCalldataMem_mload64_long (I : ExecutionEnv) (vatOut : ByteArray)
     (hlo : 160 ≤ vatOut.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkSpotIlksCalldataMem I vatOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkSpotIlksCalldataMem I vatOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endCageIlkSpotIlksCalldataMem I vatOut).readWithPadding
@@ -535,7 +527,6 @@ theorem endCageIlkSpotIlksCalldataMem_mload64_long (I : ExecutionEnv) (vatOut : 
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [endCageIlkSpotIlksCalldataMem_size_long I vatOut hlo]; decide)
-    (by decide)
     (endCageIlkSpotIlksCalldataMem_read64_long I vatOut hlo)
 
 theorem endCageIlkSpotIlksWriteLen_eq {out : ByteArray}
@@ -615,8 +606,7 @@ theorem endCageIlkSpotIlksPostCallMem_read128 (I : ExecutionEnv)
 theorem endCageIlkSpotIlksPostCallMem_mload64 (I : ExecutionEnv)
     (vatOut spotOut : ByteArray) (hvat : 160 ≤ vatOut.size)
     (hout : spotOut.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkSpotIlksPostCallMem I vatOut spotOut).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkSpotIlksPostCallMem I vatOut spotOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endCageIlkSpotIlksPostCallMem I vatOut spotOut).readWithPadding
@@ -624,14 +614,12 @@ theorem endCageIlkSpotIlksPostCallMem_mload64 (I : ExecutionEnv)
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [endCageIlkSpotIlksPostCallMem_size I vatOut spotOut hvat hout]; decide)
-    (by decide)
     (endCageIlkSpotIlksPostCallMem_read64 I vatOut spotOut hvat hout)
 
 theorem endCageIlkSpotIlksPostCallMem_mload128 (I : ExecutionEnv)
     (vatOut spotOut : ByteArray) (hvat : 160 ≤ vatOut.size)
     (hout : spotOut.size < UInt256.size) (hlo : 64 ≤ spotOut.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (endCageIlkSpotIlksPostCallMem I vatOut spotOut).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (endCageIlkSpotIlksPostCallMem I vatOut spotOut).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endCageIlkSpotIlksPostCallMem I vatOut spotOut).readWithPadding
@@ -728,8 +716,7 @@ theorem endCageIlkParEncode_eq (I : ExecutionEnv) (vatOut spotOut : ByteArray)
 theorem endCageIlkNoArgCalldataMem_mload64 {selectorShifted mem : ByteArray}
     (hselector : selectorShifted.size = 32) (hmem : mem.size = 288)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkNoArgCalldataMem selectorShifted mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkNoArgCalldataMem selectorShifted mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endCageIlkNoArgCalldataMem selectorShifted mem).readWithPadding
@@ -737,7 +724,6 @@ theorem endCageIlkNoArgCalldataMem_mload64 {selectorShifted mem : ByteArray}
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [endCageIlkNoArgCalldataMem_size hselector hmem]; decide)
-    (by decide)
     (endCageIlkNoArgCalldataMem_read64 hselector hmem hread64)
 
 theorem endCageIlkNoArgWriteLen_eq {out : ByteArray}
@@ -855,8 +841,7 @@ theorem endCageIlkNoArgPostCallMem_mload64 {selectorShifted mem out : ByteArray}
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hout : out.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (endCageIlkNoArgPostCallMem selectorShifted mem out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+          (endCageIlkNoArgPostCallMem selectorShifted mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endCageIlkNoArgPostCallMem selectorShifted mem out).readWithPadding
@@ -864,7 +849,6 @@ theorem endCageIlkNoArgPostCallMem_mload64 {selectorShifted mem out : ByteArray}
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [endCageIlkNoArgPostCallMem_size hselector hmem hout]; decide)
-    (by decide)
     (endCageIlkNoArgPostCallMem_read64 hselector hmem hread64 hout)
 
 theorem endCageIlk_twoWordHashMem_read64_of_ge96 {mem : ByteArray} (key slot : UInt256)
@@ -887,8 +871,7 @@ theorem endCageIlkNoArgPostCallMem_mload128 {selectorShifted mem out : ByteArray
     (hselector : selectorShifted.size = 32) (hmem : mem.size = 288)
     (hout : out.size < UInt256.size) (hlo : 32 ≤ out.size) :
     (if (⟨128⟩ : UInt256).toNat ≥
-          (endCageIlkNoArgPostCallMem selectorShifted mem out).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+          (endCageIlkNoArgPostCallMem selectorShifted mem out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((endCageIlkNoArgPostCallMem selectorShifted mem out).readWithPadding
@@ -1016,7 +999,7 @@ theorem RD.endCageIlkTagDefinedRevert {g : Sat256} {s0 : State} {ee : ExecutionE
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide)
@@ -1300,22 +1283,20 @@ theorem endCageIlkX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     unfold endCageIlkVatIlksCalldataMem
     exact endFlowVatIlksCalldataMem_read64 I htagMemSize htagMemRead64
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkTagHashMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkTagHashMem I).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endCageIlkTagHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [htagMemSize]; decide) (by decide) htagMemRead64
+    mloadFreePtrValue (by rw [htagMemSize]; decide) htagMemRead64
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkVatIlksCalldataMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkVatIlksCalldataMem I).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endCageIlkVatIlksCalldataMem I).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have hselectorShift :
       UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
         endFlowVatIlksSelectorShifted := by
@@ -1726,8 +1707,7 @@ theorem endCageIlkX_spotIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
   have hslot : endCageIlkArtSlot I = solcMappingSlot ⟨14⟩ key := by
     simpa [key] using endCageIlkArtSlot_eq (I := I) hsz36
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkArtHashMem I vatOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endCageIlkArtHashMem I vatOut).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endCageIlkArtHashMem I vatOut).readWithPadding
@@ -1735,7 +1715,6 @@ theorem endCageIlkX_spotIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         ⟨128⟩ :=
     mloadFreePtrValue
       (by rw [endCageIlkArtHashMem_size_long I vatOut hlo]; decide)
-      (by decide)
       (endCageIlkArtHashMem_read64_long I vatOut hlo)
   have hmload64Spot := endCageIlkSpotIlksCalldataMem_mload64_long I vatOut hlo
   have hselectorShift :
@@ -2160,8 +2139,7 @@ theorem endCageIlkX_parExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     rw [toByteArray_size]
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endCageIlkSpotIlksPostCallMem I vatOut spotOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+            (endCageIlkSpotIlksPostCallMem I vatOut spotOut).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((endCageIlkSpotIlksPostCallMem I vatOut spotOut).readWithPadding
@@ -2170,8 +2148,7 @@ theorem endCageIlkX_parExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     endCageIlkSpotIlksPostCallMem_mload64 I vatOut spotOut hvat hspot
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endCageIlkParCalldataMem I vatOut spotOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+            (endCageIlkParCalldataMem I vatOut spotOut).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((endCageIlkParCalldataMem I vatOut spotOut).readWithPadding
@@ -2446,7 +2423,6 @@ theorem endCageIlkX_parReturnDecodeOk {cA cA' gh bl σ σTarget σ' σ₀ A I}
     rw [toByteArray_size]
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨9355⟩) (okPc := ⟨9375⟩)
     (retWord := endCageIlkReturnWord parOut) h hlo hout
-    mem_cost
     (by native_decide)
     (by
       unfold endCageIlkParPostCallMem
@@ -2454,7 +2430,6 @@ theorem endCageIlkX_parReturnDecodeOk {cA cA' gh bl σ σTarget σ' σ₀ A I}
     (by
       unfold endCageIlkParPostCallMem
       exact endCageIlkNoArgPostCallMem_mload128 hselectorSize hbaseSize hout hlo)
-    mem_cost
     (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2486,7 +2461,6 @@ theorem endCageIlkX_parReturnDecodeShort {cA cA' gh bl σ σTarget σ' σ₀ A I
     rw [toByteArray_size]
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨9355⟩) (okPc := ⟨9375⟩)
     h hshort hout
-    mem_cost
     (by native_decide)
     (by
       unfold endCageIlkParPostCallMem
@@ -2540,8 +2514,7 @@ theorem endCageIlkX_readExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
       hspotMemRead64 hpar
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endCageIlkParPostCallMem I vatOut spotOut parOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+            (endCageIlkParPostCallMem I vatOut spotOut parOut).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((endCageIlkParPostCallMem I vatOut spotOut parOut).readWithPadding
@@ -2552,8 +2525,7 @@ theorem endCageIlkX_readExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
       hspotMemRead64 hpar
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endCageIlkReadCalldataMem I vatOut spotOut parOut).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+            (endCageIlkReadCalldataMem I vatOut spotOut parOut).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((endCageIlkReadCalldataMem I vatOut spotOut parOut).readWithPadding
@@ -2838,7 +2810,6 @@ theorem endCageIlkX_readReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
       hspotMemRead64 hpar
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨9463⟩) (okPc := ⟨9483⟩)
     (retWord := endCageIlkReturnWord readOut) h hlo hout
-    mem_cost
     (by native_decide)
     (by
       unfold endCageIlkReadPostCallMem
@@ -2847,7 +2818,6 @@ theorem endCageIlkX_readReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
     (by
       unfold endCageIlkReadPostCallMem
       exact endCageIlkNoArgPostCallMem_mload128 hreadSelectorSize hbaseSize hout hlo)
-    mem_cost
     (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2894,7 +2864,6 @@ theorem endCageIlkX_readReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
       hspotMemRead64 hpar
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨9463⟩) (okPc := ⟨9483⟩)
     h hshort hout
-    mem_cost
     (by native_decide)
     (by
       unfold endCageIlkReadPostCallMem
@@ -3115,12 +3084,11 @@ theorem endCageIlkX_finish {cA cA' gh bl σ σ' σ₀ A I}
     exact endCageIlk_twoWordHashMem_read64_of_ge96 key ⟨12⟩ (by rw [hmemBaseSize]; omega)
       hmemBaseRead64
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ memHash.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memHash.size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian (memHash.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemHashSize]; decide) (by decide) hmemHashRead64
+    mloadFreePtrValue (by rw [hmemHashSize]; decide) hmemHashRead64
   have hslot : endCageIlkTagSlot I = solcMappingSlot ⟨12⟩ key := by
     simpa [key] using endCageIlkTagSlot_eq (I := I) hsz36
   have rd9495pre := evm_run h with [

@@ -550,13 +550,12 @@ theorem daiJoinJoinToVatMoveExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
       UInt256.land solcAddrMask (joinUsrMaskedWord I) = joinUsrMaskedWord I :=
     solcAddrMask_clean_left husrCanon
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (solcFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide)
       solcFreePtrMem_read64
   have hcallMem : (joinMoveCalldataMem I rad solcFreePtrMem).size = 228 :=
     joinMoveCalldataMem_size I rad solcFreePtrMem_size
@@ -565,14 +564,13 @@ theorem daiJoinJoinToVatMoveExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
         UInt256.toByteArray ⟨128⟩ :=
     joinMoveCalldataMem_read64 I rad solcFreePtrMem_size solcFreePtrMem_read64
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (joinMoveCalldataMem I rad solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (joinMoveCalldataMem I rad solcFreePtrMem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((joinMoveCalldataMem I rad solcFreePtrMem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have rd564 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
     push1 ⟨64⟩,
@@ -848,14 +846,13 @@ theorem daiJoinJoinVatMoveToDaiBurnExtcodesizeGuard
         UInt256.toByteArray ⟨128⟩ :=
     joinMoveCalldataMem_read64 I rad solcFreePtrMem_size solcFreePtrMem_read64
   have hmload64Move :
-      (if (⟨64⟩ : UInt256).toNat ≥ (joinMoveCalldataMem I rad solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (joinMoveCalldataMem I rad solcFreePtrMem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((joinMoveCalldataMem I rad solcFreePtrMem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmoveMem]; decide) (by decide) hmoveRead64
+    mloadFreePtrValue (by rw [hmoveMem]; decide) hmoveRead64
   have hburnMem :
       (joinBurnCalldataMem I (joinMoveCalldataMem I rad solcFreePtrMem)).size = 228 :=
     joinBurnCalldataMem_size I hmoveMem
@@ -866,14 +863,13 @@ theorem daiJoinJoinVatMoveToDaiBurnExtcodesizeGuard
     joinBurnCalldataMem_read64 I hmoveMem hmoveRead64
   have hmload64Burn :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (joinBurnCalldataMem I (joinMoveCalldataMem I rad solcFreePtrMem)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+            (joinBurnCalldataMem I (joinMoveCalldataMem I rad solcFreePtrMem)).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((joinBurnCalldataMem I (joinMoveCalldataMem I rad solcFreePtrMem)).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hburnMem]; decide) (by decide) hburnRead64
+    mloadFreePtrValue (by rw [hburnMem]; decide) hburnRead64
   have rd599 := RD.pop rd598 (by native_decide) (by evm_ov)
   have rd601p := evm_run rd599 with [
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
@@ -1157,25 +1153,23 @@ theorem daiJoinJoinDaiBurnSuccessTail
       UInt256.land solcAddrMask (joinUsrMaskedWord I) = joinUsrMaskedWord I :=
     solcAddrMask_clean_left husrCanon
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have heventMem : (joinJoinEventMem I mem).size = 228 :=
     joinJoinEventMem_size I hmem
   have heventRead64 :
       (joinJoinEventMem I mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ :=
     joinJoinEventMem_read64 I hmem hread64
   have hmload64Event :
-      (if (⟨64⟩ : UInt256).toNat ≥ (joinJoinEventMem I mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (joinJoinEventMem I mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((joinJoinEventMem I mem).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [heventMem]; decide) (by decide) heventRead64
+    mloadFreePtrValue (by rw [heventMem]; decide) heventRead64
   have rd727 := evm_run rd705 with [
     raw pop (by native_decide) (by evm_ov),
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),

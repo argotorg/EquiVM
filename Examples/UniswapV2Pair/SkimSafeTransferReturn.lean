@@ -25,8 +25,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyHugeReverts {g : Sat256} {s0 : State
       callMem gasMarker out acc k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < UInt256.size)
     (hcallMem64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ callMem.size ∨
-          (⟨64⟩ : UInt256) ≥ gasMarker * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ callMem.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (callMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -56,7 +55,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyHugeReverts {g : Sat256} {s0 : State
   rw [show UInt256.ofNat out.size = rdsz from rfl, heq0] at rd6607
   have rd6610 := evm_run rd6607 with [jumpiNT (by native_decide), push1 ⟨64⟩]
   have rd6611 := RD.mload 0 base gasMarker rd6610 (by native_decide)
-    (by intro s haw hstk; simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw64])
+    (by simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, haw64])
     hcallMem64 haw64
     (by simp only [List.length_cons]; omega)
   let rounded : UInt256 := UInt256.land (UInt256.add rdsz ⟨63⟩) (UInt256.lnot ⟨31⟩)
@@ -65,7 +64,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyHugeReverts {g : Sat256} {s0 : State
     swap2, pop, push1 ⟨31⟩, not, push1 ⟨63⟩, returndatasize, add, and,
     dup3, add, push1 ⟨64⟩]
   have rd6626 := RD.mstore 0 mem2 gasMarker rd6626pre (by native_decide)
-    (by intro s haw hstk; simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw64])
+    (by simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, haw64])
     (by dsimp [mem2]; rfl)
     haw64
     (by simp only [List.length_cons]; omega)
@@ -73,8 +72,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyHugeReverts {g : Sat256} {s0 : State
   have rd6629pre := evm_run rd6626 with [returndatasize, dup3]
   have rd6629 := RD.mstore 0 mem3 gasMarker rd6629pre (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, hawBase])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, hawBase])
     (by dsimp [mem3])
     hawBase
     (by simp only [List.length_cons]; omega)
@@ -85,8 +83,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyHugeReverts {g : Sat256} {s0 : State
     rd6636 (by native_decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, UInt256.toNat_ofNat_of_lt houtSize]; omega)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+      simp [M,
         UInt256.toNat_ofNat_of_lt houtSize])
     hHugeCost
     (by simp only [List.length_cons]; omega)
@@ -101,7 +98,7 @@ theorem RD.uniswapSafeTransferReturnFailureMessageFrom6697Reverts {g : Sat256} {
     (hR : R.length + 16 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   let fp0 : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ mem0.size ∨ (⟨64⟩ : UInt256) ≥ aw0 * ⟨32⟩ then
+    if (⟨64⟩ : UInt256).toNat ≥ mem0.size then
       ⟨0⟩
     else UInt256.ofNat (fromByteArrayBigEndian (mem0.readWithPadding 64 32))
   let aw1 : UInt256 := UInt256.ofNat (MachineState.M aw0.toNat (⟨64⟩ : UInt256).toNat 32)
@@ -109,8 +106,7 @@ theorem RD.uniswapSafeTransferReturnFailureMessageFrom6697Reverts {g : Sat256} {
   have rd6701' := RD.mload
     (Cₘ aw1 - Cₘ aw0) fp0 aw1 rd6701 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw1])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw1])
     (by rfl)
     (by rfl)
     (by simp only [List.length_cons]; omega)
@@ -122,8 +118,7 @@ theorem RD.uniswapSafeTransferReturnFailureMessageFrom6697Reverts {g : Sat256} {
   have rd6710 := RD.mstore
     (Cₘ aw2 - Cₘ aw1) err0 aw2 rd6708 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw1, aw2])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw1, aw2])
     (by simp [err0, uniswapErrorStringSelector, solcErrorStringSelector])
     (by rfl)
     (by simp only [List.length_cons]; omega)
@@ -134,8 +129,7 @@ theorem RD.uniswapSafeTransferReturnFailureMessageFrom6697Reverts {g : Sat256} {
   have rd6717 := RD.mstore
     (Cₘ aw3 - Cₘ aw2) err1 aw3 rd6716 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw2, aw3, off1])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw2, aw3, off1])
     (by simp [err1, off1])
     (by rfl)
     (by simp only [List.length_cons]; omega)
@@ -146,8 +140,7 @@ theorem RD.uniswapSafeTransferReturnFailureMessageFrom6697Reverts {g : Sat256} {
   have rd6724 := RD.mstore
     (Cₘ aw4 - Cₘ aw3) err2 aw4 rd6723 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw3, aw4, off2])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw3, aw4, off2])
     (by simp [err2, off2])
     (by rfl)
     (by simp only [List.length_cons]; omega)
@@ -161,22 +154,20 @@ theorem RD.uniswapSafeTransferReturnFailureMessageFrom6697Reverts {g : Sat256} {
   have rd6762 := RD.mstore
     (Cₘ aw5 - Cₘ aw4) err3 aw5 rd6760 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw4, aw5, off3])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw4, aw5, off3])
     (by simp [err3, off3])
     (by rfl)
     (by simp only [List.length_cons]; omega)
   have rd6763 := evm_run rd6762 with [swap1]
   let fp1 : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ err3.size ∨ (⟨64⟩ : UInt256) ≥ aw5 * ⟨32⟩ then
+    if (⟨64⟩ : UInt256).toNat ≥ err3.size then
       ⟨0⟩
     else UInt256.ofNat (fromByteArrayBigEndian (err3.readWithPadding 64 32))
   let aw6 : UInt256 := UInt256.ofNat (MachineState.M aw5.toNat (⟨64⟩ : UInt256).toNat 32)
   have rd6764 := RD.mload
     (Cₘ aw6 - Cₘ aw5) fp1 aw6 rd6763 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw5, aw6])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, aw5, aw6])
     (by rfl)
     (by rfl)
     (by simp only [List.length_cons]; omega)
@@ -188,8 +179,7 @@ theorem RD.uniswapSafeTransferReturnFailureMessageFrom6697Reverts {g : Sat256} {
       Cₘ aw6)
     rd6772 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk])
+      simp [M])
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
@@ -217,7 +207,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueStatusToLengthLoaded {g : Sat256
       (base :: ⟨1⟩ :: value :: toWord :: token :: ret :: R) mem0 aw0 out acc k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (hloadBase :
-      (if base.toNat ≥ mem0.size ∨ base ≥ aw0 * ⟨32⟩ then ⟨0⟩
+      (if base.toNat ≥ mem0.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem0.readWithPadding base.toNat 32))) =
       UInt256.ofNat out.size)
     (hawBase : UInt256.ofNat (MachineState.M aw0.toNat base.toNat 32) = aw0)
@@ -238,8 +228,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueStatusToLengthLoaded {g : Sat256
     dup2, dup1, iszero, push2 ⟨6692⟩, jumpiNT (by native_decide), pop, dup1]
   have rd6662 := RD.mload 0 (UInt256.ofNat out.size) aw0 rd6661 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, hawBase])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, hawBase])
     hloadBase hawBase
     (by simp only [List.length_cons]; omega)
   have rd6675 := evm_run rd6662 with [
@@ -247,8 +236,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueStatusToLengthLoaded {g : Sat256
     push1 ⟨32⟩, add, swap1]
   have rd6676 := RD.mload 0 (UInt256.ofNat out.size) aw0 rd6675 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, hawBase])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, hawBase])
     hloadBase hawBase
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa [hretPtr] using rd6676⟩
@@ -285,7 +273,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyFalseReverts {g : Sat256} {s0 : Stat
     (hout32 : 32 ≤ out.size) (houtSize : out.size < 2 ^ 255)
     (hword : UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) = ⟨0⟩)
     (hloadRet :
-      (if retPtr.toNat ≥ mem0.size ∨ retPtr ≥ aw0 * ⟨32⟩ then ⟨0⟩
+      (if retPtr.toNat ≥ mem0.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem0.readWithPadding retPtr.toNat 32))) =
       UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))
     (hawRet : UInt256.ofNat (MachineState.M aw0.toNat retPtr.toNat 32) = aw0)
@@ -304,8 +292,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyFalseReverts {g : Sat256} {s0 : Stat
     0 (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))) aw0
     rd6691 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, hawRet])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, hawRet])
     hloadRet hawRet
     (by simp only [List.length_cons]; omega)
   have rd6692 := rd6692₀
@@ -326,7 +313,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueToRet {g : Sat256} {s0 : State}
     (hout32 : 32 ≤ out.size) (houtSize : out.size < 2 ^ 255)
     (hword : UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) ≠ ⟨0⟩)
     (hloadRet :
-      (if retPtr.toNat ≥ mem0.size ∨ retPtr ≥ aw0 * ⟨32⟩ then ⟨0⟩
+      (if retPtr.toNat ≥ mem0.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem0.readWithPadding retPtr.toNat 32))) =
       UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)))
     (hawRet : UInt256.ofNat (MachineState.M aw0.toNat retPtr.toNat 32) = aw0)
@@ -346,8 +333,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyTrueToRet {g : Sat256} {s0 : State}
     0 (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))) aw0
     rd6691 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, hawRet])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, hawRet])
     hloadRet hawRet
     (by simp only [List.length_cons]; omega)
   have rd6773 := evm_run rd6692 with [
@@ -365,7 +351,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyReturnToCheck {g : Sat256} {s0 : Sta
         value :: toWord :: token :: ret :: R) mem0 aw0 out acc k C)
     (houtNe : out.size ≠ 0) (houtSize : out.size < 2 ^ 255)
     (hloadPtr :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem0.size ∨ (⟨64⟩ : UInt256) ≥ aw0 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem0.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem0.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -408,8 +394,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyReturnToCheck {g : Sat256} {s0 : Sta
   have rd6610 := evm_run rd6608 with [jumpiNT (by native_decide), push1 ⟨64⟩]
   have rd6611 := RD.mload 0 dataPtr aw0 rd6610 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw64])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, haw64])
     hloadPtr haw64
     (by simp only [List.length_cons]; omega)
   let rounded : UInt256 := UInt256.land (rdsz + ⟨63⟩) (UInt256.lnot ⟨31⟩)
@@ -420,8 +405,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyReturnToCheck {g : Sat256} {s0 : Sta
     dup3, add, push1 ⟨64⟩]
   have rd6626 := RD.mstore 0 mem2 aw0 rd6625 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw64])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, haw64])
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide])
     haw64
@@ -430,8 +414,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyReturnToCheck {g : Sat256} {s0 : Sta
   have rd6628 := evm_run rd6626 with [returndatasize, dup3]
   have rd6629 := RD.mstore 0 mem3 aw0 rd6628 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, hawDataPtr])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, hawDataPtr])
     (by dsimp [mem3])
     hawDataPtr
     (by simp only [List.length_cons]; omega)
@@ -456,8 +439,7 @@ theorem RD.uniswapSafeTransferReturnNonemptyReturnToCheck {g : Sat256} {s0 : Sta
     rd6636 (by native_decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hcopyLen_toNat]; omega)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+      simp [M]
       rw [UInt256.toNat_ofNat_of_lt (lt_size_of_lt_sign houtSize), haw4'])
     (by rfl)
     haw4
@@ -531,7 +513,7 @@ theorem RD.uniswapSafeTransferEmptyReturnToRet {g : Sat256} {s0 : State}
       mem aw out acc k C)
     (hout : out.size = 0)
     (hload96 :
-      (if (⟨96⟩ : UInt256).toNat ≥ mem.size ∨ (⟨96⟩ : UInt256) ≥ aw * ⟨32⟩ then
+      (if (⟨96⟩ : UInt256).toNat ≥ mem.size then
           ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨96⟩ : UInt256).toNat 32))) =
@@ -552,8 +534,7 @@ theorem RD.uniswapSafeTransferEmptyReturnToRet {g : Sat256} {s0 : State}
   have rd6661 := evm_run rd6658 with [pop, dup1]
   have rd6662 := RD.mload 0 ⟨0⟩ aw rd6661 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw96])
+      simp [M, show (⟨32⟩ : UInt256).toNat = 32 from by decide, haw96])
     hload96 haw96
     (by simp only [List.length_cons]; omega)
   have rd6668 := evm_run rd6662 with [

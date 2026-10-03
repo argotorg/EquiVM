@@ -2315,8 +2315,7 @@ theorem transferFromReturnMem_read160 (src dst caller allowance val : UInt256) :
 
 
 theorem transferFromDispatchMem_mload0 :
-    (if (⟨0⟩ : UInt256).toNat ≥ transferFromDispatchMem.size ∨
-        (⟨0⟩ : UInt256) ≥ (UInt256.ofNat 1) * ⟨32⟩
+    (if (⟨0⟩ : UInt256).toNat ≥ transferFromDispatchMem.size
       then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian (transferFromDispatchMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))

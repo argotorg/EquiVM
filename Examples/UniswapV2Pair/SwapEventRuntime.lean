@@ -27,8 +27,8 @@ theorem RD.uniswapSwapEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
   have h64 : (⟨64⟩ : UInt256).toNat + 32 ≤ aw.toNat * 32 := by change 64 + 32 ≤ _; omega
   have hw64 := UInt256_M_same_of_cover aw ⟨64⟩ haw h64
   change memoryWordActiveWords aw ⟨64⟩ = aw at hw64
-  have hm64 : memoryWordLoad mem aw ⟨64⟩ = ptr := mloadWordValue_of_readWithPadding
-    (by change 64 < _; omega) (UInt256_mload_haw_of_cover aw ⟨64⟩ haw h64) hread
+  have hm64 : memoryWordLoad mem ⟨64⟩ = ptr := mloadWordValue_of_readWithPadding
+    (by change 64 < _; omega) hread
   have hw0 := UInt256_M_same_of_cover aw ptr haw (by omega)
   change memoryWordActiveWords aw ptr = aw at hw0
   have h32 : (ptr + ⟨32⟩).toNat = ptr.toNat + 32 := uadd_word_ofNat_toNat ptr 32 (by omega)
@@ -75,9 +75,7 @@ theorem RD.uniswapSwapEmitEvent {g : Sat256} {s0 : State} {I : ExecutionEnv}
     pairDynamicWords, pairDynamicWords0, hsum] using
     (show ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2797⟩ _ _ _ rdata acc k' C' from
       ⟨_, _, RD.log3 0 _ rd2796 (by native_decide) hperm (by
-        intro s haws hstk
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk,
-          List.getElem!_cons_zero, List.getElem!_cons_succ]
+        simp only [M]
         change Cₘ (UInt256.ofNat (MachineState.M _ ptr.toNat 128)) - Cₘ _ = 0
         rw [hwLog, Nat.sub_self]) hwLog (by evm_ov)⟩)
 

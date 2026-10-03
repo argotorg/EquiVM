@@ -55,11 +55,7 @@ theorem mintRoutine {I g s0 ret R mem aw ptr rdata cA σ k C evm}
       have hread : (mintCallMem mem out ptr).readWithPadding ptr.toNat 32 =
           (calldataWord out 0).toByteArray :=
         callOutput32_read_word _ out ptr hou hl (by omega)
-      have hcover : ptr.toNat < (mintCallWords aw ptr).toNat * 32 :=
-        callActiveWords_cover32 (activeWords_expand32 hm.active hb32)
-          (show ptr.toNat + (⟨4⟩ : UInt256).toNat ≤ 2 ^ 200 by
-            change ptr.toNat + 4 ≤ _; omega) hb32
-      have hrd := mintReturnOk rd3071 hh.cursor hl (by omega) (by omega) hcover hread (by omega)
+      have hrd := mintReturnOk rd3071 hh.cursor hl (by omega) (by omega) hread (by omega)
       have hb' : ptr.toNat + out.size + 31 ≤ 2 ^ 200 := by omega
       have hcursor := (returnReserve_cursor hh.cursor out.size hb').expand32 ptr hb32
       have hptr := returnReservePtr_toNat hb'

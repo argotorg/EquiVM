@@ -62,9 +62,7 @@ theorem jugCtorArgCopyTrace
       6
       (jugCtorArgMem vat) (UInt256.ofNat 5)
       (by jug_ctor_decode)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, List.getElem!_cons_succ]
+      (by
         rw [jugCtorArgLen_eq]
         decide)
       (by

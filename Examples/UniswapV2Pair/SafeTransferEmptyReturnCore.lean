@@ -22,13 +22,11 @@ theorem RD.uniswapSafeTransferDynamicEmptyReturnToRet_of_zeroSlot
   have hc96 : (⟨96⟩ : UInt256).toNat + 32 ≤ (safeTransferDynamicCallWords2 aw ptr).toNat * 32 := by
     change 96 + 32 ≤ _
     omega
-  have hload : memoryWordLoad (safeTransferDynamicCallMem2 base ptr toWord value)
-      (safeTransferDynamicCallWords2 aw ptr) ⟨96⟩ = ⟨0⟩ := by
+  have hload : memoryWordLoad (safeTransferDynamicCallMem2 base ptr toWord value) ⟨96⟩ = ⟨0⟩ := by
     apply mloadWordValue_of_readWithPadding
     · change 96 < _
       rw [safeTransferDynamicCallMem2_size ptr toWord value (by omega) hgap (by omega)]
       omega
-    · exact UInt256_mload_haw_of_cover _ _ hb2 hc96
     · exact hzero
   exact RD.uniswapSafeTransferEmptyReturnToRet rd6595 hout hload
     (UInt256_M_same_of_cover _ _ hb2 hc96) hret hov

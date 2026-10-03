@@ -832,13 +832,12 @@ theorem endPackX_moveExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256} {sel 
       (endPackMoveCalldataMem σ I amt solcFreePtrMem) (UInt256.ofNat 8)
       ByteArray.empty (cA, σ) k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ solcFreePtrMem.size then ⟨0⟩
               else UInt256.ofNat
                 (fromByteArrayBigEndian
           (solcFreePtrMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide)
+    mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide)
       solcFreePtrMem_read64
   have hcallMem :
       (endPackMoveCalldataMem σ I amt solcFreePtrMem).size = 228 :=
@@ -848,14 +847,13 @@ theorem endPackX_moveExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256} {sel 
         UInt256.toByteArray ⟨128⟩ :=
     endPackMoveCalldataMem_read64 σ I amt solcFreePtrMem_size solcFreePtrMem_read64
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endPackMoveCalldataMem σ I amt solcFreePtrMem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endPackMoveCalldataMem σ I amt solcFreePtrMem).size then ⟨0⟩
               else UInt256.ofNat
                 (fromByteArrayBigEndian
           ((endPackMoveCalldataMem σ I amt solcFreePtrMem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have hselectorMask :
       UInt256.land endPackMoveSelectorWord (⟨0xffffffff⟩ : UInt256) =
         endPackMoveSelectorWord := by
@@ -1370,8 +1368,7 @@ theorem endPackX_bagLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide) mem_cost
       (mloadFreePtrValue
-        (by rw [endPackBagStoreSlotMem_size σ I (endPackAmtWord I) out]; decide)
-        (by decide) (endPackBagStoreSlotMem_read64 σ I (endPackAmtWord I) out))
+        (by rw [endPackBagStoreSlotMem_size σ I (endPackAmtWord I) out]; decide) (endPackBagStoreSlotMem_read64 σ I (endPackAmtWord I) out))
       (by native_decide) (by evm_ov),
     raw dup5 (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov)]
@@ -1382,8 +1379,7 @@ theorem endPackX_bagLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw swap1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide) mem_cost
       (mloadFreePtrValue
-        (by rw [endPackLogDataMem_size σ I (endPackAmtWord I) out]; decide)
-        (by decide) (endPackLogDataMem_read64 σ I (endPackAmtWord I) out))
+        (by rw [endPackLogDataMem_size σ I (endPackAmtWord I) out]; decide) (endPackLogDataMem_read64 σ I (endPackAmtWord I) out))
       (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov),
     raw swap3 (by native_decide) (by evm_ov)]

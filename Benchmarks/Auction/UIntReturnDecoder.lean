@@ -14,7 +14,7 @@ theorem uintReturnDecodeOk {I g s0 off finish ret R mem aw rdata acc k C word}
     (h : RD auctionBytecode I g s0 ⟨5820⟩ (off :: finish :: ret :: R)
       mem aw rdata acc k C)
     (hcheck : UInt256.slt (UInt256.sub finish off) ⟨32⟩ = ⟨0⟩)
-    (hload : loadedWord mem aw off = word)
+    (hload : loadedWord mem off = word)
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret (word :: R)
       mem (expandedWords aw off ⟨32⟩) rdata acc k' C' := by

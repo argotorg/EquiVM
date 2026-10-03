@@ -613,8 +613,7 @@ theorem RD.cureRelyStoreOne {g : Sat256} {s0 : State}
         UInt256.toByteArray ⟨128⟩ :=
     twoWordHashMem_read64 key ⟨0⟩ hmem hread64
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (twoWordHashMem key ⟨0⟩ mem).size ∨
-          (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (twoWordHashMem key ⟨0⟩ mem).size
         then ⟨0⟩ else UInt256.ofNat (fromByteArrayBigEndian
           ((twoWordHashMem key ⟨0⟩ mem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by

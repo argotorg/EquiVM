@@ -107,10 +107,9 @@ theorem cureListArrayLoopStepToBranch {g : Sat256} {s0 : State}
     (listArrayCopyStepMem σ ee slot dest mem) (listArrayCopyStepAw aw dest)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack (aw := aw) (off := dest)
-        (val := UInt256.land (solcSlotWord σ ee slot) solcAddrMask)
-        (t := dest :: slot :: endp :: R) haw hstk (by rfl))
+      change Cₘ (UInt256.ofNat (MachineState.M aw.toNat dest.toNat 32)) - Cₘ aw =
+        Cₘ (UInt256.ofNat (MachineState.M aw.toNat dest.toNat 32)) - Cₘ aw
+      rfl)
     (by
       unfold listArrayCopyStepMem
       rfl)

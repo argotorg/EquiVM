@@ -150,13 +150,12 @@ theorem balanceOfThisCalldataMem_read64 (self : UInt256) :
     balanceOfThisSelectorMem_read64]
 
 theorem balanceOfThisCalldataMem_mload64 (self : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfThisCalldataMem self).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfThisCalldataMem self).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((balanceOfThisCalldataMem self).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [balanceOfThisCalldataMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [balanceOfThisCalldataMem_size]; decide)
     (balanceOfThisCalldataMem_read64 self)
 
 theorem transferCalldataMem_read128_68 (recipient value : UInt256) :
@@ -273,15 +272,13 @@ theorem balanceOfThisStaticcallMem_read64_of_size_ge (self : UInt256) (o : ByteA
 
 theorem balanceOfThisStaticcallMem_mload64_of_size_ge (self : UInt256) (o : ByteArray)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfThisStaticcallMem self o).size
-        ∨ (⟨64⟩ : UInt256) ≥ balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfThisStaticcallMem self o).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((balanceOfThisStaticcallMem self o).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [balanceOfThisStaticcallMem_size_of_size_ge self o hlo hhi]; decide)
-    (by decide)
     (balanceOfThisStaticcallMem_read64_of_size_ge self o hlo hhi)
 
 theorem balanceOfThisStaticcallWriteLen_of_size_lt (o : ByteArray)
@@ -318,15 +315,13 @@ theorem balanceOfThisStaticcallMem_read64_of_size_lt (self : UInt256) (o : ByteA
 
 theorem balanceOfThisStaticcallMem_mload64_of_size_lt (self : UInt256) (o : ByteArray)
     (hshort : o.size < 32) (hhi : o.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfThisStaticcallMem self o).size
-        ∨ (⟨64⟩ : UInt256) ≥ balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfThisStaticcallMem self o).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((balanceOfThisStaticcallMem self o).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [balanceOfThisStaticcallMem_size_of_size_lt self o hshort hhi]; decide)
-    (by decide)
     (balanceOfThisStaticcallMem_read64_of_size_lt self o hshort hhi)
 
 theorem balanceOfThisStaticcallMem_read128_of_size_ge (self : UInt256) (o : ByteArray)
@@ -338,8 +333,7 @@ theorem balanceOfThisStaticcallMem_read128_of_size_ge (self : UInt256) (o : Byte
 
 theorem balanceOfThisStaticcallMem_mload128_of_size_ge (self : UInt256) (o : ByteArray)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (balanceOfThisStaticcallMem self o).size
-        ∨ (⟨128⟩ : UInt256) ≥ balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (balanceOfThisStaticcallMem self o).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((balanceOfThisStaticcallMem self o).readWithPadding (⟨128⟩ : UInt256).toNat 32)))
@@ -347,11 +341,8 @@ theorem balanceOfThisStaticcallMem_mload128_of_size_ge (self : UInt256) (o : Byt
   rw [if_neg]
   · rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
       balanceOfThisStaticcallMem_read128_of_size_ge self o hlo hhi]
-  · rw [not_or]
-    constructor
-    · rw [balanceOfThisStaticcallMem_size_of_size_ge self o hlo hhi]
-      decide
-    · decide
+  · rw [balanceOfThisStaticcallMem_size_of_size_ge self o hlo hhi]
+    decide
 
 theorem balanceOfThisRebuiltSelectorMem_size_of_size_ge (self : UInt256) (o : ByteArray)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
@@ -454,8 +445,7 @@ theorem balanceOfThisRebuiltCalldataMem_encode
 
 theorem balanceOfThisRebuiltCalldataMem_mload64_of_size_ge (self : UInt256) (o : ByteArray)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfThisRebuiltCalldataMem self o).size
-        ∨ (⟨64⟩ : UInt256) ≥ balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfThisRebuiltCalldataMem self o).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((balanceOfThisRebuiltCalldataMem self o).readWithPadding
@@ -463,7 +453,6 @@ theorem balanceOfThisRebuiltCalldataMem_mload64_of_size_ge (self : UInt256) (o :
       = ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [balanceOfThisRebuiltCalldataMem_size_of_size_ge self o hlo hhi]; decide)
-    (by decide)
     (balanceOfThisRebuiltCalldataMem_read64_of_size_ge self o hlo hhi)
 
 theorem balanceOfThisRebuiltStaticcallMem_size_of_size_ge
@@ -498,8 +487,7 @@ theorem balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
     (self : UInt256) (oPrev o : ByteArray)
     (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfThisRebuiltStaticcallMem self oPrev o).size
-        ∨ (⟨64⟩ : UInt256) ≥ balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfThisRebuiltStaticcallMem self oPrev o).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((balanceOfThisRebuiltStaticcallMem self oPrev o).readWithPadding
@@ -510,7 +498,6 @@ theorem balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
       rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo hprevhi
         hlo hhi]
       decide)
-    (by decide)
     (balanceOfThisRebuiltStaticcallMem_read64_of_size_ge self oPrev o hprevlo hprevhi
       hlo hhi)
 
@@ -552,8 +539,7 @@ theorem balanceOfThisRebuiltStaticcallMem_mload64_of_size_lt
     (self : UInt256) (oPrev o : ByteArray)
     (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
     (hshort : o.size < 32) (hhi : o.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfThisRebuiltStaticcallMem self oPrev o).size
-        ∨ (⟨64⟩ : UInt256) ≥ balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfThisRebuiltStaticcallMem self oPrev o).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((balanceOfThisRebuiltStaticcallMem self oPrev o).readWithPadding
@@ -564,7 +550,6 @@ theorem balanceOfThisRebuiltStaticcallMem_mload64_of_size_lt
       rw [balanceOfThisRebuiltStaticcallMem_size_of_size_lt self oPrev o hprevlo hprevhi
         hshort hhi]
       decide)
-    (by decide)
     (balanceOfThisRebuiltStaticcallMem_read64_of_size_lt self oPrev o hprevlo hprevhi
       hshort hhi)
 
@@ -585,8 +570,7 @@ theorem balanceOfThisRebuiltStaticcallMem_mload128_of_size_ge
     (self : UInt256) (oPrev o : ByteArray)
     (hprevlo : 32 ≤ oPrev.size) (hprevhi : oPrev.size < UInt256.size)
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (balanceOfThisRebuiltStaticcallMem self oPrev o).size
-        ∨ (⟨128⟩ : UInt256) ≥ balanceOfThisStaticcallActiveWords * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (balanceOfThisRebuiltStaticcallMem self oPrev o).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((balanceOfThisRebuiltStaticcallMem self oPrev o).readWithPadding
@@ -596,12 +580,9 @@ theorem balanceOfThisRebuiltStaticcallMem_mload128_of_size_ge
   · rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
       balanceOfThisRebuiltStaticcallMem_read128_of_size_ge self oPrev o hprevlo hprevhi
         hlo hhi]
-  · rw [not_or]
-    constructor
-    · rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo hprevhi
-        hlo hhi]
-      decide
-    · decide
+  · rw [balanceOfThisRebuiltStaticcallMem_size_of_size_ge self oPrev o hprevlo hprevhi
+      hlo hhi]
+    decide
 
 end UniswapV2Pair
 
@@ -666,15 +647,9 @@ theorem RD.uniswapBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : Execution
       (UniswapV2Pair.balanceOfThisStaticcallMem self o)
       UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk h hlo hhi
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
     (by native_decide)
     (UniswapV2Pair.balanceOfThisStaticcallMem_mload64_of_size_ge self o hlo hhi)
     (UniswapV2Pair.balanceOfThisStaticcallMem_mload128_of_size_ge self o hlo hhi)
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
     (by native_decide)
     hPop0 hPop1 hPop2 hPush64 hMload64 hReturndatasize hPush32 hDup2 hLt hIszero
     hPushOk hJumpi hjd hJumpdest hPopLen hMload128 hov
@@ -749,9 +724,6 @@ theorem RD.uniswapBalanceOfReturnWordDecodeShortReverts {code : ByteArray} {ee :
     (hov : R.length + 4 ≤ 1024) :
     RDrev code g s0 := by
   exact RD.solcUint256ReturnWordDecodeShortReverts h hshort hhi
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
     (by native_decide)
     (UniswapV2Pair.balanceOfThisStaticcallMem_mload64_of_size_lt self o hshort hhi)
     hPop0 hPop1 hPop2 hPush64 hMload64 hReturndatasize hPush32 hDup2 hLt hIszero
@@ -816,17 +788,11 @@ theorem RD.uniswapRebuiltBalanceOfReturnWordDecodeOk {code : ByteArray} {ee : Ex
       (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem self oPrev o)
       UniswapV2Pair.balanceOfThisStaticcallActiveWords o acc k' C' := by
   exact RD.solcUint256ReturnWordDecodeOk h hlo hhi
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
     (by native_decide)
     (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge self oPrev o
       hprevlo hprevhi hlo hhi)
     (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem_mload128_of_size_ge self oPrev o
       hprevlo hprevhi hlo hhi)
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
     (by native_decide)
     hPop0 hPop1 hPop2 hPush64 hMload64 hReturndatasize hPush32 hDup2 hLt hIszero
     hPushOk hJumpi hjd hJumpdest hPopLen hMload128 hov
@@ -902,9 +868,6 @@ theorem RD.uniswapRebuiltBalanceOfReturnWordDecodeShortReverts
     (hov : R.length + 4 ≤ 1024) :
     RDrev code g s0 := by
   exact RD.solcUint256ReturnWordDecodeShortReverts h hshort hhi
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
     (by native_decide)
     (UniswapV2Pair.balanceOfThisRebuiltStaticcallMem_mload64_of_size_lt self oPrev o
       hprevlo hprevhi hshort hhi)

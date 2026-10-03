@@ -37,6 +37,10 @@ namespace Reasoning.Reach
 
 open Reasoning.Theory
 
+/-- `MachineState.M` lifted to EVM words, including the word conversion used by gas accounting. -/
+abbrev M (aw off len : UInt256) : UInt256 :=
+  UInt256.ofNat (MachineState.M aw.toNat off.toNat len.toNat)
+
 set_option maxRecDepth 10000
 
 /-- The **read-only world fields** a cursor shares with the initial state `s0`: `σ₀`, the genesis
@@ -662,9 +666,7 @@ theorem RD.returndatacopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.RETURNDATACOPY, .none))
     (hguard : b.toNat + c.toNat ≤ rdata.size)
-    (hmc : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = a :: b :: c :: t →
-        memoryExpansionCost s .RETURNDATACOPY = mcost)
+    (hmc : Cₘ (M aw a c) - Cₘ aw = mcost)
     (hmemout : rdata.write b.toNat mem a.toNat c.toNat = memout)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat c.toNat) = awout)
     (hov : t.length ≤ 1024) :
@@ -675,7 +677,9 @@ theorem RD.returndatacopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee,
     hworld⟩
   · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .RETURNDATACOPY = mcost := hmc s haw hstk
+  · have hmcS : memoryExpansionCost s .RETURNDATACOPY = mcost := by
+      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have hmemok : ¬ b.toNat + c.toNat > s.machineState.returnData.size := by
       rw [hrdata]
       omega
@@ -1296,8 +1300,7 @@ theorem RD.mstore {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     {a b : UInt256} {t : List UInt256} (mcost : ℕ) (memout : ByteArray) (awout : UInt256)
     (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MSTORE, .none))
-    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: t →
-        memoryExpansionCost s .MSTORE = mcost)
+    (hmc : Cₘ (M aw a ⟨32⟩) - Cₘ aw = mcost)
     (hmemout : b.toByteArray.write 0 mem a.toNat 32 = memout)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat 32) = awout)
     (hov : t.length ≤ 1024) :
@@ -1305,7 +1308,9 @@ theorem RD.mstore {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .MSTORE = mcost := hmc s haw hstk
+  · have hmcS : memoryExpansionCost s .MSTORE = mcost := by
+      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        List.getElem!_cons_zero, M] using hmc
     have st := mstore_xstep hcode hpc hdec hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + (mcost + 3)
@@ -1332,8 +1337,7 @@ theorem RD.calldatacopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
     (memout : ByteArray) (awout : UInt256)
     (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.CALLDATACOPY, .none))
-    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: c :: t →
-        memoryExpansionCost s .CALLDATACOPY = mcost)
+    (hmc : Cₘ (M aw a c) - Cₘ aw = mcost)
     (hmemout : ee.calldata.write b.toNat mem a.toNat c.toNat = memout)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat c.toNat) = awout)
     (hov : t.length ≤ 1024) :
@@ -1342,7 +1346,9 @@ theorem RD.calldatacopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .CALLDATACOPY = mcost := hmc s haw hstk
+  · have hmcS : memoryExpansionCost s .CALLDATACOPY = mcost := by
+      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have st := calldatacopy_xstep hcode hpc hdec hstk hov
     rw [hmcS] at st
     rw [collapse_two_stage] at st
@@ -1373,8 +1379,7 @@ theorem RD.codecopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : St
     (memout : ByteArray) (awout : UInt256)
     (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.CODECOPY, .none))
-    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: c :: t →
-        memoryExpansionCost s .CODECOPY = mcost)
+    (hmc : Cₘ (M aw a c) - Cₘ aw = mcost)
     (hmemout : code.write b.toNat mem a.toNat c.toNat = memout)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat c.toNat) = awout)
     (hov : t.length ≤ 1024) :
@@ -1383,7 +1388,9 @@ theorem RD.codecopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : St
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .CODECOPY = mcost := hmc s haw hstk
+  · have hmcS : memoryExpansionCost s .CODECOPY = mcost := by
+      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have st := codecopy_xstep hcode hpc hdec hstk hov
     rw [hmcS] at st
     rw [collapse_two_stage] at st
@@ -1413,9 +1420,8 @@ theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     {a : UInt256} {t : List UInt256} (mcost : ℕ) (loadval awout : UInt256)
     (h : RD code ee g s0 pc (a :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.MLOAD, .none))
-    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: t →
-        memoryExpansionCost s .MLOAD = mcost)
-    (hval : (if a.toNat ≥ mem.size ∨ a ≥ aw * ⟨32⟩ then ⟨0⟩
+    (hmc : Cₘ (M aw a ⟨32⟩) - Cₘ aw = mcost)
+    (hval : (if a.toNat ≥ mem.size then ⟨0⟩
              else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding a.toNat 32))) = loadval)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat 32) = awout)
     (hov : t.length + 1 ≤ 1024) :
@@ -1423,7 +1429,9 @@ theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .MLOAD = mcost := hmc s haw hstk
+  · have hmcS : memoryExpansionCost s .MLOAD = mcost := by
+      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        List.getElem!_cons_zero, M] using hmc
     have st := mload_xstep hcode hpc hdec hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + (mcost + 3)
@@ -1432,7 +1440,7 @@ theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
         hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_, by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · simp only [stMLoad]; exact hcode
       · simp only [stMLoad]; rw [hpc]
-      · simp only [stMLoad]; rw [hmem, haw, hval]
+      · simp only [stMLoad]; rw [hmem, hval]
       · simp only [stMLoad, hmcS]
         rw [hgas, Sat256.subNat_sub_add_of_sub_sub, Sat256.subNat_sub_add_of_sub_sub]
       · simp only [stMLoad]; rw [hmem]
@@ -1441,6 +1449,13 @@ theorem RD.mload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
       · simp only [stMLoad]; exact hacc
       · exact hee
       · exact hworld
+
+/-- A memory access that preserves active words has zero expansion cost. -/
+theorem memoryExpansionCost_zero_of_aw_stable {aw off len : UInt256}
+    (haw : M aw off len = aw) :
+    Cₘ (M aw off len) - Cₘ aw = 0 := by
+  rw [haw]
+  simp
 
 /-- `JUMPI` **taken** (condition `b ≠ 0`) to a statically-valid destination `a`. -/
 theorem RD.jumpiT {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
@@ -1793,8 +1808,7 @@ theorem RD.keccak256 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
     {a b : UInt256} {t : List UInt256} (mcost : ℕ) (kecval awout : UInt256)
     (h : RD code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.KECCAK256, .none))
-    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: t →
-        memoryExpansionCost s .KECCAK256 = mcost)
+    (hmc : Cₘ (M aw a b) - Cₘ aw = mcost)
     (hval : UInt256.ofNat (fromByteArrayBigEndian
               (KEC (mem.readWithPadding a.toNat b.toNat))) = kecval)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
@@ -1805,7 +1819,9 @@ theorem RD.keccak256 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .KECCAK256 = mcost := hmc s haw hstk
+  · have hmcS : memoryExpansionCost s .KECCAK256 = mcost := by
+      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have st := keccak_xstep hcode hpc hdec hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + (mcost
@@ -1870,9 +1886,7 @@ theorem RD.log1 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b c : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
     (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG1, .none)) (hperm : ee.perm = true)
-    (hmc : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = a :: b :: c :: t →
-        memoryExpansionCost s .LOG1 = mcost)
+    (hmc : Cₘ (M aw a b) - Cₘ aw = mcost)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
     (hov : t.length ≤ 1024) :
     RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
@@ -1881,7 +1895,9 @@ theorem RD.log1 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .LOG1 = mcost := hmc s haw hstk
+  · have hmcS : memoryExpansionCost s .LOG1 = mcost := by
+      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
     have st := log1_xstep hcode hpc hdec hperms hstk hov
     rw [hmcS] at st
@@ -1912,9 +1928,7 @@ theorem RD.log3 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b c d e : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
     (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG3, .none)) (hperm : ee.perm = true)
-    (hmc : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = a :: b :: c :: d :: e :: t →
-        memoryExpansionCost s .LOG3 = mcost)
+    (hmc : Cₘ (M aw a b) - Cₘ aw = mcost)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
     (hov : t.length ≤ 1024) :
     RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
@@ -1923,7 +1937,9 @@ theorem RD.log3 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩
   · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .LOG3 = mcost := hmc s haw hstk
+  · have hmcS : memoryExpansionCost s .LOG3 = mcost := by
+      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
     have st := log3_xstep hcode hpc hdec hperms hstk hov
     rw [hmcS] at st
@@ -1955,9 +1971,7 @@ theorem RD.log4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b c d e f : UInt256} {t : List UInt256} (mcost : ℕ) (awout : UInt256)
     (h : RD code ee g s0 pc (a :: b :: c :: d :: e :: f :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.LOG4, .none)) (hperm : ee.perm = true)
-    (hmc : ∀ s : State, s.machineState.activeWords = aw →
-        s.machineState.stack = a :: b :: c :: d :: e :: f :: t →
-        memoryExpansionCost s .LOG4 = mcost)
+    (hmc : Cₘ (M aw a b) - Cₘ aw = mcost)
     (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat b.toNat) = awout)
     (hov : t.length ≤ 1024) :
     RD code ee g s0 (pc + ⟨1⟩) t mem awout rdata acc (k + 1)
@@ -1967,7 +1981,9 @@ theorem RD.log4 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata,
       hacc, hee, hworld⟩
   · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .LOG4 = mcost := hmc s haw hstk
+  · have hmcS : memoryExpansionCost s .LOG4 = mcost := by
+      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have hperms : s.executionEnv.perm = true := by rw [hee]; exact hperm
     have st := log4_xstep hcode hpc hdec hperms hstk hov
     rw [hmcS] at st
@@ -3499,15 +3515,16 @@ theorem RD.returndatacopyOOG_error {code : ByteArray} {ee : ExecutionEnv} {g : S
     (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.RETURNDATACOPY, .none))
     (hguard : b.toNat + c.toNat ≤ rdata.size)
-    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: c :: t →
-        memoryExpansionCost s .RETURNDATACOPY = mcost)
+    (hmc : Cₘ (M aw a c) - Cₘ aw = mcost)
     (hOOG : g.toNat < mcost)
     (hov : t.length ≤ 1024) :
     X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, _hmem, haw, hrdata, _hacc, _hee, _hworld⟩
   · exact hoog
-  · have hmcS : memoryExpansionCost s .RETURNDATACOPY = mcost := hmc s haw hstk
+  · have hmcS : memoryExpansionCost s .RETURNDATACOPY = mcost := by
+      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have hmemok : ¬ b.toNat + c.toNat > s.machineState.returnData.size := by
       rw [hrdata]
       omega
@@ -3528,8 +3545,7 @@ theorem RD.returndatacopyOOG {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     (h : RD code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.RETURNDATACOPY, .none))
     (hguard : b.toNat + c.toNat ≤ rdata.size)
-    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: c :: t →
-        memoryExpansionCost s .RETURNDATACOPY = mcost)
+    (hmc : Cₘ (M aw a c) - Cₘ aw = mcost)
     (hOOG : g.toNat < mcost)
     (hov : t.length ≤ 1024) :
     RDrev code g s0 :=
@@ -3571,15 +3587,16 @@ theorem RD.ret {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {off len : UInt256} {t : List UInt256} (mcost : ℕ) (oval : ByteArray)
     (h : RD code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.RETURN, .none))
-    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = off :: len :: t →
-        memoryExpansionCost s .RETURN = mcost)
+    (hmc : Cₘ (M aw off len) - Cₘ aw = mcost)
     (hoval : mem.readWithPadding off.toNat len.toNat = oval)
     (hov : t.length ≤ 1024) :
     RDret code g s0 acc oval := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, _hrdata, hacc, _hee⟩
   · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .RETURN = mcost := hmc s haw hstk
+  · have hmcS : memoryExpansionCost s .RETURN = mcost := by
+      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have st := return_xstep hcode hpc hdec hstk hov
     rw [hmcS, show s.machineState.memory.readWithPadding off.toNat len.toNat = oval from by
       rw [hmem, hoval]] at st
@@ -3613,14 +3630,15 @@ theorem RD.rev {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {off len : UInt256} {t : List UInt256} (mcost : ℕ)
     (h : RD code ee g s0 pc (off :: len :: t) mem aw rdata acc k C)
     (hdec : decode code pc = some (.REVERT, .none))
-    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = off :: len :: t →
-        memoryExpansionCost s .REVERT = mcost)
+    (hmc : Cₘ (M aw off len) - Cₘ aw = mcost)
     (hov : t.length ≤ 1024) :
     RDrev code g s0 := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, _hmem, haw, _hrdata, _hacc, _hee⟩
   · exact Or.inl hoog
-  · have hmcS : memoryExpansionCost s .REVERT = mcost := hmc s haw hstk
+  · have hmcS : memoryExpansionCost s .REVERT = mcost := by
+      simpa only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+        List.getElem!_cons_zero, List.getElem!_cons_succ, M] using hmc
     have st := revert_xstep hcode hpc hdec hstk hov
     rw [hmcS] at st
     by_cases gg : g.toNat < C + mcost
@@ -3852,16 +3870,18 @@ costs, …) is still supplied explicitly, so nothing about the proof is hidden. 
 macro "evm_ov" : tactic =>
   `(tactic| first | (simp only [List.length_cons, List.length_nil]; omega) | omega)
 
-/-- The recurring **memory-cost witness** every `mload`/`mstore`/`ret`/`rev` carries:
-    `fun s haws hstks => …` proving `memoryExpansionCost s op = mcost` for the carried active-words
-    `haws` and literal stack offset(s) in `hstks`.  Rewriting by `haws`/`hstks` reduces the cost to a
-    closed term on literals, which `decide` evaluates — independent of the op, offset, and `mcost`. -/
+/-- Discharge concrete memory costs, including the word-sized `M` expression. -/
 macro "mem_cost" : term =>
-  `(fun s haws hstks => by
-      set_option linter.unusedSimpArgs false in
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, List.getElem!_cons_succ]
-      decide)
+  `(by
+      first
+      | rfl
+      | decide
+      | (simp only [M]; decide)
+      | (intro s haws hstks
+         set_option linter.unusedSimpArgs false in
+           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
+             List.getElem!_cons_zero, List.getElem!_cons_succ]
+         decide))
 
 /-- One step of an `evm_run` chain. -/
 declare_syntax_cat evmStep

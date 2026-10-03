@@ -16,7 +16,7 @@ theorem settleStorePrefix {I g s0 s ptr ret R mem aw rdata cA σ k C}
   have rd4416 := evm_run rd4402 with [push1 ⟨255⟩, push1 ⟨160⟩, shl, not, and,
     push1 ⟨1⟩, push1 ⟨160⟩, shl, or, swap1]
   obtain ⟨_, _, rd4417⟩ := rd4416.sstore hperm (by native_decide) (by evm_ov)
-  have hl : loadedWord mem aw (ptr + ⟨128⟩) = s.bidderWord := hm.load ⟨4, by decide⟩
+  have hl : loadedWord mem (ptr + ⟨128⟩) = s.bidderWord := hm.load ⟨4, by decide⟩
   have ha : expandedWords aw (ptr + ⟨128⟩) ⟨32⟩ = aw := hm.expand_eq ⟨4, by decide⟩
   have rd4422 := evm_run rd4417 with [push1 ⟨128⟩, dup2, add,
     raw mloadSymbolic (by native_decide) (by evm_ov)]

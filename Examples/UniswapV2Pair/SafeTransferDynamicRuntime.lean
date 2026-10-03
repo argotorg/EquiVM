@@ -11,7 +11,7 @@ theorem RD.uniswapSafeTransferDynamicSignatureStored
     {base rdata : ByteArray} {ptr aw value toWord token ret : UInt256} {R : List UInt256} {k C : Nat}
     (rd6370 : RD uniswapV2PairBytecode I g s0 ⟨6370⟩ (value :: toWord :: token :: ret :: R)
       base aw rdata acc k C)
-    (hload : memoryWordLoad base aw ⟨64⟩ = ptr)
+    (hload : memoryWordLoad base ⟨64⟩ = ptr)
     (haw64 : memoryWordActiveWords aw ⟨64⟩ = aw)
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨6423⟩ (⟨32⟩ :: ⟨64⟩ :: value :: toWord :: token :: ret :: R)
@@ -142,24 +142,20 @@ theorem RD.uniswapSafeTransferDynamicCopyEntry
   have hc64 : (⟨64⟩ : UInt256).toNat + 32 ≤ (safeTransferDynamicWords4 aw ptr).toNat * 32 := by
     change 64 + 32 ≤ _
     omega
-  have hload64 : memoryWordLoad (safeTransferDynamicMem7 base ptr toWord value)
-      (safeTransferDynamicWords4 aw ptr) ⟨64⟩ = ptr + ⟨164⟩ := by
+  have hload64 : memoryWordLoad (safeTransferDynamicMem7 base ptr toWord value) ⟨64⟩ = ptr + ⟨164⟩ := by
     apply mloadWordValue_of_readWithPadding
     · change 64 < _
       rw [safeTransferDynamicMem7_size ptr toWord value hin hgap (by omega)]
       omega
-    · exact UInt256_mload_haw_of_cover _ _ hb4 hc64
     · exact hread64
   have haw64 : memoryWordActiveWords (safeTransferDynamicWords4 aw ptr) ⟨64⟩ =
       safeTransferDynamicWords4 aw ptr := UInt256_M_same_of_cover _ _ hb4 hc64
   have hp64 : (ptr + ⟨64⟩).toNat = ptr.toNat + 64 := uadd_word_ofNat_toNat ptr 64 (by omega)
   have hcLen : (ptr + ⟨64⟩).toNat + 32 ≤ (safeTransferDynamicWords4 aw ptr).toNat * 32 := by rw [hp64]; omega
-  have hloadLen : memoryWordLoad (safeTransferDynamicMem7 base ptr toWord value)
-      (safeTransferDynamicWords4 aw ptr) (ptr + ⟨64⟩) = ⟨68⟩ := by
+  have hloadLen : memoryWordLoad (safeTransferDynamicMem7 base ptr toWord value) (ptr + ⟨64⟩) = ⟨68⟩ := by
     apply mloadWordValue_of_readWithPadding
     · rw [hp64, safeTransferDynamicMem7_size ptr toWord value hin hgap (by omega)]
       omega
-    · exact UInt256_mload_haw_of_cover _ _ hb4 hcLen
     · exact hreadLen
   have hawLen : memoryWordActiveWords (safeTransferDynamicWords4 aw ptr) (ptr + ⟨64⟩) =
       safeTransferDynamicWords4 aw ptr := UInt256_M_same_of_cover _ _ hb4 hcLen

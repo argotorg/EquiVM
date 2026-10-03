@@ -42,6 +42,11 @@ theorem u256_ofNat_toNat (a : UInt256) : UInt256.ofNat a.toNat = a := by
   simp only [Fin.ofNat]
   exact Nat.mod_eq_of_lt a.val.isLt
 
+/-! `UInt256` numerals are stored through `Fin.ofNat`, so `simp` does not always reduce their
+    `toNat` projection. Normalize closed word literals (including those inside a larger goal),
+    without requiring each proof to spell out the corresponding equality. -/
+macro "u256_toNat" : tactic => `(tactic| simp only [UInt256.toNat] <;> norm_num [UInt256.size])
+
 /-- Any `n < 2^255` fits in an EVM word. -/
 theorem lt_size_of_lt_sign {n : ℕ} (h : n < 2 ^ 255) : n < UInt256.size := by
   have hsign : (2 : ℕ) ^ 255 < UInt256.size := by norm_num [UInt256.size]
@@ -80,13 +85,13 @@ theorem uadd_toNat (a b : UInt256) : (a + b).toNat = (a.toNat + b.toNat) % UInt2
 
 theorem uadd_lit32_toNat (a : UInt256) (h : a.toNat + 32 < UInt256.size) :
     (((⟨32⟩ : UInt256) + a).toNat = a.toNat + 32) := by
-  rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
+  rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by u256_toNat]
   have hcomm : 32 + a.toNat = a.toNat + 32 := by omega
   rw [hcomm, Nat.mod_eq_of_lt h]
 
 theorem uadd_word_lit32_toNat (a : UInt256) (h : a.toNat + 32 < UInt256.size) :
     ((a + (⟨32⟩ : UInt256)).toNat = a.toNat + 32) := by
-  rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+  rw [uadd_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by u256_toNat,
     Nat.mod_eq_of_lt h]
 
 /-- General `SUB` `toNat` (no wrap, given `b ≤ a`). -/

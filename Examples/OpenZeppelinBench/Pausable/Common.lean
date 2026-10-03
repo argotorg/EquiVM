@@ -67,12 +67,11 @@ theorem pausableEventMem_read64 (I : ExecutionEnv) :
   simpa [pausableEventMem, solcReturnMem] using solcReturnMem_read64 (pausableSenderWord I)
 
 theorem pausableEventMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (pausableEventMem I).size ∨
-        (⟨64⟩ : UInt256) ≥ (UInt256.ofNat 5) * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (pausableEventMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((pausableEventMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       (⟨128⟩ : UInt256) := by
-  exact mloadFreePtrValue (by rw [pausableEventMem_size]; decide) (by decide)
+  exact mloadFreePtrValue (by rw [pausableEventMem_size]; decide)
     (pausableEventMem_read64 I)
 
 theorem pausableEvalPausedFalse (evm : EVM.State) (locals : Store)

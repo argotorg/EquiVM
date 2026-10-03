@@ -188,20 +188,17 @@ abbrev clipperFileAddressEventMem (I : ExecutionEnv) : ByteArray :=
     (UInt256.land (clipperFileAddressDataMaskedWord I) solcAddrMask)
 
 theorem clipperFileAddressAuthHashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperRelyAuthHashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ (UInt256.ofNat 3) * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperRelyAuthHashMem I).size then ⟨0⟩
       else
         UInt256.ofNat (fromByteArrayBigEndian
           ((clipperRelyAuthHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [clipperRelyAuthHashMem_size]; decide)
-    (by decide)
     (clipperRelyAuthHashMem_read64 I)
 
 theorem clipperFileAddressEventMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperFileAddressEventMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ (UInt256.ofNat 5) * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperFileAddressEventMem I).size then ⟨0⟩
       else
         UInt256.ofNat (fromByteArrayBigEndian
           ((clipperFileAddressEventMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -931,13 +928,7 @@ theorem clipperFileAddressX_successEpilogue {cA σ I} {g : Sat256} {s0 : State} 
     solcAddrMask from by decide] at rd7204pre
   have rd7206 := rd7204pre.mstore 6 (clipperFileAddressEventMem I) (UInt256.ofNat 5)
     (by clipper_file_address_decode)
-    (by
-      intro s haw hstk
-      exact mstoreCost_of_stack (aw := UInt256.ofNat 3) (off := (⟨128⟩ : UInt256))
-        (val := UInt256.land (clipperFileAddressDataMaskedWord I) solcAddrMask)
-        (t := (⟨128⟩ : UInt256) :: (⟨64⟩ : UInt256) :: clipperFileAddressDataMaskedWord I ::
-          calldataWord I.calldata 4 :: (⟨502⟩ : UInt256) :: [sel])
-        haw hstk (by native_decide))
+    (by native_decide)
     (by rfl)
     (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1259,8 +1250,7 @@ theorem clipperFileAddressX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k 
     raw push1 ⟨64⟩ (by clipper_file_address_decode) (by evm_ov),
     raw dup1 (by clipper_file_address_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by clipper_file_address_decode) mem_cost
-      (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide)
-        (by decide) (clipperRelyAuthHashMem_read64 I))
+      (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide) (clipperRelyAuthHashMem_read64 I))
       (by native_decide) (by evm_ov)]
   have rd6872 := rd6868.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_file_address_decode)
@@ -1360,8 +1350,7 @@ theorem clipperFileAddressX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k 
     raw push1 ⟨64⟩ (by clipper_file_address_decode) (by evm_ov),
     raw dup1 (by clipper_file_address_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by clipper_file_address_decode) mem_cost
-      (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide)
-        (by decide) (clipperRelyAuthHashMem_read64 I))
+      (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide) (clipperRelyAuthHashMem_read64 I))
       (by native_decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_file_address_decode)

@@ -15,8 +15,8 @@ theorem HeapMemory.cursor {mem aw ptr} (h : HeapMemory mem aw ptr) : MemoryCurso
   ⟨h.size, h.free, h.lower, h.active⟩
 
 theorem MemoryCursor.load64 {mem aw ptr} (h : MemoryCursor mem aw ptr) :
-    loadedWord mem aw ⟨64⟩ = ptr :=
-  loadedWord_of_read h.active h.size (by have hlo := h.active.1; change 64 < _; omega) h.free
+    loadedWord mem ⟨64⟩ = ptr :=
+  loadedWord_of_read h.size h.free
 
 theorem MemoryCursor.expand32 {mem aw ptr} (h : MemoryCursor mem aw ptr) (off : UInt256)
     (hb : off.toNat + 32 ≤ 2 ^ 200) : MemoryCursor mem (expandedWords aw off ⟨32⟩) ptr :=

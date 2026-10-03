@@ -69,7 +69,7 @@ theorem initializeRuntime {I g s0 ret R rdata cA σ k C} (args : InitializeArgs)
     (hperm : I.perm = true) (hret : (D_J auctionBytecode 0).contains ret = true)
     (hov : R.length + 24 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret R
-      (addressEventMem solcFreePtrMem (UInt256.ofNat 3) (solcSourceWord I))
+      (addressEventMem solcFreePtrMem (solcSourceWord I))
       (addressEventWords solcFreePtrMem (UInt256.ofNat 3) (solcSourceWord I))
       rdata (cA, initializeFinalMap args σ I) k' C' := by
   change RD _ _ _ _ _

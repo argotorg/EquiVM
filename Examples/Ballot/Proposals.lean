@@ -263,12 +263,11 @@ theorem proposalsBaseSlotMem_read64 :
     solcFreePtrMem_read64]
 
 theorem proposalsBaseSlotMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ proposalsBaseSlotMem.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ proposalsBaseSlotMem.size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian (proposalsBaseSlotMem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [proposalsBaseSlotMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [proposalsBaseSlotMem_size]; decide)
     proposalsBaseSlotMem_read64
 
 theorem proposalsDataBaseKeccak :
@@ -324,13 +323,12 @@ theorem proposalsReturnMem_read64 (name count : UInt256) :
   exact proposalsReturnNameMem_read64 name
 
 theorem proposalsReturnMem_mload64 (name count : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (proposalsReturnMem name count).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (proposalsReturnMem name count).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((proposalsReturnMem name count).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [proposalsReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [proposalsReturnMem_size]; decide)
     (proposalsReturnMem_read64 name count)
 
 theorem proposalsReturnMem_read128_64 (name count : UInt256) :

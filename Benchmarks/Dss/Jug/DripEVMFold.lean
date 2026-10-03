@@ -91,12 +91,11 @@ theorem RD.jugDripVatFoldCallGuard
         fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       (dripVatFoldCalldataMem σ' I delta mem) (UInt256.ofNat 8) out (cA', σ') k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hselector :
       UInt256.shiftLeft
           (UInt256.land (⟨4294967295⟩ : UInt256) dripVatFoldSelectorWord) ⟨224⟩ =
@@ -342,13 +341,12 @@ theorem RD.jugDripVatFoldStoreRhoReturns
     exact drip_twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256)
       (fileDutyIlkWord I) (by rw [hmem]; omega)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ hashMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ hashMem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (hashMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ := by
-    exact mloadFreePtrValue (aw := UInt256.ofNat 8)
-      (by rw [hhashMemSize]; decide) (by decide) hhashRead64
+    exact mloadFreePtrValue
+      (by rw [hhashMemSize]; decide) hhashRead64
   have hretMemSize : retMem.size = 228 := by
     dsimp [retMem]
     exact dripVatFoldReturnMem_size rate hhashMemSize
@@ -356,13 +354,12 @@ theorem RD.jugDripVatFoldStoreRhoReturns
     dsimp [retMem]
     exact dripVatFoldReturnMem_read64 rate hhashMemSize hhashRead64
   have hretMload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ retMem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ retMem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (retMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ := by
-    exact mloadFreePtrValue (aw := UInt256.ofNat 8)
-      (by rw [hretMemSize]; decide) (by decide) hretRead64
+    exact mloadFreePtrValue
+      (by rw [hretMemSize]; decide) hretRead64
   have hretRead128 : retMem.readWithPadding 128 32 = UInt256.toByteArray rate := by
     dsimp [retMem]
     exact dripVatFoldReturnMem_read128 rate hhashMemSize

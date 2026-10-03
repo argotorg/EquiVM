@@ -305,18 +305,16 @@ theorem vowFlopBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           initialHealSinWrite_read64 I outSin 32 (by omega) ho32Sin
         have hmload64Sin :
             (if (⟨64⟩ : UInt256).toNat ≥
-                  (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size
-               ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+                  (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size then ⟨0⟩
              else UInt256.ofNat
                (fromByteArrayBigEndian
                 ((outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).readWithPadding
                   (⟨64⟩ : UInt256).toNat 32))) =
               ⟨128⟩ :=
-          mloadFreePtrValue (by rw [hmemSin]; decide) (by decide) hread64Sin
+          mloadFreePtrValue (by rw [hmemSin]; decide) hread64Sin
         have hmload128Sin :
             (if (⟨128⟩ : UInt256).toNat ≥
-                  (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size
-               ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+                  (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size then ⟨0⟩
              else UInt256.ofNat
                (fromByteArrayBigEndian
                 ((outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).readWithPadding
@@ -324,8 +322,7 @@ theorem vowFlopBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               UInt256.ofNat (fromByteArrayBigEndian (outSin.extract 0 32)) := by
           have hnot :
               ¬ ((⟨128⟩ : UInt256).toNat ≥
-                    (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size
-                  ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
+                    (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size) := by
             rw [hmemSin]
             native_decide
           rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -861,8 +858,7 @@ theorem vowFlopBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 have hmload64KickShort :
                     (if (⟨64⟩ : UInt256).toNat ≥
                           (outKick.write 0 (flopKickCalldataMem I DumpVal SumpValKick memDai)
-                            128 outKick.size).size
-                        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+                            128 outKick.size).size then ⟨0⟩
                      else UInt256.ofNat
                        (fromByteArrayBigEndian
                         ((outKick.write 0
@@ -870,7 +866,7 @@ theorem vowFlopBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           128 outKick.size).readWithPadding
                           (⟨64⟩ : UInt256).toNat 32))) =
                       ⟨128⟩ :=
-                  mloadFreePtrValue (by rw [hmemKickShort]; decide) (by decide)
+                  mloadFreePtrValue (by rw [hmemKickShort]; decide)
                     hread64KickShort
                 exact vowFlopKickDecodeShortBodyCore (acc := (cA_kick, σ_kick))
                   (evmSin := evmSinSolm) (evmDai := evmDaiSolm)
@@ -913,14 +909,13 @@ theorem vowFlopBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           initialHealSinWrite_read64 I outSin outSin.size (by omega) (by omega)
         have hmload64Short :
             (if (⟨64⟩ : UInt256).toNat ≥
-                  (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 outSin.size).size
-                ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+                  (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 outSin.size).size then ⟨0⟩
              else UInt256.ofNat
                (fromByteArrayBigEndian
                 ((outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 outSin.size).readWithPadding
                   (⟨64⟩ : UInt256).toNat 32))) =
               ⟨128⟩ :=
-          mloadFreePtrValue (by rw [hmemShort]; decide) (by decide) hread64Short
+          mloadFreePtrValue (by rw [hmemShort]; decide) hread64Short
         have hrev :=
           RD.vowFlopSin0ReturnDecodeShortReverts rd1295 hshortRet hoszSin hmload64Short
         have hdecSin : config.externalABI.decode? "sin" outSin = none :=

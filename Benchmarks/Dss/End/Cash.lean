@@ -840,7 +840,7 @@ theorem RD.endCashFixUndefinedRevert {g : Sat256} {s0 : State} {ee : ExecutionEn
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide)
@@ -1464,13 +1464,12 @@ theorem endCashX_fluxExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
       (endCashFluxCalldataMem σ I amt (endCashFixHashMem2 I)) (UInt256.ofNat 9)
       ByteArray.empty (cA, σ) k' C' := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (endCashFixHashMem2 I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (endCashFixHashMem2 I).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endCashFixHashMem2 I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [endCashFixHashMem2_size I]; decide) (by decide)
+    mloadFreePtrValue (by rw [endCashFixHashMem2_size I]; decide)
       (endCashFixHashMem2_read64 I)
   have hcallMem :
       (endCashFluxCalldataMem σ I amt (endCashFixHashMem2 I)).size = 260 :=
@@ -1482,14 +1481,13 @@ theorem endCashX_fluxExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
       (endCashFixHashMem2_size I) (endCashFixHashMem2_read64 I)
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (endCashFluxCalldataMem σ I amt (endCashFixHashMem2 I)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+            (endCashFluxCalldataMem σ I amt (endCashFixHashMem2 I)).size then ⟨0⟩
         else UInt256.ofNat
           (fromByteArrayBigEndian
             ((endCashFluxCalldataMem σ I amt (endCashFixHashMem2 I)).readWithPadding
               (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have hselectorMask :
       UInt256.land endCashFluxSelectorWord (⟨0xffffffff⟩ : UInt256) =
         endCashFluxSelectorWord := by
@@ -2205,8 +2203,7 @@ theorem endCashX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide) mem_cost
       (mloadFreePtrValue
-        (by rw [endCashOutHashMemAfterBag_size σ I (endCashAmtWord σ I) out]; decide)
-        (by decide) (endCashOutHashMemAfterBag_read64 σ I (endCashAmtWord σ I) out))
+        (by rw [endCashOutHashMemAfterBag_size σ I (endCashAmtWord σ I) out]; decide) (endCashOutHashMemAfterBag_read64 σ I (endCashAmtWord σ I) out))
       (by native_decide) (by evm_ov),
     raw dup3 (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov)]
@@ -2217,8 +2214,7 @@ theorem endCashX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw swap1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide) mem_cost
       (mloadFreePtrValue
-        (by rw [endCashLogDataMem_size σ I (endCashAmtWord σ I) out]; decide)
-        (by decide) (endCashLogDataMem_read64 σ I (endCashAmtWord σ I) out))
+        (by rw [endCashLogDataMem_size σ I (endCashAmtWord σ I) out]; decide) (endCashLogDataMem_read64 σ I (endCashAmtWord σ I) out))
       (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov),
@@ -2353,7 +2349,7 @@ theorem RD.endCashInsufficientBagRevert {g : Sat256} {s0 : State} {ee : Executio
     raw dup1 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (mloadFreePtrValue (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by native_decide)
@@ -2390,7 +2386,6 @@ theorem RD.endCashInsufficientBagRevert {g : Sat256} {s0 : State} {ee : Executio
       mem_cost
       (mloadFreePtrValue
         (by rw [endCash_solcErrorStringMem3_size_260 ⟨28⟩ endCashInsufficientBagRawWord hmem]; decide)
-        (by decide)
         (endCash_solcErrorStringMem3_read64_260 ⟨28⟩ endCashInsufficientBagRawWord
           hmem hread64))
       (by decide) (by evm_ov),

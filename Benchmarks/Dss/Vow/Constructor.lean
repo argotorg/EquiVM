@@ -322,43 +322,37 @@ private theorem vowCtorArgsMem_read_word (vat flapper flopper : AccountAddress)
   · norm_num
 
 theorem vowCtorArgsMem_mload_vat (vat flapper flopper : AccountAddress) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (vowCtorArgsMem vat flapper flopper).size ∨
-        (⟨128⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (vowCtorArgsMem vat flapper flopper).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((vowCtorArgsMem vat flapper flopper).readWithPadding 128 32))) =
       EVM.word vat.val := by
   apply mloadWordValue_of_readWithPadding
   · rw [vowCtorArgsMem_size]
     decide
-  · decide
   · simpa using
       vowCtorArgsMem_read_word vat flapper flopper 0 (by norm_num)
         (by simpa using vowCtorArgsTail_extract_first vat flapper flopper)
 
 theorem vowCtorArgsMem_mload_flapper (vat flapper flopper : AccountAddress) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (vowCtorArgsMem vat flapper flopper).size ∨
-        (⟨160⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (vowCtorArgsMem vat flapper flopper).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((vowCtorArgsMem vat flapper flopper).readWithPadding 160 32))) =
       EVM.word flapper.val := by
   apply mloadWordValue_of_readWithPadding
   · rw [vowCtorArgsMem_size]
     decide
-  · decide
   · simpa using
       vowCtorArgsMem_read_word vat flapper flopper 32 (by norm_num)
         (by simpa using vowCtorArgsTail_extract_second vat flapper flopper)
 
 theorem vowCtorArgsMem_mload_flopper (vat flapper flopper : AccountAddress) :
-    (if (⟨192⟩ : UInt256).toNat ≥ (vowCtorArgsMem vat flapper flopper).size ∨
-        (⟨192⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨192⟩ : UInt256).toNat ≥ (vowCtorArgsMem vat flapper flopper).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((vowCtorArgsMem vat flapper flopper).readWithPadding 192 32))) =
       EVM.word flopper.val := by
   apply mloadWordValue_of_readWithPadding
   · rw [vowCtorArgsMem_size]
     decide
-  · decide
   · simpa using
       vowCtorArgsMem_read_word vat flapper flopper 64 (by norm_num)
         (by simpa using vowCtorArgsTail_extract_third vat flapper flopper)
@@ -1124,17 +1118,15 @@ theorem vowCtorCallSetupReach
     vowCtorWardsHashMem_size I vat flapper flopper
   have hread64 := vowCtorWardsHashMem_read64 I vat flapper flopper
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (vowCtorWardsHashMem I vat flapper flopper).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (vowCtorWardsHashMem I vat flapper flopper).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((vowCtorWardsHashMem I vat flapper flopper).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨224⟩ := by
     exact mloadWordValue_of_readWithPadding
-      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 7) (v := (⟨224⟩ : UInt256))
+      (off := (⟨64⟩ : UInt256)) (v := (⟨224⟩ : UInt256))
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rw [hmem0]; omega)
-      (by decide)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hread64)
   have hcallMemSize :
       (vowCtorHopeCalldataMem (EVM.word flapper.val)
@@ -1148,8 +1140,7 @@ theorem vowCtorCallSetupReach
   have hmload64Call :
       (if (⟨64⟩ : UInt256).toNat ≥
             (vowCtorHopeCalldataMem (EVM.word flapper.val)
-              (vowCtorWardsHashMem I vat flapper flopper)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+              (vowCtorWardsHashMem I vat flapper flopper)).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((vowCtorHopeCalldataMem (EVM.word flapper.val)
@@ -1157,9 +1148,8 @@ theorem vowCtorCallSetupReach
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨224⟩ := by
     exact mloadWordValue_of_readWithPadding
-      (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 9) (v := (⟨224⟩ : UInt256))
+      (off := (⟨64⟩ : UInt256)) (v := (⟨224⟩ : UInt256))
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rw [hcallMemSize]; omega)
-      (by decide)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hcallMemRead64)
   have rd201 := evm_run rd147 with [
     raw dup8 (by ctor_decode) (by evm_ov),

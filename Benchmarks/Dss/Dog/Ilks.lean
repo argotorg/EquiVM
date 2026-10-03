@@ -221,8 +221,7 @@ theorem dogIlksReturnMem_read64 {mem : ByteArray} (clip chop hole dirt : UInt256
 theorem dogIlksReturnMem_mload64 {mem : ByteArray} (clip chop hole dirt : UInt256)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (dogIlksReturnMem mem clip chop hole dirt).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (dogIlksReturnMem mem clip chop hole dirt).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((dogIlksReturnMem mem clip chop hole dirt).readWithPadding
@@ -230,7 +229,6 @@ theorem dogIlksReturnMem_mload64 {mem : ByteArray} (clip chop hole dirt : UInt25
       ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [dogIlksReturnMem_size clip chop hole dirt hmem]; decide)
-    (by decide)
     (dogIlksReturnMem_read64 clip chop hole dirt hmem hread64)
 
 theorem dogIlksReturnMem_read128 {mem : ByteArray} (clip chop hole dirt : UInt256)
@@ -579,7 +577,6 @@ theorem RD.dogIlksReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) hd4 mem_cost
       (mloadFreePtrValue
         (by rw [hmem]; decide)
-        (by decide)
         hread64)
       (by decide) (by evm_ov),
     raw push1 ⟨1⟩ hd5 (by evm_ov),

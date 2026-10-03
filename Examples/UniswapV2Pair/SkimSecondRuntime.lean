@@ -100,16 +100,14 @@ theorem skimSecondBalanceCalldataMem_read64
 theorem skimSecondBalanceCalldataMem_mload64
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (skimSecondBalanceCalldataMem self o toWord value).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (skimSecondBalanceCalldataMem self o toWord value).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondBalanceCalldataMem self o toWord value).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨292⟩ :=
   mloadWordValue_of_readWithPadding
-    (by rw [skimSecondBalanceCalldataMem_size self toWord value ho32 hoSize]; native_decide)
-    (by native_decide) (skimSecondBalanceCalldataMem_read64 self toWord value ho32 hoSize)
+    (by rw [skimSecondBalanceCalldataMem_size self toWord value ho32 hoSize]; native_decide) (skimSecondBalanceCalldataMem_read64 self toWord value ho32 hoSize)
 
 theorem skimSecondBalanceSelectorMem_read292_4
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)
@@ -207,8 +205,7 @@ theorem skimSecondBalanceStaticcallMem_mload64_of_size_ge
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out.size) (houtSize : out.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (skimSecondBalanceStaticcallMem self o toWord value out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
+          (skimSecondBalanceStaticcallMem self o toWord value out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondBalanceStaticcallMem self o toWord value out).readWithPadding
@@ -219,7 +216,6 @@ theorem skimSecondBalanceStaticcallMem_mload64_of_size_ge
       rw [skimSecondBalanceStaticcallMem_size_of_size_ge self toWord value out
         ho32 hoSize hout32 houtSize]
       native_decide)
-    (by native_decide)
     (skimSecondBalanceStaticcallMem_read64_of_size_ge self toWord value out
       ho32 hoSize hout32 houtSize)
 
@@ -267,8 +263,7 @@ theorem skimSecondBalanceStaticcallMem_mload64_of_size_lt
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hshort : out.size < 32) (houtSize : out.size < UInt256.size) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (skimSecondBalanceStaticcallMem self o toWord value out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
+          (skimSecondBalanceStaticcallMem self o toWord value out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondBalanceStaticcallMem self o toWord value out).readWithPadding
@@ -279,7 +274,6 @@ theorem skimSecondBalanceStaticcallMem_mload64_of_size_lt
       rw [skimSecondBalanceStaticcallMem_size_of_size_lt self toWord value out
         ho32 hoSize hshort houtSize]
       native_decide)
-    (by native_decide)
     (skimSecondBalanceStaticcallMem_read64_of_size_lt self toWord value out
       ho32 hoSize hshort houtSize)
 
@@ -299,8 +293,7 @@ theorem skimSecondBalanceStaticcallMem_mload292_of_size_ge
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hout32 : 32 ≤ out.size) (houtSize : out.size < UInt256.size) :
     (if (⟨292⟩ : UInt256).toNat ≥
-          (skimSecondBalanceStaticcallMem self o toWord value out).size
-        ∨ (⟨292⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
+          (skimSecondBalanceStaticcallMem self o toWord value out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((skimSecondBalanceStaticcallMem self o toWord value out).readWithPadding
@@ -310,12 +303,9 @@ theorem skimSecondBalanceStaticcallMem_mload292_of_size_ge
   · rw [show (⟨292⟩ : UInt256).toNat = 292 from by decide,
       skimSecondBalanceStaticcallMem_read292_of_size_ge self toWord value out
         ho32 hoSize hout32 houtSize]
-  · rw [not_or]
-    constructor
-    · rw [skimSecondBalanceStaticcallMem_size_of_size_ge self toWord value out
-        ho32 hoSize hout32 houtSize]
-      native_decide
-    · native_decide
+  · rw [skimSecondBalanceStaticcallMem_size_of_size_ge self toWord value out
+      ho32 hoSize hout32 houtSize]
+    native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondBalanceReturnWordDecodeOk {g : Sat256} {s0 : State}
@@ -339,8 +329,8 @@ theorem RD.uniswapSkimSecondBalanceReturnWordDecodeOk {g : Sat256} {s0 : State}
   have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by native_decide) (by omega)
   have rdMload64 := RD.mload 0 ⟨292⟩ (UInt256.ofNat 13)
     rdPush64 (by native_decide)
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+    (by
+      simp [M, Cₘ]
       native_decide)
     (skimSecondBalanceStaticcallMem_mload64_of_size_ge self toWord value out
       ho32 hoSize hout32 houtSize)
@@ -374,8 +364,8 @@ theorem RD.uniswapSkimSecondBalanceReturnWordDecodeOk {g : Sat256} {s0 : State}
   have rdMload292 := RD.mload 0
     (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))) (UInt256.ofNat 13)
     rdPopLen (by native_decide)
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+    (by
+      simp [M, Cₘ]
       native_decide)
     (skimSecondBalanceStaticcallMem_mload292_of_size_ge self toWord value out
       ho32 hoSize hout32 houtSize)
@@ -402,8 +392,8 @@ theorem RD.uniswapSkimSecondBalanceReturnWordDecodeShortReverts {g : Sat256} {s0
   have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by native_decide) (by omega)
   have rdMload64 := RD.mload 0 ⟨292⟩ (UInt256.ofNat 13)
     rdPush64 (by native_decide)
-    (fun s haw hstk => by
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
+    (by
+      simp [M, Cₘ]
       native_decide)
     (skimSecondBalanceStaticcallMem_mload64_of_size_lt self toWord value out
       ho32 hoSize hshort houtSize)
@@ -498,7 +488,7 @@ theorem RD.uniswapSafeMathSubUnderflow_aw13_free292 {g : Sat256} {s0 : State}
     raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by decide)
       mem_cost
       (mloadWordValue_of_readWithPadding
-        (by rw [hmem]; decide) (by native_decide) hread64)
+        (by rw [hmem]; decide) hread64)
       (by decide) (by evm_ov)]
   let mem0 : ByteArray := (UInt256.toByteArray uniswapErrorStringSelector).write 0 mem 292 32
   have hmem0 : mem0.size = 388 := by
@@ -583,7 +573,7 @@ theorem RD.uniswapSafeMathSubUnderflow_aw13_free292 {g : Sat256} {s0 : State}
     raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by decide)
       mem_cost
       (mloadWordValue_of_readWithPadding
-        (by rw [hmem3]; decide) (by native_decide) hread64_mem3)
+        (by rw [hmem3]; decide) hread64_mem3)
       (by decide) (by evm_ov),
     swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
     raw rev 0 (by decide) mem_cost (by evm_ov)]

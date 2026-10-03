@@ -169,10 +169,6 @@ theorem RD.clipperTakePostDogLotNonzeroTabNonzeroToEventTailWF {code : ByteArray
   have rd5236 := rd5236pre.keccak256 0 (solcMappingSlot ⟨12⟩ id) aw
     (by clipper_runtime_decode)
     (by
-      intro s hawEq hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hawEq, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      rw [show (⟨64⟩ : UInt256).toNat = 64 by decide]
       change Cₘ (UInt256.ofNat (MachineState.M aw.toNat 0 64)) - Cₘ aw = 0
       rw [haw64]
       simp)

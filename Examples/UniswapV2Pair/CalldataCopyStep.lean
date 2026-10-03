@@ -15,9 +15,7 @@ theorem RD.calldatacopyAny
       (UInt256.ofNat (MachineState.M aw.toNat offset.toNat len.toNat)) rdata acc (k + 1)
       (C + (Cₘ (UInt256.ofNat (MachineState.M aw.toNat offset.toNat len.toNat)) - Cₘ aw +
         (GasConstants.Gverylow + GasConstants.Gcopy * ((len.toNat + 31) / 32)))) := by
-  exact RD.calldatacopy _ _ _ rd hdec (fun s haw hstk ↦ by
-    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-      List.getElem!_cons_zero, List.getElem!_cons_succ]) rfl rfl hov
+  exact RD.calldatacopy _ _ _ rd hdec (by rfl) rfl rfl hov
 
 
 end UniswapV2Pair

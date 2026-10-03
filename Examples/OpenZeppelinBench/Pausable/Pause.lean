@@ -168,10 +168,7 @@ theorem pausableX_pause_success {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd270' := rd270
   rw [hlen32] at rd270'
   have rd271 := RD.log1 0 (UInt256.ofNat 5) rd270' (by decide) hperm
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      native_decide)
+    (by simp [M, MachineState.M, u256_ofNat_toNat]; native_decide)
     (by decide) (by evm_ov)
   have rd97 := evm_run rd271 with [jump (by jump_dest), jumpdest, jump (by jump_dest), jumpdest]
   exact rd97.stop (by decide) (by evm_ov)

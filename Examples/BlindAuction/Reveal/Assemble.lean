@@ -30,7 +30,7 @@ theorem scratch_revealLoopAdvance_secretStore_continue {I} {g : Sat256}
     (hawNext : 3 ≤ awNext.toNat)
     (hawNextSmall : awNext.toNat * 32 < UInt256.size)
     (hfpNext :
-      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size ∨ (⟨64⟩ : UInt256) ≥ awNext * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memNext.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memNext.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -253,21 +253,19 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
         (slot := (⟨4⟩ : UInt256)) (data := revealScratchBidsLengthSlot I)
         a.hfpRead a.hmem96
   have hfpSlot :
-      (if (⟨64⟩ : UInt256).toNat ≥ memSlot3.size ∨
-          (⟨64⟩ : UInt256) ≥ a.aw * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memSlot3.size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian (memSlot3.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         a.fp := by
     rcases hslotMemFacts with ⟨hreadSlot, hsizeSlot⟩
     exact scratch_mload_of_read
-      (mem := memSlot3) (fp := (⟨64⟩ : UInt256)) (packedLen := a.fp) (aw := a.aw)
+      (mem := memSlot3) (fp := (⟨64⟩ : UInt256)) (packedLen := a.fp)
       (by
         rw [hsizeSlot]
         change 64 < a.mem.size
         have hm : 96 ≤ a.mem.size := a.hmem96
         omega)
-      (scratch_not_mload64_oob_of_aw_ge3_small a.haw a.hawSmall)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide] using hreadSlot)
   obtain ⟨kSlot, CSlot, rd1069⟩ :=
     scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete
@@ -737,8 +735,7 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero_pendi
     rw [hsizePB]
     exact hgapNext
   have hfpPB :
-      (if (⟨64⟩ : UInt256).toNat ≥ (scratch_placeBidPendingHashMem memNext key).size ∨
-            (⟨64⟩ : UInt256) ≥ awPB3 * ⟨32⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (scratch_placeBidPendingHashMem memNext key).size
        then ⟨0⟩
        else UInt256.ofNat
         (fromByteArrayBigEndian
@@ -747,12 +744,11 @@ theorem scratch_revealLoopAdvance_refundPlaced_zeroBlinded_placeBidNonzero_pendi
         newFree := by
     exact scratch_mload_of_read
       (mem := scratch_placeBidPendingHashMem memNext key)
-      (fp := (⟨64⟩ : UInt256)) (packedLen := newFree) (aw := awPB3)
+      (fp := (⟨64⟩ : UInt256)) (packedLen := newFree)
       (by
         change 64 < (scratch_placeBidPendingHashMem memNext key).size
         have hm := hmemPB96
         omega)
-      (scratch_not_mload64_oob_of_aw_ge3_small hawPB3 hawPB3Small)
       (by
         simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide] using hreadPB)
   exact
@@ -1069,15 +1065,15 @@ theorem scratch_RD_placeBid_true_nonzero_overflow_anyMem {g : Sat256} {s0 : Stat
   rw [hmask] at rd1587
   have rd1588 := evm_run rd1587 with [
     raw mstore (Cₘ aw1 - Cₘ aw) memKey aw1 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw1])
+      (by
+        simp [M, aw1, show (⟨32⟩ : UInt256).toNat = 32 from by decide])
       (by simp [memKey, scratch_placeBidPendingKeyMem, key])
       (by rfl) (by evm_ov)]
   have rd1593 := evm_run rd1588 with [
     push1 ⟨7⟩, push1 ⟨32⟩,
     raw mstore (Cₘ aw2 - Cₘ aw1) memHash aw2 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw2])
+      (by
+        simp [M, aw2, show (⟨32⟩ : UInt256).toNat = 32 from by decide])
       (by
         rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
         simp [memHash, scratch_placeBidPendingHashMem, memKey])
@@ -1088,8 +1084,8 @@ theorem scratch_RD_placeBid_true_nonzero_overflow_anyMem {g : Sat256} {s0 : Stat
   have hslot := scratch_placeBidPendingKeccak_any mem key hkeyCanon
   have rd1597 := evm_run rd1593 with [
     raw keccak256 (Cₘ aw3 - Cₘ aw2) (scratch_placeBidPendingSlot σ I) aw3 (by decide)
-      (fun s haws hstks => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw3,
+      (by
+        simp [M, aw3,
           show (⟨64⟩ : UInt256).toNat = 64 by native_decide])
       (by simpa [memHash, key, scratch_placeBidPendingSlot] using hslot) (by rfl) (by evm_ov),
     dup1]

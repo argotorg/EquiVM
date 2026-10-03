@@ -119,18 +119,16 @@ theorem RD.vowFlapSin0PostCallDecodeOk
     initialHealSinWrite_read64 I outSin 32 (by omega) ho32
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hmload128 :
       (if (⟨128⟩ : UInt256).toNat ≥
-            (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).readWithPadding
@@ -138,8 +136,7 @@ theorem RD.vowFlapSin0PostCallDecodeOk
         UInt256.ofNat (fromByteArrayBigEndian (outSin.extract 0 32)) := by
     have hnot :
         ¬ ((⟨128⟩ : UInt256).toNat ≥
-              (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size
-            ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
+              (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size) := by
       rw [hmem]
       native_decide
     rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -186,18 +183,16 @@ theorem RD.vowFlapDai0PostCallDecodeOk
     vatDaiWrite_read64 I outDai 32 hmem hread64 (by omega) ho32
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outDai.write 0 (vatDaiCalldataMem I mem) 128 32).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemWrite]; decide) (by decide) hread64Write
+    mloadFreePtrValue (by rw [hmemWrite]; decide) hread64Write
   have hmload128 :
       (if (⟨128⟩ : UInt256).toNat ≥
-            (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outDai.write 0 (vatDaiCalldataMem I mem) 128 32).readWithPadding
@@ -205,8 +200,7 @@ theorem RD.vowFlapDai0PostCallDecodeOk
         UInt256.ofNat (fromByteArrayBigEndian (outDai.extract 0 32)) := by
     have hnot :
         ¬ ((⟨128⟩ : UInt256).toNat ≥
-              (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size
-            ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
+              (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size) := by
       rw [hmemWrite]
       native_decide
     rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -253,18 +247,16 @@ theorem RD.vowFlapSin1PostCallDecodeOk
     healSinWrite_read64 I mem outSin1 32 hmem hread64 (by omega) ho32
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (outSin1.write 0 (healSinCalldataMem I mem) 128 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (outSin1.write 0 (healSinCalldataMem I mem) 128 32).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outSin1.write 0 (healSinCalldataMem I mem) 128 32).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemWrite]; decide) (by decide) hread64Write
+    mloadFreePtrValue (by rw [hmemWrite]; decide) hread64Write
   have hmload128 :
       (if (⟨128⟩ : UInt256).toNat ≥
-            (outSin1.write 0 (healSinCalldataMem I mem) 128 32).size
-          ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+            (outSin1.write 0 (healSinCalldataMem I mem) 128 32).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((outSin1.write 0 (healSinCalldataMem I mem) 128 32).readWithPadding
@@ -272,8 +264,7 @@ theorem RD.vowFlapSin1PostCallDecodeOk
         UInt256.ofNat (fromByteArrayBigEndian (outSin1.extract 0 32)) := by
     have hnot :
         ¬ ((⟨128⟩ : UInt256).toNat ≥
-              (outSin1.write 0 (healSinCalldataMem I mem) 128 32).size
-            ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
+              (outSin1.write 0 (healSinCalldataMem I mem) 128 32).size) := by
       rw [hmemWrite]
       native_decide
     rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -556,13 +547,12 @@ theorem vowFlapBodyPrefix
             initialHealSinWrite_read64 I outSin outSin.size (by omega) (by omega)
         have hmload64Short :
             (if (⟨64⟩ : UInt256).toNat ≥
-                  memShort.size
-                ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+                  memShort.size then ⟨0⟩
              else UInt256.ofNat
                (fromByteArrayBigEndian
                 (memShort.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
               ⟨128⟩ :=
-          mloadFreePtrValue (by rw [hmemShort]; decide) (by decide) hread64Short
+          mloadFreePtrValue (by rw [hmemShort]; decide) hread64Short
         have hrev :=
           RD.vowFlapSin0ReturnDecodeShortReverts rd955 hshortRet hoszSin hmload64Short
         have hdecSin : config.externalABI.decode? "sin" outSin = none :=
@@ -1537,14 +1527,13 @@ theorem vowFlapBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (by omega) (by omega)
       have hmload64KickShort :
           (if (⟨64⟩ : UInt256).toNat ≥
-                (outKick.write 0 (flapKickCalldataMem BumpVal memSin1) 128 outKick.size).size
-              ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+                (outKick.write 0 (flapKickCalldataMem BumpVal memSin1) 128 outKick.size).size then ⟨0⟩
            else UInt256.ofNat
              (fromByteArrayBigEndian
               ((outKick.write 0 (flapKickCalldataMem BumpVal memSin1) 128 outKick.size
                 ).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
             ⟨128⟩ :=
-        mloadFreePtrValue (by rw [hmemKickShort]; decide) (by decide) hread64KickShort
+        mloadFreePtrValue (by rw [hmemKickShort]; decide) hread64KickShort
       exact vowFlapKickDecodeShortBodyCore (acc := (cA_kick, σ_kick))
         (evmSin0 := evmSin0) (evmDai := evmDai) (evmSin1 := evmSin1)
         (evmKick := evmKickSolm) (SinVal := vowSlotWord ⟨5⟩ σ_sin1 I)

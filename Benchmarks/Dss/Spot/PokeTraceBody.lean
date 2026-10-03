@@ -869,12 +869,11 @@ theorem RD.spotPokeVatFileCallGuard
       (pokeVatFileCalldataMem I spot mem) (UInt256.ofNat 8) out (cA', σ') k' C' := by
   let vatRaw := spotSlotWord ⟨2⟩ σ' I
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hselector :
       UInt256.shiftLeft (⟨218469439⟩ : UInt256) ⟨225⟩ =
         pokeVatFileSelectorShifted := by
@@ -1121,16 +1120,14 @@ theorem RD.spotPokeVatFileLogReturns
       mem (UInt256.ofNat 8) rdata acc k C) :
     RDret spotBytecode g (initState cA gh bl σ σ₀ g A I) acc ByteArray.empty := by
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         (⟨128⟩ : UInt256) := by
-    exact mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
+    exact mloadFreePtrValue (by rw [hmem]; decide) hread64
   have hmload64Log :
-      (if (⟨64⟩ : UInt256).toNat ≥ (pokeEventSpotMem I val spot mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (pokeEventSpotMem I val spot mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((pokeEventSpotMem I val spot mem).readWithPadding

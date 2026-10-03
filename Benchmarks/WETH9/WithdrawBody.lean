@@ -454,11 +454,10 @@ theorem withdrawStoreMem_read64 (I : ExecutionEnv) :
     (twoWordHashMem_read64 _ _ solcFreePtrMem_size solcFreePtrMem_read64)
 
 theorem withdrawStoreMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawStoreMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawStoreMem I).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((withdrawStoreMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [withdrawStoreMem_size]; decide) (by decide) (withdrawStoreMem_read64 I)
+  mloadFreePtrValue (by rw [withdrawStoreMem_size]; decide) (withdrawStoreMem_read64 I)
 
 /-- The `transfer` gas stipend word `2300 · iszero(wad)` the solc `call{value}` pattern forwards. -/
 abbrev withdrawGasArg (I : ExecutionEnv) : UInt256 :=
@@ -518,11 +517,35 @@ theorem weth9WithdrawFailureTail {cA gh bl σ σ₀ A I} {g : Sat256} {mem o : B
     (UInt256.ofNat (MachineState.M (UInt256.ofNat 3).toNat 0 (UInt256.ofNat o.size).toNat))
     h1481 (by native_decide)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hrdstoNat]; omega)
-    (by intro s haw hstk; simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk])
+    (by
+      simp only [M, hrdstoNat, show (UInt256.ofNat 3).toNat = 3 from rfl,
+        show (⟨0⟩ : UInt256).toNat = 0 from rfl])
     (by rfl) (by rfl) (by evm_ov)
   have h1483 := evm_run h1482 with [returndatasize, push1 ⟨0⟩]
-  exact RD.rev _ h1483 (by native_decide)
-    (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws]) (by evm_ov)
+  exact RD.rev 0 h1483 (by native_decide)
+    (by
+      simp only [M, hrdstoNat, show (UInt256.ofNat 3).toNat = 3 from rfl,
+        show (⟨0⟩ : UInt256).toNat = 0 from rfl]
+      have hbound : MachineState.M 3 0 o.size < UInt256.size := by
+        unfold MachineState.M
+        split
+        · norm_num [UInt256.size]
+        · have ho : (UInt256.ofNat o.size).toNat < 2 ^ 256 := by
+            rw [hrdstoNat]
+            simpa [UInt256.size] using hoSize
+          have hthree : 3 < UInt256.size := by norm_num [UInt256.size]
+          rw [Nat.max_lt]
+          constructor
+          · exact hthree
+          · omega
+      rw [UInt256.toNat_ofNat_of_lt hbound]
+      cases hs : o.size with
+      | zero => simp [MachineState.M, hs]
+      | succ n =>
+          simp only [MachineState.M, hs, Nat.zero_add]
+          rw [Nat.max_eq_left (Nat.le_max_right 3 ((n + 1 + 31) / 32))]
+          simp)
+    (by evm_ov)
 
 /-- The `Withdrawal(caller, wad)` log-data memory (`wad` stored at the free pointer 0x80). -/
 def withdrawLogMem (I : ExecutionEnv) : ByteArray :=
@@ -563,8 +586,7 @@ theorem withdrawLogMem_size (I : ExecutionEnv) : (withdrawLogMem I).size = 160 :
   rw [hgapeq, ByteArray.size_append, ByteArray.size_append, hthmsize, hzsize, hcvsize]
 
 theorem withdrawLogMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawLogMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (withdrawLogMem I).size then ⟨0⟩
      else UInt256.ofNat (fromByteArrayBigEndian
        ((withdrawLogMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
   rw [if_neg (by rw [withdrawLogMem_size]; decide),

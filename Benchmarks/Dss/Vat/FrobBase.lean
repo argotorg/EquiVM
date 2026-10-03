@@ -3175,14 +3175,12 @@ theorem RD.vatFrobAlloc5
     ∃ k' C', RD vatBytecode ee g s0 ret (⟨256⟩ :: R) (frobAlloc5Mem mem)
       (UInt256.ofNat 13) rdata acc k' C' := by
   have hmload :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨256⟩ := by
     exact mloadWordValue_of_readWithPadding
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hmemLt)
-      (by native_decide)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hread64)
   have rd6874 := h.jumpdest (by native_decide) (by evm_ov)
   have rd6876 := rd6874.push1 ⟨64⟩ (by native_decide) (by evm_ov)
@@ -3331,15 +3329,13 @@ theorem RD.vatFrobUrnLoads
   have rd3091pre := rd3090.dup3 (by native_decide) (by evm_ov)
   have h64ToNat : (⟨64⟩ : UInt256).toNat = 64 := by decide
   have hmload192 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (frobUrnBaseMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (frobUrnBaseMem I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((frobUrnBaseMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨192⟩ := by
     exact mloadWordValue_of_readWithPadding
       (by rw [h64ToNat, frobUrnBaseMem_size I]; omega)
-      (by native_decide)
       (by simpa [h64ToNat] using frobUrnBaseMem_read64 I)
   have rd3092 := rd3091pre.mload 0 ⟨192⟩ (UInt256.ofNat 6)
     (by native_decide) mem_cost hmload192 (by native_decide) (by evm_ov)
@@ -3607,15 +3603,13 @@ theorem RD.solcErrorStringRevertTail576 {code : ByteArray} {g : Sat256} {s0 : St
   have rd3199 := h.push1 ⟨64⟩ hd0 (by evm_ov)
   have rd3200 := rd3199.dup1 hd2 (by evm_ov)
   have hmload576 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨576⟩ := by
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hmem]; omega)
-      (by native_decide)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hread64)
   have rd3201 := rd3200.mload 0 ⟨576⟩ (UInt256.ofNat 18)
     hd3 mem_cost hmload576 (by native_decide) (by evm_ov)
@@ -3657,8 +3651,7 @@ theorem RD.solcErrorStringRevertTail576 {code : ByteArray} {g : Sat256} {s0 : St
     (by evm_ov)
   have rd3250 := rd3249.swap1 hdSwap (by evm_ov)
   have herrMload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ (frobErrorStringMem3 len word mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 22 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (frobErrorStringMem3 len word mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((frobErrorStringMem3 len word mem).readWithPadding
@@ -3669,7 +3662,6 @@ theorem RD.solcErrorStringRevertTail576 {code : ByteArray} {g : Sat256} {s0 : St
         rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
           frobErrorStringMem3_size len word hmem]
         omega)
-      (by native_decide)
       (by
         simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
           frobErrorStringMem3_read64 len word hmem hread64)
@@ -3737,8 +3729,7 @@ theorem RD.vatFrobIlkLoadsRateZero
     (by native_decide) mem_cost hilkBase (by native_decide) (by evm_ov)
   have rd3138pre := rd3137.dup4 (by native_decide) (by evm_ov)
   have hmload416 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (frobIlkHashMem σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (frobIlkHashMem σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((frobIlkHashMem σ I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -3746,7 +3737,6 @@ theorem RD.vatFrobIlkLoadsRateZero
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
         frobIlkHashMem_size σ I]; omega)
-      (by native_decide)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
         using frobIlkHashMem_read64 σ I)
   have rd3139 := rd3138pre.mload 0 ⟨416⟩ (UInt256.ofNat 13)
@@ -3867,8 +3857,7 @@ theorem RD.vatFrobIlkLoadsRateZero
   have rd3199 := rd3197.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rd3200 := rd3199.dup1 (by native_decide) (by evm_ov)
   have hmload576 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (frobIlkLoadedMem σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (frobIlkLoadedMem σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((frobIlkLoadedMem σ I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -3876,7 +3865,6 @@ theorem RD.vatFrobIlkLoadsRateZero
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
         frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
         using frobIlkLoadedMem_read64 σ I)
   have rd3201 := rd3200.mload 0 ⟨576⟩ (UInt256.ofNat 18)
@@ -3921,8 +3909,7 @@ theorem RD.vatFrobIlkLoadsRateZero
   have rd3250 := rd3249.swap1 (by native_decide) (by evm_ov)
   have herrMload64 :
     (if (⟨64⟩ : UInt256).toNat ≥
-        (frobNotInitErrorMem3 (frobIlkLoadedMem σ I)).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 22 * ⟨32⟩ then ⟨0⟩
+        (frobNotInitErrorMem3 (frobIlkLoadedMem σ I)).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((frobNotInitErrorMem3 (frobIlkLoadedMem σ I)).readWithPadding
@@ -3933,7 +3920,6 @@ theorem RD.vatFrobIlkLoadsRateZero
         rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
           frobNotInitErrorMem3_size (frobIlkLoadedMem_size σ I)]
         omega)
-      (by native_decide)
       (by
         simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
           frobNotInitErrorMem3_read64 (frobIlkLoadedMem_size σ I)
@@ -4000,8 +3986,7 @@ theorem RD.vatFrobIlkLoadsRateNonzero
     (by native_decide) mem_cost hilkBase (by native_decide) (by evm_ov)
   have rd3138pre := rd3137.dup4 (by native_decide) (by evm_ov)
   have hmload416 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (frobIlkHashMem σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (frobIlkHashMem σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((frobIlkHashMem σ I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -4009,7 +3994,6 @@ theorem RD.vatFrobIlkLoadsRateNonzero
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
         frobIlkHashMem_size σ I]; omega)
-      (by native_decide)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
         using frobIlkHashMem_read64 σ I)
   have rd3139 := rd3138pre.mload 0 ⟨416⟩ (UInt256.ofNat 13)
@@ -4154,8 +4138,7 @@ theorem RD.vatFrobUrnInkAddSuccess
   have rd3261 := h.jumpdest (by native_decide) (by evm_ov)
   have rd3262pre := rd3261.dup2 (by native_decide) (by evm_ov)
   have hmload192 :
-      (if (⟨192⟩ : UInt256).toNat ≥ (frobIlkLoadedMem σ I).size
-          ∨ (⟨192⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if (⟨192⟩ : UInt256).toNat ≥ (frobIlkLoadedMem σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((frobIlkLoadedMem σ I).readWithPadding (⟨192⟩ : UInt256).toNat 32))) =
@@ -4163,7 +4146,6 @@ theorem RD.vatFrobUrnInkAddSuccess
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨192⟩ : UInt256).toNat = 192 from by decide,
         frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨192⟩ : UInt256).toNat = 192 from by decide, urnInkOld]
           using frobIlkLoadedMem_read192 σ I)
@@ -4206,8 +4188,7 @@ theorem RD.vatFrobUrnInkAddRevert
   have rd3261 := h.jumpdest (by native_decide) (by evm_ov)
   have rd3262pre := rd3261.dup2 (by native_decide) (by evm_ov)
   have hmload192 :
-      (if (⟨192⟩ : UInt256).toNat ≥ (frobIlkLoadedMem σ I).size
-          ∨ (⟨192⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if (⟨192⟩ : UInt256).toNat ≥ (frobIlkLoadedMem σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((frobIlkLoadedMem σ I).readWithPadding (⟨192⟩ : UInt256).toNat 32))) =
@@ -4215,7 +4196,6 @@ theorem RD.vatFrobUrnInkAddRevert
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨192⟩ : UInt256).toNat = 192 from by decide,
         frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨192⟩ : UInt256).toNat = 192 from by decide, urnInkOld]
           using frobIlkLoadedMem_read192 σ I)
@@ -4268,8 +4248,7 @@ theorem RD.vatFrobUrnArtAddSuccess
   have hoff : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by native_decide
   have hmload224 :
       (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥
-            (frobUrnInkUpdatedMem σ I urnInkNew).size
-          ∨ ((⟨192⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+            (frobUrnInkUpdatedMem σ I urnInkNew).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((frobUrnInkUpdatedMem σ I urnInkNew).readWithPadding
@@ -4283,7 +4262,6 @@ theorem RD.vatFrobUrnArtAddSuccess
         rw [writeWordMem_size_of_contains]
         · rw [frobIlkLoadedMem_size σ I]; omega
         · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨224⟩ : UInt256).toNat = 224 from by decide, urnArtOld]
           using frobUrnInkUpdatedMem_read224 σ I urnInkNew)
@@ -4336,8 +4314,7 @@ theorem RD.vatFrobUrnArtAddRevert
   have hoff : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by native_decide
   have hmload224 :
       (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥
-            (frobUrnInkUpdatedMem σ I urnInkNew).size
-          ∨ ((⟨192⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+            (frobUrnInkUpdatedMem σ I urnInkNew).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((frobUrnInkUpdatedMem σ I urnInkNew).readWithPadding
@@ -4351,7 +4328,6 @@ theorem RD.vatFrobUrnArtAddRevert
         rw [writeWordMem_size_of_contains]
         · rw [frobIlkLoadedMem_size σ I]; omega
         · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨224⟩ : UInt256).toNat = 224 from by decide, urnArtOld]
           using frobUrnInkUpdatedMem_read224 σ I urnInkNew)
@@ -4417,8 +4393,7 @@ theorem RD.vatFrobIlkArtAddSuccess
   have rd3296pre := rd3295.dup1 (by native_decide) (by evm_ov)
   have hmload416 :
       (if (⟨416⟩ : UInt256).toNat ≥
-            (frobUrnArtUpdatedMem σ I urnInkNew urnArtNew).size
-          ∨ (⟨416⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+            (frobUrnArtUpdatedMem σ I urnInkNew urnArtNew).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((frobUrnArtUpdatedMem σ I urnInkNew urnArtNew).readWithPadding
@@ -4435,7 +4410,6 @@ theorem RD.vatFrobIlkArtAddSuccess
         · rw [writeWordMem_size_of_contains]
           · rw [frobIlkLoadedMem_size σ I]; omega
           · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨416⟩ : UInt256).toNat = 416 from by decide, ilkArtOld]
           using frobUrnArtUpdatedMem_read416 σ I urnInkNew urnArtNew)
@@ -4497,8 +4471,7 @@ theorem RD.vatFrobIlkArtAddRevert
   have rd3296pre := rd3295.dup1 (by native_decide) (by evm_ov)
   have hmload416 :
       (if (⟨416⟩ : UInt256).toNat ≥
-            (frobUrnArtUpdatedMem σ I urnInkNew urnArtNew).size
-          ∨ (⟨416⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+            (frobUrnArtUpdatedMem σ I urnInkNew urnArtNew).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((frobUrnArtUpdatedMem σ I urnInkNew urnArtNew).readWithPadding
@@ -4515,7 +4488,6 @@ theorem RD.vatFrobIlkArtAddRevert
         · rw [writeWordMem_size_of_contains]
           · rw [frobIlkLoadedMem_size σ I]; omega
           · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨416⟩ : UInt256).toNat = 416 from by decide, ilkArtOld]
           using frobUrnArtUpdatedMem_read416 σ I urnInkNew urnArtNew)
@@ -4571,8 +4543,7 @@ theorem RD.vatFrobDtabMulSuccess
   have hoff : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
   have hmload448 :
       (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥
-            (frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew).size
-          ∨ ((⟨416⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+            (frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew).readWithPadding
@@ -4598,7 +4569,6 @@ theorem RD.vatFrobDtabMulSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨448⟩ : UInt256).toNat = 448 from by decide, rateOld]
           using frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
@@ -4656,8 +4626,7 @@ theorem RD.vatFrobDtabMulRevert
   have hoff : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
   have hmload448 :
       (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥
-            (frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew).size
-          ∨ ((⟨416⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+            (frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew).readWithPadding
@@ -4683,7 +4652,6 @@ theorem RD.vatFrobDtabMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨448⟩ : UInt256).toNat = 448 from by decide, rateOld]
           using frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
@@ -4736,8 +4704,7 @@ theorem RD.vatFrobTabMulSuccess
   have rd3337raw := rd3336.add (by native_decide) (by evm_ov)
   have hoff416 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
   have hmload448 :
-      (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨416⟩ : UInt256) + ⟨32⟩).toNat) 32))) =
@@ -4762,7 +4729,6 @@ theorem RD.vatFrobTabMulSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨448⟩ : UInt256).toNat = 448 from by decide, mem, rateOld]
           using frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
@@ -4775,8 +4741,7 @@ theorem RD.vatFrobTabMulSuccess
   have rd3342raw := rd3341.add (by native_decide) (by evm_ov)
   have hoff192 : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by native_decide
   have hmload224 :
-      (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size
-          ∨ ((⟨192⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨192⟩ : UInt256) + ⟨32⟩).toNat) 32))) =
@@ -4801,7 +4766,6 @@ theorem RD.vatFrobTabMulSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨224⟩ : UInt256).toNat = 224 from by decide, mem]
           using frobIlkArtUpdatedMem_read224 σ I urnInkNew urnArtNew ilkArtNew)
@@ -4848,8 +4812,7 @@ theorem RD.vatFrobTabMulRevert
   have rd3337raw := rd3336.add (by native_decide) (by evm_ov)
   have hoff416 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
   have hmload448 :
-      (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨416⟩ : UInt256) + ⟨32⟩).toNat) 32))) =
@@ -4874,7 +4837,6 @@ theorem RD.vatFrobTabMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨448⟩ : UInt256).toNat = 448 from by decide, mem, rateOld]
           using frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
@@ -4887,8 +4849,7 @@ theorem RD.vatFrobTabMulRevert
   have rd3342raw := rd3341.add (by native_decide) (by evm_ov)
   have hoff192 : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by native_decide
   have hmload224 :
-      (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size
-          ∨ ((⟨192⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨192⟩ : UInt256) + ⟨32⟩).toNat) 32))) =
@@ -4913,7 +4874,6 @@ theorem RD.vatFrobTabMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨224⟩ : UInt256).toNat = 224 from by decide, mem]
           using frobIlkArtUpdatedMem_read224 σ I urnInkNew urnArtNew ilkArtNew)
@@ -5088,8 +5048,7 @@ theorem RD.vatFrobCeilingCheckSuccess
   have rd3384raw := rd3383.add (by native_decide) (by evm_ov)
   have hoff512 : (⟨416⟩ : UInt256) + ⟨96⟩ = ⟨512⟩ := by native_decide
   have hmload512 :
-      (if ((⟨416⟩ : UInt256) + ⟨96⟩).toNat ≥ mem.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨96⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨96⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨416⟩ : UInt256) + ⟨96⟩).toNat) 32))) =
@@ -5114,7 +5073,6 @@ theorem RD.vatFrobCeilingCheckSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨512⟩ : UInt256).toNat = 512 from by decide, mem, ilkLine]
           using frobIlkArtUpdatedMem_read512 σ I urnInkNew urnArtNew ilkArtNew)
@@ -5128,8 +5086,7 @@ theorem RD.vatFrobCeilingCheckSuccess
   have rd3392raw := rd3391.add (by native_decide) (by evm_ov)
   have hoff416 : (⟨416⟩ : UInt256) + ⟨0⟩ = ⟨416⟩ := by native_decide
   have hmload416 :
-      (if ((⟨416⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨0⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨416⟩ : UInt256) + ⟨0⟩).toNat) 32))) =
@@ -5156,7 +5113,6 @@ theorem RD.vatFrobCeilingCheckSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨416⟩ : UInt256).toNat = 416 from by decide, mem]
           using frobIlkArtUpdatedMem_read416 σ I urnInkNew urnArtNew ilkArtNew)
@@ -5169,8 +5125,7 @@ theorem RD.vatFrobCeilingCheckSuccess
   have rd3397raw := rd3396.add (by native_decide) (by evm_ov)
   have hoff448 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
   have hmload448 :
-      (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨416⟩ : UInt256) + ⟨32⟩).toNat) 32))) =
@@ -5195,7 +5150,6 @@ theorem RD.vatFrobCeilingCheckSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨448⟩ : UInt256).toNat = 448 from by decide, mem, rateOld]
           using frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
@@ -5308,8 +5262,7 @@ theorem RD.vatFrobCeilingCheckRevert
   have rd3384raw := rd3383.add (by native_decide) (by evm_ov)
   have hoff512 : (⟨416⟩ : UInt256) + ⟨96⟩ = ⟨512⟩ := by native_decide
   have hmload512 :
-      (if ((⟨416⟩ : UInt256) + ⟨96⟩).toNat ≥ mem.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨96⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨96⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨416⟩ : UInt256) + ⟨96⟩).toNat) 32))) =
@@ -5334,7 +5287,6 @@ theorem RD.vatFrobCeilingCheckRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨512⟩ : UInt256).toNat = 512 from by decide, mem, ilkLine]
           using frobIlkArtUpdatedMem_read512 σ I urnInkNew urnArtNew ilkArtNew)
@@ -5348,8 +5300,7 @@ theorem RD.vatFrobCeilingCheckRevert
   have rd3392raw := rd3391.add (by native_decide) (by evm_ov)
   have hoff416 : (⟨416⟩ : UInt256) + ⟨0⟩ = ⟨416⟩ := by native_decide
   have hmload416 :
-      (if ((⟨416⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨0⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨416⟩ : UInt256) + ⟨0⟩).toNat) 32))) =
@@ -5376,7 +5327,6 @@ theorem RD.vatFrobCeilingCheckRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨416⟩ : UInt256).toNat = 416 from by decide, mem]
           using frobIlkArtUpdatedMem_read416 σ I urnInkNew urnArtNew ilkArtNew)
@@ -5389,8 +5339,7 @@ theorem RD.vatFrobCeilingCheckRevert
   have rd3397raw := rd3396.add (by native_decide) (by evm_ov)
   have hoff448 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
   have hmload448 :
-      (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨416⟩ : UInt256) + ⟨32⟩).toNat) 32))) =
@@ -5415,7 +5364,6 @@ theorem RD.vatFrobCeilingCheckRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨448⟩ : UInt256).toNat = 448 from by decide, mem, rateOld]
           using frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
@@ -5527,8 +5475,7 @@ theorem RD.vatFrobCeilingMulRevert
   have rd3384raw := rd3383.add (by native_decide) (by evm_ov)
   have hoff512 : (⟨416⟩ : UInt256) + ⟨96⟩ = ⟨512⟩ := by native_decide
   have hmload512 :
-      (if ((⟨416⟩ : UInt256) + ⟨96⟩).toNat ≥ mem.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨96⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨96⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨416⟩ : UInt256) + ⟨96⟩).toNat) 32))) =
@@ -5553,7 +5500,6 @@ theorem RD.vatFrobCeilingMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨512⟩ : UInt256).toNat = 512 from by decide, mem, ilkLine]
           using frobIlkArtUpdatedMem_read512 σ I urnInkNew urnArtNew ilkArtNew)
@@ -5567,8 +5513,7 @@ theorem RD.vatFrobCeilingMulRevert
   have rd3392raw := rd3391.add (by native_decide) (by evm_ov)
   have hoff416 : (⟨416⟩ : UInt256) + ⟨0⟩ = ⟨416⟩ := by native_decide
   have hmload416 :
-      (if ((⟨416⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨0⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨416⟩ : UInt256) + ⟨0⟩).toNat) 32))) =
@@ -5595,7 +5540,6 @@ theorem RD.vatFrobCeilingMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨416⟩ : UInt256).toNat = 416 from by decide, mem]
           using frobIlkArtUpdatedMem_read416 σ I urnInkNew urnArtNew ilkArtNew)
@@ -5608,8 +5552,7 @@ theorem RD.vatFrobCeilingMulRevert
   have rd3397raw := rd3396.add (by native_decide) (by evm_ov)
   have hoff448 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
   have hmload448 :
-      (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨416⟩ : UInt256) + ⟨32⟩).toNat) 32))) =
@@ -5634,7 +5577,6 @@ theorem RD.vatFrobCeilingMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨448⟩ : UInt256).toNat = 448 from by decide, mem, rateOld]
           using frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
@@ -5715,8 +5657,7 @@ theorem RD.vatFrobSafetyCheckSuccess
   have rd3523raw := rd3522.add (by native_decide) (by evm_ov)
   have hoff192 : (⟨192⟩ : UInt256) + ⟨0⟩ = ⟨192⟩ := by native_decide
   have hmload192 :
-      (if ((⟨192⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size
-          ∨ ((⟨192⟩ : UInt256) + ⟨0⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨192⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨192⟩ : UInt256) + ⟨0⟩).toNat) 32))) =
@@ -5741,7 +5682,6 @@ theorem RD.vatFrobSafetyCheckSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨192⟩ : UInt256).toNat = 192 from by decide, mem]
           using frobIlkArtUpdatedMem_read192 σ I urnInkNew urnArtNew ilkArtNew)
@@ -5754,8 +5694,7 @@ theorem RD.vatFrobSafetyCheckSuccess
   have rd3528raw := rd3527.add (by native_decide) (by evm_ov)
   have hoff480 : (⟨416⟩ : UInt256) + ⟨64⟩ = ⟨480⟩ := by native_decide
   have hmload480 :
-      (if ((⟨416⟩ : UInt256) + ⟨64⟩).toNat ≥ mem.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨64⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨64⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨416⟩ : UInt256) + ⟨64⟩).toNat) 32))) =
@@ -5780,7 +5719,6 @@ theorem RD.vatFrobSafetyCheckSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨480⟩ : UInt256).toNat = 480 from by decide, mem, ilkSpot]
           using frobIlkArtUpdatedMem_read480 σ I urnInkNew urnArtNew ilkArtNew)
@@ -5873,8 +5811,7 @@ theorem RD.vatFrobSafetyCheckRevert
   have rd3523raw := rd3522.add (by native_decide) (by evm_ov)
   have hoff192 : (⟨192⟩ : UInt256) + ⟨0⟩ = ⟨192⟩ := by native_decide
   have hmload192 :
-      (if ((⟨192⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size
-          ∨ ((⟨192⟩ : UInt256) + ⟨0⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨192⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨192⟩ : UInt256) + ⟨0⟩).toNat) 32))) =
@@ -5899,7 +5836,6 @@ theorem RD.vatFrobSafetyCheckRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨192⟩ : UInt256).toNat = 192 from by decide, mem]
           using frobIlkArtUpdatedMem_read192 σ I urnInkNew urnArtNew ilkArtNew)
@@ -5912,8 +5848,7 @@ theorem RD.vatFrobSafetyCheckRevert
   have rd3528raw := rd3527.add (by native_decide) (by evm_ov)
   have hoff480 : (⟨416⟩ : UInt256) + ⟨64⟩ = ⟨480⟩ := by native_decide
   have hmload480 :
-      (if ((⟨416⟩ : UInt256) + ⟨64⟩).toNat ≥ mem.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨64⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨64⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨416⟩ : UInt256) + ⟨64⟩).toNat) 32))) =
@@ -5938,7 +5873,6 @@ theorem RD.vatFrobSafetyCheckRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨480⟩ : UInt256).toNat = 480 from by decide, mem, ilkSpot]
           using frobIlkArtUpdatedMem_read480 σ I urnInkNew urnArtNew ilkArtNew)
@@ -6033,8 +5967,7 @@ theorem RD.vatFrobInkSpotMulRevert
   have rd3523raw := rd3522.add (by native_decide) (by evm_ov)
   have hoff192 : (⟨192⟩ : UInt256) + ⟨0⟩ = ⟨192⟩ := by native_decide
   have hmload192 :
-      (if ((⟨192⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size
-          ∨ ((⟨192⟩ : UInt256) + ⟨0⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨192⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨192⟩ : UInt256) + ⟨0⟩).toNat) 32))) =
@@ -6059,7 +5992,6 @@ theorem RD.vatFrobInkSpotMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨192⟩ : UInt256).toNat = 192 from by decide, mem]
           using frobIlkArtUpdatedMem_read192 σ I urnInkNew urnArtNew ilkArtNew)
@@ -6072,8 +6004,7 @@ theorem RD.vatFrobInkSpotMulRevert
   have rd3528raw := rd3527.add (by native_decide) (by evm_ov)
   have hoff480 : (⟨416⟩ : UInt256) + ⟨64⟩ = ⟨480⟩ := by native_decide
   have hmload480 :
-      (if ((⟨416⟩ : UInt256) + ⟨64⟩).toNat ≥ mem.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨64⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨64⟩).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (((⟨416⟩ : UInt256) + ⟨64⟩).toNat) 32))) =
@@ -6098,7 +6029,6 @@ theorem RD.vatFrobInkSpotMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨480⟩ : UInt256).toNat = 480 from by decide, mem, ilkSpot]
           using frobIlkArtUpdatedMem_read480 σ I urnInkNew urnArtNew ilkArtNew)
@@ -7199,8 +7129,7 @@ theorem RD.vatFrobDustCheckSuccess
   have rd3887raw := rd3886.add (by native_decide) (by evm_ov)
   have hoff224 : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by native_decide
   have hmload224 :
-      (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥ memW.size
-          ∨ ((⟨192⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥ memW.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (memW.readWithPadding (((⟨192⟩ : UInt256) + ⟨32⟩).toNat) 32))) =
@@ -7208,7 +7137,6 @@ theorem RD.vatFrobDustCheckSuccess
     rw [hoff224]
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨224⟩ : UInt256).toNat = 224 from by decide, hmemWSize]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨224⟩ : UInt256).toNat = 224 from by decide] using hread224)
   have rd3887raw' := rd3887raw.mload 0 urnArtNew (UInt256.ofNat 18)
@@ -7222,8 +7150,7 @@ theorem RD.vatFrobDustCheckSuccess
   have rd3895raw := rd3892.add (by native_decide) (by evm_ov)
   have hoff544 : (⟨416⟩ : UInt256) + ⟨128⟩ = ⟨544⟩ := by native_decide
   have hmload544 :
-      (if ((⟨416⟩ : UInt256) + ⟨128⟩).toNat ≥ memW.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨128⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨128⟩).toNat ≥ memW.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (memW.readWithPadding (((⟨416⟩ : UInt256) + ⟨128⟩).toNat) 32))) =
@@ -7231,7 +7158,6 @@ theorem RD.vatFrobDustCheckSuccess
     rw [hoff544]
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨544⟩ : UInt256).toNat = 544 from by decide, hmemWSize]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨544⟩ : UInt256).toNat = 544 from by decide] using hread544)
   have rd3895raw' := rd3895raw.mload 0 dust (UInt256.ofNat 18)
@@ -7382,8 +7308,7 @@ theorem RD.vatFrobDustCheckRevert
   have rd3887raw := rd3886.add (by native_decide) (by evm_ov)
   have hoff224 : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by native_decide
   have hmload224 :
-      (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥ memW.size
-          ∨ ((⟨192⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥ memW.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (memW.readWithPadding (((⟨192⟩ : UInt256) + ⟨32⟩).toNat) 32))) =
@@ -7391,7 +7316,6 @@ theorem RD.vatFrobDustCheckRevert
     rw [hoff224]
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨224⟩ : UInt256).toNat = 224 from by decide, hmemWSize]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨224⟩ : UInt256).toNat = 224 from by decide] using hread224)
   have rd3887raw' := rd3887raw.mload 0 urnArtNew (UInt256.ofNat 18)
@@ -7405,8 +7329,7 @@ theorem RD.vatFrobDustCheckRevert
   have rd3895raw := rd3892.add (by native_decide) (by evm_ov)
   have hoff544 : (⟨416⟩ : UInt256) + ⟨128⟩ = ⟨544⟩ := by native_decide
   have hmload544 :
-      (if ((⟨416⟩ : UInt256) + ⟨128⟩).toNat ≥ memW.size
-          ∨ ((⟨416⟩ : UInt256) + ⟨128⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if ((⟨416⟩ : UInt256) + ⟨128⟩).toNat ≥ memW.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (memW.readWithPadding (((⟨416⟩ : UInt256) + ⟨128⟩).toNat) 32))) =
@@ -7414,7 +7337,6 @@ theorem RD.vatFrobDustCheckRevert
     rw [hoff544]
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨544⟩ : UInt256).toNat = 544 from by decide, hmemWSize]; omega)
-      (by native_decide)
       (by
         simpa [show (⟨544⟩ : UInt256).toNat = 544 from by decide] using hread544)
   have rd3895raw' := rd3895raw.mload 0 dust (UInt256.ofNat 18)
@@ -8353,8 +8275,7 @@ theorem RD.vatFrobFinalUrnInkStoreSuccess
     (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   have rd4126 := rd4125.dup7 (by native_decide) (by evm_ov)
   have hmload192 :
-      (if (⟨192⟩ : UInt256).toNat ≥ memUrn.size
-          ∨ (⟨192⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if (⟨192⟩ : UInt256).toNat ≥ memUrn.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memUrn.readWithPadding (⟨192⟩ : UInt256).toNat 32))) =
         urnInkNew := by
@@ -8369,7 +8290,6 @@ theorem RD.vatFrobFinalUrnInkStoreSuccess
         · rw [twoWordHashMem_size_of_ge64]
           · rw [hmemSize]; omega
           · rw [hmemSize]; omega)
-      (by native_decide)
       (by
         rw [show (⟨192⟩ : UInt256).toNat = 192 from by decide]
         dsimp [memUrn]
@@ -8414,8 +8334,7 @@ theorem RD.vatFrobFinalUrnArtStoreSuccess
       (⟨32⟩ : UInt256) + (⟨192⟩ : UInt256) = ⟨224⟩ := by native_decide
   rw [hoff] at rd4132pre
   have hmload224 :
-      (if (⟨224⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨224⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if (⟨224⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨224⟩ : UInt256).toNat 32))) =
         urnArtNew := by
@@ -8424,7 +8343,6 @@ theorem RD.vatFrobFinalUrnArtStoreSuccess
         rw [show (⟨224⟩ : UInt256).toNat = 224 from by decide]
         rw [hmemSize]
         omega)
-      (by native_decide)
       (by
         rw [show (⟨224⟩ : UInt256).toNat = 224 from by decide]
         exact hread224)
@@ -8488,8 +8406,7 @@ theorem RD.vatFrobFinalIlkArtStoreSuccess
     (by native_decide) mem_cost hilkSlot (by native_decide) (by evm_ov)
   have rd4152 := rd4151.dup5 (by native_decide) (by evm_ov)
   have hmload416 :
-      (if (⟨416⟩ : UInt256).toNat ≥ memIlk.size
-          ∨ (⟨416⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if (⟨416⟩ : UInt256).toNat ≥ memIlk.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memIlk.readWithPadding (⟨416⟩ : UInt256).toNat 32))) =
         ilkArtNew := by
@@ -8500,7 +8417,6 @@ theorem RD.vatFrobFinalIlkArtStoreSuccess
         rw [twoWordHashMem_size_of_ge64]
         · rw [hmemSize]; omega
         · rw [hmemSize]; omega)
-      (by native_decide)
       (by
         rw [show (⟨416⟩ : UInt256).toNat = 416 from by decide]
         dsimp [memIlk]
@@ -8550,8 +8466,7 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
   have hoffRate : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
   rw [hoffRate] at rd4158pre
   have hmload448 :
-      (if (⟨448⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨448⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if (⟨448⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨448⟩ : UInt256).toNat 32))) =
         rate := by
@@ -8560,7 +8475,6 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
         rw [show (⟨448⟩ : UInt256).toNat = 448 from by decide]
         rw [hmemSize]
         omega)
-      (by native_decide)
       (by
         rw [show (⟨448⟩ : UInt256).toNat = 448 from by decide]
         exact hread448)
@@ -8591,8 +8505,7 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
   have rd4170pre := rd4169.add (by native_decide) (by evm_ov)
   rw [hoff448] at rd4170pre
   have hmload480 :
-      (if (⟨480⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨480⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if (⟨480⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨480⟩ : UInt256).toNat 32))) =
         spot := by
@@ -8601,7 +8514,6 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
         rw [show (⟨480⟩ : UInt256).toNat = 480 from by decide]
         rw [hmemSize]
         omega)
-      (by native_decide)
       (by
         rw [show (⟨480⟩ : UInt256).toNat = 480 from by decide]
         exact hread480)
@@ -8633,8 +8545,7 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
   have hoff512 : (⟨416⟩ : UInt256) + ⟨96⟩ = ⟨512⟩ := by native_decide
   rw [hoff512] at rd4185pre
   have hmload512 :
-      (if (⟨512⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨512⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if (⟨512⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨512⟩ : UInt256).toNat 32))) =
         line := by
@@ -8643,7 +8554,6 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
         rw [show (⟨512⟩ : UInt256).toNat = 512 from by decide]
         rw [hmemSize]
         omega)
-      (by native_decide)
       (by
         rw [show (⟨512⟩ : UInt256).toNat = 512 from by decide]
         exact hread512)
@@ -8671,8 +8581,7 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
   have hoff544 : (⟨416⟩ : UInt256) + ⟨128⟩ = ⟨544⟩ := by native_decide
   rw [hoff544] at rd4196pre
   have hmload544 :
-      (if (⟨544⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨544⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
+      (if (⟨544⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨544⟩ : UInt256).toNat 32))) =
         dust := by
@@ -8681,7 +8590,6 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
         rw [show (⟨544⟩ : UInt256).toNat = 544 from by decide]
         rw [hmemSize]
         omega)
-      (by native_decide)
       (by
         rw [show (⟨544⟩ : UInt256).toNat = 544 from by decide]
         exact hread544)

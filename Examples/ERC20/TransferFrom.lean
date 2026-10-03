@@ -1316,15 +1316,13 @@ theorem transferFromInsufficientAllowanceStringMem_read64 (owner spender : UInt2
 
 theorem transferFromInsufficientAllowanceStringMem_mload64 (owner spender : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥
-          (transferFromInsufficientAllowanceStringMem owner spender).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+          (transferFromInsufficientAllowanceStringMem owner spender).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((transferFromInsufficientAllowanceStringMem owner spender).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [transferFromInsufficientAllowanceStringMem_size]; decide)
-    (by decide) (transferFromInsufficientAllowanceStringMem_read64 owner spender)
+  mloadFreePtrValue (by rw [transferFromInsufficientAllowanceStringMem_size]; decide) (transferFromInsufficientAllowanceStringMem_read64 owner spender)
 
 theorem erc20TransferFromX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)

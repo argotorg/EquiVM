@@ -74,10 +74,8 @@ theorem erc20X_transferFromAfterToLoad {cA gh bl σ σ₀ A I} {g : Sat256}
       (by vyper_erc20_transferFrom_decode) mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
-          (mem := transferFromAfterFromLoadMemI σ I)
-          (aw := UInt256.ofNat 5) (off := ⟨96⟩) (v := transferFromToWord I)
+          (mem := transferFromAfterFromLoadMemI σ I) (off := ⟨96⟩) (v := transferFromToWord I)
           (by rw [hafterSize]; decide)
-          (by decide)
           hread96)
       (by decide) (by evm_ov),
     push1 ⟨32⟩,

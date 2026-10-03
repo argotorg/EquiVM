@@ -196,11 +196,6 @@ theorem RD.clipperTakeEventTailSuccessWF {code : ByteArray} (v : ClipperImmutabl
   have rd5342 := RD.log3 0 aw rd5341pre
     (by clipper_runtime_decode) hperm
     (by
-      intro s hawEq hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hawEq, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      rw [show ((⟨160⟩ : UInt256) + UInt256.sub ⟨128⟩ ⟨128⟩).toNat = 160 by
-        native_decide]
       change Cₘ (UInt256.ofNat (MachineState.M aw.toNat 128 160)) - Cₘ aw = 0
       rw [hawLog]
       simp)

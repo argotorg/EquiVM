@@ -1581,24 +1581,21 @@ theorem currentLengthPayloadMem_read64 (len header : UInt256) :
 
 theorem currentLengthPayloadMem_mload64 (len header freePtr : UInt256)
     (hfree : currentLengthFreePtr len = freePtr) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (currentLengthPayloadMem len header).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (currentLengthPayloadMem len header).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((currentLengthPayloadMem len header).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         freePtr := by
   exact solcBytesReturnPayloadMem_mload64 len (currentLengthPayloadWord header) freePtr
-    (UInt256.ofNat 6) hfree (by decide)
+    hfree
 
 theorem currentLengthPayloadMem_mload128 (len header : UInt256) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (currentLengthPayloadMem len header).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (currentLengthPayloadMem len header).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((currentLengthPayloadMem len header).readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
         len := by
   exact solcBytesReturnPayloadMem_mload128 len (currentLengthPayloadWord header)
-    (UInt256.ofNat 6) (by decide)
 
 theorem currentLengthPayloadReturnMem_size (len header : UInt256) :
     (currentLengthPayloadReturnMem len header).size = 224 := by
@@ -1611,14 +1608,13 @@ theorem currentLengthPayloadReturnMem_read64 (len header : UInt256) :
 
 theorem currentLengthPayloadReturnMem_mload64 (len header freePtr : UInt256)
     (hfree : currentLengthFreePtr len = freePtr) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (currentLengthPayloadReturnMem len header).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (currentLengthPayloadReturnMem len header).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((currentLengthPayloadReturnMem len header).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = freePtr := by
   exact solcBytesReturnPayloadReturnMem_mload64 len (currentLengthPayloadWord header) freePtr
-    (UInt256.ofNat 7) hfree (by decide)
+    hfree
 
 theorem currentLengthPayloadReturnMem_read192 (len header : UInt256) :
     (currentLengthPayloadReturnMem len header).readWithPadding 192 32 =
@@ -1743,28 +1739,24 @@ theorem currentLengthZeroMem_read64 :
     ← readWithPadding_eq_extract _ _ (by have := currentLengthZeroAllocMem_size; omega),
     currentLengthZeroAllocMem_read64]
 theorem currentLengthZeroMem_mload128 :
-    (if (⟨128⟩ : UInt256).toNat ≥ currentLengthZeroMem.size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ currentLengthZeroMem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           (currentLengthZeroMem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) = ⟨0⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨128⟩ : UInt256)) (aw := UInt256.ofNat 5) (v := (⟨0⟩ : UInt256))
+    (off := (⟨128⟩ : UInt256)) (v := (⟨0⟩ : UInt256))
     (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, currentLengthZeroMem_size]; decide)
-    (by decide)
     (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
       currentLengthZeroMem_read128)
 
 theorem currentLengthZeroMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ currentLengthZeroMem.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ currentLengthZeroMem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           (currentLengthZeroMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨160⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 5) (v := (⟨160⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨160⟩ : UInt256))
     (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, currentLengthZeroMem_size]; decide)
-    (by decide)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       currentLengthZeroMem_read64)
 
@@ -1791,17 +1783,15 @@ theorem currentLengthZeroReturnMem_read64 :
   exact currentLengthZeroMem_read64
 
 theorem currentLengthZeroReturnMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ currentLengthZeroReturnMem.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ currentLengthZeroReturnMem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           (currentLengthZeroReturnMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨160⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 6) (v := (⟨160⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨160⟩ : UInt256))
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, currentLengthZeroReturnMem_size]
       decide)
-    (by decide)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       currentLengthZeroReturnMem_read64)
 
@@ -1827,18 +1817,16 @@ theorem currentLengthZeroReturnMem_read128 :
   exact currentLengthZeroMem_read128
 
 theorem currentLengthZeroReturnMem_mload128 :
-    (if (⟨128⟩ : UInt256).toNat ≥ currentLengthZeroReturnMem.size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ currentLengthZeroReturnMem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           (currentLengthZeroReturnMem.readWithPadding (⟨128⟩ : UInt256).toNat 32))) = ⟨0⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨128⟩ : UInt256)) (aw := UInt256.ofNat 6) (v := (⟨0⟩ : UInt256))
+    (off := (⟨128⟩ : UInt256)) (v := (⟨0⟩ : UInt256))
     (by
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
         currentLengthZeroReturnMem_size]
       decide)
-    (by decide)
     (by simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
       currentLengthZeroReturnMem_read128)
 
@@ -1862,15 +1850,13 @@ theorem setEmptyReturnMem_read64 :
   exact currentLengthZeroReturnMem_read64
 
 theorem setEmptyReturnMem_mload64 :
-    (if (⟨64⟩ : UInt256).toNat ≥ setEmptyReturnMem.size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ setEmptyReturnMem.size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           (setEmptyReturnMem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨160⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 6) (v := (⟨160⟩ : UInt256))
+    (off := (⟨64⟩ : UInt256)) (v := (⟨160⟩ : UInt256))
     (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, setEmptyReturnMem_size]; decide)
-    (by decide)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       setEmptyReturnMem_read64)
 
@@ -3024,8 +3010,7 @@ def setHelperPayloadAw (len : UInt256) : UInt256 :=
 
 def setHelperPayloadWord
     (cd : ByteArray) (len payloadStart : UInt256) : UInt256 :=
-  if (⟨160⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size ∨
-      (⟨160⟩ : UInt256) ≥ setHelperEntryAw len * ⟨32⟩ then
+  if (⟨160⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size then
     ⟨0⟩
   else
     UInt256.ofNat (fromByteArrayBigEndian
@@ -3086,8 +3071,7 @@ theorem stringStoreLiteX_setReachStorageWriteMem {cA gh bl σ σ₀ A I} {g : Sa
     awCopy
     rd219 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, awCopy]
+      simp [M, awCopy]
       rw [show (((⟨32⟩ : UInt256) + ⟨128⟩).toNat) = 160 from by decide])
     (by
       rw [show (((⟨32⟩ : UInt256) + ⟨128⟩).toNat) = 160 from by decide]
@@ -3103,8 +3087,9 @@ theorem stringStoreLiteX_setReachStorageWriteMem {cA gh bl σ σ₀ A I} {g : Sa
     awPad
     rd224 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, awCopy, awPad]
+      change Cₘ (UInt256.ofNat (MachineState.M awCopy.toNat
+          ((⟨32⟩ : UInt256) + ⟨128⟩ + len).toNat 32)) - Cₘ awCopy =
+        Cₘ awPad - Cₘ awCopy
       rw [show ((⟨32⟩ : UInt256) + ⟨128⟩ + len) = ((⟨160⟩ : UInt256) + len) from by
         rw [show ((⟨32⟩ : UInt256) + ⟨128⟩) = ⟨160⟩ from by decide]])
     (by rfl)
@@ -3284,31 +3269,6 @@ theorem set_machineState_M_ge_left {s f l : Nat} : s ≤ MachineState.M s f l :=
   · simp [MachineState.M, hl]
   · simp [MachineState.M]
 
-theorem set_mstoreCostSpec {aw off : UInt256} {stk : List UInt256} :
-    ∀ st : State, st.machineState.activeWords = aw →
-      st.machineState.stack = off :: stk →
-      memoryExpansionCost st .MSTORE =
-        Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)) - Cₘ aw := by
-  intro st haw hstk
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw, List.getElem!_cons_zero]
-
-theorem set_mloadCostSpec {aw off : UInt256} {stk : List UInt256} :
-    ∀ st : State, st.machineState.activeWords = aw →
-      st.machineState.stack = off :: stk →
-      memoryExpansionCost st .MLOAD =
-        Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)) - Cₘ aw := by
-  intro st haw hstk
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw, List.getElem!_cons_zero]
-
-theorem set_revertCostSpec {aw off len : UInt256} {stk : List UInt256} :
-    ∀ st : State, st.machineState.activeWords = aw →
-      st.machineState.stack = off :: len :: stk →
-      memoryExpansionCost st .REVERT =
-        Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat len.toNat)) - Cₘ aw := by
-  intro st haw hstk
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw,
-    List.getElem!_cons_zero, List.getElem!_cons_succ]
-
 theorem set_activeWordsMstore0_eq_self {aw : UInt256} (hge : 1 ≤ aw.toNat) :
     UInt256.ofNat (MachineState.M aw.toNat 0 32) = aw := by
   apply u256_inj
@@ -3442,7 +3402,7 @@ theorem setHelperEntryAw_mul32_lt_of_u64 {len : UInt256}
   rw [hcopyToNat, ulit_toNat' _ hentrySize]
   exact hentryNoWrap
 
-theorem set_wordMul32_not_le128_of_ge5 {aw : UInt256}
+theorem set_Mul32_not_le128_of_ge5 {aw : UInt256}
     (hge : 5 ≤ aw.toNat) (hNoWrap : aw.toNat * 32 < UInt256.size) :
     ¬ (⟨128⟩ : UInt256) ≥ aw * ⟨32⟩ := by
   have hmul :
@@ -3455,7 +3415,7 @@ theorem set_wordMul32_not_le128_of_ge5 {aw : UInt256}
   change 128 ≥ aw.toNat * 32 at h128
   nlinarith
 
-theorem set_wordMul32_not_le64_of_ge5 {aw : UInt256}
+theorem set_Mul32_not_le64_of_ge5 {aw : UInt256}
     (hge : 5 ≤ aw.toNat) (hNoWrap : aw.toNat * 32 < UInt256.size) :
     ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ := by
   have hmul :
@@ -3471,14 +3431,14 @@ theorem set_wordMul32_not_le64_of_ge5 {aw : UInt256}
 theorem setHelperEntryAw_mload128_of_u64 {len : UInt256}
     (hlenMax : len.toNat ≤ ABI.solcMaxU64) :
     ¬ (⟨128⟩ : UInt256) ≥ setHelperEntryAw len * ⟨32⟩ :=
-  set_wordMul32_not_le128_of_ge5
+  set_Mul32_not_le128_of_ge5
     (setHelperEntryAw_ge5_of_u64 (len := len) hlenMax)
     (setHelperEntryAw_mul32_lt_of_u64 (len := len) hlenMax)
 
 theorem setHelperEntryAw_mload64_of_u64 {len : UInt256}
     (hlenMax : len.toNat ≤ ABI.solcMaxU64) :
     ¬ (⟨64⟩ : UInt256) ≥ setHelperEntryAw len * ⟨32⟩ :=
-  set_wordMul32_not_le64_of_ge5
+  set_Mul32_not_le64_of_ge5
     (setHelperEntryAw_ge5_of_u64 (len := len) hlenMax)
     (setHelperEntryAw_mul32_lt_of_u64 (len := len) hlenMax)
 
@@ -3499,13 +3459,10 @@ theorem setHelperPayloadWord_eq_mload160_short_nonzero
   unfold setHelperPayloadWord
   rw [if_neg]
   · rfl
-  · exact not_or.mpr ⟨
-      (by
-        have hsize := setPaddedMem_size cd len payloadStart hnz hsrc
-          (setDataEnd_toNat_of_short hshort)
-        rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide]
-        omega),
-      setHelperEntryAw_mload160_of_short_nonzero hnz hshort⟩
+  · have hsize := setPaddedMem_size cd len payloadStart hnz hsrc
+      (setDataEnd_toNat_of_short hshort)
+    rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide]
+    omega
 
 theorem setHelperPayloadWord_eq_decodedPayloadWord {I : ExecutionEnv}
     {len payloadStart : UInt256}
@@ -3620,20 +3577,18 @@ theorem setPaddedMem_mload128_short_nonzero
     (hnz : len.toNat ≠ 0)
     (hshort : len.toNat < 32)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size
-        ∨ (⟨128⟩ : UInt256) ≥ setHelperEntryAw len * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((setPaddedMem cd len payloadStart).readWithPadding
             (⟨128⟩ : UInt256).toNat 32))) = len := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨128⟩ : UInt256)) (aw := setHelperEntryAw len) (v := len)
+    (off := (⟨128⟩ : UInt256)) (v := len)
     (by
       have hge := setPaddedMem_size_ge160 cd len payloadStart hnz hsrc
         (setDataEnd_toNat_of_short hshort)
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
       omega)
-    (setHelperEntryAw_mload128_of_short_nonzero hnz hshort)
     (by
       simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
         setPaddedMem_read128 cd len payloadStart hnz hsrc
@@ -3644,20 +3599,18 @@ theorem setPaddedMem_mload128_nonzero_u64
     (hnz : len.toNat ≠ 0)
     (hlenMax : len.toNat ≤ ABI.solcMaxU64)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size
-        ∨ (⟨128⟩ : UInt256) ≥ setHelperEntryAw len * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((setPaddedMem cd len payloadStart).readWithPadding
             (⟨128⟩ : UInt256).toNat 32))) = len := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨128⟩ : UInt256)) (aw := setHelperEntryAw len) (v := len)
+    (off := (⟨128⟩ : UInt256)) (v := len)
     (by
       have hge := setPaddedMem_size_ge160 cd len payloadStart hnz hsrc
         (setDataEnd_toNat_of_u64 hlenMax)
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
       omega)
-    (setHelperEntryAw_mload128_of_u64 hlenMax)
     (by
       simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
         setPaddedMem_read128 cd len payloadStart hnz hsrc
@@ -3668,23 +3621,19 @@ theorem setPaddedMem_mload64_short_nonzero
     (hnz : len.toNat ≠ 0)
     (hshort : len.toNat < 32)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size
-        ∨ (⟨64⟩ : UInt256) ≥ setHelperPayloadAw len * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((setPaddedMem cd len payloadStart).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = currentLengthFreePtr len := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := setHelperPayloadAw len)
+    (off := (⟨64⟩ : UInt256))
     (v := currentLengthFreePtr len)
     (by
       have hge := setPaddedMem_size_ge160 cd len payloadStart hnz hsrc
         (setDataEnd_toNat_of_short hshort)
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
       omega)
-    (by
-      rw [setHelperPayloadAw_eq_7_of_short_nonzero hnz hshort]
-      decide)
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
         setPaddedMem_read64 cd len payloadStart hnz hsrc
@@ -3695,21 +3644,19 @@ theorem setPaddedMem_mload64_nonzero_u64
     (hnz : len.toNat ≠ 0)
     (hlenMax : len.toNat ≤ ABI.solcMaxU64)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size
-        ∨ (⟨64⟩ : UInt256) ≥ setHelperEntryAw len * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((setPaddedMem cd len payloadStart).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = currentLengthFreePtr len := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := setHelperEntryAw len)
+    (off := (⟨64⟩ : UInt256))
     (v := currentLengthFreePtr len)
     (by
       have hge := setPaddedMem_size_ge160 cd len payloadStart hnz hsrc
         (setDataEnd_toNat_of_u64 hlenMax)
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
       omega)
-    (setHelperEntryAw_mload64_of_u64 hlenMax)
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
         setPaddedMem_read64 cd len payloadStart hnz hsrc
@@ -3720,22 +3667,18 @@ theorem setPaddedMem_mload128_short_nonzero_payloadAw
     (hnz : len.toNat ≠ 0)
     (hshort : len.toNat < 32)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size
-        ∨ (⟨128⟩ : UInt256) ≥ setHelperPayloadAw len * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (setPaddedMem cd len payloadStart).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((setPaddedMem cd len payloadStart).readWithPadding
             (⟨128⟩ : UInt256).toNat 32))) = len := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨128⟩ : UInt256)) (aw := setHelperPayloadAw len) (v := len)
+    (off := (⟨128⟩ : UInt256)) (v := len)
     (by
       have hge := setPaddedMem_size_ge160 cd len payloadStart hnz hsrc
         (setDataEnd_toNat_of_short hshort)
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
       omega)
-    (by
-      rw [setHelperPayloadAw_eq_7_of_short_nonzero hnz hshort]
-      decide)
     (by
       simpa [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
         setPaddedMem_read128 cd len payloadStart hnz hsrc
@@ -3769,14 +3712,13 @@ theorem setShortReturnMem_mload64
     (hnz : len.toNat ≠ 0)
     (hshort : len.toNat < 32)
     (hsrc : payloadStart.toNat + len.toNat ≤ cd.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (setShortReturnMem cd len payloadStart).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (setShortReturnMem cd len payloadStart).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((setShortReturnMem cd len payloadStart).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = currentLengthFreePtr len := by
   exact mloadWordValue_of_readWithPadding
-    (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 7)
+    (off := (⟨64⟩ : UInt256))
     (v := currentLengthFreePtr len)
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, setShortReturnMem]
@@ -3788,7 +3730,6 @@ theorem setShortReturnMem_mload64
       rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
         ByteArray.size_extract, toByteArray_size, hsize]
       omega)
-    (by decide)
     (by
       simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
         setShortReturnMem_read64 cd len payloadStart hnz hshort hsrc)
@@ -3854,8 +3795,7 @@ theorem stringStoreLiteX_setEmptyReachStorageWrite {cA gh bl σ σ₀ A I} {g : 
     awCopy
     rd219 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, awCopy]
+      simp [M, awCopy]
       rw [show (((⟨32⟩ : UInt256) + ⟨128⟩).toNat) =
           (⟨160⟩ : UInt256).toNat by native_decide])
     (by
@@ -3872,8 +3812,9 @@ theorem stringStoreLiteX_setEmptyReachStorageWrite {cA gh bl σ σ₀ A I} {g : 
     awPad
     rd224 (by native_decide)
     (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, awCopy, awPad]
+      change Cₘ (UInt256.ofNat (MachineState.M awCopy.toNat
+          ((⟨32⟩ : UInt256) + ⟨128⟩ + ⟨0⟩).toNat 32)) - Cₘ awCopy =
+        Cₘ awPad - Cₘ awCopy
       rw [show (((⟨32⟩ : UInt256) + ⟨128⟩ + ⟨0⟩).toNat) =
           (⟨160⟩ : UInt256).toNat by native_decide])
     (by rfl)
@@ -4188,10 +4129,7 @@ theorem stringStoreLiteX_setWriteShortPayloadLoadedFrom1405 {cA gh bl σinit σ�
     (setHelperPayloadWord I.calldata len payloadStart)
     (setHelperPayloadAw len)
     rd1430 (by native_decide)
-    (by
-      intro s haw hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        setHelperPayloadAw, haddr])
+    (by simp [M, setHelperPayloadAw, haddr, show (⟨32⟩ : UInt256).toNat = 32 from by decide])
     (by simp only [setHelperPayloadWord, haddrWord])
     (by simp [setHelperPayloadAw, haddr])
     (by evm_ov)
@@ -4254,9 +4192,7 @@ theorem stringStoreLiteX_setWriteShortNonemptyValid {cA gh bl σ σ₀ A I} {g :
     jumpdest, push0, dup2,
     raw mload 0 len (setHelperEntryAw len) (by native_decide)
       (by
-        intro s haw hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-        rw [setHelperEntryAw_eq_7_of_short_nonzero hnz hshort]
+        simp [M, setHelperEntryAw_eq_7_of_short_nonzero hnz hshort]
         decide)
       (setPaddedMem_mload128_short_nonzero I.calldata len payloadStart hnz hshort hsrc)
       (by rw [setHelperEntryAw_eq_7_of_short_nonzero hnz hshort]; decide) (by evm_ov),
@@ -4441,8 +4377,6 @@ theorem stringStoreLiteX_setShortNonemptyMalformedPanic {cA gh bl σ σ₀ A I}
     raw mstore 0 (setMalformedPanicMem1Of (setPaddedMem I.calldata len payloadStart))
       (setHelperEntryAw len) (by native_decide)
       (by
-        intro s haw' hstk
-        rw [set_mstoreCostSpec (aw := setHelperEntryAw len) (off := ⟨0⟩) s haw' hstk]
         change Cₘ (UInt256.ofNat (MachineState.M (setHelperEntryAw len).toNat 0 32)) -
             Cₘ (setHelperEntryAw len) = 0
         rw [set_activeWordsMstore0_eq_self (aw := setHelperEntryAw len) (by omega)]
@@ -4454,8 +4388,6 @@ theorem stringStoreLiteX_setShortNonemptyMalformedPanic {cA gh bl σ σ₀ A I}
     raw mstore 0 (setMalformedPanicMemOf (setPaddedMem I.calldata len payloadStart))
       (setHelperEntryAw len) (by native_decide)
       (by
-        intro s haw' hstk
-        rw [set_mstoreCostSpec (aw := setHelperEntryAw len) (off := ⟨4⟩) s haw' hstk]
         change Cₘ (UInt256.ofNat (MachineState.M (setHelperEntryAw len).toNat 4 32)) -
             Cₘ (setHelperEntryAw len) = 0
         rw [set_activeWordsMstore4_eq_self (aw := setHelperEntryAw len) (by omega)]
@@ -4466,9 +4398,6 @@ theorem stringStoreLiteX_setShortNonemptyMalformedPanic {cA gh bl σ σ₀ A I}
     push1 ⟨36⟩, push0,
     raw rev 0 (by native_decide)
       (by
-        intro s haw' hstk
-        rw [set_revertCostSpec (aw := setHelperEntryAw len) (off := ⟨0⟩)
-          (len := ⟨36⟩) s haw' hstk]
         change Cₘ (UInt256.ofNat (MachineState.M (setHelperEntryAw len).toNat 0 36)) -
             Cₘ (setHelperEntryAw len) = 0
         rw [set_activeWordsRevert0_36_eq_self (aw := setHelperEntryAw len) (by omega)]
@@ -4554,11 +4483,15 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongMalformed
     jumpdest, push0, dup2,
     raw mload 0 len (setHelperEntryAw len) (by native_decide)
       (by
-        intro s haw hstk
-        rw [set_mloadCostSpec (aw := setHelperEntryAw len) (off := ⟨128⟩) s haw hstk]
-        rw [set_activeWordsMload128_eq_self
-          (aw := setHelperEntryAw len) (setHelperEntryAw_ge5_of_u64 (len := len) hlenMax)]
-        simp)
+        change Cₘ (UInt256.ofNat (MachineState.M (setHelperEntryAw len).toNat 128 32)) -
+          Cₘ (setHelperEntryAw len) = 0
+        have hM : UInt256.ofNat (MachineState.M (setHelperEntryAw len).toNat 128 32) =
+            setHelperEntryAw len := by
+          simpa only [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
+            set_activeWordsMload128_eq_self
+              (aw := setHelperEntryAw len) (setHelperEntryAw_ge5_of_u64 (len := len) hlenMax)
+        rw [hM]
+        exact Nat.sub_self _)
       (setPaddedMem_mload128_nonzero_u64 I.calldata len payloadStart hnz hlenMax hsrc)
       (by
         exact set_activeWordsMload128_eq_self
@@ -4621,11 +4554,15 @@ theorem stringStoreLiteX_setShortNonemptyWriteShortMalformed
     jumpdest, push0, dup2,
     raw mload 0 len (setHelperEntryAw len) (by native_decide)
       (by
-        intro s haw hstk
-        rw [set_mloadCostSpec (aw := setHelperEntryAw len) (off := ⟨128⟩) s haw hstk]
-        rw [set_activeWordsMload128_eq_self
-          (aw := setHelperEntryAw len) (setHelperEntryAw_ge5_of_u64 (len := len) hlenMax)]
-        simp)
+        change Cₘ (UInt256.ofNat (MachineState.M (setHelperEntryAw len).toNat 128 32)) -
+          Cₘ (setHelperEntryAw len) = 0
+        have hM : UInt256.ofNat (MachineState.M (setHelperEntryAw len).toNat 128 32) =
+            setHelperEntryAw len := by
+          simpa only [show (⟨128⟩ : UInt256).toNat = 128 from by decide] using
+            set_activeWordsMload128_eq_self
+              (aw := setHelperEntryAw len) (setHelperEntryAw_ge5_of_u64 (len := len) hlenMax)
+        rw [hM]
+        exact Nat.sub_self _)
       (setPaddedMem_mload128_nonzero_u64 I.calldata len payloadStart hnz hlenMax hsrc)
       (by
         exact set_activeWordsMload128_eq_self
@@ -4739,8 +4676,7 @@ theorem stringStoreLiteX_setShortNonemptyReturnFromWrite {cA gh bl σ σ₀ A I}
     jumpdest, pop, dup1,
     raw mload 0 len (setHelperPayloadAw len) (by native_decide)
       (by
-        intro s haw' hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw', hstk, haw]
+        simp [M, haw]
         decide)
       (setPaddedMem_mload128_short_nonzero_payloadAw I.calldata len payloadStart hnz hshort hsrc)
       (by rw [haw]; decide) (by evm_ov),
@@ -4749,8 +4685,7 @@ theorem stringStoreLiteX_setShortNonemptyReturnFromWrite {cA gh bl σ σ₀ A I}
     jumpdest, push1 ⟨64⟩,
     raw mload 0 (currentLengthFreePtr len) (setHelperPayloadAw len) (by decide)
       (by
-        intro s haw' hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw', hstk, haw]
+        simp [M, haw]
         decide)
       (setPaddedMem_mload64_short_nonzero I.calldata len payloadStart hnz hshort hsrc)
       (by rw [haw]; decide) (by evm_ov),
@@ -4774,10 +4709,7 @@ theorem stringStoreLiteX_setShortNonemptyReturnFromWrite {cA gh bl σ σ₀ A I}
     jumpdest, dup3,
     raw mstore 0 (setShortReturnMem I.calldata len payloadStart)
       (UInt256.ofNat 7) (by decide)
-      (by
-        intro s haw' hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw', hstk, haw, hfree]
-        decide)
+      (by simp [M, haw, hfree]; decide)
       (by rw [hfree, show (((⟨192⟩ : UInt256) + ⟨0⟩).toNat) = 192 from by decide]; rfl)
       (by rw [haw, hfree]; decide) (by evm_ov),
     pop, pop, jump (by jump_dest)]
@@ -4787,17 +4719,13 @@ theorem stringStoreLiteX_setShortNonemptyReturnFromWrite {cA gh bl σ σ₀ A I}
     jumpdest, push1 ⟨64⟩,
     raw mload 0 (currentLengthFreePtr len) (UInt256.ofNat 7) (by decide)
       (by
-        intro s haw' hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw', hstk, hfree]
+        simp [M, hfree]
         decide)
       (setShortReturnMem_mload64 I.calldata len payloadStart hnz hshort hsrc)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
     raw ret 0 (UInt256.toByteArray len) (by decide)
-      (by
-        intro s haw' hstk
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw', hstk, hfree]
-        decide)
+      (by simp [M, hfree]; decide)
       (by
         rw [hfree, show (⟨192⟩ : UInt256).toNat = 192 from by decide,
           show (UInt256.sub ((⟨192⟩ : UInt256) + ⟨32⟩) ⟨192⟩).toNat = 32 from by decide,
@@ -5720,15 +5648,16 @@ theorem stringStoreLiteX_clearCurrentDeleteLongValidToLoop {cA gh bl σ σ₀ A 
     jumpdest, push1 ⟨31⟩, add, push1 ⟨32⟩, swap1, div, swap1, push0,
     raw mstore (Cₘ (clearCurrentBaseAw aw) - Cₘ aw)
       (clearCurrentBaseMemFrom mem) (clearCurrentBaseAw aw) (by native_decide)
-      (fun s haw hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, clearCurrentBaseAw])
+      (by simp only [M, show (⟨0⟩ : UInt256).toNat = 0 from rfl,
+        show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+        clearCurrentBaseAw])
       (by rfl) (by rfl) (by evm_ov),
     push1 ⟨32⟩, push0]
   have rd498 := evm_run rd493 with [
     raw keccak256 (Cₘ (clearCurrentHashAw aw) - Cₘ (clearCurrentBaseAw aw))
       clearCurrentBaseWord (clearCurrentHashAw aw) (by native_decide)
-      (fun s haw hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
+      (by
+        simp [M,
           clearCurrentHashAw, clearCurrentBaseAw])
       (clearCurrentBaseMemFrom_keccak mem) (by rfl) (by evm_ov)]
   exact ⟨_, _, evm_run rd498 with [

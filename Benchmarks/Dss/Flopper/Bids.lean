@@ -588,8 +588,7 @@ theorem flopperBidsReturnMem_mload64 {scratch : ByteArray}
     (bid lot guy tic endw : UInt256)
     (hscratch : scratch.size = 96)
     (hread64 : scratch.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (flopperBidsReturnMem scratch bid lot guy tic endw).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (flopperBidsReturnMem scratch bid lot guy tic endw).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((flopperBidsReturnMem scratch bid lot guy tic endw).readWithPadding
@@ -597,7 +596,6 @@ theorem flopperBidsReturnMem_mload64 {scratch : ByteArray}
       = ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [flopperBidsReturnMem_size bid lot guy tic endw hscratch]; decide)
-    (by decide)
     (flopperBidsReturnMem_read64 bid lot guy tic endw hscratch hread64)
 
 theorem flopperBidsReturnMem_read128_160 {scratch : ByteArray}
@@ -845,12 +843,11 @@ theorem RD.flopperBidsReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
   let mem4 := Reasoning.Theory.writeWord mem3 224 ticMasked
   let mem5 := Reasoning.Theory.writeWord mem4 256 endMasked
   have hload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hscratch]; decide) (by decide) hread64
+    mloadFreePtrValue (by rw [hscratch]; decide) hread64
   have rd4 := evm_run h with [
     raw jumpdest hd0 (by evm_ov),
     raw push1 ⟨64⟩ hd1 (by evm_ov),

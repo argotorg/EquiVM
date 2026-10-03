@@ -333,7 +333,7 @@ theorem gemJoinDenyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
   have rd1476pre := evm_run rd1475raw with [
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost
-      (mloadFreePtrValue (by rw [relyStoreHashMem_size I]; decide) (by decide)
+      (mloadFreePtrValue (by rw [relyStoreHashMem_size I]; decide)
         (relyStoreHashMem_read64 I))
       (by native_decide) (by evm_ov)]
   have rd1509 := rd1476pre.pushConst

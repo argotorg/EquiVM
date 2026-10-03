@@ -275,16 +275,14 @@ theorem clipperDogDigsCalldataMem_read64 (v : ClipperImmutables) (tab : UInt256)
 theorem clipperDogDigsCalldataMem_mload64 (v : ClipperImmutables) (tab : UInt256)
     {mem : ByteArray} (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperDogDigsCalldataMem v tab mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperDogDigsCalldataMem v tab mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperDogDigsCalldataMem v tab mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
   exact mloadFreePtrValue
-    (mem := clipperDogDigsCalldataMem v tab mem) (aw := UInt256.ofNat 7)
+    (mem := clipperDogDigsCalldataMem v tab mem)
     (by rw [clipperDogDigsCalldataMem_size v tab hmem]; norm_num)
-    (by decide)
     (clipperDogDigsCalldataMem_read64 v tab hmem hread64)
 
 theorem clipperDogDigsSelectorMem_read128_4 {mem : ByteArray}
@@ -533,16 +531,14 @@ theorem clipperVatFluxCalldataMem_read64 (v : ClipperImmutables) (I : ExecutionE
 theorem clipperVatFluxCalldataMem_mload64 (v : ClipperImmutables) (I : ExecutionEnv)
     (lot : UInt256) {mem : ByteArray} (hmem : mem.size = 196)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperVatFluxCalldataMem v I lot mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperVatFluxCalldataMem v I lot mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperVatFluxCalldataMem v I lot mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
   exact mloadFreePtrValue
-    (mem := clipperVatFluxCalldataMem v I lot mem) (aw := UInt256.ofNat 9)
+    (mem := clipperVatFluxCalldataMem v I lot mem)
     (by rw [clipperVatFluxCalldataMem_size v I lot hmem]; norm_num)
-    (by decide)
     (clipperVatFluxCalldataMem_read64 v I lot hmem hread64)
 
 theorem clipperVatFluxSelectorMem_read128_4 {mem : ByteArray}
@@ -1143,8 +1139,7 @@ theorem clipperYankX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     raw push1 ⟨64⟩ (by clipper_yank_decode) (by evm_ov),
     raw dup1 (by clipper_yank_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by clipper_yank_decode) mem_cost
-      (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide)
-        (by decide) (clipperRelyAuthHashMem_read64 I))
+      (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide) (clipperRelyAuthHashMem_read64 I))
       (by native_decide) (by evm_ov)]
   have rd1944 := rd1940.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_yank_decode)
@@ -1431,8 +1426,7 @@ theorem clipperYankX_dogDigsCallSetup {cA σ I} {g : Sat256} {s0 : State}
   rcases v.ilk_wf with ⟨ilkBs, hilk, hlen⟩
   let ilkWord : UInt256 := EVM.Word.ofNat (fromBytesBigEndian ilkBs)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (clipperYankSalesHashMemRefresh I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (clipperYankSalesHashMemRefresh I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((clipperYankSalesHashMemRefresh I).readWithPadding
@@ -1440,13 +1434,11 @@ theorem clipperYankX_dogDigsCallSetup {cA σ I} {g : Sat256} {s0 : State}
         ⟨128⟩ :=
     mloadFreePtrValue
       (by rw [clipperYankSalesHashMemRefresh_size I]; decide)
-      (by decide)
       (clipperYankSalesHashMemRefresh_read64 I)
   have hcallMload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
             (clipperDogDigsCalldataMem v (clipperYankSalesTabWord σ I)
-              (clipperYankSalesHashMemRefresh I)).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+              (clipperYankSalesHashMemRefresh I)).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((clipperDogDigsCalldataMem v (clipperYankSalesTabWord σ I)
@@ -1751,8 +1743,7 @@ theorem clipperYankX_inactiveAuctionTail {cA σ I} {g : Sat256} {s0 : State}
     raw dup1 (by clipper_yank_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by clipper_yank_decode)
       mem_cost
-      (mloadFreePtrValue (by rw [clipperYankSalesHashMem_size I]; decide)
-        (by decide) (clipperYankSalesHashMem_read64 I))
+      (mloadFreePtrValue (by rw [clipperYankSalesHashMem_size I]; decide) (clipperYankSalesHashMem_read64 I))
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_yank_decode)

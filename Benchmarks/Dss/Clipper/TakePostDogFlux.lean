@@ -339,25 +339,21 @@ theorem RD.clipperTakePostDogFluxExtcodesizeGuard {code : ByteArray}
   let ilkWord : UInt256 := EVM.Word.ofNat (fromBytesBigEndian ilkBs)
   let vatWord : UInt256 := EVM.Word.ofNat (↑v.vat : Nat)
   have hbaseMload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (mem := mem) (aw := UInt256.ofNat 9)
-      (by rw [hmem]; decide) (by decide) hread64
+    mloadFreePtrValue (mem := mem)
+      (by rw [hmem]; decide) hread64
   have hcallMload64 :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (clipperTakeVatFluxCalldataMem v ee packed lotNew mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+            (clipperTakeVatFluxCalldataMem v ee packed lotNew mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((clipperTakeVatFluxCalldataMem v ee packed lotNew mem).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
     mloadFreePtrValue (mem := clipperTakeVatFluxCalldataMem v ee packed lotNew mem)
-      (aw := UInt256.ofNat 9)
       (by rw [clipperTakeVatFluxCalldataMem_size_260 v ee packed lotNew hmem]; decide)
-      (by decide)
       (clipperTakeVatFluxCalldataMem_read64_260 v ee packed lotNew hmem hread64)
   have rd5030pre := evm_run rd with [
     raw jumpdest (by clipper_runtime_decode) (by evm_ov),

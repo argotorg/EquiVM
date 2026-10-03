@@ -333,13 +333,12 @@ theorem balanceOfOuterHashMem_read64 (owner id : UInt256) :
     balanceOfOuterIdMem_read64]
 
 theorem balanceOfOuterHashMem_mload64 (owner id : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfOuterHashMem owner id).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfOuterHashMem owner id).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((balanceOfOuterHashMem owner id).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [balanceOfOuterHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [balanceOfOuterHashMem_size]; decide)
     (balanceOfOuterHashMem_read64 owner id)
 
 set_option maxHeartbeats 800000 in
@@ -411,13 +410,12 @@ theorem balanceOfReturnMem_read64 (owner id val : UInt256) :
     balanceOfOuterHashMem_read64]
 
 theorem balanceOfReturnMem_mload64 (owner id val : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfReturnMem owner id val).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (balanceOfReturnMem owner id val).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((balanceOfReturnMem owner id val).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [balanceOfReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [balanceOfReturnMem_size]; decide)
     (balanceOfReturnMem_read64 owner id val)
 
 theorem balanceOfReturnMem_read128 (owner id val : UInt256) :

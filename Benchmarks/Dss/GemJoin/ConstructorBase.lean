@@ -299,16 +299,14 @@ theorem gemJoinCtorArgFreeMem_read64 (vat : AccountAddress) (ilk : UInt256)
 
 theorem gemJoinCtorArgFreeMem_mload64 (vat : AccountAddress) (ilk : UInt256)
     (gem : AccountAddress) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (gemJoinCtorArgFreeMem vat ilk gem).size ∨
-        (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (gemJoinCtorArgFreeMem vat ilk gem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((gemJoinCtorArgFreeMem vat ilk gem).readWithPadding 64 32))) =
       ⟨224⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (mem := gemJoinCtorArgFreeMem vat ilk gem) (aw := UInt256.ofNat 7) (off := ⟨64⟩)
+    (mem := gemJoinCtorArgFreeMem vat ilk gem) (off := ⟨64⟩)
     (v := ⟨224⟩)
     (by rw [gemJoinCtorArgFreeMem_size]; decide)
-    (by decide)
     (gemJoinCtorArgFreeMem_read64 vat ilk gem)
 
 theorem gemJoinCtorArgMem_read128 (vat : AccountAddress) (ilk : UInt256)
@@ -441,44 +439,38 @@ theorem gemJoinCtorArgFreeMem_read192 (vat : AccountAddress) (ilk : UInt256)
 
 theorem gemJoinCtorArgFreeMem_mload128 (vat : AccountAddress) (ilk : UInt256)
     (gem : AccountAddress) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (gemJoinCtorArgFreeMem vat ilk gem).size ∨
-        (⟨128⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (gemJoinCtorArgFreeMem vat ilk gem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((gemJoinCtorArgFreeMem vat ilk gem).readWithPadding 128 32))) =
       EVM.word vat.val := by
   exact mloadWordValue_of_readWithPadding
-    (mem := gemJoinCtorArgFreeMem vat ilk gem) (aw := UInt256.ofNat 7) (off := ⟨128⟩)
+    (mem := gemJoinCtorArgFreeMem vat ilk gem) (off := ⟨128⟩)
     (v := EVM.word vat.val)
     (by rw [gemJoinCtorArgFreeMem_size]; decide)
-    (by decide)
     (gemJoinCtorArgFreeMem_read128 vat ilk gem)
 
 theorem gemJoinCtorArgFreeMem_mload160 (vat : AccountAddress) (ilk : UInt256)
     (gem : AccountAddress) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (gemJoinCtorArgFreeMem vat ilk gem).size ∨
-        (⟨160⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (gemJoinCtorArgFreeMem vat ilk gem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((gemJoinCtorArgFreeMem vat ilk gem).readWithPadding 160 32))) =
       ilk := by
   exact mloadWordValue_of_readWithPadding
-    (mem := gemJoinCtorArgFreeMem vat ilk gem) (aw := UInt256.ofNat 7) (off := ⟨160⟩)
+    (mem := gemJoinCtorArgFreeMem vat ilk gem) (off := ⟨160⟩)
     (v := ilk)
     (by rw [gemJoinCtorArgFreeMem_size]; decide)
-    (by decide)
     (gemJoinCtorArgFreeMem_read160 vat ilk gem)
 
 theorem gemJoinCtorArgFreeMem_mload192 (vat : AccountAddress) (ilk : UInt256)
     (gem : AccountAddress) :
-    (if (⟨192⟩ : UInt256).toNat ≥ (gemJoinCtorArgFreeMem vat ilk gem).size ∨
-        (⟨192⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨192⟩ : UInt256).toNat ≥ (gemJoinCtorArgFreeMem vat ilk gem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((gemJoinCtorArgFreeMem vat ilk gem).readWithPadding 192 32))) =
       EVM.word gem.val := by
   exact mloadWordValue_of_readWithPadding
-    (mem := gemJoinCtorArgFreeMem vat ilk gem) (aw := UInt256.ofNat 7) (off := ⟨192⟩)
+    (mem := gemJoinCtorArgFreeMem vat ilk gem) (off := ⟨192⟩)
     (v := EVM.word gem.val)
     (by rw [gemJoinCtorArgFreeMem_size]; decide)
-    (by decide)
     (gemJoinCtorArgFreeMem_read192 vat ilk gem)
 
 abbrev gemJoinCtorCallerWardsSlot (I : ExecutionEnv) : UInt256 :=
@@ -590,16 +582,14 @@ theorem gemJoinCtorWardsHashMem_read64 (I : ExecutionEnv) (vat : AccountAddress)
 
 theorem gemJoinCtorWardsHashMem_mload64 (I : ExecutionEnv) (vat : AccountAddress)
     (ilk : UInt256) (gem : AccountAddress) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (gemJoinCtorWardsHashMem I vat ilk gem).size ∨
-        (⟨64⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (gemJoinCtorWardsHashMem I vat ilk gem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian ((gemJoinCtorWardsHashMem I vat ilk gem).readWithPadding 64 32))) =
       ⟨224⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (mem := gemJoinCtorWardsHashMem I vat ilk gem) (aw := UInt256.ofNat 7) (off := ⟨64⟩)
+    (mem := gemJoinCtorWardsHashMem I vat ilk gem) (off := ⟨64⟩)
     (v := ⟨224⟩)
     (by rw [gemJoinCtorWardsHashMem_size]; decide)
-    (by decide)
     (gemJoinCtorWardsHashMem_read64 I vat ilk gem)
 
 abbrev gemJoinCtorDecimalsSelectorShifted : UInt256 :=

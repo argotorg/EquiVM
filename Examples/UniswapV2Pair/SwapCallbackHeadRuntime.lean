@@ -40,7 +40,7 @@ theorem uniswapSwapCallbackHeadStored
     (rd1911 : RD uniswapV2PairBytecode I g s0 ⟨1911⟩
       (token1 :: token0 :: scratch1 :: scratch0 :: reserve1 :: reserve0 :: dataLen :: dataPtr ::
         toWord :: amount1Out :: amount0Out :: R) mem aw rdata acc k C)
-    (hload : memoryWordLoad mem aw ⟨64⟩ = ptr) (hw64 : memoryWordActiveWords aw ⟨64⟩ = aw)
+    (hload : memoryWordLoad mem ⟨64⟩ = ptr) (hw64 : memoryWordActiveWords aw ⟨64⟩ = aw)
     (hov : R.length + 28 ≤ 1024) :
     ∃ k' C', RD uniswapV2PairBytecode I g s0 ⟨2001⟩
       ((ptr + ⟨132⟩) :: dataLen :: dataPtr :: (ptr + ⟨132⟩) :: (ptr + ⟨100⟩) :: (ptr + ⟨4⟩) ::

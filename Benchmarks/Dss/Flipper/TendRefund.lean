@@ -1566,13 +1566,12 @@ theorem flipperTendX_refundCalldataReady {cA σ I} {g : Sat256} {s0 : State}
     simpa [rawPacked, bidGuyWord, flipperAddressReturnWord] using
       (u256_land_comm solcAddrMask rawPacked)
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ memHash.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memHash.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (memHash.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hhashSize]; decide) (by decide) hhashRead64
+    mloadFreePtrValue (by rw [hhashSize]; decide) hhashRead64
   have rd3523 := evm_run h with [
     raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
@@ -1708,24 +1707,21 @@ theorem flipperTendX_toRefundExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State
     simpa [rawPacked, bidGuyWord, flipperAddressReturnWord] using
       (u256_land_comm solcAddrMask rawPacked)
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ memHash.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memHash.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (memHash.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hhashSize]; decide) (by decide) hhashRead64
+    mloadFreePtrValue (by rw [hhashSize]; decide) hhashRead64
   have hmload64Refund :
       (if (⟨64⟩ : UInt256).toNat ≥
-            (tendVatRefundCallMem memHash σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+            (tendVatRefundCallMem memHash σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((tendVatRefundCallMem memHash σ I).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [tendVatRefundCallMem_size σ I hhashSize]; decide)
-      (by decide) (tendVatRefundCallMem_read64 σ I hhashSize hhashRead64)
+    mloadFreePtrValue (by rw [tendVatRefundCallMem_size σ I hhashSize]; decide) (tendVatRefundCallMem_read64 σ I hhashSize hhashRead64)
   obtain ⟨_, _, rd3520⟩ :=
     flipperTendX_takeRefundBranch hmemSize hmemRead64 hcaller h
   obtain ⟨_, _, rd3587⟩ :=
@@ -2282,23 +2278,21 @@ theorem flipperTendX_toPayExtcodesizeGuardAw8 {cA σ I} {g : Sat256} {s0 : State
     simpa [rawGal, bidGalWord, flipperAddressReturnWord] using
       (u256_land_comm solcAddrMask rawGal)
   have hmload64Hash :
-      (if (⟨64⟩ : UInt256).toNat ≥ (tendPayHashMem mem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (tendPayHashMem mem I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((tendPayHashMem mem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [tendPayHashMem_size_228 I hmemSize]; decide) (by decide)
+    mloadFreePtrValue (by rw [tendPayHashMem_size_228 I hmemSize]; decide)
       (tendPayHashMem_read64_228 I hmemSize hmemRead64)
   have hmload64Pay :
-      (if (⟨64⟩ : UInt256).toNat ≥ (tendVatPayCallMem mem σ I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (tendVatPayCallMem mem σ I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((tendVatPayCallMem mem σ I).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [tendVatPayCallMem_size_228 σ I hmemSize]; decide) (by decide)
+    mloadFreePtrValue (by rw [tendVatPayCallMem_size_228 σ I hmemSize]; decide)
       (tendVatPayCallMem_read64_228 σ I hmemSize hmemRead64)
   have rd3689 := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),

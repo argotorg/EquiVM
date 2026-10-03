@@ -255,16 +255,14 @@ theorem daiCtorArgMem_read128 (chainIdWord : UInt256) :
       zeroes_ofNat_size 32 (by norm_num), toByteArray_size]
 
 theorem daiCtorArgMem_mload128 (chainIdWord : UInt256) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (daiCtorArgMem chainIdWord).size
-        ∨ (⟨128⟩ : UInt256) ≥ (UInt256.ofNat 5) * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (daiCtorArgMem chainIdWord).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian ((daiCtorArgMem chainIdWord).readWithPadding 128 32))) =
       chainIdWord := by
   exact mloadWordValue_of_readWithPadding
-    (mem := daiCtorArgMem chainIdWord) (aw := UInt256.ofNat 5) (off := ⟨128⟩)
+    (mem := daiCtorArgMem chainIdWord) (off := ⟨128⟩)
     (v := chainIdWord)
     (by rw [daiCtorArgMem_size]; decide)
-    (by decide)
     (daiCtorArgMem_read128 chainIdWord)
 
 def daiCtorArgFreeMem (chainIdWord : UInt256) : ByteArray :=
@@ -294,16 +292,14 @@ theorem daiCtorArgFreeMem_read128 (chainIdWord : UInt256) :
   exact daiCtorArgMem_read128 chainIdWord
 
 theorem daiCtorArgFreeMem_mload128 (chainIdWord : UInt256) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (daiCtorArgFreeMem chainIdWord).size
-        ∨ (⟨128⟩ : UInt256) ≥ (UInt256.ofNat 5) * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (daiCtorArgFreeMem chainIdWord).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian ((daiCtorArgFreeMem chainIdWord).readWithPadding 128 32))) =
       chainIdWord := by
   exact mloadWordValue_of_readWithPadding
-    (mem := daiCtorArgFreeMem chainIdWord) (aw := UInt256.ofNat 5) (off := ⟨128⟩)
+    (mem := daiCtorArgFreeMem chainIdWord) (off := ⟨128⟩)
     (v := chainIdWord)
     (by rw [daiCtorArgFreeMem_size]; decide)
-    (by decide)
     (daiCtorArgFreeMem_read128 chainIdWord)
 
 abbrev daiCtorLocals (chainId : Int) : Store :=
@@ -463,17 +459,15 @@ theorem daiCtorWardsHashMem_read64 (I : ExecutionEnv) (chainIdWord : UInt256) :
     (daiCtorArgFreeMem_size chainIdWord) (daiCtorArgFreeMem_read64 chainIdWord)
 
 theorem daiCtorWardsHashMem_mload64 (I : ExecutionEnv) (chainIdWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (daiCtorWardsHashMem I chainIdWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ (UInt256.ofNat 5) * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (daiCtorWardsHashMem I chainIdWord).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((daiCtorWardsHashMem I chainIdWord).readWithPadding 64 32))) =
       ⟨160⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (mem := daiCtorWardsHashMem I chainIdWord) (aw := UInt256.ofNat 5) (off := ⟨64⟩)
+    (mem := daiCtorWardsHashMem I chainIdWord) (off := ⟨64⟩)
     (v := ⟨160⟩)
     (by rw [daiCtorWardsHashMem_size]; decide)
-    (by decide)
     (daiCtorWardsHashMem_read64 I chainIdWord)
 
 theorem daiCtorWardsKeccakSlot (I : ExecutionEnv) (chainIdWord : UInt256) :
@@ -586,17 +580,15 @@ theorem daiCtorDomainNameMem_read64 (I : ExecutionEnv) (chainIdWord : UInt256) :
     (by simp [WindowDisjointFromWrites])
 
 theorem daiCtorDomainNameMem_mload64 (I : ExecutionEnv) (chainIdWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (daiCtorDomainNameMem I chainIdWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ (UInt256.ofNat 7) * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (daiCtorDomainNameMem I chainIdWord).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((daiCtorDomainNameMem I chainIdWord).readWithPadding 64 32))) =
       ⟨224⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (mem := daiCtorDomainNameMem I chainIdWord) (aw := UInt256.ofNat 7) (off := ⟨64⟩)
+    (mem := daiCtorDomainNameMem I chainIdWord) (off := ⟨64⟩)
     (v := ⟨224⟩)
     (by rw [daiCtorDomainNameMem_size]; decide)
-    (by decide)
     (daiCtorDomainNameMem_read64 I chainIdWord)
 
 theorem daiCtorDomainPreMem_read64 (I : ExecutionEnv) (chainIdWord : UInt256) :
@@ -609,17 +601,15 @@ theorem daiCtorDomainPreMem_read64 (I : ExecutionEnv) (chainIdWord : UInt256) :
     (by simp [WindowDisjointFromWrites])
 
 theorem daiCtorDomainPreMem_mload64 (I : ExecutionEnv) (chainIdWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (daiCtorDomainPreMem I chainIdWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ (UInt256.ofNat 9) * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (daiCtorDomainPreMem I chainIdWord).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((daiCtorDomainPreMem I chainIdWord).readWithPadding 64 32))) =
       ⟨288⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (mem := daiCtorDomainPreMem I chainIdWord) (aw := UInt256.ofNat 9) (off := ⟨64⟩)
+    (mem := daiCtorDomainPreMem I chainIdWord) (off := ⟨64⟩)
     (v := ⟨288⟩)
     (by rw [daiCtorDomainPreMem_size]; decide)
-    (by decide)
     (daiCtorDomainPreMem_read64 I chainIdWord)
 
 theorem daiCtorDomainWordsMem_read64 (I : ExecutionEnv) (chainIdWord : UInt256) :
@@ -634,17 +624,15 @@ theorem daiCtorDomainWordsMem_read64 (I : ExecutionEnv) (chainIdWord : UInt256) 
   exact daiCtorDomainPreMem_read64 I chainIdWord
 
 theorem daiCtorDomainWordsMem_mload64 (I : ExecutionEnv) (chainIdWord : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (daiCtorDomainWordsMem I chainIdWord).size
-        ∨ (⟨64⟩ : UInt256) ≥ (UInt256.ofNat 15) * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (daiCtorDomainWordsMem I chainIdWord).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((daiCtorDomainWordsMem I chainIdWord).readWithPadding 64 32))) =
       ⟨288⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (mem := daiCtorDomainWordsMem I chainIdWord) (aw := UInt256.ofNat 15) (off := ⟨64⟩)
+    (mem := daiCtorDomainWordsMem I chainIdWord) (off := ⟨64⟩)
     (v := ⟨288⟩)
     (by rw [daiCtorDomainWordsMem_size]; decide)
-    (by decide)
     (daiCtorDomainWordsMem_read64 I chainIdWord)
 
 theorem daiCtorDomainHashMem_read288 (I : ExecutionEnv) (chainIdWord : UInt256) :
@@ -657,17 +645,15 @@ theorem daiCtorDomainHashMem_read288 (I : ExecutionEnv) (chainIdWord : UInt256) 
     (by simp [WindowDisjointFromWrites])
 
 theorem daiCtorDomainHashMem_mload288 (I : ExecutionEnv) (chainIdWord : UInt256) :
-    (if (⟨288⟩ : UInt256).toNat ≥ (daiCtorDomainHashMem I chainIdWord).size
-        ∨ (⟨288⟩ : UInt256) ≥ (UInt256.ofNat 15) * ⟨32⟩ then ⟨0⟩
+    (if (⟨288⟩ : UInt256).toNat ≥ (daiCtorDomainHashMem I chainIdWord).size then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
           ((daiCtorDomainHashMem I chainIdWord).readWithPadding 288 32))) =
       ⟨160⟩ := by
   exact mloadWordValue_of_readWithPadding
-    (mem := daiCtorDomainHashMem I chainIdWord) (aw := UInt256.ofNat 15) (off := ⟨288⟩)
+    (mem := daiCtorDomainHashMem I chainIdWord) (off := ⟨288⟩)
     (v := ⟨160⟩)
     (by rw [daiCtorDomainHashMem_size]; decide)
-    (by decide)
     (daiCtorDomainHashMem_read288 I chainIdWord)
 
 theorem daiCtorDomainWordsMem_read320 (I : ExecutionEnv) (chainIdWord : UInt256) :
@@ -1197,9 +1183,7 @@ theorem daiCtorArgCodecopyTrace
     push2 ⟨4312⟩, codesize, sub, dup1, push2 ⟨4312⟩, dup4,
     raw codecopy 6 (daiCtorArgMem chainIdWord) (UInt256.ofNat 5)
       (by dai_ctor_decode)
-      (fun s haws hstks => by
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-          List.getElem!_cons_zero, List.getElem!_cons_succ]
+      (by
         rw [daiCtorArgLen_eq]
         decide)
       (by

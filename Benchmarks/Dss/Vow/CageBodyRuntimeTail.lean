@@ -346,23 +346,20 @@ theorem vowCageBodyToMinHeal
         simpa [memSin] using returnWrite_read64 outSin 32 hbaseSin
           hbaseSinRead64 (by omega) ho32Sin
       have hmload64 :
-          (if (⟨64⟩ : UInt256).toNat ≥ memSin.size
-              ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+          (if (⟨64⟩ : UInt256).toNat ≥ memSin.size then ⟨0⟩
            else UInt256.ofNat
              (fromByteArrayBigEndian
               (memSin.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
             ⟨128⟩ :=
-        mloadFreePtrValue (by rw [hmemSin]; decide) (by decide) hread64Sin
+        mloadFreePtrValue (by rw [hmemSin]; decide) hread64Sin
       have hmload128 :
-          (if (⟨128⟩ : UInt256).toNat ≥ memSin.size
-              ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+          (if (⟨128⟩ : UInt256).toNat ≥ memSin.size then ⟨0⟩
            else UInt256.ofNat
              (fromByteArrayBigEndian
               (memSin.readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
             UInt256.ofNat (fromByteArrayBigEndian (outSin.extract 0 32)) := by
         have hnot :
-            ¬ ((⟨128⟩ : UInt256).toNat ≥ memSin.size
-                ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
+            ¬ ((⟨128⟩ : UInt256).toNat ≥ memSin.size) := by
           rw [hmemSin]
           native_decide
         rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide]

@@ -14,9 +14,6 @@ theorem RD.returndatacopySymbolic {code I g s0 pc dest src size R mem aw rdata a
     ∃ k' C', RD code I g s0 (pc + ⟨1⟩) R
       (rdata.write src.toNat mem dest.toNat size.toNat) (expandedWords aw dest size)
       rdata acc k' C' := by
-  refine ⟨_, _, h.returndatacopy (expansionCost aw dest size) _ _ hdec hguard ?_ rfl rfl hov⟩
-  intro s haw hstk
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-  rfl
+  exact ⟨_, _, h.returndatacopy (expansionCost aw dest size) _ _ hdec hguard rfl rfl rfl hov⟩
 
 end Reasoning.Reach

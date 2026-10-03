@@ -242,11 +242,7 @@ theorem weth9SymNameLongReachLoop {cA gh bl σ σ₀ A I} {g : Sat256}
       (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨0⟩]
   have h943 := h942.keccak256 0 weth9SymLongDataBase (UInt256.ofNat 5) (by native_decide)
-    (by intro s haw hstk
-        simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw,
-          List.getElem!_cons_zero, List.getElem!_cons_succ,
-          show (⟨0⟩ : UInt256).toNat = 0 from rfl, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-        native_decide)
+    (by native_decide)
     (weth9SymLongScratchMem_keccak1 _) (by decide) (by evm_ov)
   exact ⟨_, _, evm_run h943 with [swap1]⟩
 
@@ -272,11 +268,7 @@ theorem weth9SymNameLongCopyContinue {cA gh bl σ σ₀ A I}
       m aw ByteArray.empty (cA, σ) k C)
     (hcontinue : UInt256.gt endp ((⟨32⟩ : UInt256) + ptr) ≠ ⟨0⟩)
     (hmemout : (weth9LongStorageWord σ I slot).toByteArray.write 0 m ptr.toNat 32 = memout)
-    (hmstoreCost : ∀ s : State, s.machineState.activeWords = aw →
-      s.machineState.stack =
-        [ptr, weth9LongStorageWord σ I slot, ptr, slot, endp, len, ⟨1⟩, ⟨128⟩,
-          ⟨187⟩, weth9SelWord I] →
-      memoryExpansionCost s .MSTORE = mstoreCost)
+    (hmstoreCost : Cₘ (M aw ptr ⟨32⟩) - Cₘ aw = mstoreCost)
     (hawStore : UInt256.ofNat (MachineState.M aw.toNat ptr.toNat 32) = awStore) :
     ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨944⟩
       [(⟨32⟩ : UInt256) + ptr, (⟨1⟩ : UInt256) + slot, endp, len, ⟨1⟩,
@@ -305,11 +297,7 @@ theorem weth9SymNameLongCopyExit {cA gh bl σ σ₀ A I}
       m aw ByteArray.empty (cA, σ) k C)
     (hdone : UInt256.gt endp ((⟨32⟩ : UInt256) + ptr) = ⟨0⟩)
     (hmemout : (weth9LongStorageWord σ I slot).toByteArray.write 0 m ptr.toNat 32 = memout)
-    (hmstoreCost : ∀ s : State, s.machineState.activeWords = aw →
-      s.machineState.stack =
-        [ptr, weth9LongStorageWord σ I slot, ptr, slot, endp, len, ⟨1⟩, ⟨128⟩,
-          ⟨187⟩, weth9SelWord I] →
-      memoryExpansionCost s .MSTORE = mstoreCost)
+    (hmstoreCost : Cₘ (M aw ptr ⟨32⟩) - Cₘ aw = mstoreCost)
     (hawStore : UInt256.ofNat (MachineState.M aw.toNat ptr.toNat 32) = awStore) :
     ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨187⟩
       [⟨128⟩, ⟨187⟩, weth9SelWord I] memout awStore ByteArray.empty (cA, σ) k C := by
@@ -337,11 +325,7 @@ structure Weth9SymLongLoopStep (σ : AccountMap) (I : ExecutionEnv) (endp len : 
   mstoreCost : Nat
   hcontinue : UInt256.gt endp ((⟨32⟩ : UInt256) + s.ptr) ≠ ⟨0⟩
   hmemout : (weth9LongStorageWord σ I s.slot).toByteArray.write 0 s.mem s.ptr.toNat 32 = t.mem
-  hmstoreCost : ∀ st : State, st.machineState.activeWords = s.aw →
-    st.machineState.stack =
-      [s.ptr, weth9LongStorageWord σ I s.slot, s.ptr, s.slot, endp, len, ⟨1⟩, ⟨128⟩,
-        ⟨187⟩, weth9SelWord I] →
-    memoryExpansionCost st .MSTORE = mstoreCost
+  hmstoreCost : Cₘ (M s.aw s.ptr ⟨32⟩) - Cₘ s.aw = mstoreCost
   hawStore : UInt256.ofNat (MachineState.M s.aw.toNat s.ptr.toNat 32) = t.aw
   hptrNext : t.ptr = (⟨32⟩ : UInt256) + s.ptr
   hslotNext : t.slot = (⟨1⟩ : UInt256) + s.slot
@@ -354,11 +338,7 @@ structure Weth9SymLongLoopFinal (σ : AccountMap) (I : ExecutionEnv) (endp len :
   mstoreCost : Nat
   hdone : UInt256.gt endp ((⟨32⟩ : UInt256) + s.ptr) = ⟨0⟩
   hmemout : (weth9LongStorageWord σ I s.slot).toByteArray.write 0 s.mem s.ptr.toNat 32 = memout
-  hmstoreCost : ∀ st : State, st.machineState.activeWords = s.aw →
-    st.machineState.stack =
-      [s.ptr, weth9LongStorageWord σ I s.slot, s.ptr, s.slot, endp, len, ⟨1⟩, ⟨128⟩,
-        ⟨187⟩, weth9SelWord I] →
-    memoryExpansionCost st .MSTORE = mstoreCost
+  hmstoreCost : Cₘ (M s.aw s.ptr ⟨32⟩) - Cₘ s.aw = mstoreCost
   hawStore : UInt256.ofNat (MachineState.M s.aw.toNat s.ptr.toNat 32) = awStore
 
 /-- Fuel-induction assembly for the symbol copy loop (reaches encoder entry 187). -/
@@ -401,24 +381,12 @@ theorem weth9SymNameLongCopySchedule {cA gh bl σ σ₀ A I} {g : Sat256} {endp 
 /-- The (symbolic) `MSTORE` cost at symbol generated loop state `s` (marker `⟨1⟩`). -/
 def weth9SymLongLoopMstoreCost (σ : AccountMap) (I : ExecutionEnv) (endp len : UInt256)
     (s : Weth9LongLoopState) : Nat :=
-  memoryExpansionCost
-    { (default : State) with
-      machineState := { (default : State).machineState with
-        activeWords := s.aw
-        stack := [s.ptr, weth9LongStorageWord σ I s.slot, s.ptr, s.slot, endp, len, ⟨1⟩,
-          ⟨128⟩, ⟨187⟩, weth9SelWord I] } }
-    .MSTORE
+  Cₘ (M s.aw s.ptr ⟨32⟩) - Cₘ s.aw
 
 theorem weth9SymLongLoopMstoreCost_spec {σ : AccountMap} {I : ExecutionEnv} {endp len : UInt256}
     {s : Weth9LongLoopState} :
-    ∀ st : State, st.machineState.activeWords = s.aw →
-      st.machineState.stack =
-        [s.ptr, weth9LongStorageWord σ I s.slot, s.ptr, s.slot, endp, len, ⟨1⟩, ⟨128⟩,
-          ⟨187⟩, weth9SelWord I] →
-      memoryExpansionCost st .MSTORE = weth9SymLongLoopMstoreCost σ I endp len s := by
-  intro st haw hstk
-  rw [weth9SymLongLoopMstoreCost]
-  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw]
+    Cₘ (M s.aw s.ptr ⟨32⟩) - Cₘ s.aw =
+      weth9SymLongLoopMstoreCost σ I endp len s := rfl
 
 /-- The generated symbol copy-loop state after `n` iterations (base = keccak(slot 1)). -/
 def weth9SymLongGeneratedLoopState (σ : AccountMap) (I : ExecutionEnv) :
@@ -458,9 +426,8 @@ def weth9SymLongGeneratedLoopStep {σ : AccountMap} {I : ExecutionEnv}
     hcontinue := hcontinue
     hmemout := by
       simp only [weth9SymLongGeneratedLoopState_succ, weth9LongCopyMem, Reasoning.Theory.writeWord]
-    hmstoreCost := fun st haw hstk =>
-      weth9SymLongLoopMstoreCost_spec (σ := σ) (I := I) (endp := endp) (len := len)
-        (s := weth9SymLongGeneratedLoopState σ I i) st haw hstk
+    hmstoreCost := weth9SymLongLoopMstoreCost_spec (σ := σ) (I := I) (endp := endp) (len := len)
+      (s := weth9SymLongGeneratedLoopState σ I i)
     hawStore := by simp [weth9SymLongGeneratedLoopState_succ]
     hptrNext := by simp [weth9SymLongGeneratedLoopState_succ]
     hslotNext := by simp [weth9SymLongGeneratedLoopState_succ] }
@@ -479,9 +446,8 @@ def weth9SymLongGeneratedLoopFinal {σ : AccountMap} {I : ExecutionEnv}
     mstoreCost := weth9SymLongLoopMstoreCost σ I endp len (weth9SymLongGeneratedLoopState σ I fuel)
     hdone := hdone
     hmemout := by simp only [weth9LongCopyMem, Reasoning.Theory.writeWord]
-    hmstoreCost := fun st haw hstk =>
-      weth9SymLongLoopMstoreCost_spec (σ := σ) (I := I) (endp := endp) (len := len)
-        (s := weth9SymLongGeneratedLoopState σ I fuel) st haw hstk
+    hmstoreCost := weth9SymLongLoopMstoreCost_spec (σ := σ) (I := I) (endp := endp) (len := len)
+      (s := weth9SymLongGeneratedLoopState σ I fuel)
     hawStore := rfl }
 
 /-! ### Count / termination (slot 1) -/

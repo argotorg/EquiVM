@@ -49,7 +49,7 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesizeOfTail
   have rd7739 := rd7738.mload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords
     (by native_decide)
     mem_cost
-    (mloadFreePtrValue (by dsimp [baseMem]; omega) (by native_decide) hread64)
+    (mloadFreePtrValue (by dsimp [baseMem]; omega) hread64)
     (by native_decide)
     (by simp only [List.length_cons]; omega)
   have rd7750pre := evm_run rd7739 with [
@@ -67,7 +67,7 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesizeOfTail
     (by native_decide)
     mem_cost
     (mloadFreePtrValue
-      (by rw [feeToSelectorMem_size_of_ge160 hmem]; omega) (by native_decide)
+      (by rw [feeToSelectorMem_size_of_ge160 hmem]; omega)
       (feeToSelectorMem_read64_of_ge160 hmem hread64))
     (by native_decide)
     (by simp only [List.length_cons]; omega)
@@ -207,13 +207,9 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCallOfTail
         (by simp only [List.length_cons]; omega)
     exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨7799⟩) (okPc := ⟨7819⟩)
       rd7799 hshort houtFeeSize
-      (fun s haw hstk => by
-        simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
       (by native_decide)
       (mloadFreePtrValue
-        (by rw [feeToStaticcallMem_size_of_ge160 outFee hmem houtFeeSize]; omega)
-        (by native_decide) (feeToStaticcallMem_read64_of_ge160 outFee hmem houtFeeSize hread64))
+        (by rw [feeToStaticcallMem_size_of_ge160 outFee hmem houtFeeSize]; omega) (feeToStaticcallMem_read64_of_ge160 outFee hmem houtFeeSize hread64))
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -232,23 +228,16 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCallOfTail
       RD.solcUint256ReturnWordDecodeOk (pc := ⟨7799⟩) (okPc := ⟨7819⟩)
         (retWord := UInt256.ofNat (fromByteArrayBigEndian (outFee.extract 0 32)))
         rd7799 hout32 houtFeeSize
-        (fun s haw hstk => by
-          simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-          native_decide)
         (by native_decide)
         (mloadFreePtrValue
-        (by rw [feeToStaticcallMem_size_of_ge160 outFee hmem houtFeeSize]; omega)
-        (by native_decide) (feeToStaticcallMem_read64_of_ge160 outFee hmem houtFeeSize hread64))
+        (by rw [feeToStaticcallMem_size_of_ge160 outFee hmem houtFeeSize]; omega) (feeToStaticcallMem_read64_of_ge160 outFee hmem houtFeeSize hread64))
         (by
           rw [if_neg]
           · exact congrArg (fun bytes ↦ UInt256.ofNat (fromByteArrayBigEndian bytes))
               (feeToStaticcallMem_read128_of_ge160 outFee hmem hout32 houtFeeSize)
           · rw [feeToStaticcallMem_size_of_ge160 outFee hmem houtFeeSize]
-            change ¬ (128 ≥ mem.size ∨ (128 : Nat) ≥ 192)
+            change ¬ 128 ≥ mem.size
             omega)
-        (fun s haw hstk => by
-          simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-          native_decide)
         (by native_decide)
         (by native_decide) (by native_decide) (by native_decide) (by native_decide)
         (by native_decide) (by native_decide) (by native_decide) (by native_decide)

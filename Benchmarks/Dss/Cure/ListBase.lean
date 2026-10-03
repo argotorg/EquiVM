@@ -100,28 +100,24 @@ theorem listRoutineMem_read128 (len : UInt256) :
     (by rw [listArrayAllocMem_size]; native_decide)]
 
 theorem listRoutineMem_mload64 (len : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (listRoutineMem len).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (listRoutineMem len).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
          ((listRoutineMem len).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = listArrayFreePtr len := by
   exact mloadWordValue_of_readWithPadding
     (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, listRoutineMem_size]; omega)
-    (by native_decide)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       listRoutineMem_read64 len)
 
 theorem listRoutineMem_mload128 (len : UInt256) :
-    (if listArrayBasePtr.toNat ≥ (listRoutineMem len).size
-        ∨ listArrayBasePtr ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if listArrayBasePtr.toNat ≥ (listRoutineMem len).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
          ((listRoutineMem len).readWithPadding listArrayBasePtr.toNat 32)))
       = len := by
   exact mloadWordValue_of_readWithPadding
     (by rw [show listArrayBasePtr.toNat = 128 from by decide, listRoutineMem_size]; omega)
-    (by native_decide)
     (by simpa [show listArrayBasePtr.toNat = 128 from by decide] using
       listRoutineMem_read128 len)
 
@@ -485,10 +481,9 @@ theorem listArrayHashMem_keccak_slot (len : UInt256) :
     wordAt0Mem_keccak_word (⟨2⟩ : UInt256) (listRoutineMem len)
 
 theorem listArrayCopiedMem_mload64
-    (σ : AccountMap) (ee : ExecutionEnv) (len aw : UInt256) (n : Nat)
-    (haw : ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩) :
+    (σ : AccountMap) (ee : ExecutionEnv) (len : UInt256) (n : Nat) :
     (if (⟨64⟩ : UInt256).toNat ≥ (listArrayCopiedMem σ ee len n).size
-        ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩
+
       then ⟨0⟩
       else UInt256.ofNat
         (fromByteArrayBigEndian
@@ -498,7 +493,6 @@ theorem listArrayCopiedMem_mload64
     (by
       rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, listArrayCopiedMem_size]
       omega)
-    haw
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       listArrayCopiedMem_read64 σ ee len n)
 

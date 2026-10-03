@@ -1429,11 +1429,7 @@ theorem RD.flopperAuctionDeleteTail
     raw dup3 (by native_decide) (by evm_ov)]
   have rd1189 := rd1188.mstore 0 mem1 aw
     (by native_decide)
-    (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by
-        rw [show (⟨0⟩ : UInt256).toNat = 0 from by decide, hMstore0Aw]
-        simp))
+    (memoryExpansionCost_zero_of_aw_stable hMstore0Aw)
     (by simp [mem1, wordAt0Mem])
     hMstore0Aw
     (by evm_ov)
@@ -1445,11 +1441,7 @@ theorem RD.flopperAuctionDeleteTail
     raw swap1 (by native_decide) (by evm_ov)]
   have rd1197 := rd1196pre.mstore 0 mem2 aw
     (by native_decide)
-    (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by
-        rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide, hMstore32Aw]
-        simp))
+    (memoryExpansionCost_zero_of_aw_stable hMstore32Aw)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [mem1, mem2, twoWordHashMem, wordAt32Mem])
@@ -1465,11 +1457,8 @@ theorem RD.flopperAuctionDeleteTail
   have rd1201raw := rd1200pre.keccak256 0 base aw
     (by native_decide)
     (by
-      intro s haws hstks
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      rw [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
-        show (⟨64⟩ : UInt256).toNat = 64 from by decide, hKeccakAw]
+      change Cₘ (UInt256.ofNat (MachineState.M aw.toNat 0 64)) - Cₘ aw = 0
+      rw [hKeccakAw]
       simp)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)

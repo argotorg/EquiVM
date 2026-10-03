@@ -261,7 +261,6 @@ theorem RD.dogRelyStoreOneLog {code : ByteArray} {g : Sat256} {s0 : State}
   have rdMload := rdStore.mload 0 ⟨128⟩ (UInt256.ofNat 3) hd30 mem_cost
     (mloadFreePtrValue
       (by rw [twoWordHashMem_size_96 key ⟨0⟩ hmem]; decide)
-      (by decide)
       (twoWordHashMem_read64 key ⟨0⟩ hmem hread64))
     (by native_decide) (by evm_ov)
   have rdTopic := rdMload.pushConst dogRelyLogTopic

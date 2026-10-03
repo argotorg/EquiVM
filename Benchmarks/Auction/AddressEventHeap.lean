@@ -8,9 +8,9 @@ namespace Auction
 
 theorem addressEventHeap {mem aw ptr} (hm : HeapMemory mem aw ptr) (value : UInt256)
     (hb : ptr.toNat + 32 ≤ 2 ^ 200) :
-    HeapMemory (addressEventMem mem aw value) (addressEventWords mem aw value) ptr := by
-  have hp : addressEventPtr mem aw = ptr := hm.load64
-  have hh : HeapMemory (addressEventMem mem aw value) (addressEventStoredWords mem aw) ptr := by
+    HeapMemory (addressEventMem mem value) (addressEventWords mem aw value) ptr := by
+  have hp : addressEventPtr mem = ptr := hm.load64
+  have hh : HeapMemory (addressEventMem mem value) (addressEventStoredWords mem aw) ptr := by
     simpa only [addressEventMem, addressEventStoredWords, hp, selectorMem,
       Reasoning.Theory.writeWord] using
       selectorMem_heap (hm.expand32 ⟨64⟩ (by decide)) (UInt256.land value solcAddrMask) hb

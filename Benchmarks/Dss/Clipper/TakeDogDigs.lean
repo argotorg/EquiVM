@@ -52,16 +52,14 @@ theorem clipperTakeDogDigsCalldataMem_read64 (v : ClipperImmutables)
 theorem clipperTakeDogDigsCalldataMem_mload64 (v : ClipperImmutables)
     (tab : UInt256) {mem : ByteArray} (hmem : mem.size = 260)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (clipperDogDigsCalldataMem v tab mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (clipperDogDigsCalldataMem v tab mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((clipperDogDigsCalldataMem v tab mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
   exact mloadFreePtrValue
-    (mem := clipperDogDigsCalldataMem v tab mem) (aw := UInt256.ofNat 9)
+    (mem := clipperDogDigsCalldataMem v tab mem)
     (by rw [clipperTakeDogDigsCalldataMem_size v tab hmem]; norm_num)
-    (by decide)
     (clipperTakeDogDigsCalldataMem_read64 v tab hmem hread64)
 
 theorem clipperTakeDogDigsSelectorMem_read128_4 {mem : ByteArray}
@@ -367,17 +365,15 @@ theorem RD.clipperTakeDogDigsOweCallSetupNonzero {code : ByteArray}
   rcases v.ilk_wf with ⟨ilkBs, hilk, hlen⟩
   let ilkWord : UInt256 := EVM.Word.ofNat (fromBytesBigEndian ilkBs)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (mem := mem) (aw := UInt256.ofNat 9)
-      (by rw [hmem]; norm_num) (by native_decide) hread64
+    mloadFreePtrValue (mem := mem)
+      (by rw [hmem]; norm_num) hread64
   have hcallMload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (clipperDogDigsCalldataMem v owe mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (clipperDogDigsCalldataMem v owe mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((clipperDogDigsCalldataMem v owe mem).readWithPadding
@@ -506,17 +502,15 @@ theorem RD.clipperTakeDogDigsOweCallSetupZero {code : ByteArray}
   rcases v.ilk_wf with ⟨ilkBs, hilk, hlen⟩
   let ilkWord : UInt256 := EVM.Word.ofNat (fromBytesBigEndian ilkBs)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (mem := mem) (aw := UInt256.ofNat 9)
-      (by rw [hmem]; norm_num) (by native_decide) hread64
+    mloadFreePtrValue (mem := mem)
+      (by rw [hmem]; norm_num) hread64
   have hcallMload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (clipperDogDigsCalldataMem v owe mem).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (clipperDogDigsCalldataMem v owe mem).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((clipperDogDigsCalldataMem v owe mem).readWithPadding
@@ -909,9 +903,7 @@ theorem RD.clipperYankRemoveIdEqMoveToJoinGeneric {code : ByteArray}
     raw push1 ⟨0⟩ (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8301 := rd8300.mstore (Cₘ aw1 - Cₘ aw) activeMem aw1
     (by clipper_yank_remove_decode)
-    (by
-      intro s hawEq hstk
-      exact mstoreCost_of_stack hawEq hstk (by simp [aw1]))
+    (by rfl)
     (by simp [activeMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have hslot :
       UInt256.ofNat
@@ -927,11 +919,7 @@ theorem RD.clipperYankRemoveIdEqMoveToJoinGeneric {code : ByteArray}
     raw push1 ⟨0⟩ (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8306 := rd8305.keccak256 (Cₘ aw2 - Cₘ aw1) activeDataSlot aw2
     (by clipper_yank_remove_decode)
-    (by
-      intro s hawEq hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hawEq, hstk, aw2,
-        show (⟨0⟩ : UInt256).toNat = 0 from by decide,
-        show (⟨32⟩ : UInt256).toNat = 32 from by decide])
+    (by rfl)
     hslot (by rfl) (by evm_ov)
   have rd8307pre := evm_run rd8306 with [
     raw add (by clipper_yank_remove_decode) (by evm_ov)]
@@ -1018,9 +1006,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
     raw dup2 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8396 := rd8395pre.mstore (Cₘ aw1 - Cₘ aw) activeMem aw1
     (by clipper_yank_remove_decode)
-    (by
-      intro s hawEq hstk
-      exact mstoreCost_of_stack hawEq hstk (by simp [aw1]))
+    (by rfl)
     (by simp [activeMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have hslot :
       UInt256.ofNat
@@ -1037,11 +1023,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
     raw dup3 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8401 := rd8400pre.keccak256 (Cₘ aw2 - Cₘ aw1) activeDataSlot aw2
     (by clipper_yank_remove_decode)
-    (by
-      intro s hawEq hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hawEq, hstk, aw2,
-        show (⟨0⟩ : UInt256).toNat = 0 from by decide,
-        show (⟨32⟩ : UInt256).toNat = 32 from by decide])
+    (by rfl)
     hslot (by rfl) (by evm_ov)
   have rd8411pre := evm_run rd8401 with [
     raw dup4 (by clipper_yank_remove_decode) (by evm_ov),
@@ -1096,9 +1078,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
     raw dup2 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8421 := rd8420pre.mstore (Cₘ aw3 - Cₘ aw2) saleKeyMem aw3
     (by clipper_yank_remove_decode)
-    (by
-      intro s hawEq hstk
-      exact mstoreCost_of_stack hawEq hstk (by simp [aw3]))
+    (by rfl)
     (by simp [saleKeyMem, wordAt0Mem]) (by rfl) (by evm_ov)
   have rd8425pre := evm_run rd8421 with [
     raw push1 ⟨12⟩ (by clipper_yank_remove_decode) (by evm_ov),
@@ -1106,10 +1086,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
     raw swap3 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8426 := rd8425pre.mstore (Cₘ aw4 - Cₘ aw3) saleHashMem aw4
     (by clipper_yank_remove_decode)
-    (by
-      intro s hawEq hstk
-      exact mstoreCost_of_stack hawEq hstk (by
-        simp [aw4, show (⟨32⟩ : UInt256).toNat = 32 from by decide]))
+    (by rfl)
     (by rfl) (by rfl) (by evm_ov)
   have hbase :
       UInt256.ofNat
@@ -1132,11 +1109,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
     raw dup2 (by clipper_yank_remove_decode) (by evm_ov)]
   have rd8431hash := rd8431.keccak256 (Cₘ aw5 - Cₘ aw4) base aw5
     (by clipper_yank_remove_decode)
-    (by
-      intro s hawEq hstk
-      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hawEq, hstk, aw5,
-        show (⟨0⟩ : UInt256).toNat = 0 from by decide,
-        show (⟨64⟩ : UInt256).toNat = 64 from by decide])
+    (by rfl)
     hbase (by rfl) (by evm_ov)
   have rd8433pre := evm_run rd8431hash with [
     raw dup2 (by clipper_yank_remove_decode) (by evm_ov),

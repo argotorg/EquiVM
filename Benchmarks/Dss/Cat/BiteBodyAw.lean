@@ -156,37 +156,31 @@ theorem catBiteReachPostUrnsAw {cA gh bl σ σ₀ A I} {g : UInt256}
   have h164Aw : UInt256.ofNat (MachineState.M aw.toNat 164 32) = aw := awInv32 aw (by omega)
   have h192Aw : UInt256.ofNat (MachineState.M aw.toNat 192 32) = aw := awInv32 aw (by omega)
   have h256Aw : UInt256.ofNat (MachineState.M aw.toNat 256 32) = aw := awInv32 aw (by omega)
-  have hV64 : (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+  have hV64 : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩ :=
-    mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨128⟩) (by show (64 : ℕ) < mem.size; omega)
-      (hnotge ⟨64⟩ (by decide)) (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; exact hFree64)
-  have hVRate : (if (⟨160⟩ : UInt256).toNat ≥ mem.size ∨ (⟨160⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+    mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨128⟩) (by show (64 : ℕ) < mem.size; omega) (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; exact hFree64)
+  have hVRate : (if (⟨160⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 160 32))) = iRate :=
-    mloadWordValue_of_readWithPadding (off := ⟨160⟩) (v := iRate) (by show (160 : ℕ) < mem.size; omega)
-      (hnotge ⟨160⟩ (by decide)) (by rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide]; exact hRate)
-  have hVSpot : (if (⟨192⟩ : UInt256).toNat ≥ mem.size ∨ (⟨192⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+    mloadWordValue_of_readWithPadding (off := ⟨160⟩) (v := iRate) (by show (160 : ℕ) < mem.size; omega) (by rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide]; exact hRate)
+  have hVSpot : (if (⟨192⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 192 32))) = iSpot :=
-    mloadWordValue_of_readWithPadding (off := ⟨192⟩) (v := iSpot) (by show (192 : ℕ) < mem.size; omega)
-      (hnotge ⟨192⟩ (by decide)) (by rw [show (⟨192⟩ : UInt256).toNat = 192 from by decide]; exact hSpot)
-  have hVDust : (if (⟨256⟩ : UInt256).toNat ≥ mem.size ∨ (⟨256⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+    mloadWordValue_of_readWithPadding (off := ⟨192⟩) (v := iSpot) (by show (192 : ℕ) < mem.size; omega) (by rw [show (⟨192⟩ : UInt256).toNat = 192 from by decide]; exact hSpot)
+  have hVDust : (if (⟨256⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding 256 32))) = iDust :=
-    mloadWordValue_of_readWithPadding (off := ⟨256⟩) (v := iDust) (by show (256 : ℕ) < mem.size; omega)
-      (hnotge ⟨256⟩ (by decide)) (by rw [show (⟨256⟩ : UInt256).toNat = 256 from by decide]; exact hDust)
+    mloadWordValue_of_readWithPadding (off := ⟨256⟩) (v := iDust) (by show (256 : ℕ) < mem.size; omega) (by rw [show (⟨256⟩ : UInt256).toNat = 256 from by decide]; exact hDust)
   obtain ⟨_, _, rd1289⟩ := catBiteTraceSeg2a rd hstatus ho160 hosz hV64 (mloadCost0 h64Aw) h64Aw (by simp)
   obtain ⟨_, _, rd1306⟩ := catBiteTraceSeg2b rd1289 hVRate (mloadCost0 h160Aw) h160Aw
     hVSpot (mloadCost0 h192Aw) h192Aw hVDust (mloadCost0 h256Aw) h256Aw (by simp)
   obtain ⟨_, _, rd1344⟩ := catBiteTraceSeg2c1 rd1306 hV64 (mloadCost0 h64Aw) h64Aw
     (mstoreCost0 h128Aw) h128Aw (mstoreCost0 h132Aw) h132Aw (mstoreCost0 h164Aw) h164Aw (by simp)
   have hV64' : (if (⟨64⟩ : UInt256).toNat ≥
-        (biteUrnsCalldataMem (biteIlkWord I) (UInt256.land biteAddrMaskWord urn) mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+        (biteUrnsCalldataMem (biteIlkWord I) (UInt256.land biteAddrMaskWord urn) mem).size then ⟨0⟩
       else UInt256.ofNat (fromByteArrayBigEndian
         ((biteUrnsCalldataMem (biteIlkWord I) (UInt256.land biteAddrMaskWord urn) mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
     mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨128⟩)
       (by rw [biteUrnsCalldataMem_size (by omega)]; show (64 : ℕ) < mem.size; omega)
-      (hnotge ⟨64⟩ (by decide))
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
         biteUrnsCalldataMem_read64 (by omega) hFree64])
   obtain ⟨_, _, rd1383⟩ := catBiteTraceSeg2c2 rd1344 hV64' (mloadCost0 h64Aw) h64Aw (by simp)
@@ -236,11 +230,10 @@ theorem catBiteReachSeg6Aw {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1620⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem ⟨9⟩ o (cA', σ') k C)
     (hqNat : q.toNat = 224)
-    (hFp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ (⟨9⟩ : UInt256) * ⟨32⟩ then ⟨0⟩
+    (hFp : (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = fp)
-    (hQ : (if (⟨64⟩ : UInt256).toNat ≥ (catBiteScratchMem mem fp ilk).size
-          ∨ (⟨64⟩ : UInt256) ≥ (⟨9⟩ : UInt256) * ⟨32⟩ then ⟨0⟩
+    (hQ : (if (⟨64⟩ : UInt256).toNat ≥ (catBiteScratchMem mem fp ilk).size then ⟨0⟩
        else UInt256.ofNat (fromByteArrayBigEndian
         ((catBiteScratchMem mem fp ilk).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
         = q)
@@ -291,14 +284,14 @@ theorem catBiteReachSeg6Aw {cA gh bl σ σ₀ A I} {g : UInt256}
   have rd3818 := rd1627.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd3819 := rd3818.jumpdest (by native_decide) (by evm_ov)
   have rd3821 := rd3819.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd3822 := RD.mload 0 fp ⟨9⟩ rd3821 (by native_decide) (catBiteMloadCost0 hM64) hFp hM64
+  have rd3822 := RD.mload 0 fp ⟨9⟩ rd3821 (by native_decide) (memoryExpansionCost_zero_of_aw_stable hM64) hFp hM64
     (by evm_ov)
   have rd3823 := rd3822.dup1 (by native_decide) (by evm_ov)
   have rd3825 := rd3823.push1 ⟨96⟩ (by native_decide) (by evm_ov)
   have rd3826 := rd3825.add (by native_decide) (by evm_ov)
   have rd3828 := rd3826.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rd3829 := RD.mstore 0 ((UInt256.toByteArray (⟨96⟩ + fp)).write 0 mem 64 32) ⟨9⟩ rd3828
-    (by native_decide) (catBiteMstoreCost0 hM64) (by rfl) hM64 (by evm_ov)
+    (by native_decide) (memoryExpansionCost_zero_of_aw_stable hM64) (by rfl) hM64 (by evm_ov)
   have rd3830 := rd3829.dup1 (by native_decide) (by evm_ov)
   have rd3832 := rd3830.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd3834 := rd3832.push1 ⟨1⟩ (by native_decide) (by evm_ov)
@@ -311,7 +304,7 @@ theorem catBiteReachSeg6Aw {cA gh bl σ σ₀ A I} {g : UInt256}
   have rd3842 := rd3841.dup2 (by native_decide) (by evm_ov)
   have rd3843 := RD.mstore 0 ((UInt256.toByteArray ⟨0⟩).write 0
       ((UInt256.toByteArray (⟨96⟩ + fp)).write 0 mem 64 32) fp.toNat 32) ⟨9⟩ rd3842
-    (by native_decide) (catBiteMstoreCost0 hMfp) (by rfl) hMfp (by evm_ov)
+    (by native_decide) (memoryExpansionCost_zero_of_aw_stable hMfp) (by rfl) hMfp (by evm_ov)
   have rd3845 := rd3843.push1 ⟨32⟩ (by native_decide) (by evm_ov)
   have rd3846 := rd3845.add (by native_decide) (by evm_ov)
   have rd3848 := rd3846.push1 ⟨0⟩ (by native_decide) (by evm_ov)
@@ -320,13 +313,13 @@ theorem catBiteReachSeg6Aw {cA gh bl σ σ₀ A I} {g : UInt256}
       ((UInt256.toByteArray ⟨0⟩).write 0
         ((UInt256.toByteArray (⟨96⟩ + fp)).write 0 mem 64 32) fp.toNat 32)
       (⟨32⟩ + fp).toNat 32) ⟨9⟩ rd3849
-    (by native_decide) (catBiteMstoreCost0 hM32fp) (by rfl) hM32fp (by evm_ov)
+    (by native_decide) (memoryExpansionCost_zero_of_aw_stable hM32fp) (by rfl) hM32fp (by evm_ov)
   have rd3852 := rd3850.push1 ⟨32⟩ (by native_decide) (by evm_ov)
   have rd3853 := rd3852.add (by native_decide) (by evm_ov)
   have rd3855 := rd3853.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd3856 := rd3855.dup2 (by native_decide) (by evm_ov)
   have rd3857 := RD.mstore 0 (catBiteHelperMem mem fp) ⟨9⟩ rd3856
-    (by native_decide) (catBiteMstoreCost0 hM64fp) (by rfl) hM64fp (by evm_ov)
+    (by native_decide) (memoryExpansionCost_zero_of_aw_stable hM64fp) (by rfl) hM64fp (by evm_ov)
   have rd3858 := rd3857.pop (by native_decide) (by evm_ov)
   have rd3859 := rd3858.swap1 (by native_decide) (by evm_ov)
   have rd1628 := rd3859.jump (by native_decide) (by jump_dest) (by evm_ov)
@@ -336,13 +329,13 @@ theorem catBiteReachSeg6Aw {cA gh bl σ σ₀ A I} {g : UInt256}
   have rd1633 := rd1632.dup9 (by native_decide) (by evm_ov)
   have rd1634 := rd1633.dup2 (by native_decide) (by evm_ov)
   have rd1635 := RD.mstore 0 ((UInt256.toByteArray ilk).write 0 (catBiteHelperMem mem fp) 0 32)
-    ⟨9⟩ rd1634 (by native_decide) (catBiteMstoreCost0 hM0) (by rfl) hM0 (by evm_ov)
+    ⟨9⟩ rd1634 (by native_decide) (memoryExpansionCost_zero_of_aw_stable hM0) (by rfl) hM0 (by evm_ov)
   have rd1637 := rd1635.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   have rd1639 := rd1637.push1 ⟨32⟩ (by native_decide) (by evm_ov)
   have rd1640 := rd1639.dup2 (by native_decide) (by evm_ov)
   have rd1641 := rd1640.dup2 (by native_decide) (by evm_ov)
   have rd1642 := RD.mstore 0 (catBiteScratchMem mem fp ilk) ⟨9⟩ rd1641
-    (by native_decide) (catBiteMstoreCost0 hM32) (by rfl) hM32 (by evm_ov)
+    (by native_decide) (memoryExpansionCost_zero_of_aw_stable hM32) (by rfl) hM32 (by evm_ov)
   have rd1644 := rd1642.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rd1645 := rd1644.dup1 (by native_decide) (by evm_ov)
   have rd1646 := rd1645.dup5 (by native_decide) (by evm_ov)
@@ -352,7 +345,7 @@ theorem catBiteReachSeg6Aw {cA gh bl σ σ₀ A I} {g : UInt256}
       show (⟨64⟩ : UInt256).toNat = 64 from by decide, hKec]; exact mappingSlot_single ilk ⟨1⟩)
     hMkec (by evm_ov)
   have rd1648 := rd1647.dup2 (by native_decide) (by evm_ov)
-  have rd1649 := RD.mload 0 q ⟨9⟩ rd1648 (by native_decide) (catBiteMloadCost0 hM64) hQ hM64
+  have rd1649 := RD.mload 0 q ⟨9⟩ rd1648 (by native_decide) (memoryExpansionCost_zero_of_aw_stable hM64) hQ hM64
     (by evm_ov)
   have rd1651 := rd1649.push1 ⟨96⟩ (by native_decide) (by evm_ov)
   have rd1652 := rd1651.dup2 (by native_decide) (by evm_ov)
@@ -360,7 +353,7 @@ theorem catBiteReachSeg6Aw {cA gh bl σ σ₀ A I} {g : UInt256}
   have rd1654 := rd1653.dup4 (by native_decide) (by evm_ov)
   have rd1655 := RD.mstore 0 ((UInt256.toByteArray (q + ⟨96⟩)).write 0
       (catBiteScratchMem mem fp ilk) 64 32) ⟨9⟩ rd1654
-    (by native_decide) (catBiteMstoreCost0 hM64) (by rfl) hM64 (by evm_ov)
+    (by native_decide) (memoryExpansionCost_zero_of_aw_stable hM64) (by rfl) hM64 (by evm_ov)
   have rd1656 := rd1655.dup2 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1657⟩ := rd1656.sload (by native_decide) (by evm_ov)
   have rd1659 := rd1657.push1 ⟨1⟩ (by native_decide) (by evm_ov)
@@ -373,7 +366,7 @@ theorem catBiteReachSeg6Aw {cA gh bl σ σ₀ A I} {g : UInt256}
   have rd1668 := RD.mstore 0 ((UInt256.toByteArray
       (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk)))).write 0
       ((UInt256.toByteArray (q + ⟨96⟩)).write 0 (catBiteScratchMem mem fp ilk) 64 32) q.toNat 32)
-    ⟨9⟩ rd1667 (by native_decide) (catBiteMstoreCost0 hMq) (by rfl) hMq (by evm_ov)
+    ⟨9⟩ rd1667 (by native_decide) (memoryExpansionCost_zero_of_aw_stable hMq) (by rfl) hMq (by evm_ov)
   have rd1669 := rd1668.swap4 (by native_decide) (by evm_ov)
   have rd1670 := rd1669.dup2 (by native_decide) (by evm_ov)
   have rd1671 := rd1670.add (by native_decide) (by evm_ov)
@@ -390,7 +383,7 @@ theorem catBiteReachSeg6Aw {cA gh bl σ σ₀ A I} {g : UInt256}
         (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk)))).write 0
         ((UInt256.toByteArray (q + ⟨96⟩)).write 0 (catBiteScratchMem mem fp ilk) 64 32) q.toNat 32)
       (q + ⟨32⟩).toNat 32) ⟨9⟩ rd1678
-    (by native_decide) (catBiteMstoreCost0 hMq32) (by rfl) hMq32 (by evm_ov)
+    (by native_decide) (memoryExpansionCost_zero_of_aw_stable hMq32) (by rfl) hMq32 (by evm_ov)
   have rd1681 := rd1679.push1 ⟨2⟩ (by native_decide) (by evm_ov)
   have rd1682 := rd1681.swap1 (by native_decide) (by evm_ov)
   have rd1683 := rd1682.swap2 (by native_decide) (by evm_ov)
@@ -405,7 +398,7 @@ theorem catBiteReachSeg6Aw {cA gh bl σ σ₀ A I} {g : UInt256}
       (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩))
       (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩))) ⟨10⟩ rd1688
     (by native_decide)
-    (fun s hs hst => mstoreCost_of_stack hs hst (by rw [hDunkOff]; native_decide))
+    (by norm_num [M, MachineState.M, Cₘ, hDunkOff] <;> native_decide)
     (by rfl) (by rw [hDunkOff]; native_decide) (by evm_ov)
   have rd1691 := rd1689.push1 ⟨5⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1692⟩ := rd1691.sload (by native_decide) (by evm_ov)
@@ -460,12 +453,10 @@ theorem catBiteAwStepL_toNat (aw : UInt256) (off : ℕ)
     (catBiteAwStepL aw off).toNat = MachineState.M aw.toNat off 32 := by
   unfold catBiteAwStepL; exact UInt256.toNat_ofNat_of_lt hb
 
-theorem catBiteMstoreCostML {aw off val : UInt256} {t : List UInt256} :
-    ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = off :: val :: t →
-      memoryExpansionCost s .MSTORE
-        = Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)) - Cₘ aw := by
-  intro s haw hstk
-  simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
+theorem catBiteMstoreCostML {aw off : UInt256} :
+    Cₘ (M aw off ⟨32⟩) - Cₘ aw =
+      Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)) - Cₘ aw := by
+  rfl
 
 /-- Void-`CALL` active-words collapse (parametric `inSize`, `outSize=0`): the `grab`/`fess`/`kick`
 void `CALL`'s post active-words `M (M awF·toNat p inSize) p 0` collapse back to `awF` when `awF`
@@ -578,11 +569,8 @@ theorem catBiteTraceGrabBuildAw {cA gh bl σ σ₀ A I} {g : UInt256}
         iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd2081raw
   have rd2083 := rd2081.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rd2084d := rd2083.dup1 (by native_decide) (by evm_ov)
-  have rd2085 := RD.mload 0 p aw rd2084d (by native_decide) (catBiteMloadCost0 hM64)
+  have rd2085 := RD.mload 0 p aw rd2084d (by native_decide) (memoryExpansionCost_zero_of_aw_stable hM64)
     (mloadWordValue_of_readWithPadding (by rw [h64]; omega)
-      (by intro hh; have hle : (aw * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
-          rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-            Nat.mod_eq_of_lt hawsz, h64] at hle; omega)
       (by rw [h64]; exact hFree64)) hM64 (by evm_ov)
   have rd2090 := rd2085.push4 ⟨32419069⟩ (by native_decide) (by evm_ov)
   have rd2092 := rd2090.push1 ⟨230⟩ (by native_decide) (by evm_ov)
@@ -650,16 +638,12 @@ theorem catBiteTraceGrabBuildAw {cA gh bl σ σ₀ A I} {g : UInt256}
     rfl hcol7 (by evm_ov)
   have rd2149 := rd2148.swap1 (by native_decide) (by evm_ov)
   have rd2150 := RD.mload 0 p (catBiteAwStepL aw (p + ⟨164⟩).toNat) rd2149 (by native_decide)
-    (catBiteMloadCost0 hM7out)
+    (memoryExpansionCost_zero_of_aw_stable hM7out)
     (mloadWordValue_of_readWithPadding
       (by rw [h64]
           have hsz := catBiteGrabCalldataMemP_size p ilk urn (UInt256.ofNat I.codeOwner.val)
             (solcSlotWord σ' I ⟨4⟩) dink dart hpmem (by omega)
           omega)
-      (by intro hh
-          have hle : (catBiteAwStepL aw (p + ⟨164⟩).toNat * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
-          rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-            Nat.mod_eq_of_lt haw7sz, h64] at hle; omega)
       (by rw [h64,
             catBiteGrabCalldataMemP_read64 p ilk urn (UInt256.ofNat I.codeOwner.val)
               (solcSlotWord σ' I ⟨4⟩) dink dart hp96 hpmem (by omega)]
@@ -749,11 +733,8 @@ theorem catBiteTraceFessBuildAw {cA gh bl σ σ₀ A I} {g : UInt256}
     rw [usub_toNat (by rw [he]; omega), he, show (⟨36⟩ : UInt256).toNat = 36 from by decide]; omega
   have rd2243 := rd.jumpdest (by native_decide) (by evm_ov)
   have rd2245 := rd2243.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd2246 := RD.mload 0 p2 aw rd2245 (by native_decide) (catBiteMloadCost0 hM64)
+  have rd2246 := RD.mload 0 p2 aw rd2245 (by native_decide) (memoryExpansionCost_zero_of_aw_stable hM64)
     (mloadWordValue_of_readWithPadding (by rw [h64]; omega)
-      (by intro hh; have hle : (aw * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
-          rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-            Nat.mod_eq_of_lt hawsz, h64] at hle; omega)
       (by rw [h64]; exact hFree64)) hM64 (by evm_ov)
   have rd2247 := rd2246.dup3 (by native_decide) (by evm_ov)
   have rd2252 := rd2247.push4 ⟨4294967295⟩ (by native_decide) (by evm_ov)
@@ -779,15 +760,11 @@ theorem catBiteTraceFessBuildAw {cA gh bl σ σ₀ A I} {g : UInt256}
   have rd2271 := rd2270.push1 ⟨0⟩ (by native_decide) (by evm_ov)
   have rd2273 := rd2271.push1 ⟨64⟩ (by native_decide) (by evm_ov)
   have rd2275 := RD.mload 0 p2 (catBiteAwStepL aw (⟨4⟩ + p2).toNat) rd2273 (by native_decide)
-    (catBiteMloadCost0 hMFout)
+    (memoryExpansionCost_zero_of_aw_stable hMFout)
     (mloadWordValue_of_readWithPadding
       (by rw [h64]
           have hsz := catBiteFessCalldataMemP_size p2 dartRate hpmem (by omega)
           omega)
-      (by intro hh
-          have hle : (catBiteAwStepL aw (⟨4⟩ + p2).toNat * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
-          rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-            Nat.mod_eq_of_lt hawFsz, h64] at hle; omega)
       (by rw [h64, catBiteFessCalldataMemP_read64 p2 dartRate hp96 hpmem (by omega)]
           exact hFree64)) hMFout (by evm_ov)
   have rd2276 := rd2275.dup1 (by native_decide) (by evm_ov)

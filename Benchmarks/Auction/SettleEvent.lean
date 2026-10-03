@@ -31,15 +31,15 @@ theorem settleEvent {I g s0 s snap ptr ret R mem aw rdata acc k C}
     (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 13 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g s0 ret R (settleEventMem mem ptr s)
       (settleEventWords aw ptr) rdata acc k' C' := by
-  have hl0 : loadedWord mem aw snap = s.nounId := by
-    have hl : loadedWord mem aw (snap + ⟨0⟩) = s.nounId := hsm.load ⟨0, by decide⟩
+  have hl0 : loadedWord mem snap = s.nounId := by
+    have hl : loadedWord mem (snap + ⟨0⟩) = s.nounId := hsm.load ⟨0, by decide⟩
     rwa [u256_add_comm snap ⟨0⟩, u256_zero_add] at hl
   have ha0 : expandedWords aw snap ⟨32⟩ = aw := by
     have hl : expandedWords aw (snap + ⟨0⟩) ⟨32⟩ = aw := hsm.expand_eq ⟨0, by decide⟩
     rwa [u256_add_comm snap ⟨0⟩, u256_zero_add] at hl
-  have hl4 : loadedWord mem aw (snap + ⟨128⟩) = s.bidderWord := hsm.load ⟨4, by decide⟩
+  have hl4 : loadedWord mem (snap + ⟨128⟩) = s.bidderWord := hsm.load ⟨4, by decide⟩
   have ha4 : expandedWords aw (snap + ⟨128⟩) ⟨32⟩ = aw := hsm.expand_eq ⟨4, by decide⟩
-  have hl1 : loadedWord mem aw (snap + ⟨32⟩) = s.amount := hsm.load ⟨1, by decide⟩
+  have hl1 : loadedWord mem (snap + ⟨32⟩) = s.amount := hsm.load ⟨1, by decide⟩
   have ha1 : expandedWords aw (snap + ⟨32⟩) ⟨32⟩ = aw := hsm.expand_eq ⟨1, by decide⟩
   have rd4691 := evm_run h with [jumpdest, dup1,
     raw mloadSymbolic (by native_decide) (by evm_ov)]

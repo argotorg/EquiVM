@@ -14,14 +14,12 @@ theorem RD.solcUint256ReturnWordDecodeDynamicOk {code : ByteArray} {ee : Executi
     (hlo : 32 ≤ o.size) (hhi : o.size < UInt256.size)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ptr)
     (hMloadPtrValue :
-      (if ptr.toNat ≥ mem.size
-          ∨ ptr ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if ptr.toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding ptr.toNat 32))) =
         retWord)
@@ -115,8 +113,7 @@ theorem RD.solcUint256ReturnWordDecodeDynamicShortReverts {code : ByteArray} {ee
     (hshort : o.size < 32) (hhi : o.size < UInt256.size)
     (hMload64Aw : UInt256.ofNat (MachineState.M aw.toNat 64 32) = aw)
     (hMload64Value :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ptr)

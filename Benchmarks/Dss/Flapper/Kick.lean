@@ -2544,8 +2544,7 @@ theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
   have rd4253 := rd4251pre.mstore 0 memKey (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memKey, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -2556,8 +2555,7 @@ theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
   have rd4258 := rd4257pre.mstore 0 memStore (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memStore, id, twoWordHashMem, wordAt32Mem])
@@ -2573,11 +2571,7 @@ theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id (relyAuthHashMem I)
   have rd4262 := rd4261pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -2858,8 +2852,7 @@ theorem flapperKickX_toMoveSetupStart {cA σ I} {g : Sat256} {s0 : State}
   have rd4325 := rd4323pre.mstore 0 (wordAt0Mem id memStore) (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by simp [memStore, id, wordAt0Mem])
     (by native_decide)
     (by evm_ov)
@@ -2869,8 +2862,7 @@ theorem flapperKickX_toMoveSetupStart {cA σ I} {g : Sat256} {s0 : State}
   have rd4330 := rd4329pre.mstore 0 memEndStore (UInt256.ofNat 3)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memEndStore, memStore, id, twoWordHashMem, wordAt32Mem])
@@ -2887,11 +2879,7 @@ theorem flapperKickX_toMoveSetupStart {cA σ I} {g : Sat256} {s0 : State}
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStore
   have rd4335 := rd4333pre.keccak256 0 base (UInt256.ofNat 3)
     (by native_decide)
-    (by
-      intro s haw hstk
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+    (by native_decide)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
     (by native_decide)
@@ -3020,13 +3008,12 @@ theorem flapperKickX_toMoveExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
     simpa [memEndStore, memStore, id] using
       twoWordHashMem_read64 id ⟨1⟩ hmemStore hread64Store
   have hmload64End :
-      (if (⟨64⟩ : UInt256).toNat ≥ memEndStore.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memEndStore.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (memEndStore.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemEnd]; decide) (by decide) hread64End
+    mloadFreePtrValue (by rw [hmemEnd]; decide) hread64End
   have hcallMem :
       (cageMoveCalldataMem src guy rad memEndStore).size = 228 := by
     simpa [cageMoveCalldataMem, src, guy, rad, memEndStore] using
@@ -3037,14 +3024,13 @@ theorem flapperKickX_toMoveExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
     simpa [cageMoveCalldataMem, src, guy, rad, memEndStore] using
       Benchmarks.Dss.Flopper.dentMoveCalldataMem_read64 src guy rad hmemEnd hread64End
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ (cageMoveCalldataMem src guy rad memEndStore).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (cageMoveCalldataMem src guy rad memEndStore).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           ((cageMoveCalldataMem src guy rad memEndStore).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have rd4446 := evm_run h with [
     raw dup3 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
@@ -3156,15 +3142,13 @@ theorem RD.flapperKickReturnWordFromMem8 {cA σ I} {g : Sat256} {s0 : State}
     (h : RD flapperBytecode I g s0 ⟨313⟩ [id, sel] mem (UInt256.ofNat 8) rdata
       (cA, σ) k C)
     (hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ mem.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ mem.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
     (hmemout : (UInt256.toByteArray id).write 0 mem 128 32 = memout)
     (hmemoutLoad64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ memout.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memout.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memout.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩)
@@ -3440,12 +3424,11 @@ theorem flapperKickX_moveCallSuccess
       Benchmarks.Dss.Flopper.dentMoveCalldataMem_read64
         (kickSenderWord I) (kickThisWord I) (kickLotWord I) hmemEnd hread64End
   have hmload64Call :
-      (if (⟨64⟩ : UInt256).toNat ≥ memCall.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memCall.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memCall.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
+    mloadFreePtrValue (by rw [hcallMem]; decide) hcallRead64
   have hmemEventSize : memEvent.size = 228 := by
     simpa [memEvent, Benchmarks.Dss.Flopper.kickEventMem] using
       writeCascade_size_of_base memCall
@@ -3465,12 +3448,11 @@ theorem flapperKickX_moveCallSuccess
     rw [hpres]
     exact hcallRead64
   have hmload64Event :
-      (if (⟨64⟩ : UInt256).toNat ≥ memEvent.size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ memEvent.size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian (memEvent.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmemEventSize]; decide) (by decide) hread64Event
+    mloadFreePtrValue (by rw [hmemEventSize]; decide) hread64Event
   have hreturnMemSize :
       ((UInt256.toByteArray id).write 0 memEvent 128 32).size = 228 := by
     exact toByteArray_write32_size_of_le memEvent id 128 228 228 hmemEventSize
@@ -3485,14 +3467,13 @@ theorem flapperKickX_moveCallSuccess
     exact hread64Event
   have hmload64Return :
       (if (⟨64⟩ : UInt256).toNat ≥
-            ((UInt256.toByteArray id).write 0 memEvent 128 32).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+            ((UInt256.toByteArray id).write 0 memEvent 128 32).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian
           (((UInt256.toByteArray id).write 0 memEvent 128 32).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hreturnMemSize]; decide) (by decide) hreturnRead64
+    mloadFreePtrValue (by rw [hreturnMemSize]; decide) hreturnRead64
   have hread128 :
       ((UInt256.toByteArray id).write 0 memEvent 128 32).readWithPadding 128 32 =
         UInt256.toByteArray id :=
@@ -3522,8 +3503,7 @@ theorem flapperKickX_moveCallSuccess
   have rd4488 := rd4486pre.mstore 0 memEvent0 (UInt256.ofNat 8)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by rfl)
     (by native_decide)
     (by evm_ov)
@@ -3536,8 +3516,7 @@ theorem flapperKickX_moveCallSuccess
   have rd4495 := rd4493pre.mstore 0 memEvent1 (UInt256.ofNat 8)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by rfl)
     (by native_decide)
     (by evm_ov)
@@ -3550,8 +3529,7 @@ theorem flapperKickX_moveCallSuccess
   have rd4501 := rd4499pre.mstore 0 memEvent (UInt256.ofNat 8)
     (by native_decide)
     (by
-      intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      native_decide)
     (by rfl)
     (by native_decide)
     (by evm_ov)

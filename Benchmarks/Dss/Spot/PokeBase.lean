@@ -225,25 +225,22 @@ theorem pokePeekCalldataMem_read64 (I : ExecutionEnv) :
     twoWordHashMem_read64 (pokeIlkWord I) ⟨1⟩ solcFreePtrMem_size solcFreePtrMem_read64]
 
 theorem pokePeekCalldataMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (pokePeekCalldataMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (pokePeekCalldataMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((pokePeekCalldataMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ :=
-  mloadFreePtrValue (by rw [pokePeekCalldataMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [pokePeekCalldataMem_size]; decide)
     (pokePeekCalldataMem_read64 I)
 
 theorem pokePipHashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (pokePipHashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (pokePipHashMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((pokePipHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [twoWordHashMem_size_96 (pokeIlkWord I) ⟨1⟩ solcFreePtrMem_size]; decide)
-    (by decide)
     (twoWordHashMem_read64 (pokeIlkWord I) ⟨1⟩ solcFreePtrMem_size solcFreePtrMem_read64)
 
 theorem pokePeekSelectorWord_extract :
@@ -317,8 +314,7 @@ theorem pokePeekPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray)
 
 theorem pokePeekPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray)
     (hshort : out.size < 64) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (pokePeekPostCallMem I out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (pokePeekPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((pokePeekPostCallMem I out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
@@ -327,7 +323,6 @@ theorem pokePeekPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray)
     (by
       have hgt := pokePeekPostCallMem_size_gt64 I out hshort hout
       omega)
-    (by decide)
     (pokePeekPostCallMem_read64 I out hshort hout)
 
 theorem pokePeekPostCallMem_size_long (I : ExecutionEnv) (out : ByteArray)
@@ -364,15 +359,13 @@ theorem pokePeekPostCallMem_read64_long (I : ExecutionEnv) (out : ByteArray)
 
 theorem pokePeekPostCallMem_mload64_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (pokePeekPostCallMem I out).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (pokePeekPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((pokePeekPostCallMem I out).readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
   exact mloadFreePtrValue
     (by rw [pokePeekPostCallMem_size_long I out hlo hout]; decide)
-    (by decide)
     (pokePeekPostCallMem_read64_long I out hlo hout)
 
 theorem pokePeekPostCallMem_read128_long (I : ExecutionEnv) (out : ByteArray)
@@ -410,20 +403,24 @@ theorem pokePeekPostCallMem_read128_long (I : ExecutionEnv) (out : ByteArray)
 
 theorem pokePeekPostCallMem_mload128_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨128⟩ : UInt256).toNat ≥ (pokePeekPostCallMem I out).size
-        ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨128⟩ : UInt256).toNat ≥ (pokePeekPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((pokePeekPostCallMem I out).readWithPadding (⟨128⟩ : UInt256).toNat 32))) =
       pokePeekValWord out := by
   unfold pokePeekValWord
-  rw [if_neg]
-  · change UInt256.ofNat
-      (fromByteArrayBigEndian ((pokePeekPostCallMem I out).readWithPadding 128 32)) =
-        UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))
-    rw [pokePeekPostCallMem_read128_long I out hlo hout]
-  · exact not_or.mpr
-      ⟨by rw [pokePeekPostCallMem_size_long I out hlo hout]; decide, by native_decide⟩
+  have hnot : ¬ (128 ≥ (pokePeekPostCallMem I out).size) := by
+    rw [pokePeekPostCallMem_size_long I out hlo hout]
+    decide
+  change (if 128 ≥ (pokePeekPostCallMem I out).size then ⟨0⟩
+    else UInt256.ofNat
+      (fromByteArrayBigEndian ((pokePeekPostCallMem I out).readWithPadding 128 32))) =
+    UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))
+  rw [if_neg hnot]
+  change UInt256.ofNat
+    (fromByteArrayBigEndian ((pokePeekPostCallMem I out).readWithPadding 128 32)) =
+      UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))
+  rw [pokePeekPostCallMem_read128_long I out hlo hout]
 
 theorem pokePeekPostCallMem_read160_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -459,20 +456,24 @@ theorem pokePeekPostCallMem_read160_long (I : ExecutionEnv) (out : ByteArray)
 
 theorem pokePeekPostCallMem_mload160_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size) :
-    (if (⟨160⟩ : UInt256).toNat ≥ (pokePeekPostCallMem I out).size
-        ∨ (⟨160⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨160⟩ : UInt256).toNat ≥ (pokePeekPostCallMem I out).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((pokePeekPostCallMem I out).readWithPadding (⟨160⟩ : UInt256).toNat 32))) =
       pokePeekHasWord out := by
   unfold pokePeekHasWord
-  rw [if_neg]
-  · change UInt256.ofNat
-      (fromByteArrayBigEndian ((pokePeekPostCallMem I out).readWithPadding 160 32)) =
-        UInt256.ofNat (fromByteArrayBigEndian (out.extract 32 64))
-    rw [pokePeekPostCallMem_read160_long I out hlo hout]
-  · exact not_or.mpr
-      ⟨by rw [pokePeekPostCallMem_size_long I out hlo hout]; decide, by native_decide⟩
+  have hnot : ¬ (160 ≥ (pokePeekPostCallMem I out).size) := by
+    rw [pokePeekPostCallMem_size_long I out hlo hout]
+    decide
+  change (if 160 ≥ (pokePeekPostCallMem I out).size then ⟨0⟩
+    else UInt256.ofNat
+      (fromByteArrayBigEndian ((pokePeekPostCallMem I out).readWithPadding 160 32))) =
+    UInt256.ofNat (fromByteArrayBigEndian (out.extract 32 64))
+  rw [if_neg hnot]
+  change UInt256.ofNat
+    (fromByteArrayBigEndian ((pokePeekPostCallMem I out).readWithPadding 160 32)) =
+      UInt256.ofNat (fromByteArrayBigEndian (out.extract 32 64))
+  rw [pokePeekPostCallMem_read160_long I out hlo hout]
 
 theorem pokePeek_bytesToWord_drop32_eq_extract32_64 (out : ByteArray) :
     ABI.bytesToWord ((out.toList.drop 32).take 32) = pokePeekHasWord out := by
@@ -661,15 +662,13 @@ theorem pokeVatFileCalldataMem_mload64 (I : ExecutionEnv) (spot : UInt256)
     {mem : ByteArray}
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (pokeVatFileCalldataMem I spot mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (pokeVatFileCalldataMem I spot mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((pokeVatFileCalldataMem I spot mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
-  exact mloadFreePtrValue (by rw [pokeVatFileCalldataMem_size I spot hmem]; decide)
-    (by decide) (pokeVatFileCalldataMem_read64 I spot hmem hread64)
+  exact mloadFreePtrValue (by rw [pokeVatFileCalldataMem_size I spot hmem]; decide) (pokeVatFileCalldataMem_read64 I spot hmem hread64)
 
 theorem pokeEventIlkMem_size (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 228) :
@@ -728,15 +727,13 @@ theorem pokeEventSpotMem_mload64 (I : ExecutionEnv) (val spot : UInt256)
     {mem : ByteArray}
     (hmem : mem.size = 228)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (pokeEventSpotMem I val spot mem).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (pokeEventSpotMem I val spot mem).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((pokeEventSpotMem I val spot mem).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) =
       ⟨128⟩ := by
-  exact mloadFreePtrValue (by rw [pokeEventSpotMem_size I val spot hmem]; decide)
-    (by decide) (pokeEventSpotMem_read64 I val spot hmem hread64)
+  exact mloadFreePtrValue (by rw [pokeEventSpotMem_size I val spot hmem]; decide) (pokeEventSpotMem_read64 I val spot hmem hread64)
 
 theorem poke_wordAt0Mem_size_of_ge32 {mem : ByteArray} (word : UInt256)
     (hmem : 32 ≤ mem.size) :

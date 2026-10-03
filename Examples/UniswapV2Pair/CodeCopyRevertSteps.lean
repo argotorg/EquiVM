@@ -15,9 +15,7 @@ theorem RD.codecopyAny
       (UInt256.ofNat (MachineState.M aw.toNat offset.toNat len.toNat)) rdata acc (k + 1)
       (C + (Cₘ (UInt256.ofNat (MachineState.M aw.toNat offset.toNat len.toNat)) - Cₘ aw +
         (GasConstants.Gverylow + GasConstants.Gcopy * ((len.toNat + 31) / 32)))) := by
-  exact RD.codecopy _ _ _ rd hdec (fun s haw hstk ↦ by
-    simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-      List.getElem!_cons_zero, List.getElem!_cons_succ]) rfl rfl hov
+  exact RD.codecopy _ _ _ rd hdec (by rfl) rfl rfl hov
 
 -- GENERALIZES Reasoning.Reach.RD.rev: derive the expansion cost for arbitrary revert memory.
 theorem RD.revAny
@@ -28,8 +26,6 @@ theorem RD.revAny
     (hdec : decode code pc = some (.REVERT, .none)) (hov : R.length ≤ 1024) :
     RDrev code g s0 := by
   exact RD.rev (Cₘ (UInt256.ofNat (MachineState.M aw.toNat offset.toNat len.toNat)) - Cₘ aw)
-    rd hdec (fun s haw hstk ↦ by
-      simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
-        List.getElem!_cons_zero, List.getElem!_cons_succ]) hov
+    rd hdec (by rfl) hov
 
 end UniswapV2Pair

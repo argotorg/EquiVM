@@ -666,8 +666,7 @@ theorem mintLogMem_read64 (I : ExecutionEnv) :
     (mintUsrHashMem_read64 I)
 
 theorem mintLogMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (mintLogMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (mintLogMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((mintLogMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -685,8 +684,7 @@ theorem mintStoreLogMem_read64 (I : ExecutionEnv) :
     (mintUsrStoreHashMem_read64 I)
 
 theorem mintStoreLogMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (mintStoreLogMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (mintStoreLogMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((mintStoreLogMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
@@ -858,13 +856,12 @@ theorem daiMintX_logAndJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       solcAddrMask from by decide]
     exact solcAddrMask_clean (mintUsrMaskedWord_canonical I)
   have hmload64 :
-      (if (⟨64⟩ : UInt256).toNat ≥ (mintUsrStoreHashMem I).size
-          ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+      (if (⟨64⟩ : UInt256).toNat ≥ (mintUsrStoreHashMem I).size then ⟨0⟩
        else UInt256.ofNat
          (fromByteArrayBigEndian ((mintUsrStoreHashMem I).readWithPadding
            (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩ :=
-    mloadFreePtrValue (by rw [mintUsrStoreHashMem_size I]; decide) (by decide)
+    mloadFreePtrValue (by rw [mintUsrStoreHashMem_size I]; decide)
       (mintUsrStoreHashMem_read64 I)
   have rd2180 := evm_run h with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),

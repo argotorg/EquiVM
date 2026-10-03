@@ -61,10 +61,10 @@ theorem errorDecodeLongPrefix {I g s0 ret R mem aw ptr out acc k C}
   have hr := errorPayload_load hm hin hl hb ⟨0⟩ (by change 0 + 36 ≤ out.size; omega)
   have he := errorPayload_expand hm hin hl hb ⟨0⟩ (by change 0 + 36 ≤ out.size; omega)
   rw [u256_add_comm ptr ⟨0⟩, u256_zero_add] at hr he
-  change loadedWord (errorPayloadMem mem out ptr) (errorPayloadWords aw ptr out) ptr =
+  change loadedWord (errorPayloadMem mem out ptr) ptr =
     errorOffset out at hr
   change RD _ _ _ _ ⟨5954⟩
-    (loadedWord (errorPayloadMem mem out ptr) (errorPayloadWords aw ptr out) ptr ::
+    (loadedWord (errorPayloadMem mem out ptr) ptr ::
       UInt256.lnot ⟨3⟩ :: ptr :: ⟨0⟩ :: ret :: R)
     (errorPayloadMem mem out ptr) (expandedWords (errorPayloadWords aw ptr out) ptr ⟨32⟩)
     out acc _ _ at rd5954

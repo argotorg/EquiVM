@@ -55,10 +55,8 @@ theorem erc20X_transferFromAfterAllowanceSLoad {cA gh bl σ σ₀ A I} {g : Sat2
       mem_cost
       (by
         exact mloadWordValue_of_readWithPadding
-          (mem := transferFromArgsMem (transferFromFromWord I) (transferFromToWord I))
-          (aw := UInt256.ofNat 4) (off := ⟨64⟩) (v := transferFromFromWord I)
+          (mem := transferFromArgsMem (transferFromFromWord I) (transferFromToWord I)) (off := ⟨64⟩) (v := transferFromFromWord I)
           (by rw [transferFromArgsMem_size]; decide)
-          (by decide)
           (transferFromArgsMem_read64 (transferFromFromWord I) (transferFromToWord I)))
       (by decide) (by evm_ov),
     push1 ⟨32⟩,
@@ -162,10 +160,8 @@ theorem erc20X_transferFromAfterAllowanceGuard {cA gh bl σ σ₀ A I} {g : Sat2
         exact mloadWordValue_of_readWithPadding
           (mem := transferFromAllowanceMem
             (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
-            (transferFromCurrentAllowanceRaw σ I))
-          (aw := UInt256.ofNat 5) (off := ⟨128⟩) (v := transferFromCurrentAllowanceRaw σ I)
+            (transferFromCurrentAllowanceRaw σ I)) (off := ⟨128⟩) (v := transferFromCurrentAllowanceRaw σ I)
           (by rw [transferFromAllowanceMem_size]; decide)
-          (by decide)
           (transferFromAllowanceMem_read128
             (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
             (transferFromCurrentAllowanceRaw σ I)))
@@ -204,10 +200,8 @@ theorem erc20TransferFromX_insufficientAllowance {cA gh bl σ σ₀ A I} {g : Sa
         exact mloadWordValue_of_readWithPadding
           (mem := transferFromAllowanceMem
             (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
-            (transferFromCurrentAllowanceRaw σ I))
-          (aw := UInt256.ofNat 5) (off := ⟨128⟩) (v := transferFromCurrentAllowanceRaw σ I)
+            (transferFromCurrentAllowanceRaw σ I)) (off := ⟨128⟩) (v := transferFromCurrentAllowanceRaw σ I)
           (by rw [transferFromAllowanceMem_size]; decide)
-          (by decide)
           (transferFromAllowanceMem_read128
             (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
             (transferFromCurrentAllowanceRaw σ I)))

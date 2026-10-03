@@ -517,13 +517,12 @@ theorem approveIdHashMem_read64 (owner spender id : UInt256) :
         solcFreePtrMem_read64
 
 theorem approveIdHashMem_mload64 (owner spender id : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (approveIdHashMem owner spender id).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (approveIdHashMem owner spender id).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((approveIdHashMem owner spender id).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [approveIdHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [approveIdHashMem_size]; decide)
     (approveIdHashMem_read64 owner spender id)
 
 theorem approveEventMem_size (owner spender id amount : UInt256) :
@@ -557,14 +556,13 @@ theorem approveEventMem_read64 (owner spender id amount : UInt256) :
     approveIdHashMem_read64]
 
 theorem approveEventMem_mload64 (owner spender id amount : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (approveEventMem owner spender id amount).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (approveEventMem owner spender id amount).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((approveEventMem owner spender id amount).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [approveEventMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [approveEventMem_size]; decide)
     (approveEventMem_read64 owner spender id amount)
 
 theorem approveReturnMem_size (owner spender id amount : UInt256) :
@@ -585,14 +583,13 @@ theorem approveReturnMem_read64 (owner spender id amount : UInt256) :
     approveEventMem_read64]
 
 theorem approveReturnMem_mload64 (owner spender id amount : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (approveReturnMem owner spender id amount).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (approveReturnMem owner spender id amount).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((approveReturnMem owner spender id amount).readWithPadding
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [approveReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [approveReturnMem_size]; decide)
     (approveReturnMem_read64 owner spender id amount)
 
 theorem approveReturnMem_read128 (owner spender id amount : UInt256) :
@@ -788,13 +785,12 @@ theorem approveErrorMem_read64 (selector arg : UInt256) :
     solcReturnMem_read64]
 
 theorem approveErrorMem_mload64 (selector arg : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (approveErrorMem selector arg).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (approveErrorMem selector arg).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((approveErrorMem selector arg).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [approveErrorMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [approveErrorMem_size]; decide)
     (approveErrorMem_read64 selector arg)
 
 theorem erc6909ApproveX_toHelper {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}

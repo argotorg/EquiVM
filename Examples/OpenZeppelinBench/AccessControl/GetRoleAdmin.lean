@@ -310,13 +310,12 @@ theorem getRoleAdminHashMem_read64 (I : ExecutionEnv) :
     solcFreePtrMem_read64
 
 theorem getRoleAdminHashMem_mload64 (I : ExecutionEnv) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (getRoleAdminHashMem I).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 3 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (getRoleAdminHashMem I).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((getRoleAdminHashMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [getRoleAdminHashMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [getRoleAdminHashMem_size]; decide)
     (getRoleAdminHashMem_read64 I)
 
 theorem getRoleAdminHashMem_read0_64 (I : ExecutionEnv) :
@@ -366,13 +365,12 @@ theorem getRoleAdminReturnMem_read64 (I : ExecutionEnv) (val : UInt256) :
     getRoleAdminHashMem_read64]
 
 theorem getRoleAdminReturnMem_mload64 (I : ExecutionEnv) (val : UInt256) :
-    (if (⟨64⟩ : UInt256).toNat ≥ (getRoleAdminReturnMem I val).size
-        ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
+    (if (⟨64⟩ : UInt256).toNat ≥ (getRoleAdminReturnMem I val).size then ⟨0⟩
      else UInt256.ofNat
        (fromByteArrayBigEndian
         ((getRoleAdminReturnMem I val).readWithPadding (⟨64⟩ : UInt256).toNat 32)))
       = ⟨128⟩ :=
-  mloadFreePtrValue (by rw [getRoleAdminReturnMem_size]; decide) (by decide)
+  mloadFreePtrValue (by rw [getRoleAdminReturnMem_size]; decide)
     (getRoleAdminReturnMem_read64 I val)
 
 theorem getRoleAdminReturnMem_read128 (I : ExecutionEnv) (val : UInt256) :
