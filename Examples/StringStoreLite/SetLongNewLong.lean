@@ -180,7 +180,7 @@ theorem stringStoreLiteSetNewLongRuntime
               .string (.bytes (setDecodedValueBytes I)) = .ok evmSolm1 := by
           simpa [evmSolm1, evmSolm0, initState] using hwrite₀
         exact setRuntimeOfWriteEVMStateEq hcode hwv hret hd hdec hwrite
-          rfl hState henc
+          rfl hState.accountMap henc
       · have hmissingSolm0 :
             evmSolm0.accountMap.find? evmSolm0.executionEnv.codeOwner = none := by
           cases hfind : evmSolm0.accountMap.find? evmSolm0.executionEnv.codeOwner with
@@ -284,7 +284,7 @@ theorem stringStoreLiteSetNewLongRuntime
                 (UInt256.toByteArray (UInt256.ofNat (setDecodedValueBytes I).size)) := by
             simpa [evmEvm1, evmPostMap, hpostMap, hretWord] using hret
           exact setRuntimeOfWriteEVMStateEq hcode hwv hret' hd hdec hwrite
-            rfl hState henc
+            rfl hState.accountMap henc
         · let wordTail : UInt256 :=
             UInt256.ofNat (fromBytesBigEndian
               (((setDecodedValueBytes I).toList.drop (32 * (len.toNat / 32))) ++
@@ -380,7 +380,7 @@ theorem stringStoreLiteSetNewLongRuntime
                 (UInt256.toByteArray (UInt256.ofNat (setDecodedValueBytes I).size)) := by
             simpa [evmEvm1, evmPostMap, hpostMap, hretWord] using hret
           exact setRuntimeOfWriteEVMStateEq hcode hwv hret' hd hdec hwrite
-            rfl hState henc
+            rfl hState.accountMap henc
     · have hbad :
           UInt256.sub (UInt256.land (currentLengthHeaderWord σ I) ⟨1⟩)
             (UInt256.lt
@@ -485,7 +485,7 @@ theorem stringStoreLiteSetNewLongRuntime
             .string (.bytes (setDecodedValueBytes I)) = .ok evmSolm1 := by
         simpa [evmSolm1, evmSolm0, oldLen, initState] using hwrite₀
       exact setRuntimeOfWriteEVMStateEq hcode hwv hret hd hdec hwrite
-        rfl hState henc
+        rfl hState.accountMap henc
 
 
 end StringStoreLite
