@@ -22,7 +22,7 @@ def initializeFinalMap (args : InitializeArgs) (σ : AccountMap) (I : ExecutionE
 theorem pausedWord_initializerPauseMap (σ : AccountMap) (I : ExecutionEnv) :
     pausedWord (initializerPauseMap σ I) I = ⟨0⟩ := by
   unfold initializerPauseMap pausedWord
-  cases ha : σ.find? I.codeOwner with
+  cases ha : σ.get? I.codeOwner with
   | none =>
     rw [sstoreAccountMap_absent_same ha, storedWord_absent ha]
     decide

@@ -195,7 +195,7 @@ theorem clipperYankRemovePopActiveRevert (v : ClipperImmutables) (evm : EVM.Stat
 set_option maxHeartbeats 1000000 in
 theorem clipperYankRemoveIdNeMoveSource (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv)
-    {acc : Account} (hacc : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    {acc : Account} (hacc : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hlen : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩)
     (hne :
       clipperYankArgWord I ≠
@@ -344,12 +344,14 @@ theorem clipperYankRemoveIdNeMoveSource (v : ClipperImmutables) (evm : EVM.State
     exact ExecStmt.pop hpopArray
   have haccPop :
       ∃ accPop,
-        (clipperYankRemovePopState evmMovePos popLastIndex).accountMap.find?
+        (clipperYankRemovePopState evmMovePos popLastIndex).accountMap.get?
             (clipperYankRemovePopState evmMovePos popLastIndex).executionEnv.codeOwner =
           some accPop := by
+    have haccElem := hacc
+    rw [Std.ExtTreeMap.get?_eq_getElem?] at haccElem
     simp [clipperYankRemovePopState, evmMovePos, evmIndex, storageStore_accountMap,
-      storageStore_executionEnv, sstoreAccountMap, hacc, Option.option,
-      accountMap_find_insert_self]
+      storageStore_executionEnv, sstoreAccountMap, haccElem, Option.option,
+      Std.ExtTreeMap.getElem?_insert_self]
   obtain ⟨accPop, haccPop⟩ := haccPop
   have hdelete :
       ExecStmt (config v)
@@ -623,7 +625,7 @@ theorem clipperYankRemoveIdNeMovePopEmptySourceReverts (v : ClipperImmutables)
 
 theorem clipperYankAfterVatRemoveIdEqMoveSourceOk (v : ClipperImmutables)
     (evmVat : EVM.State) (I : ExecutionEnv)
-    {acc : Account} (hacc : evmVat.accountMap.find? evmVat.executionEnv.codeOwner = some acc)
+    {acc : Account} (hacc : evmVat.accountMap.get? evmVat.executionEnv.codeOwner = some acc)
     (hlen : Solm.EVM.storageLoad evmVat evmVat.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩)
     (heq :
       clipperYankArgWord I =
@@ -704,7 +706,7 @@ theorem clipperYankAfterVatRemoveIdEqMoveSourceOk (v : ClipperImmutables)
 set_option linter.unusedVariables false in
 theorem clipperYankAfterVatRemoveIdNeMoveSourceOk (v : ClipperImmutables)
     (evmVat : EVM.State) (I : ExecutionEnv)
-    {acc : Account} (hacc : evmVat.accountMap.find? evmVat.executionEnv.codeOwner = some acc)
+    {acc : Account} (hacc : evmVat.accountMap.get? evmVat.executionEnv.codeOwner = some acc)
     (hlen : Solm.EVM.storageLoad evmVat evmVat.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩)
     (hne :
       clipperYankArgWord I ≠
@@ -901,7 +903,7 @@ theorem clipperYankAfterVatSourceBlock {σ σ₀ A I} {g : UInt256}
       simp [evmLock, evm0, initState, clipperYankSalesTabWord, solcSlotWord,
         storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
         State.lookupAccount]
-      cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).find? I.codeOwner <;> rfl
+      cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
       typedCallViaEVM (config v) evmLock

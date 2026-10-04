@@ -40,8 +40,8 @@ def delegateTailFalseSuccessMap (σ : AccountMap) (I : ExecutionEnv)
 
 def delegateTailProposalsLengthWord (σ : AccountMap) (I : ExecutionEnv)
     (w : UInt256) : UInt256 :=
-  (delegateTailAfterSenderMap σ I w).find? I.codeOwner |>.option ⟨0⟩ (fun acc =>
-    acc.storage.findD ⟨2⟩ ⟨0⟩)
+  (delegateTailAfterSenderMap σ I w).get? I.codeOwner |>.option ⟨0⟩ (fun acc =>
+    acc.storage.getD ⟨2⟩ ⟨0⟩)
 
 def delegateTailProposalCountSlot (σ : AccountMap) (I : ExecutionEnv)
     (w : UInt256) : UInt256 :=
@@ -51,8 +51,8 @@ def delegateTailProposalCountSlot (σ : AccountMap) (I : ExecutionEnv)
 
 def delegateTailProposalCountWord (σ : AccountMap) (I : ExecutionEnv)
     (w : UInt256) : UInt256 :=
-  (delegateTailAfterSenderMap σ I w).find? I.codeOwner |>.option ⟨0⟩ (fun acc =>
-    acc.storage.findD (delegateTailProposalCountSlot σ I w) ⟨0⟩)
+  (delegateTailAfterSenderMap σ I w).get? I.codeOwner |>.option ⟨0⟩ (fun acc =>
+    acc.storage.getD (delegateTailProposalCountSlot σ I w) ⟨0⟩)
 
 def delegateTailUpdatedProposalCount (σ : AccountMap) (I : ExecutionEnv)
     (w : UInt256) : UInt256 :=
@@ -2218,18 +2218,18 @@ theorem ballotDelegateX_tailVotedOverflowFrom1211 {σ σ₀ A I}
   exact RD.ballotPanic11Revert1847 rd1847
     (by simp only [List.length_cons, List.length_nil]; omega)
 
-theorem delegateTailAfterSenderState_findD_init {σ σ₀ A I} {g : Sat256}
+theorem delegateTailAfterSenderState_getD_init {σ σ₀ A I} {g : Sat256}
     (w readSlot : UInt256) :
-    (((delegateTailAfterSenderState (initState σ σ₀ g A I) I w).accountMap.find?
+    (((delegateTailAfterSenderState (initState σ σ₀ g A I) I w).accountMap.get?
           (delegateTailAfterSenderState (initState σ σ₀ g A I) I w).executionEnv.codeOwner).option
         (default : UInt256)
-        (fun acc => acc.storage.findD readSlot default)) =
-      (((delegateTailAfterSenderMap σ I w).find? I.codeOwner).option (default : UInt256)
-        (fun acc => acc.storage.findD readSlot default)) := by
+        (fun acc => acc.storage.getD readSlot default)) =
+      (((delegateTailAfterSenderMap σ I w).get? I.codeOwner).option (default : UInt256)
+        (fun acc => acc.storage.getD readSlot default)) := by
   have hlookup := congrArg
     (fun accounts : AccountMap =>
-      (accounts.find? I.codeOwner).option (default : UInt256)
-        (fun acc => acc.storage.findD readSlot default))
+      (accounts.get? I.codeOwner).option (default : UInt256)
+        (fun acc => acc.storage.getD readSlot default))
     (sstoreAccountMap_self_update σ I.codeOwner (delegateSenderPackedSlot I)
       (delegateSenderVotedStoreCurrent (initState σ σ₀ g A I) I)
       (delegateTailSenderPackedStoreWord σ I w)).symm
@@ -2248,7 +2248,7 @@ theorem delegateTailVoterVotedByteCurrent_afterSenderState_init
     delegateTailVoterPackedCurrent, delegateVoterPackedWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
     using congrArg (fun word => UInt256.land ⟨255⟩ word)
-      (delegateTailAfterSenderState_findD_init
+      (delegateTailAfterSenderState_getD_init
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) w
         (delegateVoterPackedSlot w))
 
@@ -2259,7 +2259,7 @@ theorem delegateTailVoterWeightCurrent_afterSenderState_init
       delegateVoterWeightWord (delegateTailAfterSenderMap σ I w) I w := by
   simpa [delegateTailVoterWeightCurrent, delegateVoterWeightWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
-    using delegateTailAfterSenderState_findD_init
+    using delegateTailAfterSenderState_getD_init
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) w (delegateVoterSlot w)
 
 theorem delegateTailSenderWeightCurrent_afterSenderState_init
@@ -2269,7 +2269,7 @@ theorem delegateTailSenderWeightCurrent_afterSenderState_init
       delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I := by
   simpa [delegateSenderWeightCurrent, delegateSenderWeightWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
-    using delegateTailAfterSenderState_findD_init
+    using delegateTailAfterSenderState_getD_init
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) w (delegateSenderSlot I)
 
 theorem delegateTailVoterVoteCurrent_afterSenderState_init
@@ -2279,7 +2279,7 @@ theorem delegateTailVoterVoteCurrent_afterSenderState_init
       delegateVoterVoteWord (delegateTailAfterSenderMap σ I w) I w := by
   simpa [delegateTailVoterVoteCurrent, delegateVoterVoteWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
-    using delegateTailAfterSenderState_findD_init
+    using delegateTailAfterSenderState_getD_init
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) w (delegateVoterVoteSlot w)
 
 theorem delegateTailProposalsLengthCurrent_afterSenderState_init
@@ -2289,7 +2289,7 @@ theorem delegateTailProposalsLengthCurrent_afterSenderState_init
       delegateTailProposalsLengthWord σ I w := by
   simpa [delegateTailProposalsLengthCurrent, delegateTailProposalsLengthWord,
     Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
-    using delegateTailAfterSenderState_findD_init
+    using delegateTailAfterSenderState_getD_init
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) w ⟨2⟩
 
 theorem delegateTailProposalCountCurrent_init {σ σ₀ A I} {g : Sat256}
@@ -2300,7 +2300,7 @@ theorem delegateTailProposalCountCurrent_init {σ σ₀ A I} {g : Sat256}
   rw [delegateTailVoterVoteCurrent_afterSenderState_init]
   simpa [delegateTailProposalCountWord, delegateTailProposalCountSlot, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage, initState, voteStorageStore_executionEnv]
-    using delegateTailAfterSenderState_findD_init
+    using delegateTailAfterSenderState_getD_init
       (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) w
       (delegateTailProposalCountSlot σ I w)
 
@@ -2309,7 +2309,7 @@ theorem delegateTailSenderWeightWord_afterSenderMap (σ : AccountMap) (I : Execu
     delegateSenderWeightWord (delegateTailAfterSenderMap σ I w) I =
       delegateSenderWeightWord σ I := by
   unfold delegateSenderWeightWord delegateTailAfterSenderMap
-  exact sstoreAccountMap_storage_findD_ne σ I.codeOwner (delegateSenderSlot I)
+  exact sstoreAccountMap_storage_getD_ne σ I.codeOwner (delegateSenderSlot I)
     (delegateSenderPackedSlot I) (delegateTailSenderPackedStoreWord σ I w)
     (delegateSenderSlot_ne_packedSlot I)
 

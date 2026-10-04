@@ -26,7 +26,7 @@ theorem spotCtorVatSloadReach
   have rdBeforeSload := spot_ctor_run rd75 with [push1 ⟨2⟩, dup1]
   obtain ⟨_, _, rd79⟩ := rdBeforeSload.sload (by spot_ctor_decode) (by evm_ov)
   have hload :
-      (σWards.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) =
+      (σWards.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) =
         solcSlotWord σWards I ⟨2⟩ := by
     rfl
   rw [hload] at rd79

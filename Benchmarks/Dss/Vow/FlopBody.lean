@@ -287,7 +287,7 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
         have hSlotSolmStatic : ∀ slot : UInt256,
             vowSlotWord slot σ_sin I = vowSlotWord slot σ I := by
           intro slot
-          have h := typedCallViaEVM_static_storage_findD_of_accounts_eq
+          have h := typedCallViaEVM_static_storage_getD_of_accounts_eq
             (cfg := config) (σ := σ)
             (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (evm' := evmSinSolm) (slot := slot) (default := ⟨0⟩)
@@ -610,8 +610,8 @@ theorem vowFlopBody {σ σ₀ A I} {g : UInt256}
                 SumpValKick, hKickTargetAddr] using hcallKickEvmRaw
             let evmKickSolmBase := { evmAshSolm with substate := evmKickEvmIn.substate }
             have hKickInput : evmKickSolmBase = evmKickEvmIn := by
-              cases hFind : σ_dai.find? I.codeOwner <;>
-                simp [evmKickSolmBase, evmKickEvmIn, evmAshSolm, evmDaiSolm,
+              cases hFind : σ_dai.get? I.codeOwner <;>
+                simp [-Std.ExtTreeMap.get?_eq_getElem?, evmKickSolmBase, evmKickEvmIn, evmAshSolm, evmDaiSolm,
                   evmSinSolm, evmSinEvm, initState, Solm.EVM.storageStore,
                   State.setAccount, State.lookupAccount, σAshEvm, sstoreAccountMap,
                   Account.updateStorage, Option.option, hFind]

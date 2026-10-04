@@ -54,7 +54,7 @@ def transferAfterDebitState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
 theorem transferAfterDebit_codeOwner (evm : EVM.State) (I : ExecutionEnv) :
     (transferAfterDebitState evm I).executionEnv.codeOwner = evm.executionEnv.codeOwner := by
   simp only [transferAfterDebitState, Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? evm.executionEnv.codeOwner with
+  cases evm.accountMap.get? evm.executionEnv.codeOwner with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 
@@ -838,14 +838,14 @@ theorem transferToBalanceWord_afterSenderStore_initState {σ σ₀ A I} {g : Sat
 
 def transferSenderBalanceRaw (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   Option.option (⟨0⟩ : UInt256)
-    (fun ac => ac.storage.findD (transferSenderSlotI I) ⟨0⟩)
-    (σ.find? I.codeOwner)
+    (fun ac => ac.storage.getD (transferSenderSlotI I) ⟨0⟩)
+    (σ.get? I.codeOwner)
 
 def transferToBalanceRawAfterDebit (σ : AccountMap) (I : ExecutionEnv) (debit : UInt256) :
     UInt256 :=
   Option.option (⟨0⟩ : UInt256)
-    (fun ac => ac.storage.findD (transferToSlot I) ⟨0⟩)
-    ((sstoreAccountMap I.codeOwner σ (transferSenderSlotI I) debit).find? I.codeOwner)
+    (fun ac => ac.storage.getD (transferToSlot I) ⟨0⟩)
+    ((sstoreAccountMap I.codeOwner σ (transferSenderSlotI I) debit).get? I.codeOwner)
 
 theorem transferSenderBalanceRaw_initState {σ σ₀ A I} {g : Sat256} :
     transferSenderBalanceRaw σ I =
@@ -922,8 +922,8 @@ theorem erc20X_transferAfterBalanceGuard {σ σ₀ A I} {g : Sat256}
   have hbalanceGuardRaw :
       UInt256.lt
         (Option.option (⟨0⟩ : UInt256)
-          (fun ac => ac.storage.findD (transferSenderSlotI I) ⟨0⟩)
-          (σ.find? I.codeOwner))
+          (fun ac => ac.storage.getD (transferSenderSlotI I) ⟨0⟩)
+          (σ.get? I.codeOwner))
         (transferValueWord I) = ⟨0⟩ := by
     simpa [evm0, transferFromBalanceWord, transferSenderSlot, transferSenderSlotI,
       initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
@@ -1448,8 +1448,8 @@ theorem erc20TransferX_insufficient {σ σ₀ A I} {g : Sat256}
   have hbalanceGuardRaw :
       UInt256.lt
         (Option.option (⟨0⟩ : UInt256)
-          (fun ac => ac.storage.findD (transferSenderSlotI I) ⟨0⟩)
-          (σ.find? I.codeOwner))
+          (fun ac => ac.storage.getD (transferSenderSlotI I) ⟨0⟩)
+          (σ.get? I.codeOwner))
         (transferValueWord I) = ⟨1⟩ := by
     simpa [evm0, transferFromBalanceWord, transferSenderSlot, transferSenderSlotI,
       initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
@@ -1485,8 +1485,8 @@ theorem erc20TransferX_insufficient {σ σ₀ A I} {g : Sat256}
     jumpiT (by rw [show
         UInt256.lt
           (Option.option (⟨0⟩ : UInt256)
-            (fun ac => ac.storage.findD (transferSenderSlotI I) ⟨0⟩)
-            (σ.find? I.codeOwner))
+            (fun ac => ac.storage.getD (transferSenderSlotI I) ⟨0⟩)
+            (σ.get? I.codeOwner))
           (uInt256OfByteArray (I.calldata.readBytes (⟨36⟩ : UInt256).toNat 32)) =
           ⟨1⟩ by simpa [transferValueWord] using hbalanceGuardRaw]; decide)
       (by vyper_erc20_transfer_decode)]

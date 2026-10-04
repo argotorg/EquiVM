@@ -126,7 +126,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
             (clipperTakeSalesPackedSlot I)) solcAddrMask =
         clipperTakeSalesUsrEVMWord evmLock I := by
     have hslot := congrArg (fun m => solcSlotWord m I (clipperTakeSalesPackedSlot I)) hAccountsLock
-    simp [clipperTakeSalesUsrEVMWord, Solm.EVM.storageLoad, State.lookupAccount,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, clipperTakeSalesUsrEVMWord, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, solcSlotWord, evmLock, evm0, initState,
       storageStore_executionEnv, hslot]
   have hsrcMul : slice.toNat * price.toNat < UInt256.size := by
@@ -287,7 +287,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
     have hvow : clipperTakeVowTarget σCbEvm I =
         clipperTakeVowEVMWord evmCb := by
       have hslot := congrArg (fun m => solcSlotWord m I ⟨2⟩) hAccountsCb
-      simp [clipperTakeVowTarget, clipperTakeVowEVMWord, hevmCbEnv,
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, clipperTakeVowTarget, clipperTakeVowEVMWord, hevmCbEnv,
         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         solcSlotWord, hslot]
     have hmoveBlock := clipperTakeVatMoveCallFailureBlockAtCallbackRet v
@@ -317,7 +317,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
     have hvow : clipperTakeVowTarget σCbEvm I =
         clipperTakeVowEVMWord evmCb := by
       have hslot := congrArg (fun m => solcSlotWord m I ⟨2⟩) hAccountsCb
-      simp [clipperTakeVowTarget, clipperTakeVowEVMWord, hevmCbEnv,
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, clipperTakeVowTarget, clipperTakeVowEVMWord, hevmCbEnv,
         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         solcSlotWord, hslot]
     have hmoveCodeSolm :
@@ -381,7 +381,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
     have hvow : clipperTakeVowTarget σCbEvm I =
         clipperTakeVowEVMWord evmCb := by
       have hslot := congrArg (fun m => solcSlotWord m I ⟨2⟩) hAccountsCb
-      simp [clipperTakeVowTarget, clipperTakeVowEVMWord, hevmCbEnv,
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, clipperTakeVowTarget, clipperTakeVowEVMWord, hevmCbEnv,
         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         solcSlotWord, hslot]
     have hmoveCodeSolm :
@@ -468,7 +468,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
     have hvow : clipperTakeVowTarget σCbEvm I =
         clipperTakeVowEVMWord evmCb := by
       have hslot := congrArg (fun m => solcSlotWord m I ⟨2⟩) hAccountsCb
-      simp [clipperTakeVowTarget, clipperTakeVowEVMWord, hevmCbEnv,
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, clipperTakeVowTarget, clipperTakeVowEVMWord, hevmCbEnv,
         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         solcSlotWord, hslot]
     have hmoveCodeSolm :
@@ -645,7 +645,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
           solcSlotWord σFlux I slot =
             Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner slot := by
         have hslot := congrArg (fun m => solcSlotWord m I slot) hAccountsFlux
-        simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+        simp [-Std.ExtTreeMap.get?_eq_getElem?, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
           solcSlotWord, hevmFluxEnvI, evmFluxEvm, hslot]
       have postDogReverted
           (hremove : ExecFuncBody (config v)
@@ -686,12 +686,13 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
                   ⟨1⟩)) := by
           rw [← hlastIndexEq, ← hstorageFlux]
           simpa [lastIndex] using hidEq
-        have haccFlux : ∃ acc, evmFlux.accountMap.find?
+        have haccFlux : ∃ acc, evmFlux.accountMap.get?
             evmFlux.executionEnv.codeOwner = some acc := by
-          cases hfind : evmFlux.accountMap.find? evmFlux.executionEnv.codeOwner with
+          cases hfind : evmFlux.accountMap.get? evmFlux.executionEnv.codeOwner with
           | none =>
               exfalso
               apply hlenSolm
+              rw [Std.ExtTreeMap.get?_eq_getElem?] at hfind
               simp [Solm.EVM.storageLoad, State.lookupAccount, hfind, Option.option]
           | some acc => exact ⟨acc, rfl⟩
         obtain ⟨accFlux, haccFlux⟩ := haccFlux
@@ -781,7 +782,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
             solcSlotWord (clipperYankMoveAccountMap σFlux I idx move) I slot =
               Solm.EVM.storageLoad evmMovePos evmMovePos.executionEnv.codeOwner slot := by
           have hslot := congrArg (fun m => solcSlotWord m I slot) hmoveAccounts
-          simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+          simp [-Std.ExtTreeMap.get?_eq_getElem?, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
             solcSlotWord, hownerMovePos, hslot]
         have hlenAfterSolm : Solm.EVM.storageLoad evmMovePos
             evmMovePos.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩ := by
@@ -846,7 +847,7 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
             solcSlotWord σMove I slot =
               Solm.EVM.storageLoad evmMovePos evmMovePos.executionEnv.codeOwner slot := by
           have hslot := congrArg (fun m => solcSlotWord m I slot) hmoveAccounts
-          simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+          simp [-Std.ExtTreeMap.get?_eq_getElem?, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
             solcSlotWord, hownerMovePos, σMove, hslot]
         have hlenAfterSolm : Solm.EVM.storageLoad evmMovePos
             evmMovePos.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩ := by
@@ -856,12 +857,13 @@ theorem clipperTakeOweGtTabCallbackSuccessContinuationEquiv
             (show solcSlotWord σMove I ⟨11⟩ = ⟨0⟩ by
               rw [hstorageMove]
               exact hzero)
-        have haccFlux : ∃ acc, evmFlux.accountMap.find?
+        have haccFlux : ∃ acc, evmFlux.accountMap.get?
             evmFlux.executionEnv.codeOwner = some acc := by
-          cases hfind : evmFlux.accountMap.find? evmFlux.executionEnv.codeOwner with
+          cases hfind : evmFlux.accountMap.get? evmFlux.executionEnv.codeOwner with
           | none =>
               exfalso
               apply hlenSolm
+              rw [Std.ExtTreeMap.get?_eq_getElem?] at hfind
               simp [Solm.EVM.storageLoad, State.lookupAccount, hfind, Option.option]
           | some acc => exact ⟨acc, rfl⟩
         obtain ⟨accFlux, haccFlux⟩ := haccFlux

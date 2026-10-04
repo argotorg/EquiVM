@@ -88,7 +88,7 @@ slot, `MSTORE`s it at the running memory pointer, bumps `ptr += 32`, `slot += 1`
 
 /-- The word stored at data slot `slot`. -/
 def weth9LongStorageWord (σ : AccountMap) (I : ExecutionEnv) (slot : UInt256) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩)
 
 /-- Loop state: memory write pointer, storage read slot, memory buffer, active words. -/
 structure Weth9LongLoopState where

@@ -83,7 +83,7 @@ theorem transferFromAfterAllowance_codeOwner (evm : EVM.State) (I : ExecutionEnv
     (transferFromAfterAllowanceState evm I).executionEnv.codeOwner =
       evm.executionEnv.codeOwner := by
   simp only [transferFromAfterAllowanceState, Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? evm.executionEnv.codeOwner with
+  cases evm.accountMap.get? evm.executionEnv.codeOwner with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 
@@ -96,7 +96,7 @@ theorem transferFromAfterBalance_codeOwner (evm : EVM.State) (I : ExecutionEnv) 
     (transferFromAfterBalanceState evm I).executionEnv.codeOwner =
       evm.executionEnv.codeOwner := by
   simp only [transferFromAfterBalanceState, Solm.EVM.storageStore, State.lookupAccount]
-  cases (transferFromAfterAllowanceState evm I).accountMap.find? evm.executionEnv.codeOwner with
+  cases (transferFromAfterAllowanceState evm I).accountMap.get? evm.executionEnv.codeOwner with
   | none => exact transferFromAfterAllowance_codeOwner evm I
   | some acc =>
       simp only [Option.option, State.setAccount, Account.updateStorage,
@@ -140,28 +140,28 @@ theorem transferFromNewToWord_toNat (evm : EVM.State) (I : ExecutionEnv)
 
 def transferFromCurrentAllowanceRaw (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   Option.option (⟨0⟩ : UInt256)
-    (fun ac => ac.storage.findD (transferFromAllowanceSlotI I) ⟨0⟩)
-    (σ.find? I.codeOwner)
+    (fun ac => ac.storage.getD (transferFromAllowanceSlotI I) ⟨0⟩)
+    (σ.get? I.codeOwner)
 
 def transferFromFromBalanceRaw (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   Option.option (⟨0⟩ : UInt256)
-    (fun ac => ac.storage.findD (transferFromFromSlot I) ⟨0⟩)
-    (σ.find? I.codeOwner)
+    (fun ac => ac.storage.getD (transferFromFromSlot I) ⟨0⟩)
+    (σ.get? I.codeOwner)
 
 def transferFromFromBalanceRawAfterAllowance
     (σ : AccountMap) (I : ExecutionEnv) (allowanceDebit : UInt256) : UInt256 :=
   Option.option (⟨0⟩ : UInt256)
-    (fun ac => ac.storage.findD (transferFromFromSlot I) ⟨0⟩)
-    ((sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I) allowanceDebit).find? I.codeOwner)
+    (fun ac => ac.storage.getD (transferFromFromSlot I) ⟨0⟩)
+    ((sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I) allowanceDebit).get? I.codeOwner)
 
 def transferFromToBalanceRawAfterBalance
     (σ : AccountMap) (I : ExecutionEnv)
     (allowanceDebit balanceDebit : UInt256) : UInt256 :=
   Option.option (⟨0⟩ : UInt256)
-    (fun ac => ac.storage.findD (transferFromToSlot I) ⟨0⟩)
+    (fun ac => ac.storage.getD (transferFromToSlot I) ⟨0⟩)
     ((sstoreAccountMap I.codeOwner
         (sstoreAccountMap I.codeOwner σ (transferFromAllowanceSlotI I) allowanceDebit)
-        (transferFromFromSlot I) balanceDebit).find? I.codeOwner)
+        (transferFromFromSlot I) balanceDebit).get? I.codeOwner)
 
 def transferFromAccountMapAfterAllowanceI
     (σ : AccountMap) (I : ExecutionEnv) (allowanceDebit : UInt256) : AccountMap :=

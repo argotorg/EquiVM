@@ -79,14 +79,14 @@ theorem scratch_storageStore_σ0 (evm : EVM.State) (a : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).σ₀ = evm.σ₀ := by
   unfold Solm.EVM.storageStore State.lookupAccount
-  cases h : evm.accountMap.find? a <;>
+  cases h : evm.accountMap.get? a <;>
     simp [Option.option, State.setAccount, Account.updateStorage, h]
 
 theorem scratch_storageStore_substate (evm : EVM.State) (a : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).substate = evm.substate := by
   unfold Solm.EVM.storageStore State.lookupAccount
-  cases h : evm.accountMap.find? a <;>
+  cases h : evm.accountMap.get? a <;>
     simp [Option.option, State.setAccount, Account.updateStorage, h]
 
 theorem scratch_revealLoopBody_refundOverflow_from1247_pair {I} {g : Sat256}
@@ -103,8 +103,8 @@ theorem scratch_revealLoopBody_refundOverflow_from1247_pair {I} {g : Sat256}
       mem aw rdata σ k C)
     (haw : 3 ≤ aw.toNat)
     (hdepositEvm :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hbids : L.get? "bids" = none)
     (hvalues : L.get? "values" = some (.array values))
     (hfakes : L.get? "fakes" = some (.array fakes))
@@ -154,7 +154,7 @@ theorem scratch_revealLoopBody_refundOverflow_from1247_pair {I} {g : Sat256}
       [deposit, secret, fakeWord, value, slot, i, refund, len, revealEnd, biddingEnd,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata σ k' C' := by
-    exact ⟨_, _, by simpa [hdepositEvm] using rd1253₀⟩
+    exact ⟨_, _, by simpa only [hdepositEvm] using rd1253₀⟩
   have rd2045 := evm_run rd1253 with [push2 ⟨1262⟩, swap1, dup8, push2 ⟨2045⟩,
     jump (by jump_dest)]
   exact ⟨hsrc,
@@ -559,8 +559,8 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
             32 32).readWithPadding 0 64)) =
         UInt256.toByteArray (revealScratchBidsLengthSlot I))
     (hlenLoad :
-      (acc.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
+      (acc.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
     (hbound : i.toNat < curLen.toNat)
     (hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -625,7 +625,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
       [curLen, revealScratchBidsLengthSlot I, ⟨0⟩, i, refund, len, revealEnd, biddingEnd,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem2 aw rdata acc k' C' := by
-    exact ⟨_, _, by simpa [hlenLoad] using rd1039₀⟩
+    exact ⟨_, _, by simpa only [hlenLoad] using rd1039₀⟩
   have hlt : UInt256.lt i curLen = ⟨1⟩ := ult_one hbound
   have rd1047₀ := evm_run rd1039 with [dup4, swap1, dup2, lt]
   have rd1047 := rd1047₀
@@ -844,16 +844,16 @@ theorem scratch_revealLoopBody_hashMatch_noPlace_fromPacked_pair {I} {g : Sat256
         uInt256OfByteArray
           (KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)))
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
             (KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray))) =
         ⟨1⟩)
     (hdepositEvm :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hperm : I.perm = true)
     (hbids : L.get? "bids" = none)
     (hvalues : L.get? "values" = some (.array values))
@@ -1211,10 +1211,10 @@ theorem scratch_revealLoopAdvance_refundAdded_zeroBlinded {I} {g : Sat256}
       omega
     · simpa [scratch_revealZeroBlindedState, storageStore_executionEnv, henv] using henv
     · unfold scratch_revealZeroBlindedState Solm.EVM.storageStore State.lookupAccount
-      cases h : evm.accountMap.find? evm.executionEnv.codeOwner <;>
+      cases h : evm.accountMap.get? evm.executionEnv.codeOwner <;>
         simp [Option.option, State.setAccount, Account.updateStorage, h, hσ0]
     · unfold scratch_revealZeroBlindedState Solm.EVM.storageStore State.lookupAccount
-      cases h : evm.accountMap.find? evm.executionEnv.codeOwner <;>
+      cases h : evm.accountMap.get? evm.executionEnv.codeOwner <;>
         simp [Option.option, State.setAccount, Account.updateStorage, h, hsub]
     · simpa [nextCursor] using haccountsNext
   exact
@@ -1495,11 +1495,11 @@ theorem scratch_revealLoopAdvance_refundAddedOk_zeroBlinded {I} {g : Sat256}
       (by simpa [scratch_revealZeroBlindedState, storageStore_executionEnv, henv] using henv)
       (by
         unfold scratch_revealZeroBlindedState Solm.EVM.storageStore State.lookupAccount
-        cases h : evm.accountMap.find? evm.executionEnv.codeOwner <;>
+        cases h : evm.accountMap.get? evm.executionEnv.codeOwner <;>
           simp [Option.option, State.setAccount, Account.updateStorage, h, hσ0])
       (by
         unfold scratch_revealZeroBlindedState Solm.EVM.storageStore State.lookupAccount
-        cases h : evm.accountMap.find? evm.executionEnv.codeOwner <;>
+        cases h : evm.accountMap.get? evm.executionEnv.codeOwner <;>
           simp [Option.option, State.setAccount, Account.updateStorage, h, hsub])
       haccountsNext hawNext hawNextSmall hfpNext hreadNext hmemNext96 hmemNextLe
       hgapNext hnextFpNat
@@ -1951,16 +1951,16 @@ theorem scratch_revealLoopBody_hashMatch_placeBidFalse_fromPacked_pair {I} {g : 
         uInt256OfByteArray
           (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
             (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray))) =
         ⟨1⟩)
     (hdepositEvm :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hperm : I.perm = true)
     (hbids : L.get? "bids" = none)
     (hvalues : L.get? "values" = some (.array values))
@@ -2126,16 +2126,16 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueZero_fromPacked_pair {I}
         uInt256OfByteArray
           (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
             (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray))) =
         ⟨1⟩)
     (hdepositEvm :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hperm : I.perm = true)
     (hbids : L.get? "bids" = none)
     (hvalues : L.get? "values" = some (.array values))
@@ -2317,16 +2317,16 @@ theorem scratch_revealLoopBody_hashMatch_placeBidTrueNonzero_fromPacked_pair {I}
         uInt256OfByteArray
           (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray)))
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
             (KEC (ByteArray.mk (scratch_revealPackedBytes value false secret).toArray))) =
         ⟨1⟩)
     (hdepositEvm :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hperm : I.perm = true)
     (hbids : L.get? "bids" = none)
     (hvalues : L.get? "values" = some (.array values))

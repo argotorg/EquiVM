@@ -1036,8 +1036,8 @@ theorem endCashX_fixZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rw [← hslot]
     simpa [key, endCashFixWord, endSlotWord] using hfix
   have hfixRaw' :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun ac => ac.storage.findD (solcMappingSlot ⟨15⟩ key) ⟨0⟩)) = ⟨0⟩ := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun ac => ac.storage.getD (solcMappingSlot ⟨15⟩ key) ⟨0⟩)) = ⟨0⟩ := by
     simpa [solcSlotWord] using hfixRaw
   have rd9625zero := rd9625raw
   rw [hfixRaw'] at rd9625zero

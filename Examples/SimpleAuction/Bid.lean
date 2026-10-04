@@ -18,13 +18,13 @@ def bidTimestampWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.header.timestamp
 
 def bidAuctionEndWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)
 
 def bidHighestBidWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨3⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨3⟩ ⟨0⟩)
 
 def bidHighestBidderRawWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)
 
 def bidHighestBidderWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (bidHighestBidderRawWord σ I) solcAddrMask
@@ -36,7 +36,7 @@ def bidPendingSlot (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   pendingReturnsSlot (bidHighestBidderKey σ I)
 
 def bidPendingReturnsWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (bidPendingSlot σ I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (bidPendingSlot σ I) ⟨0⟩)
 
 def bidSenderWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.source.val

@@ -180,7 +180,7 @@ theorem mintFunctionAfterTotalSupply_codeOwner (evm : EVM.State) (value : UInt25
     (mintFunctionAfterTotalSupplyState evm value).executionEnv.codeOwner =
       evm.executionEnv.codeOwner := by
   simp only [mintFunctionAfterTotalSupplyState, Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? evm.executionEnv.codeOwner with
+  cases evm.accountMap.get? evm.executionEnv.codeOwner with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 

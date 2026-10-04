@@ -24,14 +24,14 @@ theorem RD.cureLoadStillLiveRevert {g : Sat256} {s0 : State}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rdLoad⟩ := rdLoadPrefix.sload (by native_decide) (by evm_ov)
   have hliveRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) ≠ ⟨0⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)) ≠ ⟨0⟩ := by
     simpa [solcSlotWord] using hlive
   have rdIsZero := rdLoad.iszero (by native_decide) (by evm_ov)
   have hiszero :
       UInt256.isZero
-        (σ.find? ee.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) = ⟨0⟩ :=
+        (σ.get? ee.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)) = ⟨0⟩ :=
     isZero_eq_zero_of_ne hliveRaw
   rw [hiszero] at rdIsZero
   have rdPush := rdIsZero.push2 ⟨1419⟩ (by native_decide) (by evm_ov)
@@ -66,8 +66,8 @@ theorem RD.cureLoadLiveZeroOk {g : Sat256} {s0 : State}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rdLoad⟩ := rdLoadPrefix.sload (by native_decide) (by evm_ov)
   have hliveRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) = ⟨0⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)) = ⟨0⟩ := by
     simpa [solcSlotWord] using hlive
   rw [hliveRaw] at rdLoad
   have rdIsZero := rdLoad.iszero (by native_decide) (by evm_ov)
@@ -128,8 +128,8 @@ theorem RD.cureLoadPosZeroRevert {g : Sat256} {s0 : State}
     (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rdLoad⟩ := rdSlot.sload (by native_decide) (by evm_ov)
   have hposRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (solcMappingSlot ⟨5⟩ key) ⟨0⟩)) = ⟨0⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (solcMappingSlot ⟨5⟩ key) ⟨0⟩)) = ⟨0⟩ := by
     simpa [solcSlotWord] using hpos
   rw [hposRaw] at rdLoad
   have rdPush := rdLoad.push2 ⟨1520⟩ (by native_decide) (by evm_ov)
@@ -210,8 +210,8 @@ theorem RD.cureLoadPosNonzeroOk {g : Sat256} {s0 : State}
     (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rdLoad⟩ := rdSlot.sload (by native_decide) (by evm_ov)
   have hposRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (solcMappingSlot ⟨5⟩ key) ⟨0⟩)) ≠ ⟨0⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (solcMappingSlot ⟨5⟩ key) ⟨0⟩)) ≠ ⟨0⟩ := by
     simpa [solcSlotWord] using hpos
   have rdPush := rdLoad.push2 ⟨1520⟩ (by native_decide) (by evm_ov)
   exact ⟨_, _, rdPush.jumpiT (by native_decide) hposRaw (by jump_dest) (by evm_ov)⟩
@@ -707,8 +707,8 @@ theorem RD.cureLoadToSubRoutine {g : Sat256} {s0 : State}
   obtain ⟨_, _, rdLoad₀⟩ := rdPush.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have hsayRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨9⟩ ⟨0⟩)) = solcSlotWord σ ee ⟨9⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨9⟩ ⟨0⟩)) = solcSlotWord σ ee ⟨9⟩ := by
     rfl
   have rdLoad := rdLoad₀
   rw [hsayRaw] at rdLoad

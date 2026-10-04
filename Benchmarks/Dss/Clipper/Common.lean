@@ -76,31 +76,31 @@ theorem clipperExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target :
     {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
-    (UInt256.ofNat ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+    (UInt256.ofNat ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 theorem clipperExtCodeSizeWord_ne_zero_lookup_code_pos
     {σ : AccountMap} {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
-    0 < (UInt256.ofNat ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+    0 < (UInt256.ofNat ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -109,7 +109,7 @@ theorem clipperExtCodeSizeWord_ne_zero_lookup_code_pos
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using Nat.pos_of_ne_zero htoNatNe
 /-- The 4-byte selector word computed by `CALLDATALOAD(0); SHR 224`. -/
 abbrev clipperSelWord (I : ExecutionEnv) : UInt256 :=
   UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩
@@ -1159,8 +1159,8 @@ theorem clipperPackedUintSlotGetter {code : ByteArray} {g : Sat256} {s0 : State}
   have rdJump := rdAndOut.dup2 hdAndOut (by omega)
   have rdRet := rdJump.jump hdJump hret (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by
-    simpa [solcSlotWord, u256_land_comm mask
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩))] using rdRet⟩
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, u256_land_comm mask
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩))] using rdRet⟩
 
 -- GENERALIZES Reasoning.Solc.solcReturnUint8FromMemWf: return a scalar after applying an
 -- arbitrary literal uint mask.
@@ -1368,10 +1368,10 @@ theorem clipperPackedUintOffsetSlotGetter {code : ByteArray} {g : Sat256} {s0 : 
   have rd21 := rd20.dup2 hd20 (by omega)
   have rdRet := rd21.jump hd21 hret (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by
-    simpa [solcSlotWord, u256_land_comm
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, u256_land_comm
       (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) bits) ⟨1⟩)
       (UInt256.div
-        (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩))
+        (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩))
         (UInt256.shiftLeft (⟨1⟩ : UInt256) shiftBits))] using rdRet⟩
 
 -- GENERALIZES Reasoning.Solc.solcReturnAddressFromMemWf: return a scalar after applying

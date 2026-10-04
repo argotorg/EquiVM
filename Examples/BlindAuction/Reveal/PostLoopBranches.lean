@@ -156,7 +156,7 @@ theorem scratch_blindAuctionReveal_postLoop_callInsufficient_fromCall
     (haccountsDone : aDone.acc = evmDone.accountMap)
     (hdepthLt : I.depth.val < 1024)
     (hbalance :
-      ¬ aDone.refund ≤ (aDone.acc.find? I.codeOwner |>.elim ⟨0⟩ (·.balance))) :
+      ¬ aDone.refund ≤ (aDone.acc.get? I.codeOwner |>.elim ⟨0⟩ (·.balance))) :
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   obtain ⟨k1350, C1350, rd1350₀⟩ :=
@@ -258,7 +258,7 @@ omit hcode hd hdec hstore hevmSolm hwvSolm hafterBody hbeforeBody hbiddingAbsent
 theorem scratch_blindAuctionReveal_postLoop_callMade_step
     (hdepthLt : I.depth.val < 1024)
     (hbalance :
-      aDone.refund ≤ (aDone.acc.find? I.codeOwner |>.elim ⟨0⟩ (·.balance))) :
+      aDone.refund ≤ (aDone.acc.get? I.codeOwner |>.elim ⟨0⟩ (·.balance))) :
     ∃ (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (A_in : Substate) (callGas : UInt256) (k1350 C1350 : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
@@ -582,7 +582,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_fromCall
     (hdepthLt : I.depth.val < 1024)
     (hdepthNe : ¬ I.depth = 1024)
     (hbalance :
-      aDone.refund ≤ (aDone.acc.find? I.codeOwner |>.elim ⟨0⟩ (·.balance))) :
+      aDone.refund ≤ (aDone.acc.get? I.codeOwner |>.elim ⟨0⟩ (·.balance))) :
     runtimeEquivalenceFor blindAuctionConfig blindAuctionContract
       σ σ₀ g A I := by
   obtain ⟨σ', z, out, A_in, callGas, k1350, C1350,

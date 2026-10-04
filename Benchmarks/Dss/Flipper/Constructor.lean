@@ -973,7 +973,7 @@ theorem flipperCtorNonpayableRDrev
     raw dup1 (by flipper_ctor_decode) (by evm_ov)]
   obtain ⟨_, _, rd21raw⟩ := rd20.sload (by flipper_ctor_decode)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  let slot5Old := (σBeg.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨5⟩ ⟨0⟩))
+  let slot5Old := (σBeg.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨5⟩ ⟨0⟩))
   have rd21 := by
     simpa [slot5Old] using rd21raw
   have rd24 := evm_run rd21 with [
@@ -1077,27 +1077,29 @@ theorem flipperCtorPacked_accountMap_eq {σBeg : AccountMap} {evm1s : EVM.State}
     let evm3s := flipperCtorAfterTauState evm2s
     Eq σPacked evm3s.accountMap := by
   intro slot5Old slot5New σPacked evm2s evm3s
-  by_cases hmissing : σBeg.find? I.codeOwner = none
-  · have hmissingSolm : evm1s.accountMap.find? I.codeOwner = none :=
+  by_cases hmissing : σBeg.get? I.codeOwner = none
+  · have hmissingSolm : evm1s.accountMap.get? I.codeOwner = none :=
       by rw [← hAccountsBeg]; exact hmissing
     have hmissingSolmOwner :
-        evm1s.accountMap.find? evm1s.executionEnv.codeOwner = none := by
+        evm1s.accountMap.get? evm1s.executionEnv.codeOwner = none := by
       rw [hExec]
       exact hmissingSolm
     have hevm2 : evm2s = evm1s := by
-      simp [evm2s, flipperCtorAfterTtlState, storageStore_absent, hmissingSolmOwner]
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, evm2s,
+        flipperCtorAfterTtlState, storageStore_absent, hmissingSolmOwner]
     have hevm3 : evm3s = evm1s := by
-      simp [evm3s, flipperCtorAfterTauState, hevm2, storageStore_absent,
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, evm3s, flipperCtorAfterTauState,
+        hevm2, storageStore_absent,
         hmissingSolmOwner]
     simpa [σPacked, sstoreAccountMap_absent_same hmissing, hevm3] using hAccountsBeg
-  · cases hfind : σBeg.find? I.codeOwner with
+  · cases hfind : σBeg.get? I.codeOwner with
     | none => exact False.elim (hmissing hfind)
     | some acc =>
-        have hfindSolm : evm1s.accountMap.find? I.codeOwner = some acc := by
+        have hfindSolm : evm1s.accountMap.get? I.codeOwner = some acc := by
           rw [← hAccountsBeg]
           exact hfind
         have hfindSolmOwner :
-            evm1s.accountMap.find? evm1s.executionEnv.codeOwner = some acc := by
+            evm1s.accountMap.get? evm1s.executionEnv.codeOwner = some acc := by
           rw [hExec]
           exact hfindSolm
         have hOld5 :
@@ -1477,7 +1479,7 @@ theorem flipperCtorVatStoreReach
     raw swap1 (by flipper_ctor_decode) (by evm_ov),
     raw swap2 (by flipper_ctor_decode) (by evm_ov)]
   have hload :
-      (σKicks.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) =
+      (σKicks.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) =
         solcSlotWord σKicks I ⟨2⟩ := by
     rfl
   rw [hload] at rdBeforeStore
@@ -1526,7 +1528,8 @@ theorem flipperCtorVatStoreReach
             unfold setAddressOffset0Word
             rw [hvatMask]
   exact ⟨k', C', by
-    simpa [code, solcSlotWord, setAddressOffset0Word, hwordStore, hvatMask,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, code, solcSlotWord,
+      setAddressOffset0Word, hwordStore, hvatMask,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide] using rd159⟩
 
@@ -1572,7 +1575,7 @@ theorem flipperCtorCatStoreReach
     raw or (by flipper_ctor_decode) (by evm_ov),
     raw swap1 (by flipper_ctor_decode) (by evm_ov)]
   have hload :
-      (σVat.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨7⟩ ⟨0⟩)) =
+      (σVat.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨7⟩ ⟨0⟩)) =
         solcSlotWord σVat I ⟨7⟩ := by
     rfl
   rw [hload] at rdBeforeStore

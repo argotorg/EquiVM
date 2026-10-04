@@ -77,7 +77,7 @@ private theorem flopperCtorStateEquiv
         congrArg flopperCtorDefaultsSlot6Word (h2.storageLoad_codeOwner ⟨6⟩)
     simpa [evm4e, evm4sPacked] using h2.storageStore_codeOwner ⟨6⟩ hval
   have hPackedActual : evm4sPacked.accountMap = evm4s.accountMap := by
-    cases hacc : evm2s.accountMap.find? evm2s.executionEnv.codeOwner with
+    cases hacc : evm2s.accountMap.get? evm2s.executionEnv.codeOwner with
     | none =>
         have hPackedNoop : evm4sPacked = evm2s := by
           simpa [evm4sPacked, packedS] using

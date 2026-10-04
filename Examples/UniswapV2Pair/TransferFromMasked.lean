@@ -415,7 +415,8 @@ theorem uniswapTransferFromX_allowanceMaxAfterCreditCalc_masked {σ σ₀ A I}
   have htoBalanceWord :
       uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferFromToMaskedWord I) ⟨1⟩) =
         transferFromToBalanceWordMax (initState σ σ₀ g A I) I := by
-    simp [σDebit, uniswapCodeOwnerStorageWord, transferFromToBalanceWordMax,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, σDebit, uniswapCodeOwnerStorageWord,
+      transferFromToBalanceWordMax,
       transferFromAfterBalanceStateMax, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, storageStore_accountMap, hfromSlot, htoSlot]
   have hfitWord :
@@ -607,7 +608,8 @@ theorem uniswapTransferFromX_overflowMaxAllowance_masked {σ σ₀ A I}
   have htoBalanceWord :
       uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferFromToMaskedWord I) ⟨1⟩) =
         transferFromToBalanceWordMax (initState σ σ₀ g A I) I := by
-    simp [σDebit, uniswapCodeOwnerStorageWord, transferFromToBalanceWordMax,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, σDebit, uniswapCodeOwnerStorageWord,
+      transferFromToBalanceWordMax,
       transferFromAfterBalanceStateMax, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, storageStore_accountMap, hfromSlot, htoSlot]
   have hoverWord :

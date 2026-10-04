@@ -9,14 +9,14 @@ namespace Benchmarks.WETH9
 /-! ### SELFBALANCE (cost `Glow = 5`, pc += 1, pushes the code owner's balance)
 
     Mirrors `CHAINID`/`CALLER`: a 0-pop / 1-push opcode.  The pushed word is the balance of
-    `codeOwner` in the current account map (`accountMap.find? codeOwner |>.elim ⟨0⟩ (·.balance)`).
+    `codeOwner` in the current account map (`accountMap.get? codeOwner |>.elim ⟨0⟩ (·.balance)`).
     `RD` hides the cursor `s`, so the combinator states the pushed value through the tracked
     account map `acc` and `ee.codeOwner`. -/
 
 def stSelfbalance (s : State) : State :=
   { s with machineState := { s.machineState with
       pc := s.machineState.pc + ⟨1⟩,
-      stack := (s.accountMap.find? s.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance)) ::
+      stack := (s.accountMap.get? s.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance)) ::
         s.machineState.stack,
       execLength := s.machineState.execLength + 1,
       gasAvailable := s.machineState.gasAvailable.subNat GasConstants.Glow } }
@@ -34,7 +34,7 @@ theorem selfbalance_xstep {s : State} {code : ByteArray} {pcv : UInt256} {rest :
   rw [← hcode, step_selfbalance s hd, if_neg hov']
   simp only [GasConstants.Glow, stSelfbalance]
 
-/-- **SELFBALANCE**: push the code owner's balance (`acc.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)`)
+/-- **SELFBALANCE**: push the code owner's balance (`acc.get? ee.codeOwner |>.elim ⟨0⟩ (·.balance)`)
     onto the stack (cost `Glow = 5`, pc += 1). -/
 theorem RD.selfbalance {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -43,7 +43,7 @@ theorem RD.selfbalance {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 :
     (hdec : decode code pc = some (.SELFBALANCE, .none))
     (hov : stk.length + 1 ≤ 1024) :
     RD code ee g s0 (pc + ⟨1⟩)
-      ((acc.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)) :: stk) mem aw rdata acc
+      ((acc.get? ee.codeOwner |>.elim ⟨0⟩ (·.balance)) :: stk) mem aw rdata acc
       (k + 1) (C + GasConstants.Glow) := by
   unfold RD at h ⊢
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hworld⟩

@@ -304,7 +304,7 @@ Uniswap lock. -/
 theorem uniswapSkimX_lockEntered {σ σ₀ A I} {g : Sat256} {sel toWord : UInt256}
     (hperm : I.perm = true)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5080⟩ [toWord, ⟨570⟩, sel]
@@ -326,7 +326,7 @@ theorem uniswapSkimRuntimeLockEntered
     {σ σ₀ A I} {g : UInt256} {toWord : UInt256}
     (hperm : I.perm = true)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5080⟩
@@ -1047,7 +1047,7 @@ theorem uniswapSkimRuntimeFirstBalanceOfStaticcallSuccessGuard
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -1167,7 +1167,7 @@ theorem uniswapSkimRuntimeFirstBalanceOfReturnWordDecoded
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -1270,7 +1270,7 @@ theorem uniswapSkimRuntimeFirstBalanceOfReturnWordDecodeShortReverts
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -1362,7 +1362,7 @@ theorem uniswapSkimRuntimeFirstBalanceOfMissingCodeReverts
 lock is already held. -/
 theorem uniswapSkimX_locked {σ σ₀ A I} {g : Sat256} {sel toWord : UInt256}
     (hlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨5080⟩ [toWord, ⟨570⟩, sel]

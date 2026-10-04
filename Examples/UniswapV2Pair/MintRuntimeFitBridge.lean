@@ -62,7 +62,8 @@ theorem mintFunctionToBalanceNewNat_eq_runtimeMintRecipient
         uniswapCodeOwnerStorageWord I
           (sstoreAccountMap I.codeOwner σ ⟨0⟩ (uniswapSlotWord ⟨0⟩ σ I + liquidity))
           (uniswapInternalMintBalanceHashSlot recipientWord mem) := by
-    simpa [mintFunctionToBalanceWord, uniswapCodeOwnerStorageWord, Solm.EVM.storageLoad,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, mintFunctionToBalanceWord,
+      uniswapCodeOwnerStorageWord, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, henv, henvAfter, hslotSource, hslotRuntime,
       hafterTotal]
   simp [mintFunctionToBalanceNewNat, hbalanceEq]

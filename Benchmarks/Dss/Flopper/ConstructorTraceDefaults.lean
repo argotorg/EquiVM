@@ -60,8 +60,8 @@ theorem flopperCtorDefaultsReach
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         (flopperCtorAfterPadMap σ I) k33 C33 := by
     have hload :
-        ((flopperCtorAfterPadMap σ I).find? I.codeOwner |>.option ⟨0⟩
-          (fun ac => ac.storage.findD ⟨6⟩ ⟨0⟩)) =
+        ((flopperCtorAfterPadMap σ I).get? I.codeOwner |>.option ⟨0⟩
+          (fun ac => ac.storage.getD ⟨6⟩ ⟨0⟩)) =
           solcSlotWord (flopperCtorAfterPadMap σ I) I ⟨6⟩ := by
       rfl
     simpa [hload] using rd33raw

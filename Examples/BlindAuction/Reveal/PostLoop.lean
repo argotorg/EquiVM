@@ -129,7 +129,7 @@ theorem scratch_blindAuctionReveal_postLoop_fromDone
       omega
     by_cases hbalance :
         aDone.refund ≤
-          (aDone.acc.find? I.codeOwner |>.elim ⟨0⟩ (·.balance))
+          (aDone.acc.get? I.codeOwner |>.elim ⟨0⟩ (·.balance))
     · exact scratch_blindAuctionReveal_postLoop_callMade_fromCall
 
         (σ := σ)  (σ₀ := σ₀) (A := A)

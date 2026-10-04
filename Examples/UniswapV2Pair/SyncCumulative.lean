@@ -24,7 +24,7 @@ abbrev uniswapUpdateElapsedFromStorage (σ : AccountMap) (ee : ExecutionEnv) : U
   UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
     (UInt256.land reserve32Mask
       (UInt256.div
-        (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+        (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩))
         reserve224Shift))
 
 abbrev uniswapUpdatePrice0CumulativeWord
@@ -185,8 +185,8 @@ theorem RD.uniswapUpdateCumulativesAndJump {g : Sat256} {s0 : State}
         (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
-              (acc.find? ee.codeOwner |>.option ⟨0⟩
-                (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+              (acc.get? ee.codeOwner |>.option ⟨0⟩
+                (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩))
               reserve224Shift)))
         reserve32Mask ≠ ⟨0⟩ := by
     simpa [uniswapUpdateElapsedFromStorage] using helapsedNe
@@ -196,8 +196,8 @@ theorem RD.uniswapUpdateCumulativesAndJump {g : Sat256} {s0 : State}
           (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
             (UInt256.land reserve32Mask
               (UInt256.div
-                (acc.find? ee.codeOwner |>.option ⟨0⟩
-                  (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+                (acc.get? ee.codeOwner |>.option ⟨0⟩
+                  (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩))
                 reserve224Shift)))
           reserve32Mask) = ⟨0⟩ :=
     isZero_eq_zero_of_ne helapsedLit
@@ -598,7 +598,7 @@ theorem syncUpdatePackedReserveState_accountMap_eq
   let v1 := setUint112Offset14Word v0 balance1
   have hpacked' : packed = setUint32Offset28Word v1 (uniswapUpdateTimestampWord I) := by
     simp [hpacked, v0, v1, uniswapUpdatePackedReserveWord_eq_setters]
-  by_cases haccExists : ∃ acc, evm.accountMap.find? I.codeOwner = some acc
+  by_cases haccExists : ∃ acc, evm.accountMap.get? I.codeOwner = some acc
   · obtain ⟨acc, hacc⟩ := haccExists
     have hload0 :
         Solm.EVM.storageLoad evm I.codeOwner ⟨8⟩ = uniswapSlotWord ⟨8⟩ σ I := by
@@ -611,13 +611,12 @@ theorem syncUpdatePackedReserveState_accountMap_eq
       exact storageLoad_storageStore_same_present evm I.codeOwner hacc ⟨8⟩ v0
     obtain ⟨acc0, hacc0⟩ :
         ∃ acc0,
-          (Solm.EVM.storageStore evm I.codeOwner ⟨8⟩ v0).accountMap.find? I.codeOwner =
+          (Solm.EVM.storageStore evm I.codeOwner ⟨8⟩ v0).accountMap.get? I.codeOwner =
             some acc0 := by
       refine ⟨Account.updateStorage acc ⟨8⟩ v0, ?_⟩
-      simpa [Solm.EVM.storageStore, State.lookupAccount, hacc, State.setAccount,
-        Option.option] using
-        accountMap_find_insert_self evm.accountMap I.codeOwner
-          (Account.updateStorage acc ⟨8⟩ v0)
+      simp only [Solm.EVM.storageStore, State.lookupAccount]
+      rw [hacc]
+      simp [State.setAccount, Option.option, Std.ExtTreeMap.get?_eq_getElem?]
     have hload2 :
         Solm.EVM.storageLoad
             (Solm.EVM.storageStore
@@ -656,15 +655,15 @@ theorem syncUpdatePackedReserveState_accountMap_eq
     have hchain := (hbase.trans hsingle).trans hdouble
     simpa [syncUpdatePackedReserveState, storageStore_accountMap, storageStore_executionEnv,
       hload0, hload1, hload2, henv, hpacked', v0, v1] using hchain
-  · have hmissing : evm.accountMap.find? I.codeOwner = none := by
-      cases hfind : evm.accountMap.find? I.codeOwner with
+  · have hmissing : evm.accountMap.get? I.codeOwner = none := by
+      cases hfind : evm.accountMap.get? I.codeOwner with
       | none => rfl
       | some acc => exact False.elim (haccExists ⟨acc, hfind⟩)
-    have hmissingSource : σ.find? I.codeOwner = none :=
+    have hmissingSource : σ.get? I.codeOwner = none :=
       by simpa [hPost] using hmissing
     have hleft : sstoreAccountMap I.codeOwner σ ⟨8⟩ packed = σ :=
       sstoreAccountMap_absent_same hmissingSource
-    have hmissingOwner : evm.accountMap.find? evm.executionEnv.codeOwner = none := by
+    have hmissingOwner : evm.accountMap.get? evm.executionEnv.codeOwner = none := by
       simpa [henv] using hmissing
     have hright :
         (syncUpdatePackedReserveState evm balance0 balance1).accountMap =

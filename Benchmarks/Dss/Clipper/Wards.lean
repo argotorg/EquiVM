@@ -29,8 +29,8 @@ def clipperWardsStorageSlot (I : ExecutionEnv) : UInt256 :=
   wardsSlot (clipperWardsArgKey I)
 
 def clipperWardsWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (clipperWardsStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (clipperWardsStorageSlot I) ⟨0⟩)
 
 theorem clipperWardsStorageSlot_eq_mapSlot_masked (I : ExecutionEnv) :
     clipperWardsStorageSlot I = mapSlot (clipperWardsArgMaskedWord I) ⟨0⟩ := by

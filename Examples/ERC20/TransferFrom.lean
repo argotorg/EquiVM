@@ -82,7 +82,7 @@ theorem transferFromAfterAllowance_codeOwner (evm : EVM.State) (I : ExecutionEnv
     (transferFromAfterAllowanceState evm I).executionEnv.codeOwner =
       evm.executionEnv.codeOwner := by
   simp only [transferFromAfterAllowanceState, Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? evm.executionEnv.codeOwner with
+  cases evm.accountMap.get? evm.executionEnv.codeOwner with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 
@@ -95,7 +95,7 @@ theorem transferFromAfterBalance_codeOwner (evm : EVM.State) (I : ExecutionEnv) 
     (transferFromAfterBalanceState evm I).executionEnv.codeOwner =
       evm.executionEnv.codeOwner := by
   simp only [transferFromAfterBalanceState, Solm.EVM.storageStore, State.lookupAccount]
-  cases (transferFromAfterAllowanceState evm I).accountMap.find? evm.executionEnv.codeOwner with
+  cases (transferFromAfterAllowanceState evm I).accountMap.get? evm.executionEnv.codeOwner with
   | none => exact transferFromAfterAllowance_codeOwner evm I
   | some acc =>
       simp only [Option.option, State.setAccount, Account.updateStorage,

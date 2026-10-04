@@ -1835,7 +1835,7 @@ theorem RD.sload {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (h : RD code ee g s0 pc (a :: t) mem aw rdata σ k C)
     (hdec : decode code pc = some (.SLOAD, .none)) (hov : t.length + 1 ≤ 1024) :
     ∃ k' C', RD code ee g s0 (pc + ⟨1⟩)
-      ((σ.find? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD a ⟨0⟩)) :: t)
+      ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD a ⟨0⟩)) :: t)
       mem aw rdata σ k' C' := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata, hacc, hee, hσ₀⟩
@@ -2620,7 +2620,7 @@ theorem RD.callValueMade {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
           mem aw rdata σ k C)
     (hdec : decode code pc = some (.CALL, .none))
     (hperm : ee.perm = true)
-    (hbalance : valueWord ≤ (σ.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
+    (hbalance : valueWord ≤ (σ.get? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : ee.depth.val < 1024)
     (hov : t.length + 1 ≤ 1024) :
     ∃ (σ' : AccountMap)
@@ -2656,29 +2656,29 @@ theorem RD.callValueMade {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0
     have hdepthLt : s.executionEnv.depth < 1024 := by rw [Fin.lt_def]; exact hdepth'
     have hσ : s.accountMap = σ := hacc
     have hbalT :
-        (valueWord ≤ (s.accountMap.find? s.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))) =
+        (valueWord ≤ (s.accountMap.get? s.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))) =
           True := by
       rw [hee, hσ]
       exact eq_true hbalance
     have hbalOpt :
         (valueWord ≤ Option.option ⟨0⟩ (fun x => x.balance)
-            (Std.ExtTreeMap.find? s.accountMap s.executionEnv.codeOwner)) = True := by
+            (Std.ExtTreeMap.get? s.accountMap s.executionEnv.codeOwner)) = True := by
       rw [show Option.option ⟨0⟩ (fun x => x.balance)
-          (Std.ExtTreeMap.find? s.accountMap s.executionEnv.codeOwner) =
-          (s.accountMap.find? s.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance)) by
-        cases Std.ExtTreeMap.find? s.accountMap s.executionEnv.codeOwner <;> rfl]
+          (Std.ExtTreeMap.get? s.accountMap s.executionEnv.codeOwner) =
+          (s.accountMap.get? s.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance)) by
+        cases Std.ExtTreeMap.get? s.accountMap s.executionEnv.codeOwner <;> rfl]
       exact hbalT
     have hgtF :
-        (valueWord > (s.accountMap.find? s.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))) =
+        (valueWord > (s.accountMap.get? s.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))) =
           False := by
       rw [hee, hσ]
       exact eq_false (by
         intro hlt
         have hLeNat :
             valueWord.val.val ≤
-              ((σ.find? ee.codeOwner).elim ⟨0⟩ fun x => x.balance).val.val := hbalance
+              ((σ.get? ee.codeOwner).elim ⟨0⟩ fun x => x.balance).val.val := hbalance
         have hGtNat :
-            ((σ.find? ee.codeOwner).elim ⟨0⟩ fun x => x.balance).val.val <
+            ((σ.get? ee.codeOwner).elim ⟨0⟩ fun x => x.balance).val.val <
               valueWord.val.val := hlt
         exact Nat.not_lt_of_ge hLeNat hGtNat)
     have hdeqF : (s.executionEnv.depth == 1024) = false := by
@@ -2799,7 +2799,7 @@ theorem RD.callValueMadeEmptyInOut {code : ByteArray} {ee : ExecutionEnv} {g : S
           mem aw rdata σ k C)
     (hdec : decode code pc = some (.CALL, .none))
     (hperm : ee.perm = true)
-    (hbalance : valueWord ≤ (σ.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
+    (hbalance : valueWord ≤ (σ.get? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : ee.depth.val < 1024)
     (hov : t.length + 1 ≤ 1024) :
     ∃ (σ' : AccountMap)
@@ -2910,7 +2910,7 @@ theorem RD.callValueInsufficientBalance {code : ByteArray} {ee : ExecutionEnv} {
           mem aw rdata σ k C)
     (hperm : ee.perm = true)
     (hdec : decode code pc = some (.CALL, .none))
-    (hbalance : ¬ value ≤ (σ.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
+    (hbalance : ¬ value ≤ (σ.get? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : ee.depth.val < 1024)
     (hov : t.length + 1 ≤ 1024) :
     ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)
@@ -2938,19 +2938,19 @@ theorem RD.callValueInsufficientBalance {code : ByteArray} {ee : ExecutionEnv} {
     have hσ : s.accountMap = σ := hacc
     have hbalOpt :
         (value ≤ Option.option ⟨0⟩ (fun x => x.balance)
-            (Std.ExtTreeMap.find? s.accountMap s.executionEnv.codeOwner)) = False := by
+            (Std.ExtTreeMap.get? s.accountMap s.executionEnv.codeOwner)) = False := by
       rw [hee, hσ]
       rw [show Option.option ⟨0⟩ (fun x => x.balance)
-          (Std.ExtTreeMap.find? σ ee.codeOwner) =
-          (σ.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)) by
-        cases σ.find? ee.codeOwner <;> rfl]
+          (Std.ExtTreeMap.get? σ ee.codeOwner) =
+          (σ.get? ee.codeOwner |>.elim ⟨0⟩ (·.balance)) by
+        cases σ.get? ee.codeOwner <;> rfl]
       exact eq_false hbalance
     have hgtT :
-        (value > (s.accountMap.find? s.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))) =
+        (value > (s.accountMap.get? s.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))) =
           True := by
       rw [hee, hσ]
       exact eq_true (by
-        show ((σ.find? ee.codeOwner).elim ⟨0⟩ fun x => x.balance).val.val < value.val.val
+        show ((σ.get? ee.codeOwner).elim ⟨0⟩ fun x => x.balance).val.val < value.val.val
         exact Nat.lt_of_not_ge hbalance)
     have hdeqF : (s.executionEnv.depth == 1024) = false := by
       rw [beq_eq_false_iff_ne]
@@ -3153,7 +3153,7 @@ theorem RD.callValueInsufficientBalanceEmptyInOut {code : ByteArray} {ee : Execu
           mem aw rdata σ k C)
     (hperm : ee.perm = true)
     (hdec : decode code pc = some (.CALL, .none))
-    (hbalance : ¬ value ≤ (σ.find? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
+    (hbalance : ¬ value ≤ (σ.get? ee.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : ee.depth.val < 1024)
     (hov : t.length + 1 ≤ 1024) :
     ∃ k' C', RD code ee g s0 (pc + ⟨1⟩) (⟨0⟩ :: t)

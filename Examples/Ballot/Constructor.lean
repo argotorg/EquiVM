@@ -1224,7 +1224,7 @@ one.  The proposal loop starts at pc `0x50` with stack `[i = 0, proposalNamesPtr
 abbrev ballotSourceWord (I : ExecutionEnv) : UInt256 := UInt256.ofNat I.source.val
 
 def ballotStorageWord (σ : AccountMap) (I : ExecutionEnv) (slot : UInt256) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩)
 
 def ballotCtorChairWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.lor
@@ -1329,7 +1329,7 @@ theorem ballotConstructorPrelude
         (by evm_ov) ]
   obtain ⟨k80, C80, rd80⟩ := rd79.sstore hperm (by ctor_decode) (by evm_ov)
   have hchairRaw := hchair
-  simp [ballotStorageWord, ballotSourceWord] at hchairRaw
+  simp [-Std.ExtTreeMap.get?_eq_getElem?, ballotStorageWord, ballotSourceWord] at hchairRaw
   rw [hchairRaw] at rd80
   simpa [ballotCtorPreludeMap, ballotCtorVoterSlot, ballotCtorScratchMem,
     ballotSourceWord] using ⟨k80, C80, rd80⟩

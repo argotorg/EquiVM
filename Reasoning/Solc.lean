@@ -2981,7 +2981,7 @@ theorem RD.solcAddressSlotGetter {code : ByteArray} {g : Sat256} {s0 : State}
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       (UInt256.land solcAddrMask
-        (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) ::
+        (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) ::
         ret :: R) mem aw rdata σ k' C' := by
   rcases hwf with ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10⟩
   have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
@@ -3009,7 +3009,7 @@ theorem RD.solcWordSlotGetter {code : ByteArray} {g : Sat256} {s0 : State}
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
-      ((σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) ::
+      ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) ::
         ret :: R) mem aw rdata σ k' C' := by
   rcases hwf with ⟨hd0, hd1, hd2, hd3, hd4⟩
   have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)
@@ -3040,7 +3040,7 @@ theorem RD.solcConstGetter {code : ByteArray} {g : Sat256} {s0 : State}
 /-! ## Solc mapping getter and store routines -/
 
 abbrev solcSlotWord (σ : AccountMap) (I : ExecutionEnv) (slot : UInt256) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)
 
 theorem twoWordHashMem_solcMappingSlot (baseSlot key : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -4733,7 +4733,7 @@ theorem RD.solcLockEnterOk {code : ByteArray} {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd4₀⟩ := rd3.sload hd3 (by omega)
   have rd4 := rd4₀
   have hunlockedRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) =
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) =
         unlocked := by
     simpa [solcSlotWord] using hunlocked
   rw [hunlockedRaw] at rd4
@@ -5110,7 +5110,7 @@ theorem RD.solcLockEnterLockedStringRevert {code : ByteArray} {g : Sat256} {s0 :
   obtain ⟨_, _, rd4₀⟩ := rd3.sload hd3 (by omega)
   have rd4 := rd4₀
   have hraw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) =
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) =
         lockedWord := by
     simpa [solcSlotWord] using hlockedWord.symm
   rw [hraw] at rd4
@@ -6127,7 +6127,10 @@ theorem RD.solcAddressGetterExternal {code : ByteArray} {σ σ₀ A I}
         UInt256.land (solcSlotWord σ I slot) solcAddrMask := by
     rw [u256_land_comm solcAddrMask (solcSlotWord σ I slot)]
     exact solcAddrMask_clean (solcAddrMask_result_canonical (solcSlotWord σ I slot))
-  simpa [hclean] using hrd
+  change RDret code g (Reasoning.Theory.initState σ σ₀ g A I) σ
+    (UInt256.toByteArray
+      (UInt256.land (UInt256.land solcAddrMask (solcSlotWord σ I slot)) solcAddrMask)) at hrd
+  simpa only [hclean] using hrd
 
 theorem RD.solcWordGetterExternal {code : ByteArray} {σ σ₀ A I}
     {g : Sat256} {sel entry routine slot returnPc : UInt256}

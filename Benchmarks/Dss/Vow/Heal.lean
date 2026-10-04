@@ -1331,13 +1331,13 @@ theorem vowHealDaiNoCodeBodyCore
     rw [hvatAddr]
     unfold Reasoning.Theory.extCodeSizeWord at hnoCodeSolm
     cases hacc :
-      σ.find? (AccountAddress.ofUInt256 (kissDaiTargetWord σ I)) with
+      σ.get? (AccountAddress.ofUInt256 (kissDaiTargetWord σ I)) with
     | none =>
-        simpa [initState, State.lookupAccount, hacc] using
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState, State.lookupAccount, hacc] using
           (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
     | some acc =>
         have hword := congrArg UInt256.toNat hnoCodeSolm
-        simpa [initState, State.lookupAccount, hacc] using hword
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState, State.lookupAccount, hacc] using hword
   have hbody := vowHealSourceDaiNoCode
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hwv hvatNoCode
   have hrev := RD.vowHealDaiNoCode hreach hsz36 hsize hnoCode

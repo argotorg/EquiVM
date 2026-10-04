@@ -14,7 +14,7 @@ private theorem clipperKickStorageStore_originalAccounts (evm : EVM.State)
     (addr : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;>
+  cases evm.accountMap.get? addr <;>
     simp [Option.option, State.setAccount, Account.updateStorage]
 
 theorem clipperKickVowAddress_eq_of_aligned

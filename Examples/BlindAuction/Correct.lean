@@ -570,7 +570,7 @@ theorem blindAuctionReturnMem_read (biddingTime revealTime : UInt256)
   rw [hleft, blindAuctionInitcode_runtime_window]
 
 def blindAuctionCtorOldBeneficiarySlot (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+  (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
 
 def blindAuctionCtorBeneficiaryStoreWord (σ : AccountMap) (I : ExecutionEnv)
     (beneficiaryAddress : AccountAddress) : UInt256 :=
@@ -586,8 +586,8 @@ def blindAuctionCtorAfterBiddingEndMap (σ : AccountMap) (I : ExecutionEnv)
 
 def blindAuctionCtorBiddingEndWord (σ : AccountMap) (I : ExecutionEnv)
     (biddingTime : UInt256) (beneficiaryAddress : AccountAddress) : UInt256 :=
-  ((blindAuctionCtorAfterBiddingEndMap σ I biddingTime beneficiaryAddress).find? I.codeOwner).option
-    ⟨0⟩ (fun ac => ac.storage.findD ⟨1⟩ ⟨0⟩)
+  ((blindAuctionCtorAfterBiddingEndMap σ I biddingTime beneficiaryAddress).get? I.codeOwner).option
+    ⟨0⟩ (fun ac => ac.storage.getD ⟨1⟩ ⟨0⟩)
 
 theorem blindAuctionInitcodeNonpayableRevert
     {σ : AccountMap}
@@ -630,7 +630,7 @@ theorem blindAuctionInitcodeBiddingOverflowRevert
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   let oldBeneficiarySlot : UInt256 :=
-    (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+    (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
   have rdBeforeSload := blind_ctor_run rd0 with [
     callvalue, dup1, iszero, push1 ⟨9⟩,
     jumpiT (by rw [hwv]; decide) (by blind_ctor_jd),
@@ -709,7 +709,7 @@ theorem blindAuctionInitcodeRevealOverflowRevert
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   let oldBeneficiarySlot : UInt256 :=
-    (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+    (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
   let beneficiaryStoreWord : UInt256 :=
     blindAuctionSetAddressWord oldBeneficiarySlot (EVM.word beneficiaryAddress)
   have rdBeforeSload := blind_ctor_run rd0 with [
@@ -793,8 +793,8 @@ theorem blindAuctionInitcodeRevealOverflowRevert
   let biddingEndWord : UInt256 :=
     ((sstoreAccountMap I.codeOwner
       (sstoreAccountMap I.codeOwner σ ⟨0⟩ beneficiaryStoreWord)
-      ⟨1⟩ (UInt256.ofNat I.header.timestamp + biddingTime)).find? I.codeOwner).option
-        ⟨0⟩ (fun ac => ac.storage.findD ⟨1⟩ ⟨0⟩)
+      ⟨1⟩ (UInt256.ofNat I.header.timestamp + biddingTime)).get? I.codeOwner).option
+        ⟨0⟩ (fun ac => ac.storage.getD ⟨1⟩ ⟨0⟩)
   change RD (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) I g
     (initState σ σ₀ g A I) _
     [biddingEndWord, revealTime]
@@ -837,7 +837,7 @@ theorem blindAuctionInitcodeSuccess
           (sstoreAccountMap I.codeOwner
             (sstoreAccountMap I.codeOwner σ ⟨0⟩
               (blindAuctionSetAddressWord
-                (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+                (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
                 (EVM.word beneficiaryAddress)))
             ⟨1⟩ (UInt256.ofNat I.header.timestamp + biddingTime))
           ⟨2⟩ (revealTime + blindAuctionCtorBiddingEndWord σ I biddingTime beneficiaryAddress))
@@ -848,7 +848,7 @@ theorem blindAuctionInitcodeSuccess
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   let oldBeneficiarySlot : UInt256 :=
-    (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+    (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
   let beneficiaryStoreWord : UInt256 :=
     blindAuctionSetAddressWord oldBeneficiarySlot (EVM.word beneficiaryAddress)
   have rdBeforeSload := blind_ctor_run rd0 with [
@@ -932,8 +932,8 @@ theorem blindAuctionInitcodeSuccess
   let biddingEndWord : UInt256 :=
     ((sstoreAccountMap I.codeOwner
       (sstoreAccountMap I.codeOwner σ ⟨0⟩ beneficiaryStoreWord)
-      ⟨1⟩ (UInt256.ofNat I.header.timestamp + biddingTime)).find? I.codeOwner).option
-        ⟨0⟩ (fun ac => ac.storage.findD ⟨1⟩ ⟨0⟩)
+      ⟨1⟩ (UInt256.ofNat I.header.timestamp + biddingTime)).get? I.codeOwner).option
+        ⟨0⟩ (fun ac => ac.storage.getD ⟨1⟩ ⟨0⟩)
   change RD (blindAuctionCtorCode biddingTime revealTime beneficiaryAddress) I g
     (initState σ σ₀ g A I) _
     [biddingEndWord, revealTime]
@@ -1729,9 +1729,9 @@ theorem blindAuctionCtorRevealBaseWord_equiv
           (Sat256.ofUInt256 g) A I)
         biddingTime beneficiaryAddress := by
   let oldSlotEvm : UInt256 :=
-    (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+    (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
   let oldSlotSolm : UInt256 :=
-    (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+    (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
   let beneficiaryStoreWordEvm : UInt256 :=
     blindAuctionSetAddressWord oldSlotEvm (EVM.word beneficiaryAddress)
   let beneficiaryStoreWordSolm : UInt256 :=
@@ -1766,7 +1766,7 @@ theorem blindAuctionCtorRevealBaseWord_equiv
     rw [hmap0, hBiddingEndWord]
   have hslot := congrArg
     (fun m : AccountMap =>
-      (m.find? I.codeOwner).option ⟨0⟩ (fun ac => ac.storage.findD ⟨1⟩ ⟨0⟩)) hmap1
+      (m.get? I.codeOwner).option ⟨0⟩ (fun ac => ac.storage.getD ⟨1⟩ ⟨0⟩)) hmap1
   simpa [blindAuctionCtorBiddingEndWord, blindAuctionCtorAfterBiddingEndMap,
     blindAuctionCtorBeneficiaryStoreWord, blindAuctionCtorOldBeneficiarySlot,
     blindAuctionCtorRevealBaseWord, blindAuctionCtorAfterBiddingEndState,
@@ -1844,9 +1844,9 @@ theorem blindAuctionConstructorCorrect :
             rw [← hcodeCtor] at hX
             simpa [Sat256.ofUInt256] using hX)
           let oldSlotEvm : UInt256 :=
-            (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+            (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
           let oldSlotSolm : UInt256 :=
-            (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+            (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
           let beneficiaryStoreWordEvm : UInt256 :=
             blindAuctionSetAddressWord oldSlotEvm (EVM.word beneficiaryAddress)
           let beneficiaryStoreWordSolm : UInt256 :=

@@ -34,7 +34,7 @@ def isOperatorSlot (I : ExecutionEnv) : UInt256 :=
     (.address (AccountAddress.ofNat (isOperatorSpenderWord I).toNat))
 
 def isOperatorStorageWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (isOperatorSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (isOperatorSlot I) ⟨0⟩)
 
 abbrev isOperatorMaskedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (isOperatorStorageWord σ I) ⟨255⟩

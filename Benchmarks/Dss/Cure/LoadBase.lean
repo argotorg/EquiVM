@@ -502,14 +502,15 @@ theorem evalExpr_loadExtCodeSizeGtZero_false_of_src {σ σ₀ A I} {g : Sat256}
       EVM.Word.ofNat ((evm0.lookupAccount (loadSrc I)).option 0 (fun acc => acc.code.size)) =
         ⟨0⟩ := by
     change EVM.Word.ofNat
-      ((σ.find? (loadSrc I)).option 0 (fun acc => acc.code.size)) = ⟨0⟩
-    cases hacc : σ.find? (loadSrc I) with
+      ((σ.get? (loadSrc I)).option 0 (fun acc => acc.code.size)) = ⟨0⟩
+    cases hacc : σ.get? (loadSrc I) with
     | none =>
         rfl
     | some acc =>
         have hnoAcc : UInt256.ofNat acc.code.size = ⟨0⟩ := by
-          simpa [extCodeSizeWord, loadKey_address_eq I, hacc] using hnoCode
-        simpa [hacc] using hnoAcc
+          simpa [-Std.ExtTreeMap.get?_eq_getElem?, extCodeSizeWord,
+            loadKey_address_eq I, hacc] using hnoCode
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hnoAcc
   have hext :
       evalExpr? config { contract := contract, locals := locals } evm0
         (.extCodeSize (.var "src")) = .ok (.int 0) := by
@@ -556,12 +557,14 @@ theorem evalExpr_loadExtCodeSizeGtZero_true_of_src {σ σ₀ A I} {g : Sat256}
       EVM.Word.ofNat ((evm0.lookupAccount (loadSrc I)).option 0 (fun acc => acc.code.size)) ≠
         ⟨0⟩ := by
     change UInt256.ofNat
-      ((σ.find? (loadSrc I)).option 0 (fun acc => acc.code.size)) ≠ ⟨0⟩
-    cases hacc : σ.find? (loadSrc I) with
+      ((σ.get? (loadSrc I)).option 0 (fun acc => acc.code.size)) ≠ ⟨0⟩
+    cases hacc : σ.get? (loadSrc I) with
     | none =>
-        exact False.elim (hcode (by simp [extCodeSizeWord, loadKey_address_eq I, hacc, Option.option]))
+        exact False.elim (hcode (by simp [-Std.ExtTreeMap.get?_eq_getElem?,
+          extCodeSizeWord, loadKey_address_eq I, hacc, Option.option]))
     | some acc =>
-        simpa [extCodeSizeWord, loadKey_address_eq I, hacc] using hcode
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, extCodeSizeWord,
+          loadKey_address_eq I, hacc] using hcode
   have hcodePos :
       0 < (EVM.Word.ofNat
         ((evm0.lookupAccount (loadSrc I)).option 0 (fun acc => acc.code.size))).toNat :=

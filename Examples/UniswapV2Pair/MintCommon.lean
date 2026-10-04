@@ -739,7 +739,7 @@ theorem uniswapMintX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 already held. -/
 theorem uniswapMintX_locked {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨3283⟩
@@ -758,7 +758,7 @@ Uniswap lock when it is not already held. -/
 theorem uniswapMintX_lockEntered {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨3283⟩
@@ -1057,7 +1057,7 @@ theorem mintReserve0Word_initState_eq_evm
     uniswapLockEnteredState, uniswapUnlockedState, initState, storageStore_accountMap,
     storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
     using (rfl : UInt256.land
-      (σLockS.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩))
+      (σLockS.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨8⟩ ⟨0⟩))
       reserve112Mask = _)
 
 theorem mintReserve1Word_initState_eq_evm
@@ -1070,7 +1070,7 @@ theorem mintReserve1Word_initState_eq_evm
     uniswapLockEnteredState, uniswapUnlockedState, initState, storageStore_accountMap,
     storageStore_executionEnv, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
     using (rfl : UInt256.land (UInt256.div
-      (σLockS.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩))
+      (σLockS.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨8⟩ ⟨0⟩))
       reserve112Shift) reserve112Mask = _)
 
 theorem uniswapMintReservePrefix (evm : EVM.State) (I : ExecutionEnv)

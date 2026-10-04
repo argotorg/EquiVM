@@ -139,7 +139,7 @@ theorem stringStoreLiteSetNewLongRuntime
           (UInt256.land (UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩) ⟨127⟩)
           ⟨32⟩) ≠ ⟨0⟩
     · by_cases haccSolm0 :
-          ∃ acc, evmSolm0.accountMap.find? evmSolm0.executionEnv.codeOwner = some acc
+          ∃ acc, evmSolm0.accountMap.get? evmSolm0.executionEnv.codeOwner = some acc
       · obtain ⟨accSolm0, haccSolm0⟩ := haccSolm0
         let evmSolm1 : EVM.State :=
           Solm.EVM.storageStore
@@ -182,16 +182,16 @@ theorem stringStoreLiteSetNewLongRuntime
         exact setRuntimeOfWriteEVMStateEq hcode hwv hret hd hdec hwrite
           rfl hState.accountMap henc
       · have hmissingSolm0 :
-            evmSolm0.accountMap.find? evmSolm0.executionEnv.codeOwner = none := by
-          cases hfind : evmSolm0.accountMap.find? evmSolm0.executionEnv.codeOwner with
+            evmSolm0.accountMap.get? evmSolm0.executionEnv.codeOwner = none := by
+          cases hfind : evmSolm0.accountMap.get? evmSolm0.executionEnv.codeOwner with
           | none => rfl
           | some acc => exact False.elim (haccSolm0 ⟨acc, hfind⟩)
-        have hmissingSolmI : σ.find? I.codeOwner = none := by
+        have hmissingSolmI : σ.get? I.codeOwner = none := by
           simpa [evmSolm0, initState] using hmissingSolm0
-        have hmissingEvmI : σ.find? I.codeOwner = none :=
+        have hmissingEvmI : σ.get? I.codeOwner = none :=
           hmissingSolmI
         have hmissingEvm0 :
-            (initState σ σ₀ (Sat256.ofUInt256 g) A I).accountMap.find?
+            (initState σ σ₀ (Sat256.ofUInt256 g) A I).accountMap.get?
                 (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner =
               none := by
           simpa [initState] using hmissingEvmI
@@ -418,14 +418,15 @@ theorem stringStoreLiteSetNewLongRuntime
       exact hrev.reEquivExecutionRevert hcode hd hdec hbody
     · let oldLen : UInt256 := UInt256.div (currentLengthHeaderWord σ I) ⟨2⟩
       have haccSolm0 :
-          ∃ acc, evmSolm0.accountMap.find? evmSolm0.executionEnv.codeOwner = some acc := by
-        cases hacc : evmSolm0.accountMap.find? evmSolm0.executionEnv.codeOwner with
+          ∃ acc, evmSolm0.accountMap.get? evmSolm0.executionEnv.codeOwner = some acc := by
+        cases hacc : evmSolm0.accountMap.get? evmSolm0.executionEnv.codeOwner with
         | some acc => exact ⟨acc, rfl⟩
         | none =>
             have hloadZero :
                 Solm.EVM.storageLoad evmSolm0 evmSolm0.executionEnv.codeOwner ⟨0⟩ =
                   ⟨0⟩ := by
-              simp [Solm.EVM.storageLoad, State.lookupAccount, Option.option, hacc]
+              simp [-Std.ExtTreeMap.get?_eq_getElem?, Solm.EVM.storageLoad,
+                State.lookupAccount, Option.option, hacc]
             have hheaderZero : currentLengthHeaderWord σ I = ⟨0⟩ := by
               exact hload.symm.trans hloadZero
             exact False.elim (hflag (by rw [hheaderZero]; native_decide))

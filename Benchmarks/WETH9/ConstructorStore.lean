@@ -84,11 +84,11 @@ theorem weth9StringStoreSubroutine
           (Solm.solidityBytesDataBaseSlot slot) ⟨0⟩
           (solidityBytesDataWordCount
             (weth9DecodeLenWord
-              (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩))).toNat))
+              (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩))).toNat))
         k' C' := by
   -- abbreviations
   set S : UInt256 :=
-    σ.find? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩) with hSdef
+    σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩) with hSdef
   set mem1 : ByteArray := UInt256.toByteArray slot |>.write 0 mem 0 32 with hmem1def
   set ow : Nat := solidityBytesDataWordCount (weth9DecodeLenWord S).toNat with howdef
   set K : UInt256 := Solm.solidityBytesDataBaseSlot slot with hKdef

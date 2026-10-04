@@ -381,6 +381,7 @@ theorem daiBurnX_initialBalanceOkCont {σ I} {g : Sat256} {s0 : State} {k C : �
   have rdGt := evm_run rdLoaded with [
     raw dup2 (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov)]
+  simp only [solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rdGt
   have rdIszero := evm_run rdGt with [raw iszero (by native_decide) (by evm_ov)]
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rdIszero
@@ -462,6 +463,7 @@ theorem daiBurnX_initialBalanceRevertCont {σ I} {g : Sat256} {s0 : State}
   have rdGt := evm_run rdLoaded with [
     raw dup2 (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov)]
+  simp only [solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rdGt
   have rdIszero := evm_run rdGt with [raw iszero (by native_decide) (by evm_ov)]
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdIszero
@@ -890,6 +892,7 @@ theorem daiBurnX_allowanceSpendCheckOkCont {σ I} {g : Sat256} {s0 : State}
   have rdGt := evm_run rdReloaded with [
     raw dup2 (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov)]
+  simp only [burnEvmAllowanceWord, solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rdGt
   have rdOk := evm_run rdGt with [
     raw iszero (by native_decide) (by evm_ov),
@@ -1088,6 +1091,7 @@ theorem daiBurnX_allowanceRevertCont {σ I} {g : Sat256} {s0 : State}
   have rdGt := evm_run rdReloaded with [
     raw dup2 (by native_decide) (by evm_ov),
     raw gt (by native_decide) (by evm_ov)]
+  simp only [burnEvmAllowanceWord, solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rdGt
   have rdFail := evm_run rdGt with [
     raw iszero (by native_decide) (by evm_ov),
@@ -1678,6 +1682,7 @@ theorem daiBurnX_tailUsrDebitRevertCont {σ I} {g : Sat256} {s0 : State}
     raw dup3 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := evm_run rd6 with [raw gt hd6 (by evm_ov)]
+  simp only [burnEvmTailUsrBalanceWord, solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rd7
   have rd8 := evm_run rd7 with [raw iszero hd7 (by evm_ov)]
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8
@@ -1884,6 +1889,7 @@ theorem daiBurnX_tailSupplyRevertCont {σ I} {g : Sat256} {s0 : State}
     raw dup3 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := evm_run rd6 with [raw gt hd6 (by evm_ov)]
+  simp only [burnEvmTailSupplyWord, solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?] at hgt
   rw [hgt] at rd7
   have rd8 := evm_run rd7 with [raw iszero hd7 (by evm_ov)]
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8

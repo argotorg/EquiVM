@@ -94,8 +94,7 @@ theorem tf_load_slot (evm : EVM.State) (I : ExecutionEnv) (slot : UInt256)
 /-- `storageStore` leaves `executionEnv` untouched. -/
 theorem tf_execEnv (evm : EVM.State) (a : AccountAddress) (s v : UInt256) :
     (Solm.EVM.storageStore evm a s v).executionEnv = evm.executionEnv := by
-  simp [Solm.EVM.storageStore, State.lookupAccount, State.setAccount]
-  cases evm.accountMap.find? a <;> rfl
+  exact Reasoning.Theory.storageStore_executionEnv evm a s v
 
 /-- Intermediate map after `allowance[src][caller] -= wad`. -/
 def tfAllowSt (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=

@@ -1327,7 +1327,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivF
     have hvow :
         clipperTakeVowTarget σVat I = clipperTakeVowEVMWord evmVatSolm := by
       have hslot := congrArg (fun m => solcSlotWord m I ⟨2⟩) hAccountsVat
-      simp [clipperTakeVowTarget, clipperTakeVowEVMWord, evmVatSolm, hevmPriceEnv,
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, clipperTakeVowTarget, clipperTakeVowEVMWord, evmVatSolm, hevmPriceEnv,
         Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, solcSlotWord, hslot]
     let evmVatEvm : EVM.State :=
       { initState σ σ₀ (Sat256.ofUInt256 g) A I with

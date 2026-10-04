@@ -355,8 +355,8 @@ theorem erc6909Dispatch_setOperator {cd : ByteArray}
     decide
 
 def setOperatorStorageWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (setOperatorSlotI I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (setOperatorSlotI I) ⟨0⟩)
 
 def setOperatorStoredWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   setOperatorBoolWord (setOperatorStorageWord σ I) (setOperatorApprovedWord I)

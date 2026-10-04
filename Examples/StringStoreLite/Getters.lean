@@ -839,7 +839,7 @@ theorem setBodyRevertsOfWrite {evm : EVM.State} {value : ByteArray}
 /-! ## Solidity string length decoding helpers -/
 
 def currentLengthHeaderWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
 theorem slt_zero_of_left_low_right_high {a b : UInt256}
     (ha : a.toNat < 2 ^ 255) (hb : 2 ^ 255 ≤ b.toNat) :
@@ -994,7 +994,7 @@ theorem writeCurrentLongPackedAbsent {evm : EVM.State} {header len : UInt256}
     (hflag : UInt256.land header ⟨1⟩ = ⟨0⟩)
     (hlen : len = UInt256.land (UInt256.div header ⟨2⟩) ⟨127⟩)
     (hvalid : UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩)
-    (hmissing : evm.accountMap.find? evm.executionEnv.codeOwner = none) :
+    (hmissing : evm.accountMap.get? evm.executionEnv.codeOwner = none) :
     writeStorage? stringStoreLiteConfig evm { base := "current", steps := [] }
       .string (.bytes value) = .ok evm := by
   exact writeSolidityStringLongPackedAbsent
@@ -5361,11 +5361,11 @@ theorem clearCurrentBaseWord_eq_solidityBytesDataBaseSlot :
 
 theorem storageLocStore_currentPackedByte_absent_same
     {evm : EVM.State} {off : Fin 32} {byte : UInt8}
-    (hmissing : evm.accountMap.find? evm.executionEnv.codeOwner = none) :
+    (hmissing : evm.accountMap.get? evm.executionEnv.codeOwner = none) :
     storageLocStore evm (uint8Loc ⟨0⟩ off) (.int byte.toNat) = some evm := by
   unfold storageLocStore
-  simp [uint8Loc, storageLocWriteWord, valueToWord,
-    storageStore_absent evm evm.executionEnv.codeOwner, hmissing]
+  simp [uint8Loc, storageLocWriteWord, valueToWord]
+  exact storageStore_absent evm evm.executionEnv.codeOwner hmissing _ _
 
 theorem solidityBytesHeaderWord_long_flag {len : Nat}
     (hlong : ¬ len < 32) (hlenMax : len ≤ ABI.solcMaxU64) :

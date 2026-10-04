@@ -884,7 +884,7 @@ theorem RD.vatFluxSourceSubSuccess
     (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2581raw⟩ := rd2579.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd2581 := rd2581raw
   rw [hold] at rd2581
@@ -987,7 +987,7 @@ theorem RD.vatFluxSourceSubRevert
     (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2581raw⟩ := rd2579.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd2581 := rd2581raw
   rw [hold] at rd2581
@@ -1193,7 +1193,7 @@ theorem RD.vatFluxDestAddSuccess
     (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2636raw⟩ := rd2634.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd2636 := rd2636raw
   rw [hold] at rd2636
@@ -1259,7 +1259,7 @@ theorem RD.vatFluxDestAddRevert
     (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2636raw⟩ := rd2634.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd2636 := rd2636raw
   rw [hold] at rd2636

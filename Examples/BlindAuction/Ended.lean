@@ -13,7 +13,7 @@ namespace BlindAuction
 /-! ## `ended()` getter -/
 
 def endedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨3⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨3⟩ ⟨0⟩)
 
 abbrev endedMaskedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land ⟨255⟩ (endedWord σ I)

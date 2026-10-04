@@ -806,7 +806,7 @@ theorem uniswapAssignBlockTimestampLastOfStore (evm evm' : EVM.State) (locals : 
   · exact hstore
 
 def uniswapSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)
 
 abbrev uniswapAddressReturnWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (uniswapSlotWord slot σ I) solcAddrMask

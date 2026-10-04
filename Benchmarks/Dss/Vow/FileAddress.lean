@@ -1316,7 +1316,7 @@ theorem RD.vowFileAddressNopeSuccessStoreFlapper
     native_decide
   rw [hpc4350] at rd4350
   exact ⟨_, _, by
-    simpa [solcSlotWord, hword,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hword,
         show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide]
       using rd4350⟩
@@ -1422,7 +1422,7 @@ theorem RD.vowFileAddressStoreFlopper {g : Sat256} {s0 : State} {ee : ExecutionE
       _ = setAddressOffset0Word (solcSlotWord σ ee ⟨3⟩) data := by
             rfl
   exact ⟨_, _, by
-    simpa [solcSlotWord, setAddressOffset0Word, hword,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, setAddressOffset0Word, hword,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
       using rd2236.jump (by native_decide) hret (by evm_ov)⟩

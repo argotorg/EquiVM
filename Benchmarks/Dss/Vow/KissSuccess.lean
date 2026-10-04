@@ -578,17 +578,17 @@ theorem extCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap} {target : UInt
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -597,7 +597,7 @@ theorem extCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap} {target : UInt
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 -- LIBRARY CANDIDATE: zero counterpart of `extCodeSizeWord_ne_zero_lookup_code_pos`.
 theorem extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
@@ -605,21 +605,21 @@ theorem extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt25
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem kissDaiTargetWord_sstore_ash (σ : AccountMap) (I : ExecutionEnv) (val : UInt256) :
     kissDaiTargetWord (sstoreAccountMap I.codeOwner σ ⟨6⟩ val) I =
       kissDaiTargetWord σ I := by
-  have hslot := sstoreAccountMap_storage_findD_ne σ I.codeOwner ⟨1⟩ ⟨6⟩ val
+  have hslot := sstoreAccountMap_storage_getD_ne σ I.codeOwner ⟨1⟩ ⟨6⟩ val
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨6⟩)
   simpa [kissDaiTargetWord, vowSlotWord, solcSlotWord] using
     congrArg (fun word => UInt256.land word solcAddrMask) hslot
@@ -634,7 +634,7 @@ theorem kissVatAddress_eq_daiTarget_account (σ : AccountMap) (I : ExecutionEnv)
 theorem storageStore_σ₀ (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
 
 theorem vowKissSourceHealNoCode
     {σ σ₀ A I} {g : UInt256} {evmDai : EVM.State}
@@ -1257,14 +1257,14 @@ theorem vowKissBody {σ σ₀ A I} {g : UInt256}
           RD.vowKissDaiReturnDecodeOk (retWord := vatDai) rd1722 ho32 hosz
             hmload64 hmload128
         have hAshDaiEvm : vowSlotWord ⟨6⟩ σ_dai I = vowSlotWord ⟨6⟩ σ I := by
-          have h := typedCallViaEVM_static_storage_findD_of_accounts_eq
+          have h := typedCallViaEVM_static_storage_getD_of_accounts_eq
             (cfg := config) (σ := σ)
             (slot := ⟨6⟩) (default := ⟨0⟩)
             (hAccounts := by simp [initState])
             hcallDaiTrue
           simpa [initState, vowSlotWord, solcSlotWord] using h
         have hVatDaiEvm : vowSlotWord ⟨1⟩ σ_dai I = vowSlotWord ⟨1⟩ σ I := by
-          have h := typedCallViaEVM_static_storage_findD_of_accounts_eq
+          have h := typedCallViaEVM_static_storage_getD_of_accounts_eq
             (cfg := config) (σ := σ)
             (slot := ⟨1⟩) (default := ⟨0⟩)
             (hAccounts := by simp [initState])
@@ -1294,7 +1294,7 @@ theorem vowKissBody {σ σ₀ A I} {g : UInt256}
         have hAshLoadDai :
             Solm.EVM.storageLoad evmDaiSolm evmDaiSolm.executionEnv.codeOwner ⟨6⟩ =
               vowSlotWord ⟨6⟩ σ I := by
-          have h := typedCallViaEVM_static_storage_findD_of_accounts_eq
+          have h := typedCallViaEVM_static_storage_getD_of_accounts_eq
             (cfg := config) (σ := σ)
             (slot := ⟨6⟩) (default := ⟨0⟩)
             (hAccounts := by simp [initState])
@@ -1304,7 +1304,7 @@ theorem vowKissBody {σ σ₀ A I} {g : UInt256}
         have hvatLoadDai :
             Solm.EVM.storageLoad evmDaiSolm evmDaiSolm.executionEnv.codeOwner ⟨1⟩ =
               vowSlotWord ⟨1⟩ σ I := by
-          have h := typedCallViaEVM_static_storage_findD_of_accounts_eq
+          have h := typedCallViaEVM_static_storage_getD_of_accounts_eq
             (cfg := config) (σ := σ)
             (slot := ⟨1⟩) (default := ⟨0⟩)
             (hAccounts := by simp [initState])
@@ -1341,7 +1341,7 @@ theorem vowKissBody {σ σ₀ A I} {g : UInt256}
             have hslotDai : vowSlotWord ⟨1⟩ σ_dai I = vowSlotWord ⟨1⟩ σ I := by
               exact hVatDaiEvm
             simpa [σAshEvm, vowSlotWord, solcSlotWord] using
-              (sstoreAccountMap_storage_findD_ne σ_dai I.codeOwner ⟨1⟩ ⟨6⟩ AshNew
+              (sstoreAccountMap_storage_getD_ne σ_dai I.codeOwner ⟨1⟩ ⟨6⟩ AshNew
                 (by decide : (⟨1⟩ : UInt256) ≠ ⟨6⟩)).trans hslotDai
           simp [kissVatAddress, vowAddressReturnWord, hslotAsh]
         by_cases hcodeSizeHeal :
@@ -1413,8 +1413,8 @@ theorem vowKissBody {σ σ₀ A I} {g : UInt256}
           simpa [evmHealEvmIn, evmHealEvmOut, hVatAddrHeal] using hcallHealEvmRaw
         let evmAshSolmBase := { evmAshSolm with substate := evmHealEvmIn.substate }
         have hHealInput : evmAshSolmBase = evmHealEvmIn := by
-          cases hFind : σ_dai.find? I.codeOwner <;>
-            simp [evmAshSolmBase, evmHealEvmIn, evmAshSolm, evmDaiSolm,
+          cases hFind : σ_dai.get? I.codeOwner <;>
+            simp [-Std.ExtTreeMap.get?_eq_getElem?, evmAshSolmBase, evmHealEvmIn, evmAshSolm, evmDaiSolm,
               initState, Solm.EVM.storageStore, State.setAccount, State.lookupAccount,
               σAshEvm, sstoreAccountMap, Account.updateStorage, Option.option, hFind]
         have hcallHealSolmBase :

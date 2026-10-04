@@ -953,16 +953,16 @@ theorem drip_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : U
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem dripVatCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
     (hzero :
@@ -998,8 +998,9 @@ theorem dripVatCode_pos_of_codeSize_ne_zero {σ σ₀ A I} {g : UInt256}
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (dripVatAddress σ I)).option 0 (fun acc => acc.code.size)) =
         Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) := by
-    cases hacc : σ.find? (AccountAddress.ofUInt256 (dripVatTargetWord σ I)) <;>
-      simp [initState, State.lookupAccount, Reasoning.Theory.extCodeSizeWord,
+    cases hacc : σ.get? (AccountAddress.ofUInt256 (dripVatTargetWord σ I)) <;>
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, initState, State.lookupAccount,
+        Reasoning.Theory.extCodeSizeWord,
         dripVatAddress_eq_target σ I, hacc, Option.option] <;>
       native_decide
   exact hne (by rw [← hword, hwordZero])

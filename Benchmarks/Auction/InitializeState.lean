@@ -18,7 +18,7 @@ theorem initializerEnteredState_accounts (evm : EVM.State) :
       if_pos (by simp [initializeTop, hi])]
     unfold setInitializedState setInitializingState
     rw [storageStore_executionEnv]
-    cases ha : evm.accountMap.find? evm.executionEnv.codeOwner with
+    cases ha : evm.accountMap.get? evm.executionEnv.codeOwner with
     | none =>
       rw [storageStore_absent evm _ ha, storageStore_absent evm _ ha,
         sstoreAccountMap_absent_same ha]

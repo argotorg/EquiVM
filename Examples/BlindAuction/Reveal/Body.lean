@@ -49,11 +49,11 @@ theorem scratch_revealLoopBody_fromLoopStart {I : ExecutionEnv} {g : Sat256}
     ⟨hiL, hlenL, hrefundL, hbidsL, hvaluesL, hfakesL, hsecretsL,
       hvariant, hidxLe, henv, hσ0, hsub, haccounts⟩
   let curLen : UInt256 :=
-    (a.acc.find? I.codeOwner).option ⟨0⟩
-      (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩)
+    (a.acc.get? I.codeOwner).option ⟨0⟩
+      (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩)
   have hlenLoad :
-      (a.acc.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) =
+      (a.acc.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩) =
         curLen := rfl
   have hlenSrc :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner

@@ -1504,7 +1504,7 @@ theorem scratch_blindAuctionRevealX_callMade_fromCall_general {I} {g : Sat256}
       secretsLen secretsEnd sel : UInt256}
     {mem : ByteArray} {aw : UInt256}
     (hperm : I.perm = true)
-    (hbalance : refund ≤ (σ.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+    (hbalance : refund ≤ (σ.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024)
     (rd : RD blindAuctionBytecode I g s0 ⟨1349⟩
       [gasArg, revealScratchSenderWord I, refund, freePtr, ⟨0⟩, freePtr, ⟨0⟩,
@@ -1584,7 +1584,7 @@ theorem scratch_blindAuctionRevealX_callInsufficient_fromCall_general {I} {g : S
       secretsLen secretsEnd sel : UInt256}
     {mem : ByteArray} {aw : UInt256}
     (hperm : I.perm = true)
-    (hbalance : ¬ refund ≤ (σ.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+    (hbalance : ¬ refund ≤ (σ.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024)
     (rd : RD blindAuctionBytecode I g s0 ⟨1349⟩
       [gasArg, revealScratchSenderWord I, refund, freePtr, ⟨0⟩, freePtr, ⟨0⟩,
@@ -1807,8 +1807,8 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen {I} {g : Sat256}
               32 32).readWithPadding 0 64))) =
         revealScratchBidsLengthSlot I)
     (hlenLoad :
-      (acc.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
+      (acc.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
     (hbound : i.toNat < curLen.toNat)
     (hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -1861,7 +1861,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen {I} {g : Sat256}
       [curLen, revealScratchBidsLengthSlot I, ⟨0⟩, i, refund, len, revealEnd, biddingEnd,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem2 aw rdata acc k' C' := by
-    exact ⟨_, _, by simpa [hlenLoad] using rd1039₀⟩
+    exact ⟨_, _, by simpa only [hlenLoad] using rd1039₀⟩
   have hlt : UInt256.lt i curLen = ⟨1⟩ := ult_one hbound
   have rd1047₀ := evm_run rd1039 with [dup4, swap1, dup2, lt]
   have rd1047 := rd1047₀
@@ -1924,8 +1924,8 @@ theorem scratch_blindAuctionRevealX_loopBody_bounds_revert {I} {g : Sat256}
               32 32).readWithPadding 0 64))) =
         revealScratchBidsLengthSlot I)
     (hlenLoad :
-      (acc.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
+      (acc.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
     (hbound : curLen.toNat ≤ i.toNat) :
     RDrev blindAuctionBytecode g s0 := by
   let mem1 : ByteArray := (UInt256.toByteArray (revealScratchSenderWord I)).write 0 mem 0 32
@@ -1967,7 +1967,7 @@ theorem scratch_blindAuctionRevealX_loopBody_bounds_revert {I} {g : Sat256}
       [curLen, revealScratchBidsLengthSlot I, ⟨0⟩, i, refund, len, revealEnd, biddingEnd,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem2 aw rdata acc k' C' := by
-    exact ⟨_, _, by simpa [hlenLoad] using rd1039₀⟩
+    exact ⟨_, _, by simpa only [hlenLoad] using rd1039₀⟩
   have hlt : UInt256.lt i curLen = ⟨0⟩ := ult_zero hbound
   have rd1047₀ := evm_run rd1039 with [dup4, swap1, dup2, lt]
   have rd1047 := rd1047₀
@@ -1996,8 +1996,8 @@ theorem scratch_revealLoopBody_bounds_pair {I} {g : Sat256} {s0 : State}
               32 32).readWithPadding 0 64))) =
         revealScratchBidsLengthSlot I)
     (hlenLoad :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
     (hbound : curLen.toNat ≤ i.toNat)
     (hbids : L.get? "bids" = none)
     (hi : L.get? "i" = some (.int (Int.ofNat i.toNat)))
@@ -2039,8 +2039,8 @@ theorem scratch_revealLoopBody_fakeInvalid_pair {I} {g : Sat256} {s0 : State}
               32 32).readWithPadding 0 64))) =
         revealScratchBidsLengthSlot I)
     (hlenLoad :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
     (hboundBids : i.toNat < curLen.toNat)
     (hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -2248,8 +2248,8 @@ theorem scratch_revealLoopBody_hashMismatch_fromPacked_pair {I} {g : Sat256} {s0
         uInt256OfByteArray
           (KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)))
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
@@ -2375,8 +2375,8 @@ theorem scratch_revealLoopBody_hashMismatch_fromPacked_concrete_pair {I} {g : Sa
         uInt256OfByteArray
           (KEC (ByteArray.mk (scratch_revealPackedBytes value fake secret).toArray)))
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
@@ -2515,8 +2515,8 @@ theorem scratch_revealLoopBody_hashMismatch_fromElemSlot_cursor_pair {I} {g : Sa
       uInt256OfByteArray (I.calldata.readBytes (UInt256.mul ⟨32⟩ i + secretsEnd).toNat 32) =
         secret)
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
@@ -2817,8 +2817,8 @@ theorem scratch_revealLoopBody_hashMismatch_afterSecret_pair {I} {g : Sat256}
     (hfp64 : 64 ≤ fp.toNat)
     (hfakeWord : fakeWord = if fake then (⟨1⟩ : UInt256) else ⟨0⟩)
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
@@ -2977,8 +2977,8 @@ theorem scratch_revealLoopBody_hashMismatch_afterBool_pair {I} {g : Sat256}
     (hfp64 : 64 ≤ fp.toNat)
     (hfakeWord : fakeWord = if fake then (⟨1⟩ : UInt256) else ⟨0⟩)
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
@@ -3113,8 +3113,8 @@ theorem scratch_revealLoopBody_hashMismatch_fromFakeDecoder_pair {I} {g : Sat256
     (hgap : fp.toNat + 32 - mem.size < USize.size)
     (hfp64 : 64 ≤ fp.toNat)
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray
@@ -3289,8 +3289,8 @@ theorem scratch_revealLoopBody_hashMismatch_fromElemSlot_pair {I} {g : Sat256}
     (hgap : fp.toNat + 32 - mem.size < USize.size)
     (hfp64 : 64 ≤ fp.toNat)
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag :
       UInt256.eq blinded
           (uInt256OfByteArray

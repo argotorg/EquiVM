@@ -758,13 +758,15 @@ theorem fileIlkClipCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
         (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   rw [fileIlkClipClip_eq_clipKey I]
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 (fileIlkClipClipKey I)) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 (fileIlkClipClipKey I)) with
   | none =>
-      simpa [initState, State.lookupAccount, hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState,
+        State.lookupAccount, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [initState, State.lookupAccount, hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState,
+        State.lookupAccount, hacc] using hword
 
 theorem fileIlkClipCode_pos_of_codeSize_ne {σ σ₀ A I} {g : UInt256}
     (hne :
@@ -774,14 +776,14 @@ theorem fileIlkClipCode_pos_of_codeSize_ne {σ σ₀ A I} {g : UInt256}
         (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat := by
   rw [fileIlkClipClip_eq_clipKey I]
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 (fileIlkClipClipKey I)) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 (fileIlkClipClipKey I)) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -790,7 +792,8 @@ theorem fileIlkClipCode_pos_of_codeSize_ne {σ σ₀ A I} {g : UInt256}
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [initState, State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState,
+        State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem fileIlkClipClipKey_canonical (I : ExecutionEnv) :
     (fileIlkClipClipKey I).toNat < EVM.addressModulus := by
@@ -3058,7 +3061,8 @@ theorem RD.dogFileIlkClipStoreLog {v : DogImmutables} {code : ByteArray}
         (setAddressOffset0Word (solcSlotWord σ ee (solcMappingSlot ⟨1⟩ ilk)) clipKey))
       k' C' := by
     exact ⟨_, _, by
-      simpa [solcSlotWord, setAddressOffset0Word, hword,
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord,
+        setAddressOffset0Word, hword,
         show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide] using rdStore⟩
   exact RD.dogFileIlkClipLogTail hpatch rdStore' hret hperm hhashSize hhashRead64 hov

@@ -10,7 +10,7 @@ namespace SimpleAuction
 /-! ## `highestBidder()` getter -/
 
 def highestBidderWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)
 
 abbrev highestBidderReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (highestBidderWord σ I) solcAddrMask

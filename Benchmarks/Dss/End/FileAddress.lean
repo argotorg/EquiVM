@@ -817,7 +817,7 @@ theorem RD.endFileAddressStoreVat {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       _ = setAddressOffset0Word (solcSlotWord σ ee ⟨1⟩) data := by
             rfl
   exact ⟨_, _, by
-    simpa [endFileAddressEventPc, solcSlotWord, hword, hmatch,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
       using rd8472.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
@@ -914,7 +914,7 @@ theorem RD.endFileAddressStoreCat {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
   have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨2⟩) data
   exact ⟨_, _, by
-    simpa [endFileAddressEventPc, solcSlotWord, hword, hmatch,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
       using rd.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
@@ -995,7 +995,7 @@ theorem RD.endFileAddressStoreDog {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
   have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨3⟩) data
   exact ⟨_, _, by
-    simpa [endFileAddressEventPc, solcSlotWord, hword, hmatch,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
       using rd.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
@@ -1076,7 +1076,7 @@ theorem RD.endFileAddressStoreVow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
   have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨4⟩) data
   exact ⟨_, _, by
-    simpa [endFileAddressEventPc, solcSlotWord, hword, hmatch,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
       using rd.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
@@ -1157,7 +1157,7 @@ theorem RD.endFileAddressStorePot {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
   have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨5⟩) data
   exact ⟨_, _, by
-    simpa [endFileAddressEventPc, solcSlotWord, hword, hmatch,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
       using rd.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
@@ -1238,7 +1238,7 @@ theorem RD.endFileAddressStoreSpot {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
   have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨6⟩) data
   exact ⟨_, _, by
-    simpa [endFileAddressEventPc, solcSlotWord, hword, hmatch,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
       using rd.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
@@ -1318,7 +1318,7 @@ theorem RD.endFileAddressStoreCure {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   obtain ⟨_, _, rd⟩ := rd.sstore hperm (by native_decide) (by evm_ov)
   have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨7⟩) data
   exact ⟨_, _, by
-    simpa [endFileAddressEventPc, solcSlotWord, hword, hmatch,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
       using rd⟩

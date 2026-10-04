@@ -48,10 +48,10 @@ theorem uniswapSwapBody
                 (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
             let evmS := initState σ σ₀ (Sat256.ofUInt256 g) A I
             have hstorage : Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨12⟩ =
-                (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) := by
+                (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) := by
               rfl
-            by_cases hlocked : (σ.find? I.codeOwner |>.option ⟨0⟩
-                (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩
+            by_cases hlocked : (σ.get? I.codeOwner |>.option ⟨0⟩
+                (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩
             · have rdRev := RD.uniswapSwapLockedReverts rd1475 hlocked (by simp only [List.length_cons, List.length_nil]; omega)
               exact rdRev.reEquivExecutionRevert hcode hdispatch (uniswapDecode_swap_ok hsz132 hoff hlenWord hlenHuge hpayload)
                 (uniswapSwapBodyReverts_locked evmS I (by simpa only [evmS, initState] using hwv)

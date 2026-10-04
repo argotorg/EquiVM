@@ -99,12 +99,12 @@ theorem fifHopeDecode (out : ByteArray) : config.externalABI.decode? "hope" out 
 theorem storageStore_σ₀ (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
 
 theorem storageStore_substate (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).substate = evm.substate := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
 
 theorem typedCallViaEVM_zero_setSubstate {cfg : Config} {evm evm' : EVM.State}
     {tgt : EVM.Address} {name : Ident} {args : List Value}
@@ -216,10 +216,10 @@ theorem fifVatGuardFalse {evm : EVM.State} {locals : Store}
 
 theorem fifExtCodeSizeWord_eq (σ : AccountMap) (target : UInt256) :
     extCodeSizeWord σ target =
-      UInt256.ofNat ((σ.find? (AccountAddress.ofUInt256 target)).option 0
+      UInt256.ofNat ((σ.get? (AccountAddress.ofUInt256 target)).option 0
         (fun acc => acc.code.size)) := by
   unfold extCodeSizeWord
-  cases σ.find? (AccountAddress.ofUInt256 target) <;> rfl
+  cases σ.get? (AccountAddress.ofUInt256 target) <;> rfl
 
 theorem fifVatCodeZero {σ σ₀ A I} {g : Sat256}
     (hzero : extCodeSizeWord σ (fifVatM σ I) = ⟨0⟩) :
@@ -227,7 +227,7 @@ theorem fifVatCodeZero {σ σ₀ A I} {g : Sat256}
       (biteVatAddr (initState σ σ₀ g A I))).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   rw [show (initState σ σ₀ g A I).lookupAccount
       (biteVatAddr (initState σ σ₀ g A I)) =
-      σ.find? (AccountAddress.ofUInt256 (fifVatM σ I)) from by
+      σ.get? (AccountAddress.ofUInt256 (fifVatM σ I)) from by
     rw [fifBiteVatAddr_eq]; simp [initState, State.lookupAccount]]
   rw [← fifExtCodeSizeWord_eq, hzero]; rfl
 
@@ -237,7 +237,7 @@ theorem fifVatCodePos {σ σ₀ A I} {g : Sat256}
       (biteVatAddr (initState σ σ₀ g A I))).option 0 (fun acc => acc.code.size))).toNat := by
   rw [show (initState σ σ₀ g A I).lookupAccount
       (biteVatAddr (initState σ σ₀ g A I)) =
-      σ.find? (AccountAddress.ofUInt256 (fifVatM σ I)) from by
+      σ.get? (AccountAddress.ofUInt256 (fifVatM σ I)) from by
     rw [fifBiteVatAddr_eq]; simp [initState, State.lookupAccount]]
   rw [← fifExtCodeSizeWord_eq]
   exact Nat.pos_of_ne_zero (fun h => hne (by
@@ -249,7 +249,7 @@ theorem fifVatCodeZeroGen {evm : EVM.State} {target : UInt256}
     (UInt256.ofNat ((evm.lookupAccount (biteVatAddr evm)).option 0
       (fun acc => acc.code.size))).toNat = 0 := by
   rw [haddr, show evm.lookupAccount (AccountAddress.ofUInt256 target) =
-      evm.accountMap.find? (AccountAddress.ofUInt256 target) from by simp [State.lookupAccount],
+      evm.accountMap.get? (AccountAddress.ofUInt256 target) from by simp [State.lookupAccount],
     ← fifExtCodeSizeWord_eq, hzero]; rfl
 
 theorem fifVatCodePosGen {evm : EVM.State} {target : UInt256}
@@ -258,7 +258,7 @@ theorem fifVatCodePosGen {evm : EVM.State} {target : UInt256}
     0 < (UInt256.ofNat ((evm.lookupAccount (biteVatAddr evm)).option 0
       (fun acc => acc.code.size))).toNat := by
   rw [haddr, show evm.lookupAccount (AccountAddress.ofUInt256 target) =
-      evm.accountMap.find? (AccountAddress.ofUInt256 target) from by simp [State.lookupAccount],
+      evm.accountMap.get? (AccountAddress.ofUInt256 target) from by simp [State.lookupAccount],
     ← fifExtCodeSizeWord_eq]
   exact Nat.pos_of_ne_zero (fun h => hne (by apply u256_inj; simpa using h))
 

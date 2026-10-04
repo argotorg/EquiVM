@@ -55,8 +55,8 @@ def renounceRoleTargetEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
       .field "hasRole", .mindex (renounceRoleCallerKey I)] }
 
 def renounceRoleStorageWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (renounceRoleTargetSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (renounceRoleTargetSlot I) ⟨0⟩)
 
 abbrev renounceRoleMaskedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (renounceRoleStorageWord σ I) ⟨255⟩

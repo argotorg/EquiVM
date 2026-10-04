@@ -870,7 +870,7 @@ theorem RD.clipperYankRemoveIdEqMoveToJoin
         (clipperYankActiveSlot lastIndex :: ⟨0⟩ :: clipperYankArgWord ee :: ⟨2540⟩ ::
           clipperYankArgWord ee :: ⟨502⟩ :: [sel])
         activeMem aw2 o σ k C := by
-    exact ⟨_, _, by simpa [solcSlotWord, hslotActive] using rd8307pre⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hslotActive] using rd8307pre⟩
   obtain ⟨_, _, rd8308raw⟩ := rd8307slot.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8308, C8308, rd8308⟩ :
       ∃ k C, RD code ee g s0 ⟨8308⟩
@@ -1038,7 +1038,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
       ∃ k C, RD code ee g s0 ⟨8307⟩
         (clipperYankActiveSlot lastIndex :: ⟨0⟩ :: clipperYankArgWord ee :: ret :: R)
         activeMem aw2 o σ k C := by
-    exact ⟨_, _, by simpa [solcSlotWord, hslotActive] using rd8307pre⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hslotActive] using rd8307pre⟩
   obtain ⟨_, _, rd8308raw⟩ := rd8307slot.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8308, C8308, rd8308⟩ :
       ∃ k C, RD code ee g s0 ⟨8308⟩
@@ -1360,7 +1360,7 @@ theorem RD.clipperYankRemoveIdNeMoveIndexOobInvalid
         (clipperYankActiveSlot lastIndex :: ⟨0⟩ :: clipperYankArgWord ee :: ⟨2540⟩ ::
           clipperYankArgWord ee :: ⟨502⟩ :: [sel])
         activeMem aw2 o σ k C := by
-    exact ⟨_, _, by simpa [solcSlotWord, hslotActive] using rd8307pre⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hslotActive] using rd8307pre⟩
   obtain ⟨_, _, rd8308raw⟩ := rd8307slot.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8308, C8308, rd8308⟩ :
       ∃ k C, RD code ee g s0 ⟨8308⟩
@@ -1495,7 +1495,7 @@ theorem clipperYankDeleteSaleState_accounts_eq
   let slot3 := clipperYankSalesBaseSlot I + ⟨3⟩
   let masked := UInt256.land (solcSlotWord σ2 I slot3) (UInt256.lnot solcAddrMask)
   have hupdate := sstoreAccountMap_self_update σ2 I.codeOwner slot3 masked ⟨0⟩
-  simp [clipperYankDeleteSaleAccountMap, clipperYankDeleteSaleState,
+  simp [-Std.ExtTreeMap.get?_eq_getElem?, clipperYankDeleteSaleAccountMap, clipperYankDeleteSaleState,
     storageStore_accountMap, storageStore_executionEnv, howner,
     Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage, solcSlotWord]
   rw [hupdate]
@@ -1630,7 +1630,7 @@ theorem RD.clipperYankRemoveJoinSuccess
         k C := by
     obtain ⟨k', C', rd'⟩ := rd8411pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)
-    exact ⟨k', C', by simpa [solcSlotWord, hslotActive'] using rd'⟩
+    exact ⟨k', C', by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hslotActive'] using rd'⟩
   have rd8417pre := evm_run rd8412 with [
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov),
     raw swap3 (by clipper_yank_remove_decode) (by evm_ov),

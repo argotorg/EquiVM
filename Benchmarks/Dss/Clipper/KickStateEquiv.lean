@@ -31,11 +31,11 @@ theorem clipperKickSalesBaseSlot_eq (evm : EVM.State) (σ : AccountMap)
 
 theorem clipperKickStorageStore_present (evm : EVM.State)
     (addr : AccountAddress) (slot val : UInt256) {acc : Account}
-    (hacc : evm.accountMap.find? addr = some acc) :
-    ∃ acc', (Solm.EVM.storageStore evm addr slot val).accountMap.find? addr = some acc' := by
+    (hacc : evm.accountMap.get? addr = some acc) :
+    ∃ acc', (Solm.EVM.storageStore evm addr slot val).accountMap.get? addr = some acc' := by
   unfold Solm.EVM.storageStore State.lookupAccount
   rw [hacc]
-  simp [Option.option, State.setAccount, accountMap_find_insert_self]
+  simp [Option.option, State.setAccount, Std.ExtTreeMap.getElem?_insert_self]
 
 theorem clipperKickSalesUint96Mask_idempotent (w : UInt256) :
     UInt256.land (UInt256.land w clipperSalesUint96Mask) clipperSalesUint96Mask =
@@ -74,7 +74,7 @@ theorem clipperKickSetAddressWord_eq (old data : UInt256) :
 theorem clipperKickInitializedState_accounts_eq
     {σ : AccountMap} (evm : EVM.State) (I : ExecutionEnv)
     (henv : evm.executionEnv = I)
-    (hpresent : ∃ acc, evm.accountMap.find? I.codeOwner = some acc)
+    (hpresent : ∃ acc, evm.accountMap.get? I.codeOwner = some acc)
     (hAccounts : σ = evm.accountMap) :
     clipperKickInitializedMap σ I =
       (clipperKickSourceInitializedState evm I).accountMap := by
@@ -171,7 +171,7 @@ theorem clipperKickInitializedState_accounts_eq
       hbase] using congrArg (fun m => sstoreAccountMap I.codeOwner m
         (clipperKickSalesBaseSlot σ I + ⟨2⟩) (clipperKickLotWord I)) hTab
   obtain ⟨acc0, hacc0⟩ := hpresent
-  have hacc0' : evm.accountMap.find? evm.executionEnv.codeOwner = some acc0 := by
+  have hacc0' : evm.accountMap.get? evm.executionEnv.codeOwner = some acc0 := by
     simpa [howner] using hacc0
   obtain ⟨accId, haccId⟩ := clipperKickStorageStore_present evm
     evm.executionEnv.codeOwner ⟨10⟩ (clipperKickSourceIdWord evm) hacc0'
@@ -220,7 +220,7 @@ theorem clipperKickInitializedState_accounts_eq
     rw [clipperKickSourceSalesUsrState, storageStore_accountMap, henvLot,
       hsourceSlot, hold']
     exact congrArg (fun m => sstoreAccountMap I.codeOwner m slot usrVal) hLot
-  have haccLot' : evmLot.accountMap.find? evmLot.executionEnv.codeOwner = some accLot := by
+  have haccLot' : evmLot.accountMap.get? evmLot.executionEnv.codeOwner = some accLot := by
     dsimp only [evmLot]
     rw [clipperKickSourceSalesLotState, storageStore_executionEnv]
     dsimp only [evmTab] at haccLot

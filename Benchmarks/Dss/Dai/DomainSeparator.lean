@@ -14,8 +14,8 @@ abbrev domainSeparatorStorageSlot : UInt256 :=
   ⟨5⟩
 
 def domainSeparatorWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD domainSeparatorStorageSlot ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD domainSeparatorStorageSlot ⟨0⟩)
 
 theorem daiDecode_domainSeparator_ok {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) :

@@ -456,7 +456,7 @@ theorem simpleAuctionInitcodeOverflowRevert
           ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
       RD.initState hcode
     let oldBeneficiarySlot : UInt256 :=
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
     have rdBeforeSload := simple_ctor_run rd0 with [
       callvalue, dup1, iszero, push1 ⟨9⟩,
       jumpiT (by rw [hwv]; decide) (by simple_ctor_jd),
@@ -527,7 +527,7 @@ theorem simpleAuctionInitcodeSuccess
       (sstoreAccountMap I.codeOwner
           (sstoreAccountMap I.codeOwner σ ⟨0⟩
             (simpleAuctionSetAddressWord
-              (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+              (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
               (EVM.word beneficiaryAddress)))
           ⟨1⟩ (biddingTime + UInt256.ofNat I.header.timestamp))
       simpleAuctionBytecode := by
@@ -537,7 +537,7 @@ theorem simpleAuctionInitcodeSuccess
         ByteArray.empty (UInt256.ofNat 0) ByteArray.empty σ 0 0 :=
     RD.initState hcode
   let oldBeneficiarySlot : UInt256 :=
-    (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+    (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
   let beneficiaryStoreWord : UInt256 :=
     simpleAuctionSetAddressWord oldBeneficiarySlot (EVM.word beneficiaryAddress)
   have rdBeforeSload := simple_ctor_run rd0 with [
@@ -1144,7 +1144,7 @@ theorem simpleAuctionConstructorEquiv_success
       simpa [Sat256.ofUInt256] using hX)
     let beneficiaryStoreWordEvm : UInt256 :=
       simpleAuctionSetAddressWord
-        (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨0⟩ ⟨0⟩))
+        (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨0⟩ ⟨0⟩))
         (EVM.word beneficiaryAddress)
     let auctionEndWordEvm : UInt256 :=
       EVM.word biddingTime.toNat + UInt256.ofNat I.header.timestamp

@@ -1312,7 +1312,7 @@ theorem RD.clipperStatusAfterPriceDoneTailTrue
     raw swap1 (by clipper_runtime_decode) (by evm_ov),
     raw pop (by clipper_runtime_decode) (by evm_ov),
     raw jump (by clipper_runtime_decode) hret (by evm_ov)]
-  exact ⟨_, _, by simpa [ageForDone, tail, hgtTailOne] using rdret⟩
+  exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, ageForDone, tail, hgtTailOne] using rdret⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.clipperStatusAfterPriceRdivBranch

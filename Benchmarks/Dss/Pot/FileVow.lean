@@ -734,7 +734,7 @@ theorem potFileVowX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
             rfl
   have rd301 := rd1329.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd302 := rd301.jumpdest (by native_decide) (by evm_ov)
-  simpa [solcSlotWord, setAddressOffset0Word, hword,
+  simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, setAddressOffset0Word, hword,
     show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
     using RD.stop rd302 (by native_decide) (by evm_ov)

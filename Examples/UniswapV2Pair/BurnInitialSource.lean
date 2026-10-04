@@ -75,8 +75,9 @@ theorem evalExpr_uniswap_codeGuard
       ((evm.lookupAccount addr).option 0 (fun acc => acc.code.size)) =
       extCodeSizeWord σ target := by
     rw [congrArg (fun accounts => extCodeSizeWord accounts target) hAccounts]
-    cases hacc : evm.accountMap.find? addr <;>
-      simp [State.lookupAccount, extCodeSizeWord, ← haddr, hacc, Option.option] <;> rfl
+    cases hacc : evm.accountMap.get? addr <;>
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, extCodeSizeWord,
+        ← haddr, hacc, Option.option] <;> rfl
   simp [evalExpr?, hreceiver, EvalResult.bind, bind, pure, evalBinaryOp?, hword]
 
 theorem burnCacheStore_token0 (evm : EVM.State) (I : ExecutionEnv) :

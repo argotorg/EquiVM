@@ -1317,7 +1317,7 @@ theorem vatSlotWord_sstore_ne (σ : AccountMap) (I : ExecutionEnv)
     (readSlot writeSlot val : UInt256) (hne : readSlot ≠ writeSlot) :
     vatSlotWord readSlot (sstoreAccountMap I.codeOwner σ writeSlot val) I =
       vatSlotWord readSlot σ I := by
-  exact sstoreAccountMap_storage_findD_ne σ I.codeOwner readSlot writeSlot val hne
+  exact sstoreAccountMap_storage_getD_ne σ I.codeOwner readSlot writeSlot val hne
 
 theorem solcSlotWord_sstore_ne (σ : AccountMap) (I : ExecutionEnv)
     (readSlot writeSlot val : UInt256) (hne : readSlot ≠ writeSlot) :
@@ -6714,7 +6714,7 @@ theorem RD.vatGrabUrnInkAddSuccess
   have rd4333 := rd4332.dup2 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4334⟩ := rd4333.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD urnBase ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD urnBase ⟨0⟩)) =
         urnInkOld := by
     simp [urnInkOld, solcSlotWord]
   rw [hold] at rd4334
@@ -6854,7 +6854,7 @@ theorem RD.vatGrabUrnInkAddRevert
   have rd4333 := rd4332.dup2 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4334⟩ := rd4333.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD urnBase ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD urnBase ⟨0⟩)) =
         urnInkOld := by
     simp [urnInkOld, solcSlotWord]
   rw [hold] at rd4334

@@ -27,7 +27,7 @@ theorem extCodeSource {cfg frame evm σ target receiver}
   simp only [evalExpr?, hr, pure, bind, EvalResult.bind]
   rw [hs]
   unfold State.lookupAccount extCodeSizeWord
-  cases evm.accountMap.find? (AccountAddress.ofUInt256 target) <;> rfl
+  cases evm.accountMap.get? (AccountAddress.ofUInt256 target) <;> rfl
 
 theorem wethCodeGuardSource {s0 I σ evm locals}
     (hs : SourceState s0 I σ evm) (hb : locals.get? "weth" = none) :

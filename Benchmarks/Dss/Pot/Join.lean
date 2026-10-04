@@ -1506,12 +1506,12 @@ theorem potJoinSolmMulSeg {σ σ₀ A I} {g : Sat256} {result : ExecResult}
 theorem storageStore_σ₀ (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
 
 theorem storageStore_substate (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).substate = evm.substate := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
 
 /-! ### `join(uint256)` — the pre-`CALL` account-map coincidence -/
 
@@ -1802,7 +1802,7 @@ theorem joinExtCodeAgree (σ'' : AccountMap) (evm2 : EVM.State) (I : ExecutionEn
     simpa [hAcc] using htgt
   rw [extCodeSizeWord, hAcc, htgt']
   simp only [State.lookupAccount]
-  cases evm2.accountMap.find? (AccountAddress.ofNat
+  cases evm2.accountMap.get? (AccountAddress.ofNat
     (UInt256.land (Solm.EVM.storageLoad evm2 I.codeOwner ⟨5⟩) solcAddrMask).toNat) <;> rfl
 
 /-- `extcodesize(vat) ≠ 0` ⇒ the Solm code-size read is positive. -/

@@ -10,7 +10,7 @@ namespace SimpleAuction
 /-! ## `beneficiary()` getter -/
 
 def beneficiaryWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
 abbrev beneficiaryReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (beneficiaryWord σ I) solcAddrMask

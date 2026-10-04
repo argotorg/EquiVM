@@ -73,14 +73,14 @@ inductive callViaEVM (evm : EVM.State) (target : EVM.Address)
 
       → evm' = { evm with accountMap := σ', substate := A' }
 
-      → valueWord ≤ (evm.accountMap.find? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))
+      → valueWord ≤ (evm.accountMap.get? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))
       → evm.executionEnv.depth ≠ 1024
       → callViaEVM evm target value calldata (z, evm', o) perm
 
   | callNotMade :
       A' = ((evm.addAccessedAccount target) |>.substate )
       → evm' = { evm with substate := A' }
-      → (¬ (EVM.wordOfInt value ≤ (evm.accountMap.find? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))
+      → (¬ (EVM.wordOfInt value ≤ (evm.accountMap.get? evm.executionEnv.codeOwner |>.elim ⟨0⟩ (·.balance))
          ∧ evm.executionEnv.depth ≠ 1024))
       → callViaEVM evm target value calldata (false, evm', ByteArray.empty) perm
 
@@ -132,7 +132,7 @@ def typedCallViaEVM (cfg : Config) (evm : EVM.State) (target : EVM.Address)
 /-- Preconditions under which a `new` (the `CREATE` opcode) actually runs the init code,
     mirroring the guards the opcode checks before calling `Lambda`. -/
 def newCanCreate (evm : EVM.State) (value : ℤ) (initCode : EVM.Bytes) : Prop :=
-  let creator := evm.accountMap.find? evm.executionEnv.codeOwner |>.getD default
+  let creator := evm.accountMap.get? evm.executionEnv.codeOwner |>.getD default
   EVM.wordOfInt value ≤ creator.balance        -- creator can afford the endowment
     ∧ evm.executionEnv.depth ≠ 1024            -- call-depth limit not reached
     ∧ creator.nonce.toNat < 2 ^ 64 - 1         -- creator nonce below the cap (EIP-2681)
@@ -153,7 +153,7 @@ inductive newViaEVM (cfg : Config) (evm : EVM.State)
           -- Mirror the CREATE opcode: bump the creator's nonce before calling `Lambda`,
           -- which derives the new address from `sender.nonce - 1` and so expects the
           -- already-incremented nonce.
-          let creator := evm.accountMap.find? evm.executionEnv.codeOwner |>.getD default
+          let creator := evm.accountMap.get? evm.executionEnv.codeOwner |>.getD default
           let σStar := evm.accountMap.insert evm.executionEnv.codeOwner
                         { creator with nonce := creator.nonce + ⟨1⟩ }
           (addr, σ', _, A', z, _)

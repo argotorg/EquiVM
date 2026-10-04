@@ -1233,10 +1233,10 @@ the `if gas < cost then OOG else …` shape the `RD` machinery consumes. -/
 def stSStore (s : State) (slot val : UInt256) (t : List UInt256) : State :=
   let Iₐ := s.executionEnv.codeOwner
   let v₀ :=
-    match s.σ₀.find? Iₐ with
+    match s.σ₀.get? Iₐ with
     | none => ⟨0⟩
-    | some acc => acc.storage.findD slot ⟨0⟩
-  let v := (s.accountMap.find! Iₐ).storage.findD slot ⟨0⟩
+    | some acc => acc.storage.getD slot ⟨0⟩
+  let v := (s.accountMap.get! Iₐ).storage.getD slot ⟨0⟩
   let v' := val
   let r_dirtyclear : ℤ :=
     if v₀ ≠ UInt256.ofNat 0 && v = UInt256.ofNat 0 then - GasConstants.Rsclear else
@@ -1255,7 +1255,7 @@ def stSStore (s : State) (slot val : UInt256) (t : List UInt256) : State :=
     | .ofNat n => s.substate.refundBalance + UInt256.ofNat n
     | .negSucc n => s.substate.refundBalance - UInt256.ofNat n - ⟨1⟩
   let accountMap :=
-    s.accountMap.find? Iₐ |>.option s.accountMap
+    s.accountMap.get? Iₐ |>.option s.accountMap
       (fun acc =>
         s.accountMap.insert Iₐ
           (if val == default then
@@ -1263,7 +1263,7 @@ def stSStore (s : State) (slot val : UInt256) (t : List UInt256) : State :=
           else
             {acc with storage := acc.storage.insert slot val}))
   let substate :=
-    s.accountMap.find? Iₐ |>.option s.substate
+    s.accountMap.get? Iₐ |>.option s.substate
       (fun _ =>
         {s.substate with
           accessedStorageKeys := s.substate.accessedStorageKeys.insert (Iₐ, slot)
@@ -1309,7 +1309,7 @@ theorem sstore_xstep {s : State} {code : ByteArray} {pcv slot val : UInt256} {t 
 
 /-- The `accountMap` after an `SSTORE` of `val` at `slot` by `Iₐ` (the field `RD` carries). -/
 def sstoreAccountMap (Iₐ : AccountAddress) (σ : AccountMap) (slot val : UInt256) : AccountMap :=
-  σ.find? Iₐ |>.option σ
+  σ.get? Iₐ |>.option σ
     (fun acc =>
       σ.insert Iₐ
         (if val == default then {acc with storage := acc.storage.erase slot}
@@ -1319,7 +1319,7 @@ def sstoreAccountMap (Iₐ : AccountAddress) (σ : AccountMap) (slot val : UInt2
 theorem storageStore_accountMap (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
     (EVM.storageStore evm a slot val).accountMap = sstoreAccountMap a evm.accountMap slot val := by
   simp only [EVM.storageStore, sstoreAccountMap, State.lookupAccount]
-  cases evm.accountMap.find? a with
+  cases evm.accountMap.get? a with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 
@@ -1329,7 +1329,7 @@ theorem storageStore_createdAccounts (evm : EVM.State) (a : AccountAddress)
     (slot val : UInt256) :
     (EVM.storageStore evm a slot val).substate.createdAccounts = evm.substate.createdAccounts := by
   simp only [EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? a with
+  cases evm.accountMap.get? a with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount]
 
@@ -1637,7 +1637,7 @@ theorem address_xstep {s : State} {code : ByteArray} {pcv : UInt256}
 /-! ### EXTCODESIZE (dynamic `Caccess`, pc += 1) -/
 
 def extCodeSizeWord (σ : AccountMap) (target : UInt256) : UInt256 :=
-  σ.find? (AccountAddress.ofUInt256 target) |>.option ⟨0⟩
+  σ.get? (AccountAddress.ofUInt256 target) |>.option ⟨0⟩
     (UInt256.ofNat ∘ ByteArray.size ∘ (·.code))
 
 def stExtcodesize (s : State) (target : UInt256) (t : List UInt256) : State :=
@@ -1825,8 +1825,8 @@ def stSload (s : State) (a : UInt256) (t : List UInt256) : State :=
     substate := {s.substate with
       accessedStorageKeys := s.substate.accessedStorageKeys.insert (s.executionEnv.codeOwner, a)}
     machineState.stack :=
-      (s.accountMap.find? s.executionEnv.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD a ⟨0⟩)) :: t
+      (s.accountMap.get? s.executionEnv.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD a ⟨0⟩)) :: t
     machineState.gasAvailable :=
       s.machineState.gasAvailable.subNat (Csload (a :: t) s.substate s.executionEnv)
     machineState.pc := s.machineState.pc + ⟨1⟩

@@ -72,7 +72,7 @@ private theorem clipperKickStore_originalAccounts (evm : EVM.State)
     (addr : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;>
+  cases evm.accountMap.get? addr <;>
     simp [Option.option, State.setAccount, Account.updateStorage]
 
 private theorem clipperKickSourceInitializedState_originalAccounts
@@ -212,7 +212,7 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
                           henvLock hLockAccounts).symm
                       _ = solcSlotWord σ I ⟨11⟩ := by
                         simpa [σLock, solcSlotWord] using
-                          sstoreAccountMap_storage_findD_ne σ I.codeOwner
+                          sstoreAccountMap_storage_getD_ne σ I.codeOwner
                             ⟨11⟩ ⟨13⟩ ⟨1⟩ (by decide)
                   have hlen : (clipperKickSourceActiveLengthWord evmLock).toNat + 1 <
                       UInt256.size := by
@@ -220,13 +220,13 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
                     unfold clipperStorageWF at hStorageWF
                     omega
                   have hpresentSolm : ∃ acc,
-                      evmSolm.accountMap.find? I.codeOwner = some acc := by
-                    cases hacc : evmSolm.accountMap.find? I.codeOwner with
+                      evmSolm.accountMap.get? I.codeOwner = some acc := by
+                    cases hacc : evmSolm.accountMap.get? I.codeOwner with
                     | none =>
                         exfalso
                         have hownerSolm : evmSolm.executionEnv.codeOwner =
                             I.codeOwner := by simp [evmSolm, initState]
-                        have hacc' : evmSolm.accountMap.find?
+                        have hacc' : evmSolm.accountMap.get?
                             evmSolm.executionEnv.codeOwner = none := by
                           simpa [hownerSolm] using hacc
                         have hzeroLoad : Solm.EVM.storageLoad evmSolm
@@ -243,7 +243,7 @@ theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
                     evmSolm evmSolm.executionEnv.codeOwner ⟨13⟩ ⟨1⟩
                       (by simpa [evmSolm, initState] using haccSolm)
                   have hpresentLock : ∃ acc,
-                      evmLock.accountMap.find? I.codeOwner = some acc := by
+                      evmLock.accountMap.get? I.codeOwner = some acc := by
                     exact ⟨accLock, by
                       simpa [evmLock, clipperKickLockedState, evmSolm, initState,
                         storageStore_executionEnv] using haccLock⟩

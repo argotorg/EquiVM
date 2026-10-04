@@ -135,7 +135,7 @@ theorem clipperTakeOweGtTabEquiv
       (congrArg (fun env => env.codeOwner) hevmPriceEnv)
   have hpackedWord : packed = clipperTakeSalesUsrEVMWord evmLock I := by
     have hslot := congrArg (fun m => solcSlotWord m I (clipperTakeSalesPackedSlot I)) hAccountsLock
-    simp [packed, clipperTakeSalesUsrEVMWord, Solm.EVM.storageLoad,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, packed, clipperTakeSalesUsrEVMWord, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, solcSlotWord, evmLock, evm0,
       initState, storageStore_executionEnv, hslot]
   have hbaseSize :

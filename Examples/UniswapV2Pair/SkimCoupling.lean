@@ -22,14 +22,14 @@ theorem uniswapStorageStore_sigma0 (evm : EVM.State) (a : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).σ₀ = evm.σ₀ := by
   unfold Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? a <;>
+  cases evm.accountMap.get? a <;>
     simp [Option.option, State.setAccount, Account.updateStorage]
 
 theorem uniswapStorageStore_substate (evm : EVM.State) (a : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).substate = evm.substate := by
   unfold Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? a <;>
+  cases evm.accountMap.get? a <;>
     simp [Option.option, State.setAccount, Account.updateStorage]
 
 
@@ -257,7 +257,7 @@ theorem uniswapSkimFirstBalanceStaticReserve0
     simpa [evmL, evmS, σLockE, uniswapLockEnteredState, uniswapUnlockedState, initState,
       storageStore_accountMap]
   have hslot :=
-    typedCallViaEVM_static_storage_findD_of_accounts_eq
+    typedCallViaEVM_static_storage_getD_of_accounts_eq
       (cfg := config) (σ := σLockE) (evm := evmL) (evm' := evm0S)
       (slot := ⟨8⟩) (default := ⟨0⟩) hLockStateAccounts hcall0
   simpa [uniswapReserve0Word, Solm.EVM.storageLoad, State.lookupAccount,
@@ -342,7 +342,7 @@ theorem uniswapSkimSecondBalanceStaticReserve1 {σ1 : AccountMap}
         (UInt256.div (uniswapSlotWord ⟨8⟩ σ1 I) reserve112Shift)
         reserve112Mask := by
   have hslot :=
-    typedCallViaEVM_static_storage_findD_of_accounts_eq
+    typedCallViaEVM_static_storage_getD_of_accounts_eq
       (cfg := config) (σ := σ1) (evm := evm1S) (evm' := evm2S)
       (slot := ⟨8⟩) (default := ⟨0⟩) hPost hcall1
   simpa [uniswapReserve1Word, Solm.EVM.storageLoad, State.lookupAccount,
@@ -463,14 +463,15 @@ theorem skimToken1GuardAfterFirstTransfer_false {σ : AccountMap}
   have hcodeWord :
       EVM.Word.ofNat ((evm1.lookupAccount addr).option 0 (fun acc => acc.code.size)) = ⟨0⟩ := by
     change EVM.Word.ofNat
-      ((evm1.accountMap.find? addr).option 0 (fun acc => acc.code.size)) = ⟨0⟩
-    cases hacc : evm1.accountMap.find? addr with
+      ((evm1.accountMap.get? addr).option 0 (fun acc => acc.code.size)) = ⟨0⟩
+    cases hacc : evm1.accountMap.get? addr with
     | none =>
         rfl
     | some acc =>
         have hnoAcc : UInt256.ofNat acc.code.size = ⟨0⟩ := by
-          simpa [target, addr, htarget, extCodeSizeWord, hacc] using hnoEvm
-        simpa [hacc] using hnoAcc
+          simpa [-Std.ExtTreeMap.get?_eq_getElem?, target, addr, htarget,
+            extCodeSizeWord, hacc] using hnoEvm
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hnoAcc
   have hvar :
       evalExpr? config
         { contract := contract, locals := skimFirstSafeTransferStore evm evm0 I balance0 } evm1
@@ -500,10 +501,10 @@ theorem skimToken1GuardAfterFirstTransfer_true {σ : AccountMap}
   have hcodeWord :
       EVM.Word.ofNat ((evm1.lookupAccount addr).option 0 (fun acc => acc.code.size)) ≠ ⟨0⟩ := by
     change EVM.Word.ofNat
-      ((evm1.accountMap.find? addr).option 0 (fun acc => acc.code.size)) ≠ ⟨0⟩
+      ((evm1.accountMap.get? addr).option 0 (fun acc => acc.code.size)) ≠ ⟨0⟩
     intro hzero
     apply hcodeEvm
-    cases hacc : evm1.accountMap.find? addr with
+    cases hacc : evm1.accountMap.get? addr with
     | none =>
         unfold extCodeSizeWord
         rw [show AccountAddress.ofUInt256 target = addr by simpa [target, addr] using htarget,
@@ -511,8 +512,9 @@ theorem skimToken1GuardAfterFirstTransfer_true {σ : AccountMap}
         rfl
     | some acc =>
         have hzeroAcc : UInt256.ofNat acc.code.size = ⟨0⟩ := by
-          simpa [hacc] using hzero
-        simpa [target, addr, htarget, extCodeSizeWord, hacc] using hzeroAcc
+          simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, target, addr, htarget,
+          extCodeSizeWord, hacc] using hzeroAcc
   have hpositive :
       0 <
         (EVM.Word.ofNat ((evm1.lookupAccount addr).option 0 (fun acc => acc.code.size))).toNat :=
@@ -658,7 +660,7 @@ theorem uniswapSkimBodyCoreRevert_locked
     (maskFn : UInt256 → UInt256)
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some skimTransition)
     (hdecode :
@@ -706,8 +708,8 @@ theorem uniswapSkimBodyCoreRevert_firstNoCode
     (maskFn : UInt256 → UInt256)
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
     (htoken0NoCode :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
@@ -742,8 +744,8 @@ theorem uniswapSkimBodyCoreRevert_firstCallDepth
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
@@ -795,7 +797,7 @@ theorem uniswapSkimBodyRevert_locked
     (maskFn : UInt256 → UInt256)
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some skimTransition)
     (hdecode :
@@ -827,8 +829,8 @@ theorem uniswapSkimBodyRevert_firstNoCode
     (maskFn : UInt256 → UInt256)
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
     (htoken0NoCode :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask

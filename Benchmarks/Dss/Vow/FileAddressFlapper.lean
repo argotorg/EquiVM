@@ -146,7 +146,7 @@ theorem fileAddressVatTargetWord_sstore_flapper
     (σ : AccountMap) (I : ExecutionEnv) (val : UInt256) :
     fileAddressVatTargetWord (sstoreAccountMap I.codeOwner σ ⟨2⟩ val) I =
       fileAddressVatTargetWord σ I := by
-  have hslot := sstoreAccountMap_storage_findD_ne σ I.codeOwner ⟨1⟩ ⟨2⟩ val
+  have hslot := sstoreAccountMap_storage_getD_ne σ I.codeOwner ⟨1⟩ ⟨2⟩ val
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨2⟩)
   simpa [fileAddressVatTargetWord, vowAddressReturnWord, vowSlotWord, solcSlotWord] using
     congrArg (fun word => UInt256.land word solcAddrMask) hslot
@@ -199,17 +199,17 @@ theorem fileAddress_extCodeSizeWord_ne_zero_lookup_code_pos
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -218,23 +218,23 @@ theorem fileAddress_extCodeSizeWord_ne_zero_lookup_code_pos
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem fileAddress_extCodeSizeWord_zero_lookup_code_zero
     {σ : AccountMap} {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem evalExpr_fileAddressVatCodeGuard_false {evm : EVM.State} {locals : Store}
     {target : AccountAddress}
@@ -760,7 +760,7 @@ theorem RD.vowFileAddressNopeSuccessStoreFlapperWithTarget
     native_decide
   rw [hpc4350] at rd4350
   exact ⟨_, _, by
-    simpa [fileAddressSetFlapperAccountMap, solcSlotWord, hword,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, fileAddressSetFlapperAccountMap, solcSlotWord, hword,
         show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide]
       using rd4350⟩

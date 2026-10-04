@@ -10283,7 +10283,7 @@ theorem RD.vatForkSrcInkSubSuccess
   have rd4782pre := rd4781.dup3 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4783raw⟩ := rd4782pre.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD srcBase ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD srcBase ⟨0⟩)) =
         srcInkOld := by
     simp [srcInkOld, solcSlotWord]
   have rd4783 := rd4783raw
@@ -10478,7 +10478,7 @@ theorem RD.vatForkSrcInkSubRevert
   have rd4782pre := rd4781.dup3 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4783raw⟩ := rd4782pre.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD srcBase ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD srcBase ⟨0⟩)) =
         srcInkOld := by
     simp [srcInkOld, solcSlotWord]
   have rd4783 := rd4783raw
@@ -10558,8 +10558,8 @@ theorem RD.vatForkSrcArtSubSuccess
   have rd4799pre := rd4798pre.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4800raw⟩ := rd4799pre.sload (by native_decide) (by evm_ov)
   have hold :
-      (σSrcInk.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (srcBase + ⟨1⟩) ⟨0⟩)) = srcArtOld := by
+      (σSrcInk.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (srcBase + ⟨1⟩) ⟨0⟩)) = srcArtOld := by
     simp [srcArtOld, solcSlotWord, σSrcInk, srcBase, forkSrcArtSlot]
   have rd4800 := rd4800raw
   rw [hold] at rd4800
@@ -10641,8 +10641,8 @@ theorem RD.vatForkSrcArtSubRevert
   have rd4799pre := rd4798pre.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4800raw⟩ := rd4799pre.sload (by native_decide) (by evm_ov)
   have hold :
-      (σSrcInk.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (srcBase + ⟨1⟩) ⟨0⟩)) = srcArtOld := by
+      (σSrcInk.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (srcBase + ⟨1⟩) ⟨0⟩)) = srcArtOld := by
     simp [srcArtOld, solcSlotWord, σSrcInk, srcBase, forkSrcArtSlot]
   have rd4800 := rd4800raw
   rw [hold] at rd4800
@@ -10734,8 +10734,8 @@ theorem RD.vatForkDstInkAddSuccess
   have rd4816pre := rd4815.dup2 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4817raw⟩ := rd4816pre.sload (by native_decide) (by evm_ov)
   have hold :
-      (σSrcArt.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD dstBase ⟨0⟩)) = dstInkOld := by
+      (σSrcArt.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD dstBase ⟨0⟩)) = dstInkOld := by
     simp [dstInkOld, solcSlotWord, σSrcArt, dstBase, forkDstInkSlot]
   have rd4817 := rd4817raw
   rw [hold] at rd4817
@@ -10829,8 +10829,8 @@ theorem RD.vatForkDstInkAddRevert
   have rd4816pre := rd4815.dup2 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4817raw⟩ := rd4816pre.sload (by native_decide) (by evm_ov)
   have hold :
-      (σSrcArt.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD dstBase ⟨0⟩)) = dstInkOld := by
+      (σSrcArt.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD dstBase ⟨0⟩)) = dstInkOld := by
     simp [dstInkOld, solcSlotWord, σSrcArt, dstBase, forkDstInkSlot]
   have rd4817 := rd4817raw
   rw [hold] at rd4817
@@ -10936,8 +10936,8 @@ theorem RD.vatForkDstArtAddSuccess
   have rd4833pre := rd4832pre.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4834raw⟩ := rd4833pre.sload (by native_decide) (by evm_ov)
   have hold :
-      (σDstInk.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (dstBase + ⟨1⟩) ⟨0⟩)) = dstArtOld := by
+      (σDstInk.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (dstBase + ⟨1⟩) ⟨0⟩)) = dstArtOld := by
     simp [dstArtOld, solcSlotWord, σDstInk, dstBase, forkDstArtSlot]
   have rd4834 := rd4834raw
   rw [hold] at rd4834
@@ -11045,8 +11045,8 @@ theorem RD.vatForkDstArtAddRevert
   have rd4833pre := rd4832pre.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4834raw⟩ := rd4833pre.sload (by native_decide) (by evm_ov)
   have hold :
-      (σDstInk.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (dstBase + ⟨1⟩) ⟨0⟩)) = dstArtOld := by
+      (σDstInk.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (dstBase + ⟨1⟩) ⟨0⟩)) = dstArtOld := by
     simp [dstArtOld, solcSlotWord, σDstInk, dstBase, forkDstArtSlot]
   have rd4834 := rd4834raw
   rw [hold] at rd4834
@@ -11192,8 +11192,8 @@ theorem RD.vatForkUtabMulSuccess
   have rd4861pre := rd4860.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4862raw⟩ := rd4861pre.sload (by native_decide) (by evm_ov)
   have hsrcArt :
-      (σDstArt.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + srcBase) ⟨0⟩)) = srcArtFinal := by
+      (σDstArt.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + srcBase) ⟨0⟩)) = srcArtFinal := by
     rw [u256_add_comm (⟨1⟩ : UInt256) srcBase]
     simp [srcArtFinal, solcSlotWord, σDstArt, srcBase, forkSrcArtSlot]
   have rd4862 := rd4862raw
@@ -11203,8 +11203,8 @@ theorem RD.vatForkUtabMulSuccess
   have rd4866pre := rd4865.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4867raw⟩ := rd4866pre.sload (by native_decide) (by evm_ov)
   have hrate :
-      (σDstArt.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + ilkBase) ⟨0⟩)) = rate := by
+      (σDstArt.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + ilkBase) ⟨0⟩)) = rate := by
     rw [u256_add_comm (⟨1⟩ : UInt256) ilkBase]
     simp [rate, solcSlotWord, σDstArt, ilkBase, forkIlkRateSlot]
   have rd4867 := rd4867raw
@@ -11320,8 +11320,8 @@ theorem RD.vatForkUtabMulRevert
   have rd4861pre := rd4860.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4862raw⟩ := rd4861pre.sload (by native_decide) (by evm_ov)
   have hsrcArt :
-      (σDstArt.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + srcBase) ⟨0⟩)) = srcArtFinal := by
+      (σDstArt.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + srcBase) ⟨0⟩)) = srcArtFinal := by
     rw [u256_add_comm (⟨1⟩ : UInt256) srcBase]
     simp [srcArtFinal, solcSlotWord, σDstArt, srcBase, forkSrcArtSlot]
   have rd4862 := rd4862raw
@@ -11331,8 +11331,8 @@ theorem RD.vatForkUtabMulRevert
   have rd4866pre := rd4865.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4867raw⟩ := rd4866pre.sload (by native_decide) (by evm_ov)
   have hrate :
-      (σDstArt.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + ilkBase) ⟨0⟩)) = rate := by
+      (σDstArt.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + ilkBase) ⟨0⟩)) = rate := by
     rw [u256_add_comm (⟨1⟩ : UInt256) ilkBase]
     simp [rate, solcSlotWord, σDstArt, ilkBase, forkIlkRateSlot]
   have rd4867 := rd4867raw
@@ -11461,8 +11461,8 @@ theorem RD.vatForkVtabMulSuccess
   have rd4883pre := rd4882.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4884raw⟩ := rd4883pre.sload (by native_decide) (by evm_ov)
   have hdstArt :
-      (σDstArt.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + dstBase) ⟨0⟩)) = dstArtFinal := by
+      (σDstArt.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + dstBase) ⟨0⟩)) = dstArtFinal := by
     rw [u256_add_comm (⟨1⟩ : UInt256) dstBase]
     simp [dstArtFinal, solcSlotWord, σDstArt, dstBase, forkDstArtSlot]
   have rd4884 := rd4884raw
@@ -11472,8 +11472,8 @@ theorem RD.vatForkVtabMulSuccess
   have rd4888pre := rd4887.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4889raw⟩ := rd4888pre.sload (by native_decide) (by evm_ov)
   have hrate :
-      (σDstArt.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + ilkBase) ⟨0⟩)) = rate := by
+      (σDstArt.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + ilkBase) ⟨0⟩)) = rate := by
     rw [u256_add_comm (⟨1⟩ : UInt256) ilkBase]
     simp [rate, solcSlotWord, σDstArt, ilkBase, forkIlkRateSlot]
   have rd4889 := rd4889raw
@@ -11574,8 +11574,8 @@ theorem RD.vatForkVtabMulRevert
   have rd4883pre := rd4882.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4884raw⟩ := rd4883pre.sload (by native_decide) (by evm_ov)
   have hdstArt :
-      (σDstArt.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + dstBase) ⟨0⟩)) = dstArtFinal := by
+      (σDstArt.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + dstBase) ⟨0⟩)) = dstArtFinal := by
     rw [u256_add_comm (⟨1⟩ : UInt256) dstBase]
     simp [dstArtFinal, solcSlotWord, σDstArt, dstBase, forkDstArtSlot]
   have rd4884 := rd4884raw
@@ -11585,8 +11585,8 @@ theorem RD.vatForkVtabMulRevert
   have rd4888pre := rd4887.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4889raw⟩ := rd4888pre.sload (by native_decide) (by evm_ov)
   have hrate :
-      (σDstArt.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + ilkBase) ⟨0⟩)) = rate := by
+      (σDstArt.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + ilkBase) ⟨0⟩)) = rate := by
     rw [u256_add_comm (⟨1⟩ : UInt256) ilkBase]
     simp [rate, solcSlotWord, σDstArt, ilkBase, forkIlkRateSlot]
   have rd4889 := rd4889raw
@@ -12004,8 +12004,8 @@ theorem RD.vatForkSrcUnsafeCheckSuccess
   have rd4998pre := rd4997.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4999raw⟩ := rd4998pre.sload (by native_decide) (by evm_ov)
   have hsrcInk :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨0⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcInkFinal := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨0⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcInkFinal := by
     rw [u256_zero_add]
     simp [srcInkFinal, solcSlotWord, forkSrcInkSlot]
   have rd4999 := rd4999raw
@@ -12015,8 +12015,8 @@ theorem RD.vatForkSrcUnsafeCheckSuccess
   have rd5003pre := rd5002.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5004raw⟩ := rd5003pre.sload (by native_decide) (by evm_ov)
   have hspot :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
     rw [u256_add_comm (⟨2⟩ : UInt256) (forkIlkBase I)]
     simp [spot, solcSlotWord, forkIlkSpotSlot]
   have rd5004 := rd5004raw
@@ -12072,8 +12072,8 @@ theorem RD.vatForkSrcUnsafeMulRevert
   have rd4998pre := rd4997.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4999raw⟩ := rd4998pre.sload (by native_decide) (by evm_ov)
   have hsrcInk :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨0⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcInkFinal := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨0⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcInkFinal := by
     rw [u256_zero_add]
     simp [srcInkFinal, solcSlotWord, forkSrcInkSlot]
   have rd4999 := rd4999raw
@@ -12083,8 +12083,8 @@ theorem RD.vatForkSrcUnsafeMulRevert
   have rd5003pre := rd5002.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5004raw⟩ := rd5003pre.sload (by native_decide) (by evm_ov)
   have hspot :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
     rw [u256_add_comm (⟨2⟩ : UInt256) (forkIlkBase I)]
     simp [spot, solcSlotWord, forkIlkSpotSlot]
   have rd5004 := rd5004raw
@@ -12135,8 +12135,8 @@ theorem RD.vatForkSrcUnsafeCheckRevert
   have rd4998pre := rd4997.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4999raw⟩ := rd4998pre.sload (by native_decide) (by evm_ov)
   have hsrcInk :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨0⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcInkFinal := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨0⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcInkFinal := by
     rw [u256_zero_add]
     simp [srcInkFinal, solcSlotWord, forkSrcInkSlot]
   have rd4999 := rd4999raw
@@ -12146,8 +12146,8 @@ theorem RD.vatForkSrcUnsafeCheckRevert
   have rd5003pre := rd5002.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5004raw⟩ := rd5003pre.sload (by native_decide) (by evm_ov)
   have hspot :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
     rw [u256_add_comm (⟨2⟩ : UInt256) (forkIlkBase I)]
     simp [spot, solcSlotWord, forkIlkSpotSlot]
   have rd5004 := rd5004raw
@@ -12221,8 +12221,8 @@ theorem RD.vatForkDstUnsafeCheckSuccess
   have rd5087pre := rd5086.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5088raw⟩ := rd5087pre.sload (by native_decide) (by evm_ov)
   have hdstInk :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨0⟩ + forkDstUrnBase I) ⟨0⟩)) = dstInkFinal := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨0⟩ + forkDstUrnBase I) ⟨0⟩)) = dstInkFinal := by
     rw [u256_zero_add]
     simp [dstInkFinal, solcSlotWord, forkDstInkSlot]
   have rd5088 := rd5088raw
@@ -12232,8 +12232,8 @@ theorem RD.vatForkDstUnsafeCheckSuccess
   have rd5092pre := rd5091.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5093raw⟩ := rd5092pre.sload (by native_decide) (by evm_ov)
   have hspot :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
     rw [u256_add_comm (⟨2⟩ : UInt256) (forkIlkBase I)]
     simp [spot, solcSlotWord, forkIlkSpotSlot]
   have rd5093 := rd5093raw
@@ -12289,8 +12289,8 @@ theorem RD.vatForkDstUnsafeMulRevert
   have rd5087pre := rd5086.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5088raw⟩ := rd5087pre.sload (by native_decide) (by evm_ov)
   have hdstInk :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨0⟩ + forkDstUrnBase I) ⟨0⟩)) = dstInkFinal := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨0⟩ + forkDstUrnBase I) ⟨0⟩)) = dstInkFinal := by
     rw [u256_zero_add]
     simp [dstInkFinal, solcSlotWord, forkDstInkSlot]
   have rd5088 := rd5088raw
@@ -12300,8 +12300,8 @@ theorem RD.vatForkDstUnsafeMulRevert
   have rd5092pre := rd5091.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5093raw⟩ := rd5092pre.sload (by native_decide) (by evm_ov)
   have hspot :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
     rw [u256_add_comm (⟨2⟩ : UInt256) (forkIlkBase I)]
     simp [spot, solcSlotWord, forkIlkSpotSlot]
   have rd5093 := rd5093raw
@@ -12352,8 +12352,8 @@ theorem RD.vatForkDstUnsafeCheckRevert
   have rd5087pre := rd5086.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5088raw⟩ := rd5087pre.sload (by native_decide) (by evm_ov)
   have hdstInk :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨0⟩ + forkDstUrnBase I) ⟨0⟩)) = dstInkFinal := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨0⟩ + forkDstUrnBase I) ⟨0⟩)) = dstInkFinal := by
     rw [u256_zero_add]
     simp [dstInkFinal, solcSlotWord, forkDstInkSlot]
   have rd5088 := rd5088raw
@@ -12363,8 +12363,8 @@ theorem RD.vatForkDstUnsafeCheckRevert
   have rd5092pre := rd5091.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5093raw⟩ := rd5092pre.sload (by native_decide) (by evm_ov)
   have hspot :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
     rw [u256_add_comm (⟨2⟩ : UInt256) (forkIlkBase I)]
     simp [spot, solcSlotWord, forkIlkSpotSlot]
   have rd5093 := rd5093raw
@@ -12432,8 +12432,8 @@ theorem RD.vatForkDustChecksSuccess
   have rd5176pre := rd5175.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5177raw⟩ := rd5176pre.sload (by native_decide) (by evm_ov)
   have hdust :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨4⟩ + forkIlkBase I) ⟨0⟩)) = dust := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨4⟩ + forkIlkBase I) ⟨0⟩)) = dust := by
     rw [u256_add_comm (⟨4⟩ : UInt256) (forkIlkBase I)]
     simp [dust, solcSlotWord, forkIlkDustSlot]
   have rd5177 := rd5177raw
@@ -12446,8 +12446,8 @@ theorem RD.vatForkDustChecksSuccess
   have rd5184pre := rd5183.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5185raw⟩ := rd5184pre.sload (by native_decide) (by evm_ov)
   have hsrcArt :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcArtFinal := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcArtFinal := by
     rw [u256_add_comm (⟨1⟩ : UInt256) (forkSrcUrnBase I)]
     simp [srcArtFinal, solcSlotWord, forkSrcArtSlot]
   have rd5185 := rd5185raw
@@ -12483,8 +12483,8 @@ theorem RD.vatForkDustChecksSuccess
   have rd5272pre := rd5271.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5273raw⟩ := rd5272pre.sload (by native_decide) (by evm_ov)
   have hdstArt :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + forkDstUrnBase I) ⟨0⟩)) = dstArtFinal := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + forkDstUrnBase I) ⟨0⟩)) = dstArtFinal := by
     rw [u256_add_comm (⟨1⟩ : UInt256) (forkDstUrnBase I)]
     simp [dstArtFinal, solcSlotWord, forkDstArtSlot]
   have rd5273 := rd5273raw
@@ -12529,8 +12529,8 @@ theorem RD.vatForkSrcDustCheckRevert
   have rd5176pre := rd5175.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5177raw⟩ := rd5176pre.sload (by native_decide) (by evm_ov)
   have hdust :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨4⟩ + forkIlkBase I) ⟨0⟩)) = dust := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨4⟩ + forkIlkBase I) ⟨0⟩)) = dust := by
     rw [u256_add_comm (⟨4⟩ : UInt256) (forkIlkBase I)]
     simp [dust, solcSlotWord, forkIlkDustSlot]
   have rd5177 := rd5177raw
@@ -12543,8 +12543,8 @@ theorem RD.vatForkSrcDustCheckRevert
   have rd5184pre := rd5183.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5185raw⟩ := rd5184pre.sload (by native_decide) (by evm_ov)
   have hsrcArt :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcArtFinal := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcArtFinal := by
     rw [u256_add_comm (⟨1⟩ : UInt256) (forkSrcUrnBase I)]
     simp [srcArtFinal, solcSlotWord, forkSrcArtSlot]
   have rd5185 := rd5185raw
@@ -12602,8 +12602,8 @@ theorem RD.vatForkDstDustCheckRevert
   have rd5176pre := rd5175.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5177raw⟩ := rd5176pre.sload (by native_decide) (by evm_ov)
   have hdust :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨4⟩ + forkIlkBase I) ⟨0⟩)) = dust := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨4⟩ + forkIlkBase I) ⟨0⟩)) = dust := by
     rw [u256_add_comm (⟨4⟩ : UInt256) (forkIlkBase I)]
     simp [dust, solcSlotWord, forkIlkDustSlot]
   have rd5177 := rd5177raw
@@ -12616,8 +12616,8 @@ theorem RD.vatForkDstDustCheckRevert
   have rd5184pre := rd5183.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5185raw⟩ := rd5184pre.sload (by native_decide) (by evm_ov)
   have hsrcArt :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcArtFinal := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcArtFinal := by
     rw [u256_add_comm (⟨1⟩ : UInt256) (forkSrcUrnBase I)]
     simp [srcArtFinal, solcSlotWord, forkSrcArtSlot]
   have rd5185 := rd5185raw
@@ -12653,8 +12653,8 @@ theorem RD.vatForkDstDustCheckRevert
   have rd5272pre := rd5271.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5273raw⟩ := rd5272pre.sload (by native_decide) (by evm_ov)
   have hdstArt :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + forkDstUrnBase I) ⟨0⟩)) = dstArtFinal := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + forkDstUrnBase I) ⟨0⟩)) = dstArtFinal := by
     rw [u256_add_comm (⟨1⟩ : UInt256) (forkDstUrnBase I)]
     simp [dstArtFinal, solcSlotWord, forkDstArtSlot]
   have rd5273 := rd5273raw

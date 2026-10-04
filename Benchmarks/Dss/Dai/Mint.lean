@@ -46,8 +46,8 @@ abbrev mintTotalSupplySlot : UInt256 :=
   ⟨1⟩
 
 def mintAuthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (mintAuthStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (mintAuthStorageSlot I) ⟨0⟩)
 
 def mintUsrBalanceWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (mintUsrStorageSlot I)

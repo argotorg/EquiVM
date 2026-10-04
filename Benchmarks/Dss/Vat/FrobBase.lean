@@ -93,22 +93,20 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 /-! ## `frob(bytes32,address,address,address,int256,int256)` -/
 
-theorem sstoreAccountMap_storage_findD_self_present
+theorem sstoreAccountMap_storage_getD_self_present
     (σ : AccountMap) (a : AccountAddress) {acc : Account}
-    (hacc : σ.find? a = some acc) (slot val : UInt256) :
-    (((sstoreAccountMap a σ slot val).find? a).option (default : UInt256)
-        (fun acc => acc.storage.findD slot (default : UInt256))) = val := by
+    (hacc : σ.get? a = some acc) (slot val : UInt256) :
+    (((sstoreAccountMap a σ slot val).get? a).option (default : UInt256)
+        (fun acc => acc.storage.getD slot (default : UInt256))) = val := by
   unfold sstoreAccountMap
   rw [hacc]
   simp only [Option.option]
-  rw [accountMap_find_insert_self]
+  simp only [Std.ExtTreeMap.get?_eq_getElem?, Std.ExtTreeMap.getElem?_insert_self]
   by_cases hzero : (val == (default : UInt256)) = true
   · have hval : val = (default : UInt256) := eq_of_beq hzero
     subst val
     simp
-    exact storage_findD_erase_self acc.storage slot (default : UInt256)
   · simp [hzero]
-    exact storage_findD_insert_self acc.storage slot val (default : UInt256)
 
 abbrev frobIWord (I : ExecutionEnv) : UInt256 :=
   calldataWord I.calldata 4
@@ -3181,8 +3179,8 @@ theorem RD.vatFrobUrnLoads
   have rd3099pre := rd3098.dup1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3100raw⟩ := rd3099pre.sload (by native_decide) (by evm_ov)
   have hInkRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD urnBase ⟨0⟩)) = urnInkOld := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD urnBase ⟨0⟩)) = urnInkOld := by
     simp [urnInkOld, solcSlotWord]
   have rd3100 := rd3100raw
   rw [hInkRaw] at rd3100
@@ -3195,8 +3193,8 @@ theorem RD.vatFrobUrnLoads
   have rd3105pre := rd3104.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3106raw⟩ := rd3105pre.sload (by native_decide) (by evm_ov)
   have hArtRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + urnBase) ⟨0⟩)) = urnArtOld := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + urnBase) ⟨0⟩)) = urnArtOld := by
     simp [urnArtOld, solcSlotWord, u256_add_comm (⟨1⟩ : UInt256) urnBase]
   have rd3106 := rd3106raw
   rw [hArtRaw] at rd3106
@@ -3582,8 +3580,8 @@ theorem RD.vatFrobIlkLoadsRateZero
   have rd3146pre := rd3145.dup2 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3147raw⟩ := rd3146pre.sload (by native_decide) (by evm_ov)
   have hArtRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ilkBase ⟨0⟩)) = ilkArtOld := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ilkBase ⟨0⟩)) = ilkArtOld := by
     simp [ilkArtOld, solcSlotWord]
   have rd3147 := rd3147raw
   rw [hArtRaw] at rd3147
@@ -3597,8 +3595,8 @@ theorem RD.vatFrobIlkLoadsRateZero
   have rd3153pre := rd3152.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3154raw⟩ := rd3153pre.sload (by native_decide) (by evm_ov)
   have hRateRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (ilkBase + ⟨1⟩) ⟨0⟩)) = ilkRateOld := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (ilkBase + ⟨1⟩) ⟨0⟩)) = ilkRateOld := by
     simp [ilkRateOld, solcSlotWord]
   have rd3154 := rd3154raw
   rw [hRateRaw] at rd3154
@@ -3617,8 +3615,8 @@ theorem RD.vatFrobIlkLoadsRateZero
   have rd3163pre := rd3162.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3164raw⟩ := rd3163pre.sload (by native_decide) (by evm_ov)
   have hSpotRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (ilkBase + ⟨2⟩) ⟨0⟩)) = ilkSpotOld := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (ilkBase + ⟨2⟩) ⟨0⟩)) = ilkSpotOld := by
     simp [ilkSpotOld, solcSlotWord]
   have rd3164 := rd3164raw
   rw [hSpotRaw] at rd3164
@@ -3639,8 +3637,8 @@ theorem RD.vatFrobIlkLoadsRateZero
   have rd3175pre := rd3174.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3176raw⟩ := rd3175pre.sload (by native_decide) (by evm_ov)
   have hLineRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (ilkBase + ⟨3⟩) ⟨0⟩)) = ilkLineOld := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (ilkBase + ⟨3⟩) ⟨0⟩)) = ilkLineOld := by
     simp [ilkLineOld, solcSlotWord]
   have rd3176 := rd3176raw
   rw [hLineRaw] at rd3176
@@ -3660,8 +3658,8 @@ theorem RD.vatFrobIlkLoadsRateZero
   have rd3186pre := rd3185.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3187raw⟩ := rd3186pre.sload (by native_decide) (by evm_ov)
   have hDustRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (ilkBase + ⟨4⟩) ⟨0⟩)) = ilkDustOld := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (ilkBase + ⟨4⟩) ⟨0⟩)) = ilkDustOld := by
     simp [ilkDustOld, solcSlotWord]
   have rd3187 := rd3187raw
   rw [hDustRaw] at rd3187
@@ -3839,8 +3837,8 @@ theorem RD.vatFrobIlkLoadsRateNonzero
   have rd3146pre := rd3145.dup2 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3147raw⟩ := rd3146pre.sload (by native_decide) (by evm_ov)
   have hArtRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ilkBase ⟨0⟩)) = ilkArtOld := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ilkBase ⟨0⟩)) = ilkArtOld := by
     simp [ilkArtOld, solcSlotWord]
   have rd3147 := rd3147raw
   rw [hArtRaw] at rd3147
@@ -3854,8 +3852,8 @@ theorem RD.vatFrobIlkLoadsRateNonzero
   have rd3153pre := rd3152.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3154raw⟩ := rd3153pre.sload (by native_decide) (by evm_ov)
   have hRateRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (ilkBase + ⟨1⟩) ⟨0⟩)) = ilkRateOld := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (ilkBase + ⟨1⟩) ⟨0⟩)) = ilkRateOld := by
     simp [ilkRateOld, solcSlotWord]
   have rd3154 := rd3154raw
   rw [hRateRaw] at rd3154
@@ -3874,8 +3872,8 @@ theorem RD.vatFrobIlkLoadsRateNonzero
   have rd3163pre := rd3162.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3164raw⟩ := rd3163pre.sload (by native_decide) (by evm_ov)
   have hSpotRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (ilkBase + ⟨2⟩) ⟨0⟩)) = ilkSpotOld := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (ilkBase + ⟨2⟩) ⟨0⟩)) = ilkSpotOld := by
     simp [ilkSpotOld, solcSlotWord]
   have rd3164 := rd3164raw
   rw [hSpotRaw] at rd3164
@@ -3896,8 +3894,8 @@ theorem RD.vatFrobIlkLoadsRateNonzero
   have rd3175pre := rd3174.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3176raw⟩ := rd3175pre.sload (by native_decide) (by evm_ov)
   have hLineRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (ilkBase + ⟨3⟩) ⟨0⟩)) = ilkLineOld := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (ilkBase + ⟨3⟩) ⟨0⟩)) = ilkLineOld := by
     simp [ilkLineOld, solcSlotWord]
   have rd3176 := rd3176raw
   rw [hLineRaw] at rd3176
@@ -3917,8 +3915,8 @@ theorem RD.vatFrobIlkLoadsRateNonzero
   have rd3186pre := rd3185.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3187raw⟩ := rd3186pre.sload (by native_decide) (by evm_ov)
   have hDustRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (ilkBase + ⟨4⟩) ⟨0⟩)) = ilkDustOld := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (ilkBase + ⟨4⟩) ⟨0⟩)) = ilkDustOld := by
     simp [ilkDustOld, solcSlotWord]
   have rd3187 := rd3187raw
   rw [hDustRaw] at rd3187
@@ -4755,8 +4753,8 @@ theorem RD.vatFrobDebtAddStoreSuccess
   have rd3356 := rd3354.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3357raw⟩ := rd3356.sload (by native_decide) (by evm_ov)
   have hload :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) = debtOld := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) = debtOld := by
     simp [debtOld, foldDebtSlot, solcSlotWord]
   have rd3357 := rd3357raw
   rw [hload] at rd3357
@@ -4806,8 +4804,8 @@ theorem RD.vatFrobDebtAddStoreRevert
   have rd3356 := rd3354.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3357raw⟩ := rd3356.sload (by native_decide) (by evm_ov)
   have hload :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) = debtOld := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) = debtOld := by
     simp [debtOld, foldDebtSlot, solcSlotWord]
   have rd3357 := rd3357raw
   rw [hload] at rd3357
@@ -4850,8 +4848,8 @@ theorem RD.vatFrobCeilingCheckSuccess
               (UInt256.mul ilkArtNew (solcSlotWord σ I (frobIlkRateSlot I)))
               (solcSlotWord σ I (frobIlkLineSlot I)))))
         (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) ≠ ⟨0⟩) :
-    ((sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew).find? I.codeOwner |>.option ⟨0⟩
-      (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) = debtNew →
+    ((sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew).get? I.codeOwner |>.option ⟨0⟩
+      (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) = debtNew →
     ∃ k' C',
       RD vatBytecode I g (initState σ σ₀ g A I) ⟨3494⟩
         [tab, dtabWord, ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
@@ -5003,8 +5001,8 @@ theorem RD.vatFrobCeilingCheckSuccess
   have rd3407 := rd3404.push1 ⟨9⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3408raw⟩ := rd3407.sload (by native_decide) (by evm_ov)
   have hLineLoad :
-      (σDebt.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨9⟩ : UInt256) ⟨0⟩)) = Line := by
+      (σDebt.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨9⟩ : UInt256) ⟨0⟩)) = Line := by
     have hne : (⟨9⟩ : UInt256) ≠ foldDebtSlot := by
       simp [foldDebtSlot]
     simpa [σDebt, Line, solcSlotWord] using
@@ -5014,8 +5012,8 @@ theorem RD.vatFrobCeilingCheckSuccess
   have rd3410 := rd3408.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3411raw⟩ := rd3410.sload (by native_decide) (by evm_ov)
   have hDebtLoad :
-      (σDebt.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) = debtNew := by
+      (σDebt.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) = debtNew := by
     simpa [σDebt, foldDebtSlot] using hdebtLoadStore
   have rd3411 := rd3411raw
   rw [hDebtLoad] at rd3411
@@ -5072,8 +5070,8 @@ theorem RD.vatFrobCeilingCheckRevert
               (solcSlotWord σ I (frobIlkLineSlot I)))))
         (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) = ⟨0⟩)
     (hdebtLoadStore :
-      ((sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew).find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) = debtNew) :
+      ((sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew).get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) = debtNew) :
     RDrev vatBytecode g (initState σ σ₀ g A I) := by
   let σDebt := sstoreAccountMap I.codeOwner σ foldDebtSlot debtNew
   let mem := frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew
@@ -5217,8 +5215,8 @@ theorem RD.vatFrobCeilingCheckRevert
   have rd3407 := rd3404.push1 ⟨9⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3408raw⟩ := rd3407.sload (by native_decide) (by evm_ov)
   have hLineLoad :
-      (σDebt.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨9⟩ : UInt256) ⟨0⟩)) = Line := by
+      (σDebt.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨9⟩ : UInt256) ⟨0⟩)) = Line := by
     have hne : (⟨9⟩ : UInt256) ≠ foldDebtSlot := by
       simp [foldDebtSlot]
     simpa [σDebt, Line, solcSlotWord] using
@@ -5228,8 +5226,8 @@ theorem RD.vatFrobCeilingCheckRevert
   have rd3410 := rd3408.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3411raw⟩ := rd3410.sload (by native_decide) (by evm_ov)
   have hDebtLoad :
-      (σDebt.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) = debtNew := by
+      (σDebt.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) = debtNew := by
     simpa [σDebt, foldDebtSlot] using hdebtLoadStore
   have rd3411 := rd3411raw
   rw [hDebtLoad] at rd3411

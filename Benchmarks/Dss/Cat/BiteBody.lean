@@ -57,7 +57,7 @@ theorem catBiteVatCodeZero_of_uniswap {σ σ₀ A I} {g : UInt256}
   unfold Reasoning.Theory.extCodeSizeWord at hvatCode
   rw [haddr]
   simp only [initState, State.lookupAccount]
-  cases hacc : σ.find? (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I)) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I)) with
   | none => native_decide
   | some acc => rw [hacc] at hvatCode; simpa [Option.option] using congrArg UInt256.toNat hvatCode
 
@@ -75,7 +75,7 @@ theorem catBiteVatCodePos_of_uniswap {σ σ₀ A I} {g : UInt256}
   unfold Reasoning.Theory.extCodeSizeWord at hvatCode
   rw [haddr]
   simp only [initState, State.lookupAccount]
-  cases hacc : σ.find? (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I)) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 (catBiteVatTargetWord σ I)) with
   | none => exfalso; apply hvatCode; rw [hacc]; native_decide
   | some acc =>
       rw [hacc] at hvatCode

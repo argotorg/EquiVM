@@ -789,7 +789,7 @@ theorem vowCtorVatStoreReach
     raw dup4 (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov)]
   have hload :
-      (σWards.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨1⟩ ⟨0⟩)) =
+      (σWards.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨1⟩ ⟨0⟩)) =
         solcSlotWord σWards I ⟨1⟩ := by
     rfl
   rw [hload] at rdBeforeStore
@@ -810,7 +810,7 @@ theorem vowCtorVatStoreReach
             rfl
   obtain ⟨k', C', rd116⟩ := rdBeforeStore.sstore hperm (by ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [code, solcSlotWord, setAddressOffset0Word, hword,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, code, solcSlotWord, setAddressOffset0Word, hword,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide] using rd116⟩
 
@@ -856,7 +856,7 @@ theorem vowCtorFlapperStoreReach
     raw swap1 (by ctor_decode) (by evm_ov),
     raw swap2 (by ctor_decode) (by evm_ov)]
   have hload :
-      (σVat.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) =
+      (σVat.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) =
         solcSlotWord σVat I ⟨2⟩ := by
     rfl
   rw [hload] at rdBeforeStore
@@ -897,7 +897,7 @@ theorem vowCtorFlapperStoreReach
             rw [hflapperMask]
       _ = setAddressOffset0Word (solcSlotWord σVat I ⟨2⟩) (EVM.word flapper.val) := hword
   exact ⟨k', C', by
-    simpa [code, solcSlotWord, setAddressOffset0Word, hwordStore, hflapperMask,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, code, solcSlotWord, setAddressOffset0Word, hwordStore, hflapperMask,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide] using rd131⟩
 
@@ -944,7 +944,7 @@ theorem vowCtorFlopperStoreReach
     raw swap1 (by ctor_decode) (by evm_ov),
     raw swap3 (by ctor_decode) (by evm_ov)]
   have hload :
-      (σFlapper.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨3⟩ ⟨0⟩)) =
+      (σFlapper.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨3⟩ ⟨0⟩)) =
         solcSlotWord σFlapper I ⟨3⟩ := by
     rfl
   rw [hload] at rdBeforeStore
@@ -978,7 +978,7 @@ theorem vowCtorFlopperStoreReach
     rw [u256_land_comm (UInt256.lnot solcAddrMask) (solcSlotWord σFlapper I ⟨3⟩)]
     rfl
   exact ⟨k', C', by
-    simpa [code, solcSlotWord, setAddressOffset0Word, hwordStore,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, code, solcSlotWord, setAddressOffset0Word, hwordStore,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide] using rd147⟩
 

@@ -30,7 +30,7 @@ theorem catCtorVatSloadReach
   have rdBeforeSload := cat_ctor_run rd75 with [push1 ⟨3⟩, dup1]
   obtain ⟨_, _, rd79⟩ := rdBeforeSload.sload (by cat_ctor_decode) (by evm_ov)
   have hload :
-      (σWards.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨3⟩ ⟨0⟩)) =
+      (σWards.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨3⟩ ⟨0⟩)) =
         solcSlotWord σWards I ⟨3⟩ := by
     rfl
   rw [hload] at rd79

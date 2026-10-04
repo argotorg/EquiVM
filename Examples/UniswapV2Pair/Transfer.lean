@@ -65,7 +65,7 @@ def transferAfterDebitState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
 theorem transferAfterDebit_codeOwner (evm : EVM.State) (I : ExecutionEnv) :
     (transferAfterDebitState evm I).executionEnv.codeOwner = evm.executionEnv.codeOwner := by
   simp only [transferAfterDebitState, Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? evm.executionEnv.codeOwner with
+  cases evm.accountMap.get? evm.executionEnv.codeOwner with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 
@@ -493,7 +493,8 @@ theorem uniswapTransferX_afterDebit {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hbalanceWord :
       uniswapCodeOwnerStorageWord I σ (mapSlot (uniswapSourceWord I) ⟨1⟩) =
         transferFromBalanceWord (initState σ σ₀ g A I) := by
-    simp [uniswapCodeOwnerStorageWord, transferFromBalanceWord, transferSenderSlot,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, uniswapCodeOwnerStorageWord,
+      transferFromBalanceWord, transferSenderSlot,
       balanceOfSlot, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, keyValueToWord_address, uniswapSourceWord]
   have hbalance :
@@ -538,7 +539,8 @@ theorem uniswapTransferX_insufficient {σ σ₀ A I} {g : Sat256} {sel : UInt256
   have hbalanceWord :
       uniswapCodeOwnerStorageWord I σ (mapSlot (uniswapSourceWord I) ⟨1⟩) =
         transferFromBalanceWord (initState σ σ₀ g A I) := by
-    simp [uniswapCodeOwnerStorageWord, transferFromBalanceWord, transferSenderSlot,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, uniswapCodeOwnerStorageWord,
+      transferFromBalanceWord, transferSenderSlot,
       balanceOfSlot, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, keyValueToWord_address, uniswapSourceWord]
   have hltWord :
@@ -620,7 +622,8 @@ theorem uniswapTransferX_afterCreditCalc {σ σ₀ A I} {g : Sat256}
       uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferToMaskedWord I) ⟨1⟩) =
         transferToBalanceWord (initState σ σ₀ g A I) I := by
     have htoSlot := transferToSlot_eq_mapSlot_masked I
-    simp [σDebit, uniswapCodeOwnerStorageWord, transferToBalanceWord, transferAfterDebitState,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, σDebit, uniswapCodeOwnerStorageWord,
+      transferToBalanceWord, transferAfterDebitState,
       transferSenderSlot, balanceOfSlot, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, storageStore_accountMap, keyValueToWord_address,
       uniswapSourceWord, htoSlot]
@@ -672,7 +675,8 @@ theorem uniswapTransferX_overflow {σ σ₀ A I} {g : Sat256}
       uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferToMaskedWord I) ⟨1⟩) =
         transferToBalanceWord (initState σ σ₀ g A I) I := by
     have htoSlot := transferToSlot_eq_mapSlot_masked I
-    simp [σDebit, uniswapCodeOwnerStorageWord, transferToBalanceWord, transferAfterDebitState,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, σDebit, uniswapCodeOwnerStorageWord,
+      transferToBalanceWord, transferAfterDebitState,
       transferSenderSlot, balanceOfSlot, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage, storageStore_accountMap, keyValueToWord_address,
       uniswapSourceWord, htoSlot]

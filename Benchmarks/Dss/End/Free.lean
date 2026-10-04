@@ -2349,7 +2349,7 @@ theorem endFreeX_liveZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd7694raw⟩ := rd7693.sload (by native_decide) (by evm_ov)
   have hraw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
     simpa [endSlotWord, solcSlotWord] using hlive
   have rd7694 := rd7694raw

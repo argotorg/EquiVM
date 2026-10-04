@@ -202,7 +202,7 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                   typedCallViaEVM_static_accountCodeStateEq hIlksCall
                 have hslot3ilks : catSlotWord ⟨3⟩ σ I = catSlotWord ⟨3⟩ σ' I := by
                   simp only [catSlotWord, solcSlotWord]
-                  exact accountStorageStateEq_storage_findD
+                  exact accountStorageStateEq_storage_getD
                     (typedCallViaEVM_static_accountStorageStateEq hIlksCall) I.codeOwner ⟨3⟩ ⟨0⟩
                 have haddr : catBiteVatTargetWord σ I
                     = (catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord := by
@@ -239,7 +239,7 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                       intro e w hw
                       unfold extCodeSizeWord at hw
                       simp only [State.lookupAccount]
-                      cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+                      cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
                       | none => rw [hf] at hw; simp [Option.option] at hw
                       | some acc =>
                           rw [hf] at hw
@@ -294,7 +294,7 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                           typedCallViaEVM_static_accountStorageStateEq hUrnsCall
                         have hslot3 : catSlotWord ⟨3⟩ σ' I = catSlotWord ⟨3⟩ σu I := by
                           simp only [catSlotWord, solcSlotWord]
-                          exact accountStorageStateEq_storage_findD hse I.codeOwner ⟨3⟩ ⟨0⟩
+                          exact accountStorageStateEq_storage_getD hse I.codeOwner ⟨3⟩ ⟨0⟩
                         rw [hslot3] at rd1399
                         have hmemI : (196 : ℕ) ≤ (catBiteIlksPostCallMem I o').size := by
                           have h := catBiteIlksPostCallMem_size I o' hilkslen hosz; omega
@@ -576,7 +576,7 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                       typedCallViaEVM_static_accountCodeStateEq hUrnsCall
                                     have hslot3ilks : catSlotWord ⟨3⟩ σ I = catSlotWord ⟨3⟩ σ' I := by
                                       simp only [catSlotWord, solcSlotWord]
-                                      exact accountStorageStateEq_storage_findD
+                                      exact accountStorageStateEq_storage_getD
                                         (typedCallViaEVM_static_accountStorageStateEq hIlksCall)
                                         I.codeOwner ⟨3⟩ ⟨0⟩
                                     have haddr : catBiteVatTargetWord σ I
@@ -1082,7 +1082,7 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                             intro e w hw
                                             unfold extCodeSizeWord at hw
                                             simp only [State.lookupAccount]
-                                            cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+                                            cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
                                             | none => rw [hf] at hw; simp [Option.option] at hw
                                             | some acc =>
                                                 rw [hf] at hw
@@ -1269,7 +1269,7 @@ theorem catBiteBodyImpl {σ σ₀ A I} {g : UInt256}
                                                     { ev with accountMap := sstoreAccountMap aa ev.accountMap k v } := by
                                                 intro ev aa k v
                                                 simp only [Solm.EVM.storageStore, sstoreAccountMap, State.lookupAccount]
-                                                cases h : ev.accountMap.find? aa with
+                                                cases h : ev.accountMap.get? aa with
                                                 | none => simp [Option.option]
                                                 | some acc => simp [Option.option, State.setAccount, Account.updateStorage]
                                               have hdiv1 : ∀ y : UInt256, UInt256.div y ⟨1⟩ = y := fun y => by

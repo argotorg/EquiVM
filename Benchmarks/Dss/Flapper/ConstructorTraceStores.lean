@@ -70,8 +70,8 @@ theorem flapperCtorVatStoreReach
         (flapperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
         σWards k147 C147 := by
     have hload :
-        (σWards.find? I.codeOwner |>.option ⟨0⟩
-          (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) =
+        (σWards.get? I.codeOwner |>.option ⟨0⟩
+          (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) =
           solcSlotWord σWards I ⟨2⟩ := by
       rfl
     simpa [hload] using rd147raw
@@ -121,8 +121,8 @@ theorem flapperCtorGemStoreReach
         (flapperCtorWardsHashMem I vat gem) (UInt256.ofNat 6) ByteArray.empty
         σVat k178 C178 := by
     have hload :
-        (σVat.find? I.codeOwner |>.option ⟨0⟩
-          (fun ac => ac.storage.findD ⟨3⟩ ⟨0⟩)) =
+        (σVat.get? I.codeOwner |>.option ⟨0⟩
+          (fun ac => ac.storage.getD ⟨3⟩ ⟨0⟩)) =
           solcSlotWord σVat I ⟨3⟩ := by
       rfl
     simpa [hload] using rd178raw

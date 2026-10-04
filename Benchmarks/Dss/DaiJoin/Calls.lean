@@ -57,16 +57,16 @@ theorem daiJoin_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem daiJoinCode_zero_of_codeSize_zero {evm : EVM.State} {target : UInt256}
     {addr : AccountAddress}
@@ -97,8 +97,9 @@ theorem daiJoinCode_pos_of_codeSize_ne_zero {evm : EVM.State} {target : UInt256}
       UInt256.ofNat ((evm.lookupAccount addr).option 0 (fun acc => acc.code.size)) =
         Reasoning.Theory.extCodeSizeWord evm.accountMap target := by
     subst addr
-    cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 target) <;>
-      simp [State.lookupAccount, Reasoning.Theory.extCodeSizeWord, hacc,
+    cases hacc : evm.accountMap.get? (AccountAddress.ofUInt256 target) <;>
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount,
+        Reasoning.Theory.extCodeSizeWord, hacc,
         Option.option] <;>
       native_decide
   exact hne (by rw [← hword, hwordZero])

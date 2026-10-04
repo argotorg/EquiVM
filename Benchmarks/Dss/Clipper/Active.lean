@@ -27,8 +27,8 @@ abbrev clipperActiveSlot (I : ExecutionEnv) : UInt256 :=
   activeSlot (clipperActiveArgKey I)
 
 def clipperActiveWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (clipperActiveSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (clipperActiveSlot I) ⟨0⟩)
 
 theorem clipperActiveSlot_eq (I : ExecutionEnv) :
     clipperActiveSlot I = activeDataSlot + clipperActiveArgWord I := by
@@ -476,7 +476,7 @@ theorem clipperActiveArrayBounds_ok {code : ByteArray} {g : Sat256} {s0 : State}
   have rd3504 := rd3503.dup2 hd3503 (by evm_ov)
   have rd3505raw := rd3504.lt hd3504 (by evm_ov)
   have rd3505 := by
-    simpa [solcSlotWord, hlt] using rd3505raw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hlt] using rd3505raw
   have rd3508 := rd3505.push2 ⟨3510⟩ hd3505 (by evm_ov)
   have rd3510 := rd3508.jumpiT hd3508 (by decide) h3510 (by evm_ov)
   exact ⟨_, _, rd3510⟩
@@ -631,7 +631,7 @@ theorem clipperActiveArrayGetter_invalid {code : ByteArray} {g : Sat256} {s0 : S
   have rd3504 := rd3503.dup2 hd3503 (by evm_ov)
   have rd3505raw := rd3504.lt hd3504 (by evm_ov)
   have rd3505 := by
-    simpa [solcSlotWord, hlt] using rd3505raw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hlt] using rd3505raw
   have rd3508 := rd3505.push2 ⟨3510⟩ hd3505 (by evm_ov)
   have rd3509 := rd3508.jumpiNT hd3508 (by decide) (by evm_ov)
   exact RD.invalidHalt rd3509 hd3509

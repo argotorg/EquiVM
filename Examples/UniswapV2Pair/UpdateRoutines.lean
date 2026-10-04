@@ -144,8 +144,8 @@ theorem RD.uniswapUpdateElapsedZeroSkipsCumulatives {g : Sat256} {s0 : State}
         (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
-              (acc.find? ee.codeOwner |>.option ⟨0⟩
-                (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+              (acc.get? ee.codeOwner |>.option ⟨0⟩
+                (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩))
               reserve224Shift)))
         reserve32Mask = ⟨0⟩)
     (hov : R.length + 12 ≤ 1024) :
@@ -153,8 +153,8 @@ theorem RD.uniswapUpdateElapsedZeroSkipsCumulatives {g : Sat256} {s0 : State}
       (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
-              (acc.find? ee.codeOwner |>.option ⟨0⟩
-                (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+              (acc.get? ee.codeOwner |>.option ⟨0⟩
+                (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩))
               reserve224Shift)) ::
         UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp) ::
         reserve1 :: reserve0 :: balance1 :: balance0 :: R)
@@ -190,8 +190,8 @@ theorem RD.uniswapUpdateReserve0ZeroSkipsCumulatives {g : Sat256} {s0 : State}
         (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
-              (acc.find? ee.codeOwner |>.option ⟨0⟩
-                (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+              (acc.get? ee.codeOwner |>.option ⟨0⟩
+                (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩))
               reserve224Shift)))
         reserve32Mask ≠ ⟨0⟩)
     (hreserve0Zero : UInt256.land reserve0 reserve112Mask = ⟨0⟩)
@@ -200,8 +200,8 @@ theorem RD.uniswapUpdateReserve0ZeroSkipsCumulatives {g : Sat256} {s0 : State}
       (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
-              (acc.find? ee.codeOwner |>.option ⟨0⟩
-                (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+              (acc.get? ee.codeOwner |>.option ⟨0⟩
+                (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩))
               reserve224Shift)) ::
         UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp) ::
         reserve1 :: reserve0 :: balance1 :: balance0 :: R)
@@ -212,8 +212,8 @@ theorem RD.uniswapUpdateReserve0ZeroSkipsCumulatives {g : Sat256} {s0 : State}
           (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
             (UInt256.land reserve32Mask
               (UInt256.div
-                (acc.find? ee.codeOwner |>.option ⟨0⟩
-                  (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+                (acc.get? ee.codeOwner |>.option ⟨0⟩
+                  (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩))
                 reserve224Shift)))
           reserve32Mask) = ⟨0⟩ :=
     isZero_eq_zero_of_ne helapsedNe
@@ -258,8 +258,8 @@ theorem RD.uniswapUpdateReserve1ZeroSkipsCumulatives {g : Sat256} {s0 : State}
         (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
-              (acc.find? ee.codeOwner |>.option ⟨0⟩
-                (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+              (acc.get? ee.codeOwner |>.option ⟨0⟩
+                (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩))
               reserve224Shift)))
         reserve32Mask ≠ ⟨0⟩)
     (hreserve0Ne : UInt256.land reserve0 reserve112Mask ≠ ⟨0⟩)
@@ -269,8 +269,8 @@ theorem RD.uniswapUpdateReserve1ZeroSkipsCumulatives {g : Sat256} {s0 : State}
       (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
           (UInt256.land reserve32Mask
             (UInt256.div
-              (acc.find? ee.codeOwner |>.option ⟨0⟩
-                (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+              (acc.get? ee.codeOwner |>.option ⟨0⟩
+                (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩))
               reserve224Shift)) ::
         UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp) ::
         reserve1 :: reserve0 :: balance1 :: balance0 :: R)
@@ -281,8 +281,8 @@ theorem RD.uniswapUpdateReserve1ZeroSkipsCumulatives {g : Sat256} {s0 : State}
           (UInt256.sub (UInt256.land reserve32Mask (UInt256.ofNat ee.header.timestamp))
             (UInt256.land reserve32Mask
               (UInt256.div
-                (acc.find? ee.codeOwner |>.option ⟨0⟩
-                  (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩))
+                (acc.get? ee.codeOwner |>.option ⟨0⟩
+                  (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩))
                 reserve224Shift)))
           reserve32Mask) = ⟨0⟩ :=
     isZero_eq_zero_of_ne helapsedNe

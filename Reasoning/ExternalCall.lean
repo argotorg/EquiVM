@@ -130,22 +130,22 @@ theorem typedCallViaEVM_static_accountCodeStateEq {cfg : Config} {evm evm' : EVM
 
 /-- A static typed call preserves the caller's storage value when the input
 account map is equal to the source map. -/
-theorem typedCallViaEVM_static_storage_findD_of_accounts_eq {cfg : Config}
+theorem typedCallViaEVM_static_storage_getD_of_accounts_eq {cfg : Config}
     {σ : AccountMap} {evm evm' : EVM.State}
     {target : EVM.Address} {name : Ident} {args : List Value}
     {z : Bool} {out : ByteArray} (slot default : UInt256)
     (hAccounts : σ = evm.accountMap)
     (hcall : typedCallViaEVM cfg evm target name 0 args (z, evm', out) false) :
-    ((evm'.accountMap.find? evm'.executionEnv.codeOwner).option default
-        (fun acc => acc.storage.findD slot default)) =
-      ((σ.find? evm.executionEnv.codeOwner).option default
-        (fun acc => acc.storage.findD slot default)) := by
+    ((evm'.accountMap.get? evm'.executionEnv.codeOwner).option default
+        (fun acc => acc.storage.getD slot default)) =
+      ((σ.get? evm.executionEnv.codeOwner).option default
+        (fun acc => acc.storage.getD slot default)) := by
   have hStaticAccounts : accountStorageStateEq evm.accountMap evm'.accountMap :=
     typedCallViaEVM_static_accountStorageStateEq hcall
   have henv : evm'.executionEnv = evm.executionEnv :=
     typedCallViaEVM_executionEnv_eq hcall
   have hstaticSlot :=
-    accountStorageStateEq_storage_findD hStaticAccounts
+    accountStorageStateEq_storage_getD hStaticAccounts
       evm.executionEnv.codeOwner slot default
   rw [henv, ← hstaticSlot]
   subst σ

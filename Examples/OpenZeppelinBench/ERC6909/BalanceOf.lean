@@ -32,7 +32,7 @@ def balanceOfSlot (I : ExecutionEnv) : UInt256 :=
     (.int (Int.ofNat (balanceOfIdWord I).toNat))
 
 def balanceOfWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (balanceOfSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (balanceOfSlot I) ⟨0⟩)
 
 theorem erc6909BalanceOfSelector_size {I : ExecutionEnv}
     (hsel : ((⟨#[0x00, 0xfd, 0xd5, 0x8e]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :

@@ -34,8 +34,8 @@ def balanceOfStorageSlot (I : ExecutionEnv) : UInt256 :=
   balanceOfSlot (balanceOfArgKey I)
 
 def balanceOfWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (balanceOfStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (balanceOfStorageSlot I) ⟨0⟩)
 
 theorem balanceOfStorageSlot_eq (I : ExecutionEnv) :
     balanceOfStorageSlot I = solcMappingSlot ⟨3⟩ (balanceOfArgMaskedWord I) := by

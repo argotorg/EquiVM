@@ -46,59 +46,35 @@ exist (a `storageStore` to a missing account is a no-op). -/
 /-- `storageStore` preserves the execution environment, hence the `codeOwner`. -/
 @[simp] theorem storageStore_codeOwner (evm : EVM.State) (a : AccountAddress) (k v : UInt256) :
     (Solm.EVM.storageStore evm a k v).executionEnv = evm.executionEnv := by
-  simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? a with
-  | none => rfl
-  | some acc => rfl
+  exact Reasoning.Theory.storageStore_executionEnv evm a k v
 
 /-- Reading a *different* slot is unaffected by a store. -/
 theorem storageLoad_storageStore_ne (evm : EVM.State) (a : AccountAddress)
     (rs ws v : UInt256) (h : rs ≠ ws) :
     Solm.EVM.storageLoad (Solm.EVM.storageStore evm a ws v) a rs =
       Solm.EVM.storageLoad evm a rs := by
-  simp only [Solm.EVM.storageStore, Solm.EVM.storageLoad, State.lookupAccount, State.setAccount]
-  cases hfind : evm.accountMap.find? a with
-  | none => simp [Option.option, State.lookupAccount, hfind]
-  | some acc =>
-      simp only [Option.option]
-      rw [show (({ evm with accountMap := evm.accountMap.insert a (acc.updateStorage ws v) }
-            : EVM.State).accountMap.find? a) = some (acc.updateStorage ws v) from by
-        simpa using accountMap_find_insert_self evm.accountMap a (acc.updateStorage ws v)]
-      simp only [Option.option, Account.lookupStorage, Account.updateStorage]
-      split
-      · exact storage_findD_erase_ne acc.storage rs ws _ h
-      · exact storage_findD_insert_ne acc.storage rs ws v _ h
+  exact Reasoning.Theory.storageLoad_storageStore_ne evm a h
 
 /-- Reading the *same* slot after a store returns the stored value (account must exist). -/
 theorem storageLoad_storageStore_self (evm : EVM.State) (a : AccountAddress)
-    (ws v : UInt256) {acc : Account} (hex : evm.accountMap.find? a = some acc) :
+    (ws v : UInt256) {acc : Account} (hex : evm.accountMap.get? a = some acc) :
     Solm.EVM.storageLoad (Solm.EVM.storageStore evm a ws v) a ws = v := by
-  simp only [Solm.EVM.storageStore, Solm.EVM.storageLoad, State.lookupAccount, State.setAccount,
-    hex, Option.option]
-  rw [show (({ evm with accountMap := evm.accountMap.insert a (acc.updateStorage ws v) }
-        : EVM.State).accountMap.find? a) = some (acc.updateStorage ws v) from by
-    simpa using accountMap_find_insert_self evm.accountMap a (acc.updateStorage ws v)]
-  simp only [Account.lookupStorage, Account.updateStorage]
-  split
-  · rename_i heq
-    rw [show v = (default : UInt256) from eq_of_beq heq]
-    exact storage_findD_erase_self acc.storage ws default
-  · exact storage_findD_insert_self acc.storage ws v default
+  exact Reasoning.Theory.storageLoad_storageStore_same_present evm a hex ws v
 
 /-- A store to a *missing* account is a no-op. -/
 theorem storageStore_noop_of_missing (evm : EVM.State) (a : AccountAddress) (k v : UInt256)
-    (hmiss : evm.accountMap.find? a = none) :
+    (hmiss : evm.accountMap.get? a = none) :
     Solm.EVM.storageStore evm a k v = evm := by
-  simp [Solm.EVM.storageStore, State.lookupAccount, hmiss, Option.option]
+  exact Reasoning.Theory.storageStore_absent evm a hmiss k v
 
 /-- `storageStore` to an *existing* account leaves it existing (used to thread read-backs through
     several writes). -/
 theorem storageStore_find_codeOwner (evm : EVM.State) (a : AccountAddress) (k v : UInt256)
-    {acc : Account} (hex : evm.accountMap.find? a = some acc) :
-    ∃ acc', (Solm.EVM.storageStore evm a k v).accountMap.find? a = some acc' := by
+    {acc : Account} (hex : evm.accountMap.get? a = some acc) :
+    ∃ acc', (Solm.EVM.storageStore evm a k v).accountMap.get? a = some acc' := by
   refine ⟨acc.updateStorage k v, ?_⟩
   simp only [Solm.EVM.storageStore, State.lookupAccount, State.setAccount, hex, Option.option]
-  simpa using accountMap_find_insert_self evm.accountMap a (acc.updateStorage k v)
+  simp [Std.ExtTreeMap.get?_eq_getElem?]
 
 /-! ## Layout injectivity (explicit hypothesis) -/
 

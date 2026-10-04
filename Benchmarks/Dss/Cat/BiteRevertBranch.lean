@@ -142,7 +142,7 @@ theorem catBiteMapUrns {σ σ₀ A I} {g : UInt256}
     intro e w hw
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
-    cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+    cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
     | some acc =>
         rw [hf] at hw
@@ -284,7 +284,7 @@ theorem catBiteRevertGrabFail {σ σ₀ A I} {g : UInt256}
     intro e w hw
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
-    cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+    cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
     | some acc =>
         rw [hf] at hw
@@ -586,7 +586,7 @@ theorem catBiteRevertFessFail {σ σ₀ A I} {g : UInt256}
     intro e w hw
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
-    cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+    cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
     | some acc =>
         rw [hf] at hw
@@ -941,7 +941,7 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
     intro e w hw
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
-    cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+    cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
     | some acc =>
         rw [hf] at hw
@@ -987,7 +987,7 @@ theorem catBiteRevertKickFail {σ σ₀ A I} {g : UInt256}
         { ev with accountMap := sstoreAccountMap aa ev.accountMap k v } := by
     intro ev aa k v
     simp only [Solm.EVM.storageStore, sstoreAccountMap, State.lookupAccount]
-    cases h : ev.accountMap.find? aa with
+    cases h : ev.accountMap.get? aa with
     | none => simp [Option.option]
     | some acc => simp [Option.option, State.setAccount, Account.updateStorage]
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
@@ -1411,7 +1411,7 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
     intro e w hw
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
-    cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+    cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
     | some acc =>
         rw [hf] at hw
@@ -1457,7 +1457,7 @@ theorem catBiteRevertKickDecode {σ σ₀ A I} {g : UInt256}
         { ev with accountMap := sstoreAccountMap aa ev.accountMap k v } := by
     intro ev aa k v
     simp only [Solm.EVM.storageStore, sstoreAccountMap, State.lookupAccount]
-    cases h : ev.accountMap.find? aa with
+    cases h : ev.accountMap.get? aa with
     | none => simp [Option.option]
     | some acc => simp [Option.option, State.setAccount, Account.updateStorage]
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
@@ -3522,7 +3522,7 @@ theorem catBiteRevertTabBase {σ σ₀ A I} {g : UInt256}
     intro e w hw
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
-    cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+    cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
     | some acc =>
         rw [hf] at hw
@@ -5265,7 +5265,7 @@ theorem catBiteRevertFessNoCode {σ σ₀ A I} {g : UInt256}
     intro e w hw
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
-    cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+    cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
     | some acc =>
         rw [hf] at hw
@@ -5440,7 +5440,7 @@ theorem catBiteRevertFessNoCode {σ σ₀ A I} {g : UInt256}
     intro e w hw
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
-    cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+    cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
     | none => native_decide
     | some acc =>
         rw [hf] at hw
@@ -5622,7 +5622,7 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
     intro e w hw
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
-    cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+    cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
     | some acc =>
         rw [hf] at hw
@@ -5668,7 +5668,7 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
         { ev with accountMap := sstoreAccountMap aa ev.accountMap k v } := by
     intro ev aa k v
     simp only [Solm.EVM.storageStore, sstoreAccountMap, State.lookupAccount]
-    cases h : ev.accountMap.find? aa with
+    cases h : ev.accountMap.get? aa with
     | none => simp [Option.option]
     | some acc => simp [Option.option, State.setAccount, Account.updateStorage]
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
@@ -5851,7 +5851,7 @@ theorem catBiteRevertKickNoCode {σ σ₀ A I} {g : UInt256}
     intro e w hw
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
-    cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+    cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
     | none => native_decide
     | some acc =>
         rw [hf] at hw
@@ -6088,7 +6088,7 @@ theorem catBiteRevertLitterAdd {σ σ₀ A I} {g : UInt256}
     intro e w hw
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
-    cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
+    cases hf : e.accountMap.get? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
     | some acc =>
         rw [hf] at hw
@@ -6134,7 +6134,7 @@ theorem catBiteRevertLitterAdd {σ σ₀ A I} {g : UInt256}
         { ev with accountMap := sstoreAccountMap aa ev.accountMap k v } := by
     intro ev aa k v
     simp only [Solm.EVM.storageStore, sstoreAccountMap, State.lookupAccount]
-    cases h : ev.accountMap.find? aa with
+    cases h : ev.accountMap.get? aa with
     | none => simp [Option.option]
     | some acc => simp [Option.option, State.setAccount, Account.updateStorage]
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →

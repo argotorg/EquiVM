@@ -817,14 +817,14 @@ theorem potSlotWord_twiceStore_eq (σ : AccountMap) (I : ExecutionEnv) (slot v4 
     potSlotWord slot
       (sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ ⟨4⟩ v4) ⟨7⟩ v7) I =
       potSlotWord slot σ I := by
-  show ((sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ ⟨4⟩ v4) ⟨7⟩ v7).find?
+  show ((sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ ⟨4⟩ v4) ⟨7⟩ v7).get?
         I.codeOwner).option (default : UInt256)
-        (fun acc => acc.storage.findD slot (default : UInt256)) =
-    ((σ.find? I.codeOwner).option (default : UInt256)
-      (fun acc => acc.storage.findD slot (default : UInt256)))
-  rw [sstoreAccountMap_storage_findD_ne (sstoreAccountMap I.codeOwner σ ⟨4⟩ v4) I.codeOwner
+        (fun acc => acc.storage.getD slot (default : UInt256)) =
+    ((σ.get? I.codeOwner).option (default : UInt256)
+      (fun acc => acc.storage.getD slot (default : UInt256)))
+  rw [sstoreAccountMap_storage_getD_ne (sstoreAccountMap I.codeOwner σ ⟨4⟩ v4) I.codeOwner
     slot ⟨7⟩ v7 h7]
-  rw [sstoreAccountMap_storage_findD_ne σ I.codeOwner slot ⟨4⟩ v4 h4]
+  rw [sstoreAccountMap_storage_getD_ne σ I.codeOwner slot ⟨4⟩ v4 h4]
 
 /-! ## `s8` `require extcodesize(vat) > 0` on `dripEvmRho` -/
 
@@ -869,7 +869,7 @@ theorem potDripSolm_vatGuardFalse {σ σ₀ A I} {g pow : UInt256}
 theorem potDripSolm_vatLookup {σ σ₀ A I} {g v4 v7 : UInt256} :
     (dripEvmRho (initState σ σ₀ (Sat256.ofUInt256 g) A I) v4 v7).lookupAccount
         (dripVatAddress σ I) =
-      (sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ ⟨4⟩ v4) ⟨7⟩ v7).find?
+      (sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ ⟨4⟩ v4) ⟨7⟩ v7).get?
         (dripVatAddress σ I) := by
   simp only [dripEvmRho, dripEvmChi, storageStore_accountMap, storageStore_executionEnv,
     State.lookupAccount, initState]
@@ -900,7 +900,7 @@ theorem potDripSolm_vatCodePos {σ σ₀ A I} {g v4 v7 : UInt256}
     rw [dripVatAddress]; exact (accountAddress_ofUInt256_eq_ofNat_toNat _).symm
   rw [haddr]
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hf : σ''s.find? (AccountAddress.ofUInt256 (dripVatTargetWord σ I)) with
+  cases hf : σ''s.get? (AccountAddress.ofUInt256 (dripVatTargetWord σ I)) with
   | none => simp only [hf, Option.option] at hne; exact absurd rfl hne
   | some acc =>
       simp only [hf, Option.option, Function.comp] at hne ⊢
@@ -932,7 +932,7 @@ theorem potDripSolm_vatCodeZero {σ σ₀ A I} {g v4 v7 : UInt256}
     rw [dripVatAddress]; exact (accountAddress_ofUInt256_eq_ofNat_toNat _).symm
   rw [haddr]
   unfold Reasoning.Theory.extCodeSizeWord at hz
-  cases hf : σ''s.find? (AccountAddress.ofUInt256 (dripVatTargetWord σ I)) with
+  cases hf : σ''s.get? (AccountAddress.ofUInt256 (dripVatTargetWord σ I)) with
   | none => simp only [Option.option]; native_decide
   | some acc =>
       simp only [hf, Option.option, Function.comp] at hz ⊢
@@ -1188,14 +1188,14 @@ theorem potDripSolmBody_callSucc {σ σ₀ A I} {g pow : UInt256} {rpowLocals : 
 theorem storageStore_σ₀_drip (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
     (EVM.storageStore evm a slot val).σ₀ = evm.σ₀ := by
   simp only [EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? a with
+  cases evm.accountMap.get? a with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount]
 
 theorem storageStore_substate_drip (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
     (EVM.storageStore evm a slot val).substate = evm.substate := by
   simp only [EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? a with
+  cases evm.accountMap.get? a with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount]
 

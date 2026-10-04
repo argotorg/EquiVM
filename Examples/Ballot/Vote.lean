@@ -36,19 +36,19 @@ def voteProposalCountSlot (I : ExecutionEnv) : UInt256 :=
   UInt256.mul (voteProposalWord I) ⟨2⟩ + proposalsDataBase + ⟨1⟩
 
 def voteSenderWeightWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (voteSenderSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (voteSenderSlot I) ⟨0⟩)
 
 def voteSenderPackedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (voteSenderPackedSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (voteSenderPackedSlot I) ⟨0⟩)
 
 def voteSenderVotedByte (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (voteSenderPackedWord σ I) ⟨255⟩
 
 def voteProposalsLengthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)
 
 def voteProposalCountWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (voteProposalCountSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (voteProposalCountSlot I) ⟨0⟩)
 
 def voteProposalsLengthCurrent (evm : EVM.State) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩
@@ -1534,7 +1534,7 @@ theorem ballotVoteX_overflow {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).executionEnv = evm.executionEnv := by
   unfold Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? a <;> rfl
+  cases evm.accountMap.get? a <;> rfl
 
 theorem voteSenderWeightCurrent_init {σ σ₀ A I} {g : Sat256} :
     voteSenderWeightCurrent (initState σ σ₀ g A I) I = voteSenderWeightWord σ I := by

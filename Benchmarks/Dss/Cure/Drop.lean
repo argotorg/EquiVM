@@ -61,8 +61,8 @@ theorem RD.cureDropPosZeroRevert {g : Sat256} {s0 : State}
     (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rdLoad⟩ := rdSlot.sload (by native_decide) (by evm_ov)
   have hposRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (solcMappingSlot ⟨5⟩ key) ⟨0⟩)) = ⟨0⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (solcMappingSlot ⟨5⟩ key) ⟨0⟩)) = ⟨0⟩ := by
     simpa [solcSlotWord] using hpos
   rw [hposRaw] at rdLoad
   have rdDup := rdLoad.dup1 (by native_decide) (by evm_ov)
@@ -280,7 +280,7 @@ theorem RD.cureDropSwapLoadMovePrefix {g : Sat256} {s0 : State}
   obtain ⟨_, _, rdLenLoaded⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨3086⟩
       (len :: dropLastIndex len :: ⟨2⟩ :: ⟨0⟩ :: len :: pos :: key :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
-    exact ⟨_, _, by simpa [solcSlotWord, hlen] using rdLenLoaded'⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hlen] using rdLenLoaded'⟩
   have rdCheck := evm_run rdLenLoaded with [
     raw dup2 (by native_decide) (by evm_ov),
     raw lt (by native_decide) (by evm_ov),
@@ -335,7 +335,7 @@ theorem RD.cureDropSwapMaskMovePrefix {g : Sat256} {s0 : State}
       (len :: ⟨2⟩ :: solcSlotWord σ ee (dropSrcsSlotForIndex (dropLastIndex len)) ::
         ⟨0⟩ :: len :: pos :: key :: ret :: R)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
-    exact ⟨_, _, by simpa [solcSlotWord, hlen] using rdLenLoaded'⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hlen] using rdLenLoaded'⟩
   have rdMaskedRaw := evm_run rdLenLoaded with [
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
@@ -597,7 +597,7 @@ theorem RD.cureDropNoSwapPopTail {g : Sat256} {s0 : State}
   obtain ⟨_, _, rdLenLoaded⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨3202⟩
       (popLen :: ⟨2⟩ :: oldLen :: pos :: key :: ret :: R) mem (UInt256.ofNat 3)
       rdata σ k' C' := by
-    exact ⟨_, _, by simpa [solcSlotWord, hlen] using rdLenLoaded'⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hlen] using rdLenLoaded'⟩
   have rdCheckPrefix := evm_run rdLenLoaded with [
     raw dup1 (by native_decide) (by evm_ov),
     raw push2 ⟨3208⟩ (by native_decide) (by evm_ov)]
@@ -696,7 +696,7 @@ theorem RD.cureDropPopEmptyInvalid {g : Sat256} {s0 : State}
   obtain ⟨_, _, rdLenLoaded⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨3202⟩
       (⟨0⟩ :: ⟨2⟩ :: oldLen :: pos :: key :: ret :: R) mem (UInt256.ofNat 3)
       rdata σ k' C' := by
-    exact ⟨_, _, by simpa [solcSlotWord, hlen] using rdLenLoaded'⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hlen] using rdLenLoaded'⟩
   have rdCheckPrefix := evm_run rdLenLoaded with [
     raw dup1 (by native_decide) (by evm_ov),
     raw push2 ⟨3208⟩ (by native_decide) (by evm_ov)]

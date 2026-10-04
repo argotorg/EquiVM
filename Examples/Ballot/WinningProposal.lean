@@ -22,15 +22,15 @@ private theorem evalBinaryOp_add_int_ok (x y : Int) :
   rfl
 
 def winningProposalLengthWord (sigma : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  sigma.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)
+  sigma.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)
 
 def winningProposalVoteCountSlot (p : UInt256) : UInt256 :=
   UInt256.mul ⟨2⟩ p + proposalsDataBase + ⟨1⟩
 
 def winningProposalVoteCountWord (sigma : AccountMap) (I : ExecutionEnv) (p : UInt256) :
     UInt256 :=
-  sigma.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (winningProposalVoteCountSlot p) ⟨0⟩)
+  sigma.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (winningProposalVoteCountSlot p) ⟨0⟩)
 
 def winningProposalLengthCurrent (evm : EVM.State) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩
@@ -948,7 +948,7 @@ theorem ballotWinningProposalLoop {σ I} {g : Sat256} {s0 : State}
       jumpiT (by
         have hlt' :
             UInt256.lt a.p
-              (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩))
+              (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩))
                 = ⟨0⟩ := by
           simpa [winningProposalLengthWord] using hlt
         rw [hlt']; decide) (by jump_dest),
@@ -985,7 +985,7 @@ theorem ballotWinningProposalLoop {σ I} {g : Sat256} {s0 : State}
       jumpiNT (by
         have hlt' :
             UInt256.lt a.p
-              (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩))
+              (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩))
                 = ⟨1⟩ := by
           simpa [winningProposalLengthWord] using hlt
         rw [hlt']; decide),
@@ -996,7 +996,7 @@ theorem ballotWinningProposalLoop {σ I} {g : Sat256} {s0 : State}
       jumpiT (by
         have hlt' :
             UInt256.lt a.p
-              (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩))
+              (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩))
                 = ⟨1⟩ := by
           simpa [winningProposalLengthWord] using hlt
         rw [hlt']; decide) (by jump_dest),
@@ -1020,8 +1020,8 @@ theorem ballotWinningProposalLoop {σ I} {g : Sat256} {s0 : State}
         jumpiNT (by
           have hgtWord' :
               UInt256.gt
-                (σ.find? I.codeOwner |>.option ⟨0⟩
-                  (fun acc => acc.storage.findD
+                (σ.get? I.codeOwner |>.option ⟨0⟩
+                  (fun acc => acc.storage.getD
                     ((⟨1⟩ : UInt256) + (UInt256.mul ⟨2⟩ a.p + proposalsDataBase)) ⟨0⟩))
                 a.winningVoteCount = ⟨1⟩ := by
               simpa [voteCount, winningProposalVoteCountWord,
@@ -1034,7 +1034,7 @@ theorem ballotWinningProposalLoop {σ I} {g : Sat256} {s0 : State}
         jumpiT (by
           have hlt' :
               UInt256.lt a.p
-                (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩))
+                (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩))
                   = ⟨1⟩ := by
             simpa [winningProposalLengthWord] using hlt
           rw [hlt']; decide) (by jump_dest),
@@ -1079,8 +1079,8 @@ theorem ballotWinningProposalLoop {σ I} {g : Sat256} {s0 : State}
         jumpiT (by
           have hgtWord' :
               UInt256.gt
-                (σ.find? I.codeOwner |>.option ⟨0⟩
-              (fun acc => acc.storage.findD
+                (σ.get? I.codeOwner |>.option ⟨0⟩
+              (fun acc => acc.storage.getD
                 ((⟨1⟩ : UInt256) + (UInt256.mul ⟨2⟩ a.p + proposalsDataBase)) ⟨0⟩))
                 a.winningVoteCount = ⟨0⟩ := by
               simpa [voteCount, winningProposalVoteCountWord,

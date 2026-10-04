@@ -1296,7 +1296,7 @@ theorem RD.vatMoveSourceSubSuccess
     (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5977raw⟩ := rd5975.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd5977 := rd5977raw
   rw [hold] at rd5977
@@ -1372,7 +1372,7 @@ theorem RD.vatMoveSourceSubRevert
     (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5977raw⟩ := rd5975.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd5977 := rd5977raw
   rw [hold] at rd5977
@@ -1457,7 +1457,7 @@ theorem RD.vatMoveDestAddSuccess
     (by native_decide) mem_cost (by simpa [slot] using hslot) (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd6024raw⟩ := rd6022.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd6024 := rd6024raw
   rw [hold] at rd6024
@@ -1513,7 +1513,7 @@ theorem RD.vatMoveDestAddRevert
     (by native_decide) mem_cost (by simpa [slot] using hslot) (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd6024raw⟩ := rd6022.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd6024 := rd6024raw
   rw [hold] at rd6024

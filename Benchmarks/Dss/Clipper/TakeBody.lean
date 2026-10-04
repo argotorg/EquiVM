@@ -261,8 +261,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                             unfold evmLockSolm evmSolm σLock
                             have hOne : ({ val := 1 } : UInt256) ≠ default := by
                               native_decide
-                            cases hacc : σ.find? I.codeOwner <;>
-                              simp [initState, Solm.EVM.storageStore, State.lookupAccount,
+                            cases hacc : σ.get? I.codeOwner <;>
+                              simp [-Std.ExtTreeMap.get?_eq_getElem?, initState, Solm.EVM.storageStore, State.lookupAccount,
                                 State.setAccount, sstoreAccountMap, Account.updateStorage,
                                 Option.option, hOne, hacc]
                           have hcallPriceSolm :
@@ -275,7 +275,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                     (UInt256.sub (clipperTimestampWord evmLockSolm)
                                       (clipperTakeSalesTicEVMWord evmLockSolm I)).toNat)]
                                 (false, evmPriceSolm, o) false := by
-                            simpa [evmPriceSolm, hlockStateSolm,
+                            simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmPriceSolm, hlockStateSolm,
                               σLock, initState, clipperStatusCalcAddress,
                               clipperStatusCalcWord, clipperTakeSalesTopEVMWord,
                               clipperTakeSalesTopWord, clipperTakeSalesTicEVMWord,
@@ -338,8 +338,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                               unfold evmLockSolm evmSolm σLock
                               have hOne : ({ val := 1 } : UInt256) ≠ default := by
                                 native_decide
-                              cases hacc : σ.find? I.codeOwner <;>
-                                simp [initState, Solm.EVM.storageStore, State.lookupAccount,
+                              cases hacc : σ.get? I.codeOwner <;>
+                                simp [-Std.ExtTreeMap.get?_eq_getElem?, initState, Solm.EVM.storageStore, State.lookupAccount,
                                   State.setAccount, sstoreAccountMap, Account.updateStorage,
                                   Option.option, hOne, hacc]
                             have hcallPriceSolm :
@@ -352,7 +352,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                       (UInt256.sub (clipperTimestampWord evmLockSolm)
                                         (clipperTakeSalesTicEVMWord evmLockSolm I)).toNat)]
                                   (true, evmPriceSolm, o) false := by
-                              simpa [evmPriceSolm, hlockStateSolm,
+                              simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmPriceSolm, hlockStateSolm,
                                 σLock, initState, clipperStatusCalcAddress,
                                 clipperStatusCalcWord, clipperTakeSalesTopEVMWord,
                                 clipperTakeSalesTopWord, clipperTakeSalesTicEVMWord,
@@ -415,8 +415,8 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                               unfold evmLockSolm evmSolm σLock
                               have hOne : ({ val := 1 } : UInt256) ≠ default := by
                                 native_decide
-                              cases hacc : σ.find? I.codeOwner <;>
-                                simp [initState, Solm.EVM.storageStore, State.lookupAccount,
+                              cases hacc : σ.get? I.codeOwner <;>
+                                simp [-Std.ExtTreeMap.get?_eq_getElem?, initState, Solm.EVM.storageStore, State.lookupAccount,
                                   State.setAccount, sstoreAccountMap, Account.updateStorage,
                                   Option.option, hOne, hacc]
                             have hevmPriceAccounts : evmPriceSolm.accountMap = σ' := rfl
@@ -438,7 +438,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                       (UInt256.sub (clipperTimestampWord evmLockSolm)
                                         (clipperTakeSalesTicEVMWord evmLockSolm I)).toNat)]
                                   (true, evmPriceSolm, o) false := by
-                              simpa [evmPriceSolm, hlockStateSolm,
+                              simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmPriceSolm, hlockStateSolm,
                                 σLock, initState, clipperStatusCalcAddress,
                                 clipperStatusCalcWord, clipperTakeSalesTopEVMWord,
                                 clipperTakeSalesTopWord, clipperTakeSalesTicEVMWord,
@@ -1341,13 +1341,13 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                               (fun acc => acc.code.size))).toNat = 0 := by
                         rw [hcalcAddrSolm]
                         unfold Reasoning.Theory.extCodeSizeWord at hcalcZeroSolm
-                        simp [evmLockSolm, evmSolm, State.lookupAccount, initState,
+                        simp [-Std.ExtTreeMap.get?_eq_getElem?, evmLockSolm, evmSolm, State.lookupAccount, initState,
                           storageStore_accountMap] at hcalcZeroSolm ⊢
-                        cases hacc : σLock.find? (AccountAddress.ofUInt256 calcAddr) with
+                        cases hacc : σLock.get? (AccountAddress.ofUInt256 calcAddr) with
                         | none =>
                             native_decide
                         | some acc =>
-                            simp [hacc] at hcalcZeroSolm ⊢
+                            simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc] at hcalcZeroSolm ⊢
                             exact congrArg UInt256.toNat hcalcZeroSolm
                       have hstatus :
                           let evm0 := initState σ σ₀

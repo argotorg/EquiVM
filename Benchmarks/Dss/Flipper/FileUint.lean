@@ -1038,7 +1038,7 @@ theorem flipperFileUintX_storeTtl {σ I} {g : Sat256} {s0 : State}
             rw [hlow]
   have rd323 := rd1991.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
-  simpa [solcSlotWord, setUint48Offset0Word, fileUintData48, hword] using
+  simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, setUint48Offset0Word, fileUintData48, hword] using
     RD.stop rd324 (by native_decide) (by evm_ov)
 
 theorem flipperFileUintX_matchTauToSload {σ I} {g : Sat256} {s0 : State}

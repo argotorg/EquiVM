@@ -866,7 +866,7 @@ theorem clipperTakePostDogTabZeroFluxRemoveSourceOk (v : ClipperImmutables)
           .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLoc I).toNat),
           .int (Int.ofNat lotNew.toNat)]
         (true, evmFlux, outFlux) true)
-    (hacc : evmFlux.accountMap.find? evmFlux.executionEnv.codeOwner = some acc)
+    (hacc : evmFlux.accountMap.get? evmFlux.executionEnv.codeOwner = some acc)
     (hlen : Solm.EVM.storageLoad evmFlux evmFlux.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩)
     (heq :
       clipperYankArgWord I =

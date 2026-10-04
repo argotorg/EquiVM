@@ -907,9 +907,9 @@ theorem endFlowX_debtZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd2722raw⟩ := rd2721.sload (by native_decide) (by evm_ov)
   have hdebtRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨11⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨11⟩ ⟨0⟩)) =
         ⟨0⟩ := by
-    simpa [endFlowDebtWord, endSlotWord, solcSlotWord] using hdebt
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFlowDebtWord, endSlotWord, solcSlotWord] using hdebt
   have rd2722zero := rd2722raw
   rw [hdebtRaw] at rd2722zero
   obtain ⟨_, _, rd2722⟩ : ∃ k' C',
@@ -958,7 +958,7 @@ theorem endFlowX_fixNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       RD endBytecode I g (initState σ σ₀ g A I) ⟨2722⟩
         (endFlowDebtWord σ I :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endFlowDebtWord, endSlotWord, solcSlotWord] using rd2722raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFlowDebtWord, endSlotWord, solcSlotWord] using rd2722raw⟩
   obtain ⟨_, _, rd2722⟩ := rd2722
   have rd2725 := rd2722.push2 ⟨2786⟩ (by native_decide) (by evm_ov)
   have rd2786 := rd2725.jumpiT (by native_decide) hdebt (by jump_dest) (by evm_ov)
@@ -1000,7 +1000,7 @@ theorem endFlowX_fixNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
         solcSlotWord σ I (solcMappingSlot ⟨15⟩ key) = endFlowFixWord σ I := by
       rw [← hslot]
       simp [endFlowFixWord, endSlotWord]
-    exact ⟨_, _, by simpa [hfixRaw] using rd2802raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hfixRaw] using rd2802raw⟩
   obtain ⟨_, _, rd2802⟩ := rd2802
   have rd2803raw := rd2802.iszero (by native_decide) (by evm_ov)
   have hzero : UInt256.isZero (endFlowFixWord σ I) = ⟨0⟩ :=
@@ -1087,7 +1087,7 @@ theorem endFlowX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
       RD endBytecode I g (initState σ σ₀ g A I) ⟨2722⟩
         (endFlowDebtWord σ I :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endFlowDebtWord, endSlotWord, solcSlotWord] using rd2722raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFlowDebtWord, endSlotWord, solcSlotWord] using rd2722raw⟩
   obtain ⟨_, _, rd2722⟩ := rd2722
   have rd2725 := rd2722.push2 ⟨2786⟩ (by native_decide) (by evm_ov)
   have rd2786 := rd2725.jumpiT (by native_decide) hdebt (by jump_dest) (by evm_ov)
@@ -1129,7 +1129,7 @@ theorem endFlowX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
         solcSlotWord σ I (solcMappingSlot ⟨15⟩ key) = endFlowFixWord σ I := by
       rw [← hslot]
       simp [endFlowFixWord, endSlotWord]
-    exact ⟨_, _, by simpa [hfixRaw] using rd2802raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hfixRaw] using rd2802raw⟩
   obtain ⟨_, _, rd2802⟩ := rd2802
   have rd2803raw := rd2802.iszero (by native_decide) (by evm_ov)
   have hzero : UInt256.isZero (endFlowFixWord σ I) = ⟨1⟩ := by
@@ -1148,7 +1148,7 @@ theorem endFlowX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
         (endSlotWord ⟨1⟩ σ I :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
         (twoWordHashMem key ⟨15⟩ solcFreePtrMem) (UInt256.ofNat 3)
         ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2887raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd2887raw⟩
   obtain ⟨_, _, rd2887⟩ := rd2887
   have hmload64Hash :
       (if (⟨64⟩ : UInt256).toNat ≥ (endFlowFixHashMem I).size then ⟨0⟩
@@ -1533,7 +1533,7 @@ theorem endFlowX_wad0RmulEntry {σ σ' σ₀ A I} {g : Sat256}
         (twoWordHashMem key ⟨14⟩ (endFlowVatIlksPostCallMem I out))
         (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by
-      simpa [endFlowArtWord, endSlotWord, solcSlotWord, key, hslot] using rd3025raw⟩
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFlowArtWord, endSlotWord, solcSlotWord, key, hslot] using rd3025raw⟩
   have rd10114 := evm_run rd3025 with [
     raw swap1 (by native_decide) (by evm_ov),
     raw swap3 (by native_decide) (by evm_ov),
@@ -1612,7 +1612,7 @@ theorem endFlowX_wadRmulEntry {σ σ' σ₀ A I} {g : Sat256}
           endFlowVatIlkRateWord out :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
         (twoWordHashMem key ⟨12⟩ mem14) (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by
-      simpa [endFlowTagWord, endSlotWord, solcSlotWord, key, hslot, mem14] using rd3057raw⟩
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFlowTagWord, endSlotWord, solcSlotWord, key, hslot, mem14] using rd3057raw⟩
   have rd10114 := evm_run rd3057 with [
     raw push2 ⟨10114⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
@@ -1971,7 +1971,7 @@ theorem endFlowX_tailSubEntry {σ σ' σ₀ A I} {g : Sat256}
         (endFlowDebtWord σ' I :: endRayWord :: endFlowWadWord σ' I out ::
           endFlowVatIlkRateWord out :: key :: endFlowReturnPc :: sel :: [])
         mem12 (UInt256.ofNat 9) out σ' k' C' := by
-    exact ⟨_, _, by simpa [endFlowDebtWord, endSlotWord, solcSlotWord] using rd3080raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFlowDebtWord, endSlotWord, solcSlotWord] using rd3080raw⟩
   have rd3084 := evm_run rd3080 with [
     raw dup2 (by native_decide) (by evm_ov),
     raw push2 ⟨3086⟩ (by native_decide) (by evm_ov)]
@@ -2026,7 +2026,7 @@ theorem endFlowX_tailSubEntry {σ σ' σ₀ A I} {g : Sat256}
           endFlowVatIlkRateWord out :: key :: endFlowReturnPc :: sel :: [])
         mem13 (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by
-      simpa [endFlowGapWord, endSlotWord, solcSlotWord, key, hgapSlot] using rd3115raw⟩
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFlowGapWord, endSlotWord, solcSlotWord, key, hgapSlot] using rd3115raw⟩
   have rd10154 := evm_run rd3115 with [
     raw push2 ⟨10154⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
@@ -2335,7 +2335,7 @@ theorem endFlowX_tailReturns {σ σ' σ₀ A I} {g : Sat256}
         (endFlowDebtWord σ' I :: endRayWord :: endFlowWadWord σ' I out ::
           endFlowVatIlkRateWord out :: key :: endFlowReturnPc :: sel :: [])
         mem12 (UInt256.ofNat 9) out σ' k' C' := by
-    exact ⟨_, _, by simpa [endFlowDebtWord, endSlotWord, solcSlotWord] using rd3080raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFlowDebtWord, endSlotWord, solcSlotWord] using rd3080raw⟩
   have rd3084 := evm_run rd3080 with [
     raw dup2 (by native_decide) (by evm_ov),
     raw push2 ⟨3086⟩ (by native_decide) (by evm_ov)]
@@ -2390,7 +2390,7 @@ theorem endFlowX_tailReturns {σ σ' σ₀ A I} {g : Sat256}
           endFlowVatIlkRateWord out :: key :: endFlowReturnPc :: sel :: [])
         mem13 (UInt256.ofNat 9) out σ' k' C' := by
     exact ⟨_, _, by
-      simpa [endFlowGapWord, endSlotWord, solcSlotWord, key, hgapSlot] using rd3115raw⟩
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endFlowGapWord, endSlotWord, solcSlotWord, key, hgapSlot] using rd3115raw⟩
   have rd10154 := evm_run rd3115 with [
     raw push2 ⟨10154⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]

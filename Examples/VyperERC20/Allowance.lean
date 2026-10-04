@@ -49,7 +49,7 @@ def allowanceSlot (I : ExecutionEnv) : UInt256 :=
     (.address (AccountAddress.ofNat (allowanceSpenderWord I).toNat))
 
 def allowanceWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (allowanceSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (allowanceSlot I) ⟨0⟩)
 
 def allowanceSelectorWord : UInt256 :=
   ⟨0xdd62ed3e⟩

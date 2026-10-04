@@ -649,7 +649,7 @@ theorem weth9WithdrawCallInsufficientRev {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (hperm : I.perm = true)
     (hle : (withdrawWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat)
     (hbalance : ¬ withdrawWadWord I ≤
-      ((withdrawStoreMap σ I).find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+      ((withdrawStoreMap σ I).get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024)
     (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1395⟩
       [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
@@ -667,7 +667,7 @@ theorem weth9WithdrawCallMade {σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (hperm : I.perm = true)
     (hle : (withdrawWadWord I).toNat ≤ (solcSlotWord σ I (callerBalSlot I)).toNat)
     (hbalance : withdrawWadWord I ≤
-      ((withdrawStoreMap σ I).find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+      ((withdrawStoreMap σ I).get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024)
     (h : RD weth9Bytecode I g (initState σ σ₀ g A I) ⟨1395⟩
       [withdrawWadWord I, ⟨164⟩, weth9SelWord I]
@@ -714,11 +714,11 @@ theorem withdrawStoreState_executionEnv (evm : EVM.State) (I : ExecutionEnv) :
 theorem withdrawStoreState_originalMap (evm : EVM.State) (I : ExecutionEnv) :
     (withdrawStoreState evm I).σ₀ = evm.σ₀ := by
   unfold withdrawStoreState Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
 
 theorem withdrawStoreState_substate (evm : EVM.State) (I : ExecutionEnv) :
     (withdrawStoreState evm I).substate = evm.substate := by
   unfold withdrawStoreState Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
 
 end Benchmarks.WETH9

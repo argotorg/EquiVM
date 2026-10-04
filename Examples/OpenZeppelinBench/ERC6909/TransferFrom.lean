@@ -309,8 +309,8 @@ theorem erc6909TransferFromBodyCore
                   have hAfterAllowanceInit :
                       transferFromAfterAllowanceState evmE I =
                         initState σAllowance σ₀ (Sat256.ofUInt256 g) A I := by
-                    cases hfind : σ.find? I.codeOwner <;>
-                      simp [evmE, σAllowance, transferFromAfterAllowanceState,
+                    cases hfind : σ.get? I.codeOwner <;>
+                      simp [-Std.ExtTreeMap.get?_eq_getElem?, evmE, σAllowance, transferFromAfterAllowanceState,
                         transferFromAllowanceSlot, transferFromAllowanceSlotI, initState,
                         Solm.EVM.storageStore, State.lookupAccount, hfind, sstoreAccountMap,
                         Option.option, State.setAccount, Account.updateStorage]

@@ -28,7 +28,7 @@ open Ethereum Ethereum.EVM Solm
 namespace Reasoning.Theory
 
 abbrev codeOwnerStorageWord (ee : ExecutionEnv) (σ : AccountMap) (slot : UInt256) : UInt256 :=
-  σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)
+  σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)
 
 theorem codeOwnerStorageWord_initState {σ σ₀ A I} {g : Sat256}
     (slot : UInt256) :
@@ -37,17 +37,14 @@ theorem codeOwnerStorageWord_initState {σ σ₀ A I} {g : Sat256}
   simp [Solm.EVM.storageLoad, initState, State.lookupAccount, Account.lookupStorage,
     codeOwnerStorageWord]
 
--- `findD` is the API used by the EVM storage model. The corresponding Std theorem is about
--- `getD`, so this lemma also converts the lookup API and a key inequality to a comparison fact.
-theorem storage_findD_insert_ne (storage : Storage) (readSlot writeSlot val default : UInt256)
+-- EVM storage uses `getD`; this packages the key inequality as the comparison needed by Std.
+theorem storage_getD_insert_ne (storage : Storage) (readSlot writeSlot val default : UInt256)
     (hne : readSlot ≠ writeSlot) :
-    (storage.insert writeSlot val).findD readSlot default =
-      storage.findD readSlot default := by
+    (storage.insert writeSlot val).getD readSlot default =
+      storage.getD readSlot default := by
   have hcmp : compare writeSlot readSlot ≠ .eq := by
     intro hcmp
     exact hne (Std.LawfulEqCmp.eq_of_compare hcmp).symm
-  simp only [Std.ExtTreeMap.findD, Std.ExtTreeMap.find?,
-    Std.ExtTreeMap.get?_eq_getElem?, ← Std.ExtTreeMap.getD_eq_getD_getElem?]
   rw [Std.ExtTreeMap.getD_insert, if_neg hcmp]
 
 theorem keyValueToWord_address_of_canonical (w : UInt256)
@@ -860,37 +857,29 @@ theorem storageLocStore_bool_word_offset0 (evm : EVM.State) (slot word : UInt256
     simpa [setBoolOffset0Word, hiszero] using storageLocStore_bool_true_offset0 evm slot
 
 /-- Erasing a storage word preserves lookup at a different storage slot. -/
-theorem storage_findD_erase_ne (storage : Storage) (readSlot writeSlot default : UInt256)
+theorem storage_getD_erase_ne (storage : Storage) (readSlot writeSlot default : UInt256)
     (hne : readSlot ≠ writeSlot) :
-    (storage.erase writeSlot).findD readSlot default =
-      storage.findD readSlot default := by
+    (storage.erase writeSlot).getD readSlot default =
+      storage.getD readSlot default := by
   have hcmp : compare writeSlot readSlot ≠ .eq := by
     intro hcmp
     exact hne (Std.LawfulEqCmp.eq_of_compare hcmp).symm
-  simp only [Std.ExtTreeMap.findD, Std.ExtTreeMap.find?,
-    Std.ExtTreeMap.get?_eq_getElem?, ← Std.ExtTreeMap.getD_eq_getD_getElem?]
   rw [Std.ExtTreeMap.getD_erase, if_neg hcmp]
-
-theorem storage_findD_insert_self (storage : Storage) (slot val default : UInt256) :
-    (storage.insert slot val).findD slot default = val := by
-  simp only [Std.ExtTreeMap.findD, Std.ExtTreeMap.find?,
-    Std.ExtTreeMap.get?_eq_getElem?, ← Std.ExtTreeMap.getD_eq_getD_getElem?]
-  exact Std.ExtTreeMap.getD_insert_self
 
 /-- Updating a storage slot with EVM/Solidity semantics preserves lookup at a different slot.
     Nonzero writes insert; zero writes erase. -/
-theorem storage_findD_update_ne (storage : Storage) (readSlot writeSlot val default : UInt256)
+theorem storage_getD_update_ne (storage : Storage) (readSlot writeSlot val default : UInt256)
     (hne : readSlot ≠ writeSlot) :
-    ((if val == default then storage.erase writeSlot else storage.insert writeSlot val).findD
+    ((if val == default then storage.erase writeSlot else storage.insert writeSlot val).getD
         readSlot default) =
-      storage.findD readSlot default := by
+      storage.getD readSlot default := by
   by_cases hzero : (val == default) = true
-  · simpa [hzero] using storage_findD_erase_ne storage readSlot writeSlot default hne
-  · simpa [hzero] using storage_findD_insert_ne storage readSlot writeSlot val default hne
+  · simpa [hzero] using storage_getD_erase_ne storage readSlot writeSlot default hne
+  · simpa [hzero] using storage_getD_insert_ne storage readSlot writeSlot val default hne
 
-theorem storage_find?_insert_ne (storage : Storage) (readSlot writeSlot val : UInt256)
+theorem storage_get?_insert_ne (storage : Storage) (readSlot writeSlot val : UInt256)
     (hne : readSlot ≠ writeSlot) :
-    (storage.insert writeSlot val).find? readSlot = storage.find? readSlot := by
+    (storage.insert writeSlot val).get? readSlot = storage.get? readSlot := by
   change (storage.insert writeSlot val)[readSlot]? = storage[readSlot]?
   rw [Std.ExtTreeMap.getElem?_insert]
   have hcmp : compare writeSlot readSlot ≠ .eq := by
@@ -898,9 +887,9 @@ theorem storage_find?_insert_ne (storage : Storage) (readSlot writeSlot val : UI
     exact hne (Std.LawfulEqCmp.eq_of_compare h).symm
   rw [if_neg hcmp]
 
-theorem storage_find?_erase_ne (storage : Storage) (readSlot writeSlot : UInt256)
+theorem storage_get?_erase_ne (storage : Storage) (readSlot writeSlot : UInt256)
     (hne : readSlot ≠ writeSlot) :
-    (storage.erase writeSlot).find? readSlot = storage.find? readSlot := by
+    (storage.erase writeSlot).get? readSlot = storage.get? readSlot := by
   change (storage.erase writeSlot)[readSlot]? = storage[readSlot]?
   rw [Std.ExtTreeMap.getElem?_erase]
   have hcmp : compare writeSlot readSlot ≠ .eq := by
@@ -908,35 +897,23 @@ theorem storage_find?_erase_ne (storage : Storage) (readSlot writeSlot : UInt256
     exact hne (Std.LawfulEqCmp.eq_of_compare h).symm
   rw [if_neg hcmp]
 
-/-- Erasing a storage slot removes lookup at that same slot. -/
-theorem storage_find?_erase_self (storage : Storage) (slot : UInt256) :
-    (storage.erase slot).find? slot = none := by
-  change (storage.erase slot)[slot]? = none
-  exact Std.ExtTreeMap.getElem?_erase_self
-
-theorem storage_findD_erase_self (storage : Storage) (slot default : UInt256) :
-    (storage.erase slot).findD slot default = default := by
-  unfold Std.ExtTreeMap.findD
-  rw [storage_find?_erase_self]
-  rfl
-
-/-- Updating a storage slot with EVM/Solidity semantics preserves `find?` at a different slot.
+/-- Updating a storage slot with EVM/Solidity semantics preserves `get?` at a different slot.
     Nonzero writes insert; zero writes erase. -/
-theorem storage_find?_update_ne (storage : Storage) (readSlot writeSlot val : UInt256)
+theorem storage_get?_update_ne (storage : Storage) (readSlot writeSlot val : UInt256)
     (hne : readSlot ≠ writeSlot) :
     ((if val == (default : UInt256) then storage.erase writeSlot
-      else storage.insert writeSlot val).find? readSlot) =
-      storage.find? readSlot := by
+      else storage.insert writeSlot val).get? readSlot) =
+      storage.get? readSlot := by
   by_cases hzero : (val == (default : UInt256)) = true
-  · simpa [hzero] using storage_find?_erase_ne storage readSlot writeSlot hne
-  · simpa [hzero] using storage_find?_insert_ne storage readSlot writeSlot val hne
+  · simpa [hzero] using storage_get?_erase_ne storage readSlot writeSlot hne
+  · simpa [hzero] using storage_get?_insert_ne storage readSlot writeSlot val hne
 
 /-- Lookup-level same-key overwrite for `ExtTreeMap.insert`. -/
 theorem extTreeMap_get?_insert_insert_self {α β : Type}
     {cmp : α → α → Ordering} [Std.TransCmp cmp] [Std.LawfulEqCmp cmp]
     (m : Std.ExtTreeMap α β cmp) (write read : α) (v1 v2 : β) :
-    ((m.insert write v1).insert write v2).find? read =
-      (m.insert write v2).find? read := by
+    ((m.insert write v1).insert write v2).get? read =
+      (m.insert write v2).get? read := by
   change ((m.insert write v1).insert write v2)[read]? = (m.insert write v2)[read]?
   by_cases heq : write = read
   · subst read
@@ -956,46 +933,45 @@ theorem extTreeMap_insert_insert_self {α β : Type} {cmp : α → α → Orderi
 
 /-- Reading after an arbitrary zero-aware storage update followed by a same-slot nonzero insert is
     the same as reading after just the final insert. -/
-theorem storage_findD_update_insert_self (storage : Storage)
+theorem storage_getD_update_insert_self (storage : Storage)
     (writeSlot readSlot val1 val2 : UInt256) :
     (((if val1 = (default : UInt256) then storage.erase writeSlot
-        else storage.insert writeSlot val1).insert writeSlot val2).findD readSlot
+        else storage.insert writeSlot val1).insert writeSlot val2).getD readSlot
         (default : UInt256)) =
-      (storage.insert writeSlot val2).findD readSlot (default : UInt256) := by
+      (storage.insert writeSlot val2).getD readSlot (default : UInt256) := by
   by_cases hread : readSlot = writeSlot
   · subst readSlot
-    unfold Std.ExtTreeMap.findD
-    simp [Std.ExtTreeMap.find?]
+    simp
   · by_cases hzero : val1 = (default : UInt256)
     · simp only [hzero, if_true]
-      rw [storage_findD_insert_ne (storage.erase writeSlot) readSlot writeSlot val2 default hread]
-      rw [storage_findD_insert_ne storage readSlot writeSlot val2 default hread]
-      rw [storage_findD_erase_ne storage readSlot writeSlot default hread]
+      rw [storage_getD_insert_ne (storage.erase writeSlot) readSlot writeSlot val2 default hread]
+      rw [storage_getD_insert_ne storage readSlot writeSlot val2 default hread]
+      rw [storage_getD_erase_ne storage readSlot writeSlot default hread]
     · simp only [hzero, if_false]
       rw [extTreeMap_insert_insert_self]
 
-/-- `find?` after an arbitrary zero-aware storage update followed by a same-slot nonzero insert is
-    the same as `find?` after just the final insert. -/
-theorem storage_find?_update_insert_self (storage : Storage)
+/-- `get?` after an arbitrary zero-aware storage update followed by a same-slot nonzero insert is
+    the same as `get?` after just the final insert. -/
+theorem storage_get?_update_insert_self (storage : Storage)
     (writeSlot readSlot val1 val2 : UInt256) :
     (((if val1 = (default : UInt256) then storage.erase writeSlot
-        else storage.insert writeSlot val1).insert writeSlot val2).find? readSlot) =
-      (storage.insert writeSlot val2).find? readSlot := by
+        else storage.insert writeSlot val1).insert writeSlot val2).get? readSlot) =
+      (storage.insert writeSlot val2).get? readSlot := by
   by_cases hread : readSlot = writeSlot
   · subst readSlot
-    simp [Std.ExtTreeMap.find?]
+    simp
   · by_cases hzero : val1 = (default : UInt256)
     · simp only [hzero, if_true]
-      rw [storage_find?_insert_ne (storage.erase writeSlot) readSlot writeSlot val2 hread]
-      rw [storage_find?_insert_ne storage readSlot writeSlot val2 hread]
-      rw [storage_find?_erase_ne storage readSlot writeSlot hread]
+      rw [storage_get?_insert_ne (storage.erase writeSlot) readSlot writeSlot val2 hread]
+      rw [storage_get?_insert_ne storage readSlot writeSlot val2 hread]
+      rw [storage_get?_erase_ne storage readSlot writeSlot hread]
     · simp only [hzero, if_false]
       exact extTreeMap_get?_insert_insert_self storage writeSlot readSlot val1 val2
 
 /-- Inserting one account preserves lookup at a different address. -/
-theorem accountMap_find?_insert_ne (σ : AccountMap) (read write : AccountAddress)
+theorem accountMap_get?_insert_ne (σ : AccountMap) (read write : AccountAddress)
     (acc : Account) (hne : read ≠ write) :
-    (σ.insert write acc).find? read = σ.find? read := by
+    (σ.insert write acc).get? read = σ.get? read := by
   change (σ.insert write acc)[read]? = σ[read]?
   rw [Std.ExtTreeMap.getElem?_insert]
   have hcmp : compare write read ≠ .eq := by
@@ -1003,40 +979,35 @@ theorem accountMap_find?_insert_ne (σ : AccountMap) (read write : AccountAddres
     exact hne (Std.LawfulEqCmp.eq_of_compare hcmp).symm
   rw [if_neg hcmp]
 
-/-- Looking up the account just inserted at its own address returns that account. -/
-theorem accountMap_find_insert_self (σ : AccountMap) (a : AccountAddress) (acc : Account) :
-    (σ.insert a acc).find? a = some acc := by
-  change (σ.insert a acc)[a]? = some acc
-  exact Std.ExtTreeMap.getElem?_insert_self
-
 /-- A zero-aware `SSTORE` to one storage slot preserves an observable read from a different slot
     of the same account. -/
-theorem sstoreAccountMap_storage_findD_ne (σ : AccountMap) (a : AccountAddress)
+theorem sstoreAccountMap_storage_getD_ne (σ : AccountMap) (a : AccountAddress)
     (readSlot writeSlot val : UInt256) (hne : readSlot ≠ writeSlot) :
-    (((sstoreAccountMap a σ writeSlot val).find? a).option (default : UInt256)
-        (fun acc => acc.storage.findD readSlot (default : UInt256))) =
-      ((σ.find? a).option (default : UInt256)
-        (fun acc => acc.storage.findD readSlot (default : UInt256))) := by
+    (((sstoreAccountMap a σ writeSlot val).get? a).option (default : UInt256)
+        (fun acc => acc.storage.getD readSlot (default : UInt256))) =
+      ((σ.get? a).option (default : UInt256)
+        (fun acc => acc.storage.getD readSlot (default : UInt256))) := by
   unfold sstoreAccountMap
-  cases hσ : σ.find? a with
+  cases hσ : σ.get? a with
   | none =>
-      simp [hσ, Option.option]
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, hσ, Option.option]
   | some acc =>
       simp [Option.option]
       by_cases hzero : val = (default : UInt256)
-      · simpa [hzero] using storage_findD_update_ne acc.storage readSlot writeSlot val default hne
-      · simpa [hzero] using storage_findD_update_ne acc.storage readSlot writeSlot val default hne
+      · simpa [hzero] using storage_getD_update_ne acc.storage readSlot writeSlot val default hne
+      · simpa [hzero] using storage_getD_update_ne acc.storage readSlot writeSlot val default hne
 
-theorem accountStorageStateEq_storage_findD {σ τ : AccountMap}
+theorem accountStorageStateEq_storage_getD {σ τ : AccountMap}
     (hστ : accountStorageStateEq σ τ) (addr : AccountAddress) (slot defaultValue : UInt256) :
-    ((σ.find? addr).option defaultValue (fun acc => acc.storage.findD slot defaultValue)) =
-      ((τ.find? addr).option defaultValue (fun acc => acc.storage.findD slot defaultValue)) := by
+    ((σ.get? addr).option defaultValue (fun acc => acc.storage.getD slot defaultValue)) =
+      ((τ.get? addr).option defaultValue (fun acc => acc.storage.getD slot defaultValue)) := by
   specialize hστ addr
-  cases hσ : σ.find? addr <;> cases hτ : τ.find? addr <;>
-    simp [Std.ExtTreeMap.findD, hσ, hτ, Option.option] at hστ ⊢
+  cases hσ : σ.get? addr <;> cases hτ : τ.get? addr <;>
+    simp [Std.ExtTreeMap.getD_eq_getD_getElem?,
+      ← Std.ExtTreeMap.get?_eq_getElem?, hσ, hτ, Option.option] at hστ ⊢
   all_goals
-    have hstorage := congrArg (fun storage => storage.findD slot defaultValue) hστ.1
-    simpa using hstorage
+    have hstorage := congrArg (fun storage => storage.getD slot defaultValue) hστ.1
+    simpa [Std.ExtTreeMap.getD_eq_getD_getElem?] using hstorage
 
 /-- A final insert overwrites any earlier zero-aware write to the same slot. -/
 theorem storage_update_insert_self (storage : Storage) (slot val1 val2 : UInt256) :
@@ -1047,12 +1018,12 @@ theorem storage_update_insert_self (storage : Storage) (slot val1 val2 : UInt256
   intro readSlot
   change
     (((if val1 = (default : UInt256) then storage.erase slot
-      else storage.insert slot val1).insert slot val2).find? readSlot) =
-      (storage.insert slot val2).find? readSlot
-  exact storage_find?_update_insert_self storage slot readSlot val1 val2
+      else storage.insert slot val1).insert slot val2).get? readSlot) =
+      (storage.insert slot val2).get? readSlot
+  exact storage_get?_update_insert_self storage slot readSlot val1 val2
 
 theorem sstoreAccountMap_absent_same {owner : AccountAddress} {τ : AccountMap}
-    {slot val : UInt256} (hmissing : τ.find? owner = none) :
+    {slot val : UInt256} (hmissing : τ.get? owner = none) :
     sstoreAccountMap owner τ slot val = τ := by
   unfold sstoreAccountMap
   rw [hmissing]
@@ -1062,7 +1033,7 @@ theorem storageStore_executionEnv (evm : EVM.State) (addr : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).executionEnv = evm.executionEnv := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
 
 theorem storageStore_eq_accountMap_update (evm : EVM.State) (addr : AccountAddress)
     (slot val : UInt256) :
@@ -1082,13 +1053,14 @@ theorem stateAccountMapUpdate_trans {a b c : EVM.State}
     _ = c := hbc
 
 theorem storageStore_absent (evm : EVM.State) (addr : AccountAddress)
-    (hmissing : evm.accountMap.find? addr = none) (slot val : UInt256) :
+    (hmissing : evm.accountMap.get? addr = none) (slot val : UInt256) :
     Solm.EVM.storageStore evm addr slot val = evm := by
-  simp [Solm.EVM.storageStore, State.lookupAccount, hmissing, Option.option]
+  simp [Solm.EVM.storageStore, State.lookupAccount,
+    -Std.ExtTreeMap.get?_eq_getElem?, hmissing, Option.option]
 
 theorem writeSolidityBytesDataWordsFrom_absent_same :
     ∀ {evm : EVM.State} {baseSlot : UInt256} {value : ByteArray} {idx fuel : Nat},
-      evm.accountMap.find? evm.executionEnv.codeOwner = none →
+      evm.accountMap.get? evm.executionEnv.codeOwner = none →
       writeSolidityBytesDataWordsFrom evm baseSlot value idx fuel = evm
   | evm, baseSlot, value, idx, 0, _hmissing => rfl
   | evm, baseSlot, value, idx, fuel + 1, hmissing => by
@@ -1444,7 +1416,7 @@ theorem writeSolidityStringLongPackedAbsent
     (hflag : UInt256.land header ⟨1⟩ = ⟨0⟩)
     (hlen : len = UInt256.land (UInt256.div header ⟨2⟩) ⟨127⟩)
     (hvalid : UInt256.sub (UInt256.land header ⟨1⟩) (UInt256.lt len ⟨32⟩) ≠ ⟨0⟩)
-    (hmissing : evm.accountMap.find? evm.executionEnv.codeOwner = none) :
+    (hmissing : evm.accountMap.get? evm.executionEnv.codeOwner = none) :
     writeStorage? cfg evm er .string (.bytes value) = .ok evm := by
   have hwrite := writeSolidityStringLongPacked
     (cfg := cfg) (layout := layout) (evm := evm) (er := er)
@@ -1694,21 +1666,20 @@ theorem evalSolidityStringLongExists
   simp [evalExpr?, hresolve, hread, EvalResult.bind, bind]
 
 theorem storageLoad_storageStore_same_present (evm : EVM.State) (addr : AccountAddress)
-    {acc : Account} (hacc : evm.accountMap.find? addr = some acc) (slot val : UInt256) :
+    {acc : Account} (hacc : evm.accountMap.get? addr = some acc) (slot val : UInt256) :
     Solm.EVM.storageLoad (Solm.EVM.storageStore evm addr slot val) addr slot = val := by
   unfold Solm.EVM.storageLoad Solm.EVM.storageStore State.lookupAccount
   rw [hacc]
   simp only [Option.option]
   unfold State.setAccount
-  rw [accountMap_find_insert_self]
+  simp only [Std.ExtTreeMap.get?_eq_getElem?, Std.ExtTreeMap.getElem?_insert_self]
   unfold Account.updateStorage Account.lookupStorage
   by_cases hzero : (val == (default : UInt256)) = true
   · have hval : val = (default : UInt256) := eq_of_beq hzero
     subst val
     simp
-    exact storage_findD_erase_self acc.storage slot ⟨0⟩
+    rfl
   · simp [hzero]
-    exact storage_findD_insert_self acc.storage slot val ⟨0⟩
 
 theorem storageLocStore_address_offset1_after_bool_true (evm : EVM.State)
     (slot val : UInt256) {acc : Account} (hacc : evm.lookupAccount evm.executionEnv.codeOwner =
@@ -1767,19 +1738,19 @@ theorem storageLoad_storageStore_ne (evm : EVM.State) (addr : AccountAddress)
     Solm.EVM.storageLoad (Solm.EVM.storageStore evm addr writeSlot val) addr readSlot =
       Solm.EVM.storageLoad evm addr readSlot := by
   simp only [Solm.EVM.storageLoad, Solm.EVM.storageStore, State.lookupAccount]
-  cases hacc : evm.accountMap.find? addr with
+  cases hacc : evm.accountMap.get? addr with
   | none =>
-      simp [hacc, Option.option]
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option]
   | some acc =>
       simp only [Option.option]
       unfold State.setAccount
-      rw [accountMap_find_insert_self]
+      simp only [Std.ExtTreeMap.get?_eq_getElem?, Std.ExtTreeMap.getElem?_insert_self]
       unfold Account.updateStorage Account.lookupStorage
       by_cases hzero : (val == (default : UInt256)) = true
       · have hval : val = (default : UInt256) := eq_of_beq hzero
         subst val
-        simp [storage_findD_erase_ne acc.storage readSlot writeSlot ⟨0⟩ hne]
-      · simp [hzero, storage_findD_insert_ne acc.storage readSlot writeSlot val ⟨0⟩ hne]
+        simp [storage_getD_erase_ne acc.storage readSlot writeSlot ⟨0⟩ hne]
+      · simp [hzero, storage_getD_insert_ne acc.storage readSlot writeSlot val ⟨0⟩ hne]
 
 structure EVMStateEquiv (evm₁ evm₂ : EVM.State) : Prop where
   executionEnv : evm₁.executionEnv = evm₂.executionEnv
@@ -1845,19 +1816,19 @@ theorem storage_update_erase_self (storage : Storage) (slot val : UInt256) :
   intro read
   change
     (((if val = (default : UInt256) then storage.erase slot
-      else storage.insert slot val).erase slot).find? read) =
-      (storage.erase slot).find? read
+      else storage.insert slot val).erase slot).get? read) =
+      (storage.erase slot).get? read
   by_cases hread : read = slot
   · subst read
-    simp [storage_find?_erase_self]
+    simp [Std.ExtTreeMap.get?_eq_getElem?]
   · by_cases hzero : val = (default : UInt256)
     · simp only [hzero, if_true]
-      rw [storage_find?_erase_ne (storage.erase slot) read slot hread,
-        storage_find?_erase_ne storage read slot hread]
+      rw [storage_get?_erase_ne (storage.erase slot) read slot hread,
+        storage_get?_erase_ne storage read slot hread]
     · simp only [hzero, if_false]
-      rw [storage_find?_erase_ne (storage.insert slot val) read slot hread,
-        storage_find?_insert_ne storage read slot val hread,
-        storage_find?_erase_ne storage read slot hread]
+      rw [storage_get?_erase_ne (storage.insert slot val) read slot hread,
+        storage_get?_insert_ne storage read slot val hread,
+        storage_get?_erase_ne storage read slot hread]
 
 /-- The final write determines the account map at a slot, including zero-as-erase writes. -/
 theorem sstoreAccountMap_self_update
@@ -1865,9 +1836,9 @@ theorem sstoreAccountMap_self_update
     sstoreAccountMap a σ slot val2 =
       sstoreAccountMap a (sstoreAccountMap a σ slot val1) slot val2 := by
   unfold sstoreAccountMap
-  cases hσ : σ.find? a with
+  cases hσ : σ.get? a with
   | none =>
-      simp [hσ, Option.option]
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, hσ, Option.option]
   | some acc =>
       simp only [Option.option]
       by_cases hzero1 : val1 = (default : UInt256) <;>
@@ -1889,14 +1860,14 @@ theorem sstoreAccountMap_comm
   apply Std.ExtTreeMap.ext_getElem?
   intro addr
   change
-    (sstoreAccountMap a (sstoreAccountMap a σ slot1 val1) slot2 val2).find? addr =
-      (sstoreAccountMap a (sstoreAccountMap a σ slot2 val2) slot1 val1).find? addr
+    (sstoreAccountMap a (sstoreAccountMap a σ slot1 val1) slot2 val2).get? addr =
+      (sstoreAccountMap a (sstoreAccountMap a σ slot2 val2) slot1 val1).get? addr
   by_cases haddr : addr = a
   · subst addr
     unfold sstoreAccountMap
-    cases hσ : σ.find? a with
+    cases hσ : σ.get? a with
     | none =>
-        simp [hσ, Option.option]
+        simp [-Std.ExtTreeMap.get?_eq_getElem?, hσ, Option.option]
     | some acc =>
         by_cases hzero1 : val1 = (default : UInt256) <;>
           by_cases hzero2 : val2 = (default : UInt256)
@@ -1918,9 +1889,15 @@ theorem sstoreAccountMap_comm
               have hval2 := u256_val_ne_of_ne (Ne.symm hread2)
               simp [Std.ExtTreeMap.getElem?_erase, Std.ExtTreeMap.getElem?_insert,
                 hval1, hval2]
-  · unfold sstoreAccountMap
-    cases hσ : σ.find? a <;>
-      simp [hσ, Option.option,
-        accountMap_find?_insert_ne, haddr]
+  · have hother (τ : AccountMap) (slot val : UInt256) :
+        (sstoreAccountMap a τ slot val).get? addr = τ.get? addr := by
+      unfold sstoreAccountMap
+      cases hτ : τ.get? a with
+      | none => simp [Option.option]
+      | some acc =>
+          simp only [Option.option, Std.ExtTreeMap.get?_eq_getElem?]
+          simpa only [Std.ExtTreeMap.get?_eq_getElem?] using
+            accountMap_get?_insert_ne τ addr a _ haddr
+    simp only [hother]
 
 end Reasoning.Theory

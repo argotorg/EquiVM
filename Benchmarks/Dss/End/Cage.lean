@@ -303,7 +303,7 @@ theorem endCageCallTargetCode_zero_of_codeSize_zero {σ : AccountMap} {I : Execu
     (hzero :
       Reasoning.Theory.extCodeSizeWord σ (endCageCallTargetWord slot σ I) = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? (endCageCallTargetAddr slot σ I)).option 0 (fun acc => acc.code.size))).toNat =
+      ((σ.get? (endCageCallTargetAddr slot σ I)).option 0 (fun acc => acc.code.size))).toNat =
         0 := by
   simpa [State.lookupAccount] using
     endUniswapExtCodeSizeWord_zero_lookup_code_zero
@@ -316,7 +316,7 @@ theorem endCageCallTargetCode_pos_of_codeSize_ne {σ : AccountMap} {I : Executio
     (hne :
       Reasoning.Theory.extCodeSizeWord σ (endCageCallTargetWord slot σ I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      ((σ.find? (endCageCallTargetAddr slot σ I)).option 0 (fun acc => acc.code.size))).toNat := by
+      ((σ.get? (endCageCallTargetAddr slot σ I)).option 0 (fun acc => acc.code.size))).toNat := by
   simpa [State.lookupAccount] using
     endUniswapExtCodeSizeWord_ne_zero_lookup_code_pos
       (σ := σ) (target := endCageCallTargetWord slot σ I)
@@ -637,7 +637,7 @@ abbrev endCageTimestampWord (evm : EVM.State) : UInt256 :=
     (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
 
 def endCagePostStoresState (evm : EVM.State) : EVM.State :=
   Solm.EVM.storageStore

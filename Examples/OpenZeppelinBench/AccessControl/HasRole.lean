@@ -43,7 +43,7 @@ def hasRoleSlot (I : ExecutionEnv) : UInt256 :=
   roleHasRoleSlot (hasRoleRoleKey I) (hasRoleAccountKey I)
 
 def hasRoleStorageWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (hasRoleSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (hasRoleSlot I) ⟨0⟩)
 
 abbrev hasRoleMaskedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (hasRoleStorageWord σ I) ⟨255⟩

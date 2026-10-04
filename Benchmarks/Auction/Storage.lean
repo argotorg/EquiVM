@@ -7,7 +7,7 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 namespace Auction
 
 def storedWord (σ : AccountMap) (I : ExecutionEnv) (slot : UInt256) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)
 
 theorem scalarRead (evm : EVM.State) (locals : Store) (name : Ident)
     (ty : ABI.ElemType) (loc : StorageLoc)

@@ -887,7 +887,7 @@ theorem kickKicksWord_afterFill_eq (evm : EVM.State) (I : ExecutionEnv) :
     kickKicksWord (kickAfterFillState evm I) = kickKicksWord evm := by
   simpa [kickKicksWord, kickAfterFillState, flapperSlotWord, solcSlotWord,
     storageStore_accountMap, storageStore_executionEnv] using
-    sstoreAccountMap_storage_findD_ne evm.accountMap evm.executionEnv.codeOwner
+    sstoreAccountMap_storage_getD_ne evm.accountMap evm.executionEnv.codeOwner
       ⟨6⟩ ⟨9⟩ (kickFillNewWord evm I) (by native_decide)
 
 theorem kickIdWord_afterFill_eq (evm : EVM.State) (I : ExecutionEnv) :
@@ -2544,7 +2544,7 @@ theorem flapperKickX_toCheckedAddStart {σ I} {g : Sat256} {s0 : State}
   have hslot6 :
       flapperSlotWord ⟨6⟩ σFill I = flapperSlotWord ⟨6⟩ σ I := by
     simpa [σFill, kickRuntimeAfterFillMap, flapperSlotWord, solcSlotWord] using
-      sstoreAccountMap_storage_findD_ne σ I.codeOwner ⟨6⟩ ⟨9⟩
+      sstoreAccountMap_storage_getD_ne σ I.codeOwner ⟨6⟩ ⟨9⟩
         (flapperSlotWord ⟨9⟩ σ I + kickLotWord I) (by native_decide)
   have rd4238pre := evm_run h with [
     raw jumpdest (by native_decide) (by evm_ov),
@@ -3864,8 +3864,9 @@ theorem flapperKickBodyCore {σ σ₀ A I} {g : UInt256}
                 kickFillWord (kickAfterFillState evmSolm I) =
                   flapperSlotWord ⟨9⟩ σ I + kickLotWord I := by
               have hownerSome :
-                  evmSolm.accountMap.find? evmSolm.executionEnv.codeOwner ≠ none := by
+                  evmSolm.accountMap.get? evmSolm.executionEnv.codeOwner ≠ none := by
                 intro howner
+                rw [Std.ExtTreeMap.get?_eq_getElem?] at howner
                 have hload0 :
                     Solm.EVM.storageLoad evmSolm evmSolm.executionEnv.codeOwner
                         (relyAuthStorageSlot I) = ⟨0⟩ := by

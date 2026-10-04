@@ -48,7 +48,7 @@ theorem gemJoinCtorVatSloadReach
   have rd91 := rd90.dup1 (by gem_ctor_decode) (by evm_ov)
   obtain ⟨_, _, rd92⟩ := rd91.sload (by gem_ctor_decode) (by evm_ov)
   have hload :
-      (σLive.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨1⟩ ⟨0⟩)) =
+      (σLive.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨1⟩ ⟨0⟩)) =
         solcSlotWord σLive I ⟨1⟩ := by
     rfl
   rw [hload] at rd92
@@ -181,7 +181,7 @@ theorem gemJoinCtorGemStoreReach
   have rd127 := gem_ctor_run rd124 with [push1 ⟨3⟩, dup1]
   obtain ⟨_, _, rd128⟩ := rd127.sload (by gem_ctor_decode) (by evm_ov)
   have hload :
-      (σIlk.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨3⟩ ⟨0⟩)) =
+      (σIlk.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨3⟩ ⟨0⟩)) =
         solcSlotWord σIlk I ⟨3⟩ := by
     rfl
   rw [hload] at rd128

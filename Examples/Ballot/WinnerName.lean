@@ -28,8 +28,8 @@ def winnerNameNameCurrent (evm : EVM.State) : UInt256 :=
     (winnerNameNameSlot (winningProposalResultCurrent evm))
 
 def winnerNameNameWord (sigma : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  sigma.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (winnerNameNameSlot (winningProposalResultWord sigma I)) ⟨0⟩)
+  sigma.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (winnerNameNameSlot (winningProposalResultWord sigma I)) ⟨0⟩)
 
 theorem winnerNameNameCurrent_init {σ σ₀ A I} {g : Sat256} :
     winnerNameNameCurrent (initState σ σ₀ g A I) =
@@ -252,7 +252,7 @@ theorem ballotX_winnerName_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     dup2, lt, push2 ⟨1727⟩,
     jumpiT (by
       have hlt' : UInt256.lt (winningProposalResultWord σ I)
-          (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) = ⟨1⟩ := by
+          (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)) = ⟨1⟩ := by
         simpa [winningProposalLengthWord] using hlt
       rw [hlt']; decide) (by jump_dest)]
   let nameBaseMem := winningProposalStoreBaseMem mem'
@@ -332,7 +332,7 @@ theorem ballotX_winnerName_oob {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     dup2, lt, push2 ⟨1727⟩,
     jumpiNT (by
       have hlt' : UInt256.lt (winningProposalResultWord σ I)
-          (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) = ⟨0⟩ := by
+          (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)) = ⟨0⟩ := by
         simpa [winningProposalLengthWord] using hlt
       exact hlt'),
     push2 ⟨1727⟩, push2 ⟨1815⟩, jump (by jump_dest)]

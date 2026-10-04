@@ -588,8 +588,8 @@ theorem RD.uniswapSingleMappingGetter {g : Sat256} {s0 : State} {ee : ExecutionE
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 4 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
-      ((σ.find? ee.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (UniswapV2Pair.mapSlot key baseSlot) ⟨0⟩))
+      ((σ.get? ee.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD (UniswapV2Pair.mapSlot key baseSlot) ⟨0⟩))
         :: ret :: R)
       (UniswapV2Pair.uniswapMappingHashMem baseSlot key)
       (UInt256.ofNat 3) rdata σ k' C' := by
@@ -646,8 +646,8 @@ theorem RD.uniswapNestedMappingLoadAndJump {g : Sat256} {s0 : State} {ee : Execu
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
-      ((σ.find? ee.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD slot ⟨0⟩)) :: ret :: R)
+      ((σ.get? ee.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD slot ⟨0⟩)) :: ret :: R)
       mem aw rdata σ k' C' := by
   simpa [solcSlotWord, uniswapNestedMappingGetterSloadPc] using
     RD.solcNestedMappingLoadAndJump h hwf hret hov

@@ -22,12 +22,12 @@ theorem uniswapBurnBody
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩
     · exact uniswapBurnBodyRevert_locked hcode hsize hwv hsel hsz36 hlocked hdispatch
     · have hunlocked :
-        (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+        (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
           ⟨1⟩ := by
         exact not_not.mp hlocked
       have hsz4 : 4 ≤ I.calldata.size :=

@@ -46,7 +46,7 @@ theorem callStateMade {s0 I σ evm} (hs : SourceState s0 I σ evm)
     {target value : UInt256} {calldata : ByteArray}
     {σ' : AccountMap} {gasLeft callGas : UInt256} {AS' AIn : Substate} {z : Bool} {out : ByteArray}
     (hperm : I.perm = true)
-    (hbalance : value ≤ (σ.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+    (hbalance : value ≤ (σ.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024)
     (hΘ : (σ', gasLeft, AS', z, out) = Θ σ s0.σ₀ AIn
       (AccountAddress.ofUInt256 (UInt256.ofNat I.codeOwner)) I.sender
@@ -73,7 +73,7 @@ theorem callStateMade {s0 I σ evm} (hs : SourceState s0 I σ evm)
 
 theorem callStateNotMade {s0 I σ evm} (hs : SourceState s0 I σ evm)
     {target value : UInt256} {calldata : ByteArray}
-    (hn : ¬ (value ≤ (σ.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)) ∧ I.depth ≠ 1024)) :
+    (hn : ¬ (value ≤ (σ.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)) ∧ I.depth ≠ 1024)) :
     callViaEVM (callState evm σ) (AccountAddress.ofUInt256 target) (Int.ofNat value.toNat)
       calldata (false,
         { callState evm σ with substate :=

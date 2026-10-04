@@ -13,10 +13,10 @@ def acceptOwnershipSourceWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.source.val
 
 def acceptOwnershipPendingOwnerWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)
 
 def acceptOwnershipOwnerWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
 abbrev acceptOwnershipPendingOwnerAddressWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (acceptOwnershipPendingOwnerWord σ I) solcAddrMask
@@ -29,8 +29,8 @@ def acceptOwnershipAfterPendingMap (σ : AccountMap) (I : ExecutionEnv) : Accoun
     (acceptOwnershipClearPendingWord (acceptOwnershipPendingOwnerWord σ I))
 
 def acceptOwnershipOwnerWordAfterPending (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  acceptOwnershipAfterPendingMap σ I |>.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
+  acceptOwnershipAfterPendingMap σ I |>.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
 def acceptOwnershipSetOwnerWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   ownable2StepSetAddressWord (acceptOwnershipOwnerWordAfterPending σ I)

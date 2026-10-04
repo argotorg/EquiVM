@@ -37,8 +37,8 @@ def denyAuthStorageSlot (I : ExecutionEnv) : UInt256 :=
   wardsSlot (denyAuthKey I)
 
 def denyAuthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (denyAuthStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (denyAuthStorageSlot I) ⟨0⟩)
 
 def denyPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (denyGuyStorageSlot I) ⟨0⟩

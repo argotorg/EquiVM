@@ -529,7 +529,7 @@ theorem RD.vowKissNotEnoughAsh
   have rd1555₀ := rd1554.gt (by native_decide) (by evm_ov)
   have hgt :
       UInt256.gt (kissRad I)
-        (Option.option ⟨0⟩ (fun ac => ac.storage.findD ⟨6⟩ ⟨0⟩) (σ.find? I.codeOwner)) =
+        (Option.option ⟨0⟩ (fun ac => ac.storage.getD ⟨6⟩ ⟨0⟩) (σ.get? I.codeOwner)) =
         ⟨1⟩ :=
     ugt_one (by simpa [vowSlotWord, solcSlotWord] using hnotEnough)
   have rd1555 := rd1555₀
@@ -570,7 +570,7 @@ theorem RD.vowKissAshEnough
   have rd1555₀ := rd1554.gt (by native_decide) (by evm_ov)
   have hgt :
       UInt256.gt (kissRad I)
-        (Option.option ⟨0⟩ (fun ac => ac.storage.findD ⟨6⟩ ⟨0⟩) (σ.find? I.codeOwner)) =
+        (Option.option ⟨0⟩ (fun ac => ac.storage.getD ⟨6⟩ ⟨0⟩) (σ.get? I.codeOwner)) =
         ⟨0⟩ :=
     ugt_zero (by simpa [vowSlotWord, solcSlotWord] using hashEnough)
   have rd1555 := rd1555₀
@@ -1553,13 +1553,15 @@ theorem vowKissNoVatCodeBodyCore
     rw [hvatAddr]
     unfold Reasoning.Theory.extCodeSizeWord at hnoCodeSolm
     cases hacc :
-      σ.find? (AccountAddress.ofUInt256 (kissDaiTargetWord σ I)) with
+      σ.get? (AccountAddress.ofUInt256 (kissDaiTargetWord σ I)) with
     | none =>
-        simpa [initState, State.lookupAccount, hacc] using
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState,
+          State.lookupAccount, hacc] using
           (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
     | some acc =>
         have hword := congrArg UInt256.toNat hnoCodeSolm
-        simpa [initState, State.lookupAccount, hacc] using hword
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState,
+          State.lookupAccount, hacc] using hword
   have hbody := vowKissSourceNoVatCode
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     hwv hashEnoughSolm hvatNoCode

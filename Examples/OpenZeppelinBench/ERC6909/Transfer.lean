@@ -91,7 +91,7 @@ def transferAfterDebitState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
 theorem transferAfterDebit_codeOwner (evm : EVM.State) (I : ExecutionEnv) :
     (transferAfterDebitState evm I).executionEnv.codeOwner = evm.executionEnv.codeOwner := by
   simp only [transferAfterDebitState, Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? evm.executionEnv.codeOwner with
+  cases evm.accountMap.get? evm.executionEnv.codeOwner with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 

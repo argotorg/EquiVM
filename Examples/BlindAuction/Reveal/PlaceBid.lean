@@ -584,10 +584,10 @@ theorem scratch_blindAuctionPlaceBidBodyReturns_true_nonzero
 /-! ### Scratch placeBid EVM-side routine -/
 
 def scratch_placeBidHighestBidWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨6⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨6⟩ ⟨0⟩)
 
 def scratch_placeBidHighestBidderWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨5⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨5⟩ ⟨0⟩)
 
 def scratch_placeBidStoreHighMap (σ : AccountMap) (I : ExecutionEnv) (value : UInt256) :
     AccountMap :=
@@ -715,8 +715,8 @@ theorem scratch_blindAuctionRevealX_refundAdd_toPlaceCond {I} {g : Sat256}
         secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata σ k C)
     (hdeposit :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hfit : refund.toNat + deposit.toNat < UInt256.size) :
     ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1265⟩
       [secret, fake, value, slot, i, deposit + refund, len, revealEnd, biddingEnd, secretsLen,
@@ -728,7 +728,7 @@ theorem scratch_blindAuctionRevealX_refundAdd_toPlaceCond {I} {g : Sat256}
       [deposit, secret, fake, value, slot, i, refund, len, revealEnd, biddingEnd,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata σ k' C' := by
-    exact ⟨_, _, by simpa [hdeposit] using rd1253₀⟩
+    exact ⟨_, _, by simpa only [hdeposit] using rd1253₀⟩
   have rd2045 := evm_run rd1253 with [push2 ⟨1262⟩, swap1, dup8, push2 ⟨2045⟩,
     jump (by jump_dest)]
   obtain ⟨_, _, rd1262⟩ :=
@@ -768,8 +768,8 @@ theorem scratch_blindAuctionRevealX_placeCond_depositLt_toZero {I} {g : Sat256}
         secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata σ k C)
     (hdeposit :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hlt : deposit.toNat < value.toNat) :
     ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1315⟩
       [secret, ⟨0⟩, value, slot, i, refund, len, revealEnd, biddingEnd, secretsLen,
@@ -779,8 +779,8 @@ theorem scratch_blindAuctionRevealX_placeCond_depositLt_toZero {I} {g : Sat256}
     jumpiNT (by decide), pop, dup3, dup5, push1 ⟨1⟩, add]
   obtain ⟨_, _, rd1280₀⟩ := rd1273.sload (by decide) (by evm_ov)
   have hdeposit' :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (⟨1⟩ + slot) ⟨0⟩) = deposit := by
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (⟨1⟩ + slot) ⟨0⟩) = deposit := by
     simpa [u256_add_comm] using hdeposit
   have hltw : UInt256.lt deposit value = ⟨1⟩ := ult_one hlt
   have rd1281₀ := evm_run rd1280₀ with [lt]
@@ -800,8 +800,8 @@ theorem scratch_blindAuctionRevealX_placeCond_place_toRoutine {I} {g : Sat256}
         secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata σ k C)
     (hdeposit :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hge : value.toNat ≤ deposit.toNat) :
     ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1534⟩
       [value, UInt256.ofNat I.source.val, ⟨1297⟩, secret, ⟨0⟩, value, slot, i, refund,
@@ -812,8 +812,8 @@ theorem scratch_blindAuctionRevealX_placeCond_place_toRoutine {I} {g : Sat256}
     jumpiNT (by decide), pop, dup3, dup5, push1 ⟨1⟩, add]
   obtain ⟨_, _, rd1280₀⟩ := rd1273.sload (by decide) (by evm_ov)
   have hdeposit' :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (⟨1⟩ + slot) ⟨0⟩) = deposit := by
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (⟨1⟩ + slot) ⟨0⟩) = deposit := by
     simpa [u256_add_comm] using hdeposit
   have hltw : UInt256.lt deposit value = ⟨0⟩ := ult_zero hge
   have rd1281₀ := evm_run rd1280₀ with [lt]
@@ -851,8 +851,8 @@ theorem scratch_blindAuctionRevealX_placeCond_depositLt_toNext {I} {g : Sat256}
         secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata σ k C)
     (hdeposit :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hlt : deposit.toNat < value.toNat)
     (hperm : I.perm = true) :
     ∃ k' C', RD blindAuctionBytecode I g s0 ⟨1014⟩
@@ -1199,8 +1199,8 @@ def scratch_placeBidPendingSlot (σ : AccountMap) (I : ExecutionEnv) : UInt256 :
       (UInt256.land (scratch_placeBidHighestBidderWord σ I) solcAddrMask).toNat))
 
 def scratch_placeBidPendingWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (scratch_placeBidPendingSlot σ I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (scratch_placeBidPendingSlot σ I) ⟨0⟩)
 
 def scratch_placeBidStorePendingMap (σ : AccountMap) (I : ExecutionEnv) (sum : UInt256) :
     AccountMap :=
@@ -1664,8 +1664,8 @@ theorem scratch_blindAuctionRevealX_placeCond_placeBid_false_toNext {I} {g : Sat
         secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata σ k C)
     (hdeposit :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hdepositGe : value.toNat ≤ deposit.toNat)
     (hplaceFalse : value.toNat ≤ (scratch_placeBidHighestBidWord σ I).toNat)
     (hperm : I.perm = true) :
@@ -1693,8 +1693,8 @@ theorem scratch_blindAuctionRevealX_placeCond_placeBid_true_zero_toNext {I} {g :
         secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata σ k C)
     (hdeposit :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hdepositGe : value.toNat ≤ deposit.toNat)
     (hplaceTrue : (scratch_placeBidHighestBidWord σ I).toNat < value.toNat)
     (hhighestBidderZero :
@@ -1729,8 +1729,8 @@ theorem scratch_blindAuctionRevealX_placeCond_placeBid_true_nonzero_toNext {I} {
         secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata σ k C)
     (hdeposit :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hdepositGe : value.toNat ≤ deposit.toNat)
     (hplaceTrue : (scratch_placeBidHighestBidWord σ I).toNat < value.toNat)
     (hhighestBidderNonzero :

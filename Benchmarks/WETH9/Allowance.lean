@@ -45,8 +45,8 @@ def allowanceStorageSlot (I : ExecutionEnv) : UInt256 :=
   allowanceSlot (allowanceOwnerKey I) (allowanceGuyKey I)
 
 def allowanceWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (allowanceStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (allowanceStorageSlot I) ⟨0⟩)
 
 abbrev allowanceEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "allowance",

@@ -34,18 +34,21 @@ translate that account-address relation to the Uniswap code-size word helper use
 rules. -/
 
 /-- `extCodeSizeWord` reads only an account's `.code` (as `ofNat · .code.size`), so it is a
-    function of `(σ.findD a default).code` — the projection `accountCodeStateEq` preserves. -/
-theorem extCodeSizeWord_eq_ofNat_findD (σ : AccountMap) (target : UInt256) :
+    function of `(σ.getD a default).code` — the projection `accountCodeStateEq` preserves. -/
+theorem extCodeSizeWord_eq_ofNat_getD (σ : AccountMap) (target : UInt256) :
     Reasoning.Theory.extCodeSizeWord σ target
-      = UInt256.ofNat (σ.findD (AccountAddress.ofUInt256 target) default).code.size := by
+      = UInt256.ofNat (σ.getD (AccountAddress.ofUInt256 target) default).code.size := by
   unfold Reasoning.Theory.extCodeSizeWord
-  cases h : σ.find? (AccountAddress.ofUInt256 target) with
+  cases h : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
       have hdefault : (default : Account).code.size = 0 := by
         native_decide
-      simp [Std.ExtTreeMap.findD, Option.option, hdefault, h, UInt256.ofNat]
+      simp [Std.ExtTreeMap.getD_eq_getD_getElem?,
+        ← Std.ExtTreeMap.get?_eq_getElem?, Option.option, hdefault, h]
       rfl
-  | some acc => simp [Std.ExtTreeMap.findD, Option.option, h]
+  | some acc =>
+      simp [Std.ExtTreeMap.getD_eq_getD_getElem?,
+        ← Std.ExtTreeMap.get?_eq_getElem?, Option.option, h]
 
 /-- Code preservation transfers to `extCodeSizeWord`: static calls leave every account's
     `EXTCODESIZE` word unchanged. -/
@@ -53,7 +56,7 @@ theorem extCodeSizeWord_eq_of_accountCodeStateEq {σ σ' : AccountMap} (target :
     (h : accountCodeStateEq σ σ') :
     Reasoning.Theory.extCodeSizeWord σ' target
       = Reasoning.Theory.extCodeSizeWord σ target := by
-  rw [extCodeSizeWord_eq_ofNat_findD, extCodeSizeWord_eq_ofNat_findD,
+  rw [extCodeSizeWord_eq_ofNat_getD, extCodeSizeWord_eq_ofNat_getD,
     (h (AccountAddress.ofUInt256 target)).symm]
 
 /-! ## Selector helpers -/

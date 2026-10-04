@@ -30,8 +30,8 @@ def noncesStorageSlot (I : ExecutionEnv) : UInt256 :=
   nonceSlot (noncesOwnerKey I)
 
 def noncesWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (noncesStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (noncesStorageSlot I) ⟨0⟩)
 
 theorem noncesStorageSlot_eq_mapSlot (I : ExecutionEnv)
     (hcanon : (noncesOwnerWord I).toNat < EVM.addressModulus) :
@@ -135,8 +135,8 @@ theorem uniswapX_nonces_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_singleton]; omega)
   have hslot := noncesStorageSlot_eq_mapSlot_masked I
   have hword :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (mapSlot (noncesOwnerMaskedWord I) ⟨4⟩) ⟨0⟩))
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD (mapSlot (noncesOwnerMaskedWord I) ⟨4⟩) ⟨0⟩))
         = noncesWord σ I := by
     unfold noncesWord
     rw [hslot]
@@ -144,7 +144,7 @@ theorem uniswapX_nonces_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (noncesWord σ I :: ⟨861⟩ :: [sel])
       (uniswapMappingHashMem ⟨4⟩ (noncesOwnerMaskedWord I))
       (UInt256.ofNat 3) ByteArray.empty σ k861 C861 := by
-    simpa [hword] using rd861raw
+    simpa only [hword] using rd861raw
   exact RD.uniswapReturnWord861FromMem
     (val := noncesWord σ I) (ret := ⟨861⟩) (R := [sel])
     (mem := uniswapMappingHashMem ⟨4⟩ (noncesOwnerMaskedWord I))

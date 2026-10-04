@@ -184,7 +184,7 @@ theorem endSkim_storageStore_σ₀ (evm : EVM.State) (addr : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount, Account.updateStorage]
 
 abbrev endSkimStoreGrab (σ : AccountMap) (I : ExecutionEnv)
     (vatOut urnOut : ByteArray) : Store :=
@@ -965,11 +965,11 @@ theorem endSkimX_tagZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have htagRaw :
       solcSlotWord σ I (solcMappingSlot ⟨12⟩ key) = ⟨0⟩ := by
     rw [← hslot]
-    simpa [key, endSkimTagWord, endSlotWord] using htag
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, key, endSkimTagWord, endSlotWord] using htag
   have htagRaw' :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun ac => ac.storage.findD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) = ⟨0⟩ := by
-    simpa [solcSlotWord] using htagRaw
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun ac => ac.storage.getD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) = ⟨0⟩ := by
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord] using htagRaw
   have rd6721zero := rd6721raw
   rw [htagRaw'] at rd6721zero
   obtain ⟨_, _, rd6721⟩ : ∃ k' C',
@@ -1051,10 +1051,10 @@ theorem endSkimX_tagNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rw [← hslot]
     simp [endSkimTagWord, endSlotWord]
   have htagRaw' :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun ac => ac.storage.findD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun ac => ac.storage.getD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) =
           endSkimTagWord σ I := by
-    simpa [solcSlotWord] using htagRaw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord] using htagRaw
   have rd6721nzRaw := rd6721raw
   rw [htagRaw'] at rd6721nzRaw
   obtain ⟨_, _, rd6721nz⟩ : ∃ k' C',
@@ -1127,7 +1127,7 @@ theorem endSkimX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
           endSkimReturnPc :: sel :: [])
         (endSkimVatIlksBaseMem I) (UInt256.ofNat 3)
         ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd6799raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd6799raw⟩
   obtain ⟨_, _, rd6799⟩ := rd6799
   have rd6859 := evm_run rd6799 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -1485,7 +1485,7 @@ theorem endSkimX_urnsExtcodesizeGuard {σ σ' σ₀ A I} {g : Sat256}
           endSkimUrnKey I :: endSkimIlkWord I :: endSkimReturnPc :: sel :: [])
         (endSkimVatIlksPostCallMem I vatOut) (UInt256.ofNat 9) vatOut
         σ' k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd6923raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd6923raw⟩
   obtain ⟨_, _, rd6923⟩ := rd6923
   have rd6996 := evm_run rd6923 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -1891,7 +1891,7 @@ theorem endSkimX_oweRmulEntry {σ σ' σ₀ A I} {g : Sat256}
           endSkimReturnPc :: sel :: [])
         mem12 (UInt256.ofNat 9) rdata σ' k' C' := by
     exact ⟨_, _, by
-      simpa [endSkimTagWord, endSlotWord, solcSlotWord, key, hslot] using rd7095raw⟩
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSkimTagWord, endSlotWord, solcSlotWord, key, hslot] using rd7095raw⟩
   have rd7099 := evm_run rd7095 with [
     raw push2 ⟨10114⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
@@ -2049,7 +2049,7 @@ theorem endSkimX_gapSubEntry {σ σ' σ₀ A I} {g : Sat256}
           endSkimUrnKey I :: endSkimIlkWord I :: endSkimReturnPc :: sel :: [])
         mem13 (UInt256.ofNat 9) rdata σ' k' C' := by
     exact ⟨_, _, by
-      simpa [endSkimGapWord, endSlotWord, solcSlotWord, key, hslot] using rd7129raw⟩
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSkimGapWord, endSlotWord, solcSlotWord, key, hslot] using rd7129raw⟩
   have rd7144 := evm_run rd7129 with [
     raw swap1 (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov),
@@ -3853,7 +3853,7 @@ theorem endSkimX_grabExtcodesizeGuard {σ σCall σLoc σ₀ A I}
           endSkimIlkWord I :: endSkimReturnPc :: sel :: [])
         (endSkimGapStoreHashMem I vatOut urnOut) (UInt256.ofNat 9) rdata
         σCall k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd7257raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd7257raw⟩
   obtain ⟨_, _, rd7257⟩ := rd7257
   have rd7261 := evm_run rd7257 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
@@ -3868,7 +3868,7 @@ theorem endSkimX_grabExtcodesizeGuard {σ σCall σLoc σ₀ A I}
           endSkimIlkWord I :: endSkimReturnPc :: sel :: [])
         (endSkimGapStoreHashMem I vatOut urnOut) (UInt256.ofNat 9) rdata
         σCall k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd7261raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd7261raw⟩
   obtain ⟨_, _, rd7261⟩ := rd7261
   have rd7357raw := evm_run rd7261 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),

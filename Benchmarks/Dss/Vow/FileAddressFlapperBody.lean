@@ -425,8 +425,8 @@ theorem vowFileAddressFlapperHopeCallFailureAfterNopeSuccessBodyCore
   have hNopeMap : σNope = σNopeSolm := by
     simpa [evmNopeSolm] using hAccountsNope
   have hHopeInput : evmSetSolmBase = evmHopeEvmIn := by
-    cases hFind : σNopeSolm.find? I.codeOwner <;>
-      simp [evmSetSolmBase, evmHopeEvmIn, evmSetSolm, evmNopeSolm,
+    cases hFind : σNopeSolm.get? I.codeOwner <;>
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, evmSetSolmBase, evmHopeEvmIn, evmSetSolm, evmNopeSolm,
         fileAddressSetFlapperAccountMap,
         Solm.EVM.storageStore, Solm.EVM.storageLoad, State.setAccount,
         State.lookupAccount, Account.lookupStorage, Account.updateStorage,
@@ -593,8 +593,8 @@ theorem vowFileAddressFlapperHopeSuccessAfterNopeSuccessBodyCore
   have hNopeMap : σNope = σNopeSolm := by
     simpa [evmNopeSolm] using hAccountsNope
   have hHopeInput : evmSetSolmBase = evmHopeEvmIn := by
-    cases hFind : σNopeSolm.find? I.codeOwner <;>
-      simp [evmSetSolmBase, evmHopeEvmIn, evmSetSolm, evmNopeSolm,
+    cases hFind : σNopeSolm.get? I.codeOwner <;>
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, evmSetSolmBase, evmHopeEvmIn, evmSetSolm, evmNopeSolm,
         fileAddressSetFlapperAccountMap,
         Solm.EVM.storageStore, Solm.EVM.storageLoad, State.setAccount,
         State.lookupAccount, Account.lookupStorage, Account.updateStorage,

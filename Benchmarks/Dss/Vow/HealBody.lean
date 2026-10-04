@@ -125,7 +125,7 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
             hmload64Dai hmload128Dai
         obtain ⟨_, _, rd4838⟩ := RD.vowHealDaiEnough rd4760 hvatDaiEnough
         have hVatDaiEvm : vowSlotWord ⟨1⟩ σ_dai I = vowSlotWord ⟨1⟩ σ I := by
-          have h := typedCallViaEVM_static_storage_findD_of_accounts_eq
+          have h := typedCallViaEVM_static_storage_getD_of_accounts_eq
             (cfg := config) (σ := σ)
             (slot := ⟨1⟩) (default := ⟨0⟩)
             (hAccounts := by simp [initState])
@@ -153,7 +153,7 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
         have hvatLoadDai :
             Solm.EVM.storageLoad evmDaiSolm evmDaiSolm.executionEnv.codeOwner ⟨1⟩ =
               vowSlotWord ⟨1⟩ σ I := by
-          have h := typedCallViaEVM_static_storage_findD_of_accounts_eq
+          have h := typedCallViaEVM_static_storage_getD_of_accounts_eq
             (cfg := config) (σ := σ)
             (slot := ⟨1⟩) (default := ⟨0⟩)
             (hAccounts := by simp [initState])
@@ -336,13 +336,13 @@ theorem vowHealBody {σ σ₀ A I} {g : UInt256}
           have hvatLoadSin :
               Solm.EVM.storageLoad evmSinSolm evmSinSolm.executionEnv.codeOwner ⟨1⟩ =
                 vowSlotWord ⟨1⟩ σ I := by
-            have hstatic := typedCallViaEVM_static_storage_findD_of_accounts_eq
+            have hstatic := typedCallViaEVM_static_storage_getD_of_accounts_eq
               (cfg := config) (σ := evmDaiSolm.accountMap)
               (slot := ⟨1⟩) (default := ⟨0⟩)
               (hAccounts := rfl)
               hcallSinTrue
-            have hpre : ((evmDaiSolm.accountMap.find? I.codeOwner).option ⟨0⟩
-                (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) =
+            have hpre : ((evmDaiSolm.accountMap.get? I.codeOwner).option ⟨0⟩
+                (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)) =
                 vowSlotWord ⟨1⟩ σ I := by
               simpa [evmDaiSolm, initState, Solm.EVM.storageLoad, State.lookupAccount,
                 Account.lookupStorage, vowSlotWord, solcSlotWord] using hvatLoadDai

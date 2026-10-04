@@ -19,17 +19,17 @@ abbrev revealScratchTimestampWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.header.timestamp
 
 def revealScratchBiddingEndWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)
 
 def revealScratchRevealEndWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)
 
 def revealScratchBidsLengthSlot (I : ExecutionEnv) : UInt256 :=
   bidsBase (.address I.source)
 
 def revealScratchBidsLengthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩)
 
 abbrev revealScratchSenderWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.source.val
@@ -1196,10 +1196,10 @@ theorem blindAuctionRevealX_from963_empty_toCall {σ I} {g : Sat256}
         ⟨1⟩ : UInt256) = ⟨979⟩ := by
       native_decide
     have hload0 :
-        (σ.find? I.codeOwner).option ⟨0⟩
-          (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) = ⟨0⟩ := by
+        (σ.get? I.codeOwner).option ⟨0⟩
+          (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩) = ⟨0⟩ := by
       simpa [revealScratchBidsLengthWord, revealScratchBidsLengthSlot] using hbidsZero
-    exact ⟨_, _, by simpa [hpc979, hload0] using rd979₀⟩
+    exact ⟨_, _, by simpa only [hpc979, hload0] using rd979₀⟩
   have rd982₀ := evm_run rd979 with [dup8, dup2, eq]
   have rd982 := rd982₀
   rw [show UInt256.eq (⟨0⟩ : UInt256) (⟨0⟩ : UInt256) = ⟨1⟩ by decide] at rd982
@@ -2808,8 +2808,8 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
               32 32).readWithPadding 0 64))) =
         revealScratchBidsLengthSlot I)
     (hlenLoad :
-      (acc.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) = len)
+      (acc.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩) = len)
     (hbound : i.toNat < len.toNat)
     (hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -2863,7 +2863,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
       [len, revealScratchBidsLengthSlot I, ⟨0⟩, i, refund, len, revealEnd, biddingEnd,
         secretsLen, secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem2 aw rdata acc k' C' := by
-    exact ⟨_, _, by simpa [hlenLoad] using rd1039₀⟩
+    exact ⟨_, _, by simpa only [hlenLoad] using rd1039₀⟩
   have hlt : UInt256.lt i len = ⟨1⟩ := ult_one hbound
   have rd1047₀ := evm_run rd1039 with [dup4, swap1, dup2, lt]
   have rd1047 := rd1047₀
@@ -3286,8 +3286,8 @@ theorem scratch_blindAuctionRevealX_loopBody_packed_suffix {I} {g : Sat256}
           (fromByteArrayBigEndian (KEC (mem5.readWithPadding base.toNat packedLen.toNat))) =
         hash)
     (hstore :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded)
     (hflag : UInt256.eq blinded hash = flag) :
     ∃ k' C',
       let base := (⟨32⟩ : UInt256) + fp
@@ -3430,7 +3430,7 @@ theorem scratch_blindAuctionRevealX_callMade_fromCall {σ σ₀ A I} {g : Sat256
       secretsLen secretsEnd sel : UInt256}
     {mem : ByteArray} {aw : UInt256}
     (hperm : I.perm = true)
-    (hbalance : refund ≤ (σ.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+    (hbalance : refund ≤ (σ.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024)
     (rd : RD blindAuctionBytecode I g (initState σ σ₀ g A I) ⟨1349⟩
       [gasArg, revealScratchSenderWord I, refund, freePtr, ⟨0⟩, freePtr, ⟨0⟩,

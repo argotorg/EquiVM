@@ -16,12 +16,12 @@ theorem uniswapMintBody
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hsz36 : 36 ≤ I.calldata.size
   · by_cases hlocked :
-      ((σ.find? I.codeOwner |>.option (⟨0⟩ : UInt256)
-        (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) : UInt256) ≠ (UInt256.ofNat 1)
+      ((σ.get? I.codeOwner |>.option (⟨0⟩ : UInt256)
+        (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) : UInt256) ≠ (UInt256.ofNat 1)
     · exact uniswapMintBodyRevert_locked hcode hsize hwv hsel hsz36 hlocked hdispatch
     · have hunlocked :
-        (σ.find? I.codeOwner |>.option (⟨0⟩ : UInt256)
-          (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+        (σ.get? I.codeOwner |>.option (⟨0⟩ : UInt256)
+          (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
           (⟨1⟩ : UInt256) := by
         exact not_not.mp hlocked
       have hsz4 : 4 ≤ I.calldata.size :=

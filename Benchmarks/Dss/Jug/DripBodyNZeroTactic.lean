@@ -205,7 +205,7 @@ by_cases hRmulOverflowNZero :
       by simpa [σ'_solm] using hfoldCode
     have hfoldNoCodeSolmRaw :
         (UInt256.ofNat
-          ((σ'_solm.find? (dripVatAddress σ'_solm I)).option 0
+          ((σ'_solm.get? (dripVatAddress σ'_solm I)).option 0
             (fun acc => acc.code.size))).toNat = 0 :=
       drip_extCodeSizeWord_zero_lookup_code_zero
         (σ := σ'_solm) (target := dripVatTargetWord σ'_solm I)

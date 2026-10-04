@@ -15,7 +15,7 @@ set_option maxRecDepth 2000000
 namespace StringStoreLite
 
 def currentLengthStorageWord (σ : AccountMap) (I : ExecutionEnv) (slot : UInt256) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)
 
 structure CurrentLengthLoopState where
   ptr : UInt256

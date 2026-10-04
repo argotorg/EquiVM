@@ -64,8 +64,8 @@ abbrev allowanceEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
     steps := [.mindex (allowanceOwnerKey I), .mindex (allowanceSpenderKey I)] }
 
 def allowanceWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (allowanceStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (allowanceStorageSlot I) ⟨0⟩)
 
 theorem allowanceStorageSlot_eq_mapSlot (I : ExecutionEnv)
     (hcanonOwner : (allowanceOwnerWord I).toNat < EVM.addressModulus)
@@ -192,8 +192,8 @@ theorem uniswapX_allowance_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_singleton]; omega)
   have hslot := allowanceStorageSlot_eq_mapSlot_masked I
   have hword :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD
             (mapSlot (allowanceSpenderMaskedWord I)
               (mapSlot (allowanceOwnerMaskedWord I) ⟨2⟩)) ⟨0⟩))
         = allowanceWord σ I := by
@@ -204,7 +204,7 @@ theorem uniswapX_allowance_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (uniswapNestedMappingHashMem ⟨2⟩ (allowanceOwnerMaskedWord I)
         (allowanceSpenderMaskedWord I))
       (UInt256.ofNat 3) ByteArray.empty σ k861 C861 := by
-    simpa [hword] using rd861raw
+    simpa only [hword] using rd861raw
   exact RD.uniswapReturnWord861FromMem
     (val := allowanceWord σ I) (ret := ⟨861⟩) (R := [sel])
     (mem := uniswapNestedMappingHashMem ⟨2⟩ (allowanceOwnerMaskedWord I)

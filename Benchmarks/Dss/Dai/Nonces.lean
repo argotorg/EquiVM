@@ -26,8 +26,8 @@ def noncesStorageSlot (I : ExecutionEnv) : UInt256 :=
   noncesSlot (noncesArgKey I)
 
 def noncesWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (noncesStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (noncesStorageSlot I) ⟨0⟩)
 
 theorem noncesStorageSlot_eq_mapSlot_masked (I : ExecutionEnv) :
     noncesStorageSlot I = mapSlot (noncesArgMaskedWord I) ⟨4⟩ := by
@@ -128,8 +128,8 @@ theorem daiX_nonces_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_singleton]; omega)
   have hslot := noncesStorageSlot_eq_mapSlot_masked I
   have hword :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (mapSlot (noncesArgMaskedWord I) ⟨4⟩) ⟨0⟩))
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD (mapSlot (noncesArgMaskedWord I) ⟨4⟩) ⟨0⟩))
         = noncesWord σ I := by
     unfold noncesWord
     rw [hslot]
@@ -137,7 +137,7 @@ theorem daiX_nonces_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (noncesWord σ I :: ⟨524⟩ :: [sel])
       (daiMappingHashMem ⟨4⟩ (noncesArgMaskedWord I))
       (UInt256.ofNat 3) ByteArray.empty σ k524 C524 := by
-    simpa [hword] using rd524raw
+    simpa only [hword] using rd524raw
   exact RD.daiReturnWordFromMem
     (val := noncesWord σ I) (ret := ⟨524⟩) (R := [sel])
     (mem := daiMappingHashMem ⟨4⟩ (noncesArgMaskedWord I))

@@ -12,7 +12,7 @@ namespace Benchmarks.Dss.Vow
 theorem storageStore_substate (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).substate = evm.substate := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
 
 theorem cageFlapperAddress_eq_target (σ : AccountMap) (I : ExecutionEnv) :
     EVM.address (AccountAddress.ofNat (vowAddressReturnWord ⟨2⟩ σ I).toNat) =
@@ -437,7 +437,7 @@ theorem vowCageBodyToFlapperCage
         have hDaiTargetPostEvm :
             kissDaiTargetWord σ_dai I = kissDaiTargetWord σClearedEvm I := by
           have hslot :=
-            typedCallViaEVM_static_storage_findD_of_accounts_eq
+            typedCallViaEVM_static_storage_getD_of_accounts_eq
               (cfg := config) (σ := σClearedEvm) (evm := evmDaiEvmIn)
               (evm' := evmDaiEvmOut) (target := EVM.address (kissVatAddress σClearedEvm I))
               (name := "dai")
@@ -633,7 +633,7 @@ theorem vowCageBodyToFlopperCage
       vowAddressReturnWord ⟨2⟩ evmDai.accountMap I =
         vowAddressReturnWord ⟨2⟩ σClearedSolm I := by
     have hslot :=
-      typedCallViaEVM_static_storage_findD_of_accounts_eq
+      typedCallViaEVM_static_storage_getD_of_accounts_eq
         (cfg := config) (σ := σClearedSolm) (evm := evmAsh) (evm' := evmDai)
         (target := EVM.address (cageVatAddressOf evmAsh)) (name := "dai")
         (args := [.address (flapFlapperAddressOf evmAsh)]) (z := true)
@@ -1126,7 +1126,7 @@ theorem vowCageBodyToVatSin
     simpa [evmDai2EvmIn, evmDai2EvmOut] using hcallDai2EvmRaw
   have hDai2TargetPostEvm : kissDaiTargetWord σ_dai2 I = kissDaiTargetWord σ_flop I := by
     have hslot :=
-      typedCallViaEVM_static_storage_findD_of_accounts_eq
+      typedCallViaEVM_static_storage_getD_of_accounts_eq
         (cfg := config) (σ := σ_flop) (evm := evmDai2EvmIn)
         (evm' := evmDai2EvmOut) (target := EVM.address (kissVatAddress σ_flop I))
         (name := "dai") (args := [.address I.codeOwner]) (z := zDai2)

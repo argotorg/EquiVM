@@ -171,7 +171,7 @@ def weth9StoreV (len : UInt256) (dataword : UInt256) : UInt256 :=
 
 def weth9OldWordsOf (σ : AccountMap) (cO : AccountAddress) (slot : UInt256) : Nat :=
   solidityBytesDataWordCount
-    (weth9DecodeLenWord (σ.find? cO |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩))).toNat
+    (weth9DecodeLenWord (σ.get? cO |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩))).toNat
 
 def weth9EvmNameMap (σ : AccountMap) (cO : AccountAddress) : AccountMap :=
   clearDataWordsForwardFrom cO
@@ -186,7 +186,7 @@ def weth9EvmSymMap (σ : AccountMap) (cO : AccountAddress) : AccountMap :=
 def weth9EvmFinalMap (σ : AccountMap) (cO : AccountAddress) : AccountMap :=
   sstoreAccountMap cO (weth9EvmSymMap σ cO) ⟨2⟩
     (UInt256.lor ⟨18⟩ (UInt256.land (UInt256.lnot ⟨255⟩)
-      ((weth9EvmSymMap σ cO).find? cO |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩))))
+      ((weth9EvmSymMap σ cO).get? cO |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩))))
 
 def weth9CtorMemSymSub : ByteArray :=
   (⟨1⟩ : UInt256).toByteArray.write 0 weth9CtorMemSym 0 32
@@ -303,8 +303,8 @@ theorem weth9WriteReconcile (cO : AccountAddress) (τ_evm τ_solm : AccountMap)
       = sstoreAccountMap cO
         (clearDataWordsForwardFrom cO τ_solm (Solm.solidityBytesDataBaseSlot slot) ⟨0⟩
           (weth9OldWordsOf τ_solm cO slot)) slot sw := by
-  have hload : (τ_evm.find? cO |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩)) =
-      (τ_solm.find? cO |>.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩)) :=
+  have hload : (τ_evm.get? cO |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩)) =
+      (τ_solm.get? cO |>.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩)) :=
     by rw [hτ]
   have how : weth9OldWordsOf τ_evm cO slot = weth9OldWordsOf τ_solm cO slot := by
     unfold weth9OldWordsOf; rw [hload]
@@ -377,15 +377,15 @@ theorem weth9FinalReconcile (cO : AccountAddress) (evm0 : EVM.State) (σ : Accou
       ⟨1⟩ ⟨4⟩ weth9SymWord (solidityShortBytesWord (String.toByteArray "WETH")) (Or.inr rfl)
       (by native_decide) hName
   have hload2 :
-      ((weth9EvmSymMap σ cO).find? cO |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) =
-        ((weth9SolmSymbolState evm0).accountMap.find? cO |>.option ⟨0⟩
-          (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) :=
+      ((weth9EvmSymMap σ cO).get? cO |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) =
+        ((weth9SolmSymbolState evm0).accountMap.get? cO |>.option ⟨0⟩
+          (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) :=
     by rw [hSym]
   rw [weth9EvmFinalMap, weth9SolmFinalState, storageStore_accountMap,
     weth9SolmSymbolState_executionEnv, hcO,
     show Solm.EVM.storageLoad (weth9SolmSymbolState evm0) cO ⟨2⟩ =
-      ((weth9SolmSymbolState evm0).accountMap.find? cO |>.option ⟨0⟩
-        (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) from rfl,
+      ((weth9SolmSymbolState evm0).accountMap.get? cO |>.option ⟨0⟩
+        (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) from rfl,
     ← hload2, weth9DecimalsWordComm]
   rw [← hSym]
 

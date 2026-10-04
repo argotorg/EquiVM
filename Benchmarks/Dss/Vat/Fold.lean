@@ -62,8 +62,8 @@ theorem RD.vatFoldRateStoreOk
   have rd5752 := rd5751.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5753raw⟩ := rd5752.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (base + ⟨1⟩) ⟨0⟩)) = old := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (base + ⟨1⟩) ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd5753 := rd5753raw
   rw [hold] at rd5753
@@ -139,8 +139,8 @@ theorem RD.vatFoldRateStoreRevert
   have rd5752 := rd5751.add (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5753raw⟩ := rd5752.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (base + ⟨1⟩) ⟨0⟩)) = old := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (base + ⟨1⟩) ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd5753 := rd5753raw
   rw [hold] at rd5753
@@ -184,7 +184,7 @@ theorem RD.vatFoldArtMulOk
   have rd5769 := h.dup1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5770raw⟩ := rd5769.sload (by native_decide) (by evm_ov)
   have hart :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD base ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD base ⟨0⟩)) =
         art := by
     simp [art, solcSlotWord]
   have rd5770 := rd5770raw
@@ -226,7 +226,7 @@ theorem RD.vatFoldArtMulRevert
   have rd5769 := h.dup1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5770raw⟩ := rd5769.sload (by native_decide) (by evm_ov)
   have hart :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD base ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD base ⟨0⟩)) =
         art := by
     simp [art, solcSlotWord]
   have rd5770 := rd5770raw

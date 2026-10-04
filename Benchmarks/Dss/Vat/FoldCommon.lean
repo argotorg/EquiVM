@@ -1630,8 +1630,8 @@ theorem RD.vatFoldDaiStoreOk
     (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5808raw⟩ := rd5807pre.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD daiSlotWord ⟨0⟩)) = old := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD daiSlotWord ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd5808 := rd5808raw
   rw [hold] at rd5808
@@ -1754,8 +1754,8 @@ theorem RD.vatFoldDaiStoreRevert
     (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5808raw⟩ := rd5807pre.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD daiSlotWord ⟨0⟩)) = old := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD daiSlotWord ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd5808 := rd5808raw
   rw [hold] at rd5808
@@ -1798,7 +1798,7 @@ theorem RD.vatFoldDebtStoreReturnOk
   have rd5848 := h.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5849raw⟩ := rd5848.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨7⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨7⟩ ⟨0⟩)) =
         old := by
     simp [old, solcSlotWord]
   have rd5849 := rd5849raw
@@ -1845,7 +1845,7 @@ theorem RD.vatFoldDebtStoreRevert
   have rd5848 := h.push1 ⟨7⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5849raw⟩ := rd5848.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨7⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨7⟩ ⟨0⟩)) =
         old := by
     simp [old, solcSlotWord]
   have rd5849 := rd5849raw

@@ -385,8 +385,8 @@ theorem RD.cureLiftPosZeroOk {g : Sat256} {s0 : State}
   obtain ⟨_, _, rdLoad⟩ := rdSlot.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have hposRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (solcMappingSlot ⟨5⟩ key) ⟨0⟩)) = ⟨0⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (solcMappingSlot ⟨5⟩ key) ⟨0⟩)) = ⟨0⟩ := by
     simpa [solcSlotWord] using hpos
   rw [hposRaw] at rdLoad
   have rdIsZero := rdLoad.iszero (by native_decide) (by simp only [List.length_cons]; omega)
@@ -458,8 +458,8 @@ theorem RD.cureLiftPosNonzeroRevert {g : Sat256} {s0 : State}
   obtain ⟨_, _, rdLoad⟩ := rdSlot.sload (by native_decide)
     (by simp only [List.length_cons]; omega)
   have hposRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (solcMappingSlot ⟨5⟩ key) ⟨0⟩)) ≠ ⟨0⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (solcMappingSlot ⟨5⟩ key) ⟨0⟩)) ≠ ⟨0⟩ := by
     simpa [solcSlotWord] using hpos
   have rdIsZero := rdLoad.iszero (by native_decide) (by simp only [List.length_cons]; omega)
   have rdIsZero' := rdIsZero

@@ -10,7 +10,7 @@ namespace OpenZeppelinBench.Ownable2Step
 /-! ## `owner()` getter -/
 
 def ownerWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
 abbrev ownerReturnWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (ownerWord σ I) solcAddrMask

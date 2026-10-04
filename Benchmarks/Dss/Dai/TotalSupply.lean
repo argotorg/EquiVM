@@ -14,8 +14,8 @@ abbrev totalSupplyStorageSlot : UInt256 :=
   ⟨1⟩
 
 def totalSupplyWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD totalSupplyStorageSlot ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD totalSupplyStorageSlot ⟨0⟩)
 
 theorem daiDecode_totalSupply_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (totalSupplyTransition.params.map Param.name)

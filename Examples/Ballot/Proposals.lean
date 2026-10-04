@@ -36,13 +36,13 @@ def proposalCountEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
     steps := [.aindex (.int (Int.ofNat (proposalsIndexWord I).toNat)), .field "voteCount"] }
 
 def proposalsLengthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)
 
 def proposalNameWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (proposalNameSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (proposalNameSlot I) ⟨0⟩)
 
 def proposalCountWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (proposalCountSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (proposalCountSlot I) ⟨0⟩)
 
 def proposalsLengthCurrent (evm : EVM.State) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩
@@ -484,7 +484,7 @@ theorem ballotX_proposals_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpiT (by
       have hlt' :
           (proposalsIndexWord I).lt
-              (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) = ⟨1⟩ := by
+              (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)) = ⟨1⟩ := by
         simpa [proposalsLengthWord] using hlt
       rw [hlt']; decide) (by jump_dest) ]
   have rd702 := evm_run rd686 with [
@@ -545,7 +545,7 @@ theorem ballotX_proposals_oob {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpiNT (by
       have hlt' :
           (proposalsIndexWord I).lt
-              (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) = ⟨0⟩ := by
+              (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)) = ⟨0⟩ := by
         simpa [proposalsLengthWord] using hlt
       exact hlt'),
     push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov) ]

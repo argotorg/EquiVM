@@ -25,7 +25,7 @@ theorem uniswapSyncX_decoded {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 theorem uniswapSyncX_lockEntered {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨1467⟩ [sel]
@@ -48,7 +48,7 @@ theorem uniswapSyncRuntimeLockEntered
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
     (hperm : I.perm = true)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩) :
     ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6097⟩
@@ -70,7 +70,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfExtcodesize
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
     (hperm : I.perm = true)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩) :
     ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6160⟩
@@ -138,7 +138,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallReady
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
     (hperm : I.perm = true)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -179,7 +179,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallEntry
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
     (hperm : I.perm = true)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -222,7 +222,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallMade
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -386,7 +386,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallSuccessGuard
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -454,7 +454,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfReturnWordDecoded
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -523,7 +523,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Sloaded
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -586,7 +586,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfSelectorReady
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -657,7 +657,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfCalldataRebuilt
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -727,7 +727,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfToken1Cleaned
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -802,7 +802,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfExtcodesize
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -870,7 +870,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallEntry
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -938,7 +938,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallMade
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -1095,7 +1095,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfStaticcallSuccessGuard
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -1193,7 +1193,7 @@ theorem uniswapSyncRuntimeSecondBalanceOfReturnWordDecoded
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -1315,7 +1315,7 @@ theorem uniswapSyncRuntimeReserveSlotUnpacked
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -1410,7 +1410,7 @@ theorem uniswapSyncRuntimeUpdateOverflowGuardOk
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -1509,7 +1509,7 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroSkipsCumulatives
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -1619,7 +1619,7 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroStoresPackedReserves
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -1779,7 +1779,7 @@ theorem uniswapSyncRuntimeUpdateElapsedZeroReturns
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
     (hperm : I.perm = true) (hdepth : I.depth.val < 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -1927,7 +1927,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfMissingCodeReverts
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
     (hperm : I.perm = true)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0NoCode :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -1954,7 +1954,7 @@ theorem uniswapSyncRuntimeFirstBalanceOfMissingCodeReverts
 /-- After the external wrapper, `sync()` reverts when the Uniswap lock is already held. -/
 theorem uniswapSyncX_locked {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨1467⟩ [sel]

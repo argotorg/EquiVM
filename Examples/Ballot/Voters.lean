@@ -36,13 +36,13 @@ def votersPackedSlot (I : ExecutionEnv) : UInt256 := votersBaseSlot I + ⟨1⟩
 def votersVoteSlot (I : ExecutionEnv) : UInt256 := votersBaseSlot I + ⟨2⟩
 
 def votersWeightWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (votersBaseSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (votersBaseSlot I) ⟨0⟩)
 
 def votersPackedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (votersPackedSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (votersPackedSlot I) ⟨0⟩)
 
 def votersVoteWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (votersVoteSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (votersVoteSlot I) ⟨0⟩)
 
 def votersVotedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (votersPackedWord σ I) ⟨255⟩

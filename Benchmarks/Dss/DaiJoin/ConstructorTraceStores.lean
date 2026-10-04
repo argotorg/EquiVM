@@ -46,7 +46,7 @@ theorem daiJoinCtorVatStoreReach
       (daiJoinCtorWardsHashMem I vat dai) (UInt256.ofNat 6) ByteArray.empty
       (sstoreAccountMap I.codeOwner σLive ⟨1⟩ (daiJoinCtorVatStored σLive I vat))
       k' C' := by
-  let oldVat := (σLive.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨1⟩ ⟨0⟩))
+  let oldVat := (σLive.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨1⟩ ⟨0⟩))
   obtain ⟨_, _, rd89⟩ := (daiJoin_ctor_run rd87 with [dup1]).sload
     (by daiJoin_ctor_decode) (by evm_ov)
   have rdBeforeStore := daiJoin_ctor_run rd89 with [
@@ -79,7 +79,7 @@ theorem daiJoinCtorDaiStoreReach
       [] (daiJoinCtorWardsHashMem I vat dai) (UInt256.ofNat 6) ByteArray.empty
       (sstoreAccountMap I.codeOwner σVat ⟨2⟩ (daiJoinCtorDaiStored σVat I dai))
       k' C' := by
-  let oldDai := (σVat.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩))
+  let oldDai := (σVat.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩))
   obtain ⟨_, _, rd120⟩ := (daiJoin_ctor_run rd116 with [push1 ⟨2⟩, dup1]).sload
     (by daiJoin_ctor_decode) (by evm_ov)
   have rdBeforeStore := daiJoin_ctor_run rd120 with [

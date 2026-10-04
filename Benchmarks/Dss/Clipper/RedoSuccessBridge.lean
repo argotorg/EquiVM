@@ -40,8 +40,8 @@ theorem clipperRedoChipWord_eq_of_accounts_eq
     clipperRedoChipWord σ I = clipperRedoChipSolmWord evm := by
   have hslot := congrArg
     (fun m : AccountMap =>
-      (m.find? I.codeOwner).option (⟨0⟩ : UInt256)
-        (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) hAccounts
+      (m.get? I.codeOwner).option (⟨0⟩ : UInt256)
+        (fun acc => acc.storage.getD ⟨8⟩ ⟨0⟩)) hAccounts
   rw [clipperRedoChipWord, clipperRedoChipSolmWord, hevmEnv]
   simpa [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
     solcSlotWord] using congrArg

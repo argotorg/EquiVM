@@ -17,7 +17,7 @@ namespace Benchmarks.WETH9
 
 /-- The contract's ether balance (the value `SELFBALANCE` pushes and `totalSupply` returns). -/
 def totalSupplyWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)
+  σ.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)
 
 theorem weth9SelectorDispatchTotalSupply {I : ExecutionEnv} (hsel : selIs I (weth9SelBytes 2)) :
     selectorDispatchMsg contract I.calldata = some totalSupplyTransition := by
@@ -45,7 +45,7 @@ theorem weth9TotalSupplyBodyReturns {σ σ₀ A I} {g : Sat256}
     (.env .selfbalance) = EvalResult.ok (.int (Int.ofNat (totalSupplyWord σ I).toNat))
   simp only [evalExpr?, envValue, totalSupplyWord, initState, State.lookupAccount,
     Option.option, pure]
-  cases σ.find? I.codeOwner <;> rfl
+  cases σ.get? I.codeOwner <;> rfl
 
 /-! ## EVM trace -/
 

@@ -523,13 +523,13 @@ theorem clipperStorageStore_σ₀
     (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
 
 theorem clipperStorageStore_executionEnv
     (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).executionEnv = evm.executionEnv := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
 
 theorem clipperRedoPostTicAccountMap_eq
     {σ : AccountMap} {I : ExecutionEnv} (evm : EVM.State)

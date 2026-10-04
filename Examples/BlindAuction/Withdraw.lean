@@ -21,7 +21,7 @@ def withdrawAmountSlot (I : ExecutionEnv) : UInt256 :=
   pendingReturnsSlot (withdrawSenderKey I)
 
 def withdrawAmountWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (withdrawAmountSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (withdrawAmountSlot I) ⟨0⟩)
 
 def withdrawZeroMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
   sstoreAccountMap I.codeOwner σ (withdrawAmountSlot I) ⟨0⟩
@@ -390,12 +390,12 @@ theorem withdrawPendingReturns_clear (evm : EVM.State) (locals : Store)
 theorem withdrawZeroState_originalMap (evm : EVM.State) :
     (withdrawZeroState evm).σ₀ = evm.σ₀ := by
   unfold withdrawZeroState withdrawClearedState Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
 
 theorem withdrawZeroState_substate (evm : EVM.State) :
     (withdrawZeroState evm).substate = evm.substate := by
   unfold withdrawZeroState withdrawClearedState Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
 
 theorem withdrawCallStore_success_get (amount : UInt256) (success : Bool) (out : ByteArray) :
     (withdrawCallStore amount success out)["success"]? = some (.bool success) := by
@@ -419,8 +419,8 @@ theorem withdrawCallStore_amount_get (amount : UInt256) (success : Bool) (out : 
 
 theorem withdrawAccountMapEquiv_balance {σ τ : AccountMap}
     (hστ : σ = τ) (addr : AccountAddress) :
-    (σ.find? addr |>.elim ⟨0⟩ (·.balance)) =
-      (τ.find? addr |>.elim ⟨0⟩ (·.balance)) := by
+    (σ.get? addr |>.elim ⟨0⟩ (·.balance)) =
+      (τ.get? addr |>.elim ⟨0⟩ (·.balance)) := by
   rw [hστ]
 
 theorem evalExpr_withdraw_sender (evm : EVM.State) (locals : Store) :
@@ -766,7 +766,7 @@ theorem blindAuctionX_withdraw_callMade {σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpos : withdrawAmountWord σ I ≠ ⟨0⟩)
     (hbalance : withdrawAmountWord σ I ≤
-      (withdrawZeroMap σ I |>.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+      (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -855,7 +855,7 @@ theorem blindAuctionX_withdraw_callInsufficient {σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpos : withdrawAmountWord σ I ≠ ⟨0⟩)
     (hbalance : ¬ withdrawAmountWord σ I ≤
-      (withdrawZeroMap σ I |>.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+      (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024) :
     ∃ k C, RD blindAuctionBytecode I g (initState σ σ₀ g A I) ⟨767⟩
       [⟨0⟩, ⟨128⟩, withdrawAmountWord σ I, withdrawSourceWord I, ⟨0⟩,
@@ -1057,7 +1057,7 @@ theorem blindAuctionX_withdraw_callInsufficient_revert {σ σ₀ A I} {g : Sat25
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k C)
     (hpos : withdrawAmountWord σ I ≠ ⟨0⟩)
     (hbalance : ¬ withdrawAmountWord σ I ≤
-      (withdrawZeroMap σ I |>.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+      (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024) :
     RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨_, _, rd767⟩ :=
@@ -1159,7 +1159,7 @@ theorem blindAuctionWithdrawBodyCore {σ σ₀ A I}
             exact Fin.ext hv
           omega
         by_cases hbalance : withdrawAmountWord σ I ≤
-            (withdrawZeroMap σ I |>.find? I.codeOwner |>.elim ⟨0⟩ (·.balance))
+            (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance))
         · obtain ⟨σ', z, out, A_in, callGas, kCall, CCall, hTheta, houtsz, rd767⟩ :=
             blindAuctionX_withdraw_callMade (g := Sat256.ofUInt256 g) hperm hwv hreach
               hzero hbalance hdepthLt
@@ -1255,8 +1255,8 @@ theorem blindAuctionWithdrawBodyCore {σ σ₀ A I}
               substate := (evmSZero.addAccessedAccount
                 (EVM.address evmSZero.executionEnv.source)).substate }
           have hBalEq :
-              (withdrawZeroMap σ I |>.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)) =
-                (withdrawZeroMap σ I |>.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)) :=
+              (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)) =
+                (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)) :=
             withdrawAccountMapEquiv_balance hZeroMap I.codeOwner
           have hcall :
               callViaEVM evmSZero (EVM.address evmSZero.executionEnv.source)
@@ -1269,7 +1269,7 @@ theorem blindAuctionWithdrawBodyCore {σ σ₀ A I}
               rw [wordOfInt_ofNat_toNat] at hvalueBal
               have hvalueBalS :
                     withdrawAmountWord σ I ≤
-                      (withdrawZeroMap σ I |>.find? I.codeOwner |>.elim ⟨0⟩
+                      (withdrawZeroMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩
                         (·.balance)) := by
                 simpa [evmSZero, withdrawZeroState, withdrawClearedState, evmS, initState,
                   withdrawZeroMap, storageStore_accountMap,

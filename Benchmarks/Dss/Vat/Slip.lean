@@ -1320,7 +1320,7 @@ theorem RD.vatSlipToStoreValue {g : Sat256} {s0 : State}
     mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4676⟩ := rd4675.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   rw [hold] at rd4676
   have rd4679 := rd4676.push2 ⟨4685⟩ (by native_decide) (by evm_ov)
@@ -1412,7 +1412,7 @@ theorem RD.vatSlipToStoreRevert {g : Sat256} {s0 : State}
     mem_cost hslot (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4676⟩ := rd4675.sload (by native_decide) (by evm_ov)
   have hold :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   rw [hold] at rd4676
   have rd4679 := rd4676.push2 ⟨4685⟩ (by native_decide) (by evm_ov)

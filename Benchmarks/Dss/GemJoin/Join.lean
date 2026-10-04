@@ -3005,17 +3005,17 @@ theorem gemJoin_extCodeSizeWord_ne_zero_lookup_code_pos
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -3134,13 +3134,15 @@ theorem gemJoinJoinBodyCoreVatNoCode
     rw [hvatAddr]
     unfold Reasoning.Theory.extCodeSizeWord at hnoCodeSolm
     cases hacc :
-      σ.find? (AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I)) with
+      σ.get? (AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I)) with
     | none =>
-        simpa [evmSolm, initState, State.lookupAccount, hacc] using
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState,
+          State.lookupAccount, hacc] using
           (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
     | some acc =>
         have hword := congrArg UInt256.toNat hnoCodeSolm
-        simpa [evmSolm, initState, State.lookupAccount, hacc] using hword
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState,
+          State.lookupAccount, hacc] using hword
   have hbody :
       ExecTransitionBody config contract evmSolm (joinStore I) joinTransition.body .reverted := by
     simpa [evmSolm, gemJoinSlotWord, initState, Solm.EVM.storageLoad, State.lookupAccount] using
@@ -3488,14 +3490,16 @@ theorem gemJoinJoinBodyCoreGemNoCode
     rw [hgemAddrSolm]
     unfold Reasoning.Theory.extCodeSizeWord at hgemNoCodeSolmWord
     cases hacc :
-      σ_slip_solm.find? (AccountAddress.ofUInt256
+      σ_slip_solm.get? (AccountAddress.ofUInt256
         (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I)) with
     | none =>
-        simpa [evmSolmSlip, evmSolm, initState, State.lookupAccount, hacc] using
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolmSlip, evmSolm,
+          initState, State.lookupAccount, hacc] using
           (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
     | some acc =>
         have hword := congrArg UInt256.toNat hgemNoCodeSolmWord
-        simpa [evmSolmSlip, evmSolm, initState, State.lookupAccount, hacc] using hword
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolmSlip, evmSolm,
+          initState, State.lookupAccount, hacc] using hword
   have hbody :
       ExecTransitionBody config contract evmSolm (joinStore I) joinTransition.body .reverted := by
     exact gemJoinJoinBodyRevertsGemNoCode evmSolm evmSolmSlip I

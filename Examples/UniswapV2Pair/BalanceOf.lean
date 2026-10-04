@@ -30,8 +30,8 @@ def balanceOfStorageSlot (I : ExecutionEnv) : UInt256 :=
   balanceOfSlot (balanceOfOwnerKey I)
 
 def balanceOfWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (balanceOfStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (balanceOfStorageSlot I) ⟨0⟩)
 
 theorem balanceOfStorageSlot_eq_mapSlot (I : ExecutionEnv)
     (hcanon : (balanceOfOwnerWord I).toNat < EVM.addressModulus) :
@@ -135,8 +135,8 @@ theorem uniswapX_balanceOf_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_singleton]; omega)
   have hslot := balanceOfStorageSlot_eq_mapSlot_masked I
   have hword :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (mapSlot (balanceOfOwnerMaskedWord I) ⟨1⟩) ⟨0⟩))
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD (mapSlot (balanceOfOwnerMaskedWord I) ⟨1⟩) ⟨0⟩))
         = balanceOfWord σ I := by
     unfold balanceOfWord
     rw [hslot]
@@ -144,7 +144,7 @@ theorem uniswapX_balanceOf_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (balanceOfWord σ I :: ⟨861⟩ :: [sel])
       (uniswapMappingHashMem ⟨1⟩ (balanceOfOwnerMaskedWord I))
       (UInt256.ofNat 3) ByteArray.empty σ k861 C861 := by
-    simpa [hword] using rd861raw
+    simpa only [hword] using rd861raw
   exact RD.uniswapReturnWord861FromMem
     (val := balanceOfWord σ I) (ret := ⟨861⟩) (R := [sel])
     (mem := uniswapMappingHashMem ⟨1⟩ (balanceOfOwnerMaskedWord I))

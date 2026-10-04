@@ -61,7 +61,7 @@ theorem transferFromAfterAllowance_codeOwner (evm : EVM.State) (I : ExecutionEnv
     (transferFromAfterAllowanceState evm I).executionEnv.codeOwner =
       evm.executionEnv.codeOwner := by
   simp only [transferFromAfterAllowanceState, Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? evm.executionEnv.codeOwner with
+  cases evm.accountMap.get? evm.executionEnv.codeOwner with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 
@@ -350,7 +350,8 @@ theorem uniswapTransferFromX_allowanceFiniteAfterDebit {σ σ₀ A I} {g : Sat25
         transferFromFromBalanceWord (transferFromAfterAllowanceState
           (initState σ σ₀ g A I) I) I := by
     unfold uniswapCodeOwnerStorageWord transferFromFromBalanceWord Solm.EVM.storageLoad
-    simp [State.lookupAccount, Account.lookupStorage, hstateMap, hfromSlot, hcodeOwner]
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, Account.lookupStorage,
+      hstateMap, hfromSlot, hcodeOwner]
   have hbalanceEvm : (transferFromValueWord I).toNat ≤
       (uniswapCodeOwnerStorageWord I σAllowance (mapSlot (transferFromFromWord I) ⟨1⟩)).toNat := by
     rw [hbalanceWord]
@@ -660,7 +661,7 @@ def transferFromAfterBalanceState (evm : EVM.State) (I : ExecutionEnv) : EVM.Sta
 theorem transferFromAfterBalance_codeOwner (evm : EVM.State) (I : ExecutionEnv) :
     (transferFromAfterBalanceState evm I).executionEnv.codeOwner = evm.executionEnv.codeOwner := by
   simp only [transferFromAfterBalanceState, Solm.EVM.storageStore, State.lookupAccount]
-  cases (transferFromAfterAllowanceState evm I).accountMap.find? evm.executionEnv.codeOwner with
+  cases (transferFromAfterAllowanceState evm I).accountMap.get? evm.executionEnv.codeOwner with
   | none => exact transferFromAfterAllowance_codeOwner evm I
   | some acc =>
       simp only [Option.option, State.setAccount, Account.updateStorage,
@@ -706,7 +707,7 @@ theorem transferFromAfterBalanceMax_codeOwner (evm : EVM.State) (I : ExecutionEn
     (transferFromAfterBalanceStateMax evm I).executionEnv.codeOwner =
       evm.executionEnv.codeOwner := by
   simp only [transferFromAfterBalanceStateMax, Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? evm.executionEnv.codeOwner with
+  cases evm.accountMap.get? evm.executionEnv.codeOwner with
   | none => rfl
   | some acc => simp only [Option.option, State.setAccount, Account.updateStorage]
 
@@ -908,7 +909,8 @@ theorem uniswapTransferFromX_allowanceFiniteAfterCreditCalc {σ σ₀ A I} {g : 
         transferFromToBalanceWord (initState σ σ₀ g A I) I := by
     unfold uniswapCodeOwnerStorageWord transferFromToBalanceWord Solm.EVM.storageLoad
     rw [hinitCodeOwner]
-    simp [State.lookupAccount, Account.lookupStorage, hbalanceMap, htoSlot]
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount,
+      Account.lookupStorage, hbalanceMap, htoSlot]
   have hfitWord :
       (uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferFromToWord I) ⟨1⟩)).toNat +
         (transferFromValueWord I).toNat < UInt256.size := by
@@ -981,7 +983,8 @@ theorem uniswapTransferFromX_allowanceMaxAfterCreditCalc {σ σ₀ A I} {g : Sat
   have htoBalanceWord :
       uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferFromToWord I) ⟨1⟩) =
         transferFromToBalanceWordMax (initState σ σ₀ g A I) I := by
-    simp [σDebit, uniswapCodeOwnerStorageWord, transferFromToBalanceWordMax,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, σDebit, uniswapCodeOwnerStorageWord,
+      transferFromToBalanceWordMax,
       transferFromAfterBalanceStateMax, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, storageStore_accountMap, hfromSlot, htoSlot]
   have hfitWord :

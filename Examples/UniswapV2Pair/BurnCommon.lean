@@ -92,7 +92,7 @@ theorem uniswapBurnX_shortarg {σ σ₀ A I} {g : Sat256} {sel : UInt256}
 already held. -/
 theorem uniswapBurnX_locked {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨4093⟩
@@ -112,7 +112,7 @@ Uniswap lock when it is not already held. -/
 theorem uniswapBurnX_lockEntered {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (hdecoded : ∃ k C, RD uniswapV2PairBytecode I g
       (initState σ σ₀ g A I) ⟨4093⟩
@@ -159,7 +159,7 @@ theorem uniswapBurnBodyCoreRevert_locked
     (hcode : I.code = uniswapV2PairBytecode) (hsize : I.calldata.size < UInt256.size)
     (hwv : I.weiValue = ⟨0⟩) (hsz36 : 36 ≤ I.calldata.size)
     (hlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some burnTransition)
     (hreach : ∃ k C, RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
@@ -199,7 +199,7 @@ theorem uniswapBurnBodyRevert_locked
     (hwv : I.weiValue = ⟨0⟩) (hsel : selIs I ⟨#[0x89, 0xaf, 0xcb, 0x44]⟩)
     (hsz36 : 36 ≤ I.calldata.size)
     (hlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩)
     (hdispatch : dispatchMsg contract I.calldata = some burnTransition) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by

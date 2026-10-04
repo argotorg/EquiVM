@@ -647,8 +647,8 @@ theorem RD.endLiveGuardOk {code : ByteArray} {g : Sat256} {s0 : State}
   have rd3 := h.jumpdest hd0 (by evm_ov) |>.push1 ⟨8⟩ hd1 (by evm_ov)
   obtain ⟨_, _, rd4⟩ := rd3.sload hd3 (by evm_ov)
   have hliveRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) = ⟨1⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨8⟩ ⟨0⟩)) = ⟨1⟩ := by
     simpa [solcSlotWord] using hlive
   rw [hliveRaw] at rd4
   have rd6 := rd4.push1 ⟨1⟩ hd4 (by evm_ov)
@@ -676,13 +676,13 @@ theorem RD.endLiveGuardRevert {code : ByteArray} {g : Sat256} {s0 : State}
   have rd6 := rd4.push1 ⟨1⟩ hd4 (by evm_ov)
   have rd7₀ := rd6.eq hd6 (by evm_ov)
   have hliveRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) ≠ ⟨1⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨8⟩ ⟨0⟩)) ≠ ⟨1⟩ := by
     simpa [solcSlotWord] using hlive
   have heq0 :
       UInt256.eq ⟨1⟩
-        (σ.find? ee.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) = ⟨0⟩ := by
+        (σ.get? ee.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD ⟨8⟩ ⟨0⟩)) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h1 => hliveRaw h1.symm)
   have rd7 := rd7₀
   rw [heq0] at rd7

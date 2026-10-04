@@ -134,16 +134,16 @@ theorem poke_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : U
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem pokePipCode_zero_of_codeSize_zero {σ σ₀ A I} {g : UInt256}
     (hzero :
@@ -179,8 +179,9 @@ theorem pokePipCode_pos_of_codeSize_ne_zero {σ σ₀ A I} {g : UInt256}
         (((initState σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (pokePipAddress σ I)).option 0 (fun acc => acc.code.size)) =
         Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) := by
-    cases hacc : σ.find? (AccountAddress.ofUInt256 (pokePipTargetWord σ I)) <;>
-      simp [initState, State.lookupAccount, Reasoning.Theory.extCodeSizeWord,
+    cases hacc : σ.get? (AccountAddress.ofUInt256 (pokePipTargetWord σ I)) <;>
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, initState, State.lookupAccount,
+        Reasoning.Theory.extCodeSizeWord,
         pokePipAddress_eq_target σ I, hacc, Option.option] <;>
       native_decide
   exact hne (by rw [← hword, hwordZero])
@@ -224,10 +225,11 @@ theorem pokeVatCode_pos_of_codeSize_ne_zero {evm : EVM.State}
         Reasoning.Theory.extCodeSizeWord evm.accountMap
           (pokeVatTargetWord evm.accountMap evm.executionEnv) := by
     cases hacc :
-        evm.accountMap.find?
+        evm.accountMap.get?
           (AccountAddress.ofUInt256
             (pokeVatTargetWord evm.accountMap evm.executionEnv)) <;>
-      simp [State.lookupAccount, Reasoning.Theory.extCodeSizeWord,
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount,
+        Reasoning.Theory.extCodeSizeWord,
         pokeVatAddress_eq_target evm.accountMap evm.executionEnv, hacc, Option.option] <;>
       native_decide
   exact hne (by rw [← hword, hwordZero])

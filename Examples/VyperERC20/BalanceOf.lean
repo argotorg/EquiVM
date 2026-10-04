@@ -22,7 +22,7 @@ def balanceOfSlot (I : ExecutionEnv) : UInt256 :=
   erc20BalanceOfSlot (.address (AccountAddress.ofNat (balanceOfOwnerWord I).toNat))
 
 def balanceOfWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (balanceOfSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (balanceOfSlot I) ⟨0⟩)
 
 def balanceOfSelectorWord : UInt256 :=
   ⟨0x70a08231⟩

@@ -261,7 +261,7 @@ theorem endSkip_storageStore_σ₀ (evm : EVM.State) (addr : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount,
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount,
     Account.updateStorage]
 
 def endSkipStoreGrab (σ : AccountMap) (I : ExecutionEnv)
@@ -3280,11 +3280,11 @@ theorem endSkipX_tagZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have htagRaw :
       solcSlotWord σ I (solcMappingSlot ⟨12⟩ key) = ⟨0⟩ := by
     rw [← hslot]
-    simpa [key, endSkipTagWord, endSlotWord] using htag
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, key, endSkipTagWord, endSlotWord] using htag
   have htagRaw' :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun ac => ac.storage.findD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) = ⟨0⟩ := by
-    simpa [solcSlotWord] using htagRaw
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun ac => ac.storage.getD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) = ⟨0⟩ := by
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord] using htagRaw
   have rd3240zero := rd3240raw
   rw [htagRaw'] at rd3240zero
   obtain ⟨_, _, rd3240⟩ : ∃ k' C',
@@ -3366,10 +3366,10 @@ theorem endSkipX_tagNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rw [← hslot]
     simp [endSkipTagWord, endSlotWord]
   have htagRaw' :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun ac => ac.storage.findD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun ac => ac.storage.getD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) =
           endSkipTagWord σ I := by
-    simpa [solcSlotWord] using htagRaw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord] using htagRaw
   have rd3240nzRaw := rd3240raw
   rw [htagRaw'] at rd3240nzRaw
   obtain ⟨_, _, rd3240nz⟩ : ∃ k' C',
@@ -3442,7 +3442,7 @@ theorem endSkipX_catIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
           endSkipReturnPc :: sel :: [])
         (endSkipCatIlksBaseMem I) (UInt256.ofNat 3)
         ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3318raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd3318raw⟩
   obtain ⟨_, _, rd3318⟩ := rd3318
   have rd3379 := evm_run rd3318 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -3781,7 +3781,7 @@ theorem endSkipX_vatIlksExtcodesizeGuard {σ σ' σ₀ A I}
           endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
         (endSkipCatIlksPostCallMem I catOut) (UInt256.ofNat 7)
         catOut σ' k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3439raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd3439raw⟩
   obtain ⟨_, _, rd3439⟩ := rd3439
   have rd3505 := evm_run rd3439 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -4564,7 +4564,7 @@ theorem endSkipX_suck1ExtcodesizeGuard {σ σ' σ₀ A I}
           endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
         (endSkipBidsPostCallMem I catOut vatOut bidOut) (UInt256.ofNat 12)
         bidOut σ' k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3715raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd3715raw⟩
   have rd3718 := evm_run rd3715 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
@@ -4579,7 +4579,7 @@ theorem endSkipX_suck1ExtcodesizeGuard {σ σ' σ₀ A I}
           endSkipReturnPc :: sel :: [])
         (endSkipBidsPostCallMem I catOut vatOut bidOut) (UInt256.ofNat 12)
         bidOut σ' k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3719raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd3719raw⟩
   have rd3770 := evm_run rd3719 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -4967,7 +4967,7 @@ theorem endSkipX_suck2ExtcodesizeGuard {σ σmem σpost σ₀ A I}
           endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
         (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata)
         (UInt256.ofNat 12) rdata σpost k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3843raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd3843raw⟩
   have rd3846 := evm_run rd3843 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov)]
@@ -4982,7 +4982,7 @@ theorem endSkipX_suck2ExtcodesizeGuard {σ σmem σpost σ₀ A I}
           endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
         (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata)
         (UInt256.ofNat 12) rdata σpost k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3847raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd3847raw⟩
   have rd3879 := evm_run rd3847 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -5376,7 +5376,7 @@ theorem endSkipX_hopeExtcodesizeGuard {σ σmem σcall σpost σ₀ A I}
           endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
         (endSkipSuck2PostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
         (UInt256.ofNat 12) rdata σpost k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3962raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd3962raw⟩
   have rd4026raw := evm_run rd3962 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -6070,7 +6070,7 @@ theorem endSkipX_artAddEntry {σ σmem σcall σpost σ₀ A I}
           endSkipReturnPc :: sel :: [])
         mem14 (UInt256.ofNat 12) ret σpost k' C' := by
     exact ⟨_, _, by
-      simpa [endSkipArtOldWord, endSlotWord, solcSlotWord, hslot, key, mem14]
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSkipArtOldWord, endSlotWord, solcSlotWord, hslot, key, mem14]
         using rd4183raw⟩
   have rd4196 := evm_run rd4183 with [
     raw swap2 (by native_decide) (by evm_ov),
@@ -6552,7 +6552,7 @@ theorem endSkipX_grabExtcodesizeGuard {σ σCall σmem σcall σ₀ A I}
           endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
         (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut)
         (UInt256.ofNat 12) rdata σCall k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4299raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd4299raw⟩
   obtain ⟨_, _, rd4299⟩ := rd4299
   have rd4302 := evm_run rd4299 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
@@ -6568,7 +6568,7 @@ theorem endSkipX_grabExtcodesizeGuard {σ σCall σmem σcall σ₀ A I}
           endSkipReturnPc :: sel :: [])
         (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut)
         (UInt256.ofNat 12) rdata σCall k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4303raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd4303raw⟩
   obtain ⟨_, _, rd4303⟩ := rd4303
   have rd4397raw := evm_run rd4303 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),

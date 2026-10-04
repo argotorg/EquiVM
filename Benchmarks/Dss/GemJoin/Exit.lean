@@ -2382,13 +2382,13 @@ theorem gemJoinExitBodyCoreVatNoCode
     rw [hvatAddr]
     unfold Reasoning.Theory.extCodeSizeWord at hnoCodeSolm
     cases hacc :
-      σ.find? (AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I)) with
+      σ.get? (AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ I)) with
     | none =>
-        simpa [evmSolm, initState, State.lookupAccount, hacc] using
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState, State.lookupAccount, hacc] using
           (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
     | some acc =>
         have hword := congrArg UInt256.toNat hnoCodeSolm
-        simpa [evmSolm, initState, State.lookupAccount, hacc] using hword
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolm, initState, State.lookupAccount, hacc] using hword
   have hbody :
       ExecTransitionBody config contract evmSolm (exitStore I) exitTransition.body .reverted := by
     exact gemJoinExitBodyRevertsVatNoCode evmSolm I
@@ -2773,14 +2773,14 @@ theorem gemJoinExitBodyCoreGemNoCode
     rw [hgemAddrSolm]
     unfold Reasoning.Theory.extCodeSizeWord at hgemNoCodeSolmWord
     cases hacc :
-      σ_slip_solm.find? (AccountAddress.ofUInt256
+      σ_slip_solm.get? (AccountAddress.ofUInt256
         (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I)) with
     | none =>
-        simpa [evmSolmSlip, evmSolm, initState, State.lookupAccount, hacc] using
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolmSlip, evmSolm, initState, State.lookupAccount, hacc] using
           (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
     | some acc =>
         have hword := congrArg UInt256.toNat hgemNoCodeSolmWord
-        simpa [evmSolmSlip, evmSolm, initState, State.lookupAccount, hacc] using hword
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, evmSolmSlip, evmSolm, initState, State.lookupAccount, hacc] using hword
   have hbody :
       ExecTransitionBody config contract evmSolm (exitStore I) exitTransition.body .reverted := by
     exact gemJoinExitBodyRevertsGemNoCode evmSolm evmSolmSlip I

@@ -78,7 +78,7 @@ private theorem flapperCtorStateEquiv
     rw [show evm1e.executionEnv.codeOwner = evm1s.executionEnv.codeOwner from
       congrArg ExecutionEnv.codeOwner hEnv, h1, hval]
   have hPackedActual : evm3sPacked.accountMap = evm3s.accountMap := by
-    cases hacc : evm1s.accountMap.find? evm1s.executionEnv.codeOwner with
+    cases hacc : evm1s.accountMap.get? evm1s.executionEnv.codeOwner with
     | none =>
         have hPackedNoop : evm3sPacked = evm1s := by
           simpa [evm3sPacked, packedS] using
@@ -292,7 +292,7 @@ theorem flapperConstructorCorrect :
               (A := A) (I := I) (g := Sat256.ofUInt256 g) vat gem
       have hMapE : evm8e.accountMap =
           flapperCtorFinalMap (flapperCtorAfterKicksMap σ I) I vat gem := by
-        simp [evm8e, evm7e, evm6e, evm5e, evm4e, evm2e, evm1e, evm0e,
+        simp [-Std.ExtTreeMap.get?_eq_getElem?, evm8e, evm7e, evm6e, evm5e, evm4e, evm2e, evm1e, evm0e,
           flapperCtorFinalMap, flapperCtorAfterGemMap, flapperCtorAfterVatMap,
           flapperCtorAfterWardsMap, flapperCtorAfterKicksMap,
           flapperCtorAfterPackedDefaultsMap, flapperCtorAfterBegMap,

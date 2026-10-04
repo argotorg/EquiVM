@@ -779,7 +779,7 @@ theorem auctionDeletePackedFinalWord_zero (id : UInt256) (evm : EVM.State) :
         (Solm.EVM.storageLoad (auctionDeleteAfterTic id evm)
           (auctionDeleteAfterTic id evm).executionEnv.codeOwner (auctionPackedSlot id)) =
       ⟨0⟩ := by
-  by_cases hacc0 : evm.accountMap.find? evm.executionEnv.codeOwner = none
+  by_cases hacc0 : evm.accountMap.get? evm.executionEnv.codeOwner = none
   · have hbid : auctionDeleteAfterBid id evm = evm := by
       exact storageStore_absent evm evm.executionEnv.codeOwner hacc0 (auctionBidSlot id) ⟨0⟩
     have hlot : auctionDeleteAfterLot id evm = evm := by
@@ -799,17 +799,22 @@ theorem auctionDeletePackedFinalWord_zero (id : UInt256) (evm : EVM.State) :
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (auctionPackedSlot id)))]
     have hload :
         Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (auctionPackedSlot id) = ⟨0⟩ := by
+      rw [Std.ExtTreeMap.get?_eq_getElem?] at hacc0
       simp [Solm.EVM.storageLoad, State.lookupAccount, hacc0, Option.option]
     rw [htic, hload]
     exact clearUint48Offset26Word_zero
   · obtain ⟨_, hacc0some⟩ := Option.ne_none_iff_exists'.mp hacc0
+    have hacc0someElem := hacc0some
+    rw [Std.ExtTreeMap.get?_eq_getElem?] at hacc0someElem
     have haccLotExists :
-        ∃ acc, (auctionDeleteAfterLot id evm).accountMap.find?
+        ∃ acc, (auctionDeleteAfterLot id evm).accountMap.get?
           (auctionDeleteAfterLot id evm).executionEnv.codeOwner = some acc := by
       simp [auctionDeleteAfterLot, auctionDeleteAfterBid, Solm.EVM.storageStore,
-        State.lookupAccount, hacc0some, Option.option, State.setAccount,
-        accountMap_find_insert_self]
+        State.lookupAccount, hacc0someElem, Option.option, State.setAccount,
+        Std.ExtTreeMap.getElem?_insert_self]
     obtain ⟨_, haccLot⟩ := haccLotExists
+    have haccLotElem := haccLot
+    rw [Std.ExtTreeMap.get?_eq_getElem?] at haccLotElem
     have hloadGuy :
         Solm.EVM.storageLoad (auctionDeleteAfterGuy id evm)
             (auctionDeleteAfterGuy id evm).executionEnv.codeOwner (auctionPackedSlot id) =
@@ -827,10 +832,10 @@ theorem auctionDeletePackedFinalWord_zero (id : UInt256) (evm : EVM.State) :
           (Solm.EVM.storageLoad (auctionDeleteAfterLot id evm)
             (auctionDeleteAfterLot id evm).executionEnv.codeOwner (auctionPackedSlot id)) ⟨0⟩)
     have haccGuyExists :
-        ∃ acc, (auctionDeleteAfterGuy id evm).accountMap.find?
+        ∃ acc, (auctionDeleteAfterGuy id evm).accountMap.get?
           (auctionDeleteAfterGuy id evm).executionEnv.codeOwner = some acc := by
-      simp [auctionDeleteAfterGuy, haccLot, Solm.EVM.storageStore, State.lookupAccount,
-        Option.option, State.setAccount, accountMap_find_insert_self]
+      simp [auctionDeleteAfterGuy, haccLotElem, Solm.EVM.storageStore, State.lookupAccount,
+        Option.option, State.setAccount, Std.ExtTreeMap.getElem?_insert_self]
     obtain ⟨_, haccGuy⟩ := haccGuyExists
     have hloadTic :
         Solm.EVM.storageLoad (auctionDeleteAfterTic id evm)

@@ -39,17 +39,17 @@ theorem cureListNonemptyToLoop {σ σ₀ A I} {g : Sat256}
     push1 ⟨32⟩, add, dup3, dup1]
   obtain ⟨_, _, h965raw⟩ := h963.sload (by native_decide) (by evm_ov)
   have hload :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)) =
         len := by
     simp [len, cureSlotWord, solcSlotWord]
   have h965 := by
-    simpa [initState, hload, len] using h965raw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState, hload, len] using h965raw
   have hcond : UInt256.isZero (cureSlotWord ⟨2⟩ σ I) = ⟨0⟩ := by
     exact isZero_eq_zero_of_ne hlen_ne
   have h966 := h965.dup1 (by native_decide) (by evm_ov)
   have h967raw := h966.iszero (by native_decide) (by evm_ov)
   have h967 := by
-    simpa [len, hcond] using h967raw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, len, hcond] using h967raw
   have h970 := h967.push2 ⟨1017⟩ (by native_decide) (by evm_ov)
   have h971 := h970.jumpiNT (by native_decide) rfl (by evm_ov)
   have h986 := evm_run h971 with [

@@ -17,8 +17,8 @@ theorem uniswapSkimBodyDecoded
       (transitionSignature skimTransition).paramTypes I.calldata = some (skimStore I)) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hlocked :
-    (σ.find? I.codeOwner |>.option ⟨0⟩
-      (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩
+    (σ.get? I.codeOwner |>.option ⟨0⟩
+      (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠ ⟨1⟩
   · have hsz4 : 4 ≤ I.calldata.size :=
       calldata_size_ge_of_selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ rfl hsel
     have hRuntime :
@@ -37,8 +37,8 @@ theorem uniswapSkimBodyDecoded
       (fun w : UInt256 => UInt256.land solcAddrMask w) hcode hwv hlocked hdispatch
       hdecode hRuntime
   · have hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩ := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) = ⟨1⟩ := by
       exact not_not.mp hlocked
     by_cases htoken0NoCode :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
@@ -355,8 +355,8 @@ theorem uniswapSkimBodyDecoded
                     initState, storageStore_accountMap]
                 have hslot := congrArg
                   (fun accounts : AccountMap =>
-                    (accounts.find? I.codeOwner).option (⟨0⟩ : UInt256)
-                      (fun acc => acc.storage.findD ⟨6⟩ ⟨0⟩)) hLockAccounts
+                    (accounts.get? I.codeOwner).option (⟨0⟩ : UInt256)
+                      (fun acc => acc.storage.getD ⟨6⟩ ⟨0⟩)) hLockAccounts
                 have hcanonClean : token0CleanE.toNat < EVM.addressModulus := by
                   simpa [token0CleanE, token0WordE, u256_land_comm] using
                     solcAddrMask_result_canonical token0WordE
@@ -458,8 +458,8 @@ theorem uniswapSkimBodyDecoded
                       initState, storageStore_accountMap]
                   have hslot := congrArg
                     (fun accounts : AccountMap =>
-                      (accounts.find? I.codeOwner).option (⟨0⟩ : UInt256)
-                        (fun acc => acc.storage.findD ⟨7⟩ ⟨0⟩)) hLockState
+                      (accounts.get? I.codeOwner).option (⟨0⟩ : UInt256)
+                        (fun acc => acc.storage.getD ⟨7⟩ ⟨0⟩)) hLockState
                   have hcanonClean : token1CleanE.toNat < EVM.addressModulus := by
                     simpa [token1CleanE, token1WordE, u256_land_comm] using
                       solcAddrMask_result_canonical token1WordE

@@ -44,11 +44,11 @@ abbrev bidDeleteCollapsedAccountMap (owner : AccountAddress) (σ : AccountMap)
   let σ2 := sstoreAccountMap owner σ1 (base + ⟨2⟩) ⟨0⟩
   let σ3 := sstoreAccountMap owner σ2 (base + ⟨3⟩)
     (setAddressOffset0Word
-      ((σ2.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD (base + ⟨3⟩) ⟨0⟩))
+      ((σ2.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD (base + ⟨3⟩) ⟨0⟩))
       ⟨0⟩)
   let σ4 := sstoreAccountMap owner σ3 (base + ⟨4⟩)
     (setAddressOffset0Word
-      ((σ3.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD (base + ⟨4⟩) ⟨0⟩))
+      ((σ3.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD (base + ⟨4⟩) ⟨0⟩))
       ⟨0⟩)
   sstoreAccountMap owner σ4 (base + ⟨5⟩) ⟨0⟩
 
@@ -59,23 +59,23 @@ abbrev bidDeleteSourceAccountMap (owner : AccountAddress) (σ : AccountMap)
   let σ1 := sstoreAccountMap owner σ0 (base + ⟨1⟩) ⟨0⟩
   let σ2 := sstoreAccountMap owner σ1 (base + ⟨2⟩)
     (setAddressOffset0Word
-      ((σ1.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD (base + ⟨2⟩) ⟨0⟩))
+      ((σ1.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD (base + ⟨2⟩) ⟨0⟩))
       ⟨0⟩)
   let σ3 := sstoreAccountMap owner σ2 (base + ⟨2⟩)
     (setUint48Offset20Word
-      ((σ2.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD (base + ⟨2⟩) ⟨0⟩))
+      ((σ2.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD (base + ⟨2⟩) ⟨0⟩))
       ⟨0⟩)
   let σ4 := sstoreAccountMap owner σ3 (base + ⟨2⟩)
     (setUint48Offset26Word
-      ((σ3.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD (base + ⟨2⟩) ⟨0⟩))
+      ((σ3.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD (base + ⟨2⟩) ⟨0⟩))
       ⟨0⟩)
   let σ5 := sstoreAccountMap owner σ4 (base + ⟨3⟩)
     (setAddressOffset0Word
-      ((σ4.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD (base + ⟨3⟩) ⟨0⟩))
+      ((σ4.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD (base + ⟨3⟩) ⟨0⟩))
       ⟨0⟩)
   let σ6 := sstoreAccountMap owner σ5 (base + ⟨4⟩)
     (setAddressOffset0Word
-      ((σ5.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD (base + ⟨4⟩) ⟨0⟩))
+      ((σ5.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD (base + ⟨4⟩) ⟨0⟩))
       ⟨0⟩)
   sstoreAccountMap owner σ6 (base + ⟨5⟩) ⟨0⟩
 
@@ -285,33 +285,34 @@ theorem bid_slot2_delete_word {old : UInt256} :
   rw [hmod]
   norm_num
 
-theorem sstoreAccountMap_find?_owner_some_of_some
+theorem sstoreAccountMap_get?_owner_some_of_some
     (σ : AccountMap) (a : AccountAddress) (slot val : UInt256) {acc : Account}
-    (hacc : σ.find? a = some acc) :
-    ∃ acc', (sstoreAccountMap a σ slot val).find? a = some acc' := by
+    (hacc : σ.get? a = some acc) :
+    ∃ acc', (sstoreAccountMap a σ slot val).get? a = some acc' := by
   unfold sstoreAccountMap
   rw [hacc]
-  simp only [Option.option, accountMap_find_insert_self]
+  simp only [Option.option, Std.ExtTreeMap.get?_eq_getElem?,
+    Std.ExtTreeMap.getElem?_insert_self]
   exact ⟨if val == (default : UInt256) then { acc with storage := acc.storage.erase slot }
     else { acc with storage := acc.storage.insert slot val }, rfl⟩
 
-theorem sstoreAccountMap_storage_findD_self_zero_present
+theorem sstoreAccountMap_storage_getD_self_zero_present
     (σ : AccountMap) (a : AccountAddress) (slot val : UInt256) {acc : Account}
-    (hacc : σ.find? a = some acc) :
-    (((sstoreAccountMap a σ slot val).find? a).option (⟨0⟩ : UInt256)
-        (fun acc => acc.storage.findD slot ⟨0⟩)) = val := by
+    (hacc : σ.get? a = some acc) :
+    (((sstoreAccountMap a σ slot val).get? a).option (⟨0⟩ : UInt256)
+        (fun acc => acc.storage.getD slot ⟨0⟩)) = val := by
   unfold sstoreAccountMap
   rw [hacc]
-  simp only [Option.option, accountMap_find_insert_self]
+  simp only [Option.option, Std.ExtTreeMap.get?_eq_getElem?,
+    Std.ExtTreeMap.getElem?_insert_self]
   by_cases hzero : (val == (default : UInt256)) = true
   · have hval : val = (⟨0⟩ : UInt256) := by
       simpa using eq_of_beq hzero
     subst val
-    simp [hzero, storage_findD_erase_self]
+    simp [hzero]
   · have hfalse : (val == (default : UInt256)) = false := by
       cases h : (val == (default : UInt256)) <;> simp [h] at hzero ⊢
     simp [hfalse]
-    exact storage_findD_insert_self acc.storage slot val ⟨0⟩
 
 theorem bidDeleteCollapsedAccountMap_eq_source (owner : AccountAddress)
     (σ : AccountMap) (id : UInt256) :
@@ -326,34 +327,34 @@ theorem bidDeleteCollapsedAccountMap_eq_source (owner : AccountAddress)
   let slot5 := base + (⟨5⟩ : UInt256)
   let σ2c := sstoreAccountMap owner σ1 slot2 ⟨0⟩
   let v1 := setAddressOffset0Word
-    ((σ1.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot2 ⟨0⟩)) ⟨0⟩
+    ((σ1.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD slot2 ⟨0⟩)) ⟨0⟩
   let σ2s := sstoreAccountMap owner σ1 slot2 v1
   let v2 := setUint48Offset20Word
-    ((σ2s.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot2 ⟨0⟩)) ⟨0⟩
+    ((σ2s.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD slot2 ⟨0⟩)) ⟨0⟩
   let σ3s := sstoreAccountMap owner σ2s slot2 v2
   let v3 := setUint48Offset26Word
-    ((σ3s.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot2 ⟨0⟩)) ⟨0⟩
+    ((σ3s.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD slot2 ⟨0⟩)) ⟨0⟩
   let σ4s := sstoreAccountMap owner σ3s slot2 v3
-  by_cases howner : ∃ acc, σ.find? owner = some acc
+  by_cases howner : ∃ acc, σ.get? owner = some acc
   · obtain ⟨acc, hacc⟩ := howner
-    obtain ⟨_, hσ0⟩ := sstoreAccountMap_find?_owner_some_of_some σ owner base ⟨0⟩ hacc
+    obtain ⟨_, hσ0⟩ := sstoreAccountMap_get?_owner_some_of_some σ owner base ⟨0⟩ hacc
     obtain ⟨_, hσ1⟩ :=
-      sstoreAccountMap_find?_owner_some_of_some σ0 owner (base + ⟨1⟩) ⟨0⟩ hσ0
+      sstoreAccountMap_get?_owner_some_of_some σ0 owner (base + ⟨1⟩) ⟨0⟩ hσ0
     have hload2 :
-        ((σ2s.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot2 ⟨0⟩)) =
+        ((σ2s.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD slot2 ⟨0⟩)) =
           v1 := by
-      exact sstoreAccountMap_storage_findD_self_zero_present σ1 owner slot2 v1 hσ1
+      exact sstoreAccountMap_storage_getD_self_zero_present σ1 owner slot2 v1 hσ1
     obtain ⟨_, hσ2s⟩ :=
-      sstoreAccountMap_find?_owner_some_of_some σ1 owner slot2 v1 hσ1
+      sstoreAccountMap_get?_owner_some_of_some σ1 owner slot2 v1 hσ1
     have hload3 :
-        ((σ3s.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot2 ⟨0⟩)) =
+        ((σ3s.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD slot2 ⟨0⟩)) =
           setUint48Offset20Word v1 ⟨0⟩ := by
-      have h := sstoreAccountMap_storage_findD_self_zero_present σ2s owner slot2 v2 hσ2s
-      simpa [σ3s, v2, hload2] using h
+      have h := sstoreAccountMap_storage_getD_self_zero_present σ2s owner slot2 v2 hσ2s
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, σ3s, v2, hload2] using h
     have hv3 : v3 = ⟨0⟩ := by
-      simpa [v3, hload3, v1] using
-        (bid_slot2_delete_word (old := ((σ1.find? owner).option ⟨0⟩
-          (fun acc => acc.storage.findD slot2 ⟨0⟩))))
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, v3, hload3, v1] using
+        (bid_slot2_delete_word (old := ((σ1.get? owner).option ⟨0⟩
+          (fun acc => acc.storage.getD slot2 ⟨0⟩))))
     have hslot2a : σ2c = sstoreAccountMap owner σ2s slot2 ⟨0⟩ := by
       simpa [σ2c, σ2s] using sstoreAccountMap_self_update σ1 owner slot2 v1 ⟨0⟩
     have hslot2 : σ2c = σ4s := by
@@ -362,41 +363,41 @@ theorem bidDeleteCollapsedAccountMap_eq_source (owner : AccountAddress)
       simpa [σ4s, σ3s, hv3] using htrans
     let σ3c := sstoreAccountMap owner σ2c slot3
       (setAddressOffset0Word
-        ((σ2c.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot3 ⟨0⟩)) ⟨0⟩)
+        ((σ2c.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD slot3 ⟨0⟩)) ⟨0⟩)
     let σ5s := sstoreAccountMap owner σ4s slot3
       (setAddressOffset0Word
-        ((σ4s.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot3 ⟨0⟩)) ⟨0⟩)
+        ((σ4s.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD slot3 ⟨0⟩)) ⟨0⟩)
     have hval3 :
         setAddressOffset0Word
-          ((σ4s.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot3 ⟨0⟩)) ⟨0⟩ =
+          ((σ4s.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD slot3 ⟨0⟩)) ⟨0⟩ =
         setAddressOffset0Word
-          ((σ2c.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot3 ⟨0⟩)) ⟨0⟩ := by
+          ((σ2c.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD slot3 ⟨0⟩)) ⟨0⟩ := by
       rw [← hslot2]
     have hslot3 : σ3c = σ5s := by
       simp [σ3c, σ5s, ← hslot2, hval3]
     let σ4c := sstoreAccountMap owner σ3c slot4
       (setAddressOffset0Word
-        ((σ3c.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot4 ⟨0⟩)) ⟨0⟩)
+        ((σ3c.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD slot4 ⟨0⟩)) ⟨0⟩)
     let σ6s := sstoreAccountMap owner σ5s slot4
       (setAddressOffset0Word
-        ((σ5s.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot4 ⟨0⟩)) ⟨0⟩)
+        ((σ5s.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD slot4 ⟨0⟩)) ⟨0⟩)
     have hval4 :
         setAddressOffset0Word
-          ((σ5s.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot4 ⟨0⟩)) ⟨0⟩ =
+          ((σ5s.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD slot4 ⟨0⟩)) ⟨0⟩ =
         setAddressOffset0Word
-          ((σ3c.find? owner).option ⟨0⟩ (fun acc => acc.storage.findD slot4 ⟨0⟩)) ⟨0⟩ := by
+          ((σ3c.get? owner).option ⟨0⟩ (fun acc => acc.storage.getD slot4 ⟨0⟩)) ⟨0⟩ := by
       rw [← hslot3]
     have hslot4 : σ4c = σ6s := by
       simp [σ4c, σ6s, ← hslot3, hval4]
     have hslot5 := congrArg (fun m => sstoreAccountMap owner m slot5 ⟨0⟩) hslot4
-    simpa [bidDeleteCollapsedAccountMap, bidDeleteSourceAccountMap, base, σ0, σ1, slot2,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, bidDeleteCollapsedAccountMap, bidDeleteSourceAccountMap, base, σ0, σ1, slot2,
       slot3, slot4, slot5, σ2c, σ3c, σ4c, σ2s, σ3s, σ4s, σ5s, σ6s, v1, v2, v3, hv3]
       using hslot5
-  · have hmissing : σ.find? owner = none := by
-      cases h : σ.find? owner with
+  · have hmissing : σ.get? owner = none := by
+      cases h : σ.get? owner with
       | none => rfl
       | some acc => exact False.elim (howner ⟨acc, h⟩)
-    simp [bidDeleteCollapsedAccountMap, bidDeleteSourceAccountMap, sstoreAccountMap_absent_same,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, bidDeleteCollapsedAccountMap, bidDeleteSourceAccountMap, sstoreAccountMap_absent_same,
       hmissing]
 
 theorem bidDeletedEVM_accountMap (evm : EVM.State) (id : UInt256) :

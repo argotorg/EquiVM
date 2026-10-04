@@ -502,7 +502,7 @@ theorem cureLoadSourceBodySubRevert {σ σ₀ A I} {g : UInt256}
     have hownerAmt : evmAmt.executionEnv.codeOwner = evmCall.executionEnv.codeOwner := by
       dsimp [evmAmt]
       simp only [Solm.EVM.storageStore, State.lookupAccount]
-      cases evmCall.accountMap.find? evmCall.executionEnv.codeOwner <;>
+      cases evmCall.accountMap.get? evmCall.executionEnv.codeOwner <;>
         simp only [Option.option, State.setAccount]
     have hbody := execSubFunctionRevert (evm := evmAmt)
       (x := Solm.EVM.storageLoad evmAmt evmAmt.executionEnv.codeOwner ⟨9⟩)
@@ -728,7 +728,7 @@ theorem cureLoadSourceBodyAddRevert {σ σ₀ A I} {g : UInt256}
     have hownerAmt : evmAmt.executionEnv.codeOwner = evmCall.executionEnv.codeOwner := by
       dsimp [evmAmt]
       simp only [Solm.EVM.storageStore, State.lookupAccount]
-      cases evmCall.accountMap.find? evmCall.executionEnv.codeOwner <;>
+      cases evmCall.accountMap.get? evmCall.executionEnv.codeOwner <;>
         simp only [Option.option, State.setAccount]
     have hle : oldAmt.toNat ≤ sayAfter.toNat := by
       simpa [evmAmt, oldAmt, evm0, sayAfter, hownerAmt] using hsubOk
@@ -781,7 +781,7 @@ theorem cureLoadSourceBodyAddRevert {σ σ₀ A I} {g : UInt256}
   have hownerAmtLocal : evmAmt.executionEnv.codeOwner = evmCall.executionEnv.codeOwner := by
     dsimp [evmAmt]
     simp only [Solm.EVM.storageStore, State.lookupAccount]
-    cases evmCall.accountMap.find? evmCall.executionEnv.codeOwner <;>
+    cases evmCall.accountMap.get? evmCall.executionEnv.codeOwner <;>
       simp only [Option.option, State.setAccount]
   have howner0Local : evm0.executionEnv.codeOwner = I.codeOwner := by
     simp [evm0, initState]
@@ -1010,7 +1010,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {σ σ₀ A I} {g : UInt256}
     have hownerAmt : evmAmt.executionEnv.codeOwner = evmCall.executionEnv.codeOwner := by
       dsimp [evmAmt]
       simp only [Solm.EVM.storageStore, State.lookupAccount]
-      cases evmCall.accountMap.find? evmCall.executionEnv.codeOwner <;>
+      cases evmCall.accountMap.get? evmCall.executionEnv.codeOwner <;>
         simp only [Option.option, State.setAccount]
     have hle : oldAmt.toNat ≤ sayAfter.toNat := by
       simpa [evmAmt, oldAmt, evm0, sayAfter, hownerAmt] using hsubOk
@@ -1062,7 +1062,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {σ σ₀ A I} {g : UInt256}
   have hownerAmtLocal : evmAmt.executionEnv.codeOwner = evmCall.executionEnv.codeOwner := by
     dsimp [evmAmt]
     simp only [Solm.EVM.storageStore, State.lookupAccount]
-    cases evmCall.accountMap.find? evmCall.executionEnv.codeOwner <;>
+    cases evmCall.accountMap.get? evmCall.executionEnv.codeOwner <;>
       simp only [Option.option, State.setAccount]
   have howner0Local : evm0.executionEnv.codeOwner = I.codeOwner := by
     simp [evm0, initState]
@@ -1347,7 +1347,7 @@ theorem cureLoadSourceBodyOkLoadedZero {σ σ₀ A I} {g : UInt256}
     have hownerAmt : evmAmt.executionEnv.codeOwner = evmCall.executionEnv.codeOwner := by
       dsimp [evmAmt]
       simp only [Solm.EVM.storageStore, State.lookupAccount]
-      cases evmCall.accountMap.find? evmCall.executionEnv.codeOwner <;>
+      cases evmCall.accountMap.get? evmCall.executionEnv.codeOwner <;>
         simp only [Option.option, State.setAccount]
     have hle : oldAmt.toNat ≤ sayAfter.toNat := by
       simpa [evmAmt, oldAmt, evm0, sayAfter, hownerAmt] using hsubOk
@@ -1399,7 +1399,7 @@ theorem cureLoadSourceBodyOkLoadedZero {σ σ₀ A I} {g : UInt256}
   have hownerAmtLocal : evmAmt.executionEnv.codeOwner = evmCall.executionEnv.codeOwner := by
     dsimp [evmAmt]
     simp only [Solm.EVM.storageStore, State.lookupAccount]
-    cases evmCall.accountMap.find? evmCall.executionEnv.codeOwner <;>
+    cases evmCall.accountMap.get? evmCall.executionEnv.codeOwner <;>
       simp only [Option.option, State.setAccount]
   have howner0Local : evm0.executionEnv.codeOwner = I.codeOwner := by
     simp [evm0, initState]

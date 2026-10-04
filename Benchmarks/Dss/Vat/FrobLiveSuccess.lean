@@ -1188,6 +1188,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
       Account.lookupStorage, storageStore_accountMap, storageStore_executionEnv,
       frobAfterDebt, frobDebtNew, gemOld, debtNew, dtabWord, debtOld,
       frobDtabWord, ilkRate, vatSlotWord, frobGemVSourceSlot_eq I hsz196]
+    simp only [solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?]
   have hloadDai :
       Solm.EVM.storageLoad evmGem evmGem.executionEnv.codeOwner
         (frobDaiWSourceSlot I) = daiOld := by
@@ -1197,6 +1198,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
       frobGemNew, gemNew, gemOld, daiOld, debtNew, dtabWord, debtOld,
       frobDtabWord, ilkRate, vatSlotWord, frobGemVSourceSlot_eq I hsz196,
       frobDaiWSourceSlot_eq I]
+    simp only [solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?]
   have htail :
       let evmGem := Solm.EVM.storageStore evmDebt evmDebt.executionEnv.codeOwner
         (frobGemVSourceSlot I) gemNew
@@ -2736,8 +2738,8 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         (((sstoreAccountMap I.codeOwner σ foldDebtSlot
           (UInt256.mul (frobDartWord I)
             (solcSlotWord σ I (frobIlkRateSlot I)) +
-            solcSlotWord σ I foldDebtSlot)).find? I.codeOwner |>.option ⟨0⟩
-            (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) =
+            solcSlotWord σ I foldDebtSlot)).get? I.codeOwner |>.option ⟨0⟩
+            (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) =
           UInt256.mul (frobDartWord I)
             (solcSlotWord σ I (frobIlkRateSlot I)) +
             solcSlotWord σ I foldDebtSlot) →
@@ -3232,8 +3234,8 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         (((sstoreAccountMap I.codeOwner σ foldDebtSlot
           (UInt256.mul (frobDartWord I)
             (solcSlotWord σ I (frobIlkRateSlot I)) +
-            solcSlotWord σ I foldDebtSlot)).find? I.codeOwner |>.option ⟨0⟩
-            (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) =
+            solcSlotWord σ I foldDebtSlot)).get? I.codeOwner |>.option ⟨0⟩
+            (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) =
           UInt256.mul (frobDartWord I)
             (solcSlotWord σ I (frobIlkRateSlot I)) +
             solcSlotWord σ I foldDebtSlot) →
@@ -3800,8 +3802,8 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         (((sstoreAccountMap I.codeOwner σ foldDebtSlot
           (UInt256.mul (frobDartWord I)
             (solcSlotWord σ I (frobIlkRateSlot I)) +
-            solcSlotWord σ I foldDebtSlot)).find? I.codeOwner |>.option ⟨0⟩
-            (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) =
+            solcSlotWord σ I foldDebtSlot)).get? I.codeOwner |>.option ⟨0⟩
+            (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) =
           UInt256.mul (frobDartWord I)
             (solcSlotWord σ I (frobIlkRateSlot I)) +
             solcSlotWord σ I foldDebtSlot) →
@@ -3943,8 +3945,8 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         (((sstoreAccountMap I.codeOwner σ foldDebtSlot
           (UInt256.mul (frobDartWord I)
             (solcSlotWord σ I (frobIlkRateSlot I)) +
-            solcSlotWord σ I foldDebtSlot)).find? I.codeOwner |>.option ⟨0⟩
-            (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) =
+            solcSlotWord σ I foldDebtSlot)).get? I.codeOwner |>.option ⟨0⟩
+            (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) =
           UInt256.mul (frobDartWord I)
             (solcSlotWord σ I (frobIlkRateSlot I)) +
             solcSlotWord σ I foldDebtSlot) →

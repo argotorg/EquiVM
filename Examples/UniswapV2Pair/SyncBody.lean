@@ -428,8 +428,8 @@ theorem uniswapSyncBodyCoreRevert_firstCallDepth
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
@@ -480,8 +480,8 @@ theorem uniswapSyncBodyRevert_firstCallDepth
     (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩)
     (hdepth : I.depth = 1024)
     (hunlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
     (htoken0Code :
       extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
@@ -692,12 +692,12 @@ theorem uniswapSyncBody
     (hdispatch : dispatchMsg contract I.calldata = some syncTransition) :
     runtimeEquivalenceFor config contract σ σ₀ g A I := by
   by_cases hlocked :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
         ⟨1⟩
   · exact uniswapSyncBodyRevert_locked hcode hsize hwv hsel hlocked hdispatch
   · have hunlocked :
-        (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+        (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
           ⟨1⟩ := by
       exact not_not.mp hlocked
     by_cases htoken0NoCode :
@@ -1046,7 +1046,7 @@ theorem uniswapSyncBody
                               packed = setUint32Offset28Word v1 (uniswapUpdateTimestampWord I) := by
                             simp [packed, v0, v1, uniswapUpdatePackedReserveWord_eq_setters]
                           by_cases haccExists :
-                              ∃ acc, evm1S.accountMap.find? I.codeOwner = some acc
+                              ∃ acc, evm1S.accountMap.get? I.codeOwner = some acc
                           · obtain ⟨acc, hacc⟩ := haccExists
                             have hload0 :
                                 Solm.EVM.storageLoad evm1S I.codeOwner ⟨8⟩ =
@@ -1061,14 +1061,14 @@ theorem uniswapSyncBody
                                 hacc ⟨8⟩ v0
                             obtain ⟨acc0, hacc0⟩ :
                                 ∃ acc0,
-                                  (Solm.EVM.storageStore evm1S I.codeOwner ⟨8⟩ v0).accountMap.find?
+                                  (Solm.EVM.storageStore evm1S I.codeOwner ⟨8⟩ v0).accountMap.get?
                                       I.codeOwner =
                                     some acc0 := by
                               refine ⟨Account.updateStorage acc ⟨8⟩ v0, ?_⟩
-                              simpa [Solm.EVM.storageStore, State.lookupAccount, hacc,
-                                State.setAccount, Option.option] using
-                                accountMap_find_insert_self evm1S.accountMap I.codeOwner
-                                  (Account.updateStorage acc ⟨8⟩ v0)
+                              simp only [Solm.EVM.storageStore, State.lookupAccount]
+                              rw [hacc]
+                              simp [State.setAccount, Option.option,
+                                Std.ExtTreeMap.get?_eq_getElem?]
                             have hload2 :
                                 Solm.EVM.storageLoad
                                     (Solm.EVM.storageStore
@@ -1116,18 +1116,18 @@ theorem uniswapSyncBody
                               storageStore_executionEnv, hload0, hload1, hload2, henv1I,
                               hpacked, v0, v1] using hchain
                           · have hmissing :
-                                evm1S.accountMap.find? I.codeOwner = none := by
-                              cases hfind : evm1S.accountMap.find? I.codeOwner with
+                                evm1S.accountMap.get? I.codeOwner = none := by
+                              cases hfind : evm1S.accountMap.get? I.codeOwner with
                               | none => rfl
                               | some acc => exact False.elim (haccExists ⟨acc, hfind⟩)
                             have hmissingSource :
-                                σ''.find? I.codeOwner = none :=
+                                σ''.get? I.codeOwner = none :=
                               by simpa [hPostAccounts1] using hmissing
                             have hleft :
                                 sstoreAccountMap I.codeOwner σ'' ⟨8⟩ packed = σ'' :=
                               sstoreAccountMap_absent_same hmissingSource
                             have hmissingOwner :
-                                evm1S.accountMap.find? evm1S.executionEnv.codeOwner = none := by
+                                evm1S.accountMap.get? evm1S.executionEnv.codeOwner = none := by
                               simpa [henv1I] using hmissing
                             have hright :
                                 (syncUpdatePackedReserveState evm1S balance0 balance1).accountMap =

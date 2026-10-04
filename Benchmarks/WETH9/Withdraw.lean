@@ -72,7 +72,7 @@ theorem weth9WithdrawBodyCore {σ σ₀ A I} {g : UInt256}
         · have hdepthLt : I.depth.val < 1024 :=
             lt_of_le_of_ne (Nat.le_of_lt_succ I.depth.isLt) (fun h => hdepthEq (Fin.ext h))
           by_cases hbalance : withdrawWadWord I ≤
-              ((withdrawStoreMap σ I).find? I.codeOwner |>.elim ⟨0⟩ (·.balance))
+              ((withdrawStoreMap σ I).get? I.codeOwner |>.elim ⟨0⟩ (·.balance))
           · -- call is dispatched
             obtain ⟨σ', z, o, A_in, callGas, ⟨g'', A', hΘeq⟩, hosz, _, _, rd1470⟩ :=
               weth9WithdrawCallMade (g := gs) hperm hle hbalance hdepthLt h1395

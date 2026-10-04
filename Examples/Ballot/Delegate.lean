@@ -39,11 +39,11 @@ def delegateSenderPackedSlot (I : ExecutionEnv) : UInt256 :=
   delegateSenderSlot I + ⟨1⟩
 
 def delegateSenderWeightWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (delegateSenderSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (delegateSenderSlot I) ⟨0⟩)
 
 def delegateSenderPackedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc =>
-    acc.storage.findD (delegateSenderPackedSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc =>
+    acc.storage.getD (delegateSenderPackedSlot I) ⟨0⟩)
 
 abbrev delegateSenderVotedByte (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land ⟨255⟩ (delegateSenderPackedWord σ I)
@@ -58,15 +58,15 @@ def delegateVoterVoteSlot (w : UInt256) : UInt256 :=
   delegateVoterSlot w + ⟨2⟩
 
 def delegateVoterWeightWord (σ : AccountMap) (I : ExecutionEnv) (w : UInt256) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (delegateVoterSlot w) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (delegateVoterSlot w) ⟨0⟩)
 
 def delegateVoterPackedWord (σ : AccountMap) (I : ExecutionEnv) (w : UInt256) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc =>
-    acc.storage.findD (delegateVoterPackedSlot w) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc =>
+    acc.storage.getD (delegateVoterPackedSlot w) ⟨0⟩)
 
 def delegateVoterVoteWord (σ : AccountMap) (I : ExecutionEnv) (w : UInt256) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc =>
-    acc.storage.findD (delegateVoterVoteSlot w) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc =>
+    acc.storage.getD (delegateVoterVoteSlot w) ⟨0⟩)
 
 abbrev delegateVoterVotedByte (σ : AccountMap) (I : ExecutionEnv) (w : UInt256) : UInt256 :=
   UInt256.land ⟨255⟩ (delegateVoterPackedWord σ I w)
@@ -96,8 +96,8 @@ def delegateFalseSuccessMap (σ : AccountMap) (I : ExecutionEnv) : AccountMap :=
     (delegateUpdatedVoterWeight σ I)
 
 def delegateProposalsLengthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  (delegateAfterSenderMap σ I).find? I.codeOwner |>.option ⟨0⟩ (fun acc =>
-    acc.storage.findD ⟨2⟩ ⟨0⟩)
+  (delegateAfterSenderMap σ I).get? I.codeOwner |>.option ⟨0⟩ (fun acc =>
+    acc.storage.getD ⟨2⟩ ⟨0⟩)
 
 def delegateProposalCountSlot (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   (⟨1⟩ : UInt256) +
@@ -106,8 +106,8 @@ def delegateProposalCountSlot (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
       proposalsDataBase)
 
 def delegateProposalCountWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  (delegateAfterSenderMap σ I).find? I.codeOwner |>.option ⟨0⟩ (fun acc =>
-    acc.storage.findD (delegateProposalCountSlot σ I) ⟨0⟩)
+  (delegateAfterSenderMap σ I).get? I.codeOwner |>.option ⟨0⟩ (fun acc =>
+    acc.storage.getD (delegateProposalCountSlot σ I) ⟨0⟩)
 
 def delegateUpdatedProposalCount (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.add (delegateProposalCountWord σ I)
@@ -1519,18 +1519,18 @@ theorem u256_lor_one_ne_zero (w : UInt256) : UInt256.lor ⟨1⟩ w ≠ ⟨0⟩ :
   rw [hval] at hbitTrue
   simp at hbitTrue
 
-theorem delegateAfterSenderState_findD_init {σ σ₀ A I} {g : Sat256}
+theorem delegateAfterSenderState_getD_init {σ σ₀ A I} {g : Sat256}
     (readSlot : UInt256) :
-    (((delegateAfterSenderState (initState σ σ₀ g A I) I).accountMap.find?
+    (((delegateAfterSenderState (initState σ σ₀ g A I) I).accountMap.get?
           (delegateAfterSenderState (initState σ σ₀ g A I) I).executionEnv.codeOwner).option
         (default : UInt256)
-        (fun acc => acc.storage.findD readSlot default)) =
-      (((delegateAfterSenderMap σ I).find? I.codeOwner).option (default : UInt256)
-        (fun acc => acc.storage.findD readSlot default)) := by
+        (fun acc => acc.storage.getD readSlot default)) =
+      (((delegateAfterSenderMap σ I).get? I.codeOwner).option (default : UInt256)
+        (fun acc => acc.storage.getD readSlot default)) := by
   have hlookup := congrArg
     (fun accounts : AccountMap =>
-      (accounts.find? I.codeOwner).option (default : UInt256)
-        (fun acc => acc.storage.findD readSlot default))
+      (accounts.get? I.codeOwner).option (default : UInt256)
+        (fun acc => acc.storage.getD readSlot default))
     (sstoreAccountMap_self_update σ I.codeOwner (delegateSenderPackedSlot I)
       (delegateSenderVotedStoreCurrent (initState σ σ₀ g A I) I)
       (delegateSenderPackedStoreWord σ I)).symm
@@ -1547,7 +1547,7 @@ theorem delegateVoterVotedByteCurrent_afterSenderState_init {σ σ₀ A I} {g : 
   simpa [delegateVoterVotedByteCurrent, delegateVoterVotedByte, delegateVoterPackedCurrent,
     delegateVoterPackedWord, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
     using congrArg (fun w => UInt256.land ⟨255⟩ w)
-      (delegateAfterSenderState_findD_init (σ := σ)
+      (delegateAfterSenderState_getD_init (σ := σ)
         (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (delegateVoterPackedSlot (delegateToWord I)))
 
@@ -1557,7 +1557,7 @@ theorem delegateVoterWeightCurrent_afterSenderState_init {σ σ₀ A I} {g : Sat
       delegateVoterWeightWord (delegateAfterSenderMap σ I) I (delegateToWord I) := by
   simpa [delegateVoterWeightCurrent, delegateVoterWeightWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
-    using delegateAfterSenderState_findD_init (σ := σ)
+    using delegateAfterSenderState_getD_init (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) (delegateVoterSlot (delegateToWord I))
 
 theorem delegateSenderWeightCurrent_afterSenderState_init {σ σ₀ A I} {g : Sat256} :
@@ -1566,7 +1566,7 @@ theorem delegateSenderWeightCurrent_afterSenderState_init {σ σ₀ A I} {g : Sa
       delegateSenderWeightWord (delegateAfterSenderMap σ I) I := by
   simpa [delegateSenderWeightCurrent, delegateSenderWeightWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
-    using delegateAfterSenderState_findD_init (σ := σ)
+    using delegateAfterSenderState_getD_init (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) (delegateSenderSlot I)
 
 theorem delegateVoterVoteCurrent_afterSenderState_init {σ σ₀ A I} {g : Sat256} :
@@ -1575,7 +1575,7 @@ theorem delegateVoterVoteCurrent_afterSenderState_init {σ σ₀ A I} {g : Sat25
       delegateVoterVoteWord (delegateAfterSenderMap σ I) I (delegateToWord I) := by
   simpa [delegateVoterVoteCurrent, delegateVoterVoteWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
-    using delegateAfterSenderState_findD_init (σ := σ)
+    using delegateAfterSenderState_getD_init (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g)
       (delegateVoterVoteSlot (delegateToWord I))
 
@@ -1585,7 +1585,7 @@ theorem delegateProposalsLengthCurrent_afterSenderState_init {σ σ₀ A I} {g :
       delegateProposalsLengthWord σ I := by
   simpa [delegateProposalsLengthCurrent, delegateProposalsLengthWord, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage]
-    using delegateAfterSenderState_findD_init (σ := σ)
+    using delegateAfterSenderState_getD_init (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) ⟨2⟩
 
 theorem delegateProposalCountCurrent_init {σ σ₀ A I} {g : Sat256} :
@@ -1595,7 +1595,7 @@ theorem delegateProposalCountCurrent_init {σ σ₀ A I} {g : Sat256} :
   rw [delegateVoterVoteCurrent_afterSenderState_init]
   simpa [delegateProposalCountWord, delegateProposalCountSlot, Solm.EVM.storageLoad,
     State.lookupAccount, Account.lookupStorage, initState, voteStorageStore_executionEnv]
-    using delegateAfterSenderState_findD_init (σ := σ)
+    using delegateAfterSenderState_getD_init (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) (delegateProposalCountSlot σ I)
 
 theorem u256_add_ne_zero_of_right_ne_zero {a b : UInt256}
@@ -1638,7 +1638,7 @@ theorem delegateSenderWeightWord_afterSenderMap (σ : AccountMap) (I : Execution
     delegateSenderWeightWord (delegateAfterSenderMap σ I) I =
       delegateSenderWeightWord σ I := by
   unfold delegateSenderWeightWord delegateAfterSenderMap
-  exact sstoreAccountMap_storage_findD_ne σ I.codeOwner (delegateSenderSlot I)
+  exact sstoreAccountMap_storage_getD_ne σ I.codeOwner (delegateSenderSlot I)
     (delegateSenderPackedSlot I) (delegateSenderPackedStoreWord σ I)
     (delegateSenderSlot_ne_packedSlot I)
 

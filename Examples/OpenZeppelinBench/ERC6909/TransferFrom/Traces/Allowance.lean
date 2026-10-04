@@ -104,8 +104,8 @@ theorem erc6909TransferFromX_operatorApproved_toUpdate {σ σ₀ A I}
     exact hop
   have hopMask :
       UInt256.land ⟨255⟩
-        (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun ac => ac.storage.findD (transferFromOperatorSlotI I) ⟨0⟩)) ≠ ⟨0⟩ := by
+        (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun ac => ac.storage.getD (transferFromOperatorSlotI I) ⟨0⟩)) ≠ ⟨0⟩ := by
     simpa [transferFromOperatorSlot_init, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage] using hopMaskRaw
   exact ⟨_, _, by
@@ -209,8 +209,8 @@ theorem erc6909TransferFromX_operatorFalse_toAllowanceHelper {σ σ₀ A I}
     exact hopZero
   have hopMask :
       UInt256.land ⟨255⟩
-        (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun ac => ac.storage.findD (transferFromOperatorSlotI I) ⟨0⟩)) = ⟨0⟩ := by
+        (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun ac => ac.storage.getD (transferFromOperatorSlotI I) ⟨0⟩)) = ⟨0⟩ := by
     simpa [transferFromOperatorSlot_init, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage] using hopMaskRaw
   exact ⟨_, _, by

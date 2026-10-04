@@ -351,7 +351,8 @@ theorem RD.flopperUint48Offset0SlotGetter {code : ByteArray} {g : Sat256} {s0 : 
   have rd12 := rd11.and hd11 (by simp only [List.length_cons]; omega)
   have rd13 := rd12.dup2 hd12 (by omega)
   have rdRet := rd13.jump hd13 hret (by simp only [List.length_cons]; omega)
-  exact ⟨_, _, by simpa [u256_land_comm flopperUint48Mask (solcSlotWord σ ee slot)] using rdRet⟩
+  exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?,
+    u256_land_comm flopperUint48Mask (solcSlotWord σ ee slot)] using rdRet⟩
 
 theorem RD.flopperUint48Offset6SlotGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc slot ret : UInt256} {R : List UInt256}

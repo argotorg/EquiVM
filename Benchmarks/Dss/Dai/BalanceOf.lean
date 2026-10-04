@@ -26,8 +26,8 @@ def balanceOfStorageSlot (I : ExecutionEnv) : UInt256 :=
   balanceOfSlot (balanceOfArgKey I)
 
 def balanceOfWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (balanceOfStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (balanceOfStorageSlot I) ⟨0⟩)
 
 theorem balanceOfStorageSlot_eq_mapSlot_masked (I : ExecutionEnv) :
     balanceOfStorageSlot I = mapSlot (balanceOfArgMaskedWord I) ⟨2⟩ := by
@@ -128,8 +128,8 @@ theorem daiX_balanceOf_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_singleton]; omega)
   have hslot := balanceOfStorageSlot_eq_mapSlot_masked I
   have hword :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (mapSlot (balanceOfArgMaskedWord I) ⟨2⟩) ⟨0⟩))
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD (mapSlot (balanceOfArgMaskedWord I) ⟨2⟩) ⟨0⟩))
         = balanceOfWord σ I := by
     unfold balanceOfWord
     rw [hslot]
@@ -137,7 +137,7 @@ theorem daiX_balanceOf_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (balanceOfWord σ I :: ⟨524⟩ :: [sel])
       (daiMappingHashMem ⟨2⟩ (balanceOfArgMaskedWord I))
       (UInt256.ofNat 3) ByteArray.empty σ k524 C524 := by
-    simpa [hword] using rd524raw
+    simpa only [hword] using rd524raw
   exact RD.daiReturnWordFromMem
     (val := balanceOfWord σ I) (ret := ⟨524⟩) (R := [sel])
     (mem := daiMappingHashMem ⟨2⟩ (balanceOfArgMaskedWord I))

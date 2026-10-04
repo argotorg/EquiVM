@@ -96,7 +96,7 @@ theorem clearAuctionPackedState_accounts (evm : EVM.State) :
       (clearAuctionPackedState evm).accountMap := by
   unfold clearAuctionPackedState clearSettledState clearBidderState
   rw [storageStore_executionEnv]
-  cases ha : evm.accountMap.find? evm.executionEnv.codeOwner with
+  cases ha : evm.accountMap.get? evm.executionEnv.codeOwner with
   | none =>
     rw [storageStore_absent evm _ ha, storageStore_absent evm _ ha,
       sstoreAccountMap_absent_same ha]

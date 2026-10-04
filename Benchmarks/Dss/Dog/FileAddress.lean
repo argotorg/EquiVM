@@ -752,7 +752,7 @@ theorem RD.dogFileAddressStoreVowLog {v : DogImmutables} {code : ByteArray}
       (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
       (by evm_ov)]
   have rdMload := by
-    simpa [solcSlotWord, setAddressOffset0Word, hword,
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, setAddressOffset0Word, hword,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide] using
       rdMloadPrefix.mload 0 ⟨128⟩ (UInt256.ofNat 3)
@@ -854,9 +854,12 @@ theorem RD.dogFileAddressStoreVowLog {v : DogImmutables} {code : ByteArray}
   have rdPop2 := rdPop1.pop
     (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
     (by evm_ov)
-  exact ⟨_, _, rdPop2.jump
-    (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
-    hret (by evm_ov)⟩
+  exact ⟨_, _, by
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord,
+      setAddressOffset0Word, u256_lor_comm] using
+      (rdPop2.jump
+        (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
+        hret (by evm_ov))⟩
 
 theorem RD.dogFileAddressUnrecognizedRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}

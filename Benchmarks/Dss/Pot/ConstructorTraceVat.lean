@@ -31,7 +31,7 @@ theorem potCtorVatSloadReach
   have rdBeforeSload := pot_ctor_run rd75 with [push1 ⟨5⟩, dup1]
   obtain ⟨_, _, rd79⟩ := rdBeforeSload.sload (by pot_ctor_decode) (by evm_ov)
   have hload :
-      (σWards.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨5⟩ ⟨0⟩)) =
+      (σWards.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨5⟩ ⟨0⟩)) =
         solcSlotWord σWards I ⟨5⟩ := by
     rfl
   rw [hload] at rd79

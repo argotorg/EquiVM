@@ -163,13 +163,13 @@ theorem tendAfterGuyStore_executionEnv (evm : EVM.State) (I : ExecutionEnv) :
 theorem tendAfterGuyStore_sigma0 (evm : EVM.State) (I : ExecutionEnv) :
     (tendAfterGuyStore evm I).σ₀ = evm.σ₀ := by
   unfold tendAfterGuyStore Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? evm.executionEnv.codeOwner <;>
+  cases evm.accountMap.get? evm.executionEnv.codeOwner <;>
     simp [Option.option, State.setAccount]
 
 theorem tendAfterGuyStore_substate (evm : EVM.State) (I : ExecutionEnv) :
     (tendAfterGuyStore evm I).substate = evm.substate := by
   unfold tendAfterGuyStore Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? evm.executionEnv.codeOwner <;>
+  cases evm.accountMap.get? evm.executionEnv.codeOwner <;>
     simp [Option.option, State.setAccount]
 
 theorem tendAfterBidStore_executionEnv (evm : EVM.State) (I : ExecutionEnv) :

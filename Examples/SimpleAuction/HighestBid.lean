@@ -8,7 +8,7 @@ set_option maxRecDepth 2000000
 namespace SimpleAuction
 
 def highestBidWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨3⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨3⟩ ⟨0⟩)
 
 theorem simpleAuctionHighestBidBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)

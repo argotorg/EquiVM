@@ -44,7 +44,7 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
           ⟨32⟩) ≠ ⟨0⟩)
     (accSolm0 : Account)
     (_haccSolm0 :
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I).accountMap.find?
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I).accountMap.get?
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner =
         some accSolm0)
     (evmSolm1 : EVM.State)

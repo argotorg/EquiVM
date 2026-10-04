@@ -45,7 +45,7 @@ def getRoleAdminBaseSlot (I : ExecutionEnv) : UInt256 :=
       UInt256.toByteArray (⟨0⟩ : UInt256)))
 
 def getRoleAdminWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (getRoleAdminSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (getRoleAdminSlot I) ⟨0⟩)
 
 def getRoleAdminCurrent (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (getRoleAdminSlot I)

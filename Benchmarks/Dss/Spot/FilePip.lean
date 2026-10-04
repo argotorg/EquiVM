@@ -682,8 +682,8 @@ theorem spotFilePipX_liveOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     |>.push1 ⟨4⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1923raw⟩ := rd1922.sload (by native_decide) (by evm_ov)
   have hliveRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨4⟩ ⟨0⟩)) = ⟨1⟩ := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨4⟩ ⟨0⟩)) = ⟨1⟩ := by
     simpa [spotLiveWord, spotSlotWord, solcSlotWord] using hlive
   rw [hliveRaw] at rd1923raw
   have rd1926pre := evm_run rd1923raw with [
@@ -708,13 +708,13 @@ theorem spotFilePipX_notLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
   have hliveRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨4⟩ ⟨0⟩)) ≠ ⟨1⟩ := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨4⟩ ⟨0⟩)) ≠ ⟨1⟩ := by
     simpa [spotLiveWord, spotSlotWord, solcSlotWord] using hlive
   have heq0 :
       UInt256.eq ⟨1⟩
-        (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD ⟨4⟩ ⟨0⟩)) = ⟨0⟩ := by
+        (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD ⟨4⟩ ⟨0⟩)) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h1 => hliveRaw h1.symm)
   rw [heq0] at rd1926pre
   have rd1929 := rd1926pre.pushConst (⟨1993⟩ : UInt256)
@@ -833,11 +833,11 @@ theorem spotFilePipX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have hwordRaw :
       UInt256.lor (UInt256.land (filePipMaskedWord I) solcAddrMask)
           (UInt256.land (UInt256.lnot solcAddrMask)
-            (σ.find? I.codeOwner |>.option ⟨0⟩
-              (fun acc => acc.storage.findD (solcMappingSlot ⟨1⟩ (filePipIlkWord I)) ⟨0⟩))) =
+            (σ.get? I.codeOwner |>.option ⟨0⟩
+              (fun acc => acc.storage.getD (solcMappingSlot ⟨1⟩ (filePipIlkWord I)) ⟨0⟩))) =
         setAddressOffset0Word
-          (σ.find? I.codeOwner |>.option ⟨0⟩
-            (fun acc => acc.storage.findD (solcMappingSlot ⟨1⟩ (filePipIlkWord I)) ⟨0⟩))
+          (σ.get? I.codeOwner |>.option ⟨0⟩
+            (fun acc => acc.storage.getD (solcMappingSlot ⟨1⟩ (filePipIlkWord I)) ⟨0⟩))
           (filePipMaskedWord I) := by
     simpa [spotSlotWord, solcSlotWord] using hword
   have rd2050 := rd2047.push2 ⟨1266⟩ (by native_decide) (by evm_ov)
@@ -848,7 +848,8 @@ theorem spotFilePipX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ
   have rd1270 := rd1269.pop (by native_decide) (by evm_ov)
   have rd214 := rd1270.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd215 := rd214.jumpdest (by native_decide) (by evm_ov)
-  simpa [spotSlotWord, solcSlotWord, filePipPipSlotFor_eq hsz36, hwordRaw,
+  simpa [-Std.ExtTreeMap.get?_eq_getElem?, spotSlotWord, solcSlotWord,
+    filePipPipSlotFor_eq hsz36, hwordRaw,
     show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
     using RD.stop rd215 (by native_decide) (by evm_ov)

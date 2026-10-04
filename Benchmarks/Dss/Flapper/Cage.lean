@@ -751,14 +751,14 @@ theorem cageStorageStore_sigma0 (evm : EVM.State) (a : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).σ₀ = evm.σ₀ := by
   unfold Solm.EVM.storageStore State.lookupAccount
-  cases h : evm.accountMap.find? a <;>
+  cases h : evm.accountMap.get? a <;>
     simp [Option.option, State.setAccount, Account.updateStorage, h]
 
 theorem cageStorageStore_substate (evm : EVM.State) (a : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).substate = evm.substate := by
   unfold Solm.EVM.storageStore State.lookupAccount
-  cases h : evm.accountMap.find? a <;>
+  cases h : evm.accountMap.get? a <;>
     simp [Option.option, State.setAccount, Account.updateStorage, h]
 
 theorem evalExpr_cage_extCodeGuard_true {evm : EVM.State} {locals : Store}

@@ -109,8 +109,8 @@ theorem RD.daiSingleMappingGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
     (hret : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains ret = true)
     (hov : R.length + 4 ≤ 1024) :
     ∃ k' C', RD Benchmarks.Dss.Dai.daiBytecode ee g s0 ret
-      ((σ.find? ee.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (Benchmarks.Dss.Dai.mapSlot key baseSlot) ⟨0⟩))
+      ((σ.get? ee.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD (Benchmarks.Dss.Dai.mapSlot key baseSlot) ⟨0⟩))
         :: ret :: R)
       (Benchmarks.Dss.Dai.daiMappingHashMem baseSlot key)
       (UInt256.ofNat 3) rdata σ k' C' := by
@@ -168,8 +168,8 @@ theorem RD.daiZeroSlotSingleMappingGetter {g : Sat256} {s0 : State}
     (hret : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains ret = true)
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD Benchmarks.Dss.Dai.daiBytecode ee g s0 ret
-      ((σ.find? ee.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (Benchmarks.Dss.Dai.mapSlot key ⟨0⟩) ⟨0⟩))
+      ((σ.get? ee.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD (Benchmarks.Dss.Dai.mapSlot key ⟨0⟩) ⟨0⟩))
         :: ret :: R)
       (Benchmarks.Dss.Dai.daiMappingHashMem ⟨0⟩ key)
       (UInt256.ofNat 3) rdata σ k' C' := by
@@ -265,8 +265,8 @@ theorem RD.daiNestedMappingLoadAndJump {g : Sat256} {s0 : State}
     (hret : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD Benchmarks.Dss.Dai.daiBytecode ee g s0 ret
-      ((σ.find? ee.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD slot ⟨0⟩)) :: ret :: R)
+      ((σ.get? ee.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD slot ⟨0⟩)) :: ret :: R)
       mem aw rdata σ k' C' := by
   simpa [solcSlotWord] using
     RD.solcNestedMappingLoadAndJump h hwf hret hov
@@ -281,8 +281,8 @@ theorem RD.daiNestedMappingGetter {g : Sat256} {s0 : State}
     (hret : (D_J Benchmarks.Dss.Dai.daiBytecode 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD Benchmarks.Dss.Dai.daiBytecode ee g s0 ret
-      ((σ.find? ee.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD
+      ((σ.get? ee.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD
             (Benchmarks.Dss.Dai.mapSlot spender
               (Benchmarks.Dss.Dai.mapSlot owner baseSlot)) ⟨0⟩)) :: ret :: R)
       (Benchmarks.Dss.Dai.daiNestedMappingHashMem baseSlot owner spender)
@@ -1063,7 +1063,7 @@ theorem RD.daiWordGetterExternal {σ σ₀ A I} {g : Sat256}
     RDret Benchmarks.Dss.Dai.daiBytecode g
       (Reasoning.Theory.initState σ σ₀ g A I) σ
       (UInt256.toByteArray
-        (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩))) := by
+        (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩))) := by
   simpa [daiGetterEntryWf, daiWordSlotGetterWf, daiReturnWordFromMemWf, solcSlotWord] using
     RD.solcWordGetterExternal hreach hentry hgetter hroutine hret hreturn
 

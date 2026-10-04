@@ -533,8 +533,8 @@ theorem RD.vatInitRateGuardOk {code : ByteArray} {g : Sat256} {s0 : State}
   have rd18 := rd17.add hd17 (by evm_ov)
   obtain ⟨_, _, rd19raw⟩ := rd18.sload hd18 (by evm_ov)
   have hrateRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + solcMappingSlot ⟨2⟩ key) ⟨0⟩)) = ⟨0⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + solcMappingSlot ⟨2⟩ key) ⟨0⟩)) = ⟨0⟩ := by
     simpa [solcSlotWord, u256_add_comm (⟨1⟩ : UInt256) (solcMappingSlot ⟨2⟩ key)]
       using hrate
   have rd19 := rd19raw
@@ -579,15 +579,15 @@ theorem RD.vatInitRateGuardRevert {code : ByteArray} {g : Sat256} {s0 : State}
   have rd18 := rd17.add hd17 (by evm_ov)
   obtain ⟨_, _, rd19raw⟩ := rd18.sload hd18 (by evm_ov)
   have hrateRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (⟨1⟩ + solcMappingSlot ⟨2⟩ key) ⟨0⟩)) ≠ ⟨0⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (⟨1⟩ + solcMappingSlot ⟨2⟩ key) ⟨0⟩)) ≠ ⟨0⟩ := by
     simpa [solcSlotWord, u256_add_comm (⟨1⟩ : UInt256) (solcMappingSlot ⟨2⟩ key)]
       using hrate
   have rd20₀ := rd19raw.iszero hd19 (by evm_ov)
   have hiszero :
       UInt256.isZero
-        (σ.find? ee.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (⟨1⟩ + solcMappingSlot ⟨2⟩ key) ⟨0⟩)) = ⟨0⟩ :=
+        (σ.get? ee.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD (⟨1⟩ + solcMappingSlot ⟨2⟩ key) ⟨0⟩)) = ⟨0⟩ :=
     isZero_eq_zero_of_ne hrateRaw
   have rd20 := rd20₀
   rw [hiszero] at rd20

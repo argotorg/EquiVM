@@ -50,8 +50,8 @@ theorem flapperCtorDefaultsReach
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         (flapperCtorAfterBegMap σ I) k21 C21 := by
     have hload :
-        ((flapperCtorAfterBegMap σ I).find? I.codeOwner |>.option ⟨0⟩
-          (fun ac => ac.storage.findD ⟨5⟩ ⟨0⟩)) =
+        ((flapperCtorAfterBegMap σ I).get? I.codeOwner |>.option ⟨0⟩
+          (fun ac => ac.storage.getD ⟨5⟩ ⟨0⟩)) =
           solcSlotWord (flapperCtorAfterBegMap σ I) I ⟨5⟩ := by
       rfl
     simpa [hload] using rd21raw

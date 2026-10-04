@@ -1032,7 +1032,7 @@ theorem clipperTakeNoAdjustDogDigsOweZeroRemoveIdEqMoveSourceOk (v : ClipperImmu
         "digs" 0
         [v.ilk, .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
         (true, evmDog, outDog) true)
-    (hacc : evmDog.accountMap.find? evmDog.executionEnv.codeOwner = some acc)
+    (hacc : evmDog.accountMap.get? evmDog.executionEnv.codeOwner = some acc)
     (hlen : Solm.EVM.storageLoad evmDog evmDog.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩)
     (heq :
       clipperYankArgWord I =

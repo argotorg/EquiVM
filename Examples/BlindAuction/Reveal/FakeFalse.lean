@@ -28,8 +28,8 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
           |>.readWithPadding 0 64) =
         UInt256.toByteArray (revealScratchBidsLengthSlot I))
     (hlenLoad :
-      (a.acc.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
+      (a.acc.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
     (hboundBids : a.idx.toNat < curLen.toNat)
     (hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -194,11 +194,11 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
       rw [hslotSize]
       simpa [memOf] using a.hgap
     let blinded : UInt256 :=
-      ((accOf a).find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩)
+      ((accOf a).get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩)
     have hblindedEvm :
-        ((accOf a).find? I.codeOwner).option ⟨0⟩
-          (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded := rfl
+        ((accOf a).get? I.codeOwner).option ⟨0⟩
+          (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded := rfl
     have hblindedSrc :
         Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (scratch_revealBidBlindedSlot evm (idx a)) = blinded := by
@@ -302,11 +302,11 @@ theorem scratch_revealLoopBody_fakeFalse_fromLoopStart {I} {g : Sat256}
           (by simpa using hfakeZero)
           (by simpa using hsecretLoad)
       let deposit : UInt256 :=
-        ((accOf a).find? I.codeOwner).option ⟨0⟩
-          (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩)
+        ((accOf a).get? I.codeOwner).option ⟨0⟩
+          (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩)
       have hdepositEvm :
-          ((accOf a).find? I.codeOwner).option ⟨0⟩
-            (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) =
+          ((accOf a).get? I.codeOwner).option ⟨0⟩
+            (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) =
             deposit := rfl
       have hdepositSrc :
           Solm.EVM.storageLoad evm evm.executionEnv.codeOwner

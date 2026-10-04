@@ -236,17 +236,17 @@ private theorem ctorExtCodeSize_ne_zero_lookup_code_pos {σ : AccountMap} {targe
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -255,23 +255,23 @@ private theorem ctorExtCodeSize_ne_zero_lookup_code_pos {σ : AccountMap} {targe
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 private theorem ctorExtCodeSize_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem RDret.xiResultAcc {σ σ' σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv}
     {g : Sat256} {code o : ByteArray}
@@ -390,7 +390,7 @@ theorem vowCtorPrefixAccountMapEquiv
   have hmap : Eq evm4e.accountMap evm4s.accountMap := by
     simpa [evm0e, evm1e, evm2e, evm3e, evm4e, evm0s, evm1s, evm2s, evm3s, evm4s]
       using hprefix
-  simpa [evm4e, evm3e, evm2e, evm1e, evm0e, σFlopper, flopperStored, σFlapper,
+  simpa [-Std.ExtTreeMap.get?_eq_getElem?, evm4e, evm3e, evm2e, evm1e, evm0e, σFlopper, flopperStored, σFlapper,
     flapperStored, σVat, vatStored, σWards, vowCtorAfterFlopperState,
     vowCtorAfterFlapperState, vowCtorAfterVatState, vowCtorAfterWardsState, initState,
     storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
@@ -399,8 +399,8 @@ theorem vowCtorPrefixAccountMapEquiv
 private theorem vowCtorStorageStore_sigma0 (evm : EVM.State) (addr : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
-  cases h : evm.accountMap.find? addr <;>
-    simp [Solm.EVM.storageStore, State.lookupAccount, h, Option.option, State.setAccount]
+  cases h : evm.accountMap.get? addr <;>
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, Solm.EVM.storageStore, State.lookupAccount, h, Option.option, State.setAccount]
 
 set_option maxHeartbeats 0 in
 theorem vowConstructorCorrect :

@@ -47,7 +47,7 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
         (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨0⟩)
     (accSolm0 : Account)
     (_haccSolm0 :
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I).accountMap.find?
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I).accountMap.get?
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner =
         some accSolm0)
     (evmSolm1 : EVM.State)
@@ -421,7 +421,7 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
         (calldataWord I.calldata (4 + (calldataWord I.calldata 4).toNat)) = ⟨1⟩)
     (accSolm0 : Account)
     (_haccSolm0 :
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I).accountMap.find?
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I).accountMap.get?
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner =
         some accSolm0)
     (evmSolm1 : EVM.State)
@@ -915,7 +915,7 @@ theorem stringStoreLiteX_setLongValueLongValidResidual
         ⟨0⟩)
     (accSolm0 : Account)
     (haccSolm0 :
-      (initState σ σ₀ (Sat256.ofUInt256 g) A I).accountMap.find?
+      (initState σ σ₀ (Sat256.ofUInt256 g) A I).accountMap.get?
           (initState σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner =
         some accSolm0)
     (evmSolm1 : EVM.State)

@@ -156,8 +156,8 @@ def frobLiveSuccessGuards (σ : AccountMap) (I : ExecutionEnv) : Prop :=
     (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) ≠ ⟨0⟩ ∧
   (((sstoreAccountMap I.codeOwner σ foldDebtSlot
     (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
-      solcSlotWord σ I foldDebtSlot)).find? I.codeOwner |>.option ⟨0⟩
-      (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) =
+      solcSlotWord σ I foldDebtSlot)).get? I.codeOwner |>.option ⟨0⟩
+      (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) =
     UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
       solcSlotWord σ I foldDebtSlot) ∧
   (solcSlotWord σ I (frobIlkSpotSlot I) = ⟨0⟩ ∨

@@ -40,7 +40,7 @@ def allowanceSlotOf (I : ExecutionEnv) : UInt256 :=
     (.int (Int.ofNat (allowanceIdWord I).toNat))
 
 def allowanceWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (allowanceSlotOf I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (allowanceSlotOf I) ⟨0⟩)
 
 theorem erc6909Decode_allowance_ok {I : ExecutionEnv}
     (hsz100 : 100 ≤ I.calldata.size) (hbig : I.calldata.size < 2 ^ 255 + 4)

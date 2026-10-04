@@ -38,13 +38,13 @@ def bidsDepositSlot (I : ExecutionEnv) : UInt256 :=
   bidsElementSlot I + ⟨1⟩
 
 def bidsLengthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (bidsLengthSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (bidsLengthSlot I) ⟨0⟩)
 
 def bidsBlindedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (bidsElementSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (bidsElementSlot I) ⟨0⟩)
 
 def bidsDepositWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (bidsDepositSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (bidsDepositSlot I) ⟨0⟩)
 
 def bidsLengthCurrent (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
   Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (bidsLengthSlot I)
@@ -815,8 +815,8 @@ theorem blindAuctionBidsX_ok {σ σ₀ A I} {g : Sat256}
     jumpiT (by
       have hlt' :
           (bidsIndexWord I).lt
-              (σ.find? I.codeOwner |>.option ⟨0⟩
-                (fun acc => acc.storage.findD (bidsLengthSlot I) ⟨0⟩)) = ⟨1⟩ := by
+              (σ.get? I.codeOwner |>.option ⟨0⟩
+                (fun acc => acc.storage.getD (bidsLengthSlot I) ⟨0⟩)) = ⟨1⟩ := by
         simpa [bidsLengthWord] using hlt
       rw [hlt']; decide) (by jump_dest) ]
   have rd551 := evm_run rd535 with [
@@ -900,8 +900,8 @@ theorem blindAuctionBidsX_oob {σ σ₀ A I} {g : Sat256}
     jumpiNT (by
       have hlt' :
           (bidsIndexWord I).lt
-              (σ.find? I.codeOwner |>.option ⟨0⟩
-                (fun acc => acc.storage.findD (bidsLengthSlot I) ⟨0⟩)) = ⟨0⟩ := by
+              (σ.get? I.codeOwner |>.option ⟨0⟩
+                (fun acc => acc.storage.getD (bidsLengthSlot I) ⟨0⟩)) = ⟨0⟩ := by
         simpa [bidsLengthWord] using hlt
       exact hlt'),
     push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov) ]

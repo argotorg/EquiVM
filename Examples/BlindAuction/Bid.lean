@@ -39,7 +39,7 @@ def bidDepositSlot (I : ExecutionEnv) (len : UInt256) : UInt256 :=
   bidElementSlot I len + ⟨1⟩
 
 def bidLengthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (bidLengthSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (bidLengthSlot I) ⟨0⟩)
 
 def bidBaseSlotMem (I : ExecutionEnv) : ByteArray :=
   (UInt256.toByteArray (⟨4⟩ : UInt256)).write 0 solcFreePtrMem 32 32

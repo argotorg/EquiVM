@@ -117,7 +117,7 @@ theorem RD.uniswapLockEnterOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C
     (hwf : uniswapLockEnterOkWf pc okPc)
     (hperm : ee.perm = true)
     (hunlocked :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (hok : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains okPc = true)
     (hov : R.length + 2 ≤ 1024) :
@@ -187,7 +187,7 @@ theorem RD.uniswapLockEnterBodyLocked {g : Sat256} {s0 : State} {ee : ExecutionE
         (⟨7267690950230416977285330377544234619217⟩ : UInt256) ⟨122⟩
         .PUSH17 17)
     (hlocked :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
       ⟨1⟩)
     (hov : R.length + 5 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
@@ -201,7 +201,7 @@ theorem RD.uniswapLockEnterBodyLocked {g : Sat256} {s0 : State} {ee : ExecutionE
   obtain ⟨_, _, rd3₀⟩ := rd2.sload hd2 (by omega)
   have rd3 := rd3₀
   have hraw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         lockedWord := by
     simpa [solcSlotWord] using hlockedWord.symm
   rw [hraw] at rd3
@@ -248,7 +248,7 @@ theorem RD.uniswapLockEnterBodyOk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hwf : uniswapLockEnterBodyOkWf pc okPc)
     (hperm : ee.perm = true)
     (hunlocked :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (hok : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains okPc = true)
     (hov : R.length + 3 ≤ 1024) :
@@ -300,7 +300,7 @@ theorem RD.uniswapLockEnterLocked {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
         (⟨7267690950230416977285330377544234619217⟩ : UInt256) ⟨122⟩
         .PUSH17 17)
     (hlocked :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) ≠
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨12⟩ ⟨0⟩)) ≠
       ⟨1⟩)
     (hov : R.length + 6 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
@@ -326,7 +326,7 @@ theorem RD.addressSlotGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C 
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
       (UInt256.land solcAddrMask
-        (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) ::
+        (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) ::
         ret :: R) mem aw rdata σ k' C' := by
   exact RD.solcAddressSlotGetter h hwf hret hov
 
@@ -339,7 +339,7 @@ theorem RD.uniswapWordSlotGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {
     (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret
-      ((σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) ::
+      ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) ::
         ret :: R) mem aw rdata σ k' C' := by
   exact RD.solcWordSlotGetter h hwf hret hov
 

@@ -424,7 +424,7 @@ theorem RD.cureTellRoutineCountSuccess {code : ByteArray} {g : Sat256} {s0 : Sta
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
-      ((σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨9⟩ ⟨0⟩)) :: R)
+      ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨9⟩ ⟨0⟩)) :: R)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd3, hd5, hd6, hd8, hd9, hd10, hd11, hd14, hd15, hd16,
@@ -437,7 +437,7 @@ theorem RD.cureTellRoutineCountSuccess {code : ByteArray} {g : Sat256} {s0 : Sta
     raw push1 ⟨1⟩ hd3 (by simp only [List.length_cons]; omega)]
   obtain ⟨_, _, rd6⟩ := rd5.sload hd5 (by simp only [List.length_cons]; omega)
   have hliveRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) = ⟨0⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)) = ⟨0⟩ := by
     simpa [solcSlotWord] using hlive
   rw [hliveRaw] at rd6
   have rd9 := rd6.push1 ⟨0⟩ hd6 (by simp only [List.length_cons]; omega)
@@ -457,8 +457,8 @@ theorem RD.cureTellRoutineCountSuccess {code : ByteArray} {g : Sat256} {s0 : Sta
   have rd21 := rd19.push1 ⟨8⟩ hd19 (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rd22⟩ := rd21.sload hd21 (by simp only [List.length_cons]; omega)
   have hcountRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) =
-        (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨8⟩ ⟨0⟩)) =
+        (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)) := by
     simpa [solcSlotWord] using hcount
   have rd23 := rd22.eq hd22 (by simp only [List.length_cons]; omega)
   have rd23' := rd23
@@ -500,7 +500,7 @@ theorem RD.cureTellRoutineCountFalseToTimeTail {code : ByteArray} {g : Sat256}
     raw push1 ⟨1⟩ hd3 (by simp only [List.length_cons]; omega)]
   obtain ⟨_, _, rd6⟩ := rd5.sload hd5 (by simp only [List.length_cons]; omega)
   have hliveRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) = ⟨0⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)) = ⟨0⟩ := by
     simpa [solcSlotWord] using hlive
   rw [hliveRaw] at rd6
   have rd9 := rd6.push1 ⟨0⟩ hd6 (by simp only [List.length_cons]; omega)
@@ -520,14 +520,14 @@ theorem RD.cureTellRoutineCountFalseToTimeTail {code : ByteArray} {g : Sat256}
   have rd21 := rd19.push1 ⟨8⟩ hd19 (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rd22⟩ := rd21.sload hd21 (by simp only [List.length_cons]; omega)
   have hcountRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩)) ≠
-        (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨8⟩ ⟨0⟩)) ≠
+        (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)) := by
     intro hraw
     exact hcount (by simpa [solcSlotWord] using hraw)
   have heq0 :
       UInt256.eq
-        (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨8⟩ ⟨0⟩))
-        (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) = ⟨0⟩ := by
+        (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨8⟩ ⟨0⟩))
+        (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)) = ⟨0⟩ := by
     exact u256_eq_of_ne hcountRaw
   have rd23 := rd22.eq hd22 (by simp only [List.length_cons]; omega)
   have rd23' := rd23
@@ -582,7 +582,7 @@ theorem RD.cureTellTimeTailSuccess {code : ByteArray} {g : Sat256} {s0 : State}
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
-      ((σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨9⟩ ⟨0⟩)) :: R)
+      ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨9⟩ ⟨0⟩)) :: R)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
     ⟨hd0, hd1, hd2, hd4, hd5, hd6, hguardPc, hdg0, hdg1, hdg4, hds0, hds1, hds2,
@@ -591,7 +591,7 @@ theorem RD.cureTellTimeTailSuccess {code : ByteArray} {g : Sat256} {s0 : State}
   have rd2 := rd1.push1 ⟨4⟩ hd1 (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rd4⟩ := rd2.sload hd2 (by simp only [List.length_cons]; omega)
   have hwhenRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨4⟩ ⟨0⟩)) =
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨4⟩ ⟨0⟩)) =
         solcSlotWord σ ee ⟨4⟩ := by
     rfl
   rw [hwhenRaw] at rd4
@@ -637,7 +637,7 @@ theorem RD.cureTellRoutineTimeSuccessConcrete {g : Sat256} {s0 : State}
     (hret : (D_J cureBytecode 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD cureBytecode ee g s0 ret
-      ((σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨9⟩ ⟨0⟩)) :: R)
+      ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨9⟩ ⟨0⟩)) :: R)
       mem (UInt256.ofNat 3) rdata σ k' C' := by
   obtain ⟨_, _, htail⟩ := RD.cureTellRoutineCountFalseToTimeTail
     (code := cureBytecode) (g := g) (s0 := s0) (ee := ee) (pc := ⟨2232⟩)
@@ -665,7 +665,7 @@ theorem RD.cureTellTimeTailGuardFalseConcrete {g : Sat256} {s0 : State}
   have rd2 := rd1.push1 ⟨4⟩ hd1 (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rd4⟩ := rd2.sload hd2 (by simp only [List.length_cons]; omega)
   have hwhenRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨4⟩ ⟨0⟩)) =
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨4⟩ ⟨0⟩)) =
         solcSlotWord σ ee ⟨4⟩ := by
     rfl
   rw [hwhenRaw] at rd4
@@ -703,11 +703,11 @@ theorem RD.cureTellRoutineLiveNonzeroToRevertConcrete {g : Sat256} {s0 : State}
     raw push1 ⟨1⟩ hd3 (by simp only [List.length_cons]; omega)]
   obtain ⟨_, _, rd6⟩ := rd5.sload hd5 (by simp only [List.length_cons]; omega)
   have hliveRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) ≠ ⟨0⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)) ≠ ⟨0⟩ := by
     simpa [solcSlotWord] using hlive
   have heq0 :
       UInt256.eq ⟨0⟩
-        (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)) =
+        (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)) =
         ⟨0⟩ := by
     exact u256_eq_of_ne (fun hraw => hliveRaw hraw.symm)
   have rd9 := rd6.push1 ⟨0⟩ hd6 (by simp only [List.length_cons]; omega)

@@ -115,8 +115,8 @@ def frobLiveDebtCeilingSafetyGuards (σ : AccountMap) (I : ExecutionEnv) : Prop 
     (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) ≠ ⟨0⟩ ∧
   (((sstoreAccountMap I.codeOwner σ foldDebtSlot
     (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
-      solcSlotWord σ I foldDebtSlot)).find? I.codeOwner |>.option ⟨0⟩
-      (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) =
+      solcSlotWord σ I foldDebtSlot)).get? I.codeOwner |>.option ⟨0⟩
+      (fun acc => acc.storage.getD (⟨7⟩ : UInt256) ⟨0⟩)) =
     UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
       solcSlotWord σ I foldDebtSlot) ∧
   (solcSlotWord σ I (frobIlkSpotSlot I) = ⟨0⟩ ∨
@@ -4997,6 +4997,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
       Account.lookupStorage, storageStore_accountMap, storageStore_executionEnv,
       frobAfterDebt, frobDebtNew, gemOld, debtNew, dtabWord, debtOld,
       frobDtabWord, ilkRate, vatSlotWord, frobGemVSourceSlot_eq I hsz196]
+    simp only [solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?]
   have hmemDustSize :
       (twoWordHashMem (hopeSourceWord I)
         (solcMappingSlot ⟨1⟩ (frobWMaskedWord I))
@@ -5092,6 +5093,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
           frobGemNew, gemNew, daiOld, debtNew, dtabWord, debtOld,
           frobDtabWord, ilkRate, vatSlotWord, frobGemVSourceSlot_eq I hsz196,
           frobDaiWSourceSlot_eq I]
+        simp only [solcSlotWord, Std.ExtTreeMap.get?_eq_getElem?]
       by_cases hDaiNeg :
           UInt256.slt (frobDtabWord σ I) ⟨0⟩ = ⟨0⟩ ∨
             UInt256.gt (frobDaiNew σ I)
@@ -5535,18 +5537,19 @@ theorem vatFrobBodyCoreLiveDebtCeilingSafetyReverts
   have hDebtLoadStore :
       (((sstoreAccountMap I.codeOwner σ foldDebtSlot
         (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
-          solcSlotWord σ I foldDebtSlot)).find? I.codeOwner).option
+          solcSlotWord σ I foldDebtSlot)).get? I.codeOwner).option
           (default : UInt256)
-          (fun acc => acc.storage.findD (⟨7⟩ : UInt256) (default : UInt256))) =
+          (fun acc => acc.storage.getD (⟨7⟩ : UInt256) (default : UInt256))) =
         (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
           solcSlotWord σ I foldDebtSlot) := by
-    have hpresent : σ.find? I.codeOwner ≠ none := by
+    have hpresent : σ.get? I.codeOwner ≠ none := by
       intro hmissing
       apply hrateZeroEvm
+      rw [Std.ExtTreeMap.get?_eq_getElem?] at hmissing
       simp [solcSlotWord, hmissing, Option.option]
     obtain ⟨acc, hacc⟩ := Option.ne_none_iff_exists'.mp hpresent
-    simpa [foldDebtSlot] using
-      sstoreAccountMap_storage_findD_self_present σ I.codeOwner hacc
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, foldDebtSlot] using
+      sstoreAccountMap_storage_getD_self_present σ I.codeOwner hacc
         foldDebtSlot
         (UInt256.mul (frobDartWord I) (solcSlotWord σ I (frobIlkRateSlot I)) +
           solcSlotWord σ I foldDebtSlot)

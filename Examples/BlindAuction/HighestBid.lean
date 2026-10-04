@@ -10,7 +10,7 @@ namespace BlindAuction
 /-! ## `highestBid()` getter -/
 
 def highestBidWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨6⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨6⟩ ⟨0⟩)
 
 theorem blindAuctionHighestBidBodyReturns (evm : EVM.State) (locals : Store)
     (h : evm.executionEnv.weiValue = ⟨0⟩)

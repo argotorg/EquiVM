@@ -992,7 +992,7 @@ theorem RD.solcUint48Offset0SlotGetter {code : ByteArray} {g : Sat256} {s0 : Sta
       UInt256.land uint48Mask (solcSlotWord σ ee slot) =
         UInt256.land (solcSlotWord σ ee slot) uint48Mask :=
     u256_land_comm _ _
-  exact ⟨_, _, by simpa [hcomm] using rdRet⟩
+  exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hcomm] using rdRet⟩
 
 theorem RD.solcUint48Offset6SlotGetter {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc slot ret : UInt256} {R : List UInt256}
@@ -1029,7 +1029,7 @@ theorem RD.solcUint48Offset6SlotGetter {code : ByteArray} {g : Sat256} {s0 : Sta
         UInt256.land (UInt256.div (solcSlotWord σ ee slot) uint48Divisor) uint48Mask := by
     rw [hdiv]
     exact u256_land_comm _ _
-  exact ⟨_, _, by simpa [hcomm] using rdRet⟩
+  exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hcomm] using rdRet⟩
 
 theorem RD.flipperReturnUint48FromMem {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {val ret : UInt256} {R : List UInt256}
@@ -1666,8 +1666,8 @@ theorem RD.flipperAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
   have hauthRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) =
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) =
           ⟨1⟩ := by
     simpa [solcSlotWord] using hauth
   have rd20 := rd20₀
@@ -1712,14 +1712,14 @@ theorem RD.flipperAuthCheckRevert {g : Sat256} {s0 : State}
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
   have hauthRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) ≠
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) ≠
           ⟨1⟩ := by
     simpa [solcSlotWord] using hauth
   have heq0 :
       UInt256.eq ⟨1⟩
-        (σ.find? ee.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) =
+        (σ.get? ee.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) =
           ⟨0⟩ := by
     exact u256_eq_of_ne (fun h1 => hauthRaw h1.symm)
   have rd20 := rd20₀

@@ -16,10 +16,10 @@ abbrev transferOwnershipNewOwnerValue (I : ExecutionEnv) : Value :=
   .address (AccountAddress.ofNat (transferOwnershipNewOwnerWord I).toNat)
 
 def transferOwnershipPendingOwnerWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)
 
 def transferOwnershipOwnerWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
 def transferOwnershipSetPendingWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   ownable2StepSetAddressWord (transferOwnershipPendingOwnerWord σ I)
@@ -29,8 +29,8 @@ def transferOwnershipAfterPendingMap (σ : AccountMap) (I : ExecutionEnv) : Acco
   sstoreAccountMap I.codeOwner σ ⟨1⟩ (transferOwnershipSetPendingWord σ I)
 
 def transferOwnershipOwnerWordAfterPending (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  transferOwnershipAfterPendingMap σ I |>.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
+  transferOwnershipAfterPendingMap σ I |>.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
 def transferOwnershipStore (I : ExecutionEnv) : Store :=
   (∅ : Store).insert "newOwner" (transferOwnershipNewOwnerValue I)

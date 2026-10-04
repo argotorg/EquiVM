@@ -303,14 +303,14 @@ theorem RD.cureSrcsArrayGetterInBounds {code : ByteArray} {ee : ExecutionEnv}
       rdata σ k C)
     (hwf : srcsArrayGetterInBoundsWf code)
     (hlt : idx.toNat < len.toNat)
-    (hlen : (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) = len)
+    (hlen : (σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) = len)
     (hjmpBounds : (D_J code 0).contains ⟨3622⟩ = true)
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
       ((UInt256.land
-          (σ.find? ee.codeOwner |>.option ⟨0⟩
-            (fun ac => ac.storage.findD (srcsDataSlot + idx) ⟨0⟩))
+          (σ.get? ee.codeOwner |>.option ⟨0⟩
+            (fun ac => ac.storage.getD (srcsDataSlot + idx) ⟨0⟩))
           solcAddrMask) :: ret :: R)
       srcsBaseSlotMem (UInt256.ofNat 3) rdata σ k' C' := by
   rcases hwf with
@@ -323,7 +323,7 @@ theorem RD.cureSrcsArrayGetterInBounds {code : ByteArray} {ee : ExecutionEnv}
   have rd5 := rd4.dup2 hd4 (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rd6'⟩ := rd5.sload hd5 (by simp only [List.length_cons]; omega)
   have rd6 := by
-    simpa [hlen] using rd6'
+    simpa only [hlen] using rd6'
   have rd7 := rd6.dup2 hd6 (by simp only [List.length_cons]; omega)
   have rd8 := rd7.lt hd7 (by simp only [List.length_cons]; omega)
   have hltWord : UInt256.lt idx len = ⟨1⟩ := by
@@ -361,11 +361,12 @@ theorem RD.cureSrcsArrayGetterInBounds {code : ByteArray} {ee : ExecutionEnv}
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     native_decide
   have rd35 := rd34.and hd34 (by simp only [List.length_cons]; omega)
-  have rd36 := by
-    simpa [hmask,
-      u256_land_comm solcAddrMask
-        (σ.find? ee.codeOwner |>.option ⟨0⟩
-          (fun ac => ac.storage.findD (srcsDataSlot + idx) ⟨0⟩))] using rd35
+  have rd36 := rd35
+  rw [hmask] at rd36
+  rw [← Std.ExtTreeMap.get?_eq_getElem?] at rd36
+  rw [u256_land_comm solcAddrMask
+    (σ.get? ee.codeOwner |>.option ⟨0⟩
+      (fun ac => ac.storage.getD (srcsDataSlot + idx) ⟨0⟩))] at rd36
   have rd37 := rd36.swap1 hd35 (by simp only [List.length_cons]; omega)
   have rd38 := rd37.pop hd36 (by simp only [List.length_cons]; omega)
   have rd39 := rd38.dup2 hd37
@@ -423,7 +424,7 @@ theorem RD.cureSrcsInBounds {σ I} {g : Sat256} {s0 : State}
   have rd3609' := by
     simpa [srcsIndex, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide] using rd3609
   have hlen :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) =
         srcsLenWord σ I := by
     rfl
   obtain ⟨_, _, rd845⟩ := RD.cureSrcsArrayGetterInBounds
@@ -431,8 +432,8 @@ theorem RD.cureSrcsInBounds {σ I} {g : Sat256} {s0 : State}
     rd3609' (by unfold srcsArrayGetterInBoundsWf; repeat' first | apply And.intro | native_decide)
     hlt hlen (by jump_dest) (by jump_dest) (by simp)
   have hraw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun ac => ac.storage.findD (srcsDataSlot + srcsIndex I) ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun ac => ac.storage.getD (srcsDataSlot + srcsIndex I) ⟨0⟩)) =
         srcsRawWord σ I := by
     rw [← srcsSlotFor_eq I]
     rfl
@@ -442,7 +443,7 @@ theorem RD.cureSrcsInBounds {σ I} {g : Sat256} {s0 : State}
   have hret := RD.solcReturnAddressFromMem
     (pc := ⟨845⟩) (val := masked) (ret := ⟨845⟩) (R := [sel])
     (memout := solcScratchReturnMem srcsBaseSlotMem masked)
-    (by simpa [masked, hraw] using rd845)
+    (by simpa only [masked, hraw] using rd845)
     (by unfold solcReturnAddressFromMemWf; repeat' first | apply And.intro | native_decide)
     (by
       exact mloadFreePtrValue

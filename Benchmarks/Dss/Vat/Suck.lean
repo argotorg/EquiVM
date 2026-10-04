@@ -1049,7 +1049,7 @@ theorem vatSuckSourceRevertDaiOverflowVat
   let daiVal := Solm.EVM.storageLoad evmSin evmSin.executionEnv.codeOwner (suckDaiSlot I)
   have hsinLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (suckSinSlot I) = sinVal := by
-    simp [sinVal, evm0, initState, Solm.EVM.storageLoad, vatSlotWord,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, sinVal, evm0, initState, Solm.EVM.storageLoad, vatSlotWord,
       State.lookupAccount, Account.lookupStorage]
   have hsinFitLoad : sinVal.toNat + (suckRadWord I).toNat < UInt256.size := by
     simpa [sinVal] using hsinFit
@@ -1178,7 +1178,7 @@ theorem vatSuckSourceRevertViceOverflowVat
   have hsinLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (suckSinSlot I) =
         vatSlotWord (suckSinSlot I) σ I := by
-    simp [evm0, initState, Solm.EVM.storageLoad, vatSlotWord,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, evm0, initState, Solm.EVM.storageLoad, vatSlotWord,
       State.lookupAccount, Account.lookupStorage]
   have hdaiLoad :
       Solm.EVM.storageLoad
@@ -1356,7 +1356,7 @@ theorem vatSuckSourceRevertDebtOverflowVat
   have hsinLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (suckSinSlot I) =
         vatSlotWord (suckSinSlot I) σ I := by
-    simp [evm0, initState, Solm.EVM.storageLoad, vatSlotWord,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, evm0, initState, Solm.EVM.storageLoad, vatSlotWord,
       State.lookupAccount, Account.lookupStorage]
   let evmSin := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
     (suckSinSlot I) sinNew
@@ -1467,7 +1467,7 @@ theorem vatSuckSourceSuccessVat
   have hsinLoad :
       Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (suckSinSlot I) =
         vatSlotWord (suckSinSlot I) σ I := by
-    simp [evm0, initState, Solm.EVM.storageLoad, vatSlotWord,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, evm0, initState, Solm.EVM.storageLoad, vatSlotWord,
       State.lookupAccount, Account.lookupStorage]
   let evmSin := Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
     (suckSinSlot I) sinNew

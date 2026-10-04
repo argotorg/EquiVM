@@ -26,7 +26,7 @@ namespace Benchmarks.WETH9
 
 /-- Raw storage header word at `slot` for the code owner (the compact-string length header). -/
 def weth9StringSlotWord (σ : AccountMap) (I : ExecutionEnv) (slot : UInt256) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)
 
 /-! ## Config-independent decode/shape expressions
 

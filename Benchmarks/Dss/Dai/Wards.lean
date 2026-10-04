@@ -27,8 +27,8 @@ def wardsStorageSlot (I : ExecutionEnv) : UInt256 :=
   wardsSlot (wardsArgKey I)
 
 def wardsWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (wardsStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (wardsStorageSlot I) ⟨0⟩)
 
 theorem wardsStorageSlot_eq_mapSlot_masked (I : ExecutionEnv) :
     wardsStorageSlot I = mapSlot (wardsArgMaskedWord I) ⟨0⟩ := by
@@ -128,8 +128,8 @@ theorem daiX_wards_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_singleton]; omega)
   have hslot := wardsStorageSlot_eq_mapSlot_masked I
   have hword :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (mapSlot (wardsArgMaskedWord I) ⟨0⟩) ⟨0⟩))
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD (mapSlot (wardsArgMaskedWord I) ⟨0⟩) ⟨0⟩))
         = wardsWord σ I := by
     unfold wardsWord
     rw [hslot]
@@ -137,7 +137,7 @@ theorem daiX_wards_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (wardsWord σ I :: ⟨524⟩ :: [sel])
       (daiMappingHashMem ⟨0⟩ (wardsArgMaskedWord I))
       (UInt256.ofNat 3) ByteArray.empty σ k524 C524 := by
-    simpa [hword] using rd524raw
+    simpa only [hword] using rd524raw
   exact RD.daiReturnWordFromMem
     (val := wardsWord σ I) (ret := ⟨524⟩) (R := [sel])
     (mem := daiMappingHashMem ⟨0⟩ (wardsArgMaskedWord I))

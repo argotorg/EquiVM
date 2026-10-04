@@ -1040,8 +1040,8 @@ theorem flipperKickX_authOk {σ I} {g : Sat256} {s0 : State}
   have rd2009 := rd2009raw.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   have rd2012 := rd2009.eq (by native_decide) (by evm_ov)
   have hauthRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ⟨0⟩)) =
           ⟨1⟩ := by
     simpa [solcSlotWord] using hauthSolc
   rw [hauthRaw, uInt256_eq_self] at rd2012
@@ -1086,14 +1086,14 @@ theorem flipperKickX_authRevert {σ I} {g : Sat256} {s0 : State}
   have rd2009 := rd2009raw.push1 ⟨1⟩ (by native_decide) (by evm_ov)
   have rd2012raw := rd2009.eq (by native_decide) (by evm_ov)
   have hauthRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ⟨0⟩)) ≠
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ⟨0⟩)) ≠
           ⟨1⟩ := by
     simpa [solcSlotWord] using hauthSolc
   have heq0 :
       UInt256.eq ⟨1⟩
-        (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ⟨0⟩)) =
+        (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD (solcMappingSlot ⟨0⟩ (solcSourceWord I)) ⟨0⟩)) =
           ⟨0⟩ :=
     u256_eq_of_ne (fun h1 => hauthRaw h1.symm)
   have rd2012 := rd2012raw

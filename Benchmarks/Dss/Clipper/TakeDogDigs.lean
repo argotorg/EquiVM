@@ -931,7 +931,7 @@ theorem RD.clipperYankRemoveIdEqMoveToJoinGeneric {code : ByteArray}
       ∃ k C, RD code ee g s0 ⟨8307⟩
         (clipperYankActiveSlot lastIndex :: ⟨0⟩ :: clipperYankArgWord ee :: ret :: R)
         activeMem aw2 o σ k C := by
-    exact ⟨_, _, by simpa [solcSlotWord, hslotActive] using rd8307pre⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hslotActive] using rd8307pre⟩
   obtain ⟨_, _, rd8308raw⟩ := rd8307slot.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8308, C8308, rd8308⟩ :
       ∃ k C, RD code ee g s0 ⟨8308⟩
@@ -1059,7 +1059,7 @@ theorem RD.clipperYankRemoveJoinToReturn {code : ByteArray} (v : ClipperImmutabl
         k C := by
     obtain ⟨k', C', rd'⟩ := rd8411pre.sstore hperm (by clipper_yank_remove_decode)
       (by simp only [List.length_cons]; omega)
-    exact ⟨k', C', by simpa [solcSlotWord, hslotActive'] using rd'⟩
+    exact ⟨k', C', by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hslotActive'] using rd'⟩
   have rd8417pre := evm_run rd8412 with [
     raw swap1 (by clipper_yank_remove_decode) (by evm_ov),
     raw swap3 (by clipper_yank_remove_decode) (by evm_ov),
@@ -1760,7 +1760,7 @@ theorem clipperTakeDogDigsOweZeroRemoveIdEqMoveSourceOk (v : ClipperImmutables)
         "digs" 0
         [v.ilk, .int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)]
         (true, evmDog, outDog) true)
-    (hacc : evmDog.accountMap.find? evmDog.executionEnv.codeOwner = some acc)
+    (hacc : evmDog.accountMap.get? evmDog.executionEnv.codeOwner = some acc)
     (hlen : Solm.EVM.storageLoad evmDog evmDog.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩)
     (heq :
       clipperYankArgWord I =

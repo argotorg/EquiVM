@@ -15,7 +15,7 @@ namespace Benchmarks.WETH9
 
 /-- The uint8 `decimals` value = low byte of storage slot 2. -/
 def decimalsWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  UInt256.land (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) ⟨255⟩
+  UInt256.land (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨2⟩ ⟨0⟩)) ⟨255⟩
 
 theorem land255_double (x : UInt256) :
     UInt256.land (UInt256.land ⟨255⟩ x) ⟨255⟩ = UInt256.land x ⟨255⟩ := by

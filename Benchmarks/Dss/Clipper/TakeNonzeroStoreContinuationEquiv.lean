@@ -74,7 +74,7 @@ theorem clipperTakeNonzeroStoreContinuationEquiv
       accountMap := σCbEvm }
   have hvowWord : clipperTakeVowTarget σCbEvm I = clipperTakeVowEVMWord evmCb := by
     have hslot := congrArg (fun m => solcSlotWord m I ⟨2⟩) hAccountsCb
-    simp [clipperTakeVowTarget, clipperTakeVowEVMWord, hevmCbEnv,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, clipperTakeVowTarget, clipperTakeVowEVMWord, hevmCbEnv,
       Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       solcSlotWord, hslot]
   have hdogAddress : AccountAddress.ofNat dog.toNat =

@@ -743,11 +743,11 @@ theorem RD.cureCageSuccessTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       ByteArray.empty := by
   let mem := twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem
   have hwaitLive :
-      (((sstoreAccountMap I.codeOwner σ ⟨1⟩ ⟨0⟩).find? I.codeOwner).option
-          (⟨0⟩ : UInt256) (fun acc => acc.storage.findD ⟨3⟩ (⟨0⟩ : UInt256))) =
+      (((sstoreAccountMap I.codeOwner σ ⟨1⟩ ⟨0⟩).get? I.codeOwner).option
+          (⟨0⟩ : UInt256) (fun acc => acc.storage.getD ⟨3⟩ (⟨0⟩ : UInt256))) =
         cageWaitWord σ I := by
     simpa [cageWaitWord, cureSlotWord, solcSlotWord] using
-      sstoreAccountMap_storage_findD_ne σ I.codeOwner ⟨3⟩ ⟨1⟩ ⟨0⟩
+      sstoreAccountMap_storage_getD_ne σ I.codeOwner ⟨3⟩ ⟨1⟩ ⟨0⟩
         (by native_decide)
   have rd2744 := evm_run h with [
     raw push1 ⟨3⟩ (by native_decide) (by evm_ov)]
@@ -817,11 +817,11 @@ theorem RD.cureCageAddRevertTail {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     RDrev cureBytecode g s0 := by
   let mem := twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem
   have hwaitLive :
-      (((sstoreAccountMap I.codeOwner σ ⟨1⟩ ⟨0⟩).find? I.codeOwner).option
-          (⟨0⟩ : UInt256) (fun acc => acc.storage.findD ⟨3⟩ (⟨0⟩ : UInt256))) =
+      (((sstoreAccountMap I.codeOwner σ ⟨1⟩ ⟨0⟩).get? I.codeOwner).option
+          (⟨0⟩ : UInt256) (fun acc => acc.storage.getD ⟨3⟩ (⟨0⟩ : UInt256))) =
         cageWaitWord σ I := by
     simpa [cageWaitWord, cureSlotWord, solcSlotWord] using
-      sstoreAccountMap_storage_findD_ne σ I.codeOwner ⟨3⟩ ⟨1⟩ ⟨0⟩
+      sstoreAccountMap_storage_getD_ne σ I.codeOwner ⟨3⟩ ⟨1⟩ ⟨0⟩
         (by native_decide)
   have rd2744 := evm_run h with [
     raw push1 ⟨3⟩ (by native_decide) (by evm_ov)]

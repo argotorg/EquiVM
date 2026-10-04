@@ -16,25 +16,25 @@ def auctionEndTimestampWord (I : ExecutionEnv) : UInt256 :=
   UInt256.ofNat I.header.timestamp
 
 def auctionEndRevealEndWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)
 
 def auctionEndBeneficiaryRawWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
 def auctionEndBeneficiaryWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (auctionEndBeneficiaryRawWord σ I) solcAddrMask
 
 def auctionEndHighestBidderRawWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨5⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨5⟩ ⟨0⟩)
 
 def auctionEndWinnerWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (auctionEndHighestBidderRawWord σ I) solcAddrMask
 
 def auctionEndHighestBidWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨6⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨6⟩ ⟨0⟩)
 
 def auctionEndEndedRawWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨3⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨3⟩ ⟨0⟩)
 
 def auctionEndEndedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (auctionEndEndedRawWord σ I) ⟨255⟩
@@ -398,12 +398,12 @@ theorem auctionEndAfterEndedState_executionEnv (evm : EVM.State) :
 theorem auctionEndAfterEndedState_originalMap (evm : EVM.State) :
     (auctionEndAfterEndedState evm).σ₀ = evm.σ₀ := by
   unfold auctionEndAfterEndedState Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
 
 theorem auctionEndAfterEndedState_substate (evm : EVM.State) :
     (auctionEndAfterEndedState evm).substate = evm.substate := by
   unfold auctionEndAfterEndedState Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? evm.executionEnv.codeOwner <;> simp [Option.option, State.setAccount]
 
 theorem auctionEndAfterEndedState_accountMap_init {σ σ₀ A I} {g : Sat256} :
     (auctionEndAfterEndedState (initState σ σ₀ g A I)).accountMap =
@@ -432,8 +432,8 @@ theorem auctionEndHighestBidWordState_afterEnded_init {σ σ₀ A I} {g : Sat256
   simp [initState]
 
 theorem auctionEndAfterEndedState_balance_init {σ σ₀ A I} {g : Sat256} :
-    (auctionEndAfterEndedMap σ I |>.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)) =
-      ((auctionEndAfterEndedState (initState σ σ₀ g A I)).accountMap.find?
+    (auctionEndAfterEndedMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)) =
+      ((auctionEndAfterEndedState (initState σ σ₀ g A I)).accountMap.get?
         (auctionEndAfterEndedState (initState σ σ₀ g A I)).executionEnv.codeOwner
           |>.elim ⟨0⟩ (·.balance)) := by
   rw [auctionEndAfterEndedState_executionEnv, auctionEndAfterEndedState_accountMap_init]
@@ -903,7 +903,7 @@ theorem blindAuctionX_auctionEnd_callMade {σ σ₀ A I} {g : Sat256}
     (htime : (auctionEndRevealEndWord σ I).toNat < (auctionEndTimestampWord I).toNat)
     (hended : auctionEndEndedWord σ I = ⟨0⟩)
     (hbalance : auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I ≤
-      (auctionEndAfterEndedMap σ I |>.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+      (auctionEndAfterEndedMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024) :
     ∃ (σ' : AccountMap)
       (z : Bool) (o : ByteArray) (A_in : Substate) (callGas : UInt256) (k C : ℕ),
@@ -986,7 +986,7 @@ theorem blindAuctionX_auctionEnd_callInsufficientRevert {σ σ₀ A I} {g : Sat2
     (htime : (auctionEndRevealEndWord σ I).toNat < (auctionEndTimestampWord I).toNat)
     (hended : auctionEndEndedWord σ I = ⟨0⟩)
     (hbalance : ¬ auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I ≤
-      (auctionEndAfterEndedMap σ I |>.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
+      (auctionEndAfterEndedMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩ (·.balance)))
     (hdepth : I.depth.val < 1024) :
     RDrev blindAuctionBytecode g (initState σ σ₀ g A I) := by
   obtain ⟨gasArg, _, _, rd766⟩ := blindAuctionX_auctionEnd_toCall
@@ -1176,7 +1176,7 @@ theorem blindAuctionAuctionEndBodyCore {σ σ₀ A I}
             omega
           by_cases hbalance : (
                 auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I ≤
-                  ((auctionEndAfterEndedMap σ I).find? I.codeOwner).elim ⟨0⟩
+                  ((auctionEndAfterEndedMap σ I).get? I.codeOwner).elim ⟨0⟩
                     (fun x => x.balance))
           · obtain ⟨σ', z, out, A_in, callGas, kCall, CCall, hTheta, rd767⟩ :=
               blindAuctionX_auctionEnd_callMade (g := Sat256.ofUInt256 g) hperm hwv
@@ -1228,9 +1228,9 @@ theorem blindAuctionAuctionEndBodyCore {σ σ₀ A I}
                 (auctionEndAfterEndedState_originalMap
                   (initState σ σ₀ (Sat256.ofUInt256 g) A I))
             have hBalE :
-                (auctionEndAfterEndedMap σ I |>.find? I.codeOwner |>.elim ⟨0⟩
+                (auctionEndAfterEndedMap σ I |>.get? I.codeOwner |>.elim ⟨0⟩
                     (·.balance)) =
-                  (evmEAfter.accountMap.find? evmEAfter.executionEnv.codeOwner |>.elim
+                  (evmEAfter.accountMap.get? evmEAfter.executionEnv.codeOwner |>.elim
                     ⟨0⟩ (·.balance)) := by
               simpa [evmEAfter, evmE] using
                 (auctionEndAfterEndedState_balance_init
@@ -1363,18 +1363,18 @@ theorem blindAuctionAuctionEndBodyCore {σ σ₀ A I}
               unfold auctionEndHighestBidWordState
               rw [hAfterState]
             have hBalE :
-                ((auctionEndAfterEndedMap σ I).find? I.codeOwner).elim ⟨0⟩
+                ((auctionEndAfterEndedMap σ I).get? I.codeOwner).elim ⟨0⟩
                     (fun x => x.balance) =
-                  (evmEAfter.accountMap.find? evmEAfter.executionEnv.codeOwner |>.elim
+                  (evmEAfter.accountMap.get? evmEAfter.executionEnv.codeOwner |>.elim
                     ⟨0⟩ (·.balance)) := by
               simpa [evmEAfter, evmE] using
                 (auctionEndAfterEndedState_balance_init
                   (σ := σ) (σ₀ := σ₀) (A := A) (I := I)
                   (g := Sat256.ofUInt256 g))
             have hBalES :
-                (evmEAfter.accountMap.find? evmEAfter.executionEnv.codeOwner |>.elim
+                (evmEAfter.accountMap.get? evmEAfter.executionEnv.codeOwner |>.elim
                     ⟨0⟩ (·.balance)) =
-                  (evmSAfter.accountMap.find? evmSAfter.executionEnv.codeOwner |>.elim
+                  (evmSAfter.accountMap.get? evmSAfter.executionEnv.codeOwner |>.elim
                     ⟨0⟩ (·.balance)) :=
               by rw [hAfterState]
             have hcall :
@@ -1389,16 +1389,16 @@ theorem blindAuctionAuctionEndBodyCore {σ σ₀ A I}
               · rintro ⟨hvalueBal, _⟩
                 have hvalueBal' :
                     auctionEndHighestBidWordState evmSAfter ≤
-                      (evmSAfter.accountMap.find? evmSAfter.executionEnv.codeOwner |>.elim
+                      (evmSAfter.accountMap.get? evmSAfter.executionEnv.codeOwner |>.elim
                         ⟨0⟩ (·.balance)) := by
                   rw [wordOfInt_ofNat_toNat] at hvalueBal
                   exact hvalueBal
                 have hvalueBalE :
                     auctionEndHighestBidWord (auctionEndAfterEndedMap σ I) I ≤
-                      (evmEAfter.accountMap.find? evmEAfter.executionEnv.codeOwner |>.elim
+                      (evmEAfter.accountMap.get? evmEAfter.executionEnv.codeOwner |>.elim
                         ⟨0⟩ (·.balance)) := by
                   simpa [← hHighES, hHighE, ← hBalES] using hvalueBal'
-                exact hbalance (by simpa [hBalE] using hvalueBalE)
+                exact hbalance (by simpa only [hBalE] using hvalueBalE)
             have hbody :
                 ExecTransitionBody blindAuctionConfig blindAuctionContract evmS ∅
                   auctionEndTransition.body .reverted :=

@@ -442,7 +442,7 @@ theorem vowFlapBodyPrefix
         have hSlotSolmStatic : ∀ slot : UInt256,
             vowSlotWord slot evmSinSolm.accountMap I = vowSlotWord slot σ I := by
           intro slot
-          have h := typedCallViaEVM_static_storage_findD_of_accounts_eq
+          have h := typedCallViaEVM_static_storage_getD_of_accounts_eq
             (cfg := config) (σ := σ)
             (evm := initState σ σ₀ (Sat256.ofUInt256 g) A I)
             (evm' := evmSinSolm) (slot := slot) (default := ⟨0⟩)
@@ -753,7 +753,7 @@ theorem vowFlapBodyToSin1
       have hSlotDaiStatic : ∀ slot : UInt256,
           vowSlotWord slot evmDaiSolm.accountMap I = vowSlotWord slot σ I := by
         intro slot
-        have hstatic := typedCallViaEVM_static_storage_findD_of_accounts_eq
+        have hstatic := typedCallViaEVM_static_storage_getD_of_accounts_eq
           (cfg := config) (σ := evmSinSolm.accountMap)
           (evm := evmSinSolm) (evm' := evmDaiSolm) (slot := slot) (default := ⟨0⟩)
           (hAccounts := rfl)
@@ -1032,7 +1032,7 @@ theorem vowFlapBodyToSub
       have hSlotSin1Static : ∀ slot : UInt256,
           vowSlotWord slot evmSin1Solm.accountMap I = vowSlotWord slot σ I := by
         intro slot
-        have hstatic := typedCallViaEVM_static_storage_findD_of_accounts_eq
+        have hstatic := typedCallViaEVM_static_storage_getD_of_accounts_eq
           (cfg := config) (σ := evmDaiSolm.accountMap)
           (evm := evmDaiSolm) (evm' := evmSin1Solm) (slot := slot)
           (default := ⟨0⟩)

@@ -1132,7 +1132,7 @@ theorem endCageIlkX_liveNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
         (endCageIlkLiveWord σ I :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
     exact ⟨_, _, by
-      simpa [endCageIlkLiveWord, endSlotWord, solcSlotWord] using rd8836raw⟩
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkLiveWord, endSlotWord, solcSlotWord] using rd8836raw⟩
   obtain ⟨_, _, rd8836⟩ := rd8836
   have rd8837raw := rd8836.iszero (by native_decide) (by evm_ov)
   have hzero : UInt256.isZero (endCageIlkLiveWord σ I) = ⟨0⟩ :=
@@ -1172,16 +1172,16 @@ theorem endCageIlkX_tagNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd8836raw⟩ := rd8835.sload (by native_decide) (by evm_ov)
   have hliveRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
-    simpa [endCageIlkLiveWord, endSlotWord, solcSlotWord] using hlive
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkLiveWord, endSlotWord, solcSlotWord] using hlive
   have rd8836zero := rd8836raw
   rw [hliveRaw] at rd8836zero
   obtain ⟨_, _, rd8836⟩ : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨8836⟩
         (⟨0⟩ :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endCageIlkBodyPc] using rd8836zero⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkBodyPc] using rd8836zero⟩
   have rd8837raw := rd8836.iszero (by native_decide) (by evm_ov)
   have rd8837 := rd8837raw
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd8837
@@ -1226,7 +1226,7 @@ theorem endCageIlkX_tagNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
         solcSlotWord σ I (solcMappingSlot ⟨12⟩ key) = endCageIlkTagWord σ I := by
       rw [← hslot]
       simp [endCageIlkTagWord, endSlotWord]
-    exact ⟨_, _, by simpa [htagRaw] using rd8918raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, htagRaw] using rd8918raw⟩
   obtain ⟨_, _, rd8918⟩ := rd8918
   have rd8919raw := rd8918.iszero (by native_decide) (by evm_ov)
   have hzero : UInt256.isZero (endCageIlkTagWord σ I) = ⟨0⟩ :=
@@ -1315,16 +1315,16 @@ theorem endCageIlkX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd8836raw⟩ := rd8835.sload (by native_decide) (by evm_ov)
   have hliveRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
-    simpa [endCageIlkLiveWord, endSlotWord, solcSlotWord] using hlive
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkLiveWord, endSlotWord, solcSlotWord] using hlive
   have rd8836zero := rd8836raw
   rw [hliveRaw] at rd8836zero
   obtain ⟨_, _, rd8836⟩ : ∃ k' C',
       RD endBytecode I g (initState σ σ₀ g A I) ⟨8836⟩
         (⟨0⟩ :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endCageIlkBodyPc] using rd8836zero⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkBodyPc] using rd8836zero⟩
   have rd8837raw := rd8836.iszero (by native_decide) (by evm_ov)
   have rd8837 := rd8837raw
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd8837
@@ -1361,13 +1361,13 @@ theorem endCageIlkX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
     (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd8918raw⟩ := rd8917pre.sload (by native_decide) (by evm_ov)
   have htagRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun ac => ac.storage.findD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) = ⟨0⟩ := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun ac => ac.storage.getD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) = ⟨0⟩ := by
     have hslotWord :
         solcSlotWord σ I (solcMappingSlot ⟨12⟩ key) = ⟨0⟩ := by
       rw [← htagSlot]
-      simpa [endCageIlkTagWord, endSlotWord, key] using htag
-    simpa [solcSlotWord] using hslotWord
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkTagWord, endSlotWord, key] using htag
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord] using hslotWord
   have rd8918zero := rd8918raw
   rw [htagRaw] at rd8918zero
   obtain ⟨_, _, rd8918⟩ : ∃ k' C',
@@ -1390,7 +1390,7 @@ theorem endCageIlkX_vatIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
       RD endBytecode I g (initState σ σ₀ g A I) ⟨9003⟩
         (endSlotWord ⟨1⟩ σ I :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
         (endCageIlkTagHashMem I) (UInt256.ofNat 3) ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd9003raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd9003raw⟩
   obtain ⟨_, _, rd9003⟩ := rd9003
   have rd9065 := evm_run rd9003 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -1791,7 +1791,7 @@ theorem endCageIlkX_spotIlksExtcodesizeGuard {σ σ' σ₀ A I}
           ⟨0⟩ :: ⟨64⟩ :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
         (endCageIlkArtHashMem I vatOut) (UInt256.ofNat 9) vatOut
         (endCageIlkPostArtAccountMap σ' I vatOut) k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd9144raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd9144raw⟩
   have rd9201 := evm_run rd9144 with [
     raw dup3 (by native_decide) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
@@ -2176,7 +2176,7 @@ theorem endCageIlkX_parExtcodesizeGuard {σ σ' σ₀ A I}
           ⟨0⟩ :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
         (endCageIlkSpotIlksPostCallMem I vatOut spotOut) (UInt256.ofNat 9)
         spotOut σ' k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd9261raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd9261raw⟩
   have rd9321pre := evm_run rd9261 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
     raw dup1 (by native_decide) (by evm_ov),
@@ -3565,7 +3565,7 @@ theorem endCageIlk_evalExpr_spot {locals : Store} (evm : EVM.State)
     (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (hloc := by rfl)
     (hload := by
-      simpa [endCageIlkSpotWord, endAddressReturnWord, endSlotWord, solcSlotWord,
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endCageIlkSpotWord, endAddressReturnWord, endSlotWord, solcSlotWord,
         Solm.EVM.storageLoad, State.lookupAccount] using
         endStorageLocLoad_address_offset0 evm ⟨6⟩)
 

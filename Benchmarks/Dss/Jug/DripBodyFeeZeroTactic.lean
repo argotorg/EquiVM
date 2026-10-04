@@ -176,7 +176,7 @@ by_cases hprevMaxNot :
       callCoincides hdepthNe htgt (dripVatIlksEncode_eq I hsz36) hΘE
     have hfoldNoCodeSolmRaw :
         (UInt256.ofNat
-          ((σ'.find? (dripVatAddress σ' I)).option 0
+          ((σ'.get? (dripVatAddress σ' I)).option 0
             (fun acc => acc.code.size))).toNat = 0 :=
       drip_extCodeSizeWord_zero_lookup_code_zero
         (σ := σ') (target := dripVatTargetWord σ' I)

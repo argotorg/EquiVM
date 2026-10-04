@@ -272,7 +272,7 @@ theorem yankDeletePackedFinalWord_zero (evm : EVM.State) (I : ExecutionEnv) :
           (yankDeleteAfterTic evm I).executionEnv.codeOwner
           (auctionPackedSlot (yankIdWord I))) =
       ⟨0⟩ := by
-  by_cases hacc0 : evm.accountMap.find? evm.executionEnv.codeOwner = none
+  by_cases hacc0 : evm.accountMap.get? evm.executionEnv.codeOwner = none
   · have hbid : yankDeleteAfterBid evm I = evm := by
       exact storageStore_absent evm evm.executionEnv.codeOwner hacc0
         (auctionBidSlot (yankIdWord I)) ⟨0⟩
@@ -297,17 +297,22 @@ theorem yankDeletePackedFinalWord_zero (evm : EVM.State) (I : ExecutionEnv) :
     have hload :
         Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (auctionPackedSlot (yankIdWord I)) =
           ⟨0⟩ := by
+      rw [Std.ExtTreeMap.get?_eq_getElem?] at hacc0
       simp [Solm.EVM.storageLoad, State.lookupAccount, hacc0, Option.option]
     rw [htic, hload]
     exact clearUint48Offset26Word_zero
   · obtain ⟨_, hacc0some⟩ := Option.ne_none_iff_exists'.mp hacc0
+    have hacc0someElem := hacc0some
+    rw [Std.ExtTreeMap.get?_eq_getElem?] at hacc0someElem
     have haccLotExists :
-        ∃ acc, (yankDeleteAfterLot evm I).accountMap.find?
+        ∃ acc, (yankDeleteAfterLot evm I).accountMap.get?
           (yankDeleteAfterLot evm I).executionEnv.codeOwner = some acc := by
       simp [yankDeleteAfterLot, yankDeleteAfterBid, Solm.EVM.storageStore,
-        State.lookupAccount, hacc0some, Option.option, State.setAccount,
-        accountMap_find_insert_self]
+        State.lookupAccount, hacc0someElem, Option.option, State.setAccount,
+        Std.ExtTreeMap.getElem?_insert_self]
     obtain ⟨_, haccLot⟩ := haccLotExists
+    have haccLotElem := haccLot
+    rw [Std.ExtTreeMap.get?_eq_getElem?] at haccLotElem
     have hloadGuy :
         Solm.EVM.storageLoad (yankDeleteAfterGuy evm I)
             (yankDeleteAfterGuy evm I).executionEnv.codeOwner
@@ -327,10 +332,10 @@ theorem yankDeletePackedFinalWord_zero (evm : EVM.State) (I : ExecutionEnv) :
             (yankDeleteAfterLot evm I).executionEnv.codeOwner
             (auctionPackedSlot (yankIdWord I))) ⟨0⟩)
     have haccGuyExists :
-        ∃ acc, (yankDeleteAfterGuy evm I).accountMap.find?
+        ∃ acc, (yankDeleteAfterGuy evm I).accountMap.get?
           (yankDeleteAfterGuy evm I).executionEnv.codeOwner = some acc := by
-      simp [yankDeleteAfterGuy, haccLot, Solm.EVM.storageStore, State.lookupAccount,
-        Option.option, State.setAccount, accountMap_find_insert_self]
+      simp [yankDeleteAfterGuy, haccLotElem, Solm.EVM.storageStore, State.lookupAccount,
+        Option.option, State.setAccount, Std.ExtTreeMap.getElem?_insert_self]
     obtain ⟨_, haccGuy⟩ := haccGuyExists
     have hloadTic :
         Solm.EVM.storageLoad (yankDeleteAfterTic evm I)
@@ -1047,17 +1052,17 @@ theorem flapperExtCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -1066,23 +1071,23 @@ theorem flapperExtCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap}
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem flapperExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap}
     {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem flapperYankBodyReverts_stillLive (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

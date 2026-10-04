@@ -1336,8 +1336,8 @@ theorem stringStoreLiteX_setStoreHelperZero {σinit σ₀ A I} {g : Sat256}
   have hstored :
       (UInt256.lor
         (UInt256.land
-          (Option.option ⟨0⟩ (fun ac => ac.storage.findD slot ⟨0⟩)
-            (τ.find? I.codeOwner))
+          (Option.option ⟨0⟩ (fun ac => ac.storage.getD slot ⟨0⟩)
+            (τ.get? I.codeOwner))
           (UInt256.lnot
             (UInt256.shiftLeft
               ⟨115792089237316195423570985008687907853269984665640564039457584007913129639935⟩
@@ -1369,7 +1369,8 @@ theorem stringStoreLiteX_setStoreHelperZero {σinit σ₀ A I} {g : Sat256}
           ⟨1184⟩ :: idx :: base :: count :: ret :: rest)
         mem aw rdata (sstoreAccountMap I.codeOwner τ slot ⟨0⟩) k C := by
     exact ⟨_, _, by
-      simpa [initState, sstoreAccountMap, hstored] using rd1126₀⟩
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState, sstoreAccountMap,
+        hstored] using rd1126₀⟩
   have rd1184 := evm_run rd1126 with [
     pop, pop, pop, pop, jump (by jump_dest),
     jumpdest, pop, pop, pop, jump (by jump_dest)]
@@ -1790,7 +1791,7 @@ def longDataWordsForwardFrom (owner : AccountAddress) (τ : AccountMap)
 
 theorem longDataWordsForwardFrom_absent_same {owner : AccountAddress} {τ : AccountMap}
     {slot stride ptr aw : UInt256} {mem : ByteArray} :
-    ∀ fuel, τ.find? owner = none →
+    ∀ fuel, τ.get? owner = none →
       longDataWordsForwardFrom owner τ slot stride ptr aw mem fuel = τ
   | 0, _hmissing => rfl
   | fuel + 1, hmissing => by

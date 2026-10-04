@@ -584,7 +584,7 @@ theorem flipperFileAddressX_storeAuthorized {σ I} {g : Sat256} {s0 : State}
             rfl
   have rd323 := rd1991.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
-  simpa [solcSlotWord, setAddressOffset0Word, hword,
+  simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, setAddressOffset0Word, hword,
     show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
     using RD.stop rd324 (by native_decide) (by evm_ov)

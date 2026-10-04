@@ -32,16 +32,16 @@ def giveRightVotedSlot (I : ExecutionEnv) : UInt256 :=
   giveRightVoterSlot I + ⟨1⟩
 
 def giveRightChairWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
 def giveRightVotedPackedWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (giveRightVotedSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (giveRightVotedSlot I) ⟨0⟩)
 
 abbrev giveRightVotedByte (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land ⟨255⟩ (giveRightVotedPackedWord σ I)
 
 def giveRightWeightWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD (giveRightVoterSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD (giveRightVoterSlot I) ⟨0⟩)
 
 def giveRightPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (giveRightVoterSlot I) ⟨1⟩

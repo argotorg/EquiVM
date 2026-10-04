@@ -851,7 +851,7 @@ theorem endThawX_debtNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4529raw⟩ := rd4528.sload (by native_decide) (by evm_ov)
   have hliveRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
       simpa [endThawLiveWord, endSlotWord, solcSlotWord] using hlive
   have rd4529zero := rd4529raw
@@ -917,7 +917,7 @@ theorem endThawX_daiExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4529raw⟩ := rd4528.sload (by native_decide) (by evm_ov)
   have hliveRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
       simpa [endThawLiveWord, endSlotWord, solcSlotWord] using hlive
   have rd4529zero := rd4529raw
@@ -938,7 +938,7 @@ theorem endThawX_daiExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
     raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4599raw⟩ := rd4598.sload (by native_decide) (by evm_ov)
   have hdebtRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨11⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨11⟩ ⟨0⟩)) =
         ⟨0⟩ := by
       simpa [endThawDebtWord, endSlotWord, solcSlotWord] using hdebt
   have rd4599zero := rd4599raw
@@ -2442,7 +2442,7 @@ theorem endThawX_daiNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4529raw⟩ := rd4528.sload (by native_decide) (by evm_ov)
   have hliveRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
       simpa [endThawLiveWord, endSlotWord, solcSlotWord] using hlive
   have rd4529zero := rd4529raw
@@ -2463,7 +2463,7 @@ theorem endThawX_daiNoCode {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd4599raw⟩ := rd4598.sload (by native_decide) (by evm_ov)
   have hdebtRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨11⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨11⟩ ⟨0⟩)) =
         ⟨0⟩ := by
       simpa [endThawDebtWord, endSlotWord, solcSlotWord] using hdebt
   have rd4599zero := rd4599raw

@@ -220,7 +220,7 @@ theorem RD.solcWordSlotGetterSwapJump {code : ByteArray} {g : Sat256} {s0 : Stat
     (hret : (D_J code 0).contains ret = true)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD code ee g s0 ret
-      ((σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) :: R)
+      ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)) :: R)
       mem aw rdata σ k' C' := by
   rcases hwf with ⟨hd0, hd1, hd2, hd3, hd4⟩
   have rd1 := h.jumpdest hd0 (by simp only [List.length_cons]; omega)

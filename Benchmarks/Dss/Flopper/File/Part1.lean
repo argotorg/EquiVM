@@ -1469,7 +1469,7 @@ theorem RD.flopperFileStoreTtlTail {σ I} {g : Sat256} {s0 : State}
   have rd1374 := rd1373.dup1 (by native_decide) (by evm_ov)
   obtain ⟨k1375, C1375, rd1375raw⟩ := rd1374.sload (by native_decide) (by evm_ov)
   have rd1375 : RD flopperBytecode I g s0 ⟨1375⟩
-      ((σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨6⟩ ⟨0⟩)) ::
+      ((σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨6⟩ ⟨0⟩)) ::
         ⟨6⟩ :: fileData I :: what :: ⟨334⟩ :: [sel])
       mem aw rdata σ k1375 C1375 := by
     exact rd1375raw
@@ -1490,8 +1490,8 @@ theorem RD.flopperFileStoreTtlTail {σ I} {g : Sat256} {s0 : State}
       UInt256.lor (UInt256.land (fileData I) flopperUint48Mask)
           (UInt256.land
             (UInt256.lnot flopperUint48Mask)
-            (σ.find? I.codeOwner |>.option ⟨0⟩
-              (fun acc => acc.storage.findD ⟨6⟩ ⟨0⟩))) =
+            (σ.get? I.codeOwner |>.option ⟨0⟩
+              (fun acc => acc.storage.getD ⟨6⟩ ⟨0⟩))) =
         fileTtlStoredWordMap I σ := by
     rw [u256_land_comm (UInt256.lnot flopperUint48Mask)]
     simp [fileTtlStoredWordMap, fileSetUint48Offset0Word, solcSlotWord, u256_lor_comm]
@@ -1502,7 +1502,7 @@ theorem RD.flopperFileStoreTtlTail {σ I} {g : Sat256} {s0 : State}
   have rd1536 := rd1535.pop (by native_decide) (by evm_ov)
   have rd334 := rd1536.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd335 := rd334.jumpdest (by native_decide) (by evm_ov)
-  simpa [fileTtlPostAccountMap, hword] using RD.stop rd335 (by native_decide) (by evm_ov)
+  simpa [-Std.ExtTreeMap.get?_eq_getElem?, fileTtlPostAccountMap, hword] using RD.stop rd335 (by native_decide) (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.flopperFileStoreTauTail {σ I} {g : Sat256} {s0 : State}
@@ -1517,7 +1517,7 @@ theorem RD.flopperFileStoreTauTail {σ I} {g : Sat256} {s0 : State}
   have rd1418 := rd1417.dup1 (by native_decide) (by evm_ov)
   obtain ⟨k1419, C1419, rd1419raw⟩ := rd1418.sload (by native_decide) (by evm_ov)
   have rd1419 : RD flopperBytecode I g s0 ⟨1419⟩
-      ((σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨6⟩ ⟨0⟩)) ::
+      ((σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨6⟩ ⟨0⟩)) ::
         ⟨6⟩ :: fileData I :: what :: ⟨334⟩ :: [sel])
       mem aw rdata σ k1419 C1419 := by
     exact rd1419raw
@@ -1548,8 +1548,8 @@ theorem RD.flopperFileStoreTauTail {σ I} {g : Sat256} {s0 : State}
             (UInt256.ofNat (2 ^ 48)))
           (UInt256.land
             (UInt256.lnot fileUint48Offset6Mask)
-            (σ.find? I.codeOwner |>.option ⟨0⟩
-              (fun acc => acc.storage.findD ⟨6⟩ ⟨0⟩))) =
+            (σ.get? I.codeOwner |>.option ⟨0⟩
+              (fun acc => acc.storage.getD ⟨6⟩ ⟨0⟩))) =
         fileTauStoredWordMap I σ := by
     rw [u256_land_comm (UInt256.lnot fileUint48Offset6Mask)]
     simp [fileTauStoredWordMap, fileSetUint48Offset6Word, solcSlotWord, u256_lor_comm]

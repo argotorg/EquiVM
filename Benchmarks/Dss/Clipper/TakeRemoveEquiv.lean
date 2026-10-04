@@ -58,7 +58,7 @@ theorem clipperTakeRemoveEquiv
       solcSlotWord σCont I slot =
         Solm.EVM.storageLoad evmCont evmCont.executionEnv.codeOwner slot := by
     have hslot := congrArg (fun m => solcSlotWord m I slot) hAccounts
-    simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       solcSlotWord, hevmEnv, hslot]
   apply RD.clipperTakeRemoveContinuationElim v hpatch rd8274 hidWord hmem hperm
   · intro hlen hinvalid
@@ -87,12 +87,13 @@ theorem clipperTakeRemoveEquiv
               ⟨1⟩)) := by
       rw [← hlastIndexEq, ← hstorage]
       simpa [lastIndex] using hidEq
-    have hacc : ∃ acc, evmCont.accountMap.find?
+    have hacc : ∃ acc, evmCont.accountMap.get?
         evmCont.executionEnv.codeOwner = some acc := by
-      cases hfind : evmCont.accountMap.find? evmCont.executionEnv.codeOwner with
+      cases hfind : evmCont.accountMap.get? evmCont.executionEnv.codeOwner with
       | none =>
           exfalso
           apply hlenSolm
+          rw [Std.ExtTreeMap.get?_eq_getElem?] at hfind
           simp [Solm.EVM.storageLoad, State.lookupAccount, hfind, Option.option]
       | some acc => exact ⟨acc, rfl⟩
     obtain ⟨acc, hacc⟩ := hacc
@@ -175,7 +176,7 @@ theorem clipperTakeRemoveEquiv
         solcSlotWord (clipperYankMoveAccountMap σCont I idx move) I slot =
           Solm.EVM.storageLoad evmMovePos evmMovePos.executionEnv.codeOwner slot := by
       have hslot := congrArg (fun m => solcSlotWord m I slot) hmoveAccounts
-      simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         solcSlotWord, hownerMovePos, hslot]
     have hlenAfterSolm : Solm.EVM.storageLoad evmMovePos
         evmMovePos.executionEnv.codeOwner ⟨11⟩ = ⟨0⟩ := by
@@ -240,7 +241,7 @@ theorem clipperTakeRemoveEquiv
         solcSlotWord σMove I slot =
           Solm.EVM.storageLoad evmMovePos evmMovePos.executionEnv.codeOwner slot := by
       have hslot := congrArg (fun m => solcSlotWord m I slot) hmoveAccounts
-      simp [Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
         solcSlotWord, hownerMovePos, σMove, hslot]
     have hlenAfterSolm : Solm.EVM.storageLoad evmMovePos
         evmMovePos.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩ := by
@@ -250,12 +251,13 @@ theorem clipperTakeRemoveEquiv
         (show solcSlotWord σMove I ⟨11⟩ = ⟨0⟩ by
           rw [hstorageMove]
           exact hzero)
-    have hacc : ∃ acc, evmCont.accountMap.find?
+    have hacc : ∃ acc, evmCont.accountMap.get?
         evmCont.executionEnv.codeOwner = some acc := by
-      cases hfind : evmCont.accountMap.find? evmCont.executionEnv.codeOwner with
+      cases hfind : evmCont.accountMap.get? evmCont.executionEnv.codeOwner with
       | none =>
           exfalso
           apply hlenSolm
+          rw [Std.ExtTreeMap.get?_eq_getElem?] at hfind
           simp [Solm.EVM.storageLoad, State.lookupAccount, hfind, Option.option]
       | some acc => exact ⟨acc, rfl⟩
     obtain ⟨acc, hacc⟩ := hacc

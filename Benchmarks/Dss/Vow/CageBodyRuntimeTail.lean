@@ -236,7 +236,7 @@ theorem vowCageBodyToMinHeal
     simpa [evmSinEvmIn, evmSinEvmOut] using hcallSinEvmRaw
   have hSinTargetPostEvm : kissDaiTargetWord σ_sin I = kissDaiTargetWord σ_dai2 I := by
     have hslot :=
-      typedCallViaEVM_static_storage_findD_of_accounts_eq
+      typedCallViaEVM_static_storage_getD_of_accounts_eq
         (cfg := config) (σ := σ_dai2) (evm := evmSinEvmIn)
         (evm' := evmSinEvmOut) (target := EVM.address (kissVatAddress σ_dai2 I))
         (name := "sin") (args := [.address I.codeOwner]) (z := zSin)

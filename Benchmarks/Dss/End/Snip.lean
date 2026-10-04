@@ -358,7 +358,7 @@ theorem endSnip_storageStore_σ₀ (evm : EVM.State) (addr : AccountAddress)
     (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount,
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount,
     Account.updateStorage]
 
 def endSnipStoreGrab (σ : AccountMap) (I : ExecutionEnv)
@@ -2656,11 +2656,11 @@ theorem endSnipX_tagZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have htagRaw :
       solcSlotWord σ I (solcMappingSlot ⟨12⟩ key) = ⟨0⟩ := by
     rw [← hslot]
-    simpa [key, endSnipTagWord, endSlotWord] using htag
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, key, endSnipTagWord, endSlotWord] using htag
   have htagRaw' :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun ac => ac.storage.findD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) = ⟨0⟩ := by
-    simpa [solcSlotWord] using htagRaw
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun ac => ac.storage.getD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) = ⟨0⟩ := by
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord] using htagRaw
   have rd1665zero := rd1665raw
   rw [htagRaw'] at rd1665zero
   obtain ⟨_, _, rd1665⟩ : ∃ k' C',
@@ -2742,10 +2742,10 @@ theorem endSnipX_tagNonzero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rw [← hslot]
     simp [endSnipTagWord, endSlotWord]
   have htagRaw' :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun ac => ac.storage.findD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun ac => ac.storage.getD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) =
           endSnipTagWord σ I := by
-    simpa [solcSlotWord] using htagRaw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord] using htagRaw
   have rd1665nzRaw := rd1665raw
   rw [htagRaw'] at rd1665nzRaw
   obtain ⟨_, _, rd1665nz⟩ : ∃ k' C',
@@ -2818,7 +2818,7 @@ theorem endSnipX_dogIlksExtcodesizeGuard {σ σ₀ A I} {g : Sat256}
           endSnipReturnPc :: sel :: [])
         (endSnipDogIlksBaseMem I) (UInt256.ofNat 3)
         ByteArray.empty σ k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd1742raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd1742raw⟩
   obtain ⟨_, _, rd1742⟩ := rd1742
   have rd1804 := evm_run rd1742 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -3156,7 +3156,7 @@ theorem endSnipX_vatIlksExtcodesizeGuard {σ σ' σ₀ A I} {g : Sat256}
           endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
         (endSnipDogIlksPostCallMem I dogOut) (UInt256.ofNat 8)
         dogOut σ' k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd1864raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd1864raw⟩
   obtain ⟨_, _, rd1864⟩ := rd1864
   have rd1929 := evm_run rd1864 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
@@ -4175,7 +4175,7 @@ theorem endSnipX_suckExtcodesizeGuard {σ σ' σ₀ A I}
           endSnipReturnPc :: sel :: [])
         (endSnipSalesPostCallMem I dogOut vatOut saleOut) (UInt256.ofNat 10)
         saleOut σ' k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2138raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd2138raw⟩
   obtain ⟨_, _, rd2134⟩ := rd2134
   have rd2137 := evm_run rd2134 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
@@ -4191,7 +4191,7 @@ theorem endSnipX_suckExtcodesizeGuard {σ σ' σ₀ A I}
           endSnipReturnPc :: sel :: [])
         (endSnipSalesPostCallMem I dogOut vatOut saleOut) (UInt256.ofNat 10)
         saleOut σ' k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2138raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd2138raw⟩
   obtain ⟨_, _, rd2138⟩ := rd2138
   have rd2220raw := evm_run rd2138 with [
     raw dup5 (by native_decide) (by evm_ov),
@@ -4901,7 +4901,7 @@ theorem endSnipX_artAddEntry {σ σmem σpost σ₀ A I}
           endSnipReturnPc :: sel :: [])
         mem14 (UInt256.ofNat 10) ret σpost k' C' := by
     exact ⟨_, _, by
-      simpa [endSnipArtOldWord, endSlotWord, solcSlotWord, hslot, key, mem14]
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSnipArtOldWord, endSlotWord, solcSlotWord, hslot, key, mem14]
         using rd2377raw⟩
   have rd2390 := evm_run rd2377 with [
     raw swap2 (by native_decide) (by evm_ov),
@@ -5379,7 +5379,7 @@ theorem endSnipX_grabExtcodesizeGuard {σ σCall σLoc σ₀ A I}
           endSnipIdWord I :: endSnipIlkWord I :: endSnipReturnPc :: sel :: [])
         (endSnipArtStoreHashMem σLoc I dogOut vatOut saleOut) (UInt256.ofNat 10)
         rdata σCall k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2493raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd2493raw⟩
   obtain ⟨_, _, rd2493⟩ := rd2493
   have rd2496 := evm_run rd2493 with [
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
@@ -5395,7 +5395,7 @@ theorem endSnipX_grabExtcodesizeGuard {σ σCall σLoc σ₀ A I}
           endSnipReturnPc :: sel :: [])
         (endSnipArtStoreHashMem σLoc I dogOut vatOut saleOut) (UInt256.ofNat 10)
         rdata σCall k' C' := by
-    exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2497raw⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, endSlotWord, solcSlotWord] using rd2497raw⟩
   obtain ⟨_, _, rd2497⟩ := rd2497
   have rd2591raw := evm_run rd2497 with [
     raw push1 ⟨64⟩ (by native_decide) (by evm_ov),

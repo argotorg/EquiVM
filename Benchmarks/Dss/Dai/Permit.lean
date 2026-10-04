@@ -108,8 +108,8 @@ abbrev permitAllowanceEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
     steps := [.mindex (permitHolderKey I), .mindex (permitSpenderKey I)] }
 
 def permitNonceStoredWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (permitNonceStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (permitNonceStorageSlot I) ⟨0⟩)
 
 abbrev permitEvmNonceWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   permitNonceStoredWord σ I

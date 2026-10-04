@@ -1473,11 +1473,11 @@ theorem cureListEmptyReturns {σ σ₀ A I} {g : Sat256}
     push1 ⟨32⟩, add, dup3, dup1]
   obtain ⟨_, _, h965raw⟩ := h963.sload (by native_decide) (by evm_ov)
   have hload0 :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨2⟩ ⟨0⟩)) =
         (⟨0⟩ : UInt256) := by
     simpa [cureSlotWord, solcSlotWord] using hlen0
   have h965 := by
-    simpa [initState, hload0] using h965raw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState, hload0] using h965raw
   have h369 := evm_run h965 with [
     dup1, iszero, push2 ⟨1017⟩, jumpiT (by decide) (by jump_dest),
     jumpdest, pop, pop, pop, pop, pop, swap1, pop, swap1, jump (by jump_dest)]

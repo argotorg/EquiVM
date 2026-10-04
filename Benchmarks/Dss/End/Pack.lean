@@ -587,7 +587,7 @@ theorem endPackX_debtZero {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd6349raw⟩ := rd6348.sload (by native_decide) (by evm_ov)
   have hdebtRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨11⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨11⟩ ⟨0⟩)) =
         ⟨0⟩ := by
     simpa [endPackDebtWord, endSlotWord, solcSlotWord] using hdebt
   have rd6349zero := rd6349raw

@@ -119,8 +119,8 @@ theorem scratch_revealLoopBody_decoded_inBounds_fromLoopStart {I} {g : Sat256}
               32 32).readWithPadding 0 64))) =
         revealScratchBidsLengthSlot I)
     (hlenLoad :
-      (a.acc.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
+      (a.acc.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
     (hboundBids : a.idx.toNat < curLen.toNat)
     (hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian

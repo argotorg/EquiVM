@@ -14,7 +14,7 @@ private theorem dogStorageStore_sigma0
     (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
   simp only [Solm.EVM.storageStore, State.lookupAccount]
-  cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
 
 theorem dup12_xstep {s : State} {code : ByteArray}
     {pcv a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
@@ -6365,13 +6365,13 @@ theorem barkVatCode_zero_of_codeSize_zero {v : DogImmutables}
         (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   rw [barkVat_eq_vatKey v]
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 (barkVatWord v)) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 (barkVatWord v)) with
   | none =>
-      simpa [initState, State.lookupAccount, hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState, State.lookupAccount, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [initState, State.lookupAccount, hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState, State.lookupAccount, hacc] using hword
 
 theorem barkVatCode_pos_of_codeSize_ne {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256}
@@ -6382,14 +6382,14 @@ theorem barkVatCode_pos_of_codeSize_ne {v : DogImmutables}
         (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat := by
   rw [barkVat_eq_vatKey v]
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : σ.find? (AccountAddress.ofUInt256 (barkVatWord v)) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 (barkVatWord v)) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -6398,7 +6398,7 @@ theorem barkVatCode_pos_of_codeSize_ne {v : DogImmutables}
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [initState, State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, initState, State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem barkVatCode_zero_of_state_codeSize_zero {v : DogImmutables} {evm : EVM.State}
     (hzero :
@@ -6408,13 +6408,13 @@ theorem barkVatCode_zero_of_state_codeSize_zero {v : DogImmutables} {evm : EVM.S
         (fun acc => acc.code.size))).toNat = 0 := by
   rw [barkVat_eq_vatKey v]
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 (barkVatWord v)) with
+  cases hacc : evm.accountMap.get? (AccountAddress.ofUInt256 (barkVatWord v)) with
   | none =>
-      simpa [State.lookupAccount, hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [State.lookupAccount, hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, hacc] using hword
 
 theorem barkVatCode_pos_of_state_codeSize_ne {v : DogImmutables} {evm : EVM.State}
     (hne :
@@ -6424,14 +6424,14 @@ theorem barkVatCode_pos_of_state_codeSize_ne {v : DogImmutables} {evm : EVM.Stat
         (fun acc => acc.code.size))).toNat := by
   rw [barkVat_eq_vatKey v]
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 (barkVatWord v)) with
+  cases hacc : evm.accountMap.get? (AccountAddress.ofUInt256 (barkVatWord v)) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -6440,7 +6440,7 @@ theorem barkVatCode_pos_of_state_codeSize_ne {v : DogImmutables} {evm : EVM.Stat
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem dogCode_zero_of_state_codeSize_zero {evm : EVM.State} {targetWord : UInt256}
     (hzero :
@@ -6450,13 +6450,13 @@ theorem dogCode_zero_of_state_codeSize_zero {evm : EVM.State} {targetWord : UInt
         (fun acc => acc.code.size))).toNat = 0 := by
   rw [← accountAddress_ofUInt256_eq_ofNat_toNat targetWord]
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 targetWord) with
+  cases hacc : evm.accountMap.get? (AccountAddress.ofUInt256 targetWord) with
   | none =>
-      simpa [State.lookupAccount, hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [State.lookupAccount, hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, hacc] using hword
 
 theorem dogCode_pos_of_state_codeSize_ne {evm : EVM.State} {targetWord : UInt256}
     (hne :
@@ -6466,14 +6466,14 @@ theorem dogCode_pos_of_state_codeSize_ne {evm : EVM.State} {targetWord : UInt256
         (fun acc => acc.code.size))).toNat := by
   rw [← accountAddress_ofUInt256_eq_ofNat_toNat targetWord]
   unfold Reasoning.Theory.extCodeSizeWord at hne
-  cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 targetWord) with
+  cases hacc : evm.accountMap.get? (AccountAddress.ofUInt256 targetWord) with
   | none =>
       exfalso
-      exact hne (by simp [hacc, Option.option])
+      exact hne (by simp [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option])
   | some acc =>
       have hwordNe : UInt256.ofNat acc.code.size ≠ (⟨0⟩ : UInt256) := by
         intro hzero
-        exact hne (by simpa [hacc] using hzero)
+        exact hne (by simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hzero)
       have htoNatNe : (UInt256.ofNat acc.code.size).toNat ≠ 0 := by
         intro hzeroNat
         apply hwordNe
@@ -6482,7 +6482,7 @@ theorem dogCode_pos_of_state_codeSize_ne {evm : EVM.State} {targetWord : UInt256
             cases val using Fin.cases
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
-      simpa [State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount, hacc] using Nat.pos_of_ne_zero htoNatNe
 
 theorem dogBarkVatUrnsNoCodeSourceBody {v : DogImmutables}
     {σ σ₀ A I} {g : UInt256}
@@ -24443,7 +24443,7 @@ theorem RD.dogBarkLiveOk {v : DogImmutables} {code : ByteArray}
       native_decide)
     (by simp only [List.length_cons]; omega)
   have hraw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨3⟩ ⟨0⟩)) =
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨3⟩ ⟨0⟩)) =
         ⟨1⟩ := by
     simpa [solcSlotWord] using hlive
   have rd9 := rd9₀
@@ -24510,12 +24510,12 @@ theorem RD.dogBarkLiveRevert {v : DogImmutables} {code : ByteArray}
       native_decide)
     (by simp only [List.length_cons]; omega)
   have hraw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨3⟩ ⟨0⟩)) ≠
+      (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨3⟩ ⟨0⟩)) ≠
         ⟨1⟩ := by
     simpa [solcSlotWord] using hlive
   have heq0 :
       UInt256.eq ⟨1⟩
-        (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨3⟩ ⟨0⟩)) =
+        (σ.get? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD ⟨3⟩ ⟨0⟩)) =
           ⟨0⟩ := by
     exact u256_eq_of_ne (fun h1 => hraw h1.symm)
   have rd9 := rd9₀

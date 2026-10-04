@@ -52,16 +52,16 @@ theorem flipper_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target 
     (haddr : addr = AccountAddress.ofUInt256 target)
     (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
-      ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
+      ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
   unfold Reasoning.Theory.extCodeSizeWord at hzero
-  cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
+  cases hacc : σ.get? (AccountAddress.ofUInt256 target) with
   | none =>
-      simpa [hacc, Option.option] using
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc, Option.option] using
         (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
-      simpa [hacc] using hword
+      simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using hword
 
 theorem flipper_extCodeSizeWord_pos_lookup_code_pos {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
@@ -69,21 +69,22 @@ theorem flipper_extCodeSizeWord_pos_lookup_code_pos {σ : AccountMap} {target : 
     (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 <
       (UInt256.ofNat
-        ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
+        ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat := by
   by_contra hnot
   have hnat :
       (UInt256.ofNat
-        ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 :=
+        ((σ.get? addr).option 0 (fun acc => acc.code.size))).toNat = 0 :=
     Nat.eq_zero_of_not_pos hnot
   have hwordZero :
-      UInt256.ofNat ((σ.find? addr).option 0 (fun acc => acc.code.size)) = ⟨0⟩ :=
+      UInt256.ofNat ((σ.get? addr).option 0 (fun acc => acc.code.size)) = ⟨0⟩ :=
     uint256_toNat_eq_zero hnat
   have hword :
-      UInt256.ofNat ((σ.find? addr).option 0 (fun acc => acc.code.size)) =
+      UInt256.ofNat ((σ.get? addr).option 0 (fun acc => acc.code.size)) =
         Reasoning.Theory.extCodeSizeWord σ target := by
     subst addr
-    cases hacc : σ.find? (AccountAddress.ofUInt256 target) <;>
-      simp [Reasoning.Theory.extCodeSizeWord, hacc, Option.option] <;>
+    cases hacc : σ.get? (AccountAddress.ofUInt256 target) <;>
+      simp [-Std.ExtTreeMap.get?_eq_getElem?, Reasoning.Theory.extCodeSizeWord,
+        hacc, Option.option] <;>
       native_decide
   exact hne (by rw [← hword, hwordZero])
 

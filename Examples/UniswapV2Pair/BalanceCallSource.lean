@@ -11,7 +11,7 @@ theorem balanceCallStorageStore_sigma0
     (evm : EVM.State) (a : AccountAddress) (slot val : UInt256) :
     (Solm.EVM.storageStore evm a slot val).σ₀ = evm.σ₀ := by
   unfold Solm.EVM.storageStore State.lookupAccount
-  cases evm.accountMap.find? a with
+  cases evm.accountMap.get? a with
   | none => rfl
   | some acc =>
       change (State.setAccount evm a (acc.updateStorage slot val)).σ₀ = evm.σ₀

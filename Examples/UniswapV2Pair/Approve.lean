@@ -399,9 +399,9 @@ theorem uniswapApproveBodyCoreOk
     unfold approvePostState
     rw [hslotS]
     dsimp [EVM.storageStore, State.lookupAccount, evmS, initState]
-    cases hfind : σ.find? I.codeOwner <;>
-      simp [Option.option, hfind, State.setAccount, sstoreAccountMap,
-        Account.updateStorage]
+    cases hfind : σ.get? I.codeOwner <;>
+      simp_all [Std.ExtTreeMap.get?_eq_getElem?, Option.option, State.setAccount,
+        sstoreAccountMap, Account.updateStorage]
   exact (uniswapApproveX_success (g := Sat256.ofUInt256 g)
       hperm hsz68 hsize hreach)
     |>.reEquivExecutionGen hcode hdispatch hdecode hbody

@@ -663,8 +663,8 @@ theorem spotFileParX_liveOk {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     |>.push1 ⟨4⟩ (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1357raw⟩ := rd1356.sload (by native_decide) (by evm_ov)
   have hliveRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨4⟩ ⟨0⟩)) = ⟨1⟩ := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨4⟩ ⟨0⟩)) = ⟨1⟩ := by
     simpa [spotLiveWord, spotSlotWord, solcSlotWord] using hlive
   rw [hliveRaw] at rd1357raw
   have rd1360pre := evm_run rd1357raw with [
@@ -689,13 +689,13 @@ theorem spotFileParX_notLive {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
     raw eq (by native_decide) (by evm_ov)]
   have hliveRaw :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD ⟨4⟩ ⟨0⟩)) ≠ ⟨1⟩ := by
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD ⟨4⟩ ⟨0⟩)) ≠ ⟨1⟩ := by
     simpa [spotLiveWord, spotSlotWord, solcSlotWord] using hlive
   have heq0 :
       UInt256.eq ⟨1⟩
-        (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD ⟨4⟩ ⟨0⟩)) = ⟨0⟩ := by
+        (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD ⟨4⟩ ⟨0⟩)) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h1 => hliveRaw h1.symm)
   rw [heq0] at rd1360pre
   have rd1363 := rd1360pre.pushConst (⟨1427⟩ : UInt256)

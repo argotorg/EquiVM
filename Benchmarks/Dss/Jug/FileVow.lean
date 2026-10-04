@@ -656,7 +656,7 @@ theorem jugFileVowX_storeAuthorized {σ I} {g : Sat256} {s0 : State} {k C : ℕ}
             rfl
   have rd226 := rd1016.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd227 := rd226.jumpdest (by native_decide) (by evm_ov)
-  simpa [solcSlotWord, setAddressOffset0Word, hword,
+  simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, setAddressOffset0Word, hword,
     show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
     using RD.stop rd227 (by native_decide) (by evm_ov)

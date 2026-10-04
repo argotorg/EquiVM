@@ -10,10 +10,10 @@ namespace OpenZeppelinBench.Ownable2Step
 /-! ## `renounceOwnership()` -/
 
 def renounceOwnershipOwnerWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
 def renounceOwnershipPendingOwnerWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨1⟩ ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.getD ⟨1⟩ ⟨0⟩)
 
 abbrev renounceOwnershipOwnerAddressWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   UInt256.land (renounceOwnershipOwnerWord σ I) solcAddrMask
@@ -26,8 +26,8 @@ def renounceOwnershipAfterPendingMap (σ : AccountMap) (I : ExecutionEnv) : Acco
     (renounceOwnershipClearAddressWord (renounceOwnershipPendingOwnerWord σ I))
 
 def renounceOwnershipOwnerWordAfterPending (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  renounceOwnershipAfterPendingMap σ I |>.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD ⟨0⟩ ⟨0⟩)
+  renounceOwnershipAfterPendingMap σ I |>.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD ⟨0⟩ ⟨0⟩)
 
 def renounceOwnershipSetOwnerWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   renounceOwnershipClearAddressWord (renounceOwnershipOwnerWordAfterPending σ I)

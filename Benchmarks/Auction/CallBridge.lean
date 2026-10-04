@@ -44,7 +44,7 @@ theorem callBridge {code I g s0 pc R mem aw rdata σ k C evm}
         intro hv
         exact hd (Fin.ext hv)
       omega
-    by_cases hb : value ≤ (σ.find? I.codeOwner |>.elim ⟨0⟩ (·.balance))
+    by_cases hb : value ≤ (σ.get? I.codeOwner |>.elim ⟨0⟩ (·.balance))
     · obtain ⟨σ', z, out, AIn, callGas, k', C', ⟨gasLeft, AS', hΘ⟩, rd, _⟩ :=
         h.callValueMade hdec hperm hb hdlt hov
       rw [hcd] at hΘ

@@ -526,7 +526,7 @@ theorem accessControlRevokeRoleX_noncanon_account {σ σ₀ A I} {g : Sat256}
     raw revertStub (by decide) (by decide) (by decide) (by evm_ov) ]
 
 def revokeRoleStorageWordAt (σ : AccountMap) (owner : AccountAddress) (slot : UInt256) : UInt256 :=
-  σ.find? owner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)
+  σ.get? owner |>.option ⟨0⟩ (fun acc => acc.storage.getD slot ⟨0⟩)
 
 def revokeRoleAdminStorageWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   revokeRoleStorageWordAt σ I.codeOwner (revokeRoleAdminSlot I)

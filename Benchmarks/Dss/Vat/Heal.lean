@@ -51,7 +51,7 @@ theorem RD.vatHealSinSubUnderflow
       (vatSlotWord (healSinSlot I) σ I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
       ByteArray.empty σ k6440 C6440 := by
-    simpa [hslotEq, solcSlotWord, healSourceWord] using rd6440raw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, hslotEq, solcSlotWord, healSourceWord] using rd6440raw
   have rd6621pre := evm_run rd6440 with [
     raw push2 ⟨6449⟩ (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
@@ -115,7 +115,7 @@ theorem RD.vatHealSinSubSuccess
       (vatSlotWord (healSinSlot I) σ I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem) (UInt256.ofNat 3)
       ByteArray.empty σ k6440 C6440 := by
-    simpa [hslotEq, solcSlotWord, healSourceWord] using rd6440raw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, hslotEq, solcSlotWord, healSourceWord] using rd6440raw
   have rd6621pre := evm_run rd6440 with [
     raw push2 ⟨6449⟩ (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
@@ -252,7 +252,7 @@ theorem RD.vatHealDaiLoaded
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6487⟩
       (vatSlotWord (healDaiSlot I) σSin I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       daiMem (UInt256.ofNat 3) ByteArray.empty σSin k6487 C6487 := by
-    simpa [hdaiSlotEq, solcSlotWord, daiMem] using rd6487raw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, hdaiSlotEq, solcSlotWord, daiMem] using rd6487raw
   exact ⟨_, _, by simpa [σSin, daiMem] using rd6487⟩
 
 theorem RD.vatHealDaiSubUnderflow
@@ -423,7 +423,7 @@ theorem RD.vatHealViceLoaded
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6525⟩
       (vatSlotWord healViceSlot σDai I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       daiHashMem (UInt256.ofNat 3) ByteArray.empty σDai k6525 C6525 := by
-    simpa [vatSlotWord, solcSlotWord, healViceSlot] using rd6525raw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, vatSlotWord, solcSlotWord, healViceSlot] using rd6525raw
   exact ⟨_, _, by simpa [σSin, σDai, daiMem, daiHashMem] using rd6525⟩
 
 theorem RD.vatHealViceSubUnderflow
@@ -571,7 +571,7 @@ theorem RD.vatHealDebtLoaded
       (initState σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6541⟩
       (vatSlotWord healDebtSlot σVice I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       mem (UInt256.ofNat 3) ByteArray.empty σVice k6541 C6541 := by
-    simpa [vatSlotWord, solcSlotWord, healDebtSlot] using rd6541raw
+    simpa [-Std.ExtTreeMap.get?_eq_getElem?, vatSlotWord, solcSlotWord, healDebtSlot] using rd6541raw
   exact ⟨_, _, by simpa [σDai, σVice, mem] using rd6541⟩
 
 theorem RD.vatHealDebtSubUnderflow
@@ -1190,13 +1190,14 @@ theorem vatHealBodyCoreOk
             (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) := by
         have hsinNewSolmRaw :
             UInt256.sub
-                (Option.option ⟨0⟩ (fun acc : Account => acc.storage.findD (healSinSlot I) ⟨0⟩)
-                  (σ.find? I.codeOwner))
+                (Option.option ⟨0⟩ (fun acc : Account => acc.storage.getD (healSinSlot I) ⟨0⟩)
+                  (σ.get? I.codeOwner))
                 (healRad I) = sinNew := by
-          simpa [vatSlotWord, solcSlotWord, Account.lookupStorage] using hsinNewSolm
+          simpa [-Std.ExtTreeMap.get?_eq_getElem?, vatSlotWord, solcSlotWord, Account.lookupStorage] using hsinNewSolm
         dsimp [evmSinSolm, evm0Solm]
         rw [storageStore_accountMap]
-        simp [initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
+        simp [-Std.ExtTreeMap.get?_eq_getElem?, initState, Solm.EVM.storageLoad,
+          State.lookupAccount, Account.lookupStorage]
         rw [hsinNewSolmRaw]
       have hdaiSolm :
           (Solm.EVM.storageLoad evmSinSolm evmSinSolm.executionEnv.codeOwner
@@ -1258,13 +1259,14 @@ theorem vatHealBodyCoreOk
               (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) := by
           have hsinNewSolmRaw :
               UInt256.sub
-                  (Option.option ⟨0⟩ (fun acc : Account => acc.storage.findD (healSinSlot I) ⟨0⟩)
-                    (σ.find? I.codeOwner))
+                  (Option.option ⟨0⟩ (fun acc : Account => acc.storage.getD (healSinSlot I) ⟨0⟩)
+                    (σ.get? I.codeOwner))
                   (healRad I) = sinNew := by
-            simpa [vatSlotWord, solcSlotWord, Account.lookupStorage] using hsinNewSolm
+            simpa [-Std.ExtTreeMap.get?_eq_getElem?, vatSlotWord, solcSlotWord, Account.lookupStorage] using hsinNewSolm
           dsimp [evmSinSolm, evm0Solm]
           rw [storageStore_accountMap]
-          simp [initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
+          simp [-Std.ExtTreeMap.get?_eq_getElem?, initState, Solm.EVM.storageLoad,
+            State.lookupAccount, Account.lookupStorage]
           rw [hsinNewSolmRaw]
         have hdaiEnoughSolmLoad :
             (healRad I).toNat ≤
@@ -1374,13 +1376,14 @@ theorem vatHealBodyCoreOk
                 (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) := by
             have hsinNewSolmRaw :
                 UInt256.sub
-                    (Option.option ⟨0⟩ (fun acc : Account => acc.storage.findD (healSinSlot I) ⟨0⟩)
-                      (σ.find? I.codeOwner))
+                    (Option.option ⟨0⟩ (fun acc : Account => acc.storage.getD (healSinSlot I) ⟨0⟩)
+                      (σ.get? I.codeOwner))
                     (healRad I) = sinNew := by
-              simpa [vatSlotWord, solcSlotWord, Account.lookupStorage] using hsinNewSolm
+              simpa [-Std.ExtTreeMap.get?_eq_getElem?, vatSlotWord, solcSlotWord, Account.lookupStorage] using hsinNewSolm
             dsimp [evmSinSolm, evm0Solm]
             rw [storageStore_accountMap]
-            simp [initState, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]
+            simp [-Std.ExtTreeMap.get?_eq_getElem?, initState, Solm.EVM.storageLoad,
+              State.lookupAccount, Account.lookupStorage]
             rw [hsinNewSolmRaw]
           have hdaiEnoughSolmLoad :
               (healRad I).toNat ≤

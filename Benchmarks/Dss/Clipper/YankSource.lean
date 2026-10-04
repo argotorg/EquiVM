@@ -399,7 +399,7 @@ abbrev clipperYankDeleteSaleState (evm : EVM.State) (I : ExecutionEnv) : EVM.Sta
 
 theorem clipperYankDeleteSale (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (locals : Store)
-    {acc : Account} (hacc : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    {acc : Account} (hacc : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hgetSales : locals.get? "sales" = none)
     (hgetId : locals.get? "id" = some (clipperYankArgValue I)) :
     deleteStorage? (config v) { contract := contract v, locals := locals } evm
@@ -443,9 +443,11 @@ theorem clipperYankDeleteSale (v : ClipperImmutables) (evm : EVM.State)
       (UInt256.land (Solm.EVM.storageLoad evm2 evm2.executionEnv.codeOwner (base + ⟨3⟩))
         (UInt256.lnot solcAddrMask))
     let evm3 := Solm.EVM.storageStore evmUsr evmUsr.executionEnv.codeOwner (base + ⟨3⟩) ⟨0⟩
-    have hacc2 : ∃ acc2, evm2.accountMap.find? evm2.executionEnv.codeOwner = some acc2 := by
+    have haccElem := hacc
+    rw [Std.ExtTreeMap.get?_eq_getElem?] at haccElem
+    have hacc2 : ∃ acc2, evm2.accountMap.get? evm2.executionEnv.codeOwner = some acc2 := by
       simp [evm2, evm1, evm0, storageStore_accountMap, storageStore_executionEnv,
-        sstoreAccountMap, hacc, Option.option, accountMap_find_insert_self]
+        sstoreAccountMap, haccElem, Option.option, Std.ExtTreeMap.getElem?_insert_self]
     have hpos :
         storageLocStore evm (wordLoc base) (.int 0) = some evm0 := by
       simpa [evm0, wordLoc, uint256Loc] using storageLocStore_uint256 evm base ⟨0⟩
@@ -637,7 +639,7 @@ theorem clipperYankRemovePopActive (v : ClipperImmutables) (evm : EVM.State)
 
 theorem clipperYankRemoveIdEqMoveSource (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv)
-    {acc : Account} (hacc : evm.accountMap.find? evm.executionEnv.codeOwner = some acc)
+    {acc : Account} (hacc : evm.accountMap.get? evm.executionEnv.codeOwner = some acc)
     (hlen : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩ ≠ ⟨0⟩)
     (heq :
       clipperYankArgWord I =
@@ -715,10 +717,12 @@ theorem clipperYankRemoveIdEqMoveSource (v : ClipperImmutables) (evm : EVM.State
             (clipperYankRemoveMoveStore_get_active I lastIndex move) hlen)
   have haccPop :
       ∃ accPop,
-        (clipperYankRemovePopState evm lastIndex).accountMap.find?
+        (clipperYankRemovePopState evm lastIndex).accountMap.get?
             (clipperYankRemovePopState evm lastIndex).executionEnv.codeOwner = some accPop := by
+    have haccElem := hacc
+    rw [Std.ExtTreeMap.get?_eq_getElem?] at haccElem
     simp [clipperYankRemovePopState, storageStore_accountMap, storageStore_executionEnv,
-      sstoreAccountMap, hacc, Option.option, accountMap_find_insert_self]
+      sstoreAccountMap, haccElem, Option.option, Std.ExtTreeMap.getElem?_insert_self]
   obtain ⟨accPop, haccPop⟩ := haccPop
   have hdelete :
       ExecStmt (config v)
@@ -1243,17 +1247,17 @@ theorem clipperYankDogDigsNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
     let target := clipperYankDogTarget σLock I
     suffices hlookup :
         (UInt256.ofNat
-          ((σLock.find? (AccountAddress.ofUInt256 target)).option 0
+          ((σLock.get? (AccountAddress.ofUInt256 target)).option 0
             (fun acc => acc.code.size))).toNat = 0 by
       simpa [evmLock, evm0, initState, storageStore_accountMap, storageStore_executionEnv,
         State.lookupAccount, σLock, target] using hlookup
     change (Reasoning.Theory.extCodeSizeWord σLock target).toNat = 0 at h
     unfold Reasoning.Theory.extCodeSizeWord at h
-    cases hacc : σLock.find? (AccountAddress.ofUInt256 target) with
+    cases hacc : σLock.get? (AccountAddress.ofUInt256 target) with
     | none =>
         rfl
     | some acc =>
-        simpa [hacc] using h
+        simpa [-Std.ExtTreeMap.get?_eq_getElem?, hacc] using h
   have hdogEval :
       evalExpr? (config v) { contract := contract v, locals := locals } evmLock
         (.binary .gt (.extCodeSize (.storage dogRef)) (.intLit 0)) = .ok (.bool false) := by
@@ -1362,7 +1366,7 @@ theorem clipperYankDogDigsCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
       simp [evmLock, evm0, initState, clipperYankSalesTabWord, solcSlotWord,
         storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
         State.lookupAccount]
-      cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).find? I.codeOwner <;> rfl
+      cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
       typedCallViaEVM (config v) evmLock
@@ -1486,7 +1490,7 @@ theorem clipperYankVatFluxNoCodeSourceReverts {σ σ₀ A I} {g : UInt256}
       simp [evmLock, evm0, initState, clipperYankSalesTabWord, solcSlotWord,
         storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
         State.lookupAccount]
-      cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).find? I.codeOwner <;> rfl
+      cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
       typedCallViaEVM (config v) evmLock
@@ -1625,7 +1629,7 @@ theorem clipperYankVatFluxCallFailureSourceReverts {σ σ₀ A I} {g : UInt256}
       simp [evmLock, evm0, initState, clipperYankSalesTabWord, solcSlotWord,
         storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
         State.lookupAccount]
-      cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).find? I.codeOwner <;> rfl
+      cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
       typedCallViaEVM (config v) evmLock
@@ -1779,7 +1783,7 @@ theorem clipperYankRemoveEmptyAfterVatSourceReverts {σ σ₀ A I} {g : UInt256}
       simp [evmLock, evm0, initState, clipperYankSalesTabWord, solcSlotWord,
         storageStore_accountMap, storageStore_executionEnv, Solm.EVM.storageLoad,
         State.lookupAccount]
-      cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).find? I.codeOwner <;> rfl
+      cases (sstoreAccountMap I.codeOwner σ ⟨13⟩ ⟨1⟩).get? I.codeOwner <;> rfl
     simpa [locals, htabLoad] using clipperEvalYankDogDigsArgs v evmLock I
   have hcallDog' :
       typedCallViaEVM (config v) evmLock

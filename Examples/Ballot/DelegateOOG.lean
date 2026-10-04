@@ -19,7 +19,7 @@ theorem RD.sloadMono {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : S
     ∃ k' C',
       C ≤ C' ∧
         RD code ee g s0 (pc + ⟨1⟩)
-          ((σ.find? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD a ⟨0⟩)) :: t)
+          ((σ.get? ee.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.getD a ⟨0⟩)) :: t)
           mem aw rdata σ k' C' := by
   unfold RD at h
   rcases h with hoog | ⟨s, hX, hcode, hpc, hstk, hgas, hk, hC, hmem, haw, hrdata,

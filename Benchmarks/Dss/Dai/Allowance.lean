@@ -64,8 +64,8 @@ def allowanceStorageSlot (I : ExecutionEnv) : UInt256 :=
   allowanceSlot (allowanceOwnerKey I) (allowanceSpenderKey I)
 
 def allowanceWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (allowanceStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (allowanceStorageSlot I) ⟨0⟩)
 
 abbrev allowanceEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
   { base := "allowance",
@@ -180,8 +180,8 @@ theorem daiX_allowance_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (by simp only [List.length_singleton]; omega)
   have hslot := allowanceStorageSlot_eq_mapSlot_masked I
   have hword :
-      (σ.find? I.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD
+      (σ.get? I.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD
             (mapSlot (allowanceSpenderMaskedWord I)
               (mapSlot (allowanceOwnerMaskedWord I) ⟨3⟩)) ⟨0⟩))
         = allowanceWord σ I := by
@@ -192,7 +192,7 @@ theorem daiX_allowance_ok {σ σ₀ A I} {g : Sat256} {sel : UInt256}
       (daiNestedMappingHashMem ⟨3⟩ (allowanceOwnerMaskedWord I)
         (allowanceSpenderMaskedWord I))
       (UInt256.ofNat 3) ByteArray.empty σ k524 C524 := by
-    simpa [hword] using rd524raw
+    simpa only [hword] using rd524raw
   exact RD.daiReturnWordFromMem
     (val := allowanceWord σ I) (ret := ⟨524⟩) (R := [sel])
     (mem := daiNestedMappingHashMem ⟨3⟩ (allowanceOwnerMaskedWord I)

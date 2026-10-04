@@ -20,7 +20,7 @@ This file provides:
   `config.externalABI.encode? "ilks" [ilk]`;
 * the **reusable call combinators** (`RD.catBiteIlks*`) that step guard + `STATICCALL` and produce
   the `Θ`/`typedCallViaEVM` witness (STATICCALL preserves this-storage via
-  `typedCallViaEVM_static_storage_findD_of_accounts_eq`), or `RDrev` on the missing-code / call-
+  `typedCallViaEVM_static_storage_getD_of_accounts_eq`), or `RDrev` on the missing-code / call-
   failure branches.
 
 The definitions are parametrised over the ilk word `ilk : UInt256`, so the trace agent can apply the

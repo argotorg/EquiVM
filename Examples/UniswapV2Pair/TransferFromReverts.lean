@@ -286,7 +286,8 @@ theorem uniswapTransferFromX_overflowMaxAllowance {σ σ₀ A I} {g : Sat256}
   have htoBalanceWord :
       uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferFromToWord I) ⟨1⟩) =
         transferFromToBalanceWordMax (initState σ σ₀ g A I) I := by
-    simp [σDebit, uniswapCodeOwnerStorageWord, transferFromToBalanceWordMax,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, σDebit, uniswapCodeOwnerStorageWord,
+      transferFromToBalanceWordMax,
       transferFromAfterBalanceStateMax, initState, Solm.EVM.storageLoad, State.lookupAccount,
       Account.lookupStorage, storageStore_accountMap, hfromSlot, htoSlot]
   have hoverWord :
@@ -457,7 +458,8 @@ theorem uniswapTransferFromX_balanceFiniteAllowance {σ σ₀ A I} {g : Sat256}
         transferFromFromBalanceWord (transferFromAfterAllowanceState
           (initState σ σ₀ g A I) I) I := by
     unfold uniswapCodeOwnerStorageWord transferFromFromBalanceWord Solm.EVM.storageLoad
-    simp [State.lookupAccount, Account.lookupStorage, hstateMap, hfromSlot, hcodeOwner]
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount,
+      Account.lookupStorage, hstateMap, hfromSlot, hcodeOwner]
   have hltWord :
       (uniswapCodeOwnerStorageWord I σAllowance (mapSlot (transferFromFromWord I) ⟨1⟩)).toNat <
         (transferFromValueWord I).toNat := by
@@ -647,7 +649,8 @@ theorem uniswapTransferFromX_overflowFiniteAllowance {σ σ₀ A I} {g : Sat256}
         transferFromToBalanceWord (initState σ σ₀ g A I) I := by
     unfold uniswapCodeOwnerStorageWord transferFromToBalanceWord Solm.EVM.storageLoad
     rw [show (initState σ σ₀ g A I).executionEnv.codeOwner = I.codeOwner from rfl]
-    simp [State.lookupAccount, Account.lookupStorage, hbalanceMap, htoSlot]
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, State.lookupAccount,
+      Account.lookupStorage, hbalanceMap, htoSlot]
   have hoverWord :
       UInt256.size ≤
         (uniswapCodeOwnerStorageWord I σDebit (mapSlot (transferFromToWord I) ⟨1⟩)).toNat +

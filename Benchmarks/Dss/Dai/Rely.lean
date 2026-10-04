@@ -37,8 +37,8 @@ def relyAuthStorageSlot (I : ExecutionEnv) : UInt256 :=
   wardsSlot (relyAuthKey I)
 
 def relyAuthWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
-  σ.find? I.codeOwner |>.option ⟨0⟩
-    (fun acc => acc.storage.findD (relyAuthStorageSlot I) ⟨0⟩)
+  σ.get? I.codeOwner |>.option ⟨0⟩
+    (fun acc => acc.storage.getD (relyAuthStorageSlot I) ⟨0⟩)
 
 def relyPostState (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (relyGuyStorageSlot I) ⟨1⟩

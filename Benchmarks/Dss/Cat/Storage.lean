@@ -200,8 +200,8 @@ theorem RD.catAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
   have hauthRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) = ⟨1⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) = ⟨1⟩ := by
     simpa [solcSlotWord] using hauth
   have rd20 := rd20₀
   rw [hauthRaw, uInt256_eq_self] at rd20
@@ -246,13 +246,13 @@ theorem RD.catAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
   have hauthRaw :
-      (σ.find? ee.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) ≠ ⟨1⟩ := by
+      (σ.get? ee.codeOwner |>.option ⟨0⟩
+        (fun acc => acc.storage.getD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) ≠ ⟨1⟩ := by
     simpa [solcSlotWord] using hauth
   have heq0 :
       UInt256.eq ⟨1⟩
-        (σ.find? ee.codeOwner |>.option ⟨0⟩
-          (fun acc => acc.storage.findD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) = ⟨0⟩ := by
+        (σ.get? ee.codeOwner |>.option ⟨0⟩
+          (fun acc => acc.storage.getD (solcMappingSlot ⟨0⟩ (solcSourceWord ee)) ⟨0⟩)) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h1 => hauthRaw h1.symm)
   have rd20 := rd20₀
   rw [heq0] at rd20

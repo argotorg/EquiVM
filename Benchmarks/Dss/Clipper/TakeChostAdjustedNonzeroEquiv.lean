@@ -97,7 +97,7 @@ theorem clipperTakeChostAdjustEquiv
     ((clipperTakeSalesLotEVMWord evmPrice I).sub sliceAdjusted)
   have hchostEq : chost = solcSlotWord σPost I ⟨9⟩ := by
     have hslot := congrArg (fun m => solcSlotWord m I ⟨9⟩) hAccountsPost
-    simp [chost, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+    simp [-Std.ExtTreeMap.get?_eq_getElem?, chost, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
       solcSlotWord, hevmPriceEnv, hslot]
   have hmul' : (UInt256.mul slice price).toNat ≤
       (clipperTakeSalesTabEVMWord evmPrice I).toNat := by

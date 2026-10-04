@@ -157,8 +157,8 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
             |>.readWithPadding 0 64)) =
         UInt256.toByteArray (revealScratchBidsLengthSlot I))
     (hlenLoad :
-      (a.acc.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
+      (a.acc.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
     (hboundBids : a.idx.toNat < curLen.toNat)
     (hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -289,11 +289,11 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
     rw [hslotSize]
     exact a.hgap
   let blinded : UInt256 :=
-    (a.acc.find? I.codeOwner).option ⟨0⟩
-      (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩)
+    (a.acc.get? I.codeOwner).option ⟨0⟩
+      (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩)
   have hblindedEvm :
-      (a.acc.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded := rfl
+      (a.acc.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD ((⟨0⟩ : UInt256) + slot) ⟨0⟩) = blinded := rfl
   have hblindedSrc :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
         (scratch_revealBidBlindedSlot evm a.idx) = blinded := by
@@ -390,11 +390,11 @@ theorem scratch_revealLoopBody_fakeTrue_fromLoopStart {I} {g : Sat256}
       · have hz : UInt256.eq blinded hashWord = (⟨0⟩ : UInt256) := u256_eq_of_ne heq
         exact False.elim (hflag0 hz)
     let deposit : UInt256 :=
-      (a.acc.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩)
+      (a.acc.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩)
     have hdepositEvm :
-        (a.acc.find? I.codeOwner).option ⟨0⟩
-          (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit := rfl
+        (a.acc.get? I.codeOwner).option ⟨0⟩
+          (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit := rfl
     have hdepositSrc :
         Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
           (scratch_revealBidDepositSlot evm a.idx) = deposit := by
@@ -514,8 +514,8 @@ theorem scratch_revealLoopBody_fakeInvalid_fromLoopStart {I} {g : Sat256}
               32 32).readWithPadding 0 64))) =
         revealScratchBidsLengthSlot I)
     (hlenLoad :
-      (a.acc.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
+      (a.acc.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
     (hboundBids : a.idx.toNat < curLen.toNat)
     (hdataHash :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -588,8 +588,8 @@ theorem scratch_revealLoopBody_bounds_fromLoopStart {I} {g : Sat256} {s0 : State
               32 32).readWithPadding 0 64))) =
         revealScratchBidsLengthSlot I)
     (hlenLoad :
-      (a.acc.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
+      (a.acc.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (revealScratchBidsLengthSlot I) ⟨0⟩) = curLen)
     (hboundBids : curLen.toNat ≤ a.idx.toNat)
     (hbidsL : L.get? "bids" = none)
     (hiL : L.get? "i" = some (.int (Int.ofNat a.idx.toNat)))
@@ -1096,8 +1096,8 @@ theorem scratch_blindAuctionRevealX_placeCond_placeBid_true_nonzero_overflow_rev
         secretsEnd, fakesLen, fakesEnd, valuesLen, valuesEnd, ⟨276⟩, sel]
       mem aw rdata σ k C)
     (hdeposit :
-      (σ.find? I.codeOwner).option ⟨0⟩
-        (fun ac => ac.storage.findD (slot + ⟨1⟩) ⟨0⟩) = deposit)
+      (σ.get? I.codeOwner).option ⟨0⟩
+        (fun ac => ac.storage.getD (slot + ⟨1⟩) ⟨0⟩) = deposit)
     (hdepositGe : value.toNat ≤ deposit.toNat)
     (hplaceTrue : (scratch_placeBidHighestBidWord σ I).toNat < value.toNat)
     (hhighestBidderNonzero :

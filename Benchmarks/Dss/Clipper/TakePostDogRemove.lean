@@ -177,7 +177,7 @@ theorem RD.clipperTakeRemoveIdNeMoveToJoin
           dataStart :: who :: maxArg :: amt ::
           clipperYankArgWord ee :: ⟨502⟩ :: [sel])
         activeMem aw2 o σ k C := by
-    exact ⟨_, _, by simpa [solcSlotWord, hslotActive] using rd8307pre⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hslotActive] using rd8307pre⟩
   obtain ⟨_, _, rd8308raw⟩ := rd8307slot.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8308, C8308, rd8308⟩ :
       ∃ k C, RD code ee g s0 ⟨8308⟩
@@ -541,7 +541,7 @@ theorem RD.clipperTakeRemoveIdNeMoveIndexOobInvalid
           dataStart :: who :: maxArg :: amt ::
           clipperYankArgWord ee :: ⟨502⟩ :: [sel])
         activeMem aw2 o σ k C := by
-    exact ⟨_, _, by simpa [solcSlotWord, hslotActive] using rd8307pre⟩
+    exact ⟨_, _, by simpa [-Std.ExtTreeMap.get?_eq_getElem?, solcSlotWord, hslotActive] using rd8307pre⟩
   obtain ⟨_, _, rd8308raw⟩ := rd8307slot.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8308, C8308, rd8308⟩ :
       ∃ k C, RD code ee g s0 ⟨8308⟩
