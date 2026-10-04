@@ -1952,11 +1952,11 @@ theorem execBlock_complete {fr m ss r} (h : ExecBlock cfg o fc fr m ss r) :
 theorem execChain_complete {fr m mods body r} (h : ExecChain cfg o fc fr m mods body r) :
     ∃ n, ∀ k, n ≤ k → (execChain cfg o fc k fr m mods body).run = some (toExec r) :=
   match h with
-  | .body p1 => by
+  | .body (r := rr) p1 => by
     obtain ⟨n1, ih1⟩ := execBlock_complete p1
     refine ⟨n1 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [ih1 k' (by omega)]
+    cases rr <;> interp_simp [exitBlock, ih1 k' (by omega)]
   | .modifier (r := rr) p1 p2 p3 p4 p5 p6 => by
     obtain ⟨n3, ih3⟩ := evalExprs_complete p3
     obtain ⟨n6, ih6⟩ := execBlock_complete p6

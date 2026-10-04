@@ -201,7 +201,8 @@ theorem execChain_sound_step {n} (ih : SoundAt cfg o fc n) :
   cases mods with
   | nil =>
     simp only [execChain] at h
-    exact .body (ih.block _ _ _ _ h)
+    obtain ⟨r0, h0, hr⟩ := exitBlock_run h
+    rw [hr]; exact .body (ih.block _ _ _ _ h0)
   | cons mi rest =>
     simp only [execChain] at h
     split at h

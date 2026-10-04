@@ -167,12 +167,13 @@ def enterFn (cfg : Config) (env : TypeEnv) (here : Ident) (d : FnDecl) (args : L
 /-- Enter the body of a modifier declared in `here`: a fresh scope for its parameters over the
     suspended scope. -/
 def pushScope (here : Ident) (fr : Frame) (rest : List ModifierInvocation) (body : Block) : Frame :=
-  { fr with here := here, locals := ∅, outer := (fr.here, fr.locals) :: fr.outer, chain := rest, body := body }
+  { fr with here := here, locals := ∅, hidden := [], outer := (fr.here, fr.locals, fr.hidden) :: fr.outer,
+             chain := rest, body := body }
 
 /-- Back to the suspended scope (the function scope seen from a modifier body). -/
 def popFrame (fr : Frame) : Frame :=
   match fr.outer with
-  | (h, s) :: rest => { fr with here := h, locals := s, outer := rest }
+  | (h, s, hd) :: rest => { fr with here := h, locals := s, hidden := hd, outer := rest }
   | [] => fr
 
 /-- Leave a modifier body. -/
@@ -184,8 +185,8 @@ def popScope : ExecResult → ExecResult
 /-- Resume the modifier scope `fr` after `_;` ran the rest of the chain in the function scope,
     which is now `fr'.locals`. -/
 def resumeScope (fr fr' : Frame) : Frame :=
-  { fr' with here := fr.here, locals := fr.locals, outer := (fr'.here, fr'.locals) :: fr'.outer,
-             chain := fr.chain, body := fr.body }
+  { fr' with here := fr.here, locals := fr.locals, hidden := fr.hidden,
+             outer := (fr'.here, fr'.locals, fr'.hidden) :: fr'.outer, chain := fr.chain, body := fr.body }
 
 /-- Result of a `_;`: a `return` inside the body only leaves the body. -/
 def settlePlaceholder (fr : Frame) : ExecResult → Option ExecResult
@@ -1128,16 +1129,19 @@ inductive ExecStmt : Frame → Machine → Stmt → ExecResult → Prop where
   | break : ExecStmt fr m .break (.break fr m)
   | continue : ExecStmt fr m .continue (.continue fr m)
   | returnNone : ExecStmt fr m (.return none) (.returned fr m)
-  | returnSingle : fr.retVars = [r] → EvalExpr fr m e (.ok v fr1 m1) → assign cfg fc.types fr1 m1 (.local r) v = some (.ok (fr2, m2)) →
+  -- `return e` assigns the function's own return variables (`unwind`: a block-local of the same
+  -- name does not capture the value)
+  | returnSingle : fr.retVars = [r] → EvalExpr fr m e (.ok v fr1 m1) →
+      assign cfg fc.types fr1.unwind m1 (.local r) v = some (.ok (fr2, m2)) →
       ExecStmt fr m (.return (some e)) (.returned fr2 m2)
   | returnMulti : fr.retVars.length ≥ 2 → EvalExpr fr m e (.ok (.tuple vs) fr1 m1) →
-      AssignTuple fr1 m1 (fr.retVars.map fun r => some (.ident r)) vs (.ok () fr2 m2) →
+      AssignTuple fr1.unwind m1 (fr.retVars.map fun r => some (.ident r)) vs (.ok () fr2 m2) →
       ExecStmt fr m (.return (some e)) (.returned fr2 m2)
   | returnRevert : EvalExpr fr m e (.reverted d) → ExecStmt fr m (.return (some e)) (.reverted d)
   | returnSinglePanic : fr.retVars = [r] → EvalExpr fr m e (.ok v fr1 m1) →
-      assign cfg fc.types fr1 m1 (.local r) v = some (.error p) → ExecStmt fr m (.return (some e)) (.reverted p.data)
+      assign cfg fc.types fr1.unwind m1 (.local r) v = some (.error p) → ExecStmt fr m (.return (some e)) (.reverted p.data)
   | returnMultiRevert : fr.retVars.length ≥ 2 → EvalExpr fr m e (.ok (.tuple vs) fr1 m1) →
-      AssignTuple fr1 m1 (fr.retVars.map fun r => some (.ident r)) vs (.reverted d) →
+      AssignTuple fr1.unwind m1 (fr.retVars.map fun r => some (.ident r)) vs (.reverted d) →
       ExecStmt fr m (.return (some e)) (.reverted d)
   -- `emit ev(args)`: the overload is resolved by the evaluated arguments
   | emit : eventArgs (fc.eventsNamed ev) args = some es → EvalExprs fr m es (.ok vs fr1 m1) →
@@ -1351,7 +1355,8 @@ inductive ExecBlock : Frame → Machine → List Stmt → ExecResult → Prop wh
 /-- Run the remaining modifier chain, then the body.  A modifier's arguments are evaluated when it is
     entered (at the outer modifier's `_;`, every time), in the function scope. -/
 inductive ExecChain : Frame → Machine → List ModifierInvocation → Block → ExecResult → Prop where
-  | body : ExecBlock fr m body r → ExecChain fr m [] body r
+  -- the body's own locals end with it (a second `_;` starts from the parameters and return variables)
+  | body : ExecBlock fr m body r → ExecChain fr m [] body (exitBlock fr r)
   | modifier : fc.modifier? mi.name = some md → argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])) = some es →
       EvalExprs fr m es (.ok vs fr1 m1) →
       bindModParams cfg fc.types (pushScope md.declaredIn fr1 rest body) m1 md.decl.params vs = some (.ok (fr2, m2)) →

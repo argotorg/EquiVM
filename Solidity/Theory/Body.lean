@@ -54,6 +54,29 @@ theorem Opt.some_bind {α β} (a : α) (f : α → Option β) : (some a >>= f) =
   | none => simp
   | some l => simp [Std.HashMap.getElem?_insert]
 
+@[simp] theorem Frame.retVars_bind (fr : Frame) (x : Ident) (ty : Ty) (loc : Option DataLoc) (v : Value) :
+    (fr.bind x ty loc v).retVars = fr.retVars := rfl
+
+@[simp] theorem Frame.retVars_setVal (fr : Frame) (x : Ident) (v : Value) : (fr.setVal x v).retVars = fr.retVars := by
+  unfold Frame.setVal; split <;> rfl
+
+@[simp] theorem Frame.mem_bind (fr : Frame) (x y : Ident) (ty : Ty) (loc : Option DataLoc) (v : Value) :
+    y ∈ (fr.bind x ty loc v).locals ↔ x = y ∨ y ∈ fr.locals := by
+  simp [Frame.bind, Std.HashMap.mem_insert]
+
+@[simp] theorem Frame.mem_setVal (fr : Frame) (x y : Ident) (v : Value) :
+    y ∈ (fr.setVal x v).locals ↔ y ∈ fr.locals := by
+  unfold Frame.setVal
+  split
+  · rename_i l h
+    have hx : x ∈ fr.locals := by
+      rw [Std.HashMap.mem_iff_isSome_getElem?, ← Std.HashMap.get?_eq_getElem?, h]; rfl
+    simp only [Std.HashMap.mem_insert, beq_iff_eq]
+    constructor
+    · rintro (rfl | h') <;> assumption
+    · exact Or.inr
+  · rfl
+
 @[simp] theorem retName0 (ty : Ty) : retName 0 ({ ty := ty } : Param) = "#ret0" := rfl
 
 /-- Evaluate frame lookups/updates down to the underlying hash map. -/
@@ -596,10 +619,62 @@ theorem assign_local_u256 {cfg : Config} {env : TypeEnv} {fr : Frame} {m : Machi
 
 /-! ## Scopes -/
 
-@[simp] theorem exitScope_get? (fr fr' : Frame) (k : Ident) :
+@[simp] theorem Frame.restore_nil (s : Store) : Frame.restore [] s = s := rfl
+
+@[simp] theorem Frame.hidden_setVal (fr : Frame) (x : Ident) (v : Value) : (fr.setVal x v).hidden = fr.hidden := by
+  unfold Frame.setVal; split <;> rfl
+
+theorem Frame.hidden_bind (fr : Frame) (x : Ident) (ty : Ty) (loc : Option DataLoc) (v : Value) :
+    (fr.bind x ty loc v).hidden =
+      match fr.get? x with
+      | some l => (x, l) :: fr.hidden
+      | none => fr.hidden := rfl
+
+/-- Declaring a fresh name hides nothing. -/
+@[simp] theorem Frame.hidden_bind_of_none {fr : Frame} {x : Ident} (h : fr.get? x = none) (ty : Ty)
+    (loc : Option DataLoc) (v : Value) : (fr.bind x ty loc v).hidden = fr.hidden := by
+  rw [Frame.hidden_bind, h]
+
+/-- Lookup after leaving a block, in general: hidden bindings come back first. -/
+theorem exitScope_get?' (fr fr' : Frame) (k : Ident) :
+    (fr.exitScope fr').get? k =
+      if fr.locals.contains k then
+        (Frame.restore (fr'.hidden.take (fr'.hidden.length - fr.hidden.length)) fr'.locals).get? k
+      else none := by
+  simp only [Frame.exitScope, Std.HashMap.get?_eq_getElem?, Frame.get?, Std.HashMap.getElem?_filter']
+  cases (Frame.restore (fr'.hidden.take (fr'.hidden.length - fr.hidden.length)) fr'.locals)[k]? <;>
+    simp [Option.filter]
+
+/-- Lookup after leaving a block in which no declaration hid an outer binding. -/
+@[simp] theorem exitScope_get? (fr fr' : Frame) (k : Ident) (h : fr'.hidden = fr.hidden) :
     (fr.exitScope fr').get? k = if fr.locals.contains k then fr'.get? k else none := by
-  simp only [Frame.exitScope, Frame.get?, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_filter']
-  cases fr'.locals[k]? <;> simp [Option.filter]
+  rw [exitScope_get?', h]
+  simp [Frame.get?]
+
+/-- Lookup after leaving a block in which one declaration hid the outer binding `l` of `x`. -/
+theorem exitScope_get?_shadow {fr fr' : Frame} {x : Ident} {l : Local} (k : Ident)
+    (h : fr'.hidden = (x, l) :: fr.hidden) :
+    (fr.exitScope fr').get? k =
+      if fr.locals.contains k then (if (x == k) = true then some l else fr'.get? k) else none := by
+  rw [exitScope_get?', h]
+  simp [Frame.restore, Frame.get?, Std.HashMap.get?_eq_getElem?, Std.HashMap.getElem?_insert]
+
+theorem exitScope_hidden (fr fr' : Frame) :
+    (fr.exitScope fr').hidden = fr'.hidden.drop (fr'.hidden.length - fr.hidden.length) := rfl
+
+@[simp] theorem exitScope_hidden_of_eq {fr fr' : Frame} (h : fr'.hidden = fr.hidden) :
+    (fr.exitScope fr').hidden = fr.hidden := by
+  rw [exitScope_hidden, h]; simp
+
+/-- Nothing hidden: `return` sees the frame as it is. -/
+theorem Frame.unwind_of_hidden {fr : Frame} (h : fr.hidden = []) : fr.unwind = fr := by
+  cases fr
+  dsimp only at h
+  subst h
+  rfl
+
+@[simp] theorem Frame.unwind_retVars (fr : Frame) : fr.unwind.retVars = fr.retVars := rfl
+@[simp] theorem Frame.unwind_hidden (fr : Frame) : fr.unwind.hidden = [] := rfl
 
 @[simp] theorem exitScope_chain (fr fr' : Frame) : (fr.exitScope fr').chain = fr'.chain := rfl
 @[simp] theorem exitScope_body (fr fr' : Frame) : (fr.exitScope fr').body = fr'.body := rfl
@@ -1615,7 +1690,7 @@ theorem writeScalar_address' {cfg : Config} {evm : EVM.State} {er : Solm.EvaledS
   exact h
 
 theorem exitScope_get?_of_none {fr fr' : Frame} {k : Ident} (h : fr.get? k = none) : (fr.exitScope fr').get? k = none := by
-  rw [exitScope_get?]
+  rw [exitScope_get?']
   have h' : fr.locals[k]? = none := by simpa [Frame.get?, Std.HashMap.get?_eq_getElem?] using h
   simp [Std.HashMap.contains_eq_isSome_getElem?, h']
 

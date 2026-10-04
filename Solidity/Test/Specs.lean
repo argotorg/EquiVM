@@ -24,3 +24,4 @@ import Solidity.Test.Specs.Features
 import Solidity.Test.Specs.Consts
 import Solidity.Test.Specs.Arith
 import Solidity.Test.Specs.Data
+import Solidity.Test.Specs.Flow

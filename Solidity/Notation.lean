@@ -574,7 +574,8 @@ partial def elabStmt (stx : TSyntax `solidityStmt) : MacroM Term := do
     if stx.raw.isOfKind ``solidityFor then
       -- for ( init cond? ; post? ) body
       let initStx := stx.raw[2]
-      let init ← if initStx.isAtom then `(none) else do `(some $(← elabStmt ⟨initStx⟩))
+      let init ← if initStx.isAtom || initStx.getKind == `token.«;» then `(none)
+        else do `(some $(← elabStmt ⟨initStx⟩))
       let condStx := stx.raw[3]
       let cond ← if condStx.getNumArgs == 0 then `(none) else do `(some $(← elabExpr ⟨condStx[0]⟩))
       let postStx := stx.raw[5]

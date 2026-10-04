@@ -190,4 +190,34 @@ example (fr : Frame) (m : Machine)
     (EvalExprs.two (EvalExpr.msgSenderEq (by simp)) (EvalExpr.msgValueEq (by simp)))) ?_
   exact ExecBlock.nil
 
+/-! ## Scopes
+
+A function-entry frame with a parameter `a` and a return variable `r`.  A block-local is gone after
+the block, an assignment made inside stays, a shadowed binding comes back, and the return values are
+read after the body's own locals are dropped. -/
+
+def entryFrame : Frame :=
+  (({ here := "C", locals := ∅, retVars := ["r"] } : Frame).bind "a" u256Ty (some .memory) (u256Val 7)).bind
+    "r" u256Ty (some .memory) (u256Val 0)
+
+example : entryFrame.hidden = [] := by simp [entryFrame]
+
+example : (entryFrame.exitScope ((entryFrame.bind "t" u256Ty none (u256Val 1)).setVal "r" (u256Val 5))).get? "t" =
+    none := by
+  simp [entryFrame]
+
+example : ((entryFrame.exitScope ((entryFrame.bind "t" u256Ty none (u256Val 1)).setVal "r" (u256Val 5))).get?
+    "r").map (·.val) = some (u256Val 5) := by
+  simp [entryFrame]
+
+/-- `{ uint256 a = 99; }`: the parameter `a` is visible again after the block. -/
+example : ((entryFrame.exitScope (entryFrame.bind "a" u256Ty none (u256Val 99))).get? "a").map (·.val) =
+    some (u256Val 7) := by
+  rw [exitScope_get?_shadow (x := "a") (l := { ty := u256Ty, loc := some .memory, val := u256Val 7 }) "a"
+    (by simp [entryFrame, Frame.hidden_bind])]
+  simp [entryFrame]
+
+example : retVals (entryFrame.exitScope (entryFrame.setVal "r" (u256Val 5))) = some [u256Val 5] :=
+  retVals_exitScope (by simp) (by simp [entryFrame]) (by simp [retVals, entryFrame])
+
 end Solidity.Usage

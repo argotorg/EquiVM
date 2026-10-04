@@ -22,15 +22,36 @@ def bodyFrame (fr : Frame) (b : Block) : Frame := { fr with chain := [], body :=
 
 /-! ## Calls -/
 
-/-- A function without modifiers whose body finishes (`return` or fall-through). -/
+/-- The end of a function body: its own locals are dropped (`exitScope` from the entry frame). -/
+theorem finished_exitBlock {fr fr2 : Frame} {r : ExecResult} {m2 : Machine} (h : finished r = some (fr2, m2)) :
+    finished (exitBlock fr r) = some (fr.exitScope fr2, m2) := by
+  cases r <;> simp [finished] at h <;> obtain ⟨rfl, rfl⟩ := h <;> rfl
+
+theorem mapM_congr_mem {α β} {f g : α → Option β} : ∀ {l : List α}, (∀ a ∈ l, f a = g a) → l.mapM f = l.mapM g
+  | [], _ => rfl
+  | a :: l, h => by
+    rw [List.mapM_cons, List.mapM_cons, h a (by simp), mapM_congr_mem fun b hb => h b (by simp [hb])]
+
+/-- The return values survive the end of the function body when the return variables are bound at
+    entry and nothing stays hidden. -/
+theorem retVals_exitScope {fr fr' : Frame} {rets : List Value} (hh : fr'.hidden = fr.hidden)
+    (hin : ∀ r ∈ fr'.retVars, fr.locals.contains r = true) (h : retVals fr' = some rets) :
+    retVals (fr.exitScope fr') = some rets := by
+  rw [← h]
+  unfold retVals
+  rw [exitScope_retVars]
+  exact mapM_congr_mem fun r hr => by rw [exitScope_get? _ _ _ hh, hin r hr]; rfl
+
+/-- A function without modifiers whose body finishes (`return` or fall-through); the return values
+    are read after the body's own locals are dropped (`retVals_exitScope`). -/
 theorem CallFn.plain {fr fr0 fr2 : Frame} {m m0 m2 : Machine} {fn : FnDef} {args : List Value} {body : Block}
     {r : ExecResult} {rets : List Value}
     (henter : enterFn cfg fc.types fn.declaredIn fn.decl args m = some (.ok (fr0, m0)))
     (hbody : fn.decl.body = some body) (hmods : fn.decl.modifiers = [])
     (hrun : ExecBlock cfg o fc (bodyFrame fr0 body) m0 body r)
-    (hfin : finished r = some (fr2, m2)) (hrets : retVals fr2 = some rets) :
+    (hfin : finished r = some (fr2, m2)) (hrets : retVals (fr0.exitScope fr2) = some rets) :
     CallFn cfg o fc fr m fn args (.ok rets m2) := by
-  refine CallFn.ok henter hbody ?_ hfin hrets
+  refine CallFn.ok henter hbody ?_ (finished_exitBlock (fr := bodyFrame fr0 body) hfin) hrets
   rw [hmods]
   exact ExecChain.body hrun
 
@@ -229,27 +250,30 @@ theorem ExecStmt.emitAddrAddrU256 {fr fr1 : Frame} {m m1 : Machine} {ev : Ident}
 /-- `return e` for a `bool` return slot `r` (its current binding `l` is given explicitly). -/
 theorem ExecStmt.returnBool {fr fr1 : Frame} {m m1 : Machine} {r : Ident} {e : Expr} {b : Bool} (l : Local)
     (hret : fr.retVars = [r]) (he : EvalExpr cfg o fc fr m e (.ok (.bool b) fr1 m1))
-    (hr : fr1.get? r = some l) (hty : l.ty = .bool) :
+    (hr : fr1.get? r = some l) (hty : l.ty = .bool) (hh : fr1.hidden = []) :
     ExecStmt cfg o fc fr m (.return (some e)) (.returned (fr1.setVal r (.bool b)) m1) := by
   refine ExecStmt.returnSingle hret he ?_
+  rw [Frame.unwind_of_hidden hh]
   simp [assign, coerce, hr, hty]
   try rfl
 
 /-- `return e` for a `uint256` return slot. -/
 theorem ExecStmt.returnU256 {fr fr1 : Frame} {m m1 : Machine} {r : Ident} {e : Expr} {n : ℕ} (l : Local)
     (hret : fr.retVars = [r]) (he : EvalExpr cfg o fc fr m e (.ok (u256Val n) fr1 m1))
-    (hr : fr1.get? r = some l) (hty : l.ty = u256Ty) :
+    (hr : fr1.get? r = some l) (hty : l.ty = u256Ty) (hh : fr1.hidden = []) :
     ExecStmt cfg o fc fr m (.return (some e)) (.returned (fr1.setVal r (u256Val n)) m1) := by
   refine ExecStmt.returnSingle hret he ?_
+  rw [Frame.unwind_of_hidden hh]
   simp [assign, coerce, hr, hty]
   try rfl
 
 /-- `return e` for an `address` return slot. -/
 theorem ExecStmt.returnAddress {fr fr1 : Frame} {m m1 : Machine} {r : Ident} {e : Expr} {a : EVM.Address} (l : Local)
     (hret : fr.retVars = [r]) (he : EvalExpr cfg o fc fr m e (.ok (.address a) fr1 m1))
-    (hr : fr1.get? r = some l) (hty : l.ty = .address false) :
+    (hr : fr1.get? r = some l) (hty : l.ty = .address false) (hh : fr1.hidden = []) :
     ExecStmt cfg o fc fr m (.return (some e)) (.returned (fr1.setVal r (.address a)) m1) := by
   refine ExecStmt.returnSingle hret he ?_
+  rw [Frame.unwind_of_hidden hh]
   simp [assign, coerce, hr, hty]
   try rfl
 
@@ -611,9 +635,9 @@ theorem ExecCtorChain.runPlain {frP fr2 fr4 : Frame} {topArgs vs : List Value} {
     (henter : enterFn cfg fc.types fn.declaredIn fn.decl vs m1 imms = some (.ok (fr2, m2)))
     (hbody : fn.decl.body = some body) (hmods : fn.decl.modifiers = [])
     (hrun : ExecBlock cfg o fc (bodyFrame fr2 body) m2 body res) (hfin : finished res = some (fr4, m4))
-    (hrest : ExecCtorChain cfg o fc frP topArgs (immStore fr4) m4 rest r) :
+    (hrest : ExecCtorChain cfg o fc frP topArgs (immStore (fr2.exitScope fr4)) m4 rest r) :
     ExecCtorChain cfg o fc frP topArgs imms m (step :: rest) r := by
-  refine ExecCtorChain.run hfid hfn hargs henter hbody ?_ hfin hrest
+  refine ExecCtorChain.run hfid hfn hargs henter hbody ?_ (finished_exitBlock (fr := bodyFrame fr2 body) hfin) hrest
   rw [hmods]
   exact ExecChain.body hrun
 
@@ -624,7 +648,7 @@ theorem ExecCtorChain.topPlain {frP fr2 fr4 : Frame} {topArgs : List Value} {imm
     (henter : enterFn cfg fc.types fn.declaredIn fn.decl topArgs m imms = some (.ok (fr2, m2)))
     (hbody : fn.decl.body = some body) (hmods : fn.decl.modifiers = [])
     (hrun : ExecBlock cfg o fc (bodyFrame fr2 body) m2 body res) (hfin : finished res = some (fr4, m4)) :
-    ExecCtorChain cfg o fc frP topArgs imms m [step] (.ok m4 (immStore fr4)) :=
+    ExecCtorChain cfg o fc frP topArgs imms m [step] (.ok m4 (immStore (fr2.exitScope fr4))) :=
   ExecCtorChain.runPlain hfid hfn (CtorArgs.top hstep) henter hbody hmods hrun hfin ExecCtorChain.nil
 
 /-! ## Modifiers
@@ -1543,11 +1567,11 @@ theorem EvalExpr.tupleTwo {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {e1 e2 : Expr
 theorem ExecStmt.returnTwoU256 {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {r1 r2 : Ident} {n1 n2 : ℕ} (l1 l2 : Local)
     (hret : fr.retVars = [r1, r2]) (he : EvalExpr cfg o fc fr m e (.ok (.tuple [u256Val n1, u256Val n2]) fr1 m1))
     (hr1 : fr1.get? r1 = some l1) (ht1 : l1.ty = u256Ty)
-    (hr2 : (fr1.setVal r1 (u256Val n1)).get? r2 = some l2) (ht2 : l2.ty = u256Ty) :
+    (hr2 : (fr1.setVal r1 (u256Val n1)).get? r2 = some l2) (ht2 : l2.ty = u256Ty) (hh : fr1.hidden = []) :
     ExecStmt cfg o fc fr m (.return (some e))
       (.returned ((fr1.setVal r1 (u256Val n1)).setVal r2 (u256Val n2)) m1) := by
   refine ExecStmt.returnMulti (by simp [hret]) he ?_
-  rw [hret]
+  rw [hret, Frame.unwind_of_hidden hh]
   exact AssignTuple.cons (EvalLValue.local (m := m1) hr1) (assign_local_u256 l1 hr1 ht1 n1)
     (AssignTuple.cons (EvalLValue.local (m := m1) hr2) (assign_local_u256 l2 hr2 ht2 n2) AssignTuple.nil)
 
@@ -2040,10 +2064,10 @@ theorem ExecStmt.returnTwo {fr fr1 fr2 fr3 : Frame} {m m1 m2 m3 : Machine} {e : 
     (hret : fr.retVars = [r1, r2]) (he : EvalExpr cfg o fc fr m e (.ok (.tuple [v1, v2]) fr1 m1))
     (ha1 : assign cfg fc.types fr1 m1 (.local r1) v1 = some (.ok (fr2, m2)))
     (ha2 : assign cfg fc.types fr2 m2 (.local r2) v2 = some (.ok (fr3, m3))) (l1 l2 : Local)
-    (hr1 : fr1.get? r1 = some l1) (hr2 : fr2.get? r2 = some l2) :
+    (hr1 : fr1.get? r1 = some l1) (hr2 : fr2.get? r2 = some l2) (hh : fr1.hidden = []) :
     ExecStmt cfg o fc fr m (.return (some e)) (.returned fr3 m3) := by
   refine ExecStmt.returnMulti (by simp [hret]) he ?_
-  rw [hret]
+  rw [hret, Frame.unwind_of_hidden hh]
   exact AssignTuple.cons (EvalLValue.local (m := m1) hr1) ha1
     (AssignTuple.cons (EvalLValue.local (m := m2) hr2) ha2 AssignTuple.nil)
 
@@ -2054,10 +2078,11 @@ theorem ExecStmt.returnThree {fr fr1 fr2 fr3 fr4 : Frame} {m m1 m2 m3 m4 : Machi
     (ha1 : assign cfg fc.types fr1 m1 (.local r1) v1 = some (.ok (fr2, m2)))
     (ha2 : assign cfg fc.types fr2 m2 (.local r2) v2 = some (.ok (fr3, m3)))
     (ha3 : assign cfg fc.types fr3 m3 (.local r3) v3 = some (.ok (fr4, m4))) (l1 l2 l3 : Local)
-    (hr1 : fr1.get? r1 = some l1) (hr2 : fr2.get? r2 = some l2) (hr3 : fr3.get? r3 = some l3) :
+    (hr1 : fr1.get? r1 = some l1) (hr2 : fr2.get? r2 = some l2) (hr3 : fr3.get? r3 = some l3)
+    (hh : fr1.hidden = []) :
     ExecStmt cfg o fc fr m (.return (some e)) (.returned fr4 m4) := by
   refine ExecStmt.returnMulti (by simp [hret]) he ?_
-  rw [hret]
+  rw [hret, Frame.unwind_of_hidden hh]
   exact AssignTuple.cons (EvalLValue.local (m := m1) hr1) ha1
     (AssignTuple.cons (EvalLValue.local (m := m2) hr2) ha2
       (AssignTuple.cons (EvalLValue.local (m := m3) hr3) ha3 AssignTuple.nil))

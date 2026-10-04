@@ -21,6 +21,7 @@ import Solidity.Test.Scenarios.Features
 import Solidity.Test.Scenarios.Consts
 import Solidity.Test.Scenarios.Arith
 import Solidity.Test.Scenarios.Data
+import Solidity.Test.Scenarios.Flow
 import Solidity.Test.Scenarios.BaseCall
 import Solidity.Test.Scenarios.Ecrecover
 import Solidity.Test.Scenarios.Fixes
@@ -220,7 +221,8 @@ def scenarios : List Scenario :=
     ERC6909.scenarioSolc, Factory.scenario, HexLit.scenario, TryCatch.scenario, BaseCall.scenario, Ecrecover.scenario,
     Fixes.evalOrder, Fixes.blockScope, Fixes.modifierArgs, Fixes.superMod, Features.scenario, Consts.scenario,
     Arith.scenario, Arith.scenarioBoundaries, Arith.scenarioCond,
-    Data.scenario, Data.scenarioBoundaries, Data.scenarioAlloc ]
+    Data.scenario, Data.scenarioBoundaries, Data.scenarioAlloc,
+    Flow.scenario, Flow.scenarioBoundaries ]
 
 def runDiff (only : Option String := none) : IO Bool := do
   let mut ok := true

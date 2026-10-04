@@ -61,7 +61,7 @@ proved on variables) and rewrite with them; never `simp [binop, …]` on a goal 
 - A whole body with an unknown final machine: prove `∃ m', ExecBlock … (.normal fr' m')` by
   `constructor` and a chain of `refine ExecBlock.cons (…) ?_` (see `Usage.lean`, SimpleAuction `bid`).
   After an `if { … }` block the frame is `fr.exitScope fr`; re-derive the `get? = none` facts with
-  `exitScope_get?_of_none`.
+  `exitScope_get?_of_none`, the others with `exitScope_get?` (see the "Scopes" examples).
 - `storeU256`/`storageStore` are opaque to definitional unfolding (`storageStore` matches on the
   account lookup): after stores, `msg.sender`/`msg.value` must be read with the `*Eq` builders
   and `by simp`, not with `EvalExpr.msgSender` expected at the original machine.
@@ -117,6 +117,19 @@ Changed 2026-10-04 (conformance fixture `Data`): `new T[](n)` and `new bytes(n)`
 `bytes1` location (`bytes1Elem` in `Layout.lean`; it was `uint8`, so reading `blob[i]` had no
 derivation).  The DSL parses a tuple assignment whose left side is a parenthesised list
 (`(p.x, p.y) = (p.y, p.x);`).
+
+Changed 2026-10-04 (conformance fixture `Flow`): block scoping follows solc when a local hides
+another local.  `Frame.hidden` lists the bindings hidden by inner declarations of the same name
+(`Frame.bind` records them, `Frame.exitScope` gives them back when the block is left); `return e`
+assigns the function's own return variables (`Frame.unwind` in `returnSingle`/`returnMulti`); the
+locals of a function body end with the body (`ExecChain.body` yields `exitBlock fr r`), so a second
+`_;` of a modifier starts from the parameters and return variables.  Lemmas: `Frame.hidden_setVal`,
+`Frame.hidden_bind[_of_none]`, `Frame.mem_bind/_setVal`, `Frame.retVars_bind/_setVal`,
+`exitScope_get?` (now needs `fr'.hidden = fr.hidden`), `exitScope_get?'` (general),
+`exitScope_get?_shadow`, `exitScope_hidden[_of_eq]`, `Frame.unwind_of_hidden`, `finished_exitBlock`,
+`retVals_exitScope`.  Builders: `CallFn.plain` reads the return values from `fr0.exitScope fr2`,
+`ExecCtorChain.runPlain/topPlain` thread `immStore (fr2.exitScope fr4)`, the `return*` builders take
+`fr1.hidden = []`.  The DSL parses a `for` without initializer (`for (; c; p)`, `for (;;)`).
 
 ## Deferred language features
 

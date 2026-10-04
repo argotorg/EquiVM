@@ -57,6 +57,9 @@ Build `solidityExec … (.returned m vs) conv` (or `(.reverted d)`) with `solidi
   `revertErrorNoArgs`, …), each fed by expression builders (`EvalExpr.localVal`,
   `mappingAddrU256`, `mappingIndexScalar`, `storageFieldU256`, `addU256[Lit]`, `ltU256Lit`,
   `keccakPacked`, `convertPlain`, …).  Frame lookups are discharged by `frame_simp`.
+  The return values are read after the body's own locals are dropped: `hrets` of `CallFn.plain`
+  is stated on `fr0.exitScope fr2` (close it with `retVals_exitScope`), and the `return*`
+  builders take `fr1.hidden = []` (`by simp` on the frame).
 - reverts: the builder of the failing statement gives `(.reverted d)` with the exact bytes
   (`errorStringData`, `panicData 0x11`, `selectorOf sig ++ …`), and `ExecBlock.consRevert`
   propagates it.
@@ -101,6 +104,12 @@ guards).  The EVM side of the dispatcher is shared (`Run.dispatchNoMatch`,
 - Right operands are evaluated first (`EvalExpr.binary`): the `hb` hypothesis of a binary builder
   runs in the incoming frame, `ha` after it.
 - Inside `theorem ExecPost.*` write `Option.some`; a bare `some` resolves to `ExecPost.some`.
+- Scopes: a frame records in `hidden` the bindings that inner declarations of the same name hide.
+  Without shadowing it stays as it was (`Frame.hidden_bind_of_none` for a fresh declaration,
+  `Frame.hidden_setVal`), and a lookup after a block is `exitScope_get?` (side condition
+  `fr'.hidden = fr.hidden`, by `simp`).  With one shadowing declaration use `exitScope_get?_shadow`.
+  State the freshness of a block-local (`fr.get? "t" = none`) as a hypothesis when the frame is
+  abstract.
 - `writeStorageDeep`/`clearStorage` are well-founded: `rw [writeStorageDeep.eq_def]` or
   `rw [clearStorage]` followed by `all_goals first | (simp […]; try rfl) | (intros; simp_all)`.
 - Per-contract keccak facts (selectors, mapping slots, event topics) are hypotheses or

@@ -52,8 +52,11 @@ structure Frame where
   /-- Remaining modifier chain and function body, run by `_;`. -/
   chain : List ModifierInvocation := []
   body : Block := []
-  /-- Scopes suspended while a modifier body runs: the contract and locals to return to. -/
-  outer : List (Ident × Store) := []
+  /-- Scopes suspended while a modifier body runs: the contract, locals and hidden bindings to
+      return to. -/
+  outer : List (Ident × Store × List (Ident × Local)) := []
+  /-- Bindings hidden by a declaration of the same name in an inner block, newest first. -/
+  hidden : List (Ident × Local) := []
 
 inductive ExecResult where
   | normal (fr : Frame) (m : Machine)
@@ -84,17 +87,35 @@ namespace Frame
 
 def get? (fr : Frame) (x : Ident) : Option Local := fr.locals.get? x
 
+/-- Declare `x`.  A binding of the same name (from an enclosing block) is hidden until the block
+    is left. -/
 def bind (fr : Frame) (x : Ident) (ty : Ty) (loc : Option DataLoc) (v : Value) : Frame :=
-  { fr with locals := fr.locals.insert x { ty := ty, loc := loc, val := v } }
+  { fr with
+      locals := fr.locals.insert x { ty := ty, loc := loc, val := v }
+      hidden := match fr.locals.get? x with
+        | some l => (x, l) :: fr.hidden
+        | none => fr.hidden }
 
 def setVal (fr : Frame) (x : Ident) (v : Value) : Frame :=
   match fr.locals.get? x with
   | some l => { fr with locals := fr.locals.insert x { l with val := v } }
   | none => fr
 
-/-- Leave a block entered from `fr`: names declared inside are dropped, the others keep their new values. -/
+/-- Make hidden bindings visible again (the oldest of a name wins). -/
+def restore (hs : List (Ident × Local)) (s : Store) : Store :=
+  hs.foldl (fun s p => s.insert p.1 p.2) s
+
+/-- Leave a block entered from `fr`: names declared inside are dropped, the bindings they hid come
+    back, the others keep their new values. -/
 def exitScope (fr fr' : Frame) : Frame :=
-  { fr' with locals := fr'.locals.filter fun k _ => fr.locals.contains k }
+  let n := fr'.hidden.length - fr.hidden.length
+  { fr' with
+      locals := (restore (fr'.hidden.take n) fr'.locals).filter fun k _ => fr.locals.contains k
+      hidden := fr'.hidden.drop n }
+
+/-- The function scope, as `return` sees it: every hidden binding is visible again. -/
+def unwind (fr : Frame) : Frame :=
+  { fr with locals := restore fr.hidden fr.locals, hidden := [] }
 
 end Frame
 

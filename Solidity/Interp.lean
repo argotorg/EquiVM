@@ -732,12 +732,12 @@ def execStmt : Nat → Frame → Machine → Stmt → IM ExecResult
       let (v, fr1, m1) ← evalExpr fuel fr m e
       match fr.retVars with
       | [r] =>
-        let (fr2, m2) ← liftOp (assign cfg fc.types fr1 m1 (.local r) v)
+        let (fr2, m2) ← liftOp (assign cfg fc.types fr1.unwind m1 (.local r) v)
         pure (.returned fr2 m2)
       | rs =>
         guard' (rs.length ≥ 2)
         let .tuple vs := v | failure
-        let (fr2, m2) ← assignTuple fuel fr1 m1 (rs.map fun r => some (.ident r)) vs
+        let (fr2, m2) ← assignTuple fuel fr1.unwind m1 (rs.map fun r => some (.ident r)) vs
         pure (.returned fr2 m2)
     | .emit (.ident ev) args => do
       let es ← liftOpt (eventArgs (fc.eventsNamed ev) args)
@@ -861,7 +861,9 @@ def execBlock : Nat → Frame → Machine → List Stmt → IM ExecResult
 def execChain : Nat → Frame → Machine → List ModifierInvocation → Block → IM ExecResult
   | 0, _, _, _, _ => failure
   | fuel+1, fr, m, a1, a2 => match a1, a2 with
-    | [], body => execBlock fuel fr m body
+    | [], body => do
+      let r ← execBlock fuel fr m body
+      pure (exitBlock fr r)
     | mi :: rest, body =>
       match fc.modifier? mi.name with
       | some md => do
