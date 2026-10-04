@@ -19,6 +19,7 @@ import Solidity.Test.Scenarios.HexLit
 import Solidity.Test.Scenarios.TryCatch
 import Solidity.Test.Scenarios.Features
 import Solidity.Test.Scenarios.Consts
+import Solidity.Test.Scenarios.Arith
 import Solidity.Test.Scenarios.BaseCall
 import Solidity.Test.Scenarios.Ecrecover
 import Solidity.Test.Scenarios.Fixes
@@ -214,7 +215,8 @@ def scenarios : List Scenario :=
     Ownable2Step.scenario, Ownable2Step.scenarioSolc, AccessControl.scenario,
     AccessControl.scenarioSolc, Pausable.scenario, Pausable.scenarioSolc, ERC6909.scenario,
     ERC6909.scenarioSolc, Factory.scenario, HexLit.scenario, TryCatch.scenario, BaseCall.scenario, Ecrecover.scenario,
-    Fixes.evalOrder, Fixes.blockScope, Fixes.modifierArgs, Fixes.superMod, Features.scenario, Consts.scenario ]
+    Fixes.evalOrder, Fixes.blockScope, Fixes.modifierArgs, Fixes.superMod, Features.scenario, Consts.scenario,
+    Arith.scenario, Arith.scenarioBoundaries ]
 
 def runDiff (only : Option String := none) : IO Bool := do
   let mut ok := true
@@ -224,10 +226,10 @@ def runDiff (only : Option String := none) : IO Bool := do
   return ok
 
 /-- Fuzz the primary scenarios (pinned runtime code) only. -/
-def runFuzz (seed n : Nat) : IO Bool := do
+def runFuzz (seed n : Nat) (only : Option String := none) : IO Bool := do
   let mut ok := true
   for s in scenarios do
-    unless s.name.any (· == '/') do
+    unless s.name.any (· == '/') || !(only.all (· == s.name)) do
       ok := (← fuzzScenario s seed n) && ok
   return ok
 
@@ -243,9 +245,10 @@ def main (args : List String) : IO UInt32 := do
     | ["--diff", name] => do pure [← runDiff (some name)]
     | ["--fuzz"] => do pure [← runFuzz 1 30]
     | ["--fuzz", seed, n] => do pure [← runFuzz (seed.toNat!) (n.toNat!)]
+    | ["--fuzz", name, seed, n] => do pure [← runFuzz (seed.toNat!) (n.toNat!) (some name)]
     | ["--all"] => do pure [← selfcheck, ← runAll checkSelectors, ← runAll checkLayout, ← runDiff, ← runFuzz 1 30]
     | _ =>
-      IO.eprintln s!"usage: solidity-diff [--selfcheck | --selectors | --layout | --diff [scenario] | --fuzz [seed n] | --all]"
+      IO.eprintln s!"usage: solidity-diff [--selfcheck | --selectors | --layout | --diff [scenario] | --fuzz [[scenario] seed n] | --all]"
       pure [false]
   let ok := results.all id
   IO.println (if ok then "ALL OK" else "FAILURES")

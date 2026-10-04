@@ -99,6 +99,13 @@ Changed 2026-10-04: a `constant` is converted to its declared type where it is r
 a hex literal with 40 digits converts implicitly to `address` (`implicitConv_addrLit`); the
 elaborator includes file-level errors, events and constants (after the hierarchy's own).
 
+Changed 2026-10-04 (conformance fixture `Arith`): a number literal that does not fit the other
+operand widens the operation to its mobile type (`literalWiden`; `uint8 * 300` is `uint16`
+arithmetic); the typed reconstruction of the arguments is part of decoding (`decodeCallArgs`, used
+by `decodingFailed`; an out-of-range enum argument is rejected; `decodeCallArgs_none_of_decodeArgs`,
+`decodeCallArgs_none_of_ofAbiList`).  Known deviation, open: a conditional `c ? a : b` has the type
+of the branch taken, not the common type of both branches.
+
 ## Deferred language features
 
 `mapping(string => …)` / `mapping(bytes => …)` keys (decided 2026-10-03, to do after the branch is

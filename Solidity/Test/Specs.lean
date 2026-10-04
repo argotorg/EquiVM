@@ -22,3 +22,4 @@ import Solidity.Test.Specs.Ecrecover
 import Solidity.Test.Specs.Fixes
 import Solidity.Test.Specs.Features
 import Solidity.Test.Specs.Consts
+import Solidity.Test.Specs.Arith

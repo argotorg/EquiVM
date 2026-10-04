@@ -68,7 +68,7 @@ inductive runtimeEquivalenceFor (cfg : Config) (fc : FlatContract)
   | decodingFailed {e fn g' out} :
     selectorDispatch fc I.calldata = some e → fc.fns[e.fn]? = some fn →
     payableOrNoValue fn.decl I →
-    decodeArgs cfg fc.types fn.decl I.calldata = none →
+    decodeCallArgs cfg fc.types fn.decl I.calldata = none →
     Ethereum.EVM.Ξ createdAccounts genesisBlockHeader blocks σ_evm σ₀ g A I = .ok (.revert g' out) →
     decodeFailureData fc.types fn.decl out →
     runtimeEquivalenceFor cfg fc createdAccounts genesisBlockHeader blocks σ_evm σ_spec σ₀ g A I

@@ -941,7 +941,7 @@ def specRejectsB (I : Ethereum.ExecutionEnv) : Bool :=
   else match selectorDispatch fc I.calldata with
     | some e =>
       match fc.fns[e.fn]? with
-      | some fn => (fn.decl.mutability == .payable || I.weiValue == ⟨0⟩) && (decodeArgs cfg fc.types fn.decl I.calldata).isNone
+      | some fn => (fn.decl.mutability == .payable || I.weiValue == ⟨0⟩) && (decodeCallArgs cfg fc.types fn.decl I.calldata).isNone
       | none => false
     | none => false
 

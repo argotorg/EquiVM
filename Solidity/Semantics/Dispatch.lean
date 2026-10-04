@@ -28,6 +28,11 @@ def decodeArgs (cfg : Config) (env : TypeEnv) (d : FnDecl) (calldata : ByteArray
   let sig ← sigOf env d.name (d.params.map (·.ty))
   ABI.decodeCalldataValues? sig.paramTypes calldata cfg.abiDecodeMode
 
+/-- The arguments of `d` as spec values: ABI decoding, then the typed reconstruction, which rejects
+    what solc's decoder validates beyond the ABI types (an enum value out of range). -/
+def decodeCallArgs (cfg : Config) (env : TypeEnv) (d : FnDecl) (calldata : ByteArray) : Option (List Value × Heap) :=
+  (decodeArgs cfg env d calldata).bind fun svs => ofAbiList env (d.params.map (·.ty)) svs {}
+
 /-- Whether solc decodes some argument of `d` into memory with a length-dependent allocation: a
     parameter of dynamic type that is not located in calldata (getter parameters carry no
     location and are decoded to memory).  Such a decoder reverts with `Panic(0x41)` when an

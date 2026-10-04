@@ -356,6 +356,17 @@ theorem Reverted.specNoDispatch {cfg fc cA gh bl σ_evm σ_spec σ₀ A I} {g : 
   · exact .outOfGas hoog
   · exact .noDispatch hd hxi
 
+/-- Arguments the ABI decoder rejects are rejected by `decodeCallArgs`. -/
+theorem decodeCallArgs_none_of_decodeArgs {cfg : Config} {env : TypeEnv} {d : FnDecl} {cd : ByteArray}
+    (h : decodeArgs cfg env d cd = none) : decodeCallArgs cfg env d cd = none := by
+  simp [decodeCallArgs, h]
+
+/-- Arguments whose typed reconstruction fails (an enum value out of range) are rejected. -/
+theorem decodeCallArgs_none_of_ofAbiList {cfg : Config} {env : TypeEnv} {d : FnDecl} {cd : ByteArray}
+    {svs : List ABI.ABIValue} (h : decodeArgs cfg env d cd = some svs)
+    (hof : ofAbiList env (d.params.map (·.ty)) svs {} = none) : decodeCallArgs cfg env d cd = none := by
+  simp [decodeCallArgs, h, hof]
+
 /-- An empty revert when the spec dispatches but cannot decode the arguments ⇒ `decodingFailed`. -/
 theorem Reverted.specDecodingFailed {cfg fc cA gh bl σ_evm σ_spec σ₀ A I} {g : UInt256} {code : ByteArray}
     {e : DispatchEntry} {fn : FnDef}
@@ -363,7 +374,7 @@ theorem Reverted.specDecodingFailed {cfg fc cA gh bl σ_evm σ_spec σ₀ A I} {
     (h : Reverted code (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ByteArray.empty)
     (he : selectorDispatch fc I.calldata = some e) (hfn : fc.fns[e.fn]? = some fn)
     (hpay : payableOrNoValue fn.decl I)
-    (hdec : decodeArgs cfg fc.types fn.decl I.calldata = none) :
+    (hdec : decodeCallArgs cfg fc.types fn.decl I.calldata = none) :
     runtimeEquivalenceFor cfg fc cA gh bl σ_evm σ_spec σ₀ g A I := by
   rcases Reverted.xi hcode h with hoog | ⟨g', hxi⟩
   · exact .outOfGas hoog
@@ -377,7 +388,7 @@ theorem Reverted.specDecodingPanic {cfg fc cA gh bl σ_evm σ_spec σ₀ A I} {g
     (h : Reverted code (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (panicData 0x41))
     (he : selectorDispatch fc I.calldata = some e) (hfn : fc.fns[e.fn]? = some fn)
     (hpay : payableOrNoValue fn.decl I)
-    (hdec : decodeArgs cfg fc.types fn.decl I.calldata = none)
+    (hdec : decodeCallArgs cfg fc.types fn.decl I.calldata = none)
     (hmem : hasDynamicMemoryParam fc.types fn.decl = true) :
     runtimeEquivalenceFor cfg fc cA gh bl σ_evm σ_spec σ₀ g A I := by
   rcases Reverted.xi hcode h with hoog | ⟨g', hxi⟩

@@ -81,12 +81,20 @@ def adopt (t : IntTy) : Value → Option Value
   | .literal i _ => if t.inRange i then some (mkInt t i) else none
   | v => some v
 
+/-- The type of an operation between an operand of type `t` and a number literal that does not fit
+    `t`: the literal's mobile type, when `t` converts to it implicitly (solc's common type; e.g.
+    `uint8 * 300` is `uint16` arithmetic). -/
+def literalWiden (t : IntTy) (x : Int) : Option IntTy :=
+  (mobileType x).bind fun mt => if implicitIntConv t mt then some mt else none
+
 /-- Integer operands unified to a common type (`(type, a, b)`); literal–literal stays exact. -/
 def unifyInts (a b : Value) : Option (Option IntTy × Int × Int) :=
   match a, b with
   | .literal x _, .literal y _ => some (none, x, y)
-  | .literal x _, v => (v.int?).bind fun (t, y) => if t.inRange x then some (some t, x, y) else none
-  | v, .literal y _ => (v.int?).bind fun (t, x) => if t.inRange y then some (some t, x, y) else none
+  | .literal x _, v => (v.int?).bind fun (t, y) =>
+    if t.inRange x then some (some t, x, y) else (literalWiden t x).map fun t' => (some t', x, y)
+  | v, .literal y _ => (v.int?).bind fun (t, x) =>
+    if t.inRange y then some (some t, x, y) else (literalWiden t y).map fun t' => (some t', x, y)
   | u, v => do
     let (ta, x) ← u.int?
     let (tb, y) ← v.int?

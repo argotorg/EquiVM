@@ -16,7 +16,7 @@ namespace Solidity
 def specRejects (cfg : Config) (fc : FlatContract) (I : Ethereum.ExecutionEnv) : Prop :=
   dispatches fc I.calldata = false ∨
   ∃ e fn, selectorDispatch fc I.calldata = some e ∧ fc.fns[e.fn]? = some fn ∧
-    payableOrNoValue fn.decl I ∧ decodeArgs cfg fc.types fn.decl I.calldata = none
+    payableOrNoValue fn.decl I ∧ decodeCallArgs cfg fc.types fn.decl I.calldata = none
 
 /-- Revert data the bytecode may return when the spec rejects the calldata. -/
 def rejectData (fc : FlatContract) (I : Ethereum.ExecutionEnv) (out : ByteArray) : Prop :=
