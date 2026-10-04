@@ -7,7 +7,7 @@ The statement of Solm/EVM refinement, layered bottom-up:
 
 * **Result equivalence** — `returnEquiv`/`returnDataEquiv` couple returned bytes with spec
   return values; `execResultsEquiv` / `ctorResultEquiv` couple whole execution outcomes
-  (final account maps up to `accountMapEquiv`, plus the return data — for constructors, the
+  (equality of final account maps, plus the return data — for constructors, the
   returned bytes must be the deployed runtime code).
 * **Fixed-input relations** — `runtimeEquivalenceFor` / `constructorEquivalenceFor` couple one
   EVM execution (`Ethereum.EVM.Ξ`) with one Solm execution (`solmExec` / `solmCtorExec`) at
@@ -249,7 +249,7 @@ theorem runtimeEquivalenceWithWF_trivial_iff {cfg : Config} {bytecode : ByteArra
 
     Holds in one of two ways:
     * `execution` — the Solm constructor runs to `solmRes`; the EVM result is
-      `ctorResultEquiv`-related: on success the final states agree up to `accountMapEquiv`
+      `ctorResultEquiv`-related: on success the final account maps are equal
       **and the EVM's returned bytes are exactly `runtimeCode`** (the deployed runtime bytecode);
       reverts and `INVALID` halts pair with a Solm revert.
     * `outOfGas` — the EVM exhausts its gas; the spec side is unconstrained. (same

@@ -10,15 +10,15 @@ import Ethereum.Theory.StaticStorage
 
 Contract-agnostic layers, bottom up:
 
-- **Ordered-map (`Std.ExtTreeMap`) facts** for the red-black-tree maps that back EVM storage
-  (`Storage`) and the account map (`AccountMap`): a write at one slot preserves lookup at a
+- **Ordered-map (`Std.ExtTreeMap`) facts** for EVM storage (`Storage`) and account maps
+  (`AccountMap`): a write at one slot preserves lookup at a
   different slot.  The standard `ExtTreeMap` insert and erase lookup lemmas provide these facts.
 - **`StorageLoc` load/store facts** for the Solidity value encodings: full-slot uint256/bytes32,
   packed unsigned integers, addresses at byte offsets 0/1, packed bools.
 - **The Solidity bytes/string storage layout**: writing, reading, deleting, and clearing the
   length slot and the keccak-addressed data words.
-- **Account-map equality / `EVMStateEquiv`**: equality of extensional account maps, with
-  preservation lemmas for `SLOAD`/`SSTORE` and code-size reads used by the refinement proofs.
+- **`EVMStateEquiv`**: equality of execution environments and extensional account maps, with
+  preservation lemmas for storage reads and writes used by the refinement proofs.
 
 The `UInt256` `compare` instances these rely on live in `Reasoning.EVMWord`.
 -/
