@@ -229,6 +229,11 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
     { structs := hier.flatMap structsOf ++ fileStructs ++ others.flatMap structsOf
       enums := hier.flatMap enumsOf ++ fileEnums ++ others.flatMap enumsOf
       contracts := contracts.map fun d => (d.name, d.kind) }
+  -- User type names are resolved without scopes: a name denotes one struct / one enum.
+  if let some s := env.structs.find? fun s => env.structs.any fun s' => s'.name == s.name && s'.fields != s.fields then
+    throw s!"struct `{s.name}` is declared more than once with different fields (names are resolved without scopes)"
+  if let some e := env.enums.find? fun e => env.enums.any fun e' => e'.name == e.name && e'.members != e.members then
+    throw s!"enum `{e.name}` is declared more than once with different members (names are resolved without scopes)"
   -- State variables, base-first.
   let baseFirst := hier.reverse
   let rawVars := baseFirst.flatMap fun d => d.stateVars.map fun v => (d.name, v)
@@ -316,6 +321,36 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
       mutability := .constant, init := v.init }
   let usingFor := hier.flatMap fun d => d.usings.map fun u => (d.name, u)
   let libraries := contracts.filter (·.kind == .library)
+  -- Library members: events, errors and constants, after the hierarchy's and the file's.  Names are
+  -- resolved without scopes, so a library member must not contradict an earlier declaration.
+  let libEvents ← libraries.flatMapM fun d => d.events.mapM fun e =>
+    match sigOf env e.name (eventTys e) with
+    | some sig => pure ({ declaredIn := d.name, decl := e, sig := sig, sigStr := ABI.printSignature sig } : EventInfo)
+    | none => throw s!"event `{e.name}` has a parameter type without ABI encoding"
+  let sameEvent (a b : EventInfo) : Bool :=
+    a.sigStr == b.sigStr && a.decl.params.map (·.indexed) == b.decl.params.map (·.indexed) &&
+      a.decl.anonymous == b.decl.anonymous
+  let allEvents := libEvents.foldl (fun acc e => if acc.any (sameEvent e) then acc else acc ++ [e]) (events ++ fileEvents)
+  let libErrors ← libraries.flatMapM fun d => d.errors.mapM fun e =>
+    match sigOf env e.name (tysOfParams e.params) with
+    | some sig => pure ({ declaredIn := d.name, decl := e, sig := sig, sigStr := ABI.printSignature sig } : ErrorInfo)
+    | none => throw s!"error `{e.name}` has a parameter type without ABI encoding"
+  let allErrors ← libErrors.foldlM (fun acc e =>
+      match acc.find? (·.decl.name == e.decl.name) with
+      | none => pure (acc ++ [e])
+      | some e' =>
+        if e'.sigStr == e.sigStr then pure acc
+        else throw s!"error `{e.decl.name}` of library `{e.declaredIn}` is declared elsewhere with other parameters (names are resolved without scopes)")
+    (errors ++ fileErrors)
+  let libConsts : List FlatVar := libraries.flatMap fun d =>
+    (d.stateVars.filter (·.mutability == .constant)).map fun v =>
+      { key := v.name, name := v.name, declaredIn := d.name, ty := v.ty, visibility := .internal,
+        mutability := .constant, init := v.init }
+  let allVars ← libConsts.foldlM (fun acc v =>
+      if acc.any (·.name == v.name) then
+        throw s!"constant `{v.name}` of library `{v.declaredIn}` has the name of another variable (names are resolved without scopes): rename it in the spec"
+      else pure (acc ++ [v]))
+    (stateVars ++ fileConsts)
   let interfaceSigs := contracts.map fun d =>
     (d.name, d.functions.filterMap fun f => sigStrOf env f.name (tysOfParams f.params))
   let contractFns := contracts.map fun d =>
@@ -326,10 +361,10 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
     vtable.any fun e => (fns[e.2]!).decl.body.isNone
   pure
     { name := target, kind := root.kind, linearization := lin, types := env,
-      stateVars := stateVars ++ fileConsts, fns := fns, vtable := vtable, superTable := superTable, baseTable := baseTable,
+      stateVars := allVars, fns := fns, vtable := vtable, superTable := superTable, baseTable := baseTable,
       modifiers := modifiers, modVtable := modVtable, modSuper := modSuper,
       ctorChain := ctorChain, entries := entries, receive? := receive?, fallback? := fallback?,
-      events := events ++ fileEvents, errors := errors ++ fileErrors, usingFor := usingFor, libraries := libraries,
+      events := allEvents, errors := allErrors, usingFor := usingFor, libraries := libraries,
       interfaceSigs := interfaceSigs, contractFns := contractFns, contractCtors := contractCtors,
       freeFns := freeDefs.map fun f => (fnKeyOf f.decl, f.id), isAbstract := isAbstract }
 

@@ -653,7 +653,7 @@ def coerce (cfg : Config) (env : TypeEnv) (m : Machine) (v : Value) (ty : Ty) (l
   match v with
   | .storageRef er sty =>
     if loc == some .storage then
-      if sty == ty then pure (.storageRef er sty, m) else Op.stuck
+      if sty.same ty then pure (.storageRef er sty, m) else Op.stuck
     else
       let (mv, h') ← readStorageDeep cfg env fuelDefault m.evm m.heap er ty
       pure (mv, { m with heap := h' })

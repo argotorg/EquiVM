@@ -31,6 +31,15 @@ structure TypeEnv where
   contracts : List (Ident × ContractKind) := []
   deriving Repr, Inhabited
 
+/-- Equality of types up to the qualifier of user types: a struct is `Acc` inside its library and
+    `MathLib.Acc` outside.  The elaborator rejects two different user types with one name. -/
+def Ty.same : Ty → Ty → Bool
+  | .user _ n, .user _ n' => n == n'
+  | .mapping k v, .mapping k' v' => k.same k' && v.same v'
+  | .array e n, .array e' n' => e.same e' && n == n'
+  | .dynArray e, .dynArray e' => e.same e'
+  | a, b => a == b
+
 namespace TypeEnv
 
 def struct? (env : TypeEnv) (qual : Option Ident) (name : Ident) : Option StructInfo :=

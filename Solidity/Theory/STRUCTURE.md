@@ -131,6 +131,18 @@ locals of a function body end with the body (`ExecChain.body` yields `exitBlock 
 `ExecCtorChain.runPlain/topPlain` thread `immStore (fr2.exitScope fr4)`, the `return*` builders take
 `fr1.hidden = []`.  The DSL parses a `for` without initializer (`for (; c; p)`, `for (;;)`).
 
+Changed 2026-10-04 (conformance fixtures `Calls`, `Recv`, `Inherit`, `Libs`): external calls,
+low-level calls, `transfer`/`send`, `receive`/`fallback` and inheritance needed no change.  Library
+members are now visible: the elaborator adds the events, errors and constants declared in libraries
+to `fc.events`, `fc.errors` and `fc.stateVars` (after the hierarchy's and the file's).  Names are
+resolved in one namespace, so `elabProgram` rejects a library constant with the name of another
+variable, an error declared twice with different parameters, and a struct or enum declared twice
+with different contents; identical events are merged.  User types are compared up to their
+qualifier (`Ty.same` in `argFits`, `eventArgFits`, `usingLibrary`, `coerce`): `Acc` inside a library
+is `MathLib.Acc` outside.  A constant's initializer is evaluated without the reader's locals
+(`constFrame` in `constVar*`; `EvalExpr.constVarVal`/`constVarLitU256` take the initializer's
+derivation in `constFrame fr` and leave the frame unchanged).
+
 ## Deferred language features
 
 `mapping(string => …)` / `mapping(bytes => …)` keys (decided 2026-10-03, to do after the branch is
@@ -140,6 +152,11 @@ literal, a memory/calldata object or a loaded storage string, and `follow` (`Lay
 the mapping's declared key type as solc does: `keccak256(h(k) ++ slot)` with `h` = the 32-byte
 padded word for value types and the raw bytes for `string`/`bytes`.  No new rules or proof cases;
 `keyValueToWord` and the few exhaustive matches on `KeyValue` in Sol⁻ need the new case.
+
+Qualified names in expressions (found by the `Libs` fixture, scenario `Libs/qualified`): `L.CONST`
+and `L.Struct(...)` have no rule; `L.Enum.Member`, `revert L.Error(...)`, `emit L.Event(...)` and
+struct literals qualified by a base contract or an interface are untested.  Two user types with one
+name in different units (`Tick.Info`, `Position.Info`) are rejected rather than resolved by scope.
 
 ## Not covered yet
 

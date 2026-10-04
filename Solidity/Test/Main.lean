@@ -22,6 +22,10 @@ import Solidity.Test.Scenarios.Consts
 import Solidity.Test.Scenarios.Arith
 import Solidity.Test.Scenarios.Data
 import Solidity.Test.Scenarios.Flow
+import Solidity.Test.Scenarios.Calls
+import Solidity.Test.Scenarios.Recv
+import Solidity.Test.Scenarios.Inherit
+import Solidity.Test.Scenarios.Libs
 import Solidity.Test.Scenarios.BaseCall
 import Solidity.Test.Scenarios.Ecrecover
 import Solidity.Test.Scenarios.Fixes
@@ -222,7 +226,9 @@ def scenarios : List Scenario :=
     Fixes.evalOrder, Fixes.blockScope, Fixes.modifierArgs, Fixes.superMod, Features.scenario, Consts.scenario,
     Arith.scenario, Arith.scenarioBoundaries, Arith.scenarioCond,
     Data.scenario, Data.scenarioBoundaries, Data.scenarioAlloc,
-    Flow.scenario, Flow.scenarioBoundaries ]
+    Flow.scenario, Flow.scenarioBoundaries, Calls.scenario, Calls.scenarioBoundaries,
+    Inherit.scenario, Inherit.scenarioBoundaries, Libs.scenario, Libs.scenarioBoundaries,
+    Libs.scenarioQual, Libs.scenarioUnqual ] ++ Recv.scenarios
 
 def runDiff (only : Option String := none) : IO Bool := do
   let mut ok := true

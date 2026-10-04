@@ -133,3 +133,12 @@ another operator or an argument of `abi.encodePacked`, write the conversion in t
 inserts it: `(c ? uint256(a) : b) + 1`.  Nothing false can be proved if this is forgotten: the
 spec then disagrees with the bytecode and the proof fails there.  The fixture
 `Solidity/Test/Fixtures/Cond.sol` pins the deviation.
+
+## 6. Transcribing the source: names
+
+Names are resolved in one namespace per program, not by scope.  `elabProgram` therefore rejects a
+library constant that has the name of another variable or constant, an error declared twice with
+different parameters, and a struct or enum declared twice with different contents: rename one of
+them in the spec.  A struct declared in a library may be written `Acc` or `MathLib.Acc` in a type.
+In expressions the qualified forms `L.CONST` and `L.Struct(...)` have no rule yet: write the
+unqualified name.

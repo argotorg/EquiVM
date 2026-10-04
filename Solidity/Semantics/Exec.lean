@@ -122,7 +122,7 @@ def isContractValue : Value → Bool
 
 def argFits (env : TypeEnv) (h : Heap) (v : Value) (p : Param) : Bool :=
   match v with
-  | .storageRef _ ty => p.loc == some .storage && ty == p.ty
+  | .storageRef _ ty => p.loc == some .storage && ty.same p.ty
   | .memRef _ => !(isValueType env p.ty)
   | .raw ty _ => ty == p.ty
   | v => (implicitConv env h v p.ty).isSome
@@ -202,6 +202,11 @@ def restoreUnchecked (u : Bool) : ExecResult → ExecResult
   | .continue fr m => .continue { fr with unchecked := u } m
   | .reverted d => .reverted d
 
+/-- The frame in which a constant's initializer is evaluated: no locals (its names were resolved
+    where it is declared), in the reader's checked / unchecked mode (solc's legacy pipeline inlines
+    the expression at the place of use). -/
+def constFrame (fr : Frame) : Frame := { fr with locals := ∅, hidden := [] }
+
 /-- Leave a block entered from `fr` (see `Frame.exitScope`). -/
 def exitBlock (fr : Frame) : ExecResult → ExecResult
   | .normal fr' m => .normal (fr.exitScope fr') m
@@ -233,7 +238,7 @@ def paramNames (ps : List Param) : List (Option Ident) := ps.map (·.name)
 /-- Whether `v` can be passed for an event parameter of type `ty` (arguments are copied to memory). -/
 def eventArgFits (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Bool :=
   match v with
-  | .storageRef _ sty => sty == ty
+  | .storageRef _ sty => sty.same ty
   | .memRef _ => !(isValueType env ty)
   | .raw rty _ => rty == ty
   | v => (implicitConv env h v ty).isSome
@@ -317,7 +322,7 @@ def usingLibrary (fc : FlatContract) (here : Ident) (ty : Option Ty) : List Cont
   fc.usingFor.filterMap fun (c, u) =>
     if c != here then none
     else match u.target, u.ty with
-      | .library l, some t => if some t == ty then fc.library? l else none
+      | .library l, some t => if (ty.map t.same).getD false then fc.library? l else none
       | .library l, none => fc.library? l
       | _, _ => none
 
@@ -543,14 +548,17 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | lit : literalValue l = some v → EvalExpr fr m (.lit l) (.ok v fr m)
   | thisRef : EvalExpr fr m .this (.ok (.contract fc.name m.this) fr m)
   | local : fr.get? x = some l → EvalExpr fr m (.ident x) (.ok l.val fr m)
-  -- a constant: its initializer, evaluated in place and converted to the declared type
+  -- a constant: its initializer, evaluated where it is read (`constFrame`: the reader's locals are
+  -- not visible) and converted to the declared type
   | constVar : fr.get? x = none → fc.var? x = some v → v.mutability = .constant → v.init = some e →
-      EvalExpr fr m e (.ok val fr1 m1) → coerce cfg fc.types m1 val v.ty (some .memory) = some (.ok (val', m2)) →
-      EvalExpr fr m (.ident x) (.ok val' fr1 m2)
+      EvalExpr (constFrame fr) m e (.ok val fr1 m1) →
+      coerce cfg fc.types m1 val v.ty (some .memory) = some (.ok (val', m2)) →
+      EvalExpr fr m (.ident x) (.ok val' fr m2)
   | constVarRevert : fr.get? x = none → fc.var? x = some v → v.mutability = .constant → v.init = some e →
-      EvalExpr fr m e (.reverted d) → EvalExpr fr m (.ident x) (.reverted d)
+      EvalExpr (constFrame fr) m e (.reverted d) → EvalExpr fr m (.ident x) (.reverted d)
   | constVarPanic : fr.get? x = none → fc.var? x = some v → v.mutability = .constant → v.init = some e →
-      EvalExpr fr m e (.ok val fr1 m1) → coerce cfg fc.types m1 val v.ty (some .memory) = some (.error p) →
+      EvalExpr (constFrame fr) m e (.ok val fr1 m1) →
+      coerce cfg fc.types m1 val v.ty (some .memory) = some (.error p) →
       EvalExpr fr m (.ident x) (.reverted p.data)
   | immutableVar : fr.get? x = none → fc.var? x = some v → v.mutability = .immutable →
       immutableValue cfg fc.types fr v = some val → EvalExpr fr m (.ident x) (.ok val fr m)
