@@ -324,8 +324,9 @@ theorem RDret.reEquivExecutionGen {cfg : Config} {contract : ContractDecl}
       exact hAccounts
     exact execResultsEquiv.success rfl rfl haccounts (.abi henc)
 
-/-- Common same-map case of `RDret.reEquivExecutionGen`. This avoids repeating the
-    `initState` account-map equality at each caller. -/
+/-- `RDret ⇒ execution` (success): the run returns bytes `o`, the dispatched Solm body returns
+    `retVal` leaving the EVM state at `initState`, and `henc` relates `o` to that return value.
+    The non-mutating special case of `RDret.reEquivExecutionGen` (`evm'' = initState …`). -/
 theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {σ σ₀ A I} {g : Sat256}
     {code o : ByteArray} {callargs cs retVal}
@@ -345,8 +346,10 @@ theorem RDret.reEquivExecution {cfg : Config} {contract : ContractDecl} {t : Tra
   h.reEquivExecutionGen hcode hd hdec hbody
     (by simp [initState]) henc hfallback hreceive
 
-/-- A successful getter whose encoded value is expressed with an equal return-value term.
-    The transport remains explicit because callers often prove this equality separately. -/
+/-- `RDret ⇒ execution` (success), **return-value transport form**: the Solm body returns
+    `rvSolm`, while the EVM output `o` is related to `rvEvm` by `henc`. The caller supplies
+    `hval : rvSolm = rvEvm`, so the body can be passed with its natural return expression
+    without restating it using `rvEvm`. -/
 theorem RDret.reEquivExecutionTransport {cfg : Config} {contract : ContractDecl} {t : TransitionDecl}
     {σ σ₀ A I} {g : Sat256}
     {code o : ByteArray} {callargs cs rvSolm rvEvm}

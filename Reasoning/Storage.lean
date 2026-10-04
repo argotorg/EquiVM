@@ -859,8 +859,7 @@ theorem storageLocStore_bool_word_offset0 (evm : EVM.State) (slot word : UInt256
     simp only [wordToElem, hbeq, Bool.false_eq_true, ↓reduceIte]
     simpa [setBoolOffset0Word, hiszero] using storageLocStore_bool_true_offset0 evm slot
 
--- These `findD`/`find?` facts adapt the standard `getD`/`getElem?` lemmas to the lookup API
--- used by EVM storage and its callers.
+/-- Erasing a storage word preserves lookup at a different storage slot. -/
 theorem storage_findD_erase_ne (storage : Storage) (readSlot writeSlot default : UInt256)
     (hne : readSlot ≠ writeSlot) :
     (storage.erase writeSlot).findD readSlot default =
@@ -993,8 +992,7 @@ theorem storage_find?_update_insert_self (storage : Storage)
     · simp only [hzero, if_false]
       exact extTreeMap_get?_insert_insert_self storage writeSlot readSlot val1 val2
 
-/-- Inserting one account preserves lookup at a different address. This adapts
-    `Std.ExtTreeMap.getElem?_insert` to `find?` and an address inequality. -/
+/-- Inserting one account preserves lookup at a different address. -/
 theorem accountMap_find?_insert_ne (σ : AccountMap) (read write : AccountAddress)
     (acc : Account) (hne : read ≠ write) :
     (σ.insert write acc).find? read = σ.find? read := by
@@ -1005,8 +1003,7 @@ theorem accountMap_find?_insert_ne (σ : AccountMap) (read write : AccountAddres
     exact hne (Std.LawfulEqCmp.eq_of_compare hcmp).symm
   rw [if_neg hcmp]
 
-/-- Looking up the account just inserted at its own address returns that account.
-    This adapts `Std.ExtTreeMap.getElem?_insert_self` to `find?`. -/
+/-- Looking up the account just inserted at its own address returns that account. -/
 theorem accountMap_find_insert_self (σ : AccountMap) (a : AccountAddress) (acc : Account) :
     (σ.insert a acc).find? a = some acc := by
   change (σ.insert a acc)[a]? = some acc

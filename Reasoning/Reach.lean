@@ -3072,7 +3072,7 @@ theorem RD.callValueDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat25
         (by rw [hpc]) rfl hgv (by rw [hmem]) (by rw [haw]) rfl (by rw [hσ]) hee hworld
 
 /-- **`CALL` at the call-depth limit** (`ee.depth = 1024`, value `0`).  The EVM never invokes `Θ`:
-    it takes the *no-call-made* branch, returning `0` (`z = false`) with accounts, memory and
+    it takes the *no-call-made* branch, returning `0` (`z = false`) with the account map, memory and
     return data untouched — the cursor advances with `⟨0⟩` pushed.  Mirrors `RD.call`'s gas
     arithmetic but with the concrete else-tuple in place of `Θ`. -/
 theorem RD.callDepthLimit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
@@ -3224,7 +3224,7 @@ theorem RD.callDepthLimitEmptyInOut {code : ByteArray} {ee : ExecutionEnv} {g : 
       with the state at variant `v`;
 
     drives the loop from any starting variant to the exit.  Memory / active-words / return-data /
-    accounts / env are loop-invariant (carried as fixed parameters); only the stack changes.  The
+    account map / env are loop-invariant (carried as fixed parameters); only the stack changes.  The
     step/gas counters are existential (they grow per iteration), exactly as in the per-contract
     hand-written version.  Proof: induction on the variant. -/
 theorem RD.whileLoop {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
@@ -3309,7 +3309,7 @@ theorem RD.whileLoopCarryExit {code : ByteArray} {ee : ExecutionEnv} {g : Sat256
 
 /-- Variant-indexed `RD` while-rule for loops whose carried state changes the stack, scratch memory,
     **and persistent storage** (`acc`).  Same induction principle as `RD.whileLoopCarry`, but the
-    accounts/account-map are read from the loop-carried state `α` rather than being fixed.  Drives a
+    account map is read from the loop-carried state `α` rather than being fixed. Drives a
     storage-mutating loop (e.g. a dynamic-array `push`) from any variant to the exit cursor. -/
 theorem RD.whileLoopCarryFull {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {rdata : ByteArray} {α : Type}
@@ -3356,12 +3356,12 @@ theorem RD.oog_of_cost_gt {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s
 /-! ## Halting terminals (`RETURN` ⇒ success, `REVERT` ⇒ revert)
 
 `RDret`/`RDrev` are the **terminal** analogues of `RD`: instead of a reached cursor, they record
-that the whole run `X (g+1) … s0` has *halted* — with a success (returning bytes `o`, accounts
-`acc` preserved) or a revert.  The combinators `RD.ret`/`RD.rev` step the final `RETURN`/`REVERT`
+that the whole run `X (g+1) … s0` has *halted* — with a success (returning bytes `o` and final
+account map `acc`) or a revert. The combinators `RD.ret`/`RD.rev` step the final `RETURN`/`REVERT`
 off an `RD` cursor, so a terminating segment composes in the `|>.` chain (`… |>.push0 |>.push0
 |>.rev …`) instead of breaking out via `.out` + a manual halt step. -/
 
-/-- Halting-success terminal: `X (g+1) … s0` returns the bytes `o`, preserving accounts `acc`. -/
+/-- Halting-success terminal: `X (g+1) … s0` returns the bytes `o` with account map `acc`. -/
 def RDret (code : ByteArray) (g : Sat256) (s0 : State)
     (acc : AccountMap) (o : ByteArray) : Prop :=
   X (g.toNat + 1) (D_J code 0) s0 = .error .OutOfGass
@@ -3640,16 +3640,16 @@ theorem selectorDispatchMsg_eq_some_of_dispatchMsg_eq_some
       rw [hsel] at h
       simpa using h
 
-/-- Solm fails to dispatch and `Ξ` reverts ⇒ the `noDispatch` case.  The Solm-side maps are
-    unconstrained — this path never runs `solmExec`. -/
+/-- Solm fails to dispatch and `Ξ` reverts ⇒ the `noDispatch` case. This path never runs
+    `solmExec`. -/
 theorem reEquiv_noDispatch {cfg contract σ σ₀ g A I} {g' o}
     (hd : dispatchMsg contract I.calldata = none)
     (h : Ξ σ σ₀ g A I = .ok (.revert g' o)) :
     runtimeEquivalenceFor cfg contract σ σ₀ g A I :=
   .noDispatch hd h
 
-/-- Solm dispatches but decoding fails and `Ξ` reverts ⇒ `decodingFailed`. Solm-side maps
-    unconstrained. -/
+/-- Solm dispatches but decoding fails and `Ξ` reverts ⇒ `decodingFailed`. The Solm body does
+    not execute. -/
 theorem reEquiv_decodingFailed
     {cfg contract σ σ₀ g A I} {t g' o}
     (hd : dispatchMsg contract I.calldata = some t)
@@ -3663,7 +3663,8 @@ theorem reEquiv_decodingFailed
     rfl hdec h
 
 /-- The Solm transition executes (to `actRes`) and `Ξ`'s result matches ⇒ the `execution` case.
-    Both executions start from `σ`; `hequiv` relates their results using account-map equality. -/
+    Both executions start from `σ`; `hequiv` carries their result coupling, including account-map
+    equality on success. -/
 theorem reEquiv_execution
     {cfg contract σ σ₀ A I} {t callargs actRes}
     {g : UInt256}
@@ -3727,7 +3728,7 @@ theorem RDrev.reEquivElim
   · exact reEquiv_outOfGas (Xi_error_of_X_sat (by rw [← hcode] at hoog; exact hoog))
   · exact k g' o (Xi_revert_of_X_sat (by rw [← hcode] at hX; exact hX))
 
-/-- `RDrev ⇒ noDispatch`: revert with Act failing to dispatch. Solm-side maps unconstrained. -/
+/-- `RDrev ⇒ noDispatch`: revert with Act failing to dispatch; the Solm body does not run. -/
 theorem RDrev.reEquivNoDispatch
     {cfg contract σ σ₀ A I} {g : Sat256}
     {code : ByteArray}
@@ -3737,8 +3738,8 @@ theorem RDrev.reEquivNoDispatch
       g.toUInt256 A I :=
   h.reEquivElim hcode fun _ _ hrev => reEquiv_noDispatch hd hrev
 
-/-- `RDrev ⇒ decodingFailed`: Act dispatches to `t` but calldata-decoding fails.  Solm-side maps
-    unconstrained. -/
+/-- `RDrev ⇒ decodingFailed`: Act dispatches to `t` but calldata-decoding fails; the Solm body
+    does not run. -/
 theorem RDrev.reEquivDecodingFailed
     {cfg contract σ σ₀ A I} {g : Sat256}
     {code : ByteArray} {t}
@@ -3779,7 +3780,7 @@ theorem RDret.reEquivElim
 the concrete halt). -/
 
 /-- A success segment's **raw `Ξ` result**: either the run OOGs, or `Ξ` halts with success returning
-    `o`, the accounts projected back to the carried `σ`. -/
+    `o`, with the account map projected back to the carried `σ`. -/
 theorem RDret.xiResult {σ σ₀ A I} {g : Sat256} {code o : ByteArray}
     (hcode : I.code = code)
     (h : RDret code g (initState σ σ₀ g A I) σ o) :
