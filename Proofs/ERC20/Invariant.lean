@@ -181,7 +181,7 @@ theorem transfer_preserves_inv (hinj : InjectiveLayout erc20Config)
     (hInv : Inv evm) : Inv (transferPostState evm I) := by
   unfold Inv totalBalances at *
   rw [totalSupplyVal_transferPostState evm I hinj, hInv,
-    balOf_transferPostState evm I hinj hco hne henough hfit]
+    balOf_transferPostState evm I hinj hco hne hfit]
   exact (sum_transfer_eq (balOf evm) hne (transferValueWord I).toNat henough).symm
 
 end Transfer
