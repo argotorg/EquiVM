@@ -82,11 +82,8 @@ theorem storageLoad_storageStore_self (evm : EVM.State) (a : AccountAddress)
   split
   · rename_i heq
     rw [show v = (default : UInt256) from eq_of_beq heq]
-    have hnone : (acc.storage.erase ws).find? ws = none := storage_find?_erase_self acc.storage ws
-    simp only [Batteries.RBMap.findD, hnone, Option.getD_none]; rfl
-  · have hsome : (acc.storage.insert ws v).find? ws = some v := by
-      rw [Batteries.RBMap.find?_insert_of_eq]; exact Std.ReflCmp.compare_self
-    simp only [Batteries.RBMap.findD, hsome, Option.getD_some]
+    exact storage_findD_erase_self acc.storage ws default
+  · exact storage_findD_insert_self acc.storage ws v default
 
 /-- A store to a *missing* account is a no-op. -/
 theorem storageStore_noop_of_missing (evm : EVM.State) (a : AccountAddress) (k v : UInt256)
