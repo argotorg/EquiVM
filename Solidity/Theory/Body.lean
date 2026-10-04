@@ -2182,4 +2182,35 @@ theorem implicitConv_addrLit (env : TypeEnv) (h : Heap) (i : ℕ) (pay : Bool) (
   have hi' : i < 1461501637330902918203684832716283019655932542976 := by omega
   simp [implicitConv, hi']
 
+/-! ## The value of an assignment expression -/
+
+theorem assignedValue_local {env : TypeEnv} {fr : Frame} {m : Machine} {x : Ident} {l : Local} {v v' : Value}
+    {h' : Heap} (hx : fr.get? x = some l) (hval : isValueType env l.ty = true)
+    (hc : implicitConv env m.heap v l.ty = some (v', h')) : assignedValue env fr m (.local x) v = v' := by
+  simp [assignedValue, lvalueTy, hx, hval, hc]
+
+theorem assignedValue_storage {env : TypeEnv} {fr : Frame} {m : Machine} {er : Solm.EvaledStorageRef} {ty : Ty}
+    {v v' : Value} {h' : Heap} (hval : isValueType env ty = true)
+    (hc : implicitConv env m.heap v ty = some (v', h')) : assignedValue env fr m (.storage er ty) v = v' := by
+  simp [assignedValue, lvalueTy, hval, hc]
+
+theorem assignedValue_storage_u256 (env : TypeEnv) (fr : Frame) (m : Machine) (er : Solm.EvaledStorageRef) (n : ℕ) :
+    assignedValue env fr m (.storage er u256Ty) (u256Val n) = u256Val n :=
+  assignedValue_storage rfl (implicitConv_uint env m.heap n)
+
+theorem assignedValue_storage_u256_lit (env : TypeEnv) (fr : Frame) (m : Machine) (er : Solm.EvaledStorageRef)
+    (k : ℕ) (hd : Option Nat) (hk : k < 2 ^ 256) :
+    assignedValue env fr m (.storage er u256Ty) (.literal k hd) = u256Val k := by
+  have h := implicitConv_literal_u256 env m.heap k hd (Int.natCast_nonneg k) (by exact_mod_cast hk)
+  rw [Int.toNat_natCast] at h
+  exact assignedValue_storage rfl h
+
+theorem assignedValue_storage_s256 (env : TypeEnv) (fr : Frame) (m : Machine) (er : Solm.EvaledStorageRef) (i : Int) :
+    assignedValue env fr m (.storage er s256Ty) (s256Val i) = s256Val i :=
+  assignedValue_storage (v' := s256Val i) (h' := m.heap) rfl (by simp [implicitConv])
+
+theorem assignedValue_storage_address (env : TypeEnv) (fr : Frame) (m : Machine) (er : Solm.EvaledStorageRef)
+    (a : EVM.Address) : assignedValue env fr m (.storage er (.address false)) (.address a) = .address a :=
+  assignedValue_storage rfl (implicitConv_address env m.heap a)
+
 end Solidity

@@ -113,3 +113,14 @@ guards).  The EVM side of the dispatcher is shared (`Run.dispatchNoMatch`,
 See "Not covered yet" in `STRUCTURE.md`.  For those shapes the pattern is: prove the pure fact
 about the semantics helper in the contract file (mirroring the nearest `Body.lean` lemma), then a
 builder mirroring the nearest `Derivations.lean` one, and move both here once they compile.
+
+## 5. Transcribing the source: one rule about types
+
+The spec language has no static type system; a value carries its type at run time, and that is the
+type solc gives the expression everywhere except in one construct.  A conditional `c ? a : b` has
+in solc the common type of both branches, in the spec the type of the branch taken.  When the two
+branches have different types (or are both number literals) and the conditional is an operand of
+another operator or an argument of `abi.encodePacked`, write the conversion in the spec, as solc
+inserts it: `(c ? uint256(a) : b) + 1`.  Nothing false can be proved if this is forgotten: the
+spec then disagrees with the bytecode and the proof fails there.  The fixture
+`Solidity/Test/Fixtures/Cond.sol` pins the deviation.

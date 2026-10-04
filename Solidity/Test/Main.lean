@@ -20,6 +20,7 @@ import Solidity.Test.Scenarios.TryCatch
 import Solidity.Test.Scenarios.Features
 import Solidity.Test.Scenarios.Consts
 import Solidity.Test.Scenarios.Arith
+import Solidity.Test.Scenarios.Data
 import Solidity.Test.Scenarios.BaseCall
 import Solidity.Test.Scenarios.Ecrecover
 import Solidity.Test.Scenarios.Fixes
@@ -92,11 +93,13 @@ def locStr : Option Storage.StorageLoc → String
   | none => "none"
   | some l => s!"slot={l.slot.toNat} off={l.offset.val} size={l.size.val} bit={repr l.bitOffset} ty={repr l.type}"
 
+/-- Same position and element type (ours first).  One exception: a byte of a `bytes`/`string`
+    value is a `bytes1` here and a `uint8` in the Sol⁻ hand layouts. -/
 def sameLoc : Option Storage.StorageLoc → Option Storage.StorageLoc → Bool
   | none, none => true
   | some a, some b =>
     a.slot == b.slot && a.offset.val == b.offset.val && a.size.val == b.size.val &&
-      a.bitOffset == b.bitOffset && a.type == b.type
+      a.bitOffset == b.bitOffset && (a.type == b.type || (a.type == bytes1Elem && b.type == uint8Elem))
   | _, _ => false
 
 def checkLayout (e : SpecEntry) : IO Bool := do
@@ -216,7 +219,8 @@ def scenarios : List Scenario :=
     AccessControl.scenarioSolc, Pausable.scenario, Pausable.scenarioSolc, ERC6909.scenario,
     ERC6909.scenarioSolc, Factory.scenario, HexLit.scenario, TryCatch.scenario, BaseCall.scenario, Ecrecover.scenario,
     Fixes.evalOrder, Fixes.blockScope, Fixes.modifierArgs, Fixes.superMod, Features.scenario, Consts.scenario,
-    Arith.scenario, Arith.scenarioBoundaries ]
+    Arith.scenario, Arith.scenarioBoundaries, Arith.scenarioCond,
+    Data.scenario, Data.scenarioBoundaries, Data.scenarioAlloc ]
 
 def runDiff (only : Option String := none) : IO Bool := do
   let mut ok := true

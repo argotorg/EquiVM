@@ -520,6 +520,20 @@ partial def elabBlock (stmts : Array (TSyntax `solidityStmt)) : MacroM Term := d
   mkList (← stmts.mapM elabStmt)
 
 partial def elabStmt (stx : TSyntax `solidityStmt) : MacroM Term := do
+  -- `( … ) = e ;` parses both as a tuple declaration and as a tuple assignment.  It is a
+  -- declaration only when every binder present names a variable (`T x`); otherwise an assignment.
+  if stx.raw.getKind == choiceKind then
+    let alts := stx.raw.getArgs
+    let named (b : Syntax) : Bool := b.getNumArgs != 0 && b[0][2].getNumArgs != 0
+    let isDecl (a : Syntax) : Bool :=
+      a.isOfKind ``solidityTupleDecl &&
+        (a[1].getSepArgs.all fun b => b.getNumArgs == 0 || named b) && a[1].getSepArgs.any named
+    match alts.find? isDecl with
+    | some a => return ← elabStmt ⟨a⟩
+    | none =>
+      match alts.find? fun a => !(a.isOfKind ``solidityTupleDecl) with
+      | some a => return ← elabStmt ⟨a⟩
+      | none => Macro.throwErrorAt stx "ambiguous statement"
   match stx with
   | `(solidityStmt| $t:solidityTy $[$l:solidityLoc]? $x:ident $[= $init]? ;) =>
     let init ← optTerm (← init.mapM elabExpr)

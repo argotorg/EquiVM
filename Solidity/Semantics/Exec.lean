@@ -288,6 +288,10 @@ def newContract? (fc : FlatContract) : Ty → Option (Ident × List Ty)
   | .user _ c => (fc.ctorTys? c).map fun tys => (c, tys)
   | _ => none
 
+/-- solc's legacy code generator refuses a memory array of more than `2^64 - 1` elements with
+    `Panic(0x41)`; a shorter one that does not fit in memory runs out of gas. -/
+def allocTooLarge (len : Nat) : Bool := decide (len > 0xffffffffffffffff)
+
 def natValue : Value → Option Nat
   | .uint _ n => some n
   | .literal i _ => if i ≥ 0 then some i.toNat else none
@@ -416,12 +420,23 @@ def assignOp : AssignOp → BinOp
   | .bitAnd => .bitAnd | .bitOr => .bitOr | .bitXor => .bitXor | .shl => .shl | .shr => .shr
   | .assign => .add
 
-/-- Allocate an inline array literal; the element type is the first element's. -/
+/-- The element type of an integer array literal: solc folds the common type over the elements, a
+    literal contributing its mobile type (`[1, 300]` is `uint16[2]`). -/
+def arrayLitIntTy : IntTy → List Value → Option IntTy
+  | t, [] => some t
+  | t, .literal x _ :: vs => (if t.inRange x then some t else literalWiden t x).bind (arrayLitIntTy · vs)
+  | t, v :: vs => (v.int?).bind fun p => (commonIntType t p.1).bind (arrayLitIntTy · vs)
+
+/-- Allocate an inline array literal; the element type is the common type of the elements for
+    integers, the first element's type otherwise. -/
 def arrayLitObj (env : TypeEnv) (m : Machine) (vs : List Value) : Op (Value × Machine) := do
   let some v0 := vs.head? | Op.stuck
   let ety ← match v0 with
-    | .literal i _ => Op.ofOpt ((mobileType i).map IntTy.toTy)
-    | v => Op.ofOpt (receiverTy m.heap v)
+    | .literal i _ => Op.ofOpt (((mobileType i).bind (arrayLitIntTy · vs.tail)).map IntTy.toTy)
+    | v =>
+      match v.int? with
+      | some (t, _) => Op.ofOpt ((arrayLitIntTy t vs.tail).map IntTy.toTy)
+      | none => Op.ofOpt (receiverTy m.heap v)
   let (elems, h') ← Op.ofOpt (vs.foldlM (fun (acc, h) v =>
     (implicitConv env h v ety).map fun (v', h') => (acc ++ [v'], h')) (([] : List Value), m.heap))
   let (h'', id) := h'.alloc (.array ety elems)
@@ -725,8 +740,12 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.call (.member (.ident "abi") "decode") [] (.positional [d, tyArg])) (.reverted dd)
   -- memory allocation
   | newArray : newContract? fc ty = none → EvalExpr fr m n (.ok nv fr1 m1) → natValue nv = some len →
-      isValueType fc.types ty = false → zeroObj fc.types fuelDefault ty len m1.heap = some (v, h') →
+      isValueType fc.types ty = false → allocTooLarge len = false →
+      zeroObj fc.types fuelDefault ty len m1.heap = some (v, h') →
       EvalExpr fr m (.call (.new ty) [] (.positional [n])) (.ok v fr1 { m1 with heap := h' })
+  | newArrayPanic : newContract? fc ty = none → EvalExpr fr m n (.ok nv fr1 m1) → natValue nv = some len →
+      isValueType fc.types ty = false → allocTooLarge len = true →
+      EvalExpr fr m (.call (.new ty) [] (.positional [n])) (.reverted (Panic.data .allocTooLarge))
   | newArrayRevert : newContract? fc ty = none → EvalExpr fr m n (.reverted d) →
       EvalExpr fr m (.call (.new ty) [] (.positional [n])) (.reverted d)
   -- contract creation `new C{value: v, salt: s}(args)`: `value` is evaluated before `salt`, then the arguments
@@ -981,7 +1000,8 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | condRevert : EvalExpr fr m c (.reverted d) → EvalExpr fr m (.cond c t e) (.reverted d)
   -- assignment (right-hand side first)
   | assignPlain : isTupleExpr lhs = false → EvalExpr fr m rhs (.ok v fr1 m1) → EvalLValue fr1 m1 lhs (.ok lv fr2 m2) →
-      assign cfg fc.types fr2 m2 lv v = some (.ok (fr3, m3)) → EvalExpr fr m (.assign .assign lhs rhs) (.ok v fr3 m3)
+      assign cfg fc.types fr2 m2 lv v = some (.ok (fr3, m3)) →
+      EvalExpr fr m (.assign .assign lhs rhs) (.ok (assignedValue fc.types fr2 m2 lv v) fr3 m3)
   | assignTuple : EvalExpr fr m rhs (.ok (.tuple vs) fr1 m1) → AssignTuple fr1 m1 lhss vs (.ok () fr2 m2) →
       EvalExpr fr m (.assign .assign (.tuple lhss) rhs) (.ok (.tuple vs) fr2 m2)
   | assignTupleRevert : EvalExpr fr m rhs (.ok (.tuple vs) fr1 m1) → AssignTuple fr1 m1 lhss vs (.reverted d) →

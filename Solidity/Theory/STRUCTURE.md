@@ -103,8 +103,20 @@ Changed 2026-10-04 (conformance fixture `Arith`): a number literal that does not
 operand widens the operation to its mobile type (`literalWiden`; `uint8 * 300` is `uint16`
 arithmetic); the typed reconstruction of the arguments is part of decoding (`decodeCallArgs`, used
 by `decodingFailed`; an out-of-range enum argument is rejected; `decodeCallArgs_none_of_decodeArgs`,
-`decodeCallArgs_none_of_ofAbiList`).  Known deviation, open: a conditional `c ? a : b` has the type
-of the branch taken, not the common type of both branches.
+`decodeCallArgs_none_of_ofAbiList`).  An assignment used as a value has the type of its left-hand
+side (`assignedValue`, `lvalueTy`; `assignedValue_local`, `assignedValue_storage` and the
+`_u256`/`_u256_lit`/`_s256`/`_address` instances; `EvalExpr.assignStorageU256Lit` now yields
+`u256Val k`).  An integer array literal takes the common type of all its elements
+(`arrayLitIntTy`).  Documented limitation (GUIDE §5, fixture `Cond.sol`): a conditional
+`c ? a : b` has the type of the branch taken, not the common type of both branches; the spec states
+the conversion.
+
+Changed 2026-10-04 (conformance fixture `Data`): `new T[](n)` and `new bytes(n)` with
+`n > 2^64 - 1` revert with `Panic(0x41)` (`allocTooLarge`, rule `newArrayPanic`;
+`EvalExpr.newArrayPlain` takes `len < 2 ^ 64`).  An element of a `bytes` state variable is a
+`bytes1` location (`bytes1Elem` in `Layout.lean`; it was `uint8`, so reading `blob[i]` had no
+derivation).  The DSL parses a tuple assignment whose left side is a parenthesised list
+(`(p.x, p.y) = (p.y, p.x);`).
 
 ## Deferred language features
 

@@ -671,6 +671,25 @@ def readLValue (cfg : Config) (env : TypeEnv) (fr : Frame) (m : Machine) : LValu
   | .memField obj f => Op.ofOpt (memField m.heap obj f)
   | .memIndex obj i => memIndex m.heap obj (.literal i)
 
+/-- The declared type of an lvalue. -/
+def lvalueTy (env : TypeEnv) (fr : Frame) (m : Machine) : LValue → Option Ty
+  | .local x => (fr.get? x).map (·.ty)
+  | .storage _ ty => some ty
+  | .memField obj f => memFieldTy env m.heap obj f
+  | .memIndex obj _ => memElemTy m.heap obj
+
+/-- The value of the expression `lhs = v`: `v` converted to the type of the left-hand side (solc
+    types an assignment by its left operand).  A reference keeps its right-hand side. -/
+def assignedValue (env : TypeEnv) (fr : Frame) (m : Machine) (lv : LValue) (v : Value) : Value :=
+  match lvalueTy env fr m lv with
+  | some ty =>
+    if isValueType env ty then
+      match implicitConv env m.heap v ty with
+      | some (v', _) => v'
+      | none => v
+    else v
+  | none => v
+
 /-- Assign `v` to an lvalue. -/
 def assign (cfg : Config) (env : TypeEnv) (fr : Frame) (m : Machine) (lv : LValue) (v : Value) :
     Op (Frame × Machine) := do

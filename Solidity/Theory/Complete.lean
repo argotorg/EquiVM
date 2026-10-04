@@ -550,7 +550,12 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     refine ⟨n1 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
     interp_simp [isSuperExpr, headIdent, isEnvObj, isAbiFn, ih1 k' (by omega)]
-  | .newArray p1 p2 p3 p4 p5 => by
+  | .newArray p1 p2 p3 p4 p5 p6 => by
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    refine ⟨n2 + 2, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
+    interp_simp [p1, p3, p4, p5, p6, ih2 k' (by omega)]
+  | .newArrayPanic p1 p2 p3 p4 p5 => by
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     refine ⟨n2 + 2, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)

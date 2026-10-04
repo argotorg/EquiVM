@@ -73,7 +73,13 @@ def cases : List Case :=
     mk "toEnum(uint8)" [.int 2], mk "fromEnum(uint8)" [.int 1], mk "cmpEnum(uint8,uint8)" [.int 1, .int 2],
     mk "limits()" [],
     mk "tern(uint256,uint256)" [.int 5, .int 7], mk "ternMixed(bool,uint8,uint256)" [.bool true, .int 5, .int 7],
-    mk "ternArith(bool,uint8,uint256)" [.bool false, .int 5, .int 7],
+    mk "asgNarrow()" [], mk "asgWide(uint8)" [.int 5], mk "asgChain(uint8)" [.int 5], mk "asgStore(uint8)" [.int 5],
+    mk "asgStore8(uint256)" [.int 5], mk "asgLit()" [],
+    mk "arrFirst(uint8)" [.int 0], mk "arrCommon(uint8)" [.int 1], mk "arrTyped(uint8,uint16,uint8)" [.int 5, .int 7, .int 1],
+    mk "arrLitTyped(uint8,uint8)" [.int 5, .int 0],
+    mk "condSame(bool,uint8,uint8)" [.bool true, .int 5, .int 7], mk "condArg(bool,uint256,uint256)" [.bool true, .int 5, .int 7],
+    mk "condLit(bool,uint256)" [.bool false, .int 5], mk "condExplicit(bool,uint8,uint256)" [.bool true, .int 255, .int 7],
+    mk "condPacked(bool,uint8,uint8)" [.bool true, .int 5, .int 7],
     { name := "constructor", code := creation, ctorArgs := some ([], runtime), expect := .success } ]
 
 /-- Every operator on a matrix of boundary values. -/
@@ -110,20 +116,42 @@ def boundaries : List Case :=
   call2 "cmpEnum(uint8,uint8)" [0, 1, 2, 3] [0, 1, 2] ++
   ([true, false].flatMap fun c => U8.flatMap fun a => [(0 : Int), 255, 2 ^ 256 - 1].flatMap fun b =>
     [mk "ternMixed(bool,uint8,uint256)" [.bool c, .int a, .int b] s!"{c} {a} {b}",
-     mk "ternArith(bool,uint8,uint256)" [.bool c, .int a, .int b] s!"{c} {a} {b}"])
+     mk "condExplicit(bool,uint8,uint256)" [.bool c, .int a, .int b] s!"{c} {a} {b}"]) ++
+  ([true, false].flatMap fun c => U8.flatMap fun a => U8.flatMap fun b =>
+    [mk "condSame(bool,uint8,uint8)" [.bool c, .int a, .int b] s!"{c} {a} {b}",
+     mk "condPacked(bool,uint8,uint8)" [.bool c, .int a, .int b] s!"{c} {a} {b}"]) ++
+  ([true, false].flatMap fun c => U256.flatMap fun a =>
+    [mk "condLit(bool,uint256)" [.bool c, .int a] s!"{c} {a}",
+     mk "condArg(bool,uint256,uint256)" [.bool c, .int a, .int 3] s!"{c} {a}"]) ++
+  call1 "asgWide(uint8)" U8 ++ call1 "asgChain(uint8)" U8 ++ call1 "asgStore(uint8)" U8 ++
+  call1 "asgStore8(uint256)" U256 ++ [mk "asgNarrow()" [], mk "asgLit()" []] ++
+  call1 "arrFirst(uint8)" [0, 1, 2, 3] ++ call1 "arrCommon(uint8)" [0, 1, 2] ++
+  call3 "arrTyped(uint8,uint16,uint8)" U8 [0, 1, 218, 219, 300, 65535] [0, 1, 2] ++
+  call2 "arrLitTyped(uint8,uint8)" U8 [0, 1, 2]
 
 def scenario : Scenario :=
   { name := "Arith", program := _root_.Arith.SoliditySpec.program, target := "Arith", cases := cases }
 
-/-- Known deviation: the spec gives a conditional the type of the branch taken, solc the common
-    type of both branches, so `(c ? a : b) + 1` with `a : uint8 = 255` panics in the spec only. -/
-def markKnown (c : Case) : Case :=
-  if c.name.startsWith "ternArith(bool,uint8,uint256) true 255 " then
-    { c with known := some "conditional typed by the taken branch, not the common type" }
-  else c
-
 def scenarioBoundaries : Scenario :=
-  { name := "Arith/boundaries", program := _root_.Arith.SoliditySpec.program, target := "Arith",
-    cases := boundaries.map markKnown }
+  { name := "Arith/boundaries", program := _root_.Arith.SoliditySpec.program, target := "Arith", cases := boundaries }
+
+/-! ## The documented deviation: conditionals with differently typed branches
+
+solc gives `c ? a : b` the common type of both branches; the spec language has no static types and
+uses the type of the branch taken.  The spec must state the conversion (`c ? uint256(a) : b`). -/
+
+def condRuntime : ByteArray := bytesOfHex Fixtures.condRuntimeHex
+
+def mkCond (sig : String) (args : List ABI.ABIValue) (tag : String) (known : Bool) : Case :=
+  { name := s!"{sig} {tag}", code := condRuntime, call := some (sig, args),
+    known := if known then some "conditional typed by the branch taken, not the common type" else none }
+
+def condCases : List Case :=
+  ([true, false].flatMap fun c => [(0 : Int), 5, 255].flatMap fun a => [(0 : Int), 7, 2 ^ 256 - 1].map fun b =>
+    mkCond "ternArith(bool,uint8,uint256)" [.bool c, .int a, .int b] s!"{c} {a} {b}" (c && a == 255)) ++
+  [true, false].map fun c => mkCond "condTwoLits(bool)" [.bool c] s!"{c}" c
+
+def scenarioCond : Scenario :=
+  { name := "Conditional/deviation", program := _root_.Arith.SoliditySpec.condProgram, target := "Cond", cases := condCases }
 
 end Solidity.Test.Arith

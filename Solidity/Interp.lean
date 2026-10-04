@@ -223,7 +223,7 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
         let (lv, fr2, m2) ← evalLValue fuel fr1 m1 lhs
         if op == .assign then
           let (fr3, m3) ← liftOp (assign cfg fc.types fr2 m2 lv v)
-          pure (v, fr3, m3)
+          pure (assignedValue fc.types fr2 m2 lv v, fr3, m3)
         else
           let cur ← liftOp (readLValue cfg fc.types fr2 m2 lv)
           let r ← liftOp (binop (!fr2.unchecked) (assignOp op) cur v)
@@ -305,6 +305,7 @@ def evalCall : Nat → Frame → Machine → Expr → List CallOpt → Args → 
           let (nv, fr1, m1) ← evalExpr fuel fr m n
           let len ← liftOpt (natValue nv)
           guard' (!(isValueType fc.types ty))
+          if allocTooLarge len then throw (Panic.data .allocTooLarge)
           let (v, h') ← liftOpt (zeroObj fc.types fuelDefault ty len m1.heap)
           pure (v, fr1, { m1 with heap := h' })
         | _, _ => failure

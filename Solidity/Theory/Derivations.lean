@@ -324,9 +324,12 @@ theorem EvalExpr.assignLocalU256 {fr fr1 : Frame} {m m1 : Machine} {x : Ident} {
     (hrhs : EvalExpr cfg o fc fr m rhs (.ok (u256Val n) fr1 m1))
     (hx : fr1.get? x = some l) (hty : l.ty = u256Ty) :
     EvalExpr cfg o fc fr m (.assign .assign (.ident x) rhs) (.ok (u256Val n) (fr1.setVal x (u256Val n)) m1) := by
-  refine EvalExpr.assignPlain rfl hrhs (EvalLValue.local hx) ?_
-  simp [assign, coerce, hx, hty]
-  try rfl
+  have h : EvalExpr cfg o fc fr m (.assign .assign (.ident x) rhs)
+      (.ok (assignedValue fc.types fr1 m1 (.local x) (u256Val n)) (fr1.setVal x (u256Val n)) m1) := by
+    refine EvalExpr.assignPlain rfl hrhs (EvalLValue.local hx) ?_
+    simp [assign, coerce, hx, hty]
+    try rfl
+  rwa [assignedValue_local hx (by rw [hty]; rfl) (by rw [hty]; exact implicitConv_uint _ _ n)] at h
 
 theorem ExecStmt.assignLocalU256 {fr fr1 : Frame} {m m1 : Machine} {x : Ident} {rhs : Expr} {n : ℕ} (l : Local)
     (hrhs : EvalExpr cfg o fc fr m rhs (.ok (u256Val n) fr1 m1))
@@ -340,8 +343,9 @@ theorem EvalExpr.assignStorageU256 {fr fr1 : Frame} {m m1 : Machine} {lhs rhs : 
     (hrhs : EvalExpr cfg o fc fr m rhs (.ok (u256Val w.toNat) fr1 m1))
     (hlv : EvalLValue cfg o fc fr1 m1 lhs (.ok (.storage er u256Ty) fr1 m1))
     (hl : cfg.storage.layout er m1.evm = some (uint256Loc slot)) :
-    EvalExpr cfg o fc fr m (.assign .assign lhs rhs) (.ok (u256Val w.toNat) fr1 (storeU256 m1 slot w)) :=
-  EvalExpr.assignPlain hlv.not_tuple hrhs hlv (assign_storage_u256 hl w)
+    EvalExpr cfg o fc fr m (.assign .assign lhs rhs) (.ok (u256Val w.toNat) fr1 (storeU256 m1 slot w)) := by
+  have h := EvalExpr.assignPlain hlv.not_tuple hrhs hlv (assign_storage_u256 hl w)
+  rwa [assignedValue_storage_u256] at h
 
 theorem ExecStmt.assignStorageU256 {fr fr1 : Frame} {m m1 : Machine} {lhs rhs : Expr} {er : Solm.EvaledStorageRef}
     {slot w : UInt256}
@@ -1424,8 +1428,9 @@ theorem EvalExpr.assignStorageU256Lit {fr fr1 : Frame} {m m1 : Machine} {lhs : E
     (hlv : EvalLValue cfg o fc fr m lhs (.ok (.storage er u256Ty) fr1 m1))
     (hl : cfg.storage.layout er m1.evm = some (uint256Loc slot)) :
     EvalExpr cfg o fc fr m (.assign .assign lhs (.lit (.number k none hd)))
-      (.ok (.literal k hd) fr1 (storeU256 m1 slot (UInt256.ofNat k))) :=
-  EvalExpr.assignPlain hlv.not_tuple (EvalExpr.numLit k hd) hlv (assign_storage_u256_lit hl k hd hk)
+      (.ok (u256Val k) fr1 (storeU256 m1 slot (UInt256.ofNat k))) := by
+  have h := EvalExpr.assignPlain hlv.not_tuple (EvalExpr.numLit k hd) hlv (assign_storage_u256_lit hl k hd hk)
+  rwa [assignedValue_storage_u256_lit _ _ _ _ k hd hk] at h
 
 theorem ExecStmt.assignStorageU256Lit {fr fr1 : Frame} {m m1 : Machine} {lhs : Expr} {er : Solm.EvaledStorageRef}
     {slot : UInt256} (k : ℕ) (hd : Option Nat) (hk : k < 2 ^ 256)
@@ -1642,8 +1647,9 @@ theorem EvalExpr.assignStorageS256 {fr fr1 : Frame} {m m1 : Machine} {lhs rhs : 
     (hrhs : EvalExpr cfg o fc fr m rhs (.ok (s256Val i) fr1 m1))
     (hlv : EvalLValue cfg o fc fr1 m1 lhs (.ok (.storage er s256Ty) fr1 m1))
     (hl : cfg.storage.layout er m1.evm = some (int256Loc slot)) :
-    EvalExpr cfg o fc fr m (.assign .assign lhs rhs) (.ok (s256Val i) fr1 (storeU256 m1 slot (EVM.wordOfInt i))) :=
-  EvalExpr.assignPlain hlv.not_tuple hrhs hlv (assign_storage_s256 hl i)
+    EvalExpr cfg o fc fr m (.assign .assign lhs rhs) (.ok (s256Val i) fr1 (storeU256 m1 slot (EVM.wordOfInt i))) := by
+  have h := EvalExpr.assignPlain hlv.not_tuple hrhs hlv (assign_storage_s256 hl i)
+  rwa [assignedValue_storage_s256] at h
 
 theorem ExecStmt.assignStorageS256 {fr fr1 : Frame} {m m1 : Machine} {lhs rhs : Expr} {er : Solm.EvaledStorageRef}
     {slot : UInt256} {i : Int}
@@ -1797,8 +1803,9 @@ theorem EvalExpr.assignStorageAddress {fr fr1 : Frame} {m m1 : Machine} {lhs rhs
     (hlv : EvalLValue cfg o fc fr1 m1 lhs (.ok (.storage er (.address false)) fr1 m1))
     (hl : cfg.storage.layout er m1.evm = some (addressOffset0Loc slot)) :
     EvalExpr cfg o fc fr m (.assign .assign lhs rhs)
-      (.ok (.address a) fr1 (storeU256 m1 slot (setAddressOffset0Word (loadU256 m1 slot) (UInt256.ofNat a.toNat)))) :=
-  EvalExpr.assignPlain hlv.not_tuple hrhs hlv (assign_storage_address hl a)
+      (.ok (.address a) fr1 (storeU256 m1 slot (setAddressOffset0Word (loadU256 m1 slot) (UInt256.ofNat a.toNat)))) := by
+  have h := EvalExpr.assignPlain hlv.not_tuple hrhs hlv (assign_storage_address hl a)
+  rwa [assignedValue_storage_address] at h
 
 theorem ExecStmt.assignStorageAddress {fr fr1 : Frame} {m m1 : Machine} {lhs rhs : Expr} {er : Solm.EvaledStorageRef}
     {slot : UInt256} {a : EVM.Address}
@@ -2181,9 +2188,10 @@ theorem EvalExpr.arrayLitPlain {fr fr1 : Frame} {m m1 m2 : Machine} {es : List E
 /-- `new T[](n)`. -/
 theorem EvalExpr.newArrayPlain {fr fr1 : Frame} {m m1 : Machine} {ty : Ty} {n : Expr} {len : ℕ} {v : Value} {h' : Heap}
     (hnew : newContract? fc ty = none) (hn : EvalExpr cfg o fc fr m n (.ok (u256Val len) fr1 m1))
-    (hnv : isValueType fc.types ty = false) (hz : zeroObj fc.types fuelDefault ty len m1.heap = some (v, h')) :
+    (hnv : isValueType fc.types ty = false) (hlen : len < 2 ^ 64)
+    (hz : zeroObj fc.types fuelDefault ty len m1.heap = some (v, h')) :
     EvalExpr cfg o fc fr m (.call (.new ty) [] (.positional [n])) (.ok v fr1 { m1 with heap := h' }) :=
-  EvalExpr.newArray hnew hn rfl hnv hz
+  EvalExpr.newArray hnew hn rfl hnv (by simp [allocTooLarge]; omega) hz
 
 /-! ## Storage arrays: `push()` and `pop()` -/
 

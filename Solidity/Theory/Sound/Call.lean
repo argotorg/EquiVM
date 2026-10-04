@@ -177,10 +177,17 @@ theorem evalCall_sound_step {n} (ih : SoundAt cfg o fc n) :
           · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨u, hu, h⟩ <;> try dsimp only at h
             · exact (guard'_error hd).elim
             · have hvt : isValueType fc.types ty = false := by simpa using guard'_ok hu
-              rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨v, h'⟩, hz, h⟩ <;> try dsimp only at h
-              · exact (liftOpt_error hd).elim
-              · rw [IM.pure_some h]
-                exact .newArray hct (ih.expr _ _ _ _ hnv) (liftOpt_ok hlen) hvt (liftOpt_ok hz)
+              split at h
+              · rename_i hbig
+                rw [IM.throw_bind_some h]
+                exact .newArrayPanic hct (ih.expr _ _ _ _ hnv) (liftOpt_ok hlen) hvt hbig
+              · rename_i hbig
+                have h := IM.pure_bind_some h
+                try dsimp only at h
+                rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨v, h'⟩, hz, h⟩ <;> try dsimp only at h
+                · exact (liftOpt_error hd).elim
+                · rw [IM.pure_some h]
+                  exact .newArray hct (ih.expr _ _ _ _ hnv) (liftOpt_ok hlen) hvt (by simpa using hbig) (liftOpt_ok hz)
       · exact (IM.failure_some h).elim
   · -- f(args): builtin or user function
     split at h

@@ -2,7 +2,8 @@
 pragma solidity ^0.8.0;
 
 // Arithmetic and types: signed and small integers, shifts, exponentiation, modulo, bitwise
-// operators, unchecked blocks, compound assignment, conversions, enums, the ternary operator.
+// operators, unchecked blocks, compound assignment, conversions, enums, the ternary operator;
+// typing: assignments used as values, array literals, conditionals as operands and arguments.
 
 contract Arith {
   enum Color { Red, Green, Blue }
@@ -101,5 +102,30 @@ contract Arith {
 
   function tern(uint256 a, uint256 b) external pure returns (uint256) { return a > b ? a - b : b - a; }
   function ternMixed(bool c, uint8 a, uint256 b) external pure returns (uint256) { return c ? a : b; }
-  function ternArith(bool c, uint8 a, uint256 b) external pure returns (uint256) { return (c ? a : b) + 1; }
+
+  uint256 stored;
+  uint8 stored8;
+
+  function twice(uint256 x) internal pure returns (uint256) { return 2 * x; }
+
+  function asgNarrow() external pure returns (uint256) { uint8 x; return (x = 255) + 1; }
+  function asgWide(uint8 y) external pure returns (uint256) { uint256 a; return (a = y) + 1; }
+  function asgChain(uint8 y) external pure returns (uint256, uint16) { uint256 a; uint16 b; a = b = y; return (a, b); }
+  function asgStore(uint8 y) external returns (uint256) { return (stored = y) + 1; }
+  function asgStore8(uint256 v) external returns (uint256) { return (stored8 = uint8(v)) + 1; }
+  function asgLit() external returns (uint256) { return (stored8 = 200) + 100; }
+
+  function arrFirst(uint8 i) external pure returns (uint256) { uint8[3] memory xs = [1, 2, 3]; return xs[i] * 200; }
+  function arrCommon(uint8 i) external pure returns (uint256) { uint16[2] memory xs = [1, 300]; return xs[i]; }
+  function arrTyped(uint8 a, uint16 b, uint8 i) external pure returns (uint256) {
+    uint16[2] memory xs = [a, b];
+    return xs[i] * 300;
+  }
+  function arrLitTyped(uint8 a, uint8 i) external pure returns (uint256) { uint16[2] memory xs = [a, 300]; return xs[i]; }
+
+  function condSame(bool c, uint8 a, uint8 b) external pure returns (uint256) { return (c ? a : b) + 1; }
+  function condArg(bool c, uint256 a, uint256 b) external pure returns (uint256) { return twice(c ? a : b); }
+  function condLit(bool c, uint256 a) external pure returns (uint256) { return (c ? a : 0) + 1; }
+  function condExplicit(bool c, uint8 a, uint256 b) external pure returns (uint256) { return (c ? uint256(a) : b) + 1; }
+  function condPacked(bool c, uint8 a, uint8 b) external pure returns (bytes memory) { return abi.encodePacked(c ? a : b); }
 }

@@ -112,6 +112,9 @@ def slotTable (t : LayoutTable) : List (Ident × Nat × Nat) :=
 
 def uint256Elem : ElemType := .int (.uint ⟨256, by decide⟩)
 
+/-- Element type of `bytes`/`string` storage data: indexing yields a `bytes1`. -/
+def bytes1Elem : ElemType := .bytes ⟨0, by decide⟩
+
 def mkLoc (slot : EVM.Word) (off size : Nat) (elem : ElemType) : Option Storage.StorageLoc :=
   if h : off + size ≤ 32 ∧ 0 < size then
     some { slot := slot, offset := ⟨off, by omega⟩, size := ⟨size, by omega⟩, hbound := by simp; omega,
@@ -154,8 +157,8 @@ def follow (evm : EVM.State) : List Solm.EvaledStorageRefStep → Node → EVM.W
   | [.length], .bytes, slot, _ => some (Storage.bytesLikeLengthLoc slot evm)
   | [.aindex k], .bytes, slot, _ =>
     (natOfKey? k).bind fun i =>
-      if Storage.checkBytesPacked slot evm then mkLoc slot (31 - i) 1 uint8Elem
-      else mkLoc (dataSlot slot + .ofNat (i / 32)) (31 - i % 32) 1 uint8Elem
+      if Storage.checkBytesPacked slot evm then mkLoc slot (31 - i) 1 bytes1Elem
+      else mkLoc (dataSlot slot + .ofNat (i / 32)) (31 - i % 32) 1 bytes1Elem
   | _, _, _, _ => none
 
 def layout (t : LayoutTable) (ref : Solm.EvaledStorageRef) (evm : EVM.State) : Option Storage.StorageLoc :=
