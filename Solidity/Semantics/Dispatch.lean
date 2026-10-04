@@ -155,58 +155,83 @@ def ctorPayable (fc : FlatContract) (I : Ethereum.ExecutionEnv) : Prop :=
 def initializers (fc : FlatContract) : List FlatVar :=
   fc.stateVars.filter fun v => v.init.isSome && v.mutability != .constant
 
+/-- The frame the initializers run in: the immutables, no constructor parameters. -/
+def initRoot (fc : FlatContract) (imms : Store) : Frame := { here := fc.name, locals := imms, retVars := [] }
+
 /-- Run the inline initializers of the state variables (mutable ones into storage, immutables
-    into their `imm_` locals). -/
+    into their `imm_` locals), each in the scope of the contract that declares the variable. -/
 inductive ExecInits : Frame → Machine → List FlatVar → Res Unit → Prop where
   | nil : ExecInits fr m [] (.ok () fr m)
-  | storage : v.mutability = .mutable → v.init = some e → EvalExpr cfg o fc fr m e (.ok val fr1 m1) →
+  | storage : v.mutability = .mutable → v.init = some e →
+      EvalExpr cfg o fc { fr with here := v.declaredIn } m e (.ok val fr1 m1) →
       assign cfg fc.types fr1 m1 (.storage ⟨v.key, []⟩ v.ty) val = some (.ok (fr2, m2)) →
       ExecInits fr2 m2 rest r → ExecInits fr m (v :: rest) r
-  | immutable : v.mutability = .immutable → v.init = some e → EvalExpr cfg o fc fr m e (.ok val fr1 m1) →
+  | immutable : v.mutability = .immutable → v.init = some e →
+      EvalExpr cfg o fc { fr with here := v.declaredIn } m e (.ok val fr1 m1) →
       assign cfg fc.types fr1 m1 (.local (immName v.name)) val = some (.ok (fr2, m2)) →
       ExecInits fr2 m2 rest r → ExecInits fr m (v :: rest) r
-  | revert : v.init = some e → EvalExpr cfg o fc fr m e (.reverted d) → ExecInits fr m (v :: rest) (.reverted d)
-  | storagePanic : v.mutability = .mutable → v.init = some e → EvalExpr cfg o fc fr m e (.ok val fr1 m1) →
+  | revert : v.init = some e → EvalExpr cfg o fc { fr with here := v.declaredIn } m e (.reverted d) →
+      ExecInits fr m (v :: rest) (.reverted d)
+  | storagePanic : v.mutability = .mutable → v.init = some e →
+      EvalExpr cfg o fc { fr with here := v.declaredIn } m e (.ok val fr1 m1) →
       assign cfg fc.types fr1 m1 (.storage ⟨v.key, []⟩ v.ty) val = some (.error p) → ExecInits fr m (v :: rest) (.reverted p.data)
-  | immutablePanic : v.mutability = .immutable → v.init = some e → EvalExpr cfg o fc fr m e (.ok val fr1 m1) →
+  | immutablePanic : v.mutability = .immutable → v.init = some e →
+      EvalExpr cfg o fc { fr with here := v.declaredIn } m e (.ok val fr1 m1) →
       assign cfg fc.types fr1 m1 (.local (immName v.name)) val = some (.error p) → ExecInits fr m (v :: rest) (.reverted p.data)
 
-/-- Arguments of a constructor-chain step: the decoded arguments for the most-derived contract,
-    the explicitly written base arguments (evaluated in the most-derived constructor's frame)
-    otherwise. -/
-inductive CtorArgs (frP : Frame) (topArgs : List Value) : Machine → CtorStep → Res (List Value) → Prop where
-  | top : step.contract = fc.name → CtorArgs frP topArgs m step (.ok topArgs frP m)
-  | none : step.contract ≠ fc.name → step.args = none → CtorArgs frP topArgs m step (.ok [] frP m)
-  | some : step.contract ≠ fc.name → step.args = some (w, args) → callArgs (fc.ctorParamss step.contract) args = some es →
-      EvalExprs cfg o fc frP m es r → CtorArgs frP topArgs m step r
+/-- The frame in which the parameters of the constructor of `c` are visible (over the immutables):
+    the arguments `c` writes for its bases are evaluated here. -/
+def ctorFrame (fc : FlatContract) (c : Ident) (vals : List Value) (m : Machine) (imms : Store) : Op (Frame × Machine) :=
+  match fc.fns.toList.find? fun f => f.declaredIn == c && f.decl.kind == .ctor with
+  | some f => enterFn cfg fc.types c f.decl vals m imms
+  | none => pure ({ here := c, locals := imms, retVars := [] }, m)
 
-/-- The constructor chain, base-first; `imm_` locals are threaded from step to step. -/
-inductive ExecCtorChain (frP : Frame) (topArgs : List Value) : Store → Machine → List CtorStep → CtorResult → Prop where
-  | nil : ExecCtorChain frP topArgs imms m [] (.ok m imms)
-  | skip : step.fn = none → ExecCtorChain frP topArgs imms m rest r → ExecCtorChain frP topArgs imms m (step :: rest) r
-  | run : step.fn = some fid → fc.fns[fid]? = some fn → CtorArgs cfg o fc frP topArgs m step (.ok vs _ m1) →
-      enterFn cfg fc.types fn.declaredIn fn.decl vs m1 imms = some (.ok (fr2, m2)) → fn.decl.body = some body →
+/-- Constructor arguments of one contract of the hierarchy: the decoded ones for the most-derived
+    contract; the written ones otherwise, evaluated with the parameters of the constructor that
+    wrote them (`tbl`: the arguments of the more derived contracts). -/
+inductive CtorArgs (topArgs : List Value) (imms : Store) (tbl : List (Ident × List Value)) :
+    Machine → CtorStep → Res (List Value) → Prop where
+  | top : step.contract = fc.name → CtorArgs topArgs imms tbl m step (.ok topArgs (rootFrame fc) m)
+  | none : step.contract ≠ fc.name → step.args = none → CtorArgs topArgs imms tbl m step (.ok [] (rootFrame fc) m)
+  | some : step.contract ≠ fc.name → step.args = some (w, args) → tbl.lookup w = some wvs →
+      ctorFrame cfg fc w wvs m imms = some (.ok (frW, mW)) →
+      callArgs (fc.ctorParamss step.contract) args = some es →
+      EvalExprs cfg o fc frW mW es r → CtorArgs topArgs imms tbl m step r
+  | framePanic : step.contract ≠ fc.name → step.args = some (w, args) → tbl.lookup w = some wvs →
+      ctorFrame cfg fc w wvs m imms = some (.error p) → CtorArgs topArgs imms tbl m step (.reverted p.data)
+
+/-- The arguments of every constructor, the most derived contract first.  solc evaluates them all
+    before any constructor body runs. -/
+inductive CtorArgsAll (topArgs : List Value) (imms : Store) :
+    List (Ident × List Value) → Machine → List CtorStep →
+      Except ByteArray (List (Ident × List Value) × Machine) → Prop where
+  | nil : CtorArgsAll topArgs imms tbl m [] (.ok (tbl, m))
+  | cons : CtorArgs cfg o fc topArgs imms tbl m step (.ok vs fr' m1) →
+      CtorArgsAll topArgs imms ((step.contract, vs) :: tbl) m1 rest r →
+      CtorArgsAll topArgs imms tbl m (step :: rest) r
+  | revert : CtorArgs cfg o fc topArgs imms tbl m step (.reverted d) →
+      CtorArgsAll topArgs imms tbl m (step :: rest) (.error d)
+
+/-- The constructor bodies, base-first, with the arguments `tbl`; `imm_` locals are threaded from
+    step to step. -/
+inductive ExecCtorChain (tbl : List (Ident × List Value)) : Store → Machine → List CtorStep → CtorResult → Prop where
+  | nil : ExecCtorChain tbl imms m [] (.ok m imms)
+  | skip : step.fn = none → ExecCtorChain tbl imms m rest r → ExecCtorChain tbl imms m (step :: rest) r
+  | run : step.fn = some fid → fc.fns[fid]? = some fn → tbl.lookup step.contract = some vs →
+      enterFn cfg fc.types fn.declaredIn fn.decl vs m imms = some (.ok (fr2, m2)) → fn.decl.body = some body →
       ExecChain cfg o fc { fr2 with chain := fn.decl.modifiers, body := body } m2 fn.decl.modifiers body res →
       finished res = some (fr4, m4) →
-      ExecCtorChain frP topArgs (immStore fr4) m4 rest r → ExecCtorChain frP topArgs imms m (step :: rest) r
-  | argsReverted : step.fn = some fid → fc.fns[fid]? = some fn → CtorArgs cfg o fc frP topArgs m step (.reverted d) →
-      ExecCtorChain frP topArgs imms m (step :: rest) (.reverted d)
-  | bodyReverted : step.fn = some fid → fc.fns[fid]? = some fn → CtorArgs cfg o fc frP topArgs m step (.ok vs _ m1) →
-      enterFn cfg fc.types fn.declaredIn fn.decl vs m1 imms = some (.ok (fr2, m2)) → fn.decl.body = some body →
+      ExecCtorChain tbl (immStore fr4) m4 rest r → ExecCtorChain tbl imms m (step :: rest) r
+  | bodyReverted : step.fn = some fid → fc.fns[fid]? = some fn → tbl.lookup step.contract = some vs →
+      enterFn cfg fc.types fn.declaredIn fn.decl vs m imms = some (.ok (fr2, m2)) → fn.decl.body = some body →
       ExecChain cfg o fc { fr2 with chain := fn.decl.modifiers, body := body } m2 fn.decl.modifiers body (.reverted d) →
-      ExecCtorChain frP topArgs imms m (step :: rest) (.reverted d)
-  | enterPanic : step.fn = some fid → fc.fns[fid]? = some fn → CtorArgs cfg o fc frP topArgs m step (.ok vs _ m1) →
-      enterFn cfg fc.types fn.declaredIn fn.decl vs m1 imms = some (.error p) →
-      ExecCtorChain frP topArgs imms m (step :: rest) (.reverted p.data)
+      ExecCtorChain tbl imms m (step :: rest) (.reverted d)
+  | enterPanic : step.fn = some fid → fc.fns[fid]? = some fn → tbl.lookup step.contract = some vs →
+      enterFn cfg fc.types fn.declaredIn fn.decl vs m imms = some (.error p) →
+      ExecCtorChain tbl imms m (step :: rest) (.reverted p.data)
 
-/-- The frame in which base-constructor arguments are evaluated: the most-derived constructor's
-    parameters over the zeroed immutables. -/
-def ctorParamFrame (fc : FlatContract) (topArgs : List Value) (m : Machine) (imms : Store) : Op (Frame × Machine) :=
-  match topCtor? fc with
-  | some f => enterFn cfg fc.types fc.name f.decl topArgs m imms
-  | none => pure ({ here := fc.name, locals := imms, retVars := [] }, m)
-
-/-- Construction at fixed inputs: initializers (base-first), then the constructor chain. -/
+/-- Construction at fixed inputs, in solc's (legacy) order: the initializers (base-first), the
+    arguments of every constructor (most derived first), the constructor bodies (base-first). -/
 inductive solidityCtorExec (args : List ABIValue)
     (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
     (genesisBlockHeader : Ethereum.BlockHeader) (blocks : Ethereum.ProcessedBlocks)
@@ -215,21 +240,24 @@ inductive solidityCtorExec (args : List ABIValue)
   | run :
       ctorPayable fc I → immZero fc = some imms0 →
       ofAbiList fc.types ((topCtor? fc).map (·.decl.params.map (·.ty)) |>.getD []) args {} = some (topArgs, h0) →
-      ctorParamFrame cfg fc topArgs (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0) imms0 = some (.ok (frP, m0)) →
-      ExecInits cfg o fc frP m0 (initializers fc) (.ok () frP1 m1) →
-      ExecCtorChain cfg o fc frP1 topArgs (immStore frP1) m1 fc.ctorChain r →
+      ExecInits cfg o fc (initRoot fc imms0) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0)
+        (initializers fc) (.ok () frI m1) →
+      CtorArgsAll cfg o fc topArgs (immStore frI) [] m1 fc.ctorChain.reverse (.ok (tbl, m2)) →
+      ExecCtorChain cfg o fc tbl (immStore frI) m2 fc.ctorChain r →
       solidityCtorExec args createdAccounts genesisBlockHeader blocks σ σ₀ g A I r
   | initsReverted :
       ctorPayable fc I → immZero fc = some imms0 →
       ofAbiList fc.types ((topCtor? fc).map (·.decl.params.map (·.ty)) |>.getD []) args {} = some (topArgs, h0) →
-      ctorParamFrame cfg fc topArgs (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0) imms0 = some (.ok (frP, m0)) →
-      ExecInits cfg o fc frP m0 (initializers fc) (.reverted d) →
+      ExecInits cfg o fc (initRoot fc imms0) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0)
+        (initializers fc) (.reverted d) →
       solidityCtorExec args createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted d)
-  | paramPanic :
+  | argsReverted :
       ctorPayable fc I → immZero fc = some imms0 →
       ofAbiList fc.types ((topCtor? fc).map (·.decl.params.map (·.ty)) |>.getD []) args {} = some (topArgs, h0) →
-      ctorParamFrame cfg fc topArgs (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0) imms0 = some (.error p) →
-      solidityCtorExec args createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted p.data)
+      ExecInits cfg o fc (initRoot fc imms0) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0)
+        (initializers fc) (.ok () frI m1) →
+      CtorArgsAll cfg o fc topArgs (immStore frI) [] m1 fc.ctorChain.reverse (.error d) →
+      solidityCtorExec args createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted d)
   | nonPayable :
       ¬ ctorPayable fc I →
       solidityCtorExec args createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted ByteArray.empty)

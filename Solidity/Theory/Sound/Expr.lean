@@ -68,12 +68,28 @@ theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
           split at h
           · rename_i en hen
             have hg : fr.get? obj = none := by
-              simp only [directMember, henv', Bool.false_or, Bool.and_eq_true, Option.isNone_iff_eq_none] at hdm
-              exact hdm.1
+              simpa [directMember, unitQual, henv', hen] using hdm
             rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨i, hi, h⟩ <;> try dsimp only at h
             · exact (liftOpt_error hd).elim
             · rw [IM.pure_some h]; exact .enumMember henv' hg hen (liftOpt_ok hi)
-          · simp at h
+          · -- Q.x
+            rename_i hen
+            have hq : unitQual fc fr obj = true := by simpa [directMember, henv', hen] using hdm
+            split at h
+            · rename_i v hv
+              split at h
+              · rename_i hmut
+                split at h
+                · rename_i e he
+                  rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨val, fr1, m1⟩, hval, h⟩ <;> try dsimp only at h
+                  · exact .qualConstRevert hq hv hmut he (ih.expr _ _ _ _ hd)
+                  · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨val', m2⟩, hc, h⟩ <;> try dsimp only at h
+                    · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+                      exact .qualConstPanic hq hv hmut he (ih.expr _ _ _ _ hval) hp
+                    · rw [IM.pure_some h]; exact .qualConst hq hv hmut he (ih.expr _ _ _ _ hval) (liftOp_ok hc)
+                · simp at h
+              · simp at h
+            · simp at h
       · -- type(T).f
         rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨v, hv, h⟩ <;> try dsimp only at h
         · exact (liftOpt_error hd).elim
@@ -86,7 +102,21 @@ theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
           rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨v, hv, h⟩ <;> try dsimp only at h
           · exact (liftOpt_error hd).elim
           · rw [IM.pure_some h]; exact .memberSelector (liftOpt_ok hv)
-        · simp at h
+        · -- Q.E.member
+          rename_i hf
+          split at h
+          · rename_i q
+            have hq : fnRefContract fc fr (.ident q) = some q := by
+              simp only [directMember] at hdm
+              simp only [fnRefContract] at hdm ⊢
+              split <;> simp_all
+            split at h
+            · rename_i en hen
+              rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨i, hi, h⟩ <;> try dsimp only at h
+              · exact (liftOpt_error hd).elim
+              · rw [IM.pure_some h]; exact .qualEnumMember hq (by simpa using hf) hen (liftOpt_ok hi)
+            · simp at h
+          · simp at h
       · simp at h
     · rename_i hdm
       exact ih.member _ _ _ _ _ (by simpa using hdm) h

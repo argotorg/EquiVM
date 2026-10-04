@@ -191,41 +191,35 @@ theorem execStmt_sound_step {n} (ih : SoundAt cfg o fc n) :
                 exact .returnMulti hlen (ih.expr _ _ _ _ hv) (ih.assignTuple _ _ _ _ _ hat)
             · simp at h
   | emit ev args =>
-    cases ev
-    case ident evn =>
-      simp only [execStmt] at h
-      rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
+    simp only [execStmt] at h
+    rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
+    · exact (liftOpt_error hd).elim
+    · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr1, m1⟩, hvs, h⟩ <;> try dsimp only at h
+      · exact .emitRevert (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
+      · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨ei, hei, h⟩ <;> try dsimp only at h
+        · exact (liftOpt_error hd).elim
+        · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨svs, m2⟩, hsvs, h⟩ <;> try dsimp only at h
+          · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+            exact .emitPanic (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hei) hp
+          · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨le, hle, h⟩ <;> try dsimp only at h
+            · exact (liftOpt_error hd).elim
+            · rw [IM.pure_some h]
+              exact .emit (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hei) (liftOp_ok hsvs) (liftOpt_ok hle)
+  | revert err args =>
+    simp only [execStmt] at h
+    rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨ei, hei, h⟩ <;> try dsimp only at h
+    · exact (liftOpt_error hd).elim
+    · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
       · exact (liftOpt_error hd).elim
       · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr1, m1⟩, hvs, h⟩ <;> try dsimp only at h
-        · exact .emitRevert (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
-        · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨ei, hei, h⟩ <;> try dsimp only at h
-          · exact (liftOpt_error hd).elim
-          · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨svs, m2⟩, hsvs, h⟩ <;> try dsimp only at h
-            · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
-              exact .emitPanic (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hei) hp
-            · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨le, hle, h⟩ <;> try dsimp only at h
-              · exact (liftOpt_error hd).elim
-              · rw [IM.pure_some h]
-                exact .emit (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hei) (liftOp_ok hsvs) (liftOpt_ok hle)
-    all_goals simp [execStmt] at h
-  | revert err args =>
-    cases err
-    case ident errn =>
-      simp only [execStmt] at h
-      rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨ei, hei, h⟩ <;> try dsimp only at h
-      · exact (liftOpt_error hd).elim
-      · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
-        · exact (liftOpt_error hd).elim
-        · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr1, m1⟩, hvs, h⟩ <;> try dsimp only at h
-          · exact .revertErrorArgsRevert (liftOpt_ok hei) (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
-          · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨svs, m2⟩, hsvs, h⟩ <;> try dsimp only at h
-            · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
-              exact .revertErrorPanic (liftOpt_ok hei) (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) hp
-            · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨dd, hdd, h⟩ <;> try dsimp only at h
-              · exact (liftOpt_error hd).elim
-              · rw [IM.throw_some h]
-                exact .revertError (liftOpt_ok hei) (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) (liftOpt_ok hdd)
-    all_goals simp [execStmt] at h
+        · exact .revertErrorArgsRevert (liftOpt_ok hei) (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
+        · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨svs, m2⟩, hsvs, h⟩ <;> try dsimp only at h
+          · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+            exact .revertErrorPanic (liftOpt_ok hei) (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) hp
+          · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨dd, hdd, h⟩ <;> try dsimp only at h
+            · exact (liftOpt_error hd).elim
+            · rw [IM.throw_some h]
+              exact .revertError (liftOpt_ok hei) (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) (liftOpt_ok hdd)
   | unchecked ss =>
     simp only [execStmt] at h
     rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨r', hr, h⟩

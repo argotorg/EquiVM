@@ -86,7 +86,9 @@ structure FlatContract where
   superTable : List ((Ident × FnKey) × FnId)
   /-- Explicit base call `B.f(…)`: the implementation `B` itself would use, for `(B, key)`. -/
   baseTable : List ((Ident × FnKey) × FnId)
+  /-- The hierarchy's modifiers, then the libraries'. -/
   modifiers : Array ModDef
+  /-- Most-derived implementation of each modifier of the hierarchy. -/
   modVtable : List (Ident × Nat)
   modSuper : List ((Ident × Ident) × Nat)
   /-- Base-first. -/
@@ -94,9 +96,10 @@ structure FlatContract where
   entries : List DispatchEntry
   receive? : Option FnId
   fallback? : Option FnId
+  /-- Events and errors of every unit (the hierarchy's, the file's, the libraries', other units'). -/
   events : List EventInfo
   errors : List ErrorInfo
-  /-- `(contract where written, directive)`. -/
+  /-- `(unit where written, directive)`: a directive applies to code of that unit only. -/
   usingFor : List (Ident × UsingFor)
   libraries : List ContractDecl
   /-- Own (non-inherited) function signatures per contract-like unit, for `type(I).interfaceId`. -/
@@ -108,6 +111,8 @@ structure FlatContract where
   contractCtors : List (Ident × List Param)
   /-- File-level functions (shadowed by contract functions of the same name). -/
   freeFns : List (FnKey × FnId) := []
+  /-- Functions of the libraries, by library. -/
+  unitFns : List (Ident × FnKey × FnId) := []
   isAbstract : Bool
   deriving Repr, Inhabited
 
@@ -217,32 +222,44 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
   let hier ← lin.mapM fun c => match find c with
     | some d => pure d
     | none => throw s!"unknown base contract `{c}`"
-  -- Type environment: hierarchy (most-derived first), file-level, then everything else.
+  -- Type environment: every struct and enum with its declaring unit (the file is `""`).
+  let linOf (c : Ident) : List Ident :=
+    (linearize (fun c => (find c).map (·.bases.map (·.name))) (contracts.length + 1) c).getD [c]
   let structsOf (d : ContractDecl) : List StructInfo :=
     d.structs.map fun s => { qual := some d.name, name := s.name, fields := s.fields }
   let enumsOf (d : ContractDecl) : List EnumInfo :=
     d.enums.map fun e => { qual := some d.name, name := e.name, members := e.members }
-  let fileStructs := p.filterMap fun | .struct s => some ({ qual := none, name := s.name, fields := s.fields } : StructInfo) | _ => none
-  let fileEnums := p.filterMap fun | .enum e => some ({ qual := none, name := e.name, members := e.members } : EnumInfo) | _ => none
-  let others := contracts.filter fun d => !lin.contains d.name
+  let fileStructs := p.filterMap fun | .struct s => some ({ qual := some "", name := s.name, fields := s.fields } : StructInfo) | _ => none
+  let fileEnums := p.filterMap fun | .enum e => some ({ qual := some "", name := e.name, members := e.members } : EnumInfo) | _ => none
+  let env0 : TypeEnv :=
+    { structs := contracts.flatMap structsOf ++ fileStructs
+      enums := contracts.flatMap enumsOf ++ fileEnums
+      contracts := contracts.map fun d => (d.name, d.kind)
+      lins := contracts.map fun d => (d.name, linOf d.name) }
+  -- Types in declarations are written in the scope of their unit: make them canonical.
+  let canon (here : Ident) (t : Ty) : Ty := env0.canonTy here t
+  let canonParams (here : Ident) (ps : List Param) : List Param := ps.map fun q => { q with ty := canon here q.ty }
+  let canonFn (here : Ident) (f : FnDecl) : FnDecl :=
+    { f with params := canonParams here f.params, returns := canonParams here f.returns }
+  let canonEvent (here : Ident) (e : EventDecl) : EventDecl :=
+    { e with params := e.params.map fun q => { q with ty := canon here q.ty } }
+  let canonError (here : Ident) (e : ErrorDecl) : ErrorDecl := { e with params := canonParams here e.params }
   let env : TypeEnv :=
-    { structs := hier.flatMap structsOf ++ fileStructs ++ others.flatMap structsOf
-      enums := hier.flatMap enumsOf ++ fileEnums ++ others.flatMap enumsOf
-      contracts := contracts.map fun d => (d.name, d.kind) }
-  -- User type names are resolved without scopes: a name denotes one struct / one enum.
-  if let some s := env.structs.find? fun s => env.structs.any fun s' => s'.name == s.name && s'.fields != s.fields then
-    throw s!"struct `{s.name}` is declared more than once with different fields (names are resolved without scopes)"
-  if let some e := env.enums.find? fun e => env.enums.any fun e' => e'.name == e.name && e'.members != e.members then
-    throw s!"enum `{e.name}` is declared more than once with different members (names are resolved without scopes)"
+    { env0 with structs := env0.structs.map fun s =>
+        { s with fields := s.fields.map fun (t, f) => (canon (s.qual.getD "") t, f) } }
   -- State variables, base-first.
   let baseFirst := hier.reverse
   let rawVars := baseFirst.flatMap fun d => d.stateVars.map fun v => (d.name, v)
   let dup (n : Ident) : Bool := (rawVars.filter (·.2.name == n)).length > 1
   let stateVars : List FlatVar := rawVars.map fun (c, v) =>
     { key := if dup v.name then s!"{c}.{v.name}" else v.name, name := v.name, declaredIn := c,
-      ty := v.ty, visibility := v.visibility, mutability := v.mutability, init := v.init }
+      ty := canon c v.ty, visibility := v.visibility, mutability := v.mutability, init := v.init }
+  -- Immutables are kept by name (`imm_<name>`): two with one name would be one.
+  let immNames := (stateVars.filter (·.mutability == .immutable)).map (·.name)
+  if immNames.eraseDups.length != immNames.length then
+    throw "two immutables with one name (a private one in a base) are not supported"
   -- Functions (most-derived first) with ids.
-  let rawFns := hier.flatMap fun d => d.fns.map fun f => (d.name, f)
+  let rawFns := hier.flatMap fun d => d.fns.map fun f => (d.name, canonFn d.name f)
   let fns0 : Array FnDef := (rawFns.zipIdx.map fun ((c, f), i) => ({ id := i, declaredIn := c, decl := f } : FnDef)).toArray
   let functionDefs := fns0.toList.filter (·.decl.kind == .function)
   let keys := (functionDefs.map (fnKeyOf ·.decl)).eraseDups
@@ -259,7 +276,8 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
       (functionDefs.find? fun f => from_.contains f.declaredIn && fnKeyOf f.decl == k).map fun f =>
         ((c, k), f.id)
   -- Modifiers.
-  let rawMods := hier.flatMap fun d => d.modifiers.map fun m => (d.name, m)
+  let rawMods := hier.flatMap fun d => d.modifiers.map fun m =>
+    (d.name, { m with params := canonParams d.name m.params })
   let modifiers : Array ModDef := (rawMods.zipIdx.map fun ((c, m), i) => ({ id := i, declaredIn := c, decl := m } : ModDef)).toArray
   let modNames := (modifiers.toList.map (·.decl.name)).eraseDups
   let modVtable := modNames.filterMap fun n =>
@@ -274,8 +292,17 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
   let getterDefs : List FnDef := publicVars.zipIdx.map fun (v, i) =>
     { id := fns0.size + i, declaredIn := v.declaredIn, decl := synthGetter env v }
   let freeDefs : List FnDef := (p.filterMap fun | .function d => some d | _ => none).zipIdx.map fun (f, i) =>
-    { id := fns0.size + getterDefs.length + i, declaredIn := "", decl := f }
-  let fns := fns0 ++ getterDefs.toArray ++ freeDefs.toArray
+    { id := fns0.size + getterDefs.length + i, declaredIn := "", decl := canonFn "" f }
+  -- Library functions (called by name from their own library, by `L.f` and `using for` elsewhere).
+  let libraries := (contracts.filter (·.kind == .library)).map fun d =>
+    { d with items := d.items.map fun | .fn f => .fn (canonFn d.name f) | i => i }
+  let libDefs : List FnDef := (libraries.flatMap fun d => d.functions.map fun f => (d.name, f)).zipIdx.map fun ((c, f), i) =>
+    { id := fns0.size + getterDefs.length + freeDefs.length + i, declaredIn := c, decl := f }
+  -- Library modifiers (for the functions of their own library), after the hierarchy's.
+  let libMods : List ModDef := (libraries.flatMap fun d => d.modifiers.map fun m =>
+      (d.name, { m with params := canonParams d.name m.params })).zipIdx.map fun ((c, m), i) =>
+    { id := modifiers.size + i, declaredIn := c, decl := m }
+  let fns := fns0 ++ getterDefs.toArray ++ freeDefs.toArray ++ libDefs.toArray
   let vtable := getterDefs.foldl (fun vt g =>
       let k := fnKeyOf g.decl
       (k, g.id) :: vt.filter (·.1 != k)) vtable0
@@ -298,75 +325,58 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
   let entries := entryOpts.filterMap id
   let receive? := (fns0.toList.find? (·.decl.kind == .receive)).map (·.id)
   let fallback? := (fns0.toList.find? (·.decl.kind == .fallback)).map (·.id)
-  -- Events and errors across the hierarchy.
-  let events ← hier.flatMapM fun d => d.events.mapM fun e =>
-    match sigOf env e.name (eventTys e) with
-    | some sig => pure ({ declaredIn := d.name, decl := e, sig := sig, sigStr := ABI.printSignature sig } : EventInfo)
-    | none => throw s!"event `{e.name}` has a parameter type without ABI encoding"
-  let errors ← hier.flatMapM fun d => d.errors.mapM fun e =>
-    match sigOf env e.name (tysOfParams e.params) with
-    | some sig => pure ({ declaredIn := d.name, decl := e, sig := sig, sigStr := ABI.printSignature sig } : ErrorInfo)
-    | none => throw s!"error `{e.name}` has a parameter type without ABI encoding"
-  -- File-level events, errors and constants (after the hierarchy's own, which shadow them).
-  let fileEvents ← (p.filterMap fun | .event e => some e | _ => none).mapM fun e =>
-    match sigOf env e.name (eventTys e) with
-    | some sig => pure ({ declaredIn := "", decl := e, sig := sig, sigStr := ABI.printSignature sig } : EventInfo)
-    | none => throw s!"event `{e.name}` has a parameter type without ABI encoding"
-  let fileErrors ← (p.filterMap fun | .error e => some e | _ => none).mapM fun e =>
-    match sigOf env e.name (tysOfParams e.params) with
-    | some sig => pure ({ declaredIn := "", decl := e, sig := sig, sigStr := ABI.printSignature sig } : ErrorInfo)
-    | none => throw s!"error `{e.name}` has a parameter type without ABI encoding"
+  -- Events and errors, each with its declaring unit (the hierarchy's, the file's, the libraries').
+  let eventsOfUnit (c : Ident) (es : List EventDecl) : Except String (List EventInfo) :=
+    es.mapM fun e =>
+      let e := canonEvent c e
+      match sigOf env e.name (eventTys e) with
+      | some sig => pure ({ declaredIn := c, decl := e, sig := sig, sigStr := ABI.printSignature sig } : EventInfo)
+      | none => throw s!"event `{e.name}` has a parameter type without ABI encoding"
+  let errorsOfUnit (c : Ident) (es : List ErrorDecl) : Except String (List ErrorInfo) :=
+    es.mapM fun e =>
+      let e := canonError c e
+      match sigOf env e.name (tysOfParams e.params) with
+      | some sig => pure ({ declaredIn := c, decl := e, sig := sig, sigStr := ABI.printSignature sig } : ErrorInfo)
+      | none => throw s!"error `{e.name}` has a parameter type without ABI encoding"
+  let events ← hier.flatMapM fun d => eventsOfUnit d.name d.events
+  let errors ← hier.flatMapM fun d => errorsOfUnit d.name d.errors
+  let fileEvents ← eventsOfUnit "" (p.filterMap fun | .event e => some e | _ => none)
+  let fileErrors ← errorsOfUnit "" (p.filterMap fun | .error e => some e | _ => none)
+  let libEvents ← libraries.flatMapM fun d => eventsOfUnit d.name d.events
+  let libErrors ← libraries.flatMapM fun d => errorsOfUnit d.name d.errors
+  -- Other units (an interface or a contract outside the hierarchy), for `Q.Ev` / `Q.Err`; one
+  -- without ABI encoding is left out.
+  let others := contracts.filter fun d => d.kind != .library && !lin.contains d.name
+  let otherEvents := others.flatMap fun d => d.events.flatMap fun e => (eventsOfUnit d.name [e]).toOption.getD []
+  let otherErrors := others.flatMap fun d => d.errors.flatMap fun e => (errorsOfUnit d.name [e]).toOption.getD []
+  -- Constants of the file and of the libraries.
   let fileConsts : List FlatVar := (p.filterMap fun | .constant v => some v | _ => none).map fun v =>
-    { key := v.name, name := v.name, declaredIn := "", ty := v.ty, visibility := .internal,
+    { key := v.name, name := v.name, declaredIn := "", ty := canon "" v.ty, visibility := .internal,
       mutability := .constant, init := v.init }
-  let usingFor := hier.flatMap fun d => d.usings.map fun u => (d.name, u)
-  let libraries := contracts.filter (·.kind == .library)
-  -- Library members: events, errors and constants, after the hierarchy's and the file's.  Names are
-  -- resolved without scopes, so a library member must not contradict an earlier declaration.
-  let libEvents ← libraries.flatMapM fun d => d.events.mapM fun e =>
-    match sigOf env e.name (eventTys e) with
-    | some sig => pure ({ declaredIn := d.name, decl := e, sig := sig, sigStr := ABI.printSignature sig } : EventInfo)
-    | none => throw s!"event `{e.name}` has a parameter type without ABI encoding"
-  let sameEvent (a b : EventInfo) : Bool :=
-    a.sigStr == b.sigStr && a.decl.params.map (·.indexed) == b.decl.params.map (·.indexed) &&
-      a.decl.anonymous == b.decl.anonymous
-  let allEvents := libEvents.foldl (fun acc e => if acc.any (sameEvent e) then acc else acc ++ [e]) (events ++ fileEvents)
-  let libErrors ← libraries.flatMapM fun d => d.errors.mapM fun e =>
-    match sigOf env e.name (tysOfParams e.params) with
-    | some sig => pure ({ declaredIn := d.name, decl := e, sig := sig, sigStr := ABI.printSignature sig } : ErrorInfo)
-    | none => throw s!"error `{e.name}` has a parameter type without ABI encoding"
-  let allErrors ← libErrors.foldlM (fun acc e =>
-      match acc.find? (·.decl.name == e.decl.name) with
-      | none => pure (acc ++ [e])
-      | some e' =>
-        if e'.sigStr == e.sigStr then pure acc
-        else throw s!"error `{e.decl.name}` of library `{e.declaredIn}` is declared elsewhere with other parameters (names are resolved without scopes)")
-    (errors ++ fileErrors)
   let libConsts : List FlatVar := libraries.flatMap fun d =>
     (d.stateVars.filter (·.mutability == .constant)).map fun v =>
-      { key := v.name, name := v.name, declaredIn := d.name, ty := v.ty, visibility := .internal,
+      { key := v.name, name := v.name, declaredIn := d.name, ty := canon d.name v.ty, visibility := .internal,
         mutability := .constant, init := v.init }
-  let allVars ← libConsts.foldlM (fun acc v =>
-      if acc.any (·.name == v.name) then
-        throw s!"constant `{v.name}` of library `{v.declaredIn}` has the name of another variable (names are resolved without scopes): rename it in the spec"
-      else pure (acc ++ [v]))
-    (stateVars ++ fileConsts)
+  let usingFor := contracts.flatMap fun d => d.usings.map fun u => (d.name, { u with ty := u.ty.map (canon d.name) })
   let interfaceSigs := contracts.map fun d =>
-    (d.name, d.functions.filterMap fun f => sigStrOf env f.name (tysOfParams f.params))
+    (d.name, d.functions.filterMap fun f => sigStrOf env f.name (tysOfParams (canonParams d.name f.params)))
   let contractFns := contracts.map fun d =>
-    let hierOf := (linearize (fun c => (find c).map (·.bases.map (·.name))) (contracts.length + 1) d.name).getD [d.name]
-    (d.name, hierOf.flatMap fun c => ((find c).map (·.functions)).getD [])
-  let contractCtors := contracts.map fun d => (d.name, (d.ctor?.map (·.params)).getD [])
+    (d.name, (linOf d.name).flatMap fun c => ((find c).map fun cd => cd.functions.map (canonFn c)).getD [])
+  let contractCtors := contracts.map fun d => (d.name, (d.ctor?.map fun c => canonParams d.name c.params).getD [])
   let isAbstract := root.kind == .abstractContract || root.kind == .interface ||
     vtable.any fun e => (fns[e.2]!).decl.body.isNone
   pure
     { name := target, kind := root.kind, linearization := lin, types := env,
-      stateVars := allVars, fns := fns, vtable := vtable, superTable := superTable, baseTable := baseTable,
-      modifiers := modifiers, modVtable := modVtable, modSuper := modSuper,
+      stateVars := stateVars ++ fileConsts ++ libConsts, fns := fns, vtable := vtable, superTable := superTable,
+      baseTable := baseTable,
+      modifiers := modifiers ++ libMods.toArray, modVtable := modVtable, modSuper := modSuper,
       ctorChain := ctorChain, entries := entries, receive? := receive?, fallback? := fallback?,
-      events := allEvents, errors := allErrors, usingFor := usingFor, libraries := libraries,
+      events := events ++ fileEvents ++ libEvents ++ otherEvents,
+      errors := errors ++ fileErrors ++ libErrors ++ otherErrors, usingFor := usingFor,
+      libraries := libraries,
       interfaceSigs := interfaceSigs, contractFns := contractFns, contractCtors := contractCtors,
-      freeFns := freeDefs.map fun f => (fnKeyOf f.decl, f.id), isAbstract := isAbstract }
+      freeFns := freeDefs.map fun f => (fnKeyOf f.decl, f.id),
+      unitFns := libDefs.map fun f => (f.declaredIn, fnKeyOf f.decl, f.id), isAbstract := isAbstract }
 
 /-! ## Queries -/
 
@@ -374,13 +384,30 @@ namespace FlatContract
 
 def fn? (fc : FlatContract) (id : FnId) : Option FnDef := fc.fns[id]?
 
-def var? (fc : FlatContract) (name : Ident) : Option FlatVar :=
-  fc.stateVars.find? (·.name == name)
+/-! Names are resolved from the unit whose code is running (`here`: a contract of the hierarchy, a
+library, or `""` for a file-level function): its own declarations and those of its bases, then the
+file's.  `…Of q` is the qualified form `q.name`. -/
 
-/-- Candidates named `name` (overloads): the vtable's, else the free functions'. -/
-def fnsNamed (fc : FlatContract) (name : Ident) : List (FnKey × FnId) :=
-  match fc.vtable.filter (·.1.name == name) with
-  | [] => fc.freeFns.filter (·.1.name == name)
+/-- The variable or constant `q.x`: declared in `q`, or visible in it from a base. -/
+def varOf (fc : FlatContract) (q x : Ident) : Option FlatVar :=
+  (fc.types.unitLin q).findSome? fun u =>
+    fc.stateVars.find? fun v => v.name == x && v.declaredIn == u && (u == q || v.visibility != .priv)
+
+/-- The variable or constant `x` names in code of `here`. -/
+def varIn (fc : FlatContract) (here x : Ident) : Option FlatVar :=
+  match fc.varOf here x with
+  | some v => some v
+  | none => fc.stateVars.find? fun v => v.name == x && v.declaredIn == ""
+
+/-- The functions named `f` of library `q`. -/
+def unitFnsNamed (fc : FlatContract) (q f : Ident) : List (FnKey × FnId) :=
+  fc.unitFns.filterMap fun (u, k, id) => if u == q && k.name == f then some (k, id) else none
+
+/-- Candidates for a call of `f` in code of `here` (overloads): the hierarchy's implementations
+    when `here` is one of its contracts, the unit's own functions otherwise; else the file's. -/
+def fnsNamedIn (fc : FlatContract) (here f : Ident) : List (FnKey × FnId) :=
+  match (if fc.linearization.contains here then fc.vtable.filter (·.1.name == f) else fc.unitFnsNamed here f) with
+  | [] => fc.freeFns.filter (·.1.name == f)
   | cs => cs
 
 /-- Parameter lists of candidate functions (named-argument matching). -/
@@ -393,15 +420,31 @@ def superFn? (fc : FlatContract) (from_ : Ident) (k : FnKey) : Option FnId :=
 def modifier? (fc : FlatContract) (name : Ident) : Option ModDef :=
   (fc.modVtable.find? (·.1 == name)).bind fun (_, id) => fc.modifiers[id]?
 
-def event? (fc : FlatContract) (name : Ident) : Option EventInfo :=
-  fc.events.find? (·.decl.name == name)
+/-- The modifier `name` names in code of `here`: the most derived implementation when `here` is a
+    contract of the hierarchy, the unit's own modifier otherwise (a library's). -/
+def modifierIn (fc : FlatContract) (here name : Ident) : Option ModDef :=
+  if fc.linearization.contains here then fc.modifier? name
+  else fc.modifiers.toList.find? fun m => m.declaredIn == here && m.decl.name == name
 
-/-- Events named `name` (overloads). -/
-def eventsNamed (fc : FlatContract) (name : Ident) : List EventInfo :=
-  fc.events.filter (·.decl.name == name)
+/-- The events `q.ev` (overloads): declared in `q` or inherited by it. -/
+def eventsOf (fc : FlatContract) (q ev : Ident) : List EventInfo :=
+  fc.events.filter fun e => e.decl.name == ev && (fc.types.unitLin q).contains e.declaredIn
 
-def error? (fc : FlatContract) (name : Ident) : Option ErrorInfo :=
-  fc.errors.find? (·.decl.name == name)
+/-- The events `ev` names in code of `here` (overloads). -/
+def eventsNamedIn (fc : FlatContract) (here ev : Ident) : List EventInfo :=
+  match fc.eventsOf here ev with
+  | [] => fc.events.filter fun e => e.decl.name == ev && e.declaredIn == ""
+  | es => es
+
+/-- The error `q.name`. -/
+def errorOf (fc : FlatContract) (q name : Ident) : Option ErrorInfo :=
+  (fc.types.unitLin q).findSome? fun u => fc.errors.find? fun e => e.decl.name == name && e.declaredIn == u
+
+/-- The error `name` names in code of `here`. -/
+def errorIn (fc : FlatContract) (here name : Ident) : Option ErrorInfo :=
+  match fc.errorOf here name with
+  | some e => some e
+  | none => fc.errors.find? fun e => e.decl.name == name && e.declaredIn == ""
 
 def sigStrs (fc : FlatContract) : List String := fc.entries.map (·.sigStr)
 

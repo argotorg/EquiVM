@@ -132,16 +132,50 @@ locals of a function body end with the body (`ExecChain.body` yields `exitBlock 
 `fr1.hidden = []`.  The DSL parses a `for` without initializer (`for (; c; p)`, `for (;;)`).
 
 Changed 2026-10-04 (conformance fixtures `Calls`, `Recv`, `Inherit`, `Libs`): external calls,
-low-level calls, `transfer`/`send`, `receive`/`fallback` and inheritance needed no change.  Library
-members are now visible: the elaborator adds the events, errors and constants declared in libraries
-to `fc.events`, `fc.errors` and `fc.stateVars` (after the hierarchy's and the file's).  Names are
-resolved in one namespace, so `elabProgram` rejects a library constant with the name of another
-variable, an error declared twice with different parameters, and a struct or enum declared twice
-with different contents; identical events are merged.  User types are compared up to their
-qualifier (`Ty.same` in `argFits`, `eventArgFits`, `usingLibrary`, `coerce`): `Acc` inside a library
-is `MathLib.Acc` outside.  A constant's initializer is evaluated without the reader's locals
-(`constFrame` in `constVar*`; `EvalExpr.constVarVal`/`constVarLitU256` take the initializer's
-derivation in `constFrame fr` and leave the frame unchanged).
+low-level calls, `transfer`/`send`, `receive`/`fallback` and inheritance needed no change.  The
+elaborator adds the events, errors and constants declared in libraries to `fc.events`, `fc.errors`
+and `fc.stateVars`.  A constant's initializer is evaluated without the reader's locals (`constFrame`
+in `constVar*`; `EvalExpr.constVarVal`/`constVarLitU256` take the initializer's derivation in
+`constFrame fr v.declaredIn` and leave the frame unchanged).
+
+Changed 2026-10-04 (names by scope; fixture `Scopes`).  Every lookup starts from the unit whose code
+is running (`fr.here`: a contract of the hierarchy, a library, `""` for a file-level function): its
+own declarations and those of its bases, then the file's.
+- Lookups (`Elab.lean`): `fc.varIn here x`, `fc.fnsNamedIn here f`, `fc.errorIn here e`,
+  `fc.eventsNamedIn here ev`, `fc.modifierIn here name`, `fc.types.structIn/enumIn here n`; the
+  qualified forms `fc.varOf q x`, `fc.errorOf`, `fc.eventsOf`, `fc.types.structOf/enumOf`.  They
+  replace `var?`, `fnsNamed`, `error?`, `eventsNamed`, `modifier?`, `struct? none`, `enum? none` in
+  every rule.  Library functions have entries in `fc.fns` (`fc.unitFns`), so one library function
+  can call another by name; library modifiers are in `fc.modifiers` after the hierarchy's.
+  `fc.events`/`fc.errors` hold those of every unit (also an interface or a contract outside the
+  hierarchy, for `Q.Ev`/`Q.Err`); `fc.usingFor` holds the directives of every unit, each applying
+  to code of its unit only (also inside a library).
+- Types: a struct or enum is identified by its declaring unit and its name (`StructInfo.qual`; the
+  file is `some ""`; `TypeEnv.struct?`/`enum?` match the qualifier exactly).  An enum value carries
+  its unit (`Value.enum q ty i`, of type `.user q ty`), so enums with one name in several units stay
+  apart in conversions, overloads, `abi.encode` and `using for`.  Types in declarations
+  are made canonical by the elaborator, types written in bodies by `TypeEnv.canonTy fr.here` (in
+  `declare`, conversions, `new`, `abi.decode`); `canonTy_uint`, …, `TypeEnv.canonTy_user_none`.
+- Qualified forms: `Q.CONST` (`qualConst*`, `unitQual`), `Q.E.member` (`qualEnumMember`),
+  `Q.S(...)` (`structLitQ*`) and `Q.E(a)` (`convertQ`) for a library, a base or another unit
+  (`qualTypeRecv`, `otherUnitRecv`; the library and base call rules take `qualTypeRecv … = false`),
+  `revert Q.Err(...)` and `emit Q.Ev(...)` (`errorRef`, `eventsRef`: the `emit`/`revert` rules take
+  any callee; `errorRef_ident`, `eventsRef_ident`).
+- Constructors follow solc's (legacy) order: initializers base-first, each in the scope of its
+  contract (`ExecInits`, `initRoot`); then the arguments of every constructor, the most derived
+  contract first, each evaluated with the parameters of the constructor that wrote it
+  (`CtorArgsAll`, `CtorArgs`, `ctorFrame`); then the bodies base-first with those arguments
+  (`ExecCtorChain tbl`).  Builders: `CtorArgsAll.single`, `ExecCtorChain.runPlain/topPlain`,
+  `ExecInits.storageU256`.
+- A storage value can be passed to a `memory` parameter of an internal function (`argFits`).
+- `elabProgram` rejects two immutables with one name (a private one in a base and one in a derived
+  contract): immutables are kept by name (`imm_<name>`).
+- Library: hypotheses read `fc.varIn fr.here x = some v` etc.; `FlatContract.fnsNamedIn_vtable/free`,
+  `FlatContract.modifierIn_hier`; the modifier builders take `fc.modifierIn fr.here mi.name = some md`;
+  `directMember_ident` needs `unitQual … = false` (`unitQual_local/var/noContract`).
+- Tests: `Scopes` (clashes at file level, in two libraries and in the contract; three enums with one
+  name; `using for` and a modifier inside a library), `PTop`/`QTop`/`RTop` (private names, constructor
+  order), `STop` (names through a base, an interface and an unrelated contract).
 
 ## Deferred language features
 
@@ -153,10 +187,14 @@ the mapping's declared key type as solc does: `keccak256(h(k) ++ slot)` with `h`
 padded word for value types and the raw bytes for `string`/`bytes`.  No new rules or proof cases;
 `keyValueToWord` and the few exhaustive matches on `KeyValue` in Sol⁻ need the new case.
 
-Qualified names in expressions (found by the `Libs` fixture, scenario `Libs/qualified`): `L.CONST`
-and `L.Struct(...)` have no rule; `L.Enum.Member`, `revert L.Error(...)`, `emit L.Event(...)` and
-struct literals qualified by a base contract or an interface are untested.  Two user types with one
-name in different units (`Tick.Info`, `Position.Info`) are rejected rather than resolved by scope.
+Names, not covered: a state variable written with its contract (`Base.x`, read or assigned); a
+modifier invoked with a qualifier (`Base.m`); `using {f, g} for T` (a list of functions) and
+file-level `using` directives.
+
+Known disagreement with solc (found 2026-10-04, not fixed): `abi.encode` of a fixed-size memory
+array (`uint256[2] memory x`) gives the encoding of a dynamic array (offset and length words); solc
+encodes the two elements in place.  A memory array does not record that it is fixed-size
+(`HeapObj.array`, `abiTyOfValue`).
 
 ## Not covered yet
 

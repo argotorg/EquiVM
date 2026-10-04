@@ -27,7 +27,8 @@ inductive Value where
   | fixedBytes (n : Fin 32) (bs : List UInt8)
   /-- A string / hex literal, untyped. -/
   | strLit (s : ByteArray)
-  | enum (ty : Ident) (i : Nat)
+  /-- A member of the enum `ty` declared in the unit `q` (as in `Ty.user q ty`). -/
+  | enum (q : Option Ident) (ty : Ident) (i : Nat)
   | memRef (id : Nat)
   | storageRef (er : Solm.EvaledStorageRef) (ty : Ty)
   /-- A calldata word of static type `ty` not yet validated (validated on access). -/
@@ -87,7 +88,7 @@ def Value.ty? : Value → Option Ty
   | .address _ => some (.address false)
   | .contract ty _ => some (.user none ty)
   | .fixedBytes n _ => some (.fixedBytes n)
-  | .enum ty _ => some (.user none ty)
+  | .enum q ty _ => some (.user q ty)
   | .storageRef _ ty => some ty
   | .raw ty _ => some ty
   | _ => none
@@ -102,7 +103,7 @@ def zeroValue (env : TypeEnv) : Ty → Option Value
   | .address _ => some (.address (EVM.address 0))
   | .fixedBytes n => some (.fixedBytes n (List.replicate (n.val + 1) 0))
   | .user q n =>
-    if (env.enum? q n).isSome then some (.enum n 0)
+    if (env.enum? q n).isSome then some (.enum q n 0)
     else if (env.contractKind? n).isSome then some (.contract n (EVM.address 0))
     else none
   | _ => none
@@ -141,7 +142,7 @@ def scalarToAbi : Value → Option ABIValue
   | .uint _ n => some (.int n)
   | .sint _ i => some (.int i)
   | .literal i _ => some (.int i)
-  | .enum _ i => some (.int i)
+  | .enum _ _ i => some (.int i)
   | .bool b => some (.bool b)
   | .address a => some (.address a)
   | .contract _ a => some (.address a)
@@ -158,7 +159,7 @@ def scalarOfAbi (env : TypeEnv) : Ty → ABIValue → Option Value
   | .fixedBytes n, .fixedBytes m bs => if n = m then some (.fixedBytes n bs) else none
   | .user q n, .int i =>
     match env.enum? q n with
-    | some e => if i ≥ 0 ∧ i < e.members.length then some (.enum n i.toNat) else none
+    | some e => if i ≥ 0 ∧ i < e.members.length then some (.enum q n i.toNat) else none
     | none => none
   | .user q n, .address a =>
     if (env.contractKind? n).isSome && (env.enum? q n).isNone then some (.contract n a) else none

@@ -117,10 +117,22 @@ macro_rules
 
 theorem memberCallDirect_false {recv : Expr} (h : memberCallDirect fc fr recv = false) :
     isSuperExpr recv = false ∧ isEnvObj (headIdent recv) = false ∧ libraryRecv fc fr recv = false ∧
-      baseRecv fc fr recv = false := by
+      (baseRecv fc fr recv = false ∧ ∀ f, qualTypeRecv fc fr recv f = false) := by
   unfold memberCallDirect at h
   simp only [Bool.or_eq_false_iff] at h
-  exact ⟨h.1.1.1, h.1.1.2, h.1.2, h.2⟩
+  refine ⟨h.1.1.1.1, h.1.1.1.2, h.1.1.2, h.1.2, fun f => ?_⟩
+  unfold qualTypeRecv
+  cases recv <;> simp [h.1.1.2, h.1.2, h.2]
+
+/-- A unit name in qualifier position is no builtin namespace and no enum of the running code. -/
+theorem unitQual_true {q : Ident} (h : unitQual fc fr q = true) :
+    isEnvObj q = false ∧ fc.types.enumIn fr.here q = none ∧ directMember fc fr (.ident q) = true := by
+  have h' := h
+  simp only [unitQual, Bool.and_eq_true, Bool.not_eq_true', Option.isNone_iff_eq_none] at h'
+  exact ⟨h'.1.1.1.1, h'.1.2, by simp [directMember, h]⟩
+
+theorem qualTypeRecv_isEnv {q s : Ident} (h : qualTypeRecv fc fr (.ident q) s = true) : isEnvObj q = false := by
+  cases hq : isEnvObj q <;> simp_all [qualTypeRecv, libraryRecv, baseRecv, otherUnitRecv]
 
 theorem envMember_not_data {m : Machine} {obj f : Ident} {v : Value} (h : envMember m obj f = some v) :
     (obj == "msg" && f == "data") = false := by
@@ -196,6 +208,29 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     refine ⟨1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add hk
     interp_simp [directMember, p1, p2, p3, p4]
+  | .qualConst p1 p2 p3 p4 p5 p6 => by
+    obtain ⟨hq1, hq2, hq3⟩ := unitQual_true p1
+    obtain ⟨n5, ih5⟩ := evalExpr_complete p5
+    refine ⟨n5 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hq1, hq2, hq3, p2, p3, p4, p6, ih5 k' (by omega)]
+  | .qualConstRevert p1 p2 p3 p4 p5 => by
+    obtain ⟨hq1, hq2, hq3⟩ := unitQual_true p1
+    obtain ⟨n5, ih5⟩ := evalExpr_complete p5
+    refine ⟨n5 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hq1, hq2, hq3, p2, p3, p4, ih5 k' (by omega)]
+  | .qualConstPanic p1 p2 p3 p4 p5 p6 => by
+    obtain ⟨hq1, hq2, hq3⟩ := unitQual_true p1
+    obtain ⟨n5, ih5⟩ := evalExpr_complete p5
+    refine ⟨n5 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [hq1, hq2, hq3, p2, p3, p4, p6, ih5 k' (by omega)]
+  | .qualEnumMember (f := f) p1 p2 p3 p4 => by
+    have hf : (f == "selector") = false := by simpa using p2
+    refine ⟨1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add hk
+    interp_simp [directMember, p1, hf, p3, p4]
   | .typeMember p1 => by
     refine ⟨1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add hk
@@ -361,7 +396,8 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
     have e7 := ih7 (k' + 1) (by omega)
     simp only [evalExpr] at e7
-    have hconv : ((fc.var? c).isNone && ((fc.types.contractKind? c).isSome || (fc.types.enum? none c).isSome)) = true := by
+    have hconv : ((fc.varIn fr.here c).isNone &&
+        ((fc.types.contractKind? c).isSome || (fc.types.enumIn fr.here c).isSome)) = true := by
       rcases p6 with h6 | h6 <;> simp [p3, h6]
     interp_simp [p1, p2, p4, p5, hconv, e7]
   | .structLit p1 p2 p3 p4 p5 p6 p7 => by
@@ -379,6 +415,32 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     refine ⟨n6 + 3, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 3) (by omega)
     interp_simp [p1, p2, p3, p4, p5, p7, ih6 k' (by omega)]
+  | .structLitQ p1 p2 p3 p4 p5 => by
+    have he := qualTypeRecv_isEnv p1
+    obtain ⟨n4, ih4⟩ := evalExprs_complete p4
+    refine ⟨n4 + 2, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
+    interp_simp [isSuperExpr, headIdent, he, p1, p2, p3, p5, ih4 k' (by omega)]
+  | .structLitQRevert p1 p2 p3 p4 => by
+    have he := qualTypeRecv_isEnv p1
+    obtain ⟨n4, ih4⟩ := evalExprs_complete p4
+    refine ⟨n4 + 2, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
+    interp_simp [isSuperExpr, headIdent, he, p1, p2, p3, ih4 k' (by omega)]
+  | .structLitQPanic p1 p2 p3 p4 p5 => by
+    have he := qualTypeRecv_isEnv p1
+    obtain ⟨n4, ih4⟩ := evalExprs_complete p4
+    refine ⟨n4 + 2, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
+    interp_simp [isSuperExpr, headIdent, he, p1, p2, p3, p5, ih4 k' (by omega)]
+  | .convertQ p1 p2 p3 => by
+    have he := qualTypeRecv_isEnv p1
+    obtain ⟨n3, ih3⟩ := evalExpr_complete p3
+    refine ⟨n3 + 2, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
+    have e3 := ih3 (k' + 1) (by omega)
+    simp only [evalExpr] at e3
+    interp_simp [isSuperExpr, headIdent, he, p1, p2, e3]
   | .requireTrue p1 => by
     obtain ⟨n1, ih1⟩ := evalExpr_complete p1
     refine ⟨n1 + 3, fun k hk => ?_⟩
@@ -640,40 +702,40 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     refine ⟨n2 + 2, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
     interp_simp [isSuperExpr, p1, ih2 k' (by omega)]
-  | .libraryCall p1 p2 p3 p4 p5 p6 p7 => by
+  | .libraryCall p1 p2 p3 pq p4 p5 p6 p7 => by
     obtain ⟨n5, ih5⟩ := evalExprs_complete p5
     obtain ⟨n7, ih7⟩ := callFn_complete p7
     refine ⟨n5 + n7 + 2, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
-    interp_simp [isSuperExpr, headIdent, libraryRecv, p1, p2, p3, p4, p6, ih5 k' (by omega), ih7 k' (by omega)]
-  | .libraryCallRevert p1 p2 p3 p4 p5 p6 p7 => by
+    interp_simp [isSuperExpr, headIdent, pq, libraryRecv, p1, p2, p3, p4, p6, ih5 k' (by omega), ih7 k' (by omega)]
+  | .libraryCallRevert p1 p2 p3 pq p4 p5 p6 p7 => by
     obtain ⟨n5, ih5⟩ := evalExprs_complete p5
     obtain ⟨n7, ih7⟩ := callFn_complete p7
     refine ⟨n5 + n7 + 2, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
-    interp_simp [isSuperExpr, headIdent, libraryRecv, p1, p2, p3, p4, p6, ih5 k' (by omega), ih7 k' (by omega)]
-  | .libraryArgsRevert p1 p2 p3 p4 p5 => by
+    interp_simp [isSuperExpr, headIdent, pq, libraryRecv, p1, p2, p3, p4, p6, ih5 k' (by omega), ih7 k' (by omega)]
+  | .libraryArgsRevert p1 p2 p3 pq p4 p5 => by
     obtain ⟨n5, ih5⟩ := evalExprs_complete p5
     refine ⟨n5 + 2, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
-    interp_simp [isSuperExpr, headIdent, libraryRecv, p1, p2, p3, p4, ih5 k' (by omega)]
-  | .baseCall p1 p2 p3 p4 p5 p6 p7 p8 => by
+    interp_simp [isSuperExpr, headIdent, pq, libraryRecv, p1, p2, p3, p4, ih5 k' (by omega)]
+  | .baseCall p1 p2 p3 p4 pq p5 p6 p7 p8 => by
     obtain ⟨n6, ih6⟩ := evalExprs_complete p6
     obtain ⟨n8, ih8⟩ := callFn_complete p8
     refine ⟨n6 + n8 + 2, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
-    interp_simp [isSuperExpr, headIdent, libraryRecv, baseRecv, p1, p2, p3, p4, p5, p7, ih6 k' (by omega), ih8 k' (by omega)]
-  | .baseCallRevert p1 p2 p3 p4 p5 p6 p7 p8 => by
+    interp_simp [isSuperExpr, headIdent, pq, libraryRecv, baseRecv, p1, p2, p3, p4, p5, p7, ih6 k' (by omega), ih8 k' (by omega)]
+  | .baseCallRevert p1 p2 p3 p4 pq p5 p6 p7 p8 => by
     obtain ⟨n6, ih6⟩ := evalExprs_complete p6
     obtain ⟨n8, ih8⟩ := callFn_complete p8
     refine ⟨n6 + n8 + 2, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
-    interp_simp [isSuperExpr, headIdent, libraryRecv, baseRecv, p1, p2, p3, p4, p5, p7, ih6 k' (by omega), ih8 k' (by omega)]
-  | .baseArgsRevert p1 p2 p3 p4 p5 p6 => by
+    interp_simp [isSuperExpr, headIdent, pq, libraryRecv, baseRecv, p1, p2, p3, p4, p5, p7, ih6 k' (by omega), ih8 k' (by omega)]
+  | .baseArgsRevert p1 p2 p3 p4 pq p5 p6 => by
     obtain ⟨n6, ih6⟩ := evalExprs_complete p6
     refine ⟨n6 + 2, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
-    interp_simp [isSuperExpr, headIdent, libraryRecv, baseRecv, p1, p2, p3, p4, p5, ih6 k' (by omega)]
+    interp_simp [isSuperExpr, headIdent, pq, libraryRecv, baseRecv, p1, p2, p3, p4, p5, ih6 k' (by omega)]
   | .usingForCall p1 p2 p3 p4 p5 p6 p7 p8 => by
     obtain ⟨hmd1, hmd2, hmd3, hmd4⟩ := memberCallDirect_false p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2

@@ -81,15 +81,4 @@ def libsQual : SourceUnit := sol% contract LibsQual {
 def program : Program := [mathLib, arrLib, libs]
 def qualProgram : Program := [mathLib, arrLib, libsQual]
 
-/-- `LibsQual` with the qualified expressions written unqualified (GUIDE §6). -/
-def libsUnqual : SourceUnit := sol% contract LibsQual {
-  function wad() external pure returns (uint256) { return WAD; }
-  function accLit(uint256 a) external pure returns (uint256) {
-    MathLib.Acc memory m = Acc(a, 2);
-    return m.sum / m.n;
-  }
-}
-
-def unqualProgram : Program := [mathLib, arrLib, libsUnqual]
-
 end Libs.SoliditySpec

@@ -44,7 +44,7 @@ example (fr : Frame) (m : Machine) (a b : EVM.Address)
 
 /-- `roles[h] = true;` for `roles : mapping(bytes32 => bool)` and a `bytes32` local `h`. -/
 example (fr : Frame) (m : Machine) (v : FlatVar) (bs : List UInt8) (slot : UInt256)
-    (hroles : fr.get? "roles" = none) (hv : fc.var? "roles" = some v) (hmut : v.mutability = .mutable)
+    (hroles : fr.get? "roles" = none) (hv : fc.varIn fr.here "roles" = some v) (hmut : v.mutability = .mutable)
     (hty : v.ty = .mapping (.fixedBytes ⟨31, by decide⟩) .bool)
     (hh : fr.get? "h" = some { ty := .fixedBytes ⟨31, by decide⟩, loc := none, val := .fixedBytes ⟨31, by decide⟩ bs })
     (hl : cfg.storage.layout (keyRef ⟨v.key, []⟩ (.fixedBytes ⟨31, by decide⟩ bs)) m.evm = some (boolOffset0Loc slot)) :
@@ -57,7 +57,7 @@ example (fr : Frame) (m : Machine) (v : FlatVar) (bs : List UInt8) (slot : UInt2
 /-- `if (x & 0xff == 0) revert Foo();` -/
 example (fr : Frame) (m : Machine) (lx : Local) (n : ℕ) (ei : ErrorInfo)
     (hx : fr.get? "x" = some lx) (hval : lx.val = u256Val n) (hn : n < 2 ^ 256) (h0 : n &&& 255 = 0)
-    (hei : fc.error? "Foo" = some ei) (hparams : ei.decl.params = []) (htys : ei.sig.paramTypes = []) :
+    (hei : fc.errorIn fr.here "Foo" = some ei) (hparams : ei.decl.params = []) (htys : ei.sig.paramTypes = []) :
     ExecStmt cfg o fc fr m
       (.ite (.binary .eq (.binary .bitAnd (.ident "x") (.lit (.number 255 none none))) (.lit (.number 0 none none)))
         (.revert (.ident "Foo") (.positional [])) none)
@@ -78,7 +78,7 @@ example (fr : Frame) (m : Machine) (l : Local) (n : ℕ)
 
 /-- `delete owner;` for `owner : address`. -/
 example (fr : Frame) (m : Machine) (v : FlatVar) (slot : UInt256)
-    (hx : fr.get? "owner" = none) (hv : fc.var? "owner" = some v) (hmut : v.mutability = .mutable)
+    (hx : fr.get? "owner" = none) (hv : fc.varIn fr.here "owner" = some v) (hmut : v.mutability = .mutable)
     (hty : v.ty = .address false) (hl : cfg.storage.layout ⟨v.key, []⟩ m.evm = some (addressOffset0Loc slot)) :
     ExecStmt cfg o fc fr m (.exprStmt (.unary .delete (.ident "owner")))
       (.normal fr (storeU256 m slot (setAddressOffset0Word (loadU256 m slot) ⟨0⟩))) :=
@@ -87,7 +87,7 @@ example (fr : Frame) (m : Machine) (v : FlatVar) (slot : UInt256)
 /-- `emit Sync(r0, r1);` with two plain `uint256` arguments. -/
 example (fr fr1 : Frame) (m m1 : Machine) (ei : EventInfo) (e0 e1 : Expr) (r0 r1 : ℕ)
     (hr0 : r0 < 2 ^ 256) (hr1 : r1 < 2 ^ 256)
-    (hev : fc.eventsNamed "Sync" = [ei])
+    (hev : fc.eventsNamedIn fr.here "Sync" = [ei])
     (hparams : ei.decl.params = [{ ty := u256Ty, indexed := false, name := some "reserve0" },
       { ty := u256Ty, indexed := false, name := some "reserve1" }])
     (htys : ei.sig.paramTypes = [.elem (.int (.uint ⟨256, by decide⟩)), .elem (.int (.uint ⟨256, by decide⟩))])
@@ -129,15 +129,15 @@ def bidStmts : List Stmt :=
 example (fr : Frame) (m : Machine)
     (vEnd vBidder vBid vPend : FlatVar) (ei : EventInfo)
     (slotEnd slotBidder slotBid : UInt256) (pendSlot : EVM.Address → UInt256)
-    (hfrEnd : fr.get? "auctionEndTime" = none) (hvEnd : fc.var? "auctionEndTime" = some vEnd)
+    (hfrEnd : fr.get? "auctionEndTime" = none) (hvEnd : fc.varIn fr.here "auctionEndTime" = some vEnd)
     (hmEnd : vEnd.mutability = .mutable) (htEnd : vEnd.ty = u256Ty)
-    (hfrBidder : fr.get? "highestBidder" = none) (hvBidder : fc.var? "highestBidder" = some vBidder)
+    (hfrBidder : fr.get? "highestBidder" = none) (hvBidder : fc.varIn fr.here "highestBidder" = some vBidder)
     (hmBidder : vBidder.mutability = .mutable) (htBidder : vBidder.ty = .address false)
-    (hfrBid : fr.get? "highestBid" = none) (hvBid : fc.var? "highestBid" = some vBid)
+    (hfrBid : fr.get? "highestBid" = none) (hvBid : fc.varIn fr.here "highestBid" = some vBid)
     (hmBid : vBid.mutability = .mutable) (htBid : vBid.ty = u256Ty)
-    (hfrPend : fr.get? "pendingReturns" = none) (hvPend : fc.var? "pendingReturns" = some vPend)
+    (hfrPend : fr.get? "pendingReturns" = none) (hvPend : fc.varIn fr.here "pendingReturns" = some vPend)
     (hmPend : vPend.mutability = .mutable) (htPend : vPend.ty = .mapping (.address false) u256Ty)
-    (hev : fc.eventsNamed "HighestBidIncreased" = [ei])
+    (hev : fc.eventsNamedIn fr.here "HighestBidIncreased" = [ei])
     (hparams : ei.decl.params = [{ ty := .address false, indexed := false, name := some "bidder" },
       { ty := u256Ty, indexed := false, name := some "amount" }])
     (htys : ei.sig.paramTypes = [.elem .address, .elem (.int (.uint ⟨256, by decide⟩))])

@@ -58,7 +58,7 @@ def keyOf : Value → Option Solm.KeyValue
   | .address a => some (.address a)
   | .contract _ a => some (.address a)
   | .fixedBytes n bs => some (.fixedBytes n bs)
-  | .enum _ i => some (.int i)
+  | .enum _ _ i => some (.int i)
   | _ => none
 
 def toBool : Value → Option Bool
@@ -201,8 +201,8 @@ def binop (checked : Bool) (op : BinOp) (a b : Value) : Op Value := do
     | .shr => return .fixedBytes n (natToBytesBE (if s ≥ width then 0 else x / 2 ^ s) (n.val + 1))
     | _ => Op.stuck
   -- enums
-  if let (.enum e x, .enum f y) := (a, b) then
-    if e == f then return ← Op.ofOpt (cmpNat op x y) else Op.stuck
+  if let (.enum q e x, .enum q' f y) := (a, b) then
+    if e == f && q == q' then return ← Op.ofOpt (cmpNat op x y) else Op.stuck
   -- shifts and exponentiation take the left operand's type
   match op with
   | .shl | .shr | .exp =>
@@ -282,7 +282,7 @@ def implicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Option (Valu
   | .literal i hd, .address _ =>
     if hd = some 40 ∧ 0 ≤ i ∧ i < 2 ^ 160 then some (.address (EVM.address i.toNat), h) else none
   | .contract c a, .user _ n => if c == n then some (.contract c a, h) else none
-  | .enum e i, .user _ n => if e == n then some (.enum e i, h) else none
+  | .enum q e i, .user q' n => if e == n && q == q' then some (.enum q e i, h) else none
   | .fixedBytes n bs, .fixedBytes n' =>
     if n.val ≤ n'.val then some (.fixedBytes n' (bs ++ List.replicate (n'.val - n.val) 0), h) else none
   -- number literal to `bytesN`: zero, or a hex literal with exactly `2N` digits (solc 0.8)
@@ -315,7 +315,7 @@ def explicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Op (Value ×
   | .literal i _, .address _ => if 0 ≤ i ∧ i < 2 ^ 160 then return (.address (EVM.address i.toNat), h) else Op.stuck
   | .literal i _, .user q n =>
     match env.enum? q n with
-    | some e => if 0 ≤ i ∧ i < e.members.length then return (.enum n i.toNat, h) else Op.stuck
+    | some e => if 0 ≤ i ∧ i < e.members.length then return (.enum q n i.toNat, h) else Op.stuck
     | none => Op.stuck
   | .uint w n, .address _ => if w.val = 160 then return (.address (EVM.address n), h) else Op.stuck
   | .address a, .uint w => if w.val = 160 then return (.uint w a.toNat, h) else Op.stuck
@@ -334,9 +334,9 @@ def explicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Op (Value ×
     else return (.fixedBytes k' (bs ++ List.replicate (k'.val - k.val) 0), h)
   | .uint _ n, .user q e =>
     match env.enum? q e with
-    | some en => if n < en.members.length then return (.enum e n, h) else Op.panic .enumRange
+    | some en => if n < en.members.length then return (.enum q e n, h) else Op.panic .enumRange
     | none => Op.stuck
-  | .enum _ i, .uint w => if i < 2 ^ w.val then return (.uint w i, h) else Op.stuck
+  | .enum _ _ i, .uint w => if i < 2 ^ w.val then return (.uint w i, h) else Op.stuck
   | .memRef id, .bytes =>
     match h.get? id with
     | some (.bytes _ d) => let (h', id') := h.alloc (.bytes false d); return (.memRef id', h')
@@ -653,7 +653,7 @@ def coerce (cfg : Config) (env : TypeEnv) (m : Machine) (v : Value) (ty : Ty) (l
   match v with
   | .storageRef er sty =>
     if loc == some .storage then
-      if sty.same ty then pure (.storageRef er sty, m) else Op.stuck
+      if sty == ty then pure (.storageRef er sty, m) else Op.stuck
     else
       let (mv, h') ← readStorageDeep cfg env fuelDefault m.evm m.heap er ty
       pure (mv, { m with heap := h' })
@@ -715,6 +715,8 @@ def assign (cfg : Config) (env : TypeEnv) (fr : Frame) (m : Machine) (lv : LValu
 /-- Declare a local: `ty loc name = init;` (no initialiser ⇒ zero / empty object). -/
 def declare (cfg : Config) (env : TypeEnv) (fr : Frame) (m : Machine) (ty : Ty) (loc : Option DataLoc)
     (name : Ident) (init : Option Value) : Op (Frame × Machine) := do
+  -- the type is written in the scope of the running code
+  let ty := env.canonTy fr.here ty
   match init with
   | some v =>
     let (v', m') ← coerce cfg env m v ty loc

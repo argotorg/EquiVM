@@ -179,7 +179,7 @@ theorem evalNamedCall_sound_step {n} (ih : SoundAt cfg o fc n) :
             · rw [IM.pure_some h]
               exact .internalCall hb hfr hne (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hfn) (ih.callFn _ _ _ _ _ hcall)
     · rename_i hnil
-      have hnil' : fc.fnsNamed f = [] := by simpa using hnil
+      have hnil' : fc.fnsNamedIn fr.here f = [] := by simpa using hnil
       split at h
       · rename_i sd hsd
         rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h

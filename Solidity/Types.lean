@@ -12,7 +12,7 @@ none), which fixes canonical signatures (`sigStrOf`) for selectors, events and e
 namespace Solidity
 
 structure StructInfo where
-  /-- Declaring contract, `none` for a file-level struct. -/
+  /-- Declaring unit (`some ""` for a file-level struct). -/
   qual : Option Ident
   name : Ident
   fields : List (Ty × Ident)
@@ -24,32 +24,72 @@ structure EnumInfo where
   members : List Ident
   deriving DecidableEq, Repr, Inhabited
 
-/-- User-defined types, most-derived contract's declarations first. -/
+/-- User-defined types of a program.  A struct or enum is identified by its declaring unit and its
+    name; the file is the unit `""`. -/
 structure TypeEnv where
   structs : List StructInfo := []
   enums : List EnumInfo := []
   contracts : List (Ident × ContractKind) := []
+  /-- Every contract-like unit with its bases, most derived first. -/
+  lins : List (Ident × List Ident) := []
   deriving Repr, Inhabited
 
-/-- Equality of types up to the qualifier of user types: a struct is `Acc` inside its library and
-    `MathLib.Acc` outside.  The elaborator rejects two different user types with one name. -/
-def Ty.same : Ty → Ty → Bool
-  | .user _ n, .user _ n' => n == n'
-  | .mapping k v, .mapping k' v' => k.same k' && v.same v'
-  | .array e n, .array e' n' => e.same e' && n == n'
-  | .dynArray e, .dynArray e' => e.same e'
-  | a, b => a == b
+/-- Rewrite the qualifier of every user type in a type. -/
+def Ty.mapUser (f : Option Ident → Ident → Option Ident) : Ty → Ty
+  | .user q n => .user (f q n) n
+  | .mapping k v => .mapping (k.mapUser f) (v.mapUser f)
+  | .array e n => .array (e.mapUser f) n
+  | .dynArray e => .dynArray (e.mapUser f)
+  | t => t
 
 namespace TypeEnv
 
 def struct? (env : TypeEnv) (qual : Option Ident) (name : Ident) : Option StructInfo :=
-  env.structs.find? fun s => s.name == name && (qual.isNone || s.qual == qual)
+  env.structs.find? fun s => s.name == name && s.qual == qual
 
 def enum? (env : TypeEnv) (qual : Option Ident) (name : Ident) : Option EnumInfo :=
-  env.enums.find? fun e => e.name == name && (qual.isNone || e.qual == qual)
+  env.enums.find? fun e => e.name == name && e.qual == qual
 
 def contractKind? (env : TypeEnv) (name : Ident) : Option ContractKind :=
   (env.contracts.find? (·.1 == name)).map (·.2)
+
+/-- The unit `u` and its bases, most derived first. -/
+def unitLin (env : TypeEnv) (u : Ident) : List Ident :=
+  ((env.lins.find? (·.1 == u)).map (·.2)).getD [u]
+
+/-- Units whose declarations code of `here` sees without a qualifier: `here`, its bases, the file. -/
+def scope (env : TypeEnv) (here : Ident) : List Ident := env.unitLin here ++ [""]
+
+/-- The first of `units` that declares a struct or an enum named `n`. -/
+def typeOwner (env : TypeEnv) (units : List Ident) (n : Ident) : Option Ident :=
+  units.find? fun u => (env.struct? (some u) n).isSome || (env.enum? (some u) n).isSome
+
+/-- The struct `n` names in code of `here`. -/
+def structIn (env : TypeEnv) (here n : Ident) : Option StructInfo :=
+  (env.scope here).findSome? fun u => env.struct? (some u) n
+
+/-- The enum `n` names in code of `here`. -/
+def enumIn (env : TypeEnv) (here n : Ident) : Option EnumInfo :=
+  (env.scope here).findSome? fun u => env.enum? (some u) n
+
+/-- The struct `q.n`: declared in `q` or inherited by it. -/
+def structOf (env : TypeEnv) (q n : Ident) : Option StructInfo :=
+  (env.unitLin q).findSome? fun u => env.struct? (some u) n
+
+/-- The enum `q.n`. -/
+def enumOf (env : TypeEnv) (q n : Ident) : Option EnumInfo :=
+  (env.unitLin q).findSome? fun u => env.enum? (some u) n
+
+/-- The type as the semantics identifies it: a user type written in code of `here` gets the unit
+    that declares it (`S` in its library and `L.S` outside are one type; a contract type and an
+    unknown name keep their spelling).  Applying it twice changes nothing. -/
+def canonTy (env : TypeEnv) (here : Ident) (ty : Ty) : Ty :=
+  ty.mapUser fun q n =>
+    match q with
+    | some u => match env.typeOwner (env.unitLin u) n with
+      | some o => some o
+      | none => some u
+    | none => env.typeOwner (env.scope here) n
 
 end TypeEnv
 

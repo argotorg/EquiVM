@@ -103,12 +103,12 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
       match fr.get? x with
       | some l => pure (l.val, fr, m)
       | none =>
-        match fc.var? x with
+        match fc.varIn fr.here x with
         | some v =>
           match v.mutability with
           | .constant => do
             let some e := v.init | failure
-            let (val, _, m1) ← evalExpr fuel (constFrame fr) m e
+            let (val, _, m1) ← evalExpr fuel (constFrame fr v.declaredIn) m e
             let (val', m2) ← liftOp (coerce cfg fc.types m1 val v.ty (some .memory))
             pure (val', fr, m2)
           | .immutable => do let val ← liftOpt (immutableValue cfg fc.types fr v); pure (val, fr, m)
@@ -123,15 +123,35 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
               let (v, m') := allocBytes m false m.evm.executionEnv.calldata
               pure (v, fr, m')
             else do let v ← liftOpt (envMember m obj f); pure (v, fr, m)
-          else do
-            let some en := fc.types.enum? none obj | failure
-            let i ← liftOpt (indexOf en.members f)
-            pure (.enum obj i, fr, m)
+          else
+            match fc.types.enumIn fr.here obj with
+            | some en => do
+              let i ← liftOpt (indexOf en.members f)
+              pure (.enum en.qual obj i, fr, m)
+            | none =>
+              -- `Q.x`: a constant of the unit `Q`
+              match fc.varOf obj f with
+              | some v =>
+                match v.mutability with
+                | .constant => do
+                  let some e := v.init | failure
+                  let (val, _, m1) ← evalExpr fuel (constFrame fr v.declaredIn) m e
+                  let (val', m2) ← liftOp (coerce cfg fc.types m1 val v.ty (some .memory))
+                  pure (val', fr, m2)
+                | _ => failure
+              | none => failure
         | .call (.ident "type") [] (.positional [.typeExpr ty]) => do
           let v ← liftOpt (typeMember fc ty f); pure (v, fr, m)
         | .member recv g =>
           if f == "selector" then do let v ← liftOpt (selectorMember fc fr recv g); pure (v, fr, m)
-          else failure
+          else
+            -- `Q.E.member`
+            match recv with
+            | .ident q => do
+              let some en := fc.types.enumOf q g | failure
+              let i ← liftOpt (indexOf en.members f)
+              pure (.enum en.qual g i, fr, m)
+            | _ => failure
         | _ => failure
       else evalMember fuel fr m e f
     | .index e i => do
@@ -285,7 +305,7 @@ def evalCall : Nat → Frame → Machine → Expr → List CallOpt → Args → 
     -- conversions
     | .typeExpr ty, [], .positional [a] => do
       let (v, fr1, m1) ← evalExpr fuel fr m a
-      let (v', h') ← liftOp (explicitConv fc.types m1.heap v ty)
+      let (v', h') ← liftOp (explicitConv fc.types m1.heap v (fc.types.canonTy fr.here ty))
       pure (v', fr1, { m1 with heap := h' })
     -- contract creation / memory allocation
     | .new ty, _, _ =>
@@ -304,9 +324,9 @@ def evalCall : Nat → Frame → Machine → Expr → List CallOpt → Args → 
         | [], .positional [n] => do
           let (nv, fr1, m1) ← evalExpr fuel fr m n
           let len ← liftOpt (natValue nv)
-          guard' (!(isValueType fc.types ty))
+          guard' (!(isValueType fc.types (fc.types.canonTy fr.here ty)))
           if allocTooLarge len then throw (Panic.data .allocTooLarge)
-          let (v, h') ← liftOpt (zeroObj fc.types fuelDefault ty len m1.heap)
+          let (v, h') ← liftOpt (zeroObj fc.types fuelDefault (fc.types.canonTy fr.here ty) len m1.heap)
           pure (v, fr1, { m1 with heap := h' })
         | _, _ => failure
     -- builtins and internal calls
@@ -326,6 +346,23 @@ def evalCall : Nat → Frame → Machine → Expr → List CallOpt → Args → 
         match recv, opts, args with
         | .ident "abi", [], .positional es => if isAbiFn f then evalAbi fuel fr m f es else failure
         | _, _, _ => failure
+      else if qualTypeRecv fc fr recv f then
+        -- `Q.S(args)` / `Q.E(a)`
+        match recv with
+        | .ident q =>
+          match fc.types.structOf q f with
+          | some sd =>
+            if opts.isEmpty then do
+              let es ← liftOpt (argExprs (sd.fields.map fun fl => some fl.2) args)
+              let (vs, fr1, m1) ← evalExprs fuel fr m es
+              let (v, m2) ← liftOp (structObj cfg fc.types m1 sd vs)
+              pure (v, fr1, m2)
+            else failure
+          | none =>
+            match opts, args with
+            | [], .positional [a] => evalCall fuel fr m (.typeExpr (.user (some q) f)) [] (.positional [a])
+            | _, _ => failure
+        | _ => failure
       else if libraryRecv fc fr recv then
         match recv with
         | .ident l =>
@@ -363,10 +400,10 @@ def evalBuiltin : Nat → Frame → Machine → Ident → Args → EV
       | .bool true, _ => pure (.unit, fr1, m1)
       | .bool false, [] => throw ByteArray.empty
       | .bool false, [msg] =>
-        if isCustomError fc msg then
+        if isCustomError fc fr.here msg then
           match msg with
-          | .call (.ident err) [] eargs => do
-            let ei ← liftOpt (fc.error? err)
+          | .call callee [] eargs => do
+            let ei ← liftOpt (errorRef fc fr.here callee)
             let es ← liftOpt (argExprs (paramNames ei.decl.params) eargs)
             let (vs, _, m2) ← evalExprs fuel fr1 m1 es
             let (svs, _) ← liftOp (abiArgs cfg fc.types m2 (ei.decl.params.map (·.ty)) vs)
@@ -416,21 +453,21 @@ def evalNamedCall : Nat → Frame → Machine → Ident → List CallOpt → Arg
   | 0, _, _, _, _, _ => failure
   | fuel+1, fr, m, f, opts, args => do
     guard' (fr.get? f).isNone
-    if fc.fnsNamed f ≠ [] then
-      let es ← liftOpt (callArgs (fc.candParams (fc.fnsNamed f)) args)
+    if fc.fnsNamedIn fr.here f ≠ [] then
+      let es ← liftOpt (callArgs (fc.candParams (fc.fnsNamedIn fr.here f)) args)
       let (vs, fr1, m1) ← evalExprs fuel fr m es
-      let fn ← liftOpt (resolveOverload fc.types m1.heap fc (fc.fnsNamed f) vs)
+      let fn ← liftOpt (resolveOverload fc.types m1.heap fc (fc.fnsNamedIn fr.here f) vs)
       let rets ← callFn fuel fr1 m1 fn vs
       pure (retValue rets.1, fr1, rets.2)
     else
-      match fc.types.struct? none f with
+      match fc.types.structIn fr.here f with
       | some sd => do
         let es ← liftOpt (argExprs (sd.fields.map fun fl => some fl.2) args)
         let (vs, fr1, m1) ← evalExprs fuel fr m es
         let (v, m2) ← liftOp (structObj cfg fc.types m1 sd vs)
         pure (v, fr1, m2)
       | none =>
-        if (fc.var? f).isNone && ((fc.types.contractKind? f).isSome || (fc.types.enum? none f).isSome) then
+        if (fc.varIn fr.here f).isNone && ((fc.types.contractKind? f).isSome || (fc.types.enumIn fr.here f).isSome) then
           match args with
           | .positional [a] => evalCall fuel fr m (.typeExpr (.user none f)) opts (.positional [a])
           | _ => failure
@@ -446,11 +483,11 @@ def evalAbi : Nat → Frame → Machine → Ident → List Expr → EV
         let (dv, fr1, m1) ← evalExpr fuel fr m d
         let s ← liftOpt (bytesArg m1.heap dv)
         let tys ← liftOpt (typeArgs tyArg)
-        let atys ← liftOpt (tys.mapM (abiTypeOf fc.types))
+        let atys ← liftOpt ((tys.map (fc.types.canonTy fr.here)).mapM (abiTypeOf fc.types))
         match ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode atys s with
         | none => throw ByteArray.empty
         | some svs =>
-          let (vs, h') ← liftOpt (ofAbiList fc.types tys svs m1.heap)
+          let (vs, h') ← liftOpt (ofAbiList fc.types (tys.map (fc.types.canonTy fr.here)) svs m1.heap)
           pure (retValue vs, fr1, { m1 with heap := h' })
       | _ => failure
     | "encodeWithSelector" =>
@@ -627,7 +664,7 @@ def evalLValue : Nat → Frame → Machine → Expr → IM (LValue × Frame × M
       match fr.get? x with
       | some _ => pure (.local x, fr, m)
       | none =>
-        match fc.var? x with
+        match fc.varIn fr.here x with
         | some v =>
           match v.mutability with
           | .mutable => pure (.storage ⟨v.key, []⟩ v.ty, fr, m)
@@ -739,15 +776,15 @@ def execStmt : Nat → Frame → Machine → Stmt → IM ExecResult
         let .tuple vs := v | failure
         let (fr2, m2) ← assignTuple fuel fr1.unwind m1 (rs.map fun r => some (.ident r)) vs
         pure (.returned fr2 m2)
-    | .emit (.ident ev) args => do
-      let es ← liftOpt (eventArgs (fc.eventsNamed ev) args)
+    | .emit callee args => do
+      let es ← liftOpt (eventArgs (eventsRef fc fr.here callee) args)
       let (vs, fr1, m1) ← evalExprs fuel fr m es
-      let ei ← liftOpt (resolveEvent fc.types m1.heap (fc.eventsNamed ev) vs)
+      let ei ← liftOpt (resolveEvent fc.types m1.heap (eventsRef fc fr.here callee) vs)
       let (svs, m2) ← liftOp (abiArgs cfg fc.types m1 (ei.decl.params.map (·.ty)) vs)
       let le ← liftOpt (mkLogEntry m2.this ei svs)
       pure (.normal fr1 (m2.pushLog le))
-    | .revert (.ident err) args => do
-      let ei ← liftOpt (fc.error? err)
+    | .revert callee args => do
+      let ei ← liftOpt (errorRef fc fr.here callee)
       let es ← liftOpt (argExprs (paramNames ei.decl.params) args)
       let (vs, _, m1) ← evalExprs fuel fr m es
       let (svs, _) ← liftOp (abiArgs cfg fc.types m1 (ei.decl.params.map (·.ty)) vs)
@@ -816,7 +853,6 @@ def execStmt : Nat → Frame → Machine → Stmt → IM ExecResult
             | none => throw out
         | none => failure
       | _ => failure
-    | _ => failure
 
 def execLoop : Nat → Frame → Machine → Option Expr → Option Expr → Stmt → IM ExecResult
   | 0, _, _, _, _, _ => failure
@@ -865,7 +901,7 @@ def execChain : Nat → Frame → Machine → List ModifierInvocation → Block 
       let r ← execBlock fuel fr m body
       pure (exitBlock fr r)
     | mi :: rest, body =>
-      match fc.modifier? mi.name with
+      match fc.modifierIn fr.here mi.name with
       | some md => do
         let es ← liftOpt (argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])))
         let (vs, fr1, m1) ← evalExprs fuel fr m es
@@ -958,36 +994,45 @@ def rejectPanicsB (I : Ethereum.ExecutionEnv) : Bool :=
     | none => false
   | none => false
 
-/-- One state-variable initializer of the constructor. -/
+/-- One state-variable initializer of the constructor, in the scope of the declaring contract. -/
 def initStep (fuel : Nat) (acc : Frame × Machine) (v : FlatVar) : IM (Frame × Machine) := do
   let some e := v.init | failure
-  let (val, fr1, m1) ← evalExpr cfg o fc fuel acc.1 acc.2 e
+  let (val, fr1, m1) ← evalExpr cfg o fc fuel { acc.1 with here := v.declaredIn } acc.2 e
   match v.mutability with
   | .mutable => liftOp (assign cfg fc.types fr1 m1 (.storage ⟨v.key, []⟩ v.ty) val)
   | .immutable => liftOp (assign cfg fc.types fr1 m1 (.local (immName v.name)) val)
   | .constant => failure
 
 /-- Arguments of a constructor-chain step: the decoded ones for the most-derived contract, the
-    written base arguments (evaluated in the most-derived constructor's frame) otherwise. -/
-def ctorArgsOf (fuel : Nat) (frP : Frame) (topArgs : List Value) (m : Machine) (step : CtorStep) :
-    IM (List Value × Machine) :=
+    written base arguments (evaluated with the parameters of the constructor that wrote them)
+    otherwise. -/
+def ctorArgsOf (fuel : Nat) (topArgs : List Value) (imms : Store) (tbl : List (Ident × List Value))
+    (m : Machine) (step : CtorStep) : IM (List Value × Machine) :=
   if step.contract == fc.name then pure (topArgs, m)
   else match step.args with
     | none => pure ([], m)
-    | some (_, a) => do
+    | some (w, a) => do
+      let wvs ← liftOpt (tbl.lookup w)
+      let (frW, mW) ← liftOp (ctorFrame cfg fc w wvs m imms)
       let es ← liftOpt (callArgs (fc.ctorParamss step.contract) a)
-      let (vs, _, m1) ← evalExprs cfg o fc fuel frP m es
+      let (vs, _, m1) ← evalExprs cfg o fc fuel frW mW es
       pure (vs, m1)
 
-/-- One step of the constructor chain (`imm_` locals threaded through `acc.2`). -/
-def ctorStep (fuel : Nat) (frP : Frame) (topArgs : List Value) (acc : Machine × Store) (step : CtorStep) :
+/-- One step of the argument phase (most derived contract first). -/
+def argsStep (fuel : Nat) (topArgs : List Value) (imms : Store) (acc : List (Ident × List Value) × Machine)
+    (step : CtorStep) : IM (List (Ident × List Value) × Machine) := do
+  let (vs, m1) ← ctorArgsOf cfg o fc fuel topArgs imms acc.1 acc.2 step
+  pure ((step.contract, vs) :: acc.1, m1)
+
+/-- One constructor body (`imm_` locals threaded through `acc.2`). -/
+def ctorStep (fuel : Nat) (tbl : List (Ident × List Value)) (acc : Machine × Store) (step : CtorStep) :
     IM (Machine × Store) := do
   match step.fn with
   | none => pure acc
   | some fid =>
     let fn ← liftOpt fc.fns[fid]?
-    let (vs, m1) ← ctorArgsOf cfg o fc fuel frP topArgs acc.1 step
-    let (fr2, m2) ← liftOp (enterFn cfg fc.types fn.declaredIn fn.decl vs m1 acc.2)
+    let vs ← liftOpt (tbl.lookup step.contract)
+    let (fr2, m2) ← liftOp (enterFn cfg fc.types fn.declaredIn fn.decl vs acc.1 acc.2)
     let some body := fn.decl.body | failure
     let r ← execChain cfg o fc fuel { fr2 with chain := fn.decl.modifiers, body := body } m2 fn.decl.modifiers body
     let (fr4, m4) ← liftOpt (finished r)
@@ -1010,9 +1055,9 @@ def interpCtor (fuel : Nat) (args : List ABI.ABIValue)
   let ptys := ((topCtor? fc).map (·.decl.params.map (·.ty))).getD []
   let (topArgs, h0) ← liftOpt (ofAbiList fc.types ptys args {})
   let m0 := initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0
-  let (frP, m1) ← liftOp (ctorParamFrame cfg fc topArgs m0 imms0)
-  let (frP1, m2) ← (initializers fc).foldlM (initStep cfg o fc fuel) (frP, m1)
-  let (m3, imms) ← fc.ctorChain.foldlM (ctorStep cfg o fc fuel frP1 topArgs) (m2, immStore frP1)
+  let (frI, m1) ← (initializers fc).foldlM (initStep cfg o fc fuel) (initRoot fc imms0, m0)
+  let (tbl, m2) ← fc.ctorChain.reverse.foldlM (argsStep cfg o fc fuel topArgs (immStore frI)) ([], m1)
+  let (m3, imms) ← fc.ctorChain.foldlM (ctorStep cfg o fc fuel tbl) (m2, immStore frI)
   pure (.ok m3 imms)
 
 end Interp

@@ -123,8 +123,8 @@ theorem initsFold_complete {fr m vs r} (h : ExecInits cfg o fc fr m vs r) :
     refine ⟨n1, fun k hk => ?_⟩
     interp_simp [List.foldlM_cons, initStep, hmut, hinit, hassign, ih1 k hk]
 
-theorem ctorArgs_complete {frP topArgs m step r} (h : CtorArgs cfg o fc frP topArgs m step r) :
-    ∃ n, ∀ k, n ≤ k → (ctorArgsOf cfg o fc k frP topArgs m step).run = some (toArgs r) := by
+theorem ctorArgs_complete {topArgs imms tbl m step r} (h : CtorArgs cfg o fc topArgs imms tbl m step r) :
+    ∃ n, ∀ k, n ≤ k → (ctorArgsOf cfg o fc k topArgs imms tbl m step).run = some (toArgs r) := by
   cases h with
   | top hc =>
     refine ⟨0, fun k _ => ?_⟩
@@ -132,61 +132,73 @@ theorem ctorArgs_complete {frP topArgs m step r} (h : CtorArgs cfg o fc frP topA
   | none hc hargs =>
     refine ⟨0, fun k _ => ?_⟩
     interp_simp [ctorArgsOf, toArgs, hc, hargs]
-  | some hc hargs hes hev =>
+  | some hc hargs hw hfr hes hev =>
     obtain ⟨n, ih⟩ := evalExprs_complete hev
     refine ⟨n, fun k hk => ?_⟩
-    rcases r with ⟨vs, fr', m1⟩ | d <;> interp_simp [ctorArgsOf, toArgs, hc, hargs, hes, ih k hk]
+    rcases r with ⟨vs, fr', m1⟩ | d <;> interp_simp [ctorArgsOf, toArgs, hc, hargs, hw, hfr, hes, ih k hk]
+  | framePanic hc hargs hw hfr =>
+    refine ⟨0, fun k _ => ?_⟩
+    interp_simp [ctorArgsOf, toArgs, hc, hargs, hw, hfr]
 
-theorem chainFold_complete {frP topArgs imms m steps r} (h : ExecCtorChain cfg o fc frP topArgs imms m steps r) :
-    ∃ n, ∀ k, n ≤ k → (steps.foldlM (ctorStep cfg o fc k frP topArgs) (m, imms)).run = some (toChain r) := by
+theorem argsFold_complete {topArgs imms tbl m steps r} (h : CtorArgsAll cfg o fc topArgs imms tbl m steps r) :
+    ∃ n, ∀ k, n ≤ k → (steps.foldlM (argsStep cfg o fc k topArgs imms) (tbl, m)).run = some r := by
+  induction h with
+  | nil => exact ⟨0, fun k _ => by simp⟩
+  | cons hca _ ih =>
+    obtain ⟨na, iha⟩ := ctorArgs_complete hca
+    obtain ⟨nr, ihr⟩ := ih
+    refine ⟨na + nr, fun k hk => ?_⟩
+    interp_simp [List.foldlM_cons, argsStep, toArgs, iha k (by omega), ihr k (by omega)]
+  | revert hca =>
+    obtain ⟨na, iha⟩ := ctorArgs_complete hca
+    refine ⟨na, fun k hk => ?_⟩
+    interp_simp [List.foldlM_cons, argsStep, toArgs, iha k hk]
+
+theorem chainFold_complete {tbl imms m steps r} (h : ExecCtorChain cfg o fc tbl imms m steps r) :
+    ∃ n, ∀ k, n ≤ k → (steps.foldlM (ctorStep cfg o fc k tbl) (m, imms)).run = some (toChain r) := by
   induction h with
   | nil => exact ⟨0, fun k _ => by simp [toChain]⟩
   | skip hfn _ ih =>
     obtain ⟨n, ihn⟩ := ih
     refine ⟨n, fun k hk => ?_⟩
     interp_simp [List.foldlM_cons, ctorStep, hfn, ihn k hk]
-  | run hfid hfn hca henter hbody hchain hfin _ ih =>
-    obtain ⟨na, iha⟩ := ctorArgs_complete hca
+  | run hfid hfn hvs henter hbody hchain hfin _ ih =>
     obtain ⟨nc, ihc⟩ := execChain_complete hchain
     obtain ⟨nr, ihr⟩ := ih
-    refine ⟨na + nc + nr, fun k hk => ?_⟩
+    refine ⟨nc + nr, fun k hk => ?_⟩
     have ihc' := ihc k (by omega)
     rw [toExec_of_finished hfin] at ihc'
-    interp_simp [List.foldlM_cons, ctorStep, toArgs, toChain, hfid, hfn, henter, hbody, hfin, iha k (by omega),
-      ihc', ihr k (by omega)]
-  | argsReverted hfid hfn hca =>
-    obtain ⟨na, iha⟩ := ctorArgs_complete hca
-    refine ⟨na, fun k hk => ?_⟩
-    interp_simp [List.foldlM_cons, ctorStep, toArgs, toChain, hfid, hfn, iha k hk]
-  | bodyReverted hfid hfn hca henter hbody hchain =>
-    obtain ⟨na, iha⟩ := ctorArgs_complete hca
+    interp_simp [List.foldlM_cons, ctorStep, toChain, hfid, hfn, hvs, henter, hbody, hfin, ihc', ihr k (by omega)]
+  | bodyReverted hfid hfn hvs henter hbody hchain =>
     obtain ⟨nc, ihc⟩ := execChain_complete hchain
-    refine ⟨na + nc, fun k hk => ?_⟩
-    interp_simp [List.foldlM_cons, ctorStep, toArgs, toChain, hfid, hfn, henter, hbody, iha k (by omega),
-      ihc k (by omega)]
-  | enterPanic hfid hfn hca henter =>
-    obtain ⟨na, iha⟩ := ctorArgs_complete hca
-    refine ⟨na, fun k hk => ?_⟩
-    interp_simp [List.foldlM_cons, ctorStep, toArgs, toChain, hfid, hfn, henter, iha k hk]
+    refine ⟨nc, fun k hk => ?_⟩
+    interp_simp [List.foldlM_cons, ctorStep, toChain, hfid, hfn, hvs, henter, hbody, ihc k (by omega)]
+  | enterPanic hfid hfn hvs henter =>
+    refine ⟨0, fun k _ => ?_⟩
+    interp_simp [List.foldlM_cons, ctorStep, toChain, hfid, hfn, hvs, henter]
 
 theorem interpCtor_complete {args cA gh bl σ σ₀ g A I r}
     (h : solidityCtorExec cfg o fc args cA gh bl σ σ₀ g A I r) :
     ∃ n, ∀ k, n ≤ k → ((interpCtor cfg o fc k args cA gh bl σ σ₀ g A I).run).map ctorOf = some r := by
   cases h with
-  | run hpay himms hargs hpf hinits hchain =>
+  | run hpay himms hargs hinits hav hchain =>
     obtain ⟨ni, ihi⟩ := initsFold_complete hinits
+    obtain ⟨na, iha⟩ := argsFold_complete hav
     obtain ⟨nc, ihc⟩ := chainFold_complete hchain
-    refine ⟨ni + nc, fun k hk => ?_⟩
+    refine ⟨ni + na + nc, fun k hk => ?_⟩
     rcases r with ⟨m3, imms⟩ | d <;>
-      interp_simp [interpCtor, ctorOf, toChain, ctorPayableB_iff.mpr hpay, himms, hargs, hpf, ihi k (by omega),
-        ihc k (by omega), Option.map_some]
-  | initsReverted hpay himms hargs hpf hinits =>
+      interp_simp [interpCtor, ctorOf, toChain, ctorPayableB_iff.mpr hpay, himms, hargs, ihi k (by omega),
+        iha k (by omega), ihc k (by omega), Option.map_some]
+  | initsReverted hpay himms hargs hinits =>
     obtain ⟨ni, ihi⟩ := initsFold_complete hinits
     refine ⟨ni, fun k hk => ?_⟩
-    interp_simp [interpCtor, ctorOf, ctorPayableB_iff.mpr hpay, himms, hargs, hpf, ihi k hk, Option.map_some]
-  | paramPanic hpay himms hargs hpf =>
-    refine ⟨0, fun k _ => ?_⟩
-    interp_simp [interpCtor, ctorOf, ctorPayableB_iff.mpr hpay, himms, hargs, hpf, Option.map_some]
+    interp_simp [interpCtor, ctorOf, ctorPayableB_iff.mpr hpay, himms, hargs, ihi k hk, Option.map_some]
+  | argsReverted hpay himms hargs hinits hav =>
+    obtain ⟨ni, ihi⟩ := initsFold_complete hinits
+    obtain ⟨na, iha⟩ := argsFold_complete hav
+    refine ⟨ni + na, fun k hk => ?_⟩
+    interp_simp [interpCtor, ctorOf, ctorPayableB_iff.mpr hpay, himms, hargs, ihi k (by omega), iha k (by omega),
+      Option.map_some]
   | nonPayable hnp =>
     refine ⟨0, fun k _ => ?_⟩
     interp_simp [interpCtor, ctorOf, ctorPayableB_false hnp, Option.map_some]

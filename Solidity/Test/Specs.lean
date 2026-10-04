@@ -29,3 +29,4 @@ import Solidity.Test.Specs.Calls
 import Solidity.Test.Specs.Recv
 import Solidity.Test.Specs.Inherit
 import Solidity.Test.Specs.Libs
+import Solidity.Test.Specs.Scopes

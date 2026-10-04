@@ -80,9 +80,21 @@ def isBuiltinFn (f : Ident) : Bool :=
   f == "require" || f == "assert" || f == "revert" || f == "keccak256" || f == "gasleft" ||
     f == "addmod" || f == "mulmod" || f == "type" || f == "ecrecover"
 
+/-- The error a `revert` names: `E` in the scope of the running code, or `Q.E`. -/
+def errorRef (fc : FlatContract) (here : Ident) : Expr → Option ErrorInfo
+  | .ident e => fc.errorIn here e
+  | .member (.ident q) e => fc.errorOf q e
+  | _ => none
+
+/-- The events an `emit` names (overloads): `E` in the scope of the running code, or `Q.E`. -/
+def eventsRef (fc : FlatContract) (here : Ident) : Expr → List EventInfo
+  | .ident ev => fc.eventsNamedIn here ev
+  | .member (.ident q) ev => fc.eventsOf q ev
+  | _ => []
+
 /-- `require(c, E(args))` with a declared custom error `E`. -/
-def isCustomError (fc : FlatContract) : Expr → Bool
-  | .call (.ident err) [] _ => (fc.error? err).isSome
+def isCustomError (fc : FlatContract) (here : Ident) : Expr → Bool
+  | .call callee [] _ => (errorRef fc here callee).isSome
   | _ => false
 
 /-- The contract of a function reference `C.f` / `this.f` (only `.selector` is defined on it). -/
@@ -91,10 +103,15 @@ def fnRefContract (fc : FlatContract) (fr : Frame) : Expr → Option Ident
   | .ident c => if (fr.get? c).isNone && !(isEnvObj c) && (fc.types.contractKind? c).isSome then some c else none
   | _ => none
 
-/-- Member accesses resolved without evaluating the receiver: `msg.x`, an enum member, `type(T).x`,
-    `C.f.selector`. -/
+/-- `q` in `q.x` names a contract-like unit: not a local, a variable or an enum of the running code. -/
+def unitQual (fc : FlatContract) (fr : Frame) (q : Ident) : Bool :=
+  !(isEnvObj q) && (fr.get? q).isNone && (fc.varIn fr.here q).isNone && (fc.types.enumIn fr.here q).isNone &&
+    (fc.types.contractKind? q).isSome
+
+/-- Member accesses resolved without evaluating the receiver: `msg.x`, an enum member, a member of
+    a unit (`Q.x`, `Q.E.member`), `type(T).x`, `C.f.selector`. -/
 def directMember (fc : FlatContract) (fr : Frame) : Expr → Bool
-  | .ident obj => isEnvObj obj || ((fr.get? obj).isNone && (fc.types.enum? none obj).isSome)
+  | .ident obj => isEnvObj obj || ((fr.get? obj).isNone && (fc.types.enumIn fr.here obj).isSome) || unitQual fc fr obj
   | .call (.ident "type") [] (.positional [.typeExpr _]) => true
   | .member recv _ => (fnRefContract fc fr recv).isSome
   | _ => false
@@ -122,7 +139,8 @@ def isContractValue : Value → Bool
 
 def argFits (env : TypeEnv) (h : Heap) (v : Value) (p : Param) : Bool :=
   match v with
-  | .storageRef _ ty => p.loc == some .storage && ty.same p.ty
+  -- a storage value is passed by reference, or copied into a `memory` parameter
+  | .storageRef _ ty => (p.loc == some .storage || p.loc == some .memory) && ty == p.ty
   | .memRef _ => !(isValueType env p.ty)
   | .raw ty _ => ty == p.ty
   | v => (implicitConv env h v p.ty).isSome
@@ -202,10 +220,10 @@ def restoreUnchecked (u : Bool) : ExecResult → ExecResult
   | .continue fr m => .continue { fr with unchecked := u } m
   | .reverted d => .reverted d
 
-/-- The frame in which a constant's initializer is evaluated: no locals (its names were resolved
-    where it is declared), in the reader's checked / unchecked mode (solc's legacy pipeline inlines
-    the expression at the place of use). -/
-def constFrame (fr : Frame) : Frame := { fr with locals := ∅, hidden := [] }
+/-- The frame in which a constant's initializer is evaluated: the scope of the unit `here` that
+    declares it, no locals, in the reader's checked / unchecked mode (solc's legacy pipeline
+    inlines the expression at the place of use). -/
+def constFrame (fr : Frame) (here : Ident) : Frame := { fr with here := here, locals := ∅, hidden := [] }
 
 /-- Leave a block entered from `fr` (see `Frame.exitScope`). -/
 def exitBlock (fr : Frame) : ExecResult → ExecResult
@@ -238,7 +256,7 @@ def paramNames (ps : List Param) : List (Option Ident) := ps.map (·.name)
 /-- Whether `v` can be passed for an event parameter of type `ty` (arguments are copied to memory). -/
 def eventArgFits (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Bool :=
   match v with
-  | .storageRef _ sty => sty.same ty
+  | .storageRef _ sty => sty == ty
   | .memRef _ => !(isValueType env ty)
   | .raw rty _ => rty == ty
   | v => (implicitConv env h v ty).isSome
@@ -322,7 +340,7 @@ def usingLibrary (fc : FlatContract) (here : Ident) (ty : Option Ty) : List Cont
   fc.usingFor.filterMap fun (c, u) =>
     if c != here then none
     else match u.target, u.ty with
-      | .library l, some t => if (ty.map t.same).getD false then fc.library? l else none
+      | .library l, some t => if some t == ty then fc.library? l else none
       | .library l, none => fc.library? l
       | _, _ => none
 
@@ -353,9 +371,25 @@ def baseRecv (fc : FlatContract) (fr : Frame) : Expr → Bool
   | .ident b => (fr.get? b).isNone && !(isEnvObj b) && (fc.library? b).isNone && fc.linearization.contains b
   | _ => false
 
-/-- Member calls resolved without evaluating the receiver: `super.f`, `abi.f`/`msg.f`/..., `L.f`, `B.f`. -/
+/-- Another contract-like unit in receiver position (`I.S(...)`): not a library, not a base. -/
+def otherUnitRecv (fc : FlatContract) (fr : Frame) : Expr → Bool
+  | .ident q => (fr.get? q).isNone && !(isEnvObj q) && (fc.library? q).isNone && !(fc.linearization.contains q) &&
+      (fc.varIn fr.here q).isNone && (fc.types.contractKind? q).isSome
+  | _ => false
+
+/-- `Q.name(...)` where `name` is a struct or an enum of the unit `Q`: a struct literal or a
+    conversion, not a call of a function of `Q`. -/
+def qualTypeRecv (fc : FlatContract) (fr : Frame) (recv : Expr) (name : Ident) : Bool :=
+  match recv with
+  | .ident q => (libraryRecv fc fr recv || baseRecv fc fr recv || otherUnitRecv fc fr recv) &&
+      ((fc.types.structOf q name).isSome || (fc.types.enumOf q name).isSome)
+  | _ => false
+
+/-- Member calls resolved without evaluating the receiver: `super.f`, `abi.f`/`msg.f`/..., `L.f`,
+    `B.f`, a member of another unit. -/
 def memberCallDirect (fc : FlatContract) (fr : Frame) (recv : Expr) : Bool :=
-  isSuperExpr recv || isEnvObj (headIdent recv) || libraryRecv fc fr recv || baseRecv fc fr recv
+  isSuperExpr recv || isEnvObj (headIdent recv) || libraryRecv fc fr recv || baseRecv fc fr recv ||
+    otherUnitRecv fc fr recv
 
 def isRaw : Value → Bool
   | .raw .. => true
@@ -550,27 +584,40 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | local : fr.get? x = some l → EvalExpr fr m (.ident x) (.ok l.val fr m)
   -- a constant: its initializer, evaluated where it is read (`constFrame`: the reader's locals are
   -- not visible) and converted to the declared type
-  | constVar : fr.get? x = none → fc.var? x = some v → v.mutability = .constant → v.init = some e →
-      EvalExpr (constFrame fr) m e (.ok val fr1 m1) →
+  | constVar : fr.get? x = none → fc.varIn fr.here x = some v → v.mutability = .constant → v.init = some e →
+      EvalExpr (constFrame fr v.declaredIn) m e (.ok val fr1 m1) →
       coerce cfg fc.types m1 val v.ty (some .memory) = some (.ok (val', m2)) →
       EvalExpr fr m (.ident x) (.ok val' fr m2)
-  | constVarRevert : fr.get? x = none → fc.var? x = some v → v.mutability = .constant → v.init = some e →
-      EvalExpr (constFrame fr) m e (.reverted d) → EvalExpr fr m (.ident x) (.reverted d)
-  | constVarPanic : fr.get? x = none → fc.var? x = some v → v.mutability = .constant → v.init = some e →
-      EvalExpr (constFrame fr) m e (.ok val fr1 m1) →
+  | constVarRevert : fr.get? x = none → fc.varIn fr.here x = some v → v.mutability = .constant → v.init = some e →
+      EvalExpr (constFrame fr v.declaredIn) m e (.reverted d) → EvalExpr fr m (.ident x) (.reverted d)
+  | constVarPanic : fr.get? x = none → fc.varIn fr.here x = some v → v.mutability = .constant → v.init = some e →
+      EvalExpr (constFrame fr v.declaredIn) m e (.ok val fr1 m1) →
       coerce cfg fc.types m1 val v.ty (some .memory) = some (.error p) →
       EvalExpr fr m (.ident x) (.reverted p.data)
-  | immutableVar : fr.get? x = none → fc.var? x = some v → v.mutability = .immutable →
+  | immutableVar : fr.get? x = none → fc.varIn fr.here x = some v → v.mutability = .immutable →
       immutableValue cfg fc.types fr v = some val → EvalExpr fr m (.ident x) (.ok val fr m)
-  | stateVar : fr.get? x = none → fc.var? x = some v → v.mutability = .mutable →
+  | stateVar : fr.get? x = none → fc.varIn fr.here x = some v → v.mutability = .mutable →
       loadIfScalar cfg fc.types m.evm ⟨v.key, []⟩ v.ty = some val → EvalExpr fr m (.ident x) (.ok val fr m)
   -- members
   | envMember : isEnvObj obj = true → envMember m obj f = some v →
       EvalExpr fr m (.member (.ident obj) f) (.ok v fr m)
   | msgData : allocBytes m false m.evm.executionEnv.calldata = (v, m') →
       EvalExpr fr m (.member (.ident "msg") "data") (.ok v fr m')
-  | enumMember : isEnvObj t = false → fr.get? t = none → fc.types.enum? none t = some e → indexOf e.members f = some i →
-      EvalExpr fr m (.member (.ident t) f) (.ok (.enum t i) fr m)
+  | enumMember : isEnvObj t = false → fr.get? t = none → fc.types.enumIn fr.here t = some e → indexOf e.members f = some i →
+      EvalExpr fr m (.member (.ident t) f) (.ok (.enum e.qual t i) fr m)
+  -- `Q.x`: a constant of the unit `Q`; `Q.E.member`: a member of an enum of `Q`
+  | qualConst : unitQual fc fr q = true → fc.varOf q x = some v → v.mutability = .constant → v.init = some e →
+      EvalExpr (constFrame fr v.declaredIn) m e (.ok val fr1 m1) →
+      coerce cfg fc.types m1 val v.ty (some .memory) = some (.ok (val', m2)) →
+      EvalExpr fr m (.member (.ident q) x) (.ok val' fr m2)
+  | qualConstRevert : unitQual fc fr q = true → fc.varOf q x = some v → v.mutability = .constant → v.init = some e →
+      EvalExpr (constFrame fr v.declaredIn) m e (.reverted d) → EvalExpr fr m (.member (.ident q) x) (.reverted d)
+  | qualConstPanic : unitQual fc fr q = true → fc.varOf q x = some v → v.mutability = .constant → v.init = some e →
+      EvalExpr (constFrame fr v.declaredIn) m e (.ok val fr1 m1) →
+      coerce cfg fc.types m1 val v.ty (some .memory) = some (.error p) →
+      EvalExpr fr m (.member (.ident q) x) (.reverted p.data)
+  | qualEnumMember : fnRefContract fc fr (.ident q) = some q → f ≠ "selector" → fc.types.enumOf q t = some e →
+      indexOf e.members f = some i → EvalExpr fr m (.member (.member (.ident q) t) f) (.ok (.enum e.qual t i) fr m)
   | typeMember : typeMember fc ty f = some v →
       EvalExpr fr m (.member (.call (.ident "type") [] (.positional [.typeExpr ty])) f) (.ok v fr m)
   | memberField : directMember fc fr e = false → f ≠ "length" →
@@ -630,48 +677,66 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | sliceHiRevert : EvalExpr fr m e (.ok v fr1 m1) → EvalGasOpt fr1 m1 lo (.ok l fr2 m2) →
       EvalGasOpt fr2 m2 hi (.reverted d) → EvalExpr fr m (.slice e lo hi) (.reverted d)
   -- conversions and struct literals
-  | convert : EvalExpr fr m a (.ok v fr1 m1) → explicitConv fc.types m1.heap v ty = some (.ok (v', h')) →
+  | convert : EvalExpr fr m a (.ok v fr1 m1) →
+      explicitConv fc.types m1.heap v (fc.types.canonTy fr.here ty) = some (.ok (v', h')) →
       EvalExpr fr m (.call (.typeExpr ty) [] (.positional [a])) (.ok v' fr1 { m1 with heap := h' })
-  | convertPanic : EvalExpr fr m a (.ok v fr1 m1) → explicitConv fc.types m1.heap v ty = some (.error p) →
+  | convertPanic : EvalExpr fr m a (.ok v fr1 m1) →
+      explicitConv fc.types m1.heap v (fc.types.canonTy fr.here ty) = some (.error p) →
       EvalExpr fr m (.call (.typeExpr ty) [] (.positional [a])) (.reverted p.data)
   | convertRevert : EvalExpr fr m a (.reverted d) → EvalExpr fr m (.call (.typeExpr ty) [] (.positional [a])) (.reverted d)
-  | convertUser : isBuiltinFn c = false → fr.get? c = none → fc.var? c = none → fc.fnsNamed c = [] → fc.types.struct? none c = none →
-      (fc.types.contractKind? c).isSome ∨ (fc.types.enum? none c).isSome →
+  | convertUser : isBuiltinFn c = false → fr.get? c = none → fc.varIn fr.here c = none → fc.fnsNamedIn fr.here c = [] →
+      fc.types.structIn fr.here c = none →
+      (fc.types.contractKind? c).isSome ∨ (fc.types.enumIn fr.here c).isSome →
       EvalExpr fr m (.call (.typeExpr (.user none c)) [] (.positional [a])) r →
       EvalExpr fr m (.call (.ident c) [] (.positional [a])) r
-  | structLit : isBuiltinFn s = false → fr.get? s = none → fc.fnsNamed s = [] → fc.types.struct? none s = some sd →
+  | structLit : isBuiltinFn s = false → fr.get? s = none → fc.fnsNamedIn fr.here s = [] → fc.types.structIn fr.here s = some sd →
       argExprs (sd.fields.map fun f => some f.2) args = some es →
       EvalExprs fr m es (.ok vs fr1 m1) → structObj cfg fc.types m1 sd vs = some (.ok (v, m2)) →
       EvalExpr fr m (.call (.ident s) [] args) (.ok v fr1 m2)
-  | structLitRevert : isBuiltinFn s = false → fr.get? s = none → fc.fnsNamed s = [] → fc.types.struct? none s = some sd →
+  | structLitRevert : isBuiltinFn s = false → fr.get? s = none → fc.fnsNamedIn fr.here s = [] → fc.types.structIn fr.here s = some sd →
       argExprs (sd.fields.map fun f => some f.2) args = some es →
       EvalExprs fr m es (.reverted d) → EvalExpr fr m (.call (.ident s) [] args) (.reverted d)
-  | structLitPanic : isBuiltinFn s = false → fr.get? s = none → fc.fnsNamed s = [] → fc.types.struct? none s = some sd →
+  | structLitPanic : isBuiltinFn s = false → fr.get? s = none → fc.fnsNamedIn fr.here s = [] → fc.types.structIn fr.here s = some sd →
       argExprs (sd.fields.map fun f => some f.2) args = some es →
       EvalExprs fr m es (.ok vs fr1 m1) → structObj cfg fc.types m1 sd vs = some (.error p) →
       EvalExpr fr m (.call (.ident s) [] args) (.reverted p.data)
+  -- `Q.S(args)`, `Q.E(a)`: a struct or an enum of the unit `Q`
+  | structLitQ : qualTypeRecv fc fr (.ident q) s = true → fc.types.structOf q s = some sd →
+      argExprs (sd.fields.map fun f => some f.2) args = some es →
+      EvalExprs fr m es (.ok vs fr1 m1) → structObj cfg fc.types m1 sd vs = some (.ok (v, m2)) →
+      EvalExpr fr m (.call (.member (.ident q) s) [] args) (.ok v fr1 m2)
+  | structLitQRevert : qualTypeRecv fc fr (.ident q) s = true → fc.types.structOf q s = some sd →
+      argExprs (sd.fields.map fun f => some f.2) args = some es →
+      EvalExprs fr m es (.reverted d) → EvalExpr fr m (.call (.member (.ident q) s) [] args) (.reverted d)
+  | structLitQPanic : qualTypeRecv fc fr (.ident q) s = true → fc.types.structOf q s = some sd →
+      argExprs (sd.fields.map fun f => some f.2) args = some es →
+      EvalExprs fr m es (.ok vs fr1 m1) → structObj cfg fc.types m1 sd vs = some (.error p) →
+      EvalExpr fr m (.call (.member (.ident q) s) [] args) (.reverted p.data)
+  | convertQ : qualTypeRecv fc fr (.ident q) c = true → fc.types.structOf q c = none →
+      EvalExpr fr m (.call (.typeExpr (.user (some q) c)) [] (.positional [a])) r →
+      EvalExpr fr m (.call (.member (.ident q) c) [] (.positional [a])) r
   -- builtins
   | requireTrue : EvalExpr fr m c (.ok (.bool true) fr1 m1) →
       EvalExpr fr m (.call (.ident "require") [] (.positional (c :: rest))) (.ok .unit fr1 m1)
   | requireFalse : EvalExpr fr m c (.ok (.bool false) fr1 m1) →
       EvalExpr fr m (.call (.ident "require") [] (.positional [c])) (.reverted ByteArray.empty)
-  | requireMsg : isCustomError fc msg = false → EvalExpr fr m c (.ok (.bool false) fr1 m1) → EvalExpr fr1 m1 msg (.ok mv fr2 m2) →
+  | requireMsg : isCustomError fc fr.here msg = false → EvalExpr fr m c (.ok (.bool false) fr1 m1) → EvalExpr fr1 m1 msg (.ok mv fr2 m2) →
       bytesArg m2.heap mv = some s →
       EvalExpr fr m (.call (.ident "require") [] (.positional [c, msg])) (.reverted (errorStringData s))
-  | requireMsgRevert : isCustomError fc msg = false → EvalExpr fr m c (.ok (.bool false) fr1 m1) → EvalExpr fr1 m1 msg (.reverted d) →
+  | requireMsgRevert : isCustomError fc fr.here msg = false → EvalExpr fr m c (.ok (.bool false) fr1 m1) → EvalExpr fr1 m1 msg (.reverted d) →
       EvalExpr fr m (.call (.ident "require") [] (.positional [c, msg])) (.reverted d)
-  | requireCustom : EvalExpr fr m c (.ok (.bool false) fr1 m1) → fc.error? err = some ei →
+  | requireCustom : EvalExpr fr m c (.ok (.bool false) fr1 m1) → errorRef fc fr.here callee = some ei →
       argExprs (paramNames ei.decl.params) args = some es → EvalExprs fr1 m1 es (.ok vs fr2 m2) →
       abiArgs cfg fc.types m2 (ei.decl.params.map (·.ty)) vs = some (.ok (svs, m3)) →
       customErrorData ei.sigStr ei.sig.paramTypes svs = some d →
-      EvalExpr fr m (.call (.ident "require") [] (.positional [c, .call (.ident err) [] args])) (.reverted d)
-  | requireCustomArgsRevert : EvalExpr fr m c (.ok (.bool false) fr1 m1) → fc.error? err = some ei →
+      EvalExpr fr m (.call (.ident "require") [] (.positional [c, .call callee [] args])) (.reverted d)
+  | requireCustomArgsRevert : EvalExpr fr m c (.ok (.bool false) fr1 m1) → errorRef fc fr.here callee = some ei →
       argExprs (paramNames ei.decl.params) args = some es → EvalExprs fr1 m1 es (.reverted d) →
-      EvalExpr fr m (.call (.ident "require") [] (.positional [c, .call (.ident err) [] args])) (.reverted d)
-  | requireCustomPanic : EvalExpr fr m c (.ok (.bool false) fr1 m1) → fc.error? err = some ei →
+      EvalExpr fr m (.call (.ident "require") [] (.positional [c, .call callee [] args])) (.reverted d)
+  | requireCustomPanic : EvalExpr fr m c (.ok (.bool false) fr1 m1) → errorRef fc fr.here callee = some ei →
       argExprs (paramNames ei.decl.params) args = some es → EvalExprs fr1 m1 es (.ok vs fr2 m2) →
       abiArgs cfg fc.types m2 (ei.decl.params.map (·.ty)) vs = some (.error p) →
-      EvalExpr fr m (.call (.ident "require") [] (.positional [c, .call (.ident err) [] args])) (.reverted p.data)
+      EvalExpr fr m (.call (.ident "require") [] (.positional [c, .call callee [] args])) (.reverted p.data)
   | requireCondRevert : EvalExpr fr m c (.reverted d) →
       EvalExpr fr m (.call (.ident "require") [] (.positional (c :: rest))) (.reverted d)
   | assertTrue : EvalExpr fr m c (.ok (.bool true) fr1 m1) →
@@ -735,12 +800,12 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       encodeABIValues? tys svs = some bs → allocBytes m2 false ((ffi.KEC s).extract 0 4 ++ bs.toByteArray) = (v, m3) →
       EvalExpr fr m (.call (.member (.ident "abi") "encodeWithSignature") [] (.positional (sig :: es))) (.ok v fr1 m3)
   | abiDecode : EvalExpr fr m d (.ok dv fr1 m1) → bytesArg m1.heap dv = some s →
-      typeArgs tyArg = some tys → tys.mapM (abiTypeOf fc.types) = some atys →
+      typeArgs tyArg = some tys → (tys.map (fc.types.canonTy fr.here)).mapM (abiTypeOf fc.types) = some atys →
       ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode atys s = some svs →
-      ofAbiList fc.types tys svs m1.heap = some (vs, h') →
+      ofAbiList fc.types (tys.map (fc.types.canonTy fr.here)) svs m1.heap = some (vs, h') →
       EvalExpr fr m (.call (.member (.ident "abi") "decode") [] (.positional [d, tyArg])) (.ok (retValue vs) fr1 { m1 with heap := h' })
   | abiDecodeFail : EvalExpr fr m d (.ok dv fr1 m1) → bytesArg m1.heap dv = some s →
-      typeArgs tyArg = some tys → tys.mapM (abiTypeOf fc.types) = some atys →
+      typeArgs tyArg = some tys → (tys.map (fc.types.canonTy fr.here)).mapM (abiTypeOf fc.types) = some atys →
       ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode atys s = none →
       EvalExpr fr m (.call (.member (.ident "abi") "decode") [] (.positional [d, tyArg])) (.reverted ByteArray.empty)
   | abiEncodeRevert : (f = "encode" ∨ f = "encodePacked" ∨ f = "encodeWithSelector" ∨ f = "encodeWithSignature") →
@@ -749,11 +814,11 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.call (.member (.ident "abi") "decode") [] (.positional [d, tyArg])) (.reverted dd)
   -- memory allocation
   | newArray : newContract? fc ty = none → EvalExpr fr m n (.ok nv fr1 m1) → natValue nv = some len →
-      isValueType fc.types ty = false → allocTooLarge len = false →
-      zeroObj fc.types fuelDefault ty len m1.heap = some (v, h') →
+      isValueType fc.types (fc.types.canonTy fr.here ty) = false → allocTooLarge len = false →
+      zeroObj fc.types fuelDefault (fc.types.canonTy fr.here ty) len m1.heap = some (v, h') →
       EvalExpr fr m (.call (.new ty) [] (.positional [n])) (.ok v fr1 { m1 with heap := h' })
   | newArrayPanic : newContract? fc ty = none → EvalExpr fr m n (.ok nv fr1 m1) → natValue nv = some len →
-      isValueType fc.types ty = false → allocTooLarge len = true →
+      isValueType fc.types (fc.types.canonTy fr.here ty) = false → allocTooLarge len = true →
       EvalExpr fr m (.call (.new ty) [] (.positional [n])) (.reverted (Panic.data .allocTooLarge))
   | newArrayRevert : newContract? fc ty = none → EvalExpr fr m n (.reverted d) →
       EvalExpr fr m (.call (.new ty) [] (.positional [n])) (.reverted d)
@@ -780,14 +845,17 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | newContractValueRevert : newContract? fc ty = some (c, tys) → EvalValueOpt fr m (valueOpt opts) (.reverted d) →
       EvalExpr fr m (.call (.new ty) opts args) (.reverted d)
   -- internal calls
-  | internalCall : isBuiltinFn f = false → fr.get? f = none → fc.fnsNamed f ≠ [] → callArgs (fc.candParams (fc.fnsNamed f)) args = some es →
-      EvalExprs fr m es (.ok vs fr1 m1) → resolveOverload fc.types m1.heap fc (fc.fnsNamed f) vs = some fn →
+  | internalCall : isBuiltinFn f = false → fr.get? f = none → fc.fnsNamedIn fr.here f ≠ [] →
+      callArgs (fc.candParams (fc.fnsNamedIn fr.here f)) args = some es →
+      EvalExprs fr m es (.ok vs fr1 m1) → resolveOverload fc.types m1.heap fc (fc.fnsNamedIn fr.here f) vs = some fn →
       CallFn fr1 m1 fn vs (.ok rets m2) →
       EvalExpr fr m (.call (.ident f) [] args) (.ok (retValue rets) fr1 m2)
-  | internalCallRevert : isBuiltinFn f = false → fr.get? f = none → fc.fnsNamed f ≠ [] → callArgs (fc.candParams (fc.fnsNamed f)) args = some es →
-      EvalExprs fr m es (.ok vs fr1 m1) → resolveOverload fc.types m1.heap fc (fc.fnsNamed f) vs = some fn →
+  | internalCallRevert : isBuiltinFn f = false → fr.get? f = none → fc.fnsNamedIn fr.here f ≠ [] →
+      callArgs (fc.candParams (fc.fnsNamedIn fr.here f)) args = some es →
+      EvalExprs fr m es (.ok vs fr1 m1) → resolveOverload fc.types m1.heap fc (fc.fnsNamedIn fr.here f) vs = some fn →
       CallFn fr1 m1 fn vs (.reverted d) → EvalExpr fr m (.call (.ident f) [] args) (.reverted d)
-  | internalArgsRevert : isBuiltinFn f = false → fr.get? f = none → fc.fnsNamed f ≠ [] → callArgs (fc.candParams (fc.fnsNamed f)) args = some es →
+  | internalArgsRevert : isBuiltinFn f = false → fr.get? f = none → fc.fnsNamedIn fr.here f ≠ [] →
+      callArgs (fc.candParams (fc.fnsNamedIn fr.here f)) args = some es →
       EvalExprs fr m es (.reverted d) → EvalExpr fr m (.call (.ident f) [] args) (.reverted d)
   | superCall : callArgs (fc.candParams (superCands fc fr.here f)) args = some es → EvalExprs fr m es (.ok vs fr1 m1) →
       resolveOverload fc.types m1.heap fc (superCands fc fr.here f) vs = some fn → CallFn fr1 m1 fn vs (.ok rets m2) →
@@ -797,27 +865,30 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.call (.member .super f) [] args) (.reverted d)
   | superArgsRevert : callArgs (fc.candParams (superCands fc fr.here f)) args = some es → EvalExprs fr m es (.reverted d) →
       EvalExpr fr m (.call (.member .super f) [] args) (.reverted d)
-  | libraryCall : isEnvObj l = false → fr.get? l = none → fc.library? l = some lib → callArgs ((lib.functions.filter (·.name == f)).map (·.params)) args = some es →
+  | libraryCall : isEnvObj l = false → fr.get? l = none → fc.library? l = some lib → qualTypeRecv fc fr (.ident l) f = false →
+      callArgs ((lib.functions.filter (·.name == f)).map (·.params)) args = some es →
       EvalExprs fr m es (.ok vs fr1 m1) → resolveDecl fc.types m1.heap (lib.functions.filter (·.name == f)) vs = some d →
       CallFn fr1 m1 ⟨0, l, d⟩ vs (.ok rets m2) →
       EvalExpr fr m (.call (.member (.ident l) f) [] args) (.ok (retValue rets) fr1 m2)
-  | libraryCallRevert : isEnvObj l = false → fr.get? l = none → fc.library? l = some lib → callArgs ((lib.functions.filter (·.name == f)).map (·.params)) args = some es →
+  | libraryCallRevert : isEnvObj l = false → fr.get? l = none → fc.library? l = some lib → qualTypeRecv fc fr (.ident l) f = false →
+      callArgs ((lib.functions.filter (·.name == f)).map (·.params)) args = some es →
       EvalExprs fr m es (.ok vs fr1 m1) → resolveDecl fc.types m1.heap (lib.functions.filter (·.name == f)) vs = some d →
       CallFn fr1 m1 ⟨0, l, d⟩ vs (.reverted dd) →
       EvalExpr fr m (.call (.member (.ident l) f) [] args) (.reverted dd)
-  | libraryArgsRevert : isEnvObj l = false → fr.get? l = none → fc.library? l = some lib → callArgs ((lib.functions.filter (·.name == f)).map (·.params)) args = some es →
+  | libraryArgsRevert : isEnvObj l = false → fr.get? l = none → fc.library? l = some lib → qualTypeRecv fc fr (.ident l) f = false →
+      callArgs ((lib.functions.filter (·.name == f)).map (·.params)) args = some es →
       EvalExprs fr m es (.reverted d) → EvalExpr fr m (.call (.member (.ident l) f) [] args) (.reverted d)
   -- explicit base calls `B.f(args)`: the implementation `B` would use (internal call)
   | baseCall : isEnvObj b = false → fr.get? b = none → fc.library? b = none → fc.linearization.contains b = true →
-      callArgs (fc.candParams (baseCands fc b f)) args = some es → EvalExprs fr m es (.ok vs fr1 m1) →
+      qualTypeRecv fc fr (.ident b) f = false → callArgs (fc.candParams (baseCands fc b f)) args = some es → EvalExprs fr m es (.ok vs fr1 m1) →
       resolveOverload fc.types m1.heap fc (baseCands fc b f) vs = some fn → CallFn fr1 m1 fn vs (.ok rets m2) →
       EvalExpr fr m (.call (.member (.ident b) f) [] args) (.ok (retValue rets) fr1 m2)
   | baseCallRevert : isEnvObj b = false → fr.get? b = none → fc.library? b = none → fc.linearization.contains b = true →
-      callArgs (fc.candParams (baseCands fc b f)) args = some es → EvalExprs fr m es (.ok vs fr1 m1) →
+      qualTypeRecv fc fr (.ident b) f = false → callArgs (fc.candParams (baseCands fc b f)) args = some es → EvalExprs fr m es (.ok vs fr1 m1) →
       resolveOverload fc.types m1.heap fc (baseCands fc b f) vs = some fn → CallFn fr1 m1 fn vs (.reverted d) →
       EvalExpr fr m (.call (.member (.ident b) f) [] args) (.reverted d)
   | baseArgsRevert : isEnvObj b = false → fr.get? b = none → fc.library? b = none → fc.linearization.contains b = true →
-      callArgs (fc.candParams (baseCands fc b f)) args = some es → EvalExprs fr m es (.reverted d) →
+      qualTypeRecv fc fr (.ident b) f = false → callArgs (fc.candParams (baseCands fc b f)) args = some es → EvalExprs fr m es (.reverted d) →
       EvalExpr fr m (.call (.member (.ident b) f) [] args) (.reverted d)
   | usingForCall : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok rv fr1 m1) → specialMemberCall rv f = false →
       usingLibrary fc fr.here (receiverTy m1.heap rv) = [lib] → callArgs ((lib.functions.filter (·.name == f)).map (·.params.drop 1)) args = some es →
@@ -1067,9 +1138,9 @@ inductive EvalExprs : Frame → Machine → List Expr → Res (List Value) → P
 
 inductive EvalLValue : Frame → Machine → Expr → Res LValue → Prop where
   | local : fr.get? x = some l → EvalLValue fr m (.ident x) (.ok (.local x) fr m)
-  | stateVar : fr.get? x = none → fc.var? x = some v → v.mutability = .mutable →
+  | stateVar : fr.get? x = none → fc.varIn fr.here x = some v → v.mutability = .mutable →
       EvalLValue fr m (.ident x) (.ok (.storage ⟨v.key, []⟩ v.ty) fr m)
-  | immutableVar : fr.get? x = none → fc.var? x = some v → v.mutability = .immutable →
+  | immutableVar : fr.get? x = none → fc.varIn fr.here x = some v → v.mutability = .immutable →
       EvalLValue fr m (.ident x) (.ok (.local (immName x)) fr m)
   | memberStorage : EvalExpr fr m e (.ok (.storageRef er ty) fr1 m1) → storageField fc.types er ty f = some (er', fty) →
       EvalLValue fr m (.member e f) (.ok (.storage er' fty) fr1 m1)
@@ -1152,24 +1223,24 @@ inductive ExecStmt : Frame → Machine → Stmt → ExecResult → Prop where
       AssignTuple fr1.unwind m1 (fr.retVars.map fun r => some (.ident r)) vs (.reverted d) →
       ExecStmt fr m (.return (some e)) (.reverted d)
   -- `emit ev(args)`: the overload is resolved by the evaluated arguments
-  | emit : eventArgs (fc.eventsNamed ev) args = some es → EvalExprs fr m es (.ok vs fr1 m1) →
-      resolveEvent fc.types m1.heap (fc.eventsNamed ev) vs = some ei →
+  | emit : eventArgs (eventsRef fc fr.here callee) args = some es → EvalExprs fr m es (.ok vs fr1 m1) →
+      resolveEvent fc.types m1.heap (eventsRef fc fr.here callee) vs = some ei →
       abiArgs cfg fc.types m1 (ei.decl.params.map (·.ty)) vs = some (.ok (svs, m2)) →
-      mkLogEntry m2.this ei svs = some le → ExecStmt fr m (.emit (.ident ev) args) (.normal fr1 (m2.pushLog le))
-  | emitRevert : eventArgs (fc.eventsNamed ev) args = some es →
-      EvalExprs fr m es (.reverted d) → ExecStmt fr m (.emit (.ident ev) args) (.reverted d)
-  | emitPanic : eventArgs (fc.eventsNamed ev) args = some es → EvalExprs fr m es (.ok vs fr1 m1) →
-      resolveEvent fc.types m1.heap (fc.eventsNamed ev) vs = some ei →
+      mkLogEntry m2.this ei svs = some le → ExecStmt fr m (.emit callee args) (.normal fr1 (m2.pushLog le))
+  | emitRevert : eventArgs (eventsRef fc fr.here callee) args = some es →
+      EvalExprs fr m es (.reverted d) → ExecStmt fr m (.emit callee args) (.reverted d)
+  | emitPanic : eventArgs (eventsRef fc fr.here callee) args = some es → EvalExprs fr m es (.ok vs fr1 m1) →
+      resolveEvent fc.types m1.heap (eventsRef fc fr.here callee) vs = some ei →
       abiArgs cfg fc.types m1 (ei.decl.params.map (·.ty)) vs = some (.error p) →
-      ExecStmt fr m (.emit (.ident ev) args) (.reverted p.data)
-  | revertError : fc.error? err = some ei → argExprs (paramNames ei.decl.params) args = some es →
+      ExecStmt fr m (.emit callee args) (.reverted p.data)
+  | revertError : errorRef fc fr.here callee = some ei → argExprs (paramNames ei.decl.params) args = some es →
       EvalExprs fr m es (.ok vs fr1 m1) → abiArgs cfg fc.types m1 (ei.decl.params.map (·.ty)) vs = some (.ok (svs, m2)) →
-      customErrorData ei.sigStr ei.sig.paramTypes svs = some d → ExecStmt fr m (.revert (.ident err) args) (.reverted d)
-  | revertErrorArgsRevert : fc.error? err = some ei → argExprs (paramNames ei.decl.params) args = some es →
-      EvalExprs fr m es (.reverted d) → ExecStmt fr m (.revert (.ident err) args) (.reverted d)
-  | revertErrorPanic : fc.error? err = some ei → argExprs (paramNames ei.decl.params) args = some es →
+      customErrorData ei.sigStr ei.sig.paramTypes svs = some d → ExecStmt fr m (.revert callee args) (.reverted d)
+  | revertErrorArgsRevert : errorRef fc fr.here callee = some ei → argExprs (paramNames ei.decl.params) args = some es →
+      EvalExprs fr m es (.reverted d) → ExecStmt fr m (.revert callee args) (.reverted d)
+  | revertErrorPanic : errorRef fc fr.here callee = some ei → argExprs (paramNames ei.decl.params) args = some es →
       EvalExprs fr m es (.ok vs fr1 m1) → abiArgs cfg fc.types m1 (ei.decl.params.map (·.ty)) vs = some (.error p) →
-      ExecStmt fr m (.revert (.ident err) args) (.reverted p.data)
+      ExecStmt fr m (.revert callee args) (.reverted p.data)
   | unchecked : ExecBlock { fr with unchecked := true } m ss r →
       ExecStmt fr m (.unchecked ss) (exitBlock fr (restoreUnchecked fr.unchecked r))
   | placeholder : ExecChain (popFrame fr) m fr.chain fr.body r → settlePlaceholder fr r = some r' →
@@ -1365,17 +1436,17 @@ inductive ExecBlock : Frame → Machine → List Stmt → ExecResult → Prop wh
 inductive ExecChain : Frame → Machine → List ModifierInvocation → Block → ExecResult → Prop where
   -- the body's own locals end with it (a second `_;` starts from the parameters and return variables)
   | body : ExecBlock fr m body r → ExecChain fr m [] body (exitBlock fr r)
-  | modifier : fc.modifier? mi.name = some md → argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])) = some es →
+  | modifier : fc.modifierIn fr.here mi.name = some md → argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])) = some es →
       EvalExprs fr m es (.ok vs fr1 m1) →
       bindModParams cfg fc.types (pushScope md.declaredIn fr1 rest body) m1 md.decl.params vs = some (.ok (fr2, m2)) →
       md.decl.body = some mb → ExecBlock fr2 m2 mb r → ExecChain fr m (mi :: rest) body (popScope r)
-  | modifierArgsRevert : fc.modifier? mi.name = some md → argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])) = some es →
+  | modifierArgsRevert : fc.modifierIn fr.here mi.name = some md → argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])) = some es →
       EvalExprs fr m es (.reverted d) → ExecChain fr m (mi :: rest) body (.reverted d)
-  | modifierPanic : fc.modifier? mi.name = some md → argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])) = some es →
+  | modifierPanic : fc.modifierIn fr.here mi.name = some md → argExprs (paramNames md.decl.params) (mi.args.getD (.positional [])) = some es →
       EvalExprs fr m es (.ok vs fr1 m1) →
       bindModParams cfg fc.types (pushScope md.declaredIn fr1 rest body) m1 md.decl.params vs = some (.error p) →
       ExecChain fr m (mi :: rest) body (.reverted p.data)
-  | skipBase : fc.modifier? mi.name = none → fc.linearization.contains mi.name = true →
+  | skipBase : fc.modifierIn fr.here mi.name = none → fc.linearization.contains mi.name = true →
       ExecChain fr m rest body r → ExecChain fr m (mi :: rest) body r
 
 /-- Call a function with evaluated arguments in a fresh frame. -/

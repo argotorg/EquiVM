@@ -1299,10 +1299,42 @@ theorem fnRefContract_ident_env (fc : FlatContract) (fr : Frame) (x : Ident) (h 
     fnRefContract fc fr (.ident x) = none := by simp [fnRefContract, h]
 theorem fnRefContract_ident_noContract (fc : FlatContract) (fr : Frame) (x : Ident) (h : fc.types.contractKind? x = none) :
     fnRefContract fc fr (.ident x) = none := by simp [fnRefContract, h]
+/-! ## Names of errors and events: `E` in the scope of the running code, or `Q.E` -/
+
+@[simp] theorem eventsRef_ident (fc : FlatContract) (here ev : Ident) :
+    eventsRef fc here (.ident ev) = fc.eventsNamedIn here ev := rfl
+@[simp] theorem eventsRef_member (fc : FlatContract) (here q ev : Ident) :
+    eventsRef fc here (.member (.ident q) ev) = fc.eventsOf q ev := rfl
+@[simp] theorem errorRef_ident (fc : FlatContract) (here e : Ident) :
+    errorRef fc here (.ident e) = fc.errorIn here e := rfl
+@[simp] theorem errorRef_member (fc : FlatContract) (here q e : Ident) :
+    errorRef fc here (.member (.ident q) e) = fc.errorOf q e := rfl
+
+/-- A local is never a unit name in qualifier position. -/
+theorem unitQual_local (fc : FlatContract) (fr : Frame) (x : Ident) (l : Local) (hl : fr.get? x = some l) :
+    unitQual fc fr x = false := by simp [unitQual, hl]
+
+/-- A variable of the running code is never a unit name in qualifier position. -/
+theorem unitQual_var (fc : FlatContract) (fr : Frame) (x : Ident) (v : FlatVar) (hv : fc.varIn fr.here x = some v) :
+    unitQual fc fr x = false := by simp [unitQual, hv]
+
+/-- A name that is no contract-like unit. -/
+theorem unitQual_noContract (fc : FlatContract) (fr : Frame) (x : Ident) (h : fc.types.contractKind? x = none) :
+    unitQual fc fr x = false := by simp [unitQual, h]
+
+/-- `x.f` evaluates `x` first when `x` is a local, or a name that is neither an enum nor a unit
+    (`unitQual_var`, `unitQual_noContract`). -/
 theorem directMember_ident (fc : FlatContract) (fr : Frame) (x : Ident) (henv : isEnvObj x = false)
-    (hx : (fr.get? x).isNone = false ∨ (fc.types.enum? none x).isSome = false) :
+    (hx : (fr.get? x).isNone = false ∨ ((fc.types.enumIn fr.here x).isSome = false ∧ unitQual fc fr x = false)) :
     directMember fc fr (.ident x) = false := by
-  rcases hx with h | h <;> simp [directMember, henv, h]
+  rcases hx with h | ⟨h, hu⟩
+  · have hl : ∃ l, fr.get? x = some l := by
+      cases hg : fr.get? x with
+      | none => simp [hg] at h
+      | some l => exact ⟨l, rfl⟩
+    obtain ⟨l, hl⟩ := hl
+    simp [directMember, henv, hl, unitQual_local fc fr x l hl]
+  · simp [directMember, henv, h, hu]
 
 theorem clearStorage_bool {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef} {slot : UInt256}
     (fuel : ℕ) (hl : cfg.storage.layout er evm = some (boolOffset0Loc slot)) :
@@ -1859,6 +1891,41 @@ theorem ofAbiList_cons (env : TypeEnv) (t : Ty) (ts : List Ty) (sv : ABI.ABIValu
   rw [ofAbi_fold_shift env _ [v] h', ← ofAbiList_eq_foldlM env ts svs h' hlen, hrest]
   rfl
 
+/-! ## Canonical types
+
+A type written in code is identified with its declaring unit (`TypeEnv.canonTy`); elementary types
+are unchanged. -/
+
+@[simp] theorem TypeEnv.canonTy_uint (env : TypeEnv) (here : Ident) (w : ABI.BitWidth) :
+    env.canonTy here (.uint w) = .uint w := rfl
+@[simp] theorem TypeEnv.canonTy_int (env : TypeEnv) (here : Ident) (w : ABI.BitWidth) :
+    env.canonTy here (.int w) = .int w := rfl
+@[simp] theorem TypeEnv.canonTy_bool (env : TypeEnv) (here : Ident) : env.canonTy here .bool = .bool := rfl
+@[simp] theorem TypeEnv.canonTy_address (env : TypeEnv) (here : Ident) (p : Bool) :
+    env.canonTy here (.address p) = .address p := rfl
+@[simp] theorem TypeEnv.canonTy_fixedBytes (env : TypeEnv) (here : Ident) (n : Fin 32) :
+    env.canonTy here (.fixedBytes n) = .fixedBytes n := rfl
+@[simp] theorem TypeEnv.canonTy_bytes (env : TypeEnv) (here : Ident) : env.canonTy here .bytes = .bytes := rfl
+@[simp] theorem TypeEnv.canonTy_string (env : TypeEnv) (here : Ident) : env.canonTy here .string = .string := rfl
+@[simp] theorem TypeEnv.canonTy_dynArray (env : TypeEnv) (here : Ident) (e : Ty) :
+    env.canonTy here (.dynArray e) = .dynArray (env.canonTy here e) := rfl
+@[simp] theorem TypeEnv.canonTy_array (env : TypeEnv) (here : Ident) (e : Ty) (n : Nat) :
+    env.canonTy here (.array e n) = .array (env.canonTy here e) n := rfl
+@[simp] theorem TypeEnv.canonTy_mapping (env : TypeEnv) (here : Ident) (k v : Ty) :
+    env.canonTy here (.mapping k v) = .mapping (env.canonTy here k) (env.canonTy here v) := rfl
+
+/-- No struct or enum named `n` is in scope: `n` is a contract type (or unknown) and keeps its spelling. -/
+theorem TypeEnv.canonTy_user_none {env : TypeEnv} {here n : Ident}
+    (hs : env.structIn here n = none) (he : env.enumIn here n = none) :
+    env.canonTy here (.user none n) = .user none n := by
+  have ho : env.typeOwner (env.scope here) n = none := by
+    simp only [TypeEnv.typeOwner, List.find?_eq_none]
+    intro u hu
+    have h1 := List.findSome?_eq_none_iff.mp hs u hu
+    have h2 := List.findSome?_eq_none_iff.mp he u hu
+    simp [h1, h2]
+  simp [TypeEnv.canonTy, Ty.mapUser, ho]
+
 @[simp] theorem abiTypeOf_uint (env : TypeEnv) (w : ABI.BitWidth) : abiTypeOf env (.uint w) = some (.elem (.int (.uint w))) := rfl
 @[simp] theorem abiTypeOf_address (env : TypeEnv) (p : Bool) : abiTypeOf env (.address p) = some (.elem .address) := rfl
 @[simp] theorem abiTypeOf_bool (env : TypeEnv) : abiTypeOf env .bool = some (.elem .bool) := rfl
@@ -2167,13 +2234,25 @@ theorem callArgs_named (paramss : List (List Param)) (fs : List (Ident × Expr))
     callArgs paramss (.named fs) = namedArgs (ps.map (·.name.getD "")) fs := by
   simp [callArgs, h]
 
-theorem FlatContract.fnsNamed_vtable (fc : FlatContract) (f : Ident) (c : FnKey × FnId) (cs : List (FnKey × FnId))
-    (h : fc.vtable.filter (·.1.name == f) = c :: cs) : fc.fnsNamed f = c :: cs := by
-  simp [FlatContract.fnsNamed, h]
+/-- In code of a contract of the hierarchy, a name with implementations in the hierarchy. -/
+theorem FlatContract.fnsNamedIn_vtable (fc : FlatContract) (here f : Ident) (c : FnKey × FnId) (cs : List (FnKey × FnId))
+    (hh : fc.linearization.contains here = true) (h : fc.vtable.filter (·.1.name == f) = c :: cs) :
+    fc.fnsNamedIn here f = c :: cs := by
+  have hh' : here ∈ fc.linearization := by simpa using hh
+  simp [FlatContract.fnsNamedIn, hh', h]
 
-theorem FlatContract.fnsNamed_free (fc : FlatContract) (f : Ident) (h : fc.vtable.filter (·.1.name == f) = []) :
-    fc.fnsNamed f = fc.freeFns.filter (·.1.name == f) := by
-  simp [FlatContract.fnsNamed, h]
+/-- In code of a contract of the hierarchy, a modifier is the hierarchy's most derived one. -/
+theorem FlatContract.modifierIn_hier (fc : FlatContract) (here name : Ident)
+    (hh : fc.linearization.contains here = true) : fc.modifierIn here name = fc.modifier? name := by
+  have hh' : here ∈ fc.linearization := by simpa using hh
+  simp [FlatContract.modifierIn, hh']
+
+/-- In code of a contract of the hierarchy, a name the hierarchy does not define: the file's functions. -/
+theorem FlatContract.fnsNamedIn_free (fc : FlatContract) (here f : Ident)
+    (hh : fc.linearization.contains here = true) (h : fc.vtable.filter (·.1.name == f) = []) :
+    fc.fnsNamedIn here f = fc.freeFns.filter (·.1.name == f) := by
+  have hh' : here ∈ fc.linearization := by simpa using hh
+  simp [FlatContract.fnsNamedIn, hh', h]
 
 theorem fnRefContract_this (fc : FlatContract) (fr : Frame) : fnRefContract fc fr .this = some fc.name := rfl
 

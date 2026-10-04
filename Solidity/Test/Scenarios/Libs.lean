@@ -48,12 +48,12 @@ def boundaries : List Case :=
   call2 "sqs(uint256,uint256)" [0, 1, 2 ^ 128 - 1, 2 ^ 128, MAX] [0, 1, 2, MAX] ++
   call1 "accMem(uint256)" [0, 1, 9, MAX] ++ call1 "constShadow(uint256)" [0, 3, MAX - 6, MAX - 5, MAX]
 
-/-- Qualified expressions that have no rule yet. -/
+/-- The qualified forms `L.CONST` and `L.Struct(...)`. -/
 def qualCases : List Case :=
-  [ { name := "wad()", code := bytesOfHex Fixtures.libsQualRuntimeHex, call := some ("wad()", []),
-      known := some "qualified library constant `L.CONST` has no rule yet" },
-    { name := "accLit(uint256)", code := bytesOfHex Fixtures.libsQualRuntimeHex, call := some ("accLit(uint256)", [.int 9]),
-      known := some "qualified struct literal `L.Struct(...)` has no rule yet" } ]
+  { name := "wad()", code := bytesOfHex Fixtures.libsQualRuntimeHex, call := some ("wad()", []), expect := .success } ::
+  [(0 : Int), 1, 9, MAX].map fun a =>
+    { name := s!"accLit(uint256) {a}", code := bytesOfHex Fixtures.libsQualRuntimeHex,
+      call := some ("accLit(uint256)", [.int a]), expect := .success }
 
 def scenario : Scenario :=
   { name := "Libs", program := _root_.Libs.SoliditySpec.program, target := "Libs", cases := cases }
@@ -63,16 +63,5 @@ def scenarioBoundaries : Scenario :=
 
 def scenarioQual : Scenario :=
   { name := "Libs/qualified", program := _root_.Libs.SoliditySpec.qualProgram, target := "LibsQual", cases := qualCases }
-
-/-- The same bytecode against a spec that writes the unqualified names (GUIDE §6). -/
-def unqualCases : List Case :=
-  { name := "wad()", code := bytesOfHex Fixtures.libsQualRuntimeHex, call := some ("wad()", []), expect := .success } ::
-  [(0 : Int), 1, 9, MAX].map fun a =>
-    { name := s!"accLit(uint256) {a}", code := bytesOfHex Fixtures.libsQualRuntimeHex,
-      call := some ("accLit(uint256)", [.int a]), expect := .success }
-
-def scenarioUnqual : Scenario :=
-  { name := "Libs/unqualified", program := _root_.Libs.SoliditySpec.unqualProgram, target := "LibsQual",
-    cases := unqualCases }
 
 end Solidity.Test.Libs

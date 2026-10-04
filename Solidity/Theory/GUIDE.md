@@ -136,9 +136,12 @@ spec then disagrees with the bytecode and the proof fails there.  The fixture
 
 ## 6. Transcribing the source: names
 
-Names are resolved in one namespace per program, not by scope.  `elabProgram` therefore rejects a
-library constant that has the name of another variable or constant, an error declared twice with
-different parameters, and a struct or enum declared twice with different contents: rename one of
-them in the spec.  A struct declared in a library may be written `Acc` or `MathLib.Acc` in a type.
-In expressions the qualified forms `L.CONST` and `L.Struct(...)` have no rule yet: write the
-unqualified name.
+Names are resolved as in Solidity: from the contract or library whose code is running, then its
+bases, then the file.  The same name may be declared in several units (`Tick.Info` and
+`Position.Info`, a `WAD` in a library and in the contract), and a library function may call another
+function of its library by name.  Write the source as it is, including the qualified forms
+`Q.CONST`, `Q.Struct(...)`, `Q.Enum.member`, `Q.Enum(x)`, `revert Q.Err(...)`, `emit Q.Ev(...)` and
+`Q.f(...)`, with `Q` a library or a base (for types, errors and events also an interface or any
+other contract).  Not available: `Base.x` for a state variable, `using {f, g} for T`, file-level
+`using`.  In proofs, the lookup facts mention the running unit: `fc.varIn fr.here "x" = some v`,
+with `fr.here` the contract that declares the function.

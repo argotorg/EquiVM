@@ -176,7 +176,7 @@ theorem evalCall_sound_step {n} (ih : SoundAt cfg o fc n) :
           · exact (liftOpt_error hd).elim
           · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨u, hu, h⟩ <;> try dsimp only at h
             · exact (guard'_error hd).elim
-            · have hvt : isValueType fc.types ty = false := by simpa using guard'_ok hu
+            · have hvt : isValueType fc.types (fc.types.canonTy fr.here ty) = false := by simpa using guard'_ok hu
               split at h
               · rename_i hbig
                 rw [IM.throw_bind_some h]
@@ -222,59 +222,89 @@ theorem evalCall_sound_step {n} (ih : SoundAt cfg o fc n) :
           · simp at h
         · simp at h
       · split at h
-        · -- L.f(args)
-          rename_i hlib
+        · -- Q.S(args) / Q.E(a)
+          rename_i hqt
           split at h
-          · rename_i l
-            have hl := hlib
-            simp only [libraryRecv, Bool.and_eq_true, Bool.not_eq_true', Option.isNone_iff_eq_none] at hl
+          · rename_i q
             split at h
-            · rename_i hopts
-              have hopts' : opts = [] := List.isEmpty_iff.mp hopts
-              split at h
-              · rename_i lib hlibl
-                rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
-                · exact (liftOpt_error hd).elim
-                · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr1, m1⟩, hvs, h⟩ <;> try dsimp only at h
-                  · rw [hopts']; exact .libraryArgsRevert hl.1.2 hl.1.1 hlibl (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
-                  · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨dcl, hdcl, h⟩ <;> try dsimp only at h
-                    · exact (liftOpt_error hd).elim
-                    · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨rets, m2⟩, hcall, h⟩ <;> try dsimp only at h
-                      · rw [hopts']
-                        exact .libraryCallRevert hl.1.2 hl.1.1 hlibl (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
-                          (ih.callFn _ _ _ _ _ hd)
-                      · rw [IM.pure_some h, hopts']
-                        exact .libraryCall hl.1.2 hl.1.1 hlibl (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
-                          (ih.callFn _ _ _ _ _ hcall)
-              · simp at h
-            · simp at h
-          · simp at h
-        · split at h
-          · -- B.f(args): explicit base call
-            rename_i hbase
-            split at h
-            · rename_i b
-              have hb := hbase
-              simp only [baseRecv, Bool.and_eq_true, Bool.not_eq_true', Option.isNone_iff_eq_none] at hb
+            · rename_i sd hsd
               split at h
               · rename_i hopts
                 have hopts' : opts = [] := List.isEmpty_iff.mp hopts
                 rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
                 · exact (liftOpt_error hd).elim
                 · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr1, m1⟩, hvs, h⟩ <;> try dsimp only at h
-                  · rw [hopts']; exact .baseArgsRevert hb.1.1.2 hb.1.1.1 hb.1.2 hb.2 (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
-                  · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨fn, hfn, h⟩ <;> try dsimp only at h
-                    · exact (liftOpt_error hd).elim
-                    · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨rets, m2⟩, hcall, h⟩ <;> try dsimp only at h
-                      · rw [hopts']
-                        exact .baseCallRevert hb.1.1.2 hb.1.1.1 hb.1.2 hb.2 (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hfn)
-                          (ih.callFn _ _ _ _ _ hd)
-                      · rw [IM.pure_some h, hopts']
-                        exact .baseCall hb.1.1.2 hb.1.1.1 hb.1.2 hb.2 (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hfn)
-                          (ih.callFn _ _ _ _ _ hcall)
+                  · rw [hopts']; exact .structLitQRevert hqt hsd (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
+                  · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨v, m2⟩, hobj, h⟩ <;> try dsimp only at h
+                    · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+                      rw [hopts']; exact .structLitQPanic hqt hsd (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) hp
+                    · rw [IM.pure_some h, hopts']
+                      exact .structLitQ hqt hsd (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOp_ok hobj)
+              · simp at h
+            · rename_i hsd
+              split at h
+              · exact .convertQ hqt hsd (ih.call _ _ _ _ _ _ h)
+              · simp at h
+          · simp at h
+        · rename_i hqt
+          split at h
+          · -- L.f(args)
+            rename_i hlib
+            split at h
+            · rename_i l _hs _he
+              have hqt' := Bool.eq_false_iff.mpr hqt
+              have hl := hlib
+              simp only [libraryRecv, Bool.and_eq_true, Bool.not_eq_true', Option.isNone_iff_eq_none] at hl
+              split at h
+              · rename_i hopts
+                have hopts' : opts = [] := List.isEmpty_iff.mp hopts
+                split at h
+                · rename_i lib hlibl
+                  rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
+                  · exact (liftOpt_error hd).elim
+                  · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr1, m1⟩, hvs, h⟩ <;> try dsimp only at h
+                    · rw [hopts']
+                      exact .libraryArgsRevert hl.1.2 hl.1.1 hlibl hqt' (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
+                    · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨dcl, hdcl, h⟩ <;> try dsimp only at h
+                      · exact (liftOpt_error hd).elim
+                      · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨rets, m2⟩, hcall, h⟩ <;> try dsimp only at h
+                        · rw [hopts']
+                          exact .libraryCallRevert hl.1.2 hl.1.1 hlibl hqt' (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs)
+                            (liftOpt_ok hdcl) (ih.callFn _ _ _ _ _ hd)
+                        · rw [IM.pure_some h, hopts']
+                          exact .libraryCall hl.1.2 hl.1.1 hlibl hqt' (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs)
+                            (liftOpt_ok hdcl) (ih.callFn _ _ _ _ _ hcall)
+                · simp at h
               · simp at h
             · simp at h
-          · exact ih.memberCall _ _ _ _ _ _ _ h
+          · split at h
+            · -- B.f(args): explicit base call
+              rename_i hbase
+              split at h
+              · rename_i b _hs _he _hl
+                have hqt' := Bool.eq_false_iff.mpr hqt
+                have hb := hbase
+                simp only [baseRecv, Bool.and_eq_true, Bool.not_eq_true', Option.isNone_iff_eq_none] at hb
+                split at h
+                · rename_i hopts
+                  have hopts' : opts = [] := List.isEmpty_iff.mp hopts
+                  rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
+                  · exact (liftOpt_error hd).elim
+                  · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr1, m1⟩, hvs, h⟩ <;> try dsimp only at h
+                    · rw [hopts']
+                      exact .baseArgsRevert hb.1.1.2 hb.1.1.1 hb.1.2 hb.2 hqt' (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
+                    · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨fn, hfn, h⟩ <;> try dsimp only at h
+                      · exact (liftOpt_error hd).elim
+                      · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨rets, m2⟩, hcall, h⟩ <;> try dsimp only at h
+                        · rw [hopts']
+                          exact .baseCallRevert hb.1.1.2 hb.1.1.1 hb.1.2 hb.2 hqt' (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs)
+                            (liftOpt_ok hfn) (ih.callFn _ _ _ _ _ hd)
+                        · rw [IM.pure_some h, hopts']
+                          exact .baseCall hb.1.1.2 hb.1.1.1 hb.1.2 hb.2 hqt' (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs)
+                            (liftOpt_ok hfn) (ih.callFn _ _ _ _ _ hcall)
+                · simp at h
+              · simp at h
+            · exact ih.memberCall _ _ _ _ _ _ _ h
   · simp at h
 
 end Solidity
