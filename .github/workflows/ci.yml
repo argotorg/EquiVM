@@ -15,13 +15,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 330
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # Installs the toolchain from lean-toolchain, fetches the mathlib
       # olean cache, caches .lake in the GitHub cache, and builds the
       # library targets.
+      # Pin the unreleased fix after v1.6.0 that also pins nested cache actions:
+      # https://github.com/leanprover/lean-action/pull/193
       - name: Build libraries
-        uses: leanprover/lean-action@v1
+        uses: leanprover/lean-action@f061402b660e0c34644504b324e830f2991d4865
         with:
           build-args: EquiVM EVM ABI Solm Reasoning Proofs
           use-github-cache: true
