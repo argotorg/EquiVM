@@ -49,10 +49,16 @@ theorem interpExec_sound {fuel cA gh bl σ σ₀ g A I res conv}
             · split at h
               · rename_i rets m' hcall
                 have hc := callFn_sound (cfg := cfg) (o := o) (fc := fc) hcall
-                rcases IM.bind_some h with ⟨d, hd, hr⟩ | ⟨out, hout, h⟩ <;> try dsimp only at h
-                · exact (liftOpt_error hd).elim
-                · cases IM.pure_some h
-                  exact .call he (liftOpt_ok hfn) hpay (liftOpt_ok hret) (liftOpt_ok hsvs) (liftOpt_ok hvs) hc (liftOpt_ok hout)
+                split at h
+                · rename_i rets' h' hprep
+                  rcases IM.bind_some h with ⟨d, hd, hr⟩ | ⟨out, hout, h⟩ <;> try dsimp only at h
+                  · exact (liftOpt_error hd).elim
+                  · cases IM.pure_some h
+                    exact .call he (liftOpt_ok hfn) hpay (liftOpt_ok hret) (liftOpt_ok hsvs) (liftOpt_ok hvs) hc hprep (liftOpt_ok hout)
+                · rename_i p hprep
+                  cases IM.pure_some h
+                  exact .callReturnPanic he (liftOpt_ok hfn) hpay (liftOpt_ok hret) (liftOpt_ok hsvs) (liftOpt_ok hvs) hc hprep
+                · simp at h
               · rename_i d hcall
                 have hc := callFn_sound (cfg := cfg) (o := o) (fc := fc) hcall
                 cases IM.pure_some h

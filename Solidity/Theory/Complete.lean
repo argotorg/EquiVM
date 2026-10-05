@@ -460,20 +460,6 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     refine ⟨n1 + n2 + n3 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     interp_simp [p4, ih1 k' (by omega), ih2 k' (by omega), ih3 k' (by omega)]
-  | .sliceCd p1 p2 p3 p4 => by
-    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
-    obtain ⟨n2, ih2⟩ := evalGasOpt_complete p2
-    obtain ⟨n3, ih3⟩ := evalGasOpt_complete p3
-    refine ⟨n1 + n2 + n3 + 1, fun k hk => ?_⟩
-    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [p4, ih1 k' (by omega), ih2 k' (by omega), ih3 k' (by omega)]
-  | .sliceCdBounds p1 p2 p3 p4 => by
-    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
-    obtain ⟨n2, ih2⟩ := evalGasOpt_complete p2
-    obtain ⟨n3, ih3⟩ := evalGasOpt_complete p3
-    refine ⟨n1 + n2 + n3 + 1, fun k hk => ?_⟩
-    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
-    interp_simp [p4, ih1 k' (by omega), ih2 k' (by omega), ih3 k' (by omega)]
   | .sliceBaseRevert p1 => by
     obtain ⟨n1, ih1⟩ := evalExpr_complete p1
     refine ⟨n1 + 1, fun k hk => ?_⟩

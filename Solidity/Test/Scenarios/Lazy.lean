@@ -63,7 +63,10 @@ def cases : List Case :=
     rcE "bbAtAt(bytes[][],uint256,uint256)" [0x60, 0, 0, 1, 0x20, 1, 0x20, 1, 0xaa <<< 248] "bbAtAt i=0,0 good" .success,
     rcE "fbAt(bytes[2],uint256)" [0x40, 0, 0x40, 0x80, 1, 0xaa <<< 248, 2, 0xbbcc <<< 240] "fbAt i=0 good" .success,
     rcE "fbAt(bytes[2],uint256)" [0x40, 1, 0x40, 0x80, 1, 0xaa <<< 248, 2, 0xbbcc <<< 240] "fbAt i=1 good" .success,
-    rcE "fbCopy(bytes[2])" [0x20, 0x40, 0x80, 1, 0xaa <<< 248, 2, 0xbbcc <<< 240] "fbCopy good" .success ]
+    rcE "fbCopy(bytes[2])" [0x20, 0x40, 0x80, 1, 0xaa <<< 248, 2, 0xbbcc <<< 240] "fbCopy good" .success,
+    rcE "bRetCd(bytes[])" [0x20, 2, 0x40, 0x80, 1, 0xaa <<< 248, 2, 0xbbcc <<< 240] "bRetCd good" .success,
+    rcE "dRetCd((uint256,bytes)[])" [0x20, 2, 0x40, 0xc0, 7, 0x40, 1, 0xaa <<< 248, 9, 0x40, 2, 0xbbcc <<< 240] "dRetCd good" .success,
+    rcE "nRetCd(uint8[][])" [0x20, 2, 0x40, 0x80, 1, 3, 1, 4] "nRetCd good" .success ]
 
 def boundaries0 : List Case :=
   [
@@ -351,7 +354,29 @@ def boundaries6 : List Case :=
     rcE "fbCopy(bytes[2])" [0x20, 0x40, 0x80, 2 ^ 200, 0xaa <<< 248, 2, 0xbbcc <<< 240] "fbCopy len0=2^200" .revert,
     rcE "fbCopy(bytes[2])" [0x20, 0x40, 0x80, 0x3e8, 0xaa <<< 248, 2, 0xbbcc <<< 240] "fbCopy len0=1000" .revert ]
 
-def boundaries : List Case := boundaries0 ++ boundaries1 ++ boundaries2 ++ boundaries3 ++ boundaries4 ++ boundaries5 ++ boundaries6
+/-- Calldata-typed returns: the encoder's element access, as `abi.encode`. -/
+def boundaries7 : List Case :=
+  [
+    rcE "bRetCd(bytes[])" [0x20, 2, 2 ^ 255, 0x80, 1, 0xaa <<< 248, 2, 0xbbcc <<< 240] "bRetCd off0=2^255" .success,
+    rcE "bRetCd(bytes[])" [0x20, 2, 2 ^ 64, 0x80, 1, 0xaa <<< 248, 2, 0xbbcc <<< 240] "bRetCd off0=2^64" .revert,
+    rcE "bRetCd(bytes[])" [0x20, 2, 0x4000, 0x80, 1, 0xaa <<< 248, 2, 0xbbcc <<< 240] "bRetCd off0=0x4000" .revert,
+    rcE "bRetCd(bytes[])" [0x20, 2, 0x40, 0x80, 2 ^ 200, 0xaa <<< 248, 2, 0xbbcc <<< 240] "bRetCd len0=2^200" .revert,
+    rcE "bRetCd(bytes[])" [0x20, 2, 0x40, 0x80, 0x3e8, 0xaa <<< 248, 2, 0xbbcc <<< 240] "bRetCd len0=1000" .revert,
+    rcE "bRetCd(bytes[])" [0x20, 3, 0x40, 0x80, 1, 0xaa <<< 248, 2, 0xbbcc <<< 240] "bRetCd outer=3" .revert,
+    rcE "bRetCd(bytes[])" [0x20, 2, 0x40, 0x80, 1, 0xaa <<< 248, 2] "bRetCd truncated" .revert,
+    rcE "dRetCd((uint256,bytes)[])" [0x20, 2, 2 ^ 255, 0xc0, 7, 0x40, 1, 0xaa <<< 248, 9, 0x40, 2, 0xbbcc <<< 240] "dRetCd soff0=2^255" .revert,
+    rcE "dRetCd((uint256,bytes)[])" [0x20, 2, 0x4000, 0xc0, 7, 0x40, 1, 0xaa <<< 248, 9, 0x40, 2, 0xbbcc <<< 240] "dRetCd soff0=0x4000" .revert,
+    rcE "dRetCd((uint256,bytes)[])" [0x20, 2, 0x40, 0xc0, 7, 2 ^ 255, 1, 0xaa <<< 248, 9, 0x40, 2, 0xbbcc <<< 240] "dRetCd boff0=2^255" .success,
+    rcE "dRetCd((uint256,bytes)[])" [0x20, 2, 0x40, 0xc0, 7, 0x4000, 1, 0xaa <<< 248, 9, 0x40, 2, 0xbbcc <<< 240] "dRetCd boff0=0x4000" .revert,
+    rcE "dRetCd((uint256,bytes)[])" [0x20, 2, 0x40, 0xc0, 7, 0x40, 2 ^ 200, 0xaa <<< 248, 9, 0x40, 2, 0xbbcc <<< 240] "dRetCd blen0=2^200" .revert,
+    rcE "dRetCd((uint256,bytes)[])" [0x20, 2, 0x40, 0xc0, 7, 0x40, 0x3e8, 0xaa <<< 248, 9, 0x40, 2, 0xbbcc <<< 240] "dRetCd blen0=1000" .revert,
+    rcE "nRetCd(uint8[][])" [0x20, 2, 2 ^ 255, 0x80, 1, 3, 1, 4] "nRetCd off0=2^255" .success,
+    rcE "nRetCd(uint8[][])" [0x20, 2, 0x4000, 0x80, 1, 3, 1, 4] "nRetCd off0=0x4000" .revert,
+    rcE "nRetCd(uint8[][])" [0x20, 2, 0x40, 0x80, 2 ^ 200, 3, 1, 4] "nRetCd ilen0=2^200" .revert,
+    rcE "nRetCd(uint8[][])" [0x20, 2, 0x40, 0x80, 0x3e8, 3, 1, 4] "nRetCd ilen0=1000" .revert,
+    rcE "nRetCd(uint8[][])" [0x20, 2, 0x40, 0x80, 1, 300, 1, 4] "nRetCd e00=300" .revert ]
+
+def boundaries : List Case := boundaries0 ++ boundaries1 ++ boundaries2 ++ boundaries3 ++ boundaries4 ++ boundaries5 ++ boundaries6 ++ boundaries7
 
 def P := _root_.Lazy.SoliditySpec.program
 

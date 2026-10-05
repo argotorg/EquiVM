@@ -552,15 +552,6 @@ def cdMember (env : TypeEnv) (cd : ByteArray) (fuel : Nat) (h : Heap) (ty : Ty) 
     else Op.ofOpt (cdStatic env cd fuel fty (addW base off) h)
   | _ => Op.stuck
 
-/-- `x[lo:hi]` of a calldata array: bad bounds revert with empty data. -/
-def cdSlice (ty : Ty) (base len : Nat) (lo hi : Option Nat) : Option (Except ByteArray Value) :=
-  match ty with
-  | .dynArray _ =>
-    let a := lo.getD 0
-    let b := hi.getD len
-    if a ≤ b ∧ b ≤ len then some (.ok (.cdRef ty (addW base (32 * a)) (b - a))) else some (.error ByteArray.empty)
-  | _ => none
-
 /-- Static content of type `ty` at `pos` with every word validated (the memory decoder and the
     encoder read it so). -/
 def cdStaticValidated (env : TypeEnv) (cd : ByteArray) : Nat → Ty → Nat → Heap → Op (Value × Heap)

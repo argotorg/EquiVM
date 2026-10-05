@@ -10,9 +10,9 @@ event, an error), when it is copied to storage and when a struct or an array of 
 structs is copied to memory; an array of value-type words (or of static arrays of them) is copied
 to memory with cleanup; the inner headers of `uint8[][]` are checked when the inner array is used
 (fixture `Lazy` covers that in depth).  `Attach`: `using Lib for IT` with a call through a value of
-the interface type.  `Calldata/known` pins two deviations: a calldata-typed return with a word that
-is not canonical has no derivation (solc reverts); an enum array copied to memory is checked at the
-copy (solc checks an element when it is read). -/
+the interface type.  `Calldata/known` pins one deviation, an enum array copied to memory is checked
+at the copy (solc checks an element when it is read), and checks a calldata-typed return (`retCd`):
+a word that is not canonical reverts with empty data. -/
 
 namespace Solidity.Test.Calldata
 
@@ -129,11 +129,10 @@ def copyCases : List Case :=
 
 /-! ## Known -/
 
-def retCdKnown : String := "a calldata-typed return with a word that is not canonical has no derivation"
 def enumCopyKnown : String := "an enum array copied to memory is checked at the copy (Panic 0x21); solc checks an element when it is read"
 
 def knownCases : List Case :=
-  [ { rawCall knownRuntime "retCd(uint16[])" dirty16 "dirty" with expect := .revert, known := some retCdKnown },
+  [ { rawCall knownRuntime "retCd(uint16[])" dirty16 "dirty" with expect := .revert },
     { mk knownRuntime "retCd(uint16[])" [arr [1, 2]] "clean" with expect := .success },
     { rawCall knownRuntime "enumCopyLen(uint8[])" [0x20, 1, 7] "out of range" with expect := .success, known := some enumCopyKnown },
     { rawCall knownRuntime "enumCopyLen(uint8[])" [0x20, 1, 1] "clean" with expect := .success } ]

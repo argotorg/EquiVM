@@ -6,8 +6,9 @@ import Refinement.Result
 
 `solidityExec` is the entry point of a message call: selector match over the dispatch table
 (including generated getters), the non-payable check (`msg.value == 0`, empty revert data), ABI
-decoding of the arguments (`ABI.DecodeMode.modern`), the function run, and the ABI return
-convention.  Empty calldata goes to `receive` (else `fallback`); an unmatched selector to
+decoding of the arguments (`ABI.DecodeMode.modern`), the function run, the returned values
+prepared as the arguments of an encoding are (`prepareArgs`: a calldata-typed return with a word
+that is not canonical reverts with empty data), and the ABI return convention.  Empty calldata goes to `receive` (else `fallback`); an unmatched selector to
 `fallback`.  `solidityCtorExec` runs the state-variable initializers and the constructor chain
 base-first (legacy code generator order), collecting the immutables assigned along the way.
 -/
@@ -91,8 +92,17 @@ inductive solidityExec (createdAccounts : Batteries.RBSet Ethereum.AccountAddres
       decodeArgs cfg fc.types fn.decl I.calldata = some svs →
       ofAbiParams fc.types I.calldata fn.decl.params svs {} = some (vs, h0) →
       CallFn cfg o fc (rootFrame fc) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0) fn vs (.ok rets m') →
-      rets.mapM (toAbi m'.heap fuelDefault) = some out →
+      prepareArgs fc.types I.calldata fuelDefault m'.heap rets = some (.ok (rets', h')) →
+      rets'.mapM (toAbi h' fuelDefault) = some out →
       solidityExec createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.returned m' out) (.abi retTys)
+  | callReturnPanic :
+      selectorDispatch fc I.calldata = some e → fc.fns[e.fn]? = some fn →
+      payableOrNoValue fn.decl I → returnAbiTys fc.types fn.decl = some retTys →
+      decodeArgs cfg fc.types fn.decl I.calldata = some svs →
+      ofAbiParams fc.types I.calldata fn.decl.params svs {} = some (vs, h0) →
+      CallFn cfg o fc (rootFrame fc) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0) fn vs (.ok rets m') →
+      prepareArgs fc.types I.calldata fuelDefault m'.heap rets = some (.error p) →
+      solidityExec createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted p.data) (.abi retTys)
   | callReverted :
       selectorDispatch fc I.calldata = some e → fc.fns[e.fn]? = some fn →
       payableOrNoValue fn.decl I → returnAbiTys fc.types fn.decl = some retTys →

@@ -43,4 +43,7 @@ contract Lazy {
   function bbAtAt(bytes[][] calldata x, uint256 i, uint256 j) external pure returns (uint256) { return x[i][j].length; }
   function fbAt(bytes[2] calldata x, uint256 i) external pure returns (uint256) { return x[i].length; }
   function fbCopy(bytes[2] calldata x) external pure returns (uint256) { bytes[2] memory m = x; return m[1].length; }
+  function bRetCd(bytes[] calldata d) external pure returns (bytes[] calldata) { return d; }
+  function dRetCd(D[] calldata d) external pure returns (D[] calldata) { return d; }
+  function nRetCd(uint8[][] calldata x) external pure returns (uint8[][] calldata) { return x; }
 }

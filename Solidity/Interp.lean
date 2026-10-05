@@ -288,11 +288,6 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
         | some (.ok (v, h')) => pure (v, fr3, { m3 with heap := h' })
         | some (.error d) => throw d
         | none => failure
-      | .cdRef ty base len =>
-        match cdSlice ty base len l u with
-        | some (.ok v) => pure (v, fr3, m3)
-        | some (.error d) => throw d
-        | none => failure
       | _ => failure
     | _ => failure
 
@@ -1080,8 +1075,12 @@ def interpExec (fuel : Nat) (createdAccounts : Batteries.RBSet Ethereum.AccountA
     let m0 := initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0
     match (callFn cfg o fc fuel (rootFrame fc) m0 fn vs : Option (Except ByteArray _)) with
     | some (.ok (rets, m')) =>
-      let out ← liftOpt (rets.mapM (toAbi m'.heap fuelDefault))
-      pure (.returned m' out, .abi retTys)
+      match prepareArgs fc.types I.calldata fuelDefault m'.heap rets with
+      | some (.ok (rets, h')) =>
+        let out ← liftOpt (rets.mapM (toAbi h' fuelDefault))
+        pure (.returned m' out, .abi retTys)
+      | some (.error p) => pure (.reverted p.data, .abi retTys)
+      | none => failure
     | some (.error d) => pure (.reverted d, .abi retTys)
     | none => failure
   | none =>

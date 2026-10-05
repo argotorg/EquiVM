@@ -329,7 +329,8 @@ Changed 2026-10-05 (calldata arrays and structs with dynamic content; fixture `L
   call decoder reads only its head word (`paramDecodeTys`) and `cdTop` applies solc's top-level
   checks (offset below `2^64`, length word inside the data, length below `2^64`, heads inside the
   data); a failure is `decodingFailed` as before.
-- Rules `indexCd*`, `memberCd*`, `sliceCd*`, with the helpers mirroring solc's generated code:
+- Rules `indexCd*`, `memberCd*`, with the helpers mirroring solc's generated code (no range access
+  `x[lo:hi]` of a `cdRef`: solc rejects it for arrays with dynamically encoded elements):
   `cdTail` is `access_calldata_tail` (256-bit arithmetic, signed comparisons for the offsets, the
   `2^64` bound on lengths, the extent check; an offset of `2^255` passes and reads a zero length),
   used by `cdIndex` (after the `Panic(0x32)` bounds check), by `cdMember` for a dynamic field and by
@@ -345,6 +346,11 @@ Changed 2026-10-05 (calldata arrays and structs with dynamic content; fixture `L
 - `hasRaw` is true of a `cdRef`, so the `hraw` hypotheses of the encoding lemmas exclude it;
   `prepareArg_of_noRaw`, `prepareArgs_of_noRaw`, `hasRaw_cdRef`.  `ofAbiParams` takes the calldata;
   `decodeCallArgs_none_of_ofAbiParams` too.
+- The dispatcher prepares the returned values before encoding them (`solidityExec.call` takes
+  `prepareArgs … rets = some (.ok (rets', h'))` and encodes `rets'` in `h'`; `callReturnPanic`
+  reverts with the panic's data): a calldata-typed return (`returns (uint16[] calldata)`,
+  `returns (bytes[] calldata)`) with a word that is not canonical reverts with empty data, a
+  `cdRef` is encoded through `cdEncode`.  `fallback` returns `bytes memory` and is unchanged.
 - Tests: `Lazy` (fuzzed) and `Lazy/boundaries`, every operation (length, element, byte, copy,
   encode, event, external call, return, inner element as a local, `keccak256`) against every
   malformation of the inner and outer headers; `Copies` has `nested`/`nestedCopy` back.
@@ -370,10 +376,6 @@ differential harness, which fails if the deviation disappears.
 - An enum array copied from calldata to memory with an out-of-range element that is never read:
   the spec checks the element at the copy, `Panic(0x21)`; solc copies the words and checks an
   element when it is read, so the call succeeds (`Calldata/known`).
-- A function whose return type is a calldata array of value types, returning it with a word that
-  is not canonical: solc's encoder reverts with empty data, the spec has no derivation (`toAbi` of
-  a raw word is `validateWord`; a canonical word encodes) (`Calldata/known`).  No source in the
-  repository has such a return type; `bytes calldata` returns are unaffected.
 
 Representation choices that no Solidity program can observe (no inline assembly in the language):
 a memory copy of a calldata array holds the cleaned words, solc keeps the raw words in memory and

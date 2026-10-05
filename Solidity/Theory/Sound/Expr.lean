@@ -349,14 +349,6 @@ theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
               rw [IM.throw_some h]
               exact .sliceBounds (ih.expr _ _ _ _ hb) (ih.gasOpt _ _ _ _ hl) (ih.gasOpt _ _ _ _ hu) hs
             · simp at h
-          · split at h
-            · rename_i hs
-              rw [IM.pure_some h]
-              exact .sliceCd (ih.expr _ _ _ _ hb) (ih.gasOpt _ _ _ _ hl) (ih.gasOpt _ _ _ _ hu) hs
-            · rename_i hs
-              rw [IM.throw_some h]
-              exact .sliceCdBounds (ih.expr _ _ _ _ hb) (ih.gasOpt _ _ _ _ hl) (ih.gasOpt _ _ _ _ hu) hs
-            · simp at h
           · simp at h
   · simp at h
 

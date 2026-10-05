@@ -851,12 +851,6 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | sliceBounds : EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → EvalGasOpt fr1 m1 lo (.ok l fr2 m2) →
       EvalGasOpt fr2 m2 hi (.ok u fr3 m3) → sliceObj m3.heap obj l u = some (.error d) →
       EvalExpr fr m (.slice e lo hi) (.reverted d)
-  | sliceCd : EvalExpr fr m e (.ok (.cdRef ty base len) fr1 m1) → EvalGasOpt fr1 m1 lo (.ok l fr2 m2) →
-      EvalGasOpt fr2 m2 hi (.ok u fr3 m3) → cdSlice ty base len l u = some (.ok v) →
-      EvalExpr fr m (.slice e lo hi) (.ok v fr3 m3)
-  | sliceCdBounds : EvalExpr fr m e (.ok (.cdRef ty base len) fr1 m1) → EvalGasOpt fr1 m1 lo (.ok l fr2 m2) →
-      EvalGasOpt fr2 m2 hi (.ok u fr3 m3) → cdSlice ty base len l u = some (.error d) →
-      EvalExpr fr m (.slice e lo hi) (.reverted d)
   | sliceBaseRevert : EvalExpr fr m e (.reverted d) → EvalExpr fr m (.slice e lo hi) (.reverted d)
   | sliceLoRevert : EvalExpr fr m e (.ok v fr1 m1) → EvalGasOpt fr1 m1 lo (.reverted d) →
       EvalExpr fr m (.slice e lo hi) (.reverted d)

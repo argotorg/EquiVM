@@ -177,7 +177,9 @@ field) stays in the calldata (`Value.cdRef`): an element's offset and length are
 element is used, as solc does.  In proofs the arguments of an encoding (`abiEncodePlain`,
 `keccakPacked`, …) come with `hraw : ∀ v ∈ vs, hasRaw … = false`, discharged by
 `simp [fuelDefault]` for scalar arguments; a calldata array argument needs the preparation step
-(`prepareArgs`) spelled out.
+(`prepareArgs`) spelled out.  The dispatcher prepares a function's returned values the same way
+(`solidityExec.call`), so a `calldata`-typed return (`returns (uint16[] calldata)`) with a bad
+word reverts with empty data.
 
 ## 9. Transcribing the source: user-defined value types
 

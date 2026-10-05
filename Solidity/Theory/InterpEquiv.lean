@@ -44,11 +44,16 @@ theorem interpExec_complete {cA gh bl σ σ₀ g A I res conv}
     (h : solidityExec cfg o fc cA gh bl σ σ₀ g A I res conv) :
     ∃ n, ∀ k, n ≤ k → (interpExec cfg o fc k cA gh bl σ σ₀ g A I).run = some (.ok (res, conv)) := by
   cases h with
-  | call he hfn hpay hret hsvs hvs hc hout =>
+  | call he hfn hpay hret hsvs hvs hc hprep hout =>
     obtain ⟨n, ih⟩ := callFn_complete hc
     refine ⟨n, fun k hk => ?_⟩
     have ih' : callFn cfg o fc k (rootFrame fc) (initMachine cA gh bl σ σ₀ g A I _) _ _ = some (.ok (_, _)) := ih k hk
-    interp_simp [interpExec, he, hfn, hret, hsvs, hvs, hout, ih', payableOrNoValue_false hpay]
+    interp_simp [interpExec, he, hfn, hret, hsvs, hvs, hprep, hout, ih', payableOrNoValue_false hpay]
+  | callReturnPanic he hfn hpay hret hsvs hvs hc hprep =>
+    obtain ⟨n, ih⟩ := callFn_complete hc
+    refine ⟨n, fun k hk => ?_⟩
+    have ih' : callFn cfg o fc k (rootFrame fc) (initMachine cA gh bl σ σ₀ g A I _) _ _ = some (.ok (_, _)) := ih k hk
+    interp_simp [interpExec, he, hfn, hret, hsvs, hvs, hprep, ih', payableOrNoValue_false hpay]
   | callReverted he hfn hpay hret hsvs hvs hc =>
     obtain ⟨n, ih⟩ := callFn_complete hc
     refine ⟨n, fun k hk => ?_⟩
