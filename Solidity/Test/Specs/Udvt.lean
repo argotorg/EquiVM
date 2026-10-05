@@ -20,7 +20,7 @@ def tWide : SourceUnit := sol% type Wide is uint256;
 
 def fileK : SourceUnit := sol% Price constant FILE_K = Price.wrap(3);
 
-def usingPrice : SourceUnit := sol% using {pinc, padd, peq as ==, psum as +, pnot as ~} for Price global;
+def usingPrice : SourceUnit := sol% using {pinc, padd} for Price global;
 
 def usingFlag : SourceUnit := sol% using {flip} for Flag;
 
@@ -213,13 +213,16 @@ def udvtOps : SourceUnit := sol% contract UdvtOps {
   uint256 public trace;
   function mk(uint128 i) internal returns (Price) { trace = trace * 10 + i; return Price.wrap(i); }
   function fail(uint128 i) internal pure returns (Price) { require(false, i == 1 ? "one" : "two"); return Price.wrap(i); }
-  function ord() external returns (Price) { return mk(1) + mk(2); }
-  function ordEq() external returns (bool) { return mk(3) == mk(4); }
-  function bothFail() external pure returns (bool) { return fail(1) == fail(2); }
-  function inv(Price p) external pure returns (Price) { return ~p; }
-  function both(Price a, Price b) external pure returns (Price, bool) { return (a + b, a == b); }
+  function ord() external returns (Price) { return psum(mk(1), mk(2)); }
+  function ordEq() external returns (bool) { return peq(mk(3), mk(4)); }
+  function bothFail() external pure returns (bool) { return peq(fail(1), fail(2)); }
+  function inv(Price p) external pure returns (Price) { return pnot(p); }
+  function both(Price a, Price b) external pure returns (Price, bool) { return (psum(a, b), peq(a, b)); }
 }
 
 def program : Program := [tPrice, tFlag, tWho, tTag, tDelta, tWide, fileK, usingPrice, usingFlag, fnPinc, fnPadd, fnPeq, fnPsum, fnPnot, fnFlip, fnTwice, fnInc2, time, pl, pm, udvt, udvtAbi, udvtArr, iOracle, oracle, udvtCall, uBase, uDer, udvtImm, udvtUsing, udvtOps]
+
+/-! `usingPrice` and `UdvtOps` are written with the bound calls (`psum(a, b)` for `a + b`): the spec
+language has no user-defined operators; solc compiles the operator to that call. -/
 
 end Udvt.SoliditySpec

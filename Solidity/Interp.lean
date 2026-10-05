@@ -192,6 +192,9 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
       | .fixedBytes _ bs => do
         let v ← liftOp (fixedBytesIndex bs iv)
         pure (v, fr2, m2)
+      | .cdRef ty base len => do
+        let (v, h') ← liftOp (cdIndex fc.types m2.evm.executionEnv.calldata fuelDefault m2.heap ty base len iv)
+        pure (v, fr2, { m2 with heap := h' })
       | _ => failure
     | .call callee opts args => evalCall fuel fr m callee opts args
     | .unary op e =>
@@ -285,6 +288,11 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
         | some (.ok (v, h')) => pure (v, fr3, { m3 with heap := h' })
         | some (.error d) => throw d
         | none => failure
+      | .cdRef ty base len =>
+        match cdSlice ty base len l u with
+        | some (.ok v) => pure (v, fr3, m3)
+        | some (.error d) => throw d
+        | none => failure
       | _ => failure
     | _ => failure
 
@@ -315,6 +323,9 @@ def evalMember : Nat → Frame → Machine → Expr → Ident → EV
           | _ => failure
         else pure (r, fr1, m1)
     | .fixedBytes n _ => if f == "length" then pure (wordNat (n.val + 1), fr1, m1) else failure
+    | .cdRef ty base len => do
+      let (r, h') ← liftOp (cdMember fc.types m1.evm.executionEnv.calldata fuelDefault m1.heap ty base len f)
+      pure (r, fr1, { m1 with heap := h' })
     | v =>
       if f == "balance" then do
         let a ← liftOpt (addrNat v)
@@ -1065,7 +1076,7 @@ def interpExec (fuel : Nat) (createdAccounts : Batteries.RBSet Ethereum.AccountA
     if fn.decl.mutability != .payable && I.weiValue != ⟨0⟩ then
       return (.reverted ByteArray.empty, .abi retTys)
     let svs ← liftOpt (decodeArgs cfg fc.types fn.decl I.calldata)
-    let (vs, h0) ← liftOpt (ofAbiParams fc.types fn.decl.params svs {})
+    let (vs, h0) ← liftOpt (ofAbiParams fc.types I.calldata fn.decl.params svs {})
     let m0 := initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0
     match (callFn cfg o fc fuel (rootFrame fc) m0 fn vs : Option (Except ByteArray _)) with
     | some (.ok (rets, m')) =>

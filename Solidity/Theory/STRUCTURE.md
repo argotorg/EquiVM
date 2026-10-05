@@ -258,10 +258,11 @@ Changed 2026-10-05 (user-defined value types; fixture `Udvt`).
   function attached twice counts once) and resolves among them by the arguments
   (`resolveOverload`): `usingForCall`, `usingForArgsRevert`, `usingForCallRevert`.  Several
   libraries can be attached to one type; `usingLibrary` is gone.
-- An operator binding (`using {f as +} for T global;`: `UsingFn.op`, `UserOp`) is parsed and kept.
-  The bound function is no member, as in solc.  The operator itself is not modelled, see below.
-- DSL: `type T is U;`, function lists with `L.f` and `f as op`, `global`, `using` at file level.
-  `using L for *;` parses now (the `*` was not recognised before).
+- An operator binding (`using {f as +} for T global;`) is rejected by the DSL with the message to
+  write the call: solc compiles `a + b` to `f(a, b)`, left operand first, and the spec says exactly
+  that.  Scenario `UdvtOps` checks the calls against solc's operator bytecode.
+- DSL: `type T is U;`, function lists with `L.f`, `global`, `using` at file level.  `using L for *;`
+  parses now (the `*` was not recognised before).
 - Library: `EvalExpr.wrapPlain`, `EvalExpr.unwrapPlain`; `valueTypeRecv_ident/qual/local/var`,
   `wrapValue_of_conv`, `unwrapValue_wrapped`, `implicitConv_wrapped`, `scalarToAbi_wrapped`,
   `keyOf_wrapped`, `scalarOfAbi_valueType`, `scalarOfAbi_elem`, `zeroValue_valueType`,
@@ -270,8 +271,8 @@ Changed 2026-10-05 (user-defined value types; fixture `Udvt`).
   `EvalExpr.usingForCallPlain` (candidates instead of a library), `EvalExpr.contractCast` and
   `TypeEnv.canonTy_user_none` (one more hypothesis: no value type of that name),
   `clearStorage_struct` (`hvt`, by `rfl`), `memberCallDirect_false` (one more conjunct).
-- Tests: scenarios `Udvt`, `UdvtAbi`, `UdvtCall`, `UDer`, `UdvtImm`, `UdvtUsing` and their
-  `/boundaries`, `UdvtArr/arrays`; `UdvtOps/operators` holds the known deviation below.
+- Tests: scenarios `Udvt`, `UdvtAbi`, `UdvtCall`, `UDer`, `UdvtImm`, `UdvtUsing`, `UdvtOps` and
+  their `/boundaries`, `UdvtArr/arrays`.
 
 ## Deferred language features
 
@@ -321,29 +322,66 @@ Changed 2026-10-05 (calldata words; `using` on contract types; fixture `Calldata
   `Panic.data_eq` takes `p.code = some c`.
 - Tests: scenarios `Attach`, `Copies`, `Calldata/known`; `UdvtArr/arrays` now matches.
 
+Changed 2026-10-05 (calldata arrays and structs with dynamic content; fixture `Lazy`).
+- A `calldata` parameter whose elements or fields are dynamically encoded (`bytes[]`, `string[]`,
+  `T[][]`, `bytes[2]`, `S[]` and `S` for a struct `S` with a `bytes` field: `lazyCalldata`) is a
+  `Value.cdRef ty base len`: the position of its data in `msg.data` and its element count.  The
+  call decoder reads only its head word (`paramDecodeTys`) and `cdTop` applies solc's top-level
+  checks (offset below `2^64`, length word inside the data, length below `2^64`, heads inside the
+  data); a failure is `decodingFailed` as before.
+- Rules `indexCd*`, `memberCd*`, `sliceCd*`, with the helpers mirroring solc's generated code:
+  `cdTail` is `access_calldata_tail` (256-bit arithmetic, signed comparisons for the offsets, the
+  `2^64` bound on lengths, the extent check; an offset of `2^255` passes and reads a zero length),
+  used by `cdIndex` (after the `Panic(0x32)` bounds check), by `cdMember` for a dynamic field and by
+  `cdEncode`.  An element is a fresh `bytes` object, static content with raw words (`cdStatic`), or
+  another `cdRef` (`cdValue`).  A static field is validated when read.
+- Copied to memory (`coerce`: a memory local or parameter, a struct field) the object goes through
+  `cdDecodeMem`, solc's memory decoder: an inner offset above `2^64`, a length word outside the
+  data, a short tail or a word that is not canonical revert with empty data, a length above
+  `2^64` is `Panic(0x41)`.  ABI-encoded (`abiArgs`, `abiArgsAbi`, through `prepareArgs`) it goes
+  through `cdEncode`, the encoder's element access: no `Panic(0x41)`, an offset of `2^255` encodes
+  an empty element.  Copied to storage (`writeStorageDeep`) it goes through `cdEncode` as well;
+  the legacy pipeline refuses such copies, so that arm has no test.
+- `hasRaw` is true of a `cdRef`, so the `hraw` hypotheses of the encoding lemmas exclude it;
+  `prepareArg_of_noRaw`, `prepareArgs_of_noRaw`, `hasRaw_cdRef`.  `ofAbiParams` takes the calldata;
+  `decodeCallArgs_none_of_ofAbiParams` too.
+- Tests: `Lazy` (fuzzed) and `Lazy/boundaries`, every operation (length, element, byte, copy,
+  encode, event, external call, return, inner element as a local, `keccak256`) against every
+  malformation of the inner and outer headers; `Copies` has `nested`/`nestedCopy` back.
+
 Names, not covered: a state variable written with its contract (`Base.x`, read or assigned); a
 modifier invoked with a qualifier (`Base.m`).
 
-User-defined operators, not covered.  With `using {f as +} for T global`, solc evaluates `a + b` as
-the call `f(a, b)`: the left operand first.  A built-in operator evaluates the right operand
-first.  Which order applies depends on the static type of the operands, and the spec
-language has no static types.  Write the call of the bound function in the spec (`f(a, b)`).  An
-operator applied to values of a value type has no rule when both operands evaluate; when the right
-operand reverts, the spec reverts with that operand's data (`binaryRightRevert`), which differs
-from solc if the left operand reverts too or changes what the right one does.  Scenario
-`UdvtOps/operators` pins this.
+User-defined operators are not part of the language (decided 2026-10-05).  With
+`using {f as +} for T global`, solc evaluates `a + b` as the call `f(a, b)`, left operand first,
+while a built-in operator evaluates the right operand first; telling the two apart needs the static
+type of the operands, which the spec language has not.  The DSL rejects an operator binding; write
+the call (`f(a, b)`), which is exact.  Scenario `UdvtOps` checks the calls against solc's operator
+bytecode.
 
-Calldata words, known deviations (scenario `Calldata/known`): a function whose return type is a
-calldata array returning it with a word that is not canonical has no derivation (solc's encoder
-reverts with empty data; `toAbi` of a raw word is `validateWord`, so a canonical word encodes);
-an enum array copied to memory is checked at the copy, `Panic(0x21)` (solc copies the words and
-checks an element when it is read: a bad element that is never read succeeds in solc); the
-headers (offsets, lengths) of the inner arrays of a calldata array of dynamic arrays
-(`uint8[][] calldata`) are checked by the shared ABI decoder when the call is decoded, solc checks
-them when the inner array is used (an index into a misplaced header is `Panic(0x32)`, an absurd
-inner length copied to memory `Panic(0x41)`).  A memory copy of a calldata array holds the cleaned
-words; solc keeps the raw words in memory and cleans them on every use, which only inline assembly
-can tell apart.
+## Known deviations
+
+Inputs on which the spec and solc 0.8.35 disagree.  Each is pinned by a `known` case of the
+differential harness, which fails if the deviation disappears.
+
+- A conditional `c ? a : b` is typed by the branch taken, not by the common type of both branches
+  (scenario `Conditional/deviation`, fixture `Cond`): the spec has no static types.  Write the
+  conversion solc inserts (GUIDE §5).
+- An enum array copied from calldata to memory with an out-of-range element that is never read:
+  the spec checks the element at the copy, `Panic(0x21)`; solc copies the words and checks an
+  element when it is read, so the call succeeds (`Calldata/known`).
+- A function whose return type is a calldata array of value types, returning it with a word that
+  is not canonical: solc's encoder reverts with empty data, the spec has no derivation (`toAbi` of
+  a raw word is `validateWord`; a canonical word encodes) (`Calldata/known`).  No source in the
+  repository has such a return type; `bytes calldata` returns are unaffected.
+
+Representation choices that no Solidity program can observe (no inline assembly in the language):
+a memory copy of a calldata array holds the cleaned words, solc keeps the raw words in memory and
+cleans them on every use.
+
+Not deviations of the semantics: the `*/pinned-initcode` scenarios compare the spec with the
+hand-written initcodes of the old examples, which lack what solc's have (the ERC20 `Transfer` event
+of the constructor, the callvalue guard, `Panic(0x11)` data); their `known` cases say so.
 
 Builtins, not covered: `selfdestruct`; `blobhash` and `block.blobbasefee` (Cancun; the fixtures
 are compiled for Shanghai); a function reference whose receiver is neither `this`, a contract name

@@ -453,6 +453,32 @@ theorem foldlM_validateDeep_of_noRaw {env : TypeEnv} {h : Heap} {fuel : ℕ} {vs
     rw [List.foldlM_cons, validateDeep_of_noRaw (hvs v (List.mem_cons_self ..)), pure_bind]
     exact ih fun x hx => hvs x (List.mem_cons_of_mem _ hx)
 
+@[simp] theorem hasRaw_cdRef (h : Heap) (fuel : ℕ) (ty : Ty) (base len : ℕ) :
+    hasRaw h (fuel + 1) (.cdRef ty base len) = true := by simp [hasRaw]
+
+/-- An argument without calldata words is left alone by the encoding's preparation. -/
+@[simp] theorem prepareArg_of_noRaw {env : TypeEnv} {cd : ByteArray} {h : Heap} {fuel : ℕ} {v : Value}
+    (hv : hasRaw h (fuel + 1) v = false) : prepareArg env cd (fuel + 1) h v = pure (v, h) := by
+  cases v
+  all_goals first
+    | (simp [hasRaw] at hv; done)
+    | (simp only [prepareArg]; rw [validateDeep_of_noRaw hv]; rfl)
+
+theorem prepareArgs_of_noRaw {env : TypeEnv} {cd : ByteArray} {h : Heap} {fuel : ℕ} {vs : List Value}
+    (hvs : ∀ v ∈ vs, hasRaw h (fuel + 1) v = false) : prepareArgs env cd (fuel + 1) h vs = pure (vs, h) := by
+  suffices ∀ acc, vs.foldlM (fun (p : List Value × Heap) v => do
+      let (v', h') ← prepareArg env cd (fuel + 1) p.2 v
+      pure (p.1 ++ [v'], h')) (acc, h) = pure (acc ++ vs, h) by
+    simpa [prepareArgs] using this []
+  induction vs with
+  | nil => intro acc; simp
+  | cons v vs ih =>
+    intro acc
+    rw [List.foldlM_cons]
+    simp only [prepareArg_of_noRaw (hvs v (List.mem_cons_self ..)), pure_bind]
+    rw [ih (fun x hx => hvs x (List.mem_cons_of_mem _ hx)) (acc ++ [v])]
+    simp
+
 @[simp] theorem validateDeep_uint (env : TypeEnv) (h : Heap) (fuel : ℕ) (w : ABI.BitWidth) (n : ℕ) :
     validateDeep env (fuel + 1) h (.uint w n) = pure h := by simp [validateDeep]
 @[simp] theorem validateDeep_sint (env : TypeEnv) (h : Heap) (fuel : ℕ) (w : ABI.BitWidth) (i : Int) :
@@ -476,7 +502,7 @@ theorem foldlM_validateDeep_of_noRaw {env : TypeEnv} {h : Heap} {fuel : ℕ} {vs
 
 theorem abiArgs_u256 (cfg : Config) (env : TypeEnv) (m : Machine) (n : Nat) :
     abiArgs cfg env m [u256Ty] [u256Val n] = some (.ok ([.int n], m)) := by
-  simp [abiArgs, coerce, fuelDefault]
+  simp [abiArgs, prepareArgs, coerce, fuelDefault]
 
 /-! ## Memory objects -/
 
@@ -967,7 +993,7 @@ theorem unop_not (c : Bool) (b : Bool) : unop c .not (.bool b) = some (.ok (.boo
 theorem abiArgs_addr_addr_u256 (cfg : Config) (env : TypeEnv) (m : Machine) (a b : EVM.Address) (n : Nat) :
     abiArgs cfg env m [.address false, .address false, u256Ty] [.address a, .address b, u256Val n] =
       some (.ok ([.address a, .address b, .int n], m)) := by
-  simp [abiArgs, coerce, fuelDefault]
+  simp [abiArgs, prepareArgs, coerce, fuelDefault]
 
 /-- `Panic` payloads. -/
 theorem Panic.data_overflow : Panic.data .overflow = panicData 0x11 := rfl
@@ -1132,7 +1158,7 @@ theorem encodePackedValue?_bytes32 (bs : List UInt8) (h : bs.length = 32) :
 theorem abiArgsAbi_of_mapM {env : TypeEnv} {m : Machine} {tys : List ABI.ABIType} {vs : List Value} {svs : List ABI.ABIValue}
     (hsvs : vs.mapM (toAbi m.heap fuelDefault) = some svs) (hraw : ∀ v ∈ vs, hasRaw m.heap fuelDefault v = false) :
     abiArgsAbi cfg env m tys vs = some (.ok (svs, m)) := by
-  have hf := foldlM_validateDeep_of_noRaw (env := env) (fuel := 1023) hraw
+  have hf := prepareArgs_of_noRaw (env := env) (cd := m.evm.executionEnv.calldata) (fuel := 1023) hraw
   simp only [abiArgsAbi, fuelDefault] at hf hsvs ⊢
   rw [hf, pure_bind, hsvs]
   rfl
@@ -1769,7 +1795,7 @@ theorem abiArgs_ecrecover (cfg : Config) (env : TypeEnv) (m : Machine) (hb rb sb
     abiArgs cfg env m ecrecoverParamTys
       [.fixedBytes ⟨31, by decide⟩ hb, .uint ⟨8, by decide⟩ n, .fixedBytes ⟨31, by decide⟩ rb, .fixedBytes ⟨31, by decide⟩ sb] =
       some (.ok ([.fixedBytes ⟨31, by decide⟩ hb, .int n, .fixedBytes ⟨31, by decide⟩ rb, .fixedBytes ⟨31, by decide⟩ sb], m)) := by
-  simp [abiArgs, ecrecoverParamTys, coerce, implicitConv, fuelDefault]
+  simp [abiArgs, prepareArgs, ecrecoverParamTys, coerce, implicitConv, fuelDefault]
 
 theorem encodeABIValues_ecrecover (hb rb sb : List UInt8) (n : ℕ) (hh : hb.length = 32) (hr : rb.length = 32)
     (hs : sb.length = 32) (hn : n < 256) :

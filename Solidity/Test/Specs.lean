@@ -33,3 +33,4 @@ import Solidity.Test.Specs.Scopes
 import Solidity.Test.Specs.Builtins
 import Solidity.Test.Specs.Udvt
 import Solidity.Test.Specs.Calldata
+import Solidity.Test.Specs.Lazy

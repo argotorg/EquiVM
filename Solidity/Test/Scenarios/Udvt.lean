@@ -12,8 +12,8 @@ scenarios run boundary values and calldata that is not canonical; they are not f
 
 `UdvtArr/arrays`: array elements that are not canonical: a calldata array is validated when an
 element is read, a memory array when the call is decoded; plain `bool` arrays behave as the value
-types over `bool`.  `UdvtOps/operators` holds a known deviation: user-defined operators, which the
-spec language does not model. -/
+types over `bool`.  `UdvtOps`: the solc source binds operators (`using {psum as +} …`); the spec
+writes the bound calls, which is what solc compiles the operators to, left operand first. -/
 
 namespace Solidity.Test.Udvt
 
@@ -321,17 +321,17 @@ def usingBoundaries : List Case :=
 /-! ## UdvtOps -/
 
 def opsRuntime : ByteArray := bytesOfHex Fixtures.udvtOpsRuntimeHex
-def noOps : String := "user-defined operators are not modelled"
 
-/-- solc calls the bound function with the left operand evaluated first.  The spec has no rule for
-    an operator on a value type; when the right operand reverts it reverts with that operand's
-    data, as for a built-in operator. -/
+/-- solc calls the bound function with the left operand first; the spec's calls do the same
+    (`ord` records 12, `bothFail` reverts with the left operand's message). -/
 def opsCases : List Case :=
-  [ { mk opsRuntime "ord()" [] with expect := .success, known := some noOps },
-    { mk opsRuntime "ordEq()" [] with expect := .success, known := some noOps },
-    { mk opsRuntime "bothFail()" [] with expect := .revert, known := some noOps },
-    { mk opsRuntime "inv(uint128)" [.int 5] with expect := .success, known := some noOps },
-    { mk opsRuntime "both(uint128,uint128)" [.int 3, .int 4] with expect := .success, known := some noOps },
+  [ { mk opsRuntime "ord()" [] with expect := .success },
+    { mk opsRuntime "ordEq()" [] with expect := .success },
+    { mk opsRuntime "bothFail()" [] with expect := .revert },
+    { mk opsRuntime "inv(uint128)" [.int 5] with expect := .success },
+    { mk opsRuntime "inv(uint128)" [.int 0] "zero" with expect := .success },
+    { mk opsRuntime "both(uint128,uint128)" [.int 3, .int 4] with expect := .success },
+    { mk opsRuntime "both(uint128,uint128)" [.int M128, .int 1] "overflow" with expect := .revert },
     { mk opsRuntime "trace()" [] with expect := .success } ]
 
 def P := _root_.Udvt.SoliditySpec.program
@@ -350,6 +350,6 @@ def scenarios : List Scenario :=
       immutables := [("base", price 5), ("owner", whoV 0xA11CE)] },
     { name := "UdvtUsing", program := P, target := "UdvtUsing", cases := usingCases },
     { name := "UdvtUsing/boundaries", program := P, target := "UdvtUsing", cases := usingBoundaries },
-    { name := "UdvtOps/operators", program := P, target := "UdvtOps", cases := opsCases } ]
+    { name := "UdvtOps", program := P, target := "UdvtOps", cases := opsCases } ]
 
 end Solidity.Test.Udvt

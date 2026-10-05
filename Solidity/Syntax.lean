@@ -259,17 +259,11 @@ structure ValueTypeDecl where
   underlying : Ty
   deriving DecidableEq, Repr, Inhabited
 
-/-- An operator a function can be bound to (`using {f as +} for T global;`).  `sub` is `-`, binary or
-    unary by the function's arity; `bitNot` is `~`. -/
-inductive UserOp where
-  | bitOr | bitAnd | bitXor | bitNot | add | sub | mul | div | mod | eq | ne | lt | gt | le | ge
-  deriving DecidableEq, Repr, Inhabited
-
-/-- One function of a `using { … } for T` list: `f`, `L.f`, or `f as +`. -/
+/-- One function of a `using { … } for T` list: `f` or `L.f`.  An operator binding (`f as +`) is
+    not part of the language: the operator is written as the call it stands for. -/
 structure UsingFn where
   qual : Option Ident := none
   name : Ident
-  op : Option UserOp := none
   deriving DecidableEq, Repr, Inhabited
 
 inductive UsingTarget where

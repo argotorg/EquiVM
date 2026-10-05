@@ -357,6 +357,18 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     refine ⟨n2 + 2, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
     interp_simp [p1, hns, ih2 k' (by omega)]
+  | .memberCd p1 p2 p3 => by
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    have hns := nameSelectorOf_none p2
+    refine ⟨n2 + 2, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
+    interp_simp [p1, hns, p3, ih2 k' (by omega)]
+  | .memberCdPanic p1 p2 p3 => by
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    have hns := nameSelectorOf_none p2
+    refine ⟨n2 + 2, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 2) (by omega)
+    interp_simp [p1, hns, p3, ih2 k' (by omega)]
   | .memberRevert p1 p2 => by
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
     have hns := nameSelectorOf_none p2
@@ -416,6 +428,18 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     refine ⟨n1 + n2 + 1, fun k hk => ?_⟩
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     interp_simp [p3, ih1 k' (by omega), ih2 k' (by omega)]
+  | .indexCd p1 p2 p3 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    refine ⟨n1 + n2 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p3, ih1 k' (by omega), ih2 k' (by omega)]
+  | .indexCdPanic p1 p2 p3 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    obtain ⟨n2, ih2⟩ := evalExpr_complete p2
+    refine ⟨n1 + n2 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p3, ih1 k' (by omega), ih2 k' (by omega)]
   | .indexFixedBytesPanic p1 p2 p3 => by
     obtain ⟨n1, ih1⟩ := evalExpr_complete p1
     obtain ⟨n2, ih2⟩ := evalExpr_complete p2
@@ -430,6 +454,20 @@ theorem evalExpr_complete {fr m e r} (h : EvalExpr cfg o fc fr m e r) :
     obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
     interp_simp [p4, ih1 k' (by omega), ih2 k' (by omega), ih3 k' (by omega)]
   | .sliceBounds p1 p2 p3 p4 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    obtain ⟨n2, ih2⟩ := evalGasOpt_complete p2
+    obtain ⟨n3, ih3⟩ := evalGasOpt_complete p3
+    refine ⟨n1 + n2 + n3 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p4, ih1 k' (by omega), ih2 k' (by omega), ih3 k' (by omega)]
+  | .sliceCd p1 p2 p3 p4 => by
+    obtain ⟨n1, ih1⟩ := evalExpr_complete p1
+    obtain ⟨n2, ih2⟩ := evalGasOpt_complete p2
+    obtain ⟨n3, ih3⟩ := evalGasOpt_complete p3
+    refine ⟨n1 + n2 + n3 + 1, fun k hk => ?_⟩
+    obtain ⟨k', rfl⟩ := exists_add (k := k) (c := 1) (by omega)
+    interp_simp [p4, ih1 k' (by omega), ih2 k' (by omega), ih3 k' (by omega)]
+  | .sliceCdBounds p1 p2 p3 p4 => by
     obtain ⟨n1, ih1⟩ := evalExpr_complete p1
     obtain ⟨n2, ih2⟩ := evalGasOpt_complete p2
     obtain ⟨n3, ih3⟩ := evalGasOpt_complete p3

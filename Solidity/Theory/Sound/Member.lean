@@ -60,6 +60,11 @@ theorem evalMember_sound_step {n} (ih : SoundAt cfg o fc n) :
         have hf' : f = "length" := by simpa using hf
         rw [IM.pure_some h, hf']; exact .memberBytesLength hdm he
       · simp at h
+    · rename_i ty base len
+      rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨r', h'⟩, hr, h⟩ <;> try dsimp only at h
+      · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+        exact .memberCdPanic hdm he hp
+      · rw [IM.pure_some h]; exact .memberCd hdm he (liftOp_ok hr)
     · split at h
       · rename_i hf
         have hf' : f = "balance" := by simpa using hf

@@ -751,15 +751,6 @@ private def elabVarAttrs (attrs : Array Syntax) : MacroM (Term × Term × Term) 
     | other => Macro.throwError s!"unknown state variable attribute `{other}`"
   return (vis, mutab, ov)
 
-private def userOpTerm (op : String) : MacroM Term :=
-  match op with
-  | "|" => `(Solidity.UserOp.bitOr) | "&" => `(Solidity.UserOp.bitAnd) | "^" => `(Solidity.UserOp.bitXor)
-  | "~" => `(Solidity.UserOp.bitNot) | "+" => `(Solidity.UserOp.add) | "-" => `(Solidity.UserOp.sub)
-  | "*" => `(Solidity.UserOp.mul) | "/" => `(Solidity.UserOp.div) | "%" => `(Solidity.UserOp.mod)
-  | "==" => `(Solidity.UserOp.eq) | "!=" => `(Solidity.UserOp.ne) | "<" => `(Solidity.UserOp.lt)
-  | ">" => `(Solidity.UserOp.gt) | "<=" => `(Solidity.UserOp.le) | ">=" => `(Solidity.UserOp.ge)
-  | _ => Macro.throwError s!"`{op}` is not a user-definable operator"
-
 /-- The text of an atom, also when an alternative of `<|>` wraps it in a node. -/
 private partial def atomText (s : Syntax) : String :=
   if s.isAtom then s.getAtomVal else if s.getNumArgs == 0 then "" else atomText s[0]
@@ -774,8 +765,9 @@ private def elabUsingFor (raw : Syntax) : MacroM Term := do
           | [f] => pure ((← `(none)), strLit f)
           | [l, f] => pure ((← `(some $(strLit l))), strLit f)
           | _ => Macro.throwErrorAt x "expected `f` or `L.f`"
-        let op ← if x[1].getNumArgs == 0 then `(none) else do `(some $(← userOpTerm (atomText x[1][1])))
-        `({ qual := $qual, name := $name, op := $op : Solidity.UsingFn })
+        if x[1].getNumArgs != 0 then
+          Macro.throwErrorAt x "user-defined operators are not supported: write the call of the bound function"
+        `({ qual := $qual, name := $name : Solidity.UsingFn })
       `(Solidity.UsingTarget.functions $(← mkList fs))
   let tyStx := raw[3]
   let ty ← if atomText tyStx == "*" then `(none) else do `(some $(← elabTy ⟨tyStx⟩))

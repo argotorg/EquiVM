@@ -8,13 +8,11 @@ import Solidity.Test.Fixtures.CalldataSolc
 element or field is read, when the object is ABI-encoded (`abi.encode`, an external call, an
 event, an error), when it is copied to storage and when a struct or an array of dynamic arrays or
 structs is copied to memory; an array of value-type words (or of static arrays of them) is copied
-to memory with cleanup.  `Attach`: `using Lib for IT` with a call through a value of the interface
-type.  `Calldata/known` pins two deviations: a calldata-typed return with a word that is not
-canonical has no derivation (solc reverts); an enum array copied to memory is checked at the copy
-(solc checks an element when it is read); the headers of the inner arrays of a calldata array of
-dynamic arrays are checked when the call is decoded (solc checks them when the inner array is
-used: `Panic(0x32)` for an index into a misplaced header, `Panic(0x41)` for an absurd length copied
-to memory). -/
+to memory with cleanup; the inner headers of `uint8[][]` are checked when the inner array is used
+(fixture `Lazy` covers that in depth).  `Attach`: `using Lib for IT` with a call through a value of
+the interface type.  `Calldata/known` pins two deviations: a calldata-typed return with a word that
+is not canonical has no derivation (solc reverts); an enum array copied to memory is checked at the
+copy (solc checks an element when it is read). -/
 
 namespace Solidity.Test.Calldata
 
@@ -99,6 +97,12 @@ def copyCases : List Case :=
     { rc "ssX((uint8,uint256)[],uint256)" [0x40, 0, 1, 300, 1] "dirty x" with expect := .revert },
     { rc "ssCopy((uint8,uint256)[])" [0x20, 1, 300, 1] "dirty" with expect := .revert },
     { rc "ssCopy((uint8,uint256)[])" [0x20, 1, 3, 1] "clean" with expect := .success },
+    { rc "nested(uint8[][],uint256,uint256)" [0x60, 0, 0, 1, 0x20, 1, 300] "dirty read" with expect := .revert },
+    { rc "nested(uint8[][],uint256,uint256)" [0x60, 0, 0, 1, 0x20, 2, 3, 300] "dirty not read" with expect := .success },
+    { rc "nested(uint8[][],uint256,uint256)" [0x60, 0, 0, 1, 2 ^ 255, 1, 300] "inner offset 2^255" with expect := .revert },
+    { rc "nestedCopy(uint8[][])" [0x20, 1, 0x20, 1, 300] "dirty" with expect := .revert },
+    { rc "nestedCopy(uint8[][])" [0x20, 1, 0x20, 1, 3] "clean" with expect := .success },
+    { rc "nestedCopy(uint8[][])" [0x20, 1, 0x20, 2 ^ 160 + 0xf7e5, 300] "absurd inner length" with expect := .revert },
     { rc "fixedOuter(uint8[2][],uint256)" [0x40, 0, 1, 300, 1] "dirty" with expect := .success },
     { rc "fixedOuterCopy(uint8[2][])" [0x20, 1, 300, 1] "dirty" with expect := .success },
     { rc "fixedOuterCopy(uint8[2][])" [0x20, 1, 3, 1] "clean" with expect := .success },
@@ -126,23 +130,13 @@ def copyCases : List Case :=
 /-! ## Known -/
 
 def retCdKnown : String := "a calldata-typed return with a word that is not canonical has no derivation"
-def innerKnown : String := "the headers of the inner arrays of a calldata array of dynamic arrays are checked when the call is decoded; solc checks them when the inner array is used"
-def rk (sig : String) (ws : List Nat) (tag : String := "") : Case := rawCall knownRuntime sig ws tag
 def enumCopyKnown : String := "an enum array copied to memory is checked at the copy (Panic 0x21); solc checks an element when it is read"
 
 def knownCases : List Case :=
   [ { rawCall knownRuntime "retCd(uint16[])" dirty16 "dirty" with expect := .revert, known := some retCdKnown },
     { mk knownRuntime "retCd(uint16[])" [arr [1, 2]] "clean" with expect := .success },
     { rawCall knownRuntime "enumCopyLen(uint8[])" [0x20, 1, 7] "out of range" with expect := .success, known := some enumCopyKnown },
-    { rawCall knownRuntime "enumCopyLen(uint8[])" [0x20, 1, 1] "clean" with expect := .success },
-    { rk "nested(uint8[][],uint256,uint256)" [0x60, 0, 0, 1, 0x20, 1, 300] "dirty read" with expect := .revert },
-    { rk "nested(uint8[][],uint256,uint256)" [0x60, 0, 0, 1, 0x20, 2, 3, 300] "dirty not read" with expect := .success },
-    { rk "nested(uint8[][],uint256,uint256)" [0x60, 0, 0, 1, 2 ^ 255, 1, 300] "inner offset beyond the data" with
-        expect := .revert, known := some innerKnown },
-    { rk "nestedCopy(uint8[][])" [0x20, 1, 0x20, 1, 300] "dirty" with expect := .revert },
-    { rk "nestedCopy(uint8[][])" [0x20, 1, 0x20, 1, 3] "clean" with expect := .success },
-    { rk "nestedCopy(uint8[][])" [0x20, 1, 0x20, 2 ^ 160 + 0xf7e5, 300] "absurd inner length" with
-        expect := .revert, known := some innerKnown } ]
+    { rawCall knownRuntime "enumCopyLen(uint8[])" [0x20, 1, 1] "clean" with expect := .success } ]
 
 def P := _root_.Calldata.SoliditySpec.program
 

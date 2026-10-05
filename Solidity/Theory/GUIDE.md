@@ -172,9 +172,12 @@ members, `a.balance`, `a.code`, `a.codehash`, `abi.encode`, `abi.encodePacked`,
 A `calldata` array or struct parameter is decoded without validating its words; a word is
 validated when an element or field is read, or when the object is ABI-encoded (a bad word reverts
 with empty data), and an array of value-type words copied to memory is cleaned, not validated.
-In proofs the arguments of an encoding (`abiEncodePlain`, `keccakPacked`, …) come with
-`hraw : ∀ v ∈ vs, hasRaw … = false`, discharged by `simp [fuelDefault]` for scalar arguments; a
-calldata array argument needs the validation step (`validateDeep`) spelled out.
+One whose elements or fields are dynamically encoded (`bytes[]`, `T[][]`, a struct with a `bytes`
+field) stays in the calldata (`Value.cdRef`): an element's offset and length are checked when the
+element is used, as solc does.  In proofs the arguments of an encoding (`abiEncodePlain`,
+`keccakPacked`, …) come with `hraw : ∀ v ∈ vs, hasRaw … = false`, discharged by
+`simp [fuelDefault]` for scalar arguments; a calldata array argument needs the preparation step
+(`prepareArgs`) spelled out.
 
 ## 9. Transcribing the source: user-defined value types
 
@@ -187,6 +190,6 @@ Builders: `EvalExpr.wrapPlain`, `EvalExpr.unwrapPlain` with `valueTypeRecv_ident
 `valueTypeRecv_qual` for the receiver.
 
 One rule: an operator bound with `using {f as +} for T global` is written as the call it stands
-for.  The directive is transcribed as it is; `a + b` on values of `T` becomes `f(a, b)`, `-a`
-becomes `g(a)`.  solc evaluates the operator as that call, left operand first; the spec has no
-rule for the operator itself (see "User-defined operators" in `STRUCTURE.md`).
+for, and the binding is left out of the directive (the DSL rejects `as +`).  `a + b` on values of
+`T` becomes `f(a, b)`, `-a` becomes `g(a)`.  solc evaluates the operator as that call, left operand
+first, so the call is exact (see "User-defined operators" in `STRUCTURE.md`).

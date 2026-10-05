@@ -223,6 +223,7 @@ def argFits (env : TypeEnv) (h : Heap) (v : Value) (p : Param) : Bool :=
   | .storageRef _ ty => (p.loc == some .storage || p.loc == some .memory) && ty == p.ty
   | .memRef _ => !(isValueType env p.ty)
   | .raw ty _ => ty == p.ty
+  | .cdRef ty _ _ => (p.loc == some .calldata || p.loc == some .memory) && ty == p.ty
   | v => (implicitConv env h v p.ty).isSome
 
 def fnFits (env : TypeEnv) (h : Heap) (d : FnDecl) (args : List Value) : Bool :=
@@ -339,6 +340,7 @@ def eventArgFits (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Bool :=
   | .storageRef _ sty => sty == ty
   | .memRef _ => !(isValueType env ty)
   | .raw rty _ => rty == ty
+  | .cdRef cty _ _ => cty == ty
   | v => (implicitConv env h v ty).isSome
 
 def eventFits (env : TypeEnv) (h : Heap) (ei : EventInfo) (vs : List Value) : Bool :=
@@ -418,11 +420,11 @@ def decodeRets (cfg : Config) (env : TypeEnv) (m : Machine) (rets : List Param) 
 
 /-- The functions named `f` a `using` directive written in the unit `c` attaches: those of the
     library, or the listed ones (`L.f`; a plain `f` is the library's own function inside a library,
-    a file-level function otherwise).  A function bound to an operator only is no member. -/
+    a file-level function otherwise). -/
 def usingTargetFns (fc : FlatContract) (c f : Ident) : UsingTarget → List (FnKey × FnId)
   | .library l => fc.unitFnsNamed l f
   | .functions fs => fs.flatMap fun uf =>
-      if uf.name == f && uf.op.isNone then
+      if uf.name == f then
         match uf.qual with
         | some l => fc.unitFnsNamed l f
         | none =>
@@ -556,10 +558,11 @@ def structObj (cfg : Config) (env : TypeEnv) (m : Machine) (sd : StructInfo) (vs
   pure (.memRef id, { m' with heap := h' })
 
 /-- Values whose ABI types were derived from the values themselves.  An argument that lives in
-    storage is copied to memory first, as solc does; a calldata object is validated word by word. -/
+    storage is copied to memory first, as solc does; a calldata object is read through the
+    encoder's checks (`prepareArgs`). -/
 def abiArgsAbi (cfg : Config) (env : TypeEnv) (m : Machine) (_tys : List ABIType) (vs : List Value) :
     Op (List ABIValue × Machine) := do
-  let h ← vs.foldlM (validateDeep env fuelDefault) m.heap
+  let (vs, h) ← prepareArgs env m.evm.executionEnv.calldata fuelDefault m.heap vs
   let m := { m with heap := h }
   match vs.mapM (toAbi m.heap fuelDefault) with
   | some svs => pure (svs, m)
@@ -805,6 +808,13 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.member (.member recv g) "selector") (.ok v fr m)
   | memberBytesLength : directMember fc fr e = false → EvalExpr fr m e (.ok (.fixedBytes n bs) fr1 m1) →
       EvalExpr fr m (.member e "length") (.ok (wordNat (n.val + 1)) fr1 m1)
+  -- a calldata array or struct with dynamic content (`Value.cdRef`): `.length`, or a field
+  | memberCd : directMember fc fr e = false → EvalExpr fr m e (.ok (.cdRef ty base len) fr1 m1) →
+      cdMember fc.types m1.evm.executionEnv.calldata fuelDefault m1.heap ty base len f = some (.ok (v, h')) →
+      EvalExpr fr m (.member e f) (.ok v fr1 { m1 with heap := h' })
+  | memberCdPanic : directMember fc fr e = false → EvalExpr fr m e (.ok (.cdRef ty base len) fr1 m1) →
+      cdMember fc.types m1.evm.executionEnv.calldata fuelDefault m1.heap ty base len f = some (.error p) →
+      EvalExpr fr m (.member e f) (.reverted p.data)
   | memberRevert : directMember fc fr e = false → EvalExpr fr m e (.reverted d) → EvalExpr fr m (.member e f) (.reverted d)
   -- indexing
   | indexStorage : EvalExpr fr m e (.ok (.storageRef er ty) fr1 m1) → EvalExpr fr1 m1 i (.ok iv fr2 m2) →
@@ -826,6 +836,12 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       fixedBytesIndex bs iv = some (.ok v) → EvalExpr fr m (.index e i) (.ok v fr2 m2)
   | indexFixedBytesPanic : EvalExpr fr m e (.ok (.fixedBytes n bs) fr1 m1) → EvalExpr fr1 m1 i (.ok iv fr2 m2) →
       fixedBytesIndex bs iv = some (.error p) → EvalExpr fr m (.index e i) (.reverted p.data)
+  | indexCd : EvalExpr fr m e (.ok (.cdRef ty base len) fr1 m1) → EvalExpr fr1 m1 i (.ok iv fr2 m2) →
+      cdIndex fc.types m2.evm.executionEnv.calldata fuelDefault m2.heap ty base len iv = some (.ok (v, h')) →
+      EvalExpr fr m (.index e i) (.ok v fr2 { m2 with heap := h' })
+  | indexCdPanic : EvalExpr fr m e (.ok (.cdRef ty base len) fr1 m1) → EvalExpr fr1 m1 i (.ok iv fr2 m2) →
+      cdIndex fc.types m2.evm.executionEnv.calldata fuelDefault m2.heap ty base len iv = some (.error p) →
+      EvalExpr fr m (.index e i) (.reverted p.data)
   | indexBaseRevert : EvalExpr fr m e (.reverted d) → EvalExpr fr m (.index e i) (.reverted d)
   | indexRevert : EvalExpr fr m e (.ok v fr1 m1) → EvalExpr fr1 m1 i (.reverted d) → EvalExpr fr m (.index e i) (.reverted d)
   -- slices `e[lo:hi]` (the bounds are optional natural-number expressions, evaluated `lo` then `hi`)
@@ -834,6 +850,12 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.slice e lo hi) (.ok v fr3 { m3 with heap := h' })
   | sliceBounds : EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → EvalGasOpt fr1 m1 lo (.ok l fr2 m2) →
       EvalGasOpt fr2 m2 hi (.ok u fr3 m3) → sliceObj m3.heap obj l u = some (.error d) →
+      EvalExpr fr m (.slice e lo hi) (.reverted d)
+  | sliceCd : EvalExpr fr m e (.ok (.cdRef ty base len) fr1 m1) → EvalGasOpt fr1 m1 lo (.ok l fr2 m2) →
+      EvalGasOpt fr2 m2 hi (.ok u fr3 m3) → cdSlice ty base len l u = some (.ok v) →
+      EvalExpr fr m (.slice e lo hi) (.ok v fr3 m3)
+  | sliceCdBounds : EvalExpr fr m e (.ok (.cdRef ty base len) fr1 m1) → EvalGasOpt fr1 m1 lo (.ok l fr2 m2) →
+      EvalGasOpt fr2 m2 hi (.ok u fr3 m3) → cdSlice ty base len l u = some (.error d) →
       EvalExpr fr m (.slice e lo hi) (.reverted d)
   | sliceBaseRevert : EvalExpr fr m e (.reverted d) → EvalExpr fr m (.slice e lo hi) (.reverted d)
   | sliceLoRevert : EvalExpr fr m e (.ok v fr1 m1) → EvalGasOpt fr1 m1 lo (.reverted d) →

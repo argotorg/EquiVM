@@ -58,6 +58,8 @@ def copies : SourceUnit := sol% contract Copies {
   function ssY(S[] calldata ss, uint256 i) external pure returns (uint256) { return ss[i].y; }
   function ssX(S[] calldata ss, uint256 i) external pure returns (uint8) { return ss[i].x; }
   function ssCopy(S[] calldata ss) external pure returns (uint256) { S[] memory m = ss; return m.length; }
+  function nested(uint8[][] calldata xss, uint256 i, uint256 j) external pure returns (uint8) { return xss[i][j]; }
+  function nestedCopy(uint8[][] calldata xss) external pure returns (uint8) { uint8[][] memory m = xss; return m[0][0]; }
   function fixedOuter(uint8[2][] calldata xss, uint256 i) external pure returns (uint256) { return xss[i].length; }
   function fixedOuterCopy(uint8[2][] calldata xss) external pure returns (uint8) { uint8[2][] memory m = xss; return m[0][1]; }
   function fixedCopy(uint16[2] calldata xs) external pure returns (uint16) { uint16[2] memory m = xs; return m[1]; }
@@ -76,8 +78,6 @@ def copies : SourceUnit := sol% contract Copies {
 def known : SourceUnit := sol% contract Known {
   function retCd(uint16[] calldata xs) external pure returns (uint16[] calldata) { return xs; }
   function enumCopyLen(E[] calldata es) external pure returns (uint256) { E[] memory m = es; return m.length; }
-  function nested(uint8[][] calldata xss, uint256 i, uint256 j) external pure returns (uint8) { return xss[i][j]; }
-  function nestedCopy(uint8[][] calldata xss) external pure returns (uint8) { uint8[][] memory m = xss; return m[0][0]; }
 }
 
 def program : Program := [iT, lib, tok, attach, sS, eE, tP, copies, known]

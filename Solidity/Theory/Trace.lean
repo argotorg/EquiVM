@@ -364,7 +364,7 @@ theorem decodeCallArgs_none_of_decodeArgs {cfg : Config} {env : TypeEnv} {d : Fn
 /-- Arguments whose typed reconstruction fails (an enum value out of range) are rejected. -/
 theorem decodeCallArgs_none_of_ofAbiParams {cfg : Config} {env : TypeEnv} {d : FnDecl} {cd : ByteArray}
     {svs : List ABI.ABIValue} (h : decodeArgs cfg env d cd = some svs)
-    (hof : ofAbiParams env d.params svs {} = none) : decodeCallArgs cfg env d cd = none := by
+    (hof : ofAbiParams env cd d.params svs {} = none) : decodeCallArgs cfg env d cd = none := by
   simp [decodeCallArgs, h, hof]
 
 /-- An empty revert when the spec dispatches but cannot decode the arguments ⇒ `decodingFailed`. -/
@@ -783,8 +783,8 @@ def abiArgStep (cfg : Config) (env : TypeEnv) (accm : List ABI.ABIValue × Machi
 theorem abiArgs_eq_foldlM (cfg : Config) (env : TypeEnv) (m : Machine) (tys : List Ty) (vs : List Value)
     (hlen : tys.length = vs.length) (hraw : ∀ v ∈ vs, hasRaw m.heap fuelDefault v = false) :
     abiArgs cfg env m tys vs = (tys.zip vs).foldlM (abiArgStep cfg env) ([], m) := by
-  have hf : vs.foldlM (validateDeep env fuelDefault) m.heap = pure m.heap :=
-    foldlM_validateDeep_of_noRaw (fuel := 1023) hraw
+  have hf : prepareArgs env m.evm.executionEnv.calldata fuelDefault m.heap vs = pure (vs, m.heap) :=
+    prepareArgs_of_noRaw (fuel := 1023) hraw
   simp only [abiArgs, hlen, ne_eq, not_true_eq_false, if_false]
   rw [hf]
   rfl
@@ -876,14 +876,14 @@ theorem encodeABIValues?_of_encs (xs : List (ABI.ABIType × ABI.ABIValue × List
 theorem abiArgs_memString {cfg : Config} {env : TypeEnv} {m : Machine} {id : ℕ} {b : ByteArray}
     (hget : m.heap.get? id = some (.bytes true b)) :
     abiArgs cfg env m [.string] [.memRef id] = some (.ok ([.bytes b], m)) := by
-  simp [abiArgs, coerce, implicitConv, fuelDefault, toAbi_memBytes 1023 hget,
-    validateDeep_of_noRaw (hasRaw_memBytes 1023 hget), hasRaw_memBytes 1023 hget]
+  simp [abiArgs, prepareArgs, coerce, implicitConv, fuelDefault, toAbi_memBytes 1023 hget,
+    prepareArg_of_noRaw (hasRaw_memBytes 1023 hget), hasRaw_memBytes 1023 hget]
 
 theorem abiArgs_memBytes {cfg : Config} {env : TypeEnv} {m : Machine} {id : ℕ} {b : ByteArray}
     (hget : m.heap.get? id = some (.bytes false b)) :
     abiArgs cfg env m [.bytes] [.memRef id] = some (.ok ([.bytes b], m)) := by
-  simp [abiArgs, coerce, implicitConv, fuelDefault, toAbi_memBytes 1023 hget,
-    validateDeep_of_noRaw (hasRaw_memBytes 1023 hget), hasRaw_memBytes 1023 hget]
+  simp [abiArgs, prepareArgs, coerce, implicitConv, fuelDefault, toAbi_memBytes 1023 hget,
+    prepareArg_of_noRaw (hasRaw_memBytes 1023 hget), hasRaw_memBytes 1023 hget]
 
 /-- The log entry of an event with one non-indexed `string` argument. -/
 theorem mkLogEntry_string (this : EVM.Address) (ev : EventInfo) (b : ByteArray) {n1 : Option Ident}
@@ -978,8 +978,8 @@ theorem hasRaw_memArray_u256 {h : Heap} {id : ℕ} {ety : Ty} {ns : List ℕ} {f
 theorem abiArgs_memArray_u256 {cfg : Config} {env : TypeEnv} {m : Machine} {id : ℕ} {ety : Ty} {ns : List ℕ}
     {fx : Bool} (hget : m.heap.get? id = some (.array ety (ns.map u256Val) fx)) :
     abiArgs cfg env m [.dynArray u256Ty] [.memRef id] = some (.ok ([.array (ns.map fun (n : ℕ) => ABI.ABIValue.int n)], m)) := by
-  simp [abiArgs, coerce, implicitConv, fuelDefault, toAbi_memArray_u256 1022 hget,
-    validateDeep_of_noRaw (hasRaw_memArray_u256 1022 hget), hasRaw_memArray_u256 1022 hget]
+  simp [abiArgs, prepareArgs, coerce, implicitConv, fuelDefault, toAbi_memArray_u256 1022 hget,
+    prepareArg_of_noRaw (hasRaw_memArray_u256 1022 hget), hasRaw_memArray_u256 1022 hget]
 
 theorem encodeABIStaticArrayElems?_u256 : ∀ (ns : List ℕ), (∀ n ∈ ns, n < 2 ^ 256) →
     ABI.encodeABIStaticArrayElems? (.elem (.int (.uint ⟨256, by decide⟩))) (ns.map fun (n : ℕ) => ABI.ABIValue.int n) =

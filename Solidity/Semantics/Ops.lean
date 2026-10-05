@@ -400,6 +400,324 @@ def unwrapValue (t : ValueTypeInfo) : Value → Option Value
   | .wrapped q n u => if n == t.name && q == t.qual then some u else none
   | _ => none
 
+/-! ## Calldata arrays and structs with dynamic content (`Value.cdRef`)
+
+solc's generated code (ABI coder v2) checks the offsets and lengths inside a calldata array or
+struct when an element is used, in 256-bit arithmetic with signed comparisons for the offsets
+(`access_calldata_tail`); a copy to memory runs its decoder, with `Panic(0x41)` for an absurd
+length; an ABI encoding reads the elements through the element access.  The helpers below mirror
+that code; a failed check is `Panic.badCalldataWord` (empty revert data). -/
+
+def W256 : Nat := 2 ^ 256
+def maxU64 : Nat := 2 ^ 64 - 1
+
+/-- `CALLDATALOAD`: the word at `pos`, zero beyond the end. -/
+def cdWord (cd : ByteArray) (pos : Nat) : Nat :=
+  bytesToNatBE ((List.range 32).map fun k => if pos + k < cd.size then cd.get! (pos + k) else 0)
+
+/-- `len` bytes from `pos`, zero beyond the end. -/
+def cdBytes (cd : ByteArray) (pos len : Nat) : ByteArray :=
+  ⟨((List.range len).map fun k => if pos + k < cd.size then cd.get! (pos + k) else 0).toArray⟩
+
+def wordSigned (w : Nat) : Int := if w < 2 ^ 255 then w else (w : Int) - W256
+def addW (a b : Nat) : Nat := (a + b) % W256
+def subW (a b : Nat) : Nat := (a + W256 - b % W256) % W256
+def sltW (a b : Nat) : Bool := decide (wordSigned a < wordSigned b)
+def sgtW (a b : Nat) : Bool := decide (wordSigned a > wordSigned b)
+
+def arrayElem : Ty → Option Ty
+  | .dynArray e | .array e _ => some e
+  | _ => none
+
+def isDynSized : Ty → Bool
+  | .bytes | .string | .dynArray _ => true
+  | _ => false
+
+/-- The size of a struct's head, one slot per dynamic field. -/
+def structHeadSize (env : TypeEnv) (s : StructInfo) : Option Nat :=
+  (s.fields.mapM fun f => abiTypeOf env f.1).bind ABI.abiTupleHeadSize?
+
+/-- The size of the head of a type that is not dynamically sized: its static size, or the slots of
+    its dynamic parts. -/
+def cdHeadSize (env : TypeEnv) : Ty → Option Nat
+  | .array e n => if dynamicTy env e then some (32 * n) else staticSize env (.array e n)
+  | .user q n => match env.struct? q n with
+    | some s => structHeadSize env s
+    | none => staticSize env (.user q n)
+  | ty => if isDynSized ty then none else staticSize env ty
+
+/-- The distance between two elements of an array of `e`. -/
+def cdStride (env : TypeEnv) (e : Ty) : Option Nat :=
+  if dynamicTy env e then some 32 else staticSize env e
+
+/-- Head offsets of the fields of a struct. -/
+def fieldOffsets (env : TypeEnv) (fields : List (Ty × Ident)) : Option (List Nat) := do
+  let r ← fields.foldlM (fun (acc : List Nat × Nat) (f : Ty × Ident) => do
+    let sz ← if dynamicTy env f.1 then some 32 else cdHeadSize env f.1
+    pure (acc.1 ++ [acc.2], acc.2 + sz)) (([] : List Nat), (0 : Nat))
+  pure r.1
+
+/-- `access_calldata_tail`: the data of the dynamically encoded element or field whose head slot
+    is `ptr`, relative to `base`: its position and, for a dynamically sized type, its length. -/
+def cdTail (env : TypeEnv) (cd : ByteArray) (ty : Ty) (base ptr : Nat) : Op (Nat × Nat) := do
+  let some needed := (if isDynSized ty then some 32 else cdHeadSize env ty) | Op.stuck
+  let cds := cd.size
+  let rel := cdWord cd ptr
+  if !(sltW rel (subW (subW cds base) (needed - 1))) then Op.panic .badCalldataWord
+  let addr := addW base rel
+  if isDynSized ty then
+    let len := cdWord cd addr
+    if len > maxU64 then Op.panic .badCalldataWord
+    let addr' := addW addr 32
+    let stride := match ty with
+      | .dynArray e => (cdStride env e).getD 32
+      | _ => 1
+    if sgtW addr' (subW cds (len * stride)) then Op.panic .badCalldataWord
+    pure (addr', len)
+  else pure (addr, 0)
+
+/-- Static content of type `ty` at `pos`, read with raw words (validated when read). -/
+def cdStatic (env : TypeEnv) (cd : ByteArray) : Nat → Ty → Nat → Heap → Option (Value × Heap)
+  | 0, _, _, _ => none
+  | fuel + 1, ty, pos, h =>
+    if isRawLeaf env ty then some (.raw ty (cdWord cd pos), h)
+    else match ty with
+      | .array e n => do
+        let sz ← staticSize env e
+        let (elems, h') ← (List.range n).foldlM (fun (acc, h) j => do
+          let (v, h') ← cdStatic env cd fuel e (pos + sz * j) h
+          pure (acc ++ [v], h')) (([] : List Value), h)
+        let (h'', id) := h'.alloc (.array e elems true)
+        pure (.memRef id, h'')
+      | .user q n => do
+        let s ← env.struct? q n
+        let offs ← fieldOffsets env s.fields
+        let (fields, h') ← (s.fields.zip offs).foldlM (fun (acc, h) ((fty, fname), off) => do
+          let (v, h') ← cdStatic env cd fuel fty (pos + off) h
+          pure (acc ++ [(fname, v)], h')) (([] : List (Ident × Value)), h)
+        let (h'', id) := h'.alloc (.struct ty fields)
+        pure (.memRef id, h'')
+      | _ => none
+
+/-- The value of a calldata element or field of type `ty` with data at `pos` and `len` elements,
+    after `cdTail`: a fresh byte array, static content with raw words, or another reference. -/
+def cdValue (env : TypeEnv) (cd : ByteArray) (fuel : Nat) (ty : Ty) (pos len : Nat) (h : Heap) :
+    Option (Value × Heap) :=
+  match ty with
+  | .bytes => let (h', id) := h.alloc (.bytes false (cdBytes cd pos len)); some (.memRef id, h')
+  | .string => let (h', id) := h.alloc (.bytes true (cdBytes cd pos len)); some (.memRef id, h')
+  | .dynArray e =>
+    if dynamicTy env e then some (.cdRef ty pos len, h)
+    else do
+      let sz ← staticSize env e
+      let (elems, h') ← (List.range len).foldlM (fun (acc, h) j => do
+        let (v, h') ← cdStatic env cd fuel e (pos + sz * j) h
+        pure (acc ++ [v], h')) (([] : List Value), h)
+      let (h'', id) := h'.alloc (.array e elems false)
+      pure (.memRef id, h'')
+  | .array e n => if dynamicTy env e then some (.cdRef ty pos n, h) else cdStatic env cd fuel ty pos h
+  | .user .. => if lazyCalldata env ty then some (.cdRef ty pos 0, h) else cdStatic env cd fuel ty pos h
+  | _ => none
+
+/-- `xs[i]` on a calldata array with dynamic elements: the bounds check (`Panic(0x32)`), then the
+    element through `cdTail`. -/
+def cdIndex (env : TypeEnv) (cd : ByteArray) (fuel : Nat) (h : Heap) (ty : Ty) (base len : Nat) (idx : Value) :
+    Op (Value × Heap) := do
+  let some i := natOperand idx | Op.stuck
+  let some e := arrayElem ty | Op.stuck
+  if i < len then
+    let (pos, l) ← cdTail env cd e base (addW base (32 * i))
+    Op.ofOpt (cdValue env cd fuel e pos l h)
+  else Op.panic .outOfBounds
+
+/-- `x.length` of a calldata array; a field of a calldata struct: a static one validated, a
+    dynamic one through `cdTail`. -/
+def cdMember (env : TypeEnv) (cd : ByteArray) (fuel : Nat) (h : Heap) (ty : Ty) (base len : Nat) (f : Ident) :
+    Op (Value × Heap) := do
+  match ty with
+  | .dynArray _ | .array .. => if f == "length" then pure (wordNat len, h) else Op.stuck
+  | .user q n =>
+    let some s := env.struct? q n | Op.stuck
+    let some offs := fieldOffsets env s.fields | Op.stuck
+    let some k := s.fields.findIdx? (·.2 == f) | Op.stuck
+    let some (fty, _) := s.fields[k]? | Op.stuck
+    let some off := offs[k]? | Op.stuck
+    if isRawLeaf env fty then
+      match validateRaw env fty (cdWord cd (addW base off)) with
+      | .ok v => pure (v, h)
+      | .error _ => Op.panic .badCalldataWord
+    else if dynamicTy env fty then
+      let (pos, l) ← cdTail env cd fty base (addW base off)
+      Op.ofOpt (cdValue env cd fuel fty pos l h)
+    else Op.ofOpt (cdStatic env cd fuel fty (addW base off) h)
+  | _ => Op.stuck
+
+/-- `x[lo:hi]` of a calldata array: bad bounds revert with empty data. -/
+def cdSlice (ty : Ty) (base len : Nat) (lo hi : Option Nat) : Option (Except ByteArray Value) :=
+  match ty with
+  | .dynArray _ =>
+    let a := lo.getD 0
+    let b := hi.getD len
+    if a ≤ b ∧ b ≤ len then some (.ok (.cdRef ty (addW base (32 * a)) (b - a))) else some (.error ByteArray.empty)
+  | _ => none
+
+/-- Static content of type `ty` at `pos` with every word validated (the memory decoder and the
+    encoder read it so). -/
+def cdStaticValidated (env : TypeEnv) (cd : ByteArray) : Nat → Ty → Nat → Heap → Op (Value × Heap)
+  | 0, _, _, _ => Op.stuck
+  | fuel + 1, ty, pos, h =>
+    if isRawLeaf env ty then
+      match validateRaw env ty (cdWord cd pos) with
+      | .ok v => pure (v, h)
+      | .error _ => Op.panic .badCalldataWord
+    else match ty with
+      | .array e n => do
+        let some sz := staticSize env e | Op.stuck
+        let (elems, h') ← (List.range n).foldlM (fun (acc, h) j => do
+          let (v, h') ← cdStaticValidated env cd fuel e (pos + sz * j) h
+          pure (acc ++ [v], h')) (([] : List Value), h)
+        let (h'', id) := h'.alloc (.array e elems true)
+        pure (.memRef id, h'')
+      | .user q n => do
+        let some s := env.struct? q n | Op.stuck
+        let some offs := fieldOffsets env s.fields | Op.stuck
+        let (fields, h') ← (s.fields.zip offs).foldlM (fun (acc, h) ((fty, fname), off) => do
+          let (v, h') ← cdStaticValidated env cd fuel fty (pos + off) h
+          pure (acc ++ [(fname, v)], h')) (([] : List (Ident × Value)), h)
+        let (h'', id) := h'.alloc (.struct ty fields)
+        pure (.memRef id, h'')
+      | _ => Op.stuck
+
+/-- A calldata object copied to memory: solc's memory decoder (`abi_decode_available_length_*`,
+    `abi_decode_t_struct_*`) from `pos` (the data of an array of `len` elements, the head of a
+    struct).  A bad inner offset, a short tail or a word that is not canonical reverts with empty
+    data; an absurd length is `Panic(0x41)`. -/
+def cdDecodeMem (env : TypeEnv) (cd : ByteArray) : Nat → Ty → Nat → Nat → Heap → Op (Value × Heap)
+  | 0, _, _, _, _ => Op.stuck
+  | fuel + 1, ty, pos, len, h =>
+    let cds := cd.size
+    -- a dynamically encoded element or field whose head slot holds `innerOff`
+    let elem := fun (e : Ty) (innerOff : Nat) (h : Heap) => do
+      if innerOff > maxU64 then Op.panic .badCalldataWord
+      let epos := pos + innerOff
+      if isDynSized e then
+        if !(epos + 31 < cds) then Op.panic .badCalldataWord
+        cdDecodeMem env cd fuel e (epos + 32) (cdWord cd epos) h
+      else cdDecodeMem env cd fuel e epos 0 h
+    match ty with
+    | .bytes | .string => do
+      if len > maxU64 then Op.panic .allocTooLarge
+      if pos + len > cds then Op.panic .badCalldataWord
+      let (h', id) := h.alloc (.bytes (ty == .string) (cdBytes cd pos len))
+      pure (.memRef id, h')
+    | .dynArray e | .array e _ => do
+      if len > maxU64 then Op.panic .allocTooLarge
+      let fixed := match ty with | .array .. => true | _ => false
+      if dynamicTy env e then
+        if pos + 32 * len > cds then Op.panic .badCalldataWord
+        let (elems, h') ← (List.range len).foldlM (fun (acc, h) j => do
+          let (v, h') ← elem e (cdWord cd (pos + 32 * j)) h
+          pure (acc ++ [v], h')) (([] : List Value), h)
+        let (h'', id) := h'.alloc (.array e elems fixed)
+        pure (.memRef id, h'')
+      else
+        let some sz := staticSize env e | Op.stuck
+        if pos + sz * len > cds then Op.panic .badCalldataWord
+        let (elems, h') ← (List.range len).foldlM (fun (acc, h) j => do
+          let (v, h') ← cdStaticValidated env cd fuel e (pos + sz * j) h
+          pure (acc ++ [v], h')) (([] : List Value), h)
+        let (h'', id) := h'.alloc (.array e elems fixed)
+        pure (.memRef id, h'')
+    | .user q n => do
+      let some s := env.struct? q n | Op.stuck
+      let some size := structHeadSize env s | Op.stuck
+      if pos + size > cds then Op.panic .badCalldataWord
+      let some offs := fieldOffsets env s.fields | Op.stuck
+      let (fields, h') ← (s.fields.zip offs).foldlM (fun (acc, h) ((fty, fname), off) => do
+        let (v, h') ←
+          if dynamicTy env fty then elem fty (cdWord cd (pos + off)) h
+          else cdStaticValidated env cd fuel fty (pos + off) h
+        pure (acc ++ [(fname, v)], h')) (([] : List (Ident × Value)), h)
+      let (h'', id) := h'.alloc (.struct ty fields)
+      pure (.memRef id, h'')
+    | _ => Op.stuck
+
+/-- A calldata object read for an ABI encoding (`abi.encode`, an external call, an event, an
+    error): solc's encoder reads every element through `cdTail` and every word through its
+    validator. -/
+def cdEncode (env : TypeEnv) (cd : ByteArray) : Nat → Ty → Nat → Nat → Heap → Op (Value × Heap)
+  | 0, _, _, _, _ => Op.stuck
+  | fuel + 1, ty, base, len, h =>
+    match ty with
+    | .bytes | .string =>
+      let (h', id) := h.alloc (.bytes (ty == .string) (cdBytes cd base len))
+      pure (.memRef id, h')
+    | .dynArray e | .array e _ => do
+      let fixed := match ty with | .array .. => true | _ => false
+      if dynamicTy env e then
+        let (elems, h') ← (List.range len).foldlM (fun (acc, h) j => do
+          let (pos, l) ← cdTail env cd e base (addW base (32 * j))
+          let (v, h') ← cdEncode env cd fuel e pos l h
+          pure (acc ++ [v], h')) (([] : List Value), h)
+        let (h'', id) := h'.alloc (.array e elems fixed)
+        pure (.memRef id, h'')
+      else
+        let some sz := staticSize env e | Op.stuck
+        let (elems, h') ← (List.range len).foldlM (fun (acc, h) j => do
+          let (v, h') ← cdStaticValidated env cd fuel e (base + sz * j) h
+          pure (acc ++ [v], h')) (([] : List Value), h)
+        let (h'', id) := h'.alloc (.array e elems fixed)
+        pure (.memRef id, h'')
+    | .user q n => do
+      let some s := env.struct? q n | Op.stuck
+      let some offs := fieldOffsets env s.fields | Op.stuck
+      let (fields, h') ← (s.fields.zip offs).foldlM (fun (acc, h) ((fty, fname), off) => do
+        let (v, h') ←
+          if dynamicTy env fty then do
+            let (pos, l) ← cdTail env cd fty base (addW base off)
+            cdEncode env cd fuel fty pos l h
+          else cdStaticValidated env cd fuel fty (base + off) h
+        pure (acc ++ [(fname, v)], h')) (([] : List (Ident × Value)), h)
+      let (h'', id) := h'.alloc (.struct ty fields)
+      pure (.memRef id, h'')
+    | _ => Op.stuck
+
+/-- A `calldata` array or struct parameter with dynamic content from its head word `off`: solc's
+    top-level decoder checks the offset, the length and that the heads lie within the calldata. -/
+def cdTop (env : TypeEnv) (cd : ByteArray) (ty : Ty) (off : Nat) : Option Value :=
+  if off > maxU64 then none else
+  let cds := cd.size
+  let pos := 4 + off
+  match ty with
+  | .dynArray e =>
+    if !(pos + 31 < cds) then none else
+    let len := cdWord cd pos
+    if len > maxU64 then none else
+    let base := pos + 32
+    if base + (cdStride env e).getD 32 * len > cds then none else some (.cdRef ty base len)
+  | .array e n => if pos + (cdStride env e).getD 32 * n > cds then none else some (.cdRef ty pos n)
+  | .user .. => do
+    let size ← cdHeadSize env ty
+    if pos + size > cds then none else some (.cdRef ty pos 0)
+  | _ => none
+
+/-- The arguments of a call from their decoded ABI values: a `calldata` array or struct with
+    dynamic content stays in the calldata (`cdTop`), one with static content keeps its raw words,
+    everything else is validated and copied to memory. -/
+def ofAbiParams (env : TypeEnv) (cd : ByteArray) (ps : List Param) (svs : List ABIValue) (h : Heap) :
+    Option (List Value × Heap) := do
+  if ps.length ≠ svs.length then none
+  (ps.zip svs).foldlM (fun (acc, h) (p, sv) => do
+    let (v, h') ←
+      if calldataRef env p then
+        if lazyCalldata env p.ty then
+          match sv with
+          | .int off => if 0 ≤ off then (cdTop env cd p.ty off.toNat).map (·, h) else none
+          | _ => none
+        else ofAbiRaw env fuelDefault p.ty sv h
+      else ofAbi env fuelDefault p.ty sv h
+    pure (acc ++ [v], h')) (([] : List Value), h)
+
 /-! ## Storage scalars and lengths -/
 
 def storageTyOf : Ty → Option Solm.StorageType
@@ -569,6 +887,10 @@ def writeStorageDeep (cfg : Config) (env : TypeEnv) : Nat → EVM.State → Heap
       -- storage → storage copy
       let (mv, h') ← readStorageDeep cfg env fuel evm h er' ty'
       writeStorageDeep cfg env fuel evm h' er ty mv
+    | .cdRef cty base len => do
+      -- a calldata object with dynamic content, read element by element
+      let (mv, h') ← cdEncode env evm.executionEnv.calldata fuel cty base len h
+      writeStorageDeep cfg env fuel evm h' er ty mv
     | .memRef id =>
       match ty, h.get? id with
       | .bytes, some (.bytes _ d) => writeBytesStorage cfg evm er .bytes d
@@ -734,6 +1056,7 @@ def hasRaw (h : Heap) : Nat → Value → Bool
   | fuel + 1, v =>
     match v with
     | .raw .. => true
+    | .cdRef .. => true
     | .memRef id =>
       match h.get? id with
       | some (.array _ elems _) => elems.any (hasRaw h fuel)
@@ -842,6 +1165,19 @@ where
     | .raw .. => true
     | _ => false
 
+/-- An argument of an ABI encoding: a calldata reference is read through the encoder's checks, a
+    memory object has its raw words validated in place. -/
+def prepareArg (env : TypeEnv) (cd : ByteArray) (fuel : Nat) (h : Heap) : Value → Op (Value × Heap)
+  | .cdRef ty base len => cdEncode env cd fuel ty base len h
+  | v => do
+    let h' ← validateDeep env fuel h v
+    pure (v, h')
+
+def prepareArgs (env : TypeEnv) (cd : ByteArray) (fuel : Nat) (h : Heap) (vs : List Value) : Op (List Value × Heap) :=
+  vs.foldlM (fun (acc, h) v => do
+    let (v', h') ← prepareArg env cd fuel h v
+    pure (acc ++ [v'], h')) (([] : List Value), h)
+
 /-! ## Reading and assigning -/
 
 /-- The value of a storage reference: scalars are loaded, reference types stay references. -/
@@ -867,6 +1203,12 @@ def coerce (cfg : Config) (env : TypeEnv) (m : Machine) (v : Value) (ty : Ty) (l
       let (v', h') ← copyCalldata env fuelDefault m.heap (.memRef id)
       pure (v', { m with heap := h' })
     else pure (.memRef id, m)
+  | .cdRef ty base len =>
+    if loc == some .calldata then pure (.cdRef ty base len, m)
+    else if loc == some .storage then Op.stuck
+    else do
+      let (v', h') ← cdDecodeMem env m.evm.executionEnv.calldata fuelDefault ty base len m.heap
+      pure (v', { m with heap := h' })
   | v =>
     match implicitConv env m.heap v ty with
     | some (v', h') => pure (v', { m with heap := h' })
@@ -989,11 +1331,11 @@ def abiTyOfValue (env : TypeEnv) (h : Heap) : Value → Option ABIType
   | v => (v.ty?).bind (abiTypeOf env)
 
 /-- Convert arguments to declared parameter types and into the ABI domain.  A calldata object is
-    validated word by word first (solc's encoder). -/
+    read through the encoder's checks first (`prepareArgs`). -/
 def abiArgs (cfg : Config) (env : TypeEnv) (m : Machine) (tys : List Ty) (vs : List Value) :
     Op (List ABIValue × Machine) := do
   if tys.length ≠ vs.length then Op.stuck
-  let h ← vs.foldlM (validateDeep env fuelDefault) m.heap
+  let (vs, h) ← prepareArgs env m.evm.executionEnv.calldata fuelDefault m.heap vs
   let m := { m with heap := h }
   (tys.zip vs).foldlM (fun (acc, m) (ty, v) => do
     let (v', m') ← coerce cfg env m v ty (some .memory)

@@ -36,6 +36,12 @@ inductive Value where
   | storageRef (er : Solm.EvaledStorageRef) (ty : Ty)
   /-- A calldata word of static type `ty` not yet validated (validated on access). -/
   | raw (ty : Ty) (w : Nat)
+  /-- A calldata array or struct whose elements or fields are dynamically encoded (`bytes[]`,
+      `T[][]`, `S[]` for an `S` with a `bytes` field, such an `S` itself): the position `base` of
+      its data in the calldata (the first element slot, or the struct head) and its element count
+      `len` (0 for a struct).  solc checks an element's offset and length when the element is
+      used. -/
+  | cdRef (ty : Ty) (base : Nat) (len : Nat)
   | tuple (vs : List Value)
   | unit
   deriving Inhabited, Repr
@@ -96,6 +102,7 @@ def Value.ty? : Value → Option Ty
   | .wrapped q ty _ => some (.user q ty)
   | .storageRef _ ty => some ty
   | .raw ty _ => some ty
+  | .cdRef ty _ _ => some ty
   | _ => none
 
 /-- Values of the elementary value types: what a user-defined value type wraps. -/
@@ -312,12 +319,5 @@ where
 
 def fuelDefault : Nat := 1024
 
-/-- The arguments of a call from their decoded ABI values: a `calldata` array or struct keeps its
-    raw words, everything else is validated and copied to memory. -/
-def ofAbiParams (env : TypeEnv) (ps : List Param) (svs : List ABIValue) (h : Heap) : Option (List Value × Heap) := do
-  if ps.length ≠ svs.length then none
-  (ps.zip svs).foldlM (fun (acc, h) (p, sv) => do
-    let (v, h') ← if calldataRef env p then ofAbiRaw env fuelDefault p.ty sv h else ofAbi env fuelDefault p.ty sv h
-    pure (acc ++ [v], h')) (([] : List Value), h)
 
 end Solidity

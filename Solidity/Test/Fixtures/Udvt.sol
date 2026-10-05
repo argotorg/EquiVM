@@ -6,7 +6,7 @@ pragma solidity ^0.8.0;
 // events, errors, `abi.encode*`, `abi.decode`, external calls), constants and immutables; functions
 // attached with `using {f, L.g} for T` in a contract, in a library and in the file, with `global`,
 // and whole libraries (two for one type, `for *`).  `UdvtOps` uses user-defined operators, which the
-// spec language does not model.  `UdvtArr` reads single elements of array parameters.
+// spec writes as the bound calls.  `UdvtArr` reads single elements of array parameters.
 
 type Price is uint128;
 type Flag is bool;

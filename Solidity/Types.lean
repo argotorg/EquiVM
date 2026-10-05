@@ -188,6 +188,25 @@ def rawAbiTypeOfFuel (env : TypeEnv) : Nat → Ty → Option ABI.ABIType
 
 def rawAbiTypeOf (env : TypeEnv) (ty : Ty) : Option ABI.ABIType := rawAbiTypeOfFuel env 256 ty
 
+/-- Whether values of the type are dynamically encoded in the ABI. -/
+def dynamicTy (env : TypeEnv) (ty : Ty) : Bool :=
+  ((abiTypeOf env ty).map ABI.isDynamicABIType).getD false
+
+/-- The static ABI size of a type (`none` for a dynamically sized one). -/
+def staticSize (env : TypeEnv) (ty : Ty) : Option Nat :=
+  (abiTypeOf env ty).bind ABI.staticABIEncodedSize?
+
+/-- An array whose elements, or a struct whose fields, are dynamically encoded: solc keeps such a
+    `calldata` parameter in calldata and checks an element's offset and length when it is used
+    (`Value.cdRef`). -/
+def lazyCalldata (env : TypeEnv) : Ty → Bool
+  | .dynArray e | .array e _ => dynamicTy env e
+  | .user q n =>
+    match env.struct? q n with
+    | some s => s.fields.any fun f => dynamicTy env f.1
+    | none => false
+  | _ => false
+
 /-- A `calldata` parameter of array or struct type: its words stay in calldata and are validated
     when they are read. -/
 def calldataRef (env : TypeEnv) (p : Param) : Bool :=
@@ -197,9 +216,14 @@ def calldataRef (env : TypeEnv) (p : Param) : Bool :=
     | .user q n => (env.struct? q n).isSome
     | _ => false
 
-/-- The ABI types the arguments of a call are decoded with. -/
+/-- The ABI types the arguments of a call are decoded with: a `calldata` array or struct with
+    dynamic content only by its head word (its offset, checked by `cdTop`), one with static content
+    with plain words. -/
 def paramDecodeTys (env : TypeEnv) (ps : List Param) : Option (List ABI.ABIType) :=
-  ps.mapM fun p => if calldataRef env p then rawAbiTypeOf env p.ty else abiTypeOf env p.ty
+  ps.mapM fun p =>
+    if calldataRef env p then
+      if lazyCalldata env p.ty then some (.elem (.int (.uint ⟨256, by decide⟩))) else rawAbiTypeOf env p.ty
+    else abiTypeOf env p.ty
 
 /-- The elementary type a value type is stored as (storage packing leaf). -/
 def leafElemType (env : TypeEnv) : Ty → Option ABI.ElemType

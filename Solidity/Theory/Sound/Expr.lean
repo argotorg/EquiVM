@@ -176,6 +176,10 @@ theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
           · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
             exact .indexFixedBytesPanic hb' hi' hp
           · rw [IM.pure_some h]; exact .indexFixedBytes hb' hi' (liftOp_ok hv)
+        · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨v, h'⟩, hv, h⟩ <;> try dsimp only at h
+          · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+            exact .indexCdPanic hb' hi' hp
+          · rw [IM.pure_some h]; exact .indexCd hb' hi' (liftOp_ok hv)
         · simp at h
   · -- calls
     exact ih.call _ _ _ _ _ _ h
@@ -344,6 +348,14 @@ theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
             · rename_i hs
               rw [IM.throw_some h]
               exact .sliceBounds (ih.expr _ _ _ _ hb) (ih.gasOpt _ _ _ _ hl) (ih.gasOpt _ _ _ _ hu) hs
+            · simp at h
+          · split at h
+            · rename_i hs
+              rw [IM.pure_some h]
+              exact .sliceCd (ih.expr _ _ _ _ hb) (ih.gasOpt _ _ _ _ hl) (ih.gasOpt _ _ _ _ hu) hs
+            · rename_i hs
+              rw [IM.throw_some h]
+              exact .sliceCdBounds (ih.expr _ _ _ _ hb) (ih.gasOpt _ _ _ _ hl) (ih.gasOpt _ _ _ _ hu) hs
             · simp at h
           · simp at h
   · simp at h
