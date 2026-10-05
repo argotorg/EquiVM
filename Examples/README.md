@@ -19,6 +19,7 @@ All proofs are complete.
 | `StringStoreLite` | Hand-written string-storage contract | solc 0.8.35, optimizer off, Shanghai | `stringStoreLiteCorrect` |
 | `TinyImmutable` | Hand-written immutables contract | solc 0.8.35, standard-json | `tinyImmutableCorrect` |
 | `Reuse` | Two functions sharing a code block | solc 0.8.35, optimizer on, Shanghai | `cCorrect` |
+| `TransientFlag` | Hand-written `uint256 transient` getter and setter | solc 0.8.35, optimizer on, Cancun | `transientFlagCorrect` |
 | `Ballot` | [Solidity docs: Voting](https://docs.soliditylang.org/en/latest/solidity-by-example.html#voting) | solc 0.8.35, optimizer on, Shanghai | `ballotCorrect` |
 | `SimpleAuction` | [Solidity docs: Simple Open Auction](https://docs.soliditylang.org/en/latest/solidity-by-example.html#simple-open-auction) | solc 0.8.35, optimizer on, Shanghai | `simpleAuctionCorrect` |
 | `BlindAuction` | [Solidity docs: Blind Auction](https://docs.soliditylang.org/en/latest/solidity-by-example.html#blind-auction) | solc 0.8.35, optimizer on, Shanghai | `blindAuctionCorrect` |
