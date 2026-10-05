@@ -1,9 +1,6 @@
 import Solm.Semantics.StorageOps
 
-/-! Structured reads and writes against `Account.tstorage`.
-
-Slot layout comes from `cfg.transient`.  Packed words go through `transientLocLoad` and
-`transientLocStore`.  The operations follow the same cases as `StorageOps.lean`. -/
+/-! Structured reads and writes of `Account.tstorage`. Parallel to `StorageOps.lean`. -/
 
 namespace Solm
 
@@ -18,7 +15,6 @@ def readTransientBytesLength? (cfg : Config) (evm : EVM.State) (er : EvaledStora
   | some result => storageNatResultToEval result
   | none => .error .storageError
 
-/-- Bounds check for an index into a transient array, using `cfg.transient`. -/
 def transientArrayIndexInBounds? (cfg : Config) (evm : EVM.State)
     (decls : List StorageDecl) (base : Ident) (pre : List EvaledStorageRefStep) (i : KeyValue) :
     EvalResult Unit :=

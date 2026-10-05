@@ -109,12 +109,10 @@ inductive BinaryOp where
   | exp
   deriving Repr, Inhabited
 
-/-- Whether a variable path is rooted in a memory **local** or **storage**.
-    Resolved statically, similar to solc. -/
+/-- Whether a variable path is rooted in a local, persistent storage, or transient storage. -/
 inductive VarOrigin where
   | localVar
   | storage
-  /-- EIP-1153 transient storage.  A separate slot space from `.storage`. -/
   | transient
   deriving Repr, Inhabited
 
@@ -193,8 +191,7 @@ inductive Expr where
      `.selector` (`bytes4`), and `type(I).interfaceId` (`bytes4`) — all of which solc bakes as PUSH
      immediates.  Evaluates to `Value.fixedBytes n bs`; `==`/comparisons already act on `fixedBytes`. -/
   | fixedBytesLit : Fin 32 -> List UInt8 -> Expr
-  /- Transient-storage reference (EIP-1153).  Same path shape as `storage`, reading and writing
-     `Account.tstorage` rather than persistent `Account.storage`. -/
+  /- Transient-storage reference. -/
   | transient : StorageRef -> Expr
 
 inductive StorageRefStep where
@@ -343,8 +340,7 @@ structure ContractDecl where
   transitions : List TransitionDecl := []
   receive : Option TransitionDecl := none
   fallback : Option TransitionDecl := none
-  /-- EIP-1153 transient state.  Independent slot space from `storage`, laid out by the same
-      rules starting at slot 0.  Empty for contracts that do not use transient storage. -/
+  /-- EIP-1153 transient state. Separate slot space from `storage`. -/
   transient : List StorageDecl := []
   deriving Repr, Inhabited
 

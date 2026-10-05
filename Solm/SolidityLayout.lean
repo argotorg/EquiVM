@@ -504,9 +504,7 @@ def genSolidityStorageLayout (structs : List StructDecl) (decls : List StorageDe
   let layout <- genSolidityLayout structs decls
   pure (solidityStorageLayout layout)
 
-/-- Same slot assignment as `solidityStorageLayout`, but bytes/string hooks run against
-    `Account.tstorage`.  Scalar layouts ignore the hooks; use this wrapper whenever a transient
-    variable has `bytes` or `string` type. -/
+/-- `solidityStorageLayout` whose `bytes` and `string` hooks read `Account.tstorage`. -/
 def transientStorageLayout
     (layout : EvaledStorageRef -> EVM.State -> Option StorageLoc) : StorageLayout where
   layout := fun er evm => layout er (EVM.swapCodeOwnerMaps evm)

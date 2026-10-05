@@ -181,8 +181,6 @@ def resolveStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
     all_goals simp [slotEvalSize]
     all_goals omega
 
-/-- Evaluate one step of a transient-storage path, bounds-checking `.aindex` against
-    `cfg.transient` and `contract.transient`. -/
 def evalTransientStorageRefStep (cfg : Config) (solm : Frame) (evm : EVM.State)
     (base : Ident) (pre : List EvaledStorageRefStep) (step : StorageRefStep) :
     EvalResult EvaledStorageRefStep :=
@@ -225,33 +223,16 @@ def evalTransientStorageRef (cfg : Config) (solm : Frame) (evm : EVM.State) (slo
     apply Prod.Lex.left
     omega
 
-def evalTransientStorageRefFrom? (cfg : Config) (solm : Frame) (evm : EVM.State)
-    (er : EvaledStorageRef) (ty : StorageType) :
-    List StorageRefStep -> EvalResult (EvaledStorageRef × StorageType)
-  | [] => pure (er, ty)
-  | step :: rest => do
-      let estep <- evalTransientStorageRefStep cfg solm evm er.base er.steps step
-      let ty' <- EvalResult.ofOption .typeError (storageTypeStep? ty estep)
-      evalTransientStorageRefFrom? cfg solm evm { er with steps := er.steps ++ [estep] } ty' rest
-  termination_by steps => (slotStepsEvalSize steps, 0)
-  decreasing_by
-    all_goals simp [slotStepsEvalSize]
-    all_goals omega
-
-/-- Resolve a transient lvalue.  A local `storageRef` alias is followed first; otherwise the base
-    must be declared in `contract.transient`. -/
+/-- Resolve a transient lvalue in `contract.transient`. A persistent `storageRef` alias is ignored. -/
 def resolveTransientStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
     (slot : StorageRef) : EvalResult (EvaledStorageRef × StorageType) :=
-  match solm.locals.get? slot.base with
-  | some (.storageRef er ty) => evalTransientStorageRefFrom? cfg solm evm er ty slot.steps
-  | _ =>
-      match evalTransientStorageRef cfg solm evm slot with
-      | .ok er => do
-          let ty <- EvalResult.ofOption .storageError
-            (storageTypeAt? solm.contract.transient er)
-          pure (er, ty)
-      | .revert => .revert
-      | .error e => .error e
+  match evalTransientStorageRef cfg solm evm slot with
+  | .ok er => do
+      let ty <- EvalResult.ofOption .storageError
+        (storageTypeAt? solm.contract.transient er)
+      pure (er, ty)
+  | .revert => .revert
+  | .error e => .error e
   termination_by (slotEvalSize slot, 1)
   decreasing_by
     all_goals simp [slotEvalSize]
@@ -356,8 +337,6 @@ def assignStorageRef? (cfg : Config) (solm : Frame) (evm : EVM.State)
       let evm' <- EvalResult.ofOption .storageError (storageLocStore evm loc value)
       pure (solm, evm')
   | .transient => do
-      -- Same permission story as persistent `.storage`: refinement assumes `perm = true`.
-      -- `TSTORE` in a static call is an EVM exception, not a Sol⁻ revert.
       let (evaledStorageRef, ty) <- resolveTransientStorageRef? cfg solm evm slot
       match value with
       | .struct _ _ | .array _ | .bytes _ => do

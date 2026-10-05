@@ -149,7 +149,7 @@ def popArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
       | _ => .error .storageError
   | _ => .error .storageError
 
-/-- `arr.push` against a transient array.  Mirrors `pushArray?`, on `cfg.transient`. -/
+/-- `arr.push` on a transient array. -/
 def pushTransientArray? (cfg : Config) (solm : Frame) (evm : EVM.State) (ref : StorageRef)
     (value : Option Value) : EvalResult EVM.State := do
   let (er, ty) <- resolveTransientStorageRef? cfg solm evm ref
@@ -252,8 +252,6 @@ inductive ExecStmt (cfg : Config) :
   | letStorageRevert :
       resolveStorageRef? cfg solm evm ref = .revert ->
       ExecStmt cfg solm evm (.letStorage name ref) .reverted
-  -- A `storage` alias of a transient path is rejected by the surface syntax.  `letStorage`
-  -- resolves only through persistent storage, so a transient-only base has no derivation.
   /-- `gasleft()`: Solm tracks no gas, so any word `w` is a legal result.  A proof picks the `w`
       matching the EVM's actual gas at the corresponding `GAS` opcode. -/
   | letGas (w : EVM.Word) :
@@ -275,8 +273,6 @@ inductive ExecStmt (cfg : Config) :
       (hpush : pushArray? cfg solm evm ref (some value) = .ok evm')
       (hpers : declaredTransient solm.contract ref.base = false := by first | rfl | decide) :
       ExecStmt cfg solm evm (.push ref (some expr)) (.ok solm evm')
-  /-- The value expression reverted.  Both maps yield `.reverted`, so this rule is not
-      split on `declaredTransient`. -/
   | pushValExprRevert :
       evalExpr? cfg solm evm expr = .revert ->
       ExecStmt cfg solm evm (.push ref (some expr)) .reverted
@@ -824,10 +820,8 @@ inductive solmCtorExec
     ExecTransitionBody conf contract evmState argsStore contract.ctor.body solmRes →
     solmCtorExec conf contract args σ σ₀ g A I solmRes
 
-/-! The persistent `delete` / `push` / `pop` rules carry `declaredTransient = false`.
-    The default proof is `rfl` when `contract.transient` is `[]`, and `decide` when the
-    list is concrete and does not contain `ref.base`.  A declared transient name has no
-    persistent derivation. -/
+/-! Persistent `delete`, `push`, and `pop` require `declaredTransient = false`.
+    The default proof is `rfl` on `[]` and `decide` on a concrete list. -/
 
 private def uint256Storage : StorageType := .elem (.int (.uint ⟨256, by decide⟩))
 

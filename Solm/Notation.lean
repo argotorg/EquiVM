@@ -74,7 +74,6 @@ private inductive STy where
 /-- Translation environment: declared names of the enclosing contract plus the local scope. -/
 private structure Env where
   storage : List (String × STy) := []
-  /-- EIP-1153 transient state variables.  Separate slot space from `storage`. -/
   transient : List (String × STy) := []
   structs : List (String × List (String × STy)) := []
   /-- internal function names -/
@@ -875,7 +874,7 @@ private partial def elabStmt (env : Env) (stx : TSyntax `solStmt) : MacroM (Term
   | `(solStmt| delete $p:solExpr ;) => do
       let r ← resolveRefOrThrow env p
       unless r.origin matches .storage || r.origin matches .transient do
-        Macro.throwErrorAt p "solm: delete expects a storage path"
+        Macro.throwErrorAt p "solm: delete expects persistent or transient storage"
       return (← `(Solm.Stmt.delete $(← refTerm r)), env)
   | `(solStmt| try $call:solExpr $rkw:ident ($ret:ident) { $onOk:solStmt* }
         catch ($err:ident) { $onErr:solStmt* }) => do
@@ -901,7 +900,7 @@ private partial def elabPushPop (env : Env) (stx : Syntax) (comps : List String)
     let some r ← resolveRef env stx comps steps
       | Macro.throwErrorAt stx "solm: unknown push/pop target"
     unless r.origin matches .storage || r.origin matches .transient do
-      Macro.throwErrorAt stx "solm: push/pop target must be a storage array"
+      Macro.throwErrorAt stx "solm: push/pop target must be a persistent or transient array"
     pure r
   match method with
   | "push" => do
@@ -1269,8 +1268,6 @@ macro_rules
 
 end Solm.Notation
 
-/-- Elaboration smoke test: a transient state variable is a `ContractDecl.transient` entry,
-    and reads and writes of it use the transient origin. -/
 private def transientSyntaxSmoke : Solm.ContractDecl := solidity% contract TransientSmoke {
   uint256 persistentSlot;
   uint256 transient lock;
@@ -1280,7 +1277,6 @@ private def transientSyntaxSmoke : Solm.ContractDecl := solidity% contract Trans
   }
 }
 
-/-- `true` when `set` assigns `lock` and reads it back through `Expr.transient`. -/
 private def transientSmokeOriginsOk : Bool :=
   match transientSyntaxSmoke.transitions with
   | [t] =>
