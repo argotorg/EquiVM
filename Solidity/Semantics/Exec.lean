@@ -222,7 +222,7 @@ def argFits (env : TypeEnv) (h : Heap) (v : Value) (p : Param) : Bool :=
   -- a storage value is passed by reference, or copied into a `memory` parameter
   | .storageRef _ ty => (p.loc == some .storage || p.loc == some .memory) && ty == p.ty
   | .memRef _ => !(isValueType env p.ty)
-  | .raw ty _ => ty == p.ty
+  | .raw ty _ _ => ty == p.ty
   | .cdRef ty _ _ => (p.loc == some .calldata || p.loc == some .memory) && ty == p.ty
   | v => (implicitConv env h v p.ty).isSome
 
@@ -339,7 +339,7 @@ def eventArgFits (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Bool :=
   match v with
   | .storageRef _ sty => sty == ty
   | .memRef _ => !(isValueType env ty)
-  | .raw rty _ => rty == ty
+  | .raw rty _ _ => rty == ty
   | .cdRef cty _ _ => cty == ty
   | v => (implicitConv env h v ty).isSome
 
@@ -790,11 +790,11 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.member e f) (.ok v fr1 m1)
   -- a field of a calldata struct: its word is validated when it is read
   | memberMemFieldRaw : directMember fc fr e = false → f ≠ "length" →
-      EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → memField m1.heap obj f = some (.raw ty w) →
-      validateRaw fc.types ty w = .ok v → EvalExpr fr m (.member e f) (.ok v fr1 m1)
+      EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → memField m1.heap obj f = some (.raw ty w b) →
+      validateRaw fc.types ty w b = .ok v → EvalExpr fr m (.member e f) (.ok v fr1 m1)
   | memberMemFieldRawRevert : directMember fc fr e = false → f ≠ "length" →
-      EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → memField m1.heap obj f = some (.raw ty w) →
-      validateRaw fc.types ty w = .error d → EvalExpr fr m (.member e f) (.reverted d)
+      EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → memField m1.heap obj f = some (.raw ty w b) →
+      validateRaw fc.types ty w b = .error p → EvalExpr fr m (.member e f) (.reverted p.data)
   | memberMemLength : directMember fc fr e = false → EvalExpr fr m e (.ok (.memRef obj) fr1 m1) →
       memLength m1.heap obj = some n → EvalExpr fr m (.member e "length") (.ok (wordNat n) fr1 m1)
   | memberBalance : directMember fc fr e = false → EvalExpr fr m e (.ok v fr1 m1) → addrNat v = some a →
@@ -825,11 +825,11 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | indexMem : EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → EvalExpr fr1 m1 i (.ok iv fr2 m2) →
       memIndex m2.heap obj iv = some (.ok v) → isRaw v = false → EvalExpr fr m (.index e i) (.ok v fr2 m2)
   | indexMemRaw : EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → EvalExpr fr1 m1 i (.ok iv fr2 m2) →
-      memIndex m2.heap obj iv = some (.ok (.raw ty w)) → validateRaw fc.types ty w = .ok v →
+      memIndex m2.heap obj iv = some (.ok (.raw ty w b)) → validateRaw fc.types ty w b = .ok v →
       EvalExpr fr m (.index e i) (.ok v fr2 m2)
   | indexMemRawRevert : EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → EvalExpr fr1 m1 i (.ok iv fr2 m2) →
-      memIndex m2.heap obj iv = some (.ok (.raw ty w)) → validateRaw fc.types ty w = .error d →
-      EvalExpr fr m (.index e i) (.reverted d)
+      memIndex m2.heap obj iv = some (.ok (.raw ty w b)) → validateRaw fc.types ty w b = .error p →
+      EvalExpr fr m (.index e i) (.reverted p.data)
   | indexMemPanic : EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → EvalExpr fr1 m1 i (.ok iv fr2 m2) →
       memIndex m2.heap obj iv = some (.error p) → EvalExpr fr m (.index e i) (.reverted p.data)
   | indexFixedBytes : EvalExpr fr m e (.ok (.fixedBytes n bs) fr1 m1) → EvalExpr fr1 m1 i (.ok iv fr2 m2) →

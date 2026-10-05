@@ -70,28 +70,32 @@ def toBool : Value → Option Bool
 
 /-- Validate a raw calldata word for its type when it is read (solc's validator: a word that is
     not canonical reverts with empty data).  A value type validates as its underlying type, an
-    enum must be below its member count, a contract is an `address`. -/
-def validateRaw (env : TypeEnv) (ty : Ty) (w : Nat) : Except ByteArray Value :=
+    enum must be below its member count, a contract is an `address`.  `mem`: the word sits in a
+    memory copy (`cleanRaw`), where solc's cleanup makes an enum out of range `Panic(0x21)`. -/
+def validateRaw (env : TypeEnv) (ty : Ty) (w : Nat) (mem : Bool) : Except Panic Value :=
   match ty with
   | .user q n =>
     match env.valueType? q n with
     | some t =>
       match validateWord t.underlying w with
       | some u => .ok (.wrapped q n u)
-      | none => .error ByteArray.empty
+      | none => .error .badCalldataWord
     | none =>
       match env.enum? q n with
-      | some e => if w < e.members.length then .ok (.enum q n w) else .error ByteArray.empty
+      | some e =>
+        if w < e.members.length then .ok (.enum q n w)
+        else .error (if mem then .enumRange else .badCalldataWord)
       | none =>
         if (env.contractKind? n).isSome && w < 2 ^ 160 then .ok (.contract n (EVM.address w))
-        else .error ByteArray.empty
+        else .error .badCalldataWord
   | ty =>
     match validateWord ty w with
     | some v => .ok v
-    | none => .error ByteArray.empty
+    | none => .error .badCalldataWord
 
-/-- A raw calldata word copied to memory: solc's cleanup (`cleanWord`); an enum out of range is
-    `Panic(0x21)` (solc checks it when the copy is read), a contract is masked to an address. -/
+/-- A raw calldata word copied to memory: solc's cleanup (`cleanWord`); an enum out of range
+    stays a raw word of the copy (`mem := true`, `Panic(0x21)` when it is used), a contract is
+    masked to an address. -/
 def cleanRaw (env : TypeEnv) (ty : Ty) (w : Nat) : Op Value :=
   match ty with
   | .user q n =>
@@ -99,7 +103,7 @@ def cleanRaw (env : TypeEnv) (ty : Ty) (w : Nat) : Op Value :=
     | some t => Op.ofOpt ((cleanWord t.underlying w).map (.wrapped q n))
     | none =>
       match env.enum? q n with
-      | some e => if w < e.members.length then pure (.enum q n w) else Op.panic .enumRange
+      | some e => if w < e.members.length then pure (.enum q n w) else pure (.raw ty w true)
       | none =>
         if (env.contractKind? n).isSome then pure (.contract n (EVM.address (w % 2 ^ 160))) else Op.stuck
   | ty => Op.ofOpt (cleanWord ty w)
@@ -324,7 +328,7 @@ def implicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Option (Valu
   | .strLit s, .string => let (h', id) := h.alloc (.bytes true s); some (.memRef id, h')
   | .memRef id, _ => some (.memRef id, h)
   | .storageRef er t, _ => some (.storageRef er t, h)
-  | .raw t w, _ => if t == ty then some (.raw t w, h) else none
+  | .raw t w b, _ => if t == ty then some (.raw t w b, h) else none
   | _, _ => none
 
 /-- Explicit conversion `T(v)` (0.8 rules; `none` = not allowed). -/
@@ -480,7 +484,7 @@ def cdTail (env : TypeEnv) (cd : ByteArray) (ty : Ty) (base ptr : Nat) : Op (Nat
 def cdStatic (env : TypeEnv) (cd : ByteArray) : Nat → Ty → Nat → Heap → Option (Value × Heap)
   | 0, _, _, _ => none
   | fuel + 1, ty, pos, h =>
-    if isRawLeaf env ty then some (.raw ty (cdWord cd pos), h)
+    if isRawLeaf env ty then some (.raw ty (cdWord cd pos) false, h)
     else match ty with
       | .array e n => do
         let sz ← staticSize env e
@@ -543,9 +547,9 @@ def cdMember (env : TypeEnv) (cd : ByteArray) (fuel : Nat) (h : Heap) (ty : Ty) 
     let some (fty, _) := s.fields[k]? | Op.stuck
     let some off := offs[k]? | Op.stuck
     if isRawLeaf env fty then
-      match validateRaw env fty (cdWord cd (addW base off)) with
+      match validateRaw env fty (cdWord cd (addW base off)) false with
       | .ok v => pure (v, h)
-      | .error _ => Op.panic .badCalldataWord
+      | .error p => Op.panic p
     else if dynamicTy env fty then
       let (pos, l) ← cdTail env cd fty base (addW base off)
       Op.ofOpt (cdValue env cd fuel fty pos l h)
@@ -558,9 +562,9 @@ def cdStaticValidated (env : TypeEnv) (cd : ByteArray) : Nat → Ty → Nat → 
   | 0, _, _, _ => Op.stuck
   | fuel + 1, ty, pos, h =>
     if isRawLeaf env ty then
-      match validateRaw env ty (cdWord cd pos) with
+      match validateRaw env ty (cdWord cd pos) false with
       | .ok v => pure (v, h)
-      | .error _ => Op.panic .badCalldataWord
+      | .error p => Op.panic p
     else match ty with
       | .array e n => do
         let some sz := staticSize env e | Op.stuck
@@ -912,14 +916,15 @@ def writeStorageDeep (cfg : Config) (env : TypeEnv) : Nat → EVM.State → Heap
         match implicitConv env h v ty with
         | some (v', _) => Op.ofOpt (writeScalar cfg evm er v')
         | none => Op.stuck
-    -- an element of a calldata array copied to storage: validated (solc reverts with empty data)
-    | .raw rty w =>
-      match validateRaw env rty w with
+    -- an element of a calldata array copied to storage: validated (solc reverts with empty data;
+    -- an enum of a memory copy out of range is `Panic(0x21)`)
+    | .raw rty w mem =>
+      match validateRaw env rty w mem with
       | .ok v' =>
         match implicitConv env h v' ty with
         | some (v'', _) => Op.ofOpt (writeScalar cfg evm er v'')
         | none => Op.stuck
-      | .error _ => Op.panic .badCalldataWord
+      | .error p => Op.panic p
     | v =>
       match implicitConv env h v ty with
       | some (v', _) => Op.ofOpt (writeScalar cfg evm er v')
@@ -1040,8 +1045,8 @@ def setMemField (h : Heap) (obj : Nat) (f : Ident) (v : Value) : Option Heap :=
 
 /-! ## Calldata objects -/
 
-/-- Whether a value holds a raw calldata word (a calldata array or struct parameter, or an object
-    inside one). -/
+/-- Whether a value holds a raw word (a calldata array or struct parameter, an object inside one,
+    a memory copy with an enum out of range): what an encoding must validate. -/
 def hasRaw (h : Heap) : Nat → Value → Bool
   | 0, _ => false
   | fuel + 1, v =>
@@ -1055,16 +1060,32 @@ def hasRaw (h : Heap) : Nat → Value → Bool
       | _ => false
     | _ => false
 
+/-- Whether a value holds a word still in the calldata (a parameter, or an object inside one):
+    what a copy to memory cleans.  A raw word of a memory copy (`mem`) does not count: such an
+    object is shared, as any memory object. -/
+def hasCdRaw (h : Heap) : Nat → Value → Bool
+  | 0, _ => false
+  | fuel + 1, v =>
+    match v with
+    | .raw _ _ mem => !mem
+    | .cdRef .. => true
+    | .memRef id =>
+      match h.get? id with
+      | some (.array _ elems _) => elems.any (hasCdRaw h fuel)
+      | some (.struct _ fields) => fields.any fun f => hasCdRaw h fuel f.2
+      | _ => false
+    | _ => false
+
 /-- Copy a calldata object to memory with every word validated (a struct, an array of arrays or
     structs): a word that is not canonical reverts with empty data. -/
 def validateCopy (env : TypeEnv) : Nat → Heap → Value → Op (Value × Heap)
   | 0, _, _ => Op.stuck
   | fuel + 1, h, v =>
     match v with
-    | .raw ty w =>
-      match validateRaw env ty w with
+    | .raw ty w mem =>
+      match validateRaw env ty w mem with
       | .ok v' => pure (v', h)
-      | .error _ => Op.panic .badCalldataWord
+      | .error p => Op.panic p
     | .memRef id =>
       match h.get? id with
       | some (.array e elems fx) => do
@@ -1094,7 +1115,7 @@ def cleanCopy (env : TypeEnv) : Nat → Heap → Value → Op (Value × Heap)
   | 0, _, _ => Op.stuck
   | fuel + 1, h, v =>
     match v with
-    | .raw ty w => do
+    | .raw ty w _ => do
       let v' ← cleanRaw env ty w
       pure (v', h)
     | .memRef id =>
@@ -1121,30 +1142,31 @@ def copyCalldata (env : TypeEnv) (fuel : Nat) (h : Heap) (v : Value) : Op (Value
   | v => validateCopy env fuel h v
 
 /-- Validate every raw word of a value in place (its ABI encoding: `abi.encode`, the arguments of
-    an external call, an event or an error): solc's encoder reverts with empty data on a word that
-    is not canonical. -/
+    an external call, an event or an error, the returned values): solc's encoder reverts with
+    empty data on a word that is not canonical, `Panic(0x21)` on an enum of a memory copy out of
+    range. -/
 def validateDeep (env : TypeEnv) : Nat → Heap → Value → Op Heap
   | 0, _, _ => Op.stuck
   | fuel + 1, h, v =>
     match v with
-    | .raw ty w => match validateRaw env ty w with | .ok _ => pure h | .error _ => Op.panic .badCalldataWord
+    | .raw ty w mem => match validateRaw env ty w mem with | .ok _ => pure h | .error p => Op.panic p
     | .memRef id =>
       if hasRaw h (fuel + 1) (.memRef id) = false then pure h
       else match h.get? id with
       | some (.array e elems fx) =>
         if elems.any isRawValue then do
           let elems' ← elems.mapM fun
-            | .raw ty w => match validateRaw env ty w with | .ok v' => pure v' | .error _ => Op.panic .badCalldataWord
+            | .raw ty w mem => match validateRaw env ty w mem with | .ok v' => pure v' | .error p => Op.panic p
             | x => pure x
           pure (h.set id (.array e elems' fx))
         else elems.foldlM (validateDeep env fuel) h
       | some (.struct ty fields) =>
         if fields.any fun f => isRawValue f.2 then do
           let fields' ← fields.mapM fun
-            | (fname, .raw ty w) =>
-              match validateRaw env ty w with
+            | (fname, .raw ty w mem) =>
+              match validateRaw env ty w mem with
               | .ok v' => pure (fname, v')
-              | .error _ => Op.panic .badCalldataWord
+              | .error p => Op.panic p
             | f => pure f
           let h' := h.set id (.struct ty fields')
           fields'.foldlM (fun h f => validateDeep env fuel h f.2) h'
@@ -1189,7 +1211,7 @@ def coerce (cfg : Config) (env : TypeEnv) (m : Machine) (v : Value) (ty : Ty) (l
       pure (mv, { m with heap := h' })
   | .memRef id =>
     if loc == some .storage then Op.stuck
-    else if loc == some .memory && hasRaw m.heap fuelDefault (.memRef id) then do
+    else if loc == some .memory && hasCdRaw m.heap fuelDefault (.memRef id) then do
       -- a calldata object copied to memory
       let (v', h') ← copyCalldata env fuelDefault m.heap (.memRef id)
       pure (v', { m with heap := h' })

@@ -171,7 +171,8 @@ members, `a.balance`, `a.code`, `a.codehash`, `abi.encode`, `abi.encodePacked`,
 
 A `calldata` array or struct parameter is decoded without validating its words; a word is
 validated when an element or field is read, or when the object is ABI-encoded (a bad word reverts
-with empty data), and an array of value-type words copied to memory is cleaned, not validated.
+with empty data), and an array of value-type words copied to memory is cleaned, not validated (an
+enum out of range in such a copy is `Panic(0x21)` when the element is used).
 One whose elements or fields are dynamically encoded (`bytes[]`, `T[][]`, a struct with a `bytes`
 field) stays in the calldata (`Value.cdRef`): an element's offset and length are checked when the
 element is used, as solc does.  In proofs the arguments of an encoding (`abiEncodePlain`,

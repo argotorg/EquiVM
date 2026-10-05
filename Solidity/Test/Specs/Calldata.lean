@@ -73,13 +73,37 @@ def copies : SourceUnit := sol% contract Copies {
   function enumCopy(E[] calldata es) external pure returns (E) { E[] memory m = es; return m[0]; }
   function priceAt(P[] calldata ps, uint256 i) external pure returns (uint128) { return P.unwrap(ps[i]); }
   function priceCopy(P[] calldata ps) external pure returns (uint128) { P[] memory m = ps; return P.unwrap(m[0]); }
-}
-
-def known : SourceUnit := sol% contract Known {
   function retCd(uint16[] calldata xs) external pure returns (uint16[] calldata) { return xs; }
-  function enumCopyLen(E[] calldata es) external pure returns (uint256) { E[] memory m = es; return m.length; }
 }
 
-def program : Program := [iT, lib, tok, attach, sS, eE, tP, copies, known]
+def enums : SourceUnit := sol% contract Enums {
+  event Ev(E[] m);
+  E[] s;
+  function copyRead(E[] calldata es, uint256 i) external pure returns (E) { E[] memory m = es; return m[i]; }
+  function copyLen(E[] calldata es) external pure returns (uint256) { E[] memory m = es; return m.length; }
+  function copyEnc(E[] calldata es) external pure returns (bytes memory) { E[] memory m = es; return abi.encode(m); }
+  function copyPacked(E[] calldata es) external pure returns (bytes memory) { E[] memory m = es; return abi.encodePacked(m); }
+  function copyEmit(E[] calldata es) external { E[] memory m = es; emit Ev(m); }
+  function copyRet(E[] calldata es) external pure returns (E[] memory) { E[] memory m = es; return m; }
+  function copyExt(E[] calldata es) external view returns (uint256) { E[] memory m = es; return this.copyLen(m); }
+  function copyStore(E[] calldata es) external returns (uint256) { E[] memory m = es; s = m; return s.length; }
+  function copyStoreRead(E[] calldata es, uint256 i) external returns (E) { E[] memory m = es; s = m; return s[i]; }
+  function copyWriteRead(E[] calldata es) external pure returns (E) { E[] memory m = es; m[0] = E.B; return m[0]; }
+  function copyDelete(E[] calldata es) external pure returns (uint256) { E[] memory m = es; delete m[0]; return uint256(m[0]); }
+  function g(E[] memory p, uint256 i) internal pure returns (E) { return p[i]; }
+  function copyInner(E[] calldata es, uint256 i) external pure returns (E) { E[] memory m = es; return g(m, i); }
+  function copyCmp(E[] calldata es) external pure returns (bool) { E[] memory m = es; return m[0] == E.A; }
+  function copyConv(E[] calldata es) external pure returns (uint8) { E[] memory m = es; return uint8(m[0]); }
+  function copyShare(E[] calldata es) external pure returns (E) { E[] memory m = es; E[] memory m2 = m; m2[0] = E.B; return m[0]; }
+  function copyStatic(E[2] calldata es, uint256 i) external pure returns (E) { E[2] memory m = es; return m[i]; }
+  function copyStaticNoRead(E[2] calldata es) external pure returns (uint256) { E[2] memory m = es; m[0] = E.A; return 1; }
+  function copyNested(E[2][] calldata es, uint256 i, uint256 j) external pure returns (E) { E[2][] memory m = es; return m[i][j]; }
+  function copyNestedLen(E[2][] calldata es) external pure returns (uint256) { E[2][] memory m = es; return m.length; }
+  function cdEnc(E[] calldata es) external pure returns (bytes memory) { return abi.encode(es); }
+  function cdStore(E[] calldata es) external returns (uint256) { s = es; return s.length; }
+  function cdRead(E[] calldata es, uint256 i) external pure returns (E) { return es[i]; }
+}
+
+def program : Program := [iT, lib, tok, attach, sS, eE, tP, copies, enums]
 
 end Calldata.SoliditySpec

@@ -435,6 +435,8 @@ theorem clearStorage_u256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er :
 /-- A memory byte array holds no calldata word. -/
 theorem hasRaw_memBytes {h : Heap} {id : ℕ} {s : Bool} {d : ByteArray} (fuel : ℕ) (hget : h.get? id = some (.bytes s d)) :
     hasRaw h (fuel + 1) (.memRef id) = false := by simp [hasRaw, hget]
+theorem hasCdRaw_memBytes {h : Heap} {id : ℕ} {s : Bool} {d : ByteArray} (fuel : ℕ) (hget : h.get? id = some (.bytes s d)) :
+    hasCdRaw h (fuel + 1) (.memRef id) = false := by simp [hasCdRaw, hget]
 
 /-- Validation for an ABI encoding leaves a value without calldata words alone. -/
 theorem validateDeep_of_noRaw {env : TypeEnv} {h : Heap} {fuel : ℕ} {v : Value} (hv : hasRaw h (fuel + 1) v = false) :

@@ -34,8 +34,10 @@ inductive Value where
   | wrapped (q : Option Ident) (ty : Ident) (v : Value)
   | memRef (id : Nat)
   | storageRef (er : Solm.EvaledStorageRef) (ty : Ty)
-  /-- A calldata word of static type `ty` not yet validated (validated on access). -/
-  | raw (ty : Ty) (w : Nat)
+  /-- A calldata word of static type `ty` not yet validated (validated on access).  `mem`: the
+      word sits in a memory copy of a calldata array (`cleanRaw`), only an enum out of range,
+      which solc's cleanup makes `Panic(0x21)` when it is used. -/
+  | raw (ty : Ty) (w : Nat) (mem : Bool)
   /-- A calldata array or struct whose elements or fields are dynamically encoded (`bytes[]`,
       `T[][]`, `S[]` for an `S` with a `bytes` field, such an `S` itself): the position `base` of
       its data in the calldata (the first element slot, or the struct head) and its element count
@@ -101,7 +103,7 @@ def Value.ty? : Value → Option Ty
   | .enum q ty _ => some (.user q ty)
   | .wrapped q ty _ => some (.user q ty)
   | .storageRef _ ty => some ty
-  | .raw ty _ => some ty
+  | .raw ty _ _ => some ty
   | .cdRef ty _ _ => some ty
   | _ => none
 
@@ -251,7 +253,7 @@ def toAbi (h : Heap) : Nat → Value → Option ABIValue
       | some (.bytes _ data) => some (.bytes data)
       | none => none
     | .tuple vs => (vs.mapM (toAbi h fuel)).map .tuple
-    | .raw ty w => (validateWord ty w).bind scalarToAbi
+    | .raw ty w _ => (validateWord ty w).bind scalarToAbi
     | v => scalarToAbi v
 
 /-- Typed reconstruction from an ABI value, allocating reference types in memory (a value decoded
@@ -293,7 +295,7 @@ def ofAbiRaw (env : TypeEnv) : Nat → Ty → ABIValue → Heap → Option (Valu
   | fuel + 1, ty, sv, h =>
     if isRawLeaf env ty then
       match sv with
-      | .int w => if 0 ≤ w then some (.raw ty w.toNat, h) else none
+      | .int w => if 0 ≤ w then some (.raw ty w.toNat false, h) else none
       | _ => none
     else match ty, sv with
       | .bytes, .bytes b => let (h', id) := h.alloc (.bytes false b); some (.memRef id, h')

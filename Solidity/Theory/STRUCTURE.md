@@ -303,13 +303,13 @@ Changed 2026-10-05 (calldata words; `using` on contract types; fixture `Calldata
   `abiEncode*Plain` / `keccak*` builders take `hraw : ∀ v ∈ vs, hasRaw … = false` (discharged by
   `simp [fuelDefault]` for scalars).
 - A calldata object copied to memory (`T[] memory m = xs;`, a memory parameter of an internal
-  call, a struct field, a struct literal): `coerce` copies when the object holds a raw word
-  (`hasRaw`, `copyCalldata`): an array of raw words, or of static arrays of them (`cleanElemTy`),
+  call, a struct field, a struct literal): `coerce` copies when the object holds a calldata word
+  (`hasCdRaw`, `copyCalldata`): an array of raw words, or of static arrays of them (`cleanElemTy`),
   with solc's cleanup (`cleanCopy`, `cleanRaw`, `cleanWord`: masked, sign-extended, `bool`
-  non-zero; an enum out of range is `Panic(0x21)`), a struct or an array of dynamic arrays or
-  structs with every word validated (`validateCopy`).  Copied to storage, every word is validated
-  (`writeStorageDeep`).  The memory copy is a fresh object; without raw words the reference is
-  shared, as before.
+  non-zero; an enum out of range stays a raw word of the copy, see below), a struct or an array of
+  dynamic arrays or structs with every word validated (`validateCopy`).  Copied to storage, every
+  word is validated (`writeStorageDeep`).  The memory copy is a fresh object; without calldata
+  words the reference is shared, as before.
 - A function of the receiver's contract type is an external call; otherwise a member call on a
   value of contract type goes through `using` (`specialMemberCall fc`: `.contract c _, f` is
   `fc.contractFnsNamed c f ≠ []`; solc rejects a contract function and an attached function with
@@ -320,7 +320,7 @@ Changed 2026-10-05 (calldata words; `using` on contract types; fixture `Calldata
   `validateDeep_*` simp lemmas for scalars; `decodeArgs_eq` now takes `paramDecodeTys … = some tys`
   (`paramDecodeTys_eq_sig` without calldata reference parameters), `decodeCallArgs_none_of_ofAbiParams`;
   `Panic.data_eq` takes `p.code = some c`.
-- Tests: scenarios `Attach`, `Copies`, `Calldata/known`; `UdvtArr/arrays` now matches.
+- Tests: scenarios `Attach`, `Copies` (and `Enums`, see below); `UdvtArr/arrays` now matches.
 
 Changed 2026-10-05 (calldata arrays and structs with dynamic content; fixture `Lazy`).
 - A `calldata` parameter whose elements or fields are dynamically encoded (`bytes[]`, `string[]`,
@@ -351,6 +351,20 @@ Changed 2026-10-05 (calldata arrays and structs with dynamic content; fixture `L
   reverts with the panic's data): a calldata-typed return (`returns (uint16[] calldata)`,
   `returns (bytes[] calldata)`) with a word that is not canonical reverts with empty data, a
   `cdRef` is encoded through `cdEncode`.  `fallback` returns `bytes memory` and is unchanged.
+- An enum array copied from calldata to memory (`E[]`, `E[2]`, `E[2][]`): solc copies the words
+  without a check and its cleanup makes an out-of-range element `Panic(0x21)` when it is used.
+  `Value.raw ty w mem`: `mem` marks the word of such a copy (`cleanRaw` keeps an enum out of
+  range as `.raw ty w true`; everything else is cleaned as before).  `validateRaw env ty w mem :
+  Except Panic Value` gives `.enumRange` for it and `.badCalldataWord` (empty data) for a
+  calldata word; the rules `indexMemRaw*`, `memberMemFieldRaw*` carry the flag and revert with
+  `p.data`.  Every use of the element is `Panic(0x21)`: a read (comparison, conversion, an
+  internal parameter), an encoding (`validateDeep` in `abi.encode*`, an event, a return, an
+  external argument) and a copy to storage (`writeStorageDeep`); the length, a write to the
+  element, `delete` and sharing the copy are not.  `hasCdRaw` (calldata words only) drives the
+  copy decision of `coerce`, so a memory copy is shared like any memory object; `hasRaw` (any raw
+  word) drives the validation; `hasCdRaw_memBytes`, `hasCdRaw_memArray_u256`.  Contract `Enums`
+  of fixture `Calldata` (fuzzed) replaces `Known`; `retCd` moved to `Copies`; no `known` case is
+  left in `Calldata`.
 - Tests: `Lazy` (fuzzed) and `Lazy/boundaries`, every operation (length, element, byte, copy,
   encode, event, external call, return, inner element as a local, `keccak256`) against every
   malformation of the inner and outer headers; `Copies` has `nested`/`nestedCopy` back.
@@ -373,9 +387,6 @@ differential harness, which fails if the deviation disappears.
 - A conditional `c ? a : b` is typed by the branch taken, not by the common type of both branches
   (scenario `Conditional/deviation`, fixture `Cond`): the spec has no static types.  Write the
   conversion solc inserts (GUIDE §5).
-- An enum array copied from calldata to memory with an out-of-range element that is never read:
-  the spec checks the element at the copy, `Panic(0x21)`; solc copies the words and checks an
-  element when it is read, so the call succeeds (`Calldata/known`).
 
 Representation choices that no Solidity program can observe (no inline assembly in the language):
 a memory copy of a calldata array holds the cleaned words, solc keeps the raw words in memory and

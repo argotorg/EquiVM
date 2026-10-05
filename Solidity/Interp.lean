@@ -183,10 +183,10 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
         let v ← liftOp (memIndex m2.heap obj iv)
         if isRaw v then
           match v with
-          | .raw ty w =>
-            match validateRaw fc.types ty w with
+          | .raw ty w b =>
+            match validateRaw fc.types ty w b with
             | .ok v' => pure (v', fr2, m2)
-            | .error d => throw d
+            | .error p => throw p.data
           | _ => failure
         else pure (v, fr2, m2)
       | .fixedBytes _ bs => do
@@ -311,10 +311,10 @@ def evalMember : Nat → Frame → Machine → Expr → Ident → EV
         let r ← liftOpt (memField m1.heap obj f)
         if isRaw r then
           match r with
-          | .raw ty w =>
-            match validateRaw fc.types ty w with
+          | .raw ty w b =>
+            match validateRaw fc.types ty w b with
             | .ok v' => pure (v', fr1, m1)
-            | .error d => throw d
+            | .error p => throw p.data
           | _ => failure
         else pure (r, fr1, m1)
     | .fixedBytes n _ => if f == "length" then pure (wordNat (n.val + 1), fr1, m1) else failure

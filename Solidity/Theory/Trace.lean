@@ -877,13 +877,13 @@ theorem abiArgs_memString {cfg : Config} {env : TypeEnv} {m : Machine} {id : ℕ
     (hget : m.heap.get? id = some (.bytes true b)) :
     abiArgs cfg env m [.string] [.memRef id] = some (.ok ([.bytes b], m)) := by
   simp [abiArgs, prepareArgs, coerce, implicitConv, fuelDefault, toAbi_memBytes 1023 hget,
-    prepareArg_of_noRaw (hasRaw_memBytes 1023 hget), hasRaw_memBytes 1023 hget]
+    prepareArg_of_noRaw (hasRaw_memBytes 1023 hget), hasCdRaw_memBytes 1023 hget]
 
 theorem abiArgs_memBytes {cfg : Config} {env : TypeEnv} {m : Machine} {id : ℕ} {b : ByteArray}
     (hget : m.heap.get? id = some (.bytes false b)) :
     abiArgs cfg env m [.bytes] [.memRef id] = some (.ok ([.bytes b], m)) := by
   simp [abiArgs, prepareArgs, coerce, implicitConv, fuelDefault, toAbi_memBytes 1023 hget,
-    prepareArg_of_noRaw (hasRaw_memBytes 1023 hget), hasRaw_memBytes 1023 hget]
+    prepareArg_of_noRaw (hasRaw_memBytes 1023 hget), hasCdRaw_memBytes 1023 hget]
 
 /-- The log entry of an event with one non-indexed `string` argument. -/
 theorem mkLogEntry_string (this : EVM.Address) (ev : EventInfo) (b : ByteArray) {n1 : Option Ident}
@@ -974,12 +974,15 @@ theorem toAbi_memArray_u256 {h : Heap} {id : ℕ} {ety : Ty} {ns : List ℕ} {fx
 theorem hasRaw_memArray_u256 {h : Heap} {id : ℕ} {ety : Ty} {ns : List ℕ} {fx : Bool} (fuel : ℕ)
     (hget : h.get? id = some (.array ety (ns.map u256Val) fx)) : hasRaw h (fuel + 2) (.memRef id) = false := by
   simp [hasRaw, hget]
+theorem hasCdRaw_memArray_u256 {h : Heap} {id : ℕ} {ety : Ty} {ns : List ℕ} {fx : Bool} (fuel : ℕ)
+    (hget : h.get? id = some (.array ety (ns.map u256Val) fx)) : hasCdRaw h (fuel + 2) (.memRef id) = false := by
+  simp [hasCdRaw, hget]
 
 theorem abiArgs_memArray_u256 {cfg : Config} {env : TypeEnv} {m : Machine} {id : ℕ} {ety : Ty} {ns : List ℕ}
     {fx : Bool} (hget : m.heap.get? id = some (.array ety (ns.map u256Val) fx)) :
     abiArgs cfg env m [.dynArray u256Ty] [.memRef id] = some (.ok ([.array (ns.map fun (n : ℕ) => ABI.ABIValue.int n)], m)) := by
   simp [abiArgs, prepareArgs, coerce, implicitConv, fuelDefault, toAbi_memArray_u256 1022 hget,
-    prepareArg_of_noRaw (hasRaw_memArray_u256 1022 hget), hasRaw_memArray_u256 1022 hget]
+    prepareArg_of_noRaw (hasRaw_memArray_u256 1022 hget), hasCdRaw_memArray_u256 1022 hget]
 
 theorem encodeABIStaticArrayElems?_u256 : ∀ (ns : List ℕ), (∀ n ∈ ns, n < 2 ^ 256) →
     ABI.encodeABIStaticArrayElems? (.elem (.int (.uint ⟨256, by decide⟩))) (ns.map fun (n : ℕ) => ABI.ABIValue.int n) =

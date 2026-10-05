@@ -10,9 +10,12 @@ event, an error), when it is copied to storage and when a struct or an array of 
 structs is copied to memory; an array of value-type words (or of static arrays of them) is copied
 to memory with cleanup; the inner headers of `uint8[][]` are checked when the inner array is used
 (fixture `Lazy` covers that in depth).  `Attach`: `using Lib for IT` with a call through a value of
-the interface type.  `Calldata/known` pins one deviation, an enum array copied to memory is checked
-at the copy (solc checks an element when it is read), and checks a calldata-typed return (`retCd`):
-a word that is not canonical reverts with empty data. -/
+the interface type; `retCd`: a calldata-typed return with a word that is not canonical reverts with
+empty data.  `Enums`: an enum array copied from calldata to memory keeps an out-of-range word; every
+use of the element (read, comparison, conversion, an internal parameter, `abi.encode`,
+`abi.encodePacked`, an event, a return, an external argument, a copy to storage) is `Panic(0x21)`,
+while the length, a write to the element, `delete` and sharing the copy are not; the same for
+`E[2]` and `E[2][]`. -/
 
 namespace Solidity.Test.Calldata
 
@@ -21,7 +24,7 @@ open Solidity.Test Ethereum
 def tokRuntime : ByteArray := bytesOfHex Fixtures.tokRuntimeHex
 def attachRuntime : ByteArray := bytesOfHex Fixtures.attachRuntimeHex
 def copiesRuntime : ByteArray := bytesOfHex Fixtures.copiesRuntimeHex
-def knownRuntime : ByteArray := bytesOfHex Fixtures.knownRuntimeHex
+def enumsRuntime : ByteArray := bytesOfHex Fixtures.enumsRuntimeHex
 
 def M : Nat := 2 ^ 256 - 1
 def TOK : Nat := 0x70C
@@ -125,23 +128,65 @@ def copyCases : List Case :=
     { rc "enumCopy(uint8[])" [0x20, 1, 1] "clean" with expect := .success },
     { rc "priceAt(uint128[],uint256)" [0x40, 0, 1, 2 ^ 128] "dirty read" with expect := .revert },
     { rc "priceAt(uint128[],uint256)" [0x40, 0, 2, 1, 2 ^ 128] "dirty not read" with expect := .success },
-    { rc "priceCopy(uint128[])" [0x20, 1, 2 ^ 128 + 9] "dirty" with expect := .success } ]
+    { rc "priceCopy(uint128[])" [0x20, 1, 2 ^ 128 + 9] "dirty" with expect := .success },
+    { rc "retCd(uint16[])" dirty16 "dirty" with expect := .revert },
+    { mk copiesRuntime "retCd(uint16[])" [arr [1, 2]] "clean" with expect := .success } ]
 
-/-! ## Known -/
+/-! ## Enums -/
 
-def enumCopyKnown : String := "an enum array copied to memory is checked at the copy (Panic 0x21); solc checks an element when it is read"
+/-- A call of `Enums` with the argument words as given (`7` and `0x100` are out of range). -/
+def rn (sig : String) (ws : List Nat) (tag : String) (e : Expect) : Case :=
+  { rawCall enumsRuntime sig ws tag with expect := e }
 
-def knownCases : List Case :=
-  [ { rawCall knownRuntime "retCd(uint16[])" dirty16 "dirty" with expect := .revert },
-    { mk knownRuntime "retCd(uint16[])" [arr [1, 2]] "clean" with expect := .success },
-    { rawCall knownRuntime "enumCopyLen(uint8[])" [0x20, 1, 7] "out of range" with expect := .success, known := some enumCopyKnown },
-    { rawCall knownRuntime "enumCopyLen(uint8[])" [0x20, 1, 1] "clean" with expect := .success } ]
+def enumCases : List Case :=
+  [ rn "copyRead(uint8[],uint256)" [0x40, 0, 1, 7] "bad read" .revert,
+    rn "copyRead(uint8[],uint256)" [0x40, 0, 1, 0x100] "bad read 0x100" .revert,
+    rn "copyRead(uint8[],uint256)" [0x40, 0, 1, 2] "clean" .success,
+    rn "copyRead(uint8[],uint256)" [0x40, 1, 2, 7, 1] "bad not read" .success,
+    rn "copyLen(uint8[])" [0x20, 1, 7] "bad" .success,
+    rn "copyLen(uint8[])" [0x20, 1, 0x100] "bad 0x100" .success,
+    rn "copyEnc(uint8[])" [0x20, 1, 7] "bad" .revert,
+    rn "copyEnc(uint8[])" [0x20, 2, 1, 2] "clean" .success,
+    rn "copyPacked(uint8[])" [0x20, 1, 7] "bad" .revert,
+    rn "copyPacked(uint8[])" [0x20, 1, 1] "clean" .success,
+    rn "copyEmit(uint8[])" [0x20, 1, 7] "bad" .revert,
+    rn "copyEmit(uint8[])" [0x20, 1, 1] "clean" .success,
+    rn "copyRet(uint8[])" [0x20, 1, 7] "bad" .revert,
+    rn "copyRet(uint8[])" [0x20, 1, 1] "clean" .success,
+    rn "copyExt(uint8[])" [0x20, 1, 7] "bad" .revert,
+    rn "copyExt(uint8[])" [0x20, 1, 1] "clean" .success,
+    rn "copyStore(uint8[])" [0x20, 1, 7] "bad" .revert,
+    rn "copyStore(uint8[])" [0x20, 1, 1] "clean" .success,
+    rn "copyStoreRead(uint8[],uint256)" [0x40, 0, 1, 7] "bad" .revert,
+    rn "copyStoreRead(uint8[],uint256)" [0x40, 1, 2, 1, 2] "clean" .success,
+    rn "copyWriteRead(uint8[])" [0x20, 1, 7] "bad overwritten" .success,
+    rn "copyWriteRead(uint8[])" [0x20, 1, 0x100] "bad 0x100 overwritten" .success,
+    rn "copyDelete(uint8[])" [0x20, 1, 7] "bad deleted" .success,
+    rn "copyInner(uint8[],uint256)" [0x40, 0, 1, 7] "bad" .revert,
+    rn "copyInner(uint8[],uint256)" [0x40, 0, 1, 1] "clean" .success,
+    rn "copyCmp(uint8[])" [0x20, 1, 7] "bad" .revert,
+    rn "copyCmp(uint8[])" [0x20, 1, 0] "clean" .success,
+    rn "copyConv(uint8[])" [0x20, 1, 7] "bad" .revert,
+    rn "copyConv(uint8[])" [0x20, 1, 2] "clean" .success,
+    rn "copyShare(uint8[])" [0x20, 1, 7] "bad shared" .success,
+    rn "copyShare(uint8[])" [0x20, 1, 2] "clean" .success,
+    rn "copyStatic(uint8[2],uint256)" [1, 7, 1] "bad read" .revert,
+    rn "copyStatic(uint8[2],uint256)" [1, 0x100, 1] "bad read 0x100" .revert,
+    rn "copyStatic(uint8[2],uint256)" [1, 7, 0] "bad not read" .success,
+    rn "copyStaticNoRead(uint8[2])" [1, 7] "bad" .success,
+    rn "copyNested(uint8[2][],uint256,uint256)" [0x60, 0, 1, 1, 1, 7] "bad read" .revert,
+    rn "copyNested(uint8[2][],uint256,uint256)" [0x60, 0, 0, 1, 1, 7] "bad not read" .success,
+    rn "copyNestedLen(uint8[2][])" [0x20, 1, 1, 7] "bad" .success,
+    rn "cdEnc(uint8[])" [0x20, 1, 7] "bad" .revert,
+    rn "cdStore(uint8[])" [0x20, 1, 7] "bad" .revert,
+    rn "cdStore(uint8[])" [0x20, 1, 1] "clean" .success,
+    rn "cdRead(uint8[],uint256)" [0x40, 0, 1, 7] "bad" .revert ]
 
 def P := _root_.Calldata.SoliditySpec.program
 
 def scenarios : List Scenario :=
   [ { name := "Attach", program := P, target := "Attach", cases := attachCases },
     { name := "Copies", program := P, target := "Copies", cases := copyCases },
-    { name := "Calldata/known", program := P, target := "Known", cases := knownCases } ]
+    { name := "Enums", program := P, target := "Enums", cases := enumCases } ]
 
 end Solidity.Test.Calldata
