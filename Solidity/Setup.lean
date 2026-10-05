@@ -35,12 +35,19 @@ def defaultConfig (fc : FlatContract) (immutables : List (Ident × Value) := [])
   let table ← fc.layoutTable?
   pure { storage := storageLayout table, immutables := immutables, selfDeployment := solcDeployment fc }
 
-/-- Elaborate and configure in one step. -/
+/-- Elaborate and configure in one step.  `creations` / `runtimes`: creation and runtime bytecode
+    of the contracts the spec deploys with `new` or names in `type(C).creationCode` /
+    `type(C).runtimeCode`. -/
 def setup (p : Program) (target : Ident) (immutables : List (Ident × Value) := [])
-    (creations : List (Ident × EVM.Bytes) := []) : Except String (FlatContract × Config) := do
+    (creations : List (Ident × EVM.Bytes) := []) (runtimes : List (Ident × EVM.Bytes) := []) :
+    Except String (FlatContract × Config) := do
   let fc ← elabProgram p target
   match defaultConfig fc immutables with
-  | some cfg => pure (fc, { cfg with creationCode := creationFor fc creations })
+  | some cfg =>
+    pure (fc, { cfg with
+      creationCode := creationFor fc creations
+      typeCreationCode := fun c => (creations.find? (·.1 == c)).map (·.2)
+      typeRuntimeCode := fun c => (runtimes.find? (·.1 == c)).map (·.2) })
   | none => throw s!"no storage layout for `{target}`"
 
 end Solidity

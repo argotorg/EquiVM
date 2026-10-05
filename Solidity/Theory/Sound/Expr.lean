@@ -8,6 +8,22 @@ open Interp
 
 variable {cfg : Config} {o : Oracle} {fc : FlatContract}
 
+/-- `delete` on a memory element or field. -/
+theorem deleteMemLv_sound {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {lv : LValue}
+    {r : Except ByteArray (Value × Frame × Machine)}
+    (hlv : EvalLValue cfg o fc fr m e (.ok lv fr1 m1)) (hmem : memLValue lv = true)
+    (h : (deleteMemLv cfg fc lv fr1 m1).run = some r) :
+    EvalExpr cfg o fc fr m (.unary .delete e) (resOf r) := by
+  simp only [deleteMemLv] at h
+  rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨ty, hty, h⟩ <;> try dsimp only at h
+  · exact (liftOpt_error hd).elim
+  · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨z, h'⟩, hz, h⟩ <;> try dsimp only at h
+    · exact (liftOpt_error hd).elim
+    · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨fr2, m2⟩, ha, h⟩ <;> try dsimp only at h
+      · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+        exact .deleteMemPanic hlv hmem (liftOpt_ok hty) (liftOpt_ok hz) hp
+      · rw [IM.pure_some h]; exact .deleteMem hlv hmem (liftOpt_ok hty) (liftOpt_ok hz) (liftOp_ok ha)
+
 theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
     ∀ fr m e r, (evalExpr cfg o fc (n+1) fr m e).run = some r → EvalExpr cfg o fc fr m e (resOf r) := by
   intro fr m e r h
@@ -91,9 +107,13 @@ theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
               · simp at h
             · simp at h
       · -- type(T).f
-        rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨v, hv, h⟩ <;> try dsimp only at h
-        · exact (liftOpt_error hd).elim
-        · rw [IM.pure_some h]; exact .typeMember (liftOpt_ok hv)
+        split at h
+        · rename_i v hv
+          rw [IM.pure_some h]; exact .typeMember hv
+        · rename_i hv
+          rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨isStr, bs⟩, hb, h⟩ <;> try dsimp only at h
+          · exact (liftOpt_error hd).elim
+          · rw [IM.pure_some h]; exact .typeMemberBytes hv (liftOpt_ok hb) rfl
       · -- C.f.selector / this.f.selector
         split at h
         · rename_i hf
@@ -106,10 +126,9 @@ theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
           rename_i hf
           split at h
           · rename_i q
-            have hq : fnRefContract fc fr (.ident q) = some q := by
-              simp only [directMember] at hdm
-              simp only [fnRefContract] at hdm ⊢
-              split <;> simp_all
+            rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨u, hu, h⟩ <;> try dsimp only at h
+            · exact (guard'_error hd).elim
+            have hq : fnRefContract fc fr (.ident q) = some q := by simpa using guard'_ok hu
             split at h
             · rename_i en hen
               rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨i, hi, h⟩ <;> try dsimp only at h
@@ -118,8 +137,13 @@ theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
             · simp at h
           · simp at h
       · simp at h
-    · rename_i hdm
-      exact ih.member _ _ _ _ _ (by simpa using hdm) h
+    · rename_i e f hdm
+      have hdm' : directMember fc fr e = false := by simpa using hdm
+      split at h
+      · -- E.selector
+        rename_i v hv
+        rw [IM.pure_some h]; exact .nameSelector hdm' hv
+      · exact ih.member _ _ _ _ _ hdm' h
   · -- e[i]
     rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨base, fr1, m1⟩, hb, h⟩ <;> try dsimp only at h
     · exact .indexBaseRevert (ih.expr _ _ _ _ hd)
@@ -190,7 +214,8 @@ theorem evalExpr_sound_step {n} (ih : SoundAt cfg o fc n) :
             · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
               rw [hdel']; exact .deleteStoragePanic (ih.lvalue _ _ _ _ hlv) hp
             · rw [IM.pure_some h, hdel']; exact .deleteStorage (ih.lvalue _ _ _ _ hlv) (liftOp_ok hc)
-          · simp at h
+          · rw [hdel']; exact deleteMemLv_sound (ih.lvalue _ _ _ _ hlv) rfl h
+          · rw [hdel']; exact deleteMemLv_sound (ih.lvalue _ _ _ _ hlv) rfl h
       · rename_i hdel
         have hdel' := hdel
         simp only [beq_iff_eq] at hdel'

@@ -90,7 +90,15 @@ variable (cfg : Config) (o : Oracle) (fc : FlatContract)
 abbrev EV := IM (Value × Frame × Machine)
 
 def isAbiFn (f : Ident) : Bool :=
-  f == "encode" || f == "encodePacked" || f == "encodeWithSelector" || f == "encodeWithSignature" || f == "decode"
+  f == "encode" || f == "encodePacked" || f == "encodeWithSelector" || f == "encodeWithSignature" || f == "decode" ||
+    f == "encodeCall"
+
+/-- `delete` on a memory element or field (`deleteMem`). -/
+def deleteMemLv (lv : LValue) (fr1 : Frame) (m1 : Machine) : EV := do
+  let ty ← liftOpt (lvalueTy fc.types fr1 m1 lv)
+  let (z, h') ← liftOpt (zeroObj fc.types fuelDefault ty 0 m1.heap)
+  let (fr2, m2) ← liftOp (assign cfg fc.types fr1 { m1 with heap := h' } lv z)
+  pure (.unit, fr2, m2)
 
 mutual
 
@@ -140,20 +148,29 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
                   pure (val', fr, m2)
                 | _ => failure
               | none => failure
-        | .call (.ident "type") [] (.positional [.typeExpr ty]) => do
-          let v ← liftOpt (typeMember fc ty f); pure (v, fr, m)
+        | .call (.ident "type") [] (.positional [.typeExpr ty]) =>
+          match typeMember fc fr.here ty f with
+          | some v => pure (v, fr, m)
+          | none => do
+            let (isStr, bs) ← liftOpt (typeMemberBytes cfg fc ty f)
+            let (v, m') := allocBytes m isStr bs
+            pure (v, fr, m')
         | .member recv g =>
           if f == "selector" then do let v ← liftOpt (selectorMember fc fr recv g); pure (v, fr, m)
           else
             -- `Q.E.member`
             match recv with
             | .ident q => do
+              guard' (fnRefContract fc fr (.ident q) == some q)
               let some en := fc.types.enumOf q g | failure
               let i ← liftOpt (indexOf en.members f)
               pure (.enum en.qual g i, fr, m)
             | _ => failure
         | _ => failure
-      else evalMember fuel fr m e f
+      else
+        match nameSelectorOf fc fr e f with
+        | some v => pure (v, fr, m)
+        | none => evalMember fuel fr m e f
     | .index e i => do
       let (base, fr1, m1) ← evalExpr fuel fr m e
       let (iv, fr2, m2) ← evalExpr fuel fr1 m1 i
@@ -194,7 +211,8 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
         | .storage er ty =>
           let evm' ← liftOp (clearStorage cfg fc.types fuelDefault m1.evm er ty)
           pure (.unit, fr1, { m1 with evm := evm' })
-        | _ => failure
+        | .memField obj g => deleteMemLv cfg fc (.memField obj g) fr1 m1
+        | .memIndex obj i => deleteMemLv cfg fc (.memIndex obj i) fr1 m1
       else do
         let (v, fr1, m1) ← evalExpr fuel fr m e
         let r ← liftOp (unop (!fr1.unchecked) op v)
@@ -296,6 +314,9 @@ def evalMember : Nat → Frame → Machine → Expr → Ident → EV
         let a ← liftOpt (addrNat v)
         let (bv, m2) := allocBytes m1 false (codeOf m1.evm (EVM.address a))
         pure (bv, fr1, m2)
+      else if f == "codehash" then do
+        let a ← liftOpt (addrNat v)
+        pure (codehashValue m1.evm (EVM.address a), fr1, m1)
       else failure
 
 def evalCall : Nat → Frame → Machine → Expr → List CallOpt → Args → EV
@@ -305,8 +326,13 @@ def evalCall : Nat → Frame → Machine → Expr → List CallOpt → Args → 
     -- conversions
     | .typeExpr ty, [], .positional [a] => do
       let (v, fr1, m1) ← evalExpr fuel fr m a
-      let (v', h') ← liftOp (explicitConv fc.types m1.heap v (fc.types.canonTy fr.here ty))
-      pure (v', fr1, { m1 with heap := h' })
+      match storageBytesConv? v (fc.types.canonTy fr.here ty) with
+      | some (_, _, k) =>
+        let d ← liftOp (bytesOf cfg m1 v)
+        pure (.fixedBytes k (fixedOfBytes k d), fr1, m1)
+      | none =>
+        let (v', h') ← liftOp (explicitConv fc.types m1.heap v (fc.types.canonTy fr.here ty))
+        pure (v', fr1, { m1 with heap := h' })
     -- contract creation / memory allocation
     | .new ty, _, _ =>
       match newContract? fc ty with
@@ -386,6 +412,20 @@ def evalCall : Nat → Frame → Machine → Expr → List CallOpt → Args → 
             pure (retValue rets.1, fr1, rets.2)
           else failure
         | _ => failure
+      else if isTypeExprRecv recv then
+        -- `bytes.concat(…)` / `string.concat(…)`
+        match recv, opts, args with
+        | .typeExpr ty, [], .positional es =>
+          if f == "concat" then
+            match concatKind ty with
+            | some isStr => do
+              let (vs, fr1, m1) ← evalExprs fuel fr m es
+              let parts ← liftOp (concatParts cfg m1 vs)
+              let (v, m2) := allocBytes m1 isStr (parts.foldl (· ++ ·) ByteArray.empty)
+              pure (v, fr1, m2)
+            | none => failure
+          else failure
+        | _, _, _ => failure
       else evalMemberCall fuel fr m recv f opts args
     | _, _, _ => failure
 
@@ -428,7 +468,7 @@ def evalBuiltin : Nat → Frame → Machine → Ident → Args → EV
       throw (errorStringData s)
     | "keccak256", .positional [b] => do
       let (v, fr1, m1) ← evalExpr fuel fr m b
-      let s ← liftOpt (bytesArg m1.heap v)
+      let s ← liftOp (bytesOf cfg m1 v)
       pure (.fixedBytes ⟨31, by decide⟩ (ffi.KEC s).toList, fr1, m1)
     | "gasleft", .positional [] =>
       pure (.uint ⟨256, by decide⟩ (o.gasleft m.tick).toNat, fr, { m with tick := m.tick + 1 })
@@ -438,6 +478,20 @@ def evalBuiltin : Nat → Frame → Machine → Ident → Args → EV
       let bs ← liftOpt (ABI.encodeABIValues? ecrecoverAbiTys svs)
       let (z, m3, out) := callViaEVM o m2 (EVM.address 1) 0 bs.toByteArray false (calleeGas o m2 none 0)
       if z then pure (ecrecoverResult out, fr1, m3) else throw out
+    | "blockhash", .positional [n] => do
+      let (nv, fr1, m1) ← evalExpr fuel fr m n
+      let k ← liftOpt (natValue nv)
+      pure (blockhashValue m1.evm k, fr1, m1)
+    | f, .positional [b] =>
+      match hashAddr f with
+      | some a => do
+        let (v, fr1, m1) ← evalExpr fuel fr m b
+        let s ← liftOp (bytesOf cfg m1 v)
+        let (z, m2, out) := callViaEVM o m1 (EVM.address a) 0 s false (calleeGas o m1 none 0)
+        if z then
+          if out.size = 32 then pure (hashValue f out, fr1, m2) else failure
+        else throw out
+      | none => failure
     | f, .positional [x, y, k] =>
       if f == "addmod" || f == "mulmod" then do
         let (vs, fr1, m1) ← evalExprs fuel fr m [x, y, k]
@@ -485,17 +539,30 @@ def evalAbi : Nat → Frame → Machine → Ident → List Expr → EV
         let tys ← liftOpt (typeArgs tyArg)
         let atys ← liftOpt ((tys.map (fc.types.canonTy fr.here)).mapM (abiTypeOf fc.types))
         match ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode atys s with
-        | none => throw ByteArray.empty
+        | none => throw (decodeFailData o m1 atys)
         | some svs =>
-          let (vs, h') ← liftOpt (ofAbiList fc.types (tys.map (fc.types.canonTy fr.here)) svs m1.heap)
-          pure (retValue vs, fr1, { m1 with heap := h' })
+          match ofAbiList fc.types (tys.map (fc.types.canonTy fr.here)) svs m1.heap with
+          | some (vs, h') => pure (retValue vs, fr1, { m1 with heap := h' })
+          | none => throw ByteArray.empty
+      | _ => failure
+    | "encodeCall" =>
+      match es with
+      | [fref, argE] =>
+        let d ← liftOpt (fnRefDecl fc fr fref)
+        let es' ← liftOpt (encodeCallArgs argE)
+        let (vs, fr1, m1) ← evalExprs fuel fr m es'
+        let (sigStr, ptys, _) ← liftOpt (externalSig fc.types d)
+        let (svs, m2) ← liftOp (abiArgs cfg fc.types m1 (d.params.map (·.ty)) vs)
+        let bs ← liftOpt (ABI.encodeABIValues? ptys svs)
+        let (v, m3) := allocBytes m2 false (selectorOf sigStr ++ bs.toByteArray)
+        pure (v, fr1, m3)
       | _ => failure
     | "encodeWithSelector" =>
       match es with
       | sel :: rest =>
         let (vs0, fr1, m1) ← evalExprs fuel fr m (sel :: rest)
-        let (.fixedBytes n sb) :: vs := vs0 | failure
-        guard' (n.val == 3)
+        let sv :: vs := vs0 | failure
+        let sb ← liftOpt (selectorArg fc.types m1.heap sv)
         let tys ← liftOpt (vs.mapM (abiTyOfValue fc.types m1.heap))
         let (svs, m2) ← liftOp (abiArgsAbi cfg fc.types m1 tys vs)
         let bs ← liftOpt (ABI.encodeABIValues? tys svs)
@@ -547,13 +614,34 @@ def evalMemberCall : Nat → Frame → Machine → Expr → Ident → List CallO
           pure (.unit, fr2, m3)
         | .positional [] =>
           let m2 ← liftOp (storagePush cfg fc.types m1 er e none)
-          pure (.unit, fr1, m2)
+          let n ← liftOpt (dynArrayLength cfg m2.evm er)
+          let v ← liftOpt (loadIfScalar cfg fc.types m2.evm (elemRef er (n - 1)) e)
+          pure (v, fr1, m2)
         | _ => failure
       | .storageRef er (.dynArray e), "pop" =>
         guard' opts.isEmpty
         match args with
         | .positional [] =>
           let m2 ← liftOp (storagePop cfg fc.types m1 er e)
+          pure (.unit, fr1, m2)
+        | _ => failure
+      | .storageRef er .bytes, "push" =>
+        guard' opts.isEmpty
+        match args with
+        | .positional [x] =>
+          let (v, fr2, m2) ← evalExpr fuel fr1 m1 x
+          let b ← liftOpt (pushedByte fc.types m2.heap v)
+          let m3 ← liftOp (bytesPush cfg m2 er b)
+          pure (.unit, fr2, m3)
+        | .positional [] =>
+          let m2 ← liftOp (bytesPush cfg m1 er 0)
+          pure (.unit, fr1, m2)
+        | _ => failure
+      | .storageRef er .bytes, "pop" =>
+        guard' opts.isEmpty
+        match args with
+        | .positional [] =>
+          let m2 ← liftOp (bytesPop cfg m1 er)
           pure (.unit, fr1, m2)
         | _ => failure
       | .contract c a, _ =>
@@ -573,7 +661,7 @@ def evalMemberCall : Nat → Frame → Machine → Expr → Ident → List CallO
         if !z then throw out
         match decodeRets cfg fc.types m6 d.returns rtys out with
         | some (rets, m7) => pure (retValue rets, fr4, m7)
-        | none => throw ByteArray.empty
+        | none => throw (decodeFailData o m6 rtys)
       | rv, "call" | rv, "staticcall" =>
         match addrNat rv, args with
         | some a, .positional [dataE] =>
@@ -690,6 +778,15 @@ def evalLValue : Nat → Frame → Machine → Expr → IM (LValue × Frame × M
         let n ← liftOpt (natOperand iv)
         let len ← liftOpt (memLength m2.heap obj)
         if n < len then pure (.memIndex obj n, fr2, m2) else throw (panicData 0x32)
+      | _ => failure
+    | .call (.member recv "push") [] (.positional []) => do
+      guard' (!(memberCallDirect fc fr recv))
+      let (rv, fr1, m1) ← evalExpr fuel fr m recv
+      match rv with
+      | .storageRef er (.dynArray e) =>
+        let m2 ← liftOp (storagePush cfg fc.types m1 er e none)
+        let n ← liftOpt (dynArrayLength cfg m2.evm er)
+        pure (.storage (elemRef er (n - 1)) e, fr1, m2)
       | _ => failure
     | _ => failure
 
@@ -822,7 +919,7 @@ def execStmt : Nat → Frame → Machine → Stmt → IM ExecResult
               let (fr5, m8) ← liftOp (bindTryParams cfg fc.types fr4 m7 ps rets)
               let r ← execBlock fuel fr5 m8 body
               pure (exitBlock fr r)
-            | none => throw ByteArray.empty
+            | none => throw (decodeFailData o m6 rtys)
           else
             match selectCatch cfg m6 cs out with
             | some (cc, cvs, m7) =>

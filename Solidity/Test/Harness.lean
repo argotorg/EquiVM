@@ -55,6 +55,9 @@ def interpFuel : Nat := 100000
 def testOracle : Oracle :=
   { gasleft := fun _ => ⟨0⟩, callGas := fun _ => .ofNat 1000000, substateIn := fun _ => default }
 
+/-- The oracle for a run in which the EVM's decoder failed at its memory allocation. -/
+def panicOracle : Oracle := { testOracle with allocPanic := fun _ => true }
+
 def account (balance : Nat := 0) (code : ByteArray := .empty) (nonce : Nat := 1)
     (storage : List (UInt256 × UInt256) := []) : Account :=
   { nonce := .ofNat nonce, balance := .ofNat balance, code := code,
@@ -70,6 +73,9 @@ structure Case where
   code : ByteArray := .empty
   this : EVM.Address := addr 0xC0FFEE
   sender : EVM.Address := addr 0xA11CE
+  /-- `tx.origin` when it is not the sender, and `tx.gasprice`. -/
+  origin : Option EVM.Address := none
+  gasPrice : Nat := 0
   value : Nat := 0
   /-- Raw calldata, or an external call `(signature, arguments)` encoded by `runCase`. -/
   calldata : ByteArray := .empty
@@ -82,6 +88,8 @@ structure Case where
   balance : Nat := 0
   gas : Nat := 10000000
   header : BlockHeader := default
+  /-- Earlier blocks (`blockhash`). -/
+  blocks : ProcessedBlocks := #[]
   /-- Constructor case: ABI arguments; the spec's returned code must be the runtime. -/
   ctorArgs : Option (List ABI.ABIValue × ByteArray) := none
   expect : Expect := .any
@@ -100,14 +108,14 @@ def Case.deployedCode (c : Case) (cfg : Config) : Option ByteArray :=
   | some (args, _) => cfg.selfDeployment c.code args
 
 def Case.env (c : Case) (code : ByteArray) : ExecutionEnv :=
-  { codeOwner := c.this, sender := c.sender, source := c.sender, weiValue := .ofNat c.value,
-    calldata := c.calldata, code := code, gasPrice := 0, header := c.header, depth := 0,
+  { codeOwner := c.this, sender := c.origin.getD c.sender, source := c.sender, weiValue := .ofNat c.value,
+    calldata := c.calldata, code := code, gasPrice := c.gasPrice, header := c.header, depth := 0,
     perm := true, blobVersionedHashes := [] }
 
 /-! ## Running both sides -/
 
 def runEVM (c : Case) (code : ByteArray) : EVMResult :=
-  Ethereum.EVM.Ξ ∅ default #[] c.pre c.pre (.ofNat c.gas) default (c.env code)
+  Ethereum.EVM.Ξ ∅ default c.blocks c.pre c.pre (.ofNat c.gas) default (c.env code)
 
 inductive SpecOutcome where
   | run (res : TopResult) (conv : Refinement.ReturnConvention)
@@ -115,17 +123,18 @@ inductive SpecOutcome where
   | rejected
   | stuck
 
-def runSpec (cfg : Config) (fc : FlatContract) (c : Case) (code : ByteArray) : SpecOutcome :=
+def runSpec (cfg : Config) (fc : FlatContract) (c : Case) (code : ByteArray) (o : Oracle := testOracle) :
+    SpecOutcome :=
   let I := c.env code
   match c.ctorArgs with
   | some (args, _) =>
-    match (Interp.interpCtor cfg testOracle fc interpFuel args ∅ default #[] c.pre c.pre (.ofNat c.gas) default I).run with
+    match (Interp.interpCtor cfg o fc interpFuel args ∅ default c.blocks c.pre c.pre (.ofNat c.gas) default I).run with
     | some (.ok r) => .ctor r
     | some (.error d) => .ctor (.reverted d)
     | none => .stuck
   | none =>
     if Interp.specRejectsB cfg fc I then .rejected
-    else match (Interp.interpExec cfg testOracle fc interpFuel ∅ default #[] c.pre c.pre (.ofNat c.gas) default I).run with
+    else match (Interp.interpExec cfg o fc interpFuel ∅ default c.blocks c.pre c.pre (.ofNat c.gas) default I).run with
     | some (.ok (r, conv)) => .run r conv
     | some (.error d) => .run (.reverted d) .rawBytes
     | none => .stuck
@@ -228,7 +237,11 @@ def runCase (cfg : Config) (fc : FlatContract) (c₀ : Case) (skipOOG : Bool := 
     match r with
     | .error .OutOfGass => if skipOOG then {} else d.add false "evm out of gas"
     | _ =>
-      match r, runSpec cfg fc c code with
+      -- a decoder that failed at its allocation is the oracle's choice (`Oracle.allocPanic`)
+      let o := match r with
+        | .ok (.revert _ out) => if out == panicData 0x41 then panicOracle else testOracle
+        | _ => testOracle
+      match r, runSpec cfg fc c code o with
       | _, .stuck => d.add false "spec stuck"
       | .ok (.revert _ out), .rejected =>
         d.add (out.isEmpty || (Interp.rejectPanicsB fc (c.env code) && out == panicData 0x41))
@@ -259,9 +272,11 @@ structure Scenario where
   immutables : List (Ident × Value) := []
   /-- Creation bytecodes of the contracts the spec deploys with `new`. -/
   creations : List (Ident × EVM.Bytes) := []
+  /-- Runtime bytecodes for `type(C).runtimeCode`. -/
+  runtimes : List (Ident × EVM.Bytes) := []
 
 def runScenario (s : Scenario) : IO Bool := do
-  match setup s.program s.target s.immutables s.creations with
+  match setup s.program s.target s.immutables s.creations s.runtimes with
   | .error e => IO.println s!"[{s.name}] setup failed: {e}"; return false
   | .ok (fc, cfg) =>
     let mut ok := true
@@ -365,7 +380,7 @@ def describeCase (c : Case) : String :=
 
 /-- `n` random variants of each runtime case of `s`; out-of-gas EVM runs are skipped. -/
 def fuzzScenario (s : Scenario) (seed n : Nat) : IO Bool := do
-  match setup s.program s.target s.immutables s.creations with
+  match setup s.program s.target s.immutables s.creations s.runtimes with
   | .error e => IO.println s!"[{s.name}] setup failed: {e}"; return false
   | .ok (fc, cfg) =>
     let some t := fc.layoutTable? | IO.println s!"[{s.name}] no layout"; return false

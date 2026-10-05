@@ -78,7 +78,7 @@ as `bytes memory` (`allocBytes_eq`, `memLength_allocBytes`, `codeSize_eq`, `Eval
 exact literal arithmetic (inexact literal division has no derivation; units apply before the
 decimal point).  `directMember` is now true on function references, so `directMember_member`
 needs `fnRefContract fc fr e = none` (`fnRefContract_index/member/call` are simp lemmas,
-`fnRefContract_ident_local/env/noContract` take the discharging fact).
+`fnRefContract_ident_local/env/var/noContract` take the discharging facts).
 
 Added 2026-10-03: overloaded events (`emit` resolves among `fc.eventsNamed ev` by the evaluated
 arguments: `eventArgs`, `resolveEvent`, `eventFits`; `resolveEvent_single`, `eventFits_static`,
@@ -177,6 +177,60 @@ own declarations and those of its bases, then the file's.
   name; `using for` and a modifier inside a library), `PTop`/`QTop`/`RTop` (private names, constructor
   order), `STop` (names through a base, an interface and an unrelated contract).
 
+Changed 2026-10-04 (builtins and conversions; fixture `Builtins`).
+- Hashes and chain data: `sha256(b)` / `ripemd160(b)` are STATICCALLs of precompiles 2 / 3
+  (`hashCall*`, `hashAddr`, `hashValue`; the success rule asks for 32 bytes of output);
+  `blockhash(n)` is the EVM's `BLOCKHASH` (`blockhashValue`), `a.codehash` its `EXTCODEHASH`
+  (`memberCodehash`, `codehashValue`); `block.difficulty` equals `block.prevrandao`.
+- `bytes.concat` / `string.concat` (`concat*`, `concatKind`, `concatArg`; a type in receiver
+  position is resolved without evaluation, `isTypeExprRecv` in `memberCallDirect`).
+  `abi.encodeCall(C.f, (args))` (`abiEncodeCall*`, `fnRefDecl`, `encodeCallArgs`).
+  `abi.encodeWithSelector` takes any value that converts to `bytes4` (`selectorArg`).  `abi.decode`
+  of a value outside its type (an enum out of range) reverts with empty data (`abiDecodeBad`).
+- A failed ABI decoding of dynamic data (`abi.decode`, the return data of an external call, the
+  returns of a `try`) reverts with `decodeFailData o m tys`: empty data, or `Panic(0x41)` when the
+  oracle says the decoder failed at its memory allocation (`Oracle.allocPanic`).  solc's decoder
+  allocates a dynamic value before it checks that the value lies inside the data; which check fails
+  first depends on the free memory pointer, which the semantics does not model.  The harness takes
+  the oracle from the EVM's result (`panicOracle`); scenario `RetUser/decode`.
+- Arguments in storage: `keccak256`, `sha256`, `ripemd160` and `concat` read a storage `bytes` /
+  `string` (`bytesOf`, `concatParts`); `abi.encode*` copies storage arguments to memory first
+  (`abiArgsAbi`).  An inconsistent storage encoding gives `Panic(0x22)` (`keccakPanic`,
+  `hashCallPanic`, `concatPanic`, `abiEncodePanic`, `abiEncodeWithSelectorPanic`,
+  `abiEncodeWithSignaturePanic`).  `bytes(s)` / `string(b)` on a storage value is the same location
+  under the other type; `bytesN(b)` on a storage byte array reads it (`convertStorageBytes*`,
+  `storageBytesConv?`; the generic rules `convert*` take `storageBytesConv? … = none`, which
+  `EvalExpr.convertPlain` discharges by `rfl`).
+- `type(C).name`, `.creationCode`, `.runtimeCode` allocate (`typeMemberBytes`;
+  `Config.typeCreationCode` / `typeRuntimeCode`, filled by `setup … creations runtimes`).
+  `type(E).min` / `.max` for an enum: `typeMember fc here ty f` takes the running unit.
+- Selectors: `E.selector` of an error (4 bytes) or of an event (its topic): `nameSelector`,
+  `nameSelectorOf`, `errorEventSelector`; `Q.E.selector` through `selectorMember`.  A function
+  reference may go through a variable of contract type (`token.transfer.selector`,
+  `abi.encodeCall(token.transfer, …)`: `fnRefContract`, `contractTyName`).  Getters count as
+  functions: `fc.contractFns` holds, per unit, one declaration per signature, the most derived one,
+  getters included; so `x.v()` on a contract-typed `x` calls a getter and an overridden function is
+  found once.
+- Conversions: `address` ↔ `bytes20`; `E(i)` for a signed `i` (`Panic(0x21)` outside the range);
+  `bytesN(b)` accepts the object behind `bytes(s)`.  `uintN` to `intM` is not an implicit conversion
+  (solc rejects it; it made overloads ambiguous).
+- Memory: `delete a[i]` / `delete s.f` (`deleteMem*`, `memLValue`).  A memory array records whether
+  its static type is `T[n]` (`HeapObj.array e elems fixed`): `abi.encode` encodes it in place.
+- Storage: `a.push()` evaluates to the new element (`push0`) and is an lvalue
+  (`EvalLValue.pushElem*`: `a.push() = v`, `S storage r = a.push()`); `push` / `pop` on storage
+  `bytes` (`pushBytes*`, `popBytes*`, `bytesPush`, `bytesPop`, `pushedByte`).
+- DSL: array types in a type tuple (`abi.decode(d, (uint256[], uint8[2]))`); `()` is the empty tuple.
+- Library: `EvalExpr.hashMemBytes`, `blockhashU256`, `addressCodehash`, `concatPlain`,
+  `abiEncodeCallPlain`, `typeName`, `typeCreationCode`, `typeRuntimeCode`, `errorSelector`,
+  `eventSelector`, `pushEmpty` (it now yields the new element), `ExecStmt.deleteMemPlain`;
+  `explicitConv_address_bytes20`, `explicitConv_bytes20_address`, `selectorArg_bytes4`;
+  `fnRefContract_ident_local/var/noContract/contractVar` (a local or variable of contract type is a
+  function reference receiver, so the lemmas ask for `contractTyName … = none`).
+- Tests: scenarios `Env`, `Hash`, `AbiC`, `AbiFixed/arrays`, `TypeInfo`, `Conv`, `MemOps` and their
+  `/boundaries`, `RetUser/decode`, `StoreStr`.  `Rip/precompile` has cases only where the EVM model's `ripemd160` precompile works:
+  it runs a Python script that is found when the harness is started in the `evmlean` package
+  directory.  A harness case can set `origin`, `gasPrice` and `blocks`.
+
 ## Deferred language features
 
 `mapping(string => …)` / `mapping(bytes => …)` keys (decided 2026-10-03, to do after the branch is
@@ -191,10 +245,13 @@ Names, not covered: a state variable written with its contract (`Base.x`, read o
 modifier invoked with a qualifier (`Base.m`); `using {f, g} for T` (a list of functions) and
 file-level `using` directives.
 
-Known disagreement with solc (found 2026-10-04, not fixed): `abi.encode` of a fixed-size memory
-array (`uint256[2] memory x`) gives the encoding of a dynamic array (offset and length words); solc
-encodes the two elements in place.  A memory array does not record that it is fixed-size
-(`HeapObj.array`, `abiTyOfValue`).
+Builtins, not covered: `selfdestruct`; `blobhash` and `block.blobbasefee` (Cancun; the fixtures
+are compiled for Shanghai); a function reference whose receiver is neither `this`, a contract name
+nor a variable (`IERC20(a).f.selector`); `b.push()` on storage `bytes` used as a value; a storage
+`bytes` / `string` passed directly as the message of `require` / `revert`, as the data of
+`abi.decode` or of a low-level call (copy it to a memory variable first); user-defined value types
+(`type X is uint256`).  `sha256`, `ripemd160` and `ecrecover` are calls of the EVM
+model's precompiles: the spec says nothing about the hash values themselves.
 
 ## Not covered yet
 

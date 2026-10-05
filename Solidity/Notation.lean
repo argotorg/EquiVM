@@ -72,6 +72,7 @@ syntax:max solidityExpr:max "(" solidityExpr,* ")" : solidityExpr               
 syntax:max solidityExpr:max "(" "{" sepBy(ident ": " solidityExpr, ",") "}" ")" : solidityExpr  -- named args
 syntax:max solidityExpr:max atomic("{" sepBy(ident ": " solidityExpr, ",") "}") "(" solidityExpr,* ")" : solidityExpr  -- call options (atomic: a `try` body may follow the call)
 syntax:max solidityExpr:max "[" solidityExpr "]" : solidityExpr
+syntax:max solidityExpr:max "[" "]" : solidityExpr                               -- `T[]` in a type tuple
 syntax:max solidityExpr:max "[" (solidityExpr)? ":" (solidityExpr)? "]" : solidityExpr
 syntax:max solidityExpr:max "." ident : solidityExpr
 syntax:max solidityExpr:max "++" : solidityExpr
@@ -328,18 +329,31 @@ private def optTerm (t : Option Term) : MacroM Term :=
 
 mutual
 
-/-- An argument in `type(T)` / `abi.decode(d, (T, U))` position: an identifier or tuple of
-    identifiers naming types. -/
+/-- A type written in expression position: `T`, `T[]`, `T[n]`. -/
+partial def elabExprTy (e : TSyntax `solidityExpr) : MacroM Term := do
+  match e with
+  | `(solidityExpr| $x:ident) => tyOfIdent x
+  | `(solidityExpr| $t:solidityExpr [ ]) => do `(Solidity.Ty.dynArray $(← elabExprTy t))
+  | `(solidityExpr| $t:solidityExpr [ $n:num ]) => do `(Solidity.Ty.array $(← elabExprTy t) $n)
+  | _ => Macro.throwError "expected a type"
+
+/-- An argument in `type(T)` / `abi.decode(d, (T, U))` position: a type (`T`, `T[]`, `T[n]`) or a
+    tuple of types. -/
 partial def elabTypeArg (e : TSyntax `solidityExpr) : MacroM Term := do
   match e with
   | `(solidityExpr| $x:ident) => `(Solidity.Expr.typeExpr $(← tyOfIdent x))
+  | `(solidityExpr| $_:solidityExpr [ ]) => do `(Solidity.Expr.typeExpr $(← elabExprTy e))
+  | `(solidityExpr| $_:solidityExpr [ $_:num ]) => do `(Solidity.Expr.typeExpr $(← elabExprTy e))
   | _ =>
     if e.raw.isOfKind ``solidityParen then
       let elems := e.raw[1].getSepArgs
-      let ts ← elems.mapM fun el => do
-        if el.getNumArgs = 0 then Macro.throwError "empty component in type tuple"
-        `(some $(← elabTypeArg ⟨el[0]⟩))
-      `(Solidity.Expr.tuple $(← mkList ts))
+      if elems.size == 1 && elems[0]!.getNumArgs == 0 then
+        `(Solidity.Expr.tuple [])
+      else
+        let ts ← elems.mapM fun el => do
+          if el.getNumArgs = 0 then Macro.throwError "empty component in type tuple"
+          `(some $(← elabTypeArg ⟨el[0]⟩))
+        `(Solidity.Expr.tuple $(← mkList ts))
     else elabExpr e
 
 partial def elabCallee (f : TSyntax `solidityExpr) : MacroM Term := do
@@ -454,6 +468,9 @@ partial def elabExpr (stx : TSyntax `solidityExpr) : MacroM Term := do
       let elems := stx.raw[1].getSepArgs
       if elems.size == 1 && elems[0]!.getNumArgs == 1 then
         elabExpr ⟨elems[0]![0]⟩
+      else if elems.size == 1 then
+        -- `()`: the empty tuple
+        `(Solidity.Expr.tuple [])
       else
         let ts ← elems.mapM fun el => do
           if el.getNumArgs == 0 then `(none) else `(some $(← elabExpr ⟨el[0]⟩))

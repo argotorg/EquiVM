@@ -128,6 +128,30 @@ theorem evalLValue_sound_step {n} (ih : SoundAt cfg o fc n) :
                 exact .indexMemPanic (ih.expr _ _ _ _ hb) (ih.expr _ _ _ _ hi) (liftOpt_ok hk) (liftOpt_ok hlen)
                   (Nat.le_of_not_lt hge)
         · exact (IM.failure_some h).elim
+  | call callee opts args =>
+    simp only [evalLValue] at h
+    split at h
+    · rename_i heq; cases heq
+    · rename_i heq; cases heq
+    · rename_i heq; cases heq
+    · -- recv.push()
+      rename_i recv heq
+      cases heq
+      rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨u, hu, h⟩ <;> try dsimp only at h
+      · exact (guard'_error hd).elim
+      · have henv : memberCallDirect fc fr recv = false := by simpa using guard'_ok hu
+        rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨rv, fr1, m1⟩, hrv, h⟩ <;> try dsimp only at h
+        · exact .pushElemRevert henv (ih.expr _ _ _ _ hd)
+        · split at h
+          · rename_i er e
+            rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨m2, hm2, h⟩ <;> try dsimp only at h
+            · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+              exact .pushElemPanic henv (ih.expr _ _ _ _ hrv) hp
+            · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨k, hk, h⟩ <;> try dsimp only at h
+              · exact (liftOpt_error hd).elim
+              · rw [IM.pure_some h]; exact .pushElem henv (ih.expr _ _ _ _ hrv) (liftOp_ok hm2) (liftOpt_ok hk)
+          · exact (IM.failure_some h).elim
+    · exact (IM.failure_some h).elim
   | _ => simp [evalLValue] at h
 
 theorem assignTuple_sound_step {n} (ih : SoundAt cfg o fc n) :

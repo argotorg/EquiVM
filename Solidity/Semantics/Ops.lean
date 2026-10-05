@@ -45,6 +45,8 @@ def envMember (m : Machine) (obj member : Ident) : Option Value :=
   | "block", "coinbase" => some (.address ee.header.beneficiary)
   | "block", "gaslimit" => some (wordNat ee.header.gasLimit)
   | "block", "prevrandao" => some (wordNat ee.header.prevRandao.toNat)
+  -- since the Paris fork `difficulty` is the same opcode as `prevrandao`
+  | "block", "difficulty" => some (wordNat ee.header.prevRandao.toNat)
   | "block", "basefee" => some (wordNat ee.header.baseFeePerGas)
   | _, _ => none
 
@@ -275,7 +277,6 @@ def implicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Option (Valu
   | .literal i _, .int w => if IntTy.inRange (.sint w) i then some (.sint w i, h) else none
   | .uint w n, .uint w' => if w.val ≤ w'.val then some (.uint w' n, h) else none
   | .sint w i, .int w' => if w.val ≤ w'.val then some (.sint w' i, h) else none
-  | .uint w n, .int w' => if w.val < w'.val then some (.sint w' n, h) else none
   | .bool b, .bool => some (.bool b, h)
   | .address a, .address _ => some (.address a, h)
   -- an address literal: a hex literal with exactly 40 digits (the checksum is not modelled)
@@ -299,12 +300,16 @@ def implicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Option (Valu
 /-- Explicit conversion `T(v)` (0.8 rules; `none` = not allowed). -/
 def explicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Op (Value × Heap) := do
   -- `bytesN(b)` on a byte array: the first `N` bytes, zero-padded on the right when shorter
+  -- (`bytes(s)` of a memory string is the same object, so the string flag is not looked at)
   if let (.memRef id, .fixedBytes k) := (v, ty) then
     match h.get? id with
-    | some (.bytes false d) =>
+    | some (.bytes _ d) =>
       let bs := d.toList.take (k.val + 1)
       return (.fixedBytes k (bs ++ List.replicate (k.val + 1 - bs.length) 0), h)
     | _ => Op.stuck
+  -- `bytes(s)` / `string(b)` on a storage value: the same location under the other type
+  if let (.storageRef er sty, tty) := (v, ty) then
+    if (sty == .string && tty == .bytes) || (sty == .bytes && tty == .string) then return (.storageRef er tty, h)
   if let some r := implicitConv env h v ty then return r
   match v, ty with
   -- integer width / sign changes (one attribute at a time)
@@ -319,6 +324,9 @@ def explicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Op (Value ×
     | none => Op.stuck
   | .uint w n, .address _ => if w.val = 160 then return (.address (EVM.address n), h) else Op.stuck
   | .address a, .uint w => if w.val = 160 then return (.uint w a.toNat, h) else Op.stuck
+  -- `address` and `bytes20`
+  | .address a, .fixedBytes k => if k.val = 19 then return (.fixedBytes k (natToBytesBE a.toNat 20), h) else Op.stuck
+  | .fixedBytes k bs, .address _ => if k.val = 19 then return (.address (EVM.address (bytesToNatBE bs)), h) else Op.stuck
   | .address a, .address _ => return (.address a, h)
   | .address a, .user q n =>
     if (env.contractKind? n).isSome && (env.enum? q n).isNone then return (.contract n a, h) else Op.stuck
@@ -335,6 +343,10 @@ def explicitConv (env : TypeEnv) (h : Heap) (v : Value) (ty : Ty) : Op (Value ×
   | .uint _ n, .user q e =>
     match env.enum? q e with
     | some en => if n < en.members.length then return (.enum q e n, h) else Op.panic .enumRange
+    | none => Op.stuck
+  | .sint _ i, .user q e =>
+    match env.enum? q e with
+    | some en => if 0 ≤ i ∧ i < en.members.length then return (.enum q e i.toNat, h) else Op.panic .enumRange
     | none => Op.stuck
   | .enum _ _ i, .uint w => if i < 2 ^ w.val then return (.uint w i, h) else Op.stuck
   | .memRef id, .bytes =>
@@ -383,6 +395,31 @@ def writeBytesStorage (cfg : Config) (evm : EVM.State) (er : Solm.EvaledStorageR
 def clearBytesStorage (cfg : Config) (evm : EVM.State) (er : Solm.EvaledStorageRef)
     (st : Solm.StorageType) : Op EVM.State :=
   liftRead (cfg.storage.clearValue? er st evm)
+
+/-- The bytes of a `bytes` / `string` argument of `keccak256`, `sha256`, `ripemd160` or `concat`: a
+    literal, a memory object, or a storage value (solc copies it to memory). -/
+def bytesOf (cfg : Config) (m : Machine) : Value → Op ByteArray
+  | .strLit s => pure s
+  | .memRef id => match m.heap.get? id with | some (.bytes _ d) => pure d | _ => Op.stuck
+  | .storageRef er ty => match storageTyOf ty with | some st => readBytesStorage cfg m.evm er st | none => Op.stuck
+  | _ => Op.stuck
+
+/-- `bytesN(d)`: the first `N` bytes, zero-padded on the right when shorter. -/
+def fixedOfBytes (k : Fin 32) (d : ByteArray) : List UInt8 :=
+  let bs := d.toList.take (k.val + 1)
+  bs ++ List.replicate (k.val + 1 - bs.length) 0
+
+/-- `bytesN(b)` with `b` in storage: the location, its type and `N - 1`. -/
+def storageBytesConv? (v : Value) (ty : Ty) : Option (Solm.EvaledStorageRef × Ty × Fin 32) :=
+  match v, ty with
+  | .storageRef er sty, .fixedBytes k => some (er, sty, k)
+  | _, _ => none
+
+/-- The parts of `bytes.concat` / `string.concat`: byte arrays and `bytesN` values. -/
+def concatParts (cfg : Config) (m : Machine) (vs : List Value) : Op (List ByteArray) :=
+  vs.mapM fun
+    | .fixedBytes _ bs => pure ⟨bs.toArray⟩
+    | v => bytesOf cfg m v
 
 def lengthRef (er : Solm.EvaledStorageRef) : Solm.EvaledStorageRef :=
   { er with steps := er.steps ++ [.length] }
@@ -433,8 +470,8 @@ def readStorageDeep (cfg : Config) (env : TypeEnv) : Nat → EVM.State → Heap 
       else match ty with
         | .dynArray e => do
           let n ← Op.ofOpt (dynArrayLength cfg evm er)
-          readArray fuel evm h er e n
-        | .array e n => readArray fuel evm h er e n
+          readArray fuel evm h er e n false
+        | .array e n => readArray fuel evm h er e n true
         | .user q n => do
           let some s := env.struct? q n | Op.stuck
           let (fields, h') ← s.fields.foldlM (fun (acc, h) (fty, fname) => do
@@ -447,12 +484,12 @@ def readStorageDeep (cfg : Config) (env : TypeEnv) : Nat → EVM.State → Heap 
           pure (.memRef id, h'')
         | _ => Op.stuck
 where
-  readArray (fuel : Nat) (evm : EVM.State) (h : Heap) (er : Solm.EvaledStorageRef) (e : Ty) (n : Nat) :
-      Op (Value × Heap) := do
+  readArray (fuel : Nat) (evm : EVM.State) (h : Heap) (er : Solm.EvaledStorageRef) (e : Ty) (n : Nat)
+      (fixed : Bool) : Op (Value × Heap) := do
     let (elems, h') ← (List.range n).foldlM (fun (acc, h) i => do
       let (v, h') ← readStorageDeep cfg env fuel evm h (elemRef er i) e
       pure (acc ++ [v], h')) (([] : List Value), h)
-    let (h'', id) := h'.alloc (.array e elems)
+    let (h'', id) := h'.alloc (.array e elems fixed)
     pure (.memRef id, h'')
 
 /-- `delete` / zeroing of a storage value of type `ty` (mappings are skipped). -/
@@ -495,14 +532,14 @@ def writeStorageDeep (cfg : Config) (env : TypeEnv) : Nat → EVM.State → Heap
       match ty, h.get? id with
       | .bytes, some (.bytes _ d) => writeBytesStorage cfg evm er .bytes d
       | .string, some (.bytes _ d) => writeBytesStorage cfg evm er .string d
-      | .dynArray e, some (.array _ elems) => do
+      | .dynArray e, some (.array _ elems _) => do
         let old ← Op.ofOpt (dynArrayLength cfg evm er)
         let evm₁ ← Op.ofOpt (writeDynArrayLength cfg evm er elems.length)
         let evm₂ ← writeElems fuel evm₁ h er e elems
         -- shrink: clear the removed tail
         (List.range (old - elems.length)).foldlM
           (fun evm k => clearStorage cfg env fuel evm (elemRef er (elems.length + k)) e) evm₂
-      | .array e n, some (.array _ elems) =>
+      | .array e n, some (.array _ elems _) =>
         if elems.length = n then writeElems fuel evm h er e elems else Op.stuck
       | .user q n, some (.struct _ fields) => do
         let some s := env.struct? q n | Op.stuck
@@ -564,7 +601,7 @@ def storageField (env : TypeEnv) (er : Solm.EvaledStorageRef) (ty : Ty) (f : Ide
 def memIndex (h : Heap) (obj : Nat) (idx : Value) : Op Value := do
   let some i := natOperand idx | Op.stuck
   match h.get? obj with
-  | some (.array _ elems) =>
+  | some (.array _ elems _) =>
     match elems[i]? with
     | some v => pure v
     | none => Op.panic .outOfBounds
@@ -579,7 +616,7 @@ def memField (h : Heap) (obj : Nat) (f : Ident) : Option Value := do
 
 def memLength (h : Heap) (obj : Nat) : Option Nat :=
   match h.get? obj with
-  | some (.array _ elems) => some elems.length
+  | some (.array _ elems _) => some elems.length
   | some (.bytes _ d) => some d.size
   | _ => none
 
@@ -601,11 +638,11 @@ def sliceObj (h : Heap) (obj : Nat) (lo hi : Option Nat) : Option (Except ByteAr
       let (h', id) := h.alloc (.bytes s (d.extract a b))
       some (.ok (.memRef id, h'))
     else some (.error ByteArray.empty)
-  | some (.array e elems) =>
+  | some (.array e elems _) =>
     let a := lo.getD 0
     let b := hi.getD elems.length
     if a ≤ b ∧ b ≤ elems.length then
-      let (h', id) := h.alloc (.array e ((elems.drop a).take (b - a)))
+      let (h', id) := h.alloc (.array e ((elems.drop a).take (b - a)) false)
       some (.ok (.memRef id, h'))
     else some (.error ByteArray.empty)
   | _ => none
@@ -613,7 +650,7 @@ def sliceObj (h : Heap) (obj : Nat) (lo hi : Option Nat) : Option (Except ByteAr
 /-- Element / field type of a memory object. -/
 def memElemTy (h : Heap) (obj : Nat) : Option Ty :=
   match h.get? obj with
-  | some (.array e _) => some e
+  | some (.array e _ _) => some e
   | some (.bytes _ _) => some (.fixedBytes ⟨0, by decide⟩)
   | _ => none
 
@@ -624,7 +661,7 @@ def memFieldTy (env : TypeEnv) (h : Heap) (obj : Nat) (f : Ident) : Option Ty :=
 
 def setMemIndex (h : Heap) (obj : Nat) (i : Nat) (v : Value) : Option Heap :=
   match h.get? obj with
-  | some (.array e elems) => if i < elems.length then some (h.set obj (.array e (elems.set i v))) else none
+  | some (.array e elems fx) => if i < elems.length then some (h.set obj (.array e (elems.set i v) fx)) else none
   | some (.bytes s d) =>
     match v with
     | .fixedBytes _ [b] => if i < d.size then some (h.set obj (.bytes s (d.set! i b))) else none
@@ -746,6 +783,25 @@ def storagePop (cfg : Config) (env : TypeEnv) (m : Machine) (er : Solm.EvaledSto
   let evm₂ ← Op.ofOpt (writeDynArrayLength cfg evm₁ er (n - 1))
   pure { m with evm := evm₂ }
 
+/-- The byte pushed by `b.push(x)` on storage `bytes`: `x` as a `bytes1`. -/
+def pushedByte (env : TypeEnv) (h : Heap) (v : Value) : Option UInt8 :=
+  match implicitConv env h v (.fixedBytes ⟨0, by decide⟩) with
+  | some (.fixedBytes _ [b], _) => some b
+  | _ => none
+
+/-- `b.push(x)` / `b.push()` on storage `bytes`. -/
+def bytesPush (cfg : Config) (m : Machine) (er : Solm.EvaledStorageRef) (b : UInt8) : Op Machine := do
+  let d ← readBytesStorage cfg m.evm er .bytes
+  let evm' ← writeBytesStorage cfg m.evm er .bytes (d.push b)
+  pure { m with evm := evm' }
+
+/-- `b.pop()` on storage `bytes` (`Panic 0x31` on empty). -/
+def bytesPop (cfg : Config) (m : Machine) (er : Solm.EvaledStorageRef) : Op Machine := do
+  let d ← readBytesStorage cfg m.evm er .bytes
+  if d.size = 0 then Op.panic .popEmpty
+  let evm' ← writeBytesStorage cfg m.evm er .bytes (d.extract 0 (d.size - 1))
+  pure { m with evm := evm' }
+
 /-! ## ABI helpers -/
 
 /-- ABI type of a value (for `abi.encode*` without a declared target type). -/
@@ -755,7 +811,8 @@ def abiTyOfValue (env : TypeEnv) (h : Heap) : Value → Option ABIType
   | .memRef id =>
     match h.get? id with
     | some (.struct ty _) => abiTypeOf env ty
-    | some (.array e _) => (abiTypeOf env e).map .dynamicArray
+    | some (.array e elems fixed) =>
+      (abiTypeOf env e).map fun t => if fixed then .array t elems.length else .dynamicArray t
     | some (.bytes s _) => some (if s then .string else .bytes)
     | none => none
   | v => (v.ty?).bind (abiTypeOf env)

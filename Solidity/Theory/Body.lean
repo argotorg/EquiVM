@@ -429,17 +429,17 @@ theorem memField_of {h : Heap} {obj : ℕ} {ty : Ty} {fields : List (Ident × Va
     memField h obj f = some v := by
   simp [memField, hget, hf]
 
-theorem memLength_array {h : Heap} {obj : ℕ} {e : Ty} {elems : List Value}
-    (hget : h.get? obj = some (.array e elems)) : memLength h obj = some elems.length := by
+theorem memLength_array {h : Heap} {obj : ℕ} {e : Ty} {elems : List Value} {fx : Bool}
+    (hget : h.get? obj = some (.array e elems fx)) : memLength h obj = some elems.length := by
   simp [memLength, hget]
 
-theorem memIndex_array_ok {h : Heap} {obj : ℕ} {e : Ty} {elems : List Value} {i : ℕ}
-    (hget : h.get? obj = some (.array e elems)) (hi : i < elems.length) :
+theorem memIndex_array_ok {h : Heap} {obj : ℕ} {e : Ty} {elems : List Value} {fx : Bool} {i : ℕ}
+    (hget : h.get? obj = some (.array e elems fx)) (hi : i < elems.length) :
     memIndex h obj (u256Val i) = some (.ok elems[i]) := by
   simp [memIndex, natOperand, hget, List.getElem?_eq_getElem hi]
 
-theorem memIndex_array_oob {h : Heap} {obj : ℕ} {e : Ty} {elems : List Value} {i : ℕ}
-    (hget : h.get? obj = some (.array e elems)) (hi : elems.length ≤ i) :
+theorem memIndex_array_oob {h : Heap} {obj : ℕ} {e : Ty} {elems : List Value} {fx : Bool} {i : ℕ}
+    (hget : h.get? obj = some (.array e elems fx)) (hi : elems.length ≤ i) :
     memIndex h obj (u256Val i) = some (.error .outOfBounds) := by
   simp [memIndex, natOperand, hget, List.getElem?_eq_none hi]
   rfl
@@ -713,7 +713,7 @@ theorem ofAbi_fixedBytes (env : TypeEnv) (fuel : Nat) (n : Fin 32) (bs : List UI
 theorem ofAbi_dynArray_map {env : TypeEnv} {fuel : Nat} {e : Ty} {h : Heap} {svs : List ABI.ABIValue}
     {g : ABI.ABIValue → Value} (hsc : ∀ sv ∈ svs, ofAbi env fuel e sv h = some (g sv, h)) :
     ofAbi env (fuel + 1) (.dynArray e) (.array svs) h =
-      some (.memRef (h.alloc (.array e (svs.map g))).2, (h.alloc (.array e (svs.map g))).1) := by
+      some (.memRef (h.alloc (.array e (svs.map g) false)).2, (h.alloc (.array e (svs.map g) false)).1) := by
   rw [ofAbi]
   unfold ofAbi.ofArray
   rw [foldlM_option_snoc (g := g) svs [] (fun acc sv hm => by simp [hsc sv hm])]
@@ -1293,12 +1293,33 @@ theorem directMember_member (fc : FlatContract) (fr : Frame) (e : Expr) (f : Ide
     fnRefContract fc fr (.member e f) = none := rfl
 @[simp] theorem fnRefContract_call (fc : FlatContract) (fr : Frame) (c : Expr) (opts : List CallOpt) (args : Args) :
     fnRefContract fc fr (.call c opts args) = none := rfl
-theorem fnRefContract_ident_local (fc : FlatContract) (fr : Frame) (x : Ident) (l : Local) (hl : fr.get? x = some l) :
-    fnRefContract fc fr (.ident x) = none := by simp [fnRefContract, hl]
+/-- A local that is not of contract type is no function reference receiver. -/
+theorem fnRefContract_ident_local (fc : FlatContract) (fr : Frame) (x : Ident) (l : Local) (hl : fr.get? x = some l)
+    (hty : contractTyName fc.types l.ty = none) : fnRefContract fc fr (.ident x) = none := by
+  cases henv : isEnvObj x <;> simp [fnRefContract, henv, hl, hty]
 theorem fnRefContract_ident_env (fc : FlatContract) (fr : Frame) (x : Ident) (h : isEnvObj x = true) :
     fnRefContract fc fr (.ident x) = none := by simp [fnRefContract, h]
-theorem fnRefContract_ident_noContract (fc : FlatContract) (fr : Frame) (x : Ident) (h : fc.types.contractKind? x = none) :
-    fnRefContract fc fr (.ident x) = none := by simp [fnRefContract, h]
+/-- A state variable that is not of contract type. -/
+theorem fnRefContract_ident_var (fc : FlatContract) (fr : Frame) (x : Ident) (v : FlatVar) (hl : fr.get? x = none)
+    (hv : fc.varIn fr.here x = some v) (hty : contractTyName fc.types v.ty = none) :
+    fnRefContract fc fr (.ident x) = none := by
+  cases henv : isEnvObj x <;> simp [fnRefContract, henv, hl, hv, hty]
+theorem fnRefContract_ident_noContract (fc : FlatContract) (fr : Frame) (x : Ident) (hl : fr.get? x = none)
+    (hv : fc.varIn fr.here x = none) (h : fc.types.contractKind? x = none) :
+    fnRefContract fc fr (.ident x) = none := by
+  cases henv : isEnvObj x <;> simp [fnRefContract, henv, hl, hv, h]
+/-- A variable of contract type `C`: `x.f` is a function of `C`. -/
+theorem fnRefContract_ident_contractVar (fc : FlatContract) (fr : Frame) (x c : Ident) (l : Local)
+    (henv : isEnvObj x = false) (hl : fr.get? x = some l) (hty : contractTyName fc.types l.ty = some c) :
+    fnRefContract fc fr (.ident x) = some c := by simp [fnRefContract, henv, hl, hty]
+@[simp] theorem contractTyName_uint (env : TypeEnv) (w : ABI.BitWidth) : contractTyName env (.uint w) = none := rfl
+@[simp] theorem contractTyName_address (env : TypeEnv) (p : Bool) : contractTyName env (.address p) = none := rfl
+@[simp] theorem contractTyName_qual (env : TypeEnv) (q n : Ident) : contractTyName env (.user (some q) n) = none := rfl
+@[simp] theorem contractTyName_mapping (env : TypeEnv) (k v : Ty) : contractTyName env (.mapping k v) = none := rfl
+@[simp] theorem contractTyName_dynArray (env : TypeEnv) (e : Ty) : contractTyName env (.dynArray e) = none := rfl
+@[simp] theorem contractTyName_array (env : TypeEnv) (e : Ty) (n : ℕ) : contractTyName env (.array e n) = none := rfl
+@[simp] theorem contractTyName_bytes (env : TypeEnv) : contractTyName env .bytes = none := rfl
+@[simp] theorem contractTyName_string (env : TypeEnv) : contractTyName env .string = none := rfl
 /-! ## Names of errors and events: `E` in the scope of the running code, or `Q.E` -/
 
 @[simp] theorem eventsRef_ident (fc : FlatContract) (here ev : Ident) :
@@ -1805,8 +1826,8 @@ theorem writeElems_eq (cfg : Config) (env : TypeEnv) (fuel : ℕ) (evm : EVM.Sta
 
 /-- `arr = memArr` for a storage dynamic array: new length, the elements in order, the removed tail cleared. -/
 theorem writeStorageDeep_dynArray {cfg : Config} {env : TypeEnv} {fuel : ℕ} {evm evm₁ : EVM.State} {h : Heap}
-    {er : Solm.EvaledStorageRef} {e ety : Ty} {id old : ℕ} {elems : List Value}
-    (hget : h.get? id = some (.array ety elems)) (hold : dynArrayLength cfg evm er = some old)
+    {er : Solm.EvaledStorageRef} {e ety : Ty} {id old : ℕ} {elems : List Value} {fx : Bool}
+    (hget : h.get? id = some (.array ety elems fx)) (hold : dynArrayLength cfg evm er = some old)
     (hlen : writeDynArrayLength cfg evm er elems.length = some evm₁) :
     writeStorageDeep cfg env (fuel + 1) evm h er (.dynArray e) (.memRef id) = (do
       let evm₂ ← writeStorageDeep.writeElems cfg env fuel evm₁ h er e elems
@@ -1817,8 +1838,8 @@ theorem writeStorageDeep_dynArray {cfg : Config} {env : TypeEnv} {fuel : ℕ} {e
 
 /-- `arr = memArr` for a storage static array of the right length. -/
 theorem writeStorageDeep_array {cfg : Config} {env : TypeEnv} {fuel : ℕ} {evm : EVM.State} {h : Heap}
-    {er : Solm.EvaledStorageRef} {e ety : Ty} {id n : ℕ} {elems : List Value}
-    (hget : h.get? id = some (.array ety elems)) (hn : elems.length = n) :
+    {er : Solm.EvaledStorageRef} {e ety : Ty} {id n : ℕ} {elems : List Value} {fx : Bool}
+    (hget : h.get? id = some (.array ety elems fx)) (hn : elems.length = n) :
     writeStorageDeep cfg env (fuel + 1) evm h er (.array e n) (.memRef id) =
       writeStorageDeep.writeElems cfg env fuel evm h er e elems := by
   rw [writeStorageDeep.eq_def]
@@ -2257,9 +2278,13 @@ theorem FlatContract.fnsNamedIn_free (fc : FlatContract) (here f : Ident)
 theorem fnRefContract_this (fc : FlatContract) (fr : Frame) : fnRefContract fc fr .this = some fc.name := rfl
 
 theorem fnRefContract_ident (fc : FlatContract) (fr : Frame) (c : Ident) (hl : fr.get? c = none)
-    (henv : isEnvObj c = false) (hk : (fc.types.contractKind? c).isSome) :
+    (hv : fc.varIn fr.here c = none) (henv : isEnvObj c = false) (hk : (fc.types.contractKind? c).isSome) :
     fnRefContract fc fr (.ident c) = some c := by
-  simp [fnRefContract, hl, henv, hk]
+  simp [fnRefContract, hl, hv, henv, hk]
+
+@[simp] theorem selectorArg_bytes4 (env : TypeEnv) (h : Heap) (sb : List UInt8) :
+    selectorArg env h (.fixedBytes ⟨3, by decide⟩ sb) = some sb := by
+  simp [selectorArg, implicitConv]
 
 theorem selectorMember_of_unique {fc : FlatContract} {fr : Frame} {recv : Expr} {f c : Ident} {s : String}
     (hc : fnRefContract fc fr recv = some c)
@@ -2366,5 +2391,45 @@ theorem assignedValue_storage_s256 (env : TypeEnv) (fr : Frame) (m : Machine) (e
 theorem assignedValue_storage_address (env : TypeEnv) (fr : Frame) (m : Machine) (er : Solm.EvaledStorageRef)
     (a : EVM.Address) : assignedValue env fr m (.storage er (.address false)) (.address a) = .address a :=
   assignedValue_storage rfl (implicitConv_address env m.heap a)
+
+/-! ## Builtins and conversions (fixture `Builtins`) -/
+
+theorem explicitConv_address_bytes20 (env : TypeEnv) (h : Heap) (a : EVM.Address) :
+    explicitConv env h (.address a) (.fixedBytes ⟨19, by decide⟩) =
+      some (.ok (.fixedBytes ⟨19, by decide⟩ (natToBytesBE a.toNat 20), h)) := by
+  simp [explicitConv, implicitConv]
+
+theorem explicitConv_bytes20_address (env : TypeEnv) (h : Heap) (bs : List UInt8) (p : Bool) :
+    explicitConv env h (.fixedBytes ⟨19, by decide⟩ bs) (.address p) =
+      some (.ok (.address (EVM.address (bytesToNatBE bs)), h)) := by
+  simp [explicitConv, implicitConv]
+
+@[simp] theorem natValue_u256 (n : ℕ) : natValue (u256Val n) = some n := rfl
+
+@[simp] theorem hashAddr_sha256 : hashAddr "sha256" = some 2 := by decide
+@[simp] theorem hashAddr_ripemd160 : hashAddr "ripemd160" = some 3 := by decide
+
+@[simp] theorem concatKind_bytes : concatKind .bytes = some false := rfl
+@[simp] theorem concatKind_string : concatKind .string = some true := rfl
+
+/-- The bytes of a memory `bytes` / `string` argument. -/
+theorem bytesOf_memBytes {cfg : Config} {m : Machine} {id : ℕ} {s : Bool} {d : ByteArray}
+    (hget : m.heap.get? id = some (.bytes s d)) : bytesOf cfg m (.memRef id) = some (.ok d) := by
+  simp [bytesOf, hget]
+
+@[simp] theorem bytesOf_strLit (cfg : Config) (m : Machine) (s : ByteArray) :
+    bytesOf cfg m (.strLit s) = some (.ok s) := rfl
+
+/-- `name`, `creationCode` and `runtimeCode` are not among the value members of `type(T)`. -/
+theorem typeMember_name (fc : FlatContract) (here : Ident) (ty : Ty) : typeMember fc here ty "name" = none := by
+  unfold typeMember; split <;> simp_all
+
+theorem typeMember_creationCode (fc : FlatContract) (here : Ident) (ty : Ty) :
+    typeMember fc here ty "creationCode" = none := by
+  unfold typeMember; split <;> simp_all
+
+theorem typeMember_runtimeCode (fc : FlatContract) (here : Ident) (ty : Ty) :
+    typeMember fc here ty "runtimeCode" = none := by
+  unfold typeMember; split <;> simp_all
 
 end Solidity

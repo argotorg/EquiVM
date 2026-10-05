@@ -145,3 +145,22 @@ function of its library by name.  Write the source as it is, including the quali
 other contract).  Not available: `Base.x` for a state variable, `using {f, g} for T`, file-level
 `using`.  In proofs, the lookup facts mention the running unit: `fc.varIn fr.here "x" = some v`,
 with `fr.here` the contract that declares the function.
+
+## 7. Transcribing the source: builtins
+
+The global functions and members of Solidity 0.8 are available as written: `keccak256`, `sha256`,
+`ripemd160`, `ecrecover`, `blockhash`, `addmod`, `mulmod`, `gasleft`, the `block`, `tx` and `msg`
+members, `a.balance`, `a.code`, `a.codehash`, `abi.encode`, `abi.encodePacked`,
+`abi.encodeWithSelector`, `abi.encodeWithSignature`, `abi.encodeCall`, `abi.decode`,
+`bytes.concat`, `string.concat`, `type(T).min` / `.max`, `type(I).interfaceId`, `type(C).name`,
+`type(C).creationCode`, `type(C).runtimeCode`, and `.selector` of a function, an error or an event.
+- `type(C).creationCode` and `type(C).runtimeCode` read `Config.typeCreationCode` /
+  `typeRuntimeCode`: give `setup` the bytecode tables (`creations`, `runtimes`).
+- A function reference (`f.selector`, `abi.encodeCall(f, …)`) is `this.f`, `C.f` or `x.f` with `x` a
+  variable of contract type; write `IERC20 t = IERC20(a); t.f.selector` for `IERC20(a).f.selector`.
+- `sha256`, `ripemd160` and `ecrecover` are calls of the precompiles: a proof gets the call as a
+  hypothesis (`EvalExpr.hashMemBytes`, `EvalExpr.ecrecoverPlain`), not a hash value.
+- A decode of dynamic data that fails (`abi.decode`, return data) reverts with empty data or with
+  `Panic(0x41)`, as the oracle says (`Oracle.allocPanic`, `decodeFailData`): pick the oracle that
+  matches the bytecode's decoder for the input at hand.
+- Not available: `selfdestruct`, `blobhash`, `block.blobbasefee`, user-defined value types.

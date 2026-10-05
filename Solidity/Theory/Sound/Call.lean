@@ -69,8 +69,9 @@ theorem evalBuiltin_sound_step {n} (ih : SoundAt cfg o fc n) :
     rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨v, fr1, m1⟩, hv, h⟩ <;> try dsimp only at h
     · exact .keccakRevert (ih.expr _ _ _ _ hd)
     · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨s, hs, h⟩ <;> try dsimp only at h
-      · exact (liftOpt_error hd).elim
-      · rw [IM.pure_some h]; exact .keccak (ih.expr _ _ _ _ hv) (liftOpt_ok hs)
+      · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+        exact .keccakPanic (ih.expr _ _ _ _ hv) hp
+      · rw [IM.pure_some h]; exact .keccak (ih.expr _ _ _ _ hv) (liftOp_ok hs)
   · -- gasleft()
     rw [IM.pure_some h]; exact .gasleft
   · -- ecrecover(h, v, r, s)
@@ -92,6 +93,35 @@ theorem evalBuiltin_sound_step {n} (ih : SoundAt cfg o fc n) :
           · simp only [eq_self_iff_true, ite_true] at h
             rw [IM.pure_some h]
             exact .ecrecover (ih.exprs _ _ _ _ hvs) (liftOp_ok hsvs) (liftOpt_ok hbs) hbridge
+  · -- blockhash(n)
+    rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨nv, fr1, m1⟩, hnv, h⟩ <;> try dsimp only at h
+    · exact .blockhashRevert (ih.expr _ _ _ _ hd)
+    · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨k, hk, h⟩ <;> try dsimp only at h
+      · exact (liftOpt_error hd).elim
+      · rw [IM.pure_some h]; exact .blockhash (ih.expr _ _ _ _ hnv) (liftOpt_ok hk)
+  · -- sha256(b) / ripemd160(b)
+    split at h
+    · rename_i a ha
+      rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨v, fr1, m1⟩, hv, h⟩ <;> try dsimp only at h
+      · exact .hashCallRevert ha (ih.expr _ _ _ _ hd)
+      · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨s, hs, h⟩ <;> try dsimp only at h
+        · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+          exact .hashCallPanic ha (ih.expr _ _ _ _ hv) hp
+        · generalize hX : Interp.callViaEVM o m1 (EVM.address a) 0 s false (calleeGas o m1 none 0) = X at h
+          have hbridge := hX ▸ callViaEVM_sound o m1 (EVM.address a) 0 s false (calleeGas o m1 none 0)
+          obtain ⟨z, m2, out⟩ := X
+          dsimp only at h
+          cases z
+          · simp only [Bool.false_eq_true, ite_false] at h
+            rw [IM.throw_some h]
+            exact .hashCallFailed ha (ih.expr _ _ _ _ hv) (liftOp_ok hs) hbridge
+          · simp only [eq_self_iff_true, ite_true] at h
+            split at h
+            · rename_i hsz
+              rw [IM.pure_some h]
+              exact .hashCall ha (ih.expr _ _ _ _ hv) (liftOp_ok hs) hbridge hsz
+            · exact (IM.failure_some h).elim
+    · simp at h
   · -- addmod / mulmod
     split at h
     · rename_i hf
@@ -132,10 +162,18 @@ theorem evalCall_sound_step {n} (ih : SoundAt cfg o fc n) :
   · -- T(a)
     rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨v, fr1, m1⟩, hv, h⟩ <;> try dsimp only at h
     · exact .convertRevert (ih.expr _ _ _ _ hd)
-    · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨v', h'⟩, hc, h⟩ <;> try dsimp only at h
-      · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
-        exact .convertPanic (ih.expr _ _ _ _ hv) hp
-      · rw [IM.pure_some h]; exact .convert (ih.expr _ _ _ _ hv) (liftOp_ok hc)
+    · split at h
+      · -- bytesN(b) with b in storage
+        rename_i er sty k hsb
+        rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨bs, hbs, h⟩ <;> try dsimp only at h
+        · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+          exact .convertStorageBytesPanic (ih.expr _ _ _ _ hv) hsb hp
+        · rw [IM.pure_some h]; exact .convertStorageBytes (ih.expr _ _ _ _ hv) hsb (liftOp_ok hbs)
+      · rename_i hsb
+        rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨v', h'⟩, hc, h⟩ <;> try dsimp only at h
+        · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+          exact .convertPanic (ih.expr _ _ _ _ hv) hsb hp
+        · rw [IM.pure_some h]; exact .convert (ih.expr _ _ _ _ hv) hsb (liftOp_ok hc)
   · -- new C(args) / new T[](n)
     rename_i ty
     split at h
@@ -304,7 +342,27 @@ theorem evalCall_sound_step {n} (ih : SoundAt cfg o fc n) :
                             (liftOpt_ok hfn) (ih.callFn _ _ _ _ _ hcall)
                 · simp at h
               · simp at h
-            · exact ih.memberCall _ _ _ _ _ _ _ h
+            · split at h
+              · -- bytes.concat(…) / string.concat(…)
+                split at h
+                · rename_i ty es
+                  split at h
+                  · rename_i hf
+                    have hf' := hf
+                    rw [beq_iff_eq] at hf'
+                    subst hf'
+                    split at h
+                    · rename_i isStr hk
+                      rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr1, m1⟩, hvs, h⟩ <;> try dsimp only at h
+                      · exact .concatRevert hk (ih.exprs _ _ _ _ hd)
+                      · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨parts, hparts, h⟩ <;> try dsimp only at h
+                        · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+                          exact .concatPanic hk (ih.exprs _ _ _ _ hvs) hp
+                        · rw [IM.pure_some h]; exact .concat hk (ih.exprs _ _ _ _ hvs) (liftOp_ok hparts) rfl
+                    · simp at h
+                  · simp at h
+                · simp at h
+              · exact ih.memberCall _ _ _ _ _ _ _ h
   · simp at h
 
 end Solidity

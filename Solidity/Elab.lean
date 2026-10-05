@@ -104,8 +104,8 @@ structure FlatContract where
   libraries : List ContractDecl
   /-- Own (non-inherited) function signatures per contract-like unit, for `type(I).interfaceId`. -/
   interfaceSigs : List (Ident × List String)
-  /-- Every function (own and inherited) of every contract-like unit, for external calls through
-      contract / interface types. -/
+  /-- Every function (own and inherited, and the getters of public variables) of every
+      contract-like unit, one per signature, for external calls through contract / interface types. -/
   contractFns : List (Ident × List FnDecl)
   /-- Constructor parameters of every contract-like unit, for `new C(args)` and base arguments. -/
   contractCtors : List (Ident × List Param)
@@ -360,8 +360,16 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
   let usingFor := contracts.flatMap fun d => d.usings.map fun u => (d.name, { u with ty := u.ty.map (canon d.name) })
   let interfaceSigs := contracts.map fun d =>
     (d.name, d.functions.filterMap fun f => sigStrOf env f.name (tysOfParams (canonParams d.name f.params)))
+  -- Functions of every unit: declared ones and the getters of public variables, the most derived
+  -- declaration of each signature.
+  let gettersOf (c : Ident) (cd : ContractDecl) : List FnDecl :=
+    (cd.stateVars.filter (·.visibility == .pub)).map fun v =>
+      synthGetter env { key := v.name, name := v.name, declaredIn := c, ty := canon c v.ty, visibility := v.visibility,
+                        mutability := v.mutability, init := v.init }
   let contractFns := contracts.map fun d =>
-    (d.name, (linOf d.name).flatMap fun c => ((find c).map fun cd => cd.functions.map (canonFn c)).getD [])
+    let all := (linOf d.name).flatMap fun c =>
+      ((find c).map fun cd => cd.functions.map (canonFn c) ++ gettersOf c cd).getD []
+    (d.name, all.foldl (fun acc f => if acc.any (fnKeyOf · == fnKeyOf f) then acc else acc ++ [f]) [])
   let contractCtors := contracts.map fun d => (d.name, (d.ctor?.map fun c => canonParams d.name c.params).getD [])
   let isAbstract := root.kind == .abstractContract || root.kind == .interface ||
     vtable.any fun e => (fns[e.2]!).decl.body.isNone

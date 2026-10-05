@@ -27,6 +27,9 @@ structure Config where
   creationCode : Ident → List ABI.ABIValue → Option EVM.Bytes := fun _ _ => none
   /-- Init code for deploying this contract itself. -/
   selfDeployment : EVM.Bytes → List ABI.ABIValue → Option EVM.Bytes
+  /-- `type(C).creationCode` and `type(C).runtimeCode`. -/
+  typeCreationCode : Ident → Option EVM.Bytes := fun _ => none
+  typeRuntimeCode : Ident → Option EVM.Bytes := fun _ => none
 
 structure Oracle where
   /-- Value of the n-th `gasleft()`. -/
@@ -36,6 +39,10 @@ structure Oracle where
   callGas : Nat → Ethereum.UInt256
   /-- Non-log substate fields fed to a sub-call / creation (the log series is pinned). -/
   substateIn : Nat → Ethereum.Substate
+  /-- Whether a failing ABI decoding of dynamic data fails at the decoder's memory allocation
+      (`Panic(0x41)`) rather than at a bounds check (empty revert data): it depends on the free
+      memory pointer, which the semantics does not model. -/
+  allocPanic : Nat → Bool := fun _ => false
 
 structure Machine where
   evm : EVM.State

@@ -100,15 +100,6 @@ theorem newViaEVM_sound (cfg : Config) (o : Oracle) (m : Machine) (c : Ident) (v
           · exact Or.inr (Or.inr (Or.inl (Nat.le_of_not_lt h3)))
       · exact Or.inl (lt_of_not_ge (α := Fin Ethereum.UInt256.size) h1)
 
-/-- `abiArgsAbi` never panics. -/
-theorem abiArgsAbi_ne_error (cfg : Config) (env : TypeEnv) (m : Machine) (tys : List ABI.ABIType) (vs : List Value) (p : Panic) :
-    abiArgsAbi cfg env m tys vs ≠ some (.error p) := by
-  intro h
-  unfold abiArgsAbi at h
-  cases hm : vs.mapM (toAbi m.heap fuelDefault) <;>
-    simp [hm, Op.ofOpt, bind, ExceptT.bind, ExceptT.bindCont, ExceptT.mk, pure, ExceptT.pure] at h <;>
-    try cases h
-
 /-! ## Result conversions -/
 
 /-- `Res α` of an interpreter result. -/

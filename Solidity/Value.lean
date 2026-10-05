@@ -39,8 +39,9 @@ inductive Value where
 
 inductive HeapObj where
   | struct (ty : Ty) (fields : List (Ident × Value))
-  /-- Memory arrays are fixed-size after creation. -/
-  | array (elem : Ty) (elems : List Value)
+  /-- Memory arrays never change length; `fixed` marks an array of static type `T[n]` (it is
+      ABI-encoded in place). -/
+  | array (elem : Ty) (elems : List Value) (fixed : Bool)
   | bytes (isString : Bool) (data : ByteArray)
   deriving Inhabited, Repr
 
@@ -118,8 +119,8 @@ def zeroObj (env : TypeEnv) : Nat → Ty → Nat → Heap → Option (Value × H
       match ty with
       | .bytes => let (h', id) := h.alloc (.bytes false (ByteArray.mk (Array.replicate len 0))); some (.memRef id, h')
       | .string => let (h', id) := h.alloc (.bytes true (ByteArray.mk (Array.replicate len 0))); some (.memRef id, h')
-      | .array e n => zeroArray fuel e n h
-      | .dynArray e => zeroArray fuel e len h
+      | .array e n => zeroArray fuel e n h true
+      | .dynArray e => zeroArray fuel e len h false
       | .user q n => do
         let s ← env.struct? q n
         let (fields, h') ← s.fields.foldlM (fun (acc, h) (fty, fname) => do
@@ -129,11 +130,11 @@ def zeroObj (env : TypeEnv) : Nat → Ty → Nat → Heap → Option (Value × H
         pure (.memRef id, h'')
       | _ => none
 where
-  zeroArray (fuel : Nat) (e : Ty) (n : Nat) (h : Heap) : Option (Value × Heap) := do
+  zeroArray (fuel : Nat) (e : Ty) (n : Nat) (h : Heap) (fixed : Bool) : Option (Value × Heap) := do
     let (elems, h') ← (List.range n).foldlM (fun (acc, h) _ => do
       let (v, h') ← zeroObj env fuel e 0 h
       pure (acc ++ [v], h')) (([] : List Value), h)
-    let (h'', id) := h'.alloc (.array e elems)
+    let (h'', id) := h'.alloc (.array e elems fixed)
     pure (.memRef id, h'')
 
 /-! ## ABI boundary -/
@@ -173,7 +174,7 @@ def toAbi (h : Heap) : Nat → Value → Option ABIValue
     | .memRef id =>
       match h.get? id with
       | some (.struct _ fields) => (fields.mapM fun f => toAbi h fuel f.2).map .tuple
-      | some (.array _ elems) => (elems.mapM (toAbi h fuel)).map .array
+      | some (.array _ elems _) => (elems.mapM (toAbi h fuel)).map .array
       | some (.bytes _ data) => some (.bytes data)
       | none => none
     | .tuple vs => (vs.mapM (toAbi h fuel)).map .tuple
@@ -189,8 +190,8 @@ def ofAbi (env : TypeEnv) : Nat → Ty → ABIValue → Heap → Option (Value �
     | .bool, .rawBool w => some (.raw .bool w, h)
     | .bytes, .bytes b => let (h', id) := h.alloc (.bytes false b); some (.memRef id, h')
     | .string, .bytes b => let (h', id) := h.alloc (.bytes true b); some (.memRef id, h')
-    | .dynArray e, .array vs => ofArray fuel e vs h
-    | .array e n, .array vs => if vs.length = n then ofArray fuel e vs h else none
+    | .dynArray e, .array vs => ofArray fuel e vs h false
+    | .array e n, .array vs => if vs.length = n then ofArray fuel e vs h true else none
     | .user q n, .tuple vs => do
       let s ← env.struct? q n
       if s.fields.length ≠ vs.length then none
@@ -201,11 +202,11 @@ def ofAbi (env : TypeEnv) : Nat → Ty → ABIValue → Heap → Option (Value �
       pure (.memRef id, h'')
     | ty, sv => (scalarOfAbi env ty sv).map (·, h)
 where
-  ofArray (fuel : Nat) (e : Ty) (vs : List ABIValue) (h : Heap) : Option (Value × Heap) := do
+  ofArray (fuel : Nat) (e : Ty) (vs : List ABIValue) (h : Heap) (fixed : Bool) : Option (Value × Heap) := do
     let (elems, h') ← vs.foldlM (fun (acc, h) sv => do
       let (v, h') ← ofAbi env fuel e sv h
       pure (acc ++ [v], h')) (([] : List Value), h)
-    let (h'', id) := h'.alloc (.array e elems)
+    let (h'', id) := h'.alloc (.array e elems fixed)
     pure (.memRef id, h'')
 
 def fuelDefault : Nat := 1024

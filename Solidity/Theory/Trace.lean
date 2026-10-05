@@ -946,8 +946,8 @@ theorem mapM_toAbi_u256 (h : Heap) (fuel : ℕ) : ∀ (ns : List ℕ),
   | n :: ns => by simp [List.mapM_cons, toAbi_uint, mapM_toAbi_u256 h fuel ns]
 
 /-- A memory `uint256[]` as an ABI argument. -/
-theorem toAbi_memArray_u256 {h : Heap} {id : ℕ} {ety : Ty} {ns : List ℕ} (fuel : ℕ)
-    (hget : h.get? id = some (.array ety (ns.map u256Val))) :
+theorem toAbi_memArray_u256 {h : Heap} {id : ℕ} {ety : Ty} {ns : List ℕ} {fx : Bool} (fuel : ℕ)
+    (hget : h.get? id = some (.array ety (ns.map u256Val) fx)) :
     toAbi h (fuel + 2) (.memRef id) = some (.array (ns.map fun (n : ℕ) => ABI.ABIValue.int n)) := by
   rw [toAbi]
   simp only [hget]
@@ -955,7 +955,7 @@ theorem toAbi_memArray_u256 {h : Heap} {id : ℕ} {ety : Ty} {ns : List ℕ} (fu
   rfl
 
 theorem abiArgs_memArray_u256 {cfg : Config} {env : TypeEnv} {m : Machine} {id : ℕ} {ety : Ty} {ns : List ℕ}
-    (hget : m.heap.get? id = some (.array ety (ns.map u256Val))) :
+    {fx : Bool} (hget : m.heap.get? id = some (.array ety (ns.map u256Val) fx)) :
     abiArgs cfg env m [.dynArray u256Ty] [.memRef id] = some (.ok ([.array (ns.map fun (n : ℕ) => ABI.ABIValue.int n)], m)) := by
   simp [abiArgs, coerce, implicitConv, fuelDefault, toAbi_memArray_u256 1022 hget]
 

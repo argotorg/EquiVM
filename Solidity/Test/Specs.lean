@@ -30,3 +30,4 @@ import Solidity.Test.Specs.Recv
 import Solidity.Test.Specs.Inherit
 import Solidity.Test.Specs.Libs
 import Solidity.Test.Specs.Scopes
+import Solidity.Test.Specs.Builtins

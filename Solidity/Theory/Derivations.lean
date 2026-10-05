@@ -932,10 +932,10 @@ theorem ExecStmt.pushValue {fr fr1 fr2 : Frame} {m m1 m2 m3 : Machine} {recv x :
 
 /-- `a[i]` on a memory array. -/
 theorem EvalExpr.indexMemPlain {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {e i : Expr} {obj k : ℕ} {ety : Ty}
-    {elems : List Value}
+    {elems : List Value} {fx : Bool}
     (he : EvalExpr cfg o fc fr m e (.ok (.memRef obj) fr1 m1))
     (hi : EvalExpr cfg o fc fr1 m1 i (.ok (u256Val k) fr2 m2))
-    (hget : m2.heap.get? obj = some (.array ety elems)) (hk : k < elems.length) (hraw : isRaw elems[k] = false) :
+    (hget : m2.heap.get? obj = some (.array ety elems fx)) (hk : k < elems.length) (hraw : isRaw elems[k] = false) :
     EvalExpr cfg o fc fr m (.index e i) (.ok elems[k] fr2 m2) :=
   EvalExpr.indexMem he hi (memIndex_array_ok hget hk) hraw
 
@@ -969,14 +969,14 @@ theorem EvalExpr.abiEncodeWithSelectorPlain {fr fr1 : Frame} {m m1 : Machine} {s
     EvalExpr cfg o fc fr m (.call (.member (.ident "abi") "encodeWithSelector") [] (.positional (sel :: es)))
       (.ok (allocBytes m1 false (ByteArray.mk sb.toArray ++ bs.toByteArray)).1 fr1
         (allocBytes m1 false (ByteArray.mk sb.toArray ++ bs.toByteArray)).2) :=
-  EvalExpr.abiEncodeWithSelector hes rfl htys (abiArgsAbi_of_mapM hsvs) henc rfl
+  EvalExpr.abiEncodeWithSelector hes (selectorArg_bytes4 ..) htys (abiArgsAbi_of_mapM hsvs) henc rfl
 
 /-- `keccak256(b)` of a memory `bytes`/`string` object. -/
 theorem EvalExpr.keccakMemBytes {fr fr1 : Frame} {m m1 : Machine} {b : Expr} {id : ℕ} {s : Bool} {d : ByteArray}
     (hb : EvalExpr cfg o fc fr m b (.ok (.memRef id) fr1 m1)) (hget : m1.heap.get? id = some (.bytes s d)) :
     EvalExpr cfg o fc fr m (.call (.ident "keccak256") [] (.positional [b]))
       (.ok (.fixedBytes ⟨31, by decide⟩ (ffi.KEC d).toList) fr1 m1) :=
-  EvalExpr.keccak hb (by simp [bytesArg, hget])
+  EvalExpr.keccak hb (bytesOf_memBytes hget)
 
 /-- `keccak256(abi.encodePacked(es))`. -/
 theorem EvalExpr.keccakPacked {fr fr1 : Frame} {m m1 : Machine} {es : List Expr} {vs : List Value}
@@ -1019,9 +1019,10 @@ theorem EvalExprs.three {fr fr1 fr2 fr3 : Frame} {m m1 m2 m3 : Machine} {e1 e2 e
     `TypeEnv.canonTy`, the identity on elementary types). -/
 theorem EvalExpr.convertPlain {fr fr1 : Frame} {m m1 : Machine} {a : Expr} {ty : Ty} {v v' : Value}
     (ha : EvalExpr cfg o fc fr m a (.ok v fr1 m1))
-    (hc : explicitConv fc.types m1.heap v (fc.types.canonTy fr.here ty) = some (.ok (v', m1.heap))) :
+    (hc : explicitConv fc.types m1.heap v (fc.types.canonTy fr.here ty) = some (.ok (v', m1.heap)))
+    (hsb : storageBytesConv? v (fc.types.canonTy fr.here ty) = none := by rfl) :
     EvalExpr cfg o fc fr m (.call (.typeExpr ty) [] (.positional [a])) (.ok v' fr1 m1) :=
-  EvalExpr.convert ha hc
+  EvalExpr.convert ha hsb hc
 
 theorem EvalExpr.typeMaxU256 {fr : Frame} {m : Machine} :
     EvalExpr cfg o fc fr m (.member (.call (.ident "type") [] (.positional [.typeExpr u256Ty])) "max")
@@ -2234,15 +2235,18 @@ theorem EvalExpr.newArrayPlain {fr fr1 : Frame} {m m1 : Machine} {ty : Ty} {n : 
 
 /-! ## Storage arrays: `push()` and `pop()` -/
 
-/-- `arr.push()`: a zero element appended, the length incremented. -/
-theorem EvalExpr.pushEmpty {fr fr1 : Frame} {m m1 : Machine} {recv : Expr} {er : Solm.EvaledStorageRef} {e : Ty} {n : ℕ}
-    {slot : UInt256} (hdm : memberCallDirect fc fr recv = false)
+/-- `arr.push()`: the length incremented; the value is the new element (`hlen'`, `hv`: read after
+    the length is stored). -/
+theorem EvalExpr.pushEmpty {fr fr1 : Frame} {m m1 : Machine} {recv : Expr} {er : Solm.EvaledStorageRef} {e : Ty}
+    {n n' : ℕ} {slot : UInt256} {v : Value} (hdm : memberCallDirect fc fr recv = false)
     (he : EvalExpr cfg o fc fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1))
     (hlen : dynArrayLength cfg m1.evm er = some n) (hl : cfg.storage.layout (lengthRef er) m1.evm = some (uint256Loc slot))
-    (hn : n + 1 < UInt256.size) :
+    (hn : n + 1 < UInt256.size)
+    (hlen' : dynArrayLength cfg (storeU256 m1 slot (UInt256.ofNat (n + 1))).evm er = some n')
+    (hv : loadIfScalar cfg fc.types (storeU256 m1 slot (UInt256.ofNat (n + 1))).evm (elemRef er (n' - 1)) e = some v) :
     EvalExpr cfg o fc fr m (.call (.member recv "push") [] (.positional []))
-      (.ok .unit fr1 (storeU256 m1 slot (UInt256.ofNat (n + 1)))) :=
-  EvalExpr.push0 hdm he (storagePush_none hlen hl hn)
+      (.ok v fr1 (storeU256 m1 slot (UInt256.ofNat (n + 1)))) :=
+  EvalExpr.push0 hdm he (storagePush_none hlen hl hn) hlen' hv
 
 /-- `arr.pop()` on a non-empty array: the last element cleared, the length decremented. -/
 theorem EvalExpr.popLast {fr fr1 : Frame} {m m1 : Machine} {recv : Expr} {er : Solm.EvaledStorageRef} {e : Ty} {n : ℕ}
@@ -2584,5 +2588,94 @@ theorem EvalExpr.sliceBytes {fr fr1 fr2 fr3 : Frame} {m m1 m2 m3 : Machine} {e l
         { m3 with heap := (m3.heap.alloc (.bytes s (d.extract a b))).1 }) :=
   EvalExpr.slice he (EvalGasOpt.some hlo hla) (EvalGasOpt.some hhi hhb)
     (sliceObj_bytes m3.heap obj s d (some a) (some b) hobj hab hbd)
+
+/-! ## Hashes, `blockhash`, `codehash`, `concat`, `abi.encodeCall`, `type(C)` members, selectors -/
+
+/-- `sha256(b)` / `ripemd160(b)` of a memory byte array, with the precompile call made (`hcall`). -/
+theorem EvalExpr.hashMemBytes {fr fr1 : Frame} {m m1 m2 : Machine} {f : Ident} {a : ℕ} {b : Expr} {id : ℕ} {s : Bool}
+    {d out : ByteArray} (hf : hashAddr f = some a)
+    (hb : EvalExpr cfg o fc fr m b (.ok (.memRef id) fr1 m1)) (hget : m1.heap.get? id = some (.bytes s d))
+    (hcall : callViaEVM o m1 (EVM.address a) 0 d false (calleeGas o m1 none 0) (true, m2, out))
+    (hsz : out.size = 32) :
+    EvalExpr cfg o fc fr m (.call (.ident f) [] (.positional [b])) (.ok (hashValue f out) fr1 m2) :=
+  EvalExpr.hashCall hf hb (bytesOf_memBytes hget) hcall hsz
+
+/-- `blockhash(n)`. -/
+theorem EvalExpr.blockhashU256 {fr fr1 : Frame} {m m1 : Machine} {n : Expr} {k : ℕ}
+    (hn : EvalExpr cfg o fc fr m n (.ok (u256Val k) fr1 m1)) :
+    EvalExpr cfg o fc fr m (.call (.ident "blockhash") [] (.positional [n])) (.ok (blockhashValue m1.evm k) fr1 m1) :=
+  EvalExpr.blockhash hn rfl
+
+/-- `a.codehash` for an `address` expression. -/
+theorem EvalExpr.addressCodehash {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {a : EVM.Address}
+    (hdm : directMember fc fr e = false) (he : EvalExpr cfg o fc fr m e (.ok (.address a) fr1 m1)) :
+    EvalExpr cfg o fc fr m (.member e "codehash") (.ok (codehashValue m1.evm a) fr1 m1) := by
+  have h := EvalExpr.memberCodehash (cfg := cfg) (o := o) (fc := fc) hdm he (a := a.toNat) rfl
+  rwa [address_toNat] at h
+
+/-- `bytes.concat(es)` / `string.concat(es)`. -/
+theorem EvalExpr.concatPlain {fr fr1 : Frame} {m m1 : Machine} {ty : Ty} {isStr : Bool} {es : List Expr}
+    {vs : List Value} {parts : List ByteArray} (hk : concatKind ty = some isStr)
+    (hes : EvalExprs cfg o fc fr m es (.ok vs fr1 m1)) (hparts : concatParts cfg m1 vs = some (.ok parts)) :
+    EvalExpr cfg o fc fr m (.call (.member (.typeExpr ty) "concat") [] (.positional es))
+      (.ok (allocBytes m1 isStr (parts.foldl (· ++ ·) ByteArray.empty)).1 fr1
+        (allocBytes m1 isStr (parts.foldl (· ++ ·) ByteArray.empty)).2) :=
+  EvalExpr.concat hk hes hparts rfl
+
+/-- `abi.encodeCall(C.f, (args))`: the selector of `f`, then the arguments as `f`'s parameters. -/
+theorem EvalExpr.abiEncodeCallPlain {fr fr1 : Frame} {m m1 m2 : Machine} {fref argE : Expr} {d : FnDecl}
+    {es : List Expr} {vs : List Value} {sigStr : String} {ptys rtys : List ABI.ABIType} {svs : List ABI.ABIValue}
+    {bs : List UInt8} (hd : fnRefDecl fc fr fref = some d) (hargs : encodeCallArgs argE = some es)
+    (hes : EvalExprs cfg o fc fr m es (.ok vs fr1 m1)) (hsig : externalSig fc.types d = some (sigStr, ptys, rtys))
+    (hsvs : abiArgs cfg fc.types m1 (d.params.map (·.ty)) vs = some (.ok (svs, m2)))
+    (henc : ABI.encodeABIValues? ptys svs = some bs) :
+    EvalExpr cfg o fc fr m (.call (.member (.ident "abi") "encodeCall") [] (.positional [fref, argE]))
+      (.ok (allocBytes m2 false (selectorOf sigStr ++ bs.toByteArray)).1 fr1
+        (allocBytes m2 false (selectorOf sigStr ++ bs.toByteArray)).2) :=
+  EvalExpr.abiEncodeCall hd hargs hes hsig hsvs henc rfl
+
+/-- `type(C).name`. -/
+theorem EvalExpr.typeName {fr : Frame} {m : Machine} {c : Ident} (hk : (fc.types.contractKind? c).isSome = true) :
+    EvalExpr cfg o fc fr m (.member (.call (.ident "type") [] (.positional [.typeExpr (.user none c)])) "name")
+      (.ok (allocBytes m true c.toUTF8).1 fr (allocBytes m true c.toUTF8).2) :=
+  EvalExpr.typeMemberBytes (typeMember_name fc fr.here _) (by simp [Solidity.typeMemberBytes, hk]) rfl
+
+/-- `type(C).creationCode`. -/
+theorem EvalExpr.typeCreationCode {fr : Frame} {m : Machine} {c : Ident} {code : EVM.Bytes}
+    (hc : cfg.typeCreationCode c = some code) :
+    EvalExpr cfg o fc fr m (.member (.call (.ident "type") [] (.positional [.typeExpr (.user none c)])) "creationCode")
+      (.ok (allocBytes m false code).1 fr (allocBytes m false code).2) :=
+  EvalExpr.typeMemberBytes (typeMember_creationCode fc fr.here _) (by simp [Solidity.typeMemberBytes, hc]) rfl
+
+/-- `type(C).runtimeCode`. -/
+theorem EvalExpr.typeRuntimeCode {fr : Frame} {m : Machine} {c : Ident} {code : EVM.Bytes}
+    (hc : cfg.typeRuntimeCode c = some code) :
+    EvalExpr cfg o fc fr m (.member (.call (.ident "type") [] (.positional [.typeExpr (.user none c)])) "runtimeCode")
+      (.ok (allocBytes m false code).1 fr (allocBytes m false code).2) :=
+  EvalExpr.typeMemberBytes (typeMember_runtimeCode fc fr.here _) (by simp [Solidity.typeMemberBytes, hc]) rfl
+
+/-- `E.selector` for an error `E` (no local and no variable has that name). -/
+theorem EvalExpr.errorSelector {fr : Frame} {m : Machine} {x : Ident} {ei : ErrorInfo}
+    (hdm : directMember fc fr (.ident x) = false) (hl : fr.get? x = none) (hv : fc.varIn fr.here x = none)
+    (he : fc.errorIn fr.here x = some ei) :
+    EvalExpr cfg o fc fr m (.member (.ident x) "selector")
+      (.ok (.fixedBytes ⟨3, by decide⟩ (selectorOf ei.sigStr).toList) fr m) :=
+  EvalExpr.nameSelector hdm (by simp [nameSelectorOf, hl, hv, errorEventSelector, he])
+
+/-- `E.selector` for an event `E` that is not overloaded: its topic. -/
+theorem EvalExpr.eventSelector {fr : Frame} {m : Machine} {x : Ident} {ev : EventInfo}
+    (hdm : directMember fc fr (.ident x) = false) (hl : fr.get? x = none) (hv : fc.varIn fr.here x = none)
+    (he : fc.errorIn fr.here x = none) (hev : fc.eventsNamedIn fr.here x = [ev]) :
+    EvalExpr cfg o fc fr m (.member (.ident x) "selector")
+      (.ok (.fixedBytes ⟨31, by decide⟩ (ffi.KEC ev.sigStr.toUTF8).toList) fr m) :=
+  EvalExpr.nameSelector hdm (by simp [nameSelectorOf, hl, hv, errorEventSelector, he, hev])
+
+/-- `delete a[i];` / `delete s.f;` in memory: the element or field gets the zero value `z` of its type. -/
+theorem ExecStmt.deleteMemPlain {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {e : Expr} {lv : LValue} {ty : Ty}
+    {z : Value} {h' : Heap} (hlv : EvalLValue cfg o fc fr m e (.ok lv fr1 m1)) (hmem : memLValue lv = true)
+    (hty : lvalueTy fc.types fr1 m1 lv = some ty) (hz : zeroObj fc.types fuelDefault ty 0 m1.heap = some (z, h'))
+    (ha : assign cfg fc.types fr1 { m1 with heap := h' } lv z = some (.ok (fr2, m2))) :
+    ExecStmt cfg o fc fr m (.exprStmt (.unary .delete e)) (.normal fr2 m2) :=
+  ExecStmt.exprStmt (EvalExpr.deleteMem hlv hmem hty hz ha)
 
 end Solidity

@@ -51,15 +51,44 @@ def interfaceIdOf (fc : FlatContract) (n : Ident) : Option Value :=
     let x := sigs.foldl (fun acc s => acc ^^^ bytesToNatBE (selectorOf s).toList) 0
     .fixedBytes ⟨3, by decide⟩ (natToBytesBE x 4)
 
-/-- `type(T).member`. -/
-def typeMember (fc : FlatContract) (ty : Ty) (member : Ident) : Option Value :=
-  match ty, member with
+/-- `type(T).member` with a value result (`T` written in code of `here`). -/
+def typeMember (fc : FlatContract) (here : Ident) (ty : Ty) (member : Ident) : Option Value :=
+  match fc.types.canonTy here ty, member with
   | .uint w, "max" => some (.uint w (2 ^ w.val - 1))
   | .uint w, "min" => some (.uint w 0)
   | .int w, "max" => some (.sint w (2 ^ (w.val - 1) - 1))
   | .int w, "min" => some (.sint w (-(2 ^ (w.val - 1) : Nat)))
+  | .user q n, "min" => (fc.types.enum? q n).map fun _ => .enum q n 0
+  | .user q n, "max" => (fc.types.enum? q n).map fun e => .enum q n (e.members.length - 1)
   | .user _ n, "interfaceId" => interfaceIdOf fc n
   | _, _ => none
+
+/-- `type(C).name`, `type(C).creationCode`, `type(C).runtimeCode`: the bytes of the object they
+    allocate (`true`: a string). -/
+def typeMemberBytes (cfg : Config) (fc : FlatContract) (ty : Ty) (member : Ident) : Option (Bool × ByteArray) :=
+  match ty, member with
+  | .user none c, "name" => if (fc.types.contractKind? c).isSome then some (true, c.toUTF8) else none
+  | .user none c, "creationCode" => (cfg.typeCreationCode c).map fun b => (false, b)
+  | .user none c, "runtimeCode" => (cfg.typeRuntimeCode c).map fun b => (false, b)
+  | _, _ => none
+
+/-- `blockhash(n)`: the EVM's `BLOCKHASH`. -/
+def blockhashValue (evm : EVM.State) (n : Nat) : Value :=
+  .fixedBytes ⟨31, by decide⟩ (natToBytesBE (evm.blockHash (.ofNat n)).toNat 32)
+
+/-- `a.codehash`: the EVM's `EXTCODEHASH` (zero for an account that does not exist or is empty). -/
+def codehashValue (evm : EVM.State) (a : EVM.Address) : Value :=
+  .fixedBytes ⟨31, by decide⟩ (natToBytesBE (evm.extCodeHash (.ofNat a.toNat)).2.toNat 32)
+
+/-- The precompile behind `sha256` / `ripemd160`. -/
+def hashAddr (f : Ident) : Option Nat :=
+  if f == "sha256" then some 2 else if f == "ripemd160" then some 3 else none
+
+/-- The result of `sha256` / `ripemd160` from the precompile's 32 bytes of output (`ripemd160`
+    returns its 20 bytes right-aligned). -/
+def hashValue (f : Ident) (out : ByteArray) : Value :=
+  if f == "sha256" then .fixedBytes ⟨31, by decide⟩ out.toList
+  else .fixedBytes ⟨19, by decide⟩ (out.extract 12 32).toList
 
 def immName (x : Ident) : Ident := "imm_" ++ x
 
@@ -78,7 +107,8 @@ def isEnvObj (s : Ident) : Bool := s == "msg" || s == "block" || s == "tx" || s 
 /-- Builtin functions, dispatched before user functions of the same name. -/
 def isBuiltinFn (f : Ident) : Bool :=
   f == "require" || f == "assert" || f == "revert" || f == "keccak256" || f == "gasleft" ||
-    f == "addmod" || f == "mulmod" || f == "type" || f == "ecrecover"
+    f == "addmod" || f == "mulmod" || f == "type" || f == "ecrecover" || f == "blockhash" ||
+    f == "sha256" || f == "ripemd160"
 
 /-- The error a `revert` names: `E` in the scope of the running code, or `Q.E`. -/
 def errorRef (fc : FlatContract) (here : Ident) : Expr → Option ErrorInfo
@@ -97,10 +127,23 @@ def isCustomError (fc : FlatContract) (here : Ident) : Expr → Bool
   | .call callee [] _ => (errorRef fc here callee).isSome
   | _ => false
 
-/-- The contract of a function reference `C.f` / `this.f` (only `.selector` is defined on it). -/
+/-- The contract a type names, if it is a contract type. -/
+def contractTyName (env : TypeEnv) : Ty → Option Ident
+  | .user none c => if (env.contractKind? c).isSome then some c else none
+  | _ => none
+
+/-- The contract of a function reference `this.f`, `C.f`, or `x.f` with `x` a variable of contract
+    type (`.selector` and `abi.encodeCall` are defined on it). -/
 def fnRefContract (fc : FlatContract) (fr : Frame) : Expr → Option Ident
   | .this => some fc.name
-  | .ident c => if (fr.get? c).isNone && !(isEnvObj c) && (fc.types.contractKind? c).isSome then some c else none
+  | .ident c =>
+    if isEnvObj c then none
+    else match fr.get? c with
+      | some l => contractTyName fc.types l.ty
+      | none =>
+        match fc.varIn fr.here c with
+        | some v => contractTyName fc.types v.ty
+        | none => if (fc.types.contractKind? c).isSome then some c else none
   | _ => none
 
 /-- `q` in `q.x` names a contract-like unit: not a local, a variable or an enum of the running code. -/
@@ -116,18 +159,54 @@ def directMember (fc : FlatContract) (fr : Frame) : Expr → Bool
   | .member recv _ => (fnRefContract fc fr recv).isSome
   | _ => false
 
-/-- `C.f.selector` / `this.f.selector`: the selector of the unique external function `f` of `C`. -/
+/-- The selector of an error (4 bytes) or of an event that is not overloaded (its 32-byte topic). -/
+def errorEventSelector (err : Option ErrorInfo) (evs : List EventInfo) : Option Value :=
+  match err with
+  | some ei => some (.fixedBytes ⟨3, by decide⟩ (selectorOf ei.sigStr).toList)
+  | none =>
+    match evs with
+    | [ev] => some (.fixedBytes ⟨31, by decide⟩ (ffi.KEC ev.sigStr.toUTF8).toList)
+    | _ => none
+
+/-- `E.selector` for an error or event `E` named in code of the frame: `e` is no local and no variable. -/
+def nameSelectorOf (fc : FlatContract) (fr : Frame) (e : Expr) (f : Ident) : Option Value :=
+  match e with
+  | .ident x =>
+    if f == "selector" && (fr.get? x).isNone && (fc.varIn fr.here x).isNone then
+      errorEventSelector (fc.errorIn fr.here x) (fc.eventsNamedIn fr.here x)
+    else none
+  | _ => none
+
+/-- `C.f.selector` / `this.f.selector`: the selector of the unique external function `f` of `C`
+    (a getter included), else of the error or event `f` of `C`. -/
 def selectorMember (fc : FlatContract) (fr : Frame) (recv : Expr) (f : Ident) : Option Value := do
   let c ← fnRefContract fc fr recv
   let ext := (fc.contractFnsNamed c f).filter fun d => d.visibility == some .external || d.visibility == some .pub
   match ext.filterMap fun d => sigStrOf fc.types f (d.params.map (·.ty)) with
   | [s] => some (.fixedBytes ⟨3, by decide⟩ (selectorOf s).toList)
+  | [] => errorEventSelector (fc.errorOf c f) (fc.eventsOf c f)
   | _ => none
+
+/-- The function `recv.f` in `abi.encodeCall(recv.f, …)`: the unique external function `f` of the contract. -/
+def fnRefDecl (fc : FlatContract) (fr : Frame) : Expr → Option FnDecl
+  | .member recv f =>
+    (fnRefContract fc fr recv).bind fun c =>
+      match (fc.contractFnsNamed c f).filter fun d => d.visibility == some .external || d.visibility == some .pub with
+      | [d] => some d
+      | _ => none
+  | _ => none
+
+/-- The arguments of `abi.encodeCall(f, (a, b))`: a tuple, or one parenthesised expression. -/
+def encodeCallArgs : Expr → Option (List Expr)
+  | .tuple es => es.mapM fun x => x
+  | e => some [e]
 
 /-- Member calls with builtin meaning (before `using for`). -/
 def specialMemberCall : Value → Ident → Bool
   | .storageRef _ (.dynArray _), "push" => true
   | .storageRef _ (.dynArray _), "pop" => true
+  | .storageRef _ .bytes, "push" => true
+  | .storageRef _ .bytes, "pop" => true
   | .contract _ _, _ => true
   | _, "call" | _, "staticcall" | _, "delegatecall" | _, "transfer" | _, "send" => true
   | _, _ => false
@@ -345,7 +424,10 @@ def usingLibrary (fc : FlatContract) (here : Ident) (ty : Option Ty) : List Cont
       | _, _ => none
 
 def receiverTy (h : Heap) : Value → Option Ty
-  | .memRef id => (h.get? id).bind fun | .array e _ => some (.dynArray e) | .bytes s _ => some (if s then .string else .bytes) | .struct t _ => some t
+  | .memRef id => (h.get? id).bind fun
+    | .array e es fx => some (if fx then .array e es.length else .dynArray e)
+    | .bytes s _ => some (if s then .string else .bytes)
+    | .struct t _ => some t
   | v => v.ty?
 
 /-- Head identifier of a receiver expression (to keep `msg`/`block`/`tx` members apart). -/
@@ -385,11 +467,34 @@ def qualTypeRecv (fc : FlatContract) (fr : Frame) (recv : Expr) (name : Ident) :
       ((fc.types.structOf q name).isSome || (fc.types.enumOf q name).isSome)
   | _ => false
 
+/-- A type in receiver position (`bytes.concat`, `string.concat`). -/
+def isTypeExprRecv : Expr → Bool
+  | .typeExpr _ => true
+  | _ => false
+
+/-- `bytes.concat` / `string.concat`: whether the result is a string. -/
+def concatKind : Ty → Option Bool
+  | .bytes => some false
+  | .string => some true
+  | _ => none
+
+/-- The first argument of `abi.encodeWithSelector`: a `bytes4`, or a value that converts to one. -/
+def selectorArg (env : TypeEnv) (h : Heap) (v : Value) : Option (List UInt8) :=
+  match implicitConv env h v (.fixedBytes ⟨3, by decide⟩) with
+  | some (.fixedBytes _ sb, _) => some sb
+  | _ => none
+
+/-- Lvalues in memory. -/
+def memLValue : LValue → Bool
+  | .memField .. => true
+  | .memIndex .. => true
+  | _ => false
+
 /-- Member calls resolved without evaluating the receiver: `super.f`, `abi.f`/`msg.f`/..., `L.f`,
-    `B.f`, a member of another unit. -/
+    `B.f`, a member of another unit, a member of a type. -/
 def memberCallDirect (fc : FlatContract) (fr : Frame) (recv : Expr) : Bool :=
   isSuperExpr recv || isEnvObj (headIdent recv) || libraryRecv fc fr recv || baseRecv fc fr recv ||
-    otherUnitRecv fc fr recv
+    otherUnitRecv fc fr recv || isTypeExprRecv recv
 
 def isRaw : Value → Bool
   | .raw .. => true
@@ -425,11 +530,21 @@ def structObj (cfg : Config) (env : TypeEnv) (m : Machine) (sd : StructInfo) (vs
   let (h', id) := m'.heap.alloc (.struct (.user sd.qual sd.name) fields)
   pure (.memRef id, { m' with heap := h' })
 
-/-- Values whose ABI types were derived from the values themselves. -/
-def abiArgsAbi (_cfg : Config) (_env : TypeEnv) (m : Machine) (_tys : List ABIType) (vs : List Value) :
-    Op (List ABIValue × Machine) := do
-  let svs ← Op.ofOpt (vs.mapM (toAbi m.heap fuelDefault))
-  pure (svs, m)
+/-- Values whose ABI types were derived from the values themselves.  An argument that lives in
+    storage is copied to memory first, as solc does. -/
+def abiArgsAbi (cfg : Config) (env : TypeEnv) (m : Machine) (_tys : List ABIType) (vs : List Value) :
+    Op (List ABIValue × Machine) :=
+  match vs.mapM (toAbi m.heap fuelDefault) with
+  | some svs => pure (svs, m)
+  | none => do
+    let (vs', h) ← vs.foldlM (fun (acc, h) v => do
+        match v with
+        | .storageRef er ty =>
+          let (v', h') ← readStorageDeep cfg env fuelDefault m.evm h er ty
+          pure (acc ++ [v'], h')
+        | v => pure (acc ++ [v], h)) (([] : List Value), m.heap)
+    let svs ← Op.ofOpt (vs'.mapM (toAbi h fuelDefault))
+    pure (svs, { m with heap := h })
 
 /-- The target types of `abi.decode(data, T)` / `abi.decode(data, (T, U))`. -/
 def typeArgs : Expr → Option (List Ty)
@@ -479,7 +594,7 @@ def arrayLitObj (env : TypeEnv) (m : Machine) (vs : List Value) : Op (Value × M
       | none => Op.ofOpt (receiverTy m.heap v)
   let (elems, h') ← Op.ofOpt (vs.foldlM (fun (acc, h) v =>
     (implicitConv env h v ety).map fun (v', h') => (acc ++ [v'], h')) (([] : List Value), m.heap))
-  let (h'', id) := h'.alloc (.array ety elems)
+  let (h'', id) := h'.alloc (.array ety elems true)
   pure (.memRef id, { m with heap := h'' })
 
 def bindModParams (cfg : Config) (env : TypeEnv) (fr : Frame) (m : Machine) (params : List Param)
@@ -518,6 +633,13 @@ def bindTryParams (cfg : Config) (env : TypeEnv) (fr : Frame) (m : Machine) (ps 
   (ps.zip vs).foldlM (fun (fr, m) (p, v) => do
       let some name := p.name | Op.stuck
       declare cfg env fr m p.ty (p.loc <|> some .memory) name (some v)) (fr, m)
+
+/-- Revert data of a failed ABI decoding into memory.  solc's decoder allocates a dynamic value
+    before it checks that the value lies inside the data, so an absurd length reverts with
+    `Panic(0x41)` instead of empty data; the oracle decides (`Oracle.allocPanic`), and only when a
+    dynamic type is decoded. -/
+def decodeFailData (o : Oracle) (m : Machine) (tys : List ABIType) : ByteArray :=
+  if tys.any isDynamicABIType && o.allocPanic m.tick then panicData 0x41 else ByteArray.empty
 
 /-- Return values of the tried call.  The data is validated against the callee's return types even
     without a `returns` clause (solc checks the return data size); values are bound only to the
@@ -618,8 +740,14 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.member (.ident q) x) (.reverted p.data)
   | qualEnumMember : fnRefContract fc fr (.ident q) = some q → f ≠ "selector" → fc.types.enumOf q t = some e →
       indexOf e.members f = some i → EvalExpr fr m (.member (.member (.ident q) t) f) (.ok (.enum e.qual t i) fr m)
-  | typeMember : typeMember fc ty f = some v →
+  | typeMember : typeMember fc fr.here ty f = some v →
       EvalExpr fr m (.member (.call (.ident "type") [] (.positional [.typeExpr ty])) f) (.ok v fr m)
+  | typeMemberBytes : typeMember fc fr.here ty f = none → typeMemberBytes cfg fc ty f = some (isStr, bs) →
+      allocBytes m isStr bs = (v, m') →
+      EvalExpr fr m (.member (.call (.ident "type") [] (.positional [.typeExpr ty])) f) (.ok v fr m')
+  -- `E.selector` of an error or an event
+  | nameSelector : directMember fc fr e = false → nameSelectorOf fc fr e f = some v →
+      EvalExpr fr m (.member e f) (.ok v fr m)
   | memberField : directMember fc fr e = false → f ≠ "length" →
       EvalExpr fr m e (.ok (.storageRef er ty) fr1 m1) → storageField fc.types er ty f = some (er', fty) →
       loadIfScalar cfg fc.types m1.evm er' fty = some v → EvalExpr fr m (.member e f) (.ok v fr1 m1)
@@ -637,6 +765,8 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | memberCode : directMember fc fr e = false → EvalExpr fr m e (.ok v fr1 m1) → addrNat v = some a →
       allocBytes m1 false (codeOf m1.evm (EVM.address a)) = (bv, m2) →
       EvalExpr fr m (.member e "code") (.ok bv fr1 m2)
+  | memberCodehash : directMember fc fr e = false → EvalExpr fr m e (.ok v fr1 m1) → addrNat v = some a →
+      EvalExpr fr m (.member e "codehash") (.ok (codehashValue m1.evm (EVM.address a)) fr1 m1)
   | memberSelector : selectorMember fc fr recv g = some v →
       EvalExpr fr m (.member (.member recv g) "selector") (.ok v fr m)
   | memberBytesLength : directMember fc fr e = false → EvalExpr fr m e (.ok (.fixedBytes n bs) fr1 m1) →
@@ -677,13 +807,20 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | sliceHiRevert : EvalExpr fr m e (.ok v fr1 m1) → EvalGasOpt fr1 m1 lo (.ok l fr2 m2) →
       EvalGasOpt fr2 m2 hi (.reverted d) → EvalExpr fr m (.slice e lo hi) (.reverted d)
   -- conversions and struct literals
-  | convert : EvalExpr fr m a (.ok v fr1 m1) →
+  | convert : EvalExpr fr m a (.ok v fr1 m1) → storageBytesConv? v (fc.types.canonTy fr.here ty) = none →
       explicitConv fc.types m1.heap v (fc.types.canonTy fr.here ty) = some (.ok (v', h')) →
       EvalExpr fr m (.call (.typeExpr ty) [] (.positional [a])) (.ok v' fr1 { m1 with heap := h' })
-  | convertPanic : EvalExpr fr m a (.ok v fr1 m1) →
+  | convertPanic : EvalExpr fr m a (.ok v fr1 m1) → storageBytesConv? v (fc.types.canonTy fr.here ty) = none →
       explicitConv fc.types m1.heap v (fc.types.canonTy fr.here ty) = some (.error p) →
       EvalExpr fr m (.call (.typeExpr ty) [] (.positional [a])) (.reverted p.data)
   | convertRevert : EvalExpr fr m a (.reverted d) → EvalExpr fr m (.call (.typeExpr ty) [] (.positional [a])) (.reverted d)
+  -- `bytesN(b)` with `b` a storage byte array
+  | convertStorageBytes : EvalExpr fr m a (.ok v fr1 m1) →
+      storageBytesConv? v (fc.types.canonTy fr.here ty) = some (er, sty, k) → bytesOf cfg m1 v = some (.ok d) →
+      EvalExpr fr m (.call (.typeExpr ty) [] (.positional [a])) (.ok (.fixedBytes k (fixedOfBytes k d)) fr1 m1)
+  | convertStorageBytesPanic : EvalExpr fr m a (.ok v fr1 m1) →
+      storageBytesConv? v (fc.types.canonTy fr.here ty) = some (er, sty, k) → bytesOf cfg m1 v = some (.error p) →
+      EvalExpr fr m (.call (.typeExpr ty) [] (.positional [a])) (.reverted p.data)
   | convertUser : isBuiltinFn c = false → fr.get? c = none → fc.varIn fr.here c = none → fc.fnsNamedIn fr.here c = [] →
       fc.types.structIn fr.here c = none →
       (fc.types.contractKind? c).isSome ∨ (fc.types.enumIn fr.here c).isSome →
@@ -750,8 +887,10 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.call (.ident "revert") [] (.positional [msg])) (.reverted (errorStringData s))
   | revertMsgRevert : EvalExpr fr m msg (.reverted d) →
       EvalExpr fr m (.call (.ident "revert") [] (.positional [msg])) (.reverted d)
-  | keccak : EvalExpr fr m b (.ok v fr1 m1) → bytesArg m1.heap v = some s →
+  | keccak : EvalExpr fr m b (.ok v fr1 m1) → bytesOf cfg m1 v = some (.ok s) →
       EvalExpr fr m (.call (.ident "keccak256") [] (.positional [b])) (.ok (.fixedBytes ⟨31, by decide⟩ (ffi.KEC s).toList) fr1 m1)
+  | keccakPanic : EvalExpr fr m b (.ok v fr1 m1) → bytesOf cfg m1 v = some (.error p) →
+      EvalExpr fr m (.call (.ident "keccak256") [] (.positional [b])) (.reverted p.data)
   | keccakRevert : EvalExpr fr m b (.reverted d) →
       EvalExpr fr m (.call (.ident "keccak256") [] (.positional [b])) (.reverted d)
   -- `ecrecover(hash, v, r, s)`: STATICCALL of precompile 1 with all gas; an empty output is `address(0)`
@@ -768,6 +907,21 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.call (.ident "ecrecover") [] (.positional [hsh, v, r, s])) (.reverted p.data)
   | ecrecoverArgsRevert : EvalExprs fr m [hsh, v, r, s] (.reverted d) →
       EvalExpr fr m (.call (.ident "ecrecover") [] (.positional [hsh, v, r, s])) (.reverted d)
+  | blockhash : EvalExpr fr m n (.ok nv fr1 m1) → natValue nv = some k →
+      EvalExpr fr m (.call (.ident "blockhash") [] (.positional [n])) (.ok (blockhashValue m1.evm k) fr1 m1)
+  | blockhashRevert : EvalExpr fr m n (.reverted d) →
+      EvalExpr fr m (.call (.ident "blockhash") [] (.positional [n])) (.reverted d)
+  -- `sha256(b)` / `ripemd160(b)`: STATICCALL of precompile 2 / 3 with all gas; 32 bytes of output
+  | hashCall : hashAddr f = some a → EvalExpr fr m b (.ok v fr1 m1) → bytesOf cfg m1 v = some (.ok s) →
+      callViaEVM o m1 (EVM.address a) 0 s false (calleeGas o m1 none 0) (true, m2, out) → out.size = 32 →
+      EvalExpr fr m (.call (.ident f) [] (.positional [b])) (.ok (hashValue f out) fr1 m2)
+  | hashCallFailed : hashAddr f = some a → EvalExpr fr m b (.ok v fr1 m1) → bytesOf cfg m1 v = some (.ok s) →
+      callViaEVM o m1 (EVM.address a) 0 s false (calleeGas o m1 none 0) (false, m2, out) →
+      EvalExpr fr m (.call (.ident f) [] (.positional [b])) (.reverted out)
+  | hashCallPanic : hashAddr f = some a → EvalExpr fr m b (.ok v fr1 m1) → bytesOf cfg m1 v = some (.error p) →
+      EvalExpr fr m (.call (.ident f) [] (.positional [b])) (.reverted p.data)
+  | hashCallRevert : hashAddr f = some a → EvalExpr fr m b (.reverted d) →
+      EvalExpr fr m (.call (.ident f) [] (.positional [b])) (.reverted d)
   | gasleft : EvalExpr fr m (.call (.ident "gasleft") [] (.positional []))
       (.ok (.uint ⟨256, by decide⟩ (o.gasleft m.tick).toNat) fr { m with tick := m.tick + 1 })
   | addmod : EvalExprs fr m [x, y, k] (.ok [xv, yv, kv] fr1 m1) → natValue xv = some a → natValue yv = some b →
@@ -791,7 +945,7 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       (tys.zip svs).mapM (fun (t, sv) => ABI.encodePackedValue? t sv) = some parts →
       allocBytes m2 false parts.flatten.toByteArray = (v, m3) →
       EvalExpr fr m (.call (.member (.ident "abi") "encodePacked") [] (.positional es)) (.ok v fr1 m3)
-  | abiEncodeWithSelector : EvalExprs fr m (sel :: es) (.ok (.fixedBytes n sb :: vs) fr1 m1) → n.val = 3 →
+  | abiEncodeWithSelector : EvalExprs fr m (sel :: es) (.ok (sv :: vs) fr1 m1) → selectorArg fc.types m1.heap sv = some sb →
       vs.mapM (abiTyOfValue fc.types m1.heap) = some tys → abiArgsAbi cfg fc.types m1 tys vs = some (.ok (svs, m2)) →
       encodeABIValues? tys svs = some bs → allocBytes m2 false ((ByteArray.mk sb.toArray) ++ bs.toByteArray) = (v, m3) →
       EvalExpr fr m (.call (.member (.ident "abi") "encodeWithSelector") [] (.positional (sel :: es))) (.ok v fr1 m3)
@@ -807,7 +961,43 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | abiDecodeFail : EvalExpr fr m d (.ok dv fr1 m1) → bytesArg m1.heap dv = some s →
       typeArgs tyArg = some tys → (tys.map (fc.types.canonTy fr.here)).mapM (abiTypeOf fc.types) = some atys →
       ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode atys s = none →
+      EvalExpr fr m (.call (.member (.ident "abi") "decode") [] (.positional [d, tyArg])) (.reverted (decodeFailData o m1 atys))
+  -- a decoded value outside its type (an enum out of range): solc's decoder reverts with empty data
+  | abiDecodeBad : EvalExpr fr m d (.ok dv fr1 m1) → bytesArg m1.heap dv = some s →
+      typeArgs tyArg = some tys → (tys.map (fc.types.canonTy fr.here)).mapM (abiTypeOf fc.types) = some atys →
+      ABI.decodeReturnValuesWithMode? cfg.abiDecodeMode atys s = some svs →
+      ofAbiList fc.types (tys.map (fc.types.canonTy fr.here)) svs m1.heap = none →
       EvalExpr fr m (.call (.member (.ident "abi") "decode") [] (.positional [d, tyArg])) (.reverted ByteArray.empty)
+  -- `abi.encodeCall(C.f, (args))`: the selector of `f`, then the arguments as `f`'s parameters
+  | abiEncodeCall : fnRefDecl fc fr fref = some d → encodeCallArgs argE = some es → EvalExprs fr m es (.ok vs fr1 m1) →
+      externalSig fc.types d = some (sigStr, ptys, rtys) →
+      abiArgs cfg fc.types m1 (d.params.map (·.ty)) vs = some (.ok (svs, m2)) → encodeABIValues? ptys svs = some bs →
+      allocBytes m2 false (selectorOf sigStr ++ bs.toByteArray) = (v, m3) →
+      EvalExpr fr m (.call (.member (.ident "abi") "encodeCall") [] (.positional [fref, argE])) (.ok v fr1 m3)
+  | abiEncodeCallPanic : fnRefDecl fc fr fref = some d → encodeCallArgs argE = some es → EvalExprs fr m es (.ok vs fr1 m1) →
+      externalSig fc.types d = some (sigStr, ptys, rtys) →
+      abiArgs cfg fc.types m1 (d.params.map (·.ty)) vs = some (.error p) →
+      EvalExpr fr m (.call (.member (.ident "abi") "encodeCall") [] (.positional [fref, argE])) (.reverted p.data)
+  | abiEncodeCallRevert : fnRefDecl fc fr fref = some d → encodeCallArgs argE = some es → EvalExprs fr m es (.reverted dd) →
+      EvalExpr fr m (.call (.member (.ident "abi") "encodeCall") [] (.positional [fref, argE])) (.reverted dd)
+  -- `bytes.concat(…)` / `string.concat(…)`
+  | concat : concatKind ty = some isStr → EvalExprs fr m es (.ok vs fr1 m1) → concatParts cfg m1 vs = some (.ok parts) →
+      allocBytes m1 isStr (parts.foldl (· ++ ·) ByteArray.empty) = (v, m2) →
+      EvalExpr fr m (.call (.member (.typeExpr ty) "concat") [] (.positional es)) (.ok v fr1 m2)
+  | concatPanic : concatKind ty = some isStr → EvalExprs fr m es (.ok vs fr1 m1) → concatParts cfg m1 vs = some (.error p) →
+      EvalExpr fr m (.call (.member (.typeExpr ty) "concat") [] (.positional es)) (.reverted p.data)
+  | concatRevert : concatKind ty = some isStr → EvalExprs fr m es (.reverted d) →
+      EvalExpr fr m (.call (.member (.typeExpr ty) "concat") [] (.positional es)) (.reverted d)
+  -- an argument in storage with an inconsistent encoding
+  | abiEncodePanic : (f = "encode" ∨ f = "encodePacked") → EvalExprs fr m es (.ok vs fr1 m1) →
+      vs.mapM (abiTyOfValue fc.types m1.heap) = some tys → abiArgsAbi cfg fc.types m1 tys vs = some (.error p) →
+      EvalExpr fr m (.call (.member (.ident "abi") f) [] (.positional es)) (.reverted p.data)
+  | abiEncodeWithSelectorPanic : EvalExprs fr m (sel :: es) (.ok (sv :: vs) fr1 m1) → selectorArg fc.types m1.heap sv = some sb →
+      vs.mapM (abiTyOfValue fc.types m1.heap) = some tys → abiArgsAbi cfg fc.types m1 tys vs = some (.error p) →
+      EvalExpr fr m (.call (.member (.ident "abi") "encodeWithSelector") [] (.positional (sel :: es))) (.reverted p.data)
+  | abiEncodeWithSignaturePanic : EvalExprs fr m (sig :: es) (.ok (sv :: vs) fr1 m1) → bytesArg m1.heap sv = some s →
+      vs.mapM (abiTyOfValue fc.types m1.heap) = some tys → abiArgsAbi cfg fc.types m1 tys vs = some (.error p) →
+      EvalExpr fr m (.call (.member (.ident "abi") "encodeWithSignature") [] (.positional (sig :: es))) (.reverted p.data)
   | abiEncodeRevert : (f = "encode" ∨ f = "encodePacked" ∨ f = "encodeWithSelector" ∨ f = "encodeWithSignature") →
       EvalExprs fr m es (.reverted d) → EvalExpr fr m (.call (.member (.ident "abi") f) [] (.positional es)) (.reverted d)
   | abiDecodeRevert : EvalExpr fr m d (.reverted dd) →
@@ -914,15 +1104,38 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | push1Panic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1) → EvalExpr fr1 m1 x (.ok v fr2 m2) →
       storagePush cfg fc.types m2 er e (some v) = some (.error p) →
       EvalExpr fr m (.call (.member recv "push") [] (.positional [x])) (.reverted p.data)
+  -- `a.push()` is the new element (a reference for a reference type)
   | push0 : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1) →
-      storagePush cfg fc.types m1 er e none = some (.ok m2) →
-      EvalExpr fr m (.call (.member recv "push") [] (.positional [])) (.ok .unit fr1 m2)
+      storagePush cfg fc.types m1 er e none = some (.ok m2) → dynArrayLength cfg m2.evm er = some n →
+      loadIfScalar cfg fc.types m2.evm (elemRef er (n - 1)) e = some v →
+      EvalExpr fr m (.call (.member recv "push") [] (.positional [])) (.ok v fr1 m2)
   | push0Panic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1) →
       storagePush cfg fc.types m1 er e none = some (.error p) →
       EvalExpr fr m (.call (.member recv "push") [] (.positional [])) (.reverted p.data)
   | pop : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1) → storagePop cfg fc.types m1 er e = some (.ok m2) →
       EvalExpr fr m (.call (.member recv "pop") [] (.positional [])) (.ok .unit fr1 m2)
   | popPanic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1) → storagePop cfg fc.types m1 er e = some (.error p) →
+      EvalExpr fr m (.call (.member recv "pop") [] (.positional [])) (.reverted p.data)
+  -- storage `bytes` push / pop
+  | pushBytes1 : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er .bytes) fr1 m1) →
+      EvalExpr fr1 m1 x (.ok v fr2 m2) → pushedByte fc.types m2.heap v = some b → bytesPush cfg m2 er b = some (.ok m3) →
+      EvalExpr fr m (.call (.member recv "push") [] (.positional [x])) (.ok .unit fr2 m3)
+  | pushBytes1Revert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er .bytes) fr1 m1) →
+      EvalExpr fr1 m1 x (.reverted d) → EvalExpr fr m (.call (.member recv "push") [] (.positional [x])) (.reverted d)
+  | pushBytes1Panic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er .bytes) fr1 m1) →
+      EvalExpr fr1 m1 x (.ok v fr2 m2) → pushedByte fc.types m2.heap v = some b → bytesPush cfg m2 er b = some (.error p) →
+      EvalExpr fr m (.call (.member recv "push") [] (.positional [x])) (.reverted p.data)
+  | pushBytes0 : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er .bytes) fr1 m1) →
+      bytesPush cfg m1 er 0 = some (.ok m2) →
+      EvalExpr fr m (.call (.member recv "push") [] (.positional [])) (.ok .unit fr1 m2)
+  | pushBytes0Panic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er .bytes) fr1 m1) →
+      bytesPush cfg m1 er 0 = some (.error p) →
+      EvalExpr fr m (.call (.member recv "push") [] (.positional [])) (.reverted p.data)
+  | popBytes : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er .bytes) fr1 m1) →
+      bytesPop cfg m1 er = some (.ok m2) →
+      EvalExpr fr m (.call (.member recv "pop") [] (.positional [])) (.ok .unit fr1 m2)
+  | popBytesPanic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er .bytes) fr1 m1) →
+      bytesPop cfg m1 er = some (.error p) →
       EvalExpr fr m (.call (.member recv "pop") [] (.positional [])) (.reverted p.data)
   -- external calls through contract types (options evaluated `value` then `gas`, then the arguments)
   | externalCall : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
@@ -959,7 +1172,7 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       (d.returns = [] → codeSize m4.evm a ≠ 0) →
       callViaEVM o m5 a value (selectorOf sigStr ++ bs.toByteArray) (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 gasReq value) (true, m6, out) →
       decodeRets cfg fc.types m6 d.returns rtys out = none →
-      EvalExpr fr m (.call (.member recv f) opts args) (.reverted ByteArray.empty)
+      EvalExpr fr m (.call (.member recv f) opts args) (.reverted (decodeFailData o m6 rtys))
   | externalValueRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
       EvalValueOpt fr1 m1 (valueOpt opts) (.reverted d) →
       EvalExpr fr m (.call (.member recv f) opts args) (.reverted d)
@@ -1053,6 +1266,15 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.unary .delete e) (.ok .unit fr1 { m1 with evm := evm' })
   | deleteStoragePanic : EvalLValue fr m e (.ok (.storage er ty) fr1 m1) →
       clearStorage cfg fc.types fuelDefault m1.evm er ty = some (.error p) →
+      EvalExpr fr m (.unary .delete e) (.reverted p.data)
+  -- a memory element or field gets the zero value of its type (a fresh object for a reference type)
+  | deleteMem : EvalLValue fr m e (.ok lv fr1 m1) → memLValue lv = true → lvalueTy fc.types fr1 m1 lv = some ty →
+      zeroObj fc.types fuelDefault ty 0 m1.heap = some (z, h') →
+      assign cfg fc.types fr1 { m1 with heap := h' } lv z = some (.ok (fr2, m2)) →
+      EvalExpr fr m (.unary .delete e) (.ok .unit fr2 m2)
+  | deleteMemPanic : EvalLValue fr m e (.ok lv fr1 m1) → memLValue lv = true → lvalueTy fc.types fr1 m1 lv = some ty →
+      zeroObj fc.types fuelDefault ty 0 m1.heap = some (z, h') →
+      assign cfg fc.types fr1 { m1 with heap := h' } lv z = some (.error p) →
       EvalExpr fr m (.unary .delete e) (.reverted p.data)
   | deleteRevert : EvalLValue fr m e (.reverted d) → EvalExpr fr m (.unary .delete e) (.reverted d)
   | andShort : EvalExpr fr m a (.ok (.bool false) fr1 m1) → EvalExpr fr m (.binary .and a b) (.ok (.bool false) fr1 m1)
@@ -1159,6 +1381,15 @@ inductive EvalLValue : Frame → Machine → Expr → Res LValue → Prop where
       EvalLValue fr m (.index e i) (.reverted (panicData 0x32))
   | indexBaseRevert : EvalExpr fr m e (.reverted d) → EvalLValue fr m (.index e i) (.reverted d)
   | indexRevert : EvalExpr fr m e (.ok v fr1 m1) → EvalExpr fr1 m1 i (.reverted d) → EvalLValue fr m (.index e i) (.reverted d)
+  -- `a.push() = v`: the new element
+  | pushElem : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1) →
+      storagePush cfg fc.types m1 er e none = some (.ok m2) → dynArrayLength cfg m2.evm er = some n →
+      EvalLValue fr m (.call (.member recv "push") [] (.positional [])) (.ok (.storage (elemRef er (n - 1)) e) fr1 m2)
+  | pushElemPanic : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1) →
+      storagePush cfg fc.types m1 er e none = some (.error p) →
+      EvalLValue fr m (.call (.member recv "push") [] (.positional [])) (.reverted p.data)
+  | pushElemRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.reverted d) →
+      EvalLValue fr m (.call (.member recv "push") [] (.positional [])) (.reverted d)
 
 /-- Assign the components of a tuple to the (optional) component lvalues, left to right. -/
 inductive AssignTuple : Frame → Machine → List (Option Expr) → List Value → Res Unit → Prop where
@@ -1278,7 +1509,7 @@ inductive ExecStmt : Frame → Machine → Stmt → ExecResult → Prop where
       (d.returns = [] → codeSize m4.evm a ≠ 0) →
       callViaEVM o m5 a value (selectorOf sigStr ++ bs.toByteArray) (m5.evm.executionEnv.perm && d.mutability != .view && d.mutability != .pure) (calleeGas o m5 gasReq value) (true, m6, out) →
       tryRets cfg fc.types m6 ps rtys out = none →
-      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted ByteArray.empty)
+      ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted (decodeFailData o m6 rtys))
   | tryCallCaught : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
       EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.ok gasReq fr3 m3) →
       callArgs ((fc.contractFnsNamed c f).map (·.params)) args = some es → EvalExprs fr3 m3 es (.ok vs fr4 m4) →

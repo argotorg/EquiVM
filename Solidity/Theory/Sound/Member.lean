@@ -62,7 +62,13 @@ theorem evalMember_sound_step {n} (ih : SoundAt cfg o fc n) :
           rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨a, ha, h⟩ <;> try dsimp only at h
           · exact (liftOpt_error hd).elim
           · rw [IM.pure_some h, hf']; exact .memberCode hdm he (liftOpt_ok ha) rfl
-        · simp at h
+        · split at h
+          · rename_i hf
+            have hf' : f = "codehash" := by simpa using hf
+            rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨a, ha, h⟩ <;> try dsimp only at h
+            · exact (liftOpt_error hd).elim
+            · rw [IM.pure_some h, hf']; exact .memberCodehash hdm he (liftOpt_ok ha)
+          · simp at h
 
 theorem evalAbi_sound_step {n} (ih : SoundAt cfg o fc n) :
     ∀ fr m f es r, (evalAbi cfg o fc (n+1) fr m f es).run = some r →
@@ -86,10 +92,33 @@ theorem evalAbi_sound_step {n} (ih : SoundAt cfg o fc n) :
                 rw [IM.throw_some h]
                 exact .abiDecodeFail (ih.expr _ _ _ _ hdv) (liftOpt_ok hs) (liftOpt_ok htys) (liftOpt_ok hatys) hdec
               · rename_i svs hsvs
-                rcases IM.bind_some h with ⟨dd, hd, rfl⟩ | ⟨⟨vs, h'⟩, hvs, h⟩ <;> try dsimp only at h
+                split at h
+                · rename_i vs h' hvs
+                  rw [IM.pure_some h]
+                  exact .abiDecode (ih.expr _ _ _ _ hdv) (liftOpt_ok hs) (liftOpt_ok htys) (liftOpt_ok hatys) hsvs hvs
+                · rename_i hvs
+                  rw [IM.throw_some h]
+                  exact .abiDecodeBad (ih.expr _ _ _ _ hdv) (liftOpt_ok hs) (liftOpt_ok htys) (liftOpt_ok hatys) hsvs hvs
+    · simp at h
+  · -- abi.encodeCall(f, (args))
+    split at h
+    · rename_i fref argE
+      rcases IM.bind_some h with ⟨dd, hd, rfl⟩ | ⟨dcl, hdcl, h⟩ <;> try dsimp only at h
+      · exact (liftOpt_error hd).elim
+      · rcases IM.bind_some h with ⟨dd, hd, rfl⟩ | ⟨es', hes, h⟩ <;> try dsimp only at h
+        · exact (liftOpt_error hd).elim
+        · rcases IM.bind_some h with ⟨dd, hd, rfl⟩ | ⟨⟨vs, fr1, m1⟩, hvs, h⟩ <;> try dsimp only at h
+          · exact .abiEncodeCallRevert (liftOpt_ok hdcl) (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
+          · rcases IM.bind_some h with ⟨dd, hd, rfl⟩ | ⟨⟨sigStr, ptys, rtys⟩, hsig, h⟩ <;> try dsimp only at h
+            · exact (liftOpt_error hd).elim
+            · rcases IM.bind_some h with ⟨dd, hd, rfl⟩ | ⟨⟨svs, m2⟩, hsvs, h⟩ <;> try dsimp only at h
+              · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+                exact .abiEncodeCallPanic (liftOpt_ok hdcl) (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hsig) hp
+              · rcases IM.bind_some h with ⟨dd, hd, rfl⟩ | ⟨bs, hbs, h⟩ <;> try dsimp only at h
                 · exact (liftOpt_error hd).elim
                 · rw [IM.pure_some h]
-                  exact .abiDecode (ih.expr _ _ _ _ hdv) (liftOpt_ok hs) (liftOpt_ok htys) (liftOpt_ok hatys) hsvs (liftOpt_ok hvs)
+                  exact .abiEncodeCall (liftOpt_ok hdcl) (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hsig)
+                    (liftOp_ok hsvs) (liftOpt_ok hbs) rfl
     · simp at h
   · -- abi.encodeWithSelector(sel, ...)
     split at h
@@ -97,19 +126,19 @@ theorem evalAbi_sound_step {n} (ih : SoundAt cfg o fc n) :
       rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs0, fr1, m1⟩, hvs0, h⟩ <;> try dsimp only at h
       · exact .abiEncodeRevert (by decide) (ih.exprs _ _ _ _ hd)
       · split at h
-        · rename_i k sb vs
-          rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨u, hu, h⟩ <;> try dsimp only at h
-          · exact (guard'_error hd).elim
-          · have hk : k.val = 3 := by simpa using guard'_ok hu
-            rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨tys, htys, h⟩ <;> try dsimp only at h
+        · rename_i sv vs
+          rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨sb, hsb, h⟩ <;> try dsimp only at h
+          · exact (liftOpt_error hd).elim
+          · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨tys, htys, h⟩ <;> try dsimp only at h
             · exact (liftOpt_error hd).elim
             · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨svs, m2⟩, hsvs, h⟩ <;> try dsimp only at h
-              · obtain ⟨p, hp, _⟩ := liftOp_error hd
-                exact (abiArgsAbi_ne_error _ _ _ _ _ _ hp).elim
+              · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+                exact .abiEncodeWithSelectorPanic (ih.exprs _ _ _ _ hvs0) (liftOpt_ok hsb) (liftOpt_ok htys) hp
               · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨bs, hbs, h⟩ <;> try dsimp only at h
                 · exact (liftOpt_error hd).elim
                 · rw [IM.pure_some h]
-                  exact .abiEncodeWithSelector (ih.exprs _ _ _ _ hvs0) hk (liftOpt_ok htys) (liftOp_ok hsvs) (liftOpt_ok hbs) rfl
+                  exact .abiEncodeWithSelector (ih.exprs _ _ _ _ hvs0) (liftOpt_ok hsb) (liftOpt_ok htys) (liftOp_ok hsvs)
+                    (liftOpt_ok hbs) rfl
         · simp at h
     · simp at h
   · -- abi.encodeWithSignature(sig, ...)
@@ -124,8 +153,8 @@ theorem evalAbi_sound_step {n} (ih : SoundAt cfg o fc n) :
           · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨tys, htys, h⟩ <;> try dsimp only at h
             · exact (liftOpt_error hd).elim
             · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨svs, m2⟩, hsvs, h⟩ <;> try dsimp only at h
-              · obtain ⟨p, hp, _⟩ := liftOp_error hd
-                exact (abiArgsAbi_ne_error _ _ _ _ _ _ hp).elim
+              · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+                exact .abiEncodeWithSignaturePanic (ih.exprs _ _ _ _ hvs0) (liftOpt_ok hs) (liftOpt_ok htys) hp
               · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨bs, hbs, h⟩ <;> try dsimp only at h
                 · exact (liftOpt_error hd).elim
                 · rw [IM.pure_some h]
@@ -138,8 +167,8 @@ theorem evalAbi_sound_step {n} (ih : SoundAt cfg o fc n) :
     · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨tys, htys, h⟩ <;> try dsimp only at h
       · exact (liftOpt_error hd).elim
       · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨svs, m2⟩, hsvs, h⟩ <;> try dsimp only at h
-        · obtain ⟨p, hp, _⟩ := liftOp_error hd
-          exact (abiArgsAbi_ne_error _ _ _ _ _ _ hp).elim
+        · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+          exact .abiEncodePanic (.inl rfl) (ih.exprs _ _ _ _ hvs) (liftOpt_ok htys) hp
         · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨bs, hbs, h⟩ <;> try dsimp only at h
           · exact (liftOpt_error hd).elim
           · rw [IM.pure_some h]
@@ -150,8 +179,8 @@ theorem evalAbi_sound_step {n} (ih : SoundAt cfg o fc n) :
     · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨tys, htys, h⟩ <;> try dsimp only at h
       · exact (liftOpt_error hd).elim
       · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨svs, m2⟩, hsvs, h⟩ <;> try dsimp only at h
-        · obtain ⟨p, hp, _⟩ := liftOp_error hd
-          exact (abiArgsAbi_ne_error _ _ _ _ _ _ hp).elim
+        · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+          exact .abiEncodePanic (.inr rfl) (ih.exprs _ _ _ _ hvs) (liftOpt_ok htys) hp
         · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨parts, hparts, h⟩ <;> try dsimp only at h
           · exact (liftOpt_error hd).elim
           · rw [IM.pure_some h]
@@ -261,7 +290,12 @@ theorem evalMemberCall_sound_step {n} (ih : SoundAt cfg o fc n) :
           · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨m2, hm2, h⟩ <;> try dsimp only at h
             · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
               rw [hopts]; exact .push0Panic henv he hp
-            · rw [IM.pure_some h]; rw [hopts]; exact .push0 henv he (liftOp_ok hm2)
+            · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨k, hk, h⟩ <;> try dsimp only at h
+              · exact (liftOpt_error hd).elim
+              · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨v, hv, h⟩ <;> try dsimp only at h
+                · exact (liftOpt_error hd).elim
+                · rw [IM.pure_some h]; rw [hopts]
+                  exact .push0 henv he (liftOp_ok hm2) (liftOpt_ok hk) (liftOpt_ok hv)
           · simp at h
       · -- pop
         rename_i er e
@@ -273,6 +307,38 @@ theorem evalMemberCall_sound_step {n} (ih : SoundAt cfg o fc n) :
             · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
               rw [hopts]; exact .popPanic henv he hp
             · rw [IM.pure_some h, hopts]; exact .pop henv he (liftOp_ok hm2)
+          · simp at h
+      · -- push on storage bytes
+        rename_i er
+        rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨u', hu', h⟩ <;> try dsimp only at h
+        · exact (guard'_error hd).elim
+        · have hopts := opts_empty hu'
+          split at h
+          · rename_i x
+            rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨v, fr2, m2⟩, hv, h⟩ <;> try dsimp only at h
+            · rw [hopts]; exact .pushBytes1Revert henv he (ih.expr _ _ _ _ hd)
+            · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨b, hb, h⟩ <;> try dsimp only at h
+              · exact (liftOpt_error hd).elim
+              · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨m3, hm3, h⟩ <;> try dsimp only at h
+                · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+                  rw [hopts]; exact .pushBytes1Panic henv he (ih.expr _ _ _ _ hv) (liftOpt_ok hb) hp
+                · rw [IM.pure_some h]; rw [hopts]
+                  exact .pushBytes1 henv he (ih.expr _ _ _ _ hv) (liftOpt_ok hb) (liftOp_ok hm3)
+          · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨m2, hm2, h⟩ <;> try dsimp only at h
+            · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+              rw [hopts]; exact .pushBytes0Panic henv he hp
+            · rw [IM.pure_some h]; rw [hopts]; exact .pushBytes0 henv he (liftOp_ok hm2)
+          · simp at h
+      · -- pop on storage bytes
+        rename_i er
+        rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨u', hu', h⟩ <;> try dsimp only at h
+        · exact (guard'_error hd).elim
+        · have hopts := opts_empty hu'
+          split at h
+          · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨m2, hm2, h⟩ <;> try dsimp only at h
+            · obtain ⟨p, hp, rfl⟩ := liftOp_error hd
+              rw [hopts]; exact .popBytesPanic henv he hp
+            · rw [IM.pure_some h, hopts]; exact .popBytes henv he (liftOp_ok hm2)
           · simp at h
       · -- external call on a contract value
         rename_i c a
