@@ -245,16 +245,19 @@ theorem execStmt_sound_step {n} (ih : SoundAt cfg o fc n) :
           · have he := ih.expr _ _ _ _ hrv
             split at h
             · rename_i c a
+              rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨u', hu', h⟩ <;> try dsimp only at h
+              · exact (guard'_error hd).elim
+              have hne : fc.contractFnsNamed c f ≠ [] := ne_nil_of_isEmpty_false (by simpa using guard'_ok hu')
               rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨value, fr2, m2⟩, hval, h⟩ <;> try dsimp only at h
-              · exact .tryCallValueRevert hmd he (ih.valueOpt _ _ _ _ hd)
+              · exact .tryCallValueRevert hmd he hne (ih.valueOpt _ _ _ _ hd)
               · have hv := ih.valueOpt _ _ _ _ hval
                 rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨gasReq, fr3, m3⟩, hgas, h⟩ <;> try dsimp only at h
-                · exact .tryCallGasRevert hmd he hv (ih.gasOpt _ _ _ _ hd)
+                · exact .tryCallGasRevert hmd he hne hv (ih.gasOpt _ _ _ _ hd)
                 · have hg := ih.gasOpt _ _ _ _ hgas
                   rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
                   · exact (liftOpt_error hd).elim
                   · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr4, m4⟩, hvs, h⟩ <;> try dsimp only at h
-                    · exact .tryCallArgsRevert hmd he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
+                    · exact .tryCallArgsRevert hmd he hne hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
                     · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨dcl, hdcl, h⟩ <;> try dsimp only at h
                       · exact (liftOpt_error hd).elim
                       · split at h

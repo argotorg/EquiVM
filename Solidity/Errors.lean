@@ -17,7 +17,11 @@ def panicSelector : ByteArray := ⟨#[0x4e, 0x48, 0x7b, 0x71]⟩
 def panicData (code : Nat) : ByteArray :=
   panicSelector ++ (Ethereum.UInt256.ofNat code).toByteArray
 
-def Panic.data (p : Panic) : ByteArray := panicData p.code
+/-- The revert data of a failure: `Panic(code)`, or empty for solc's calldata validator. -/
+def Panic.data (p : Panic) : ByteArray :=
+  match p.code with
+  | some c => panicData c
+  | none => ByteArray.empty
 
 /-- `abi.encodeWithSelector(Error.selector, msg)`. -/
 def errorStringData (msg : ByteArray) : ByteArray :=

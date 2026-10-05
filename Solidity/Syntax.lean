@@ -48,7 +48,8 @@ inductive Ty where
   | fixedBytes (n : Fin 32)
   | bytes
   | string
-  /-- A struct, enum, contract, interface or library name, optionally qualified (`A.S`). -/
+  /-- A struct, enum, user-defined value type, contract, interface or library name, optionally
+      qualified (`A.S`). -/
   | user (qual : Option Ident) (name : Ident)
   | mapping (key val : Ty)
   | array (elem : Ty) (n : Nat)
@@ -252,15 +253,35 @@ structure EnumDecl where
   members : List Ident
   deriving DecidableEq, Repr, Inhabited
 
-inductive UsingTarget where
-  | library (l : Ident)
-  | functions (fs : List Ident)
+/-- `type name is underlying;` (a user-defined value type). -/
+structure ValueTypeDecl where
+  name : Ident
+  underlying : Ty
   deriving DecidableEq, Repr, Inhabited
 
-/-- `using L for T;` (`ty := none` for `*`). -/
+/-- An operator a function can be bound to (`using {f as +} for T global;`).  `sub` is `-`, binary or
+    unary by the function's arity; `bitNot` is `~`. -/
+inductive UserOp where
+  | bitOr | bitAnd | bitXor | bitNot | add | sub | mul | div | mod | eq | ne | lt | gt | le | ge
+  deriving DecidableEq, Repr, Inhabited
+
+/-- One function of a `using { … } for T` list: `f`, `L.f`, or `f as +`. -/
+structure UsingFn where
+  qual : Option Ident := none
+  name : Ident
+  op : Option UserOp := none
+  deriving DecidableEq, Repr, Inhabited
+
+inductive UsingTarget where
+  | library (l : Ident)
+  | functions (fs : List UsingFn)
+  deriving DecidableEq, Repr, Inhabited
+
+/-- `using L for T;` / `using {f, L.g} for T;` (`ty := none` for `*`; `global` at file level). -/
 structure UsingFor where
   target : UsingTarget
   ty : Option Ty := none
+  global : Bool := false
   deriving DecidableEq, Repr, Inhabited
 
 /-- One entry of an `is` list: `B` or `B(args)`. -/
@@ -278,6 +299,7 @@ inductive ContractItem where
   | struct (d : StructDecl)
   | enum (d : EnumDecl)
   | usingFor (u : UsingFor)
+  | valueType (d : ValueTypeDecl)
   deriving Repr, Inhabited
 
 structure ContractDecl where
@@ -297,6 +319,9 @@ inductive SourceUnit where
   | constant (d : StateVarDecl)
   /-- A free (file-level) function. -/
   | function (d : FnDecl)
+  | valueType (d : ValueTypeDecl)
+  /-- A file-level `using` directive: it applies to every unit of the program. -/
+  | usingFor (u : UsingFor)
   deriving Repr, Inhabited
 
 abbrev Program := List SourceUnit
@@ -337,6 +362,9 @@ def enums (c : ContractDecl) : List EnumDecl :=
 
 def usings (c : ContractDecl) : List UsingFor :=
   c.items.filterMap fun | .usingFor u => some u | _ => none
+
+def valueTypes (c : ContractDecl) : List ValueTypeDecl :=
+  c.items.filterMap fun | .valueType d => some d | _ => none
 
 end ContractDecl
 

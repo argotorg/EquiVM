@@ -142,9 +142,11 @@ bases, then the file.  The same name may be declared in several units (`Tick.Inf
 function of its library by name.  Write the source as it is, including the qualified forms
 `Q.CONST`, `Q.Struct(...)`, `Q.Enum.member`, `Q.Enum(x)`, `revert Q.Err(...)`, `emit Q.Ev(...)` and
 `Q.f(...)`, with `Q` a library or a base (for types, errors and events also an interface or any
-other contract).  Not available: `Base.x` for a state variable, `using {f, g} for T`, file-level
-`using`.  In proofs, the lookup facts mention the running unit: `fc.varIn fr.here "x" = some v`,
-with `fr.here` the contract that declares the function.
+other contract).  `using L for T;` and `using {f, L.g} for T;` are available in a contract, a
+library and the file (`global` included), also for a contract or interface type (`using SafeERC20
+for IERC20; token.safeTransfer(…)`).  Not available: `Base.x` for a state variable.  In proofs,
+the lookup facts mention the running unit: `fc.varIn fr.here "x" = some v`, with `fr.here` the
+contract that declares the function.
 
 ## 7. Transcribing the source: builtins
 
@@ -163,4 +165,28 @@ members, `a.balance`, `a.code`, `a.codehash`, `abi.encode`, `abi.encodePacked`,
 - A decode of dynamic data that fails (`abi.decode`, return data) reverts with empty data or with
   `Panic(0x41)`, as the oracle says (`Oracle.allocPanic`, `decodeFailData`): pick the oracle that
   matches the bytecode's decoder for the input at hand.
-- Not available: `selfdestruct`, `blobhash`, `block.blobbasefee`, user-defined value types.
+- Not available: `selfdestruct`, `blobhash`, `block.blobbasefee`.
+
+## 8. Calldata parameters
+
+A `calldata` array or struct parameter is decoded without validating its words; a word is
+validated when an element or field is read, or when the object is ABI-encoded (a bad word reverts
+with empty data), and an array of value-type words copied to memory is cleaned, not validated.
+In proofs the arguments of an encoding (`abiEncodePlain`, `keccakPacked`, …) come with
+`hraw : ∀ v ∈ vs, hasRaw … = false`, discharged by `simp [fuelDefault]` for scalar arguments; a
+calldata array argument needs the validation step (`validateDeep`) spelled out.
+
+## 9. Transcribing the source: user-defined value types
+
+`type T is U;` is available in the file, a contract, a library and an interface, with `T.wrap`,
+`T.unwrap` and the qualified forms `Q.T`, `Q.T.wrap(…)`.  A value of the type is
+`Value.wrapped q T v` with `v` the value of the underlying type; storage, the ABI and mapping keys
+use the underlying type, so the slot and encoding lemmas of the underlying type apply
+(`readScalar_valueType`, `writeScalar_wrapped`, `scalarToAbi_wrapped`, `abiTypeOf_valueType`).
+Builders: `EvalExpr.wrapPlain`, `EvalExpr.unwrapPlain` with `valueTypeRecv_ident` /
+`valueTypeRecv_qual` for the receiver.
+
+One rule: an operator bound with `using {f as +} for T global` is written as the call it stands
+for.  The directive is transcribed as it is; `a + b` on values of `T` becomes `f(a, b)`, `-a`
+becomes `g(a)`.  solc evaluates the operator as that call, left operand first; the spec has no
+rule for the operator itself (see "User-defined operators" in `STRUCTURE.md`).

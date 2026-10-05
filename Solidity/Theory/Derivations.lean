@@ -837,9 +837,10 @@ theorem EvalExpr.immutableCfg {fr : Frame} {m : Machine} {x : Ident} {v : FlatVa
 
 theorem EvalExpr.memFieldPlain {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {f : Ident} {obj : ℕ} {v : Value}
     (hdirect : directMember fc fr e = false) (hf : f ≠ "length")
-    (he : EvalExpr cfg o fc fr m e (.ok (.memRef obj) fr1 m1)) (hget : memField m1.heap obj f = some v) :
+    (he : EvalExpr cfg o fc fr m e (.ok (.memRef obj) fr1 m1)) (hget : memField m1.heap obj f = some v)
+    (hraw : isRaw v = false := by rfl) :
     EvalExpr cfg o fc fr m (.member e f) (.ok v fr1 m1) :=
-  EvalExpr.memberMemField hdirect hf he hget
+  EvalExpr.memberMemField hdirect hf he hget hraw
 
 theorem EvalExpr.memLengthPlain {fr fr1 : Frame} {m m1 : Machine} {e : Expr} {obj n : ℕ}
     (hdirect : directMember fc fr e = false)
@@ -946,30 +947,33 @@ theorem EvalExpr.abiEncodePackedPlain {fr fr1 : Frame} {m m1 : Machine} {es : Li
     {tys : List ABI.ABIType} {svs : List ABI.ABIValue} {parts : List (List UInt8)}
     (hes : EvalExprs cfg o fc fr m es (.ok vs fr1 m1)) (htys : vs.mapM (abiTyOfValue fc.types m1.heap) = some tys)
     (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs)
-    (hparts : (tys.zip svs).mapM (fun (t, sv) => ABI.encodePackedValue? t sv) = some parts) :
+    (hparts : (tys.zip svs).mapM (fun (t, sv) => ABI.encodePackedValue? t sv) = some parts)
+    (hraw : ∀ v ∈ vs, hasRaw m1.heap fuelDefault v = false := by simp [fuelDefault]) :
     EvalExpr cfg o fc fr m (.call (.member (.ident "abi") "encodePacked") [] (.positional es))
       (.ok (allocBytes m1 false parts.flatten.toByteArray).1 fr1 (allocBytes m1 false parts.flatten.toByteArray).2) :=
-  EvalExpr.abiEncodePacked hes htys (abiArgsAbi_of_mapM hsvs) hparts rfl
+  EvalExpr.abiEncodePacked hes htys (abiArgsAbi_of_mapM hsvs hraw) hparts rfl
 
 /-- `abi.encode(es)`. -/
 theorem EvalExpr.abiEncodePlain {fr fr1 : Frame} {m m1 : Machine} {es : List Expr} {vs : List Value}
     {tys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8}
     (hes : EvalExprs cfg o fc fr m es (.ok vs fr1 m1)) (htys : vs.mapM (abiTyOfValue fc.types m1.heap) = some tys)
-    (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs) (henc : ABI.encodeABIValues? tys svs = some bs) :
+    (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs) (henc : ABI.encodeABIValues? tys svs = some bs)
+    (hraw : ∀ v ∈ vs, hasRaw m1.heap fuelDefault v = false := by simp [fuelDefault]) :
     EvalExpr cfg o fc fr m (.call (.member (.ident "abi") "encode") [] (.positional es))
       (.ok (allocBytes m1 false bs.toByteArray).1 fr1 (allocBytes m1 false bs.toByteArray).2) :=
-  EvalExpr.abiEncode hes htys (abiArgsAbi_of_mapM hsvs) henc rfl
+  EvalExpr.abiEncode hes htys (abiArgsAbi_of_mapM hsvs hraw) henc rfl
 
 /-- `abi.encodeWithSelector(sel, es)`. -/
 theorem EvalExpr.abiEncodeWithSelectorPlain {fr fr1 : Frame} {m m1 : Machine} {sel : Expr} {es : List Expr}
     {sb : List UInt8} {vs : List Value} {tys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8}
     (hes : EvalExprs cfg o fc fr m (sel :: es) (.ok (.fixedBytes ⟨3, by decide⟩ sb :: vs) fr1 m1))
     (htys : vs.mapM (abiTyOfValue fc.types m1.heap) = some tys)
-    (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs) (henc : ABI.encodeABIValues? tys svs = some bs) :
+    (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs) (henc : ABI.encodeABIValues? tys svs = some bs)
+    (hraw : ∀ v ∈ vs, hasRaw m1.heap fuelDefault v = false := by simp [fuelDefault]) :
     EvalExpr cfg o fc fr m (.call (.member (.ident "abi") "encodeWithSelector") [] (.positional (sel :: es)))
       (.ok (allocBytes m1 false (ByteArray.mk sb.toArray ++ bs.toByteArray)).1 fr1
         (allocBytes m1 false (ByteArray.mk sb.toArray ++ bs.toByteArray)).2) :=
-  EvalExpr.abiEncodeWithSelector hes (selectorArg_bytes4 ..) htys (abiArgsAbi_of_mapM hsvs) henc rfl
+  EvalExpr.abiEncodeWithSelector hes (selectorArg_bytes4 ..) htys (abiArgsAbi_of_mapM hsvs hraw) henc rfl
 
 /-- `keccak256(b)` of a memory `bytes`/`string` object. -/
 theorem EvalExpr.keccakMemBytes {fr fr1 : Frame} {m m1 : Machine} {b : Expr} {id : ℕ} {s : Bool} {d : ByteArray}
@@ -983,23 +987,25 @@ theorem EvalExpr.keccakPacked {fr fr1 : Frame} {m m1 : Machine} {es : List Expr}
     {tys : List ABI.ABIType} {svs : List ABI.ABIValue} {parts : List (List UInt8)}
     (hes : EvalExprs cfg o fc fr m es (.ok vs fr1 m1)) (htys : vs.mapM (abiTyOfValue fc.types m1.heap) = some tys)
     (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs)
-    (hparts : (tys.zip svs).mapM (fun (t, sv) => ABI.encodePackedValue? t sv) = some parts) :
+    (hparts : (tys.zip svs).mapM (fun (t, sv) => ABI.encodePackedValue? t sv) = some parts)
+    (hraw : ∀ v ∈ vs, hasRaw m1.heap fuelDefault v = false := by simp [fuelDefault]) :
     EvalExpr cfg o fc fr m
       (.call (.ident "keccak256") [] (.positional [.call (.member (.ident "abi") "encodePacked") [] (.positional es)]))
       (.ok (.fixedBytes ⟨31, by decide⟩ (ffi.KEC parts.flatten.toByteArray).toList) fr1
         (allocBytes m1 false parts.flatten.toByteArray).2) :=
   EvalExpr.keccakMemBytes (s := false) (d := parts.flatten.toByteArray)
-    (EvalExpr.abiEncodePackedPlain hes htys hsvs hparts) (Heap.get?_alloc_self _ _)
+    (EvalExpr.abiEncodePackedPlain hes htys hsvs hparts hraw) (Heap.get?_alloc_self _ _)
 
 /-- `keccak256(abi.encode(es))`. -/
 theorem EvalExpr.keccakEncode {fr fr1 : Frame} {m m1 : Machine} {es : List Expr} {vs : List Value}
     {tys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8}
     (hes : EvalExprs cfg o fc fr m es (.ok vs fr1 m1)) (htys : vs.mapM (abiTyOfValue fc.types m1.heap) = some tys)
-    (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs) (henc : ABI.encodeABIValues? tys svs = some bs) :
+    (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs) (henc : ABI.encodeABIValues? tys svs = some bs)
+    (hraw : ∀ v ∈ vs, hasRaw m1.heap fuelDefault v = false := by simp [fuelDefault]) :
     EvalExpr cfg o fc fr m
       (.call (.ident "keccak256") [] (.positional [.call (.member (.ident "abi") "encode") [] (.positional es)]))
       (.ok (.fixedBytes ⟨31, by decide⟩ (ffi.KEC bs.toByteArray).toList) fr1 (allocBytes m1 false bs.toByteArray).2) :=
-  EvalExpr.keccakMemBytes (s := false) (d := bs.toByteArray) (EvalExpr.abiEncodePlain hes htys hsvs henc)
+  EvalExpr.keccakMemBytes (s := false) (d := bs.toByteArray) (EvalExpr.abiEncodePlain hes htys hsvs henc hraw)
     (Heap.get?_alloc_self _ _)
 
 theorem EvalExprs.two {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {e1 e2 : Expr} {v1 v2 : Value}
@@ -2213,11 +2219,12 @@ theorem EvalExpr.contractCast {fr fr1 : Frame} {m m1 : Machine} {c : Ident} {a :
     (hbuiltin : isBuiltinFn c = false) (hx : fr.get? c = none) (hvar : fc.varIn fr.here c = none) (hfns : fc.fnsNamedIn fr.here c = [])
     (hstruct : fc.types.structIn fr.here c = none) (hkind : (fc.types.contractKind? c).isSome = true)
     (henumIn : fc.types.enumIn fr.here c = none) (henum : (fc.types.enum? none c).isNone = true)
+    (hvalueIn : fc.types.valueTypeIn fr.here c = none)
     (ha : EvalExpr cfg o fc fr m a (.ok (.address addr) fr1 m1)) :
     EvalExpr cfg o fc fr m (.call (.ident c) [] (.positional [a])) (.ok (.contract c addr) fr1 m1) :=
-  EvalExpr.convertUser hbuiltin hx hvar hfns hstruct (Or.inl hkind)
+  EvalExpr.convertUser hbuiltin hx hvar hfns hstruct (Or.inl (Or.inl hkind))
     (EvalExpr.convertPlain ha (by
-      rw [TypeEnv.canonTy_user_none hstruct henumIn]
+      rw [TypeEnv.canonTy_user_none hstruct henumIn hvalueIn]
       exact explicitConv_address_contract _ _ addr none c hkind henum))
 
 theorem EvalExpr.arrayLitPlain {fr fr1 : Frame} {m m1 m2 : Machine} {es : List Expr} {vs : List Value} {v : Value}
@@ -2338,15 +2345,17 @@ theorem EvalExpr.libraryCallPlain {fr fr1 : Frame} {m m1 m2 : Machine} {l f : Id
     EvalExpr cfg o fc fr m (.call (.member (.ident l) f) [] (.positional es)) (.ok (retValue rets) fr1 m2) :=
   EvalExpr.libraryCall henv hx hlib hq rfl hargs hres hcall
 
+/-- `recv.f(args)` through `using … for`: `cands` are the attached functions named `f`. -/
 theorem EvalExpr.usingForCallPlain {fr fr1 fr2 : Frame} {m m1 m2 m3 : Machine} {recv : Expr} {f : Ident} {rv : Value}
-    {lib : ContractDecl} {es : List Expr} {vs rets : List Value} {d : FnDecl}
+    {cands : List (FnKey × FnId)} {es : List Expr} {vs rets : List Value} {fn : FnDef}
     (hdm : memberCallDirect fc fr recv = false) (hrecv : EvalExpr cfg o fc fr m recv (.ok rv fr1 m1))
-    (hspecial : specialMemberCall rv f = false) (hlib : usingLibrary fc fr.here (receiverTy m1.heap rv) = [lib])
-    (hargs : EvalExprs cfg o fc fr1 m1 es (.ok vs fr2 m2))
-    (hres : resolveDecl fc.types m2.heap (lib.functions.filter (·.name == f)) (rv :: vs) = some d)
-    (hcall : CallFn cfg o fc fr2 m2 ⟨0, lib.name, d⟩ (rv :: vs) (.ok rets m3)) :
-    EvalExpr cfg o fc fr m (.call (.member recv f) [] (.positional es)) (.ok (retValue rets) fr2 m3) :=
-  EvalExpr.usingForCall hdm hrecv hspecial hlib rfl hargs hres hcall
+    (hspecial : specialMemberCall fc rv f = false) (hcands : usingCands fc fr.here (receiverTy m1.heap rv) f = cands)
+    (hne : cands ≠ []) (hargs : EvalExprs cfg o fc fr1 m1 es (.ok vs fr2 m2))
+    (hres : resolveOverload fc.types m2.heap fc cands (rv :: vs) = some fn)
+    (hcall : CallFn cfg o fc fr2 m2 fn (rv :: vs) (.ok rets m3)) :
+    EvalExpr cfg o fc fr m (.call (.member recv f) [] (.positional es)) (.ok (retValue rets) fr2 m3) := by
+  subst hcands
+  exact EvalExpr.usingForCall hdm hrecv hspecial hne rfl hargs hres hcall
 
 /-- `a.delegatecall(data)` with `data` a memory `bytes`: the EVM result is `hcall`. -/
 theorem EvalExpr.delegateCallPlain {fr fr1 fr3 : Frame} {m m1 m3 m4 : Machine} {recv dataE : Expr} {a : EVM.Address}
@@ -2415,11 +2424,12 @@ theorem EvalExpr.abiEncodeWithSignaturePlain {fr fr1 : Frame} {m m1 : Machine} {
     {vs : List Value} {tys : List ABI.ABIType} {svs : List ABI.ABIValue} {bs : List UInt8}
     (hes : EvalExprs cfg o fc fr m (.lit (.str sig) :: es) (.ok (.strLit sig.toUTF8 :: vs) fr1 m1))
     (htys : vs.mapM (abiTyOfValue fc.types m1.heap) = some tys)
-    (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs) (henc : ABI.encodeABIValues? tys svs = some bs) :
+    (hsvs : vs.mapM (toAbi m1.heap fuelDefault) = some svs) (henc : ABI.encodeABIValues? tys svs = some bs)
+    (hraw : ∀ v ∈ vs, hasRaw m1.heap fuelDefault v = false := by simp [fuelDefault]) :
     EvalExpr cfg o fc fr m (.call (.member (.ident "abi") "encodeWithSignature") [] (.positional (.lit (.str sig) :: es)))
       (.ok (allocBytes m1 false ((ffi.KEC sig.toUTF8).extract 0 4 ++ bs.toByteArray)).1 fr1
         (allocBytes m1 false ((ffi.KEC sig.toUTF8).extract 0 4 ++ bs.toByteArray)).2) :=
-  EvalExpr.abiEncodeWithSignature hes rfl htys (abiArgsAbi_of_mapM hsvs) henc rfl
+  EvalExpr.abiEncodeWithSignature hes rfl htys (abiArgsAbi_of_mapM hsvs hraw) henc rfl
 
 /-- `delete x` for a `uint256` local. -/
 theorem ExecStmt.deleteLocalU256 {fr : Frame} {m : Machine} {x : Ident} (l : Local) (hx : fr.get? x = some l)
@@ -2677,5 +2687,21 @@ theorem ExecStmt.deleteMemPlain {fr fr1 fr2 : Frame} {m m1 m2 : Machine} {e : Ex
     (ha : assign cfg fc.types fr1 { m1 with heap := h' } lv z = some (.ok (fr2, m2))) :
     ExecStmt cfg o fc fr m (.exprStmt (.unary .delete e)) (.normal fr2 m2) :=
   ExecStmt.exprStmt (EvalExpr.deleteMem hlv hmem hty hz ha)
+
+/-! ## User-defined value types -/
+
+/-- `T.wrap(a)`: `a` converted to the underlying type and tagged with `T`. -/
+theorem EvalExpr.wrapPlain {fr fr1 : Frame} {m m1 : Machine} {recv a : Expr} {t : ValueTypeInfo} {v u : Value} {h' : Heap}
+    (hrecv : valueTypeRecv fc fr recv = some t) (ha : EvalExpr cfg o fc fr m a (.ok v fr1 m1))
+    (hconv : implicitConv fc.types m1.heap v t.underlying = some (u, h')) (helem : u.isElem = true := by rfl) :
+    EvalExpr cfg o fc fr m (.call (.member recv "wrap") [] (.positional [a])) (.ok (.wrapped t.qual t.name u) fr1 m1) :=
+  EvalExpr.wrap hrecv ha (wrapValue_of_conv hconv helem)
+
+/-- `T.unwrap(a)`: the value `T.wrap` tagged. -/
+theorem EvalExpr.unwrapPlain {fr fr1 : Frame} {m m1 : Machine} {recv a : Expr} {t : ValueTypeInfo} {u : Value}
+    (hrecv : valueTypeRecv fc fr recv = some t)
+    (ha : EvalExpr cfg o fc fr m a (.ok (.wrapped t.qual t.name u) fr1 m1)) :
+    EvalExpr cfg o fc fr m (.call (.member recv "unwrap") [] (.positional [a])) (.ok u fr1 m1) :=
+  EvalExpr.unwrap hrecv ha (unwrapValue_wrapped t u)
 
 end Solidity

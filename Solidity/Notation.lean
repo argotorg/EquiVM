@@ -174,8 +174,12 @@ syntax (name := solidityEventItem)
 syntax (name := solidityErrorItem) "error " ident "(" solidityParam,* ")" ";" : solidityItem
 syntax (name := solidityStructItem) "struct " ident "{" solidityStructMember* "}" : solidityItem
 syntax (name := solidityEnumItem) "enum " ident "{" ident,* "}" : solidityItem
+syntax solidityUsingOp := "|" <|> "&" <|> "^" <|> "~" <|> "+" <|> "-" <|> "*" <|> "/" <|> "%" <|> "==" <|> "!="
+  <|> "<=" <|> ">=" <|> "<" <|> ">"
+syntax solidityUsingFn := ident (&" as " solidityUsingOp)?
 syntax (name := solidityUsing)
-  "using " (ident <|> ("{" ident,* "}")) " for " (solidityTy <|> "*") ";" : solidityItem
+  "using " (ident <|> ("{" solidityUsingFn,* "}")) " for " (solidityTy <|> "*") (&" global")? ";" : solidityItem
+syntax (name := solidityValueTypeItem) "type " ident &" is " solidityTy ";" : solidityItem
 syntax solidityEsc : solidityItem
 
 -- Units
@@ -195,6 +199,9 @@ syntax (name := solidityEventUnit)
 syntax (name := solidityConstUnit) solidityTy &" constant " ident " = " solidityExpr ";" : solidityUnit
 syntax (name := solidityFreeFn)
   "function " ident "(" solidityParam,* ")" solidityFnAttr* solidityBody : solidityUnit
+syntax (name := solidityValueTypeUnit) "type " ident &" is " solidityTy ";" : solidityUnit
+syntax (name := solidityUsingUnit)
+  "using " (ident <|> ("{" solidityUsingFn,* "}")) " for " (solidityTy <|> "*") (&" global")? ";" : solidityUnit
 
 syntax:max "sol% " solidityUnit : term
 
@@ -744,6 +751,40 @@ private def elabVarAttrs (attrs : Array Syntax) : MacroM (Term × Term × Term) 
     | other => Macro.throwError s!"unknown state variable attribute `{other}`"
   return (vis, mutab, ov)
 
+private def userOpTerm (op : String) : MacroM Term :=
+  match op with
+  | "|" => `(Solidity.UserOp.bitOr) | "&" => `(Solidity.UserOp.bitAnd) | "^" => `(Solidity.UserOp.bitXor)
+  | "~" => `(Solidity.UserOp.bitNot) | "+" => `(Solidity.UserOp.add) | "-" => `(Solidity.UserOp.sub)
+  | "*" => `(Solidity.UserOp.mul) | "/" => `(Solidity.UserOp.div) | "%" => `(Solidity.UserOp.mod)
+  | "==" => `(Solidity.UserOp.eq) | "!=" => `(Solidity.UserOp.ne) | "<" => `(Solidity.UserOp.lt)
+  | ">" => `(Solidity.UserOp.gt) | "<=" => `(Solidity.UserOp.le) | ">=" => `(Solidity.UserOp.ge)
+  | _ => Macro.throwError s!"`{op}` is not a user-definable operator"
+
+/-- The text of an atom, also when an alternative of `<|>` wraps it in a node. -/
+private partial def atomText (s : Syntax) : String :=
+  if s.isAtom then s.getAtomVal else if s.getNumArgs == 0 then "" else atomText s[0]
+
+/-- `using (L | { f, L.g, h as + }) for (T | *) (global)? ;` (shared by items and units). -/
+private def elabUsingFor (raw : Syntax) : MacroM Term := do
+  let targetStx := raw[1]
+  let target ← if targetStx.isIdent then `(Solidity.UsingTarget.library $(strLit (nameStr targetStx.getId)))
+    else do
+      let fs ← targetStx[1].getSepArgs.mapM fun x => do
+        let (qual, name) ← match x[0].getId.components.map nameStr with
+          | [f] => pure ((← `(none)), strLit f)
+          | [l, f] => pure ((← `(some $(strLit l))), strLit f)
+          | _ => Macro.throwErrorAt x "expected `f` or `L.f`"
+        let op ← if x[1].getNumArgs == 0 then `(none) else do `(some $(← userOpTerm (atomText x[1][1])))
+        `({ qual := $qual, name := $name, op := $op : Solidity.UsingFn })
+      `(Solidity.UsingTarget.functions $(← mkList fs))
+  let tyStx := raw[3]
+  let ty ← if atomText tyStx == "*" then `(none) else do `(some $(← elabTy ⟨tyStx⟩))
+  `({ target := $target, ty := $ty, global := $(boolTerm (raw[4].getNumArgs != 0)) : Solidity.UsingFor })
+
+private def elabValueTypeDecl (raw : Syntax) : MacroM Term := do
+  -- type ident is ty ;
+  `({ name := $(strLit (nameStr raw[1].getId)), underlying := $(← elabTy ⟨raw[3]⟩) : Solidity.ValueTypeDecl })
+
 def elabItem (stx : TSyntax `solidityItem) : MacroM Term := do
   let raw := stx.raw
   if raw.isOfKind ``solidityStateVar then
@@ -797,15 +838,9 @@ def elabItem (stx : TSyntax `solidityItem) : MacroM Term := do
   else if raw.isOfKind ``solidityEnumItem then
     `(Solidity.ContractItem.enum $(← elabEnumDecl raw[1] raw[3].getSepArgs))
   else if raw.isOfKind ``solidityUsing then
-    -- using (ident | { idents }) for (ty | *) ;
-    let targetStx := raw[1]
-    let target ← if targetStx.isIdent then `(Solidity.UsingTarget.library $(strLit (nameStr targetStx.getId)))
-      else do
-        let fs := targetStx[1].getSepArgs.map fun x => strLit (nameStr x.getId)
-        `(Solidity.UsingTarget.functions $(← mkList fs))
-    let tyStx := raw[3]
-    let ty ← if tyStx.isAtom then `(none) else do `(some $(← elabTy ⟨tyStx⟩))
-    `(Solidity.ContractItem.usingFor { target := $target, ty := $ty : Solidity.UsingFor })
+    `(Solidity.ContractItem.usingFor $(← elabUsingFor raw))
+  else if raw.isOfKind ``solidityValueTypeItem then
+    `(Solidity.ContractItem.valueType $(← elabValueTypeDecl raw))
   else
     match stx with
     | `(solidityItem| $e:solidityEsc) =>
@@ -864,6 +899,10 @@ def elabUnit (stx : TSyntax `solidityUnit) : MacroM Term := do
     let attrs ← foldFnAttrs raw[5].getArgs
     let body ← elabBody raw[6]
     `(Solidity.SourceUnit.function $(← fnDeclTerm (← `(Solidity.FnKind.function)) name params attrs body))
+  else if raw.isOfKind ``solidityValueTypeUnit then
+    `(Solidity.SourceUnit.valueType $(← elabValueTypeDecl raw))
+  else if raw.isOfKind ``solidityUsingUnit then
+    `(Solidity.SourceUnit.usingFor $(← elabUsingFor raw))
   else Macro.throwErrorAt stx s!"unsupported unit syntax ({stx.raw.getKind})"
 
 macro_rules

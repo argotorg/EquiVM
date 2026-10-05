@@ -362,9 +362,9 @@ theorem decodeCallArgs_none_of_decodeArgs {cfg : Config} {env : TypeEnv} {d : Fn
   simp [decodeCallArgs, h]
 
 /-- Arguments whose typed reconstruction fails (an enum value out of range) are rejected. -/
-theorem decodeCallArgs_none_of_ofAbiList {cfg : Config} {env : TypeEnv} {d : FnDecl} {cd : ByteArray}
+theorem decodeCallArgs_none_of_ofAbiParams {cfg : Config} {env : TypeEnv} {d : FnDecl} {cd : ByteArray}
     {svs : List ABI.ABIValue} (h : decodeArgs cfg env d cd = some svs)
-    (hof : ofAbiList env (d.params.map (·.ty)) svs {} = none) : decodeCallArgs cfg env d cd = none := by
+    (hof : ofAbiParams env d.params svs {} = none) : decodeCallArgs cfg env d cd = none := by
   simp [decodeCallArgs, h, hof]
 
 /-- An empty revert when the spec dispatches but cannot decode the arguments ⇒ `decodingFailed`. -/
@@ -451,8 +451,11 @@ theorem panicData_eq (n : ℕ) (hn : n < UInt256.size) :
     panicData n = solcPanicPayload (UInt256.ofNat n) := by
   rw [solcPanicPayload_eq, ulit_toNat' n hn]
 
-theorem Panic.data_eq (p : Panic) : p.data = solcPanicPayload (UInt256.ofNat p.code) :=
-  panicData_eq p.code (by cases p <;> decide)
+/-- A failure with a `Panic(uint256)` code reverts with solc's `Panic` bytes. -/
+theorem Panic.data_eq {p : Panic} {c : Nat} (hc : p.code = some c) : p.data = solcPanicPayload (UInt256.ofNat c) := by
+  unfold Panic.data
+  rw [hc]
+  exact panicData_eq c (by cases p <;> simp [Panic.code] at hc <;> subst hc <;> decide)
 
 theorem list_toByteArray_eq (l : List UInt8) : l.toByteArray = ⟨l.toArray⟩ := by
   apply ByteArray.ext
@@ -778,9 +781,12 @@ def abiArgStep (cfg : Config) (env : TypeEnv) (accm : List ABI.ABIValue × Machi
   | _ => Op.stuck
 
 theorem abiArgs_eq_foldlM (cfg : Config) (env : TypeEnv) (m : Machine) (tys : List Ty) (vs : List Value)
-    (hlen : tys.length = vs.length) :
+    (hlen : tys.length = vs.length) (hraw : ∀ v ∈ vs, hasRaw m.heap fuelDefault v = false) :
     abiArgs cfg env m tys vs = (tys.zip vs).foldlM (abiArgStep cfg env) ([], m) := by
+  have hf : vs.foldlM (validateDeep env fuelDefault) m.heap = pure m.heap :=
+    foldlM_validateDeep_of_noRaw (fuel := 1023) hraw
   simp only [abiArgs, hlen, ne_eq, not_true_eq_false, if_false]
+  rw [hf]
   rfl
 
 theorem abiArgStep_static (cfg : Config) (env : TypeEnv) (acc : List ABI.ABIValue) (m : Machine) (v : LogVal) :
@@ -809,9 +815,17 @@ theorem eventFits_static (env : TypeEnv) (hp : Heap) (ei : EventInfo) (xs : List
   obtain ⟨x, _, rfl⟩ := List.mem_map.mp hpv
   exact eventArgFits_static env hp x.val
 
+/-- A static log value holds no calldata word. -/
+theorem hasRaw_logVal (h : Heap) (fuel : ℕ) (v : LogVal) : hasRaw h (fuel + 1) v.solValue = false := by
+  cases v <;> simp [LogVal.solValue]
+
 theorem abiArgs_static (cfg : Config) (env : TypeEnv) (m : Machine) (xs : List LogArg) :
     abiArgs cfg env m (xs.map (·.val.ty)) (xs.map (·.val.solValue)) = some (.ok (xs.map (·.val.value), m)) := by
-  rw [abiArgs_eq_foldlM _ _ _ _ _ (by simp), abiArgs_static_fold, List.nil_append]
+  rw [abiArgs_eq_foldlM _ _ _ _ _ (by simp) (by
+      intro v hv
+      obtain ⟨x, _, rfl⟩ := List.mem_map.mp hv
+      exact hasRaw_logVal m.heap 1023 x.val),
+    abiArgs_static_fold, List.nil_append]
 
 /-! ## ABI tuple encoding from the per-element encodings (static and dynamic) -/
 
@@ -862,12 +876,14 @@ theorem encodeABIValues?_of_encs (xs : List (ABI.ABIType × ABI.ABIValue × List
 theorem abiArgs_memString {cfg : Config} {env : TypeEnv} {m : Machine} {id : ℕ} {b : ByteArray}
     (hget : m.heap.get? id = some (.bytes true b)) :
     abiArgs cfg env m [.string] [.memRef id] = some (.ok ([.bytes b], m)) := by
-  simp [abiArgs, coerce, implicitConv, fuelDefault, toAbi_memBytes 1023 hget]
+  simp [abiArgs, coerce, implicitConv, fuelDefault, toAbi_memBytes 1023 hget,
+    validateDeep_of_noRaw (hasRaw_memBytes 1023 hget), hasRaw_memBytes 1023 hget]
 
 theorem abiArgs_memBytes {cfg : Config} {env : TypeEnv} {m : Machine} {id : ℕ} {b : ByteArray}
     (hget : m.heap.get? id = some (.bytes false b)) :
     abiArgs cfg env m [.bytes] [.memRef id] = some (.ok ([.bytes b], m)) := by
-  simp [abiArgs, coerce, implicitConv, fuelDefault, toAbi_memBytes 1023 hget]
+  simp [abiArgs, coerce, implicitConv, fuelDefault, toAbi_memBytes 1023 hget,
+    validateDeep_of_noRaw (hasRaw_memBytes 1023 hget), hasRaw_memBytes 1023 hget]
 
 /-- The log entry of an event with one non-indexed `string` argument. -/
 theorem mkLogEntry_string (this : EVM.Address) (ev : EventInfo) (b : ByteArray) {n1 : Option Ident}
@@ -954,10 +970,16 @@ theorem toAbi_memArray_u256 {h : Heap} {id : ℕ} {ety : Ty} {ns : List ℕ} {fx
   rw [mapM_toAbi_u256 h fuel ns]
   rfl
 
+/-- A memory array of `uint256` holds no calldata word. -/
+theorem hasRaw_memArray_u256 {h : Heap} {id : ℕ} {ety : Ty} {ns : List ℕ} {fx : Bool} (fuel : ℕ)
+    (hget : h.get? id = some (.array ety (ns.map u256Val) fx)) : hasRaw h (fuel + 2) (.memRef id) = false := by
+  simp [hasRaw, hget]
+
 theorem abiArgs_memArray_u256 {cfg : Config} {env : TypeEnv} {m : Machine} {id : ℕ} {ety : Ty} {ns : List ℕ}
     {fx : Bool} (hget : m.heap.get? id = some (.array ety (ns.map u256Val) fx)) :
     abiArgs cfg env m [.dynArray u256Ty] [.memRef id] = some (.ok ([.array (ns.map fun (n : ℕ) => ABI.ABIValue.int n)], m)) := by
-  simp [abiArgs, coerce, implicitConv, fuelDefault, toAbi_memArray_u256 1022 hget]
+  simp [abiArgs, coerce, implicitConv, fuelDefault, toAbi_memArray_u256 1022 hget,
+    validateDeep_of_noRaw (hasRaw_memArray_u256 1022 hget), hasRaw_memArray_u256 1022 hget]
 
 theorem encodeABIStaticArrayElems?_u256 : ∀ (ns : List ℕ), (∀ n ∈ ns, n < 2 ^ 256) →
     ABI.encodeABIStaticArrayElems? (.elem (.int (.uint ⟨256, by decide⟩))) (ns.map fun (n : ℕ) => ABI.ABIValue.int n) =
@@ -1081,12 +1103,25 @@ theorem Run.solcDispatchNoMatchRevert {code : ByteArray} {cA gh bl σ σ₀ A I}
   obtain ⟨_, _, h'⟩ := Run.dispatchNoMatch n h hwf heq0 (by simp)
   exact (h'.jumpdest hjd (by simp)).revertStub hr0 hr1 hr2 (by simp)
 
-/-- `decodeArgs` is the calldata decoder on the function's signature. -/
-theorem decodeArgs_eq {cfg : Config} {env : TypeEnv} {d : FnDecl} {cd : ByteArray} {sig : ABI.Signature}
-    (hsig : sigOf env d.name (d.params.map (·.ty)) = some sig) :
-    decodeArgs cfg env d cd = ABI.decodeCalldataValues? sig.paramTypes cd cfg.abiDecodeMode := by
+/-- `decodeArgs` is the calldata decoder on the parameters' decode types (`paramDecodeTys`: the
+    signature's types, except that a `calldata` array or struct is decoded with plain words). -/
+theorem decodeArgs_eq {cfg : Config} {env : TypeEnv} {d : FnDecl} {cd : ByteArray} {tys : List ABI.ABIType}
+    (htys : paramDecodeTys env d.params = some tys) :
+    decodeArgs cfg env d cd = ABI.decodeCalldataValues? tys cd cfg.abiDecodeMode := by
   unfold decodeArgs
-  rw [hsig, Opt.some_bind]
+  rw [htys, Opt.some_bind]
+
+/-- Without `calldata` array or struct parameters the decode types are the signature's. -/
+theorem paramDecodeTys_eq_sig {env : TypeEnv} (ps : List Param) (hcd : ∀ p ∈ ps, calldataRef env p = false) :
+    paramDecodeTys env ps = (ps.map (·.ty)).mapM (abiTypeOf env) := by
+  induction ps with
+  | nil => rfl
+  | cons p ps ih =>
+    have hp : calldataRef env p = false := hcd p (List.mem_cons_self ..)
+    have ih' := ih fun q hq => hcd q (List.mem_cons_of_mem _ hq)
+    unfold paramDecodeTys at ih' ⊢
+    rw [List.map_cons, List.mapM_cons, List.mapM_cons, ih', hp]
+    simp
 
 theorem payableOrNoValue_of_zero {d : FnDecl} {I : ExecutionEnv} (h : I.weiValue = ⟨0⟩) : payableOrNoValue d I :=
   Or.inr h

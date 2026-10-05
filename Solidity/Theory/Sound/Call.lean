@@ -362,7 +362,34 @@ theorem evalCall_sound_step {n} (ih : SoundAt cfg o fc n) :
                     · simp at h
                   · simp at h
                 · simp at h
-              · exact ih.memberCall _ _ _ _ _ _ _ h
+              · split at h
+                · -- T.wrap(a) / T.unwrap(a)
+                  rename_i t hvt
+                  split at h
+                  · rename_i a
+                    split at h
+                    · rename_i hf
+                      have hf' := hf
+                      rw [beq_iff_eq] at hf'
+                      subst hf'
+                      rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨v, fr1, m1⟩, hv, h⟩ <;> try dsimp only at h
+                      · exact .wrapRevert hvt (.inl rfl) (ih.expr _ _ _ _ hd)
+                      · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨w, hw, h⟩ <;> try dsimp only at h
+                        · exact (liftOpt_error hd).elim
+                        · rw [IM.pure_some h]; exact .wrap hvt (ih.expr _ _ _ _ hv) (liftOpt_ok hw)
+                    · split at h
+                      · rename_i hf
+                        have hf' := hf
+                        rw [beq_iff_eq] at hf'
+                        subst hf'
+                        rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨v, fr1, m1⟩, hv, h⟩ <;> try dsimp only at h
+                        · exact .wrapRevert hvt (.inr rfl) (ih.expr _ _ _ _ hd)
+                        · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨u, hu, h⟩ <;> try dsimp only at h
+                          · exact (liftOpt_error hd).elim
+                          · rw [IM.pure_some h]; exact .unwrap hvt (ih.expr _ _ _ _ hv) (liftOpt_ok hu)
+                      · simp at h
+                  · simp at h
+                · exact ih.memberCall _ _ _ _ _ _ _ h
   · simp at h
 
 end Solidity

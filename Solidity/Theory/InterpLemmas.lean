@@ -284,4 +284,7 @@ theorem guard'_error {b : Bool} {d : ByteArray} (h : (Interp.guard' b).run = som
   obtain ⟨_, hr⟩ := guard'_some h
   cases hr
 
+theorem ne_nil_of_isEmpty_false {α} {l : List α} (h : l.isEmpty = false) : l ≠ [] := by
+  cases l <;> simp_all
+
 end Solidity

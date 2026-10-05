@@ -184,7 +184,7 @@ def evalExpr : Nat → Frame → Machine → Expr → EV
         if isRaw v then
           match v with
           | .raw ty w =>
-            match validateRaw ty w with
+            match validateRaw fc.types ty w with
             | .ok v' => pure (v', fr2, m2)
             | .error d => throw d
           | _ => failure
@@ -304,7 +304,16 @@ def evalMember : Nat → Frame → Machine → Expr → Ident → EV
         pure (r, fr1, m1)
     | .memRef obj =>
       if f == "length" then do let n ← liftOpt (memLength m1.heap obj); pure (wordNat n, fr1, m1)
-      else do let r ← liftOpt (memField m1.heap obj f); pure (r, fr1, m1)
+      else do
+        let r ← liftOpt (memField m1.heap obj f)
+        if isRaw r then
+          match r with
+          | .raw ty w =>
+            match validateRaw fc.types ty w with
+            | .ok v' => pure (v', fr1, m1)
+            | .error d => throw d
+          | _ => failure
+        else pure (r, fr1, m1)
     | .fixedBytes n _ => if f == "length" then pure (wordNat (n.val + 1), fr1, m1) else failure
     | v =>
       if f == "balance" then do
@@ -426,7 +435,23 @@ def evalCall : Nat → Frame → Machine → Expr → List CallOpt → Args → 
             | none => failure
           else failure
         | _, _, _ => failure
-      else evalMemberCall fuel fr m recv f opts args
+      else
+        match valueTypeRecv fc fr recv with
+        | some t =>
+          -- `T.wrap(a)` / `T.unwrap(a)`
+          match opts, args with
+          | [], .positional [a] =>
+            if f == "wrap" then do
+              let (v, fr1, m1) ← evalExpr fuel fr m a
+              let w ← liftOpt (wrapValue fc.types m1.heap t v)
+              pure (w, fr1, m1)
+            else if f == "unwrap" then do
+              let (v, fr1, m1) ← evalExpr fuel fr m a
+              let u ← liftOpt (unwrapValue t v)
+              pure (u, fr1, m1)
+            else failure
+          | _, _ => failure
+        | none => evalMemberCall fuel fr m recv f opts args
     | _, _, _ => failure
 
 /-- The builtin functions (`isBuiltinFn`). -/
@@ -521,7 +546,8 @@ def evalNamedCall : Nat → Frame → Machine → Ident → List CallOpt → Arg
         let (v, m2) ← liftOp (structObj cfg fc.types m1 sd vs)
         pure (v, fr1, m2)
       | none =>
-        if (fc.varIn fr.here f).isNone && ((fc.types.contractKind? f).isSome || (fc.types.enumIn fr.here f).isSome) then
+        if (fc.varIn fr.here f).isNone && ((fc.types.contractKind? f).isSome || (fc.types.enumIn fr.here f).isSome ||
+            (fc.types.valueTypeIn fr.here f).isSome) then
           match args with
           | .positional [a] => evalCall fuel fr m (.typeExpr (.user none f)) opts (.positional [a])
           | _ => failure
@@ -603,7 +629,7 @@ def evalMemberCall : Nat → Frame → Machine → Expr → Ident → List CallO
   | fuel+1, fr, m, recv, f, opts, args => do
     guard' (!(memberCallDirect fc fr recv))
     let (rv, fr1, m1) ← evalExpr fuel fr m recv
-    if specialMemberCall rv f then
+    if specialMemberCall fc rv f then
       match rv, f with
       | .storageRef er (.dynArray e), "push" =>
         guard' opts.isEmpty
@@ -698,16 +724,15 @@ def evalMemberCall : Nat → Frame → Machine → Expr → Ident → List CallO
         | _, _ => failure
       | _, _ => failure
     else
-      -- `using L for T`
+      -- `using … for`
       guard' opts.isEmpty
-      match usingLibrary fc fr.here (receiverTy m1.heap rv) with
-      | [lib] =>
-        let es ← liftOpt (callArgs ((lib.functions.filter (·.name == f)).map (·.params.drop 1)) args)
+      if usingCands fc fr.here (receiverTy m1.heap rv) f ≠ [] then
+        let es ← liftOpt (callArgs ((fc.candParams (usingCands fc fr.here (receiverTy m1.heap rv) f)).map (·.drop 1)) args)
         let (vs, fr2, m2) ← evalExprs fuel fr1 m1 es
-        let d ← liftOpt (resolveDecl fc.types m2.heap (lib.functions.filter (·.name == f)) (rv :: vs))
-        let rets ← callFn fuel fr2 m2 ⟨0, lib.name, d⟩ (rv :: vs)
+        let fn ← liftOpt (resolveOverload fc.types m2.heap fc (usingCands fc fr.here (receiverTy m1.heap rv) f) (rv :: vs))
+        let rets ← callFn fuel fr2 m2 fn (rv :: vs)
         pure (retValue rets.1, fr2, rets.2)
-      | _ => failure
+      else failure
 
 def evalValueOpt : Nat → Frame → Machine → Option Expr → IM (Nat × Frame × Machine)
   | 0, _, _, _ => failure
@@ -900,6 +925,7 @@ def execStmt : Nat → Frame → Machine → Stmt → IM ExecResult
         let (rv, fr1, m1) ← evalExpr fuel fr m recv
         match rv with
         | .contract c a =>
+          guard' (!(fc.contractFnsNamed c f).isEmpty)
           let value ← evalValueOpt fuel fr1 m1 (valueOpt opts)
           let gasReq ← evalGasOpt fuel value.2.1 value.2.2 (gasOpt opts)
           let (fr3, m3) := (gasReq.2.1, gasReq.2.2)
@@ -1039,7 +1065,7 @@ def interpExec (fuel : Nat) (createdAccounts : Batteries.RBSet Ethereum.AccountA
     if fn.decl.mutability != .payable && I.weiValue != ⟨0⟩ then
       return (.reverted ByteArray.empty, .abi retTys)
     let svs ← liftOpt (decodeArgs cfg fc.types fn.decl I.calldata)
-    let (vs, h0) ← liftOpt (ofAbiList fc.types (fn.decl.params.map (·.ty)) svs {})
+    let (vs, h0) ← liftOpt (ofAbiParams fc.types fn.decl.params svs {})
     let m0 := initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0
     match (callFn cfg o fc fuel (rootFrame fc) m0 fn vs : Option (Except ByteArray _)) with
     | some (.ok (rets, m')) =>

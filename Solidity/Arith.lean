@@ -58,22 +58,27 @@ def uint256Ty : IntTy := .uint ⟨256, by decide⟩
 
 /-! ## Panics -/
 
+/-- The failures of the pure helpers: the `Panic(uint256)` codes, and `badCalldataWord`, solc's
+    calldata validator finding a word that is not canonical for its type (it reverts with empty
+    data). -/
 inductive Panic where
   | generic | assertFail | overflow | divByZero | enumRange | storageBytes | popEmpty | outOfBounds
-  | allocTooLarge | zeroInitFn
+  | allocTooLarge | zeroInitFn | badCalldataWord
   deriving DecidableEq, Repr, Inhabited
 
-def Panic.code : Panic → Nat
-  | .generic => 0x00
-  | .assertFail => 0x01
-  | .overflow => 0x11
-  | .divByZero => 0x12
-  | .enumRange => 0x21
-  | .storageBytes => 0x22
-  | .popEmpty => 0x31
-  | .outOfBounds => 0x32
-  | .allocTooLarge => 0x41
-  | .zeroInitFn => 0x51
+/-- The `Panic(uint256)` code; `badCalldataWord` has none. -/
+def Panic.code : Panic → Option Nat
+  | .generic => some 0x00
+  | .assertFail => some 0x01
+  | .overflow => some 0x11
+  | .divByZero => some 0x12
+  | .enumRange => some 0x21
+  | .storageBytes => some 0x22
+  | .popEmpty => some 0x31
+  | .outOfBounds => some 0x32
+  | .allocTooLarge => some 0x41
+  | .zeroInitFn => some 0x51
+  | .badCalldataWord => none
 
 /-! ## Arithmetic -/
 

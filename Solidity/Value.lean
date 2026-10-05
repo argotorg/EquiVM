@@ -5,9 +5,9 @@ import Solm.Syntax
 /-!
 # Runtime values, memory and locals
 
-Values carry their static type (widths, enum/contract names); integer literals stay exact until
-they meet a typed operand.  Reference types live in a heap (`memRef`): memory-to-memory
-assignment aliases, storage/calldata copies allocate.  `storageRef` is a storage pointer
+Values carry their static type (widths, enum/contract/value-type names); integer literals stay
+exact until they meet a typed operand.  Reference types live in a heap (`memRef`):
+memory-to-memory assignment aliases, storage/calldata copies allocate.  `storageRef` is a storage pointer
 (`T storage x`).  At the ABI and storage boundaries values convert to/from `ABI.ABIValue`.
 -/
 
@@ -29,6 +29,9 @@ inductive Value where
   | strLit (s : ByteArray)
   /-- A member of the enum `ty` declared in the unit `q` (as in `Ty.user q ty`). -/
   | enum (q : Option Ident) (ty : Ident) (i : Nat)
+  /-- A value of the user-defined value type `ty` declared in the unit `q`: `v`, of the underlying
+      type, as `ty.wrap` made it. -/
+  | wrapped (q : Option Ident) (ty : Ident) (v : Value)
   | memRef (id : Nat)
   | storageRef (er : Solm.EvaledStorageRef) (ty : Ty)
   /-- A calldata word of static type `ty` not yet validated (validated on access). -/
@@ -90,11 +93,56 @@ def Value.ty? : Value → Option Ty
   | .contract ty _ => some (.user none ty)
   | .fixedBytes n _ => some (.fixedBytes n)
   | .enum q ty _ => some (.user q ty)
+  | .wrapped q ty _ => some (.user q ty)
   | .storageRef _ ty => some ty
   | .raw ty _ => some ty
   | _ => none
 
+/-- Values of the elementary value types: what a user-defined value type wraps. -/
+def Value.isElem : Value → Bool
+  | .uint .. | .sint .. | .bool _ | .address _ | .fixedBytes .. => true
+  | _ => false
+
+/-! ## Calldata words -/
+
+/-- The value of a calldata word `w` of the elementary type `ty` when the word is canonical, as
+    solc's validator checks it: `uintN` below `2^N`, `intN` sign-extended, `bool` 0 or 1,
+    `address` below `2^160`, `bytesN` with zero low bytes. -/
+def validateWord (ty : Ty) (w : Nat) : Option Value :=
+  match ty with
+  | .bool => if w ≤ 1 then some (.bool (w == 1)) else none
+  | .uint bw => if w < 2 ^ bw.val then some (.uint bw w) else none
+  | .int bw =>
+    let i := IntTy.wrap (.sint bw) w
+    if (i % (2 ^ 256 : Nat)).toNat = w then some (.sint bw i) else none
+  | .address _ => if w < 2 ^ 160 then some (.address (EVM.address w)) else none
+  | .fixedBytes n =>
+    if w % 2 ^ (8 * (31 - n.val)) = 0 then some (.fixedBytes n (natToBytesBE (w / 2 ^ (8 * (31 - n.val))) (n.val + 1)))
+    else none
+  | _ => none
+
+/-- The value of a calldata word copied to memory, as solc's cleanup leaves it: `uintN` and
+    `address` masked, `intN` sign-extended from its low bits, `bool` non-zero, `bytesN` its high
+    bytes. -/
+def cleanWord (ty : Ty) (w : Nat) : Option Value :=
+  match ty with
+  | .bool => some (.bool (w != 0))
+  | .uint bw => some (.uint bw (w % 2 ^ bw.val))
+  | .int bw => some (.sint bw (IntTy.wrap (.sint bw) w))
+  | .address _ => some (.address (EVM.address (w % 2 ^ 160)))
+  | .fixedBytes n => some (.fixedBytes n (natToBytesBE (w / 2 ^ (8 * (31 - n.val))) (n.val + 1)))
+  | _ => none
+
 /-! ## Zero values -/
+
+/-- The zero value of an elementary value type. -/
+def zeroElem : Ty → Option Value
+  | .uint w => some (.uint w 0)
+  | .int w => some (.sint w 0)
+  | .bool => some (.bool false)
+  | .address _ => some (.address (EVM.address 0))
+  | .fixedBytes n => some (.fixedBytes n (List.replicate (n.val + 1) 0))
+  | _ => none
 
 /-- The zero value of a value type. -/
 def zeroValue (env : TypeEnv) : Ty → Option Value
@@ -105,8 +153,9 @@ def zeroValue (env : TypeEnv) : Ty → Option Value
   | .fixedBytes n => some (.fixedBytes n (List.replicate (n.val + 1) 0))
   | .user q n =>
     if (env.enum? q n).isSome then some (.enum q n 0)
-    else if (env.contractKind? n).isSome then some (.contract n (EVM.address 0))
-    else none
+    else match env.valueType? q n with
+      | some t => (zeroElem t.underlying).map (.wrapped q n)
+      | none => if (env.contractKind? n).isSome then some (.contract n (EVM.address 0)) else none
   | _ => none
 
 /-- Zero-initialise a memory object of a reference type (arrays get `len` elements). -/
@@ -149,7 +198,21 @@ def scalarToAbi : Value → Option ABIValue
   | .contract _ a => some (.address a)
   | .fixedBytes n bs => some (.fixedBytes n bs)
   | .strLit s => some (.bytes s)
+  | .wrapped _ _ v => scalarToAbi v
   | _ => none
+
+/-- Typed reconstruction of a value of an elementary type from its ABI/storage value. -/
+def elemOfAbi : Ty → ABIValue → Option Value
+  | .uint w, .int i => if 0 ≤ i ∧ i < 2 ^ w.val then some (.uint w i.toNat) else none
+  | .int w, .int i => if -(2 ^ (w.val - 1) : Int) ≤ i ∧ i < 2 ^ (w.val - 1) then some (.sint w i) else none
+  | .bool, .bool b => some (.bool b)
+  | .address _, .address a => some (.address a)
+  | .fixedBytes n, .fixedBytes m bs => if n = m then some (.fixedBytes n bs) else none
+  | _, _ => none
+
+/-- A value of the value type `q.n` from the ABI/storage value of its underlying type. -/
+def wrappedOfAbi (env : TypeEnv) (q : Option Ident) (n : Ident) (sv : ABIValue) : Option Value :=
+  (env.valueType? q n).bind fun t => (elemOfAbi t.underlying sv).map (.wrapped q n)
 
 /-- Typed reconstruction of a scalar from its ABI/storage value. -/
 def scalarOfAbi (env : TypeEnv) : Ty → ABIValue → Option Value
@@ -161,9 +224,12 @@ def scalarOfAbi (env : TypeEnv) : Ty → ABIValue → Option Value
   | .user q n, .int i =>
     match env.enum? q n with
     | some e => if i ≥ 0 ∧ i < e.members.length then some (.enum q n i.toNat) else none
-    | none => none
+    | none => wrappedOfAbi env q n (.int i)
   | .user q n, .address a =>
-    if (env.contractKind? n).isSome && (env.enum? q n).isNone then some (.contract n a) else none
+    match env.valueType? q n with
+    | some t => (elemOfAbi t.underlying (.address a)).map (.wrapped q n)
+    | none => if (env.contractKind? n).isSome && (env.enum? q n).isNone then some (.contract n a) else none
+  | .user q n, sv => wrappedOfAbi env q n sv
   | _, _ => none
 
 /-- Deep copy of a value into the ABI domain (memory structs become tuples). -/
@@ -178,16 +244,20 @@ def toAbi (h : Heap) : Nat → Value → Option ABIValue
       | some (.bytes _ data) => some (.bytes data)
       | none => none
     | .tuple vs => (vs.mapM (toAbi h fuel)).map .tuple
-    | .raw _ w => some (.int w)
+    | .raw ty w => (validateWord ty w).bind scalarToAbi
     | v => scalarToAbi v
 
-/-- Typed reconstruction from an ABI value, allocating reference types in memory.  A calldata
-    `bool` array element arrives as the decoder's raw-word marker and stays unvalidated. -/
+/-- Typed reconstruction from an ABI value, allocating reference types in memory (a value decoded
+    to memory: every word is validated; the decoder's raw `bool` words included). -/
 def ofAbi (env : TypeEnv) : Nat → Ty → ABIValue → Heap → Option (Value × Heap)
   | 0, _, _, _ => none
   | fuel + 1, ty, sv, h =>
     match ty, sv with
-    | .bool, .rawBool w => some (.raw .bool w, h)
+    | .bool, .rawBool w => (validateWord .bool w).map (·, h)
+    | .user q n, .rawBool w =>
+      match env.valueType? q n with
+      | some t => if t.underlying = .bool then (validateWord .bool w).map fun b => (.wrapped q n b, h) else none
+      | none => none
     | .bytes, .bytes b => let (h', id) := h.alloc (.bytes false b); some (.memRef id, h')
     | .string, .bytes b => let (h', id) := h.alloc (.bytes true b); some (.memRef id, h')
     | .dynArray e, .array vs => ofArray fuel e vs h false
@@ -209,6 +279,45 @@ where
     let (h'', id) := h'.alloc (.array e elems fixed)
     pure (.memRef id, h'')
 
+/-- Reconstruction of a calldata array or struct parameter (decoded with `rawAbiTypeOf`): the
+    raw leaves keep their words (`Value.raw`), validated when they are read. -/
+def ofAbiRaw (env : TypeEnv) : Nat → Ty → ABIValue → Heap → Option (Value × Heap)
+  | 0, _, _, _ => none
+  | fuel + 1, ty, sv, h =>
+    if isRawLeaf env ty then
+      match sv with
+      | .int w => if 0 ≤ w then some (.raw ty w.toNat, h) else none
+      | _ => none
+    else match ty, sv with
+      | .bytes, .bytes b => let (h', id) := h.alloc (.bytes false b); some (.memRef id, h')
+      | .string, .bytes b => let (h', id) := h.alloc (.bytes true b); some (.memRef id, h')
+      | .dynArray e, .array vs => ofArray fuel e vs h false
+      | .array e n, .array vs => if vs.length = n then ofArray fuel e vs h true else none
+      | .user q n, .tuple vs => do
+        let s ← env.struct? q n
+        if s.fields.length ≠ vs.length then none
+        let (fields, h') ← (s.fields.zip vs).foldlM (fun (acc, h) ((fty, fname), sv) => do
+          let (v, h') ← ofAbiRaw env fuel fty sv h
+          pure (acc ++ [(fname, v)], h')) (([] : List (Ident × Value)), h)
+        let (h'', id) := h'.alloc (.struct ty fields)
+        pure (.memRef id, h'')
+      | _, _ => none
+where
+  ofArray (fuel : Nat) (e : Ty) (vs : List ABIValue) (h : Heap) (fixed : Bool) : Option (Value × Heap) := do
+    let (elems, h') ← vs.foldlM (fun (acc, h) sv => do
+      let (v, h') ← ofAbiRaw env fuel e sv h
+      pure (acc ++ [v], h')) (([] : List Value), h)
+    let (h'', id) := h'.alloc (.array e elems fixed)
+    pure (.memRef id, h'')
+
 def fuelDefault : Nat := 1024
+
+/-- The arguments of a call from their decoded ABI values: a `calldata` array or struct keeps its
+    raw words, everything else is validated and copied to memory. -/
+def ofAbiParams (env : TypeEnv) (ps : List Param) (svs : List ABIValue) (h : Heap) : Option (List Value × Heap) := do
+  if ps.length ≠ svs.length then none
+  (ps.zip svs).foldlM (fun (acc, h) (p, sv) => do
+    let (v, h') ← if calldataRef env p then ofAbiRaw env fuelDefault p.ty sv h else ofAbi env fuelDefault p.ty sv h
+    pure (acc ++ [v], h')) (([] : List Value), h)
 
 end Solidity

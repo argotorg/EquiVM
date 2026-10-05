@@ -411,6 +411,69 @@ theorem clearStorage_u256 {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er :
        rfl)
     | (intros; simp_all)
 
+/-! ## Calldata words: values without any -/
+
+@[simp] theorem hasRaw_uint (h : Heap) (fuel : ℕ) (w : ABI.BitWidth) (n : ℕ) : hasRaw h (fuel + 1) (.uint w n) = false := by
+  simp [hasRaw]
+@[simp] theorem hasRaw_sint (h : Heap) (fuel : ℕ) (w : ABI.BitWidth) (i : Int) : hasRaw h (fuel + 1) (.sint w i) = false := by
+  simp [hasRaw]
+@[simp] theorem hasRaw_literal (h : Heap) (fuel : ℕ) (i : Int) (hd : Option ℕ) : hasRaw h (fuel + 1) (.literal i hd) = false := by
+  simp [hasRaw]
+@[simp] theorem hasRaw_bool (h : Heap) (fuel : ℕ) (b : Bool) : hasRaw h (fuel + 1) (.bool b) = false := by simp [hasRaw]
+@[simp] theorem hasRaw_address (h : Heap) (fuel : ℕ) (a : EVM.Address) : hasRaw h (fuel + 1) (.address a) = false := by
+  simp [hasRaw]
+@[simp] theorem hasRaw_contract (h : Heap) (fuel : ℕ) (c : Ident) (a : EVM.Address) :
+    hasRaw h (fuel + 1) (.contract c a) = false := by simp [hasRaw]
+@[simp] theorem hasRaw_fixedBytes (h : Heap) (fuel : ℕ) (n : Fin 32) (bs : List UInt8) :
+    hasRaw h (fuel + 1) (.fixedBytes n bs) = false := by simp [hasRaw]
+@[simp] theorem hasRaw_strLit (h : Heap) (fuel : ℕ) (s : ByteArray) : hasRaw h (fuel + 1) (.strLit s) = false := by
+  simp [hasRaw]
+@[simp] theorem hasRaw_enum (h : Heap) (fuel : ℕ) (q : Option Ident) (n : Ident) (i : ℕ) :
+    hasRaw h (fuel + 1) (.enum q n i) = false := by simp [hasRaw]
+@[simp] theorem hasRaw_wrapped (h : Heap) (fuel : ℕ) (q : Option Ident) (n : Ident) (v : Value) :
+    hasRaw h (fuel + 1) (.wrapped q n v) = false := by simp [hasRaw]
+/-- A memory byte array holds no calldata word. -/
+theorem hasRaw_memBytes {h : Heap} {id : ℕ} {s : Bool} {d : ByteArray} (fuel : ℕ) (hget : h.get? id = some (.bytes s d)) :
+    hasRaw h (fuel + 1) (.memRef id) = false := by simp [hasRaw, hget]
+
+/-- Validation for an ABI encoding leaves a value without calldata words alone. -/
+theorem validateDeep_of_noRaw {env : TypeEnv} {h : Heap} {fuel : ℕ} {v : Value} (hv : hasRaw h (fuel + 1) v = false) :
+    validateDeep env (fuel + 1) h v = pure h := by
+  cases v
+  all_goals first
+    | (simp [validateDeep]; done)
+    | (simp [hasRaw] at hv; done)
+    | (simp [validateDeep, hv]; done)
+
+theorem foldlM_validateDeep_of_noRaw {env : TypeEnv} {h : Heap} {fuel : ℕ} {vs : List Value}
+    (hvs : ∀ v ∈ vs, hasRaw h (fuel + 1) v = false) : vs.foldlM (validateDeep env (fuel + 1)) h = pure h := by
+  induction vs with
+  | nil => rfl
+  | cons v vs ih =>
+    rw [List.foldlM_cons, validateDeep_of_noRaw (hvs v (List.mem_cons_self ..)), pure_bind]
+    exact ih fun x hx => hvs x (List.mem_cons_of_mem _ hx)
+
+@[simp] theorem validateDeep_uint (env : TypeEnv) (h : Heap) (fuel : ℕ) (w : ABI.BitWidth) (n : ℕ) :
+    validateDeep env (fuel + 1) h (.uint w n) = pure h := by simp [validateDeep]
+@[simp] theorem validateDeep_sint (env : TypeEnv) (h : Heap) (fuel : ℕ) (w : ABI.BitWidth) (i : Int) :
+    validateDeep env (fuel + 1) h (.sint w i) = pure h := by simp [validateDeep]
+@[simp] theorem validateDeep_literal (env : TypeEnv) (h : Heap) (fuel : ℕ) (i : Int) (hd : Option ℕ) :
+    validateDeep env (fuel + 1) h (.literal i hd) = pure h := by simp [validateDeep]
+@[simp] theorem validateDeep_bool (env : TypeEnv) (h : Heap) (fuel : ℕ) (b : Bool) :
+    validateDeep env (fuel + 1) h (.bool b) = pure h := by simp [validateDeep]
+@[simp] theorem validateDeep_address (env : TypeEnv) (h : Heap) (fuel : ℕ) (a : EVM.Address) :
+    validateDeep env (fuel + 1) h (.address a) = pure h := by simp [validateDeep]
+@[simp] theorem validateDeep_contract (env : TypeEnv) (h : Heap) (fuel : ℕ) (c : Ident) (a : EVM.Address) :
+    validateDeep env (fuel + 1) h (.contract c a) = pure h := by simp [validateDeep]
+@[simp] theorem validateDeep_fixedBytes (env : TypeEnv) (h : Heap) (fuel : ℕ) (n : Fin 32) (bs : List UInt8) :
+    validateDeep env (fuel + 1) h (.fixedBytes n bs) = pure h := by simp [validateDeep]
+@[simp] theorem validateDeep_strLit (env : TypeEnv) (h : Heap) (fuel : ℕ) (s : ByteArray) :
+    validateDeep env (fuel + 1) h (.strLit s) = pure h := by simp [validateDeep]
+@[simp] theorem validateDeep_enum (env : TypeEnv) (h : Heap) (fuel : ℕ) (q : Option Ident) (n : Ident) (i : ℕ) :
+    validateDeep env (fuel + 1) h (.enum q n i) = pure h := by simp [validateDeep]
+@[simp] theorem validateDeep_wrapped (env : TypeEnv) (h : Heap) (fuel : ℕ) (q : Option Ident) (n : Ident) (v : Value) :
+    validateDeep env (fuel + 1) h (.wrapped q n v) = pure h := by simp [validateDeep]
+
 theorem abiArgs_u256 (cfg : Config) (env : TypeEnv) (m : Machine) (n : Nat) :
     abiArgs cfg env m [u256Ty] [u256Val n] = some (.ok ([.int n], m)) := by
   simp [abiArgs, coerce, fuelDefault]
@@ -1067,8 +1130,12 @@ theorem encodePackedValue?_bytes32 (bs : List UInt8) (h : bs.length = 32) :
 @[simp] theorem encodePackedValue?_string (ba : ByteArray) : ABI.encodePackedValue? .string (.bytes ba) = some ba.toList := rfl
 
 theorem abiArgsAbi_of_mapM {env : TypeEnv} {m : Machine} {tys : List ABI.ABIType} {vs : List Value} {svs : List ABI.ABIValue}
-    (hsvs : vs.mapM (toAbi m.heap fuelDefault) = some svs) : abiArgsAbi cfg env m tys vs = some (.ok (svs, m)) := by
-  simp [abiArgsAbi, hsvs]
+    (hsvs : vs.mapM (toAbi m.heap fuelDefault) = some svs) (hraw : ∀ v ∈ vs, hasRaw m.heap fuelDefault v = false) :
+    abiArgsAbi cfg env m tys vs = some (.ok (svs, m)) := by
+  have hf := foldlM_validateDeep_of_noRaw (env := env) (fuel := 1023) hraw
+  simp only [abiArgsAbi, fuelDefault] at hf hsvs ⊢
+  rw [hf, pure_bind, hsvs]
+  rfl
 
 /-! ## Explicit conversions -/
 
@@ -1387,12 +1454,12 @@ theorem clearStorage_address {cfg : Config} {env : TypeEnv} {evm : EVM.State} {e
 theorem clearStorage_struct {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
     {q : Option Ident} {n : Ident} {s : StructInfo} (fuel : ℕ)
     (henum : (env.enum? q n).isSome = false) (hcon : (env.contractKind? n).isSome = false)
-    (hs : env.struct? q n = some s) :
+    (hs : env.struct? q n = some s) (hvt : env.valueType? q n = none := by rfl) :
     clearStorage cfg env (fuel + 1) evm er (.user q n) =
       s.fields.foldlM (fun evm (fty, fname) => clearStorage cfg env fuel evm (fieldRef er fname) fty) evm := by
   rw [clearStorage]
   all_goals first
-    | (simp [storageTyOf, zeroValue, henum, hcon, hs]
+    | (simp [storageTyOf, zeroValue, henum, hcon, hs, hvt]
        try rfl)
     | (intros; simp_all)
 
@@ -1937,14 +2004,15 @@ are unchanged. -/
 
 /-- No struct or enum named `n` is in scope: `n` is a contract type (or unknown) and keeps its spelling. -/
 theorem TypeEnv.canonTy_user_none {env : TypeEnv} {here n : Ident}
-    (hs : env.structIn here n = none) (he : env.enumIn here n = none) :
+    (hs : env.structIn here n = none) (he : env.enumIn here n = none) (hv : env.valueTypeIn here n = none) :
     env.canonTy here (.user none n) = .user none n := by
   have ho : env.typeOwner (env.scope here) n = none := by
     simp only [TypeEnv.typeOwner, List.find?_eq_none]
     intro u hu
     have h1 := List.findSome?_eq_none_iff.mp hs u hu
     have h2 := List.findSome?_eq_none_iff.mp he u hu
-    simp [h1, h2]
+    have h3 := List.findSome?_eq_none_iff.mp hv u hu
+    simp [h1, h2, h3]
   simp [TypeEnv.canonTy, Ty.mapUser, ho]
 
 @[simp] theorem abiTypeOf_uint (env : TypeEnv) (w : ABI.BitWidth) : abiTypeOf env (.uint w) = some (.elem (.int (.uint w))) := rfl
@@ -2431,5 +2499,122 @@ theorem typeMember_creationCode (fc : FlatContract) (here : Ident) (ty : Ty) :
 theorem typeMember_runtimeCode (fc : FlatContract) (here : Ident) (ty : Ty) :
     typeMember fc here ty "runtimeCode" = none := by
   unfold typeMember; split <;> simp_all
+
+/-! ## User-defined value types (fixture `Udvt`) -/
+
+@[simp] theorem Value.ty?_wrapped (q : Option Ident) (n : Ident) (v : Value) :
+    (Value.wrapped q n v).ty? = some (.user q n) := rfl
+
+@[simp] theorem scalarToAbi_wrapped (q : Option Ident) (n : Ident) (v : Value) :
+    scalarToAbi (.wrapped q n v) = scalarToAbi v := by
+  simp [scalarToAbi]
+
+@[simp] theorem keyOf_wrapped (q : Option Ident) (n : Ident) (v : Value) : keyOf (.wrapped q n v) = keyOf v := by
+  simp [keyOf]
+
+/-- A value type converts to itself. -/
+theorem implicitConv_wrapped (env : TypeEnv) (h : Heap) (q : Option Ident) (n : Ident) (v : Value) :
+    implicitConv env h (.wrapped q n v) (.user q n) = some (.wrapped q n v, h) := by
+  simp [implicitConv]
+
+/-- `T.wrap(v)`: `v` converted to the underlying type, tagged with `T`. -/
+theorem wrapValue_of_conv {env : TypeEnv} {h h' : Heap} {t : ValueTypeInfo} {v u : Value}
+    (hc : implicitConv env h v t.underlying = some (u, h')) (he : u.isElem = true) :
+    wrapValue env h t v = some (.wrapped t.qual t.name u) := by
+  simp [wrapValue, hc, he]
+
+@[simp] theorem unwrapValue_wrapped (t : ValueTypeInfo) (u : Value) :
+    unwrapValue t (.wrapped t.qual t.name u) = some u := by
+  simp [unwrapValue]
+
+/-- On an elementary type the scalar reconstruction is `elemOfAbi`. -/
+theorem scalarOfAbi_elem (env : TypeEnv) {ty : Ty} (h : (elemTypeOf ty).isSome = true) (sv : ABI.ABIValue) :
+    scalarOfAbi env ty sv = elemOfAbi ty sv := by
+  cases ty <;> first | (simp [elemTypeOf] at h; done) | (cases sv <;> simp [scalarOfAbi, elemOfAbi])
+
+/-- A value type is rebuilt from the ABI/storage value of its underlying type. -/
+theorem scalarOfAbi_valueType {env : TypeEnv} {q : Option Ident} {n : Ident} {t : ValueTypeInfo} {sv : ABI.ABIValue}
+    {u : Value} (he : env.enum? q n = none) (ht : env.valueType? q n = some t)
+    (hu : elemOfAbi t.underlying sv = some u) : scalarOfAbi env (.user q n) sv = some (.wrapped q n u) := by
+  cases sv <;> simp [scalarOfAbi, wrappedOfAbi, he, ht, hu]
+
+/-- The zero value of a value type: the zero of its underlying type, tagged. -/
+theorem zeroValue_valueType {env : TypeEnv} {q : Option Ident} {n : Ident} {t : ValueTypeInfo} {z : Value}
+    (he : env.enum? q n = none) (ht : env.valueType? q n = some t) (hz : zeroElem t.underlying = some z) :
+    zeroValue env (.user q n) = some (.wrapped q n z) := by
+  simp [zeroValue, he, ht, hz]
+
+/-- A value type is stored as its underlying type. -/
+theorem leafElemType_valueType {env : TypeEnv} {q : Option Ident} {n : Ident} {t : ValueTypeInfo}
+    (he : env.enum? q n = none) (ht : env.valueType? q n = some t) :
+    leafElemType env (.user q n) = elemTypeOf t.underlying := by
+  simp [leafElemType, he, ht]
+
+/-- A value type is ABI-encoded as its underlying type. -/
+theorem abiTypeOf_valueType {env : TypeEnv} {q : Option Ident} {n : Ident} {t : ValueTypeInfo}
+    (hs : env.struct? q n = none) (he : env.enum? q n = none) (ht : env.valueType? q n = some t) :
+    abiTypeOf env (.user q n) = (elemTypeOf t.underlying).map .elem := by
+  simp [abiTypeOf, abiTypeOfFuel, hs, he, ht]
+
+/-- A stored value type by location: the underlying value, tagged. -/
+theorem readScalar_valueType_of_loc {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
+    {q : Option Ident} {n : Ident} {t : ValueTypeInfo} {loc : Storage.StorageLoc} {u : Value}
+    (hl : cfg.storage.layout er evm = some loc) (he : env.enum? q n = none) (ht : env.valueType? q n = some t)
+    (hu : elemOfAbi t.underlying (Storage.storageLocLoad evm loc) = some u) :
+    readScalar cfg env evm er (.user q n) = some (.wrapped q n u) :=
+  readScalar_of_loc hl (scalarOfAbi_valueType he ht hu)
+
+/-- A stored value type reads as its underlying type does, tagged (so the `readScalar_*` lemmas of
+    the underlying type apply). -/
+theorem readScalar_valueType {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
+    {q : Option Ident} {n : Ident} {t : ValueTypeInfo} {u : Value}
+    (he : env.enum? q n = none) (ht : env.valueType? q n = some t) (hel : (elemTypeOf t.underlying).isSome = true)
+    (hu : readScalar cfg env evm er t.underlying = some u) :
+    readScalar cfg env evm er (.user q n) = some (.wrapped q n u) := by
+  cases hl : cfg.storage.layout er evm with
+  | none => simp [readScalar, hl] at hu
+  | some loc =>
+    unfold readScalar at hu
+    rw [hl, Opt.some_bind, scalarOfAbi_elem env hel] at hu
+    exact readScalar_valueType_of_loc hl he ht hu
+
+theorem loadIfScalar_valueType {cfg : Config} {env : TypeEnv} {evm : EVM.State} {er : Solm.EvaledStorageRef}
+    {q : Option Ident} {n : Ident} {t : ValueTypeInfo} {u : Value}
+    (he : env.enum? q n = none) (ht : env.valueType? q n = some t) (hel : (elemTypeOf t.underlying).isSome = true)
+    (hu : readScalar cfg env evm er t.underlying = some u) :
+    loadIfScalar cfg env evm er (.user q n) = some (.wrapped q n u) := by
+  have hv : isValueType env (.user q n) = true := by simp [isValueType, leafElemType_valueType he ht, hel]
+  unfold loadIfScalar
+  rw [if_pos hv]
+  exact readScalar_valueType he ht hel hu
+
+/-- A value type is written as its underlying value. -/
+@[simp] theorem writeScalar_wrapped (cfg : Config) (evm : EVM.State) (er : Solm.EvaledStorageRef) (q : Option Ident)
+    (n : Ident) (u : Value) : writeScalar cfg evm er (.wrapped q n u) = writeScalar cfg evm er u := by
+  simp [writeScalar]
+
+/-- A value type named in the scope of the running code (`T.wrap`, `T.unwrap`). -/
+theorem valueTypeRecv_ident {fc : FlatContract} {fr : Frame} {x : Ident} {t : ValueTypeInfo}
+    (hx : fr.get? x = none) (henv : isEnvObj x = false) (hv : fc.varIn fr.here x = none) (hlib : fc.library? x = none)
+    (hlin : fc.linearization.contains x = false) (hk : fc.types.contractKind? x = none)
+    (ht : fc.types.valueTypeIn fr.here x = some t) : valueTypeRecv fc fr (.ident x) = some t := by
+  have hlin' : x ∉ fc.linearization := by simpa using hlin
+  simp [valueTypeRecv, hx, henv, hv, hlib, hlin', hk, ht]
+
+/-- `Q.T` for a value type `T` of the unit `Q`. -/
+theorem valueTypeRecv_qual {fc : FlatContract} {fr : Frame} {q x : Ident} {t : ValueTypeInfo}
+    (hq : unitQual fc fr q = true) (ht : fc.types.valueTypeOf q x = some t) :
+    valueTypeRecv fc fr (.member (.ident q) x) = some t := by
+  simp [valueTypeRecv, hq, ht]
+
+/-- A local in receiver position names no value type. -/
+theorem valueTypeRecv_local {fc : FlatContract} {fr : Frame} {x : Ident} {l : Local} (hx : fr.get? x = some l) :
+    valueTypeRecv fc fr (.ident x) = none := by
+  simp [valueTypeRecv, hx]
+
+/-- A state variable in receiver position names no value type. -/
+theorem valueTypeRecv_var {fc : FlatContract} {fr : Frame} {x : Ident} {v : FlatVar} (hv : fc.varIn fr.here x = some v) :
+    valueTypeRecv fc fr (.ident x) = none := by
+  simp [valueTypeRecv, hv]
 
 end Solidity

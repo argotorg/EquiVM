@@ -231,6 +231,48 @@ Changed 2026-10-04 (builtins and conversions; fixture `Builtins`).
   it runs a Python script that is found when the harness is started in the `evmlean` package
   directory.  A harness case can set `origin`, `gasPrice` and `blocks`.
 
+Changed 2026-10-05 (user-defined value types; fixture `Udvt`).
+- The type: `type T is U;` in the file, a contract, a library or an interface (`ValueTypeDecl`;
+  `SourceUnit.valueType`, `ContractItem.valueType`).  `TypeEnv.valueTypes` identifies a value type
+  by its declaring unit and its name, as structs and enums (`valueType?`, `valueTypeIn`,
+  `valueTypeOf`; `typeOwner`, and so `canonTy`, see it).  `elabProgram` rejects an underlying type
+  that is not an elementary value type (`elemTypeOf`), as solc does.
+- Values: `Value.wrapped q T v` is the underlying value `v` tagged with the type (`Value.ty?` gives
+  `.user q T`).  The ABI, the storage layout and mapping keys go through the underlying type:
+  `abiTypeOfFuel`, `leafElemType`, `scalarToAbi`, `scalarOfAbi` (`elemOfAbi`, `wrappedOfAbi`),
+  `keyOf`, `zeroValue` (`zeroElem`).  A value type converts to itself only (`implicitConv`), and
+  `binop` / `unop` have no case for it.
+- `T.wrap(a)` / `T.unwrap(a)`, also `Q.T.wrap(a)`: rules `wrap`, `unwrap`, `wrapRevert`.
+  `valueTypeRecv` says that the receiver names a value type (no local, variable or unit has that
+  name); it is part of `memberCallDirect`.  `wrapValue` converts the argument implicitly to the
+  underlying type, `unwrapValue` asks for a value of that very type.  `T(x)` and `Q.T(x)` on a
+  value of the type are the identity (`convertUser` has a third alternative, `qualTypeRecv` knows
+  value types).
+- A value type over `bool` in a calldata `T[]` is validated when an element is read, as `bool[]`
+  is: `validateRaw` takes the type environment.
+- `using`: a directive names a library or lists functions (`using {f, L.g} for T;`, `UsingFn`),
+  in a unit or in the file (`SourceUnit.usingFor`; `fc.usingFor` keys a file-level directive with
+  the unit `""`, and it applies to every unit; `global` is recorded and changes nothing, a program
+  being one source unit).  `recv.f(args)` takes the functions named `f` that the directives of the
+  running unit and of the file attach to the receiver's type (`usingCands`, `usingTargetFns`; a
+  function attached twice counts once) and resolves among them by the arguments
+  (`resolveOverload`): `usingForCall`, `usingForArgsRevert`, `usingForCallRevert`.  Several
+  libraries can be attached to one type; `usingLibrary` is gone.
+- An operator binding (`using {f as +} for T global;`: `UsingFn.op`, `UserOp`) is parsed and kept.
+  The bound function is no member, as in solc.  The operator itself is not modelled, see below.
+- DSL: `type T is U;`, function lists with `L.f` and `f as op`, `global`, `using` at file level.
+  `using L for *;` parses now (the `*` was not recognised before).
+- Library: `EvalExpr.wrapPlain`, `EvalExpr.unwrapPlain`; `valueTypeRecv_ident/qual/local/var`,
+  `wrapValue_of_conv`, `unwrapValue_wrapped`, `implicitConv_wrapped`, `scalarToAbi_wrapped`,
+  `keyOf_wrapped`, `scalarOfAbi_valueType`, `scalarOfAbi_elem`, `zeroValue_valueType`,
+  `leafElemType_valueType`, `abiTypeOf_valueType`, `readScalar_valueType[_of_loc]`,
+  `loadIfScalar_valueType`, `writeScalar_wrapped`.  Changed statements:
+  `EvalExpr.usingForCallPlain` (candidates instead of a library), `EvalExpr.contractCast` and
+  `TypeEnv.canonTy_user_none` (one more hypothesis: no value type of that name),
+  `clearStorage_struct` (`hvt`, by `rfl`), `memberCallDirect_false` (one more conjunct).
+- Tests: scenarios `Udvt`, `UdvtAbi`, `UdvtCall`, `UDer`, `UdvtImm`, `UdvtUsing` and their
+  `/boundaries`, `UdvtArr/arrays`; `UdvtOps/operators` holds the known deviation below.
+
 ## Deferred language features
 
 `mapping(string => …)` / `mapping(bytes => …)` keys (decided 2026-10-03, to do after the branch is
@@ -241,16 +283,73 @@ the mapping's declared key type as solc does: `keccak256(h(k) ++ slot)` with `h`
 padded word for value types and the raw bytes for `string`/`bytes`.  No new rules or proof cases;
 `keyValueToWord` and the few exhaustive matches on `KeyValue` in Sol⁻ need the new case.
 
+Changed 2026-10-05 (calldata words; `using` on contract types; fixture `Calldata`).
+- A `calldata` array or struct parameter keeps its words: the call is decoded with every raw leaf
+  (an elementary type, a value type, an enum, a contract: `isRawLeaf`) as a plain word
+  (`paramDecodeTys`, `rawAbiTypeOf`, `calldataRef`; `decodeArgs` uses them), and `ofAbiParams`
+  builds the object with `Value.raw ty w` leaves (`ofAbiRaw`).  A memory parameter is validated
+  when the call is decoded (`ofAbi`: the decoder's raw `bool` words included), as before.
+- A raw word is validated when it is read: an element (`indexMemRaw*`) or a struct field
+  (`memberMemFieldRaw*`; `memberMemField` takes `isRaw v = false`), with `validateRaw`
+  (`validateWord`: `uintN` below `2^N`, `intN` sign-extended, `bool` 0 or 1, `address` below
+  `2^160`, `bytesN` with zero low bytes; value types through the underlying type, enums below the
+  member count).  A bad word reverts with empty data.
+- An ABI encoding of a calldata object (`abi.encode*`, the arguments of an external call, of an
+  event, of an error, of `new`) validates every word first (`validateDeep` in `abiArgs` and
+  `abiArgsAbi`, in place) and reverts with empty data on a bad one: `Panic.badCalldataWord`, the
+  one `Panic` without a `Panic(uint256)` code (`Panic.code : Option Nat`; `Panic.data` is empty
+  for it), so the existing `*Panic` rules carry the revert.  `abiArgsAbi_of_mapM` and the
+  `abiEncode*Plain` / `keccak*` builders take `hraw : ∀ v ∈ vs, hasRaw … = false` (discharged by
+  `simp [fuelDefault]` for scalars).
+- A calldata object copied to memory (`T[] memory m = xs;`, a memory parameter of an internal
+  call, a struct field, a struct literal): `coerce` copies when the object holds a raw word
+  (`hasRaw`, `copyCalldata`): an array of raw words, or of static arrays of them (`cleanElemTy`),
+  with solc's cleanup (`cleanCopy`, `cleanRaw`, `cleanWord`: masked, sign-extended, `bool`
+  non-zero; an enum out of range is `Panic(0x21)`), a struct or an array of dynamic arrays or
+  structs with every word validated (`validateCopy`).  Copied to storage, every word is validated
+  (`writeStorageDeep`).  The memory copy is a fresh object; without raw words the reference is
+  shared, as before.
+- A function of the receiver's contract type is an external call; otherwise a member call on a
+  value of contract type goes through `using` (`specialMemberCall fc`: `.contract c _, f` is
+  `fc.contractFnsNamed c f ≠ []`; solc rejects a contract function and an attached function with
+  one name).  The external-call and `try` revert rules without `resolveDecl` take
+  `fc.contractFnsNamed c f ≠ []`; `resolveDecl_ne_nil`, `isEmpty_false_of_ne`,
+  `ne_nil_of_isEmpty_false`.
+- Library: `validateDeep_of_noRaw`, `foldlM_validateDeep_of_noRaw`, the `hasRaw_*` and
+  `validateDeep_*` simp lemmas for scalars; `decodeArgs_eq` now takes `paramDecodeTys … = some tys`
+  (`paramDecodeTys_eq_sig` without calldata reference parameters), `decodeCallArgs_none_of_ofAbiParams`;
+  `Panic.data_eq` takes `p.code = some c`.
+- Tests: scenarios `Attach`, `Copies`, `Calldata/known`; `UdvtArr/arrays` now matches.
+
 Names, not covered: a state variable written with its contract (`Base.x`, read or assigned); a
-modifier invoked with a qualifier (`Base.m`); `using {f, g} for T` (a list of functions) and
-file-level `using` directives.
+modifier invoked with a qualifier (`Base.m`).
+
+User-defined operators, not covered.  With `using {f as +} for T global`, solc evaluates `a + b` as
+the call `f(a, b)`: the left operand first.  A built-in operator evaluates the right operand
+first.  Which order applies depends on the static type of the operands, and the spec
+language has no static types.  Write the call of the bound function in the spec (`f(a, b)`).  An
+operator applied to values of a value type has no rule when both operands evaluate; when the right
+operand reverts, the spec reverts with that operand's data (`binaryRightRevert`), which differs
+from solc if the left operand reverts too or changes what the right one does.  Scenario
+`UdvtOps/operators` pins this.
+
+Calldata words, known deviations (scenario `Calldata/known`): a function whose return type is a
+calldata array returning it with a word that is not canonical has no derivation (solc's encoder
+reverts with empty data; `toAbi` of a raw word is `validateWord`, so a canonical word encodes);
+an enum array copied to memory is checked at the copy, `Panic(0x21)` (solc copies the words and
+checks an element when it is read: a bad element that is never read succeeds in solc); the
+headers (offsets, lengths) of the inner arrays of a calldata array of dynamic arrays
+(`uint8[][] calldata`) are checked by the shared ABI decoder when the call is decoded, solc checks
+them when the inner array is used (an index into a misplaced header is `Panic(0x32)`, an absurd
+inner length copied to memory `Panic(0x41)`).  A memory copy of a calldata array holds the cleaned
+words; solc keeps the raw words in memory and cleans them on every use, which only inline assembly
+can tell apart.
 
 Builtins, not covered: `selfdestruct`; `blobhash` and `block.blobbasefee` (Cancun; the fixtures
 are compiled for Shanghai); a function reference whose receiver is neither `this`, a contract name
 nor a variable (`IERC20(a).f.selector`); `b.push()` on storage `bytes` used as a value; a storage
 `bytes` / `string` passed directly as the message of `require` / `revert`, as the data of
-`abi.decode` or of a low-level call (copy it to a memory variable first); user-defined value types
-(`type X is uint256`).  `sha256`, `ripemd160` and `ecrecover` are calls of the EVM
+`abi.decode` or of a low-level call (copy it to a memory variable first).  `sha256`, `ripemd160` and `ecrecover` are calls of the EVM
 model's precompiles: the spec says nothing about the hash values themselves.
 
 ## Not covered yet

@@ -43,7 +43,17 @@ theorem evalMember_sound_step {n} (ih : SoundAt cfg o fc n) :
         have hf' : f ≠ "length" := by simpa using hf
         rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨r', hr, h⟩ <;> try dsimp only at h
         · exact (liftOpt_error hd).elim
-        · rw [IM.pure_some h]; exact .memberMemField hdm hf' he (liftOpt_ok hr)
+        · split at h
+          · split at h
+            · split at h
+              · rename_i v' hval
+                rw [IM.pure_some h]; exact .memberMemFieldRaw hdm hf' he (liftOpt_ok hr) hval
+              · rename_i d hval
+                rw [IM.throw_some h]; exact .memberMemFieldRawRevert hdm hf' he (liftOpt_ok hr) hval
+            · simp at h
+          · rename_i hraw
+            rw [IM.pure_some h]
+            exact .memberMemField hdm hf' he (liftOpt_ok hr) (by simpa using hraw)
     · rename_i k bs
       split at h
       · rename_i hf
@@ -250,26 +260,26 @@ theorem evalMemberCall_sound_step {n} (ih : SoundAt cfg o fc n) :
     · have he := ih.expr _ _ _ _ hrv
       split at h
       swap
-      · -- `using L for T`
+      · -- `using … for`
         rename_i hspec
-        have hspec' : specialMemberCall rv f = false := by simpa using hspec
+        have hspec' : specialMemberCall fc rv f = false := by simpa using hspec
         rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨u', hu', h⟩ <;> try dsimp only at h
         · exact (guard'_error hd).elim
         · have hopts := opts_empty hu'
           split at h
-          · rename_i lib hlib
+          · rename_i hne
             rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
             · exact (liftOpt_error hd).elim
             · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr2, m2⟩, hvs, h⟩ <;> try dsimp only at h
-              · rw [hopts]; exact .usingForArgsRevert henv he hspec' hlib (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
-              · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨dcl, hdcl, h⟩ <;> try dsimp only at h
+              · rw [hopts]; exact .usingForArgsRevert henv he hspec' hne (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
+              · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨fn, hfn, h⟩ <;> try dsimp only at h
                 · exact (liftOpt_error hd).elim
                 · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨rets, m3⟩, hcall, h⟩ <;> try dsimp only at h
                   · rw [hopts]
-                    exact .usingForCallRevert henv he hspec' hlib (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
+                    exact .usingForCallRevert henv he hspec' hne (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hfn)
                       (ih.callFn _ _ _ _ _ hd)
                   · rw [IM.pure_some h, hopts]
-                    exact .usingForCall henv he hspec' hlib (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hdcl)
+                    exact .usingForCall henv he hspec' hne (liftOpt_ok hes) (ih.exprs _ _ _ _ hvs) (liftOpt_ok hfn)
                       (ih.callFn _ _ _ _ _ hcall)
           · simp at h
       rename_i hspec
@@ -342,16 +352,17 @@ theorem evalMemberCall_sound_step {n} (ih : SoundAt cfg o fc n) :
           · simp at h
       · -- external call on a contract value
         rename_i c a
+        have hne : fc.contractFnsNamed c f ≠ [] := ne_nil_of_isEmpty_false (by simpa [specialMemberCall] using hspec)
         rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨value, fr2, m2⟩, hval, h⟩ <;> try dsimp only at h
-        · exact .externalValueRevert henv he (ih.valueOpt _ _ _ _ hd)
+        · exact .externalValueRevert henv he hne (ih.valueOpt _ _ _ _ hd)
         · have hv := ih.valueOpt _ _ _ _ hval
           rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨gasReq, fr3, m3⟩, hgas, h⟩ <;> try dsimp only at h
-          · exact .externalGasRevert henv he hv (ih.gasOpt _ _ _ _ hd)
+          · exact .externalGasRevert henv he hne hv (ih.gasOpt _ _ _ _ hd)
           · have hg := ih.gasOpt _ _ _ _ hgas
             rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨es, hes, h⟩ <;> try dsimp only at h
             · exact (liftOpt_error hd).elim
             · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨⟨vs, fr4, m4⟩, hvs, h⟩ <;> try dsimp only at h
-              · exact .externalArgsRevert henv he hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
+              · exact .externalArgsRevert henv he hne hv hg (liftOpt_ok hes) (ih.exprs _ _ _ _ hd)
               · rcases IM.bind_some h with ⟨d, hd, rfl⟩ | ⟨dcl, hdcl, h⟩ <;> try dsimp only at h
                 · exact (liftOpt_error hd).elim
                 · split at h

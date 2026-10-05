@@ -220,4 +220,19 @@ example : ((entryFrame.exitScope (entryFrame.bind "a" u256Ty none (u256Val 99)))
 example : retVals (entryFrame.exitScope (entryFrame.setVal "r" (u256Val 5))) = some [u256Val 5] :=
   retVals_exitScope (by simp) (by simp [entryFrame]) (by simp [retVals, entryFrame])
 
+/-- `Price.wrap(Price.unwrap(p))` for `type Price is uint128` and a local `p`. -/
+example (fr : Frame) (m : Machine) (t : ValueTypeInfo) (n : ℕ)
+    (hname : fr.get? "Price" = none) (hvar : fc.varIn fr.here "Price" = none) (hlib : fc.library? "Price" = none)
+    (hlin : fc.linearization.contains "Price" = false) (hk : fc.types.contractKind? "Price" = none)
+    (ht : fc.types.valueTypeIn fr.here "Price" = some t) (hund : t.underlying = .uint ⟨128, by decide⟩)
+    (hp : fr.get? "p" =
+      some { ty := .user t.qual t.name, loc := none, val := .wrapped t.qual t.name (.uint ⟨128, by decide⟩ n) }) :
+    EvalExpr cfg o fc fr m
+      (.call (.member (.ident "Price") "wrap") [] (.positional
+        [.call (.member (.ident "Price") "unwrap") [] (.positional [.ident "p"])]))
+      (.ok (.wrapped t.qual t.name (.uint ⟨128, by decide⟩ n)) fr m) :=
+  have hrecv := valueTypeRecv_ident hname (by decide) hvar hlib hlin hk ht
+  EvalExpr.wrapPlain (h' := m.heap) hrecv (EvalExpr.unwrapPlain hrecv (EvalExpr.localVal _ _ hp))
+    (by rw [hund]; simp [implicitConv])
+
 end Solidity.Usage

@@ -201,13 +201,14 @@ def encodeCallArgs : Expr → Option (List Expr)
   | .tuple es => es.mapM fun x => x
   | e => some [e]
 
-/-- Member calls with builtin meaning (before `using for`). -/
-def specialMemberCall : Value → Ident → Bool
+/-- Member calls with builtin meaning (before `using for`): storage `push`/`pop`, a function of
+    the receiver's contract type (an external call), the members of `address`. -/
+def specialMemberCall (fc : FlatContract) : Value → Ident → Bool
   | .storageRef _ (.dynArray _), "push" => true
   | .storageRef _ (.dynArray _), "pop" => true
   | .storageRef _ .bytes, "push" => true
   | .storageRef _ .bytes, "pop" => true
-  | .contract _ _, _ => true
+  | .contract c _, f => !(fc.contractFnsNamed c f).isEmpty
   | _, "call" | _, "staticcall" | _, "delegatecall" | _, "transfer" | _, "send" => true
   | _, _ => false
 
@@ -415,13 +416,27 @@ def decodeRets (cfg : Config) (env : TypeEnv) (m : Machine) (rets : List Param) 
     pure (acc ++ [v], h')) (([] : List Value), m.heap)
   pure (vs, { m with heap := h' })
 
-def usingLibrary (fc : FlatContract) (here : Ident) (ty : Option Ty) : List ContractDecl :=
-  fc.usingFor.filterMap fun (c, u) =>
-    if c != here then none
-    else match u.target, u.ty with
-      | .library l, some t => if some t == ty then fc.library? l else none
-      | .library l, none => fc.library? l
-      | _, _ => none
+/-- The functions named `f` a `using` directive written in the unit `c` attaches: those of the
+    library, or the listed ones (`L.f`; a plain `f` is the library's own function inside a library,
+    a file-level function otherwise).  A function bound to an operator only is no member. -/
+def usingTargetFns (fc : FlatContract) (c f : Ident) : UsingTarget → List (FnKey × FnId)
+  | .library l => fc.unitFnsNamed l f
+  | .functions fs => fs.flatMap fun uf =>
+      if uf.name == f && uf.op.isNone then
+        match uf.qual with
+        | some l => fc.unitFnsNamed l f
+        | none =>
+          match fc.unitFnsNamed c f with
+          | [] => fc.freeFns.filter (·.1.name == f)
+          | cs => cs
+      else []
+
+/-- Candidates for `recv.f(…)` on a receiver of type `ty` in code of `here`: the functions named
+    `f` attached to that type (or to every type) by the directives of `here` and of the file, each
+    once. -/
+def usingCands (fc : FlatContract) (here : Ident) (ty : Option Ty) (f : Ident) : List (FnKey × FnId) :=
+  (fc.usingFor.flatMap fun (c, u) =>
+    if (c == here || c == "") && (u.ty.isNone || u.ty == ty) then usingTargetFns fc c f u.target else []).eraseDups
 
 def receiverTy (h : Heap) : Value → Option Ty
   | .memRef id => (h.get? id).bind fun
@@ -459,13 +474,23 @@ def otherUnitRecv (fc : FlatContract) (fr : Frame) : Expr → Bool
       (fc.varIn fr.here q).isNone && (fc.types.contractKind? q).isSome
   | _ => false
 
-/-- `Q.name(...)` where `name` is a struct or an enum of the unit `Q`: a struct literal or a
-    conversion, not a call of a function of `Q`. -/
+/-- `Q.name(...)` where `name` is a struct, an enum or a value type of the unit `Q`: a struct
+    literal or a conversion, not a call of a function of `Q`. -/
 def qualTypeRecv (fc : FlatContract) (fr : Frame) (recv : Expr) (name : Ident) : Bool :=
   match recv with
   | .ident q => (libraryRecv fc fr recv || baseRecv fc fr recv || otherUnitRecv fc fr recv) &&
-      ((fc.types.structOf q name).isSome || (fc.types.enumOf q name).isSome)
+      ((fc.types.structOf q name).isSome || (fc.types.enumOf q name).isSome || (fc.types.valueTypeOf q name).isSome)
   | _ => false
+
+/-- The user-defined value type a receiver names (`T.wrap`, `Q.T.wrap`): `T` in the scope of the
+    running code when no local, variable or unit has that name, or `Q.T` for a unit `Q`. -/
+def valueTypeRecv (fc : FlatContract) (fr : Frame) : Expr → Option ValueTypeInfo
+  | .ident t =>
+    if (fr.get? t).isNone && !(isEnvObj t) && (fc.varIn fr.here t).isNone && (fc.library? t).isNone &&
+        !(fc.linearization.contains t) && (fc.types.contractKind? t).isNone then fc.types.valueTypeIn fr.here t
+    else none
+  | .member (.ident q) t => if unitQual fc fr q then fc.types.valueTypeOf q t else none
+  | _ => none
 
 /-- A type in receiver position (`bytes.concat`, `string.concat`). -/
 def isTypeExprRecv : Expr → Bool
@@ -494,7 +519,7 @@ def memLValue : LValue → Bool
     `B.f`, a member of another unit, a member of a type. -/
 def memberCallDirect (fc : FlatContract) (fr : Frame) (recv : Expr) : Bool :=
   isSuperExpr recv || isEnvObj (headIdent recv) || libraryRecv fc fr recv || baseRecv fc fr recv ||
-    otherUnitRecv fc fr recv || isTypeExprRecv recv
+    otherUnitRecv fc fr recv || isTypeExprRecv recv || (valueTypeRecv fc fr recv).isSome
 
 def isRaw : Value → Bool
   | .raw .. => true
@@ -531,9 +556,11 @@ def structObj (cfg : Config) (env : TypeEnv) (m : Machine) (sd : StructInfo) (vs
   pure (.memRef id, { m' with heap := h' })
 
 /-- Values whose ABI types were derived from the values themselves.  An argument that lives in
-    storage is copied to memory first, as solc does. -/
+    storage is copied to memory first, as solc does; a calldata object is validated word by word. -/
 def abiArgsAbi (cfg : Config) (env : TypeEnv) (m : Machine) (_tys : List ABIType) (vs : List Value) :
-    Op (List ABIValue × Machine) :=
+    Op (List ABIValue × Machine) := do
+  let h ← vs.foldlM (validateDeep env fuelDefault) m.heap
+  let m := { m with heap := h }
   match vs.mapM (toAbi m.heap fuelDefault) with
   | some svs => pure (svs, m)
   | none => do
@@ -756,8 +783,15 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | memberStorageLengthPanic : directMember fc fr e = false → EvalExpr fr m e (.ok (.storageRef er ty) fr1 m1) →
       storageLength cfg m1.evm er ty = some (.error p) → EvalExpr fr m (.member e "length") (.reverted p.data)
   | memberMemField : directMember fc fr e = false → f ≠ "length" →
-      EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → memField m1.heap obj f = some v →
+      EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → memField m1.heap obj f = some v → isRaw v = false →
       EvalExpr fr m (.member e f) (.ok v fr1 m1)
+  -- a field of a calldata struct: its word is validated when it is read
+  | memberMemFieldRaw : directMember fc fr e = false → f ≠ "length" →
+      EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → memField m1.heap obj f = some (.raw ty w) →
+      validateRaw fc.types ty w = .ok v → EvalExpr fr m (.member e f) (.ok v fr1 m1)
+  | memberMemFieldRawRevert : directMember fc fr e = false → f ≠ "length" →
+      EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → memField m1.heap obj f = some (.raw ty w) →
+      validateRaw fc.types ty w = .error d → EvalExpr fr m (.member e f) (.reverted d)
   | memberMemLength : directMember fc fr e = false → EvalExpr fr m e (.ok (.memRef obj) fr1 m1) →
       memLength m1.heap obj = some n → EvalExpr fr m (.member e "length") (.ok (wordNat n) fr1 m1)
   | memberBalance : directMember fc fr e = false → EvalExpr fr m e (.ok v fr1 m1) → addrNat v = some a →
@@ -781,10 +815,10 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | indexMem : EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → EvalExpr fr1 m1 i (.ok iv fr2 m2) →
       memIndex m2.heap obj iv = some (.ok v) → isRaw v = false → EvalExpr fr m (.index e i) (.ok v fr2 m2)
   | indexMemRaw : EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → EvalExpr fr1 m1 i (.ok iv fr2 m2) →
-      memIndex m2.heap obj iv = some (.ok (.raw ty w)) → validateRaw ty w = .ok v →
+      memIndex m2.heap obj iv = some (.ok (.raw ty w)) → validateRaw fc.types ty w = .ok v →
       EvalExpr fr m (.index e i) (.ok v fr2 m2)
   | indexMemRawRevert : EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → EvalExpr fr1 m1 i (.ok iv fr2 m2) →
-      memIndex m2.heap obj iv = some (.ok (.raw ty w)) → validateRaw ty w = .error d →
+      memIndex m2.heap obj iv = some (.ok (.raw ty w)) → validateRaw fc.types ty w = .error d →
       EvalExpr fr m (.index e i) (.reverted d)
   | indexMemPanic : EvalExpr fr m e (.ok (.memRef obj) fr1 m1) → EvalExpr fr1 m1 i (.ok iv fr2 m2) →
       memIndex m2.heap obj iv = some (.error p) → EvalExpr fr m (.index e i) (.reverted p.data)
@@ -823,7 +857,7 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       EvalExpr fr m (.call (.typeExpr ty) [] (.positional [a])) (.reverted p.data)
   | convertUser : isBuiltinFn c = false → fr.get? c = none → fc.varIn fr.here c = none → fc.fnsNamedIn fr.here c = [] →
       fc.types.structIn fr.here c = none →
-      (fc.types.contractKind? c).isSome ∨ (fc.types.enumIn fr.here c).isSome →
+      ((fc.types.contractKind? c).isSome ∨ (fc.types.enumIn fr.here c).isSome) ∨ (fc.types.valueTypeIn fr.here c).isSome →
       EvalExpr fr m (.call (.typeExpr (.user none c)) [] (.positional [a])) r →
       EvalExpr fr m (.call (.ident c) [] (.positional [a])) r
   | structLit : isBuiltinFn s = false → fr.get? s = none → fc.fnsNamedIn fr.here s = [] → fc.types.structIn fr.here s = some sd →
@@ -852,6 +886,13 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | convertQ : qualTypeRecv fc fr (.ident q) c = true → fc.types.structOf q c = none →
       EvalExpr fr m (.call (.typeExpr (.user (some q) c)) [] (.positional [a])) r →
       EvalExpr fr m (.call (.member (.ident q) c) [] (.positional [a])) r
+  -- `T.wrap(a)` / `T.unwrap(a)` for a user-defined value type `T`
+  | wrap : valueTypeRecv fc fr recv = some t → EvalExpr fr m a (.ok v fr1 m1) → wrapValue fc.types m1.heap t v = some w →
+      EvalExpr fr m (.call (.member recv "wrap") [] (.positional [a])) (.ok w fr1 m1)
+  | unwrap : valueTypeRecv fc fr recv = some t → EvalExpr fr m a (.ok v fr1 m1) → unwrapValue t v = some u →
+      EvalExpr fr m (.call (.member recv "unwrap") [] (.positional [a])) (.ok u fr1 m1)
+  | wrapRevert : valueTypeRecv fc fr recv = some t → (f = "wrap" ∨ f = "unwrap") → EvalExpr fr m a (.reverted d) →
+      EvalExpr fr m (.call (.member recv f) [] (.positional [a])) (.reverted d)
   -- builtins
   | requireTrue : EvalExpr fr m c (.ok (.bool true) fr1 m1) →
       EvalExpr fr m (.call (.ident "require") [] (.positional (c :: rest))) (.ok .unit fr1 m1)
@@ -1080,20 +1121,24 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
   | baseArgsRevert : isEnvObj b = false → fr.get? b = none → fc.library? b = none → fc.linearization.contains b = true →
       qualTypeRecv fc fr (.ident b) f = false → callArgs (fc.candParams (baseCands fc b f)) args = some es → EvalExprs fr m es (.reverted d) →
       EvalExpr fr m (.call (.member (.ident b) f) [] args) (.reverted d)
-  | usingForCall : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok rv fr1 m1) → specialMemberCall rv f = false →
-      usingLibrary fc fr.here (receiverTy m1.heap rv) = [lib] → callArgs ((lib.functions.filter (·.name == f)).map (·.params.drop 1)) args = some es →
+  -- `recv.f(args)` through `using … for`: `f(recv, args)` for the attached function the arguments select
+  | usingForCall : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok rv fr1 m1) → specialMemberCall fc rv f = false →
+      usingCands fc fr.here (receiverTy m1.heap rv) f ≠ [] →
+      callArgs ((fc.candParams (usingCands fc fr.here (receiverTy m1.heap rv) f)).map (·.drop 1)) args = some es →
       EvalExprs fr1 m1 es (.ok vs fr2 m2) →
-      resolveDecl fc.types m2.heap (lib.functions.filter (·.name == f)) (rv :: vs) = some d →
-      CallFn fr2 m2 ⟨0, lib.name, d⟩ (rv :: vs) (.ok rets m3) →
+      resolveOverload fc.types m2.heap fc (usingCands fc fr.here (receiverTy m1.heap rv) f) (rv :: vs) = some fn →
+      CallFn fr2 m2 fn (rv :: vs) (.ok rets m3) →
       EvalExpr fr m (.call (.member recv f) [] args) (.ok (retValue rets) fr2 m3)
-  | usingForArgsRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok rv fr1 m1) → specialMemberCall rv f = false →
-      usingLibrary fc fr.here (receiverTy m1.heap rv) = [lib] → callArgs ((lib.functions.filter (·.name == f)).map (·.params.drop 1)) args = some es →
+  | usingForArgsRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok rv fr1 m1) → specialMemberCall fc rv f = false →
+      usingCands fc fr.here (receiverTy m1.heap rv) f ≠ [] →
+      callArgs ((fc.candParams (usingCands fc fr.here (receiverTy m1.heap rv) f)).map (·.drop 1)) args = some es →
       EvalExprs fr1 m1 es (.reverted d) → EvalExpr fr m (.call (.member recv f) [] args) (.reverted d)
-  | usingForCallRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok rv fr1 m1) → specialMemberCall rv f = false →
-      usingLibrary fc fr.here (receiverTy m1.heap rv) = [lib] → callArgs ((lib.functions.filter (·.name == f)).map (·.params.drop 1)) args = some es →
+  | usingForCallRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok rv fr1 m1) → specialMemberCall fc rv f = false →
+      usingCands fc fr.here (receiverTy m1.heap rv) f ≠ [] →
+      callArgs ((fc.candParams (usingCands fc fr.here (receiverTy m1.heap rv) f)).map (·.drop 1)) args = some es →
       EvalExprs fr1 m1 es (.ok vs fr2 m2) →
-      resolveDecl fc.types m2.heap (lib.functions.filter (·.name == f)) (rv :: vs) = some d →
-      CallFn fr2 m2 ⟨0, lib.name, d⟩ (rv :: vs) (.reverted dd) →
+      resolveOverload fc.types m2.heap fc (usingCands fc fr.here (receiverTy m1.heap rv) f) (rv :: vs) = some fn →
+      CallFn fr2 m2 fn (rv :: vs) (.reverted dd) →
       EvalExpr fr m (.call (.member recv f) [] args) (.reverted dd)
   -- storage array push / pop
   | push1 : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.storageRef er (.dynArray e)) fr1 m1) → EvalExpr fr1 m1 x (.ok v fr2 m2) →
@@ -1174,12 +1219,14 @@ inductive EvalExpr : Frame → Machine → Expr → Res Value → Prop where
       decodeRets cfg fc.types m6 d.returns rtys out = none →
       EvalExpr fr m (.call (.member recv f) opts args) (.reverted (decodeFailData o m6 rtys))
   | externalValueRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
-      EvalValueOpt fr1 m1 (valueOpt opts) (.reverted d) →
+      fc.contractFnsNamed c f ≠ [] → EvalValueOpt fr1 m1 (valueOpt opts) (.reverted d) →
       EvalExpr fr m (.call (.member recv f) opts args) (.reverted d)
   | externalGasRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      fc.contractFnsNamed c f ≠ [] →
       EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.reverted d) →
       EvalExpr fr m (.call (.member recv f) opts args) (.reverted d)
   | externalArgsRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      fc.contractFnsNamed c f ≠ [] →
       EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.ok gasReq fr3 m3) →
       callArgs ((fc.contractFnsNamed c f).map (·.params)) args = some es → EvalExprs fr3 m3 es (.reverted d) →
       EvalExpr fr m (.call (.member recv f) opts args) (.reverted d)
@@ -1556,14 +1603,16 @@ inductive ExecStmt : Frame → Machine → Stmt → ExecResult → Prop where
       (d.returns = [] → codeSize m4.evm a ≠ 0) →
       ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted p.data)
   | tryCallArgsRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      fc.contractFnsNamed c f ≠ [] →
       EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.ok gasReq fr3 m3) →
       callArgs ((fc.contractFnsNamed c f).map (·.params)) args = some es → EvalExprs fr3 m3 es (.reverted d) →
       ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted d)
   | tryCallGasRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
+      fc.contractFnsNamed c f ≠ [] →
       EvalValueOpt fr1 m1 (valueOpt opts) (.ok value fr2 m2) → EvalGasOpt fr2 m2 (gasOpt opts) (.reverted d) →
       ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted d)
   | tryCallValueRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.ok (.contract c a) fr1 m1) →
-      EvalValueOpt fr1 m1 (valueOpt opts) (.reverted d) →
+      fc.contractFnsNamed c f ≠ [] → EvalValueOpt fr1 m1 (valueOpt opts) (.reverted d) →
       ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted d)
   | tryCallRecvRevert : memberCallDirect fc fr recv = false → EvalExpr fr m recv (.reverted d) →
       ExecStmt fr m (.tryCatch (.call (.member recv f) opts args) ps body cs) (.reverted d)

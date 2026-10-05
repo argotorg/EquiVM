@@ -23,15 +23,17 @@ def selectorDispatch (fc : FlatContract) (calldata : ByteArray) : Option Dispatc
     let sel := calldata.extract 0 4
     fc.entries.find? fun e => selectorOf e.sigStr == sel
 
-/-- ABI-decode the calldata arguments of `d` (positional). -/
+/-- ABI-decode the calldata arguments of `d` (positional).  A `calldata` array or struct is
+    decoded with its words unvalidated (`paramDecodeTys`): solc validates them when they are
+    read. -/
 def decodeArgs (cfg : Config) (env : TypeEnv) (d : FnDecl) (calldata : ByteArray) : Option (List ABIValue) := do
-  let sig ← sigOf env d.name (d.params.map (·.ty))
-  ABI.decodeCalldataValues? sig.paramTypes calldata cfg.abiDecodeMode
+  let tys ← paramDecodeTys env d.params
+  ABI.decodeCalldataValues? tys calldata cfg.abiDecodeMode
 
 /-- The arguments of `d` as spec values: ABI decoding, then the typed reconstruction, which rejects
     what solc's decoder validates beyond the ABI types (an enum value out of range). -/
 def decodeCallArgs (cfg : Config) (env : TypeEnv) (d : FnDecl) (calldata : ByteArray) : Option (List Value × Heap) :=
-  (decodeArgs cfg env d calldata).bind fun svs => ofAbiList env (d.params.map (·.ty)) svs {}
+  (decodeArgs cfg env d calldata).bind fun svs => ofAbiParams env d.params svs {}
 
 /-- Whether solc decodes some argument of `d` into memory with a length-dependent allocation: a
     parameter of dynamic type that is not located in calldata (getter parameters carry no
@@ -87,7 +89,7 @@ inductive solidityExec (createdAccounts : Batteries.RBSet Ethereum.AccountAddres
       selectorDispatch fc I.calldata = some e → fc.fns[e.fn]? = some fn →
       payableOrNoValue fn.decl I → returnAbiTys fc.types fn.decl = some retTys →
       decodeArgs cfg fc.types fn.decl I.calldata = some svs →
-      ofAbiList fc.types (fn.decl.params.map (·.ty)) svs {} = some (vs, h0) →
+      ofAbiParams fc.types fn.decl.params svs {} = some (vs, h0) →
       CallFn cfg o fc (rootFrame fc) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0) fn vs (.ok rets m') →
       rets.mapM (toAbi m'.heap fuelDefault) = some out →
       solidityExec createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.returned m' out) (.abi retTys)
@@ -95,7 +97,7 @@ inductive solidityExec (createdAccounts : Batteries.RBSet Ethereum.AccountAddres
       selectorDispatch fc I.calldata = some e → fc.fns[e.fn]? = some fn →
       payableOrNoValue fn.decl I → returnAbiTys fc.types fn.decl = some retTys →
       decodeArgs cfg fc.types fn.decl I.calldata = some svs →
-      ofAbiList fc.types (fn.decl.params.map (·.ty)) svs {} = some (vs, h0) →
+      ofAbiParams fc.types fn.decl.params svs {} = some (vs, h0) →
       CallFn cfg o fc (rootFrame fc) (initMachine createdAccounts genesisBlockHeader blocks σ σ₀ g A I h0) fn vs (.reverted d) →
       solidityExec createdAccounts genesisBlockHeader blocks σ σ₀ g A I (.reverted d) (.abi retTys)
   | nonPayable :

@@ -99,7 +99,8 @@ structure FlatContract where
   /-- Events and errors of every unit (the hierarchy's, the file's, the libraries', other units'). -/
   events : List EventInfo
   errors : List ErrorInfo
-  /-- `(unit where written, directive)`: a directive applies to code of that unit only. -/
+  /-- `(unit where written, directive)`: a directive applies to code of that unit only; a
+      file-level one (unit `""`) to every unit. -/
   usingFor : List (Ident × UsingFor)
   libraries : List ContractDecl
   /-- Own (non-inherited) function signatures per contract-like unit, for `type(I).interfaceId`. -/
@@ -222,7 +223,7 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
   let hier ← lin.mapM fun c => match find c with
     | some d => pure d
     | none => throw s!"unknown base contract `{c}`"
-  -- Type environment: every struct and enum with its declaring unit (the file is `""`).
+  -- Type environment: every struct, enum and value type with its declaring unit (the file is `""`).
   let linOf (c : Ident) : List Ident :=
     (linearize (fun c => (find c).map (·.bases.map (·.name))) (contracts.length + 1) c).getD [c]
   let structsOf (d : ContractDecl) : List StructInfo :=
@@ -231,9 +232,16 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
     d.enums.map fun e => { qual := some d.name, name := e.name, members := e.members }
   let fileStructs := p.filterMap fun | .struct s => some ({ qual := some "", name := s.name, fields := s.fields } : StructInfo) | _ => none
   let fileEnums := p.filterMap fun | .enum e => some ({ qual := some "", name := e.name, members := e.members } : EnumInfo) | _ => none
+  let valueTypes : List ValueTypeInfo :=
+    (contracts.flatMap fun d => d.valueTypes.map fun t => { qual := some d.name, name := t.name, underlying := t.underlying }) ++
+    p.filterMap fun | .valueType t => some { qual := some "", name := t.name, underlying := t.underlying } | _ => none
+  -- solc: the underlying type of a value type is an elementary value type.
+  if let some t := valueTypes.find? fun t => (elemTypeOf t.underlying).isNone then
+    throw s!"the underlying type of `{t.name}` is not an elementary value type"
   let env0 : TypeEnv :=
     { structs := contracts.flatMap structsOf ++ fileStructs
       enums := contracts.flatMap enumsOf ++ fileEnums
+      valueTypes := valueTypes
       contracts := contracts.map fun d => (d.name, d.kind)
       lins := contracts.map fun d => (d.name, linOf d.name) }
   -- Types in declarations are written in the scope of their unit: make them canonical.
@@ -357,7 +365,9 @@ def elabProgram (p : Program) (target : Ident) : Except String FlatContract := d
     (d.stateVars.filter (·.mutability == .constant)).map fun v =>
       { key := v.name, name := v.name, declaredIn := d.name, ty := canon d.name v.ty, visibility := .internal,
         mutability := .constant, init := v.init }
-  let usingFor := contracts.flatMap fun d => d.usings.map fun u => (d.name, { u with ty := u.ty.map (canon d.name) })
+  -- `using` directives: those of each unit, then the file's (unit `""`: they apply everywhere).
+  let usingFor := (contracts.flatMap fun d => d.usings.map fun u => (d.name, { u with ty := u.ty.map (canon d.name) })) ++
+    p.filterMap fun | .usingFor u => some ("", { u with ty := u.ty.map (canon "") }) | _ => none
   let interfaceSigs := contracts.map fun d =>
     (d.name, d.functions.filterMap fun f => sigStrOf env f.name (tysOfParams (canonParams d.name f.params)))
   -- Functions of every unit: declared ones and the getters of public variables, the most derived
