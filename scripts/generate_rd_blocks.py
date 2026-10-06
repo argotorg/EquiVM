@@ -29,7 +29,11 @@ The generator evaluates that layout's sites through Lean and checks that they
 are complete PUSH32 payloads in the template. Generated modules refer to the
 imported layout and quantify a ``String → UInt256`` value map. This mode applies
 to complete PUSH32 arguments, as in the supported Solidity immutable references;
-it does not model Vyper's appended immutable data or arbitrary byte patches.
+it does not model arbitrary byte patches within the instruction stream.
+``--runtime-suffix`` is a separate mode that quantifies arbitrary bytes appended
+to the template, as in Vyper's immutable scheme. Its summaries execute
+``template ++ suffix``. Only instructions entirely inside the fixed template
+receive summaries; suffix bytes still affect CODECOPY and CODESIZE.
 Build the imported Lean modules before running this mode.
 """
 
@@ -118,6 +122,14 @@ def lean_operation(ins: Instruction) -> str:
     if 0x60 <= ins.opcode <= 0x7F:
         return f".Push .PUSH{ins.width}"
     return f".{opcode_name(ins.opcode).upper()}"
+
+
+def lean_decode_arg(ins: Instruction) -> str:
+    """The decoded immediate, if any, for a complete supported instruction."""
+    if 0x60 <= ins.opcode <= 0x7F:
+        assert ins.argument is not None
+        return f"some ({u256_nat(ins.argument)}, {ins.width})"
+    return "none"
 
 
 def validate_immutable_sites(raw: object, code: bytes) -> dict[int, str]:
@@ -268,12 +280,15 @@ def term_mentions_name(term: str, name: str) -> bool:
 
 
 def final_value_param_specs(summary: Summary, creation_code: bool,
-                            immutable_code: bool = False) -> list[LeanParam]:
+                            immutable_code: bool = False,
+                            runtime_suffix: bool = False) -> list[LeanParam]:
     specs: list[LeanParam] = []
     if creation_code:
         specs.append(LeanParam("tail", "ByteArray"))
     if immutable_code:
         specs.append(LeanParam("immWords", "String → UInt256"))
+    if runtime_suffix:
+        specs.append(LeanParam("suffix", "ByteArray"))
     specs.extend([
         LeanParam("ee", "ExecutionEnv"),
         LeanParam("g", "Sat256"),
@@ -292,13 +307,10 @@ def final_value_param_specs(summary: Summary, creation_code: bool,
 
 
 def final_value_deps(term: str, specs: list[LeanParam],
-                     creation_code: bool = False) -> list[LeanParam]:
-    deps = [spec for spec in specs
-            if spec.name != "tail" and term_mentions_name(term, spec.name)]
-    if creation_code and "__CODE__" in term:
-        tail = next(spec for spec in specs if spec.name == "tail")
-        deps.insert(0, tail)
-    return deps
+                     code_dep_names: tuple[str, ...] = ()) -> list[LeanParam]:
+    return [spec for spec in specs
+            if term_mentions_name(term, spec.name)
+            or ("__CODE__" in term and spec.name in code_dep_names)]
 
 
 def render_def_params(deps: list[LeanParam]) -> str:
@@ -320,8 +332,9 @@ class FinalValueDefs:
 
 
 def render_final_value_defs(base_name: str, summary: Summary, effective_code_term: str,
-                            creation_code: bool, immutable_code: bool = False) -> FinalValueDefs:
-    specs = final_value_param_specs(summary, creation_code, immutable_code)
+                            creation_code: bool, immutable_code: bool = False,
+                            runtime_suffix: bool = False) -> FinalValueDefs:
+    specs = final_value_param_specs(summary, creation_code, immutable_code, runtime_suffix)
     stack_name = f"{base_name}_stack"
     memory_name = f"{base_name}_memory"
     raw_input_stack_body = stack_term(summary.stack_in)
@@ -329,8 +342,11 @@ def render_final_value_defs(base_name: str, summary: Summary, effective_code_ter
     raw_memory_body = summary.mem
     stack_body = raw_stack_body.replace("__CODE__", effective_code_term)
     memory_body = raw_memory_body.replace("__CODE__", effective_code_term)
-    stack_deps = final_value_deps(raw_stack_body, specs, creation_code)
-    memory_deps = final_value_deps(raw_memory_body, specs, creation_code)
+    code_dep_names = (("tail",) if creation_code else
+                      ("suffix",) if runtime_suffix else
+                      ("immWords",) if immutable_code else ())
+    stack_deps = final_value_deps(raw_stack_body, specs, code_dep_names)
+    memory_deps = final_value_deps(raw_memory_body, specs, code_dep_names)
 
     lines: list[str] = []
     stack_ref = stack_body
@@ -557,7 +573,8 @@ class Summary:
 def simulate(block: list[Instruction], branch: str | None,
                       decode_proof: str = "(by native_decide)",
              creation_prefix: str | None = None,
-             immutable_sites: dict[int, str] | None = None) -> Summary:
+             immutable_sites: dict[int, str] | None = None,
+             runtime_suffix: bool = False) -> Summary:
     depth = required_input_depth(block)
     initial = [f"x{i}" for i in range(depth)]
     stack = initial.copy()
@@ -623,7 +640,13 @@ def simulate(block: list[Instruction], branch: str | None,
         op = ins.opcode
         before, after = next_r()
         decode = decode_proof
-        if immutable_sites is not None:
+        if runtime_suffix:
+            decode = (
+                "(by append_decode(__TEMPLATE__, suffix, "
+                f"(⟨{ins.pc}⟩ : UInt256), {lean_operation(ins)}, "
+                f"{lean_decode_arg(ins)}))"
+            )
+        elif immutable_sites is not None:
             if ins.opcode == 0x7F and ins.pc + 1 in immutable_sites:
                 decode = (
                     "(by\n"
@@ -887,20 +910,24 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
                    creation_code: bool = False,
                    creation_code_size: int | None = None,
                    immutable_sites: dict[int, str] | None = None,
-                   layout_term: str | None = None) -> str:
+                   layout_term: str | None = None,
+                   runtime_suffix: bool = False) -> str:
     name = summary_name(prefix, block, summary.branch)
     xs = " ".join(summary.stack_in)
     xbinder = f" {{{xs} : UInt256}}" if xs else ""
     tail_param = "{tail : ByteArray} " if creation_code else ""
     immutable_param = ("{immWords : String → UInt256} "
                        if immutable_sites is not None else "")
+    suffix_param = "{suffix : ByteArray} " if runtime_suffix else ""
     params = (
-        f"{tail_param}{immutable_param}{{ee : ExecutionEnv}} {{g : Sat256}} {{s0 : State}} {{mem : ByteArray}} "
+        f"{tail_param}{immutable_param}{suffix_param}{{ee : ExecutionEnv}} {{g : Sat256}} {{s0 : State}} {{mem : ByteArray}} "
         f"{{aw : UInt256}} {{rdata : ByteArray}} "
         f"{{σ : AccountMap}} "
         f"{{k C : ℕ}}{xbinder} {{R : List UInt256}}"
     )
-    effective_code_term = (f"({layout_term}.runtime {code_term} immWords)"
+    effective_code_term = (f"({code_term} ++ suffix)"
+                           if runtime_suffix else
+                           f"({layout_term}.runtime {code_term} immWords)"
                            if immutable_sites is not None else
                            f"({code_term} ++ tail)" if creation_code else code_term)
     assumptions: list[str] = []
@@ -922,7 +949,8 @@ def render_summary(prefix: str, code_term: str, block: list[Instruction], summar
         result = summary.terminal
     else:
         final_defs = render_final_value_defs(name, summary, effective_code_term,
-                                             creation_code, immutable_sites is not None)
+                                             creation_code, immutable_sites is not None,
+                                             runtime_suffix)
         result_rd = (
             f"RD {effective_code_term} ee g s0 {summary.pc} {final_defs.stack} "
             f"{final_defs.memory} {summary.aw} rdata {summary.world_map}"
@@ -1037,8 +1065,11 @@ def generate_unit_records(code: bytes, prefix: str, code_term: str,
                           max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS,
                           creation_code: bool = False,
                           immutable_sites: dict[int, str] | None = None,
-                          layout_term: str | None = None) -> list[GeneratedUnit]:
+                          layout_term: str | None = None,
+                          runtime_suffix: bool = False) -> list[GeneratedUnit]:
     """Generate theorem/comment units with index metadata and no module wrapper."""
+    if runtime_suffix and (creation_code or immutable_sites is not None or layout_term is not None):
+        raise ValueError("runtime suffix and other patch modes are separate")
     if immutable_sites is not None and not layout_term:
         raise ValueError("immutable mode requires an imported Lean layout term")
     prefix = lean_ident(prefix)
@@ -1075,13 +1106,14 @@ def generate_unit_records(code: bytes, prefix: str, code_term: str,
                         "(by rw [hcreationCodeSize]; native_decide) (by native_decide))"
                     )
                 summary = simulate(piece, branch,
-                                   decode_proof, creation_prefix, immutable_sites)
+                                   decode_proof, creation_prefix, immutable_sites,
+                                   runtime_suffix)
                 name = summary_name(prefix, piece, branch)
                 theorem_names = (name,) if summary.terminal else (name, f"{name}_packed")
                 units.append(GeneratedUnit(
                     render_summary(prefix, code_term, piece, summary, creation_code,
                                    len(code) if creation_code else None, immutable_sites,
-                                   layout_term),
+                                   layout_term, runtime_suffix),
                     theorem_names,
                     pcs,
                 ))
@@ -1093,12 +1125,14 @@ def generate_units(code: bytes, prefix: str, code_term: str,
                    max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS,
                    creation_code: bool = False,
                    immutable_sites: dict[int, str] | None = None,
-                   layout_term: str | None = None) -> list[str]:
+                   layout_term: str | None = None,
+                   runtime_suffix: bool = False) -> list[str]:
     """Generate theorem/comment units without a Lean module wrapper."""
     return [
         unit.text for unit in generate_unit_records(
             code, prefix, code_term, fail_on_unsupported, keep_metadata,
-            max_summary_instructions, creation_code, immutable_sites, layout_term
+            max_summary_instructions, creation_code, immutable_sites, layout_term,
+            runtime_suffix
         )
     ]
 
@@ -1157,11 +1191,12 @@ def render_module(prefix: str, imports: list[str], units: list[Unit],
                   code_term: str | None = None,
                   immutable_sites: dict[int, str] | None = None,
                   code: bytes | None = None,
-                  layout_term: str | None = None) -> str:
+                  layout_term: str | None = None,
+                  runtime_suffix: bool = False) -> str:
     """Wrap generated units as an independently elaboratable Lean module."""
     prefix = lean_ident(prefix)
     output = ["import Reasoning.Reach"]
-    if creation_code:
+    if creation_code or runtime_suffix:
         output.append("import Reasoning.Initcode")
     if immutable_sites is not None:
         output.append("import Reasoning.Immutables")
@@ -1169,11 +1204,14 @@ def render_module(prefix: str, imports: list[str], units: list[Unit],
     output += ["", "open Solm ABI Ethereum Ethereum.EVM",
                "open Reasoning.Theory Reasoning.Reach", "",
                f"namespace {prefix}Blocks", ""]
+    if runtime_suffix:
+        output += ["set_option maxRecDepth 10000", ""]
     if immutable_sites is not None:
         if code_term is None or code is None or not layout_term:
             raise ValueError("immutable mode requires template code and an imported Lean layout term")
         output += ["open Reasoning.Immutables", "set_option maxRecDepth 10000", ""]
-        output += render_immutable_helpers(code, code_term, layout_term, units, immutable_sites)
+        output += render_immutable_helpers(code, code_term, layout_term, units,
+                                           immutable_sites)
     if creation_code:
         if code_term is None:
             raise ValueError("code term is required in creation mode")
@@ -1193,13 +1231,15 @@ def generate(code: bytes, prefix: str, code_term: str, imports: list[str],
              max_summary_instructions: int = MAX_SUMMARY_INSTRUCTIONS,
              creation_code: bool = False,
              immutable_sites: dict[int, str] | None = None,
-             layout_term: str | None = None) -> str:
+             layout_term: str | None = None,
+             runtime_suffix: bool = False) -> str:
     """Generate a single Lean module. Use ``write_outputs`` for file sharding."""
     units = generate_unit_records(code, prefix, code_term, fail_on_unsupported,
                                   keep_metadata, max_summary_instructions,
-                                  creation_code, immutable_sites, layout_term)
+                                  creation_code, immutable_sites, layout_term,
+                                  runtime_suffix)
     return render_module(prefix, imports, units, creation_code, code_term,
-                         immutable_sites, code, layout_term)
+                         immutable_sites, code, layout_term, runtime_suffix)
 
 
 def top_level_item_start(line: str) -> bool:
@@ -1288,11 +1328,13 @@ def write_outputs(output: Path, prefix: str, imports: list[str], units: list[Uni
                   index_output: Path | None = None,
                   immutable_sites: dict[int, str] | None = None,
                   code: bytes | None = None,
-                  layout_term: str | None = None) -> list[Path]:
+                  layout_term: str | None = None,
+                  runtime_suffix: bool = False) -> list[Path]:
     index_entries: list[IndexEntry] = []
     if shard_size is None:
         module_text = render_module(prefix, imports, units, creation_code,
-                                    code_term, immutable_sites, code, layout_term)
+                                    code_term, immutable_sites, code, layout_term,
+                                    runtime_suffix)
         output.write_text(module_text, encoding="utf-8")
         index_entries.extend(module_index_entries(output.name, module_text, units))
         (index_output or default_index_output(output)).write_text(
@@ -1307,7 +1349,8 @@ def write_outputs(output: Path, prefix: str, imports: list[str], units: list[Uni
     for index, shard in enumerate(shards, 1):
         path = output.with_name(f"{output.stem}_{index:0{width}d}{suffix}")
         module_text = render_module(prefix, imports, shard, creation_code,
-                                    code_term, immutable_sites, code, layout_term)
+                                    code_term, immutable_sites, code, layout_term,
+                                    runtime_suffix)
         path.write_text(module_text, encoding="utf-8")
         index_entries.extend(module_index_entries(path.name, module_text, shard))
         paths.append(path)
@@ -1348,26 +1391,31 @@ def main(argv: list[str] | None = None) -> int:
                              "--code-term ++ tail, lifting decodes and jumps from --code-term")
     parser.add_argument("--layout-term",
                         help="imported Lean Layout term for immutable-aware runtime summaries")
+    parser.add_argument("--runtime-suffix", action="store_true",
+                        help="summarize template ++ arbitrary appended runtime data")
     args = parser.parse_args(argv)
     if (args.bytecode is None) == (args.hex_bytecode is None):
         parser.error("provide exactly one of BYTECODE or --hex")
-    if args.creation_code and args.layout_term is not None:
-        parser.error("--creation-code and --layout-term are separate modes")
+    if args.creation_code and (args.layout_term is not None or args.runtime_suffix):
+        parser.error("--creation-code and runtime patch modes are separate")
+    if args.runtime_suffix and args.layout_term is not None:
+        parser.error("--runtime-suffix and --layout-term are separate modes")
     try:
         code = (parse_bytecode_text(args.hex_bytecode) if args.hex_bytecode is not None
                 else read_bytecode(args.bytecode, args.code_term))
         imports = [args.bytecode_import, *args.imports]
-        immutable_sites = (read_lean_layout(args.layout_term, imports, code)
-                           if args.layout_term is not None else None)
+        layout_term = args.layout_term
+        immutable_sites = (read_lean_layout(layout_term, imports, code)
+                           if layout_term is not None else None)
         units = generate_unit_records(code, args.name, args.code_term,
                                       args.fail_on_unsupported, args.keep_metadata,
                                       args.max_summary_instructions,
                                       args.creation_code, immutable_sites,
-                                      args.layout_term)
+                                      layout_term, args.runtime_suffix)
         paths = write_outputs(args.output, args.name, imports, units,
                               args.shard_size, args.creation_code, args.code_term,
                               args.index_output, immutable_sites, code,
-                              args.layout_term)
+                              layout_term, args.runtime_suffix)
     except (OSError, ValueError) as error:
         parser.error(str(error))
     if args.shard_size is not None:

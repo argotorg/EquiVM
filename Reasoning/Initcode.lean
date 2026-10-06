@@ -109,6 +109,15 @@ theorem decode_append_left_of_decode (A B : ByteArray) (pc : UInt256)
     subst instr'
     exact hwin64
 
+/-- Decode a concrete instruction in a fixed prefix with arbitrary appended data. -/
+macro "append_decode" "(" template:term "," suffix:term "," pc:term ","
+    instr:term "," arg:term ")" : tactic =>
+  `(tactic|
+    (conv_lhs => arg 2; change $pc
+     exact Reasoning.Theory.decode_append_left_of_decode
+       $template $suffix $pc $instr $arg
+       (by native_decide) (by native_decide) (by native_decide)))
+
 
 /-- Every EVM instruction carries at most 32 immediate argument bytes (`PUSH32`). -/
 theorem argOnNBytesOfInstr_le_32 (i : Operation) : argOnNBytesOfInstr i ≤ 32 := by

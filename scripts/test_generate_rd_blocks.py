@@ -70,6 +70,30 @@ class GeneratorTests(unittest.TestCase):
             rd.generate(bytes.fromhex("5b00"), "imm", "template", [],
                         immutable_sites={})
 
+    def test_runtime_suffix_reads_appended_data_symbolically(self) -> None:
+        # CODECOPY reads 32 bytes starting at the end of the 10-byte template.
+        code = bytes.fromhex("6020600a600039600051")
+        rendered = rd.generate(code, "suffix", "template", [],
+                               runtime_suffix=True)
+        self.assertIn("{suffix : ByteArray}", rendered)
+        self.assertIn("RD (template ++ suffix) ee g s0", rendered)
+        self.assertIn("(template ++ suffix).write", rendered)
+        self.assertIn("append_decode(template, suffix,", rendered)
+        self.assertNotIn("immWords", rendered)
+        self.assertNotIn("Layout.runtime", rendered)
+
+    def test_runtime_suffix_covers_codesize(self) -> None:
+        rendered = rd.generate(bytes.fromhex("38"), "suffix", "template", [],
+                               runtime_suffix=True)
+        self.assertIn("(template ++ suffix).size", rendered)
+        self.assertIn("(suffix := suffix)", rendered)
+
+    def test_runtime_suffix_is_exclusive_with_splicing(self) -> None:
+        with self.assertRaisesRegex(ValueError, "separate"):
+            rd.generate(bytes.fromhex("5b00"), "suffix", "template", [],
+                        runtime_suffix=True, immutable_sites={},
+                        layout_term="Contract.layout")
+
     def test_immutable_layout_rejects_non_push_payload(self) -> None:
         with self.assertRaisesRegex(ValueError, "not a PUSH32 payload"):
             rd.validate_immutable_sites(
