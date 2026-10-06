@@ -1900,4 +1900,137 @@ theorem sstoreAccountMap_comm
             accountMap_get?_insert_ne τ addr a _ haddr
     simp only [hother]
 
+theorem valueToWord_bytes32_word (word : UInt256) :
+    valueToWord (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE word)) = some word := by
+  have hlen : (EVM.Word.toBytesBE word).length = 32 := by
+    simpa using word_toBytesBE_toByteArray_size word
+  simpa [valueToWord, keyValueToWord, hlen] using
+    congrArg some (keyValueToWord_fixedBytes32 word)
+
+theorem storageWordWrite_accounts {σ : AccountMap} {evm : EVM.State}
+    (h : σ = evm.accountMap) (slot : UInt256) (f : UInt256 → UInt256) :
+    (sstoreAccountMap evm.executionEnv.codeOwner σ slot
+        (f (Reasoning.Reach.solcSlotWord σ evm.executionEnv slot))) =
+      (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (f (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot))).accountMap := by
+  rw [storageStore_accountMap, h]
+  rfl
+
+/-- General uint256 scalar store: truncates the stored `Int` to a word via `wordOfInt`.
+    LIBRARY CANDIDATE: `Reasoning.Storage` (generalizes `storageLocStore_uint256`). -/
+theorem storageLocStore_uint256_int (evm : EVM.State) (slot : UInt256) (n : Int) :
+    storageLocStore evm (uint256Loc slot) (.int n) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot (EVM.wordOfInt n)) := by
+  unfold storageLocStore storageLocWriteWord uint256Loc
+  simp only [valueToWord, bind, Option.bind, pure]
+  have hslen := (EVM.Word.toBytesLEWithSizeProof
+    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2
+  have hvlen := (EVM.Word.toBytesLEWithSizeProof (EVM.wordOfInt n)).2
+  congr 2
+  apply u256_inj
+  show fromBytes'
+      (List.take (0 : Fin 32).val _ ++ List.take (32 : Fin 33).val _
+        ++ List.drop ((0 : Fin 32).val + (32 : Fin 33).val) _) = (EVM.wordOfInt n).toNat
+  rw [show (0 : Fin 32).val = 0 from rfl, show (32 : Fin 33).val = 32 from rfl,
+    List.take_zero, List.nil_append, List.drop_eq_nil_of_le (by rw [hslen]),
+    List.append_nil, List.take_of_length_le (by rw [hvlen]), fromBytes'_toBytesLEWithSizeProof]
+
+theorem storageStore_σ₀ (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
+    (Solm.EVM.storageStore evm addr slot val).σ₀ = evm.σ₀ := by
+  simp only [Solm.EVM.storageStore, State.lookupAccount]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
+
+theorem storageStore_substate (evm : EVM.State) (addr : AccountAddress) (slot val : UInt256) :
+    (Solm.EVM.storageStore evm addr slot val).substate = evm.substate := by
+  simp only [Solm.EVM.storageStore, State.lookupAccount]
+  cases evm.accountMap.get? addr <;> simp [Option.option, State.setAccount]
+
+theorem sstoreAccountMap_storage_getD_self_present
+    (σ : AccountMap) (a : AccountAddress) {acc : Account}
+    (hacc : σ.get? a = some acc) (slot val : UInt256) :
+    (((sstoreAccountMap a σ slot val).get? a).option (default : UInt256)
+        (fun acc => acc.storage.getD slot (default : UInt256))) = val := by
+  unfold sstoreAccountMap
+  rw [hacc]
+  simp only [Option.option]
+  simp only [Std.ExtTreeMap.get?_eq_getElem?, Std.ExtTreeMap.getElem?_insert_self]
+  by_cases hzero : (val == (default : UInt256)) = true
+  · have hval : val = (default : UInt256) := eq_of_beq hzero
+    subst val
+    simp
+  · simp [hzero]
+
+theorem storageLocStore_uint8 (evm : EVM.State) (slot value : UInt256)
+    (hc : value.toNat < 256) :
+    storageLocStore evm
+      { slot := slot, offset := 0, size := 1, hbound := by decide,
+        type := .int (.uint ⟨8, by decide⟩) }
+      (.int (Int.ofNat value.toNat)) =
+      some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot
+        (UInt256.lor
+          (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
+            (UInt256.lnot ⟨255⟩)) value)) := by
+  unfold storageLocStore storageLocWriteWord
+  simp only [valueToWord, wordOfInt_ofNat_toNat, bind, Option.bind]
+  congr 2
+  apply u256_inj
+  change fromBytes' ((EVM.Word.toBytesLEWithSizeProof value).1.take 1 ++
+      (EVM.Word.toBytesLEWithSizeProof
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.drop 1) = _
+  rw [fromBytes'_append, fromBytes'_take_wordLE_land_mask value 1 (by decide),
+    fromBytes'_drop_wordLE]
+  rw [u256_lor_toNat, packedSetFalseWord_toNat]
+  rw [nat_lor_comm]
+  rw [show 256 = 2 ^ 8 by decide, Nat.mul_comm (2 ^ 8)]
+  rw [nat_lor_shift_add value.toNat _ 8 hc]
+  have hbound := (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).val.isLt
+  rw [Nat.mod_eq_of_lt (show value.toNat +
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat / 2 ^ 8 * 2 ^ 8 <
+        UInt256.size from by
+      change _ < 2 ^ 256
+      change (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat < 2 ^ 256
+        at hbound
+      omega)]
+  simp only [List.length_take, (EVM.Word.toBytesLEWithSizeProof value).2]
+  change (UInt256.land value ⟨255⟩).toNat +
+    256 * ((Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat / 256) = _
+  rw [lowByteClean hc]
+  omega
+
+theorem canonicalAddress_eq_zero_iff (value : UInt256)
+    (hc : value.toNat < EVM.addressModulus) :
+    AccountAddress.ofNat value.toNat = AccountAddress.ofNat 0 ↔ value = ⟨0⟩ := by
+  constructor
+  · intro h
+    have hv := congrArg (fun a => valueToWord (.address a)) h
+    dsimp only at hv
+    rw [valueToWord_address_ofNat_canonical value hc] at hv
+    exact Option.some.inj hv
+  · intro h
+    rw [h]
+    rfl
+
+theorem sourceAddress_eq_iff (I : ExecutionEnv) (w : UInt256)
+    (hc : w.toNat < EVM.addressModulus) :
+    I.source = AccountAddress.ofNat w.toNat ↔ solcSourceWord I = w := by
+  constructor
+  · intro h
+    have hw := congrArg (fun a => valueToWord (.address a)) h
+    dsimp only at hw
+    rw [valueToWord_address_ofNat_canonical w hc] at hw
+    exact Option.some.inj hw
+  · intro h
+    rw [← h, solcSource_ofNat]
+
+theorem wordToElemBool (word : UInt256) :
+    wordToElem .bool word = .bool (!decide (word = ⟨0⟩)) := by
+  by_cases hw : word = ⟨0⟩
+  · subst word; rfl
+  · have hv : (word.val == 0) = false := by
+      rw [beq_eq_false_iff_ne]
+      intro he
+      apply hw
+      exact u256_inj (congrArg Fin.val he)
+    simp [wordToElem, hw, hv]
+
 end Reasoning.Theory

@@ -844,4 +844,290 @@ theorem assignStorageRef_storage_scalar {cfg : Config} {solm : Frame} {evm evm' 
     assignStorageRef? cfg solm evm .storage slot (.int n) = .ok (solm, evm') := by
   exact assignStorageRef_storage_scalar_value hbase her hty hloc (by trivial) hstore
 
+theorem evalExpr_uint256_vars_positiveOr {cfg : Config} {caller : Frame} (evm : EVM.State)
+    (var0 var1 : Ident) (word0 word1 : UInt256)
+    (h0 : caller.locals.get? var0 = some (uint256Value word0))
+    (h1 : caller.locals.get? var1 = some (uint256Value word1)) :
+    evalExpr? cfg caller evm
+      (.binary .or (.binary .gt (.var var0) (.intLit 0)) (.binary .gt (.var var1) (.intLit 0))) =
+      .ok (.bool (decide (0 < word0.toNat ∨ 0 < word1.toNat))) := by
+  simp only [evalExpr?, EvalResult.ofOption, h0, h1, EvalResult.bind, bind, pure]
+  by_cases hp0 : 0 < word0.toNat <;> simp [evalBinaryOp?, hp0]
+
+theorem evalExpr_uint256_inRange {cfg : Config} {caller : Frame} {evm : EVM.State}
+    {e : Expr} {word : UInt256} (he : evalExpr? cfg caller evm e = .ok (uint256Value word)) :
+    evalExpr? cfg caller evm (.inRange (.uint ⟨256, by decide⟩) e) = .ok (uint256Value word) := by
+  simp only [evalExpr?, he, EvalResult.bind, bind, uint256Value]
+  have hbound := word.val.isLt
+  change word.toNat < 2 ^ 256 at hbound
+  have hn : ¬ Int.ofNat word.toNat < 0 := by simp only [Int.ofNat_eq_natCast]; omega
+  have hh : ¬ Int.ofNat word.toNat ≥ 2 ^ 256 := by simp only [Int.ofNat_eq_natCast]; omega
+  simp only [hn, hh, decide_false, Bool.false_or, Bool.false_eq_true, if_false, pure]
+
+theorem evalExpr_uint256_mul {cfg : Config} {caller : Frame} {evm : EVM.State}
+    {lhs rhs : Expr} {a b : UInt256}
+    (ha : evalExpr? cfg caller evm lhs = .ok (uint256Value a))
+    (hb : evalExpr? cfg caller evm rhs = .ok (uint256Value b))
+    (hfit : a.toNat * b.toNat < UInt256.size) :
+    evalExpr? cfg caller evm (.inRange (.uint ⟨256, by decide⟩) (.binary .mul lhs rhs)) =
+      .ok (uint256Value (UInt256.mul a b)) := by
+  apply evalExpr_uint256_inRange
+  simp only [evalExpr?, ha, hb, EvalResult.bind, bind, uint256Value, evalBinaryOp?]
+  rw [u256_mul_toNat, Nat.mod_eq_of_lt hfit]
+  simp only [Int.ofNat_eq_natCast, Nat.cast_mul]
+
+theorem evalExpr_uint256_mul_overflow {cfg : Config} {caller : Frame} {evm : EVM.State}
+    {lhs rhs : Expr} {a b : UInt256}
+    (ha : evalExpr? cfg caller evm lhs = .ok (uint256Value a))
+    (hb : evalExpr? cfg caller evm rhs = .ok (uint256Value b))
+    (hover : UInt256.size ≤ a.toNat * b.toNat) :
+    evalExpr? cfg caller evm (.inRange (.uint ⟨256, by
+      decide⟩) (.binary .mul lhs rhs)) = .revert := by
+  have hge : Int.ofNat (a.toNat * b.toNat) ≥ (2 : Int) ^ 256 := by
+    rw [UInt256.size] at hover
+    exact Int.ofNat_le.mpr hover
+  simp only [evalExpr?, ha, hb, EvalResult.bind, bind, uint256Value, evalBinaryOp?]
+  rw [if_pos]
+  simp only [Bool.or_eq_true, decide_eq_true_eq]
+  exact Or.inr (by simpa [Nat.cast_mul] using hge)
+
+theorem evalExpr_uint256_sub {cfg : Config} {caller : Frame} {evm : EVM.State}
+    {lhs rhs : Expr} {a b : UInt256}
+    (ha : evalExpr? cfg caller evm lhs = .ok (uint256Value a))
+    (hb : evalExpr? cfg caller evm rhs = .ok (uint256Value b))
+    (hle : b.toNat ≤ a.toNat) :
+    evalExpr? cfg caller evm (.inRange (.uint ⟨256, by decide⟩) (.binary .sub lhs rhs)) =
+      .ok (uint256Value (UInt256.sub a b)) := by
+  apply evalExpr_uint256_inRange
+  simp only [evalExpr?, ha, hb, EvalResult.bind, bind, uint256Value, evalBinaryOp?]
+  rw [usub_toNat hle]
+  simp only [Int.ofNat_eq_natCast, Int.ofNat_sub hle]
+
+theorem evalExpr_uint256_var_positive {cfg : Config} {frame : Frame} (evm : EVM.State)
+    (name : Ident) (word : UInt256)
+    (hget : frame.locals.get? name = some (.int (Int.ofNat word.toNat))) :
+    evalExpr? cfg frame evm (.binary .gt (.var name) (.intLit 0)) =
+      .ok (.bool (decide (0 < word.toNat))) := by
+  simp only [evalExpr?, EvalResult.ofOption, hget, EvalResult.bind, bind, pure]
+  simp [evalBinaryOp?]
+
+theorem frame_eq_of_contract {caller : Frame} {decl : ContractDecl} (h : caller.contract = decl) :
+    caller = { contract := decl, locals := caller.locals } := by
+  cases caller
+  dsimp only at h ⊢
+  cases h
+  rfl
+
+theorem evalPackedArgs_cons {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {ty : ABIType} {e : Expr} {v : Value} {head tailBytes : List UInt8}
+    {rest : List (ABIType × Expr)}
+    (he : evalExpr? cfg solm evm e = .ok v)
+    (henc : encodePackedValue? ty v = some head)
+    (htail : evalPackedArgs? cfg solm evm rest = .ok tailBytes) :
+    evalPackedArgs? cfg solm evm ((ty, e) :: rest) = .ok (head ++ tailBytes) := by
+  rw [evalPackedArgs?]
+  simp only [he, henc, htail, EvalResult.bind, EvalResult.ofOption, bind, pure]
+
+theorem evalPackedArgs_single {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {ty : ABIType} {e : Expr} {v : Value} {head : List UInt8}
+    (he : evalExpr? cfg solm evm e = .ok v)
+    (henc : encodePackedValue? ty v = some head) :
+    evalPackedArgs? cfg solm evm [(ty, e)] = .ok head := by
+  simp [evalPackedArgs?, he, henc, EvalResult.bind, EvalResult.ofOption, bind, pure]
+
+theorem execBlockAppendRevert {cfg : Config} {solm solm' : Frame} {evm evm' : EVM.State}
+    {pref suff : List Stmt}
+    (hp : ExecBlock cfg solm evm pref (.ok solm' evm'))
+    (hs : ExecBlock cfg solm' evm' suff .reverted) :
+    ExecBlock cfg solm evm (pref ++ suff) .reverted := by
+  exact execBlock_append hp hs
+
+theorem execBlockAppendOk {cfg : Config} {solm solm' : Frame} {evm evm' : EVM.State}
+    {pref suff : List Stmt} {res : ExecResult}
+    (hp : ExecBlock cfg solm evm pref (.ok solm' evm'))
+    (hs : ExecBlock cfg solm' evm' suff res) :
+    ExecBlock cfg solm evm (pref ++ suff) res := by
+  exact execBlock_append hp hs
+
+theorem execBlockAppendReverted {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {pref suff : List Stmt}
+    (hp : ExecBlock cfg solm evm pref .reverted) :
+    ExecBlock cfg solm evm (pref ++ suff) .reverted := by
+  exact execBlock_append_term hp (by intro _ _ h; cases h)
+
+theorem execBlock_append_ok {cfg : Config} {solm evm solm' evm' result}
+    {xs ys : List Stmt}
+    (hxs : ExecBlock cfg solm evm xs (.ok solm' evm'))
+    (hys : ExecBlock cfg solm' evm' ys result) :
+    ExecBlock cfg solm evm (xs ++ ys) result := by
+  exact execBlock_append hxs hys
+
+theorem sliceBytes_nat {out : ByteArray} {start finish : Nat}
+    (hs : start ≤ finish) (he : finish ≤ out.size) :
+    sliceBytes? out (Int.ofNat start) (Int.ofNat finish) =
+      .ok (.bytes (out.extract start finish)) := by
+  simp [sliceBytes?, Int.ofNat_eq_natCast, Nat.not_lt.mpr hs, Nat.not_lt.mpr he]
+
+theorem naturalAddSource {cfg frame evm lhs rhs} {a b : Nat}
+    (ha : evalExpr? cfg frame evm lhs = .ok (.int (Int.ofNat a)))
+    (hb : evalExpr? cfg frame evm rhs = .ok (.int (Int.ofNat b))) :
+    evalExpr? cfg frame evm (.binary .add lhs rhs) = .ok (.int (Int.ofNat (a + b))) := by
+  simp only [evalExpr?, ha, hb, bind, EvalResult.bind, evalBinaryOp?]
+  rfl
+
+theorem naturalLeSource {cfg frame evm lhs rhs} {a b : Nat}
+    (ha : evalExpr? cfg frame evm lhs = .ok (.int (Int.ofNat a)))
+    (hb : evalExpr? cfg frame evm rhs = .ok (.int (Int.ofNat b))) :
+    evalExpr? cfg frame evm (.binary .le lhs rhs) = .ok (.bool (decide (a ≤ b))) := by
+  simp only [evalExpr?, ha, hb, bind, EvalResult.bind, evalBinaryOp?, Int.ofNat_eq_natCast,
+    Nat.cast_le]
+
+theorem naturalGeSource {cfg frame evm lhs rhs} {a b : Nat}
+    (ha : evalExpr? cfg frame evm lhs = .ok (.int (Int.ofNat a)))
+    (hb : evalExpr? cfg frame evm rhs = .ok (.int (Int.ofNat b))) :
+    evalExpr? cfg frame evm (.binary .ge lhs rhs) = .ok (.bool (decide (b ≤ a))) := by
+  simp only [evalExpr?, ha, hb, bind, EvalResult.bind, evalBinaryOp?, Int.ofNat_eq_natCast,
+    Nat.cast_le]
+
+theorem localNatSource {cfg : Config} {contract : ContractDecl} {evm : EVM.State}
+    {locals : Store} {name : Ident} {n : Nat}
+    (hn : locals.get? name = some (.int (Int.ofNat n))) :
+    evalExpr? cfg { contract := contract, locals := locals } evm (.var name) =
+      .ok (.int (Int.ofNat n)) := by
+  simp only [evalExpr?, hn, EvalResult.ofOption]
+
+theorem uint256RangeSourceOk {cfg solm evm expr} {n : Nat}
+    (he : evalExpr? cfg solm evm expr = .ok (.int (Int.ofNat n)))
+    (hn : n < UInt256.size) :
+    evalExpr? cfg solm evm (.inRange (.uint ⟨256, by decide⟩) expr) =
+      .ok (.int (Int.ofNat n)) := by
+  have hi0 : ¬ Int.ofNat n < 0 := by simp only [Int.ofNat_eq_natCast]; omega
+  have hi : ¬ Int.ofNat n ≥ 2 ^ 256 := by
+    change n < 2 ^ 256 at hn
+    simp only [Int.ofNat_eq_natCast]
+    omega
+  simp only [evalExpr?, he, bind, EvalResult.bind, hi0, hi, decide_false, Bool.or_self,
+    Bool.false_eq_true, if_false, pure]
+
+theorem uint256RangeSourceOverflow {cfg solm evm expr} {n : Nat}
+    (he : evalExpr? cfg solm evm expr = .ok (.int (Int.ofNat n)))
+    (hn : UInt256.size ≤ n) :
+    evalExpr? cfg solm evm (.inRange (.uint ⟨256, by decide⟩) expr) = .revert := by
+  have hi : Int.ofNat n ≥ 2 ^ 256 := by
+    change 2 ^ 256 ≤ n at hn
+    simp only [Int.ofNat_eq_natCast]
+    omega
+  simp only [evalExpr?, he, bind, EvalResult.bind, hi, decide_true, Bool.or_true, if_true]
+
+theorem checkedAddSourceOk {cfg solm evm lhs rhs a b}
+    (ha : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat (UInt256.toNat a))))
+    (hb : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat (UInt256.toNat b))))
+    (hno : a.toNat + b.toNat < UInt256.size) :
+    evalExpr? cfg solm evm (.inRange (.uint ⟨256, by decide⟩) (.binary .add lhs rhs)) =
+      .ok (.int (Int.ofNat (a + b).toNat)) := by
+  have hw : (a + b).toNat = a.toNat + b.toNat := addWord_toNat a b hno
+  rw [hw]
+  apply uint256RangeSourceOk ?_ hno
+  simp only [evalExpr?, ha, hb, bind, EvalResult.bind, evalBinaryOp?]
+  rfl
+
+theorem checkedAddSourceOverflow {cfg solm evm lhs rhs a b}
+    (ha : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat (UInt256.toNat a))))
+    (hb : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat (UInt256.toNat b))))
+    (hover : UInt256.size ≤ a.toNat + b.toNat) :
+    evalExpr? cfg solm evm (.inRange (.uint ⟨256, by decide⟩) (.binary .add lhs rhs)) =
+      .revert := by
+  apply uint256RangeSourceOverflow ?_ hover
+  simp only [evalExpr?, ha, hb, bind, EvalResult.bind, evalBinaryOp?]
+  rfl
+
+theorem checkedMulSourceOk {cfg solm evm lhs rhs a b}
+    (ha : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat (UInt256.toNat a))))
+    (hb : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat (UInt256.toNat b))))
+    (hno : a.toNat * b.toNat < UInt256.size) :
+    evalExpr? cfg solm evm (.inRange (.uint ⟨256, by decide⟩) (.binary .mul lhs rhs)) =
+      .ok (.int (Int.ofNat (UInt256.mul a b).toNat)) := by
+  rw [u256_mul_toNat, Nat.mod_eq_of_lt hno]
+  apply uint256RangeSourceOk ?_ hno
+  simp only [evalExpr?, ha, hb, bind, EvalResult.bind, evalBinaryOp?]
+  rfl
+
+theorem checkedMulSourceOverflow {cfg solm evm lhs rhs a b}
+    (ha : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat (UInt256.toNat a))))
+    (hb : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat (UInt256.toNat b))))
+    (hover : UInt256.size ≤ a.toNat * b.toNat) :
+    evalExpr? cfg solm evm (.inRange (.uint ⟨256, by decide⟩) (.binary .mul lhs rhs)) =
+      .revert := by
+  apply uint256RangeSourceOverflow ?_ hover
+  simp only [evalExpr?, ha, hb, bind, EvalResult.bind, evalBinaryOp?]
+  rfl
+
+theorem divSourceOk {cfg solm evm lhs rhs a b}
+    (ha : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat (UInt256.toNat a))))
+    (hb : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat (UInt256.toNat b))))
+    (hn : b ≠ ⟨0⟩) :
+    evalExpr? cfg solm evm (.binary .div lhs rhs) =
+      .ok (.int (Int.ofNat (UInt256.div a b).toNat)) := by
+  have hz : (b.toNat : Int) ≠ 0 := by
+    intro he
+    exact hn (uint256_toNat_eq_zero (by omega))
+  simp only [evalExpr?, ha, hb, bind, EvalResult.bind, evalBinaryOp?,
+    udiv_toNat, Int.ofNat_eq_natCast, hz, if_false, Int.natCast_ediv]
+
+theorem subSourceOk {cfg solm evm lhs rhs a b}
+    (ha : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat (UInt256.toNat a))))
+    (hb : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat (UInt256.toNat b))))
+    (hn : b.toNat ≤ a.toNat) :
+    evalExpr? cfg solm evm (.binary .sub lhs rhs) =
+      .ok (.int (Int.ofNat (UInt256.sub a b).toNat)) := by
+  simp only [evalExpr?, ha, hb, bind, EvalResult.bind, evalBinaryOp?,
+    usub_toNat hn, Int.ofNat_eq_natCast, Int.natCast_sub hn]
+
+theorem execFor_var_state {cfg : Config} {C : ContractDecl}
+    {condExpr : Expr} {post body : List Stmt}
+    (P : ℕ → Solm.Store → EVM.State → Prop)
+    (hfalse : ∀ L evm, P 0 L evm →
+        evalExpr? cfg { contract := C, locals := L } evm condExpr = .ok (.bool false))
+    (htrue : ∀ v L evm, P (v + 1) L evm →
+        evalExpr? cfg { contract := C, locals := L } evm condExpr = .ok (.bool true))
+    (hstep : ∀ v L evm, P (v + 1) L evm →
+        ∃ L1 evm1, ExecBlock cfg { contract := C, locals := L } evm body
+              (.ok { contract := C, locals := L1 } evm1) ∧
+            ∃ L2 evm2, ExecBlock cfg { contract := C, locals := L1 } evm1 post
+              (.ok { contract := C, locals := L2 } evm2) ∧ P v L2 evm2) :
+    ∀ v L evm, P v L evm → ∃ L' evm',
+      ExecForLoop cfg { contract := C, locals := L } evm condExpr post body
+        (.ok { contract := C, locals := L' } evm') ∧ P 0 L' evm' := by
+  exact Reasoning.Theory.execFor_var_state_continue P hfalse htrue
+    (fun v L evm hP => by
+      obtain ⟨L1, evm1, hbody, L2, evm2, hpost, hP1⟩ := hstep v L evm hP
+      exact ⟨L1, evm1, Or.inl hbody, L2, evm2, hpost, hP1⟩)
+
+/-- An address value as an `Expr` literal. -/
+def addressLiteral (a : EVM.Address) : Expr :=
+  .cast (.intLit (Int.ofNat a.toNat)) (.elem .address)
+
+theorem evalAddressLiteral (cfg : Config) (frame : Frame) (evm : EVM.State) (a : AccountAddress) :
+    evalExpr? cfg frame evm (addressLiteral a) = .ok (.address a) := by
+  simp only [addressLiteral, evalExpr?, EvalResult.bind, bind, pure, castValue?]
+  erw [if_neg]
+  · simp [EvalResult.ofOption, AccountAddress.ofNat]
+  · exact not_lt.mpr (Int.natCast_nonneg (↑a : Nat))
+
+theorem execBlock_reverted_append {cfg : Config} {s2 : List Stmt} :
+    ∀ {f e s1}, ExecBlock cfg f e s1 .reverted →
+      ExecBlock cfg f e (s1 ++ s2) .reverted := by
+  intro f e s1
+  induction s1 generalizing f e with
+  | nil =>
+      intro h
+      cases h
+  | cons stmt rest ih =>
+      intro h
+      cases h with
+      | consNormal hstmt htail =>
+          exact ExecBlock.consNormal hstmt (ih htail)
+      | consRevert hstmt =>
+          exact ExecBlock.consRevert hstmt
+
 end Reasoning.Theory

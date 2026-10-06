@@ -1537,4 +1537,653 @@ theorem mappingSlot_single (key baseSlot : UInt256) :
   keccakSlot_eq _
 
 
+def expandedWords (aw offset size : UInt256) : UInt256 :=
+  UInt256.ofNat (MachineState.M aw.toNat offset.toNat size.toNat)
+
+def expansionCost (aw offset size : UInt256) : Nat :=
+  Cₘ (expandedWords aw offset size) - Cₘ aw
+
+def loadedWord (mem : ByteArray) (offset : UInt256) : UInt256 :=
+  if offset.toNat ≥ mem.size then ⟨0⟩ else
+    UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding offset.toNat 32))
+
+abbrev memoryWordActiveWords (aw offset : UInt256) : UInt256 :=
+  UInt256.ofNat (MachineState.M aw.toNat offset.toNat 32)
+
+abbrev memoryWordLoad (mem : ByteArray) (offset : UInt256) : UInt256 :=
+  if offset.toNat ≥ mem.size then ⟨0⟩
+  else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding offset.toNat 32))
+
+theorem MachineState_M_mul32_lt_of_bounds {s f l : Nat}
+    (hs : s * 32 < UInt256.size) (hf : f + l + 31 < UInt256.size) :
+    MachineState.M s f l * 32 < UInt256.size := by
+  unfold MachineState.M
+  split
+  · exact hs
+  · by_cases hle : s ≤ (f + l + 31) / 32
+    · rw [Nat.max_eq_right hle]
+      have hdiv := Nat.div_mul_le_self (f + l + 31) 32
+      omega
+    · rw [Nat.max_eq_left (Nat.le_of_not_ge hle)]
+      exact hs
+
+theorem MachineState_M_ge_left (s f l : Nat) : s ≤ MachineState.M s f l := by
+  unfold MachineState.M
+  split
+  · rfl
+  · exact Nat.le_max_left _ _
+
+theorem UInt256_ofNat_M_mul32_lt (aw off : UInt256)
+    (haw : aw.toNat * 32 < UInt256.size)
+    (hoff : off.toNat + 32 + 31 < UInt256.size) :
+    (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)).toNat * 32 <
+      UInt256.size := by
+  have hMmul := MachineState_M_mul32_lt_of_bounds haw hoff
+  have hMlt : MachineState.M aw.toNat off.toNat 32 < UInt256.size := by
+    omega
+  rw [UInt256.toNat_ofNat_of_lt hMlt]
+  exact hMmul
+
+theorem UInt256_ofNat_M_toNat_ge (aw off : UInt256) {n : Nat}
+    (hn : n ≤ aw.toNat)
+    (haw : aw.toNat * 32 < UInt256.size)
+    (hoff : off.toNat + 32 + 31 < UInt256.size) :
+    n ≤ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)).toNat := by
+  have hMmul := MachineState_M_mul32_lt_of_bounds haw hoff
+  have hMlt : MachineState.M aw.toNat off.toNat 32 < UInt256.size := by
+    omega
+  rw [UInt256.toNat_ofNat_of_lt hMlt]
+  exact le_trans hn (MachineState_M_ge_left _ _ _)
+
+theorem UInt256_ofNat_M_covers (aw off : UInt256)
+    (haw : aw.toNat * 32 < UInt256.size)
+    (hoff : off.toNat + 32 + 31 < UInt256.size) :
+    off.toNat + 32 ≤
+      (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)).toNat * 32 := by
+  have hMmul := MachineState_M_mul32_lt_of_bounds haw hoff
+  have hMlt : MachineState.M aw.toNat off.toNat 32 < UInt256.size := by
+    omega
+  rw [UInt256.toNat_ofNat_of_lt hMlt]
+  unfold MachineState.M
+  have hceil : off.toNat + 32 ≤ ((off.toNat + 32 + 31) / 32) * 32 := by
+    have hmod := Nat.mod_lt (off.toNat + 32 + 31) (by norm_num : 0 < 32)
+    have hdm := Nat.div_add_mod (off.toNat + 32 + 31) 32
+    omega
+  split
+  · omega
+  · exact le_trans hceil (Nat.mul_le_mul_right 32 (Nat.le_max_right _ _))
+
+theorem MachineState_M_eq_of_cover (aw off len : Nat) (hcover : off + len ≤ aw * 32) :
+    MachineState.M aw off len = aw := by
+  unfold MachineState.M
+  split
+  · rfl
+  · rw [Nat.max_eq_left]
+    have hdivlt : (off + len + 31) / 32 < aw + 1 := by
+      rw [Nat.div_lt_iff_lt_mul (by norm_num : 0 < 32)]
+      omega
+    omega
+
+theorem UInt256_M_same_of_cover_len (aw off : UInt256) (len : Nat)
+    (hcover : off.toNat + len ≤ aw.toNat * 32) :
+    UInt256.ofNat (MachineState.M aw.toNat off.toNat len) = aw := by
+  rw [MachineState_M_eq_of_cover _ _ _ hcover]
+  exact u256_ofNat_toNat aw
+
+theorem UInt256_M_same_of_cover (aw off : UInt256)
+    (_haw : aw.toNat * 32 < UInt256.size)
+    (hcover : off.toNat + 32 ≤ aw.toNat * 32) :
+    UInt256.ofNat (MachineState.M aw.toNat off.toNat 32) = aw :=
+  UInt256_M_same_of_cover_len aw off 32 hcover
+
+theorem UInt256_mload_haw_of_cover (aw off : UInt256)
+    (haw : aw.toNat * 32 < UInt256.size)
+    (hcover : off.toNat + 32 ≤ aw.toNat * 32) :
+    ¬ off ≥ aw * ⟨32⟩ := by
+  intro h
+  have hle : (aw * ⟨32⟩).toNat ≤ off.toNat := h
+  rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
+    Nat.mod_eq_of_lt haw] at hle
+  omega
+
+theorem toByteArray_ofNat_fromByteArrayBigEndian_of_size {arr : ByteArray}
+    (hsize : arr.size = 32) :
+    UInt256.toByteArray (UInt256.ofNat (fromByteArrayBigEndian arr)) = arr := by
+  rw [← uInt256OfByteArray_eq arr]
+  rw [← word_toBytesBE_toByteArray_eq_toByteArray (uInt256OfByteArray arr)]
+  apply ByteArray.ext
+  apply Array.toList_inj.mp
+  rw [List.toList_data_toByteArray]
+  simpa [byteArray_toList_eq] using toBytesBE_uInt256OfByteArray_of_size hsize
+
+theorem toByteArray_readWord_extract (mem : ByteArray) (off start len : Nat)
+    (hfull : off + 32 ≤ mem.size) (hwithin : start + len ≤ 32) (hpos : 0 < len) :
+    (UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding off 32))).toByteArray.extract start
+      (start + len) =
+      mem.readWithPadding (off + start) len := by
+  have hreadSize : (mem.readWithPadding off 32).size = 32 := by
+    rw [readWithPadding_eq_extract mem off hfull, ByteArray.size_extract]
+    omega
+  rw [toByteArray_ofNat_fromByteArrayBigEndian_of_size hreadSize,
+    readWithPadding_eq_extract mem off hfull, extract_extract_BA,
+    readWithPadding_eq_extract' mem (off + start) len hpos (by omega) (by omega)]
+  congr 1
+  omega
+
+def callOutputMem (mem out : ByteArray) (offset size : UInt256) : ByteArray :=
+  out.write 0 mem offset.toNat (min size (UInt256.ofNat out.size)).toNat
+
+def callActiveWords (aw inOffset inSize outOffset outSize : UInt256) : UInt256 :=
+  UInt256.ofNat (MachineState.M (MachineState.M aw.toNat inOffset.toNat inSize.toNat)
+    outOffset.toNat outSize.toNat)
+
+theorem loadedWord_of_read {mem : ByteArray} {off word : UInt256}
+    (hmem : off.toNat + 32 ≤ mem.size)
+    (hread : mem.readWithPadding off.toNat 32 = word.toByteArray) :
+    loadedWord mem off = word := by
+  apply mloadWordValue_of_readWithPadding (by omega) hread
+
+theorem writeBytes_size (src mem : ByteArray) (off : Nat)
+    (hpos : src.size ≠ 0) (hin : off ≤ mem.size) :
+    (src.write 0 mem off src.size).size = max mem.size (off + src.size) := by
+  by_cases he : off + src.size ≤ mem.size
+  · rw [write_eq_gen src mem off src.size hpos (le_refl _) he]
+    simp only [ByteArray.size_append, ByteArray.size_extract]
+    omega
+  · rw [write_eq_gen_extend src mem off src.size hpos (le_refl _) hin (by omega)]
+    simp only [ByteArray.size_append, ByteArray.size_extract]
+    omega
+
+theorem callOutputLen32 {out : ByteArray} (hb : out.size < UInt256.size) :
+    (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat = min 32 out.size := by
+  have hn := ulit_toNat' out.size hb
+  by_cases hs : 32 ≤ out.size
+  · have hw : (⟨32⟩ : UInt256) ≤ UInt256.ofNat out.size := by
+      change 32 ≤ (UInt256.ofNat out.size).toNat
+      omega
+    simp only [min, hw, if_true]
+    change 32 = _
+    exact (Nat.min_eq_left hs).symm
+  · have hw : ¬ (⟨32⟩ : UInt256) ≤ UInt256.ofNat out.size := by
+      change ¬ 32 ≤ (UInt256.ofNat out.size).toNat
+      omega
+    simp only [min, hw, if_false, hn]
+    exact (Nat.min_eq_right (by omega)).symm
+
+
+
+
+
+theorem memoryWords_bounds (aw off size : Nat) (ha : aw ≤ 2 ^ 200)
+    (hb : off + size ≤ 2 ^ 200) :
+    aw ≤ MachineState.M aw off size ∧ MachineState.M aw off size ≤ 2 ^ 200 := by
+  unfold MachineState.M
+  split <;> omega
+
+theorem copyWindow_eq (src mem : ByteArray) (srcOff dest len : Nat)
+    (hpos : len ≠ 0) (hsrc : srcOff + len ≤ src.size) (hdest : dest ≤ mem.size) :
+    src.write srcOff mem dest len = mem.extract 0 dest ++ src.extract srcOff (srcOff + len) ++
+      mem.extract (dest + len) mem.size := by
+  apply ByteArray.ext
+  unfold ByteArray.write
+  rw [if_neg hpos, if_neg (show ¬ srcOff ≥ src.size by omega)]
+  have hsize : src.data.size = src.size := rfl
+  have hpL : min len (src.size - srcOff) = len := by omega
+  have hsp : min mem.size (dest + len) - (dest + len) = 0 :=
+    Nat.sub_eq_zero_of_le (Nat.min_le_right _ _)
+  have hdp : dest - mem.size = 0 := Nat.sub_eq_zero_of_le hdest
+  have hz0 : ByteArray.zeroes 0 = ByteArray.empty := zeroes_zero (by rfl)
+  simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract,
+    show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
+    hsize, hpL, hsp, Nat.add_zero, show mem.data.size = mem.size from rfl]
+
+theorem copyWindow_size (src mem : ByteArray) (srcOff dest len : Nat)
+    (hpos : len ≠ 0) (hsrc : srcOff + len ≤ src.size) (hdest : dest ≤ mem.size) :
+    (src.write srcOff mem dest len).size = max mem.size (dest + len) := by
+  rw [copyWindow_eq src mem srcOff dest len hpos hsrc hdest]
+  simp only [ByteArray.size_append, ByteArray.size_extract]
+  omega
+
+theorem copyWindow_extract (src mem : ByteArray) (srcOff dest len off count : Nat)
+    (hpos : len ≠ 0) (hsrc : srcOff + len ≤ src.size) (hdest : dest ≤ mem.size)
+    (hwithin : off + count ≤ len) :
+    (src.write srcOff mem dest len).extract (dest + off) (dest + off + count) =
+      src.extract (srcOff + off) (srcOff + off + count) := by
+  have hp : (mem.extract 0 dest).size = dest := by rw [ByteArray.size_extract]; omega
+  have hs : (src.extract srcOff (srcOff + len)).size = len := by
+    rw [ByteArray.size_extract]; omega
+  rw [copyWindow_eq src mem srcOff dest len hpos hsrc hdest,
+    extract_append_left _ _ _ _ (by rw [ByteArray.size_append, hp, hs]; omega),
+    extract_append_right_window _ _ _ _ (by rw [hp]; omega), hp]
+  rw [show dest + off - dest = off by omega,
+    show dest + off + count - dest = off + count by omega, extract_extract_BA]
+  congr 1
+  omega
+
+theorem copyWindow_read_word (src mem : ByteArray) (srcOff dest len off : Nat)
+    (hpos : len ≠ 0) (hsrc : srcOff + len ≤ src.size) (hdest : dest ≤ mem.size)
+    (hwithin : off + 32 ≤ len) :
+    (src.write srcOff mem dest len).readWithPadding (dest + off) 32 =
+      src.readWithPadding (srcOff + off) 32 := by
+  rw [readWithPadding_eq_extract _ _ (by
+      rw [copyWindow_size src mem srcOff dest len hpos hsrc hdest]; omega),
+    readWithPadding_eq_extract _ _ (by omega),
+    copyWindow_extract src mem srcOff dest len off 32 hpos hsrc hdest hwithin]
+
+theorem copyWindow_read_preserved (src mem : ByteArray) (srcOff dest len read : Nat)
+    (hpos : len ≠ 0) (hsrc : srcOff + len ≤ src.size) (hdest : dest ≤ mem.size)
+    (hin : read + 32 ≤ mem.size) (hdisj : read + 32 ≤ dest ∨ dest + len ≤ read) :
+    (src.write srcOff mem dest len).readWithPadding read 32 = mem.readWithPadding read 32 := by
+  have hp : (mem.extract 0 dest).size = dest := by rw [ByteArray.size_extract]; omega
+  have hs : (src.extract srcOff (srcOff + len)).size = len := by
+    rw [ByteArray.size_extract]; omega
+  rw [readWithPadding_eq_extract _ _ (by
+      rw [copyWindow_size src mem srcOff dest len hpos hsrc hdest]; omega),
+    readWithPadding_eq_extract _ _ hin, copyWindow_eq src mem srcOff dest len hpos hsrc hdest]
+  rcases hdisj with hlo | hhi
+  · rw [extract_append_left _ _ _ _ (by rw [ByteArray.size_append, hp, hs]; omega),
+      extract_append_left _ _ _ _ (by rw [hp]; omega), extract_extract_BA]
+    congr 1 <;> omega
+  · rw [extract_append_right_window _ _ _ _ (by rw [ByteArray.size_append, hp, hs]; omega),
+      ByteArray.size_append, hp, hs, extract_extract_BA]
+    congr 1 <;> omega
+
+
+
+theorem byteArray_write_size_of_inBounds (src base : ByteArray) (dest len : Nat)
+    (hsrc : len ≤ src.size) (hin : dest + len ≤ base.size) :
+    (src.write 0 base dest len).size = base.size := by
+  by_cases hz : len = 0
+  · rw [hz, byteArray_write_len_zero]
+  · rw [write_eq_gen src base dest len hz hsrc hin,
+      ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+      ByteArray.size_extract, ByteArray.size_extract]
+    omega
+
+theorem writeWord_read_gap32 (base : ByteArray) (word : UInt256) :
+    (word.toByteArray.write 0 base (base.size + 32) 32).readWithPadding base.size 32 =
+      (⟨0⟩ : UInt256).toByteArray := by
+  have hgap : base.size + 32 - base.size < USize.size := by
+    have hu := lt_usize 32 (by omega)
+    simpa using hu
+  rw [toByteArray_write_eq word base (base.size + 32) (by omega) hgap]
+  rw [show base.size + 32 - base.size = 32 by omega]
+  rw [readWithPadding_eq_extract _ _ (by
+    rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, toByteArray_size]
+    omega)]
+  rw [extract_append_left _ _ _ _ (by rw [ByteArray.size_append, ByteArray_zeroes_size]),
+    extract_append_right' _ _ _ _ (by omega) (by rw [ByteArray_zeroes_size])]
+  exact zero_toByteArray_eq_zeroes32.symm
+
+theorem twoWordHashMem_read_above64 (key slot : UInt256) {mem : ByteArray} (offset : Nat)
+    (hlo : 64 ≤ offset) (hin : offset + 32 ≤ mem.size) :
+    (twoWordHashMem key slot mem).readWithPadding offset 32 = mem.readWithPadding offset 32 := by
+  unfold twoWordHashMem wordAt32Mem wordAt0Mem
+  have hsize : (key.toByteArray.write 0 mem 0 32).size = mem.size :=
+    toByteArray_write32_size_of_le mem key 0 mem.size mem.size rfl (by omega) (by omega)
+  rw [write32_read_above _ _ 32 offset (by rw [toByteArray_size])
+    (by rw [hsize]; omega) (by omega) (by rw [hsize]; omega),
+    write32_read_above _ _ 0 offset (by rw [toByteArray_size]) (by omega) (by omega) hin]
+
+theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
+    (hbase : base.size ≤ destAddr) (hgap : destAddr - base.size < USize.size) :
+    src.write srcAddr base destAddr len =
+      base ++ ByteArray.zeroes (destAddr - base.size) ++
+        src.extract srcAddr (srcAddr + len) := by
+  have hsrcNonempty : ¬ srcAddr ≥ src.size := by omega
+  have hcopy : min len (src.size - srcAddr) = len := by
+    rw [Nat.min_eq_left]
+    omega
+  have hcopyData : min len (src.data.size - srcAddr) = len := by
+    rw [show src.data.size = src.size from rfl]
+    exact hcopy
+  have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by
+    have hle : min base.size (destAddr + len) ≤ destAddr + len := Nat.min_le_right _ _
+    omega
+  have hDsz :
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size =
+        destAddr := by
+    rw [Array.size_append]
+    have hz :
+        (ByteArray.zeroes (destAddr - base.size)).data.size =
+          destAddr - base.size := by
+      rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
+          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
+        ByteArray_zeroes_size]
+    rw [hz]
+    change base.size + (destAddr - base.size) = destAddr
+    omega
+  apply ByteArray.ext
+  unfold ByteArray.write
+  rw [if_neg hlen, if_neg hsrcNonempty]
+  simp only [ByteArray.data_copySlice, ByteArray.data_append]
+  change (base.data ++
+          (ByteArray.zeroes (destAddr - base.size)).data).extract 0
+          destAddr ++
+        (src.data ++
+            (ByteArray.zeroes
+                  (min base.size (destAddr + len) -
+                    (destAddr + min len (src.size - srcAddr)))).data).extract
+          srcAddr
+          (srcAddr +
+            (min len (src.size - srcAddr) +
+              (min base.size (destAddr + len) -
+                (destAddr + min len (src.size - srcAddr))))) ++
+        (base.data ++
+          (ByteArray.zeroes (destAddr - base.size)).data).extract
+          (destAddr +
+            min
+              (min len (src.size - srcAddr) +
+                (min base.size (destAddr + len) -
+                  (destAddr + min len (src.size - srcAddr))))
+              ((src.data ++
+                    (ByteArray.zeroes
+                          (min base.size (destAddr + len) -
+                            (destAddr + min len (src.size - srcAddr)))).data).size -
+                srcAddr)) =
+      base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
+        (src.extract srcAddr (srcAddr + len)).data
+  rw [hcopy, htail]
+  rw [show (ByteArray.zeroes (0 : ℕ)).data =
+      (#[] : Array UInt8) from by
+    rw [zeroes_zero (n := (0 : ℕ)) (by rfl)]
+    rfl]
+  simp only [Array.append_empty, Nat.add_zero]
+  rw [Array.extract_eq_self_of_le (by rw [hDsz])]
+  rw [show src.data.extract srcAddr (srcAddr + len) =
+      (src.extract srcAddr (srcAddr + len)).data from by rw [ByteArray.data_extract]]
+  rw [hcopyData]
+  rw [show
+      (base.data ++
+          (ByteArray.zeroes (destAddr - base.size)).data).extract
+        (destAddr + len) = #[] from by
+    apply Array.extract_eq_empty_of_le
+    rw [hDsz]
+    omega]
+  simp only [Array.append_empty]
+
+theorem write0_from_size_ge_len (src base : ByteArray) (srcAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) :
+    len ≤ (src.write srcAddr base 0 len).size := by
+  show len ≤ (src.write srcAddr base 0 len).data.size
+  rw [write0_data_from src base srcAddr len hlen hsrc]
+  rw [Array.size_append]
+  have hleft : (src.data.extract srcAddr (srcAddr + len)).size = len := by
+      rw [Array.size_extract]
+      have : src.data.size = src.size := rfl
+      omega
+  omega
+
+theorem write0_from_size_eq_of_len_le_base (src base : ByteArray) (srcAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) (hbase : len ≤ base.size) :
+    (src.write srcAddr base 0 len).size = base.size := by
+  rw [write_eq_gen_from src base srcAddr 0 len hlen hsrc (by simpa using hbase)]
+  simp [ByteArray.size_append, ByteArray.size_extract]
+  omega
+
+theorem write0_from_read32_above (src base : ByteArray) (srcAddr readAddr : ℕ)
+    (hsrc : srcAddr + 32 ≤ src.size) (hbase : 32 ≤ base.size)
+    (habove : 32 ≤ readAddr) (hread : readAddr + 32 ≤ base.size) :
+    (src.write srcAddr base 0 32).readWithPadding readAddr 32 =
+      base.readWithPadding readAddr 32 := by
+  have hprefix : (base.extract 0 0).size = 0 := by
+    rw [ByteArray.size_extract]
+    omega
+  have hsrcsz : (src.extract srcAddr (srcAddr + 32)).size = 32 := by
+    rw [ByteArray.size_extract]
+    omega
+  have htail : (base.extract 32 base.size).size = base.size - 32 := by
+    rw [ByteArray.size_extract]
+    omega
+  have habsz : (base.extract 0 0 ++ src.extract srcAddr (srcAddr + 32)).size = 32 := by
+    rw [ByteArray.size_append, hprefix, hsrcsz]
+  rw [write_eq_gen_from src base srcAddr 0 32 (by decide) hsrc (by omega),
+    readWithPadding_eq_extract _ readAddr (by
+      rw [ByteArray.size_append, habsz, htail]
+      omega),
+    readWithPadding_eq_extract _ readAddr hread,
+    extract_append_right_window _ _ _ _ (by rw [habsz]; omega), habsz,
+    extract_extract_BA,
+    show 32 + (readAddr - 32) = readAddr from by omega,
+    show min (32 + (readAddr + 32 - 32)) base.size = readAddr + 32 from by omega]
+
+theorem byteArray_mk_toList_toArray (b : ByteArray) :
+    ByteArray.mk b.toList.toArray = b := by
+  apply ByteArray.ext
+  rw [byteArray_toList_eq]
+
+theorem byteArray_toList_append (a b : ByteArray) :
+    (a ++ b).toList = a.toList ++ b.toList := by
+  rw [byteArray_toList_eq, byteArray_toList_eq, byteArray_toList_eq]
+  simp [ByteArray.data_append]
+
+theorem word_toBytesBE_eq_toByteArray_toList (w : UInt256) :
+    EVM.Word.toBytesBE w = (UInt256.toByteArray w).toList := by
+  have h := congrArg ByteArray.toList (word_toBytesBE_toByteArray_eq_toByteArray w)
+  simpa [byteArray_toList_eq] using h
+
+/-- `wordOfInt (Int.ofNat m) = ofNat m` — a nonneg int cast is the natural-value word.
+    LIBRARY CANDIDATE: `Reasoning.Memory` (generalizes `wordOfInt_ofNat_toNat`). -/
+theorem wordOfInt_ofNat_toNat_gen (m : ℕ) : EVM.wordOfInt (Int.ofNat m) = UInt256.ofNat m := by
+  unfold EVM.wordOfInt; rw [if_neg (by simp)]; rfl
+
+/-- `wordOfInt (a + b) = a ⊕ b` (the wrapping `+=` truncation on store). -/
+theorem wordOfInt_add_words (a b : UInt256) :
+    EVM.wordOfInt (Int.ofNat a.toNat + Int.ofNat b.toNat) = UInt256.add a b := by
+  have hcast : (Int.ofNat a.toNat + Int.ofNat b.toNat) = Int.ofNat (a.toNat + b.toNat) := rfl
+  rw [hcast, wordOfInt_ofNat_toNat_gen]
+  apply u256_inj
+  change (UInt256.ofNat (a.toNat + b.toNat)).toNat = (a + b).toNat
+  rw [uadd_toNat]; rfl
+
+theorem mloadCost_of_stack {s : State} {aw off : UInt256} {t : List UInt256} {mcost : ℕ}
+    (haw : s.machineState.activeWords = aw)
+    (hstk : s.machineState.stack = off :: t)
+    (hcost : Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)) - Cₘ aw = mcost) :
+    memoryExpansionCost s .MLOAD = mcost := by
+  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ']
+  have htop : s.machineState.stack[0]! = off := by
+    rw [hstk]
+    rfl
+  rw [htop, haw]
+  exact hcost
+
+theorem returnCost_of_stack {s : State} {aw off len : UInt256} {t : List UInt256}
+    {mcost : ℕ}
+    (haw : s.machineState.activeWords = aw)
+    (hstk : s.machineState.stack = off :: len :: t)
+    (hcost : Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat len.toNat)) - Cₘ aw =
+      mcost) :
+    memoryExpansionCost s .RETURN = mcost := by
+  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ']
+  have h0 : s.machineState.stack[0]! = off := by
+    rw [hstk]
+    rfl
+  have h1 : s.machineState.stack[1]! = len := by
+    rw [hstk]
+    rfl
+  rw [h0, h1, haw]
+  exact hcost
+
+theorem wordAt0Mem_read64 {mem : ByteArray} (word : UInt256)
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (wordAt0Mem word mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  unfold wordAt0Mem
+  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by rw [hmem]; omega)
+    (by omega) (by rw [hmem])]
+  exact hread64
+
+theorem wordAt0Mem_size_of_ge_32 {mem : ByteArray} (word : UInt256)
+    (hmem : 32 ≤ mem.size) :
+    (wordAt0Mem word mem).size = mem.size := by
+  unfold wordAt0Mem
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, toByteArray_size]
+  omega
+
+theorem wordAt32Mem_size_of_ge_64 {mem : ByteArray} (word : UInt256)
+    (hmem : 64 ≤ mem.size) :
+    (wordAt32Mem word mem).size = mem.size := by
+  unfold wordAt32Mem
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega),
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract, toByteArray_size]
+  omega
+
+theorem twoWordHashMem_size_of_ge_64' {mem : ByteArray} (key slot : UInt256)
+    (hmem : 64 ≤ mem.size) :
+    (twoWordHashMem key slot mem).size = mem.size := by
+  unfold twoWordHashMem
+  rw [wordAt32Mem_size_of_ge_64 slot]
+  exact wordAt0Mem_size_of_ge_32 key (by omega)
+  rw [wordAt0Mem_size_of_ge_32 key (by omega)]
+  exact hmem
+
+theorem wordAt0Mem_read64_of_ge_96 {mem : ByteArray} (word : UInt256)
+    (hmem : 96 ≤ mem.size)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (wordAt0Mem word mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  unfold wordAt0Mem
+  rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size]) (by omega)
+    (by omega) (by omega)]
+  exact hread64
+
+theorem wordAt32Mem_read64_of_ge_96 {mem : ByteArray} (word : UInt256)
+    (hmem : 96 ≤ mem.size)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (wordAt32Mem word mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
+  unfold wordAt32Mem
+  rw [write32_read_above _ _ 32 64 (by rw [toByteArray_size]) (by omega)
+    (by omega) (by omega)]
+  exact hread64
+
+theorem twoWordHashMem_read64_of_ge_96 {mem : ByteArray} (key slot : UInt256)
+    (hmem : 96 ≤ mem.size)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (twoWordHashMem key slot mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold twoWordHashMem
+  exact wordAt32Mem_read64_of_ge_96 slot
+    (by rw [wordAt0Mem_size_of_ge_32 key (by omega)]; omega)
+    (wordAt0Mem_read64_of_ge_96 key hmem hread64)
+
+
+
+theorem scratch96_eq_reads (mem : ByteArray) (hmem : mem.size = 96) :
+    mem = mem.readWithPadding 0 32 ++ mem.readWithPadding 32 32 ++
+      mem.readWithPadding 64 32 := by
+  rw [readWithPadding_eq_extract mem 0 (by omega),
+      readWithPadding_eq_extract mem 32 (by omega),
+      readWithPadding_eq_extract mem 64 (by omega)]
+  conv_lhs => rw [← byteArray_extract_self mem]
+  rw [hmem]
+  norm_num
+
+theorem twoWordHashMem_eq_of_size_read64_128 {mem mem' : ByteArray} (key slot : UInt256)
+    (hmem : mem.size = 96) (hmem' : mem'.size = 96)
+    (h64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (h64' : mem'.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    twoWordHashMem key slot mem = twoWordHashMem key slot mem' := by
+  rw [scratch96_eq_reads (twoWordHashMem key slot mem) (twoWordHashMem_size_96 key slot hmem),
+      scratch96_eq_reads (twoWordHashMem key slot mem') (twoWordHashMem_size_96 key slot hmem')]
+  rw [twoWordHashMem_read0 key slot hmem, twoWordHashMem_read0 key slot hmem',
+      twoWordHashMem_read32 key slot hmem, twoWordHashMem_read32 key slot hmem',
+      twoWordHashMem_read64 key slot hmem h64, twoWordHashMem_read64 key slot hmem' h64']
+
+theorem wordAt0Mem_read0_of_size_96 {mem : ByteArray} (word : UInt256)
+    (hmem : mem.size = 96) :
+    (wordAt0Mem word mem).readWithPadding 0 32 = UInt256.toByteArray word := by
+  unfold wordAt0Mem
+  rw [write32_read_back _ _ _ (by rw [toByteArray_size]) (by rw [hmem]; omega)]
+  apply ByteArray.ext
+  rw [ByteArray.data_extract]
+  exact Array.extract_eq_self_of_le (by
+    change (UInt256.toByteArray word).size ≤ 32
+    rw [toByteArray_size])
+
+theorem word_toBytesBE_length_32 (w : UInt256) :
+    (EVM.Word.toBytesBE w).length = 32 := by
+  simpa using word_toBytesBE_toByteArray_size w
+
+theorem byteArray_write_from_ge_eq_no_gap_bound (src base : ByteArray) (srcAddr destAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
+    (hbase : base.size ≤ destAddr) :
+    src.write srcAddr base destAddr len =
+      base ++ ByteArray.zeroes (destAddr - base.size) ++
+        src.extract srcAddr (srcAddr + len) := by
+  have hsrcNonempty : ¬ srcAddr ≥ src.size := by omega
+  have hcopy : min len (src.size - srcAddr) = len := by
+    rw [Nat.min_eq_left]
+    omega
+  have hcopyData : min len (src.data.size - srcAddr) = len := by
+    rw [show src.data.size = src.size from rfl]
+    exact hcopy
+  have htail : min base.size (destAddr + len) - (destAddr + len) = 0 := by
+    have hle : min base.size (destAddr + len) ≤ destAddr + len := Nat.min_le_right _ _
+    omega
+  have hDsz :
+      (base.data ++ (ByteArray.zeroes (destAddr - base.size)).data).size =
+        destAddr := by
+    rw [Array.size_append]
+    have hz :
+        (ByteArray.zeroes (destAddr - base.size)).data.size =
+          destAddr - base.size := by
+      rw [show (ByteArray.zeroes (destAddr - base.size)).data.size =
+          (ByteArray.zeroes (destAddr - base.size)).size from rfl,
+        ByteArray_zeroes_size]
+    rw [hz]
+    change base.size + (destAddr - base.size) = destAddr
+    omega
+  apply ByteArray.ext
+  unfold ByteArray.write
+  rw [if_neg hlen, if_neg hsrcNonempty]
+  simp only [ByteArray.data_copySlice, ByteArray.data_append]
+  change (base.data ++
+          (ByteArray.zeroes (destAddr - base.size)).data).extract 0
+          destAddr ++
+        (src.data ++
+            (ByteArray.zeroes
+              (min base.size (destAddr + len) -
+                (destAddr + min len (src.size - srcAddr)))).data).extract
+          srcAddr
+          (srcAddr +
+            (min len (src.size - srcAddr) +
+              (min base.size (destAddr + len) -
+                (destAddr + min len (src.size - srcAddr))))) ++
+        (base.data ++
+          (ByteArray.zeroes (destAddr - base.size)).data).extract
+          (destAddr +
+            min
+              (min len (src.size - srcAddr) +
+                (min base.size (destAddr + len) -
+                  (destAddr + min len (src.size - srcAddr))))
+              ((src.data ++
+                    (ByteArray.zeroes
+                      (min base.size (destAddr + len) -
+                        (destAddr + min len (src.size - srcAddr)))).data).size -
+                srcAddr)) =
+      base.data ++ (ByteArray.zeroes (destAddr - base.size)).data ++
+        (src.extract srcAddr (srcAddr + len)).data
+  rw [hcopy, htail]
+  rw [show (ByteArray.zeroes 0).data =
+      (#[] : Array UInt8) from by
+    rw [zeroes_zero (n := 0) (by rfl)]
+    rfl]
+  simp only [Array.append_empty, Nat.add_zero]
+  rw [Array.extract_eq_self_of_le (by rw [hDsz])]
+  rw [show src.data.extract srcAddr (srcAddr + len) =
+      (src.extract srcAddr (srcAddr + len)).data from by rw [ByteArray.data_extract]]
+  rw [hcopyData]
+  rw [show
+      (base.data ++
+          (ByteArray.zeroes (destAddr - base.size)).data).extract
+        (destAddr + len) = #[] from by
+    apply Array.extract_eq_empty_of_le
+    rw [hDsz]
+    omega]
+  simp only [Array.append_empty]
+
 end Reasoning.Theory

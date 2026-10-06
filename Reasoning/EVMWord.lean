@@ -1,4 +1,5 @@
 import Ethereum.Semantics
+import EVM.Types
 import Mathlib.Data.Nat.Bitwise
 import Mathlib.Data.Nat.Digits.Defs
 import Mathlib.Data.Nat.Digits.Lemmas
@@ -897,5 +898,234 @@ theorem ushl5_ofNat_toNat (n : ℕ) (hn : n < 2 ^ 251) :
     calc n * 2 ^ 5 < 2 ^ 251 * 2 ^ 5 := Nat.mul_lt_mul_of_pos_right hn (by norm_num)
       _ ≤ UInt256.size := hub)]
   ring
+
+theorem uadd_word_ofNat_toNat (word : UInt256) (n : Nat) (hfit : word.toNat + n < UInt256.size) :
+    (word + UInt256.ofNat n).toNat = word.toNat + n := by
+  rw [uadd_toNat, UInt256.toNat_ofNat_of_lt (by omega), Nat.mod_eq_of_lt hfit]
+
+theorem addWord_toNat (a b : UInt256) (h : a.toNat + b.toNat < UInt256.size) :
+    (UInt256.add a b).toNat = a.toNat + b.toNat := by
+  change (a.toNat + b.toNat) % UInt256.size = _
+  exact Nat.mod_eq_of_lt h
+
+theorem accountAddress_ofUInt256_eq_iff_of_canonical {a b : UInt256}
+    (ha : a.toNat < EVM.addressModulus) (hb : b.toNat < EVM.addressModulus) :
+    AccountAddress.ofUInt256 a = AccountAddress.ofUInt256 b ↔ a = b := by
+  have ha' : a.toNat < AccountAddress.size := ha
+  have hb' : b.toNat < AccountAddress.size := hb
+  constructor
+  · intro h
+    apply u256_inj
+    have hv := congrArg Fin.val h
+    simpa only [accountAddress_ofUInt256_eq_ofNat_toNat, AccountAddress.ofNat,
+      Fin.val_ofNat, Nat.mod_eq_of_lt ha', Nat.mod_eq_of_lt hb'] using hv
+  · intro h; rw [h]
+
+theorem address_of_val (a : AccountAddress) : EVM.address a.val = a := by
+  apply Fin.ext
+  show a.val % EVM.addressModulus = a.val
+  rw [show EVM.addressModulus = AccountAddress.size from by decide]
+  exact Nat.mod_eq_of_lt a.isLt
+
+theorem maskTwice (w mask : UInt256) :
+    UInt256.land (UInt256.land w mask) mask = UInt256.land w mask := by
+  apply u256_inj
+  simp only [uland_toNat, Nat.and_assoc, Nat.and_self]
+
+theorem lowByte_bound (w : UInt256) : (UInt256.land w ⟨255⟩).toNat < EVM.twoPow 8 := by
+  rw [uland_toNat]
+  have h : w.toNat &&& (⟨255⟩ : UInt256).toNat ≤ (⟨255⟩ : UInt256).toNat := Nat.and_le_right
+  change w.toNat &&& 255 < 256
+  change w.toNat &&& 255 ≤ 255 at h
+  omega
+
+theorem u256LandMaskToNatLtOfToNat {bits : Nat} (w mask : UInt256)
+    (hmask : mask.toNat = 2 ^ bits - 1) :
+    (UInt256.land w mask).toNat < EVM.twoPow bits := by
+  rw [uland_toNat, hmask]
+  have hle : w.toNat &&& (2 ^ bits - 1) ≤ 2 ^ bits - 1 := nat_land_le_right _ _
+  have hpos : 0 < 2 ^ bits := Nat.pow_pos (a := 2) (n := bits) (by decide)
+  simpa [EVM.twoPow] using lt_of_le_of_lt hle (Nat.sub_lt hpos Nat.one_pos)
+
+theorem u256LandMaskCleanOfToNat {bits : Nat} (w mask : UInt256)
+    (hmask : mask.toNat = 2 ^ bits - 1) (hcanon : w.toNat < EVM.twoPow bits) :
+    UInt256.land w mask = w := by
+  apply u256_inj
+  rw [uland_toNat, hmask]
+  change Nat.land w.toNat (2 ^ bits - 1) = w.toNat
+  rw [nat_land_mask_eq_mod]
+  exact Nat.mod_eq_of_lt (by simpa [EVM.twoPow] using hcanon)
+
+theorem nat_lor_one_mod_two (n : Nat) : Nat.lor 1 n % 2 = 1 := by
+  nth_rewrite 1 [show 1 = Nat.bit true 0 by rfl]
+  nth_rewrite 1 [← Nat.bit_bodd_div2 n]
+  change (Nat.bit true 0 ||| Nat.bit n.bodd n.div2) % 2 = 1
+  rw [Nat.lor_bit]
+  simp
+
+theorem u256_lor_one_ne_zero (x : UInt256) :
+    UInt256.lor (⟨1⟩ : UInt256) x ≠ ⟨0⟩ := by
+  intro h
+  have hodd : (UInt256.lor (⟨1⟩ : UInt256) x).toNat % 2 = 1 := by
+    rw [u256_lor_toNat]
+    change (Nat.lor 1 x.toNat % UInt256.size) % 2 = 1
+    rw [Nat.mod_mod_of_dvd _ (by norm_num [UInt256.size])]
+    exact nat_lor_one_mod_two x.toNat
+  rw [h] at hodd
+  norm_num at hodd
+
+theorem u256_lor_toNat_exact (a b : UInt256) : (UInt256.lor a b).toNat = a.toNat ||| b.toNat := by
+  rw [u256_lor_toNat]
+  exact Nat.mod_eq_of_lt (Nat.or_lt_two_pow (n := 256) a.val.isLt b.val.isLt)
+
+theorem lowByteClean {value : UInt256} (hc : value.toNat < 256) :
+    UInt256.land value ⟨255⟩ = value := by
+  apply u256_inj
+  rw [uland_toNat]
+  change Nat.land value.toNat (2 ^ 8 - 1) = value.toNat
+  rw [nat_land_mask_eq_mod]
+  exact Nat.mod_eq_of_lt hc
+
+theorem lowByteClean_iff (value : UInt256) :
+    UInt256.land value ⟨255⟩ = value ↔ value.toNat < 256 := by
+  constructor
+  · intro h
+    rw [← h]
+    exact lowByte_bound value
+  · exact lowByteClean
+
+theorem checkedMul_div_eq {a b : UInt256} (ha : a ≠ ⟨0⟩)
+    (hb : b.toNat * a.toNat < UInt256.size) : UInt256.div (UInt256.mul b a) a = b := by
+  have hp : 0 < a.toNat := by
+    by_contra hn
+    exact ha (uint256_toNat_eq_zero (by omega))
+  apply u256_inj
+  rw [udiv_toNat, u256_mul_toNat, Nat.mod_eq_of_lt hb, Nat.mul_div_cancel _ hp]
+
+theorem u256_mul_zero (x : UInt256) :
+    UInt256.mul x (⟨0⟩ : UInt256) = ⟨0⟩ := by
+  apply u256_inj
+  rw [u256_mul_toNat]
+  rfl
+
+theorem u256_mul_div_right_eq_of_noOverflow (x y : UInt256) (hy : y ≠ ⟨0⟩)
+    (h : x.toNat * y.toNat < UInt256.size) :
+    UInt256.div (UInt256.mul x y) y = x := by
+  apply u256_inj
+  rw [udiv_toNat, u256_mul_toNat, Nat.mod_eq_of_lt h]
+  have hyNat : 0 < y.toNat := by
+    have hyne : y.toNat ≠ 0 := by
+      intro hz
+      apply hy
+      exact uint256_toNat_eq_zero hz
+    omega
+  rw [Nat.mul_comm]
+  exact Nat.mul_div_right x.toNat hyNat
+
+theorem u256_mul_div_right_overflow_ne (x y : UInt256)
+    (hover : UInt256.size ≤ x.toNat * y.toNat) :
+    UInt256.div (UInt256.mul x y) y ≠ x := by
+  intro hEq
+  have hyNatNe : y.toNat ≠ 0 := by
+    intro hy0
+    have hprod0 : x.toNat * y.toNat = 0 := by simp [hy0]
+    have hsizePos : 0 < UInt256.size := by norm_num [UInt256.size]
+    omega
+  have hnat := congrArg UInt256.toNat hEq
+  rw [udiv_toNat, u256_mul_toNat] at hnat
+  have hremLt : x.toNat * y.toNat % UInt256.size < x.toNat * y.toNat := by
+    have hmodLt : x.toNat * y.toNat % UInt256.size < UInt256.size :=
+      Nat.mod_lt _ (by norm_num [UInt256.size])
+    omega
+  have hle0 := Nat.mul_div_le (x.toNat * y.toNat % UInt256.size) y.toNat
+  rw [hnat] at hle0
+  have hle : x.toNat * y.toNat ≤ x.toNat * y.toNat % UInt256.size := by
+    simpa [Nat.mul_comm] using hle0
+  omega
+
+theorem u256_mul_div_overflow_ne (x y : UInt256)
+    (hover : UInt256.size ≤ x.toNat * y.toNat) :
+    UInt256.div (y * x) y ≠ x := by
+  intro hEq
+  have hyNatNe : y.toNat ≠ 0 := by
+    intro hy0
+    have hprod0 : x.toNat * y.toNat = 0 := by simp [hy0]
+    have hsizePos : 0 < UInt256.size := by norm_num [UInt256.size]
+    omega
+  have hnat := congrArg UInt256.toNat hEq
+  rw [udiv_toNat, u256_mul_op_toNat] at hnat
+  have hremLt : y.toNat * x.toNat % UInt256.size < y.toNat * x.toNat := by
+    have hmodLt : y.toNat * x.toNat % UInt256.size < UInt256.size :=
+      Nat.mod_lt _ (by norm_num [UInt256.size])
+    have hover' : UInt256.size ≤ y.toNat * x.toNat := by
+      simpa [Nat.mul_comm] using hover
+    omega
+  have hle0 := Nat.mul_div_le (y.toNat * x.toNat % UInt256.size) y.toNat
+  rw [hnat] at hle0
+  have hle : y.toNat * x.toNat ≤ y.toNat * x.toNat % UInt256.size := by
+    simpa [Nat.mul_comm] using hle0
+  omega
+
+theorem u256_sub_eq_zero_iff_eq {a b : UInt256} :
+    UInt256.sub a b = ⟨0⟩ ↔ a = b := by
+  constructor
+  · intro h
+    by_contra hne
+    exact u256_sub_ne_zero_of_ne hne h
+  · intro h
+    rw [h]
+    exact u256_sub_self b
+
+theorem u256_ofNat_toNat_add_eq_add_of_lt (a b : UInt256)
+    (hfit : a.toNat + b.toNat < UInt256.size) :
+    UInt256.ofNat (a.toNat + b.toNat) = a + b := by
+  apply u256_inj
+  rw [UInt256.toNat_ofNat_of_lt hfit]
+  change a.toNat + b.toNat = (UInt256.add a b).toNat
+  unfold UInt256.add UInt256.toNat
+  rw [Fin.val_add]
+  exact (Nat.mod_eq_of_lt hfit).symm
+
+theorem natLorLowMiddleHigh112_224 (low mid high : Nat)
+    (hlow : low < 2 ^ 112) (hmid : mid < 2 ^ 112) :
+    Nat.lor (mid * 2 ^ 112) (low + high * 2 ^ 224) =
+      low + mid * 2 ^ 112 + high * 2 ^ 224 := by
+  have hlow224 : low < 2 ^ 224 := lt_trans hlow (by norm_num)
+  have hlowHigh : Nat.lor low (high * 2 ^ 224) = low + high * 2 ^ 224 := by
+    exact nat_lor_shift_add low high 224 hlow224
+  rw [← hlowHigh]
+  rw [nat_lor_comm (mid * 2 ^ 112) (Nat.lor low (high * 2 ^ 224))]
+  rw [show Nat.lor (Nat.lor low (high * 2 ^ 224)) (mid * 2 ^ 112) =
+      Nat.lor low (Nat.lor (high * 2 ^ 224) (mid * 2 ^ 112)) from
+    Nat.lor_assoc low (high * 2 ^ 224) (mid * 2 ^ 112)]
+  rw [nat_lor_comm (high * 2 ^ 224) (mid * 2 ^ 112)]
+  have hmidShift : mid * 2 ^ 112 < 2 ^ 224 := by
+    calc
+      mid * 2 ^ 112 < 2 ^ 112 * 2 ^ 112 :=
+        Nat.mul_lt_mul_of_pos_right hmid (by positivity)
+      _ = 2 ^ 224 := by rw [← Nat.pow_add]
+  rw [nat_lor_shift_add (mid * 2 ^ 112) high 224 hmidShift]
+  rw [show mid * 2 ^ 112 + high * 2 ^ 224 =
+      (mid + high * 2 ^ 112) * 2 ^ 112 by ring]
+  rw [nat_lor_shift_add low (mid + high * 2 ^ 112) 112 hlow]
+  ring
+
+/-- `wordOfInt 0 = ⟨0⟩` — the zero value word a value-free `CALL` forwards. -/
+theorem wordOfInt_zero : EVM.wordOfInt 0 = (⟨0⟩ : UInt256) := by decide
+
+def maxInt256 : Int := (2 : Int) ^ 255 - 1
+
+/-- The 160-bit address round-trip the EVM `CALL` opcode performs on `msg.sender`:
+    `ofUInt256 (ofNat addr) = addr`. -/
+theorem accountAddress_roundtrip (a : AccountAddress) :
+    AccountAddress.ofUInt256 (UInt256.ofNat a.val) = a := by
+  have hsize : AccountAddress.size < UInt256.size := by decide
+  have hlt : a.val < AccountAddress.size := a.isLt
+  have hv : ((UInt256.ofNat a.val).val : ℕ) = a.val := by
+    show ((Fin.ofNat _ a.val) : Fin UInt256.size).val = a.val
+    simp only [Fin.ofNat]; exact Nat.mod_eq_of_lt (lt_trans hlt hsize)
+  apply Fin.ext
+  simp only [AccountAddress.ofUInt256, Fin.ofNat, hv]
+  rw [Nat.mod_eq_of_lt hlt, Nat.mod_eq_of_lt hlt]
 
 end Reasoning.Theory

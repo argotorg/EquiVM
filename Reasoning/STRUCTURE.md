@@ -4,8 +4,10 @@ Shared, contract-agnostic infrastructure for proving that compiled EVM bytecode 
 specification. Every per-contract proof in `Examples/` and `Benchmarks/` is assembled from these
 files plus contract-specific facts (bytecode literals, selectors, storage layout).
 
-Everything is in namespace `Reasoning.Theory`, except the EVM trace layer (`RD`, `evm_run`, and the
-`RD.*` lemma halves of `Solc.lean` and `Dispatch.lean`), which is in `Reasoning.Reach`.
+Most declarations are in `Reasoning.Theory`. The EVM trace layer (`RD`, `evm_run`,
+`SolcRoutines.lean`, and the `RD.*` lemma halves of `Solc.lean` and `Dispatch.lean`) is in
+`Reasoning.Reach`. `SolmRpow.lean` uses the nested `Reasoning.Theory.RpowB` and
+`Reasoning.Theory.RpowBase` namespaces for the two source-variable conventions.
 `JumpDest.lean` has no namespace (it defines a tactic and an attribute).
 
 The shared reasoning library introduces no axioms.
@@ -26,13 +28,29 @@ The shared reasoning library introduces no axioms.
 | `Solc.lean` | Compiler-emitted code shapes, proved once: selector dispatch, ABI length checks, free-memory-pointer and revert memory, the 160-bit address mask, getter/store routines, reentrancy locks, checked arithmetic, event logs, high-level call combinators. |
 | `Storage.lean` | Storage maps: `ExtTreeMap` lookup/update facts, `StorageLoc` load/store for the Solidity value encodings, the bytes/string storage layout, account-map equality/`EVMStateEquiv` with `SLOAD`/`SSTORE` preservation. |
 | `Dispatch.lean` | Solm dispatcher facts: `dispatchMsg` as a list walk (`dispatchList`), single-transition instances, `SingleSelectorDispatch`, and the `RDret`/`RDrev.reEquiv*` bridges that connect a finished trace to the equivalence statement. |
-| `ExternalCall.lean` | The `CALL` ↔ Solm `externalCall` boundary: both sides invoke the same `Θ`, so results coincide (`callCoincides`); transport of call results across equivalent account maps. |
+| `ExternalCall.lean` | The `CALL` ↔ Solm `externalCall` boundary: both sides invoke the same `Θ`, so results coincide (`callCoincides`); transport of call results across equivalent account maps and substate changes. |
 | `Constructor.lean` | Skeletons for constructor (creation-code) equivalence proofs. |
+| `WordArithmetic.lean` | Further signed and unsigned word bounds, masks, shifts, rounding, and compiler guard arithmetic. |
+| `HeapMemory.lean` | Memory prefixes and cursors, sparse writes, copying, and return-data memory. |
+| `DynamicMemory.lean` | Dynamic byte-array memory, padding, copying, and revert-data layouts. |
+| `MemoryShapes.lean` | Reusable single-word, two-word, and error-string memory shapes, with read, size, preservation, and hash facts. |
+| `SolcMemory.lean` | Compiler memory facts combining shared memory shapes with solc allocation and mapping conventions. |
+| `MemoryArithmetic.lean` | Memory-size and gas bounds, byte-array conversions, copy results, and write-cascade facts. |
+| `ABILegacy.lean` | Legacy solc ABI scalar encoders and decoders, including padded word handling. |
+| `ABIComposite.lean` | Shared ABI type aliases, tuple and dynamic-value encodings, and strict and legacy decoding facts. |
+| `ABIViews.lean` | ABI word views, tuple encoders, packed tuple memory and hashes, calldata bounds, selector extraction, and return-value decoding. |
+| `PackedStorage.lean` | Packed address, bool, uint8, and uint48 locations, masks, loads, and stores. |
+| `StateFacts.lean` | Account and storage projections, state equality, external-code and precompile facts, and elementary source evaluation. |
+| `StorageLoops.lean` | Index and account-map facts for sequential storage clearing and copying. |
+| `BytecodePatching.lean` | Immutable-word encoding, bytecode splicing, preserved decode windows, and jump destinations. |
+| `SolcRoutines.lean` | Bytecode-parameterized getter, authorization, storage-update, checked-arithmetic, and revert routines. |
+| `SolmArithmetic.lean` | Source arithmetic expressions, checked and wrapping operations, power-of-two loops, and shared local-variable frames. |
+| `SolmRpow.lean` | Exponentiation local-variable frames and their contract-independent evaluation facts. |
 
 ## Dependencies
 
 External: `Ethereum.*` (evmlean — EVM semantics and opcode lemmas), `Solm` (the spec language and
-its semantics), `ABI.Decode`, Mathlib (EVMWord and Memory only).
+its semantics), `ABI.Decode`, and Mathlib.
 
 Within `Reasoning/`, imports flow upward:
 
@@ -53,14 +71,36 @@ Stepping   EVMWord ── SolmBody
 Constructor ← Reach, SolmBody     Initcode ← EVMWord     JumpDest ← (Ethereum only)
 ```
 
+The additional modules build on that core:
+
+- `PackedStorage` builds on `Storage`; `WordArithmetic` also uses `SolmBody` and `Initcode`.
+- `MemoryShapes` builds on `MemCascade`; `SolcMemory`, `HeapMemory`, and `DynamicMemory`
+  also use `Solc`.
+- `ABILegacy` builds on `ABI`, and `ABIComposite` builds on `ABILegacy`.
+- `BytecodePatching` uses `Initcode`, `Memory`, and `Solm.Immutables`.
+- `MemoryArithmetic` combines the memory, word, patching, and composite ABI facts.
+  `ABIViews` builds on this layer.
+- `StateFacts` combines `ExternalCall`, `WordArithmetic`, and `MemoryArithmetic`;
+  `StorageLoops` builds on `StateFacts`.
+- `SolcRoutines` combines `Solc` with packed-storage, memory-shape, and memory-arithmetic facts.
+- `SolmArithmetic` builds on `SolmBody` and `ABI`; `SolmRpow` also uses `WordArithmetic`.
+
+These modules do not import `Examples` or `Benchmarks`. Contract-specific bytecode, selectors,
+and storage layouts stay with their proofs. Where a proof is extracted from a concrete source
+configuration, the original theorem remains as a specialization of the shared result.
+
 ## Where to look
 
 - Run one opcode of a concrete trace → `Stepping` (`<op>_xstep`), chained via `Reach` (`evm_run`).
-- Word arithmetic side condition → `EVMWord`.
-- Memory read/write or keccak slot → `Memory` (chains of writes: `MemCascade`).
-- Decode calldata / encode a return value → `ABI` (solc-specific length checks: `Solc`).
-- A code shape the compiler always emits → `Solc`.
-- Storage read/write, packed values, bytes/string layout, account-map equality → `Storage`.
+- Word arithmetic side condition → `EVMWord`, `WordArithmetic`.
+- Memory read/write or keccak slot → `Memory`, `MemoryShapes`, `SolcMemory`;
+  chains of writes → `MemCascade`; copy and size bounds → `MemoryArithmetic`.
+- Decode calldata / encode a return value → `ABI`, `ABILegacy`, `ABIComposite`, `ABIViews`.
+- A code shape the compiler always emits → `Solc`, `SolcRoutines`.
+- Storage read/write, packed values, bytes/string layout, account-map equality → `Storage`,
+  `PackedStorage`, `StateFacts`; clearing and copying loops → `StorageLoops`.
+- Source arithmetic and local-variable frames → `SolmArithmetic`, `SolmRpow`.
+- Immutable bytecode patching and decode preservation → `BytecodePatching`.
 - Selector dispatch, connecting a trace to `runtimeEquivalence` → `Dispatch`.
 - An external call inside a function body → `ExternalCall` (EVM side: `RD.call` in `Reach`;
   Solm side: `SolmBody`).
@@ -69,5 +109,8 @@ Constructor ← Reach, SolmBody     Initcode ← EVMWord     JumpDest ← (Ether
 
 ## Build
 
-`lake build Reasoning` builds all fourteen files. A bare `lake build` builds only `Solm`
+`lake build Reasoning` builds all thirty modules. A bare `lake build` builds only `Solm`
 (the default target) — use explicit targets.
+
+After changing shared lemmas, check their callers with
+`lake build Reasoning Benchmarks Examples EquiVM`.

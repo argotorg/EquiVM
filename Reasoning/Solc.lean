@@ -2889,6 +2889,57 @@ theorem solcAddressValue_masked (w : UInt256) :
   rw [show AccountAddress.size = 2 ^ 160 by rfl]
   rw [Nat.mod_mod]
 
+theorem solcErrorStringMem2_read64 (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (solcErrorStringMem2 len mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ := by
+  unfold solcErrorStringMem2
+  rw [toByteArray_write_read_below_of_gap len _ 164 64
+      (by rw [solcErrorStringMem1_size hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem1_size hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem1
+  rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
+      (by rw [solcErrorStringMem0_size hmem]; omega) (by omega)
+      (by rw [solcErrorStringMem0_size hmem]; exact lt_usize _ (by norm_num))]
+  unfold solcErrorStringMem0
+  rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
+      (by omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
+  exact hread64
+
+def solcStringObjectMem0 : ByteArray :=
+  (UInt256.toByteArray (⟨192⟩ : UInt256)).write 0 solcFreePtrMem
+    (⟨64⟩ : UInt256).toNat 32
+
+def solcStringObjectMem1 (len : UInt256) : ByteArray :=
+  (UInt256.toByteArray len).write 0 solcStringObjectMem0 (⟨128⟩ : UInt256).toNat 32
+
+def solcStringObjectMem (len payloadWord : UInt256) : ByteArray :=
+  (UInt256.toByteArray payloadWord).write 0 (solcStringObjectMem1 len)
+    (⟨160⟩ : UInt256).toNat 32
+
+def solcStringAbiMem0 (len payloadWord : UInt256) : ByteArray :=
+  (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0
+    (solcStringObjectMem len payloadWord) (⟨192⟩ : UInt256).toNat 32
+
+def solcStringAbiMem1 (len payloadWord : UInt256) : ByteArray :=
+  (UInt256.toByteArray len).write 0 (solcStringAbiMem0 len payloadWord)
+    (⟨224⟩ : UInt256).toNat 32
+
+def solcStringAbiMem2 (len payloadWord : UInt256) : ByteArray :=
+  (UInt256.toByteArray payloadWord).write 0 (solcStringAbiMem1 len payloadWord)
+    (⟨256⟩ : UInt256).toNat 32
+
+def solcStringTailMask (len : UInt256) : UInt256 :=
+  UInt256.lnot (UInt256.sub (UInt256.exp ⟨256⟩ (UInt256.sub ⟨32⟩ len)) ⟨1⟩)
+
+def solcStringCleanWord (len payloadWord : UInt256) : UInt256 :=
+  UInt256.land (solcStringTailMask len) payloadWord
+
+def solcStringAbiMem3 (len payloadWord : UInt256) : ByteArray :=
+  (UInt256.toByteArray (solcStringCleanWord len payloadWord)).write 0
+    (solcStringAbiMem2 len payloadWord) (⟨256⟩ : UInt256).toNat 32
+
 end Reasoning.Theory
 
 namespace Reasoning.Reach
@@ -7575,5 +7626,12 @@ theorem solcBinaryDispatchReachLowBody {σ σ₀ A I} {g : Sat256}
     hlowJd.jumpdest hlowJumpdest (by simp)
   exact RD.dispatchTo bodyPC i hfirst hwf heq0 htake (by rw [hbody]; exact hjd) hbody
     (by simp)
+
+def solcSlotWordAt (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
+  solcSlotWord σ I slot
+
+abbrev solcAddressSlotWord (slot : UInt256) (σ : AccountMap) (I : ExecutionEnv) :
+    UInt256 :=
+  UInt256.land (solcSlotWordAt slot σ I) solcAddrMask
 
 end Reasoning.Reach
